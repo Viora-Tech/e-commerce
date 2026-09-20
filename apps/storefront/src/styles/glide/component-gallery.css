@@ -1,0 +1,871 @@
+/**
+ * Product media gallery - vertical thumb rail + main image (desktop),
+ * scroll-snap swipe strip + dots (mobile), zoom lightbox.
+ * Loaded by snippets/product-gallery.liquid.
+ */
+/* Thumbs sit BELOW the main image, not beside it. A side rail forces the main
+   image narrow, which is why this gallery was square while the product
+   photography is wide - the frame could not be any other shape. Underneath,
+   the image gets the full column width and a 4:3 frame, so the product fills
+   it instead of floating in white space. */
+.product-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.product-gallery--placeholder {
+  display: block;
+}
+
+/* ---------------------------------------------------------------- */
+/* Stage: the media frame plus its prev/next arrows                  */
+/* ---------------------------------------------------------------- */
+/* The arrows live here rather than inside .product-gallery__main, which is
+   overflow:hidden so the sliding images are clipped - anything inside it gets
+   clipped with them. */
+.product-gallery__stage {
+  position: relative;
+}
+
+.product-gallery__nav {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+  /* Hidden until the frame is hovered - a permanent pair of arrows over
+     product photography is heavy, and the thumbnails below already offer a
+     way through. */
+  opacity: 0;
+  pointer-events: none;
+}
+
+.product-gallery__nav--prev {
+  left: var(--space-4);
+}
+
+.product-gallery__nav--next {
+  right: var(--space-4);
+}
+
+/* The 'arrow' icon points RIGHT, so PREVIOUS is the one that turns. The
+   lightbox had this the wrong way round and both arrows pointed inward. */
+.product-gallery__nav--prev svg {
+  transform: rotate(180deg);
+}
+
+.product-gallery__stage:hover .product-gallery__nav,
+.product-gallery__nav:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Touch has no hover, so the arrows would never appear. Any pointer that
+   cannot hover gets them permanently. */
+@media (hover: none) {
+  .product-gallery__nav {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.product-gallery__nav:hover {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.product-gallery__nav:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+/* Disabled at the ends rather than hidden: a control that vanishes mid-use
+   moves everything next to it. */
+.product-gallery__nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.product-gallery__stage:hover .product-gallery__nav:disabled {
+  opacity: 0.3;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .product-gallery__nav {
+    transition:
+      opacity 200ms ease,
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Rail: the thumb strip flanked by its scroll buttons               */
+/* ---------------------------------------------------------------- */
+.product-gallery__rail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Outside the strip, never over it. An arrow floating on top of a row of
+   pictures covers the very thing it is helping you choose. */
+.product-gallery__rail-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.product-gallery__rail-btn--prev svg {
+  transform: rotate(180deg);
+}
+
+.product-gallery__rail-btn:hover {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.product-gallery__rail-btn:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.product-gallery__rail-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.product-gallery__rail-btn[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .product-gallery__rail-btn {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      opacity 200ms ease;
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Thumb rail                                                        */
+/* ---------------------------------------------------------------- */
+.product-gallery__thumbs {
+  display: none;
+}
+
+@media screen and (min-width: 750px) {
+  /* The rail is a fixed-height scroller, not a container the thumbs squeeze
+     into. Previously the thumbs were flex items with the default flex-shrink,
+     so a product with many images compressed every thumb vertically into a
+     rectangle instead of scrolling - the more images, the flatter they got. */
+  /* One row that scrolls sideways, never wrapping. Wrapping would change the
+     gallery's height as the visitor clicks through - which shifts everything
+     below it, including the buy button. A fixed single row keeps the page
+     still. */
+  .product-gallery__thumbs {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-3);
+    /* min-width:0 is what lets the strip shrink inside the rail flex row.
+       Without it a flex item refuses to go below its content width, so 19
+       thumbnails would push the scroll buttons off the page instead of
+       scrolling. */
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    /* Room for the selected thumbnail's 2px ring. Setting overflow-x also
+       makes overflow-y computed `auto`, so a rail exactly as tall as its
+       thumbnails CLIPS the ring top and bottom while leaving the left and
+       right edges visible - the selected state then looks like it has
+       different borders on each axis. The padding is what gives the ring
+       somewhere to be drawn. */
+    padding: 3px;
+    /* Scroll snapping aligns to a thumbnail's own edge and ignores the padding
+       above, so the rail would settle at scrollLeft 3 and press the first
+       thumbnail's ring flat against the left edge again. scroll-padding tells
+       snapping - and scrollIntoView - to respect the same 3px. */
+    scroll-padding: 3px;
+    scroll-snap-type: x proximity;
+    /* No visible scrollbar - the mask at the trailing edge already says there
+       is more, and a track under a product gallery is furniture nobody asked
+       for. Wheel, drag and keyboard all still scroll. */
+    scrollbar-width: none;
+    /* Fades the last thumb as it leaves the rail, so a cut-off thumbnail reads
+       as "there is more" rather than as a rendering fault. */
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 36px), transparent 100%);
+  }
+
+  .product-gallery__thumbs::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.product-gallery__thumb {
+  position: relative;
+  /* flex: 0 0 auto is the actual fix - it stops the rail compressing thumbs to
+     fit. aspect-ratio then guarantees square regardless of how many there are
+     or what shape the source image is. */
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  width: 80px;
+  height: 80px;
+  aspect-ratio: 1 / 1;
+  /* A <button> carries a browser default padding (1px 6px in Chrome). Left
+     alone it sat the image 6px in from each side, so the thumbnail's ring was
+     drawn around a box the picture did not fill - a gap that reads as a
+     rendering fault rather than as spacing. */
+  padding: 0;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background-color: var(--color-line);
+  border: 1px solid transparent;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.product-gallery__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-gallery__thumb:hover {
+  opacity: 1;
+  border-color: var(--color-ink);
+}
+
+/* Brand purple, matching the chosen variant swatch. Hover stays INK so the two
+   states cannot be confused: hover says "this one is under your cursor",
+   selected says "this one is showing". Grouping them, as this rule once did,
+   makes every thumbnail look selected as the pointer crosses the row. */
+/* ONE ring, not two. Setting both border-color and a 1px box-shadow drew a
+   2px band made of two separate purples meeting at a seam. The border stays
+   transparent so the thumbnail's box never changes size between states -
+   swapping a transparent border for a coloured one would shift every
+   thumbnail beside it. */
+.product-gallery__thumb.is-active {
+  opacity: 1;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-brand);
+}
+
+.product-gallery__thumb-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Literal: the 30% plate is fixed black over the thumbnail, so the "+N"
+     is light in both schemes. --color-bg made it near-black on black. */
+  color: #fff;
+  background-color: rgb(0 0 0 / 30%);
+}
+
+/* ---------------------------------------------------------------- */
+/* Main image / mobile swipe strip                                   */
+/* ---------------------------------------------------------------- */
+.product-gallery__main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  /* 4:3 rather than square, now that the thumbs are underneath rather than
+     beside. The product photography is wide; a square frame padded it with
+     white on both sides, and a side rail was what forced the square. */
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-m);
+  /* WHITE, matching the page. Every product on this store is photographed on
+     white, and object-fit: contain letterboxes anything that is not exactly
+     4:3 - so a tinted ground draws two pale bands down the sides of the
+     product. Matching the page makes the letterboxing invisible.
+
+     The frame still needs an edge while an image loads, so that job moves to
+     a hairline border rather than a fill. An earlier version used
+     --color-line as the FILL, which is the border token and read as a dingy
+     grey panel with the product floating on it. */
+  background-color: var(--color-bg);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  overflow: hidden;
+}
+
+/* The zoom button is the slide's only child and has to BE the slide, or the
+   image inside keeps its own natural size. That is what cropped the product
+   once the frame went 4:3: a 960x960 shot rendered 758px tall inside a 578px
+   frame, and overflow did the rest.
+
+   object-fit: contain, not cover. Cover was right while the frame was square
+   and the sources were square too; on 4:3 it slices the top and bottom off a
+   product shot, which is the one thing a product gallery must never do.
+   contain shows the whole object whatever shape it was photographed in, and
+   the frame's near-white ground makes the letterboxing invisible on the
+   white-background shots this store uses. */
+.product-gallery__zoom {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.product-gallery__zoom img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.product-gallery__slide {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.product-gallery__slide.is-active {
+  display: block;
+}
+
+/* Desktop only: the slides are STACKED so one can cover another.
+
+   Mobile is excluded on purpose - below 750px the frame is a horizontal swiper
+   with every slide side by side, and absolute positioning would collapse that
+   into a single card with no swipe. */
+@media screen and (min-width: 750px) {
+  .product-gallery__main {
+    /* isolation keeps the stacking local, so a slide can never paint over the
+       lightbox or the sticky bar. */
+    isolation: isolate;
+  }
+
+  .product-gallery__slide {
+    display: block;
+    position: absolute;
+    inset: 0;
+    /* Not just off-screen: a slide parked outside the frame still answers
+       clicks and still takes Tab, so a zoom click would open whichever slide
+       happens to be last in the DOM rather than the one on screen. */
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .product-gallery__slide.is-active {
+    visibility: visible;
+    pointer-events: auto;
+    /* Above the outgoing slide, so it COVERS rather than sliding underneath. */
+    z-index: 2;
+  }
+}
+
+/* A carousel, not a cover. BOTH images move: the outgoing one leaves as the
+   incoming one arrives, travelling together like a filmstrip.
+
+   An earlier version held the outgoing image still and let the new one slide
+   over it. That is a perfectly good transition - it just is not a carousel.
+   Covering reads as one card dealt onto another; a carousel reads as a strip
+   being wound along, and the difference is entirely whether the old image
+   moves. It does now.
+
+   Directions are opposite by definition. Going forward, the incoming enters
+   from the right and the outgoing exits left; going back, both reverse. They
+   share one duration and one curve so they stay locked together - a strip
+   whose halves move at different speeds tears.
+
+   SPECIFICITY: every rule carries the .product-gallery__main prefix so they
+   weigh the same and source order decides. Written without it, the direction
+   rule (three classes) outweighed .is-active (two) and shoved the visible
+   image off the frame when going back.
+
+   EASING measured in the browser - distance covered at 25/50/75% of duration:
+     0.16, 1, 0.3, 1   (expo out)        96% by 45%  - a teleport
+     0.4,  0, 0.2, 1   (material)        24 / 78 / 96
+     0.45, 0, 0.55, 1  (ease in-out quad) 12 / 50 / 88  <- chosen
+   Curves are NOT interchangeable between distances: the same curve over 14px
+   and over a full frame width are different effects.
+
+   No fade. A carousel does not fade - the frame's overflow is what hides
+   what has left, and fading as well would show one image through the other
+   for the whole journey. */
+@media screen and (min-width: 750px) and (prefers-reduced-motion: no-preference) {
+  /* Waiting off to the right, ready to come in. */
+  .product-gallery__main .product-gallery__slide {
+    translate: 100% 0;
+  }
+
+  .product-gallery__main[data-direction="back"] .product-gallery__slide {
+    translate: -100% 0;
+  }
+
+  /* The outgoing image. It sat at 0 a moment ago as the active slide, so
+     changing its target here is what makes it travel OUT rather than sit
+     there being covered. */
+  .product-gallery__main .product-gallery__slide.was-active {
+    translate: -100% 0;
+    visibility: visible;
+    transition: translate 1100ms
+      linear(
+        0.018,
+        0.1324,
+        0.2786,
+        0.374,
+        0.5027,
+        0.6099,
+        0.6965,
+        0.765,
+        0.8186,
+        0.8475,
+        0.8826,
+        0.9097,
+        0.9305,
+        0.9466,
+        0.959,
+        0.9656,
+        0.9736,
+        0.9797,
+        0.9844,
+        0.988,
+        0.9908,
+        0.9923,
+        0.9941,
+        1
+      );
+  }
+
+  .product-gallery__main[data-direction="back"] .product-gallery__slide.was-active {
+    translate: 100% 0;
+  }
+
+  .product-gallery__main .product-gallery__slide.is-active {
+    translate: 0 0;
+    transition: translate 1100ms
+      linear(
+        0.018,
+        0.1324,
+        0.2786,
+        0.374,
+        0.5027,
+        0.6099,
+        0.6965,
+        0.765,
+        0.8186,
+        0.8475,
+        0.8826,
+        0.9097,
+        0.9305,
+        0.9466,
+        0.959,
+        0.9656,
+        0.9736,
+        0.9797,
+        0.9844,
+        0.988,
+        0.9908,
+        0.9923,
+        0.9941,
+        1
+      );
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Dots (mobile only)                                                 */
+/* ---------------------------------------------------------------- */
+.product-gallery__dots {
+  display: none;
+}
+
+@media screen and (max-width: 749px) {
+  .product-gallery__dots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    max-width: 100%;
+    padding-inline: var(--space-4);
+    margin-top: var(--space-3);
+    /* A product with twenty finishes has twenty dots; unwrapped they were
+       the one thing on the page wider than the phone. */
+  }
+
+  .product-gallery__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-line);
+    transition:
+      background-color 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .product-gallery__dot.is-active {
+    background-color: var(--color-ink);
+    transform: scale(1.4);
+  }
+}
+
+/* ---------------------------------------------------------------- */
+/* Lightbox                                                           */
+/* ---------------------------------------------------------------- */
+.product-gallery__lightbox {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: var(--space-6);
+  border: none;
+  /* Follows the page scheme rather than being a fixed white. The comment
+     below is right that this should read as "a white surface like every
+     other overlay" - but every other overlay is var(--color-bg), so a
+     literal white was the one overlay that stayed blinding white in dark
+     mode. In light mode --color-bg is #FFFFFF: unchanged. */
+  background-color: color-mix(in srgb, var(--color-bg) 96%, transparent);
+}
+
+/* 60% rather than the 40% the other overlays use: this is a photo viewer,
+   and the darker scrim is deliberate. Only the TIMING is reconciled. */
+.product-gallery__lightbox::backdrop {
+  background-color: rgb(0 0 0 / 60%);
+}
+
+/* Same JS-driven entry/exit as the other three <dialog> overlays - see
+   assets/overlay-motion.js. */
+@media (prefers-reduced-motion: no-preference) {
+  .product-gallery__lightbox {
+    transition:
+      opacity var(--motion-overlay) var(--motion-overlay-ease),
+      transform var(--motion-overlay) var(--motion-overlay-ease);
+  }
+
+  .product-gallery__lightbox[open]:not(.is-visible) {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  .product-gallery__lightbox::backdrop {
+    opacity: 0;
+    transition: opacity var(--motion-scrim) ease;
+  }
+
+  .product-gallery__lightbox[open].is-visible::backdrop {
+    opacity: 1;
+  }
+}
+
+.product-gallery__lightbox-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Stacked and slid, exactly as the main gallery does - the lightbox was a
+   display:none swap, so it cut between images while the gallery behind it
+   animated. Two galleries of the same photographs behaving differently is
+   the kind of inconsistency a visitor feels without being able to name.
+
+   The stage is the positioning context and the clip; images are absolute
+   inside it. */
+.product-gallery__lightbox-stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-gallery__lightbox-image {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  visibility: hidden;
+}
+
+.product-gallery__lightbox-image.is-active {
+  visibility: visible;
+  z-index: 2;
+}
+
+/* THE ARROWS WERE BEING SWALLOWED BY THE PHOTOGRAPH.
+   The stage is position: relative with no z-index of its own, so it is not a
+   stacking context - the active image's z-index: 2 competed directly with the
+   controls' z-index: 1 and won. The image box is inset: 0 with margin: auto,
+   so whenever the photo is WIDTH-constrained (any portrait or narrow viewport)
+   it spans the full stage and lies over both arrows and the close button. They
+   stayed perfectly visible - the covering pixels are transparent - and
+   swallowed every click, which is exactly what "arrows not working in
+   fullscreen" looks like.
+
+   pointer-events: none is the honest fix rather than a z-index war: nothing
+   about the image is clickable, so it has no business in hit-testing at all.
+   The controls are also raised below, so neither mechanism alone has to hold. */
+.product-gallery__lightbox-image {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Parked off to the right, ready to enter. Reversed when going back. */
+  .product-gallery__lightbox-stage .product-gallery__lightbox-image {
+    translate: 100% 0;
+  }
+
+  .product-gallery__lightbox-stage[data-direction="back"] .product-gallery__lightbox-image {
+    translate: -100% 0;
+  }
+
+  /* Both images move, which is what makes it a carousel rather than one card
+     dealt onto another. Same duration and curve on each, or the strip tears. */
+  .product-gallery__lightbox-stage .product-gallery__lightbox-image.was-active {
+    translate: -100% 0;
+    visibility: visible;
+    transition: translate 1100ms
+      linear(
+        0.018,
+        0.1324,
+        0.2786,
+        0.374,
+        0.5027,
+        0.6099,
+        0.6965,
+        0.765,
+        0.8186,
+        0.8475,
+        0.8826,
+        0.9097,
+        0.9305,
+        0.9466,
+        0.959,
+        0.9656,
+        0.9736,
+        0.9797,
+        0.9844,
+        0.988,
+        0.9908,
+        0.9923,
+        0.9941,
+        1
+      );
+  }
+
+  .product-gallery__lightbox-stage[data-direction="back"]
+    .product-gallery__lightbox-image.was-active {
+    translate: 100% 0;
+  }
+
+  .product-gallery__lightbox-stage .product-gallery__lightbox-image.is-active {
+    translate: 0 0;
+    transition: translate 1100ms
+      linear(
+        0.018,
+        0.1324,
+        0.2786,
+        0.374,
+        0.5027,
+        0.6099,
+        0.6965,
+        0.765,
+        0.8186,
+        0.8475,
+        0.8826,
+        0.9097,
+        0.9305,
+        0.9466,
+        0.959,
+        0.9656,
+        0.9736,
+        0.9797,
+        0.9844,
+        0.988,
+        0.9908,
+        0.9923,
+        0.9941,
+        1
+      );
+  }
+}
+
+/* Box, border, backplate and hover all come from [data-icon-close]
+   (assets/base.css) - only the placement is this component's business.
+   The lightbox stage is 96% --color-bg, i.e. the same surface as every
+   other overlay, so there is no dark-surface exception to make here
+   - the 60% scrim BEHIND it is the deliberate difference, not this. */
+.product-gallery__lightbox-close {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  z-index: 3;
+}
+
+/* Given the same circular backplate as the close button. As bare glyphs
+   against a photograph these were nearly invisible - and a control the visitor
+   cannot find is the same as one that is not there. */
+.product-gallery__lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+/* Pulled in from the viewport edge. At --space-5 they sat in the far corners
+   of the screen, a long way from the image they control, which reads as page
+   furniture rather than as the picture's own controls. */
+.product-gallery__lightbox-nav--prev {
+  left: var(--space-7);
+}
+
+.product-gallery__lightbox-nav--next {
+  right: var(--space-7);
+}
+
+/* The 'arrow' icon points RIGHT, so PREVIOUS is the one that needs turning.
+   This rotation was on --next, which left both buttons pointing inward: the
+   left one invited you right and the right one invited you left. */
+.product-gallery__lightbox-nav--prev svg {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .product-gallery__lightbox-nav {
+    transition:
+      background-color var(--icon-close-fill-out) var(--icon-close-fill-out-ease),
+      color var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+}
+
+.product-gallery__lightbox-nav:hover {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.product-gallery__lightbox-nav:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fill for the gallery's icon buttons                                 */
+/* ------------------------------------------------------------------ */
+/* The three arrow controls carry the same cursor-origin fill as every other
+   control on the site. They shipped with a plain colour swap, which put the
+   lightbox arrows next to a lightbox CLOSE button that does sweep - the same
+   overlay, two different behaviours, a hand's width apart.
+
+   Timed with --icon-close-fill-*, not --btn-fill-*: these are small circles,
+   and the footer's own note already established that a 3s sweep across a row
+   of small icons leaves a trail as each one lags the last.
+
+   BOTH directions are declared. Listing only .is-hover-fill is what left Buy
+   it now sweeping in and snapping out - a transition runs according to
+   whichever rule matches the DESTINATION state, so the resting state needs
+   one too.
+
+   z-index MUST be negative, not 0: within a stacking context a positioned box
+   at z-index 0/auto paints above inline content, so a 0 here sweeps the fill
+   over the arrow itself. Same note as .btn in base.css. */
+/* NO `position` here. The main and lightbox arrows are already
+   position:absolute, set earlier in this file - and this block comes later at
+   equal specificity, so declaring position:relative here overrode them and
+   dropped both into normal flow. The main arrows appeared under the image and
+   the lightbox's next arrow vanished off the layout entirely.
+
+   They do not need it anyway: an absolutely positioned element is already a
+   containing block for its own ::before. Only the rail button, which is a
+   plain flex child, has to be told. */
+.product-gallery__nav,
+.product-gallery__rail-btn,
+.product-gallery__lightbox-nav {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.product-gallery__rail-btn {
+  position: relative;
+}
+
+.product-gallery__nav::before,
+.product-gallery__rail-btn::before,
+.product-gallery__lightbox-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--color-ink);
+  /* circle() percentages resolve against sqrt((w2+h2)/2), so 150% reaches the
+     farthest corner from any origin point. */
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+html.has-cursor-fill .product-gallery__nav.is-hover-fill::before,
+html.has-cursor-fill .product-gallery__rail-btn.is-hover-fill::before,
+html.has-cursor-fill .product-gallery__lightbox-nav.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .product-gallery__nav::before,
+  .product-gallery__rail-btn::before,
+  .product-gallery__lightbox-nav::before {
+    transition: clip-path var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .product-gallery__nav.is-hover-fill::before,
+  html.has-cursor-fill .product-gallery__rail-btn.is-hover-fill::before,
+  html.has-cursor-fill .product-gallery__lightbox-nav.is-hover-fill::before {
+    transition: clip-path var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* Without a pointer there is no origin to sweep from, so the button just
+   fills. Keyboard focus and touch both land here. */
+html:not(.has-cursor-fill) .product-gallery__nav:hover::before,
+html:not(.has-cursor-fill) .product-gallery__rail-btn:hover::before,
+html:not(.has-cursor-fill) .product-gallery__lightbox-nav:hover::before {
+  clip-path: circle(150% at 50% 50%);
+}
+
+/* A disabled arrow must not fill - it cannot do anything, and a control that
+   animates on hover while refusing to act is worse than one that sits still.
+   motion.js already skips disabled elements; this covers the no-pointer
+   fallback above. */
+.product-gallery__nav:disabled::before,
+.product-gallery__rail-btn:disabled::before {
+  clip-path: circle(0% at 50% 50%);
+}

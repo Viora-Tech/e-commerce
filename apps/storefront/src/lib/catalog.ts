@@ -1,0 +1,183 @@
+import type { StoreTx } from '@commerce/db'
+import {
+  inventoryLevel,
+  media,
+  product,
+  productMedia,
+  productOption,
+  productOptionValue,
+  variant,
+  variantOptionValue,
+} from '@commerce/db'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+
+export type CardProduct = {
+  id: string
+  handle: string
+  title: string
+  vendor: string | null
+  productType: string | null
+  pricePaise: number
+  mrpPaise: number | null
+  available: number
+  images: { url: string; alt: string | null }[]
+}
+
+/** Products for cards: first two images, lowest price, summed availability. */
+export async function listCardProducts(tx: StoreTx, limit = 48): Promise<CardProduct[]> {
+  const products = await tx
+    .select()
+    .from(product)
+    .where(eq(product.status, 'active'))
+    .orderBy(asc(product.title))
+    .limit(limit)
+  if (products.length === 0) return []
+  const ids = products.map((p) => p.id)
+
+  const variants = await tx
+    .select({
+      productId: variant.productId,
+      pricePaise: variant.pricePaise,
+      mrpPaise: variant.mrpPaise,
+      onHand: inventoryLevel.onHand,
+      reserved: inventoryLevel.reserved,
+    })
+    .from(variant)
+    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .where(inArray(variant.productId, ids))
+
+  const images = await tx
+    .select({
+      productId: productMedia.productId,
+      url: media.url,
+      alt: media.alt,
+      position: productMedia.position,
+    })
+    .from(productMedia)
+    .innerJoin(media, eq(media.id, productMedia.mediaId))
+    .where(and(inArray(productMedia.productId, ids), sql`${productMedia.position} < 2`))
+    .orderBy(asc(productMedia.position))
+
+  return products.map((p) => {
+    const vs = variants.filter((v) => v.productId === p.id)
+    const cheapest = vs.reduce<(typeof vs)[number] | null>(
+      (m, v) => (m === null || v.pricePaise < m.pricePaise ? v : m),
+      null,
+    )
+    return {
+      id: p.id,
+      handle: p.handle,
+      title: p.title,
+      vendor: p.vendor,
+      productType: p.productType,
+      pricePaise: cheapest?.pricePaise ?? 0,
+      mrpPaise: cheapest?.mrpPaise ?? null,
+      available: vs.reduce((n, v) => n + Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)), 0),
+      images: images.filter((i) => i.productId === p.id).map((i) => ({ url: i.url, alt: i.alt })),
+    }
+  })
+}
+
+export type ProductDetail = {
+  id: string
+  handle: string
+  title: string
+  description: string | null
+  vendor: string | null
+  productType: string | null
+  images: { url: string; alt: string | null }[]
+  options: { id: string; name: string; values: { id: string; value: string }[] }[]
+  variants: {
+    id: string
+    title: string
+    sku: string | null
+    pricePaise: number
+    mrpPaise: number | null
+    available: number
+    optionValueIds: string[]
+    imageUrl: string | null
+  }[]
+}
+
+export async function getProductByHandle(
+  tx: StoreTx,
+  handle: string,
+): Promise<ProductDetail | null> {
+  const [p] = await tx
+    .select()
+    .from(product)
+    .where(and(eq(product.handle, handle), eq(product.status, 'active')))
+  if (!p) return null
+
+  const images = await tx
+    .select({ url: media.url, alt: media.alt })
+    .from(productMedia)
+    .innerJoin(media, eq(media.id, productMedia.mediaId))
+    .where(eq(productMedia.productId, p.id))
+    .orderBy(asc(productMedia.position))
+
+  const options = await tx
+    .select()
+    .from(productOption)
+    .where(eq(productOption.productId, p.id))
+    .orderBy(asc(productOption.position))
+  const optionIds = options.map((o) => o.id)
+  const values =
+    optionIds.length > 0
+      ? await tx
+          .select()
+          .from(productOptionValue)
+          .where(inArray(productOptionValue.optionId, optionIds))
+          .orderBy(asc(productOptionValue.position))
+      : []
+
+  const vs = await tx
+    .select({
+      id: variant.id,
+      title: variant.title,
+      sku: variant.sku,
+      pricePaise: variant.pricePaise,
+      mrpPaise: variant.mrpPaise,
+      onHand: inventoryLevel.onHand,
+      reserved: inventoryLevel.reserved,
+      imageUrl: media.url,
+    })
+    .from(variant)
+    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(media, eq(media.id, variant.mediaId))
+    .where(eq(variant.productId, p.id))
+    .orderBy(asc(variant.position))
+  const vids = vs.map((v) => v.id)
+  const links =
+    vids.length > 0
+      ? await tx
+          .select()
+          .from(variantOptionValue)
+          .where(inArray(variantOptionValue.variantId, vids))
+      : []
+
+  return {
+    id: p.id,
+    handle: p.handle,
+    title: p.title,
+    description: p.description,
+    vendor: p.vendor,
+    productType: p.productType,
+    images,
+    options: options.map((o) => ({
+      id: o.id,
+      name: o.name,
+      values: values.filter((v) => v.optionId === o.id).map((v) => ({ id: v.id, value: v.value })),
+    })),
+    variants: vs.map((v) => ({
+      id: v.id,
+      title: v.title,
+      sku: v.sku,
+      pricePaise: v.pricePaise,
+      mrpPaise: v.mrpPaise,
+      available: Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)),
+      optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
+      imageUrl: v.imageUrl,
+    })),
+  }
+}

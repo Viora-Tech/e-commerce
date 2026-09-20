@@ -29,9 +29,15 @@ describe('themeToCss', () => {
     )
   })
 
-  it('exposes every scheme as a class for per-section use', () => {
+  it('exposes every scheme as a class that paints itself', () => {
     expect(css).toContain('.color-scheme-4{')
     expect(css).toMatch(/\.color-scheme-4\{[^}]*--color-brand:#FFFFFF/)
+    expect(css).toMatch(/\.color-scheme-4\{[^}]*background-color:var\(--color-bg\)/)
+  })
+
+  it('swaps a section wearing the light scheme to the dark scheme in dark mode', () => {
+    expect(css).toMatch(/:root\[data-theme=dark\] \.color-scheme-5\{[^}]*--color-bg:#1F1F21/)
+    expect(css).not.toMatch(/:root\[data-theme=dark\] \.color-scheme-4\{/)
   })
 
   it('uses the light scheme for dark when dark mode is disabled', () => {

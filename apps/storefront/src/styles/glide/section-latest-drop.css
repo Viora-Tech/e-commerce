@@ -1,0 +1,182 @@
+/**
+ * Latest drop: single-product spotlight. Two columns at >=990px
+ * (image ~58% / content ~42%), stacked on mobile. Image side sits in a
+ * light-gray well with a CSS-only cross-fade to the product's second image
+ * on hover; content side carries kicker, title, price, blurb, spec chips,
+ * an optional countdown, and CTAs.
+ */
+.section-latest-drop {
+  padding-block: var(--space-9);
+}
+
+.latest-drop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.latest-drop__media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  border-radius: calc(var(--radius-m) * 2);
+  padding: var(--space-7);
+}
+
+.latest-drop__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.latest-drop__image--primary {
+  position: relative;
+  z-index: 1;
+}
+
+.latest-drop__image--hover {
+  position: absolute;
+  inset: var(--space-7);
+  z-index: 2;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .latest-drop__image--primary,
+  .latest-drop__image--hover {
+    transition: opacity 0.3s ease;
+  }
+}
+
+.latest-drop__media:hover .latest-drop__image--primary {
+  opacity: 0;
+}
+
+.latest-drop__media:hover .latest-drop__image--hover {
+  opacity: 1;
+}
+
+.latest-drop__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.latest-drop__kicker {
+  margin: 0;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.latest-drop__title {
+  margin: 0;
+}
+
+.latest-drop__blurb {
+  color: var(--color-muted);
+}
+
+.latest-drop__specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.latest-drop__spec {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+}
+
+.latest-drop__spec-label {
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.latest-drop__spec-value {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+/* Self-contained countdown tiles - scoped locally rather than reusing
+   section-hero-carousel.css's .countdown__* classes, so this section
+   renders correctly even when hero-carousel is disabled. */
+.latest-drop__countdown {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.latest-drop__countdown-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 48px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+}
+
+.latest-drop__countdown-value {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.latest-drop__countdown-label {
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.latest-drop__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-top: var(--space-2);
+}
+
+.latest-drop__secondary-link {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.latest-drop__secondary-link:hover {
+  color: var(--color-ink);
+}
+
+@media screen and (min-width: 990px) {
+  .section-latest-drop {
+    padding-block: var(--space-10);
+  }
+
+  .latest-drop {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  .latest-drop__media {
+    flex: 0 0 58%;
+  }
+
+  .latest-drop__content {
+    flex: 1;
+  }
+}

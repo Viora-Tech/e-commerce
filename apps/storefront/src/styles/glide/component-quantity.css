@@ -1,0 +1,53 @@
+/**
+ * Quantity stepper — minus / number input / plus inside a pill border.
+ * Loaded by snippets/quantity-input.liquid.
+ */
+.quantity-input {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.quantity-input__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 100%;
+  color: var(--color-ink);
+}
+
+/* The stepper's two buttons live inside one pill border with the number
+   between them, so there is no box of their own to invert without cutting
+   the pill in half. What inverts is the glyph against the field: it goes to
+   full ink and presses in (see .icon--plus / .icon--minus in base.css). */
+.quantity-input__button:hover,
+.quantity-input__button:focus-visible {
+  color: var(--color-ink);
+}
+
+.quantity-input__field {
+  width: 40px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.quantity-input__field:focus {
+  outline: none;
+}
+
+.quantity-input__field::-webkit-outer-spin-button,
+.quantity-input__field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -1,0 +1,445 @@
+/**
+ * Site footer: a grid of merchant-configured columns over a bottom utility
+ * bar. Light by default (the newsletter banner above it is the one deliberate
+ * dark contrast block), with a dark scheme the merchant can switch to from
+ * the theme editor — every colour below reads from the --ft-* properties so
+ * that switch needs no per-element overrides.
+ *
+ * Column count comes from the section's `columns` setting, inlined as
+ * --footer-columns on .footer__top. Menu/links columns render as <details>
+ * accordions: a real toggle on mobile, forced open by CSS on desktop
+ * regardless of the `open` attribute, so the markup is identical across
+ * breakpoints and works with JavaScript disabled either way.
+ */
+.footer {
+  --ft-surface: var(--color-bg);
+  --ft-ink: var(--color-ink);
+  --ft-muted: var(--color-muted);
+  --ft-line: var(--color-line);
+
+  background-color: var(--ft-surface);
+  color: var(--ft-ink);
+  padding-top: var(--space-9);
+}
+
+/* Deliberately no `color` here. base.css already resets `a` to inherit, and
+   setting it again at this specificity (0,1,1) would beat every single-class
+   rule below it — which is exactly what made the menu and policy links
+   render at full ink instead of --ft-muted. */
+.footer a {
+  text-decoration: none;
+}
+
+/* Mobile is a single stacked column; the merchant's column count only
+   applies once there is room for it (see the 750px block below). */
+.footer__top {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+}
+
+.footer__heading {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.footer__block--text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.footer__text {
+  color: var(--ft-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Menu / links accordion                                               */
+/* ------------------------------------------------------------------ */
+.footer__accordion-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  cursor: default;
+  list-style: none;
+}
+
+.footer__accordion-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.footer__accordion-icon {
+  display: none;
+}
+
+.footer__menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.footer__menu-link {
+  color: var(--ft-muted);
+  font-size: 14px;
+}
+
+.footer__menu-link:hover {
+  color: var(--ft-ink);
+}
+
+/* Theme editor only: a column whose links all resolved to nothing. It never
+   reaches the storefront, so this is styled to read as an editor warning
+   rather than as content. */
+.footer__empty-note {
+  color: var(--ft-muted);
+  border-left: 2px solid var(--color-brand);
+  padding-left: var(--space-3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Social                                                               */
+/* ------------------------------------------------------------------ */
+.footer__social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.footer__social-link {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--ft-line);
+  color: var(--ft-ink);
+  /* The footer's own ink, so the circle inverts INTO its scheme rather than
+     out of it: on the light footer a white circle turns black, on the dark
+     one a dark circle turns white, and the glyph takes the surface colour
+     either way. No literal colours here at all - both values are the same
+     --ft-* pair every other element in this file reads, so the merchant's
+     scheme switch carries the hover with it. */
+  --ft-social-fill: var(--ft-ink);
+}
+
+/* z-index MUST be negative, not 0: within a stacking context positioned boxes
+   at z-index 0/auto paint above inline content, so a 0 here would sweep the
+   fill over the glyph. See the same note on .btn in base.css. */
+.footer__social-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--ft-social-fill);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.footer__social-link > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Full coverage: circle() percentages resolve against sqrt((w²+h²)/2), so
+   150% reaches the farthest corner from any origin point. */
+html.has-cursor-fill .footer__social-link.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* [data-icon-close]'s faster pair, not the 3s button sweep: this is a 40px
+   circle with a glyph in it, the same object as an overlay's close button,
+   and the four of them sit in a row - a 3s sweep would leave a trail of
+   half-filled circles behind a cursor crossing them. */
+@media (prefers-reduced-motion: no-preference) {
+  .footer__social-link::before {
+    transition: clip-path var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .footer__social-link.is-hover-fill::before {
+    transition: clip-path var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* The glyph flips to the footer's surface colour, and the ring picks up the
+   fill so the edge and the interior arrive together. Both ride the fill's
+   own duration AND easing in both directions - duration alone still desyncs,
+   because the fill's exit is ease-in (barely moves, then accelerates) while a
+   default curve is already well underway. */
+html.has-cursor-fill .footer__social-link:hover {
+  border-color: var(--ft-ink);
+  color: var(--ft-surface);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* transform first and NOT inherited from base.css: this rule loads after
+     base.css and the shorthand resets every property, so leaving transform
+     out here silently removes the press bounce from just these four icons. */
+  .footer__social-link {
+    transition:
+      transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      color 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  /* Per-property lists, not a bare transition-duration: a single value is
+     applied to EVERY transitioned property, which would drag the press bounce
+     out to the fill's duration and kill the spring. */
+  html.has-cursor-fill .footer__social-link {
+    transition:
+      transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      color var(--icon-close-fill-out) var(--icon-close-fill-out-ease),
+      border-color var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .footer__social-link:hover {
+    transition:
+      transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      color var(--icon-close-fill-in) var(--icon-close-fill-in-ease),
+      border-color var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* Without JS driving the sweep (touch, reduced motion, or before motion.js
+   runs) the link still needs its hover state, so the same inversion is
+   arrived at instantly. */
+html:not(.has-cursor-fill) .footer__social-link:hover {
+  background-color: var(--ft-ink);
+  border-color: var(--ft-ink);
+  color: var(--ft-surface);
+}
+
+/* ------------------------------------------------------------------ */
+/* Bottom bar                                                           */
+/* ------------------------------------------------------------------ */
+.footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-5);
+  border-top: 1px solid var(--ft-line);
+}
+
+.footer__payment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.footer__payment-icon {
+  height: 24px;
+  width: auto;
+  border-radius: var(--radius-s);
+}
+
+.footer__policies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.footer__policy-link {
+  font-size: 12px;
+  color: var(--ft-muted);
+}
+
+.footer__policy-link:hover {
+  color: var(--ft-ink);
+}
+
+.footer__localization .localization {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.footer__localization .localization__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.footer__localization .localization__select {
+  height: 36px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-m);
+  background-color: var(--ft-surface);
+  border: 1px solid var(--ft-line);
+  color: var(--ft-ink);
+  font-size: 12px;
+}
+
+/* Kept visible (not display:none) so the country/language selects stay
+   submittable with JavaScript disabled — snippets/localization.liquid
+   ships this button specifically as the no-JS fallback for its
+   onchange="this.form.submit()" auto-submit. */
+.footer__localization .localization__submit {
+  height: 36px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--ft-line);
+  background: none;
+  color: var(--ft-muted);
+  font-size: 12px;
+}
+
+.footer__localization .localization__submit:hover {
+  color: var(--ft-ink);
+  border-color: var(--ft-ink);
+}
+
+.footer__copyright {
+  color: var(--ft-muted);
+}
+
+.footer__copyright-link {
+  color: inherit;
+}
+
+@media screen and (max-width: 749px) {
+  .footer__block--text,
+  .footer__block--social {
+    text-align: center;
+    align-items: center;
+  }
+
+  .footer__social {
+    justify-content: center;
+  }
+
+  .footer__accordion-toggle {
+    cursor: pointer;
+    padding-block: var(--space-2);
+    border-top: 1px solid var(--ft-line);
+  }
+
+  .footer__accordion-icon {
+    display: inline-flex;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .footer__accordion-icon {
+      transition: transform 0.15s ease;
+    }
+  }
+
+  .footer__accordion[open] .footer__accordion-icon {
+    transform: rotate(180deg);
+  }
+
+  .footer__menu-list {
+    padding-top: var(--space-3);
+  }
+
+  .footer__bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer__localization .localization {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media screen and (min-width: 750px) {
+  /* minmax(0, 1fr) rather than 1fr: a long unbroken link title would
+     otherwise set the column's minimum width and push the grid wider than
+     the page, which is exactly the horizontal overflow this layout must
+     never produce. */
+  .footer__top {
+    grid-template-columns: repeat(var(--footer-columns, 4), minmax(0, 1fr));
+    gap: var(--space-7) var(--space-6);
+  }
+
+  /* The brand blurb is prose, not a link list, so it gets a second column
+     when the merchant asks for it. At a 2-column setting that fills the
+     first row on its own, which is why the block's `wide` setting is a
+     checkbox they can clear rather than something forced here. */
+  .footer__block--wide {
+    grid-column: span 2;
+  }
+
+  /* Desktop columns read as static, always-expanded lists: the toggle is
+     locked non-interactive and the panel is forced open regardless of the
+     `open` attribute, so the accordion still defaults collapsed on mobile
+     without JavaScript ever having to touch the desktop markup. */
+  .footer__accordion-toggle {
+    pointer-events: none;
+  }
+
+  .footer__accordion > *:not(.footer__accordion-toggle) {
+    display: flex !important;
+  }
+
+  /* Chrome 131+/Safari 18.4+ moved a closed <details>' contents into a
+     ::details-content pseudo carrying `content-visibility: hidden`. That
+     skips PAINTING regardless of the child's own display, so the rule above
+     stopped being enough on its own: the desktop link lists were laid out at
+     full height and simply never drawn. Older engines don't parse this
+     selector and drop the rule, falling back to the display override, which
+     still works for them. */
+  .footer__accordion::details-content {
+    content-visibility: visible;
+    block-size: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Theme toggle                                                        */
+/* ------------------------------------------------------------------ */
+/* Hidden without JavaScript: it flips an attribute and writes to
+   localStorage, so with no script it is a dead control. */
+html:not(.js) .footer__theme {
+  display: none;
+}
+
+/* A labelled control here, not a bare icon. In the header an icon alone was
+   fine because its neighbours set the context; in a footer full of text links
+   an unlabelled circle is a guess. The label is also what makes it findable
+   by someone scanning for the setting. */
+.footer__theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--ft-line);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ft-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.footer__theme-toggle:hover {
+  border-color: var(--ft-ink);
+}
+
+.footer__theme-toggle:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+.footer__theme-toggle {
+  display: inline-grid;
+  grid-auto-flow: column;
+  align-items: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .footer__theme-toggle {
+    transition: border-color 200ms ease;
+  }
+}
