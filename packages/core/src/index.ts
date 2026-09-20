@@ -1,5 +1,6 @@
 export type { StoreContext } from './context'
 export * from './errors'
+export * from './order/place-order'
 export * from './providers/fulfilment'
 export * from './providers/notification'
 export * from './providers/payment'
