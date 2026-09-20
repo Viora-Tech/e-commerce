@@ -30,6 +30,7 @@ export default async function StoreLayout({ children, params }: Props) {
       className={`${archivo.variable} ${figtree.variable}`}
     >
       <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours and enums; no user string reaches it. */}
         <style dangerouslySetInnerHTML={{ __html: `${themeToCss(theme)}\n${fontStyle}` }} />
       </head>
       <body className="min-h-screen antialiased">
