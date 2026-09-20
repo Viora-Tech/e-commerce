@@ -11,12 +11,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const orgs = await auth().api.listOrganizations({ headers: await headers() })
   const activeId =
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
+  const active = orgs.find((o) => o.id === activeId) ?? null
 
   return (
     <AdminFrame
       user={{ name: session.user.name, email: session.user.email }}
       stores={orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))}
-      activeStoreId={orgs.some((o) => o.id === activeId) ? activeId : null}
+      activeStoreId={active?.id ?? null}
+      storeName={active?.name ?? null}
     >
       {children}
     </AdminFrame>

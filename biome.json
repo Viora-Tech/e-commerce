@@ -9,7 +9,9 @@
       "!**/.turbo",
       "!**/coverage",
       "!**/.next",
-      "!**/src/styles/glide"
+      "!**/src/styles/glide",
+      "!packages/ui/src/styles.css",
+      "!apps/admin/src/app/globals.css"
     ]
   },
   "formatter": {
@@ -43,6 +45,38 @@
         "rules": {
           "performance": {
             "noImgElement": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/src/components/**"],
+      "linter": {
+        "rules": {
+          "recommended": true,
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noExplicitAny": "off",
+            "noDocumentCookie": "off",
+            "noImplicitAnyLet": "off"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          },
+          "a11y": {
+            "recommended": false
+          },
+          "style": {
+            "recommended": false
+          },
+          "complexity": {
+            "recommended": false
+          },
+          "performance": {
+            "noImgElement": "off"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
           }
         }
       }
