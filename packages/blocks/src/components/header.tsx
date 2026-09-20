@@ -11,11 +11,13 @@ export function Header({
   links,
   themeMode,
   showThemeToggle,
+  cartCount = 0,
 }: {
   storeName: string
   links: NavLink[]
   themeMode: ThemeMode
   showThemeToggle: boolean
+  cartCount?: number | undefined
 }) {
   return (
     <div className="header-wrapper" data-sticky-type="on-scroll-up">
@@ -45,8 +47,9 @@ export function Header({
             <a href="/account" className="header__icon-btn" aria-label="Account">
               <Icon name="user" size={24} />
             </a>
-            <a href="/cart" className="header__icon-btn" aria-label="Cart">
+            <a href="/cart" className="header__icon-btn" aria-label={`Cart, ${cartCount} items`}>
               <Icon name="cart" size={24} />
+              {cartCount > 0 ? <span className="header__cart-count">{cartCount}</span> : null}
             </a>
           </div>
         </div>

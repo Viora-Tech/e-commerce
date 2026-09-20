@@ -81,7 +81,7 @@ export async function addToCart(
   quantity = 1,
 ): Promise<void> {
   const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
-  if (!c || c.status !== 'open') throw new CartNotOpen(cartId, ctx.storeId)
+  if (c?.status !== 'open') throw new CartNotOpen(cartId, ctx.storeId)
   const [v] = await ctx.tx.select().from(variant).where(eq(variant.id, variantId))
   if (!v) throw new Error(`variant ${variantId} not found`)
   const [existing] = await ctx.tx

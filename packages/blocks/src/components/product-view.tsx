@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import type { ProductDetail } from '../types'
 import { Price } from './price'
 
 // Port of sections/main-product.liquid with snippets/product-gallery,
 // variant-picker and buy-buttons. Cart wiring comes with the cart PR.
-export function ProductView({ product }: { product: ProductDetail }) {
+export function ProductView({
+  product,
+  onAddToCart,
+}: {
+  product: ProductDetail
+  onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+}) {
+  const [pending, startTransition] = useTransition()
+  const [added, setAdded] = useState(false)
   const firstAvailable = product.variants.find((v) => v.available > 0) ?? product.variants[0]
   const [variantId, setVariantId] = useState(firstAvailable?.id)
   const variant = product.variants.find((v) => v.id === variantId) ?? firstAvailable
@@ -121,13 +129,30 @@ export function ProductView({ product }: { product: ProductDetail }) {
             <div className="buy-buttons__row">
               <button
                 type="button"
-                className="btn btn--primary buy-buttons__submit"
-                disabled={!variant || variant.available <= 0}
+                className={`btn btn--primary buy-buttons__submit${pending ? ' is-loading' : ''}`}
+                disabled={!variant || variant.available <= 0 || pending || !onAddToCart}
+                onClick={() => {
+                  if (!variant || !onAddToCart) return
+                  startTransition(async () => {
+                    await onAddToCart(variant.id, 1)
+                    setAdded(true)
+                    setTimeout(() => setAdded(false), 2000)
+                  })
+                }}
               >
                 <span className="btn__label">
-                  {!variant || variant.available <= 0 ? 'Sold out' : 'Add to cart'}
+                  {!variant || variant.available <= 0
+                    ? 'Sold out'
+                    : added
+                      ? 'Added'
+                      : 'Add to cart'}
                 </span>
               </button>
+              {added ? (
+                <a href="/cart" className="btn btn--secondary">
+                  View cart
+                </a>
+              ) : null}
             </div>
             {variant ? (
               <p className="buy-buttons__availability text-small">
