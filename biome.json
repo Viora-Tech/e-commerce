@@ -9,9 +9,7 @@
       "!**/.turbo",
       "!**/coverage",
       "!**/.next",
-      "!**/src/styles/glide",
-      "!packages/ui/src/styles.css",
-      "!apps/admin/src/app/globals.css"
+      "!**/src/styles/glide"
     ]
   },
   "formatter": {
@@ -40,47 +38,11 @@
   },
   "overrides": [
     {
-      "includes": [
-        "apps/storefront/src/components/glide/**"
-      ],
+      "includes": ["apps/storefront/src/components/glide/**"],
       "linter": {
         "rules": {
           "performance": {
             "noImgElement": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": [
-        "packages/ui/src/components/**"
-      ],
-      "linter": {
-        "rules": {
-          "recommended": true,
-          "suspicious": {
-            "noArrayIndexKey": "off",
-            "noExplicitAny": "off",
-            "noDocumentCookie": "off",
-            "noImplicitAnyLet": "off"
-          },
-          "correctness": {
-            "useExhaustiveDependencies": "off"
-          },
-          "a11y": {
-            "recommended": false
-          },
-          "style": {
-            "recommended": false
-          },
-          "complexity": {
-            "recommended": false
-          },
-          "performance": {
-            "noImgElement": "off"
-          },
-          "security": {
-            "noDangerouslySetInnerHtml": "off"
           }
         }
       }

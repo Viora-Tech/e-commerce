@@ -1,52 +1,82 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Input } from '@commerce/ui/shadcn/input'
-import { Label } from '@commerce/ui/shadcn/label'
-import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import {
+  BlockStack,
+  Card,
+  ContextualSaveBar,
+  FormLayout,
+  InlineGrid,
+  Layout,
+  Page,
+  Select,
+  Text,
+  TextField,
+  Thumbnail,
+  Toast,
+} from '@shopify/polaris'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { api } from '@/lib/api-client'
 
 type Product = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
 
-const statuses = ['draft', 'active', 'archived'] as const
+const STATUS = [
+  { label: 'Active', value: 'active' },
+  { label: 'Draft', value: 'draft' },
+  { label: 'Archived', value: 'archived' },
+]
+
+type VariantRow = {
+  id: string
+  title: string
+  sku: string
+  price: string
+  mrp: string
+  onHand: string
+}
+
+function toRows(p: Product): VariantRow[] {
+  return p.variants.map((v) => ({
+    id: v.id,
+    title: v.title,
+    sku: v.sku ?? '',
+    price: (v.pricePaise / 100).toString(),
+    mrp: v.mrpPaise != null ? (v.mrpPaise / 100).toString() : '',
+    onHand: String(v.onHand ?? 0),
+  }))
+}
 
 export function ProductForm({ product }: { product: Product }) {
   const router = useRouter()
-  const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({
+  const initial = {
     title: product.title,
     handle: product.handle,
-    status: product.status,
+    status: product.status as string,
     vendor: product.vendor ?? '',
     productType: product.productType ?? '',
     description: product.description ?? '',
-  })
-  const [variants, setVariants] = useState(
-    product.variants.map((v) => ({
-      id: v.id,
-      title: v.title,
-      sku: v.sku ?? '',
-      price: (v.pricePaise / 100).toString(),
-      mrp: v.mrpPaise != null ? (v.mrpPaise / 100).toString() : '',
-      onHand: String(v.onHand ?? 0),
-    })),
+  }
+  const [form, setForm] = useState(initial)
+  const [variants, setVariants] = useState(() => toRows(product))
+  const [saved, setSaved] = useState(() =>
+    JSON.stringify({ form: initial, variants: toRows(product) }),
   )
+  const [busy, setBusy] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
+  const dirty = JSON.stringify({ form, variants }) !== saved
+  const set = (k: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [k]: value }))
+  const setVariant = (i: number, k: keyof VariantRow) => (value: string) =>
+    setVariants((vs) => vs.map((v, j) => (j === i ? { ...v, [k]: value } : v)))
+
+  async function save() {
     setBusy(true)
     try {
       await api.products.update({
         id: product.id,
         title: form.title,
         handle: form.handle,
-        status: form.status,
+        status: form.status as 'draft' | 'active' | 'archived',
         vendor: form.vendor || null,
         productType: form.productType || null,
         description: form.description || null,
@@ -60,152 +90,172 @@ export function ProductForm({ product }: { product: Product }) {
           onHand: Number(v.onHand),
         })
       }
-      toast.success('Saved')
+      setSaved(JSON.stringify({ form, variants }))
+      setToast('Product saved')
       router.refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Save failed')
+      setToast(err instanceof Error ? err.message : 'Save failed')
     } finally {
       setBusy(false)
     }
   }
 
-  const field = (key: keyof typeof form) => ({
-    value: form[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setForm((f) => ({ ...f, [key]: e.target.value })),
-  })
+  function discard() {
+    setForm(initial)
+    setVariants(toRows(product))
+  }
 
   return (
-    <form onSubmit={save} className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid gap-1">
-          <Link
-            href="/products"
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" /> Products
-          </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">{product.title}</h1>
-        </div>
-        <Button type="submit" disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
-        </Button>
-      </div>
+    <Page
+      backAction={{ content: 'Products', url: '/products' }}
+      title={product.title}
+      secondaryActions={[
+        {
+          content: 'Preview',
+          url: `http://localhost:3100/products/${product.handle}`,
+          external: true,
+        },
+      ]}
+    >
+      {dirty ? (
+        <ContextualSaveBar
+          message="Unsaved changes"
+          saveAction={{ onAction: save, loading: busy }}
+          discardAction={{ onAction: discard }}
+        />
+      ) : null}
+      {toast ? <Toast content={toast} onDismiss={() => setToast(null)} /> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input id="title" required {...field('title')} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="handle">Handle</Label>
-                <Input
-                  id="handle"
-                  required
-                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                  {...field('handle')}
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="400">
+            <Card>
+              <FormLayout>
+                <TextField
+                  label="Title"
+                  value={form.title}
+                  onChange={set('title')}
+                  autoComplete="off"
                 />
-                <p className="text-xs text-muted-foreground">/products/{form.handle}</p>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea id="description" rows={8} {...field('description')} />
-              </div>
-            </CardContent>
-          </Card>
+                <TextField
+                  label="Description"
+                  value={form.description}
+                  onChange={set('description')}
+                  multiline={8}
+                  autoComplete="off"
+                />
+              </FormLayout>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Variants</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_0.7fr] gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                <span>Variant</span>
-                <span>SKU</span>
-                <span>Price ₹</span>
-                <span>MRP ₹</span>
-                <span>Stock</span>
-              </div>
-              {variants.map((v, i) => (
-                <div
-                  key={v.id}
-                  className="grid grid-cols-[1.5fr_1fr_1fr_1fr_0.7fr] items-center gap-2"
-                >
-                  <span className="text-sm">{v.title}</span>
-                  {(['sku', 'price', 'mrp', 'onHand'] as const).map((k) => (
-                    <Input
-                      key={k}
-                      aria-label={`${v.title} ${k}`}
-                      inputMode={k === 'sku' ? 'text' : 'decimal'}
-                      value={v[k]}
-                      onChange={(e) =>
-                        setVariants((vs) =>
-                          vs.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)),
-                        )
-                      }
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingSm">
+                  Media
+                </Text>
+                <InlineGrid columns={{ xs: 3, md: 5 }} gap="200">
+                  {product.images.map((img) => (
+                    <Thumbnail key={img.id} source={img.url} alt={img.alt ?? ''} size="large" />
+                  ))}
+                </InlineGrid>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingSm">
+                  Variants
+                </Text>
+                {variants.map((v, i) => (
+                  <InlineGrid key={v.id} columns={{ xs: 1, md: 5 }} gap="200" alignItems="end">
+                    <Text as="span" variant="bodyMd" fontWeight="semibold">
+                      {v.title}
+                    </Text>
+                    <TextField
+                      label="SKU"
+                      labelHidden={i > 0}
+                      value={v.sku}
+                      onChange={setVariant(i, 'sku')}
+                      autoComplete="off"
                     />
-                  ))}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+                    <TextField
+                      label="Price"
+                      labelHidden={i > 0}
+                      prefix="₹"
+                      type="number"
+                      value={v.price}
+                      onChange={setVariant(i, 'price')}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Compare-at (MRP)"
+                      labelHidden={i > 0}
+                      prefix="₹"
+                      type="number"
+                      value={v.mrp}
+                      onChange={setVariant(i, 'mrp')}
+                      autoComplete="off"
+                    />
+                    <TextField
+                      label="Available"
+                      labelHidden={i > 0}
+                      type="number"
+                      value={v.onHand}
+                      onChange={setVariant(i, 'onHand')}
+                      autoComplete="off"
+                    />
+                  </InlineGrid>
+                ))}
+              </BlockStack>
+            </Card>
+          </BlockStack>
+        </Layout.Section>
 
-        <div className="grid content-start gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Organisation</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
-                  {...field('status')}
-                >
-                  {statuses.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="vendor">Brand</Label>
-                <Input id="vendor" {...field('vendor')} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="productType">Type</Label>
-                <Input id="productType" {...field('productType')} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Media</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-3 gap-2">
-              {product.images.map((img) => (
-                // biome-ignore lint/performance/noImgElement: CDN thumbnails in a fixed grid.
-                <img
-                  key={img.id}
-                  src={img.url}
-                  alt={img.alt ?? ''}
-                  className="aspect-square rounded object-cover"
+        <Layout.Section variant="oneThird">
+          <BlockStack gap="400">
+            <Card>
+              <Select
+                label="Status"
+                options={STATUS}
+                value={form.status}
+                onChange={set('status')}
+              />
+            </Card>
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingSm">
+                  Product organization
+                </Text>
+                <TextField
+                  label="Product type"
+                  value={form.productType}
+                  onChange={set('productType')}
+                  autoComplete="off"
                 />
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </form>
+                <TextField
+                  label="Vendor"
+                  value={form.vendor}
+                  onChange={set('vendor')}
+                  autoComplete="off"
+                />
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingSm">
+                  Search engine listing
+                </Text>
+                <TextField
+                  label="URL handle"
+                  prefix="/products/"
+                  value={form.handle}
+                  onChange={set('handle')}
+                  autoComplete="off"
+                />
+              </BlockStack>
+            </Card>
+          </BlockStack>
+        </Layout.Section>
+      </Layout>
+    </Page>
   )
 }
