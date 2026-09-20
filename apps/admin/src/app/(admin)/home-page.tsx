@@ -31,8 +31,15 @@ export function HomePage({
     <Page title={`Hi, ${storeName}`} subtitle={`You are ${role} of this store.`}>
       <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
         {stat('Products', String(productCount))}
-        {stat('Orders today', '0')}
-        {stat('Sessions', '—')}
+        {stat('Orders', String(orderCount))}
+        {stat(
+          'Revenue',
+          new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0,
+          }).format(revenuePaise / 100),
+        )}
       </InlineGrid>
     </Page>
   )
