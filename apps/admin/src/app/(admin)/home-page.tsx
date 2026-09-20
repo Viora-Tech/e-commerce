@@ -6,10 +6,14 @@ export function HomePage({
   storeName,
   role,
   productCount,
+  orderCount,
+  revenuePaise,
 }: {
   storeName: string
   role: string
   productCount: number
+  orderCount: number
+  revenuePaise: number
 }) {
   const stat = (label: string, value: string) => (
     <Card>
