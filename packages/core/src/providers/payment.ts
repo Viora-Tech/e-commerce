@@ -6,7 +6,11 @@ export interface PaymentProvider {
   readonly id: string
   createPayment(
     ctx: StoreContext,
-    input: { orderId: string; amountPaise: number; customer: { email?: string; phone?: string } },
+    input: {
+      orderId: string
+      amountPaise: number
+      customer: { email?: string | undefined; phone?: string | undefined }
+    },
   ): Promise<{ providerRef: string; status: PaymentStatus }>
   capture(ctx: StoreContext, providerRef: string): Promise<{ status: 'captured' }>
   refund(
@@ -26,7 +30,11 @@ export class FakePaymentProvider implements PaymentProvider {
 
   async createPayment(
     _ctx: StoreContext,
-    input: { orderId: string; amountPaise: number; customer: { email?: string; phone?: string } },
+    input: {
+      orderId: string
+      amountPaise: number
+      customer: { email?: string | undefined; phone?: string | undefined }
+    },
   ) {
     this.calls.push(`createPayment:${input.orderId}:${input.amountPaise}`)
     if (this.opts.mode === 'fail') throw new Error('fake gateway declined')
