@@ -1,4 +1,4 @@
-import type { CardProduct } from '@/lib/catalog'
+import type { CardProduct } from '../types'
 import { Price } from './price'
 
 // Port of snippets/product-card.liquid. Hover swap only; cursor scrubbing

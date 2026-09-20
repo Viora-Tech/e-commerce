@@ -7,6 +7,7 @@ import {
   inventoryLevel,
   media,
   newId,
+  page,
   product,
   productMedia,
   productOption,
@@ -181,7 +182,57 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       }
       count += 1
     }
-    console.log(`seed: waimers created (${storeId}) with ${count} products`)
+    // A published home page so the storefront has something to render on day one.
+    const heroImage = rows.find((r) => r.images.length > 0 && r.price)?.images[0] ?? ''
+    const homeData = {
+      root: { props: { title: 'Home' } },
+      content: [
+        {
+          type: 'Hero',
+          props: {
+            id: 'hero-1',
+            slides: [
+              {
+                heading: 'Glide faster',
+                subheading:
+                  "India's glasspad specialist. Tested on real desks, shipped from Sonipat.",
+                image: { url: heroImage, alt: 'Glasspad' },
+                cta: { label: 'Shop glasspads', href: '/collections/glass-mousepads' },
+                cta2: { label: 'Find my match', href: '/guides' },
+                textPosition: 'left',
+              },
+            ],
+            autoplaySeconds: 5,
+            heightVh: 72,
+          },
+        },
+        {
+          type: 'ProductGrid',
+          props: {
+            id: 'grid-1',
+            heading: 'Shop the range',
+            tabs: [
+              { label: 'Mouse pads', productType: 'Mouse Pad', limit: 8 },
+              { label: 'Everything', productType: '', limit: 8 },
+            ],
+            columns: 4,
+            scheme: 'scheme-5',
+            padTop: 56,
+            padBottom: 56,
+          },
+        },
+      ],
+      zones: {},
+    }
+    await db.insert(page).values({
+      storeId,
+      handle: 'home',
+      title: 'Home',
+      data: homeData,
+      publishedData: homeData,
+      publishedAt: new Date(),
+    })
+    console.log(`seed: waimers created (${storeId}) with ${count} products and a home page`)
   } finally {
     await db.$client.end()
   }

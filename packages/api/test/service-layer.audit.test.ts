@@ -13,7 +13,7 @@ const SRC = join(import.meta.dirname, '../src')
 const QUERY_PATTERN =
   /\b(tx|db|context\.tx|context\.db)\s*\.\s*(select|insert|update|delete|execute|transaction)\s*\(/
 const DRIZZLE_TABLE_IMPORT =
-  /import\s+\{[^}]*\b(product|variant|order|cart|store|customer|media)\b[^}]*\}\s+from\s+['"]@commerce\/db['"]/
+  /import\s+\{[^}]*\b(product|variant|order|cart|store|customer|media|page)\b[^}]*\}\s+from\s+['"]@commerce\/db['"]/
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

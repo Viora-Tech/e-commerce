@@ -9,7 +9,7 @@
       "!**/.turbo",
       "!**/coverage",
       "!**/.next",
-      "!**/src/styles/glide",
+      "!packages/blocks/src/styles",
       "!packages/ui/src/styles.css",
       "!apps/admin/src/app/globals.css"
     ]
@@ -40,7 +40,7 @@
   },
   "overrides": [
     {
-      "includes": ["apps/storefront/src/components/glide/**"],
+      "includes": ["packages/blocks/src/components/**", "packages/blocks/src/puck-config.tsx"],
       "linter": {
         "rules": {
           "performance": {

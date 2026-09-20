@@ -78,6 +78,20 @@
       "when": 1789922292614,
       "tag": "0010_resolve_store_for_org",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789926262932,
+      "tag": "0011_pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789926263559,
+      "tag": "0012_pages_rls",
+      "breakpoints": true
     }
   ]
 }

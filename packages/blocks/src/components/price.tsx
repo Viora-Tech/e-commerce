@@ -1,4 +1,4 @@
-import { formatPaise } from '@/lib/money'
+import { formatPaise } from '../money'
 
 // Port of snippets/price.liquid.
 export function Price({ pricePaise, mrpPaise }: { pricePaise: number; mrpPaise: number | null }) {

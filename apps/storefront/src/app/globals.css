@@ -1,20 +1,5 @@
 @import "tailwindcss";
-@import "../styles/glide/base.css";
-@import "../styles/glide/component-section-heading.css";
-@import "../styles/glide/component-price.css";
-@import "../styles/glide/component-product-card.css";
-@import "../styles/glide/component-breadcrumbs.css";
-@import "../styles/glide/component-quantity.css";
-@import "../styles/glide/component-stock-bar.css";
-@import "../styles/glide/component-gallery.css";
-@import "../styles/glide/component-product-overview.css";
-@import "../styles/glide/section-product.css";
-@import "../styles/glide/section-product-specs.css";
-@import "../styles/glide/section-header.css";
-@import "../styles/glide/section-hero-carousel.css";
-@import "../styles/glide/section-tabbed-products.css";
-@import "../styles/glide/section-latest-drop.css";
-@import "../styles/glide/section-footer.css";
+@import "@commerce/blocks/styles.css";
 
 /*
  * Glide's token names, unchanged. Values are injected per store by the

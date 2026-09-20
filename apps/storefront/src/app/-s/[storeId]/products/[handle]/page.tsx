@@ -1,5 +1,5 @@
+import { ProductView } from '@commerce/blocks'
 import { notFound } from 'next/navigation'
-import { ProductView } from '@/components/glide/product-view'
 import { getProductByHandle } from '@/lib/catalog'
 import { inStore } from '@/lib/store-context'
 

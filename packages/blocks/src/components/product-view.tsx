@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { ProductDetail } from '@/lib/catalog'
+import type { ProductDetail } from '../types'
 import { Price } from './price'
 
 // Port of sections/main-product.liquid with snippets/product-gallery,

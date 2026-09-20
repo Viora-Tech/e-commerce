@@ -5,12 +5,11 @@ import { Icon } from './icon'
 
 export type HeroSlide = {
   heading: string
-  subheading?: string
+  subheading?: string | undefined
   image: { url: string; alt: string }
-  cta?: { label: string; href: string }
-  cta2?: { label: string; href: string }
-  textPosition?: 'left' | 'center' | 'right'
-  scheme?: 'dark' | 'light'
+  cta?: { label: string; href: string } | undefined
+  cta2?: { label: string; href: string } | undefined
+  textPosition?: 'left' | 'center' | 'right' | undefined
 }
 
 // Port of sections/hero-carousel.liquid + hero-carousel.js: a CSS scroll-snap

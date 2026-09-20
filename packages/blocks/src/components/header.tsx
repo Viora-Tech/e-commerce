@@ -1,6 +1,6 @@
-import type { ThemeMode } from '@commerce/core'
-import { ThemeToggle } from '@/components/theme-toggle'
+import type { ThemeMode } from '../types'
 import { Icon } from './icon'
+import { ThemeToggle } from './theme-toggle'
 
 export type NavLink = { label: string; href: string }
 

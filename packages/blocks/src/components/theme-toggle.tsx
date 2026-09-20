@@ -1,7 +1,7 @@
 'use client'
 
-import type { ThemeMode } from '@commerce/core'
 import { useState } from 'react'
+import type { ThemeMode } from '../types'
 
 const next: Record<ThemeMode, ThemeMode> = { light: 'dark', dark: 'system', system: 'light' }
 const label: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark', system: 'Auto' }

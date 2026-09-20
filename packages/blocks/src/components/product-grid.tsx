@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { CardProduct } from '@/lib/catalog'
+import type { CardProduct } from '../types'
 import { ProductCard } from './product-card'
 
 // Port of sections/tabbed-products.liquid. Tabs are product types.
