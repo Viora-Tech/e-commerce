@@ -9,7 +9,7 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "migrate": "bun run src/migrate.ts",
+    "migrate": "bun run --env-file=../../.env src/migrate.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
