@@ -1,3 +1,4 @@
+export * as authSchema from './auth-schema'
 export { createDb, type Db } from './client'
 export { resolveStore } from './resolve-store'
 export * from './schema'
