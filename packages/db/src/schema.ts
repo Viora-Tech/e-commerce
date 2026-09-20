@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
 
 export const newId = (): string => uuidv7()
@@ -16,6 +16,8 @@ export const store = pgTable('store', {
   name: text('name').notNull(),
   currency: text('currency').notNull().default('INR'),
   nextOrderNumber: integer('next_order_number').notNull().default(1),
+  /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
+  theme: jsonb('theme'),
   createdAt: createdAt(),
 })
 
