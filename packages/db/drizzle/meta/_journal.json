@@ -15,6 +15,20 @@
       "when": 1789907241195,
       "tag": "0001_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789909549542,
+      "tag": "0002_store_domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789909550172,
+      "tag": "0003_resolve_store",
+      "breakpoints": true
     }
   ]
 }

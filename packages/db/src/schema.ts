@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { boolean, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
 
 export const newId = (): string => uuidv7()
@@ -120,4 +120,11 @@ export const payment = pgTable('payment', {
   providerRef: text('provider_ref').notNull(),
   status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
   amountPaise: integer('amount_paise').notNull(),
+})
+
+export const storeDomain = pgTable('store_domain', {
+  id: id(),
+  storeId: storeId(),
+  hostname: text('hostname').notNull().unique(),
+  isPrimary: boolean('is_primary').notNull().default(false),
 })

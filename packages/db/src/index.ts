@@ -1,4 +1,5 @@
 export { createDb, type Db } from './client'
 export { runMigrations } from './migrate'
+export { resolveStore } from './resolve-store'
 export * from './schema'
 export { type StoreTx, withoutStore, withStore } from './with-store'
