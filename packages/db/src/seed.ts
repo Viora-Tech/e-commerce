@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { eq } from 'drizzle-orm'
+import { member, organization, user } from './auth-schema'
 import { createDb } from './client'
 import {
   inventoryLevel,
   media,
+  newId,
   product,
   productMedia,
   productOption,
@@ -61,6 +63,23 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       { storeId, hostname: 'localhost', isPrimary: true },
       { storeId, hostname: 'waimers.localhost' },
     ])
+
+    // Dev owner: an organization for the store and a verified user who owns it,
+    // so an OTP login on localhost lands in Waimers with no setup.
+    const ownerEmail = process.env.SEED_OWNER_EMAIL
+    if (ownerEmail) {
+      const orgId = `org_${newId()}`
+      const userId = `usr_${newId()}`
+      await db.insert(organization).values({ id: orgId, name: 'Waimers', slug: 'waimers' })
+      await db
+        .insert(user)
+        .values({ id: userId, name: 'Waimers owner', email: ownerEmail, emailVerified: true })
+      await db
+        .insert(member)
+        .values({ id: `mem_${newId()}`, organizationId: orgId, userId, role: 'owner' })
+      await db.update(store).set({ organizationId: orgId }).where(eq(store.id, storeId))
+      console.log(`seed: ${ownerEmail} owns waimers`)
+    }
 
     const rows: Row[] = JSON.parse(
       readFileSync(fileURLToPath(new URL('../seed/waimers-catalog.json', import.meta.url)), 'utf8'),

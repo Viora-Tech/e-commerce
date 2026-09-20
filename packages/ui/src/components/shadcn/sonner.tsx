@@ -16,7 +16,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-border': 'var(--border)',
         } as React.CSSProperties
       }
-      theme={theme as ToasterProps['theme']}
+      theme={(theme ?? 'system') as NonNullable<ToasterProps['theme']>}
       {...props}
     />
   )
