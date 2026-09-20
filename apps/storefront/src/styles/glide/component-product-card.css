@@ -1,0 +1,668 @@
+/**
+ * Product card — media box, hover image swap, badge, title, rating,
+ * price, quick-add. Loaded by snippets/product-card.liquid.
+ */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.product-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+  /* Grow into the stretched grid cell so the price row below can bottom-align
+     (see .product-card__price) across a row that mixes reviewed and
+     unreviewed products. */
+  flex: 1 1 auto;
+}
+
+.product-card__media {
+  /* Needed because <card-media-scrub> (assets/card-scrub.js, used instead
+     of a plain <div> when a product has more than one image) is a custom
+     element with no default display in the UA stylesheet - without this
+     it would default to inline and break the aspect-ratio/absolute-image
+     stack below. Harmless on the plain <div> case too. */
+  display: block;
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background-color: var(--color-card-media, rgb(0 0 0 / 4%));
+}
+
+/* The product photography in this store is shot on SOLID WHITE with no
+   transparency (verified: PNGs without an alpha channel, plus JPEGs, which
+   cannot carry one). A tinted panel behind an opaque white photo shows
+   nothing but a white rectangle, so the panel alone cannot produce the
+   "product floating on colour" look.
+
+   mix-blend-mode: multiply is what makes it work: white multiplied by the
+   panel colour IS the panel colour, so the white ground drops away and the
+   product is left sitting on the tint. The photo's own shadow multiplies too,
+   which reads correctly rather than as a cut-out.
+
+   It is a merchant setting because it has a real failure case: a very pale
+   product (a white mouse) loses its edges against a light panel. Turning it
+   off restores plain white grounds. */
+.product-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: var(--card-media-blend, normal);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* Placeholders are theme SVGs, not photography - blending them would tint the
+   graphic itself. */
+.product-card__image--placeholder {
+  mix-blend-mode: normal;
+}
+
+.product-card__image--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-card__image--placeholder svg {
+  width: 60%;
+  height: 60%;
+  color: var(--color-line);
+}
+
+.product-card__image--hover,
+.product-card__image--scrub {
+  opacity: 0;
+}
+
+/* Plain CSS hover-swap fallback (no JS, or a touch pointer that never
+   triggers assets/card-scrub.js). Gated off once card-scrub.js actually
+   engages ([data-scrub-active], set on the outer .product-card the moment
+   a mouse/pen pointer enters a scrubbable card) so its own inline
+   opacity styles - which win on specificity anyway - aren't fighting a
+   still-"live" :hover rule underneath, e.g. on focus without pointer
+   movement. */
+/* [data-has-hover] is the fix for cards that went BLANK on hover.
+   The rule below fades the primary image out, and it used to run on every
+   card - including the many products with a single image, where the Liquid
+   correctly renders no second <img> to fade in behind it. The primary went to
+   opacity 0 and nothing replaced it, leaving an empty tile. Products with no
+   images at all were worse: the placeholder faded out too.
+   snippets/product-card.liquid now marks the card only when a hover image
+   genuinely exists, so a swap is never started that cannot finish. */
+.product-card[data-has-hover]:not([data-scrub-active])
+  .product-card__link:hover
+  .product-card__image--primary,
+.product-card[data-has-hover]:not([data-scrub-active])
+  .product-card__link:focus-visible
+  .product-card__image--primary {
+  opacity: 0;
+}
+
+.product-card[data-has-hover]:not([data-scrub-active])
+  .product-card__link:hover
+  .product-card__image--hover,
+.product-card[data-has-hover]:not([data-scrub-active])
+  .product-card__link:focus-visible
+  .product-card__image--hover {
+  opacity: 1;
+}
+
+.product-card__link:hover .product-card__media,
+.product-card__link:focus-visible .product-card__media {
+  transform: translateY(-2px);
+}
+
+/* Scrub cards must NOT lift. The media box is the element card-scrub.js
+   listens to for pointerenter/leave, and the lift moves that box under a
+   stationary cursor: rest the pointer exactly on the card's edge and enter
+   lifts the box 2px, the edge crosses the cursor, leave fires, the lift
+   releases, the edge crosses back, enter fires - a self-sustaining loop
+   paced by the lift's own 0.3s transition. Recorded on the storefront as a
+   full entry slide plus a full return replaying every ~420ms with the mouse
+   not moving at all: the cover sliding out and back in, forever.
+
+   The scrub is these cards' hover feedback anyway; single-image cards keep
+   the lift, since nothing listens to their media box. */
+.product-card[data-scrub-active] .product-card__link:hover .product-card__media,
+.product-card[data-scrub-active] .product-card__link:focus-visible .product-card__media {
+  transform: none;
+}
+
+.product-card__media {
+  transition: transform 0.3s ease;
+}
+
+/* Cursor scrubbing: a film-strip slide, not a fade. All candidate images
+   sit fully opaque, stacked at 100%-width offsets from the active one via
+   translate3d (assets/card-scrub.js sets --scrub-offset per image, in
+   multiples of 100%); .product-card__media's overflow: hidden clips
+   everything but the active slide. Moving the cursor right advances the
+   index, which slides every image one step left - the next one enters
+   from the right - and vice versa, matching the reference site's cursor
+   scrub rather than a plain crossfade. */
+.product-card[data-scrub-active] .product-card__image {
+  opacity: 1;
+  transform: translate3d(calc(var(--scrub-offset, 0) * 100%), 0, 0);
+}
+
+/* The strip STEPS between images rather than tracking the cursor 1:1: the
+   media box is divided into one zone per hover image, and crossing into a new
+   zone slides the strip a whole step. So the transition is the animation, not
+   a lag - it runs whenever the target index changes, including on the glide
+   home after the pointer leaves.
+
+   Retargeting mid-slide is safe here precisely because it is a transition on a
+   single transform rather than a queue of per-step animations: a new target
+   simply redirects the one in flight from wherever it currently is. */
+@media (prefers-reduced-motion: no-preference) {
+  .product-card[data-scrub-active] .product-card__image {
+    /* Flickity-feel glide: this linear() is SAMPLED from the reference
+     carousel engine's actual physics (selectedAttraction 0.025, friction
+     0.28, per-frame velocity sim) - three quarters of the travel lands in
+     the first third, then a long sub-pixel settle. The duration looks long
+     on paper but the motion reads as done by ~450ms; the tail is what makes
+     it feel like a glide instead of an animation. */
+    transition: transform 1100ms
+      linear(
+        0.018,
+        0.1324,
+        0.2786,
+        0.374,
+        0.5027,
+        0.6099,
+        0.6965,
+        0.765,
+        0.8186,
+        0.8475,
+        0.8826,
+        0.9097,
+        0.9305,
+        0.9466,
+        0.959,
+        0.9656,
+        0.9736,
+        0.9797,
+        0.9844,
+        0.988,
+        0.9908,
+        0.9923,
+        0.9941,
+        1
+      );
+  }
+}
+
+/* Reduced motion: instant swap, no slide - same contract as every other
+   motion-gated transition in this theme. */
+@media (prefers-reduced-motion: reduce) {
+  .product-card[data-scrub-active] .product-card__image {
+    transition: none;
+  }
+}
+
+/* will-change is scoped to an active gesture: promoting every scrubbable
+   card's images to their own compositor layer for the whole page lifetime
+   would waste memory across a large grid for no benefit when nobody is
+   hovering. */
+.product-card[data-scrub-active][data-scrub-hovering] .product-card__image {
+  will-change: transform;
+}
+
+/* One frame only, set by card-scrub.js when it needs to PLACE the strip
+   rather than animate it - specifically to park the incoming image on the
+   far side before sliding it in, so entering from the right slides
+   left-to-right instead of snapping. */
+.product-card[data-scrub-active][data-scrub-placing] .product-card__image {
+  transition: none;
+}
+
+.product-card__badge {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 1;
+}
+
+/* Badges sit ON photography, so neither variant may rely on a bare colour:
+   a light pill vanishes on a pale product shot and a dark one vanishes on a
+   dark shot. Both therefore carry their own ground - the quiet badge an
+   opaque-enough white plate, the urgent one solid brand purple - plus a
+   hairline ring that separates the pill from whatever is behind it. That is
+   what keeps contrast fixed once, for every image, rather than per product.
+
+   The two then diverge on purpose: sold out RECEDES (near-white plate, muted
+   ink, normal weight) and low stock ADVANCES (solid --color-brand, white
+   text, a small lift). Contrast: #6b6b6e muted ink on the ~94%-white plate is
+   ~4.9:1, and #ffffff on #6c3baa is ~7.5:1 - both clear AA at this size.
+
+   The quiet badge's ink is that LITERAL #6b6b6e rather than --color-muted:
+   the plate is a fixed white that does not follow the page scheme, so a
+   token foreground drifts off it. In dark mode --color-muted is #9c9ca6,
+   which on this ~94%-white plate measured 2.7:1. The literal is scheme 1's
+   own muted value, so light mode is unchanged. */
+/* Coming soon advances, like low stock does - it is news, not an apology. It
+   takes the brand colour rather than the urgent red because a drop is
+   something to look forward to, not something about to run out. */
+.product-card__badge--coming {
+  background-color: var(--color-brand);
+  color: var(--color-bg);
+  font-weight: 600;
+}
+
+/* Retired is a memorial, not an alert. Dark and solid rather than the
+   translucent white of sold-out: it is a definite statement about a product
+   rather than a temporary condition, and it should not look like something
+   that might change next week. Constant, not --color-ink: it sits on the
+   product photo, so "dark and solid" has to hold in both schemes. */
+.product-card__badge--retired {
+  background-color: var(--color-dark-band);
+  color: var(--color-on-dark-band);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.product-card__badge--quiet {
+  background-color: rgb(255 255 255 / 94%);
+  color: #6b6b6e;
+  box-shadow: inset 0 0 0 1px rgb(31 31 33 / 10%);
+  backdrop-filter: blur(4px);
+  font-weight: 400;
+}
+
+.product-card__badge--urgent {
+  background-color: var(--color-brand);
+  color: var(--color-bg);
+  box-shadow:
+    0 1px 6px rgb(31 31 33 / 22%),
+    inset 0 0 0 1px rgb(255 255 255 / 22%);
+  font-weight: 600;
+}
+
+/* Sold-out cards deliberately get NO fade, desaturation or dimming, and this
+   is a decision rather than an omission: much of this catalogue is artwork -
+   illustrated mousepads and glasspads where the image IS the product - so
+   muting it damages the thing being sold, and a sold-out product still earns
+   its place by signalling demand. The badge hierarchy above carries the whole
+   job of separating buyable from not; ordering sold-out products last is
+   handled at section level, which fixes the scan properly rather than
+   cosmetically. Do not reintroduce a treatment here. */
+
+/* ------------------------------------------------------------------ */
+/* Cursor image scrubbing (assets/card-scrub.js)                       */
+/* ------------------------------------------------------------------ */
+/* Image indicators. Five variants, one contract: --segments is how many hover
+   images the card has, --active is which one is showing. card-scrub.js writes
+   --active and toggles .is-active on any children; each variant below decides
+   what that means visually.
+
+   Contrast is deliberate throughout: this store's product photography is shot
+   on white, so anything relying on --color-line was invisible across half the
+   catalogue. Every variant carries its own tint. */
+.product-card__scrub-indicator {
+  position: absolute;
+  z-index: 2;
+}
+
+.product-card__scrub-indicator[hidden] {
+  display: none;
+}
+
+/* --- Rail: one thumb sliding between fixed positions ---------------- */
+.product-card__scrub-indicator--rail,
+.product-card__scrub-indicator--vertical {
+  border-radius: var(--radius-pill);
+  background-color: rgb(31 31 33 / 16%);
+  opacity: 0.75;
+  overflow: hidden;
+}
+
+.product-card__scrub-indicator--rail {
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  height: 3px;
+}
+
+.product-card[data-scrub-hovering] .product-card__scrub-indicator--rail,
+.product-card[data-scrub-hovering] .product-card__scrub-indicator--vertical {
+  opacity: 1;
+}
+
+.product-card__scrub-thumb {
+  display: block;
+  width: calc(100% / var(--segments, 3));
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--color-ink);
+  transform: translate3d(calc(var(--active, 0) * 100%), 0, 0);
+}
+
+/* --- Vertical: the same rail turned on its side, right edge --------- */
+/* Leaves the bottom of the card clear for the stock/sale badges. */
+.product-card__scrub-indicator--vertical {
+  top: var(--space-3);
+  bottom: var(--space-3);
+  right: var(--space-3);
+  width: 3px;
+}
+
+.product-card__scrub-indicator--vertical .product-card__scrub-thumb {
+  width: 100%;
+  height: calc(100% / var(--segments, 3));
+  transform: translate3d(0, calc(var(--active, 0) * 100%), 0);
+}
+
+/* --- Dots: the hero carousel's pattern, centred --------------------- */
+/* Deliberately the same shape language as .hero-carousel__dot (8px circle
+   that stretches to a 20px pill when active) so the two carousels on the site
+   read as one system. Only the colour differs: the hero's dots are white on
+   dark video, these have to survive product shots on white. */
+/* The dots sit on their own dark pill rather than directly on the photograph.
+   That is what makes this variant reliable: a bare dot has to be dark enough
+   for white product shots and light enough for dark ones, and no single colour
+   is both. Giving the group its own ground fixes the contrast problem once,
+   for every image, instead of per product. */
+.product-card__scrub-indicator--dots {
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--radius-pill);
+  background-color: rgb(17 17 19 / 72%);
+  backdrop-filter: blur(3px);
+}
+
+.product-card__scrub-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 42%);
+}
+
+/* Idle: the card is showing its cover image, which is not one of the hover
+   images, so no dot is lit. The rail variants have no "none" position to point
+   at, so they dim instead. */
+.product-card__scrub-indicator.is-idle .product-card__scrub-thumb {
+  opacity: 0.35;
+}
+
+.product-card__scrub-dot.is-active {
+  width: 20px;
+  background-color: #fff;
+}
+
+/* --- Segments: separate bars, story style --------------------------- */
+.product-card__scrub-indicator--segments {
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  gap: 4px;
+}
+
+.product-card__scrub-segment {
+  flex: 1 1 0;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background-color: rgb(31 31 33 / 18%);
+}
+
+.product-card__scrub-segment.is-active {
+  background-color: var(--color-ink);
+}
+
+/* --- Thumbnails: the interactive variant ---------------------------- */
+.product-card__scrub-indicator--thumbs {
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.product-card__scrub-thumbnail {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: var(--radius-s);
+  background-color: var(--color-bg);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 14%);
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+.product-card__scrub-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-card__scrub-thumbnail.is-active {
+  opacity: 1;
+  border-color: var(--color-ink);
+}
+
+.product-card__scrub-thumbnail:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .product-card__scrub-indicator--rail,
+  .product-card__scrub-indicator--vertical {
+    transition: opacity 200ms ease;
+  }
+
+  /* Matches the image slide's duration and curve exactly - the thumb and the
+     photograph describe the same movement, so they must arrive together. */
+  .product-card__scrub-thumb {
+    /* Flickity-feel glide: this linear() is SAMPLED from the reference
+     carousel engine's actual physics (selectedAttraction 0.025, friction
+     0.28, per-frame velocity sim) - three quarters of the travel lands in
+     the first third, then a long sub-pixel settle. The duration looks long
+     on paper but the motion reads as done by ~450ms; the tail is what makes
+     it feel like a glide instead of an animation. */
+    transition: transform 1100ms
+      linear(
+        0.018,
+        0.1324,
+        0.2786,
+        0.374,
+        0.5027,
+        0.6099,
+        0.6965,
+        0.765,
+        0.8186,
+        0.8475,
+        0.8826,
+        0.9097,
+        0.9305,
+        0.9466,
+        0.959,
+        0.9656,
+        0.9736,
+        0.9797,
+        0.9844,
+        0.988,
+        0.9908,
+        0.9923,
+        0.9941,
+        1
+      );
+  }
+
+  .product-card__scrub-segment,
+  .product-card__scrub-thumbnail {
+    transition:
+      background-color 200ms ease,
+      opacity 200ms ease,
+      border-color 200ms ease;
+  }
+
+  .product-card__scrub-dot {
+    transition:
+      background-color 200ms ease,
+      width 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+}
+
+.product-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+}
+
+/* Two lines, not one. This store's titles carry an edition prefix and a size
+   suffix - "[Demon Slayer - 4K Special Pack] X2 v2 Mini", "Pulsar [Pro Series]
+   Jinggg-X Medium" - so a single line cut most of the grid mid-word and left
+   neighbouring products indistinguishable from each other. Two lines clears
+   the great majority of them; the clamp stays so a rogue long title still
+   cannot push its card taller than the rest of the row.
+
+   min-height reserves the second line whether or not it is used, so a
+   one-line title and a two-line title next to it keep their prices and
+   buttons on the same baseline. */
+.product-card__title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-ink);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-height: calc(2 * 1.35em);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.product-card__link:hover .product-card__title,
+.product-card__link:focus-visible .product-card__title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.product-card__rating {
+  margin-top: var(--space-1);
+}
+
+/* Products with no reviews render no rating row at all (deliberate - see
+   snippets/rating-stars.liquid), so a grid row can mix cards with and without
+   one. Grid stretch already equalises the card boxes; `margin-top: auto` eats
+   the leftover slack in the shorter card so the price - and the quick-add
+   button under it - land on the same line right across the row. The padding
+   keeps the visual gap that the plain margin used to provide. */
+.product-card__price {
+  margin-top: auto;
+  padding-top: var(--space-1);
+}
+
+/* One line, always. snippets/price.liquid lets the row wrap, which at card
+   width pushed the "-13%" badge onto a second line - so a discounted card was
+   one line taller than a plain one and the prices and buttons in a row stopped
+   agreeing. Locking the row to nowrap and trimming the type inside the card
+   (the badge is a card-sized label here, not the product page's) puts the
+   discount back beside the price and gives every card the same line count,
+   discounted or not. Scoped to .product-card so the product page's price,
+   which has room, is untouched. */
+.product-card__price .price {
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  /* Safety net for a viewport narrower than anything in the wild (~320px),
+     where even the trimmed row cannot fit: clip the tail rather than let the
+     row grow, because a second line here is exactly the misalignment this
+     block exists to remove. */
+  overflow: hidden;
+}
+
+/* nowrap on the row alone is not enough - the flex items would still shrink
+   and wrap their own text internally, which puts the height back. Neither
+   item may shrink or break. */
+.product-card__price .price__current {
+  font-size: 15px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.product-card__price .price__compare {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.product-card__price .price__badge {
+  height: 20px;
+  margin-inline-start: 0;
+  padding-inline: 6px;
+  font-size: 11px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Sold out: no discount badge. The card still shows the price and the struck
+   compare-at price, but it stops making an offer - "-13%" on something that
+   cannot be bought is advertising a saving that is not available. Set from the
+   snippet, which knows availability; see the comment there. */
+.product-card__price--unavailable .price__badge {
+  display: none;
+}
+
+/* Two narrow columns is the one width where price + struck price + discount
+   genuinely cannot share a line. The struck price is the part that goes: the
+   "-13%" already says the item is discounted, and dropping it keeps the single
+   line - and therefore the row alignment - rather than letting the badge wrap
+   again on phones. */
+@media screen and (max-width: 749px) {
+  .product-card__price .price--on-sale .price__compare {
+    display: none;
+  }
+
+  .product-card__price .price {
+    gap: 6px;
+  }
+
+  .product-card__price .price__current {
+    font-size: 14px;
+  }
+
+  /* Measured against the tightest real case: a 375px viewport gives a 159px
+     card, and "Rs. 6,999.00" plus "-30%" has to live inside it. */
+  .product-card__price .price__badge {
+    padding-inline: 4px;
+    font-size: 10px;
+  }
+}
+
+.product-card__quick-add {
+  margin-top: var(--space-3);
+}
+
+.product-card__quick-add-form {
+  display: block;
+}
+
+.product-card__quick-add-btn {
+  width: 100%;
+}
+
+/* The CTA stays permanently visible. It was briefly revealed on hover for a
+   fine pointer, to stop a grid of identical full-width buttons out-shouting
+   the product photography - reverted: a buy button that only appears when you
+   are already pointing at the card is a buy button you have to discover, and
+   it reads as the card being broken until you touch it. If the grid needs
+   calming later, the answer is a lighter button treatment, not a hidden one. */

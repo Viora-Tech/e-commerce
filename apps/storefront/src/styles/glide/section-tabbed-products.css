@@ -1,0 +1,375 @@
+/**
+ * Tabbed products (sections/tabbed-products.liquid).
+ *
+ * The no-JS contract lives here: without `html.js` every panel stays visible
+ * and shows its own heading, and the tablist is hidden entirely - tabs that
+ * can't switch are worse than no tabs. Once html.js is present the headings
+ * disappear (the selected tab already names the panel) and the tablist takes
+ * over. <tab-group> then sets `hidden` on the non-selected panels itself.
+ */
+/* Centres the heading and, with it, the pill row - they read as one centred
+   block, so aligning only one of them looks like a mistake. The grid below
+   opts back out (a centred product card fights its own name/price rows). */
+.section-tabbed-products--center {
+  text-align: center;
+}
+
+.section-tabbed-products--center .tabbed-products__grid {
+  text-align: start;
+}
+
+/* One line of the odometer. The window, every item and the per-step travel
+   are all derived from this single value - JS moves the strip by
+   `calc(var(--tp-line) * -N)` rather than by a percentage, because a
+   percentage translate resolves against the STRIP's own height (all N names
+   stacked), not one line, which sends the heading clean out of the window on
+   the first swap. */
+.tabbed-products__heading {
+  --tp-line: 1.2em;
+
+  margin: 0 0 var(--space-5);
+  /* Clips the strip to exactly one line, which is what makes the values
+     appear to roll past rather than the whole list being visible. */
+  overflow: hidden;
+  height: var(--tp-line);
+}
+
+.tabbed-products__heading-roll {
+  display: block;
+  will-change: transform;
+}
+
+.tabbed-products__heading-item {
+  display: block;
+  height: var(--tp-line);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__heading-roll {
+    /* Duration is set per swap in JS (it scales with how far the strip has to
+       travel); the curve stays put. Slight overshoot-free expo-out so the
+       strip decelerates into the new value instead of stopping dead. */
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Tablist - pill row                                                  */
+/* ------------------------------------------------------------------ */
+/* Two elements, one row: the scroller owns the overflow, the tablist owns the
+   layout. `justify-content: center` on a scroll container clips the start
+   edge out of reach once the row overflows, so the centring is done with an
+   inline-flex tablist and text-align on the scroller instead - that scrolls
+   from its true start on a narrow screen and centres when it fits. */
+.tabbed-products__tabs {
+  display: none;
+  margin-bottom: var(--space-6);
+  overflow-x: auto;
+  /* Tabs must stay reachable on a narrow screen; scrolling the strip beats
+     wrapping it into a second row that pushes the grid down. */
+  scrollbar-width: none;
+  scroll-padding-inline: var(--space-4);
+  /* The pills carry a visible outline and a focus ring, so the scroll box
+     needs a little vertical air rather than clipping them. */
+  padding-block: var(--space-1);
+}
+
+.tabbed-products__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+html.js .tabbed-products__tabs {
+  display: block;
+}
+
+.tabbed-products__tablist {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.tabbed-products__tab {
+  position: relative;
+  /* Contains the fill layer: without it the negative z-index below can escape
+     behind an ancestor's background instead of staying inside the pill. */
+  isolation: isolate;
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+  background-color: transparent;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  white-space: nowrap;
+
+  /* The pill's hover fill mirrors .btn--secondary exactly: transparent at
+     rest, --color-ink sweeping in, label inverting to --color-bg to sit on
+     it. Same colours, same tokens, same shape - a pill is that button in a
+     different outline, so it should not invent its own palette.
+
+     The four timing values used to be restated here as literals, because
+     base.css declared them ON .btn and a pill is not a descendant of a
+     button. They now live on :root, so the rules below read --btn-fill-*
+     directly and a retune there reaches this row. Only the fill COLOUR
+     stays local, exactly as it does per .btn variant. */
+  --tp-fill-color: var(--color-ink);
+}
+
+/* z-index MUST be negative, not 0: within a stacking context, positioned
+   boxes at z-index 0/auto paint ABOVE inline content, so a 0 here would sweep
+   the fill straight over the label. -1 keeps it above the pill's own
+   background but below its text. See the same note in base.css for .btn. */
+.tabbed-products__tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--tp-fill-color);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.tabbed-products__tab > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Full coverage: circle() percentages resolve against sqrt((w²+h²)/2), so
+   150% reaches the farthest corner from any origin point. */
+html.has-cursor-fill .tabbed-products__tab.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* Entry slower than exit, matching every other button on the site: the sweep
+   is meant to be watched, but un-sweeping stays quick so running the cursor
+   along the row doesn't leave a trail of half-filled pills. The transition
+   that runs is whichever rule matches the DESTINATION state, so removing
+   .is-hover-fill falls back to the quicker one. */
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__tab::before {
+    transition: clip-path var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  html.has-cursor-fill .tabbed-products__tab.is-hover-fill::before {
+    transition: clip-path var(--btn-fill-in) var(--btn-fill-in-ease);
+  }
+}
+
+/* The outline picks up the incoming fill's colour so the pill's edge and its
+   interior arrive at the same place rather than a grey border staying put
+   around a black middle. */
+.tabbed-products__tab:hover {
+  border-color: var(--color-ink);
+}
+
+/* The label has to invert or it ends up ink-on-ink once the fill covers it,
+   and it must do so on the fill's OWN duration AND easing in both directions.
+   Duration alone still desyncs: the fill's exit is ease-in (barely moves,
+   then accelerates) while a default curve is already well underway, so the
+   label would revert to ink while the black still covers it. --color-bg is
+   the token .btn--secondary:hover uses for exactly this inversion. */
+html.has-cursor-fill .tabbed-products__tab:hover {
+  color: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__tab {
+    transition:
+      color var(--btn-fill-out) var(--btn-fill-out-ease),
+      background-color var(--btn-fill-out) var(--btn-fill-out-ease),
+      border-color var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  .tabbed-products__tab:hover {
+    transition-duration: var(--btn-fill-in);
+    transition-timing-function: var(--btn-fill-in-ease);
+  }
+}
+
+/* Without JS driving the sweep (reduced motion, or motion.js not running) the
+   pill still needs a hover state, so fall back to the instant swap. Scoped to
+   :not(.has-cursor-fill) so it can't repaint the pill ahead of the sweep. */
+html:not(.has-cursor-fill) .tabbed-products__tab:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* The selected pill is the only filled surface in the row at rest, which is
+   what makes the selection readable at a glance without a second cue. White on
+   #1f1f21 is 16.45:1 - far past AAA - so the label stays 14px/600. */
+.tabbed-products__tab[aria-selected="true"] {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* Hovering the selected pill sweeps nothing: it is already solid ink, so the
+   fill would be black-on-black and animating it would burn 3s of transition
+   rendering no frames a visitor could see. Suppressed rather than substituted
+   - the pill is already showing the state a click would produce, so hover has
+   no second meaning to carry here.
+   motion.js has no notion of selection and still adds .is-hover-fill; a
+   transparent fill colour is what makes that a no-op. */
+.tabbed-products__tab[aria-selected="true"] {
+  --tp-fill-color: transparent;
+}
+
+/* Pins the selected pill's own colours against the generic :hover rules above,
+   which would otherwise repaint its border on the way past. */
+html.has-cursor-fill .tabbed-products__tab[aria-selected="true"]:hover,
+html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected="true"]:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* Brand purple reads as focus on every pill again now that none of them are
+   purple - it sits on the page background across the 2px gap, distinct from
+   both the outlined and the ink-filled states. */
+.tabbed-products__tab:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Information scent on the control: each pill carries its collection's
+   product count as a small superscript, so the row reads as instruments
+   ("12 behind this one") rather than bare labels. It inherits the pill's
+   colour - and therefore every inversion (hover sweep, selected ink) - for
+   free; only its opacity is its own, keeping it an annotation rather than
+   a second label. */
+.tabbed-products__tab-count {
+  margin-left: var(--space-1);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  vertical-align: super;
+  opacity: 0.55;
+}
+
+/* On the selected pill the count firms up: the chosen instrument states its
+   reading plainly. */
+.tabbed-products__tab[aria-selected="true"] .tabbed-products__tab-count {
+  opacity: 0.8;
+}
+
+/* ------------------------------------------------------------------ */
+/* Panels                                                              */
+/* ------------------------------------------------------------------ */
+.tabbed-products__panel:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 4px;
+}
+
+/* Each panel names itself only when the tablist isn't there to do it. */
+html.js .tabbed-products__panel-heading {
+  display: none;
+}
+
+.tabbed-products__panel-heading {
+  margin: 0 0 var(--space-4);
+}
+
+/* Panels after the first are pre-marked by the section so that, with JS on,
+   they never flash into view before <tab-group> upgrades. Without JS the
+   attribute is simply never honoured and every panel stays visible. */
+html.js .tabbed-products__panel[data-inactive] {
+  display: none;
+}
+
+.tabbed-products__panel + .tabbed-products__panel {
+  margin-top: var(--space-8);
+}
+
+html.js .tabbed-products__panel + .tabbed-products__panel {
+  margin-top: 0;
+}
+
+/* The panel swap. <tab-group> toggles `hidden`, and a CSS animation restarts
+   every time an element re-enters the render tree, so un-hiding IS the
+   trigger - no JS class choreography, and the no-JS stacked layout never
+   animates because it is gated on html.js. A short rise on the same expo-out
+   curve as the heading odometer, so the name rolling above and the grid
+   arriving below read as one gesture. `backwards` pins the first frame,
+   otherwise the old content flashes at full opacity for a frame before the
+   animation takes hold. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .tabbed-products__panel {
+    animation: tp-panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes tp-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+}
+
+/* `1fr` rows, not `auto`. Grid stretch already levels the cards inside ONE
+   row, which is the whole premise the shared card's bottom-aligned price
+   rests on (`margin-top: auto` in component-product-card.css only has slack
+   to eat while the card fills its cell). Rows, though, are sized one at a
+   time against their own tallest card - so a row holding a rated product
+   stands taller than a row holding none, and with `rows: 2` the prices and
+   quick-add buttons in the second row land at a different offset from the
+   first. Levelling the rows against the tallest of them puts every price and
+   every button in the panel on one rhythm. Deliberately here and not in the
+   card: this grid decides how many rows there are, and the card is styled
+   around, never into. */
+.tabbed-products__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: var(--space-5) var(--space-4);
+}
+
+@media screen and (min-width: 750px) {
+  .tabbed-products__grid {
+    grid-template-columns: repeat(min(var(--columns, 4), 3), minmax(0, 1fr));
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .tabbed-products__grid {
+    grid-template-columns: repeat(var(--columns, 4), minmax(0, 1fr));
+  }
+}
+
+.tabbed-products__empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* Reveal stagger for the cards, same delays and same fourth-column cap as
+   the grids base.css already fans out - this grid just wasn't on that list.
+   Cards in a hidden panel sit at zero intersection until their tab is
+   picked, so a panel's FIRST showing gets the cascade and every showing
+   after that is instant: the entrance is earned once, not replayed. */
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__grid > [data-reveal]:nth-child(2) {
+    transition-delay: 80ms;
+  }
+
+  .tabbed-products__grid > [data-reveal]:nth-child(3) {
+    transition-delay: 160ms;
+  }
+
+  .tabbed-products__grid > [data-reveal]:nth-child(4) {
+    transition-delay: 240ms;
+  }
+}
+
+.tabbed-products__foot {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-7);
+}

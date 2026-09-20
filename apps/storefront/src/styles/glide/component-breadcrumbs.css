@@ -1,0 +1,82 @@
+/**
+ * Breadcrumb trail (snippets/breadcrumbs.liquid).
+ *
+ * Text tokens only — no ground of its own, no border, no chip. It sits at
+ * the top of a page body whose colour scheme it inherits, and anything it
+ * painted would read as a second header bar rather than as orientation.
+ *
+ * 13px: one step under body copy, because the trail is a label for the page
+ * and not part of it.
+ */
+.breadcrumbs {
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumbs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+.breadcrumbs__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The glyph lives here rather than in the markup so it is decoration a
+   screen reader never meets — the element carries aria-hidden and has no
+   text of its own. */
+.breadcrumbs__separator::before {
+  content: "\203A";
+  color: var(--color-muted);
+}
+
+.breadcrumbs__link {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.breadcrumbs__link:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.breadcrumbs__link:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .breadcrumbs__link {
+    transition: color 0.15s ease;
+  }
+}
+
+/* The page you are on: full ink, and allowed to be the thing that truncates
+   when the trail runs out of room. A product title is the longest crumb by
+   far and it is also the one the visitor least needs to read here, since it
+   is the <h1> immediately below. */
+.breadcrumbs__current {
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 30ch;
+}
+
+@media screen and (max-width: 749px) {
+  .breadcrumbs__current {
+    max-width: 18ch;
+  }
+}

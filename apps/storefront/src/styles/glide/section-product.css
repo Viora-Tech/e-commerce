@@ -1,0 +1,1528 @@
+/**
+ * main-product section only: two-column layout (gallery + buy box),
+ * variant picker, buy buttons, trust/payment/delivery blocks, description
+ * accordion, spec table, share. Loaded solely by sections/main-product.liquid
+ * - the other product-page sections (product-features, product-reviews,
+ * complete-setup, related-products) load their own CSS files so each stays
+ * independently stylable when rendered on other templates via the editor,
+ * without depending on main-product also being present on the page.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Main product layout                                                 */
+/* ------------------------------------------------------------------ */
+.product-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+@media screen and (min-width: 990px) {
+  .product-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-8);
+  }
+
+  /* The GALLERY is the pinned column, not the info. Sticky was on the info
+     side, which is the taller of the two - a sticky element can only travel
+     within its parent, and a column that already reaches the bottom of the
+     layout has nowhere to go, so it never moved.
+
+     Pinning the shorter column is what the pattern is for: the pictures stay
+     while the visitor reads down the variants, price and badges, and the
+     product is still on screen when they reach Add to cart.
+
+     align-items: flex-start above is required for this - the flex default
+     stretches both columns to equal height, which would make the gallery as
+     tall as the info and remove the travel again. */
+  .product-layout__gallery {
+    flex: 0 0 55%;
+    max-width: 55%;
+    position: sticky;
+    /* Clears the sticky header rather than sitting under it. */
+    top: var(--space-5);
+  }
+
+  .product-layout__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Stacked (story) layout, the approved mock: the gallery becomes the
+     TALL film-strip column at ~58%, so the sticky flips sides - now the
+     buy rail is the shorter column that pins while the frames scroll. */
+  .product-layout--stacked .product-layout__gallery {
+    flex: 0 0 58%;
+    max-width: 58%;
+    position: static;
+  }
+
+  .product-layout--stacked .product-layout__info {
+    position: sticky;
+    top: var(--space-5);
+  }
+}
+
+.product-layout__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ------------------------------------------------------------------ */
+/* Stacked gallery (story pages)                                       */
+/* ------------------------------------------------------------------ */
+/* Every image its own large frame on a quiet panel, stacked with thin
+   seams - the mock's left column. No stage, no thumbs, no JS. */
+.stacked-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stacked-gallery__frame {
+  margin: 0;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background-color: var(--color-card-media);
+}
+
+.stacked-gallery__frame img,
+.stacked-gallery__frame video {
+  display: block;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: var(--card-media-blend);
+}
+
+.product-info__title {
+  margin: 0;
+}
+
+.product-info__price--large .price__current {
+  font-size: 24px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Variant picker                                                      */
+/* ------------------------------------------------------------------ */
+.variant-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.variant-picker__option {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.variant-picker__option-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-size: 14px;
+}
+
+.variant-picker__option-name {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.variant-picker__option-value {
+  color: var(--color-muted);
+}
+
+.variant-picker__values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* The option pills carry the same cursor-origin fill as every other control
+   on the site. They had a plain 0.15s colour swap, which made them the only
+   thing on the product page that did not sweep - and next to an Add to cart
+   button that takes 3s, a 0.15s flick reads as a different site.
+
+   Swatches are EXCLUDED below: they are circular colour chips, and sweeping
+   ink across one hides the very colour the visitor is choosing. */
+.variant-picker__pill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 44px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color var(--btn-fill-out) var(--btn-fill-out-ease),
+    color var(--btn-fill-out) var(--btn-fill-out-ease),
+    border-color var(--btn-fill-out) var(--btn-fill-out-ease);
+}
+
+/* z-index MUST be negative, not 0: within a stacking context a positioned box
+   at z-index 0/auto paints above inline content, so a 0 here sweeps the fill
+   over the label. Same note as .btn in base.css. */
+.variant-picker__pill:not(.variant-picker__swatch)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--color-ink);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+/* BOTH directions. Listing only the .is-hover-fill rule is what left the Buy
+   it now button sweeping in over 3s and vanishing instantly on the way out -
+   a transition runs according to whichever rule matches the DESTINATION
+   state, so the resting state needs one too. */
+@media (prefers-reduced-motion: no-preference) {
+  .variant-picker__pill:not(.variant-picker__swatch)::before {
+    transition: clip-path var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  html.has-cursor-fill .variant-picker__pill.is-hover-fill:not(.variant-picker__swatch)::before {
+    transition: clip-path var(--btn-fill-in) var(--btn-fill-in-ease);
+  }
+}
+
+html.has-cursor-fill .variant-picker__pill.is-hover-fill:not(.variant-picker__swatch)::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+.variant-picker__pill:not(.variant-picker__swatch):hover {
+  color: var(--color-bg);
+  border-color: var(--color-ink);
+}
+
+/* A selected pill is already ink, so its fill has to invert the other way -
+   sweeping ink over ink would look like nothing happened. */
+.variant-picker__radio:checked + .variant-picker__pill:not(.variant-picker__swatch)::before {
+  background-color: var(--color-bg);
+}
+
+.variant-picker__radio:checked + .variant-picker__pill:not(.variant-picker__swatch):hover {
+  color: var(--color-ink);
+}
+
+.variant-picker__radio:checked + .variant-picker__pill {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+  border-color: var(--color-ink);
+}
+
+.variant-picker__radio:focus-visible + .variant-picker__pill {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.variant-picker__pill.is-unavailable {
+  color: var(--color-muted);
+  text-decoration: line-through;
+  border-color: var(--color-line);
+}
+
+/* Color swatches */
+.variant-picker__values--swatch {
+  gap: var(--space-3);
+}
+
+.variant-picker__swatch {
+  min-width: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-line);
+  position: relative;
+}
+
+/* Brand purple, not ink. On a page where almost everything is black on white,
+   an ink ring around the chosen swatch is hard to pick out at a glance -
+   which is the one thing a selected state has to do. The white gap between
+   the swatch and the ring stays: without it the ring reads as part of the
+   product photograph rather than as a selection. */
+.variant-picker__radio:checked + .variant-picker__swatch {
+  border-color: var(--color-brand);
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 3px var(--color-brand);
+}
+
+.variant-picker__swatch-circle {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Sold out swatches are struck through, not just dimmed.
+   Opacity alone said "unavailable" only to someone comparing swatches side by
+   side - on a single pale colour it read as a design choice, or as nothing at
+   all. The pill variant above has used line-through all along; the circles
+   were the inconsistent ones.
+
+   Raised from 0.4 to 0.55 because the line has to be legible ON the swatch,
+   and at 0.4 it faded out along with the colour underneath it. */
+.variant-picker__swatch.is-unavailable {
+  opacity: 0.55;
+}
+
+/* The line is drawn on the CIRCLE rather than the button so it can be clipped
+   to the disc: border-radius: inherit plus overflow: hidden turns the ends
+   flush with the edge instead of poking out past it. */
+.variant-picker__swatch.is-unavailable .variant-picker__swatch-circle {
+  overflow: hidden;
+  position: relative;
+}
+
+.variant-picker__swatch.is-unavailable .variant-picker__swatch-circle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* 142% is the diagonal of a square (sqrt 2), so a line rotated 45 degrees
+     reaches corner to corner. Anything shorter stops short of the edge and
+     reads as a dash rather than a strike. */
+  width: 142%;
+  height: 2px;
+  translate: -50% -50%;
+  rotate: -45deg;
+  /* Ink with a white outline, because the swatch underneath can be any colour
+     the merchant uploads - a plain dark line vanishes on black, a plain white
+     one vanishes on white. The outline guarantees an edge against both. */
+  background-color: var(--color-ink);
+  box-shadow:
+    0 -1px 0 var(--color-bg),
+    0 1px 0 var(--color-bg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Buy buttons                                                         */
+/* ------------------------------------------------------------------ */
+.buy-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.buy-buttons__availability,
+.buy-buttons__error {
+  color: var(--color-danger);
+  font-size: 14px;
+}
+
+.buy-buttons__row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.buy-buttons__submit {
+  flex: 1;
+}
+
+.buy-buttons__payment {
+  display: block;
+}
+
+/* Shopify renders payment_terms as an empty string when the shop has no
+   installments provider - :not(:empty) keeps that case from adding a gap
+   above the (absent) messaging. */
+.buy-buttons__payment-terms:not(:empty) {
+  margin-top: var(--space-2);
+}
+
+.buy-buttons__quantity-rule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  margin: var(--space-2) 0 0;
+}
+
+/* Now always rendered (assets/variant-picker.js toggles `hidden` per
+   variant), so the `display: flex` above needs an explicit override - equal
+   specificity to the UA [hidden] rule, and author styles win that tie. */
+.buy-buttons__quantity-rule[hidden] {
+  display: none;
+}
+
+.buy-buttons__quantity-rule span + span::before {
+  content: "\00b7";
+  margin-inline-end: var(--space-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shopify's dynamic checkout button                                   */
+/* ------------------------------------------------------------------ */
+/* Two different things render in here and only ONE is ours to restyle.
+
+   1. `--unbranded` is the plain "Buy it now" button - ordinary DOM. It is now
+      folded into the .btn system in base.css rather than dressed up here, so
+      it IS a primary button: same box, same tokens, same cursor-origin sweep,
+      and it inherits any future change to them automatically. A copy would
+      have drifted the first time .btn was retuned.
+
+   2. The wallet buttons (Shop Pay, Google Pay, Apple Pay) render inside
+      <shopify-accelerated-checkout>, partly in an iframe. They are NOT styled
+      and must not be: brand assets under those companies' guidelines, whose
+      recognisability is exactly what makes them work.
+
+   Only the bits base.css cannot know about live here. */
+.shopify-payment-button__button--unbranded {
+  width: 100%;
+}
+
+/* Shopify renders a skeleton while the button boots; without a matching height
+   the buy area jumps as it swaps in. */
+.shopify-payment-button__skeleton {
+  min-height: 56px;
+  border-radius: var(--radius-m);
+}
+
+/* ------------------------------------------------------------------ */
+/* Trust badges                                                        */
+/* ------------------------------------------------------------------ */
+.trust-badges {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+
+.trust-badges__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-right: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  font-size: 12px;
+}
+
+.trust-badges__item:nth-child(2n) {
+  border-right: none;
+}
+
+.trust-badges__item:last-child,
+.trust-badges__item:nth-last-child(2):nth-child(odd) {
+  border-bottom: none;
+}
+
+.trust-badges__icon {
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+/* ------------------------------------------------------------------ */
+/* Payment signals + delivery estimate                                 */
+/* ------------------------------------------------------------------ */
+.payment-signals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.payment-signals__icons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.payment-signals__icon {
+  height: 24px;
+  width: auto;
+}
+
+.payment-signals__text {
+  color: var(--color-brand);
+  font-size: 14px;
+}
+
+.delivery-estimate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+}
+
+.delivery-estimate__icon {
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.delivery-estimate__body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Pincode: a short field and a text button on one line, the answer under. */
+.pincode {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.pincode__input {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-s);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.pincode__input:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
+}
+
+.pincode__check {
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pincode__result {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-ink);
+  min-height: 0;
+}
+
+.pincode__result:empty {
+  display: none;
+}
+
+/* Ask on WhatsApp: a quiet link with the glyph, not a second button. */
+.whatsapp-ask {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.whatsapp-ask svg {
+  color: #25d366;
+}
+.whatsapp-ask:hover span {
+  text-decoration: underline;
+}
+
+/* The description block when a merchant keeps it in the buy box rather than
+   in a tab. Nothing caps its length here - the column is already narrow. */
+/* The preorder-updates link under the buy buttons (main-product.liquid,
+   products tagged preorder). Quiet by design: it answers a question, it is
+   not a call to action competing with the buy button above it. */
+.product-info__preorder-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.product-info__preorder-link:hover {
+  color: var(--color-ink);
+}
+
+.product-info__description {
+  color: var(--color-muted);
+}
+
+.product-info__description > :first-child {
+  margin-top: 0;
+}
+
+.product-info__description > :last-child {
+  margin-bottom: 0;
+}
+
+.product-info__description table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  /* Beats the rich-text editor's inline height, and it has to be !important
+     because that height is an inline style.
+
+     A real <table> treats `height` as a MINIMUM and grows past it, so the
+     pixel height the editor writes when someone drag-resizes a table is
+     harmless there. `display: block` above - the usual way to make a wide
+     table scrollable on a phone - changes that: as a block box the height
+     becomes authoritative and clips, and because `overflow-x: auto` forces
+     `overflow-y` to `auto` as well, the clipped remainder turns into an
+     internal scroll area with no visible scrollbar. A four-row spec table
+     shipped showing two rows, with the rest reachable only by scrolling
+     inside it, which also swallowed the wheel on the way past. */
+  height: auto !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Spec table                                                          */
+/* ------------------------------------------------------------------ */
+.spec-table {
+  border-top: 1px solid var(--color-line);
+  padding-top: var(--space-4);
+}
+
+.spec-table__heading {
+  margin-bottom: var(--space-3);
+}
+
+/* A grid of cells, not a list of lines.
+
+   The old shape put the label left and the value right on one row at 14px,
+   which reads as a receipt: every field the same weight, the number no more
+   findable than the word next to it. A spec sheet is scanned for values, so
+   the label goes above at caption size and the value gets display size
+   underneath it.
+
+   One column by default so this still works in the buy box, which is half
+   the width of the tab; the two-column arrangement is opted into by the tab
+   below rather than triggered by viewport width, because a media query would
+   put two columns in the narrow buy box as well. */
+.spec-table__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.spec-table__row {
+  display: block;
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.spec-table__label {
+  margin-bottom: var(--space-1);
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* The icon is optional per row and sits inline before the label, at the
+   label's own size - it is an aid to scanning a long sheet, not a bullet. */
+.spec-table__icon {
+  display: inline-flex;
+  margin-inline-end: var(--space-2);
+  vertical-align: -2px;
+  color: var(--color-muted);
+}
+
+.spec-table__hint,
+.product-specs__hint {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-m);
+  color: var(--color-muted);
+}
+
+.spec-table__value {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* The caveat that was in brackets. Body face, muted, its own line - the same
+   treatment the dimension cards give an imperial conversion, because it is
+   the same kind of thing: a footnote to the value above it. */
+.spec-table__note {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------------ */
+/* Share                                                                */
+
+/* ------------------------------------------------------------------ */
+/* Spec grid (spec_grid blocks)                                        */
+/* ------------------------------------------------------------------ */
+/* One soft rounded panel holding every cell of a RUN of consecutive
+   spec_grid blocks - the wrapper is opened and closed in Liquid (see the
+   spec_flags mechanism in main-product.liquid), because packing sibling
+   blocks two-up cannot be done with CSS adjacency inside the info column's
+   flex stack. The panel ground reuses the theme's soft-panel recipe (the
+   line/bg color-mix from collapsible-content and spec-strip) rather than
+   --color-card-media, which exists for imagery grounds and participates in
+   the merchant's blend-mode setting. */
+/* ------------------------------------------------------------------ */
+/* Spec group labels                                                     */
+/* ------------------------------------------------------------------ */
+/* A divider inside the one panel, not a panel of its own. Giving each group
+   its own card was tried and was worse than the ungrouped run it replaced:
+   a group holding a single spec became a card with one row in it, and four
+   cards down the buy column is a lot of edge for very little content.
+
+   So the two columns and the rows stay continuous, and the label only tells
+   the eye where one subject ends. Quiet on purpose - it is wayfinding, not a
+   heading competing with the product title a few rows above. */
+.spec-grid__group {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  color: var(--color-muted);
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* Every label but the first gets air above it, and a hairline. The first one
+   sits at the top of the panel where the panel's own edge already separates
+   it from what came before. */
+.spec-grid__group:not(:first-child) {
+  margin-top: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-line) 35%, var(--color-bg));
+}
+
+/* A row: the icon, then the label and value stacked beside it. The icon
+   belongs to the whole field rather than to the word above the value, and
+   keeping it out of the text column means a label that wraps does not flow
+   around it. */
+.spec-grid__item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.spec-grid__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* Lets a long value wrap instead of pushing the cell wider than its
+     column. */
+  min-width: 0;
+}
+
+/* An odd last cell stretches across both columns - a one-cell hole at the
+   end of a panel looks like something failed to load. */
+.spec-grid__item:last-child:nth-child(odd) {
+  grid-column: span 2;
+}
+
+/* Centred against the label/value pair, so no optical nudge is needed - the
+   flex alignment does it. Larger than the 15px it was: at that size, beside
+   two lines rather than one, it read as a bullet instead of a mark for the
+   field. */
+.spec-grid__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.spec-grid__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.spec-grid__value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ */
+/* Package contents                                                    */
+/* ------------------------------------------------------------------ */
+/* snippets/package-rows.liquid.
+
+   A packing list: one item per row, quantity right-aligned so the column of
+   numbers can be read down.
+
+   Deliberately plain. An earlier pass gave every quantity a filled chip and
+   bled the tint of the noted row out to the card's edges, which turned six
+   short lines into six competing shapes - the list was harder to read than
+   the flat rows it replaced. The quantity is right-aligned and bold, which is
+   all it needs to be found. */
+/* `.rte .package-rows` as well as the bare class. The accordion body carries
+   `.rte`, and base.css's `.rte ul, .rte ol` sets padding-left: var(--space-5),
+   which outranks a bare `.package-rows`. The card came out indented 24px on
+   the left and 16px on the right - the sort of asymmetry that reads as a
+   broken box rather than as a wrong number.
+
+   SPECIFICITY is the whole of the protection: `.rte .package-rows` at 0-2-0
+   beats `.rte ul` at 0-1-1. An earlier version of this comment claimed the
+   base rule used padding-inline-start and that logical-vs-physical ordering
+   mattered here. It does not - base.css is physical - and the claim would
+   have sent the next reader to "fix" a file that is not wrong. The
+   padding-inline longhand below is a style preference, not load-bearing. */
+.rte .package-rows,
+.package-rows {
+  list-style: none;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+.package-rows__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* The card's own border closes the list; a rule on the last row doubles it. */
+.package-rows__item:last-child {
+  border-bottom: 0;
+}
+
+.package-rows__name {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+  /* Without this the name refuses to shrink and pushes the quantity off the
+     row's right edge instead of wrapping. */
+  min-width: 0;
+}
+
+.package-rows__note {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* Never wraps and never shrinks - a column of quantities only reads as a
+   column while they all sit on one edge - and tabular figures keep 1 and 20
+   the same width. */
+.package-rows__qty {
+  flex: 0 0 auto;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Accordion (accordion blocks)                                        */
+/* ------------------------------------------------------------------ */
+/* Same native details/summary language as section-collapsible-content.css,
+   scaled down for the buy column: restyled ::marker (browsers without
+   content-on-::marker keep their native triangle, which still works), and
+   the summary stays display: list-item because that is the only display
+   that HAS a ::marker. Consecutive accordion blocks group into one ruled
+   list by the same adjacency trick as the spec grid above. */
+/* Icon-led panel rows, the reference page's grammar: each accordion is its
+   own soft rounded panel with a leading glyph, an uppercase title and a
+   plus at the far edge that swaps to a minus when open - not a hairline
+   list. The summary is flex (a ::marker cannot sit at the row's far edge),
+   so the native marker is suppressed both ways. */
+.product-accordion {
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-line) 35%, var(--color-bg));
+  padding-inline: var(--space-4);
+}
+
+/* The info column's flex gap already separates blocks by --space-5;
+   pulling consecutive panels back to a tight --space-2 makes them read as
+   one set. */
+.product-accordion + .product-accordion {
+  margin-top: calc(var(--space-2) - var(--space-5));
+}
+
+.product-accordion__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  cursor: pointer;
+  outline-offset: 4px;
+  list-style: none;
+}
+
+.product-accordion__summary::-webkit-details-marker {
+  display: none;
+}
+
+.product-accordion__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.product-accordion__toggle {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.product-accordion__toggle::before {
+  content: "+";
+}
+
+.product-accordion[open] > .product-accordion__summary .product-accordion__toggle::before {
+  content: "\2212";
+}
+
+.product-accordion__title {
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.product-accordion__summary:hover .product-accordion__title,
+.product-accordion__summary:focus-visible .product-accordion__title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.product-accordion__body {
+  padding-bottom: var(--space-4);
+  padding-left: var(--space-4);
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* The designed interiors from the approved mock, authorable from plain
+   richtext (so metafields and the editor both produce them):
+
+     <ul><li>Width <strong>346 mm</strong></li>...          -> measurement
+        rows: hairline-separated, label muted left, value bold right
+     <ul><li><em>1x</em> Keyboard</li>...                   -> package
+        list: the leading <em> becomes a brand quantity chip
+
+   A plain paragraph still renders as prose, so nothing existing changes. */
+/* These style a list the MERCHANT typed into the field - a rich-text <ul>
+   with no class of its own. `:not([class])` is what keeps them off the
+   components rendered into the same panel: the packing list is also a <ul>
+   here, and `.product-accordion__body ul` outranks `.package-rows` on
+   specificity, so it was silently zeroing that card's padding and pressing
+   every row and quantity flat against its border.
+
+   Excluding by "has no class" rather than by naming each component means the
+   next thing rendered in an accordion is protected without anybody
+   remembering to come back here. */
+.product-accordion__body ul:not([class]) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.product-accordion__body ul:not([class]) li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--color-line);
+}
+
+.product-accordion__body ul:not([class]) li:first-child {
+  border-top: 0;
+}
+
+.product-accordion__body ul:not([class]) li strong {
+  margin-inline-start: auto;
+  font-weight: 600;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.product-accordion__body ul:not([class]) li em {
+  font-style: normal;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-brand);
+  background-color: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+}
+
+.product-accordion__body > :first-child {
+  margin-top: 0;
+}
+
+.product-accordion__body > :last-child {
+  margin-bottom: 0;
+}
+
+/* The open/close motion lives in assets/product-accordion.js, not here.
+
+   The CSS-only route - transitioning block-size on ::details-content with
+   interpolate-size - is what assets/section-collapsible-content.css describes,
+   and it was tried here first. No transition is ever created: getAnimations()
+   reports nothing running and the panel jumps to full height in one frame.
+   That held for a bare <details> built in the console too, inside and outside
+   this flex column, so it is not this markup - the transition simply does not
+   start on this page.
+
+   The keyframe below is the no-JS and reduced-motion fallback: the body still
+   fades and rises when a native <details> opens on its own. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.js) .product-accordion[open] .product-accordion__body {
+    animation: product-accordion-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes product-accordion-in {
+  from {
+    opacity: 0;
+    translate: 0 -10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Trust list (trust_list block)                                       */
+/* ------------------------------------------------------------------ */
+/* Mirrors .cart-trust in section-cart.css: quiet muted rows, no border, no
+   grid - the calm counterpart to the boxed trust_badges block. */
+.product-trust {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.product-trust__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.product-trust__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--color-brand);
+}
+
+/* ------------------------------------------------------------------ */
+/* Promo card (promo_card block)                                       */
+/* ------------------------------------------------------------------ */
+.promo-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.promo-card:hover {
+  border-color: var(--color-ink);
+}
+
+.promo-card__media {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  background-color: var(--color-card-media);
+}
+
+.promo-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: var(--card-media-blend);
+}
+
+.promo-card__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.promo-card__eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+.promo-card__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.promo-card__text {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.promo-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Notice style: a status card (limited restock, preorder window). Tinted
+   with the danger token because urgency is what that token says; the theme
+   has no separate warning colour and this is not the place to invent one.
+   The tint is deliberately faint - a solid danger ground would read as an
+   error, not a nudge. */
+.promo-card--notice {
+  background-color: color-mix(in srgb, var(--color-danger) 6%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--color-danger) 30%, var(--color-line));
+}
+
+.promo-card--notice .promo-card__eyebrow {
+  color: var(--color-danger);
+}
+
+a.promo-card--notice:hover {
+  border-color: var(--color-danger);
+}
+
+/* ------------------------------------------------------------------ */
+/* Share row (share_row block)                                         */
+/* ------------------------------------------------------------------ */
+.share-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.share-row__label {
+  margin-right: var(--space-1);
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.share-row__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  color: var(--color-ink);
+}
+
+.share-row__link:hover,
+.share-row__link:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.share-row__link:focus-visible,
+.share-row__copy:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* Hidden until html.js proves the script can run: a copy button that
+   silently does nothing is worse than no button. The readonly URL input is
+   the mirror image - the no-JS (and clipboard-failure) fallback, hidden
+   only while the button is trustworthy. */
+.share-row__copy {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  height: 36px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+html.js .share-row:not(.is-copy-fallback) .share-row__copy {
+  display: inline-flex;
+}
+
+.share-row__copy:hover {
+  border-color: var(--color-ink);
+}
+
+.share-row__copied {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-success);
+}
+
+/* The markup ships this hidden until share-row.js confirms a copy; the
+   display above outranks the UA's [hidden] rule, so restate it - without
+   this the "Link copied" tick shows before anyone has clicked anything. */
+.share-row__copied[hidden] {
+  display: none;
+}
+
+.share-row__fallback {
+  flex: 1 1 100%;
+  min-width: 0;
+  height: 36px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+html.js .share-row:not(.is-copy-fallback) .share-row__fallback {
+  display: none;
+}
+
+/* Cursor-origin hover fill, the same sweep .btn and .product-tabs__tab run.
+   assets/motion.js sets --fill-x/--fill-y from where the pointer entered and
+   toggles .is-hover-fill; the four things that file's contract requires are
+   all here.
+
+   Written here, AFTER the second copy of this share-row block, on purpose:
+   this stylesheet currently carries the whole share_row section twice (the
+   run at ~653-1090 repeats at ~1156-1593), so a fill declared up in the
+   first copy would be answered by the second copy's plain :hover rules. */
+.share-row__link,
+.share-row__copy {
+  position: relative;
+  /* Own stacking context, or the z-index -1 below drops the fill behind the
+     buy column's own background instead of behind the control's label. */
+  isolation: isolate;
+}
+
+/* z-index MUST be -1. At 0 or auto the fill paints above inline content and
+   sweeps over the glyph and the "Copy link" label - the bug motion.js's
+   contract calls out by name. */
+.share-row__link::before,
+.share-row__copy::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--color-ink);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.share-row__link > *,
+.share-row__copy > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* circle() percentages resolve against sqrt((w^2+h^2)/2), so 150% still
+   reaches the farthest corner of the wide copy pill from an origin at its
+   far end. */
+html.has-cursor-fill .share-row__link.is-hover-fill::before,
+html.has-cursor-fill .share-row__copy.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* [data-icon-close]'s faster pair, not the 3s button sweep, and the copy pill
+   takes it too even though a pill would normally read as a button: these five
+   controls sit shoulder to shoulder in one row, so a cursor crossing them
+   starts each sweep a few hundred ms after the last. At 3s that leaves a
+   trail of half-filled circles with the pill still filling behind them, and
+   giving the pill its own slower timing would only move the seam inside the
+   same row. Same argument as .footer__social-link, which is this object in a
+   footer.
+
+   The transition is declared on BOTH states, not only on .is-hover-fill: a
+   transition runs according to whichever rule matches the DESTINATION, so
+   declaring it once gives controls that sweep in and vanish on the way out. */
+@media (prefers-reduced-motion: no-preference) {
+  .share-row__link::before,
+  .share-row__copy::before {
+    transition: clip-path var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .share-row__link.is-hover-fill::before,
+  html.has-cursor-fill .share-row__copy.is-hover-fill::before {
+    transition: clip-path var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* The glyph and the label invert as the ink arrives under them, and the ring
+   goes with them so edge and interior land together. Keyed on .is-hover-fill
+   rather than :hover so the inversion is tied to the sweep's own lifetime. */
+html.has-cursor-fill .share-row__link.is-hover-fill,
+html.has-cursor-fill .share-row__copy.is-hover-fill {
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* .share-row__copied keeps its own --color-success and is deliberately left
+   out of that inversion: the tick is a confirmation, and it has to stay the
+   colour that says so whether or not the pointer is still on the pill. */
+
+/* Both directions ride the fill's duration AND its easing. Duration alone
+   still desyncs: the exit is ease-in (barely moves, then accelerates) while a
+   default curve is already well underway, so the label would revert to ink
+   while the ink fill is still sitting under it. */
+@media (prefers-reduced-motion: no-preference) {
+  .share-row__link,
+  .share-row__copy {
+    transition:
+      color var(--icon-close-fill-out) var(--icon-close-fill-out-ease),
+      border-color var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .share-row__link.is-hover-fill,
+  html.has-cursor-fill .share-row__copy.is-hover-fill {
+    transition:
+      color var(--icon-close-fill-in) var(--icon-close-fill-in-ease),
+      border-color var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* Without JS driving the sweep (touch, reduced motion, or before motion.js
+   runs) the controls still need a hover state, so the same inversion is
+   arrived at instantly. */
+html:not(.has-cursor-fill) .share-row__link:hover,
+html:not(.has-cursor-fill) .share-row__copy:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* ------------------------------------------------------------------ */
+/* Buy-column entrance stagger                                         */
+/* ------------------------------------------------------------------ */
+/* The info column's blocks arrive in a short top-to-bottom ripple on page
+   load. A one-shot CSS ANIMATION, not data-reveal: the buy column is above
+   the fold, where memory-bank/performance.md bans the reveal system (its
+   hidden state waits for deferred JS - an LCP delay), while an animation
+   gated on html.js starts at first paint because that class is set by the
+   inline pre-paint script. Nothing here can double-animate: no block in
+   this column carries data-reveal, and the one element with its own
+   entrance - the <h1>, which base.css's site-wide heading rise owns - is
+   excluded below.
+
+   The delay ramp is base-value-then-override: every child gets the CAP
+   first, and the first six get shorter delays. Written this way round so a
+   seventh-plus child animates WITH the sixth instead of falling back to
+   zero delay and popping in before everything above it. Worst case is
+   300ms delay + 360ms duration = 660ms, inside the 700ms budget. The
+   column's first child is the variant JSON <script>, which soaks up
+   nth-child(1) invisibly - the visible ramp effectively starts at the
+   first rendered block. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js .product-layout__info > :not(h1) {
+    animation: product-info-in 360ms ease-out both;
+    animation-delay: 300ms;
+  }
+
+  html.js .product-layout__info > :nth-child(1) {
+    animation-delay: 0ms;
+  }
+
+  html.js .product-layout__info > :nth-child(2):not(h1) {
+    animation-delay: 60ms;
+  }
+
+  html.js .product-layout__info > :nth-child(3):not(h1) {
+    animation-delay: 120ms;
+  }
+
+  html.js .product-layout__info > :nth-child(4):not(h1) {
+    animation-delay: 180ms;
+  }
+
+  html.js .product-layout__info > :nth-child(5):not(h1) {
+    animation-delay: 240ms;
+  }
+}
+
+@keyframes product-info-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Rows parsed out of a written block (snippets/spec-rows.liquid) rather than
+   read from individual metafields.
+
+   Two columns with rules between them, the same table the reference product
+   pages use. The buy box is about half the width they give it, so the value
+   steps down a size and longer ones wrap to two or three lines - a wrapped
+   value in a cell still reads as one field, which a single tall column of
+   eight fields does not.
+
+   `repeat(2, ...)` is stated rather than auto-fit because the vertical rule
+   is drawn with :nth-child(2n): a grid that silently became three columns
+   would draw that rule down the middle of a row. */
+.spec-table__list--rows,
+.product-accordion__body .spec-table__list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--color-line);
+}
+
+.spec-table__list--rows .spec-table__row,
+.product-accordion__body .spec-table__row {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* Second column only: its left edge is the divider, and the first column must
+   not draw one or the block gains a stray rule down its outside edge. */
+.spec-table__list--rows .spec-table__row:nth-child(2n),
+.product-accordion__body .spec-table__row:nth-child(2n) {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-line);
+}
+
+.spec-table__list--rows .spec-table__row:nth-child(2n + 1),
+.product-accordion__body .spec-table__row:nth-child(2n + 1) {
+  padding-right: var(--space-4);
+}
+
+/* Smaller than the sheet in the tab. These cells are half as wide, and a
+   17px value turns "Stainless Magnesium Alloy" into three lines. */
+.spec-table__list--rows .spec-table__value,
+.product-accordion__body .spec-table__value {
+  font-size: 15px;
+}
+
+.spec-table__list--rows .spec-table__label,
+.product-accordion__body .spec-table__label {
+  font-size: 12px;
+}
+
+/* A line with no colon is a bare value - "Wireless Mouse x 1" in package
+   contents - and has no label above it to sit under. */
+.spec-table__list--rows .spec-table__value:first-child {
+  margin-top: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Package contents                                                    */
+/* ------------------------------------------------------------------ */
+
+/* The structured sheet inside a buy-box accordion takes the SAME two-column
+   cell grid as a written one - the --rows rules above name both selectors.
+   The Specification panel has two renderers: a written "Label: Value" block
+   where the merchant wrote one, the structured metafields where they did not.
+   A panel that changes shape depending on which source filled it looks broken
+   on half the catalogue.
+
+   Only the heading differs, because it would repeat the accordion's own title
+   an inch above it. */
+.product-accordion__body .spec-table {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.product-accordion__body .spec-table__heading {
+  display: none;
+}
+
+.product-accordion__body .spec-table__row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* Clamped description with a Read more. The clamp is on the body, not the
+   wrapper, so the button never gets cut off with the text. */
+.product-info__description--clamped .product-info__description-body {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--clamp-lines, 4);
+  overflow: hidden;
+}
+
+.product-info__description--clamped.is-open .product-info__description-body {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.product-info__read-more {
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
