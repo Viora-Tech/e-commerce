@@ -5,9 +5,11 @@ GRANT CONNECT ON DATABASE commerce TO app;
 CREATE DATABASE commerce_test_db;
 CREATE DATABASE commerce_test_core;
 CREATE DATABASE commerce_test_auth;
+CREATE DATABASE commerce_test_api;
 GRANT CONNECT ON DATABASE commerce_test_db TO app;
 GRANT CONNECT ON DATABASE commerce_test_core TO app;
 GRANT CONNECT ON DATABASE commerce_test_auth TO app;
+GRANT CONNECT ON DATABASE commerce_test_api TO app;
 \connect commerce
 GRANT USAGE ON SCHEMA public TO app;
 \connect commerce_test_db
@@ -15,4 +17,6 @@ GRANT USAGE ON SCHEMA public TO app;
 \connect commerce_test_core
 GRANT USAGE ON SCHEMA public TO app;
 \connect commerce_test_auth
+GRANT USAGE ON SCHEMA public TO app;
+\connect commerce_test_api
 GRANT USAGE ON SCHEMA public TO app;
