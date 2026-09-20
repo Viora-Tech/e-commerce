@@ -1,0 +1,29 @@
+{
+  "name": "@commerce/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./test": "./test/reset.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "bun run src/migrate.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/config": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "dotenv": "^18.0.1",
+    "vitest": "^4.1.11",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3"
+  }
+}
