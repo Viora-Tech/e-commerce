@@ -500,10 +500,7 @@
   scroll-behavior: smooth;
 }
 
-/* Polaris owns the page content; give it Shopify's grey canvas inside the inset. */
+/* Polaris owns the page content; its canvas colour comes from its own theme tokens. */
 .polaris-scope {
   background: var(--p-color-bg, #f1f1f1);
-}
-.dark .polaris-scope {
-  background: var(--p-color-bg-inverse, #1a1a1a);
 }
