@@ -12,6 +12,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+    "resolveJsonModule": true,
     "exactOptionalPropertyTypes": false
   },
   "include": ["next-env.d.ts", "src", ".next/types/**/*.ts"],

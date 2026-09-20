@@ -1,13 +1,8 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Input } from '@commerce/ui/shadcn/input'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@commerce/ui/shadcn/input-otp'
-import { Label } from '@commerce/ui/shadcn/label'
+import { BlockStack, Button, Card, Form, FormLayout, Page, Text, TextField } from '@shopify/polaris'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 
 export default function LoginPage() {
@@ -16,78 +11,77 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState<'email' | 'otp'>('email')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  async function sendCode(e: React.FormEvent) {
-    e.preventDefault()
+  async function sendCode() {
     setBusy(true)
-    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' })
+    setError(null)
+    const res = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' })
     setBusy(false)
-    if (error) return toast.error(error.message ?? 'Could not send the code')
+    if (res.error) return setError(res.error.message ?? 'Could not send the code')
     setStep('otp')
-    toast.success('Code sent. In dev it is printed in the admin server log.')
   }
 
-  async function verify(e: React.FormEvent) {
-    e.preventDefault()
+  async function verify() {
     setBusy(true)
-    const { error } = await authClient.signIn.emailOtp({ email, otp })
+    setError(null)
+    const res = await authClient.signIn.emailOtp({ email, otp })
     setBusy(false)
-    if (error) return toast.error(error.message ?? 'Wrong code')
+    if (res.error) return setError(res.error.message ?? 'Wrong code')
     router.push('/')
     router.refresh()
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>
-            {step === 'email'
-              ? 'We will email you a one-time code.'
-              : `Enter the 6-digit code sent to ${email}.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === 'email' ? (
-            <form onSubmit={sendCode} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={busy}>
-                Send code
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={verify} className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="otp">Code</Label>
-                <InputOTP id="otp" maxLength={6} value={otp} onChange={setOtp}>
-                  <InputOTPGroup>
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                      <InputOTPSlot key={i} index={i} />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              <Button type="submit" disabled={busy || otp.length < 6}>
-                Sign in
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => setStep('email')}>
-                Use a different email
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-    </main>
+    <Page narrowWidth>
+      <div style={{ maxWidth: 400, margin: '10vh auto 0' }}>
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h1" variant="headingLg">
+              Log in
+            </Text>
+            {step === 'email' ? (
+              <Form onSubmit={sendCode}>
+                <FormLayout>
+                  <TextField
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    autoComplete="email"
+                    error={error ?? undefined}
+                    helpText="We will email you a one-time code."
+                  />
+                  <Button submit variant="primary" loading={busy}>
+                    Continue with email
+                  </Button>
+                </FormLayout>
+              </Form>
+            ) : (
+              <Form onSubmit={verify}>
+                <FormLayout>
+                  <TextField
+                    label={`Code sent to ${email}`}
+                    value={otp}
+                    onChange={setOtp}
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    error={error ?? undefined}
+                    helpText="In development the code is printed in the admin server log."
+                  />
+                  <Button submit variant="primary" loading={busy} disabled={otp.length < 6}>
+                    Log in
+                  </Button>
+                  <Button variant="plain" onClick={() => setStep('email')}>
+                    Use a different email
+                  </Button>
+                </FormLayout>
+              </Form>
+            )}
+          </BlockStack>
+        </Card>
+      </div>
+    </Page>
   )
 }

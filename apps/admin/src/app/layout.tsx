@@ -1,20 +1,15 @@
-import { Toaster } from '@commerce/ui/shadcn/sonner'
 import type { Metadata } from 'next'
-import { ThemeProvider } from 'next-themes'
-import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
-import './globals.css'
+import '@shopify/polaris/build/esm/styles.css'
+import { PolarisProvider } from '@/components/polaris-provider'
 
-export const metadata: Metadata = { title: 'Commerce admin' }
+export const metadata: Metadata = { title: 'Admin' }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-svh bg-background text-foreground antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <NuqsAdapter>{children}</NuqsAdapter>
-          <Toaster richColors position="top-right" />
-        </ThemeProvider>
+    <html lang="en">
+      <body>
+        <PolarisProvider>{children}</PolarisProvider>
       </body>
     </html>
   )
