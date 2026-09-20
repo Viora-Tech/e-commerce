@@ -16,10 +16,12 @@
       "dependencies": {
         "@commerce/api": "workspace:*",
         "@commerce/auth": "workspace:*",
+        "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/ui": "workspace:*",
+        "@measured/puck": "^0.20.2",
         "@orpc/client": "^1.15.2",
         "@orpc/server": "^1.15.2",
         "@shopify/polaris": "^13.9.5",
