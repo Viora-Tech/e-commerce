@@ -44,3 +44,11 @@ If the volume predates that file: `docker compose down -v && bun run infra:up`.
   adapters arrive.
 - Playwright, Vitest browser mode and MSW come in with the storefront and the
   first HTTP adapters, not before.
+
+## Git workflow
+
+- Branch names describe the work: `feat/storefront-product-page`,
+  `feat/razorpay-adapter`, `fix/rls-order-number`, `chore/ci-dragonfly`.
+- Every branch goes through a pull request, kept small enough to review in one
+  sitting. CI must be green before merge.
+- Merge with squash or fast-forward; no merge commits on `main`.
