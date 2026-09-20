@@ -32,7 +32,7 @@ const loadCart: WorkflowStep<State> = {
   name: 'loadCart',
   async run({ ctx, input }) {
     const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, input.cartId))
-    if (!c || c.status !== 'open') throw new CartNotOpen(input.cartId, ctx.storeId)
+    if (c?.status !== 'open') throw new CartNotOpen(input.cartId, ctx.storeId)
     const lines = await ctx.tx
       .select({
         variantId: cartLine.variantId,
