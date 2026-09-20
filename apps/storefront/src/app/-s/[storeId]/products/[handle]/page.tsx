@@ -31,20 +31,20 @@ export default async function ProductPage({ params }: Params) {
   if (!data) notFound()
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
-      <h1 className="text-3xl font-semibold">{data.product.title}</h1>
-      <ul className="mt-6 divide-y divide-neutral-200">
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <h1>{data.product.title}</h1>
+      <ul className="mt-8 divide-y divide-line rounded-section border border-line bg-surface">
         {data.variants.map((v) => {
           const available = (v.onHand ?? 0) - (v.reserved ?? 0)
           return (
-            <li key={v.id} className="flex items-baseline justify-between py-3">
+            <li key={v.id} className="flex items-baseline justify-between px-5 py-4">
               <span>{v.title}</span>
               <span className="flex items-baseline gap-3">
                 {v.mrpPaise && v.mrpPaise > v.pricePaise ? (
-                  <s className="text-neutral-400">{formatPaise(v.mrpPaise)}</s>
+                  <s className="text-muted">{formatPaise(v.mrpPaise)}</s>
                 ) : null}
                 <span className="font-medium">{formatPaise(v.pricePaise)}</span>
-                <span className={available > 0 ? 'text-green-700' : 'text-red-700'}>
+                <span className={available > 0 ? 'text-success' : 'text-danger'}>
                   {available > 0 ? `${available} in stock` : 'Sold out'}
                 </span>
               </span>
