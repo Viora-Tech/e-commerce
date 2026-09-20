@@ -4,11 +4,11 @@ import { notFound } from 'next/navigation'
 import { formatPaise } from '@/lib/money'
 import { inStore } from '@/lib/store-context'
 
-type Params = { params: Promise<{ handle: string }> }
+type Params = { params: Promise<{ storeId: string; handle: string }> }
 
 export default async function ProductPage({ params }: Params) {
-  const { handle } = await params
-  const data = await inStore(async (tx) => {
+  const { storeId, handle } = await params
+  const data = await inStore(storeId, async (tx) => {
     const [p] = await tx
       .select()
       .from(product)
