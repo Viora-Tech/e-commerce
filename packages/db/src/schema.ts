@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   integer,
   jsonb,
   pgTable,
@@ -29,6 +31,8 @@ export const store = pgTable('store', {
   nextOrderNumber: integer('next_order_number').notNull().default(1),
   /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
   theme: jsonb('theme'),
+  /** Payment settings: enabled methods and encrypted gateway credentials. */
+  payments: jsonb('payments'),
   createdAt: createdAt(),
 })
 
@@ -205,17 +209,48 @@ export const orderLine = pgTable('order_line', {
   unitPricePaise: integer('unit_price_paise').notNull(),
 })
 
-export const payment = pgTable('payment', {
-  id: id(),
-  storeId: storeId(),
-  orderId: uuid('order_id')
-    .notNull()
-    .references(() => order.id),
-  provider: text('provider').notNull(),
-  providerRef: text('provider_ref').notNull(),
-  status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
-  amountPaise: integer('amount_paise').notNull(),
-})
+export const payment = pgTable(
+  'payment',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    provider: text('provider').notNull(),
+    providerRef: text('provider_ref').notNull(),
+    /** Gateway's own payment id once known (Razorpay pay_..., etc). */
+    providerPaymentId: text('provider_payment_id'),
+    status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
+    amountPaise: integer('amount_paise').notNull(),
+  },
+  (t) => [
+    check(
+      'payment_status_check',
+      sql`${t.status} in ('pending', 'captured', 'refunded', 'failed')`,
+    ),
+  ],
+)
+
+/** Every gateway webhook, stored before it is processed so retries cannot double-apply. */
+export const paymentEvent = pgTable(
+  'payment_event',
+  {
+    id: id(),
+    storeId: storeId(),
+    provider: text('provider').notNull(),
+    eventId: text('event_id').notNull(),
+    type: text('type').notNull(),
+    payload: jsonb('payload').notNull(),
+    status: text('status', { enum: ['pending', 'processed', 'failed'] })
+      .notNull()
+      .default('pending'),
+    error: text('error'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId)],
+)
 
 export const storeDomain = pgTable('store_domain', {
   id: id(),

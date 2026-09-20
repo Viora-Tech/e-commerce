@@ -176,18 +176,29 @@ describe('placeOrder', () => {
   it('refunds a captured payment when the database fails afterwards', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
     const refunds: string[] = []
-    // Captures money, then hands back a reference the payment table cannot store.
+    // Captures money, then reports a status the payment table's check constraint rejects.
     const brokenRef: PaymentProvider = {
       id: 'broken',
+      label: 'Broken',
       async createPayment() {
-        return { providerRef: null as unknown as string, status: 'captured' }
+        return {
+          providerRef: 'pay_broken',
+          status: 'captured-but-weird' as unknown as 'captured',
+          session: { kind: 'none', provider: 'broken', providerRef: 'pay_broken' },
+        }
       },
-      async capture() {
-        return { status: 'captured' }
+      async confirm() {
+        return { status: 'captured', providerPaymentId: 'x' }
       },
-      async refund(_ctx, ref, amountPaise) {
+      async fetchStatus() {
+        return { status: 'captured', providerPaymentId: 'x', amountPaise: 0 }
+      },
+      async refund(ref, amountPaise) {
         refunds.push(`${ref}:${amountPaise}`)
-        return { status: 'refunded' }
+        return { providerRefundId: 'rf', status: 'processed' }
+      },
+      parseWebhook() {
+        return { ok: false, reason: 'none' }
       },
     }
     const silent = { error: () => {} }
@@ -196,7 +207,7 @@ describe('placeOrder', () => {
         placeOrder({ storeId, tx }, { cartId, paymentProvider: brokenRef }, silent),
       ),
     ).rejects.toThrow()
-    expect(refunds).toEqual(['null:499900'])
+    expect(refunds).toEqual(['pay_broken:499900'])
     expect(await owner.select().from(order)).toEqual([])
   })
 })

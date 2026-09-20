@@ -1,5 +1,9 @@
-import type { StoreContext } from '../context'
-import type { PaymentProvider } from './payment'
+import type {
+  CreatePaymentInput,
+  CreatePaymentResult,
+  PaymentProvider,
+  WebhookVerification,
+} from '@commerce/payments'
 
 /**
  * Cash on delivery. Nothing is charged at checkout, so the order stays
@@ -7,16 +11,30 @@ import type { PaymentProvider } from './payment'
  */
 export class CodPaymentProvider implements PaymentProvider {
   readonly id = 'cod'
+  readonly label = 'Cash on delivery'
 
-  async createPayment(_ctx: StoreContext, input: { orderId: string }) {
-    return { providerRef: `cod_${input.orderId}`, status: 'pending' as const }
+  async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
+    const providerRef = `cod_${input.orderId}`
+    return {
+      providerRef,
+      status: 'pending',
+      session: { kind: 'none', provider: this.id, providerRef },
+    }
   }
 
-  async capture(_ctx: StoreContext) {
-    return { status: 'captured' as const }
+  async confirm(providerRef: string) {
+    return { status: 'pending' as const, providerPaymentId: providerRef }
   }
 
-  async refund(_ctx: StoreContext) {
-    return { status: 'refunded' as const }
+  async fetchStatus(providerRef: string) {
+    return { status: 'pending' as const, providerPaymentId: providerRef, amountPaise: 0 }
+  }
+
+  async refund(providerPaymentId: string) {
+    return { providerRefundId: `rf_${providerPaymentId}`, status: 'processed' as const }
+  }
+
+  parseWebhook(): WebhookVerification {
+    return { ok: false, reason: 'cod has no webhooks' }
   }
 }

@@ -11,10 +11,10 @@ import {
   store,
   variant,
 } from '@commerce/db'
+import type { CheckoutSession, PaymentProvider, PaymentStatus } from '@commerce/payments'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
-import type { PaymentProvider, PaymentStatus } from '../providers/payment'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
 export type CheckoutDetails = {
@@ -34,6 +34,8 @@ export type PlaceOrderResult = {
   orderId: string
   orderNumber: number
   paymentStatus: PaymentStatus
+  /** How the storefront should continue: open a gateway checkout, redirect, or nothing. */
+  session: CheckoutSession
 }
 
 type Line = {
@@ -53,6 +55,7 @@ type State = {
   orderNumber: number | null
   providerRef: string | null
   paymentStatus: PaymentStatus | null
+  session: CheckoutSession | null
 }
 
 const sumPaise = (lines: Line[]): number =>
@@ -184,22 +187,34 @@ const createOrder: WorkflowStep<State> = {
 /** External side effect only. Kept separate so a later DB failure still triggers the refund. */
 const chargePayment: WorkflowStep<State> = {
   name: 'chargePayment',
-  async run({ ctx, input, lines, orderId }) {
+  async run({ ctx, input, lines, orderId, orderNumber }) {
     if (!orderId) throw new Error('chargePayment before createOrder')
     try {
-      const result = await input.paymentProvider.createPayment(ctx, {
+      const result = await input.paymentProvider.createPayment({
         orderId,
+        orderNumber: orderNumber ?? undefined,
         amountPaise: sumPaise(lines),
-        customer: { email: input.checkout?.email, phone: input.checkout?.phone },
+        currency: 'INR',
+        customer: {
+          email: input.checkout?.email,
+          phone: input.checkout?.phone,
+          name: input.checkout?.name,
+        },
       })
-      return { providerRef: result.providerRef, paymentStatus: result.status }
+      return {
+        providerRef: result.providerRef,
+        paymentStatus: result.status,
+        session: result.session,
+      }
     } catch (cause) {
       throw new PaymentFailed(input.paymentProvider.id, cause, ctx.storeId)
     }
   },
-  async compensate({ ctx, input, lines, providerRef, paymentStatus }) {
-    if (paymentStatus === 'captured') {
-      await input.paymentProvider.refund(ctx, providerRef as string, sumPaise(lines))
+  async compensate({ input, lines, providerRef, paymentStatus }) {
+    // Only money actually taken needs returning. providerRef doubles as the
+    // payment id for providers that capture at creation.
+    if (providerRef && paymentStatus !== 'pending' && paymentStatus !== 'failed') {
+      await input.paymentProvider.refund(providerRef, sumPaise(lines))
     }
   },
 }
@@ -213,7 +228,7 @@ const recordPayment: WorkflowStep<State> = {
       orderId,
       provider: input.paymentProvider.id,
       providerRef: providerRef as string,
-      status: paymentStatus,
+      status: paymentStatus === 'authorized' ? 'pending' : paymentStatus,
       amountPaise: sumPaise(lines),
     })
     if (paymentStatus === 'captured') {
@@ -252,16 +267,18 @@ export async function placeOrder(
       orderNumber: null,
       providerRef: null,
       paymentStatus: null,
+      session: null,
     },
     [loadCart, reserveStock, createOrder, chargePayment, recordPayment, markCartConverted],
     log,
   )
-  if (!state.orderId || state.orderNumber === null || !state.paymentStatus) {
+  if (!state.orderId || state.orderNumber === null || !state.paymentStatus || !state.session) {
     throw new Error('placeOrder finished without an order')
   }
   return {
     orderId: state.orderId,
     orderNumber: state.orderNumber,
     paymentStatus: state.paymentStatus,
+    session: state.session,
   }
 }
