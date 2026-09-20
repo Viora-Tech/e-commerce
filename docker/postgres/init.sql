@@ -1,9 +1,14 @@
 -- Runtime role: cannot bypass RLS, does not own tables.
 CREATE ROLE app LOGIN PASSWORD 'app' NOBYPASSRLS;
 GRANT CONNECT ON DATABASE commerce TO app;
-CREATE DATABASE commerce_test;
-GRANT CONNECT ON DATABASE commerce_test TO app;
+-- One test database per package so test suites can run in parallel.
+CREATE DATABASE commerce_test_db;
+CREATE DATABASE commerce_test_core;
+GRANT CONNECT ON DATABASE commerce_test_db TO app;
+GRANT CONNECT ON DATABASE commerce_test_core TO app;
 \connect commerce
 GRANT USAGE ON SCHEMA public TO app;
-\connect commerce_test
+\connect commerce_test_db
+GRANT USAGE ON SCHEMA public TO app;
+\connect commerce_test_core
 GRANT USAGE ON SCHEMA public TO app;

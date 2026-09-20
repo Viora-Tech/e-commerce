@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/env.ts",
+    "./test-env": "./src/test-env.ts",
     "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "scripts": {
@@ -12,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "dotenv": "^18.0.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
-import { config } from 'dotenv'
+import { loadTestEnv } from '@commerce/config/test-env'
 import { defineConfig } from 'vitest/config'
 
-config({ path: '../../.env.test' })
+loadTestEnv('db', '../../.env.test')
 
 export default defineConfig({
   test: {

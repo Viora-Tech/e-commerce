@@ -14,9 +14,10 @@ row-level security, place-order workflow, worker process. Design in
     bun run --cwd apps/worker dev
     curl localhost:4100/health
 
-Tests use `commerce_test`, created by `docker/postgres/init.sql` on first boot.
+Each test package has its own database (`commerce_test_db`, `commerce_test_core`),
+created by `docker/postgres/init.sql` on first boot. Add one per new package there
+and in its `vitest.config.ts` via `loadTestEnv`.
 If the volume predates that file: `docker compose down -v && bun run infra:up`.
-Test packages share that database, so `bun run test` runs them one at a time.
 
 ## Rules
 
