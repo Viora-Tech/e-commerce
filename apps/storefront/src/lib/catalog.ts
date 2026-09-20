@@ -1,3 +1,4 @@
+import type { CardProduct, ProductDetail } from '@commerce/blocks'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryLevel,
@@ -11,24 +12,23 @@ import {
 } from '@commerce/db'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 
-export type CardProduct = {
-  id: string
-  handle: string
-  title: string
-  vendor: string | null
-  productType: string | null
-  pricePaise: number
-  mrpPaise: number | null
-  available: number
-  images: { url: string; alt: string | null }[]
-}
+export type { CardProduct, ProductDetail }
 
 /** Products for cards: first two images, lowest price, summed availability. */
-export async function listCardProducts(tx: StoreTx, limit = 48): Promise<CardProduct[]> {
+export async function listCardProducts(
+  tx: StoreTx,
+  limit = 48,
+  productType?: string,
+): Promise<CardProduct[]> {
   const products = await tx
     .select()
     .from(product)
-    .where(eq(product.status, 'active'))
+    .where(
+      and(
+        eq(product.status, 'active'),
+        productType ? eq(product.productType, productType) : undefined,
+      ),
+    )
     .orderBy(asc(product.title))
     .limit(limit)
   if (products.length === 0) return []
@@ -76,27 +76,6 @@ export async function listCardProducts(tx: StoreTx, limit = 48): Promise<CardPro
       images: images.filter((i) => i.productId === p.id).map((i) => ({ url: i.url, alt: i.alt })),
     }
   })
-}
-
-export type ProductDetail = {
-  id: string
-  handle: string
-  title: string
-  description: string | null
-  vendor: string | null
-  productType: string | null
-  images: { url: string; alt: string | null }[]
-  options: { id: string; name: string; values: { id: string; value: string }[] }[]
-  variants: {
-    id: string
-    title: string
-    sku: string | null
-    pricePaise: number
-    mrpPaise: number | null
-    available: number
-    optionValueIds: string[]
-    imageUrl: string | null
-  }[]
 }
 
 export async function getProductByHandle(

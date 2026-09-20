@@ -51,9 +51,11 @@
       "name": "@commerce/storefront",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
+        "@measured/puck": "^0.20.2",
         "drizzle-orm": "^0.45.2",
         "next": "16.3.5",
         "react": "^19.2.0",
