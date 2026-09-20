@@ -22,6 +22,21 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/core": {
+      "name": "@commerce/core",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/db": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/db": {
       "name": "@commerce/db",
       "version": "0.0.0",
@@ -60,6 +75,8 @@
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.14", "", { "os": "win32", "cpu": "x64" }, "sha512-oJWmBhoHsnhUKIke+0gXDX0mltJrWHA1UyHsrTlXwX0TL64ilVZAo+TYZm97baecV0esBdpzy3k96q+09JaZUQ=="],
 
     "@commerce/config": ["@commerce/config@workspace:packages/config"],
+
+    "@commerce/core": ["@commerce/core@workspace:packages/core"],
 
     "@commerce/db": ["@commerce/db@workspace:packages/db"],
 
