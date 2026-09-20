@@ -1,0 +1,69 @@
+/**
+ * Stock bar (snippets/stock-bar.liquid).
+ *
+ * A track that empties as stock falls, with the count printed above it.
+ * Only rendered below the threshold, so everything here is styling something
+ * that is already worth saying.
+ */
+.stock-bar {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.stock-bar[hidden] {
+  display: none;
+}
+
+.stock-bar__label {
+  margin: 0;
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+/* The count itself, wrapped by the locale string, so the number carries the
+   weight and the sentence around it stays quiet. */
+.stock-bar__count {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-bar__track {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  /* The empty part of the track, not a neutral grey: at 12% the ink colour
+     keeps the contrast between filled and unfilled legible on both the light
+     and the dark product page, which a fixed grey does not. */
+  background-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
+  overflow: hidden;
+}
+
+.stock-bar__fill {
+  display: block;
+  width: var(--stock-pct, 100%);
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--color-brand);
+}
+
+/* Under a quarter the fill turns to the warning colour. Stated with hue
+   rather than with a second element, so nothing moves or appears - the bar
+   the visitor was already looking at simply changes character.
+
+   Driven by a class rather than a CSS comparison because Liquid and the
+   variant script both know the number and CSS does not. */
+.stock-bar.is-critical .stock-bar__fill {
+  background-color: var(--color-warning, #d94a3d);
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .stock-bar__fill {
+    /* Animates when the visitor switches variant, which is the only time
+       this width changes. It makes the two stock levels feel like the same
+       bar moving rather than two unrelated readings. */
+    transition:
+      width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 260ms ease;
+  }
+}

@@ -4,12 +4,21 @@ import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { Footer } from '@/components/glide/footer'
+import { Header } from '@/components/glide/header'
 import { archivo, figtree, fontVar } from '@/lib/fonts'
 import { inStore } from '@/lib/store-context'
 import { htmlThemeAttr, parseThemeMode, THEME_COOKIE } from '@/lib/theme-mode'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }
+
+const NAV = [
+  { label: 'Mice', href: '/collections/mice' },
+  { label: 'Mousepads', href: '/collections/mousepads' },
+  { label: 'Glasspads', href: '/collections/glass-mousepads' },
+  { label: 'Keyboards', href: '/collections/keyboards' },
+  { label: 'Guides', href: '/guides' },
+]
 
 export default async function StoreLayout({ children, params }: Props) {
   const { storeId } = await params
@@ -33,21 +42,46 @@ export default async function StoreLayout({ children, params }: Props) {
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours and enums; no user string reaches it. */}
         <style dangerouslySetInnerHTML={{ __html: `${themeToCss(theme)}\n${fontStyle}` }} />
       </head>
-      <body className="min-h-screen antialiased">
-        <header className="flex items-center justify-between border-b border-line px-6 py-4">
-          <a href="/" className="font-heading text-lg font-bold tracking-tight">
-            {current.name}
-          </a>
-          {theme.darkMode.enabled && theme.darkMode.togglePosition === 'header' ? (
-            <ThemeToggle initial={mode} />
-          ) : null}
-        </header>
-        {children}
-        {theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? (
-          <footer className="border-t border-line px-6 py-4">
-            <ThemeToggle initial={mode} />
-          </footer>
-        ) : null}
+      <body>
+        <Header
+          storeName={current.name}
+          links={NAV}
+          themeMode={mode}
+          showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
+        />
+        <main id="MainContent">{children}</main>
+        <Footer
+          storeName={current.name}
+          tagline="Gaming peripherals built for the grind."
+          columns={[
+            {
+              heading: 'Shop',
+              links: [
+                { label: 'Mice', href: '/collections/mice' },
+                { label: 'Mousepads', href: '/collections/mousepads' },
+                { label: 'Glasspads', href: '/collections/glass-mousepads' },
+                { label: 'Preorders', href: '/collections/preorder' },
+              ],
+            },
+            {
+              heading: 'Help',
+              links: [
+                { label: 'Track order', href: '/track' },
+                { label: 'Shipping', href: '/policies/shipping' },
+                { label: 'Returns', href: '/policies/returns' },
+                { label: 'Contact', href: '/pages/contact' },
+              ],
+            },
+            {
+              heading: 'Community',
+              links: [
+                { label: 'Discord', href: 'https://discord.gg/waimers' },
+                { label: 'Instagram', href: 'https://instagram.com/waimers' },
+                { label: 'Mouse Notes', href: '/notes' },
+              ],
+            },
+          ]}
+        />
       </body>
     </html>
   )

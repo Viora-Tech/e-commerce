@@ -1,0 +1,1877 @@
+/**
+ * Site header: minimal single-row navbar (Arbiter-Studio style) on a light
+ * surface — logo, inline nav dropdowns, and a right icon cluster (search
+ * toggle, account, cart). The header's only separation from page content is
+ * a 1px bottom border (Cyber style); the announcement bar (a separate file,
+ * section-announcement.css) stays on the dark surface color and is
+ * unaffected by this file. There is no permanent search field in the bar at
+ * any width; search opens a centered overlay/popup (search-overlay styles
+ * below), not an inline field. Breakpoint: 990px switches the row from a
+ * 3-column grid (burger / centered logo / search+cart) to a flex row (logo,
+ * nav immediately after it, icons pushed right) and moves the nav + account
+ * link into the mobile drawer.
+ */
+
+.only-mobile {
+  display: flex;
+}
+
+.only-desktop {
+  display: none;
+}
+
+@media screen and (min-width: 990px) {
+  .only-mobile {
+    display: none;
+  }
+
+  .only-desktop {
+    display: flex;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile: the dock owns the icons                                      */
+/* ------------------------------------------------------------------ */
+/* sections/mobile-dock.liquid puts Search, Shop, Wishlist, Account and
+   Cart across the bottom of the screen on a phone, within thumb reach.
+   The header was offering Search and Cart again at the top, which is the
+   same destination twice on the smallest screen - and the top copy is the
+   one the hand cannot comfortably reach.
+
+   Conditional on the dock actually being on the page. A merchant who
+   removes that section must not be left with a header that has no way to
+   search and no way to reach the cart, and :has() is what lets the header
+   answer that question about a section it does not own. */
+@media screen and (max-width: 749px) {
+  body:has(.mobile-dock) .header__icons > .header__icon-btn,
+  body:has(.mobile-dock) .header__icons > search-overlay {
+    display: none;
+  }
+}
+
+/* <focus-disclosure> (header.js) wraps the mobile drawer's <details> purely
+   to attach focus/Esc/trap behavior — keep it out of the surrounding
+   grid/flex box model entirely so it doesn't become the actual grid/flex
+   item in its parent's place. The search panel used to be wrapped in this
+   too, but now needs a scrim, scroll lock and staggered entrance animation
+   that focus-disclosure doesn't know about, so it's <search-overlay>
+   instead (see the search overlay section below). */
+focus-disclosure {
+  display: contents;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sticky behavior                                                     */
+/* ------------------------------------------------------------------ */
+/* No ground of its own: the bar is painted by the ::before below, and the
+   corner notches stay genuinely transparent so whatever passes behind the
+   stuck header shows through them. (An earlier attempt gave the wrapper a
+   dark ground to make the crest visible at rest - dropped after measuring
+   the reference, where the notches reveal the page exactly the same way
+   and the at-rest crest is white-on-white there too. The curve that reads
+   on that site is the SECTIONS' rounded tops rising into the flattened
+   bar, not the bar's own corners.) */
+.header-wrapper {
+  position: relative;
+  z-index: 30;
+  color: var(--color-ink);
+}
+
+/* The bar carries permanently rounded TOP corners - measured on the
+   reference's own header, which reports `30px 30px 0 0` at every scroll
+   position. Drawn as a ::before so the two corner notches stay
+   TRANSPARENT: at rest they show the announcement bar's colour, and once
+   the header is stuck they show each section passing behind it. That
+   reveal is the effect the owner described as the page going behind the
+   navbar. */
+.header-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--color-bg);
+  border-start-start-radius: var(--section-radius);
+  border-start-end-radius: var(--section-radius);
+}
+
+/* The sticky must sit on the SECTION wrapper, not on this element. A
+   sticky box only travels inside its PARENT's padding box, and Shopify
+   renders the header inside a section div that is exactly the header's
+   own height - zero room to travel, so it scrolled straight off the top
+   and the bar read as "not sticky at all". The section div's parent is
+   <body>, which gives it the whole page to stick within; the reference
+   store pins the same element for the same reason. */
+.shopify-section:has(> .header-wrapper[data-sticky-type="always"]),
+.shopify-section:has(> .header-wrapper[data-sticky-type="on-scroll-up"]) {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+/* Kept relative (not sticky) so the hide-on-scroll-down transform below
+   still has something to move, while the section above does the pinning. */
+.header-wrapper[data-sticky-type="always"],
+.header-wrapper[data-sticky-type="on-scroll-up"] {
+  position: relative;
+  top: 0;
+}
+
+.header-wrapper[data-sticky-type="on-scroll-up"] {
+  transition: transform 0.25s ease;
+}
+
+.header-wrapper[data-sticky-type="on-scroll-up"].header-wrapper--hidden {
+  transform: translateY(-100%);
+}
+
+/* At rest the bar is the top of the page sheet, so it crests over the
+   announcement strip with two rounded TOP corners (the ::before above).
+
+   Once it sticks, the top squares off and the curve moves to the BOTTOM
+   corners, curving DOWNWARD. That shape is an INVERTED corner, not a
+   rounded one: at the far left and far right the bar's ground reaches
+   down PAST the top edge of the section scrolling underneath, and the
+   section curves away from it.
+
+   The 1px rule has to travel that arc with it. Left straight, it cuts a
+   flat line across both corners and - over a light section, where the
+   lip and the page are the same colour - the curve becomes invisible and
+   the bar reads as a plain straight bar. So the rule is not a border at
+   all: it is painted into the lip, as a ring one pixel wide riding the
+   arc, joined by a straight segment across the middle. The arc meets
+   that segment exactly at its endpoints, because a circle of radius R
+   centred at (R, R) passes through (R, 0) and (0, R) - so the line runs
+   straight, bends down at each end, and leaves the viewport one radius
+   below the bar, which is what the reference does.
+
+   The lip exists in BOTH states so the curve can be animated rather than
+   snapped in: at rest its radius is zero, which collapses the two corner
+   wedges to zero width and lets the straight segment span the full bar -
+   an ordinary hairline under the bar, pixel-identical to the border it
+   replaces. Sticking grows the radius, and the ends of that same line
+   bend down into the arcs. --header-lip is registered below so the
+   browser will interpolate it; without registration a custom property is
+   a plain token and jumps from one value to the other. */
+@property --header-lip {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.header-wrapper.scrolled-past::before {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.header-wrapper::after {
+  --header-lip: 0px;
+
+  content: "";
+  position: absolute;
+  top: 100%;
+  inset-inline: 0;
+  height: var(--section-radius);
+  pointer-events: none;
+  /* The rule's colour. Back to the hairline --color-line (2026-09-19):
+     the brand purple, full strength and edge to edge on every page, read as
+     a stripe rather than a rule once the store's bands stopped using it.
+     A hairline that matches the cards' borders makes the header part of
+     the page instead of a lid on it. Held to 1px either way. */
+  --header-rule: color-mix(in srgb, var(--color-ink) 18%, transparent);
+  /* An ink tint rather than --color-line: the line token is nearly black
+     on the dark page and the rule vanished; 18% ink is a visible grey on
+     both grounds. */
+
+  background:
+    /* left corner: transparent disc (the section shows through), the rule
+       carried around its edge, page ground outside it. The ring is in the
+       rule's own colour so the line stays continuous where it bends down into
+       the arc - a solid line that simply stopped at the corner would read as
+       broken, which is the whole reason the arcs exist. */
+    radial-gradient(
+      circle var(--header-lip) at 100% 100%,
+      transparent 0 calc(var(--header-lip) - 1px),
+      var(--header-rule) calc(var(--header-lip) - 1px) var(--header-lip),
+      var(--color-bg) var(--header-lip)
+    )
+    left top / var(--header-lip) 100% no-repeat,
+    /* right corner: the same wedge mirrored */
+    radial-gradient(
+      circle var(--header-lip) at 0 100%,
+      transparent 0 calc(var(--header-lip) - 1px),
+      var(--header-rule) calc(var(--header-lip) - 1px) var(--header-lip),
+      var(--color-bg) var(--header-lip)
+    )
+    right top / var(--header-lip) 100% no-repeat,
+    /* the straight run of the rule between the two arcs */
+    linear-gradient(var(--header-rule), var(--header-rule)) center top /
+    calc(100% - var(--header-lip) * 2) 1px no-repeat;
+}
+
+.header-wrapper.scrolled-past::after {
+  --header-lip: var(--section-radius);
+}
+
+/* The two halves are staggered so the morph reads as ONE movement that
+   travels down the bar rather than two things changing at once: the top
+   corners flatten first, and the lip starts growing just after, on a
+   softer decelerating curve so it settles rather than stops. */
+@media (prefers-reduced-motion: no-preference) {
+  .header-wrapper::before {
+    transition:
+      border-start-start-radius 360ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-start-end-radius 360ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .header-wrapper::after {
+    transition: --header-lip 520ms cubic-bezier(0.22, 1, 0.36, 1) 60ms;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Header row                                                          */
+/* ------------------------------------------------------------------ */
+/* 112px: the reference navbar height exactly, at the owner's direction.
+   An earlier pass stopped at 96 to keep our smaller logo from swimming in
+   the bar, but parity was what was asked for. */
+.header {
+  display: flex;
+  align-items: center;
+  min-height: var(--header-height);
+  padding-block: var(--space-4);
+}
+
+/* Mobile: 3-column grid keeps the logo visually centered between the
+   burger and the icon cluster regardless of their individual widths. */
+.header__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.header__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  color: inherit;
+  list-style: none;
+}
+
+.header__icon-btn::-webkit-details-marker {
+  display: none;
+}
+
+.header__logo {
+  display: inline-flex;
+  align-items: center;
+  grid-column: 2;
+  justify-self: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Size the mark by HEIGHT, not width: the header row is a fixed height, and a
+   width-driven logo changes the bar's height whenever a differently-shaped
+   file is uploaded. width: auto keeps any aspect ratio intact. */
+.header__logo-image {
+  height: 30px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+}
+
+/* ------------------------------------------------------------------ */
+/* The logo in dark mode                                               */
+/* ------------------------------------------------------------------ */
+/* Type inherits a colour. An image does not - the shipped mark is dark ink on
+   transparent, so on a dark page it is dark on dark and simply disappears.
+
+   Two rules, because the dark palette itself is declared twice: once for the
+   explicit toggle and once for a system preference with no toggle set. A
+   single selector would cover only half the visitors, and the half it missed
+   would be the ones who never touched the switch. */
+
+/* The light-version fallback: no dark logo uploaded, so flatten the ordinary
+   one to solid white. brightness(0) crushes every channel to black first,
+   then invert(1) lifts the whole thing to white - going straight to invert()
+   would rotate the purple to green rather than removing it. The brand colour
+   is lost, which is why the setting exists and says so. */
+.header__logo-image--dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .header__logo:not(:has(.header__logo-image--dark)) .header__logo-image {
+  filter: brightness(0) invert(1);
+}
+
+:root[data-theme="dark"] .header__logo:has(.header__logo-image--dark) .header__logo-image--light {
+  display: none;
+}
+
+:root[data-theme="dark"] .header__logo-image--dark {
+  display: inline-block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])
+    .header__logo:not(:has(.header__logo-image--dark))
+    .header__logo-image {
+    filter: brightness(0) invert(1);
+  }
+
+  :root:not([data-theme="light"])
+    .header__logo:has(.header__logo-image--dark)
+    .header__logo-image--light {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .header__logo-image--dark {
+    display: inline-block;
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .header__logo-image {
+    height: 34px;
+    max-width: 260px;
+  }
+}
+
+.header__logo-text {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.header__icons {
+  grid-column: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-self: end;
+}
+
+/* A hairline between the actions and the light/dark switch. */
+.header__divider {
+  width: 1px;
+  height: 22px;
+  margin-inline: var(--space-2);
+  background-color: var(--color-line);
+}
+
+.header__theme {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
+}
+
+/* Desktop: the five actions read as one cluster - a pill with a hairline
+   around it, the icons tight inside, and the light/dark switch as a small
+   filled disc at its end. Five loose icons in a row looked like a toolbar;
+   one bounded group looks like a control. Mobile keeps the loose row: the
+   drawer, search and cart there are the whole header. */
+@media screen and (min-width: 990px) {
+  .header__icons {
+    gap: 0;
+    padding: 3px 6px 3px 4px;
+    border: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+    border-radius: var(--radius-pill);
+    background-color: color-mix(in srgb, var(--color-ink) 3%, transparent);
+  }
+
+  .header__icons > .header__icon-btn,
+  .header__icons > details > .header__icon-btn,
+  .header__icons > .header__cart-link {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    transition: background-color 0.2s ease;
+  }
+
+  .header__icons > .header__icon-btn:hover,
+  .header__icons > details > .header__icon-btn:hover,
+  .header__icons > .header__cart-link:hover {
+    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  }
+
+  .header__icons svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .header__icons > .header__theme svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .header__icons > .header__theme {
+    /* .header__icon-btn makes it a flex row, which lays the sun beside the
+       moon; the switch needs its grid so the two glyphs share one cell. */
+    display: inline-grid;
+    grid-template-columns: 16px;
+    grid-auto-flow: row;
+  }
+
+  .header__icons > .header__theme .theme-toggle__icon {
+    grid-area: 1 / 1;
+    width: 16px;
+    height: 16px;
+    line-height: 0;
+  }
+
+  .header__divider {
+    height: 18px;
+    margin-inline: 4px 6px;
+    background-color: color-mix(in srgb, var(--color-ink) 14%, transparent);
+  }
+
+  .header__icons > .header__theme {
+    width: 30px;
+    height: 30px;
+    margin-inline-end: 2px;
+    /* The button's own padding (base.css) pushed the glyph off centre in a
+       30px disc; zero it and centre the stacked sun/moon in the grid. */
+    padding: 0;
+    place-items: center;
+    place-content: center;
+    color: var(--color-ink);
+    background-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  }
+
+  .header__theme:hover {
+    background-color: color-mix(in srgb, var(--color-brand) 22%, transparent);
+  }
+}
+
+.header__theme:hover,
+.header__theme:focus-visible {
+  color: var(--color-ink);
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+@media screen and (min-width: 990px) {
+  /* Desktop, two arrangements chosen in the section settings.
+
+     Logo centred: nav left, logo centre, icons right on 1fr/auto/1fr. The
+     equal side tracks are what centre the logo in the BAR rather than in
+     the space two unequal clusters leave over - but a 1fr track will not
+     shrink below its content, so a menu wider than half the bar pushes the
+     logo off centre until it touches the nav. Right for a short menu.
+
+     Logo left: logo start, nav centred, icons end on auto/1fr/auto. The
+     menu has the whole middle, so it can be as long as the merchant's
+     catalogue, and the brand is where the eye starts. Right for a long
+     menu, which is most of them.
+
+     Source order stays logo-then-nav in both (it reads better without CSS
+     and puts the brand first for assistive tech); `order` does the visual
+     swap where one is needed. */
+  .header__row {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .header__row--logo-center {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .header__row--logo-center .header__nav {
+    order: 1;
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .header__row--logo-center .header__logo {
+    order: 2;
+    grid-column: 2;
+    justify-self: center;
+  }
+
+  .header__row--logo-left {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .header__row--logo-left .header__logo {
+    order: 1;
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .header__row--logo-left .header__nav {
+    order: 2;
+    grid-column: 2;
+    justify-self: center;
+  }
+
+  .header__icons {
+    order: 3;
+    grid-column: 3;
+    justify-self: end;
+    gap: var(--space-4);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Desktop nav + Atelier-style full-width expansion panel               */
+/* ------------------------------------------------------------------ */
+.header__nav {
+  align-items: center;
+  /* Positioned ancestor for .header__expansion-panel, so the ONE shared
+     panel spans the full header width (not just this <nav>'s own width)
+     while still living inside .header-wrapper for inset-inline: 0 to mean
+     the full bar. See .header__expansion-panel below. */
+  position: static;
+}
+
+.header__menu-list {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.header__menu-item {
+  position: static;
+}
+
+.header__menu-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-block: 2px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  text-underline-offset: 6px;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  list-style: none;
+}
+
+.header__menu-link:hover {
+  opacity: 1;
+}
+
+.header__menu-link::-webkit-details-marker {
+  display: none;
+}
+
+/* Keyboard-focus indicator: underline, matching the [open]/active style,
+   instead of the browser's default outline box — :focus-visible already
+   excludes pointer-triggered focus in evergreen browsers, and neither the
+   native <details> toggle nor <nav-expansion>'s click handler calls
+   .focus() on the summary, so a mouse click never leaves this applied. */
+.header__menu-link:focus-visible {
+  outline: none;
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.header__menu-link:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Active-item indicator: underline + full opacity, driven purely by the
+   real [open] attribute — the single source of truth whether it was set
+   natively (click, no JS) or by <nav-expansion> (click/hover, with JS). */
+.header__menu-details[open] > .header__menu-link {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.header__menu-details[open] > .header__menu-link svg {
+  transform: rotate(180deg);
+}
+
+.header__menu-link svg {
+  transition: transform 0.3s ease;
+}
+
+/* One shared full-width panel (not one per nav item) — spans the header
+   bar edge-to-edge, positioned relative to .header-wrapper. Height/opacity
+   animate via the grid-template-rows 0fr -> 1fr trick (smooth, no jump,
+   no fixed max-height guess needed). Two things open it, layered:
+   - .is-open, a class <nav-expansion> (header.js) toggles directly — the
+     robust path, doesn't depend on :has() support.
+   - the :has()-based rule generated per menu item in header.liquid (right
+     below the nav markup) — the no-JS fallback, keyed off the real [open]
+     attribute that native <details>/<summary> click toggles on its own. */
+/* Invisible bridge across the header's bottom padding, which sits between
+   the nav row and this panel and belongs to neither. Without it the pointer
+   crosses a dead strip on its way down and the panel reads that as "left
+   the menu". The pseudo-element is part of this panel for hit-testing, so
+   the journey stays inside <nav-expansion> the whole way. */
+.header__expansion-panel.is-open::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: var(--space-6);
+}
+
+.header__expansion-panel {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  z-index: 20;
+  display: grid;
+  grid-template-rows: 0fr;
+  background-color: var(--color-bg);
+  border-bottom: 1px solid var(--color-line);
+  box-shadow: 0 12px 24px rgb(0 0 0 / 8%);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 460ms ease,
+    opacity 380ms ease,
+    visibility 0s linear 460ms;
+}
+
+.header__expansion-panel.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 460ms ease,
+    opacity 380ms ease,
+    visibility 0s linear;
+}
+
+.header__expansion-panel-inner {
+  /* Required for the grid-rows 0fr/1fr trick to actually collapse: without
+     min-height: 0 a grid row item won't shrink below its content's
+     intrinsic height. */
+  min-height: 0;
+  overflow: hidden;
+}
+
+.header__expansion-panel-inner .page-width {
+  padding-block: var(--space-8);
+}
+
+/* Two-zone layout (WLMOUSE-style): left ~40% = single-column link rows +
+   "All X" footer, right ~60% = a hover/focus-previewed product grid (or the
+   curated default cards). The right zone only exists in the DOM when it has
+   something to show (see header.liquid's has_right_zone), so
+   .header__expansion-links alone fills the row for a text-only parent — no
+   empty right-hand gap. */
+.header__expansion-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.header__expansion-links {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media screen and (min-width: 990px) {
+  .header__expansion-inner {
+    flex-direction: row;
+    gap: var(--space-8);
+  }
+
+  .header__expansion-links {
+    flex: 1 1 auto;
+  }
+
+  .header__expansion-inner--with-features .header__expansion-links {
+    flex: 0 1 40%;
+  }
+
+  .header__expansion-inner--with-features .header__expansion-features-zone {
+    flex: 0 1 60%;
+    min-width: 0;
+  }
+}
+
+.header__expansion-features-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* Contextual "View all X" — tracks whichever preview set is currently
+   showing (header.js updates its href/label on swap; see
+   header__expansion-preview's data-view-all-* attributes). Sits top-right
+   of the right zone, above the product grid/cards. */
+.header__expansion-view-all-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.header__expansion-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.header__expansion-view-all:hover,
+.header__expansion-view-all:focus-visible {
+  color: var(--color-ink);
+}
+
+.header__expansion-view-all svg {
+  flex-shrink: 0;
+}
+
+/* Same hover language as the "All {parent}" row below: the arrow turns down
+   into the page it opens and a rule draws in under the label from the left.
+   A pseudo-element rather than text-decoration, which cannot be animated.
+
+   The label text is rewritten by nav-expansion as the previewed topic
+   changes (see [data-view-all-label]); the class is added ALONGSIDE that
+   attribute rather than replacing it, so the script keeps its hook. */
+.header__expansion-view-all-text {
+  position: relative;
+}
+
+.header__expansion-view-all-text::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-view-all svg,
+  .header__expansion-view-all-text::after {
+    transition: transform 0.4s ease-out;
+  }
+}
+
+.header__expansion-view-all:hover svg,
+.header__expansion-view-all:focus-visible svg {
+  transform: rotate(90deg);
+}
+
+.header__expansion-view-all:hover .header__expansion-view-all-text::after,
+.header__expansion-view-all:focus-visible .header__expansion-view-all-text::after {
+  transform: scaleX(1);
+}
+
+/* Single vertical column, not a multi-column text block: each row is the
+   hover/focus target that swaps the right-zone product preview (see
+   [data-preview-target] in header.liquid and the swap handler in
+   header.js), so a flowing multi-column list would scatter that mapping
+   across columns unpredictably. */
+.header__expansion-links-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.header__expansion-link-group {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.header__expansion-link-group:last-child {
+  border-bottom: none;
+}
+
+/* Row height ~44px via min-height + centered content. The border-left is
+   reserved (transparent) at rest so the active-state accent bar doesn't
+   shift the row's content when it appears. */
+.header__expansion-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding-inline-start: var(--space-3);
+  border-left: 2px solid transparent;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-link {
+    transition:
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
+}
+
+/* Every cue on this row - accent bar, label colour, chevron colour, the
+   underline and the chevron swing - answers to :hover/:focus-visible alone.
+
+   header.js also sets .is-previewing on whichever row the right zone is
+   currently showing, and nothing here keys off it any more, by the owner's
+   call: that class outlives the pointer (it has to - the products stay on
+   screen while the pointer travels toward them), so anything hung on it
+   stayed lit under a row nobody was pointing at, and the only way to clear
+   it was to hover a different row. The class is left in place because the
+   panel switching is driven by [data-preview-set], not by it. */
+.header__expansion-link:hover,
+.header__expansion-link:focus-visible {
+  color: var(--color-ink);
+  border-left-color: var(--color-brand);
+}
+
+.header__expansion-link:focus-visible {
+  outline: none;
+}
+
+/* Underline that draws in from the left on hover/focus, independent of the
+   accent-bar cue above (that one signals "this is the active preview",
+   this one is the ordinary link affordance). Scoped to the text itself
+   rather than the whole row so it doesn't read as a second bottom border
+   under the trailing chevron. */
+.header__expansion-link-text {
+  position: relative;
+}
+
+.header__expansion-link-text::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -3px;
+  height: 1px;
+  background-color: var(--color-brand);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-link-text::after {
+    transition: transform 0.4s ease-out;
+  }
+}
+
+/* Deliberately NOT .is-previewing. That class persists after the pointer
+   leaves - it has to, because the right zone keeps showing this topic while
+   the pointer travels toward the products - so hanging the underline on it
+   left the rule drawn under a link nobody was pointing at, and the only way
+   to clear it was to hover a different link. The underline is hover
+   feedback, so it answers to the pointer alone. */
+.header__expansion-link:hover .header__expansion-link-text::after,
+.header__expansion-link:focus-visible .header__expansion-link-text::after {
+  transform: scaleX(1);
+}
+
+/* The glyph is a chevron-DOWN, parked pointing right: at rest it reads as
+   "go this way", and hovering swings it down to "open this". Rotating the
+   resting state here rather than swapping the icon keeps one glyph doing
+   both jobs, and keeps the rotation as the motion cue.
+
+   Outside the reduced-motion query on purpose - this is the orientation,
+   not the animation, so it has to hold even when motion is suppressed. */
+.header__expansion-link svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  transform: rotate(-90deg);
+}
+
+/* The chevron follows the label to full ink rather than going purple - the
+   purple in this row is the accent bar and the underline, both of which mean
+   "this is the preview you are looking at". A chevron turning a third colour
+   on top of that was one cue too many. Its rotation is the motion cue. */
+.header__expansion-link:hover svg,
+.header__expansion-link:focus-visible svg {
+  color: var(--color-ink);
+}
+
+/* Rotation is motion, not just a state change, so - unlike the color swap
+   above - the SWING is gated behind the media query: reduced-motion users
+   get the same colour cue with the chevron held pointing right. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-link svg {
+    transition:
+      transform 0.4s ease-out,
+      color 0.3s ease;
+  }
+
+  /* Hover/focus only, for the same reason as the underline above: the swing
+     is pointer feedback, not a record of which topic is on screen. */
+  .header__expansion-link:hover svg,
+  .header__expansion-link:focus-visible svg {
+    transform: rotate(0deg);
+  }
+}
+
+.header__expansion-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-3);
+  padding-block-end: var(--space-3);
+}
+
+.header__expansion-sublist a {
+  font-size: 14px;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.header__expansion-sublist a:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+/* Footer row: "All {parent}" link, only rendered when the parent has a real
+   URL (see the header.liquid unless guard). Sits under the column list with
+   a hairline top border, pinned to the bottom of the left zone via margin-top
+   auto so it lines up with the feature cards regardless of column height. */
+.header__expansion-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: auto;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-line);
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.header__expansion-all svg {
+  flex-shrink: 0;
+}
+
+/* The underline is a scaled pseudo-element rather than text-decoration:
+   text-decoration cannot be animated, and growing a 1px bar from the left
+   makes the hover read as the line being DRAWN under the words. currentColor
+   rather than the brand purple used on the topic links above - purple there
+   means "this is the preview you are looking at", which has no meaning on
+   this row. */
+.header__expansion-all-text {
+  position: relative;
+}
+
+.header__expansion-all-text::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 1px;
+  background-color: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-all svg,
+  .header__expansion-all-text::after {
+    transition: transform 0.4s ease-out;
+  }
+}
+
+/* The arrow turns to point DOWN into the page it opens, rather than nudging
+   sideways. focus-visible carries both cues too, so the keyboard path gets
+   the same answer as the pointer. */
+.header__expansion-all:hover svg,
+.header__expansion-all:focus-visible svg {
+  transform: rotate(90deg);
+}
+
+.header__expansion-all:hover .header__expansion-all-text::after,
+.header__expansion-all:focus-visible .header__expansion-all-text::after {
+  transform: scaleX(1);
+}
+
+/* Editor-curated default cards: up to three large WLMOUSE-style tiles.
+   Two-column grid by default; a lone resolved feature spans the full row
+   instead of leaving an empty column (--single), three matched blocks use
+   a three-column grid (--triple). This is the DEFAULT-state content only —
+   see .header__expansion-preview-grid below for the per-link hover/focus
+   product previews that make up the rest of the right zone. */
+.header__expansion-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.header__expansion-cards--single {
+  grid-template-columns: 1fr;
+}
+
+.header__expansion-cards--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.header__expansion-card {
+  position: relative;
+  display: block;
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.header__expansion-card--light {
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+
+/* The merchant picked "dark" for this card, next to a "--light" sibling.
+   A constant, not "the opposite of the page". */
+.header__expansion-card--dark {
+  background-color: var(--color-dark-band);
+}
+
+.header__expansion-card-media {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.header__expansion-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-card-media img {
+    transition: transform 0.55s ease;
+  }
+}
+
+.header__expansion-card:hover .header__expansion-card-media img {
+  transform: scale(1.03);
+}
+
+/* Bottom scrim on the dark card only — the light card's ink text already
+   has enough contrast against the ~4%-black background without one. */
+.header__expansion-card--dark::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 55%;
+  background: linear-gradient(to top, rgb(0 0 0 / 35%), transparent);
+  pointer-events: none;
+}
+
+.header__expansion-card-title {
+  position: absolute;
+  left: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 1;
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.header__expansion-card--dark .header__expansion-card-title {
+  color: var(--color-bg);
+}
+
+.header__expansion-card svg {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 1;
+  color: var(--color-ink);
+}
+
+.header__expansion-card--dark svg {
+  color: var(--color-bg);
+}
+
+/* Right-zone product previews: one set per left-hand link (plus the
+   optional curated default above), all rendered server-side inside
+   .header__expansion-features and toggled via [hidden] so swapping on
+   hover/focus is instant — no fetch, no layout shift, no spinner. Falls
+   back cleanly with no JS: whichever set the server left un-hidden is the
+   only one ever visible. */
+.header__expansion-preview[hidden] {
+  display: none;
+}
+
+/* Entrance animation for both preview flavors (product grid and curated
+   default cards): a set is either not rendered ([hidden] -> display: none)
+   or freshly unhidden, so the browser always plays this from the start —
+   toggling `hidden` doubles as "cancel the previous set's animation and
+   start this one's", no JS timers needed even when the pointer sweeps down
+   the link list quickly. Retimed slower (340ms, 90ms per item) on the
+   merchant's instruction - the stagger has to scale with the duration or the
+   cards start together and only the travel looks slow. The rise grew with it
+   for the same reason: 10px over 340ms reads as drifting rather than
+   arriving. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .header__expansion-preview:not([hidden]) .header__expansion-preview-card,
+  .header__expansion-preview:not([hidden]) .header__expansion-card {
+    animation: header-expansion-preview-in 800ms ease-out both;
+  }
+
+  .header__expansion-preview-grid > .header__expansion-preview-card:nth-child(2),
+  .header__expansion-cards > .header__expansion-card:nth-child(2) {
+    animation-delay: 200ms;
+  }
+
+  .header__expansion-preview-grid > .header__expansion-preview-card:nth-child(3),
+  .header__expansion-cards > .header__expansion-card:nth-child(3) {
+    animation-delay: 400ms;
+  }
+
+  .header__expansion-preview-grid > .header__expansion-preview-card:nth-child(4),
+  .header__expansion-cards > .header__expansion-card:nth-child(4) {
+    animation-delay: 600ms;
+  }
+}
+
+@keyframes header-expansion-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header__expansion-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+@media screen and (min-width: 1280px) {
+  .header__expansion-preview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.header__expansion-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.header__expansion-preview-media {
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+
+.header__expansion-preview-media img,
+.header__expansion-preview-media svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header__expansion-preview-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header__expansion-preview-card .price__current {
+  font-size: 13px;
+}
+
+.header__expansion-preview-card .price__compare {
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Search overlay                                                       */
+/* ------------------------------------------------------------------ */
+/* <search-overlay> (header.js) wraps the same trick as focus-disclosure -
+   display: contents so it never becomes a layout participant itself - the
+   real box model starts at .header__search-details. */
+search-overlay {
+  display: contents;
+}
+
+/* Scroll lock while the overlay is open: `html.overlay-open` in base.css,
+   the one class every overlay now shares, applied by <search-overlay>'s
+   toggle handler via ThemeOverlay.lockScroll. The no-JS case has no lock,
+   which is fine - the panel simply scrolls the page underneath it. */
+.header__search-details {
+  position: static;
+}
+
+/* Scrim + frame are non-summary <details> content, so the browser's own
+   UA stylesheet already display:none's them while closed - no extra CSS
+   needed for the no-JS open/close case. */
+.search-overlay__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgb(0 0 0 / 40%);
+}
+
+.search-overlay__frame {
+  position: fixed;
+  inset: 0;
+  z-index: 51;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  overflow-y: auto;
+  /* Lets clicks in the empty margin around the panel fall through to the
+     scrim underneath instead of this frame intercepting them. */
+  pointer-events: none;
+}
+
+@media screen and (min-width: 750px) {
+  .search-overlay__frame {
+    /* Less headroom than before: the panel is now wide enough that a deep top
+       inset made it read as a letterbox strip rather than a search surface. */
+    padding-block-start: var(--space-7);
+    padding-inline: var(--space-6);
+  }
+}
+
+.search-overlay__panel {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1440px;
+  max-height: 100%;
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: var(--color-bg);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 18%);
+  overflow: hidden;
+}
+
+/* Was 380ms on a bare `ease` - the one panel in the theme that used neither
+   the shared duration nor the house curve. Now on the same
+   --motion-overlay pair as the four <dialog> overlays.
+   .is-closing is what gives this a real EXIT: a <details> display:none's
+   its own content the instant `open` is removed, so the transition below
+   would never run on the way out. assets/header.js keeps the details open,
+   adds .is-closing to reverse to the same "from" state, and only then sets
+   open = false. Without JS there is no .is-closing and the panel simply
+   disappears, which is the correct no-JS fallback. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .search-overlay__panel {
+    opacity: 0;
+    transform: scale(0.98) translateY(-8px);
+    transition:
+      opacity var(--motion-overlay) var(--motion-overlay-ease),
+      transform var(--motion-overlay) var(--motion-overlay-ease);
+  }
+
+  .header__search-details[open] .search-overlay__panel {
+    opacity: 1;
+    transform: none;
+  }
+
+  .header__search-details[open].is-closing .search-overlay__panel {
+    opacity: 0;
+    transform: scale(0.98) translateY(-8px);
+  }
+
+  .search-overlay__scrim {
+    transition: opacity var(--motion-scrim) ease;
+  }
+
+  .header__search-details[open].is-closing .search-overlay__scrim {
+    opacity: 0;
+  }
+}
+
+/* Box, border, backplate and hover all come from [data-icon-close]
+   (assets/base.css) - only the placement is this component's business.
+   This used to hand-roll a borderless grey control with a grey background
+   wash on hover, which FOUGHT the shared hook it also opted into: the
+   hook sweeps a purple ::before underneath while the wash painted grey on
+   the element itself, so two hover systems ran on the same button. */
+.search-overlay__close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1;
+}
+
+.search-overlay__form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: var(--space-6) var(--space-8) var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.search-overlay__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 20px;
+  color: var(--color-ink);
+}
+
+.search-overlay__input:focus {
+  outline: none;
+}
+
+.search-overlay__input::placeholder {
+  color: var(--color-muted);
+}
+
+/* Browsers inject their own clear ("cancel") control into input[type=search]
+   - in Chrome it renders as a bright blue x that ignores the theme entirely
+   and sat right beside our own close x, so the row showed two different x
+   glyphs meaning two different things. Suppressed; clearing is the close
+   button's job, and the field empties on reopen anyway. */
+.search-overlay__input::-webkit-search-cancel-button,
+.search-overlay__input::-webkit-search-decoration {
+  appearance: none;
+  display: none;
+}
+
+.search-overlay__submit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  /* Sits clear of the close button in the corner so the two controls do not
+     read as a pair of related icons. */
+  margin-inline-end: var(--space-8);
+  color: var(--color-muted);
+}
+
+.search-overlay__form:focus-within .search-overlay__submit {
+  color: var(--color-ink);
+}
+
+.search-overlay__body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.search-overlay__columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media screen and (min-width: 750px) {
+  .search-overlay__columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-7);
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  /* Three columns, not four: the two pill lists (popular searches, brands)
+     stack in the first column the way the reference layout has them, while
+     the product and collection lists each get a full-height column. Placed
+     by grid rather than by regrouping the markup, so the source order stays
+     linear for screen readers and the no-JS single-column stack. */
+  .search-overlay__columns {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .search-overlay__column:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .search-overlay__column:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .search-overlay__column:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .search-overlay__column:nth-child(4) {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .search-overlay__column {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 380ms ease,
+      transform 380ms ease;
+  }
+
+  .header__search-details[open] .search-overlay__column {
+    opacity: 1;
+    transform: none;
+  }
+
+  .search-overlay__column:nth-child(1) {
+    transition-delay: 0ms;
+  }
+
+  .search-overlay__column:nth-child(2) {
+    transition-delay: 30ms;
+  }
+
+  .search-overlay__column:nth-child(3) {
+    transition-delay: 60ms;
+  }
+
+  .search-overlay__column:nth-child(4) {
+    transition-delay: 90ms;
+  }
+}
+
+.search-overlay__heading {
+  margin-bottom: var(--space-4);
+  color: var(--color-ink);
+}
+
+.search-overlay__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Same treatment as the .tabbed-products__tab row, deliberately: these are the
+   same object - a pill you click to filter what is shown - so they get the
+   same mechanism rather than a third copy of it. Only the fill COLOUR is
+   local; the timings are :root's --btn-fill-*, so a retune there reaches this
+   row too. */
+.search-overlay__pill {
+  position: relative;
+  isolation: isolate;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  font-size: 14px;
+  color: var(--color-ink);
+  text-decoration: none;
+  /* Ink, not brand: a barely-tinted light pill inverts to a solid dark one,
+     which is exactly what .tabbed-products__tab already does. Nothing needs
+     an edge - the pill sits on the search overlay's white panel and the
+     label is already inverting to white. */
+  --search-pill-fill: var(--color-ink);
+}
+
+/* z-index MUST be negative, not 0: positioned boxes at z-index 0/auto paint
+   above inline content, and a pill's label is a bare text node, so a 0 here
+   would sweep the fill straight over it. See the same note in base.css. */
+.search-overlay__pill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--search-pill-fill);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.search-overlay__pill > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Full coverage: circle() percentages resolve against sqrt((w²+h²)/2), so
+   150% reaches the farthest corner from any origin point. */
+html.has-cursor-fill .search-overlay__pill.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* Entry slower than exit: the sweep is meant to be watched, un-sweeping stays
+   quick so running the cursor along the row leaves no trail of half-filled
+   pills. The transition that runs is whichever rule matches the DESTINATION
+   state, so removing .is-hover-fill falls back to the quicker one. */
+@media (prefers-reduced-motion: no-preference) {
+  .search-overlay__pill::before {
+    transition: clip-path var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  html.has-cursor-fill .search-overlay__pill.is-hover-fill::before {
+    transition: clip-path var(--btn-fill-in) var(--btn-fill-in-ease);
+  }
+}
+
+/* The label has to invert or it ends up ink-on-purple once the fill covers
+   it, and it must do so on the fill's own duration AND easing in both
+   directions - duration alone still desyncs, because the fill's exit is
+   ease-in (barely moves, then accelerates) while a default curve is already
+   well underway, so the label would revert while the purple still covers it. */
+html.has-cursor-fill .search-overlay__pill:hover {
+  color: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .search-overlay__pill {
+    transition:
+      color var(--btn-fill-out) var(--btn-fill-out-ease),
+      background-color var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  .search-overlay__pill:hover {
+    transition-duration: var(--btn-fill-in);
+    transition-timing-function: var(--btn-fill-in-ease);
+  }
+}
+
+/* Without JS driving the sweep (touch, reduced motion, or before motion.js
+   runs) the pill still needs its hover state, so the instant swap stays as
+   the fallback. Scoped to :not(.has-cursor-fill) so it cannot repaint the
+   pill ahead of the sweep. */
+html:not(.has-cursor-fill) .search-overlay__pill:hover {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.search-overlay__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.search-overlay__row,
+.search-overlay__collection-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+}
+
+.search-overlay__row-media {
+  flex: 0 0 auto;
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+
+.search-overlay__row-media img,
+.search-overlay__row-media svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.search-overlay__row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-overlay__row-vendor {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.search-overlay__row-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-overlay__row-price .price__current {
+  font-size: 13px;
+}
+
+.search-overlay__row-price .price__compare {
+  font-size: 12px;
+}
+
+.search-overlay__empty {
+  color: var(--color-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Cart bubble                                                          */
+/* ------------------------------------------------------------------ */
+.header__cart-link {
+  position: relative;
+}
+
+.header__cart-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 3px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-brand);
+  color: var(--color-bg);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Hidden whenever cart.js clears the textContent (empty cart / count 0). */
+.header__cart-count:empty {
+  display: none;
+}
+
+/* Single scale pulse on every cart:updated (assets/cart.js toggles
+   .is-bumping and clears it on animationend). */
+@media (prefers-reduced-motion: no-preference) {
+  .header__cart-link.is-bumping {
+    animation: cart-icon-bump 300ms ease;
+  }
+}
+
+@keyframes cart-icon-bump {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile drawer                                                       */
+/* ------------------------------------------------------------------ */
+.header-drawer {
+  position: static;
+}
+
+.header-drawer__toggle {
+  position: relative;
+}
+
+/* The close HALF of the toggle carries [data-icon-close], so it inherits
+   the same ring, backplate and sweep as the five other close
+   controls; the burger half deliberately does not (it is an open control,
+   not a close one). Only display and stacking context are set here - the
+   `display: none` must keep beating [data-icon-close]'s inline-flex, which
+   it does on source order (this file loads after base.css). */
+.header-drawer__toggle-icon--close {
+  display: none;
+  position: relative;
+}
+
+.header-drawer[open] .header-drawer__toggle-icon--open {
+  display: none;
+}
+
+.header-drawer[open] .header-drawer__toggle-icon--close {
+  display: inline-flex;
+}
+
+.header-drawer__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: rgb(0 0 0 / 40%);
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .header-drawer__scrim {
+    transition:
+      opacity var(--motion-scrim) ease,
+      visibility var(--motion-scrim) ease;
+  }
+}
+
+.header-drawer[open] .header-drawer__scrim {
+  opacity: 1;
+  visibility: visible;
+}
+
+.header-drawer__panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 88vw);
+  height: 100%;
+  padding: var(--space-4);
+  background-color: var(--color-bg);
+  overflow-y: auto;
+  transform: translateX(-100%);
+}
+
+.header-drawer[open] .header-drawer__panel {
+  transform: translateX(0);
+}
+
+/* Panel was 0.25s ease and the scrim 0.4s ease - the drawer's own two
+   halves disagreed with each other before they disagreed with anything
+   else. Both now on the shared overlay tokens, and both gated on
+   prefers-reduced-motion (the panel's transition previously was not).
+   .is-closing gives the drawer a real exit; see the search overlay above
+   for why a <details> needs it. */
+@media (prefers-reduced-motion: no-preference) {
+  .header-drawer__panel {
+    transition: transform var(--motion-overlay) var(--motion-overlay-ease);
+  }
+
+  .header-drawer[open].is-closing .header-drawer__panel {
+    transform: translateX(-100%);
+  }
+
+  .header-drawer[open].is-closing .header-drawer__scrim {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.header-drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.header-drawer__nav {
+  flex: 1 1 auto;
+}
+
+.header-drawer__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-drawer__item {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.header-drawer__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-4);
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--color-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.header-drawer__link::-webkit-details-marker {
+  display: none;
+}
+
+.header-drawer__details[open] > .header-drawer__link svg {
+  transform: rotate(180deg);
+}
+
+.header-drawer__link svg {
+  transition: transform 0.3s ease;
+}
+
+.header-drawer__sublist,
+.header-drawer__subsublist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+
+.header-drawer__sublist {
+  padding-inline-start: var(--space-3);
+}
+
+.header-drawer__subsublist {
+  padding-inline-start: var(--space-3);
+  padding-bottom: 0;
+  padding-top: var(--space-2);
+}
+
+.header-drawer__sublist a,
+.header-drawer__subsublist a {
+  font-size: 14px;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.header-drawer__foot {
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+}
+
+/* ------------------------------------------------------------------ */
+/* Localization (also reused by footer)                                 */
+/* ------------------------------------------------------------------ */
+.localization {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.localization__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.localization__select {
+  height: 40px;
+  font-size: 13px;
+}
+
+.localization__submit {
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--color-muted);
+  flex: 0 0 auto;
+}
+
+.localization__submit:hover {
+  color: var(--color-ink);
+}
+
+/* sync kick: 7e4d22f */

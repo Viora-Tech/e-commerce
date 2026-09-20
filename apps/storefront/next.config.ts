@@ -4,6 +4,7 @@ const config: NextConfig = {
   reactCompiler: true,
   transpilePackages: ['@commerce/db', '@commerce/core', '@commerce/config'],
   serverExternalPackages: ['postgres'],
+  images: { remotePatterns: [{ protocol: 'https', hostname: 'cdn.shopify.com' }] },
 }
 
 export default config
