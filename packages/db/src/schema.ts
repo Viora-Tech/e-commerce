@@ -1,4 +1,13 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
 
 export const newId = (): string => uuidv7()
@@ -192,3 +201,20 @@ export const storeDomain = pgTable('store_domain', {
   hostname: text('hostname').notNull().unique(),
   isPrimary: boolean('is_primary').notNull().default(false),
 })
+
+/** Builder pages. `data` is the draft (Puck JSON); `publishedData` is what the storefront renders. */
+export const page = pgTable(
+  'page',
+  {
+    id: id(),
+    storeId: storeId(),
+    handle: text('handle').notNull(),
+    title: text('title').notNull(),
+    data: jsonb('data').notNull(),
+    publishedData: jsonb('published_data'),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('page_store_handle').on(t.storeId, t.handle)],
+)
