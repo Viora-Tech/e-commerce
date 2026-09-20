@@ -10,7 +10,8 @@
       "!**/coverage",
       "!**/.next",
       "!**/src/styles/glide",
-      "!packages/ui/src/styles.css"
+      "!packages/ui/src/styles.css",
+      "!apps/admin/src/app/globals.css"
     ]
   },
   "formatter": {
@@ -39,7 +40,9 @@
   },
   "overrides": [
     {
-      "includes": ["apps/storefront/src/components/glide/**"],
+      "includes": [
+        "apps/storefront/src/components/glide/**"
+      ],
       "linter": {
         "rules": {
           "performance": {
@@ -49,7 +52,9 @@
       }
     },
     {
-      "includes": ["packages/ui/src/components/**"],
+      "includes": [
+        "packages/ui/src/components/**"
+      ],
       "linter": {
         "rules": {
           "recommended": true,
