@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: commerce
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      # Dragonfly is not started here: service containers cannot pass
+      # --cluster_mode=emulated, and no test uses the queue yet.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - name: Create roles and test databases
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
