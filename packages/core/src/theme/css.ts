@@ -39,11 +39,25 @@ export function themeToCss(theme: Theme): string {
     `--font-body-size:${theme.fonts.bodySizePx}px`,
     `--section-radius:${theme.roundedSections ? 'clamp(16px, 1.578vw, 30px)' : '0px'}`,
   ].join(';')
-  const perScheme = theme.schemes.map((s) => `.color-${s.id}{${roles(s)}}`).join('')
+  // A section wearing a scheme paints itself with it (Glide's css-variables.liquid).
+  const perScheme = theme.schemes
+    .map(
+      (s) => `.color-${s.id}{${roles(s)};background-color:var(--color-bg);color:var(--color-ink)}`,
+    )
+    .join('')
+  // In dark mode a section wearing the light scheme swaps to the dark one, like the root.
+  const swap =
+    theme.darkMode.enabled && theme.lightScheme !== theme.darkScheme
+      ? `.color-${theme.lightScheme}{${roles(dark)}}`
+      : null
   return [
     `:root{${roles(light)};${shared};color-scheme:light}`,
     `:root[data-theme=dark]{${roles(dark)};color-scheme:dark}`,
     `@media (prefers-color-scheme:dark){:root:not([data-theme=light]){${roles(dark)};color-scheme:dark}}`,
     perScheme,
-  ].join('\n')
+    swap ? `:root[data-theme=dark] ${swap}` : null,
+    swap ? `@media (prefers-color-scheme:dark){:root:not([data-theme=light]) ${swap}}` : null,
+  ]
+    .filter((x): x is string => x !== null)
+    .join('\n')
 }

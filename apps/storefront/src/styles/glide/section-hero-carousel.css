@@ -1,0 +1,1284 @@
+/**
+ * Hero carousel: horizontal CSS scroll-snap track. <hero-carousel>
+ * (hero-carousel.js) is enhancement only — without it the track still
+ * swipes/scrolls natively and the first slide is visible.
+ *
+ * Two per-slide layouts:
+ * - .hero-carousel__slide--full_bleed — media fills the slide, text over a
+ *   gradient scrim (or a flat colour field when no media is set).
+ * - .hero-carousel__slide--split — a colour/gradient type field beside a
+ *   CONTAINED product image. Built for catalogue shots on white, which crop
+ *   badly full-bleed but read as deliberate inside their own pane.
+ *
+ * The merchant-facing sizes (height, autoplay interval, heading scale, scrim
+ * opacity) arrive as custom properties set inline on the <hero-carousel>
+ * element from section settings. The motion timings, strengths and the split
+ * ratio are fixed here, via the var() fallbacks - the merchant toggles those
+ * effects on or off but does not tune them.
+ */
+.hero-carousel {
+  display: block;
+  position: relative;
+}
+
+.hero-carousel__track {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hero-carousel__track::-webkit-scrollbar {
+  display: none;
+}
+
+/* min-height rather than height: a split slide's text pane can need more room
+   than the nominal hero height on narrow screens, and align-items:stretch then
+   levels every other slide up to match instead of leaving a ragged track.
+   The 640px ceiling is deliberately NOT a setting — it is a readability
+   constraint (line lengths and heading sizes are tuned for it), not a taste
+   one, and the vh figure above it is already merchant-controlled. */
+.hero-carousel__slide {
+  position: relative;
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  display: block;
+  min-height: min(var(--hero-height, 72vh), 640px);
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+/* Fill-the-viewport mode. --hero-viewport-offset is whatever sits above the
+   hero (announcement bar + header, either of which the merchant can remove or
+   resize), measured and published by hero-carousel.js — never guessed here.
+   svh deliberately: vh includes the mobile URL bar, so a "full height" hero
+   using it is cut off on load and jumps as the bar retracts, while dvh
+   relayouts continuously while scrolling. The 640px cap that applies in fixed
+   mode is intentionally absent — it would directly contradict this mode. */
+hero-carousel[data-height-mode="viewport"] .hero-carousel__slide {
+  min-height: calc(100svh - var(--hero-viewport-offset, 0px));
+}
+
+.hero-carousel__media {
+  position: absolute;
+  inset: 0;
+  /* Dark, not white, while video/image is still loading — keeps the hero
+     type readable instead of a white flash (flat/typographic slides already
+     read dark via .hero-carousel__flat-bg). ALWAYS dark: as --color-ink it
+     flipped to a pale slab in dark mode, i.e. exactly the white flash this
+     rule exists to prevent. */
+  background-color: var(--color-dark-band);
+}
+
+.hero-carousel__image,
+.hero-carousel__video,
+.hero-carousel__placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-carousel__placeholder svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Gradient scrim behind the text area only, oriented toward text_position.
+   Raked a few degrees off the axis rather than run straight across, and with
+   a soft mid stop, so it reads as directional light falling across the frame
+   instead of a flat grey card laid over it. */
+.hero-carousel__scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-carousel__scrim--left {
+  background-image: linear-gradient(
+    100deg,
+    rgb(0 0 0 / var(--hero-scrim-alpha, 0.45)) 0%,
+    rgb(0 0 0 / calc(var(--hero-scrim-alpha, 0.45) * 0.45)) 42%,
+    transparent 74%
+  );
+}
+
+.hero-carousel__scrim--right {
+  background-image: linear-gradient(
+    260deg,
+    rgb(0 0 0 / var(--hero-scrim-alpha, 0.45)) 0%,
+    rgb(0 0 0 / calc(var(--hero-scrim-alpha, 0.45) * 0.45)) 42%,
+    transparent 74%
+  );
+}
+
+.hero-carousel__scrim--center {
+  background-image: linear-gradient(
+    to top,
+    rgb(0 0 0 / var(--hero-scrim-alpha, 0.45)) 0%,
+    rgb(0 0 0 / calc(var(--hero-scrim-alpha, 0.45) * 0.5)) 34%,
+    transparent 66%
+  );
+}
+
+/* Brand tint: a single low-alpha wash rising from the same corner the scrim
+   is anchored to, so the shadow side of the image picks up a trace of purple
+   and the highlights stay neutral. Plain alpha compositing, no blend mode and
+   no filter - at this strength (10%) it should be felt, not seen, and it
+   must never turn a photograph purple. */
+hero-carousel[data-scrim-tint="true"] .hero-carousel__scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: var(--hero-scrim-tint, 0.1);
+  pointer-events: none;
+}
+
+hero-carousel[data-scrim-tint="true"] .hero-carousel__scrim--left::after {
+  background-image: radial-gradient(130% 100% at 0% 100%, var(--color-brand) 0%, transparent 62%);
+}
+
+hero-carousel[data-scrim-tint="true"] .hero-carousel__scrim--right::after {
+  background-image: radial-gradient(130% 100% at 100% 100%, var(--color-brand) 0%, transparent 62%);
+}
+
+hero-carousel[data-scrim-tint="true"] .hero-carousel__scrim--center::after {
+  background-image: radial-gradient(120% 90% at 50% 100%, var(--color-brand) 0%, transparent 62%);
+}
+
+/* Fine grain over media. Generated, not shipped: an inline SVG fractal-noise
+   tile, rasterized once by the browser - no asset file, no network request,
+   no CSS filter on a large surface. It is what most reliably separates a dark
+   hero that looks printed from one that looks flat. Full-bleed media only:
+   over a contained product shot on a white pane it would read as dirt. */
+hero-carousel[data-grain="true"] .hero-carousel__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  opacity: var(--hero-grain, 0.06);
+  pointer-events: none;
+}
+
+/* Typographic slide: no media picked yet (video or image). A flat colour
+   surface with centered heading/CTA, Arbiter-style, instead of gray
+   placeholder art. */
+.hero-carousel__flat-bg {
+  position: absolute;
+  inset: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Colour fields (the theme's existing dark / brand / light scheme      */
+/* vocabulary — see newsletter.liquid — rather than new colour pickers) */
+/* ------------------------------------------------------------------ */
+/* The merchant picked "dark" from dark/brand/light. That is a constant, not
+   "the opposite of the page" - as --color-ink it turned pale in dark mode. */
+.hero-carousel__field--dark {
+  background-color: var(--color-dark-band);
+}
+
+/* The "brand" field is the gradient option: purple falling into the dark
+   ink surface, so oversized type stays legible at the bottom of the pane
+   where the CTAs sit. */
+.hero-carousel__field--brand {
+  background-image: linear-gradient(160deg, var(--color-brand), var(--color-dark-band));
+}
+
+.hero-carousel__field--light {
+  background-color: var(--color-bg);
+}
+
+/* Typographic slides (no video/image chosen) are a deliberate editorial
+   moment, not an empty state: bigger heading, more generous padding. */
+.hero-carousel__content--flat {
+  align-items: center;
+  justify-content: center;
+  max-width: 720px;
+  margin-inline: auto;
+  padding: var(--space-9) var(--space-6);
+  text-align: center;
+}
+
+.hero-carousel__content--flat .hero-carousel__heading {
+  font-size: calc(clamp(40px, 6.2vw, 88px) * var(--hero-heading-scale, 1));
+}
+
+.hero-carousel__content--flat .hero-carousel__subheading {
+  max-width: 44ch;
+  font-size: 18px;
+}
+
+.hero-carousel__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  justify-content: center;
+  height: 100%;
+  max-width: 560px;
+  padding: var(--space-6) var(--space-6);
+  /* The type on a "dark" or "brand" field, both of which are constants now,
+     so this is the constant that reads on them. The "light" field overrides
+     it below; full-bleed copy over media overrides it too. */
+  color: var(--color-on-dark-band);
+}
+
+/* Full-bleed copy is over the photograph, under a scrim that is a fixed
+   BLACK gradient - so the type that scrim exists to darken the picture for
+   has to be light in BOTH schemes. --color-bg turned the headline, the slide
+   counter and the subheading near-black in dark mode over a photograph still
+   being darkened for white type. The light-field variant is excluded: there
+   the copy is on a pale pane and keeps its ink colour. */
+.hero-carousel__slide--full_bleed .hero-carousel__content:not(.hero-carousel__content--on-light) {
+  color: #fff;
+}
+
+.hero-carousel__content--center {
+  align-items: center;
+  max-width: 640px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.hero-carousel__content--right {
+  align-items: flex-end;
+  margin-left: auto;
+  text-align: right;
+}
+
+/* Arrows are vertically centered at the slide edges (44px wide, 16px inset
+   — see .hero-carousel__control below); give slide text safe horizontal
+   insets so it never sits under them. Arrows only render when show_arrows
+   is on and there's more than one slide, hence :has(). Higher specificity
+   than .hero-carousel__content--flat's own padding shorthand, so this wins
+   for the inline (left/right) axis on every slide variant without
+   disturbing each variant's own padding-block. */
+hero-carousel:has(.hero-carousel__control) .hero-carousel__content {
+  padding-inline: 96px;
+}
+
+/* The subheading's muting goes through a custom property because the entrance
+   below has to restore each child to its RESTING opacity, not to a flat 1 —
+   otherwise the staggered entrance would quietly un-mute the subheading. */
+.hero-carousel__subheading {
+  max-width: 34ch;
+  margin: 0;
+  color: currentColor;
+  --hero-rest-opacity: 0.8;
+  opacity: var(--hero-rest-opacity);
+  letter-spacing: normal;
+}
+
+/* The headline is the hero. Bigger than the global .h1 (which is tuned for
+   section headings on white), tracked tighter and set on a near-solid leading
+   so a two- or three-line headline reads as one mass. Tightening is modest:
+   the face is uppercase Unbounded, which needs more room between letters than
+   a lowercase setting would. --hero-heading-scale is a merchant multiplier
+   applied to every variant so the three stay in proportion. */
+.hero-carousel__heading {
+  margin: 0;
+  color: currentColor;
+  font-size: calc(clamp(34px, 5vw, 64px) * var(--hero-heading-scale, 1));
+  letter-spacing: -0.015em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+/* Layout only, and unconditional: applied whether or not the entrance runs,
+   so no-JS and reduced-motion get exactly the same line breaking. */
+.hero-carousel__word {
+  display: inline-block;
+}
+
+/* Slide meta: "01 / 03" plus a short brand or category label, set as an
+   eyebrow above the headline rather than floated in a corner of the slide.
+   A corner block would collide with the arrows on one side and the media pane
+   on the other (and on a stacked split slide the top corner belongs to the
+   image), whereas as the first content child it inherits every alignment and
+   inset rule the rest of the copy already follows - and it joins the entrance
+   stagger for free. */
+.hero-carousel__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  color: currentColor;
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  opacity: 0.75;
+}
+
+.hero-carousel__meta-rule {
+  width: 28px;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.5;
+}
+
+.hero-carousel__content--center .hero-carousel__meta {
+  justify-content: center;
+}
+
+.hero-carousel__content--right .hero-carousel__meta {
+  flex-direction: row-reverse;
+}
+
+.hero-carousel__ctas {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.hero-carousel__content--center .hero-carousel__ctas {
+  justify-content: center;
+}
+
+.hero-carousel__content--right .hero-carousel__ctas {
+  justify-content: flex-end;
+}
+
+/* On-dark button treatment: hero slides sit on media/dark surfaces, so the
+   primary CTA needs to invert to white-bg/ink-text for contrast (the global
+   .btn--primary is ink-bg/white-text, meant for light backgrounds).
+
+   Which means this variant starts where the global one's HOVER now ends, and
+   its own hover is the mirror image: an ink button with white text. The
+   tokens have to be restated rather than inherited because the resting
+   colours are, and the edge stays the white border it already has - a black
+   button over a photograph is legible, but a hairline is what keeps it from
+   merging into a dark frame of the image behind it. */
+.hero-carousel__content .btn--primary {
+  background-color: var(--color-on-dark-band);
+  color: var(--color-dark-band);
+  border-color: var(--color-on-dark-band);
+  --btn-fill-color: var(--color-dark-band);
+  --btn-fill-edge: var(--color-on-dark-band);
+}
+
+.hero-carousel__content .btn--primary:hover {
+  background-color: var(--color-dark-band);
+  color: var(--color-on-dark-band);
+  border-color: var(--color-on-dark-band);
+  box-shadow: inset 0 0 0 1px var(--color-on-dark-band);
+}
+
+/* As in base.css: the ::before carries the ring in, so the button's own copy
+   would draw the whole outline before the sweep had left the corner. */
+html.has-cursor-fill .hero-carousel__content .btn--primary:hover {
+  background-color: var(--color-bg);
+  box-shadow: none;
+}
+
+.hero-carousel__cta-secondary {
+  color: currentColor;
+  border-color: currentColor;
+}
+
+/* Countdown tiles: minimal, currentColor so they read correctly on the dark
+   scrim here or on a light background if reused elsewhere. */
+.hero-carousel__countdown {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.countdown__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 48px;
+}
+
+.countdown__value {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: currentColor;
+}
+
+.countdown__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: currentColor;
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------------ */
+/* Split layout                                                        */
+/* ------------------------------------------------------------------ */
+.hero-carousel__split {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* Mobile-first: the image pane sits on top (it is first in the DOM), the
+     type field below it. Desktop re-columns them via grid-column, so the
+     merchant's left/right choice never depends on source order. */
+  grid-template-rows: auto 1fr;
+  min-height: inherit;
+}
+
+.hero-carousel__pane {
+  position: relative;
+  min-width: 0;
+}
+
+.hero-carousel__pane--media {
+  --hero-media-inset: var(--space-6);
+
+  overflow: hidden;
+  /* A product shot on white against a white pane: the store's catalogue
+     imagery drops straight in with no cut-out work. */
+  background-color: var(--color-bg);
+}
+
+/* Contained, never cropped — the whole point of this layout — and taken out
+   of flow so a tall (or square) catalogue shot sizes itself to the slide
+   rather than the other way round. In flow, `height: 100%` on the image is
+   circular against a content-sized pane and the image's own intrinsic height
+   ends up dictating how tall the hero is. */
+.hero-carousel__pane--media picture,
+.hero-carousel__pane--media .hero-carousel__video {
+  position: absolute;
+  inset: var(--hero-media-inset);
+}
+
+.hero-carousel__pane--media .hero-carousel__image,
+.hero-carousel__pane--media .hero-carousel__video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hero-carousel__pane--text {
+  display: flex;
+}
+
+/* No media picked yet: the type field takes the whole slide rather than
+   leaving an empty row/column beside it. */
+.hero-carousel__pane--full {
+  grid-row: 1 / -1;
+}
+
+.hero-carousel__content--split {
+  max-width: none;
+  width: 100%;
+  padding-block: var(--space-8);
+}
+
+/* Oversized type is the split layout's whole reason for existing. */
+.hero-carousel__content--split .hero-carousel__heading {
+  font-size: calc(clamp(36px, 5.4vw, 76px) * var(--hero-heading-scale, 1));
+}
+
+.hero-carousel__content--split .hero-carousel__subheading {
+  max-width: 38ch;
+}
+
+/* The light field is the one place hero text is NOT on a dark surface.
+   .hero-carousel__content sets an explicit --color-bg colour, so inheriting
+   from the field is not enough — the content itself has to be re-coloured,
+   both inside a split pane and on a flat full-bleed slide (where the field
+   is a sibling element, hence the --on-light class). */
+.hero-carousel__field--light .hero-carousel__content,
+.hero-carousel__content--on-light {
+  color: var(--color-ink);
+}
+
+/* A light type field puts the button back on white, so it goes back to the
+   global .btn--primary treatment - resting colours AND the inversion it
+   sweeps to, including the ink hairline that keeps the inverted white button
+   off a white pane. Restated rather than inherited because the rule above
+   has the specificity. */
+.hero-carousel__field--light .hero-carousel__content .btn--primary,
+.hero-carousel__content--on-light .btn--primary {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+  border-color: var(--color-ink);
+  --btn-fill-color: var(--color-bg);
+  --btn-fill-edge: var(--color-ink);
+}
+
+.hero-carousel__field--light .hero-carousel__content .btn--primary:hover,
+.hero-carousel__content--on-light .btn--primary:hover {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-ink);
+}
+
+html.has-cursor-fill .hero-carousel__field--light .hero-carousel__content .btn--primary:hover,
+html.has-cursor-fill .hero-carousel__content--on-light .btn--primary:hover {
+  background-color: var(--color-ink);
+  box-shadow: none;
+}
+
+/* A light type field beside a white media pane needs a hairline, or the two
+   panes read as one undifferentiated white block. Stacked (mobile) the media
+   pane is always first, so the divider is the text pane's top edge. */
+.hero-carousel__pane--media + .hero-carousel__field--light {
+  border-top: 1px solid var(--color-line);
+}
+
+@media screen and (min-width: 750px) {
+  /* Deliberately not 50/50 - an off-centre seam is the cheapest thing that
+     makes a split hero look art-directed rather than templated, and it gives
+     the headline the wider half. */
+  .hero-carousel__split {
+    grid-template-columns: var(--hero-split-ratio, 55%) 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .hero-carousel__slide--media-left .hero-carousel__split {
+    grid-template-columns: 1fr var(--hero-split-ratio, 55%);
+  }
+
+  .hero-carousel__slide--media-right .hero-carousel__pane--media {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hero-carousel__slide--media-right .hero-carousel__pane--text {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .hero-carousel__slide--media-left .hero-carousel__pane--media {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .hero-carousel__slide--media-left .hero-carousel__pane--text {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hero-carousel__pane--full {
+    grid-column: 1 / -1;
+  }
+
+  /* Side by side, the hairline belongs on whichever pane sits in column 2 —
+     putting it on the text pane unconditionally would draw it down the outer
+     left edge of the slide whenever the media is on the right. */
+  .hero-carousel__pane--media + .hero-carousel__field--light {
+    border-top: none;
+  }
+
+  .hero-carousel__slide--media-left:has(.hero-carousel__field--light) .hero-carousel__pane--text,
+  .hero-carousel__slide--media-right:has(.hero-carousel__field--light) .hero-carousel__pane--media {
+    border-left: 1px solid var(--color-line);
+  }
+
+  /* The 96px arrow inset above is sized for a full-width text area; inside a
+     half-width pane it eats the line length. Arrows still clear the type
+     because each pane starts well inside the slide edge. */
+  hero-carousel:has(.hero-carousel__control) .hero-carousel__slide--split .hero-carousel__content {
+    padding-inline: clamp(var(--space-6), 4vw, 64px);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shoppable chip                                                      */
+/* ------------------------------------------------------------------ */
+.hero-carousel__chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  text-align: left;
+}
+
+.hero-carousel__chip-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  text-decoration: none;
+}
+
+.hero-carousel__chip-image {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: var(--radius-s);
+  background-color: var(--color-bg);
+}
+
+.hero-carousel__chip-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.hero-carousel__chip-title {
+  color: var(--color-ink);
+  /* Two lines maximum: the chip is a shortcut, not a product card. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero-carousel__chip .price {
+  color: var(--color-ink);
+}
+
+.hero-carousel__chip-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.hero-carousel__chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-muted);
+}
+
+.hero-carousel__chip-dot--in {
+  background-color: var(--color-success);
+}
+
+.hero-carousel__chip-dot--low {
+  background-color: var(--color-brand);
+}
+
+.hero-carousel__chip-dot--out {
+  background-color: var(--color-danger);
+}
+
+.hero-carousel__chip-form {
+  margin: 0;
+}
+
+/* The chip is a light card even on a dark slide, so its button must use the
+   global ink-on-white treatment rather than the hero's inverted one. */
+.hero-carousel__content .hero-carousel__chip .btn--primary {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+  border-color: var(--color-ink);
+  --btn-fill-color: var(--color-bg);
+  --btn-fill-edge: var(--color-ink);
+}
+
+/* The chip is a white card, so this is the white-on-white case again and the
+   double hairline is doing the same job it does on the page background. */
+.hero-carousel__content .hero-carousel__chip .btn--primary:hover {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px var(--color-ink);
+}
+
+html.has-cursor-fill .hero-carousel__content .hero-carousel__chip .btn--primary:hover {
+  background-color: var(--color-ink);
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ken Burns (full-bleed image slides only)                            */
+/* ------------------------------------------------------------------ */
+/* Scale only, on an element inside the slide's own overflow:hidden box, so
+   nothing reflows and nothing can widen the page. Restrained:
+   6% across 14s is under half a percent per second. Split slides are excluded
+   — their image is contained, so scaling it would clip it against the pane. */
+@media (prefers-reduced-motion: no-preference) {
+  hero-carousel[data-zoom="true"]
+    .hero-carousel__slide--full_bleed.is-active
+    .hero-carousel__image {
+    animation: hero-kenburns var(--hero-zoom-duration, 14s) ease-out forwards;
+  }
+}
+
+@keyframes hero-kenburns {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(var(--hero-zoom-scale, 1.06));
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Staggered entrance                                                  */
+/* ------------------------------------------------------------------ */
+/* Driven by .is-active moving between slides, so it re-runs every time a
+   slide becomes active rather than only on first paint. The hidden resting
+   state is scoped to [data-enhanced], which hero-carousel.js sets only once
+   it is about to activate the first slide — without JS (or if the script
+   throws) nothing is ever hidden. */
+@media (prefers-reduced-motion: no-preference) {
+  hero-carousel[data-entrance="true"][data-enhanced] .hero-carousel__content > * {
+    opacity: 0;
+    transform: translateY(var(--hero-enter-shift, 14px));
+    transition:
+      opacity var(--hero-enter-duration, 600ms) ease-out,
+      transform var(--hero-enter-duration, 600ms) ease-out;
+  }
+
+  hero-carousel[data-entrance="true"][data-enhanced] .is-active .hero-carousel__content > * {
+    opacity: var(--hero-rest-opacity, 1);
+    transform: none;
+  }
+
+  /* --ci is the child's own place in the sequence, written per element by the
+     section (they are all conditional, so a DOM-position nth-child chain would
+     drift as soon as a merchant turned one of them off). */
+  hero-carousel[data-entrance="true"][data-enhanced] .is-active .hero-carousel__content > * {
+    transition-delay: calc(var(--hero-enter-step, 90ms) * (var(--ci, 1) - 1));
+  }
+
+  /* Per-word headline: the heading box itself stops animating and hands over
+     to its words, which run on the same clock, offset from wherever the
+     heading sits in the sequence. Same language as drop-reveal's word split -
+     inline-block spans carrying --i, opacity plus a short rise in em so the
+     travel scales with the type. */
+  hero-carousel[data-entrance="true"][data-enhanced]
+    .hero-carousel__content
+    > .hero-carousel__heading:has(.hero-carousel__word) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  hero-carousel[data-entrance="true"][data-enhanced] .hero-carousel__word {
+    opacity: 0;
+    transform: translate3d(0, 0.42em, 0);
+    transition:
+      opacity var(--hero-enter-duration, 600ms) ease-out,
+      transform var(--hero-enter-duration, 600ms) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  hero-carousel[data-entrance="true"][data-enhanced] .is-active .hero-carousel__word {
+    opacity: 1;
+    transform: none;
+    transition-delay: calc(
+      var(--hero-enter-step, 90ms) *
+      (var(--ci, 1) - 1) +
+      var(--hero-word-step, 60ms) *
+      var(--i, 0)
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Pointer parallax                                                    */
+/* ------------------------------------------------------------------ */
+/* A few pixels of counter-drift on the media as the cursor crosses the hero.
+   pointer: fine as well as reduced-motion, so it never runs on touch, where
+   there is no hovering cursor to justify it and the values would only ever be
+   set by a tap. The wrapper is scaled a hair so the drift can never expose an
+   edge, and the transform lives on .hero-carousel__media while the Ken Burns
+   zoom lives on the <img> inside it - two elements, so neither overwrites the
+   other. The transition is what turns per-frame pointer values into a glide
+   rather than a twitch. */
+@media (prefers-reduced-motion: no-preference) and (pointer: fine) {
+  hero-carousel[data-parallax="true"] .hero-carousel__media {
+    transform: scale(1.04)
+      translate3d(
+        calc(var(--hero-px, 0) * var(--hero-parallax, 8px) * -1),
+        calc(var(--hero-py, 0) * var(--hero-parallax, 8px) * -1),
+        0
+      );
+    /* cubic-bezier(0.22, 0.61, 0.36, 1) is easeOutCubic (the canonical
+       0.215, 0.61, 0.355, 1, rounded to 2dp) and is what the product card's
+       three slide transitions use. This line read `0.22, 1, 0.36, 1` - the
+       same curve with the second control point's y typed as 1 instead of
+       0.61, which is not a named curve and appears nowhere else. Raising
+       that y to 1 front-loads the curve hard: the parallax covered nearly
+       all its distance in the first moments and then crawled, instead of
+       the even glide the other three get. Corrected to the intended curve. */
+    transition: transform 450ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+}
+
+/* Controls */
+.hero-carousel__control {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 90%);
+  /* Over-media furniture is pinned to LITERALS, not scheme tokens. This
+     control sits on a fixed white plate that does not follow the page
+     scheme, so a token foreground inverts out from under its own plate: in
+     dark mode --color-ink IS near-white, which put a white arrow on a
+     90%-white circle. The literals are scheme 1's own values, so light mode
+     renders exactly as before. */
+  color: #1f1f21;
+  transition: background-color 0.15s ease;
+  /* The inversion of what it is: a near-white circle with an ink arrow
+     becomes an ink circle with a white arrow. No edge needed - it is dark on
+     photography, and the 90%-white resting circle it grows out of is the
+     lightest thing on the slide. */
+  --hero-control-fill: #1f1f21;
+}
+
+/* z-index MUST be negative, not 0: within a stacking context positioned boxes
+   at z-index 0/auto paint above inline content, so a 0 here would sweep the
+   fill over the glyph. See the same note on .btn in base.css. */
+.hero-carousel__control::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--hero-control-fill);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.hero-carousel__control > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Full coverage: circle() percentages resolve against sqrt((w²+h²)/2), so
+   150% reaches the farthest corner from any origin point. */
+html.has-cursor-fill .hero-carousel__control.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* On [data-icon-close]'s faster pair, not the 3s button sweep: this is a 44px
+   circular icon control that a visitor stabs at to advance a slide, and it
+   has to have answered before the next click. Entry still slower than exit,
+   and the rule that runs is whichever matches the DESTINATION state. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-carousel__control::before {
+    transition: clip-path var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .hero-carousel__control.is-hover-fill::before {
+    transition: clip-path var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* The glyph has to invert or it ends up ink-on-purple once the fill covers
+   it, on the fill's own duration AND easing in both directions - duration
+   alone still desyncs, because the fill's exit is ease-in (barely moves, then
+   accelerates) while a default curve is already well underway. */
+html.has-cursor-fill .hero-carousel__control:hover {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.has-cursor-fill .hero-carousel__control {
+    transition:
+      background-color var(--icon-close-fill-out) var(--icon-close-fill-out-ease),
+      color var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .hero-carousel__control:hover {
+    transition-duration: var(--icon-close-fill-in);
+    transition-timing-function: var(--icon-close-fill-in-ease);
+  }
+}
+
+/* Scoped to :not(.has-cursor-fill) so it cannot repaint the control ahead of
+   the sweep. */
+/* Without JS driving the sweep (touch, reduced motion, or before motion.js
+   runs) the arrow still needs a hover state, so the inversion is arrived at
+   instantly instead: the old 90%-to-100%-white swap was not one. */
+html:not(.has-cursor-fill) .hero-carousel__control:hover {
+  background-color: #1f1f21;
+  color: #fff;
+}
+
+.hero-carousel__control--prev {
+  left: var(--space-4);
+}
+
+.hero-carousel__control--prev svg {
+  transform: rotate(180deg);
+}
+
+.hero-carousel__control--next {
+  right: var(--space-4);
+}
+
+.hero-carousel__dots {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.hero-carousel__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background-color: rgb(255 255 255 / 50%);
+  transition:
+    background-color 0.15s ease,
+    width 0.15s ease;
+}
+
+.hero-carousel__dot.is-active {
+  width: 20px;
+  /* Literal: its siblings are a literal white 50% and it sits over
+     photography. --color-bg turned the ACTIVE dot near-black among white
+     ones in dark mode. */
+  background-color: #fff;
+}
+
+/* ------------------------------------------------------------------ */
+/* Progress dots                                                       */
+/* ------------------------------------------------------------------ */
+/* A fixed-width track per dot, filled by a scaleX'd child keyed to the
+   autoplay interval. Fixed width on purpose: the plain dots' 8px→20px width
+   transition is fine as a state change, but a track that resized while it
+   filled would be animating width every frame. The active dot stays legible
+   with an empty fill via a brighter track. A dark pill sits behind the row so
+   the dots survive over a light split slide as well as over photography. */
+.hero-carousel__dots--progress {
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: rgb(0 0 0 / 25%);
+}
+
+.hero-carousel__dots--progress .hero-carousel__dot {
+  position: relative;
+  width: 28px;
+  height: 4px;
+  overflow: hidden;
+  background-color: rgb(255 255 255 / 30%);
+  transition: background-color 0.15s ease;
+}
+
+.hero-carousel__dots--progress .hero-carousel__dot.is-active {
+  width: 28px;
+  background-color: rgb(255 255 255 / 45%);
+}
+
+.hero-carousel__dot-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  /* Literal, like the track it fills, which is a literal white 30%. */
+  background-color: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* The fill is added by JS (.is-running) only while the autoplay interval is
+   actually ticking, and its duration IS the interval — so the two can't
+   drift. On pause the animation is frozen in place; on resume JS restarts
+   both the interval and this animation from zero, which is what the visitor
+   is owed since the timer really does start over. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-carousel__dot-fill.is-running {
+    animation: hero-dot-fill var(--hero-interval, 6s) linear forwards;
+  }
+
+  hero-carousel.is-paused .hero-carousel__dot-fill.is-running {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes hero-dot-fill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Scroll cue                                                          */
+/* ------------------------------------------------------------------ */
+.hero-carousel__scroll-cue {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: rgb(0 0 0 / 25%);
+  /* Literal, for the same reason as the copy above: the 25% plate is fixed
+     black, so its label is light in both schemes. */
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  isolation: isolate;
+  /* Opaque rather than a deeper scrim: the fill layer sits ON TOP of the
+     cue's own 25% black, so a translucent fill would composite to whatever
+     the photograph behind it happens to be, and the sweep would read as a
+     different colour on every slide.
+
+     The cue is the theme's one genuinely dark-at-rest control - a black
+     scrim with a white label - so its inversion runs the other way from
+     every other control here: white sweeps in and the label goes to ink.
+     Opaque white is slide-independent, and being the lightest thing on the
+     photograph it needs no edge. */
+  --hero-cue-fill: #fff;
+}
+
+/* z-index MUST be negative, not 0: positioned boxes at z-index 0/auto paint
+   above inline content. See the same note on .btn in base.css. */
+.hero-carousel__scroll-cue::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--hero-cue-fill);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.hero-carousel__scroll-cue > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Full coverage: circle() percentages resolve against sqrt((w²+h²)/2), so
+   150% reaches the farthest corner from any origin point. */
+html.has-cursor-fill .hero-carousel__scroll-cue.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* The fast pair again, not the 3s button sweep. This one is about the
+   visitor's next action, not this one: the cursor rests here for a moment on
+   the way to scrolling past, and a three-second sweep would still be crossing
+   the cue long after the page had moved. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-carousel__scroll-cue::before {
+    transition: clip-path var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .hero-carousel__scroll-cue.is-hover-fill::before {
+    transition: clip-path var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* The label has to invert or white sits on white once the fill covers it,
+   and it must ride the fill's own duration AND easing in both directions -
+   duration alone still desyncs, because the fill's exit is ease-in (barely
+   moves, then accelerates) while a default curve is already well underway. */
+html.has-cursor-fill .hero-carousel__scroll-cue:hover {
+  color: #1f1f21;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.has-cursor-fill .hero-carousel__scroll-cue {
+    transition: color var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .hero-carousel__scroll-cue:hover {
+    transition-duration: var(--icon-close-fill-in);
+    transition-timing-function: var(--icon-close-fill-in-ease);
+  }
+}
+
+/* Without JS driving the sweep (touch, reduced motion, or before motion.js
+   runs) the cue still needs a hover state, so the same inversion is arrived
+   at instantly. Scoped to :not(.has-cursor-fill) so it cannot repaint the cue
+   ahead of the sweep. */
+html:not(.has-cursor-fill) .hero-carousel__scroll-cue:hover {
+  background-color: #fff;
+  color: #1f1f21;
+}
+
+.hero-carousel__scroll-cue:focus-visible {
+  /* Literal: the cue is over photography, so its focus ring cannot follow
+     the page or it goes near-black on a dark slide. */
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.hero-carousel__scroll-cue-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Both sit bottom-center, so the dots step up above the cue when both are on. */
+hero-carousel:has(.hero-carousel__scroll-cue) .hero-carousel__dots {
+  bottom: calc(var(--space-4) + var(--space-9));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-carousel__scroll-cue svg {
+    animation: hero-scroll-cue 2s ease-in-out infinite;
+  }
+
+  .hero-carousel__scroll-cue {
+    transition: background-color 200ms ease;
+  }
+}
+
+@keyframes hero-scroll-cue {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@media screen and (max-width: 749px) {
+  .hero-carousel__slide {
+    min-height: var(--hero-height-mobile, 56vh);
+  }
+
+  .hero-carousel__content,
+  .hero-carousel__content--right {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .hero-carousel__control {
+    width: 36px;
+    height: 36px;
+  }
+
+  hero-carousel:has(.hero-carousel__control) .hero-carousel__content {
+    padding-inline: 72px;
+  }
+
+  /* Half a pane each would leave neither the image nor the type enough room
+     on a phone, so the split stacks: image first, type below. The media pane's
+     contents are absolutely positioned, so its height has to be stated. */
+  .hero-carousel__pane--media {
+    --hero-media-inset: var(--space-4);
+
+    min-height: 55vw;
+  }
+
+  .hero-carousel__content--split {
+    padding-block: var(--space-6);
+  }
+
+  hero-carousel:has(.hero-carousel__control) .hero-carousel__slide--split .hero-carousel__content {
+    padding-inline: var(--space-5);
+  }
+
+  .hero-carousel__chip {
+    width: 100%;
+  }
+
+  .hero-carousel__chip-form,
+  .hero-carousel__chip-add {
+    width: 100%;
+  }
+}
+
+/* Inset card mode: the hero floats inside the page ground with all four
+   corners rounded - the reference look the owner asked for by name. The
+   radius token keeps it obedient to the Motion & shape setting, and the
+   existing overflow: clip on .hero-carousel already does the cropping. */
+.hero-carousel--inset {
+  margin-inline: var(--page-margin);
+  border-radius: var(--section-radius);
+  overflow: clip;
+}
+
+/* Slide peek, inset mode only: each slide is its own rounded card at
+   (100% - 2 x peek), so the neighbouring slides' edges stay visible at the
+   track's sides - watched on the reference, where the peek is what makes
+   the hero read as a hand-swipable deck rather than a static banner.
+   scroll-padding keeps the snap position centred over the peek;
+   hero-carousel.js subtracts the same padding when it autoplays, so the
+   programmatic scroll lands exactly on the snap point with no post-scroll
+   correction wobble. */
+.hero-carousel--inset .hero-carousel__track {
+  gap: var(--space-3);
+  scroll-padding-inline-start: var(--hero-peek, 44px);
+}
+
+.hero-carousel--inset .hero-carousel__slide {
+  flex: 0 0 calc(100% - 2 * var(--hero-peek, 44px));
+  border-radius: var(--section-radius);
+  overflow: hidden;
+}
+
+@media screen and (max-width: 749px) {
+  .hero-carousel--inset .hero-carousel__track {
+    scroll-padding-inline-start: var(--hero-peek-mobile, 16px);
+  }
+
+  .hero-carousel--inset .hero-carousel__slide {
+    flex-basis: calc(100% - 2 * var(--hero-peek-mobile, 16px));
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .hero-carousel--inset {
+    margin-inline: max(var(--page-margin), calc((100vw - var(--page-width)) / 2 / 2));
+  }
+}
+
+/* Pinned hero (opt-in "Pin hero under the page"): the section wrapper
+   sticks to the viewport top and everything after it rides up over the
+   held slides with rounded top corners - the reference theme's hero
+   scroll. Later sections are lifted into their own paint layer
+   (position:relative + z-index) because a sticky element otherwise paints
+   above its static siblings, and they get the page background so the hero
+   cannot show through sections that rely on the body's backdrop. The
+   radius sits on the following wrapper itself, so its own corners round
+   and the pinned hero shows through the notches beside them.
+   hero-pin-released (set by hero-carousel.js once the hero is fully
+   covered) drops the pin so the covered hero stops costing sticky
+   repositioning; browsers without :has() just keep the normal scroll. */
+@supports selector(:has(*)) {
+  .shopify-section:has(.hero-carousel--pinned) {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 0;
+  }
+
+  .shopify-section:has(.hero-carousel--pinned) ~ .shopify-section {
+    position: relative;
+    z-index: 1;
+    background-color: var(--color-bg);
+  }
+
+  .shopify-section:has(.hero-carousel--pinned) {
+    overflow: clip;
+  }
+
+  .shopify-section.hero-pin-released:has(.hero-carousel--pinned) {
+    position: static;
+  }
+}

@@ -1,0 +1,42 @@
+/**
+ * Price snippet — current price, compare-at strikethrough, sale badge.
+ * Loaded by snippets/price.liquid.
+ */
+.price {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.price__current {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.price--on-sale .price__current {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.price__compare {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.price__compare s {
+  text-decoration: line-through;
+}
+
+.price__badge {
+  margin-inline-start: var(--space-1);
+}
+
+/* Follows the .price block for a variant sold by weight/volume/length. */
+.unit-price {
+  display: block;
+  color: var(--color-muted);
+  margin-block-start: var(--space-1);
+}

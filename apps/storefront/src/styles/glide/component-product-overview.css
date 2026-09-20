@@ -1,0 +1,1935 @@
+/**
+ * Product overview (blocks/_product-overview.liquid).
+ *
+ * The product's story, written per product in a metafield and rendered by
+ * one shared block.
+ *
+ * WHAT THE IMAGES ACTUALLY ARE
+ *
+ * Not editorial photography. They are the product gallery: cutouts on white,
+ * shot to be read at gallery size. The first version used them full-bleed
+ * with object-fit: cover, which is the wrong treatment twice over - it
+ * cropped a centred product off its own edges, and it stretched a 900px
+ * catalogue shot across a 1400px screen, so most of what the visitor saw was
+ * empty white with a mouse somewhere in it.
+ *
+ * So an image here sits INSIDE a tinted panel at a fixed ratio, contained
+ * rather than cropped, with room around it. That is the treatment a cutout
+ * wants: the panel supplies the edge the photo does not have.
+ */
+/* base.css hides EVERY heading in main until reveal.js adds .is-revealed.
+   That is right for a section heading arriving as the reader scrolls to it;
+   it is wrong here. This block sits inside a tab panel, and a panel can be
+   opened at any scroll position - including one where nothing will scroll
+   afterwards, which is where the reveal never comes and the headings simply
+   never appear.
+
+   The theme's own exemption is a [data-reveal] ancestor. This block does not
+   want to be one (it would then hide ITSELF on the same failure), so it
+   states the exemption directly. Same effect, no dependency: content in a
+   tab is present when the tab opens. */
+/* The text inset.
+
+   Whichever is larger: the part's own comfortable padding, or the distance in
+   to where the page container starts. Now that the parts are contained rather
+   than bled, the second term resolves to nothing and the first one wins - so
+   this is an ordinary padding, and it stays correct if the layout is ever
+   widened again. */
+
+/* Deliberately NOT a :root variable with 100vw in it. 100vw includes the
+   scrollbar and the bleed does not quite reach it, so an inset measured that
+   way overshot by the scrollbar's width and the copy sat 37px right of the
+   tab row it was meant to line up with.
+   
+   A percentage in padding resolves against the element's own containing
+   block, so each part measures the inset from the width it actually has.
+   Whatever the bleed really is, the copy lands on the page grid. */
+.product-overview__part {
+  --overview-inset: max(
+    clamp(24px, 4vw, 64px),
+    calc((100% - var(--page-width)) / 2 + var(--page-margin))
+  );
+}
+
+html.js .product-overview :is(h1, h2, h3) {
+  opacity: 1;
+  translate: none;
+}
+
+.product-overview {
+  display: grid;
+  gap: var(--space-8);
+  /* CONTAINED, NOT FULL BLEED.
+
+     This used to break out to 100vw with a negative margin. It was written
+     that way twice over - the same declarations and the same comment appear
+     twice in the block this replaces - and it never actually rendered wide,
+     because the panel above it clipped the overflow straight back to the page
+     width.
+
+     The clip was not the only problem with it. Each part measures its text
+     inset as the distance from the bleed edge in to the page grid, and the
+     page grid is exactly where the clip fell - so the copy landed flush on
+     the cut with no margin at all. Widening the crop fixed the symptom and
+     kept the complexity.
+
+     Contained is the simpler answer and the one that holds: the parts sit in
+     the page container like everything else on the page, and the inset below
+     is then an ordinary padding rather than a calculation against a viewport
+     the element is not allowed to reach. */
+  padding-inline: 0;
+}
+
+.product-overview__part {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.product-overview__heading {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(19px, 2vw, 26px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.product-overview__body {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.product-overview__body + .product-overview__body {
+  margin-top: calc(var(--space-4) * -1 + var(--space-2));
+}
+
+/* The fallback: a product with no overview written yet shows its own
+   description here. Same measure and rhythm as the written version, so the
+   tab does not visibly change character depending on whether somebody has
+   got to that product - it just has less in it. */
+.product-overview--plain {
+  display: block;
+  padding-inline: max(
+    clamp(24px, 4vw, 64px),
+    calc((100% - var(--page-width)) / 2 + var(--page-margin))
+  );
+  max-width: none;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* The copy, wrapped so a part has exactly two children. Streaming the
+   heading, paragraph and figure as siblings put each in its own grid row,
+   and a tall figure then stretched those rows until a heading and its own
+   paragraph sat 200px apart. One wrapper removes the whole problem. */
+.product-overview__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Every part is a dark scene                                           */
+/* ------------------------------------------------------------------ */
+/* THE GROUND IS DECIDED BY THE PHOTOGRAPHY, NOT BY TASTE.
+   
+   The reference's sections are near-black and look superb, and a dark
+   version of this was built and thrown away, because it cannot work with
+   this catalogue's images and the reason is worth writing down.
+   
+   Their renders are SHOT ON BLACK, so the photograph has no edge - it is the
+   section. Ours are catalogue cutouts shot on WHITE, and a white-background
+   photograph cannot be blended into a dark ground by any means: multiply
+   keeps the dark pixels and turns the product itself black, screen keeps the
+   light ones and turns the white backdrop into a grey wash over the whole
+   panel. Both were tried. Both are worse than the seam they were removing.
+   
+   So the ground is light, where multiply drops white to nothing and the
+   product sits in the surface rather than on it. What the dark attempt got
+   right and is kept: the height, the display type, and the accent doing real
+   work rather than tinting. Going dark needs dark-shot photography, which is
+   a conversation with the brands rather than a stylesheet change. */
+.product-overview__part--scene {
+  /* THE SCENE IS LIGHT IN BOTH MODES.
+
+     The note above says the ground must be light for multiply to drop the
+     white out of a catalogue shot - and then the ground was var(--color-bg),
+     which in dark mode is near-black, so every product in the story was
+     multiplied into a silhouette. The panel now stands on the same light
+     constant the product cards use, with dark type on it, whatever the page
+     around it is doing. A light photo panel inside a dark page is how the
+     gallery already reads; the story now matches it. */
+  --scene-ground: var(--color-on-dark-band, #f4f3f7);
+  --scene-ink: var(--color-dark-band, #14121a);
+  --scene-muted: color-mix(in srgb, var(--scene-ink) 64%, var(--scene-ground));
+  position: relative;
+  display: grid;
+  gap: var(--space-5);
+  /* A FLOOR, NOT A FIXED HEIGHT.
+
+     This was clamp(460px, 62vw, 720px) - effectively a flat 720px on any
+     desktop, regardless of what was in the part. Measured across one product
+     that left 45% of a scene empty and 27% of the whole tab: 893 dead pixels
+     out of 3258. A part with a small image and four lines of copy got exactly
+     the height of one with twice that, so the panels were sized by a constant
+     rather than by their contents, and the run read as a slide deck.
+
+     The floor still stops a short part collapsing into a strip - which is the
+     thing the height was really protecting - and everything above it is now
+     decided by the content. */
+  min-height: clamp(420px, 60vh, 720px);
+  padding-block: clamp(var(--space-6), 5vw, var(--space-9));
+  padding-inline: var(--overview-inset);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  isolation: isolate;
+  grid-auto-rows: min-content;
+  align-content: center;
+  /* Near-black with a purple cast, not pure black: the accent has to feel
+     like it belongs to the same surface rather than sitting on top of it. */
+  background:
+    radial-gradient(
+      78% 64% at 80% 14%,
+      color-mix(in srgb, var(--color-brand) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      72% 72% at 6% 100%,
+      color-mix(in srgb, var(--color-brand) 10%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      158deg,
+      color-mix(in srgb, var(--color-brand) 9%, var(--scene-ground)) 0%,
+      var(--scene-ground) 58%,
+      color-mix(in srgb, var(--color-brand) 6%, var(--scene-ground)) 100%
+    );
+}
+
+/* Alternating parts light from the other side, so a run reads as a rhythm
+   rather than as one panel printed four times. */
+.product-overview__part--flip {
+  background:
+    radial-gradient(
+      78% 64% at 20% 14%,
+      color-mix(in srgb, var(--color-brand) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      72% 72% at 94% 100%,
+      color-mix(in srgb, var(--color-brand) 10%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(
+      202deg,
+      color-mix(in srgb, var(--color-brand) 9%, var(--scene-ground)) 0%,
+      var(--scene-ground) 58%,
+      color-mix(in srgb, var(--color-brand) 6%, var(--scene-ground)) 100%
+    );
+}
+
+.product-overview__part--scene .product-overview__heading {
+  /* THE PRODUCT IS THE LOUDEST THING, NOT THE SENTENCE ABOUT IT.
+
+     This ran 62px against a 17px body - a 3.6x ratio - and the reference this
+     was taken from does the opposite: their story sections set copy at 14-15px
+     and let the photograph carry the panel. Their headings ARE 64-90px, but on
+     pages where the heading is the only text in the frame; ours sits beside a
+     paragraph and a product shot, and at 62px it wrapped to three and four
+     lines and took 186px on its own.
+
+     20ch rather than 16ch for the same reason: the cap was forcing breaks that
+     the smaller size no longer needs. */
+  max-width: 18ch;
+  color: var(--scene-ink);
+  font-size: clamp(30px, 3.4vw, 56px);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.product-overview__part--scene .product-overview__body {
+  max-width: 44ch;
+  color: var(--scene-muted);
+  font-size: clamp(16px, 1.2vw, 19px);
+  line-height: 1.6;
+}
+
+.product-overview__media {
+  margin: 0;
+  border-radius: 0;
+  background: none;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+/* ZOOM. Catalogue shots arrive with the product in the middle third and
+   white all round; in a half-width box the product ends up a hand's width
+   wide. Scaling the image up inside its box crops nothing but white - the
+   ground is white too - so the product fills its half the way a render
+   cropped to the edge would. The factor is the block's setting, default
+   1, because a photo that already fills its frame must not be cut. */
+.product-overview__part--scene .product-overview__media img {
+  transform: scale(var(--overview-zoom, 1));
+  transform-origin: center;
+}
+
+.product-overview__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 0;
+  /* multiply drops white to nothing against a light ground, so a
+     white-background studio shot has no visible edge - the seam that made
+     every earlier version read as a picture pasted onto a box. The theme
+     already carries this as --card-media-blend, which six other surfaces
+     opt into, so the merchant's own setting still governs it. */
+  mix-blend-mode: multiply;
+  filter: drop-shadow(0 30px 52px rgb(23 19 32 / 20%));
+}
+
+/* ------------------------------------------------------------------ */
+/* Photo scene                                                          */
+/* ------------------------------------------------------------------ */
+.product-overview__part--banner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  min-height: clamp(400px, 52vw, 720px);
+  padding-block: clamp(var(--space-6), 5vw, var(--space-9));
+  padding-inline: var(--overview-inset);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  isolation: isolate;
+  background: #0d0a12;
+  color: #fff;
+}
+
+.product-overview__media--banner {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  z-index: -2;
+}
+
+.product-overview__media--banner img {
+  object-fit: cover;
+  mix-blend-mode: normal;
+  filter: none;
+}
+
+.product-overview__part--banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 88%) 0%,
+    rgb(0 0 0 / 58%) 42%,
+    rgb(0 0 0 / 12%) 78%
+  );
+  pointer-events: none;
+}
+
+.product-overview__part--banner .product-overview__heading {
+  max-width: 18ch;
+  color: #fff;
+  font-size: clamp(30px, 5.2vw, 66px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.product-overview__part--banner .product-overview__body {
+  max-width: 46ch;
+  color: rgb(255 255 255 / 82%);
+}
+
+/* ------------------------------------------------------------------ */
+/* Text-only parts                                                      */
+/* ------------------------------------------------------------------ */
+/* A part with no image - a labelled-row list, or a closing paragraph. It
+   still needs the ground, the inset and the vertical rhythm of a scene, or
+   it lands as bare text under a run of 720px panels and reads as the page
+   having been truncated. It is shorter than a scene because it has less in
+   it, not because it matters less.
+
+   Lighter ground than a scene: the brand colour is doing structural work
+   where a photograph needs a surface to sit on, and here there is no
+   photograph, so a full treatment would make the quietest part the loudest. */
+.product-overview__part--text {
+  --overview-inset: max(
+    clamp(24px, 4vw, 64px),
+    calc((100% - var(--page-width)) / 2 + var(--page-margin))
+  );
+  display: grid;
+  gap: var(--space-5);
+  padding-block: clamp(var(--space-6), 4vw, var(--space-8));
+  padding-inline: var(--overview-inset);
+  border-radius: var(--radius-m);
+  background:
+    radial-gradient(
+      60% 100% at 50% 0%,
+      color-mix(in srgb, var(--color-brand) 12%, transparent) 0%,
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-brand) 5%, var(--color-bg)) 0%,
+      var(--color-bg) 100%
+    );
+}
+
+.product-overview__part--text .product-overview__heading {
+  max-width: 20ch;
+  font-size: clamp(24px, 3vw, 40px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.product-overview__part--text .product-overview__body {
+  max-width: 60ch;
+  font-size: 16px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Video                                                                */
+/* ------------------------------------------------------------------ */
+/* A video part is the video, full width - not a small player set beside a
+   paragraph. Anything worth filming is worth more than a third of a row. */
+.product-overview__part--video {
+  display: grid;
+  gap: var(--space-5);
+  padding-block: clamp(var(--space-4), 2vw, var(--space-6));
+  padding-inline: var(--overview-inset);
+  border-radius: var(--radius-m);
+  background:
+    radial-gradient(
+      70% 60% at 50% 0%,
+      color-mix(in srgb, var(--color-brand) 22%, transparent) 0%,
+      transparent 66%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-brand) 7%, var(--color-bg)) 0%,
+      var(--color-bg) 70%
+    );
+}
+
+.product-overview__video {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-ink) 92%, transparent);
+  overflow: hidden;
+}
+
+.product-overview__video video,
+.product-overview__video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+/* Until it is pressed there is no iframe content, so the figure would be an
+   empty dark box. The button IS the poster - it says what the box is for and
+   it is the thing that loads it. */
+.product-overview__video--embed iframe {
+  opacity: 0;
+}
+
+.product-overview__video--embed.is-playing iframe {
+  opacity: 1;
+}
+
+.product-overview__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.product-overview__play::before {
+  content: "";
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--color-brand) 88%, transparent);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 40%);
+}
+
+.product-overview__play .icon {
+  position: relative;
+  /* Optically centred. A play triangle's visual centre sits left of its
+     bounding box, so a mathematically centred one always looks nudged back. */
+  margin-inline-start: 4px;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .product-overview__play::before {
+    transition: transform 260ms cubic-bezier(0.3, 1, 0.3, 1);
+  }
+
+  .product-overview__play:hover::before {
+    transform: scale(1.08);
+  }
+}
+
+.product-overview__play:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -4px;
+}
+
+.product-overview__video--embed.is-playing .product-overview__play {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Labelled rows                                                        */
+/* ------------------------------------------------------------------ */
+/* A MANIFEST, NOT A GRID OF CARDS.
+
+   This was a row of separately-bordered boxes, which reads as four unrelated
+   facts that happen to sit next to each other. What the part actually is - on
+   nearly every product it is headed "What is inside" - is a list of things in
+   one box, and a packing list is the form that says so: one panel, hairline
+   between entries, and each line numbered.
+
+   Numbered with a CSS counter rather than in the markup, so the merchant
+   writes plain `- Label | Text` lines and never maintains a number that goes
+   wrong the moment a line is inserted. */
+.product-overview__rows {
+  display: grid;
+  gap: 0;
+  counter-reset: overview-row;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 22%, var(--color-line));
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-bg) 70%, transparent);
+  overflow: hidden;
+}
+
+.product-overview__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--space-4);
+  row-gap: 2px;
+  align-items: baseline;
+  padding: var(--space-4) var(--space-5);
+}
+
+.product-overview__row + .product-overview__row {
+  border-top: 1px solid color-mix(in srgb, var(--color-brand) 14%, var(--color-line));
+}
+
+/* The index. Tabular and monospaced so a two-digit list does not shuffle its
+   labels sideways at item ten. */
+.product-overview__row::before {
+  counter-increment: overview-row;
+  content: counter(overview-row, decimal-leading-zero);
+  grid-row: 1 / -1;
+  align-self: start;
+  padding-top: 1px;
+  color: color-mix(in srgb, var(--color-brand) 62%, var(--color-muted));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-overview__row-label {
+  grid-column: 2;
+  color: var(--color-ink);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.product-overview__row-text {
+  grid-column: 2;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scroll-driven reveal                                                 */
+/* ------------------------------------------------------------------ */
+/* The same reading of the same number as sections/banner-reveal.liquid: JS
+   writes --rp, 0 to 1, from how far the part has crossed the viewport, and
+   the mask opens outward from the middle as it rises.
+
+   PROGRESS, NOT A ONE-SHOT. A transition fired on entry is over in half a
+   second, and scrolling back up then shows a finished reveal with nothing
+   left to watch - which is the usual reason these effects only work once.
+   Tied to scroll position, it plays backwards as readily as forwards.
+
+   Gated on .overview-motion like every other hiding rule here: without the
+   script there is no --rp, and an unrevealed mask would be a permanently
+   half-hidden photograph. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .overview-motion .product-overview__media--reveal {
+    clip-path: inset(calc((1 - var(--rp, 1)) * 50%) 0 round var(--radius-m));
+  }
+
+  /* The image itself drifts the other way inside the opening mask, so the
+     two edges are not travelling together. Half the distance, so it reads as
+     the picture sitting still while the mask moves rather than as a second
+     animation. */
+  .overview-motion .product-overview__media--reveal img {
+    transform: scale(calc(1.06 - (var(--rp, 1) * 0.06)));
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Entrance                                                             */
+/* ------------------------------------------------------------------ */
+/* Timing taken from the reference brand pages rather than invented:
+   opacity and transform over 500ms on cubic-bezier(0.3, 1, 0.3, 1), a hard
+   decelerate. No parallax, no long stagger - the restraint is the look.
+
+   EVERYTHING HERE IS GATED ON .overview-motion, which assets/product-
+   overview.js adds only once it has confirmed it can also take it off
+   again. Nothing is hidden by CSS alone. If the script fails to parse, if
+   IntersectionObserver is missing, if the tab never opens - the scenes are
+   visible and un-animated, which is the only acceptable failure. This block
+   has already been invisible once for the opposite reason. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  /* The panel arrives first and the things inside it follow, each a little
+     behind the last. One movement with a leading edge, not four elements
+     animating - which is the difference between a page that feels made and
+     a page that feels like it has effects on it.
+     
+     Longer than the 500ms the reference uses on its own sections, because a
+     scene here is a full screen of content rather than a strip: the same
+     duration over a much larger travel reads as a snap. */
+  .overview-motion .product-overview__part {
+    opacity: 0;
+    transform: translateY(36px) scale(0.985);
+    transition:
+      opacity 620ms cubic-bezier(0.3, 1, 0.3, 1),
+      transform 780ms cubic-bezier(0.3, 1, 0.3, 1);
+  }
+
+  .overview-motion .product-overview__part.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The product settles out of an overscale as the panel lands. Slower than
+     the panel by a third, so it is still moving when the panel has stopped -
+     which is what reads as the product being IN the scene rather than
+     printed on it. */
+  /* The image comes DOWN while the copy comes up. The reference brings its
+     product shots in from above, and the counter-motion is what stops a
+     scene reading as one block sliding - two things arriving from opposite
+     directions settle rather than slide. */
+  .overview-motion .product-overview__media:not(.product-overview__media--reveal) img {
+    transform: translateY(-42px) scale(1.09);
+    transition: transform 1100ms cubic-bezier(0.3, 1, 0.3, 1) 60ms;
+  }
+
+  .overview-motion
+    .product-overview__part.is-in
+    .product-overview__media:not(.product-overview__media--reveal)
+    img {
+    transform: none;
+  }
+
+  /* A banner is pinned with inset: 0 and cropped with cover, so it cannot
+     travel without exposing an edge of the panel behind it. It settles out
+     of a scale instead - the same arrival, expressed in the one dimension
+     this variant has to spare.
+     
+     It was excluded from the entrance entirely, twice, because it was
+     excluded from a rule that also set the WRONG transform for it. Removing
+     something from a rule it should not be in is not the same as giving it
+     nothing, and that is how a section ends up as the one that does not
+     animate. */
+  .overview-motion .product-overview__media--banner img {
+    transform: scale(1.12);
+    transition: transform 1400ms cubic-bezier(0.3, 1, 0.3, 1);
+  }
+
+  .overview-motion .product-overview__part.is-in .product-overview__media--banner img {
+    transform: none;
+  }
+
+  /* A reveal image has its scale driven continuously from --rp, so it takes
+     no entrance transform - but its FRAME still arrives with the part, and
+     that is what keeps it in step with the others. */
+
+  /* The heading and the copy rise separately, 80ms apart. Small enough that
+     it is felt rather than watched. */
+  /* The heading rises out from behind its own bottom edge rather than fading
+     in, so the words are UNCOVERED instead of appearing. At display size a
+     fade reads as the page still loading; a rise reads as the line being
+     set.
+     
+     The clip needs a margin: descenders on g, y and p hang below the text
+     box, and clipping at the box edge shears them off at rest. */
+  .overview-motion .product-overview__heading {
+    overflow: clip;
+    overflow-clip-margin: 0.18em;
+  }
+
+  .overview-motion .product-overview__heading-inner {
+    display: block;
+    transform: translateY(105%);
+    transition: transform 760ms cubic-bezier(0.3, 1, 0.3, 1) 120ms;
+  }
+
+  .overview-motion .product-overview__part.is-in .product-overview__heading-inner {
+    transform: none;
+  }
+
+  .overview-motion .product-overview__body,
+  .overview-motion .product-overview__rows {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 560ms cubic-bezier(0.3, 1, 0.3, 1) 200ms,
+      transform 640ms cubic-bezier(0.3, 1, 0.3, 1) 200ms;
+  }
+
+  .overview-motion .product-overview__part.is-in .product-overview__body,
+  .overview-motion .product-overview__part.is-in .product-overview__rows {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Rows arrive one after another rather than as a block - they are a list,
+     and a list that lands all at once looks like an image of a list. Six is
+     enough; beyond that the last one would be waiting too long to be worth
+     watching. */
+  .overview-motion .product-overview__row {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 500ms cubic-bezier(0.3, 1, 0.3, 1),
+      transform 560ms cubic-bezier(0.3, 1, 0.3, 1);
+  }
+
+  .overview-motion .product-overview__part.is-in .product-overview__row {
+    opacity: 1;
+    transform: none;
+  }
+
+  .overview-motion .product-overview__part.is-in .product-overview__row:nth-child(1) {
+    transition-delay: 260ms;
+  }
+  .overview-motion .product-overview__part.is-in .product-overview__row:nth-child(2) {
+    transition-delay: 330ms;
+  }
+  .overview-motion .product-overview__part.is-in .product-overview__row:nth-child(3) {
+    transition-delay: 400ms;
+  }
+  .overview-motion .product-overview__part.is-in .product-overview__row:nth-child(4) {
+    transition-delay: 470ms;
+  }
+  .overview-motion .product-overview__part.is-in .product-overview__row:nth-child(n + 5) {
+    transition-delay: 540ms;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Desktop                                                              */
+/* ------------------------------------------------------------------ */
+@media screen and (min-width: 750px) {
+  .product-overview {
+    gap: var(--space-4);
+  }
+
+  /* Deliberately NOT multi-column any more. Hairlines running across two
+     columns read as a table with no header, and a packing list is a sequence -
+     item three follows item two, which columns break. */
+  .product-overview__rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Product scene: copy one side, product the other, both at full height so
+     the cutout gets the whole panel to be large in. */
+  .product-overview__part--scene {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    column-gap: clamp(var(--space-6), 4vw, var(--space-9));
+  }
+
+  .product-overview__part--scene .product-overview__copy {
+    grid-column: 1;
+  }
+
+  /* THE PRODUCT RUNS OFF THE EDGE OF ITS PANEL.
+
+     A cutout floated in the middle of a tinted box with margin on all four
+     sides reads as a picture that has been pasted on. Letting it leave the
+     frame on the outer side reads as a photograph the panel was cropped from -
+     which is the thing that makes the reference pages look shot rather than
+     laid out, and it costs one negative margin.
+
+     Only the OUTER edge, so the gutter between the product and the copy
+     survives; the part already clips, so nothing escapes onto the page. */
+  .product-overview__part--scene .product-overview__media {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+    margin-inline-end: calc(var(--overview-inset) * -1);
+  }
+
+  .product-overview__part--flip .product-overview__media {
+    margin-inline-end: 0;
+    margin-inline-start: calc(var(--overview-inset) * -1);
+  }
+
+  /* @side flips it, so consecutive parts alternate and the tab does not read
+     as one row repeated. */
+  .product-overview__part--flip .product-overview__copy {
+    grid-column: 2;
+  }
+
+  .product-overview__part--flip .product-overview__media {
+    grid-column: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* @spin - scroll turns the product                                    */
+/* ------------------------------------------------------------------ */
+/* The part is tall and the stage inside it is sticky. That is the whole
+   structure: the part's HEIGHT is the scroll distance the rotation is mapped
+   onto, and the stage stays put in the middle of the screen while it is spent.
+   A part one viewport tall would give the entire rotation about a fifth of a
+   second of scrolling, which reads as a flicker rather than as an object
+   turning.
+
+   Falls back honestly. Without JS no frame is ever swapped, so the visitor
+   gets frame one held still with the copy beside it - which is exactly an
+   @image part, and the only thing lost is the motion. */
+.product-overview__part--spin {
+  /* Same light stage as the scenes, for the same reason: the frames of the
+     spin are catalogue shots on white. */
+  --scene-ground: var(--color-on-dark-band, #f4f3f7);
+  --scene-ink: var(--color-dark-band, #14121a);
+  --scene-muted: color-mix(in srgb, var(--scene-ink) 64%, var(--scene-ground));
+  display: block;
+  min-height: 280vh;
+  padding-inline: 0;
+  padding-block: 0;
+  border-radius: var(--radius-m);
+  color: var(--scene-ink);
+  background:
+    radial-gradient(
+      70% 50% at 50% 8%,
+      color-mix(in srgb, var(--color-brand) 12%, transparent) 0%,
+      transparent 64%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-brand) 6%, var(--scene-ground)) 0%,
+      var(--scene-ground) 50%,
+      color-mix(in srgb, var(--color-brand) 6%, var(--scene-ground)) 100%
+    );
+}
+
+.product-overview__part--spin .product-overview__heading {
+  color: var(--scene-ink);
+}
+
+.product-overview__part--spin .product-overview__body {
+  color: var(--scene-muted);
+}
+
+.product-overview__part--spin .product-overview__copy,
+.product-overview__spin {
+  /* Both live inside the sticky stage, set up in the media query below. */
+  min-width: 0;
+}
+
+/* The stage. 100vh minus the header, so a pinned product is not sitting
+   underneath it. */
+.product-overview__spin-stage {
+  position: sticky;
+  top: var(--header-height, 76px);
+  display: grid;
+  gap: var(--space-6);
+  align-items: center;
+  height: calc(100vh - var(--header-height, 76px));
+  padding-inline: var(--overview-inset);
+  padding-block: clamp(var(--space-5), 4vw, var(--space-8));
+}
+
+/* Every frame occupies the same cell, so swapping one for another moves
+   nothing on the page - the product turns and the layout holds still. */
+.product-overview__spin {
+  position: relative;
+  display: grid;
+  /* STRETCH, not height:100%.
+
+     The stage is a grid and this is one of its items, so `height: 100%`
+     resolves against a row that is itself sized by its contents - which is
+     circular, collapses to zero, and left every frame with no box at all.
+     A box with no height is also never "in view", so the lazy images were
+     never even fetched: the panel rendered empty rather than merely wrong. */
+  align-self: stretch;
+  min-height: 0;
+}
+
+.product-overview__spin-frame {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  opacity: 0;
+  /* No transition. A cross-fade between two frames of a rotation is a
+     double exposure - two positions of the same object visible at once,
+     which reads as a smear rather than as movement. A hard cut is what a
+     real 360 viewer does. */
+}
+
+.product-overview__spin-frame.is-current {
+  opacity: 1;
+}
+
+.product-overview__spin-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: var(--card-media-blend, multiply);
+}
+
+/* A hint that the thing responds to scrolling, because a pinned panel that
+   does nothing for a moment reads as the page having stuck. */
+.product-overview__spin-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background-color: color-mix(in srgb, var(--color-line) 60%, transparent);
+  overflow: hidden;
+}
+
+.product-overview__spin-progress::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: calc(var(--spin-p, 0) * 100%);
+  background-color: var(--color-brand);
+}
+
+@media screen and (min-width: 750px) {
+  .product-overview__spin-stage {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    column-gap: clamp(var(--space-6), 4vw, var(--space-9));
+  }
+}
+
+/* Reduced motion: no pin, no scrub, no tall column of scrolling. The part
+   collapses to its first frame beside its copy - an @image part, which is
+   the honest still version of what the motion was showing. */
+@media screen and (prefers-reduced-motion: reduce) {
+  .product-overview__part--spin {
+    min-height: 0;
+  }
+
+  .product-overview__spin-stage {
+    position: static;
+    height: auto;
+  }
+
+  .product-overview__spin {
+    aspect-ratio: 4 / 3;
+    height: auto;
+  }
+
+  .product-overview__spin-progress {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Copy inside the scroller                                            */
+/* ------------------------------------------------------------------ */
+/* @scroller lifts each part's copy out of its section and into a
+   feature-scroller entry. The entrance rules above are gated on
+   `.product-overview__part.is-in` - and inside the runway there is no part, so
+   that class never arrives and the paragraphs sat at opacity 0 permanently
+   while their headings showed. The same shape as every other bug in this
+   block: something hidden by a rule whose un-hiding condition cannot occur.
+   
+   Stated as an exemption rather than by renaming the classes in Liquid,
+   because the copy is built once and used both ways - a part in a normal
+   overview and an entry in a scroller are the same markup. */
+.overview-motion .feature-scroller .product-overview__body,
+.overview-motion .feature-scroller .product-overview__rows,
+.overview-motion .feature-scroller .product-overview__heading,
+.overview-motion .feature-scroller .product-overview__heading-inner {
+  opacity: 1;
+  transform: none;
+  translate: none;
+}
+
+/* The scroller sets its own type scale for titles; the overview's heading
+   class lands here instead, so it is given the same treatment rather than
+   left at the block's default 26px beside a full-height image. */
+.feature-scroller .product-overview__heading {
+  font-size: clamp(26px, 2.4vw, 38px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.feature-scroller .product-overview__body {
+  font-size: clamp(15px, 1.1vw, 17px);
+  line-height: 1.65;
+}
+
+/* ------------------------------------------------------------------ */
+/* @callouts - the specification, pinned around the product            */
+/* ------------------------------------------------------------------ */
+/* Staged off --rp, the scroll progress this block already writes for @reveal.
+   Each chip carries its own --i, and its opacity is a calc against that
+   progress - so six chips arrive one after another with no per-chip
+   JavaScript and no class toggling. If --rp never arrives (no JS, reduced
+   motion, a panel that never opened) every chip resolves to 1 and the whole
+   set is simply present, which is a labelled diagram rather than nothing. */
+.product-overview__part--callouts {
+  position: relative;
+  display: grid;
+  gap: var(--space-5);
+  min-height: clamp(420px, 46vw, 620px);
+  padding-block: clamp(var(--space-7), 6vw, var(--space-9));
+  padding-inline: var(--overview-inset);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  isolation: isolate;
+  align-content: center;
+  background:
+    radial-gradient(
+      58% 58% at 50% 46%,
+      color-mix(in srgb, var(--color-brand) 30%, transparent) 0%,
+      transparent 70%
+    ),
+    linear-gradient(170deg, #17131f 0%, #0d0a12 60%, #151021 100%);
+}
+
+.product-overview__part--callouts .product-overview__heading {
+  color: #fff;
+  text-align: center;
+  justify-self: center;
+  max-width: 22ch;
+  font-size: clamp(24px, 2.4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.product-overview__part--callouts .product-overview__body {
+  color: rgb(255 255 255 / 72%);
+  text-align: center;
+  justify-self: center;
+  max-width: 52ch;
+}
+
+/* The stage. The product sits in the middle and the chips ring it, so the
+   specification reads as parts of the object rather than a table under it. */
+.product-overview__callouts {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: clamp(300px, 34vw, 460px);
+  margin-top: var(--space-5);
+}
+
+.product-overview__callouts-media {
+  grid-area: 1 / 1;
+  width: min(52%, 420px);
+}
+
+.product-overview__callouts-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* No multiply here - the ground is near-black, and multiply on a dark
+     surface turns the product itself black. The cutout's own white sits
+     against the panel instead, which on a product shot reads as a lit
+     object rather than as a pasted rectangle. */
+  mix-blend-mode: normal;
+}
+
+.product-overview__callout-list {
+  grid-area: 1 / 1;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.product-overview__callout {
+  position: absolute;
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: var(--radius-s, 8px);
+  background-color: rgb(255 255 255 / 6%);
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+  /* THE STAGING, IN ONE LINE OF MATHS.
+     Each chip opens once --rp has passed its own share of the run. The 0.62
+     scales the sequence into the first two thirds of the scroll, so the last
+     chip has landed while the part is still on screen rather than exactly as
+     it leaves. */
+  --start: calc(var(--i) / var(--n) * 0.62);
+  opacity: clamp(0, calc((var(--rp, 1) - var(--start)) * 7), 1);
+  translate: 0 calc((1 - clamp(0, calc((var(--rp, 1) - var(--start)) * 7), 1)) * 8px);
+}
+
+.product-overview__callout-label {
+  color: rgb(255 255 255 / 58%);
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.product-overview__callout-value {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Six fixed points on the ring. Fixed rather than computed, because nothing
+   here knows where the sensor actually is in the photograph - and a callout
+   that claims to point at a component it has not found is worse than one that
+   plainly sits beside the product. */
+.product-overview__callout:nth-child(1) {
+  top: 4%;
+  left: 0;
+}
+.product-overview__callout:nth-child(2) {
+  top: 4%;
+  right: 0;
+}
+.product-overview__callout:nth-child(3) {
+  top: 44%;
+  left: 0;
+}
+.product-overview__callout:nth-child(4) {
+  top: 44%;
+  right: 0;
+}
+.product-overview__callout:nth-child(5) {
+  bottom: 4%;
+  left: 0;
+}
+.product-overview__callout:nth-child(6) {
+  bottom: 4%;
+  right: 0;
+}
+
+@media screen and (max-width: 749px) {
+  /* No ring on a phone: six chips around a 340px-wide image overlap it and
+     each other. They become a plain two-column list under the product, which
+     is the same information without the diagram.
+
+     Everything that was positioned for the ring has to be un-positioned here,
+     including the weight scale - it was absolute at bottom: -6px, which is
+     correct while the chips are AROUND the product and lands on top of them
+     the moment they stack underneath it. */
+  .product-overview__callouts {
+    grid-template-rows: auto auto auto;
+    justify-items: stretch;
+    gap: var(--space-5);
+  }
+
+  .product-overview__callouts-media {
+    grid-area: auto;
+    justify-self: center;
+    width: min(70%, 320px);
+  }
+
+  .product-overview__callout-list {
+    grid-area: auto;
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    height: auto;
+  }
+
+  .product-overview__callout {
+    position: static;
+    white-space: normal;
+  }
+
+  .product-overview__weight {
+    position: static;
+    inset: auto;
+    width: 100%;
+  }
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+  .product-overview__callout {
+    opacity: 1;
+    translate: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* @callouts - pointer response                                        */
+/* ------------------------------------------------------------------ */
+/* Driven by --mx / --my (-1..1) and --px / --py (a position), written by
+   product-overview.js. Every rule falls back to 0 or 50%, so with no script
+   the panel is the same static diagram. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  /* The glow tracks the cursor rather than sitting at a fixed point, so the
+     product looks lit by something the visitor is holding. */
+  .product-overview__callouts::before {
+    content: "";
+    position: absolute;
+    inset: -10%;
+    z-index: -1;
+    background: radial-gradient(
+      40% 40% at var(--px, 50%) var(--py, 50%),
+      color-mix(in srgb, var(--color-brand) 46%, transparent) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  /* The tilt. Small - 9 degrees, not 25 - because the subject is a product
+     being examined, not a card being flipped, and a cutout has no thickness
+     to sell a large rotation with. */
+  .product-overview__callouts-media {
+    transform: perspective(1100px) rotateY(calc(var(--mx, 0) * 9deg))
+      rotateX(calc(var(--my, 0) * -9deg)) scale(1.02);
+    transition: transform 90ms linear;
+    will-change: transform;
+  }
+
+  /* The chips drift the other way, a fraction as far. Opposed parallax is
+     what puts the product in front of the ring rather than on the same
+     plane as it. */
+  .product-overview__callout {
+    transform: translate3d(calc(var(--mx, 0) * -10px), calc(var(--my, 0) * -10px), 0);
+    transition: transform 140ms linear;
+  }
+
+  /* Coming to rest is slower than following. Tracking has to feel immediate
+     or it reads as lag; the return is a movement the visitor is watching
+     rather than causing, and at 90ms it snaps back like a released spring. */
+  .product-overview__callouts.is-homing .product-overview__callouts-media,
+  .product-overview__callouts.is-homing .product-overview__callout {
+    transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* @scroller - fitted to the tab, not to a page                        */
+/* ------------------------------------------------------------------ */
+/* sections/feature-scroller.liquid is a standalone section on a page, so it
+   carries its own vertical padding and its pin is a full viewport tall. Both
+   are right there and wrong here: this sits immediately under the tab row
+   inside a panel, and the two together left 248px of white between the tabs
+   and the first image - 64px of section padding, and 134px of dead space from
+   centring the content inside a pin taller than the space it can occupy.
+
+   The pin is sized to the viewport MINUS the sticky header, which is the area
+   actually visible, and offset by the same amount so a pinned product is not
+   parked underneath the header. */
+.product-overview .feature-scroller {
+  padding-block: 0;
+}
+
+.product-overview .feature-scroller__runway {
+  padding-block: 0;
+}
+
+/* html.js is on the selector because the section's own rule carries it
+   (html.js .feature-scroller__pin), and without matching that specificity
+   this was silently outranked - the padding went and the pin stayed a full
+   viewport tall. svh rather than vh, for the same reason the original gives:
+   vh on mobile assumes the toolbars are retracted. */
+/* Only where the section itself makes the pin sticky. Below 990px it is a
+   static block in a stacked list, and giving that a fixed viewport height
+   would crop it. */
+@media screen and (min-width: 990px) and (prefers-reduced-motion: no-preference) {
+  html.js .product-overview .feature-scroller__pin {
+    top: var(--header-height, 76px);
+    height: calc(100svh - var(--header-height, 76px));
+    min-height: 0;
+    /* Stretch, not centre - the layout fills this box itself. Centring left a
+       band of nothing above and below a square frame in a taller pin. */
+    justify-content: stretch;
+  }
+
+  /* Same reasoning as the phone: a full screen is given to this panel, so the
+     picture should have it rather than sit in the middle of it with air on
+     either side. The section's own 1/1 frame is right on a page where the
+     section sizes itself; here the pin is a fixed height and the frame should
+     take what the copy leaves. */
+  html.js .product-overview .feature-scroller__layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  /* Fills the row it is given, up to a ceiling. Letting it take the whole
+     pinned screen removed the dead space and replaced it with a product
+     photographed at nearly a metre tall - the panel stopped reading as a
+     product shot and started reading as a wallpaper. A cap keeps the gain
+     without the overshoot, and centring puts what is left evenly either
+     side rather than all at the bottom. */
+  html.js .product-overview .feature-scroller__frame {
+    aspect-ratio: auto;
+    height: 100%;
+    max-height: 58svh;
+    min-height: 0;
+    align-self: center;
+  }
+
+  /* The copy still reads best centred against the picture rather than
+     stretched down the side of it. */
+  html.js .product-overview .feature-scroller__copy {
+    align-self: center;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* @callouts - frames, chip focus, weight scale                        */
+/* ------------------------------------------------------------------ */
+/* Frames stack in one cell so turning the product moves nothing else. Hard
+   cut, no cross-fade: two positions of one object visible at once is a smear,
+   not a rotation. */
+.product-overview__callout-frame {
+  grid-area: 1 / 1;
+}
+
+.product-overview__callouts-media {
+  display: grid;
+}
+
+.product-overview__callout-frame:not(.is-current) {
+  opacity: 0;
+}
+
+.product-overview__callouts.is-draggable .product-overview__callouts-media {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.product-overview__callouts.is-dragging .product-overview__callouts-media {
+  cursor: grabbing;
+}
+
+/* A chip is a control once it does something, so it takes the cursor and a
+   focus ring like any other. */
+.product-overview__callout {
+  cursor: pointer;
+  transition:
+    opacity 260ms ease,
+    border-color 260ms ease;
+}
+
+.product-overview__callout:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+/* One chip chosen dims the others rather than hiding them: the ring has to
+   stay legible as a whole, or the page loses the thing that made it a
+   diagram. */
+.product-overview__callouts.is-focused .product-overview__callout {
+  opacity: 0.32;
+}
+
+.product-overview__callouts.is-focused .product-overview__callout.is-active {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--color-brand) 70%, transparent);
+  background-color: color-mix(in srgb, var(--color-brand) 22%, transparent);
+}
+
+/* ---- the weight scale ---- */
+.product-overview__weight {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -6px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 460px;
+  margin-inline: auto;
+  pointer-events: none;
+}
+
+.product-overview__weight-end {
+  color: rgb(255 255 255 / 46%);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-overview__weight-track {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background-color: rgb(255 255 255 / 20%);
+}
+
+/* The marker carries the figure, so the number and its position are one
+   object - a dot with a legend somewhere else makes the reader do the work. */
+.product-overview__weight-marker {
+  position: absolute;
+  top: 50%;
+  left: var(--w, 50%);
+  translate: -50% -50%;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-brand);
+  /* --color-on-brand, not a literal white: the dark scheme's button colour
+     is the LIGHT purple #a97ee0, on which white measured 3.11:1. The token
+     is #FFFFFF in light mode (unchanged) and near-black in dark (6.10:1). */
+  color: var(--color-on-brand);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  /* The lean toward a chosen chip rides on top of the pointer tilt rather
+     than replacing it, so choosing a spec does not switch the panel out of
+     the state the visitor already has their hand in. */
+  .product-overview__callouts-media {
+    translate: var(--fx, 0) var(--fy, 0);
+    transition:
+      transform 90ms linear,
+      translate 620ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .product-overview__callouts.is-focused .product-overview__callouts-media {
+    scale: 1.06;
+  }
+}
+
+/* A RANGE OF FRAMES IS USUALLY PHOTOGRAPHS, NOT CUTOUTS.
+   
+   `@callouts 1` normally points at a cutout, which has no background to show
+   against the dark stage. A RANGE almost always points into a shot series -
+   and those are photographed on white, so they arrived as a bare white slab
+   floating on near-black.
+   
+   Rather than fight it: the frames sit on a deliberate card. A white
+   photograph on a rounded lit card against a dark room is a treatment; the
+   same photograph with its corners squared off is a mistake. Only when there
+   is more than one frame, so a single cutout is left alone. */
+.product-overview__callouts-media[data-callout-frames] img {
+  border-radius: var(--radius-m);
+  box-shadow:
+    0 24px 60px rgb(0 0 0 / 55%),
+    0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+/* ------------------------------------------------------------------ */
+/* @size - footprint comparison                                        */
+/* ------------------------------------------------------------------ */
+.product-overview__part--size {
+  display: grid;
+  gap: var(--space-5);
+  min-height: 0;
+  padding-block: clamp(var(--space-6), 5vw, var(--space-8));
+  padding-inline: var(--overview-inset);
+  border-radius: var(--radius-m);
+  background:
+    radial-gradient(
+      60% 60% at 20% 0%,
+      color-mix(in srgb, var(--color-brand) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    color-mix(in srgb, var(--color-brand) 5%, var(--color-bg));
+}
+
+.product-overview__size {
+  display: grid;
+  gap: var(--space-5);
+  align-items: center;
+}
+
+@media screen and (min-width: 750px) {
+  .product-overview__size {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas:
+      "stage controls"
+      "stage readout"
+      "stage note";
+    column-gap: clamp(var(--space-6), 4vw, var(--space-8));
+    align-content: center;
+  }
+  .product-overview__size-stage {
+    grid-area: stage;
+  }
+  .product-overview__size-controls {
+    grid-area: controls;
+    align-self: end;
+  }
+  .product-overview__size-readout {
+    grid-area: readout;
+  }
+  .product-overview__size-note {
+    grid-area: note;
+    align-self: start;
+  }
+}
+
+/* THE OUTLINE IS THE ALPHA CHANNEL.
+
+   Each shape is a block of colour with the product's own cutout used as a
+   mask, so the silhouette is the real outline - no tracing, no new artwork,
+   and it stays correct if the photograph is ever replaced.
+
+   This is why the directive requires a transparent PNG. A photograph on white
+   has no alpha, and masking it yields a filled rectangle - which is exactly
+   the version that told a customer nothing. */
+.product-overview__size-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* Tall enough for a nose-up cutout at full length, not just a
+     lengthways one. */
+  min-height: clamp(300px, 34vw, 460px);
+}
+
+.product-overview__size-shape {
+  grid-area: 1 / 1;
+  display: block;
+  /* Both boxes fill the stage; the difference between them is carried by
+     mask-size, set per shape from one shared scale factor. Sizing the
+     ELEMENT instead was the first attempt and it collapsed to 0x0 - a masked
+     span has no content, so `height: auto` resolves to nothing. `auto` as the
+     second value keeps the picture's own aspect, so an outline is never
+     stretched to fit a number. */
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: var(--src);
+  mask-image: var(--src);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  /* HOLLOW, BY SUBTRACTING THE SHAPE FROM ITSELF.
+
+     Two copies of the same mask - one at full size, one inset by --ring on
+     every edge - composited with `exclude`. What survives is the difference
+     between them, which is the rim. That is the whole trick, and it is why
+     both products can be outlines at once: two filled silhouettes hide each
+     other, two outlines cross.
+
+     Size and offset come from the alpha bounding box measured in JS, so the
+     PRODUCT is scaled and centred rather than the frame around it. */
+  --ring: 3px;
+  -webkit-mask-image: var(--src), var(--src);
+  mask-image: var(--src), var(--src);
+  -webkit-mask-size:
+    var(--mw, contain) var(--mh, auto),
+    calc(var(--mw, 100%) - var(--ring) * 2) calc(var(--mh, 100%) - var(--ring) * 2);
+  mask-size:
+    var(--mw, contain) var(--mh, auto),
+    calc(var(--mw, 100%) - var(--ring) * 2) calc(var(--mh, 100%) - var(--ring) * 2);
+  -webkit-mask-position:
+    var(--mx, center) var(--my, center),
+    calc(var(--mx, 0px) + var(--ring)) calc(var(--my, 0px) + var(--ring));
+  mask-position:
+    var(--mx, center) var(--my, center),
+    calc(var(--mx, 0px) + var(--ring)) calc(var(--my, 0px) + var(--ring));
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Both are outlines; only the colour separates them. The comparison is a thin
+   neutral line, this product a thicker brand-coloured one - weight carries the
+   hierarchy so neither shape has to be filled, and where they cross you can
+   read both edges instead of one covering the other. */
+.product-overview__size-shape--peer {
+  --ring: 2px;
+  background-color: color-mix(in srgb, var(--color-ink) 80%, transparent);
+}
+
+.product-overview__size-shape--this {
+  --ring: 3.5px;
+  background-color: var(--color-brand);
+}
+
+.product-overview__size-controls {
+  display: grid;
+  gap: 6px;
+}
+
+.product-overview__size-label {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.product-overview__size-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-s, 8px);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.product-overview__size-select:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.product-overview__size-readout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.product-overview__size-readout dt {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.product-overview__size-readout dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.product-overview__size-readout b {
+  color: var(--color-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* The difference is the thing being looked up, so it is the coloured one. */
+.product-overview__size-readout span {
+  min-width: 8ch;
+  text-align: right;
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.product-overview__size-note {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ON PAPER THE SHAPE IS REAL SIZE.
+   
+   A footprint on screen can only ever be relative - CSS millimetres are a
+   nominal 96dpi, not the reader's actual screen. Printed, they are true. So
+   the print rule fixes the SVG to the product's real width in millimetres,
+   and a reader can put a hand on the page. That is the version enthusiasts
+   already fake with screenshots and a ruler. */
+@media print {
+  .product-overview__size-controls,
+  .product-overview__size-readout {
+    display: none;
+  }
+
+  .product-overview__size-stage {
+    width: 140mm;
+  }
+
+  .product-overview__size-note::after {
+    content: " Printed at true size — lay your hand over it.";
+  }
+}
+
+/* The view toggle. A segmented pair, because Top and Side are alternatives -
+   sharing one border says so before either word is read. Only rendered at all
+   when a side cutout exists, so it is never a control that does nothing. */
+.product-overview__size-views {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill, 999px);
+  justify-self: start;
+}
+
+.product-overview__size-view {
+  padding: 5px var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .product-overview__size-view {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
+  }
+}
+
+.product-overview__size-view:hover {
+  color: var(--color-ink);
+}
+
+.product-overview__size-view.is-active {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.product-overview__size-view:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media screen and (min-width: 750px) {
+  /* The toggle sits above the picker in the right-hand column. */
+  .product-overview__size {
+    grid-template-areas:
+      "stage views"
+      "stage controls"
+      "stage readout"
+      "stage note";
+  }
+  .product-overview__size-views {
+    grid-area: views;
+    align-self: end;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* @scroller on a phone - pinned, not collapsed                        */
+/* ------------------------------------------------------------------ */
+/* sections/feature-scroller.liquid pins only at >=990px. That is right for a
+   page section, and wrong here: on a phone the overview then rendered every
+   image in a column followed by every caption in a second column, so no
+   caption sat anywhere near the picture it described - the pairing, which is
+   the entire point of the section, was gone.
+   
+   So the pinned behaviour is rebuilt below 990px, scoped to the overview so
+   the home page section is untouched. One column instead of two: the frame
+   takes the upper part of the pinned screen and the copy sits under it, which
+   is the same reading order and the same one-image-moving-at-a-time
+   mechanism, in portrait.
+   
+   Every declaration mirrors the section's own desktop rules deliberately -
+   frame relative and clipping, slides absolute and driven by --ty, entries
+   stacked in one cell so the panel never changes height - because
+   feature-scroller.js writes exactly those two things and knows nothing about
+   which layout is showing. */
+@media screen and (max-width: 989px) and (prefers-reduced-motion: no-preference) {
+  html.js .product-overview .feature-scroller__runway {
+    height: calc((var(--entry-count) + 1) * 100svh);
+  }
+
+  html.js .product-overview .feature-scroller__pin {
+    position: sticky;
+    top: var(--header-height, 76px);
+    height: calc(100svh - var(--header-height, 76px));
+    display: flex;
+    flex-direction: column;
+    /* Stretch, not centre - the layout below fills this box itself. */
+    justify-content: stretch;
+    padding-block: var(--space-4);
+  }
+
+  /* FILL THE PINNED SCREEN, DO NOT SIT IN THE MIDDLE OF IT.
+
+     Centring content that is shorter than the pin leaves a band of nothing
+     above and below it - a whole screen given to the panel and a third of it
+     spent on air. Stretching the layout to the pin's height turns that dead
+     space into picture.
+
+     `flex: 1` is also what finally makes the 1fr row below resolve: a
+     fractional row needs a definite height to be a fraction OF, and the layout
+     only gets one by being told to fill its parent. Content-sized, it
+     collapsed to nothing - which is what left the frame at 0x0 earlier. */
+  html.js .product-overview .feature-scroller__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  html.js .product-overview .feature-scroller__frame {
+    position: relative;
+    display: block;
+    /* WIDTH FIRST, THEN THE RATIO GIVES THE HEIGHT.
+    
+       This had `margin-inline: auto`, which makes a grid item shrink to fit
+       its contents instead of stretching - and every slide inside it is
+       absolutely positioned, so its contents are zero wide. The frame measured
+       0x0, the image loaded correctly and had nowhere to be, and the panel
+       rendered as an empty white gap above the copy.
+    
+       The height now comes from the row rather than from a ratio: the frame
+       takes whatever the copy leaves, so the picture is as large as the screen
+       allows instead of a fixed shape with space around it. object-fit keeps
+       the product itself correct at any box. */
+    width: 100%;
+    height: 100%;
+    /* Lower ceiling than desktop: here the copy is under the picture rather
+       than beside it, so both share the one screen. */
+    max-height: 42svh;
+    min-height: 0;
+    justify-self: stretch;
+    align-self: center;
+    overflow: hidden;
+    border-radius: var(--radius-m);
+  }
+
+  html.js .product-overview .feature-scroller__slide {
+    position: absolute;
+    inset: 0;
+    border-radius: 0;
+    translate: 0 var(--ty, 100%);
+  }
+
+  html.js .product-overview .feature-scroller__slide:first-child {
+    --ty: 0%;
+  }
+
+  html.js .product-overview .feature-scroller__image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  html.js .product-overview .feature-scroller__counter {
+    display: block;
+  }
+
+  html.js .product-overview .feature-scroller__entries {
+    display: grid;
+    gap: 0;
+  }
+
+  html.js .product-overview .feature-scroller__entry {
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 380ms ease,
+      translate 460ms cubic-bezier(0.16, 1, 0.3, 1),
+      visibility 0s linear 460ms;
+  }
+
+  html.js .product-overview .feature-scroller__entry[data-state="after"] {
+    translate: 0 40%;
+  }
+  html.js .product-overview .feature-scroller__entry[data-state="before"] {
+    translate: 0 -40%;
+  }
+
+  html.js .product-overview .feature-scroller__entry[data-state="active"] {
+    translate: 0 0;
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  /* Smaller than the desktop step, because the copy now shares a screen with
+     the picture rather than sitting beside it. */
+  .product-overview .feature-scroller .product-overview__heading {
+    font-size: clamp(22px, 6vw, 30px);
+  }
+
+  .product-overview .feature-scroller .product-overview__body {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Stats: the numbers the category is bought on, at display size       */
+/* ------------------------------------------------------------------ */
+.product-overview__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5) var(--space-8);
+  margin: var(--space-5) 0;
+}
+
+/* The lead row opens the whole story, so it gets the room a heading would. */
+.product-overview__stats--lead {
+  margin: 0 0 var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.product-overview__stat {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.product-overview__stat-value {
+  font-family: var(--font-heading);
+  font-size: clamp(32px, 4vw, 56px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-overview__stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
