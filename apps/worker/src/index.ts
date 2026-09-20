@@ -2,6 +2,7 @@ import { loadEnv } from '@commerce/config'
 import { createDb } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
 
 const env = loadEnv(process.env)
@@ -12,6 +13,7 @@ const { queue, worker } = createHeartbeat(redis)
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 
 const app = new Hono()
+app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET))
 
 app.get('/health', async (c) => {
   const [dbOk, queueOk] = await Promise.all([

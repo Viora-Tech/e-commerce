@@ -11,3 +11,8 @@ export async function updateStoreTheme(tx: StoreTx, storeId: string, theme: unkn
   const [s] = await tx.update(store).set({ theme }).where(eq(store.id, storeId)).returning()
   return s ?? null
 }
+
+export async function updateStorePayments(tx: StoreTx, storeId: string, payments: unknown) {
+  const [s] = await tx.update(store).set({ payments }).where(eq(store.id, storeId)).returning()
+  return s ?? null
+}

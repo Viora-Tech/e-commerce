@@ -221,13 +221,15 @@ const chargePayment: WorkflowStep<State> = {
 
 const recordPayment: WorkflowStep<State> = {
   name: 'recordPayment',
-  async run({ ctx, input, lines, orderId, providerRef, paymentStatus }) {
+  async run({ ctx, input, lines, orderId, providerRef, paymentStatus, session }) {
     if (!orderId || !paymentStatus) throw new Error('recordPayment before chargePayment')
     await ctx.tx.insert(payment).values({
       storeId: ctx.storeId,
       orderId,
       provider: input.paymentProvider.id,
       providerRef: providerRef as string,
+      providerPaymentId: paymentStatus === 'captured' ? providerRef : null,
+      checkoutSession: session,
       status: paymentStatus === 'authorized' ? 'pending' : paymentStatus,
       amountPaise: sumPaise(lines),
     })

@@ -76,7 +76,15 @@ function Field({
   )
 }
 
-export function CheckoutForm({ storeId, cart }: { storeId: string; cart: CartView }) {
+export function CheckoutForm({
+  storeId,
+  cart,
+  methods,
+}: {
+  storeId: string
+  cart: CartView
+  methods: { id: string; label: string }[]
+}) {
   const [pending, start] = useTransition()
   const [form, setForm] = useState<Form>({
     name: '',
@@ -87,7 +95,7 @@ export function CheckoutForm({ storeId, cart }: { storeId: string; cart: CartVie
     city: '',
     stateCode: 'HR',
     pincode: '',
-    payment: 'cod',
+    payment: methods[0]?.id ?? 'cod',
   })
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -177,26 +185,18 @@ export function CheckoutForm({ storeId, cart }: { storeId: string; cart: CartVie
 
           <fieldset className="checkout__group">
             <legend className="h4">Payment</legend>
-            <label className="checkout__option">
-              <input
-                type="radio"
-                name="payment"
-                value="cod"
-                checked={form.payment === 'cod'}
-                onChange={set('payment')}
-              />
-              <span>Cash on delivery</span>
-            </label>
-            <label className="checkout__option">
-              <input
-                type="radio"
-                name="payment"
-                value="online"
-                checked={form.payment === 'online'}
-                onChange={set('payment')}
-              />
-              <span>Pay now with UPI or card (test gateway until Razorpay is connected)</span>
-            </label>
+            {methods.map((m) => (
+              <label key={m.id} className="checkout__option">
+                <input
+                  type="radio"
+                  name="payment"
+                  value={m.id}
+                  checked={form.payment === m.id}
+                  onChange={set('payment')}
+                />
+                <span>{m.label}</span>
+              </label>
+            ))}
           </fieldset>
         </div>
 
@@ -221,7 +221,7 @@ export function CheckoutForm({ storeId, cart }: { storeId: string; cart: CartVie
               disabled={pending}
             >
               <span className="btn__label">
-                {form.payment === 'cod' ? 'Place order' : 'Pay and place order'}
+                {form.payment === 'cod' ? 'Place order' : 'Continue to payment'}
               </span>
             </button>
           </div>

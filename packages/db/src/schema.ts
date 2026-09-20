@@ -221,6 +221,8 @@ export const payment = pgTable(
     providerRef: text('provider_ref').notNull(),
     /** Gateway's own payment id once known (Razorpay pay_..., etc). */
     providerPaymentId: text('provider_payment_id'),
+    /** CheckoutSession from the adapter, so the pay page can open the gateway after a redirect. */
+    checkoutSession: jsonb('checkout_session'),
     status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
     amountPaise: integer('amount_paise').notNull(),
   },

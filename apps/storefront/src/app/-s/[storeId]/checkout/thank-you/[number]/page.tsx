@@ -1,5 +1,5 @@
 import { formatPaise } from '@commerce/blocks'
-import { order, orderLine } from '@commerce/db'
+import { order, orderLine, payment } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { inStore } from '@/lib/store-context'
@@ -15,10 +15,12 @@ export default async function ThankYou({ params }: Params) {
       .where(eq(order.number, Number(number)))
     if (!o) return null
     const lines = await tx.select().from(orderLine).where(eq(orderLine.orderId, o.id))
-    return { order: o, lines }
+    const [pay] = await tx.select().from(payment).where(eq(payment.orderId, o.id))
+    return { order: o, lines, pay }
   })
   if (!data) notFound()
-  const { order: o, lines } = data
+  const { order: o, lines, pay } = data
+  const awaiting = o.paymentMethod !== 'cod' && pay?.status === 'pending'
 
   return (
     <section className="section-cart page-width">
@@ -27,7 +29,9 @@ export default async function ThankYou({ params }: Params) {
         <p className="cart-empty__text text-body">
           {o.paymentMethod === 'cod'
             ? `Pay ${formatPaise(o.totalPaise)} in cash when it arrives. `
-            : `Payment of ${formatPaise(o.totalPaise)} received. `}
+            : awaiting
+              ? `We are confirming your payment of ${formatPaise(o.totalPaise)}. `
+              : `Payment of ${formatPaise(o.totalPaise)} received. `}
           A confirmation is on its way to {o.email}.
         </p>
         <ul className="cart-items__list thank-you__lines">
@@ -42,6 +46,11 @@ export default async function ThankYou({ params }: Params) {
             </li>
           ))}
         </ul>
+        {awaiting ? (
+          <a href={`/checkout/pay/${o.number}`} className="btn btn--primary">
+            Pay now
+          </a>
+        ) : null}
         <a href="/" className="btn btn--secondary btn--pill cart-empty__cta">
           Continue shopping
         </a>

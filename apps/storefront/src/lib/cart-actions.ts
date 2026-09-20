@@ -2,16 +2,19 @@
 
 import {
   addToCart,
-  CodPaymentProvider,
+  confirmClientPayment,
   createCart,
-  FakePaymentProvider,
   getCart,
   placeOrder,
   setLineQuantity,
 } from '@commerce/core'
+import { payment } from '@commerce/db'
+import type { ClientConfirmation } from '@commerce/payments'
+import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
+import { storePaymentProviders } from './payments'
 import { inStore } from './store-context'
 
 /** Server actions for the cart. The store id comes from the page's route param, never the client. */
@@ -47,15 +50,17 @@ export type CheckoutForm = {
   city: string
   stateCode: string
   pincode: string
-  payment: 'cod' | 'online'
+  payment: string
 }
 
 export async function checkoutAction(storeId: string, form: CheckoutForm) {
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
-  const provider = form.payment === 'cod' ? new CodPaymentProvider() : new FakePaymentProvider()
-  const result = await inStore(storeId, (tx) =>
-    placeOrder(
+  const result = await inStore(storeId, async (tx) => {
+    const providers = await storePaymentProviders(tx, storeId)
+    const provider = providers.find((p) => p.id === form.payment)
+    if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    return placeOrder(
       { storeId, tx },
       {
         cartId,
@@ -73,8 +78,28 @@ export async function checkoutAction(storeId: string, form: CheckoutForm) {
           },
         },
       },
-    ),
-  )
+    )
+  })
   await clearCartId()
+  if (result.session.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
+  if (result.session.kind === 'redirect') redirect(result.session.url)
   redirect(`/checkout/thank-you/${result.orderNumber}`)
+}
+
+/** Browser posts the gateway's confirmation after a client-side checkout. */
+export async function confirmPaymentAction(
+  storeId: string,
+  providerRef: string,
+  confirmation: ClientConfirmation,
+) {
+  const status = await inStore(storeId, async (tx) => {
+    const [p] = await tx.select().from(payment).where(eq(payment.providerRef, providerRef))
+    if (!p) return null
+    const providers = await storePaymentProviders(tx, storeId)
+    const provider = providers.find((x) => x.id === p.provider)
+    if (!provider) return null
+    const updated = await confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
+    return updated?.status ?? null
+  })
+  return status
 }
