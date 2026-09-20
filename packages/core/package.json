@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,9 +17,10 @@
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",
-    "dotenv": "^18.0.1",
-    "vitest": "^4.1.11",
     "@types/node": "^22.20.4",
-    "typescript": "~5.9.3"
+    "@vitest/coverage-v8": "4.1.11",
+    "dotenv": "^18.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   }
 }

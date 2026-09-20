@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { runWorkflow, type WorkflowStep } from './run'
 
 type S = { log: string[]; value: number }
@@ -60,5 +60,22 @@ describe('runWorkflow', () => {
     ).rejects.toThrow('c failed')
     expect(s.log).toEqual(['run:a', 'run:c', 'undo:a'])
     expect(errors).toEqual(['compensation failed: b'])
+  })
+
+  it('logs a failing compensation to console.error by default', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const s: S = { log: [], value: 0 }
+    const broken: WorkflowStep<S> = {
+      name: 'b',
+      async run() {
+        return {}
+      },
+      async compensate() {
+        throw new Error('undo b broke')
+      },
+    }
+    await expect(runWorkflow(s, [broken, step('c', { fail: true })])).rejects.toThrow('c failed')
+    expect(spy).toHaveBeenCalledWith('compensation failed: b', expect.any(Error))
+    spy.mockRestore()
   })
 })

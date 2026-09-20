@@ -11,6 +11,7 @@
     "generate": "drizzle-kit generate",
     "migrate": "bun run src/migrate.ts",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,10 +21,11 @@
     "uuid": "^14.0.2"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.10",
-    "dotenv": "^18.0.1",
-    "vitest": "^4.1.11",
     "@types/node": "^22.20.4",
-    "typescript": "~5.9.3"
+    "@vitest/coverage-v8": "4.1.11",
+    "dotenv": "^18.0.1",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   }
 }

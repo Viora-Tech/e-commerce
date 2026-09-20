@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
 import type { PaymentProvider, PaymentStatus } from '../providers/payment'
-import { runWorkflow, type WorkflowStep } from '../workflow/run'
+import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
 export type PlaceOrderInput = { cartId: string; paymentProvider: PaymentProvider }
 export type PlaceOrderResult = {
@@ -116,38 +116,45 @@ const createOrder: WorkflowStep<State> = {
   },
 }
 
-const createPayment: WorkflowStep<State> = {
-  name: 'createPayment',
+/** External side effect only. Kept separate so a later DB failure still triggers the refund. */
+const chargePayment: WorkflowStep<State> = {
+  name: 'chargePayment',
   async run({ ctx, input, lines, orderId }) {
-    if (!orderId) throw new Error('createPayment before createOrder')
-    const amountPaise = sumPaise(lines)
-    let result: { providerRef: string; status: PaymentStatus }
+    if (!orderId) throw new Error('chargePayment before createOrder')
     try {
-      result = await input.paymentProvider.createPayment(ctx, {
+      const result = await input.paymentProvider.createPayment(ctx, {
         orderId,
-        amountPaise,
+        amountPaise: sumPaise(lines),
         customer: {},
       })
+      return { providerRef: result.providerRef, paymentStatus: result.status }
     } catch (cause) {
       throw new PaymentFailed(input.paymentProvider.id, cause, ctx.storeId)
     }
+  },
+  async compensate({ ctx, input, lines, providerRef, paymentStatus }) {
+    if (paymentStatus === 'captured') {
+      await input.paymentProvider.refund(ctx, providerRef as string, sumPaise(lines))
+    }
+  },
+}
+
+const recordPayment: WorkflowStep<State> = {
+  name: 'recordPayment',
+  async run({ ctx, input, lines, orderId, providerRef, paymentStatus }) {
+    if (!orderId || !paymentStatus) throw new Error('recordPayment before chargePayment')
     await ctx.tx.insert(payment).values({
       storeId: ctx.storeId,
       orderId,
       provider: input.paymentProvider.id,
-      providerRef: result.providerRef,
-      status: result.status,
-      amountPaise,
+      providerRef: providerRef as string,
+      status: paymentStatus,
+      amountPaise: sumPaise(lines),
     })
-    if (result.status === 'captured') {
+    if (paymentStatus === 'captured') {
       await ctx.tx.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
     }
-    return { providerRef: result.providerRef, paymentStatus: result.status }
-  },
-  async compensate({ ctx, input, lines, providerRef, paymentStatus }) {
-    if (providerRef && paymentStatus === 'captured') {
-      await input.paymentProvider.refund(ctx, providerRef, sumPaise(lines))
-    }
+    return {}
   },
 }
 
@@ -162,11 +169,13 @@ const markCartConverted: WorkflowStep<State> = {
 /**
  * Place an order from an open cart. Must run inside `withStore`; the caller's
  * transaction rolls back on throw, and compensations additionally undo the
- * one side effect outside the database (a captured payment).
+ * one side effect outside the database (a captured payment). `chargePayment`
+ * and `recordPayment` are separate steps for exactly that reason.
  */
 export async function placeOrder(
   ctx: StoreContext,
   input: PlaceOrderInput,
+  log?: WorkflowLog,
 ): Promise<PlaceOrderResult> {
   const state = await runWorkflow<State>(
     {
@@ -179,7 +188,8 @@ export async function placeOrder(
       providerRef: null,
       paymentStatus: null,
     },
-    [loadCart, reserveStock, createOrder, createPayment, markCartConverted],
+    [loadCart, reserveStock, createOrder, chargePayment, recordPayment, markCartConverted],
+    log,
   )
   if (!state.orderId || state.orderNumber === null || !state.paymentStatus) {
     throw new Error('placeOrder finished without an order')

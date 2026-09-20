@@ -14,8 +14,8 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
-import { FakePaymentProvider } from '../providers/payment'
+import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
+import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
 import { placeOrder } from './place-order'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -161,5 +161,42 @@ describe('placeOrder', () => {
       placeOrder({ storeId: first.storeId, tx }, { cartId: c2.id, paymentProvider: provider }),
     )
     expect([r1.orderNumber, r2.orderNumber]).toEqual([1, 2])
+  })
+
+  it('rejects an open cart with no lines', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    await owner.delete(cartLine).where(eq(cartLine.cartId, cartId))
+    await expect(
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+      ),
+    ).rejects.toBeInstanceOf(CartEmpty)
+  })
+
+  it('refunds a captured payment when the database fails afterwards', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const refunds: string[] = []
+    // Captures money, then hands back a reference the payment table cannot store.
+    const brokenRef: PaymentProvider = {
+      id: 'broken',
+      async createPayment() {
+        return { providerRef: null as unknown as string, status: 'captured' }
+      },
+      async capture() {
+        return { status: 'captured' }
+      },
+      async refund(_ctx, ref, amountPaise) {
+        refunds.push(`${ref}:${amountPaise}`)
+        return { status: 'refunded' }
+      },
+    }
+    const silent = { error: () => {} }
+    await expect(
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: brokenRef }, silent),
+      ),
+    ).rejects.toThrow()
+    expect(refunds).toEqual(['null:499900'])
+    expect(await owner.select().from(order)).toEqual([])
   })
 })

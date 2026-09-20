@@ -9,5 +9,11 @@ export default defineConfig({
     globalSetup: ['./test/global-setup.ts'],
     fileParallelism: false,
     testTimeout: 20000,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.test.ts', 'src/index.ts', 'src/migrate.ts', 'src/schema.ts'],
+      thresholds: { lines: 90, functions: 90, branches: 80 },
+    },
   },
 })

@@ -24,7 +24,10 @@ export class FakePaymentProvider implements PaymentProvider {
 
   constructor(private readonly opts: { mode: 'capture' | 'fail' } = { mode: 'capture' }) {}
 
-  async createPayment(_ctx: StoreContext, input: { orderId: string; amountPaise: number }) {
+  async createPayment(
+    _ctx: StoreContext,
+    input: { orderId: string; amountPaise: number; customer: { email?: string; phone?: string } },
+  ) {
     this.calls.push(`createPayment:${input.orderId}:${input.amountPaise}`)
     if (this.opts.mode === 'fail') throw new Error('fake gateway declined')
     this.counter += 1
