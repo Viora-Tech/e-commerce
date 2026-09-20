@@ -31,3 +31,16 @@ If the volume predates that file: `docker compose down -v && bun run infra:up`.
 - Money is integer paise. Ids are UUID v7 from `newId()`.
 - Queues talk to Dragonfly over the Redis protocol via ioredis. BullMQ queue
   names use a `{hashtag}` prefix and no colons.
+
+## Testing
+
+- Vitest per package; `bun run test` runs them in parallel, `bun run test:coverage`
+  enforces thresholds on `core` and `db`. Thresholds only go up.
+- `fast-check` for properties: anything that computes money, allocates numbers,
+  or orders steps gets a property test next to its example tests.
+- Provider conformance: every `PaymentProvider` implementation runs
+  `describePaymentProvider(...)` from `@commerce/core/testing` in its own test
+  file. Fulfilment and notification suites follow the same pattern when those
+  adapters arrive.
+- Playwright, Vitest browser mode and MSW come in with the storefront and the
+  first HTTP adapters, not before.
