@@ -26,10 +26,57 @@ export const product = pgTable('product', {
   storeId: storeId(),
   handle: text('handle').notNull(),
   title: text('title').notNull(),
+  description: text('description'),
+  vendor: text('vendor'),
+  productType: text('product_type'),
   status: text('status', { enum: ['draft', 'active', 'archived'] })
     .notNull()
     .default('draft'),
   createdAt: createdAt(),
+})
+
+/** Structured options: Colour / Size. A variant is one combination of values. */
+export const productOption = pgTable('product_option', {
+  id: id(),
+  storeId: storeId(),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => product.id),
+  name: text('name').notNull(),
+  position: integer('position').notNull().default(0),
+})
+
+export const productOptionValue = pgTable('product_option_value', {
+  id: id(),
+  storeId: storeId(),
+  optionId: uuid('option_id')
+    .notNull()
+    .references(() => productOption.id),
+  value: text('value').notNull(),
+  position: integer('position').notNull().default(0),
+})
+
+/** Uploaded once, referenced anywhere. `url` is external until R2 upload lands, then r2Key fills. */
+export const media = pgTable('media', {
+  id: id(),
+  storeId: storeId(),
+  url: text('url').notNull(),
+  r2Key: text('r2_key'),
+  alt: text('alt'),
+  width: integer('width'),
+  height: integer('height'),
+})
+
+export const productMedia = pgTable('product_media', {
+  id: id(),
+  storeId: storeId(),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => product.id),
+  mediaId: uuid('media_id')
+    .notNull()
+    .references(() => media.id),
+  position: integer('position').notNull().default(0),
 })
 
 export const variant = pgTable('variant', {
@@ -42,6 +89,19 @@ export const variant = pgTable('variant', {
   title: text('title').notNull(),
   pricePaise: integer('price_paise').notNull(),
   mrpPaise: integer('mrp_paise'),
+  position: integer('position').notNull().default(0),
+  mediaId: uuid('media_id').references(() => media.id),
+})
+
+export const variantOptionValue = pgTable('variant_option_value', {
+  id: id(),
+  storeId: storeId(),
+  variantId: uuid('variant_id')
+    .notNull()
+    .references(() => variant.id),
+  optionValueId: uuid('option_value_id')
+    .notNull()
+    .references(() => productOptionValue.id),
 })
 
 export const inventoryLevel = pgTable('inventory_level', {

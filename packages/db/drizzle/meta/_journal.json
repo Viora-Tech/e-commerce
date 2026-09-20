@@ -36,6 +36,20 @@
       "when": 1789912102013,
       "tag": "0004_store_theme",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789915567269,
+      "tag": "0005_catalog_options_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789915568003,
+      "tag": "0006_catalog_rls",
+      "breakpoints": true
     }
   ]
 }
