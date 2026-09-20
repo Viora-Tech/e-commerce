@@ -14,6 +14,8 @@ export const store = pgTable('store', {
   id: id(),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
+  /** Better Auth organization that owns this store. One org = one store. */
+  organizationId: text('organization_id').unique(),
   currency: text('currency').notNull().default('INR'),
   nextOrderNumber: integer('next_order_number').notNull().default(1),
   /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
