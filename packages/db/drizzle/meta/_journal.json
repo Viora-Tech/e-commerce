@@ -92,6 +92,20 @@
       "when": 1789926263559,
       "tag": "0012_pages_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789927222454,
+      "tag": "0013_checkout_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789927223184,
+      "tag": "0014_checkout_rls",
+      "breakpoints": true
     }
   ]
 }

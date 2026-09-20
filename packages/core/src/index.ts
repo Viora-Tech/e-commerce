@@ -1,6 +1,8 @@
+export * from './cart/cart'
 export type { StoreContext } from './context'
 export * from './errors'
 export * from './order/place-order'
+export { CodPaymentProvider } from './providers/cod'
 export * from './providers/fulfilment'
 export * from './providers/notification'
 export * from './providers/payment'

@@ -134,6 +134,20 @@ export const customer = pgTable('customer', {
   name: text('name'),
 })
 
+/** One address table, reused by customers and orders. state_code drives CGST/SGST vs IGST. */
+export const address = pgTable('address', {
+  id: id(),
+  storeId: storeId(),
+  name: text('name').notNull(),
+  line1: text('line1').notNull(),
+  line2: text('line2'),
+  city: text('city').notNull(),
+  stateCode: text('state_code').notNull(),
+  pincode: text('pincode').notNull(),
+  country: text('country').notNull().default('IN'),
+  phone: text('phone').notNull(),
+})
+
 export const cart = pgTable('cart', {
   id: id(),
   storeId: storeId(),
@@ -162,10 +176,15 @@ export const order = pgTable('order', {
   storeId: storeId(),
   number: integer('number').notNull(),
   customerId: uuid('customer_id').references(() => customer.id),
+  email: text('email'),
+  phone: text('phone'),
+  shippingAddressId: uuid('shipping_address_id').references(() => address.id),
+  paymentMethod: text('payment_method'),
   status: text('status', { enum: ['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'] })
     .notNull()
     .default('placed'),
   subtotalPaise: integer('subtotal_paise').notNull(),
+  shippingPaise: integer('shipping_paise').notNull().default(0),
   totalPaise: integer('total_paise').notNull(),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -179,6 +198,9 @@ export const orderLine = pgTable('order_line', {
   variantId: uuid('variant_id')
     .notNull()
     .references(() => variant.id),
+  /** Snapshots so a later rename or price change never rewrites history. */
+  title: text('title'),
+  variantTitle: text('variant_title'),
   quantity: integer('quantity').notNull(),
   unitPricePaise: integer('unit_price_paise').notNull(),
 })

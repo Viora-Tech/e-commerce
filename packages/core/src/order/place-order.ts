@@ -1,18 +1,48 @@
-import { cart, cartLine, inventoryLevel, order, orderLine, payment, store } from '@commerce/db'
+import {
+  address,
+  cart,
+  cartLine,
+  customer,
+  inventoryLevel,
+  order,
+  orderLine,
+  payment,
+  product,
+  store,
+  variant,
+} from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
 import type { PaymentProvider, PaymentStatus } from '../providers/payment'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
-export type PlaceOrderInput = { cartId: string; paymentProvider: PaymentProvider }
+export type CheckoutDetails = {
+  email: string
+  phone: string
+  name: string
+  address: { line1: string; line2?: string; city: string; stateCode: string; pincode: string }
+}
+
+export type PlaceOrderInput = {
+  cartId: string
+  paymentProvider: PaymentProvider
+  /** Optional in tests; required by the storefront checkout. */
+  checkout?: CheckoutDetails
+}
 export type PlaceOrderResult = {
   orderId: string
   orderNumber: number
   paymentStatus: PaymentStatus
 }
 
-type Line = { variantId: string; quantity: number; unitPricePaise: number }
+type Line = {
+  variantId: string
+  quantity: number
+  unitPricePaise: number
+  title: string
+  variantTitle: string
+}
 
 type State = {
   ctx: StoreContext
@@ -38,8 +68,12 @@ const loadCart: WorkflowStep<State> = {
         variantId: cartLine.variantId,
         quantity: cartLine.quantity,
         unitPricePaise: cartLine.unitPricePaise,
+        title: product.title,
+        variantTitle: variant.title,
       })
       .from(cartLine)
+      .innerJoin(variant, eq(variant.id, cartLine.variantId))
+      .innerJoin(product, eq(product.id, variant.productId))
       .where(eq(cartLine.cartId, input.cartId))
     if (lines.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
     return { lines }
@@ -78,7 +112,31 @@ const reserveStock: WorkflowStep<State> = {
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines }) {
+  async run({ ctx, lines, input }) {
+    let customerId: string | null = null
+    let shippingAddressId: string | null = null
+    if (input.checkout) {
+      const co = input.checkout
+      const [cu] = await ctx.tx
+        .insert(customer)
+        .values({ storeId: ctx.storeId, email: co.email, phone: co.phone, name: co.name })
+        .returning({ id: customer.id })
+      const [ad] = await ctx.tx
+        .insert(address)
+        .values({
+          storeId: ctx.storeId,
+          name: co.name,
+          line1: co.address.line1,
+          line2: co.address.line2 ?? null,
+          city: co.address.city,
+          stateCode: co.address.stateCode,
+          pincode: co.address.pincode,
+          phone: co.phone,
+        })
+        .returning({ id: address.id })
+      customerId = cu?.id ?? null
+      shippingAddressId = ad?.id ?? null
+    }
     const [s] = await ctx.tx
       .update(store)
       .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
@@ -95,6 +153,11 @@ const createOrder: WorkflowStep<State> = {
         status: 'placed',
         subtotalPaise,
         totalPaise: subtotalPaise,
+        customerId,
+        shippingAddressId,
+        email: input.checkout?.email ?? null,
+        phone: input.checkout?.phone ?? null,
+        paymentMethod: input.paymentProvider.id,
       })
       .returning({ id: order.id })
     if (!o) throw new Error('order insert returned nothing')
@@ -103,6 +166,8 @@ const createOrder: WorkflowStep<State> = {
         storeId: ctx.storeId,
         orderId: o.id,
         variantId: l.variantId,
+        title: l.title,
+        variantTitle: l.variantTitle,
         quantity: l.quantity,
         unitPricePaise: l.unitPricePaise,
       })),
@@ -125,7 +190,7 @@ const chargePayment: WorkflowStep<State> = {
       const result = await input.paymentProvider.createPayment(ctx, {
         orderId,
         amountPaise: sumPaise(lines),
-        customer: {},
+        customer: { email: input.checkout?.email, phone: input.checkout?.phone },
       })
       return { providerRef: result.providerRef, paymentStatus: result.status }
     } catch (cause) {
