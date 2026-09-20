@@ -1,15 +1,8 @@
-'use client'
+import type { Metadata } from 'next'
+import { OrdersPage } from './orders-page'
 
-import { Card, EmptyState, Page } from '@shopify/polaris'
+export const metadata: Metadata = { title: 'Orders' }
 
-export default function Placeholder() {
-  return (
-    <Page title="Orders">
-      <Card>
-        <EmptyState heading="Orders" image="">
-          <p>Coming in a later PR.</p>
-        </EmptyState>
-      </Card>
-    </Page>
-  )
+export default function Page() {
+  return <OrdersPage />
 }
