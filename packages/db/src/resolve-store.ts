@@ -12,3 +12,14 @@ export async function resolveStore(db: Db, hostname: string): Promise<string | n
   )
   return row?.id ?? null
 }
+
+/** Organization id -> store id, via the SECURITY DEFINER function. Null if none. */
+export async function resolveStoreForOrganization(
+  db: Db,
+  organizationId: string,
+): Promise<string | null> {
+  const [row] = await db.execute<{ id: string | null }>(
+    sql`select resolve_store_for_organization(${organizationId}) as id`,
+  )
+  return row?.id ?? null
+}

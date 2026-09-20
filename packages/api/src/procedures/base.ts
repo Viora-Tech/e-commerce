@@ -1,0 +1,20 @@
+import { ORPCError, os } from '@orpc/server'
+import type { ApiContext } from '../context'
+
+/** Public procedure. No session required. */
+export const base = os.$context<ApiContext>()
+
+type SessionUser = { id: string; email: string; name: string }
+type Session = { user: SessionUser; activeOrganizationId: string | null }
+
+/** Requires a signed-in merchant. Adds `session` to the context. */
+export const protectedProcedure = base.use(async ({ context, next }) => {
+  const s = await context.auth.api.getSession({ headers: context.headers })
+  if (!s) throw new ORPCError('UNAUTHORIZED', { message: 'Sign in required' })
+  const session: Session = {
+    user: { id: s.user.id, email: s.user.email, name: s.user.name },
+    activeOrganizationId:
+      (s.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null,
+  }
+  return next({ context: { session } })
+})
