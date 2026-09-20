@@ -15,6 +15,7 @@ export function ThemeToggle({ initial }: { initial: ThemeMode }) {
     const root = document.documentElement
     if (m === 'system') root.removeAttribute('data-theme')
     else root.setAttribute('data-theme', m)
+    // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is not in Safari; this is a single first-party preference cookie.
     document.cookie = `theme=${m}; path=/; max-age=31536000; samesite=lax`
   }
 
