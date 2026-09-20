@@ -1,5 +1,6 @@
 import { ProductView } from '@commerce/blocks'
 import { notFound } from 'next/navigation'
+import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle } from '@/lib/catalog'
 import { inStore } from '@/lib/store-context'
 
@@ -9,5 +10,6 @@ export default async function ProductPage({ params }: Params) {
   const { storeId, handle } = await params
   const product = await inStore(storeId, (tx) => getProductByHandle(tx, handle))
   if (!product) notFound()
-  return <ProductView product={product} />
+  const add = addLineAction.bind(null, storeId)
+  return <ProductView product={product} onAddToCart={add} />
 }

@@ -1,0 +1,1016 @@
+/**
+ * Cart page (sections/main-cart.liquid) and cart drawer
+ * (snippets/cart-drawer.liquid, rendered via sections/cart-drawer.liquid).
+ * Loaded by main-cart.liquid; the drawer ships in every page via
+ * layout/theme.liquid so its rules live here too (no separate stylesheet).
+ */
+
+/* ------------------------------------------------------------------ */
+/* Cart page                                                           */
+/* ------------------------------------------------------------------ */
+.cart-page__title {
+  margin-block-end: var(--space-6);
+}
+
+.cart-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+}
+
+@media (min-width: 990px) {
+  .cart-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
+    align-items: start;
+  }
+}
+
+.cart-layout__lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.cart-layout__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.cart-items__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-note {
+  border-top: 1px solid var(--color-line);
+  padding-top: var(--space-4);
+}
+
+/* The same disclosure treatment as the collection filters and the product
+   accordions. This one kept the browser's default triangle - list-style
+   disclosure-closed on a list-item summary - which was the only native
+   marker left anywhere in the theme. */
+.cart-note__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-ink);
+  list-style: none;
+}
+
+.cart-note__summary::-webkit-details-marker {
+  display: none;
+}
+
+.cart-note__summary svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .cart-note__summary svg {
+    transition: transform 0.15s ease;
+  }
+}
+
+.cart-note[open] .cart-note__summary svg {
+  transform: rotate(180deg);
+}
+
+.cart-note__textarea {
+  margin-top: var(--space-3);
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cart line (shared: cart page + drawer)                              */
+/* ------------------------------------------------------------------ */
+.cart-line {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  grid-template-areas: 'image info total' 'image info quantity';
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* The last line's rule and .cart-note's border-top were drawing two
+   hairlines 24px apart under the final item. The note keeps its own, so
+   the list stops one short. */
+.cart-line:last-child {
+  border-bottom: 0;
+}
+
+.cart-line:first-child {
+  padding-top: 0;
+}
+
+.cart-line__image-link {
+  grid-area: image;
+}
+
+.cart-line__image {
+  display: block;
+  width: 80px;
+  height: auto;
+  border-radius: var(--radius-s);
+  /* A constant well behind the thumbnail, not a page surface: as --color-ink
+     it turned pale in dark mode. */
+  background-color: var(--color-dark-band);
+  object-fit: cover;
+}
+
+.cart-line__info {
+  grid-area: info;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cart-line__title {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+/* A product title, not a box - nothing to invert, and it is already at full
+   ink. The underline is the hover. */
+.cart-line__title:hover,
+.cart-line__title:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cart-line__variant,
+.cart-line__selling-plan,
+.cart-line__unit-price {
+  color: var(--color-muted);
+}
+
+.cart-line__properties {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.cart-line__discounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cart-line__property {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.cart-line__property dt,
+.cart-line__property dd {
+  margin: 0;
+}
+
+.cart-line__remove {
+  align-self: flex-start;
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cart-line__remove:hover {
+  color: var(--color-danger);
+}
+
+.cart-line__error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.cart-line__error:empty {
+  display: none;
+}
+
+.cart-line__quantity {
+  grid-area: quantity;
+  align-self: end;
+  justify-self: end;
+}
+
+.cart-line__total {
+  grid-area: total;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  justify-self: end;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cart-line__total-compare {
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+/* Subtle opacity pulse while a quantity change sits in cart.js's debounce
+   window (CartItems.queueChange), so the line total doesn't look static
+   while it's about to update. */
+@media (prefers-reduced-motion: no-preference) {
+  .cart-line__total.is-pulsing {
+    animation: cart-line-total-pulse 0.6s ease-in-out infinite;
+  }
+}
+
+@keyframes cart-line-total-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Order summary card + trust row                                      */
+/* ------------------------------------------------------------------ */
+.cart-summary {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cart-summary__heading {
+  margin: 0;
+}
+
+.cart-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
+.cart-summary__discount-note,
+.cart-summary__shipping-note {
+  color: var(--color-muted);
+}
+
+.cart-summary__discounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cart-summary__checkout,
+.cart-summary__update {
+  width: 100%;
+}
+
+.cart-summary__payment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  justify-content: center;
+}
+
+/* Merchant blocks added in the theme editor, under the payment row. The
+   separator is a top border rather than a margin so a summary with no blocks
+   at all ends cleanly at the payment row. */
+.cart-summary__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+  color: var(--color-muted);
+}
+
+.cart-summary__block > :last-child {
+  margin-bottom: 0;
+}
+
+.cart-summary__block--note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cart-summary__block--note svg {
+  flex-shrink: 0;
+}
+
+.cart-trust {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cart-trust__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Pill button utility (empty-state secondary CTA)                     */
+/* ------------------------------------------------------------------ */
+.btn--pill {
+  border-radius: var(--radius-pill);
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty state                                                         */
+/* ------------------------------------------------------------------ */
+.cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding-block: var(--space-10);
+  color: var(--color-muted);
+}
+
+.cart-empty__heading {
+  color: var(--color-ink);
+  font-weight: 600;
+  max-width: 15ch;
+  margin: 0;
+}
+
+.cart-empty__text {
+  max-width: 32ch;
+  margin: 0 0 var(--space-2);
+}
+
+/* A pill needs more vertical room than a rectangle at the same height: the
+   rounded ends visually eat into the space above and below the label, so a
+   button that measures correctly still reads as cramped. */
+.cart-empty__cta {
+  margin-top: var(--space-1);
+  padding-block: var(--space-3);
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty-cart bestseller recommendations (snippets/cart-recommendations)  */
+/* Rendered inside both empty states above - drawer gets a 2x2 grid,      */
+/* the cart page a 4-across row (2-across on mobile).                     */
+/* ------------------------------------------------------------------ */
+.cart-recommendations {
+  width: 100%;
+  margin-top: var(--space-7);
+  text-align: left;
+}
+
+.cart-recommendations__heading {
+  margin: 0 0 var(--space-4);
+  color: var(--color-ink);
+}
+
+.cart-recommendations__grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* minmax(0, 1fr), NOT 1fr. A bare 1fr means minmax(auto, 1fr), and `auto`
+   refuses to shrink a track below its content's min-content width - so two
+   product cards with long titles and Add to cart buttons set a floor of about
+   259px each and forced the whole drawer's content to 613px inside a 480px
+   panel.
+
+   That one line caused three visible faults: a horizontal scrollbar, an empty
+   state that looked off-centre because it was centred in 613px rather than
+   480px, and a close button pushed off the right edge of the screen entirely.
+   minmax(0, ...) lets the tracks shrink to the space that actually exists. */
+.cart-recommendations--drawer .cart-recommendations__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cart-recommendations--page .cart-recommendations__grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media screen and (max-width: 749px) {
+  .cart-recommendations--page .cart-recommendations__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Cart drawer                                                         */
+/* ------------------------------------------------------------------ */
+/* The drawer's scroll lock is `html.overlay-open` in base.css, shared with
+   every other overlay - see ThemeOverlay.lockScroll. */
+.cart-drawer {
+  position: fixed;
+  inset-block: 0;
+  /* inset-inline-start must be pinned explicitly: <dialog>'s UA stylesheet
+     sets `inset: 0` (all four sides) on the top-layer dialog, so leaving
+     inset-inline-start unset here doesn't mean "unset" - it means "0, from
+     the UA rule". With left:0, right:0 (from inset-inline-end below), and
+     an explicit width all specified, the box is over-constrained and CSS
+     resolves it by dropping 'right' in ltr - which pins the drawer to the
+     left edge instead of the right. */
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  margin: 0;
+  width: min(480px, 100vw);
+  max-width: 100vw;
+  /* dvh, not vh. On a phone 100vh is measured as though the browser toolbars
+     were retracted, so a 100vh drawer is TALLER than the screen actually
+     showing it - and what falls off the bottom is the footer, which is where
+     Checkout lives. dvh tracks the viewport that is currently visible, so the
+     total band and the Checkout button stay on screen whether the toolbars are
+     showing or not. vh first as the fallback for browsers without dvh: too
+     tall beats zero height. Same reasoning as the video sections. */
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  border: none;
+  border-inline-start: 1px solid var(--color-line);
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  transform: translateX(100%);
+}
+
+/*
+ * The slide-in used to be driven purely by CSS: @starting-style paired with
+ * transition: display/overlay allow-discrete, so showModal()'s single-paint
+ * flip from display:none to display:flex would still have a "from" state to
+ * animate away from. In practice that starting-style value is never applied
+ * to this element - measured directly (a synchronous getComputedStyle read
+ * a few ms after showModal() already reports the resting open transform,
+ * with no transitionstart ever firing), even though the exact same pattern
+ * works on a plain <dialog> - so the merchant was right that it reads as
+ * instant. Driving it from JS instead sidesteps whatever is suppressing
+ * starting-style here: assets/cart.js's open() calls showModal() (which
+ * commits this rest-state translateX(100%) as a real, painted style, not a
+ * synthetic starting-style one) and only adds .is-visible on a later frame,
+ * so the transform transition below has a real "from" box to interpolate
+ * from. close() removes .is-visible first and waits for the transform
+ * transition to finish before calling dialog.close().
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .cart-drawer {
+    transition: transform var(--motion-overlay) var(--motion-overlay-ease);
+  }
+}
+
+.cart-drawer::backdrop {
+  /* Same raw scrim value as .header-drawer__scrim (section-header.css) -
+     the theme's established neutral-overlay precedent; not tokenized. */
+  background-color: rgb(0 0 0 / 40%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cart-drawer::backdrop {
+    opacity: 0;
+    transition: opacity var(--motion-scrim) ease;
+  }
+}
+
+.cart-drawer[open] {
+  display: flex;
+}
+
+.cart-drawer[open].is-visible {
+  transform: translateX(0);
+}
+
+.cart-drawer[open].is-visible::backdrop {
+  opacity: 1;
+}
+
+.cart-drawer__content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.cart-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* Shown only when the tablist is hidden (cart has items), so the header is
+   never just a floating close button. Matches the tabs' weight so the
+   header reads the same in both states. */
+.cart-drawer__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cart-drawer__title-count {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.cart-drawer__tabs {
+  display: flex;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.cart-drawer__tab {
+  padding-block: var(--space-1);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.cart-drawer__tab:hover {
+  color: var(--color-ink);
+}
+
+.cart-drawer__tab.is-active {
+  color: var(--color-ink);
+  font-weight: 600;
+  border-bottom-color: var(--color-ink);
+}
+
+.cart-drawer__count {
+  color: inherit;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Box, border, backplate and hover all come from [data-icon-close]
+   (assets/base.css) - only the placement is this component's business. */
+.cart-drawer__close {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.cart-drawer__panels {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cart-drawer__panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cart-drawer__panel[hidden] {
+  display: none;
+}
+
+/* padding-inline ALONE left the list with no top or bottom breathing room,
+   so the first line item sat flush against the header's rule and the last
+   one against the footer's - the drawer read as if its contents had been
+   pasted onto the chrome. The block padding matches the header and footer
+   so all three read as one column. */
+.cart-drawer__items {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-inline: var(--space-5);
+  padding-block: var(--space-5);
+}
+
+.cart-drawer__items .cart-line {
+  grid-template-columns: 80px 1fr auto;
+  column-gap: var(--space-5);
+}
+
+.cart-drawer__empty {
+  flex: 1 1 auto;
+  /* min-height: 0 lets this flex item shrink below its content's intrinsic
+     height so overflow-y: auto actually gets to scroll instead of the
+     dialog just growing/clipping - needed now that the empty state can be
+     taller than the drawer (heading/text/CTA plus the bestseller grid
+     below). */
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* NOT justify-content: center. Centred flex content that outgrows its
+     container overflows equally at BOTH ends, and the overflow above the
+     top edge is unreachable by scrolling - it pushed the heading up behind
+     the drawer header. Auto margins on the outer children centre the group
+     the same way while collapsing to 0 once the content is taller than the
+     drawer, so nothing is ever stranded off the top. */
+  justify-content: flex-start;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-6);
+  color: var(--color-muted);
+}
+
+.cart-drawer__empty > :first-child {
+  margin-block-start: auto;
+}
+
+.cart-drawer__empty > :last-child {
+  margin-block-end: auto;
+}
+
+.cart-drawer__empty-heading {
+  color: var(--color-ink);
+  font-weight: 600;
+  max-width: 13ch;
+  margin: 0;
+}
+
+.cart-drawer__empty-text {
+  max-width: 30ch;
+  margin: 0;
+}
+
+.cart-drawer__footer {
+  flex: 0 0 auto;
+  padding: var(--space-5);
+  border-top: 1px solid var(--color-line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* The total gets its own dark band rather than being another row of text. It
+   is the one number the visitor is looking for before committing, and on a
+   panel of white cards a line of text is the easiest thing to skim past.
+
+   "Its own dark band" is a constant, which is why it is not --color-ink: that
+   token means "the opposite of the page", so in dark mode the band flipped
+   pale and took its note with it. */
+.cart-drawer__total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-m);
+  background-color: var(--color-dark-band);
+  color: var(--color-on-dark-band);
+}
+
+.cart-drawer__total-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cart-drawer__total-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The caveat sits WITH the figure, not under the band. As a separate line
+   below it reads as small print nobody connects to the number it qualifies. */
+.cart-drawer__total-note {
+  font-size: 12px;
+  line-height: 1.4;
+  /* Tracks the band's own type colour rather than being a literal white,
+     which is the same value in light mode and stays correct if the band's
+     constant is ever re-pointed. */
+  color: color-mix(in srgb, var(--color-on-dark-band) 62%, transparent);
+}
+
+.cart-drawer__total-amount {
+  flex: none;
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 4vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  /* Tabular figures so the total does not shift sideways as items are added
+     and the digit count changes. */
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-drawer__discounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Order note                                                          */
+/* ------------------------------------------------------------------ */
+/* Collapsed by default. Shopify carries cart.note through to the order, so
+   this is a real field - but most visitors have nothing to say, and an open
+   textarea above Checkout invites them to stop and wonder whether they
+   should. */
+.cart-drawer__note {
+  border-top: 1px solid var(--color-line);
+  padding-top: var(--space-3);
+}
+
+.cart-drawer__note-toggle {
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cart-drawer__note-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.cart-drawer__note-toggle:hover {
+  color: var(--color-ink);
+}
+
+.cart-drawer__note-field {
+  width: 100%;
+  margin-top: var(--space-3);
+  resize: vertical;
+}
+
+/* ------------------------------------------------------------------ */
+/* Actions                                                             */
+/* ------------------------------------------------------------------ */
+/* Checkout takes the greater share. Two equal buttons would make the visitor
+   choose between them, when only one is the point of the drawer - View cart
+   is an escape hatch, not an alternative. */
+.cart-drawer__actions {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: var(--space-3);
+}
+
+.cart-drawer__checkout,
+.cart-drawer__view-cart {
+  width: 100%;
+}
+
+.cart-drawer__view-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+@media screen and (max-width: 379px) {
+  /* Two buttons side by side stop fitting once the labels wrap. */
+  .cart-drawer__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Cart drawer - "Recently viewed" tab panel                           */
+/* ------------------------------------------------------------------ */
+.cart-drawer__recent {
+  padding: var(--space-5);
+  overflow-y: auto;
+  gap: var(--space-4);
+}
+
+.cart-drawer__recent-status {
+  margin: auto;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.cart-drawer__recent-status[hidden] {
+  display: none;
+}
+
+.cart-drawer__recent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-drawer__recent-list:empty {
+  display: none;
+}
+
+.cart-drawer__recent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.cart-drawer__recent-row:first-child {
+  padding-top: 0;
+}
+
+.cart-drawer__recent-row:last-child {
+  border-bottom: none;
+}
+
+.cart-drawer__recent-image-link {
+  flex: 0 0 auto;
+}
+
+.cart-drawer__recent-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-s);
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+  overflow: hidden;
+}
+
+.cart-drawer__recent-image img,
+.cart-drawer__recent-image-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-drawer__recent-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.cart-drawer__recent-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.cart-drawer__recent-title:hover,
+.cart-drawer__recent-title:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cart-drawer__recent-price .price {
+  font-size: 13px;
+  gap: var(--space-1);
+}
+
+.cart-drawer__recent-price .price__current {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cart-drawer__recent-price .price__compare {
+  font-size: 12px;
+}
+
+.cart-drawer__recent-price .price__badge {
+  display: none;
+}
+
+.cart-drawer__recent-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 30px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+/* A 30px outlined pill, so it inverts like every other outlined control:
+   ink fills it and the label goes to the drawer's white. */
+.cart-drawer__recent-btn:hover,
+.cart-drawer__recent-btn:focus-visible {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.cart-drawer__recent-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cart-drawer__recent-btn.is-loading {
+  opacity: 0.6;
+}
+
+/* The tablist is hidden, not removed, when the cart has items - assets/cart.js
+   still swaps panels by id, and removing the buttons would leave it reaching
+   for elements that are not there. Hidden this way the cart panel simply fills
+   the drawer, which is what a drawer with something in it should be doing. */
+.cart-drawer__tabs--hidden {
+  display: none;
+}
+
+/* Belt and braces on the drawer's own boxes. A grid or flex child defaults to
+   min-width:auto, so any one of these could push the panel wider than the
+   drawer again the next time something long is added to it - and the symptom
+   appears three levels away from the cause. */
+.cart-drawer__content,
+.cart-drawer__panels,
+.cart-drawer__panel,
+.cart-drawer__items {
+  min-width: 0;
+  max-width: 100%;
+}
+
+
+
+/* Free-shipping bar above the total: one line and a fill. */
+.cart-drawer__shipping {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.cart-drawer__shipping-text {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.cart-drawer__shipping.is-unlocked .cart-drawer__shipping-text {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.cart-drawer__shipping-bar {
+  height: 4px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  overflow: hidden;
+}
+
+.cart-drawer__shipping-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--color-brand);
+  transition: width 0.4s ease;
+}
+
+.cart-drawer__shipping.is-unlocked .cart-drawer__shipping-bar > span {
+  background-color: var(--color-success);
+}
+

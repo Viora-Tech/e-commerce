@@ -53,3 +53,68 @@ h2 {
 h3 {
   font-size: calc(1.25rem * var(--font-heading-scale, 1));
 }
+
+/* Checkout form, in Glide's field language until the checkout section is ported. */
+.checkout__group {
+  border: 0;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: grid;
+  gap: 1rem;
+}
+.checkout__group legend {
+  margin-bottom: 0.75rem;
+}
+.checkout__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 749px) {
+  .checkout__row {
+    grid-template-columns: 1fr;
+  }
+}
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+.field__label {
+  color: var(--color-muted);
+}
+.field__input {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+}
+.field__input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+.checkout__option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+.checkout__option:has(input:checked) {
+  border-color: var(--color-ink);
+}
+.cart-summary__row--total {
+  font-weight: 600;
+  border-top: 1px solid var(--color-line);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+.thank-you__lines {
+  text-align: left;
+  max-width: 520px;
+  margin: 2rem auto;
+}

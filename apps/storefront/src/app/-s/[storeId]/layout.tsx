@@ -1,10 +1,11 @@
 import { Footer, Header } from '@commerce/blocks'
-import { parseTheme, themeToCss } from '@commerce/core'
+import { getCart, parseTheme, themeToCss } from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { readCartId } from '@/lib/cart-cookie'
 import { archivo, figtree, fontVar } from '@/lib/fonts'
 import { inStore } from '@/lib/store-context'
 import { htmlThemeAttr, parseThemeMode, THEME_COOKIE } from '@/lib/theme-mode'
@@ -27,6 +28,10 @@ export default async function StoreLayout({ children, params }: Props) {
   })
   if (!current) notFound()
 
+  const cartId = await readCartId()
+  const cartCount = cartId
+    ? await inStore(storeId, async (tx) => (await getCart({ storeId, tx }, cartId))?.itemCount ?? 0)
+    : 0
   const theme = parseTheme(current.theme)
   const mode = parseThemeMode((await cookies()).get(THEME_COOKIE)?.value, theme.darkMode.default)
   const fontStyle = `:root{--font-heading:${fontVar[theme.fonts.heading]};--font-body:${fontVar[theme.fonts.body]}}`
@@ -47,6 +52,7 @@ export default async function StoreLayout({ children, params }: Props) {
           links={NAV}
           themeMode={mode}
           showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
+          cartCount={cartCount}
         />
         <main id="MainContent">{children}</main>
         <Footer
