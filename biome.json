@@ -8,7 +8,8 @@
       "!**/drizzle",
       "!**/.turbo",
       "!**/coverage",
-      "!**/.next"
+      "!**/.next",
+      "!**/src/styles/glide"
     ]
   },
   "formatter": {
@@ -34,5 +35,17 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/storefront/src/components/glide/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noImgElement": "off"
+          }
+        }
+      }
+    }
+  ]
 }
