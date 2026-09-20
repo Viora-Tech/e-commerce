@@ -1,51 +1,45 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { BlockStack, Button, Card, EmptyState, Page, Text } from '@shopify/polaris'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 
 export function SelectStore({ stores }: { stores: { id: string; name: string; slug: string }[] }) {
   const router = useRouter()
-
   async function pick(id: string) {
-    const { error } = await authClient.organization.setActive({ organizationId: id })
-    if (error) return toast.error(error.message ?? 'Could not switch store')
+    await authClient.organization.setActive({ organizationId: id })
     router.push('/')
     router.refresh()
   }
-
   return (
-    <div className="mx-auto grid w-full max-w-lg gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Choose a store</h1>
-        <p className="text-sm text-muted-foreground">
-          You can switch stores any time from the sidebar.
-        </p>
-      </div>
+    <Page title="Choose a store" narrowWidth>
       {stores.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle>No stores yet</CardTitle>
-            <CardDescription>
-              Store creation lands with onboarding. For now, ask an owner to invite you.
-            </CardDescription>
-          </CardHeader>
+          <EmptyState heading="No stores yet" image="">
+            <p>Store creation lands with onboarding. Ask an owner to invite you.</p>
+          </EmptyState>
         </Card>
       ) : (
-        stores.map((s) => (
-          <Card key={s.id}>
-            <CardHeader>
-              <CardTitle>{s.name}</CardTitle>
-              <CardDescription>{s.slug}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => pick(s.id)}>Open {s.name}</Button>
-            </CardContent>
-          </Card>
-        ))
+        <BlockStack gap="400">
+          {stores.map((s) => (
+            <Card key={s.id}>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">
+                  {s.name}
+                </Text>
+                <Text as="p" tone="subdued">
+                  {s.slug}
+                </Text>
+                <div>
+                  <Button variant="primary" onClick={() => pick(s.id)}>
+                    Open {s.name}
+                  </Button>
+                </div>
+              </BlockStack>
+            </Card>
+          ))}
+        </BlockStack>
       )}
-    </div>
+    </Page>
   )
 }
