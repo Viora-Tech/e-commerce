@@ -1,4 +1,4 @@
-import { runMigrations } from '@commerce/db'
+import { runMigrations } from '@commerce/db/migrate'
 
 export default async function setup(): Promise<void> {
   const url = process.env.DATABASE_URL_OWNER

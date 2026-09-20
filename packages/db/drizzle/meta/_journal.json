@@ -29,6 +29,13 @@
       "when": 1789909550172,
       "tag": "0003_resolve_store",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789912102013,
+      "tag": "0004_store_theme",
+      "breakpoints": true
     }
   ]
 }
