@@ -1,1 +1,1 @@
-export { describePaymentProvider, type PaymentConformanceOptions } from './payment-conformance'
+export { type ConformanceOptions, describePaymentProvider } from '@commerce/payments/testing'

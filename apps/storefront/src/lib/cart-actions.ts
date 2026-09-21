@@ -2,16 +2,22 @@
 
 import {
   addToCart,
-  CodPaymentProvider,
+  confirmClientPayment,
   createCart,
-  FakePaymentProvider,
   getCart,
   placeOrder,
   setLineQuantity,
 } from '@commerce/core'
+import { payment } from '@commerce/db'
+import type { ClientConfirmation } from '@commerce/payments'
+import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { checkoutContent } from '@/data/checkout'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
+import { notify } from './notifications'
+import { storePaymentProviders } from './payments'
+import { estimateForPincode } from './shipping'
 import { inStore } from './store-context'
 
 /** Server actions for the cart. The store id comes from the page's route param, never the client. */
@@ -47,15 +53,34 @@ export type CheckoutForm = {
   city: string
   stateCode: string
   pincode: string
-  payment: 'cod' | 'online'
+  payment: string
 }
 
-export async function checkoutAction(storeId: string, form: CheckoutForm) {
+export type CheckoutResult = { error: string } | undefined
+
+/**
+ * Place the order. Returns `{ error }` for things the shopper can fix (an
+ * unserviceable PIN code, COD where the courier will not collect); throws
+ * for everything else; redirects on success.
+ */
+export async function checkoutAction(storeId: string, form: CheckoutForm): Promise<CheckoutResult> {
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
-  const provider = form.payment === 'cod' ? new CodPaymentProvider() : new FakePaymentProvider()
-  const result = await inStore(storeId, (tx) =>
-    placeOrder(
+
+  // The courier's word on the destination, never the client's. A cached answer makes this cheap.
+  const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
+  if (!delivery.ok) return { error: delivery.error }
+  if (!delivery.serviceable)
+    return { error: checkoutContent.errors.unserviceable(delivery.pincode) }
+  if (form.payment === 'cod' && !delivery.codAvailable) {
+    return { error: checkoutContent.errors.codUnavailable }
+  }
+
+  const result = await inStore(storeId, async (tx) => {
+    const providers = await storePaymentProviders(tx, storeId)
+    const provider = providers.find((p) => p.id === form.payment)
+    if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    return placeOrder(
       { storeId, tx },
       {
         cartId,
@@ -73,8 +98,31 @@ export async function checkoutAction(storeId: string, form: CheckoutForm) {
           },
         },
       },
-    ),
-  )
+    )
+  })
   await clearCartId()
+  await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
+  if (result.session.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
+  if (result.session.kind === 'redirect') redirect(result.session.url)
   redirect(`/checkout/thank-you/${result.orderNumber}`)
+}
+
+/** Browser posts the gateway's confirmation after a client-side checkout. */
+export async function confirmPaymentAction(
+  storeId: string,
+  providerRef: string,
+  confirmation: ClientConfirmation,
+) {
+  const applied = await inStore(storeId, async (tx) => {
+    const [p] = await tx.select().from(payment).where(eq(payment.providerRef, providerRef))
+    if (!p) return null
+    const providers = await storePaymentProviders(tx, storeId)
+    const provider = providers.find((x) => x.id === p.provider)
+    if (!provider) return null
+    return confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
+  })
+  if (applied?.becameCaptured) {
+    await notify({ storeId, orderId: applied.payment.orderId, template: 'payment_received' })
+  }
+  return applied?.payment.status ?? null
 }

@@ -118,3 +118,125 @@ h3 {
   max-width: 520px;
   margin: 2rem auto;
 }
+.manual-pay {
+  max-width: 640px;
+  margin: 1.5rem auto 0;
+  text-align: left;
+}
+.manual-pay__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.manual-pay__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.manual-pay__qr {
+  align-self: center;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.5rem;
+}
+.manual-pay__open {
+  align-self: flex-start;
+}
+@media (hover: hover) and (min-width: 990px) {
+  .manual-pay__open {
+    display: none;
+  }
+}
+.manual-pay__bank {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+.manual-pay__bank dt {
+  color: var(--color-ink-muted, inherit);
+  opacity: 0.7;
+}
+.manual-pay__bank dd {
+  margin: 0;
+}
+.manual-pay__note {
+  margin-top: 1rem;
+  white-space: pre-line;
+}
+.emi-hint {
+  margin-top: 0.35rem;
+  color: var(--color-accent);
+}
+.checkout__option-label {
+  flex: 1;
+}
+.checkout__adjustment {
+  opacity: 0.75;
+}
+.checkout__adjustment--discount {
+  color: var(--color-accent);
+  opacity: 1;
+}
+.delivery-estimate {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+.delivery-estimate__heading {
+  margin-bottom: 0.5rem;
+}
+.delivery-estimate__form {
+  display: flex;
+  gap: 0.5rem;
+}
+.delivery-estimate__form .field__input {
+  flex: 1;
+  max-width: 220px;
+}
+.delivery-estimate__result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+.delivery-estimate__result.is-positive {
+  border-color: var(--color-accent);
+}
+.delivery-estimate__result.is-negative {
+  opacity: 0.85;
+}
+.delivery-estimate__change {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  color: inherit;
+  cursor: pointer;
+}
+.checkout__delivery {
+  margin-top: 0.5rem;
+}
+.checkout__delivery.is-negative,
+.checkout__error {
+  color: var(--color-danger);
+}
+.checkout__error {
+  margin-bottom: 0.75rem;
+}
+.checkout__option.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

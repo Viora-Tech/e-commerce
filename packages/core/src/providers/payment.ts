@@ -1,54 +1,60 @@
-import type { StoreContext } from '../context'
+import type {
+  ClientConfirmation,
+  CreatePaymentInput,
+  CreatePaymentResult,
+  PaymentProvider,
+  PaymentStatus,
+  WebhookVerification,
+} from '@commerce/payments'
 
-export type PaymentStatus = 'pending' | 'captured'
+export type { PaymentProvider, PaymentStatus } from '@commerce/payments'
 
-export interface PaymentProvider {
-  readonly id: string
-  createPayment(
-    ctx: StoreContext,
-    input: {
-      orderId: string
-      amountPaise: number
-      customer: { email?: string | undefined; phone?: string | undefined }
-    },
-  ): Promise<{ providerRef: string; status: PaymentStatus }>
-  capture(ctx: StoreContext, providerRef: string): Promise<{ status: 'captured' }>
-  refund(
-    ctx: StoreContext,
-    providerRef: string,
-    amountPaise: number,
-  ): Promise<{ status: 'refunded' }>
-}
-
-/** Test double. `capture` mode succeeds immediately; `fail` mode throws on createPayment. */
+/** Test double on the shared contract. `capture` mode captures at creation; `fail` throws. */
 export class FakePaymentProvider implements PaymentProvider {
-  readonly id = 'fake'
+  readonly id: string
+  readonly label = 'Test gateway'
   readonly calls: string[] = []
   private counter = 0
+  private readonly captured = new Set<string>()
 
-  constructor(private readonly opts: { mode: 'capture' | 'fail' } = { mode: 'capture' }) {}
-
-  async createPayment(
-    _ctx: StoreContext,
-    input: {
-      orderId: string
-      amountPaise: number
-      customer: { email?: string | undefined; phone?: string | undefined }
-    },
+  constructor(
+    private readonly opts: { mode: 'capture' | 'fail'; id?: string } = { mode: 'capture' },
   ) {
+    this.id = opts.id ?? 'fake'
+  }
+
+  async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
     this.calls.push(`createPayment:${input.orderId}:${input.amountPaise}`)
     if (this.opts.mode === 'fail') throw new Error('fake gateway declined')
     this.counter += 1
-    return { providerRef: `fake_${this.counter}`, status: 'captured' as const }
+    const providerRef = `fake_${this.counter}`
+    this.captured.add(providerRef)
+    return {
+      providerRef,
+      status: 'captured',
+      session: { kind: 'none', provider: this.id, providerRef },
+    }
   }
 
-  async capture(_ctx: StoreContext, providerRef: string) {
-    this.calls.push(`capture:${providerRef}`)
-    return { status: 'captured' as const }
+  async confirm(providerRef: string, _confirmation: ClientConfirmation) {
+    this.calls.push(`confirm:${providerRef}`)
+    return { status: 'captured' as const, providerPaymentId: providerRef }
   }
 
-  async refund(_ctx: StoreContext, providerRef: string, amountPaise: number) {
-    this.calls.push(`refund:${providerRef}:${amountPaise}`)
-    return { status: 'refunded' as const }
+  async fetchStatus(providerRef: string) {
+    return {
+      status: (this.captured.has(providerRef) ? 'captured' : 'pending') as PaymentStatus,
+      providerPaymentId: providerRef,
+      amountPaise: 0,
+    }
+  }
+
+  async refund(providerPaymentId: string, amountPaise: number) {
+    this.calls.push(`refund:${providerPaymentId}:${amountPaise}`)
+    return { providerRefundId: `rf_${providerPaymentId}`, status: 'processed' as const }
+  }
+
+  parseWebhook(): WebhookVerification {
+    return { ok: false, reason: 'fake provider has no webhooks' }
   }
 }

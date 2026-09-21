@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   integer,
   jsonb,
   pgTable,
@@ -29,6 +31,14 @@ export const store = pgTable('store', {
   nextOrderNumber: integer('next_order_number').notNull().default(1),
   /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
   theme: jsonb('theme'),
+  /** Payment settings: enabled methods and encrypted gateway credentials. */
+  payments: jsonb('payments'),
+  /** Notification settings: enabled channels and encrypted channel credentials. */
+  notifications: jsonb('notifications'),
+  /** Shipping settings: enabled couriers, encrypted credentials and the dispatch policy. */
+  shipping: jsonb('shipping'),
+  /** Installed plugins: { installed: string[] }. Validated by @commerce/core AppsSettingsSchema. */
+  apps: jsonb('apps'),
   createdAt: createdAt(),
 })
 
@@ -37,13 +47,18 @@ export const product = pgTable('product', {
   storeId: storeId(),
   handle: text('handle').notNull(),
   title: text('title').notNull(),
-  description: text('description'),
+  /** Lexical JSON (see @commerce/richtext). Legacy rows hold a plain string; parseRichText copes. */
+  description: jsonb('description'),
   vendor: text('vendor'),
   productType: text('product_type'),
+  tags: text('tags').array().notNull().default([]),
+  seoTitle: text('seo_title'),
+  seoDescription: text('seo_description'),
   status: text('status', { enum: ['draft', 'active', 'archived'] })
     .notNull()
     .default('draft'),
   createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 /** Structured options: Colour / Size. A variant is one combination of values. */
@@ -97,11 +112,23 @@ export const variant = pgTable('variant', {
     .notNull()
     .references(() => product.id),
   sku: text('sku'),
+  barcode: text('barcode'),
   title: text('title').notNull(),
   pricePaise: integer('price_paise').notNull(),
   mrpPaise: integer('mrp_paise'),
+  /** What the merchant paid; never shown to shoppers. */
+  costPaise: integer('cost_paise'),
+  taxable: boolean('taxable').notNull().default(true),
+  /** false = always purchasable regardless of inventory_level. */
+  trackInventory: boolean('track_inventory').notNull().default(true),
+  weightGrams: integer('weight_grams'),
   position: integer('position').notNull().default(0),
   mediaId: uuid('media_id').references(() => media.id),
+  /**
+   * Variants referenced by order lines are never deleted; removing one from
+   * the matrix archives it so old orders keep their titles and prices.
+   */
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
 })
 
 export const variantOptionValue = pgTable('variant_option_value', {
@@ -124,6 +151,21 @@ export const inventoryLevel = pgTable('inventory_level', {
     .unique(),
   onHand: integer('on_hand').notNull().default(0),
   reserved: integer('reserved').notNull().default(0),
+})
+
+/** Every change to on_hand, with why. Reconciles counts against the merchant's memory. */
+export const inventoryAdjustment = pgTable('inventory_adjustment', {
+  id: id(),
+  storeId: storeId(),
+  variantId: uuid('variant_id')
+    .notNull()
+    .references(() => variant.id),
+  delta: integer('delta').notNull(),
+  reason: text('reason', {
+    enum: ['correction', 'received', 'damaged', 'returned', 'sold', 'other'],
+  }).notNull(),
+  note: text('note'),
+  createdAt: createdAt(),
 })
 
 export const customer = pgTable('customer', {
@@ -185,6 +227,9 @@ export const order = pgTable('order', {
     .default('placed'),
   subtotalPaise: integer('subtotal_paise').notNull(),
   shippingPaise: integer('shipping_paise').notNull().default(0),
+  /** Fee (+) or discount (−) for the chosen payment method, already inside total_paise. */
+  paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
+  paymentAdjustmentLabel: text('payment_adjustment_label'),
   totalPaise: integer('total_paise').notNull(),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -205,17 +250,107 @@ export const orderLine = pgTable('order_line', {
   unitPricePaise: integer('unit_price_paise').notNull(),
 })
 
-export const payment = pgTable('payment', {
-  id: id(),
-  storeId: storeId(),
-  orderId: uuid('order_id')
-    .notNull()
-    .references(() => order.id),
-  provider: text('provider').notNull(),
-  providerRef: text('provider_ref').notNull(),
-  status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
-  amountPaise: integer('amount_paise').notNull(),
-})
+export const payment = pgTable(
+  'payment',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    provider: text('provider').notNull(),
+    providerRef: text('provider_ref').notNull(),
+    /** Gateway's own payment id once known (Razorpay pay_..., etc). */
+    providerPaymentId: text('provider_payment_id'),
+    /** CheckoutSession from the adapter, so the pay page can open the gateway after a redirect. */
+    checkoutSession: jsonb('checkout_session'),
+    status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
+    amountPaise: integer('amount_paise').notNull(),
+  },
+  (t) => [
+    check(
+      'payment_status_check',
+      sql`${t.status} in ('pending', 'captured', 'refunded', 'failed')`,
+    ),
+  ],
+)
+
+/** Every gateway webhook, stored before it is processed so retries cannot double-apply. */
+export const paymentEvent = pgTable(
+  'payment_event',
+  {
+    id: id(),
+    storeId: storeId(),
+    provider: text('provider').notNull(),
+    eventId: text('event_id').notNull(),
+    type: text('type').notNull(),
+    payload: jsonb('payload').notNull(),
+    status: text('status', { enum: ['pending', 'processed', 'failed'] })
+      .notNull()
+      .default('pending'),
+    error: text('error'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId)],
+)
+
+/** One row per message attempted, so admin can see what a shopper was told and retries never double-send. */
+export const notification = pgTable(
+  'notification',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    channel: text('channel').notNull(),
+    template: text('template').notNull(),
+    /** Email address or phone the message went to. */
+    to: text('to').notNull(),
+    status: text('status', { enum: ['queued', 'sent', 'failed'] })
+      .notNull()
+      .default('queued'),
+    providerRef: text('provider_ref'),
+    error: text('error'),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template)],
+)
+
+/** One courier consignment per order. Tracking is the courier's normalised answer, refreshed by the worker. */
+export const shipment = pgTable(
+  'shipment',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    provider: text('provider').notNull(),
+    waybill: text('waybill').notNull(),
+    status: text('status', {
+      enum: [
+        'created',
+        'picked_up',
+        'in_transit',
+        'out_for_delivery',
+        'delivered',
+        'rto',
+        'cancelled',
+      ],
+    })
+      .notNull()
+      .default('created'),
+    labelUrl: text('label_url'),
+    trackingUrl: text('tracking_url'),
+    /** Last Tracking payload from the provider. */
+    tracking: jsonb('tracking'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill)],
+)
 
 export const storeDomain = pgTable('store_domain', {
   id: id(),

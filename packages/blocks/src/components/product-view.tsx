@@ -1,17 +1,36 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import {
+  parseRichText,
+  plainTextToRichText,
+  RichTextRenderer,
+  richTextToPlainText,
+} from '@commerce/richtext'
+import { type ComponentType, type ReactNode, useState, useTransition } from 'react'
 import type { ProductDetail } from '../types'
 import { Price } from './price'
+
+/** Imported products hold a plain string; the admin editor writes Lexical JSON. */
+function descriptionDoc(raw: ProductDetail['description']) {
+  const doc = parseRichText(raw)
+  if (doc) return doc
+  return typeof raw === 'string' && raw.trim() ? plainTextToRichText(raw) : null
+}
 
 // Port of sections/main-product.liquid with snippets/product-gallery,
 // variant-picker and buy-buttons. Cart wiring comes with the cart PR.
 export function ProductView({
   product,
   onAddToCart,
+  UnderPrice,
+  belowBuy,
 }: {
   product: ProductDetail
   onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  /** Rendered below the price with the selected variant's price (EMI hint, offers). */
+  UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
+  /** Rendered under the buy buttons (delivery estimate). */
+  belowBuy?: ReactNode
 }) {
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
@@ -34,8 +53,9 @@ export function ProductView({
   }
 
   const selectedValues = new Set(variant?.optionValueIds ?? [])
-  const description = product.description?.split('\n').filter(Boolean) ?? []
-  const clamped = description.length > 3 && !expanded
+  const description = descriptionDoc(product.description)
+  const longDescription = description ? richTextToPlainText(description).length > 280 : false
+  const clamped = longDescription && !expanded
 
   return (
     <section className="section-product page-width">
@@ -89,6 +109,7 @@ export function ProductView({
             <div className="product-info__price product-info__price--large">
               <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
               <p className="text-caption">Inclusive of all taxes</p>
+              {UnderPrice ? <UnderPrice pricePaise={variant.pricePaise} /> : null}
             </div>
           ) : null}
 
@@ -163,18 +184,17 @@ export function ProductView({
                     : 'Notify me when back'}
               </p>
             ) : null}
+            {belowBuy}
           </div>
 
-          {description.length > 0 ? (
+          {description ? (
             <div
-              className={`product-info__description text-body${clamped ? ' product-info__description--clamped' : ''}`}
+              className={`product-info__description text-body rte${clamped ? ' product-info__description--clamped' : ''}`}
             >
               <div className="product-info__description-body">
-                {description.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
+                <RichTextRenderer data={description} />
               </div>
-              {description.length > 3 ? (
+              {longDescription ? (
                 <button
                   type="button"
                   className="product-info__read-more"

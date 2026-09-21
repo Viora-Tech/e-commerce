@@ -1,0 +1,151 @@
+/* ------------------------------------------------------------------ */
+/* Rich text block: Lexical output rendered inside .rte                 */
+/* Covers the node types Glide's .rte never had: tables, checklists,    */
+/* figures, video embeds, collapsibles and code.                        */
+/* ------------------------------------------------------------------ */
+.rich-text-block {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.rich-text-block--center {
+  text-align: center;
+}
+
+.rich-text-block--center .rte ul,
+.rich-text-block--center .rte ol {
+  display: inline-block;
+  text-align: left;
+}
+
+.rte blockquote {
+  margin: 0;
+  padding: var(--space-2) var(--space-5);
+  border-left: 3px solid var(--color-line);
+  color: var(--color-ink);
+  opacity: 0.8;
+}
+
+.rte hr {
+  border: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.rte code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+.rte pre {
+  overflow-x: auto;
+  padding: var(--space-4);
+  border-radius: 8px;
+  background: var(--color-surface);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.rte pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.rte .richtext-checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.rte .richtext-check {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.rte .richtext-check--done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.rte .richtext-nested {
+  list-style: none;
+}
+
+.rte .richtext-table-wrap {
+  overflow-x: auto;
+}
+
+.rte .richtext-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.rte .richtext-table th,
+.rte .richtext-table td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rte .richtext-table th {
+  background: var(--color-surface);
+  font-weight: 600;
+}
+
+.rte .richtext-figure {
+  margin: 0;
+}
+
+.rte .richtext-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 8px;
+}
+
+.rte .richtext-figure figcaption {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.rte .richtext-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #000;
+}
+
+.rte .richtext-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.rte .richtext-details {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.rte .richtext-details summary {
+  padding: var(--space-3) var(--space-4);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rte .richtext-details > div {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.rte .richtext-details > div > * + * {
+  margin-top: var(--space-3);
+}

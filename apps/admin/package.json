@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 3200",
+    "dev": "bun run --env-file=../../.env next dev --port 3200",
     "build": "next build",
-    "start": "next start --port 3200",
+    "start": "bun run --env-file=../../.env next start --port 3200",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/queue": "workspace:*",
     "@orpc/client": "^1.15.2",
     "@orpc/server": "^1.15.2",
     "better-auth": "^1.7.5",
@@ -33,7 +34,10 @@
     "shadcn": "^4.13.0",
     "@tailwindcss/typography": "^0.5.19",
     "@commerce/blocks": "workspace:*",
-    "@measured/puck": "^0.20.2"
+    "@commerce/editor": "workspace:*",
+    "@commerce/richtext": "workspace:*",
+    "@measured/puck": "^0.20.2",
+    "@commerce/payments": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

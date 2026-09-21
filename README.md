@@ -8,7 +8,7 @@ row-level security, place-order workflow, worker process. Design in
 
     bun install
     bun run infra:up          # postgres 17 + dragonfly
-    cp .env.example .env
+    cp .env.example .env        # all apps read this one file
     bun run db:migrate        # applies to DATABASE_URL_OWNER in .env
     bun run test
     bun run --cwd apps/worker dev

@@ -44,6 +44,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       variantTitle: variant.title,
       onHand: inventoryLevel.onHand,
       reserved: inventoryLevel.reserved,
+      trackInventory: variant.trackInventory,
       imageUrl: media.url,
     })
     .from(cartLine)
@@ -61,7 +62,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     quantity: r.quantity,
     unitPricePaise: r.unitPricePaise,
     linePaise: r.quantity * r.unitPricePaise,
-    available: Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0)),
+    available: r.trackInventory ? Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0)) : 999,
     imageUrl: r.imageUrl,
   }))
   return {

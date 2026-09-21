@@ -15,7 +15,11 @@
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.8",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "@commerce/payments": "workspace:*",
+    "@commerce/notifications": "workspace:*",
+    "@commerce/queue": "workspace:*",
+    "@commerce/shipping": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

@@ -1,0 +1,20 @@
+{
+  "name": "@commerce/payments",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Payment gateway contract, registry and conformance suite. No runtime dependencies.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

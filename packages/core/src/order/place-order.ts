@@ -11,10 +11,17 @@ import {
   store,
   variant,
 } from '@commerce/db'
+import type {
+  CheckoutSession,
+  PaymentProvider,
+  PaymentShipping,
+  PaymentStatus,
+} from '@commerce/payments'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
-import type { PaymentProvider, PaymentStatus } from '../providers/payment'
+import { applyPaymentAdjustment } from '../payments/adjustments'
+import { parsePaymentSettings } from '../payments/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
 export type CheckoutDetails = {
@@ -34,6 +41,8 @@ export type PlaceOrderResult = {
   orderId: string
   orderNumber: number
   paymentStatus: PaymentStatus
+  /** How the storefront should continue: open a gateway checkout, redirect, or nothing. */
+  session: CheckoutSession
 }
 
 type Line = {
@@ -51,8 +60,11 @@ type State = {
   reserved: Line[]
   orderId: string | null
   orderNumber: number | null
+  /** Subtotal plus the payment-method fee or discount; what the provider is asked to charge. */
+  totalPaise: number
   providerRef: string | null
   paymentStatus: PaymentStatus | null
+  session: CheckoutSession | null
 }
 
 const sumPaise = (lines: Line[]): number =>
@@ -85,6 +97,12 @@ const reserveStock: WorkflowStep<State> = {
   async run({ ctx, lines }) {
     const reserved: Line[] = []
     for (const line of lines) {
+      // Untracked variants (made-to-order, digital) never run out: nothing to reserve.
+      const [v] = await ctx.tx
+        .select({ trackInventory: variant.trackInventory })
+        .from(variant)
+        .where(eq(variant.id, line.variantId))
+      if (v && !v.trackInventory) continue
       const rows = await ctx.tx
         .update(inventoryLevel)
         .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
@@ -141,10 +159,14 @@ const createOrder: WorkflowStep<State> = {
       .update(store)
       .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
       .where(eq(store.id, ctx.storeId))
-      .returning({ next: store.nextOrderNumber })
+      .returning({ next: store.nextOrderNumber, payments: store.payments })
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const orderNumber = s.next - 1
     const subtotalPaise = sumPaise(lines)
+    // The merchant's fee or discount for this method is applied server-side
+    // here; the checkout preview is only ever a hint.
+    const adjustment = parsePaymentSettings(s.payments).adjustments[input.paymentProvider.id]
+    const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(subtotalPaise, adjustment)
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -152,7 +174,9 @@ const createOrder: WorkflowStep<State> = {
         number: orderNumber,
         status: 'placed',
         subtotalPaise,
-        totalPaise: subtotalPaise,
+        paymentAdjustmentPaise: adjustmentPaise,
+        paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,
+        totalPaise,
         customerId,
         shippingAddressId,
         email: input.checkout?.email ?? null,
@@ -172,7 +196,7 @@ const createOrder: WorkflowStep<State> = {
         unitPricePaise: l.unitPricePaise,
       })),
     )
-    return { orderId: o.id, orderNumber }
+    return { orderId: o.id, orderNumber, totalPaise }
   },
   async compensate({ ctx, orderId }) {
     if (!orderId) return
@@ -181,40 +205,75 @@ const createOrder: WorkflowStep<State> = {
   },
 }
 
+function toPaymentShipping(co: CheckoutDetails): PaymentShipping {
+  return {
+    name: co.name,
+    line1: co.address.line1,
+    line2: co.address.line2,
+    city: co.address.city,
+    state: co.address.stateCode,
+    postalCode: co.address.pincode,
+    country: 'IN',
+  }
+}
+
 /** External side effect only. Kept separate so a later DB failure still triggers the refund. */
 const chargePayment: WorkflowStep<State> = {
   name: 'chargePayment',
-  async run({ ctx, input, lines, orderId }) {
+  async run({ ctx, input, lines, orderId, orderNumber, totalPaise }) {
     if (!orderId) throw new Error('chargePayment before createOrder')
     try {
-      const result = await input.paymentProvider.createPayment(ctx, {
+      const result = await input.paymentProvider.createPayment({
         orderId,
-        amountPaise: sumPaise(lines),
-        customer: { email: input.checkout?.email, phone: input.checkout?.phone },
+        orderNumber: orderNumber ?? undefined,
+        amountPaise: totalPaise,
+        currency: 'INR',
+        customer: {
+          email: input.checkout?.email,
+          phone: input.checkout?.phone,
+          name: input.checkout?.name,
+        },
+        shipping: input.checkout ? toPaymentShipping(input.checkout) : undefined,
+        lines: lines.map((l) => ({
+          title:
+            l.variantTitle && l.variantTitle !== 'Default'
+              ? `${l.title} / ${l.variantTitle}`
+              : l.title,
+          quantity: l.quantity,
+          unitPricePaise: l.unitPricePaise,
+        })),
       })
-      return { providerRef: result.providerRef, paymentStatus: result.status }
+      return {
+        providerRef: result.providerRef,
+        paymentStatus: result.status,
+        session: result.session,
+      }
     } catch (cause) {
       throw new PaymentFailed(input.paymentProvider.id, cause, ctx.storeId)
     }
   },
-  async compensate({ ctx, input, lines, providerRef, paymentStatus }) {
-    if (paymentStatus === 'captured') {
-      await input.paymentProvider.refund(ctx, providerRef as string, sumPaise(lines))
+  async compensate({ input, totalPaise, providerRef, paymentStatus }) {
+    // Only money actually taken needs returning. providerRef doubles as the
+    // payment id for providers that capture at creation.
+    if (providerRef && paymentStatus !== 'pending' && paymentStatus !== 'failed') {
+      await input.paymentProvider.refund(providerRef, totalPaise)
     }
   },
 }
 
 const recordPayment: WorkflowStep<State> = {
   name: 'recordPayment',
-  async run({ ctx, input, lines, orderId, providerRef, paymentStatus }) {
+  async run({ ctx, input, totalPaise, orderId, providerRef, paymentStatus, session }) {
     if (!orderId || !paymentStatus) throw new Error('recordPayment before chargePayment')
     await ctx.tx.insert(payment).values({
       storeId: ctx.storeId,
       orderId,
       provider: input.paymentProvider.id,
       providerRef: providerRef as string,
-      status: paymentStatus,
-      amountPaise: sumPaise(lines),
+      providerPaymentId: paymentStatus === 'captured' ? providerRef : null,
+      checkoutSession: session,
+      status: paymentStatus === 'authorized' ? 'pending' : paymentStatus,
+      amountPaise: totalPaise,
     })
     if (paymentStatus === 'captured') {
       await ctx.tx.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
@@ -250,18 +309,21 @@ export async function placeOrder(
       reserved: [],
       orderId: null,
       orderNumber: null,
+      totalPaise: 0,
       providerRef: null,
       paymentStatus: null,
+      session: null,
     },
     [loadCart, reserveStock, createOrder, chargePayment, recordPayment, markCartConverted],
     log,
   )
-  if (!state.orderId || state.orderNumber === null || !state.paymentStatus) {
+  if (!state.orderId || state.orderNumber === null || !state.paymentStatus || !state.session) {
     throw new Error('placeOrder finished without an order')
   }
   return {
     orderId: state.orderId,
     orderNumber: state.orderNumber,
     paymentStatus: state.paymentStatus,
+    session: state.session,
   }
 }

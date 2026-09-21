@@ -101,7 +101,7 @@ function ProductsContent() {
   return (
     <Page
       title="Products"
-      primaryAction={{ content: 'Add product', disabled: true }}
+      primaryAction={{ content: 'Add product', url: '/products/new' }}
       secondaryActions={[
         { content: 'Export', disabled: true },
         { content: 'Import', disabled: true },

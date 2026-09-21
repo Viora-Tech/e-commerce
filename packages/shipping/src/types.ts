@@ -1,0 +1,165 @@
+/**
+ * The shipping contract. Couriers (Delhivery, Shiprocket, a demo adapter)
+ * implement it; the platform asks every enabled provider the same questions
+ * and never learns how differently the underlying APIs are shaped.
+ *
+ * Two families of question live here:
+ *
+ *  - Before the order: "can you take a parcel from this pincode to that one,
+ *    and how long will it take?" (serviceability + transit days). Transit
+ *    days are the provider's ONLY output about timing. Turning days into a
+ *    calendar date is the job of delivery-date.ts, kept out of adapters on
+ *    purpose: couriers disagree about days, but there is only one right way
+ *    to add a day to a calendar.
+ *  - After the order: create a shipment (waybill + label), track it, cancel it.
+ */
+
+export type ServiceabilityQuery = {
+  originPincode: string
+  destinationPincode: string
+  /**
+   * Parcel weight in grams. Optional because a variant may have no weight.
+   * Adapters that need one substitute a documented default rather than
+   * sending 0, which some APIs treat as "quote me nothing".
+   */
+  weightGrams?: number | null | undefined
+  /** Order value in rupees, for aggregators that quote insurance against it. */
+  declaredValue?: number | null | undefined
+}
+
+export type Serviceability = {
+  /** Which adapter produced this. Stored in the cache key and echoed for support. */
+  provider: string
+  /** Whether the courier will carry a parcel to this pincode at all. */
+  serviceable: boolean
+  /** Cash on delivery available *at the courier*. Merchant policy is applied later. */
+  codAvailable: boolean
+  /** Prepaid shipments accepted. Rarely false, but Delhivery does report it. */
+  prepaidAvailable: boolean
+  /**
+   * Transit time in days, or null when the courier does not tell us.
+   * Delhivery's serviceability endpoint genuinely does not return one, so
+   * null is a real, common answer and callers must fall back to the
+   * merchant's configured transit days, never treat it as zero.
+   */
+  minTransitDays: number | null
+  maxTransitDays: number | null
+  /** Why not serviceable, when the API says. Never shown raw to customers. */
+  reason: string | null
+}
+
+export type ShipmentAddress = {
+  name: string
+  line1: string
+  line2?: string | undefined
+  city: string
+  state: string
+  pincode: string
+  country: string
+  phone: string
+}
+
+export type ShipmentLine = {
+  title: string
+  quantity: number
+  unitPricePaise: number
+}
+
+export type CreateShipmentInput = {
+  orderId: string
+  /** Human order number; couriers print it on the label and echo it in tracking. */
+  orderNumber: number
+  to: ShipmentAddress
+  /** Where the parcel goes back to on RTO. */
+  from: ShipmentAddress
+  lines: ShipmentLine[]
+  paymentMode: 'prepaid' | 'cod'
+  /** Amount to collect on delivery, in paise. 0 for prepaid. */
+  codAmountPaise: number
+  /** Declared value for insurance and customs, in paise. */
+  valuePaise: number
+  weightGrams: number
+}
+
+export type CreateShipmentResult = {
+  /** Courier's tracking number (AWB). */
+  waybill: string
+  labelUrl?: string | undefined
+  /** Whatever id the courier gave us for support queries; often the waybill again. */
+  providerRef: string
+}
+
+export type ShipmentStatus =
+  | 'created'
+  | 'picked_up'
+  | 'in_transit'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'rto'
+  | 'cancelled'
+
+export type TrackingEvent = {
+  /** ISO instant. */
+  at: string
+  status: ShipmentStatus
+  /** Courier's own wording ("Bag Received at Facility"). */
+  description: string
+  location?: string | undefined
+}
+
+export type Tracking = {
+  waybill: string
+  status: ShipmentStatus
+  /** Oldest first. */
+  events: TrackingEvent[]
+  /** Public page a shopper can open. */
+  trackingUrl?: string | undefined
+  /** Courier's promised date when it gives one, "YYYY-MM-DD". */
+  expectedDate?: string | undefined
+}
+
+export type CredentialCheck = {
+  ok: boolean
+  /** Shown verbatim in the admin settings page. Must be actionable. */
+  message: string
+}
+
+export type ShippingProvider = {
+  /** Stable id used in store settings and the shipment table. Lowercase, no spaces. */
+  readonly id: string
+  readonly label: string
+  /**
+   * Look up serviceability. Throws CourierError on transport or auth failure;
+   * returns `serviceable: false` for a successful lookup with a negative
+   * answer. The distinction matters: the first is our problem and gets a
+   * fallback, the second is the truth and gets shown to the customer.
+   */
+  checkServiceability(query: ServiceabilityQuery): Promise<Serviceability>
+  createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult>
+  track(waybill: string): Promise<Tracking>
+  cancel(waybill: string): Promise<void>
+  /** Used by the admin settings page to tell the merchant their keys work. */
+  verifyCredentials(): Promise<CredentialCheck>
+}
+
+/** Same shape as the payments ProviderField; copied so this package stays dependency-free. */
+export type ProviderField = {
+  key: string
+  label: string
+  /** Encrypted at rest and masked in the UI. */
+  secret?: boolean
+  required?: boolean
+  multiline?: boolean
+  /** `boolean` renders a checkbox and stores 'true' | 'false'. Defaults to text. */
+  type?: 'text' | 'boolean'
+  help?: string
+}
+
+export type ShippingProviderFactory<Config> = {
+  id: string
+  label: string
+  /** What the merchant fills in Settings > Shipping. Drives the form. */
+  fields: ProviderField[]
+  validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
+  create(config: Config): ShippingProvider
+}

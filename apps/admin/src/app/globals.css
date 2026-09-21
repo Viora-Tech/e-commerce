@@ -504,3 +504,14 @@
 .polaris-scope {
   background: var(--p-color-bg, #f1f1f1);
 }
+
+/* RichTextField: Polaris-like spacing around the shared Lexical editor. */
+.rich-text-field__label {
+  margin-bottom: 4px;
+}
+.rich-text-field__help {
+  margin-top: 4px;
+}
+.rich-text-field__editor--error {
+  border-color: var(--p-color-border-critical, #e51c00);
+}
