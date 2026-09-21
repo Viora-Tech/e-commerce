@@ -9,7 +9,7 @@ const label: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark', system:
 export function ThemeToggle({ initial }: { initial: ThemeMode }) {
   const [mode, setMode] = useState<ThemeMode>(initial)
 
-  function cycle() {
+  const handleCycle = () => {
     const m = next[mode]
     setMode(m)
     const root = document.documentElement
@@ -22,7 +22,7 @@ export function ThemeToggle({ initial }: { initial: ThemeMode }) {
   return (
     <button
       type="button"
-      onClick={cycle}
+      onClick={handleCycle}
       aria-label={`Theme: ${label[mode]}. Click to change.`}
       className="rounded-full border border-line bg-surface px-3 py-1 text-sm text-ink hover:border-ink focus-visible:outline-2 focus-visible:outline-accent"
     >

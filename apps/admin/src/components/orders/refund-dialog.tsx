@@ -42,7 +42,7 @@ export function RefundDialog({ payment, remainingPaise, onClose, onDone }: Refun
   const valid = Number.isInteger(paise) && paise > 0 && paise <= remainingPaise
   const offline = payment ? OFFLINE.has(payment.provider) : false
 
-  async function handleSubmit(e: FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!payment || !valid) return
     setBusy(true)

@@ -55,7 +55,7 @@ export function TopBar({ title, heading, user }: TopBarProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  async function signOut() {
+  const handleSignOut = async () => {
     await authClient.signOut()
     router.push('/login')
     router.refresh()
@@ -143,7 +143,7 @@ export function TopBar({ title, heading, user }: TopBarProps) {
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={signOut}>
+            <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="size-4" />
               {navigationContent.signOut}
             </DropdownMenuItem>

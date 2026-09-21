@@ -45,7 +45,7 @@ export function ProductView({
   )
   const [expanded, setExpanded] = useState(false)
 
-  function pick(id: string) {
+  const handlePick = (id: string) => {
     setVariantId(id)
     const v = product.variants.find((x) => x.id === id)
     const idx = product.images.findIndex((i) => i.url === v?.imageUrl)
@@ -136,7 +136,7 @@ export function ProductView({
                         name={o.id}
                         value={val.id}
                         checked={selectedValues.has(val.id)}
-                        onChange={() => target && pick(target.id)}
+                        onChange={() => target && handlePick(target.id)}
                       />
                       {val.value}
                     </label>

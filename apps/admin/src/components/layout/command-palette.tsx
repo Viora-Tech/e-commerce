@@ -69,7 +69,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
   }, [open, query])
 
-  function go(href: string) {
+  const handleGo = (href: string) => {
     onOpenChange(false)
     router.push(href)
   }
@@ -94,7 +94,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <CommandItem
                   key={o.id}
                   value={`order-${o.id}`}
-                  onSelect={() => go(`/orders/${o.id}`)}
+                  onSelect={() => handleGo(`/orders/${o.id}`)}
                 >
                   <ShoppingBag />
                   <span className="flex-1 truncate">
@@ -113,7 +113,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <CommandItem
                   key={p.id}
                   value={`product-${p.id}`}
-                  onSelect={() => go(`/products/${p.id}`)}
+                  onSelect={() => handleGo(`/products/${p.id}`)}
                 >
                   <Package />
                   <span className="flex-1 truncate">{p.title}</span>

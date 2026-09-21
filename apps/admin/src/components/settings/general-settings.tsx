@@ -118,7 +118,7 @@ export function GeneralSettings() {
   const patchAddress = (p: Partial<Loaded['address']>) =>
     setForm((f) => (f ? { ...f, address: { ...f.address, ...p } } : f))
 
-  async function save() {
+  const handleSave = async () => {
     if (!form) return
     setAttempted(true)
     if (Object.keys(validate(form)).length) return
@@ -138,7 +138,7 @@ export function GeneralSettings() {
     }
   }
 
-  function discard() {
+  const handleDiscard = () => {
     if (saved) setForm(JSON.parse(saved) as Loaded)
     setAttempted(false)
   }
@@ -150,8 +150,8 @@ export function GeneralSettings() {
           message={copy.unsaved}
           saveLabel={copy.save}
           discardLabel={copy.discard}
-          onSave={save}
-          onDiscard={discard}
+          onSave={handleSave}
+          onDiscard={handleDiscard}
           saving={busy}
         />
       ) : null}

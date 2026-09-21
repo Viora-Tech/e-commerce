@@ -1,4 +1,5 @@
-import { DeltaChip, percentDelta, StatCard } from '@/components/layout/stat-card'
+import { DeltaChip, percentDelta } from '@/components/layout/delta-chip'
+import { StatCard } from '@/components/layout/stat-card'
 import { homeContent } from '@/data/home'
 import { formatCompact, formatPaise, formatPaiseCompact } from '@/lib/money'
 

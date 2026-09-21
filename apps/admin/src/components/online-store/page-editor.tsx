@@ -135,7 +135,7 @@ export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps
   const [savedJson, setSavedJson] = useState<string | null>(null)
   const [published, setPublished] = useState(Boolean(page.publishedAt))
 
-  async function save(data: PageData, publish: boolean) {
+  const handleSave = async (data: PageData, publish: boolean) => {
     setBusy(true)
     try {
       await api.pages.saveDraft({ id: page.id, data })
@@ -155,7 +155,7 @@ export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps
       <Puck
         config={config}
         data={page.data as PageData}
-        onPublish={(data) => save(data as PageData, true)}
+        onPublish={(data) => handleSave(data as PageData, true)}
         overrides={{
           iframe: ({ children, document }) => (
             <ThemeFrame document={document} css={themeCss}>
@@ -169,7 +169,7 @@ export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps
               savedJson={savedJson}
               busy={busy}
               storefrontOrigin={storefrontOrigin}
-              onSave={save}
+              onSave={handleSave}
             />
           ),
         }}

@@ -1,9 +1,9 @@
 'use client'
 
 import { Card } from '@commerce/ui/shadcn/card'
-import { MiniBars } from '@/components/layout/chart-card'
-import { CardMenu } from '@/components/layout/data-card'
-import { DetailsLink } from '@/components/layout/stat-card'
+import { CardMenu } from '@/components/layout/card-menu'
+import { DetailsLink } from '@/components/layout/details-link'
+import { MiniBars } from '@/components/layout/mini-bars'
 import { homeContent } from '@/data/home'
 import { INDIAN_STATES } from '@/data/india'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'

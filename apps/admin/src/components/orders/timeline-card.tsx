@@ -117,7 +117,7 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
   const [saving, setSaving] = useState(false)
   const entries = buildEntries(order)
 
-  async function handleSubmit(e: FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const body = note.trim()
     if (!body) return

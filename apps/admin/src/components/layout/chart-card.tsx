@@ -2,17 +2,11 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@commerce/ui/shadcn/chart'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@commerce/ui/shadcn/chart'
 import { type ReactNode, useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { CardMenu, type MenuLink } from './data-card'
-
-export type ChartPoint = { label: string; value: number }
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { CardMenu, type MenuLink } from './card-menu'
+import { type ChartPoint, chartConfig } from './chart-config'
 
 type PeriodOption = { id: string; label: string; data: ChartPoint[] }
 
@@ -27,10 +21,6 @@ type ChartCardProps = {
   menu?: readonly MenuLink[]
   className?: string
 }
-
-const chartConfig = {
-  value: { label: 'Value', color: 'var(--chart-1)' },
-} satisfies ChartConfig
 
 /**
  * Frame 5:1558 (739 x 460, 20px padding): 38px header row with the period
@@ -112,57 +102,5 @@ export function ChartCard({ title, periods, tabs, formatValue, menu, className }
         </AreaChart>
       </ChartContainer>
     </Card>
-  )
-}
-
-type StatTabsProps = {
-  items: { label: string; value: string }[]
-  active?: number
-  onChange?: (index: number) => void
-}
-
-/** 5:1595: five 78px cells, 20px apart; 24px figure over a 13px caption, active one tinted with a green rule. */
-export function StatTabs({ items, active = 0, onChange }: StatTabsProps) {
-  return (
-    <div
-      className="grid gap-5"
-      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
-    >
-      {items.map((it, i) => (
-        <button
-          key={it.label}
-          type="button"
-          onClick={onChange ? () => onChange(i) : undefined}
-          className={cn(
-            'flex h-16 flex-col items-start gap-2 rounded-t-sm border-b-2 px-2 pt-3 text-left transition-colors',
-            i === active
-              ? 'border-primary bg-background'
-              : 'border-border-soft hover:bg-background/60',
-          )}
-        >
-          <span className="text-stat-sm text-foreground tabular-nums">{it.value}</span>
-          <span className="text-caption text-muted-foreground-soft">{it.label}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
-type MiniBarsProps = { data: ChartPoint[]; className?: string }
-
-/** 5:1620 "bargraph": 35px strip of 8px green bars, 3px apart, no axes. */
-export function MiniBars({ data, className }: MiniBarsProps) {
-  return (
-    <ChartContainer config={chartConfig} className={cn('aspect-auto h-8 w-full', className)}>
-      <BarChart data={data} margin={{ left: 0, right: 0, top: 0, bottom: 0 }} barCategoryGap={3}>
-        <Bar
-          dataKey="value"
-          fill="var(--chart-1)"
-          radius={2}
-          minPointSize={4}
-          isAnimationActive={false}
-        />
-      </BarChart>
-    </ChartContainer>
   )
 }

@@ -1,5 +1,5 @@
 import { DataCard } from '@/components/layout/data-card'
-import { ProductThumb } from '@/components/products/product-badges'
+import { ProductThumb } from '@/components/products/product-thumb'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 import { type OrderDetail, refundedTotal } from './order-detail-types'

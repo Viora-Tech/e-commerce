@@ -1,5 +1,5 @@
 import { Card } from '@commerce/ui/shadcn/card'
-import { DeltaChip, percentDelta } from '@/components/layout/stat-card'
+import { DeltaChip, percentDelta } from '@/components/layout/delta-chip'
 import { ordersContent } from '@/data/orders'
 import type { api } from '@/lib/api-client'
 

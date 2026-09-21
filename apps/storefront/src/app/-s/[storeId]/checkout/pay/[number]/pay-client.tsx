@@ -47,7 +47,24 @@ export function PayClient({
   const [state, setState] = useState<State>('loading')
   const opened = useRef(false)
 
-  function open() {
+  useEffect(() => {
+    const src = SCRIPTS[session.provider]
+    if (!src) return
+    const s = document.createElement('script')
+    s.src = src
+    s.onload = () => {
+      if (!opened.current) {
+        opened.current = true
+        handleOpen()
+      }
+    }
+    document.body.appendChild(s)
+    return () => {
+      s.remove()
+    }
+  })
+
+  const handleOpen = () => {
     const Rzp = window.Razorpay
     if (!Rzp) return
     setState('ready')
@@ -67,23 +84,6 @@ export function PayClient({
     checkout.open()
   }
 
-  useEffect(() => {
-    const src = SCRIPTS[session.provider]
-    if (!src) return
-    const s = document.createElement('script')
-    s.src = src
-    s.onload = () => {
-      if (!opened.current) {
-        opened.current = true
-        open()
-      }
-    }
-    document.body.appendChild(s)
-    return () => {
-      s.remove()
-    }
-  })
-
   return (
     <section className="section-cart page-width">
       <div className="cart-empty">
@@ -92,7 +92,7 @@ export function PayClient({
           {COPY[state]} {state === 'ready' ? `Amount: ${formatPaise(amountPaise)}.` : ''}
         </p>
         {state === 'failed' || state === 'dismissed' ? (
-          <button type="button" className="btn btn--primary" onClick={open}>
+          <button type="button" className="btn btn--primary" onClick={handleOpen}>
             Try again
           </button>
         ) : null}

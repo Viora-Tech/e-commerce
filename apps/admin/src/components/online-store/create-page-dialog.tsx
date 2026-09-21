@@ -42,7 +42,7 @@ export function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) 
   const [handle, setHandle] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function create() {
+  const handleCreate = async () => {
     setBusy(true)
     try {
       const p = await api.pages.create({
@@ -99,7 +99,7 @@ export function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) 
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button type="button" onClick={create} disabled={!title.trim() || busy}>
+          <Button type="button" onClick={handleCreate} disabled={!title.trim() || busy}>
             {busy ? <Spinner /> : null}
             {copy.confirm}
           </Button>

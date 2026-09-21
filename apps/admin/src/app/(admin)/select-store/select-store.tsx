@@ -19,7 +19,7 @@ export function SelectStore({ stores }: { stores: StoreOption[] }) {
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  async function pick(id: string) {
+  const handlePick = async (id: string) => {
     setBusyId(id)
     await authClient.organization.setActive({ organizationId: id })
     router.push('/')
@@ -45,7 +45,7 @@ export function SelectStore({ stores }: { stores: StoreOption[] }) {
                   <span className="truncate text-card-title">{s.name}</span>
                   <span className="text-caption text-muted-foreground-soft">{s.slug}</span>
                 </div>
-                <Button type="button" disabled={busyId !== null} onClick={() => pick(s.id)}>
+                <Button type="button" disabled={busyId !== null} onClick={() => handlePick(s.id)}>
                   {copy.open(s.name)}
                   <ArrowRight />
                 </Button>

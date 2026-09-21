@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function sendCode(e: FormEvent) {
+  const handleSendCode = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
@@ -38,7 +38,7 @@ export default function LoginPage() {
     setStep('otp')
   }
 
-  async function verify(e: FormEvent) {
+  const handleVerify = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
@@ -57,7 +57,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {step === 'email' ? (
-            <form onSubmit={sendCode}>
+            <form onSubmit={handleSendCode}>
               <FieldGroup>
                 <Field data-invalid={error ? true : undefined}>
                   <FieldLabel htmlFor="login-email">{copy.email}</FieldLabel>
@@ -85,7 +85,7 @@ export default function LoginPage() {
               </FieldGroup>
             </form>
           ) : (
-            <form onSubmit={verify}>
+            <form onSubmit={handleVerify}>
               <FieldGroup>
                 <Field data-invalid={error ? true : undefined}>
                   <FieldLabel htmlFor="login-otp">{copy.code(email)}</FieldLabel>

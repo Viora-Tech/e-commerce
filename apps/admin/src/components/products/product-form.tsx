@@ -16,7 +16,8 @@ import { CircleAlert, ExternalLink, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody, PageColumns } from '@/components/layout/page-body'
+import { PageBody } from '@/components/layout/page-body'
+import { PageColumns } from '@/components/layout/page-columns'
 import { PageHeader } from '@/components/layout/page-header'
 import { SaveBar } from '@/components/layout/save-bar'
 import { productFormContent, productsListContent } from '@/data/products'
@@ -35,9 +36,10 @@ import {
 } from './form-state'
 import { InventoryCard } from './inventory-card'
 import { MediaCard } from './media-card'
+import { type Facets, OrganisationCard } from './organisation-card'
 import { PricingCard } from './pricing-card'
 import { SeoCard } from './seo-card'
-import { type Facets, OrganisationCard, StatusCard } from './side-cards'
+import { StatusCard } from './status-card'
 import { VariantsCard } from './variants-card'
 
 type ProductFormProps = {
@@ -77,7 +79,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   const setOptions = (options: OptionRow[]) =>
     setForm((f) => ({ ...f, options, variants: reconcileVariants(options, f.variants) }))
 
-  async function save() {
+  const handleSave = async () => {
     setAttempted(true)
     if (Object.keys(errors).length) return
     setBusy(true)
@@ -98,13 +100,13 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
     }
   }
 
-  function discard() {
+  const handleDiscard = () => {
     setForm(initial)
     setAttempted(false)
     setServerError(null)
   }
 
-  async function remove() {
+  const handleRemove = async () => {
     if (!product) return
     setBusy(true)
     try {
@@ -128,8 +130,8 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
           message={copy.saveBar.message}
           saveLabel={copy.saveBar.save}
           discardLabel={copy.saveBar.discard}
-          onSave={save}
-          onDiscard={discard}
+          onSave={handleSave}
+          onDiscard={handleDiscard}
           saving={busy}
         />
       ) : null}
@@ -167,7 +169,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
               </Button>
             </>
           ) : dirty ? null : (
-            <Button className="min-w-24" onClick={save} disabled={busy}>
+            <Button className="min-w-24" onClick={handleSave} disabled={busy}>
               {copy.saveBar.save}
             </Button>
           )
@@ -250,7 +252,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
             <AlertDialogAction
               variant="destructive"
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
-              onClick={remove}
+              onClick={handleRemove}
               disabled={busy}
             >
               {copy.delete.confirm}

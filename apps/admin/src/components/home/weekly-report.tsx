@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ChartCard, type ChartPoint, StatTabs } from '@/components/layout/chart-card'
+import { ChartCard } from '@/components/layout/chart-card'
+import type { ChartPoint } from '@/components/layout/chart-config'
+import { StatTabs } from '@/components/layout/stat-tabs'
 import { homeContent } from '@/data/home'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'
 

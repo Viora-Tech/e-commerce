@@ -1,8 +1,11 @@
 import { DASHBOARD_LOW_STOCK_THRESHOLD, type DashboardSummary } from '@commerce/api'
 import { PageBody } from '@/components/layout/page-body'
 import { ActivityCard } from './activity-card'
-import { BestSellingCard, LowStockCard, RecentOrdersCard, TopProductsCard } from './dashboard-cards'
+import { BestSellingCard } from './best-selling-card'
 import { DashboardStats } from './dashboard-stats'
+import { LowStockCard } from './low-stock-card'
+import { RecentOrdersCard } from './recent-orders-card'
+import { TopProductsCard } from './top-products-card'
 import { WeeklyReport } from './weekly-report'
 
 /**

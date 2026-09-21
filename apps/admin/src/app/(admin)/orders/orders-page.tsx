@@ -14,7 +14,8 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/layout/page-body'
-import { OrderPaymentCell, OrderStatusCell } from '@/components/orders/order-badges'
+import { OrderPaymentCell } from '@/components/orders/order-payment-cell'
+import { OrderStatusCell } from '@/components/orders/order-status-cell'
 import { type OrderStats, OrderTiles } from '@/components/orders/order-tiles'
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
@@ -226,7 +227,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     }
   }, [page, query, status, initial.query])
 
-  async function bulkSetStatus(ids: string[], status: OrderStatus, clear: () => void) {
+  const handleBulkSetStatus = async (ids: string[], status: OrderStatus, clear: () => void) => {
     try {
       await Promise.all(ids.map((id) => api.orders.setStatus({ id, status })))
       toast.success(ordersContent.bulk.updated(ids.length, ordersContent.status[status]))
@@ -277,7 +278,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {ORDER_STATUSES.map((s) => (
-                  <DropdownMenuItem key={s} onClick={() => bulkSetStatus(ids, s, clear)}>
+                  <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
                     {ordersContent.status[s]}
                   </DropdownMenuItem>
                 ))}

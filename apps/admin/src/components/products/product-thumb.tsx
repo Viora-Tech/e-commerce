@@ -1,14 +1,5 @@
-import type { ProductStatus } from '@commerce/core/catalog'
 import { cn } from '@commerce/ui/lib/utils'
 import { ImageIcon } from 'lucide-react'
-import { StatusPill } from '@/components/layout/status-pill'
-import { PRODUCT_STATUS_TONE, productsListContent } from '@/data/products'
-
-export function ProductStatusBadge({ status }: { status: ProductStatus }) {
-  return (
-    <StatusPill tone={PRODUCT_STATUS_TONE[status]}>{productsListContent.status[status]}</StatusPill>
-  )
-}
 
 type ProductThumbProps = { url: string | null; alt?: string; className?: string }
 

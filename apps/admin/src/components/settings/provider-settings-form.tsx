@@ -115,7 +115,7 @@ export function ProviderSettingsForm<Extra extends object>({
       providers: { ...f.providers, [id]: { ...(f.providers[id] ?? {}), [key]: value } },
     }))
 
-  async function handleSave() {
+  const handleSave = async () => {
     setBusy(true)
     setError(null)
     try {
@@ -131,7 +131,7 @@ export function ProviderSettingsForm<Extra extends object>({
     }
   }
 
-  function discard() {
+  const handleDiscard = () => {
     if (saved) setForm(JSON.parse(saved) as FormState<Extra>)
     setError(null)
   }
@@ -144,7 +144,7 @@ export function ProviderSettingsForm<Extra extends object>({
           saveLabel={copy.save}
           discardLabel={copy.discard}
           onSave={handleSave}
-          onDiscard={discard}
+          onDiscard={handleDiscard}
           saving={busy}
         />
       ) : null}

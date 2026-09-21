@@ -9,7 +9,8 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/layout/page-body'
-import { ProductStatusBadge, ProductThumb } from '@/components/products/product-badges'
+import { ProductStatusBadge } from '@/components/products/product-status-badge'
+import { ProductThumb } from '@/components/products/product-thumb'
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
@@ -131,7 +132,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     }
   }, [page, query, status, initial.query])
 
-  async function bulkSetStatus(ids: string[], next: ProductStatus, clear: () => void) {
+  const handleBulkSetStatus = async (ids: string[], next: ProductStatus, clear: () => void) => {
     try {
       await Promise.all(ids.map((id) => api.products.update({ id, status: next })))
       toast.success(copy.bulk.updated(ids.length))
@@ -198,13 +199,17 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
           <>
-            <Button variant="outline" size="sm" onClick={() => bulkSetStatus(ids, 'active', clear)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkSetStatus(ids, 'active', clear)}
+            >
               {copy.bulk.setActive}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => bulkSetStatus(ids, 'archived', clear)}
+              onClick={() => handleBulkSetStatus(ids, 'archived', clear)}
             >
               {copy.bulk.archive}
             </Button>

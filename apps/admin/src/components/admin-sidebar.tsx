@@ -133,12 +133,12 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
   const { toggleSidebar } = useSidebar()
   const active = stores.find((s) => s.id === activeStoreId) ?? null
 
-  async function switchStore(id: string) {
+  const handleSwitchStore = async (id: string) => {
     await authClient.organization.setActive({ organizationId: id })
     router.refresh()
   }
 
-  async function signOut() {
+  const handleSignOut = async () => {
     await authClient.signOut()
     router.push('/login')
     router.refresh()
@@ -161,7 +161,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
               {navigationContent.stores}
             </DropdownMenuLabel>
             {stores.map((s) => (
-              <DropdownMenuItem key={s.id} onSelect={() => switchStore(s.id)}>
+              <DropdownMenuItem key={s.id} onSelect={() => handleSwitchStore(s.id)}>
                 <Store className="size-4" />
                 {s.name}
               </DropdownMenuItem>
@@ -211,7 +211,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
           </div>
           <button
             type="button"
-            onClick={signOut}
+            onClick={handleSignOut}
             aria-label={navigationContent.signOut}
             title={navigationContent.signOut}
             className="flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden"

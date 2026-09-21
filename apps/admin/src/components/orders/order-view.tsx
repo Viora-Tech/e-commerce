@@ -3,13 +3,14 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody, PageColumns } from '@/components/layout/page-body'
+import { PageBody } from '@/components/layout/page-body'
+import { PageColumns } from '@/components/layout/page-columns'
 import { PageHeader } from '@/components/layout/page-header'
 import { StatusPill } from '@/components/layout/status-pill'
 import { orderDetailContent as copy, ORDER_STATUS_TONE, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
-import { CustomerCard, TagsCard } from './customer-card'
+import { CustomerCard } from './customer-card'
 import { LineItemsCard } from './line-items-card'
 import { OrderActions } from './order-actions'
 import {
@@ -26,6 +27,7 @@ import { PackingSlip } from './packing-slip'
 import { PaymentCard } from './payment-card'
 import { RefundDialog } from './refund-dialog'
 import { ShipmentPanel } from './shipment-panel'
+import { TagsCard } from './tags-card'
 import { TimelineCard } from './timeline-card'
 
 type OrderViewProps = {
@@ -50,7 +52,7 @@ export function OrderView({ order }: OrderViewProps) {
 
   const refresh = () => router.refresh()
 
-  async function move(to: OrderStatus) {
+  const handleMove = async (to: OrderStatus) => {
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
@@ -64,7 +66,7 @@ export function OrderView({ order }: OrderViewProps) {
   }
 
   /** Courier calls can fail; the message is the app's wording from the API, shown as a toast. */
-  async function courier<T>(run: () => Promise<T>, done: (result: T) => string) {
+  const handleCourier = async <T,>(run: () => Promise<T>, done: (result: T) => string) => {
     setBusy(true)
     try {
       toast.success(done(await run()))
@@ -77,19 +79,19 @@ export function OrderView({ order }: OrderViewProps) {
   }
 
   const handleBook = () =>
-    courier(
+    handleCourier(
       () => api.orders.createShipment({ orderId: order.id }),
       (s) => shipmentPanelContent.booked(s.waybill),
     )
   const handleRefreshTracking = () =>
     shipmentId &&
-    courier(
+    handleCourier(
       () => api.orders.refreshTracking({ shipmentId }),
       () => 'Tracking updated',
     )
   const handleCancelShipment = () =>
     shipmentId &&
-    courier(
+    handleCourier(
       () => api.orders.cancelShipment({ shipmentId }),
       () => shipmentPanelContent.cancelled,
     )
@@ -107,7 +109,7 @@ export function OrderView({ order }: OrderViewProps) {
               status={order.status}
               canRefund={canRefund}
               busy={busy}
-              onMove={move}
+              onMove={handleMove}
               onRefund={openRefund}
             />
           }
