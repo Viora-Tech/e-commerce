@@ -34,13 +34,13 @@ export function SaveBar({
           <Button
             type="button"
             variant="outline"
-            className="h-9 rounded-lg px-4"
+            className="min-w-24"
             onClick={onDiscard}
             disabled={saving}
           >
             {discardLabel}
           </Button>
-          <Button type="button" className="h-9 rounded-lg px-4" onClick={onSave} disabled={saving}>
+          <Button type="button" className="min-w-24" onClick={onSave} disabled={saving}>
             {saving ? <Spinner /> : null}
             {saveLabel}
           </Button>

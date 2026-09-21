@@ -1,7 +1,8 @@
 import { cn } from '@commerce/ui/lib/utils'
-import { Package } from 'lucide-react'
+import { Package, Search, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-import { DataCard } from '@/components/layout/data-card'
+import { BandHead, DataCard, FilterButton } from '@/components/layout/data-card'
+import { StatusPill } from '@/components/layout/status-pill'
 import { OrderStatusPill } from '@/components/orders/order-badges'
 import { homeContent } from '@/data/home'
 import type { OrderStatus } from '@/data/orders'
@@ -24,44 +25,47 @@ type RecentOrder = {
   placedAt: Date | string
 }
 
-const ROW = 'grid grid-cols-[1fr_1.4fr_1fr_auto] items-center gap-3 px-5'
+/* 5:2038: columns start at x 24 / 147 / 336 / 552 and the amount ends 24px from the edge. */
+const TX_ROW = 'grid grid-cols-[123px_189px_216px_175px_minmax(0,1fr)] items-center px-6'
 
-/** Kit "Transaction" table: order, date, status, amount. */
+/** Frame 5:2032 "Transaction": 33px header, 41px rows 4px apart, 14px text. */
 export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
   const c = homeContent.recentOrders
   return (
-    <DataCard title={c.title} detailsHref="/orders" flush>
-      <div className={cn(ROW, 'h-9 text-table-head uppercase text-muted-foreground')}>
+    <DataCard
+      title={c.title}
+      action={<FilterButton items={c.filters} />}
+      detailsHref="/orders"
+      flush
+    >
+      <div className={cn(TX_ROW, 'h-8 text-xs text-muted-foreground')}>
+        <span>{c.columns.no}</span>
         <span>{c.columns.order}</span>
         <span>{c.columns.date}</span>
         <span>{c.columns.status}</span>
         <span className="text-right">{c.columns.amount}</span>
       </div>
       {orders.length === 0 ? (
-        <p className="px-5 py-6 text-body text-muted-foreground">{c.empty}</p>
+        <p className="px-6 py-6 text-body text-muted-foreground">{c.empty}</p>
       ) : (
-        orders.map((o) => (
-          <Link
-            key={o.id}
-            href={`/orders/${o.id}`}
-            className={cn(
-              ROW,
-              'h-[41px] text-body text-foreground transition-colors hover:bg-muted/60',
-            )}
-          >
-            <span className="min-w-0">
-              <span className="block font-semibold tabular-nums">#{o.number}</span>
-              {o.customerName ? (
-                <span className="block truncate text-[12px] text-muted-foreground">
-                  {o.customerName}
-                </span>
-              ) : null}
-            </span>
-            <span className="text-muted-foreground">{dateTime.format(new Date(o.placedAt))}</span>
-            <OrderStatusPill status={o.status} />
-            <span className="text-right font-bold tabular-nums">{formatPaise(o.totalPaise)}</span>
-          </Link>
-        ))
+        <div className="mt-1 flex flex-col gap-1">
+          {orders.map((o, i) => (
+            <Link
+              key={o.id}
+              href={`/orders/${o.id}`}
+              className={cn(
+                TX_ROW,
+                'h-10 text-xs text-foreground transition-colors hover:bg-background',
+              )}
+            >
+              <span>{i + 1}.</span>
+              <span className="truncate">#{o.number}</span>
+              <span>{dateTime.format(new Date(o.placedAt))}</span>
+              <OrderStatusPill status={o.status} />
+              <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
+            </Link>
+          ))}
+        </div>
       )}
     </DataCard>
   )
@@ -73,62 +77,123 @@ type TopProduct = {
   imageUrl: string | null
   units: number
   revenuePaise: number
+  pricePaise: number
+  inStock: boolean
 }
 
+/** 5:2171: 46px thumbnail with a 12px radius. */
 function Thumb({ url, title }: { url: string | null; title: string }) {
   return url ? (
     // biome-ignore lint/performance/noImgElement: merchant media URLs, no optimisation pipeline yet.
-    <img
-      src={url}
-      alt={title}
-      className="size-[46px] shrink-0 rounded-xl border border-border-soft object-cover"
-    />
+    <img src={url} alt="" className="size-10 shrink-0 rounded-xl bg-background object-cover" />
   ) : (
-    <span className="flex size-[46px] shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
       <Package className="size-5" aria-hidden="true" />
       <span className="sr-only">{title}</span>
     </span>
   )
 }
 
-/** Kit "Top products": thumb, name, units, revenue. */
+/**
+ * Frame 5:2088 "Top Products" (292 x 420, 16px side padding): title with an
+ * "All product" link, a search field, then rows of thumb / name / item code /
+ * price separated by hairlines.
+ */
 export function TopProductsCard({ products }: { products: TopProduct[] }) {
   const c = homeContent.topProducts
   return (
     <DataCard
       title={c.title}
+      className="px-4"
       action={
-        <Link href="/products" className="text-[12px] font-medium text-primary hover:underline">
+        <Link href="/products" className="text-xs text-link hover:underline">
           {c.all}
         </Link>
       }
     >
+      <label className="-mt-1 flex h-9 items-center gap-2 rounded-lg bg-background px-3 text-xs text-muted-foreground">
+        <Search className="size-4" aria-hidden="true" />
+        <input
+          type="search"
+          placeholder={c.search}
+          className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
+        />
+      </label>
       {products.length === 0 ? (
-        <p className="text-body text-muted-foreground">{c.empty}</p>
+        <p className="pt-4 text-body text-muted-foreground">{c.empty}</p>
       ) : (
-        <ul className="divide-y divide-border-soft">
+        <ul className="mt-1 divide-y divide-border-soft">
           {products.map((p) => (
             <li key={p.productId}>
               <Link
                 href={`/products/${p.productId}`}
-                className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/60"
+                className="flex h-14 items-center gap-3 transition-colors hover:bg-background"
               >
                 <Thumb url={p.imageUrl} title={p.title} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-body font-bold text-ink-strong">
+                  <span className="block truncate text-xs font-semibold leading-4 text-ink-strong">
                     {p.title}
                   </span>
-                  <span className="block text-[12px] text-muted-foreground">
+                  <span className="block text-xs leading-4 text-muted-foreground">
                     {c.units(p.units)}
                   </span>
                 </span>
-                <span className="text-body font-bold tabular-nums text-ink-strong">
-                  {formatPaise(p.revenuePaise)}
+                <span className="text-[0.8125rem] font-bold tabular-nums text-ink-strong">
+                  {formatPaise(p.pricePaise)}
                 </span>
               </Link>
             </li>
           ))}
         </ul>
+      )}
+    </DataCard>
+  )
+}
+
+/* 5:2146: Product 240 / trend 148 / Total order 152 / Status 152 / Price. */
+const BEST_ROW = 'grid grid-cols-[minmax(0,2.4fr)_1fr_1.1fr_1.1fr_1fr] items-center px-5'
+
+/** Frame 5:2138 "Best selling product": tinted 48px header band, 54px rows with thumbnails. */
+export function BestSellingCard({ products }: { products: TopProduct[] }) {
+  const c = homeContent.bestSelling
+  return (
+    <DataCard title={c.title} action={<FilterButton items={c.filters} />} detailsHref="/products">
+      <BandHead className={BEST_ROW}>
+        <span>{c.columns.product}</span>
+        <span>
+          <TrendingUp className="size-4 text-muted-foreground" aria-hidden="true" />
+        </span>
+        <span>{c.columns.totalOrder}</span>
+        <span>{c.columns.status}</span>
+        <span>{c.columns.price}</span>
+      </BandHead>
+      {products.length === 0 ? (
+        <p className="px-5 py-6 text-body text-muted-foreground">{c.empty}</p>
+      ) : (
+        <div className="mt-3 flex flex-col gap-1">
+          {products.map((p) => (
+            <Link
+              key={p.productId}
+              href={`/products/${p.productId}`}
+              className={cn(BEST_ROW, 'h-12 transition-colors hover:bg-background')}
+            >
+              <span className="flex min-w-0 items-center gap-1">
+                <Thumb url={p.imageUrl} title={p.title} />
+                <span className="truncate text-body font-bold text-ink-strong">{p.title}</span>
+              </span>
+              <span>
+                <TrendingUp className="size-4 text-success" aria-hidden="true" />
+              </span>
+              <span className="text-body tabular-nums">{p.units}</span>
+              <StatusPill tone={p.inStock ? 'success' : 'destructive'}>
+                {p.inStock ? c.inStock : c.outOfStock}
+              </StatusPill>
+              <span className="text-body font-bold tabular-nums text-ink-strong">
+                {formatPaise(p.pricePaise)}
+              </span>
+            </Link>
+          ))}
+        </div>
       )}
     </DataCard>
   )
@@ -142,37 +207,44 @@ type LowStockRow = {
   available: number
 }
 
-/** Replaces the kit's "Sales by country": variants running out, worst first. */
+/**
+ * Frame 5:2288 "Add New Product" slot: label, 58px rows of thumb / name /
+ * detail with a 62 x 28 green pill on the right, "See more" underneath.
+ * Ours lists the variants running out, with Restock as the pill.
+ */
 export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; threshold: number }) {
   const c = homeContent.lowStock
   return (
-    <DataCard title={c.title}>
-      <p className="-mt-3 mb-3 text-sm text-muted-foreground">{c.subtitle(threshold)}</p>
+    <DataCard
+      title={c.title}
+      action={
+        <Link href="/products/inventory" className="text-xs text-link hover:underline">
+          {c.viewAll}
+        </Link>
+      }
+    >
+      <p className="-mt-2 text-xs text-muted-foreground">{c.subtitle(threshold)}</p>
       {rows.length === 0 ? (
-        <p className="text-body text-muted-foreground">{c.empty}</p>
+        <p className="pt-4 text-body text-muted-foreground">{c.empty}</p>
       ) : (
-        <ul className="divide-y divide-border-soft">
+        <ul className="mt-3 flex flex-col gap-3">
           {rows.map((r) => (
-            <li key={r.variantId} className="flex items-center gap-3 py-2.5">
+            <li
+              key={r.variantId}
+              className="flex h-14 items-center gap-3 rounded-lg border border-border-soft px-3"
+            >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-body font-bold text-ink-strong">
+                <span className="block truncate text-xs font-semibold text-ink-strong">
                   {r.title}
                 </span>
-                {r.variantTitle !== 'Default' ? (
-                  <span className="block text-[12px] text-muted-foreground">{r.variantTitle}</span>
-                ) : null}
-              </span>
-              <span
-                className={cn(
-                  'text-[12px] font-semibold tabular-nums',
-                  r.available <= 0 ? 'text-destructive' : 'text-warning',
-                )}
-              >
-                {c.left(r.available)}
+                <span className="block text-xs text-muted-foreground">
+                  {r.variantTitle !== 'Default' ? `${r.variantTitle}, ` : ''}
+                  {c.left(r.available)}
+                </span>
               </span>
               <Link
                 href={`/products/${r.productId}`}
-                className="text-[12px] font-medium text-primary hover:underline"
+                className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 {c.restock}
               </Link>

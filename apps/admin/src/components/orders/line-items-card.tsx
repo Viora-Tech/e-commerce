@@ -1,5 +1,5 @@
-import { Package } from 'lucide-react'
 import { DataCard } from '@/components/layout/data-card'
+import { ProductThumb } from '@/components/products/product-badges'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 import { type OrderDetail, refundedTotal } from './order-detail-types'
@@ -40,23 +40,10 @@ export function LineItemsCard({ order }: LineItemsCardProps) {
       <ul className="divide-y divide-border">
         {order.lines.map((l) => (
           <li key={l.id} className="flex items-center gap-4 py-3 first:pt-0">
-            {l.imageUrl ? (
-              // biome-ignore lint/performance/noImgElement: remote merchant media, unknown host list.
-              <img
-                src={l.imageUrl}
-                alt=""
-                width={46}
-                height={46}
-                className="size-[46px] shrink-0 rounded-xl border border-border object-cover"
-              />
-            ) : (
-              <span className="flex size-[46px] shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                <Package className="size-5" aria-hidden="true" />
-              </span>
-            )}
+            <ProductThumb url={l.imageUrl} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{l.title}</p>
-              <p className="text-caption text-muted-foreground-soft">
+              <p className="text-caption">
                 {[
                   l.variantTitle && l.variantTitle !== 'Default' ? l.variantTitle : null,
                   l.sku ? `${copy.items.sku} ${l.sku}` : null,
@@ -64,7 +51,7 @@ export function LineItemsCard({ order }: LineItemsCardProps) {
                   .filter(Boolean)
                   .join(', ')}
               </p>
-              <p className="text-caption tabular-nums text-muted-foreground-soft">
+              <p className="text-caption tabular-nums">
                 {formatPaise(l.unitPricePaise)} × {l.quantity}
               </p>
             </div>

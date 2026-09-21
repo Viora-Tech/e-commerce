@@ -21,7 +21,7 @@ import {
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm'
 
 export type OrderStatus = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
 
@@ -50,6 +50,19 @@ export async function listOrders(
       email: order.email,
       customerName: customer.name,
       placedAt: order.placedAt,
+      /* Frame 5:2353 shows the first product with its picture; the rest is a count. */
+      firstLineTitle: sql<string | null>`(
+        select ol.title from ${orderLine} ol where ol.order_id = ${order.id}
+        order by ol.id limit 1)`,
+      lineCount: sql<number>`(select count(*)::int from ${orderLine} ol where ol.order_id = ${order.id})`,
+      firstLineImage: sql<string | null>`(
+        select coalesce(vm.url, (
+          select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
+          where pm.product_id = v.product_id order by pm.position limit 1))
+        from ${orderLine} ol
+        join ${variant} v on v.id = ol.variant_id
+        left join ${media} vm on vm.id = v.media_id
+        where ol.order_id = ${order.id} order by ol.id limit 1)`,
     })
     .from(order)
     .leftJoin(customer, eq(customer.id, order.customerId))
@@ -64,6 +77,40 @@ export async function listOrders(
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
   return { items, total: countRow?.total ?? 0 }
+}
+
+export type OrderWindow = { value: number; previous: number }
+
+export type OrderStats = {
+  total: OrderWindow
+  placed: OrderWindow
+  delivered: OrderWindow
+  cancelled: OrderWindow
+}
+
+const DAY_MS = 86_400_000
+const STATS_WINDOW_DAYS = 7
+
+/** The four tiles above the order list (frame 5:2511): last 7 days against the 7 before. */
+export async function orderStats(tx: StoreTx, now = new Date()): Promise<OrderStats> {
+  const thisStart = new Date(now.getTime() - STATS_WINDOW_DAYS * DAY_MS)
+  const lastStart = new Date(now.getTime() - 2 * STATS_WINDOW_DAYS * DAY_MS)
+  const rows = await tx
+    .select({ status: order.status, placedAt: order.placedAt })
+    .from(order)
+    .where(gte(order.placedAt, lastStart))
+  const cur = rows.filter((r) => r.placedAt >= thisStart)
+  const prev = rows.filter((r) => r.placedAt < thisStart)
+  const window = (pick: (r: (typeof rows)[number]) => boolean): OrderWindow => ({
+    value: cur.filter(pick).length,
+    previous: prev.filter(pick).length,
+  })
+  return {
+    total: window(() => true),
+    placed: window((r) => r.status === 'placed'),
+    delivered: window((r) => r.status === 'delivered'),
+    cancelled: window((r) => r.status === 'cancelled'),
+  }
 }
 
 export async function getOrder(tx: StoreTx, id: string) {

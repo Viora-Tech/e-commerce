@@ -1,5 +1,6 @@
 import type { StoreTx } from '@commerce/db'
 import {
+  address,
   customer,
   inventoryLevel,
   media,
@@ -17,6 +18,8 @@ const RECENT_ORDERS = 5
 const TOP_PRODUCTS = 5
 const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6
+const HOURS = 24
+const STATE_ROWS = 3
 
 export type DashboardWindow = {
   /** Current window value. */
@@ -62,6 +65,10 @@ export type DashboardSummary = {
     imageUrl: string | null
     units: number
     revenuePaise: number
+    /** Lowest variant price, what the kit's "Price" column shows. */
+    pricePaise: number
+    /** False only when every tracked variant is at zero. */
+    inStock: boolean
   }[]
   lowStock: {
     variantId: string
@@ -69,6 +76,18 @@ export type DashboardSummary = {
     title: string
     variantTitle: string
     available: number
+  }[]
+  /** Kit 5:1618: headline count plus one bar per hour, oldest first. */
+  activity: {
+    ordersLast24h: number
+    perHour: number[]
+  }
+  /** Kit "Sales by Country" with Indian states; share is of the 30-day total. */
+  salesByState: {
+    stateCode: string
+    revenuePaise: number
+    orders: number
+    share: number
   }[]
 }
 
@@ -203,6 +222,19 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
   const firstImage = new Map<string, string>()
   for (const img of images)
     if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
+  const stockByProduct = topIds.length
+    ? await tx
+        .select({
+          productId: variant.productId,
+          pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
+          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${inventoryLevel.onHand} - ${inventoryLevel.reserved}, 0) > 0)`,
+        })
+        .from(variant)
+        .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+        .where(inArray(variant.productId, topIds))
+        .groupBy(variant.productId)
+    : []
+  const stockInfo = new Map(stockByProduct.map((r) => [r.productId, r]))
 
   const lowStock = await tx
     .select({
@@ -225,6 +257,34 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
     .orderBy(asc(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`))
     .limit(LOW_STOCK_ROWS)
 
+  const dayAgo = new Date(now.getTime() - HOURS * 3_600_000)
+  const perHour = Array.from({ length: HOURS }, () => 0)
+  for (const r of live(recentRows)) {
+    if (r.placedAt < dayAgo) continue
+    const idx = Math.min(
+      HOURS - 1,
+      Math.floor((r.placedAt.getTime() - dayAgo.getTime()) / 3_600_000),
+    )
+    perHour[idx] = (perHour[idx] ?? 0) + 1
+  }
+
+  const stateRows = await tx
+    .select({
+      stateCode: address.stateCode,
+      revenuePaise: sum(order.totalPaise).mapWith(Number),
+      orders: count(),
+    })
+    .from(order)
+    .innerJoin(address, eq(address.id, order.shippingAddressId))
+    .where(and(ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
+    .groupBy(address.stateCode)
+    .orderBy(desc(sum(order.totalPaise)))
+  const stateTotal = stateRows.reduce((n, r) => n + r.revenuePaise, 0)
+  const salesByState = stateRows.slice(0, STATE_ROWS).map((r) => ({
+    ...r,
+    share: stateTotal > 0 ? r.revenuePaise / stateTotal : 0,
+  }))
+
   return {
     sales: { value: sumPaise(live(cur)), previous: sumPaise(live(prev)) },
     orders: { value: live(cur).length, previous: live(prev).length },
@@ -240,8 +300,15 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
       lastWeek: bucketByDay(live(prev), lastStart, WINDOW_DAYS),
     },
     recentOrders,
-    topProducts: topRows.map((r) => ({ ...r, imageUrl: firstImage.get(r.productId) ?? null })),
+    topProducts: topRows.map((r) => ({
+      ...r,
+      imageUrl: firstImage.get(r.productId) ?? null,
+      pricePaise: stockInfo.get(r.productId)?.pricePaise ?? 0,
+      inStock: stockInfo.get(r.productId)?.inStock ?? true,
+    })),
     lowStock,
+    activity: { ordersLast24h: perHour.reduce((n, v) => n + v, 0), perHour },
+    salesByState,
   }
 }
 

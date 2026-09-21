@@ -10,6 +10,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/products', 'Products'],
   ['/products/collections', 'Collections'],
   ['/products/inventory', 'Inventory'],
+  ['/products/purchase-orders', 'Purchase orders'],
   ['/products/transfers', 'Transfers'],
   ['/products/gift-cards', 'Gift cards'],
   ['/customers', 'Customers'],
@@ -50,20 +51,26 @@ export function pageTitleFor(pathname: string): string {
   return hit?.[1] ?? layoutContent.dashboard
 }
 
+/** List pages drawn to frame 5:2353 carry their own "Order List" style heading under the bar. */
+const HEADED_LISTS = ['/orders', '/products']
+
 /**
- * Section pages take their h1 from the top bar; anything deeper (an order, a
- * product, a page in the editor) owns its heading through PageHeader.
+ * The top bar shows the section name. Pages with a heading of their own (a
+ * list from the kit, an order, a product, the editor) render it as the h1
+ * and the bar drops to plain text so the page has a single h1.
  */
 export function hasOwnHeading(pathname: string): boolean {
   if (pathname === '/') return false
+  if (HEADED_LISTS.includes(pathname)) return true
   return !PAGE_TITLES.some(([p]) => p === pathname)
 }
 
 export const layoutContent = {
   dashboard: 'Dashboard',
   details: 'Details',
-  filter: 'Filter',
   noChange: 'No change',
+  moreActions: 'More actions',
+  filter: 'Filter',
   skipToContent: 'Skip to content',
   notFound: {
     heading: 'Page not found',

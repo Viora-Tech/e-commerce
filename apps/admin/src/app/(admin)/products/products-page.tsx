@@ -1,9 +1,9 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
-import { Plus } from 'lucide-react'
+import { Plus, SquarePlus } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -20,13 +20,19 @@ type ListResult = Awaited<ReturnType<typeof api.products.list>>
 type Item = ListResult['items'][number]
 
 /** First page rendered on the server so the table never paints empty. */
-export type ProductsInitial = { query: ListQuery<ProductStatus>; result: ListResult }
+export type ProductsInitial = {
+  query: ListQuery<ProductStatus>
+  result: ListResult
+  allCount: number
+}
 
 const PER_PAGE = LIST_PER_PAGE
-const ALL = 'all'
 const copy = productsListContent
+
+/* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill. */
 const TAB =
-  'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
+  'flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-xs font-medium leading-4 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const TAB_ACTIVE = 'bg-card text-foreground'
 
 type Query = ListQuery<ProductStatus>
 
@@ -45,10 +51,12 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: copy.columns.product,
     sortValue: (p) => p.title,
     hideable: false,
+    align: 'start',
+    className: 'w-80 px-3 whitespace-normal',
     render: (p) => (
-      <span className="flex items-center gap-3">
+      <span className="flex items-center gap-3 text-left">
         <ProductThumb url={p.imageUrl} />
-        <span className="font-bold text-ink-strong">{p.title}</span>
+        <span className="line-clamp-2 text-body-strong">{p.title}</span>
       </span>
     ),
   },
@@ -63,7 +71,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: copy.columns.inventory,
     sortValue: (p) => p.available,
     render: (p) => (
-      <span className={p.available === 0 ? 'text-destructive' : 'text-muted-foreground'}>
+      <span className={p.available === 0 ? 'text-destructive' : undefined}>
         {copy.inventory(p.available, p.variantCount)}
       </span>
     ),
@@ -72,21 +80,20 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'type',
     title: copy.columns.type,
     sortValue: (p) => p.productType ?? '',
-    render: (p) => <span className="text-muted-foreground">{p.productType ?? copy.none}</span>,
+    render: (p) => p.productType ?? copy.none,
   },
   {
     id: 'vendor',
     title: copy.columns.vendor,
     sortValue: (p) => p.vendor ?? '',
-    render: (p) => <span className="text-muted-foreground">{p.vendor ?? copy.none}</span>,
+    render: (p) => p.vendor ?? copy.none,
   },
   {
     id: 'price',
     title: copy.columns.price,
     sortValue: (p) => p.minPricePaise ?? 0,
-    align: 'end',
     render: (p) => (
-      <span className="font-bold text-ink-strong tabular-nums">
+      <span className="tabular-nums">
         {p.minPricePaise != null ? formatPaise(p.minPricePaise) : copy.none}
       </span>
     ),
@@ -138,29 +145,14 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   }
 
   return (
-    <PageBody>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs
-          value={q.status ?? ALL}
-          onValueChange={(v) => setQ({ status: v === ALL ? null : (v as ProductStatus), page: 1 })}
-        >
-          <TabsList className="h-10 rounded-full bg-card p-1 shadow-card">
-            <TabsTrigger value={ALL} className={TAB}>
-              {copy.tabs.all}
-            </TabsTrigger>
-            {PRODUCT_STATUSES.map((s) => (
-              <TabsTrigger key={s} value={s} className={TAB}>
-                {copy.status[s]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <div className="flex items-center gap-2">
-          <Button render={<Link href="/products/new" />} nativeButton={false} className="h-10 px-4">
-            <Plus />
-            {copy.add}
-          </Button>
-        </div>
+    <PageBody className="gap-6">
+      {/* 5:2375 + 5:2503: heading left, the 48px primary action right. */}
+      <div className="flex h-9 items-center justify-between">
+        <h1 className="text-page-title">{copy.heading}</h1>
+        <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
+          <SquarePlus strokeWidth={1.6} />
+          {copy.add}
+        </Button>
       </div>
       <ResourceTable
         resourceName={copy.resource}
@@ -172,6 +164,34 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        tabs={
+          <div role="tablist" className="flex items-center rounded-lg bg-primary-soft p-1">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={q.status === null}
+              onClick={() => setQ({ status: null, page: 1 })}
+              className={cn(TAB, q.status === null && TAB_ACTIVE)}
+            >
+              {copy.tabs.all}
+              <span className="text-xs font-semibold text-primary tabular-nums">
+                ({initial.allCount})
+              </span>
+            </button>
+            {PRODUCT_STATUSES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                role="tab"
+                aria-selected={q.status === s}
+                onClick={() => setQ({ status: s, page: 1 })}
+                className={cn(TAB, q.status === s && TAB_ACTIVE)}
+              >
+                {copy.status[s]}
+              </button>
+            ))}
+          </div>
+        }
         page={q.page}
         perPage={PER_PAGE}
         total={total}

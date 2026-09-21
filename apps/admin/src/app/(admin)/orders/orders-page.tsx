@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -7,13 +8,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, MoreVertical, SquarePlus } from 'lucide-react'
+import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/layout/page-body'
-import { OrderPaymentBadge, OrderStatusPill } from '@/components/orders/order-badges'
+import { OrderPaymentCell, OrderStatusCell } from '@/components/orders/order-badges'
+import { type OrderStats, OrderTiles } from '@/components/orders/order-tiles'
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
@@ -23,15 +25,24 @@ import { formatPaise } from '@/lib/money'
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
 
-/** First page rendered on the server so the table never paints empty. */
-export type OrdersInitial = { query: ListQuery<OrderStatus>; result: ListResult }
+/** First page, tiles and the all-orders count rendered on the server so nothing paints empty. */
+export type OrdersInitial = {
+  query: ListQuery<OrderStatus>
+  result: ListResult
+  stats: OrderStats
+  allCount: number
+}
 
 const PER_PAGE = LIST_PER_PAGE
-const ALL = 'all'
-const TAB =
-  'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
 
-const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+/* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill. */
+const TAB =
+  'flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-xs font-medium leading-4 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const TAB_ACTIVE = 'bg-card text-foreground'
+
+/* Frame 5:2617 writes dates as 01-01-2025. */
+const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const formatDate = (d: Date) => date.format(d).replaceAll('/', '-')
 
 type Query = ListQuery<OrderStatus>
 
@@ -44,21 +55,46 @@ function fetchOrders(q: Query) {
   })
 }
 
+/* Frame 5:2612: 40px bordered thumb with the picture inset, title beside it. */
+function ProductCell({ item }: { item: Item }) {
+  const extra = item.lineCount - 1
+  return (
+    <span className="flex items-center gap-3 text-left">
+      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.25rem] border border-secondary bg-card">
+        {item.firstLineImage ? (
+          // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
+          <img src={item.firstLineImage} alt="" className="size-6 object-contain" />
+        ) : null}
+      </span>
+      <span className="min-w-0">
+        <span className="line-clamp-2 text-body-strong">
+          {item.firstLineTitle ?? ordersContent.guest}
+        </span>
+        {extra > 0 ? (
+          <span className="block text-caption text-muted-foreground">
+            {ordersContent.moreLines(extra)}
+          </span>
+        ) : null}
+      </span>
+    </span>
+  )
+}
+
 const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'number',
     title: ordersContent.columns.order,
     sortValue: (o) => o.number,
     hideable: false,
-    render: (o) => <span className="font-bold text-ink-strong">#{o.number}</span>,
+    className: 'w-28',
+    render: (o) => <span className="tabular-nums">#{o.number}</span>,
   },
   {
-    id: 'date',
-    title: ordersContent.columns.date,
-    sortValue: (o) => new Date(o.placedAt).getTime(),
-    render: (o) => (
-      <span className="text-muted-foreground">{dateTime.format(new Date(o.placedAt))}</span>
-    ),
+    id: 'product',
+    title: ordersContent.columns.product,
+    align: 'start',
+    className: 'w-60 px-3 whitespace-normal',
+    render: (o) => <ProductCell item={o} />,
   },
   {
     id: 'customer',
@@ -67,26 +103,97 @@ const columns: ResourceColumnSpec<Item>[] = [
     render: (o) => o.customerName ?? o.email ?? ordersContent.guest,
   },
   {
+    id: 'date',
+    title: ordersContent.columns.date,
+    sortValue: (o) => new Date(o.placedAt).getTime(),
+    render: (o) => <span className="tabular-nums">{formatDate(new Date(o.placedAt))}</span>,
+  },
+  {
     id: 'total',
     title: ordersContent.columns.total,
     sortValue: (o) => o.totalPaise,
-    align: 'end',
-    render: (o) => (
-      <span className="font-bold text-ink-strong tabular-nums">{formatPaise(o.totalPaise)}</span>
-    ),
+    render: (o) => <span className="tabular-nums">{formatPaise(o.totalPaise)}</span>,
   },
   {
     id: 'payment',
     title: ordersContent.columns.payment,
-    render: (o) => <OrderPaymentBadge status={o.status} paymentMethod={o.paymentMethod} />,
+    render: (o) => <OrderPaymentCell status={o.status} paymentMethod={o.paymentMethod} />,
   },
   {
     id: 'status',
     title: ordersContent.columns.status,
     sortValue: (o) => o.status,
-    render: (o) => <OrderStatusPill status={o.status} />,
+    render: (o) => <OrderStatusCell status={o.status} />,
   },
 ]
+
+type TabsProps = {
+  value: OrderStatus | null
+  allCount: number
+  onChange: (s: OrderStatus | null) => void
+}
+
+function StatusTabs({ value, allCount, onChange }: TabsProps) {
+  return (
+    <div role="tablist" className="flex items-center rounded-lg bg-primary-soft p-1">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={value === null}
+        onClick={() => onChange(null)}
+        className={cn(TAB, value === null && TAB_ACTIVE)}
+      >
+        {ordersContent.tabs.all}
+        <span className="text-xs font-semibold text-primary tabular-nums">({allCount})</span>
+      </button>
+      {ORDER_STATUSES.map((s) => (
+        <button
+          key={s}
+          type="button"
+          role="tab"
+          aria-selected={value === s}
+          onClick={() => onChange(s)}
+          className={cn(TAB, value === s && TAB_ACTIVE)}
+        >
+          {ordersContent.status[s]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* Frame 5:2502: 142 x 48 green primary with a 24px glyph, 142 x 48 outlined secondary. */
+function HeaderActions() {
+  return (
+    <div className="flex items-center gap-3">
+      <Button
+        size="lg"
+        className="w-32"
+        render={<Link href="/orders/drafts" />}
+        nativeButton={false}
+      >
+        <SquarePlus strokeWidth={1.6} />
+        {ordersContent.addOrder}
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button variant="outline" size="lg" className="w-32 pr-2 text-ink-strong" />}
+        >
+          {ordersContent.moreActions}
+          <MoreVertical className="size-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem render={<Link href="/orders/drafts" />}>
+            {ordersContent.menu.drafts}
+          </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/orders/abandoned-checkouts" />}>
+            {ordersContent.menu.abandoned}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
 
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [q, setQ] = useQueryStates(
@@ -133,55 +240,53 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   return (
-    <PageBody>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs
-          value={q.status ?? ALL}
-          onValueChange={(v) => setQ({ status: v === ALL ? null : (v as OrderStatus), page: 1 })}
-        >
-          <TabsList className="h-10 rounded-full bg-card p-1 shadow-card">
-            <TabsTrigger value={ALL} className={TAB}>
-              {ordersContent.tabs.all}
-            </TabsTrigger>
-            {ORDER_STATUSES.map((s) => (
-              <TabsTrigger key={s} value={s} className={TAB}>
-                {ordersContent.status[s]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+    <PageBody className="gap-6">
+      {/* 5:2375 + 5:2502: heading on the left, the two 48px actions on the right, 24px under the bar. */}
+      <div className="flex h-9 items-center justify-between">
+        <h1 className="text-page-title">{ordersContent.heading}</h1>
+        <HeaderActions />
       </div>
-      <ResourceTable
-        resourceName={ordersContent.resource}
-        columns={columns}
-        items={items}
-        getId={(o) => o.id}
-        href={(o) => `/orders/${o.id}`}
-        loading={loading}
-        query={q.query}
-        onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-        page={q.page}
-        perPage={PER_PAGE}
-        total={total}
-        onPageChange={(page) => setQ({ page })}
-        bulkActions={(ids, clear) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              {ordersContent.bulk.markAs}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {ORDER_STATUSES.map((s) => (
-                <DropdownMenuItem key={s} onClick={() => bulkSetStatus(ids, s, clear)}>
-                  {ordersContent.status[s]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-        empty={ordersContent.empty}
-      />
+      <OrderTiles stats={initial.stats} />
+      <div className="-mt-1">
+        <ResourceTable
+          resourceName={ordersContent.resource}
+          columns={columns}
+          items={items}
+          getId={(o) => o.id}
+          href={(o) => `/orders/${o.id}`}
+          loading={loading}
+          query={q.query}
+          onQueryChange={(query) => setQ({ query, page: 1 })}
+          onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+          tabs={
+            <StatusTabs
+              value={q.status}
+              allCount={initial.allCount}
+              onChange={(s) => setQ({ status: s, page: 1 })}
+            />
+          }
+          page={q.page}
+          perPage={PER_PAGE}
+          total={total}
+          onPageChange={(page) => setQ({ page })}
+          bulkActions={(ids, clear) => (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                {ordersContent.bulk.markAs}
+                <ChevronDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {ORDER_STATUSES.map((s) => (
+                  <DropdownMenuItem key={s} onClick={() => bulkSetStatus(ids, s, clear)}>
+                    {ordersContent.status[s]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          empty={ordersContent.empty}
+        />
+      </div>
     </PageBody>
   )
 }

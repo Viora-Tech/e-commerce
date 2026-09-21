@@ -110,10 +110,10 @@ export function PaymentCard({ order, onRefund }: PaymentCardProps) {
               {events.map((e) => (
                 <li key={e.id} className="flex items-center justify-between gap-3 text-body">
                   <span className="min-w-0">
-                    <code className="block text-[12px]">{e.type}</code>
+                    <code className="block text-xs">{e.type}</code>
                     <span className="block truncate text-caption">{when(e.receivedAt)}</span>
                     {e.error ? (
-                      <span className="block truncate text-[12px] text-destructive">{e.error}</span>
+                      <span className="block truncate text-xs text-destructive">{e.error}</span>
                     ) : null}
                   </span>
                   <StatusPill tone={EVENT_TONE[e.status] ?? 'neutral'}>{e.status}</StatusPill>

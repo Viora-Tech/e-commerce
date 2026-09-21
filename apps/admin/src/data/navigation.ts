@@ -30,6 +30,7 @@ export type NavGroup = { label?: string; items: NavItem[] }
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
+    label: 'Main menu',
     items: [
       { href: '/', label: 'Home', icon: Home },
       {
@@ -48,6 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { href: '/products/collections', label: 'Collections' },
           { href: '/products/inventory', label: 'Inventory' },
+          { href: '/products/purchase-orders', label: 'Purchase orders' },
           { href: '/products/transfers', label: 'Transfers' },
           { href: '/products/gift-cards', label: 'Gift cards' },
         ],
@@ -122,8 +124,9 @@ export const navigationContent = {
   viewStore: 'View store',
   signOut: 'Sign out',
   collapse: 'Collapse sidebar',
+  adminGroup: 'Admin',
   search: {
-    placeholder: 'Search orders, products…',
+    placeholder: 'Search orders, products or customers',
     shortcut: '⌘K',
     empty: 'Nothing matches',
     orders: 'Orders',
@@ -132,6 +135,7 @@ export const navigationContent = {
   },
   account: 'Account',
   toggleTheme: 'Toggle theme',
+  notifications: { label: 'Notifications', empty: 'Nothing to catch up on.' },
 } as const
 
 /** A section is active for its own path and everything nested under it; home only for itself. */

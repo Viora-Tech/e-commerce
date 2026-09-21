@@ -23,14 +23,14 @@ import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import { EmptyState } from '@/components/layout/empty-state'
 import { tableContent } from '@/data/table'
-import { defineColumns, type ResourceColumnSpec, selectionColumn } from './columns'
+import { type CellAlign, defineColumns, type ResourceColumnSpec, selectionColumn } from './columns'
 import { resourceTableFeatures } from './features'
 import { ResourceTablePagination } from './pagination'
 import { type AppliedFilter, ResourceTableToolbar } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
 
-type CellMeta = { align?: 'start' | 'end'; className?: string }
+type CellMeta = { align?: CellAlign; className?: string }
 
 export type ResourceTableProps<T extends RowData> = {
   resourceName: { singular: string; plural: string }
@@ -42,6 +42,9 @@ export type ResourceTableProps<T extends RowData> = {
   loading?: boolean
   query: string
   onQueryChange: (q: string) => void
+  /** Status tabs, rendered left of the toolbar as in frame 5:2561. */
+  tabs?: ReactNode
+  /** Filter controls rendered as a popover from the filter icon button. */
   filters?: ReactNode
   applied?: AppliedFilter[]
   onClearAll?: () => void
@@ -57,9 +60,15 @@ export type ResourceTableProps<T extends RowData> = {
 
 const SKELETON_ROWS = 6
 
+const ALIGN: Record<CellAlign, string> = {
+  start: 'text-left',
+  center: 'text-center',
+  end: 'text-right',
+}
+
 /**
- * The one table. Every admin list renders through this so search, filters,
- * selection, sorting, empty states and paging look and behave the same.
+ * The one table, drawn to frame 5:2560: a 24px-padded card, tab group and
+ * search row, a tinted header band, 68px rows on hairlines, numbered paging.
  * Paging and search are server-side; sorting and selection act on the loaded page.
  */
 export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
@@ -69,7 +78,11 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   const selectable = props.selectable ?? true
-  const columns = [...(selectable ? [selectionColumn<T>()] : []), ...defineColumns(props.columns)]
+  const offset = (props.page - 1) * props.perPage
+  const columns = [
+    ...(selectable ? [selectionColumn<T>(offset)] : []),
+    ...defineColumns(props.columns),
+  ]
   const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
 
   const table = useTable({
@@ -91,19 +104,20 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
   const isEmpty = !props.loading && props.items.length === 0
 
   return (
-    <Card className="gap-0 px-5 py-5">
+    <Card className="gap-0 p-5">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
         query={props.query}
         onQueryChange={props.onQueryChange}
+        tabs={props.tabs}
         filters={props.filters}
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
       />
       {selectedIds.length > 0 && props.bulkActions ? (
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-primary-soft px-4 py-2 text-sm">
+        <div className="mt-4 flex items-center gap-3 rounded-lg bg-primary-soft px-4 py-2 text-body">
           <span className="font-medium">
             {tableContent.selected(
               selectedIds.length,
@@ -117,9 +131,11 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
           </Button>
         </div>
       ) : null}
-      <div className="overflow-x-auto">
-        <Table className="border-separate border-spacing-0">
-          <TableHeader className="sticky top-0 z-10 [&_tr]:border-0">
+      {/* 5:2590: table starts 40px under the toolbar. */}
+      <div className="mt-5 overflow-x-auto">
+        <Table className="w-full table-fixed border-separate border-spacing-0">
+          {/* 5:2591: header band, 8px inset, 6px radius, 40px cells. */}
+          <TableHeader className="[&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((header) => {
@@ -128,8 +144,8 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'h-12 bg-primary-soft px-5 text-table-head uppercase text-muted-foreground first:rounded-l-lg last:rounded-r-lg',
-                        meta?.align === 'end' && 'text-right',
+                        'h-10 bg-primary-soft px-2.5 py-1 text-table-head text-ink-strong first:rounded-l-[0.375rem] first:pl-4 last:rounded-r-[0.375rem] last:pr-4',
+                        ALIGN[meta?.align ?? 'center'],
                         meta?.className,
                       )}
                     >
@@ -147,9 +163,9 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                     {Array.from({ length: visibleCount }, (_, j) => (
                       <TableCell
                         key={`skeleton-${i.toString()}-${j.toString()}`}
-                        className="h-[54px] px-5"
+                        className="h-12 border-b border-line px-2.5"
                       >
-                        <Skeleton className="h-4 w-full max-w-40" />
+                        <Skeleton className="mx-auto h-4 w-full max-w-32" />
                       </TableCell>
                     ))}
                   </TableRow>
@@ -161,7 +177,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
                       className={cn(
-                        'border-0 hover:bg-muted/60 data-[state=selected]:bg-primary-soft',
+                        'border-0 hover:bg-muted/60 data-[state=selected]:bg-primary-soft/50',
                         target && 'cursor-pointer',
                       )}
                       onClick={target ? () => router.push(target) : undefined}
@@ -172,8 +188,8 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                           <TableCell
                             key={cell.id}
                             className={cn(
-                              'h-[54px] border-b border-border-soft px-5 text-body',
-                              meta?.align === 'end' && 'text-right',
+                              'h-12 border-b border-line px-2.5 py-2 text-body text-foreground first:pl-4 last:pr-4',
+                              ALIGN[meta?.align ?? 'center'],
                               meta?.className,
                             )}
                           >

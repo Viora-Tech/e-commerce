@@ -139,7 +139,7 @@ export function ShipmentPanel({
               {events.map((e) => (
                 <li key={`${e.at}-${e.description}`} className="relative text-body">
                   <span
-                    className="absolute top-1.5 -left-[21px] size-2.5 rounded-full bg-primary"
+                    className="absolute top-1.5 -left-5 size-2.5 rounded-full bg-primary"
                     aria-hidden="true"
                   />
                   <p className="font-medium">

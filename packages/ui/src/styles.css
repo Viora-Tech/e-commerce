@@ -40,6 +40,8 @@
   --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-border-soft: var(--border-soft);
+  --color-line: var(--line);
+  --color-primary-tint: var(--primary-tint);
   --color-link: var(--link);
   --color-link-soft: var(--link-soft);
   --color-primary-soft: var(--primary-soft);
@@ -70,11 +72,15 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-toggle: var(--shadow-toggle);
+  --shadow-rail: var(--shadow-rail);
+  --shadow-lift: var(--shadow-lift);
 }
 
 :root {
   --radius: 0.5rem; /* 8px cards, kit 5:1494 */
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.12); /* kit "1dp Ambient", softened */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.2); /* kit "1dp Ambient" 5:1494 */
+  --shadow-rail: 0 3px 4px 0 rgb(0 0 0 / 0.12); /* sidebar 5:1368 */
+  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.2); /* Your Shop card 5:1488 */
   --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.14);
 
   /* Canvas and surfaces */
@@ -113,6 +119,8 @@
   /* Lines and focus */
   --border: #dbdade; /* Divider */
   --border-soft: #e9e7fd;
+  --line: #d1d5db; /* Neutal/300: table rows, icon buttons, paging 5:2606 */
+  --primary-tint: #c1e6ba; /* active page number 5:2865 */
   --input: #dbdade;
   --ring: #4ea674;
 
@@ -136,6 +144,8 @@
 
 .dark {
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-rail: 0 3px 4px 0 rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.5);
   --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.4);
 
   --background: #111318;
@@ -170,6 +180,8 @@
 
   --border: rgb(255 255 255 / 0.08);
   --border-soft: rgb(255 255 255 / 0.06);
+  --line: #2c313a;
+  --primary-tint: #2f5a3d;
   --input: rgb(255 255 255 / 0.12);
   --ring: #5fbf87;
 
@@ -214,33 +226,43 @@
  * weight and tracking. Colour, case and numerals stay at the usage site.
  */
 @theme {
-  --text-page-title: 20px;
-  --text-page-title--line-height: 26px;
-  --text-page-title--font-weight: 700;
-  --text-page-title--letter-spacing: 0.11px;
+  /* Shopify-admin density on the Dealport layout (docs/design/admin-frames.md, global deviation):
+     1rem/600 page title, 0.875rem/600 card title, 0.75rem body, 0.8125rem primary cell text, 0.75rem/500 captions, 1.25rem/600 stats, 0.8125rem/500 nav. Rem only, never px. */
+  --text-page-title: 1rem;
+  --text-page-title--line-height: 1.25rem;
+  --text-page-title--font-weight: 600;
 
-  --text-card-title: 16px;
-  --text-card-title--line-height: 22px;
-  --text-card-title--font-weight: 700;
+  --text-card-title: 0.875rem;
+  --text-card-title--line-height: 1.25rem;
+  --text-card-title--font-weight: 600;
 
-  --text-stat: 28px;
-  --text-stat--line-height: 32px;
-  --text-stat--font-weight: 700;
+  --text-stat: 1.25rem;
+  --text-stat--line-height: 1.5rem;
+  --text-stat--font-weight: 600;
 
-  --text-stat-sm: 20px;
-  --text-stat-sm--line-height: 24px;
-  --text-stat-sm--font-weight: 700;
+  --text-stat-sm: 1rem;
+  --text-stat-sm--line-height: 1.25rem;
+  --text-stat-sm--font-weight: 600;
 
-  --text-body: 13px;
-  --text-body--line-height: 20px;
+  --text-body: 0.75rem;
+  --text-body--line-height: 1rem;
 
-  --text-caption: 12px;
-  --text-caption--line-height: 16px;
+  --text-body-strong: 0.8125rem;
+  --text-body-strong--line-height: 1rem;
+  --text-body-strong--font-weight: 500;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
   --text-caption--font-weight: 500;
-  --text-caption--letter-spacing: -0.26px;
 
-  --text-table-head: 12px;
-  --text-table-head--line-height: 16px;
+  --text-table-head: 0.75rem;
+  --text-table-head--line-height: 1rem;
   --text-table-head--font-weight: 500;
-  --text-table-head--letter-spacing: 0.02em;
+
+  --text-nav: 0.8125rem;
+  --text-nav--line-height: 1.125rem;
+  --text-nav--font-weight: 500;
+
+  --text-period: 0.75rem;
+  --text-period--line-height: 1rem;
 }

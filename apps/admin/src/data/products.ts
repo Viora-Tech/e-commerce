@@ -11,11 +11,13 @@ export const PRODUCT_STATUS_TONE: Record<ProductStatus, 'success' | 'info' | 'ne
 /** Every string the products list shows. */
 export const productsListContent = {
   title: 'Products',
+  /* Same frame family as the order list (5:2353): heading, primary action, tab group. */
+  heading: 'Product list',
   resource: { singular: 'product', plural: 'products' },
   add: 'Add product',
   export: 'Export',
   import: 'Import',
-  tabs: { all: 'All' },
+  tabs: { all: 'All products' },
   status: { active: 'Active', draft: 'Draft', archived: 'Archived' } satisfies Record<
     ProductStatus,
     string
@@ -30,7 +32,7 @@ export const productsListContent = {
   },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
-  none: '-',
+  none: '',
   bulk: {
     setActive: 'Set as active',
     archive: 'Archive',
@@ -182,6 +184,11 @@ export const productsSectionsContent = {
   inventory: {
     heading: 'Inventory lives on each product',
     body: 'Stock levels and adjustments are tracked per variant. Open a product to change quantities or see its adjustment history.',
+    action: { label: 'View products', href: '/products' },
+  },
+  purchaseOrders: {
+    heading: 'No purchase orders',
+    body: 'Purchase orders track what you have ordered from suppliers and what has arrived, so incoming stock is expected before it lands.',
     action: { label: 'View products', href: '/products' },
   },
   transfers: {

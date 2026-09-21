@@ -1,6 +1,10 @@
 /** Copy shared by every ResourceTable in the admin. */
 export const tableContent = {
   search: (plural: string) => `Search ${plural}`,
+  number: 'No.',
+  filter: 'Filter',
+  sort: 'Sort',
+  more: 'More',
   clearFilters: 'Clear',
   view: 'View',
   toggleColumns: 'Toggle columns',
@@ -13,6 +17,9 @@ export const tableContent = {
     `${n} ${n === 1 ? singular : plural} selected`,
   clearSelection: 'Clear',
   range: (from: number, to: number, total: number) => `${from}-${to} of ${total}`,
+  previousLabel: 'Previous',
+  nextLabel: 'Next',
+  ellipsis: '.....',
   noResults: 'No results',
   previous: 'Previous page',
   next: 'Next page',

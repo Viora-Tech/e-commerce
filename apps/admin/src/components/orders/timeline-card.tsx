@@ -95,7 +95,7 @@ function buildEntries(order: OrderDetail): Entry[] {
         at: new Date(e.at),
         kind: 'shipment',
         title: t.shipment(shipmentPanelContent.status[e.status] ?? e.status),
-        detail: [e.location, e.description].filter(Boolean).join(', ') || undefined,
+        detail: [e.location, e.description].filter(Boolean).join(': ') || undefined,
       })
     }
   }
@@ -153,7 +153,7 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
           return (
             <li key={e.id} className="relative">
               <span
-                className={`absolute top-0 -left-[35px] flex size-6 items-center justify-center rounded-full border border-border bg-card ${
+                className={`absolute top-0 -left-8 flex size-6 items-center justify-center rounded-full border border-border bg-card ${
                   e.tone === 'destructive' ? 'text-destructive' : 'text-muted-foreground'
                 }`}
                 aria-hidden="true"
@@ -165,10 +165,8 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
               >
                 {e.title}
               </p>
-              <p className="text-caption text-muted-foreground-soft">{when(e.at)}</p>
-              {e.detail ? (
-                <p className="text-caption text-muted-foreground-soft">{e.detail}</p>
-              ) : null}
+              <p className="text-caption">{when(e.at)}</p>
+              {e.detail ? <p className="text-caption">{e.detail}</p> : null}
             </li>
           )
         })}

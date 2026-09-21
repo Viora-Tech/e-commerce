@@ -9,9 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
-import { LogOut, Moon, Search, Sun } from 'lucide-react'
+import { Bell, LogOut, Moon, Search, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
@@ -37,7 +37,7 @@ function initials(name: string): string {
   )
 }
 
-/** Kit top bar: section title left; search, theme switch and avatar right. */
+/** Kit top bar: page title left; search pill, bell, theme switch and avatar right. */
 export function TopBar({ title, heading, user }: TopBarProps) {
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
@@ -62,73 +62,94 @@ export function TopBar({ title, heading, user }: TopBarProps) {
   }
 
   return (
-    <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border/60 bg-card px-4 md:px-6">
-      <SidebarTrigger className="-ml-1 md:hidden" />
+    /* 5:1347: 96px tall white bar; title 22/700 at x 24; controls 32px apart, 44px from the right edge. */
+    <header className="flex h-14 shrink-0 items-center gap-6 bg-card pl-5 pr-6">
+      <SidebarTrigger className="-ml-2 md:hidden" />
       {heading ? (
-        <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
-          {title}
-        </h1>
+        <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong">{title}</h1>
       ) : (
-        <p className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
-          {title}
-        </p>
+        <p className="min-w-0 flex-1 truncate text-page-title text-ink-strong">{title}</p>
       )}
 
+      {/* 5:1349: 407 x 48 pill, 6px inner padding, placeholder 16px at 60% ink, 24px glyph in a 48px slot. */}
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="hidden h-10 w-full max-w-[360px] items-center gap-3 rounded-lg bg-muted px-4 text-[13px] text-muted-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
+        className="hidden h-8 w-80 items-center rounded-full bg-background p-1 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
       >
-        <span className="flex-1 truncate text-left">{navigationContent.search.placeholder}</span>
-        <Kbd className="bg-card">{navigationContent.search.shortcut}</Kbd>
-        <Search className="size-5" />
+        <span className="flex-1 truncate px-6 text-[0.8125rem]  text-foreground/60">
+          {navigationContent.search.placeholder}
+        </span>
+        <span className="flex h-9 w-12 items-center justify-center text-foreground">
+          <Search className="size-4" strokeWidth={1.6} />
+        </span>
       </button>
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
         aria-label={navigationContent.search.placeholder}
-        className="flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted md:hidden"
       >
-        <Search className="size-5" />
+        <Search className="size-4" />
       </button>
 
-      <button
-        type="button"
-        role="switch"
-        aria-checked={dark}
-        aria-label={navigationContent.toggleTheme}
-        onClick={() => setTheme(dark ? 'light' : 'dark')}
-        className="flex h-8 w-14 items-center rounded-full bg-primary-soft p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      >
-        <span
-          className={cn(
-            'flex size-6 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform',
-            dark && 'translate-x-6',
-          )}
-        >
-          {dark ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
-        </span>
-      </button>
+      {/* 5:1356: bell 24, toggle 56 x 32 on a soft-green track, 40px avatar; 20px apart. */}
+      <div className="flex items-center gap-5">
+        <Popover>
+          <PopoverTrigger
+            aria-label={navigationContent.notifications.label}
+            className="flex size-5 items-center justify-center text-foreground hover:text-primary"
+          >
+            <Bell className="size-5" strokeWidth={1.6} />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-72">
+            <p className="text-sm font-bold">{navigationContent.notifications.label}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {navigationContent.notifications.empty}
+            </p>
+          </PopoverContent>
+        </Popover>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={navigationContent.account}
-          className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <button
+          type="button"
+          role="switch"
+          aria-checked={dark}
+          aria-label={navigationContent.toggleTheme}
+          onClick={() => setTheme(dark ? 'light' : 'dark')}
+          className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 transition-colors"
         >
-          {initials(user.name)}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuLabel className="grid leading-tight">
-            <span className="truncate font-bold">{user.name}</span>
-            <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={signOut}>
-            <LogOut className="size-4" />
-            {navigationContent.signOut}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <span
+            className={cn(
+              'flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform',
+              dark && 'translate-x-5',
+            )}
+          >
+            {dark ? <Moon className="size-3" /> : <Sun className="size-3" />}
+          </span>
+        </button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={navigationContent.account}
+            className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30"
+          >
+            {initials(user.name)}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuLabel className="grid leading-tight">
+              <span className="truncate font-bold">{user.name}</span>
+              <span className="truncate text-xs font-normal text-muted-foreground">
+                {user.email}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={signOut}>
+              <LogOut className="size-4" />
+              {navigationContent.signOut}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </header>
