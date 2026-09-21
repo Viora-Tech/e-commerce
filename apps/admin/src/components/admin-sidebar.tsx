@@ -25,6 +25,7 @@ import {
 } from '@commerce/ui/shadcn/sidebar'
 import {
   BadgePercent,
+  Blocks,
   ChevronsUpDown,
   Globe,
   Home,
@@ -161,6 +162,22 @@ export function AdminSidebar({
                     </SidebarMenuSubItem>
                   ))}
                 </SidebarMenuSub>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Apps</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={is('/apps')} tooltip="Apps">
+                  <Link href="/apps">
+                    <Blocks />
+                    <span>Apps</span>
+                  </Link>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>

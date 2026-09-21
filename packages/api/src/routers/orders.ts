@@ -2,6 +2,7 @@ import { loadEnv } from '@commerce/config'
 import { enqueueNotification, type TemplateId } from '@commerce/core'
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
+import { storeRegistries } from '../services/apps.service'
 import { getOrder, listOrders, setOrderStatus } from '../services/order.service'
 import {
   bookShipment,
@@ -9,7 +10,6 @@ import {
   getShipmentForOrder,
   refreshShipmentTracking,
 } from '../services/shipping.service'
-import { shipping } from './store'
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
@@ -43,6 +43,7 @@ export const ordersRouter = {
   createShipment: storeProcedure
     .input(z.object({ orderId: z.uuid() }))
     .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const row = await bookShipment(
         context.tx,
         context.scope.storeId,
@@ -60,21 +61,29 @@ export const ordersRouter = {
 
   refreshTracking: storeProcedure
     .input(z.object({ shipmentId: z.uuid() }))
-    .handler(({ context, input }) =>
-      refreshShipmentTracking(
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return refreshShipmentTracking(
         context.tx,
         context.scope.storeId,
         shipping,
         secret(),
         input.shipmentId,
-      ),
-    ),
+      )
+    }),
 
   cancelShipment: storeProcedure
     .input(z.object({ shipmentId: z.uuid() }))
-    .handler(({ context, input }) =>
-      cancelStoreShipment(context.tx, context.scope.storeId, shipping, secret(), input.shipmentId),
-    ),
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return cancelStoreShipment(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        secret(),
+        input.shipmentId,
+      )
+    }),
 
   setStatus: storeProcedure
     .input(z.object({ id: z.uuid(), status }))

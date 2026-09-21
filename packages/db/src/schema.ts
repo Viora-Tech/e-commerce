@@ -37,6 +37,8 @@ export const store = pgTable('store', {
   notifications: jsonb('notifications'),
   /** Shipping settings: enabled couriers, encrypted credentials and the dispatch policy. */
   shipping: jsonb('shipping'),
+  /** Installed plugins: { installed: string[] }. Validated by @commerce/core AppsSettingsSchema. */
+  apps: jsonb('apps'),
   createdAt: createdAt(),
 })
 

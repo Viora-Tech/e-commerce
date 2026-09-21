@@ -37,8 +37,7 @@
     "@commerce/editor": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@measured/puck": "^0.20.2",
-    "@commerce/payments": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*"
+    "@commerce/payments": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

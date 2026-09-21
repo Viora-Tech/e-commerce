@@ -148,6 +148,13 @@
       "when": 1789973079411,
       "tag": "0020_shipping",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789975999932,
+      "tag": "0021_apps",
+      "breakpoints": true
     }
   ]
 }

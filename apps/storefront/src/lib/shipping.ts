@@ -1,6 +1,5 @@
 import { loadEnv } from '@commerce/config'
 import {
-  builtInShippingRegistry,
   type DeliveryEstimate,
   parseShippingSettings,
   primaryShippingProvider,
@@ -8,6 +7,7 @@ import {
   type ShippingSettings,
   toShippingPolicy,
 } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
 import {
@@ -18,11 +18,7 @@ import {
   sharedRedis,
 } from '@commerce/queue'
 import { describeCourierFailure, estimateDelivery, parsePincode } from '@commerce/shipping'
-import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { eq } from 'drizzle-orm'
-
-/** Couriers this deployment ships. Adding one is one line here. */
-export const shippingRegistry = builtInShippingRegistry().register(delhiveryFactory)
 
 const env = () => loadEnv(process.env)
 
@@ -46,7 +42,8 @@ export async function estimateForPincode(
 ): Promise<DeliveryEstimate> {
   const settings = await loadShippingSettings(tx, storeId)
   const secret = env().SETTINGS_SECRET
-  const provider = primaryShippingProvider(shippingRegistry, settings, secret)
+  const { shipping } = await registriesForStore(tx, storeId)
+  const provider = primaryShippingProvider(shipping, settings, secret)
   const parsed = parsePincode(pincode)
   const policy = toShippingPolicy(settings)
   if (!provider || !parsed.ok) {

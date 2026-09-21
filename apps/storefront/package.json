@@ -21,11 +21,9 @@
     "@commerce/blocks": "workspace:*",
     "@measured/puck": "^0.20.2",
     "@commerce/payments": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*",
     "qrcode": "^1.5.4",
     "@commerce/queue": "workspace:*",
-    "@commerce/shipping": "workspace:*",
-    "@commerce/shipping-delhivery": "workspace:*"
+    "@commerce/shipping": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

@@ -16,18 +16,15 @@
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/notifications": "workspace:*",
+    "@commerce/payments": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "@commerce/shipping": "workspace:*",
     "@orpc/client": "^1.15.2",
     "@orpc/server": "^1.15.2",
     "@orpc/zod": "^1.15.2",
     "drizzle-orm": "^0.45.2",
-    "zod": "^4.6.5",
-    "@commerce/payments": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*",
-    "@commerce/notifications": "workspace:*",
-    "@commerce/notifications-ses": "workspace:*",
-    "@commerce/notifications-whatsapp": "workspace:*",
-    "@commerce/shipping": "workspace:*",
-    "@commerce/shipping-delhivery": "workspace:*"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

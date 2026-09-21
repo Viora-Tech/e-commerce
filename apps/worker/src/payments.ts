@@ -1,17 +1,14 @@
 import {
-  builtInPaymentRegistry,
   enqueueNotification,
   handlePaymentWebhook,
   type NotificationQueue,
   parsePaymentSettings,
   resolvePaymentProviders,
 } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
-import { razorpayFactory } from '@commerce/payments-razorpay'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
-
-export const paymentRegistry = builtInPaymentRegistry().register(razorpayFactory)
 
 /**
  * POST /webhooks/payments/:provider/:storeId
@@ -34,8 +31,9 @@ export function paymentWebhooks(db: Db, settingsSecret: string, notifications: N
         .from(store)
         .where(eq(store.id, storeId))
       if (!s) return { ok: false as const, reason: 'unknown store' }
+      const { payments } = await registriesForStore(tx, storeId)
       const { providers } = resolvePaymentProviders(
-        paymentRegistry,
+        payments,
         parsePaymentSettings(s.payments),
         settingsSecret,
       )

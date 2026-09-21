@@ -1,8 +1,5 @@
 import { loadEnv } from '@commerce/config'
 import {
-  builtInNotificationRegistry,
-  builtInPaymentRegistry,
-  builtInShippingRegistry,
   NotificationSettingsSchema,
   PaymentSettingsSchema,
   parseNotificationSettings,
@@ -12,12 +9,9 @@ import {
   ShippingSettingsSchema,
   ThemeSchema,
 } from '@commerce/core'
-import { sesFactory } from '@commerce/notifications-ses'
-import { whatsappFactory } from '@commerce/notifications-whatsapp'
-import { razorpayFactory } from '@commerce/payments-razorpay'
-import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
+import { storeRegistries } from '../services/apps.service'
 import {
   availableProviders,
   prepareProviderSettings,
@@ -35,9 +29,6 @@ import {
   updateStoreTheme,
 } from '../services/store.service'
 
-const payments = builtInPaymentRegistry().register(razorpayFactory)
-const notifications = builtInNotificationRegistry().register(sesFactory).register(whatsappFactory)
-export const shipping = builtInShippingRegistry().register(delhiveryFactory)
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 export const storeRouter = {
@@ -53,6 +44,7 @@ export const storeRouter = {
   /** Payment settings with secrets masked, plus the gateways this deployment can offer. */
   getPayments: storeProcedure.handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
+    const { payments } = await storeRegistries(context.tx, context.scope.storeId)
     return {
       settings: presentProviderSettings(parsePaymentSettings(s?.payments), secret()),
       available: availableProviders(payments),
@@ -69,6 +61,7 @@ export const storeRouter = {
       const current = parsePaymentSettings(
         (await getStore(context.tx, context.scope.storeId))?.payments,
       )
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
       const next = prepareProviderSettings(input, current, payments, secret(), 'payment provider')
       const saved = await updateStorePayments(context.tx, context.scope.storeId, next)
       return saved ? presentProviderSettings(parsePaymentSettings(saved.payments), secret()) : null
@@ -77,6 +70,7 @@ export const storeRouter = {
   /** Notification settings with secrets masked, plus the channels this deployment can offer. */
   getNotifications: storeProcedure.handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
+    const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
     return {
       settings: presentProviderSettings(parseNotificationSettings(s?.notifications), secret()),
       available: availableProviders(notifications),
@@ -89,6 +83,7 @@ export const storeRouter = {
       const current = parseNotificationSettings(
         (await getStore(context.tx, context.scope.storeId))?.notifications,
       )
+      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
       const next = prepareProviderSettings(
         input,
         current,
@@ -105,6 +100,7 @@ export const storeRouter = {
   /** Shipping settings with secrets masked, the couriers on offer, and the dispatch policy. */
   getShipping: storeProcedure.handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
+    const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
     return {
       settings: presentProviderSettings(parseShippingSettings(s?.shipping), secret()),
       available: availableProviders(shipping),
@@ -117,6 +113,7 @@ export const storeRouter = {
       const current = parseShippingSettings(
         (await getStore(context.tx, context.scope.storeId))?.shipping,
       )
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const next = prepareProviderSettings(input, current, shipping, secret(), 'courier')
       const saved = await updateStoreShipping(context.tx, context.scope.storeId, next)
       return saved ? presentProviderSettings(parseShippingSettings(saved.shipping), secret()) : null
@@ -125,11 +122,13 @@ export const storeRouter = {
   /** "Try a PIN" on the settings page: the exact answer the storefront would give. */
   estimateDelivery: storeProcedure
     .input(z.object({ pincode: z.string().trim().max(10) }))
-    .handler(({ context, input }) =>
-      tryEstimate(context.tx, context.scope.storeId, shipping, secret(), input.pincode),
-    ),
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return tryEstimate(context.tx, context.scope.storeId, shipping, secret(), input.pincode)
+    }),
 
-  verifyShipping: storeProcedure.handler(({ context }) =>
-    verifyShippingCredentials(context.tx, context.scope.storeId, shipping, secret()),
-  ),
+  verifyShipping: storeProcedure.handler(async ({ context }) => {
+    const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+    return verifyShippingCredentials(context.tx, context.scope.storeId, shipping, secret())
+  }),
 }

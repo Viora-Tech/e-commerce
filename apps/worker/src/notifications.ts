@@ -1,17 +1,7 @@
-import {
-  builtInNotificationRegistry,
-  deliverNotification,
-  NOTIFICATIONS_QUEUE,
-  type NotificationJob,
-} from '@commerce/core'
+import { deliverNotification, NOTIFICATIONS_QUEUE, type NotificationJob } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
-import { sesFactory } from '@commerce/notifications-ses'
-import { whatsappFactory } from '@commerce/notifications-whatsapp'
 import { type IORedis, Worker } from '@commerce/queue'
-
-export const notificationRegistry = builtInNotificationRegistry()
-  .register(sesFactory)
-  .register(whatsappFactory)
 
 /**
  * Consumes {storeId, orderId, template} jobs. A job succeeds only when every
@@ -27,12 +17,12 @@ export function createNotificationWorker(
     NOTIFICATIONS_QUEUE,
     async (job) => {
       const { storeId, orderId, template } = job.data
-      const results = await withStore(db, storeId, (tx) =>
+      const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(
           { storeId, tx },
           { orderId, template },
           {
-            registry: notificationRegistry,
+            registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,
             storefrontUrl: opts.storefrontUrl,
           },

@@ -1,17 +1,13 @@
 import { loadEnv } from '@commerce/config'
 import {
-  builtInPaymentRegistry,
   type PaymentAdjustment,
   parsePaymentSettings,
   resolvePaymentProviders,
 } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
-import { razorpayFactory } from '@commerce/payments-razorpay'
 import { eq } from 'drizzle-orm'
-
-/** Adapters this deployment ships. Adding a gateway is one line here. */
-export const paymentRegistry = builtInPaymentRegistry().register(razorpayFactory)
 
 export type CheckoutMethod = {
   id: string
@@ -28,8 +24,9 @@ async function loadSettings(tx: StoreTx, storeId: string) {
 /** Providers the store has enabled and configured, in checkout order. */
 export async function storePaymentProviders(tx: StoreTx, storeId: string) {
   const settings = await loadSettings(tx, storeId)
+  const { payments } = await registriesForStore(tx, storeId)
   const { providers, errors } = resolvePaymentProviders(
-    paymentRegistry,
+    payments,
     settings,
     loadEnv(process.env).SETTINGS_SECRET,
   )

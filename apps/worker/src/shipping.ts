@@ -1,16 +1,13 @@
 import {
   applyTracking,
-  builtInShippingRegistry,
   listOpenShipments,
   parseShippingSettings,
   resolveShippingProviders,
 } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, storesWithOpenShipments, withStore } from '@commerce/db'
 import { type IORedis, Queue, SHIPPING_TRACK_QUEUE, Worker } from '@commerce/queue'
-import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { eq } from 'drizzle-orm'
-
-export const shippingRegistry = builtInShippingRegistry().register(delhiveryFactory)
 
 /** How often open shipments are polled. Couriers update scans a few times a day. */
 export const TRACK_EVERY_MS = 30 * 60_000
@@ -33,7 +30,7 @@ export function createShippingTracker(
       const storeIds = await storesWithOpenShipments(db)
       let updated = 0
       for (const storeId of storeIds) {
-        const { settings, open } = await withStore(db, storeId, async (tx) => {
+        const { settings, open, registries } = await withStore(db, storeId, async (tx) => {
           const [s] = await tx
             .select({ shipping: store.shipping })
             .from(store)
@@ -41,10 +38,11 @@ export function createShippingTracker(
           return {
             settings: parseShippingSettings(s?.shipping),
             open: await listOpenShipments({ storeId, tx }),
+            registries: await registriesForStore(tx, storeId),
           }
         })
         const { providers } = resolveShippingProviders(
-          shippingRegistry,
+          registries.shipping,
           settings,
           opts.settingsSecret,
         )
