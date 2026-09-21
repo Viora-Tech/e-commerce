@@ -1,12 +1,13 @@
 'use client'
 
 import { formatPaise } from '@commerce/blocks'
-import type { CartView } from '@commerce/core'
+import type { CartView, DeliveryEstimate } from '@commerce/core'
 import { applyPaymentAdjustment, formatPaymentAdjustment } from '@commerce/core/adjustments'
 import { useState, useTransition } from 'react'
 import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
 import { checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
 import type { CheckoutMethod } from '@/lib/payments'
+import { estimateDeliveryAction } from '@/lib/shipping-actions'
 
 type CheckoutFormProps = {
   storeId: string
@@ -41,6 +42,16 @@ const EMPTY_FORM: Omit<Form, 'payment'> = {
 const formatSigned = (paise: number): string =>
   `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
 
+const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(v)
+
+/** One line under the PIN code field: the promise, or why the address will not work. */
+function deliveryLine(d: DeliveryEstimate | null, checking: boolean): string | null {
+  if (checking) return content.delivery.checking
+  if (!d?.ok) return null
+  if (!d.serviceable) return content.delivery.unserviceable(d.pincode)
+  return content.delivery.estimate(d.dateRange)
+}
+
 function Field({
   label,
   type = 'text',
@@ -68,7 +79,10 @@ function Field({
 
 export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
   const [pending, start] = useTransition()
+  const [checking, startCheck] = useTransition()
   const [form, setForm] = useState<Form>({ ...EMPTY_FORM, payment: methods[0]?.id ?? 'cod' })
+  const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   // Preview only: placeOrder recomputes the adjustment server-side from store settings.
   const selected = methods.find((m) => m.id === form.payment)
@@ -77,14 +91,39 @@ export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
     selected?.adjustment,
   )
   const f = content.fields
+  const codBlocked = delivery?.ok === true && delivery.serviceable && !delivery.codAvailable
+  const unserviceable = delivery?.ok === true && !delivery.serviceable
+  const deliveryText = deliveryLine(delivery, checking)
 
   const set =
     (k: keyof Form): ChangeHandler =>
     (e) =>
       setForm((prev) => ({ ...prev, [k]: e.target.value }))
+  /** Ask the courier as soon as six digits are in; the server re-checks on submit regardless. */
+  const setPincode: ChangeHandler = (e) => {
+    const pincode = e.target.value
+    setForm((prev) => ({ ...prev, pincode }))
+    setDelivery(null)
+    if (!isFullPincode(pincode)) return
+    startCheck(async () => {
+      const r = await estimateDeliveryAction(storeId, pincode)
+      setDelivery(r)
+      if (r.ok && r.serviceable && !r.codAvailable) {
+        setForm((prev) =>
+          prev.payment === 'cod'
+            ? { ...prev, payment: methods.find((m) => m.id !== 'cod')?.id ?? prev.payment }
+            : prev,
+        )
+      }
+    })
+  }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    start(() => checkoutAction(storeId, form))
+    setError(null)
+    start(async () => {
+      const r = await checkoutAction(storeId, form)
+      if (r?.error) setError(r.error)
+    })
   }
 
   return (
@@ -159,20 +198,29 @@ export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
                 pattern="[1-9][0-9]{5}"
                 autoComplete="postal-code"
                 value={form.pincode}
-                onChange={set('pincode')}
+                onChange={setPincode}
               />
             </div>
+            {deliveryText ? (
+              <p className={`checkout__delivery text-small${unserviceable ? ' is-negative' : ''}`}>
+                {deliveryText}
+              </p>
+            ) : null}
           </fieldset>
 
           <fieldset className="checkout__group">
             <legend className="h4">{content.payment}</legend>
             {methods.map((m) => (
-              <label key={m.id} className="checkout__option">
+              <label
+                key={m.id}
+                className={`checkout__option${m.id === 'cod' && codBlocked ? ' is-disabled' : ''}`}
+              >
                 <input
                   type="radio"
                   name="payment"
                   value={m.id}
                   checked={form.payment === m.id}
+                  disabled={m.id === 'cod' && codBlocked}
                   onChange={set('payment')}
                 />
                 <span className="checkout__option-label">{m.label}</span>
@@ -217,10 +265,15 @@ export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
               <span>{content.total}</span>
               <span>{formatPaise(totalPaise)}</span>
             </div>
+            {error ? (
+              <p className="checkout__error text-small" role="alert">
+                {error}
+              </p>
+            ) : null}
             <button
               type="submit"
               className={`btn btn--primary cart-summary__checkout${pending ? ' is-loading' : ''}`}
-              disabled={pending}
+              disabled={pending || checking || unserviceable}
             >
               <span className="btn__label">
                 {form.payment === 'cod' ? content.placeOrder : content.continueToPayment}

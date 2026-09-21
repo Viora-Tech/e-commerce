@@ -1,5 +1,6 @@
 import { ProductView } from '@commerce/blocks'
 import { notFound } from 'next/navigation'
+import { DeliveryEstimateWidget } from '@/components/product/delivery-estimate'
 import { EmiHint } from '@/components/product/emi-hint'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle } from '@/lib/catalog'
@@ -16,5 +17,12 @@ export default async function ProductPage({ params }: Params) {
   }))
   if (!product) notFound()
   const add = addLineAction.bind(null, storeId)
-  return <ProductView product={product} onAddToCart={add} UnderPrice={emi ? EmiHint : undefined} />
+  return (
+    <ProductView
+      product={product}
+      onAddToCart={add}
+      UnderPrice={emi ? EmiHint : undefined}
+      belowBuy={<DeliveryEstimateWidget storeId={storeId} />}
+    />
+  )
 }

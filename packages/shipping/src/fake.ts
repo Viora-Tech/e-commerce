@@ -118,7 +118,13 @@ export class FakeShippingProvider implements ShippingProvider {
 
   /** Advances one stage every 12 hours after creation, so a demo order visibly moves. */
   async track(waybill: string): Promise<Tracking> {
-    const stages: ShipmentStatus[] = ['created', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered']
+    const stages: ShipmentStatus[] = [
+      'created',
+      'picked_up',
+      'in_transit',
+      'out_for_delivery',
+      'delivered',
+    ]
     const startedAt = this.created.get(waybill)?.at ?? this.now()
     const hours = (this.now() - startedAt) / 3_600_000
     const idx = Math.min(stages.length - 1, Math.floor(hours / 12))

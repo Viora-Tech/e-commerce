@@ -88,12 +88,10 @@ export function describeShippingProvider(name: string, opts: ConformanceOptions)
       it('turns a network failure into a CourierError, never a raw fetch error', async () => {
         const p = await opts.create()
         // Providers without network (fake) simply resolve; those with network must map errors.
-        await p
-          .checkServiceability({ originPincode: origin, destinationPincode: served })
-          .then(
-            (r) => expect(typeof r.serviceable).toBe('boolean'),
-            (e) => expect(e).toBeInstanceOf(CourierError),
-          )
+        await p.checkServiceability({ originPincode: origin, destinationPincode: served }).then(
+          (r) => expect(typeof r.serviceable).toBe('boolean'),
+          (e) => expect(e).toBeInstanceOf(CourierError),
+        )
       })
     }
   })

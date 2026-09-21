@@ -52,7 +52,12 @@ describe('estimateDelivery', () => {
       provider: { id: 'stub', checkServiceability: async () => answer({}) },
       now: monday10,
     })
-    expect(r).toMatchObject({ ok: true, serviceable: true, earliestDate: '2026-09-23', fallback: false })
+    expect(r).toMatchObject({
+      ok: true,
+      serviceable: true,
+      earliestDate: '2026-09-23',
+      fallback: false,
+    })
   })
 
   it('falls back to configured days when the courier fails, and says so', async () => {
@@ -67,7 +72,12 @@ describe('estimateDelivery', () => {
       },
       now: monday10,
     })
-    expect(r).toMatchObject({ ok: true, serviceable: true, earliestDate: '2026-09-24', fallback: true })
+    expect(r).toMatchObject({
+      ok: true,
+      serviceable: true,
+      earliestDate: '2026-09-24',
+      fallback: true,
+    })
   })
 
   it('returns unserviceable when the courier says no', async () => {
@@ -172,7 +182,15 @@ describe('registry and fake provider', () => {
       orderId: 'o',
       orderNumber: 7,
       to: { name: '', line1: '', city: '', state: '', pincode: '110001', country: 'IN', phone: '' },
-      from: { name: '', line1: '', city: '', state: '', pincode: '131028', country: 'IN', phone: '' },
+      from: {
+        name: '',
+        line1: '',
+        city: '',
+        state: '',
+        pincode: '131028',
+        country: 'IN',
+        phone: '',
+      },
       lines: [],
       paymentMode: 'prepaid',
       codAmountPaise: 0,

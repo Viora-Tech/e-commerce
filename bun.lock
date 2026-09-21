@@ -63,6 +63,8 @@
         "@commerce/payments": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/queue": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+        "@commerce/shipping-delhivery": "workspace:*",
         "@measured/puck": "^0.20.2",
         "drizzle-orm": "^0.45.2",
         "next": "16.3.5",

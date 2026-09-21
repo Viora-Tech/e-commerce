@@ -52,7 +52,13 @@ async function seedOrder(status: 'placed' | 'paid' = 'paid') {
         enabled: ['fake'],
         policy: {
           originPincode: '131028',
-          warehouse: { name: 'Waimers HQ', line1: 'Plot 4', city: 'Sonipat', state: 'HR', phone: '9' },
+          warehouse: {
+            name: 'Waimers HQ',
+            line1: 'Plot 4',
+            city: 'Sonipat',
+            state: 'HR',
+            phone: '9',
+          },
         },
       },
     })
@@ -111,7 +117,11 @@ describe('shipping settings', () => {
       providers: { delhivery: { apiToken: 'tok_secret' } },
       policy: { originPincode: '131028' },
     })
-    expect(s.policy).toMatchObject({ cutoff: '14:00', workingDays: [1, 2, 3, 4, 5, 6], codAllowed: true })
+    expect(s.policy).toMatchObject({
+      cutoff: '14:00',
+      workingDays: [1, 2, 3, 4, 5, 6],
+      codAllowed: true,
+    })
     const enc = encryptShippingSettings(s, secret)
     expect(enc.providers.delhivery?.apiToken).toMatch(/^v1\./)
     expect(maskShippingSettings(s).providers.delhivery?.apiToken).toBe('••••cret')
@@ -179,7 +189,9 @@ describe('shipments', () => {
     const row = await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, new FakeShippingProvider(), orderId),
     )
-    expect((await withStore(app, storeId, (tx) => listOpenShipments({ storeId, tx }))).length).toBe(1)
+    expect((await withStore(app, storeId, (tx) => listOpenShipments({ storeId, tx }))).length).toBe(
+      1,
+    )
 
     const transit: Tracking = { waybill: row.waybill, status: 'in_transit', events: [] }
     const a = await withStore(app, storeId, (tx) => applyTracking({ storeId, tx }, row.id, transit))
@@ -191,14 +203,20 @@ describe('shipments', () => {
       events: [],
       trackingUrl: 'https://t',
     }
-    const b = await withStore(app, storeId, (tx) => applyTracking({ storeId, tx }, row.id, delivered))
+    const b = await withStore(app, storeId, (tx) =>
+      applyTracking({ storeId, tx }, row.id, delivered),
+    )
     expect(b.becameDelivered).toBe(true)
     expect(b.shipment.trackingUrl).toBe('https://t')
-    const c = await withStore(app, storeId, (tx) => applyTracking({ storeId, tx }, row.id, delivered))
+    const c = await withStore(app, storeId, (tx) =>
+      applyTracking({ storeId, tx }, row.id, delivered),
+    )
     expect(c.becameDelivered).toBe(false)
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
     expect(o?.status).toBe('delivered')
-    expect((await withStore(app, storeId, (tx) => listOpenShipments({ storeId, tx }))).length).toBe(0)
+    expect((await withStore(app, storeId, (tx) => listOpenShipments({ storeId, tx }))).length).toBe(
+      0,
+    )
   })
 
   it('cancels with the courier and records it', async () => {
@@ -207,7 +225,9 @@ describe('shipments', () => {
     const row = await withStore(app, storeId, (tx) =>
       createShipmentForOrder({ storeId, tx }, provider, orderId),
     )
-    const c = await withStore(app, storeId, (tx) => cancelShipment({ storeId, tx }, provider, row.id))
+    const c = await withStore(app, storeId, (tx) =>
+      cancelShipment({ storeId, tx }, provider, row.id),
+    )
     expect(c.status).toBe('cancelled')
     const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
     expect(s?.status).toBe('cancelled')

@@ -1,6 +1,6 @@
 'use client'
 
-import { defaultShippingSettings, type ShippingPolicySettings } from '@commerce/core'
+import type { ShippingPolicySettings } from '@commerce/core'
 import { Text } from '@shopify/polaris'
 import {
   type ProviderDef,
@@ -11,7 +11,8 @@ import { ShippingTryPin } from '@/components/settings/shipping-try-pin'
 import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 
-type Extra = { policy: ShippingPolicySettings }
+/** The policy arrives with the settings; until then there is nothing to render below the couriers. */
+type Extra = { policy?: ShippingPolicySettings | undefined }
 
 const load = () => api.store.getShipping()
 const save = (next: Parameters<typeof api.store.updateShipping>[0]) =>
@@ -28,6 +29,7 @@ function courierHint(m: ProviderDef) {
 }
 
 function footer(extra: Extra, setExtra: (next: Extra) => void) {
+  if (!extra.policy) return null
   return (
     <>
       <ShippingPolicyFields value={extra.policy} onChange={(policy) => setExtra({ policy })} />
@@ -42,7 +44,7 @@ export function ShippingSettings() {
       title={copy.title}
       load={load}
       save={save}
-      emptyExtra={{ policy: defaultShippingSettings.policy }}
+      emptyExtra={{}}
       renderHint={courierHint}
       renderFooter={footer}
       noConfigText={copy.hints.fake}

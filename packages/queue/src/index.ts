@@ -36,6 +36,6 @@ export function sharedRedis(redisUrl: string): IORedis {
   return g.__commerceRedis
 }
 
-export * from './cache'
 export { Queue, Worker } from 'bullmq'
 export type { default as IORedis } from 'ioredis'
+export * from './cache'

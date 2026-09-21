@@ -67,6 +67,17 @@ export const checkoutContent = {
     pincode: 'Pincode',
   },
   adjustmentFallback: thankYouContent.adjustmentFallback,
+  delivery: {
+    checking: 'Checking delivery…',
+    estimate: (range: string) => `Delivery by ${range}`,
+    codUnavailable: 'Cash on delivery is not available for this PIN code.',
+    unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet.`,
+  },
+  errors: {
+    unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
+    codUnavailable:
+      'Cash on delivery is not available for this PIN code. Pick another payment method.',
+  },
 } as const
 
 export const INDIAN_STATES: readonly [string, string][] = [

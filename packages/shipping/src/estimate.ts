@@ -58,7 +58,8 @@ export type EstimateSource = Pick<ShippingProvider, 'id' | 'checkServiceability'
 export function describeCourierFailure(error: unknown): string {
   if (error instanceof CourierError) {
     if (error.kind === 'auth') return 'The courier rejected our credentials.'
-    if (error.kind === 'timeout' || error.kind === 'unavailable') return 'The courier did not answer.'
+    if (error.kind === 'timeout' || error.kind === 'unavailable')
+      return 'The courier did not answer.'
     if (error.kind === 'rate_limited') return 'The courier is rate limiting us.'
     return 'The courier answered with an error.'
   }
@@ -95,8 +96,9 @@ export async function estimateDelivery(input: {
       })
     } catch (error) {
       fallback = true
-      // biome-ignore lint/suspicious/noConsole: the failure must be visible to the operator
-      console.warn(`[shipping] ${input.provider.id} lookup failed: ${describeCourierFailure(error)}`)
+      console.warn(
+        `[shipping] ${input.provider.id} lookup failed: ${describeCourierFailure(error)}`,
+      )
     }
   }
   if (!input.provider) fallback = true

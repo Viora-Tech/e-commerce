@@ -73,7 +73,8 @@ export async function createShipmentForOrder(
     paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
     codAmountPaise: o.paymentMethod === 'cod' ? o.totalPaise : 0,
     valuePaise: o.totalPaise,
-    weightGrams: lines.reduce((g, l) => g + l.quantity * ASSUMED_WEIGHT_GRAMS, 0) || ASSUMED_WEIGHT_GRAMS,
+    weightGrams:
+      lines.reduce((g, l) => g + l.quantity * ASSUMED_WEIGHT_GRAMS, 0) || ASSUMED_WEIGHT_GRAMS,
   })
 
   const [row] = await ctx.tx

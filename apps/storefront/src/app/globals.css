@@ -183,3 +183,60 @@ h3 {
   color: var(--color-accent);
   opacity: 1;
 }
+.delivery-estimate {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+.delivery-estimate__heading {
+  margin-bottom: 0.5rem;
+}
+.delivery-estimate__form {
+  display: flex;
+  gap: 0.5rem;
+}
+.delivery-estimate__form .field__input {
+  flex: 1;
+  max-width: 220px;
+}
+.delivery-estimate__result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+.delivery-estimate__result.is-positive {
+  border-color: var(--color-accent);
+}
+.delivery-estimate__result.is-negative {
+  opacity: 0.85;
+}
+.delivery-estimate__change {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  color: inherit;
+  cursor: pointer;
+}
+.checkout__delivery {
+  margin-top: 0.5rem;
+}
+.checkout__delivery.is-negative,
+.checkout__error {
+  color: var(--color-danger);
+}
+.checkout__error {
+  margin-bottom: 0.75rem;
+}
+.checkout__option.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
