@@ -30,7 +30,7 @@ export const productsListContent = {
   },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
-  none: '-',
+  none: '',
   bulk: {
     setActive: 'Set as active',
     archive: 'Archive',
@@ -140,8 +140,6 @@ export const productFormContent = {
     tags: 'Tags',
     tagsPlaceholder: 'Add a tag and press Enter',
     removeTag: (tag: string) => `Remove ${tag}`,
-    collections: 'Collections',
-    collectionsSoon: 'Collections arrive in a later release.',
   },
   seo: {
     heading: 'Search engine listing',

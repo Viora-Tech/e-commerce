@@ -84,10 +84,13 @@ export function PaymentCard({ order, onRefund }: PaymentCardProps) {
             <ul className="flex flex-col gap-2">
               {order.refunds.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 text-body">
-                  <span>
-                    <span className="font-medium">{formatPaise(r.amountPaise)}</span>
-                    {r.reason ? <span className="text-muted-foreground"> · {r.reason}</span> : null}
-                    <span className="text-muted-foreground"> · {when(r.createdAt)}</span>
+                  <span className="min-w-0">
+                    <span className="block font-medium tabular-nums">
+                      {formatPaise(r.amountPaise)}
+                    </span>
+                    <span className="block truncate text-caption">
+                      {[when(r.createdAt), r.reason].filter(Boolean).join(', ')}
+                    </span>
                   </span>
                   <StatusPill tone={REFUND_TONE[r.status] ?? 'neutral'}>
                     {copy.payment.refundStatus[r.status] ?? r.status}
@@ -106,10 +109,12 @@ export function PaymentCard({ order, onRefund }: PaymentCardProps) {
             <ul className="flex flex-col gap-2">
               {events.map((e) => (
                 <li key={e.id} className="flex items-center justify-between gap-3 text-body">
-                  <span>
-                    <code className="text-[12px]">{e.type}</code>
-                    <span className="text-muted-foreground"> · {when(e.receivedAt)}</span>
-                    {e.error ? <span className="text-destructive"> · {e.error}</span> : null}
+                  <span className="min-w-0">
+                    <code className="block text-[12px]">{e.type}</code>
+                    <span className="block truncate text-caption">{when(e.receivedAt)}</span>
+                    {e.error ? (
+                      <span className="block truncate text-[12px] text-destructive">{e.error}</span>
+                    ) : null}
                   </span>
                   <StatusPill tone={EVENT_TONE[e.status] ?? 'neutral'}>{e.status}</StatusPill>
                 </li>

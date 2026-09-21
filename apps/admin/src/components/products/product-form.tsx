@@ -122,8 +122,8 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   if (!first) return null
 
   return (
-    <PageBody width="narrow">
-      {dirty || !product ? (
+    <PageBody width="narrow" className="kit-form">
+      {dirty ? (
         <SaveBar
           message={copy.saveBar.message}
           saveLabel={copy.saveBar.save}
@@ -131,7 +131,6 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
           onSave={save}
           onDiscard={discard}
           saving={busy}
-          canDiscard={dirty}
         />
       ) : null}
       <PageHeader
@@ -145,7 +144,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
             <>
               <Button
                 variant="outline"
-                className="h-10 rounded-full px-4"
+                className="h-10 px-4"
                 render={
                   <a
                     href={`${storefrontOrigin}/products/${product.handle}`}
@@ -160,14 +159,18 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
               </Button>
               <Button
                 variant="destructive"
-                className="h-10 rounded-full px-4"
+                className="h-10 px-4"
                 onClick={() => setConfirmDelete(true)}
               >
                 <Trash2 />
                 {copy.delete.action}
               </Button>
             </>
-          ) : null
+          ) : dirty ? null : (
+            <Button className="h-10 px-4" onClick={save} disabled={busy}>
+              {copy.saveBar.save}
+            </Button>
+          )
         }
       />
       {serverError ? (
@@ -244,7 +247,12 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>{copy.delete.cancel}</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={remove} disabled={busy}>
+            <AlertDialogAction
+              variant="destructive"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+              onClick={remove}
+              disabled={busy}
+            >
               {copy.delete.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>

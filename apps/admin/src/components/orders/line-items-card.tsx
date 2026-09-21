@@ -56,13 +56,15 @@ export function LineItemsCard({ order }: LineItemsCardProps) {
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{l.title}</p>
-              <p className="text-caption text-muted-foreground-soft">
+              <p className="text-caption">
                 {[
                   l.variantTitle && l.variantTitle !== 'Default' ? l.variantTitle : null,
                   l.sku ? `${copy.items.sku} ${l.sku}` : null,
                 ]
                   .filter(Boolean)
-                  .join(', ')}{' '}
+                  .join(', ')}
+              </p>
+              <p className="text-caption tabular-nums">
                 {formatPaise(l.unitPricePaise)} × {l.quantity}
               </p>
             </div>

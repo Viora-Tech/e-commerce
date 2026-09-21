@@ -7,7 +7,7 @@ export const marketingContent = {
   },
   campaigns: {
     heading: 'No campaigns',
-    body: 'A campaign is a one-off send, such as a launch, a sale or a restock, to a segment of your customers.',
+    body: 'A campaign is a one-off send to a segment of your customers: a launch, a sale or a restock.',
     action: { label: 'View discounts', href: '/discounts' },
   },
   automations: {

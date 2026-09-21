@@ -82,7 +82,11 @@ export function ShipmentPanel({
             <dt className="text-caption text-muted-foreground-soft">{copy.updated}</dt>
             <dd className="font-medium">
               {when(shipment.updatedAt)}
-              {tracking?.expectedDate ? ` · ${copy.expected} ${tracking.expectedDate}` : ''}
+              {tracking?.expectedDate ? (
+                <span className="block text-caption">
+                  {copy.expected} {tracking.expectedDate}
+                </span>
+              ) : null}
             </dd>
           </div>
         </dl>
@@ -113,7 +117,13 @@ export function ShipmentPanel({
               <Button variant="outline" size="sm" onClick={onRefresh} disabled={busy}>
                 <RefreshCw aria-hidden="true" /> {copy.refresh}
               </Button>
-              <Button variant="destructive" size="sm" onClick={onCancel} disabled={busy}>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+                onClick={onCancel}
+                disabled={busy}
+              >
                 {copy.cancel}
               </Button>
             </>
@@ -135,7 +145,7 @@ export function ShipmentPanel({
                   <p className="font-medium">
                     {copy.status[e.status] ?? e.status}
                     {e.location ? (
-                      <span className="text-muted-foreground"> · {e.location}</span>
+                      <span className="text-muted-foreground">, {e.location}</span>
                     ) : null}
                   </p>
                   <p className="text-caption text-muted-foreground-soft">

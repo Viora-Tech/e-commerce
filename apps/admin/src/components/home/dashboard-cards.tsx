@@ -1,8 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { Package } from 'lucide-react'
 import Link from 'next/link'
-import { DataCard, FilterButton } from '@/components/layout/data-card'
-import { StatusPill } from '@/components/layout/status-pill'
+import { DataCard } from '@/components/layout/data-card'
 import { OrderStatusPill } from '@/components/orders/order-badges'
 import { homeContent } from '@/data/home'
 import type { OrderStatus } from '@/data/orders'
@@ -25,15 +24,14 @@ type RecentOrder = {
   placedAt: Date | string
 }
 
-const ROW = 'grid grid-cols-[2.5rem_1fr_1.4fr_1fr_auto] items-center gap-3 px-5'
+const ROW = 'grid grid-cols-[1fr_1.4fr_1fr_auto] items-center gap-3 px-5'
 
-/** Kit "Transaction" table: index, order, date, status dot, amount. */
+/** Kit "Transaction" table: order, date, status, amount. */
 export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
   const c = homeContent.recentOrders
   return (
-    <DataCard title={c.title} action={<FilterButton />} detailsHref="/orders" flush>
-      <div className={cn(ROW, 'h-9 text-table-head uppercase text-muted-foreground')}>
-        <span>{c.columns.no}</span>
+    <DataCard title={c.title} detailsHref="/orders" flush>
+      <div className={cn(ROW, 'h-9 text-table-head')}>
         <span>{c.columns.order}</span>
         <span>{c.columns.date}</span>
         <span>{c.columns.status}</span>
@@ -42,7 +40,7 @@ export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
       {orders.length === 0 ? (
         <p className="px-5 py-6 text-body text-muted-foreground">{c.empty}</p>
       ) : (
-        orders.map((o, i) => (
+        orders.map((o) => (
           <Link
             key={o.id}
             href={`/orders/${o.id}`}
@@ -51,11 +49,12 @@ export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
               'h-[41px] text-body text-foreground transition-colors hover:bg-muted/60',
             )}
           >
-            <span className="text-muted-foreground">{i + 1}.</span>
-            <span className="truncate">
-              <span className="font-bold">#{o.number}</span>
+            <span className="min-w-0">
+              <span className="block font-semibold tabular-nums">#{o.number}</span>
               {o.customerName ? (
-                <span className="text-muted-foreground"> · {o.customerName}</span>
+                <span className="block truncate text-[12px] text-muted-foreground">
+                  {o.customerName}
+                </span>
               ) : null}
             </span>
             <span className="text-muted-foreground">{dateTime.format(new Date(o.placedAt))}</span>
@@ -81,7 +80,7 @@ function Thumb({ url, title }: { url: string | null; title: string }) {
     // biome-ignore lint/performance/noImgElement: merchant media URLs, no optimisation pipeline yet.
     <img
       src={url}
-      alt=""
+      alt={title}
       className="size-[46px] shrink-0 rounded-xl border border-border-soft object-cover"
     />
   ) : (
@@ -99,7 +98,7 @@ export function TopProductsCard({ products }: { products: TopProduct[] }) {
     <DataCard
       title={c.title}
       action={
-        <Link href="/products" className="text-[12px] text-link hover:underline">
+        <Link href="/products" className="text-[12px] font-medium text-primary hover:underline">
           {c.all}
         </Link>
       }
@@ -147,7 +146,7 @@ type LowStockRow = {
 export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; threshold: number }) {
   const c = homeContent.lowStock
   return (
-    <DataCard title={c.title} kebab>
+    <DataCard title={c.title}>
       <p className="-mt-3 mb-3 text-sm text-muted-foreground">{c.subtitle(threshold)}</p>
       {rows.length === 0 ? (
         <p className="text-body text-muted-foreground">{c.empty}</p>
@@ -163,12 +162,17 @@ export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; thresho
                   <span className="block text-[12px] text-muted-foreground">{r.variantTitle}</span>
                 ) : null}
               </span>
-              <StatusPill tone={r.available <= 0 ? 'destructive' : 'warning'}>
+              <span
+                className={cn(
+                  'text-[12px] font-semibold tabular-nums',
+                  r.available <= 0 ? 'text-destructive' : 'text-warning',
+                )}
+              >
                 {c.left(r.available)}
-              </StatusPill>
+              </span>
               <Link
                 href={`/products/${r.productId}`}
-                className="text-[12px] font-medium text-link hover:underline"
+                className="text-[12px] font-medium text-primary hover:underline"
               >
                 {c.restock}
               </Link>

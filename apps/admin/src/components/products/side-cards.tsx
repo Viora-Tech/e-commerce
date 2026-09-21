@@ -3,7 +3,6 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
   SelectContent,
@@ -23,7 +22,7 @@ type StatusCardProps = { status: ProductStatus; onChange: (status: ProductStatus
 
 export function StatusCard({ status, onChange }: StatusCardProps) {
   return (
-    <Card size="form">
+    <Card>
       <CardHeader>
         <CardTitle>{copy.status.heading}</CardTitle>
       </CardHeader>
@@ -37,7 +36,7 @@ export function StatusCard({ status, onChange }: StatusCardProps) {
             value={status}
             onValueChange={(s) => onChange(s as ProductStatus)}
           >
-            <SelectTrigger size="lg" id="product-status" className="w-full">
+            <SelectTrigger id="product-status" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -77,7 +76,7 @@ export function OrganisationCard({
   onTags,
 }: OrganisationCardProps) {
   return (
-    <Card size="form">
+    <Card>
       <CardHeader>
         <CardTitle>{copy.organisation.heading}</CardTitle>
       </CardHeader>
@@ -110,11 +109,6 @@ export function OrganisationCard({
               onChange={onTags}
               placeholder={copy.organisation.tagsPlaceholder}
             />
-          </Field>
-          <Field data-disabled="true">
-            <FieldLabel htmlFor="product-collections">{copy.organisation.collections}</FieldLabel>
-            <Input size="lg" id="product-collections" value="" readOnly disabled />
-            <FieldDescription>{copy.organisation.collectionsSoon}</FieldDescription>
           </Field>
         </FieldGroup>
       </CardContent>

@@ -23,12 +23,18 @@ export function CustomerCard({ order }: CustomerCardProps) {
         <div>
           <p className="font-medium">{order.customer?.name ?? copy.customer.guest}</p>
           {order.email ? (
-            <a href={`mailto:${order.email}`} className="block text-link hover:underline">
+            <a
+              href={`mailto:${order.email}`}
+              className="block text-primary hover:underline focus-visible:outline-none focus-visible:underline"
+            >
               {order.email}
             </a>
           ) : null}
           {order.phone ? (
-            <a href={`tel:${order.phone}`} className="block text-link hover:underline">
+            <a
+              href={`tel:${order.phone}`}
+              className="block text-primary hover:underline focus-visible:outline-none focus-visible:underline"
+            >
               {order.phone}
             </a>
           ) : null}

@@ -1,6 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { MoreVertical } from 'lucide-react'
+import { SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
@@ -9,7 +10,6 @@ type DataCardProps = {
   title: string
   /** Right side of the header: filter button, link, tabs… */
   action?: ReactNode
-  kebab?: boolean
   /** Outlined "Details" pill in the bottom-right corner. */
   detailsHref?: string
   children: ReactNode
@@ -22,7 +22,6 @@ type DataCardProps = {
 export function DataCard({
   title,
   action,
-  kebab,
   detailsHref,
   children,
   className,
@@ -32,29 +31,27 @@ export function DataCard({
     <Card className={cn('gap-0 px-5 py-5', className)}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-card-title">{title}</p>
-        <div className="flex items-center gap-3">
-          {action}
-          {kebab ? (
-            <MoreVertical className="size-5 text-muted-foreground" aria-hidden="true" />
-          ) : null}
-        </div>
+        {action ? <div className="flex items-center gap-3">{action}</div> : null}
       </div>
       <div className={cn('mt-4', flush && '-mx-5')}>{children}</div>
       {detailsHref ? (
         <div className="mt-4 flex justify-end">
-          <Link
-            href={detailsHref}
-            className="inline-flex h-8 items-center rounded-full border border-link px-4 text-[12px] text-link transition-colors hover:bg-link-soft"
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            render={<Link href={detailsHref} />}
+            nativeButton={false}
           >
             {layoutContent.details}
-          </Link>
+          </Button>
         </div>
       ) : null}
     </Card>
   )
 }
 
-/** Secondary "Filter" button; wire `onClick` when the card gets real filters. */
+/** Secondary "Filter" button; renders only with a handler so it is never a dead control. */
 export function FilterButton({
   label = layoutContent.filter,
   onClick,
@@ -62,24 +59,12 @@ export function FilterButton({
   label?: string
   onClick?: () => void
 }) {
+  if (!onClick) return null
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-    >
+    <Button variant="outline" size="sm" onClick={onClick}>
       {label}
-      <svg
-        viewBox="0 0 20 20"
-        className="size-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        aria-hidden="true"
-      >
-        <path d="M3 5h14M6 10h8M8.5 15h3" strokeLinecap="round" />
-      </svg>
-    </button>
+      <SlidersHorizontal aria-hidden="true" />
+    </Button>
   )
 }
 
