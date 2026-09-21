@@ -5,8 +5,11 @@
  */
 export const SHADCN_ROUTES = ['/', '/orders'] as const
 
+/** `/orders` also covers `/orders/<id>`; `/` only matches itself. */
 export function isShadcnRoute(pathname: string): boolean {
-  return SHADCN_ROUTES.some((r) => (r === '/' ? pathname === '/' : pathname === r))
+  return SHADCN_ROUTES.some((r) =>
+    r === '/' ? pathname === '/' : pathname === r || pathname.startsWith(`${r}/`),
+  )
 }
 
 /** Top-bar title per section, longest prefix wins. */
