@@ -231,6 +231,7 @@ export const order = pgTable('order', {
   paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
   paymentAdjustmentLabel: text('payment_adjustment_label'),
   totalPaise: integer('total_paise').notNull(),
+  tags: text('tags').array().notNull().default([]),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -274,6 +275,39 @@ export const payment = pgTable(
     ),
   ],
 )
+
+/**
+ * Money returned to the shopper. Gateways process it themselves; COD and
+ * manual transfers are settled outside the platform and recorded as `manual`.
+ */
+export const refund = pgTable('refund', {
+  id: id(),
+  storeId: storeId(),
+  orderId: uuid('order_id')
+    .notNull()
+    .references(() => order.id),
+  paymentId: uuid('payment_id')
+    .notNull()
+    .references(() => payment.id),
+  amountPaise: integer('amount_paise').notNull(),
+  reason: text('reason'),
+  status: text('status', { enum: ['pending', 'processed', 'failed', 'manual'] }).notNull(),
+  providerRefundId: text('provider_refund_id'),
+  createdAt: createdAt(),
+})
+
+/** Staff notes on an order; the timeline shows them beside system events. */
+export const orderNote = pgTable('order_note', {
+  id: id(),
+  storeId: storeId(),
+  orderId: uuid('order_id')
+    .notNull()
+    .references(() => order.id),
+  body: text('body').notNull(),
+  /** Email of the staff member who wrote it. */
+  author: text('author'),
+  createdAt: createdAt(),
+})
 
 /** Every gateway webhook, stored before it is processed so retries cannot double-apply. */
 export const paymentEvent = pgTable(
