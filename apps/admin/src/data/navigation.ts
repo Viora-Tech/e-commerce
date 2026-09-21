@@ -1,66 +1,118 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BadgePercent,
+  BarChart3,
   Blocks,
-  FileText,
+  FolderOpen,
   Home,
-  Images,
-  LayoutGrid,
-  ListTree,
+  Megaphone,
   Package,
-  Palette,
   Settings,
   ShoppingBag,
+  Store,
   Users,
 } from 'lucide-react'
+
+export type NavChild = { href: string; label: string }
 
 export type NavItem = {
   href: string
   label: string
   icon: LucideIcon
-  /** Highlight for every path under this prefix; defaults to the item's own path. */
-  match?: string
-  /** Placeholder link until the page exists — never shown as active. */
-  soon?: boolean
+  /** Sub-pages shown beneath the item while its section is active. */
+  children?: NavChild[]
 }
-export type NavGroup = { label: string; items: NavItem[] }
+export type NavGroup = { label?: string; items: NavItem[] }
 
-/** Sidebar sections, in order. Route structure stays Shopify's; grouping follows the kit. */
+/**
+ * Sidebar sections, in Shopify's order. Route structure mirrors Shopify's
+ * admin so merchants coming from it find everything where they expect.
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Main menu',
     items: [
       { href: '/', label: 'Home', icon: Home },
-      { href: '/orders', label: 'Orders', icon: ShoppingBag },
-      { href: '/customers', label: 'Customers', icon: Users },
+      {
+        href: '/orders',
+        label: 'Orders',
+        icon: ShoppingBag,
+        children: [
+          { href: '/orders/drafts', label: 'Drafts' },
+          { href: '/orders/abandoned-checkouts', label: 'Abandoned checkouts' },
+        ],
+      },
+      {
+        href: '/products',
+        label: 'Products',
+        icon: Package,
+        children: [
+          { href: '/products/collections', label: 'Collections' },
+          { href: '/products/inventory', label: 'Inventory' },
+          { href: '/products/transfers', label: 'Transfers' },
+          { href: '/products/gift-cards', label: 'Gift cards' },
+        ],
+      },
+      {
+        href: '/customers',
+        label: 'Customers',
+        icon: Users,
+        children: [{ href: '/customers/segments', label: 'Segments' }],
+      },
+      {
+        href: '/content',
+        label: 'Content',
+        icon: FolderOpen,
+        children: [
+          { href: '/content/files', label: 'Files' },
+          { href: '/content/metaobjects', label: 'Metaobjects' },
+        ],
+      },
+      {
+        href: '/analytics',
+        label: 'Analytics',
+        icon: BarChart3,
+        children: [
+          { href: '/analytics/reports', label: 'Reports' },
+          { href: '/analytics/live', label: 'Live view' },
+        ],
+      },
+      {
+        href: '/marketing',
+        label: 'Marketing',
+        icon: Megaphone,
+        children: [
+          { href: '/marketing/campaigns', label: 'Campaigns' },
+          { href: '/marketing/automations', label: 'Automations' },
+        ],
+      },
       { href: '/discounts', label: 'Discounts', icon: BadgePercent },
     ],
   },
   {
-    label: 'Product',
+    label: 'Sales channels',
     items: [
-      { href: '/products', label: 'Products', icon: Package, match: '/products' },
-      { href: '/products', label: 'Collections', icon: LayoutGrid, soon: true },
-      { href: '/products', label: 'Media', icon: Images, soon: true },
-    ],
-  },
-  {
-    label: 'Online store',
-    items: [
-      { href: '/online-store/pages', label: 'Pages', icon: FileText },
-      { href: '/online-store/themes', label: 'Themes', icon: Palette },
-      { href: '/online-store/navigation', label: 'Navigation', icon: ListTree },
+      {
+        href: '/online-store',
+        label: 'Online Store',
+        icon: Store,
+        children: [
+          { href: '/online-store/themes', label: 'Themes' },
+          { href: '/online-store/pages', label: 'Pages' },
+          { href: '/online-store/blog', label: 'Blog posts' },
+          { href: '/online-store/navigation', label: 'Navigation' },
+          { href: '/online-store/preferences', label: 'Preferences' },
+        ],
+      },
     ],
   },
   {
     label: 'Apps',
     items: [{ href: '/apps', label: 'Apps', icon: Blocks }],
   },
-  {
-    label: 'Admin',
-    items: [{ href: '/settings', label: 'Settings', icon: Settings }],
-  },
 ]
+
+/** Pinned to the bottom of the rail, like Shopify. */
+export const SETTINGS_NAV: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
 
 export const navigationContent = {
   pickStore: 'Pick a store',
@@ -86,10 +138,22 @@ export const navigationContent = {
   toggleTheme: 'Toggle theme',
 } as const
 
-/** Active when the path is the item's own path (exact for home) or nested under `match`. */
-export function isNavActive(pathname: string, item: NavItem): boolean {
-  if (item.soon) return false
-  const prefix = item.match ?? item.href
-  if (prefix === '/') return pathname === '/'
-  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+/** A section is active for its own path and everything nested under it; home only for itself. */
+export function isSectionActive(pathname: string, item: NavItem): boolean {
+  if (item.href === '/') return pathname === '/'
+  return pathname === item.href || pathname.startsWith(`${item.href}/`)
+}
+
+/** A child is active for its exact path or its own nested pages. */
+export function isChildActive(pathname: string, child: NavChild): boolean {
+  return pathname === child.href || pathname.startsWith(`${child.href}/`)
+}
+
+/**
+ * The section link highlights when the section is active but no child is, so
+ * `/orders/123` lights "Orders" while `/orders/drafts` lights "Drafts".
+ */
+export function isSectionLinkActive(pathname: string, item: NavItem): boolean {
+  if (!isSectionActive(pathname, item)) return false
+  return !(item.children ?? []).some((c) => isChildActive(pathname, c))
 }
