@@ -68,7 +68,7 @@ export function VariantsCard({
   }
 
   return (
-    <Card className="pb-0">
+    <Card size="form" className="pb-0">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
         {hasOptions ? (
@@ -84,6 +84,7 @@ export function VariantsCard({
             <Field>
               <FieldLabel htmlFor={`option-name-${i}`}>{copy.optionName}</FieldLabel>
               <Input
+                size="lg"
                 id={`option-name-${i}`}
                 value={o.name}
                 onChange={(e) => setOption(i, { name: e.target.value })}
@@ -94,6 +95,7 @@ export function VariantsCard({
             <Field>
               <FieldLabel htmlFor={`option-values-${i}`}>{copy.optionValues}</FieldLabel>
               <Input
+                size="lg"
                 id={`option-values-${i}`}
                 value={valueText[i] ?? ''}
                 onChange={(e) => handleValues(i, e.target.value)}

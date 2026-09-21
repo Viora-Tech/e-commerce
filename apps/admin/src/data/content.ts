@@ -12,7 +12,7 @@ export const contentContent = {
   },
   metaobjects: {
     heading: 'No metaobjects',
-    body: 'Metaobjects are custom structured content — size guides, ingredients, authors — you can attach to products and pages.',
+    body: 'Metaobjects are custom structured content, such as size guides, ingredients or authors, that you can attach to products and pages.',
     action: { label: 'Go to pages', href: '/online-store/pages' },
   },
 } as const

@@ -6,7 +6,9 @@ import {
   parsePaymentSettings,
   parseShippingSettings,
   parseTheme,
+  presentStoreGeneral,
   ShippingSettingsSchema,
+  StoreGeneralSchema,
   ThemeSchema,
 } from '@commerce/core'
 import { z } from 'zod'
@@ -24,6 +26,7 @@ import {
 } from '../services/shipping.service'
 import {
   getStore,
+  updateStoreGeneral,
   updateStoreNotifications,
   updateStorePayments,
   updateStoreTheme,
@@ -35,6 +38,25 @@ export const storeRouter = {
   current: storeProcedure.handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     return s ? { ...s, theme: parseTheme(s.theme), role: context.scope.role } : null
+  }),
+
+  /** Store details for Settings › General. */
+  getGeneral: storeProcedure.handler(async ({ context }) => {
+    const s = await getStore(context.tx, context.scope.storeId)
+    return s ? presentStoreGeneral(s) : null
+  }),
+
+  updateGeneral: storeProcedure.input(StoreGeneralSchema).handler(async ({ context, input }) => {
+    const empty = (v: string) => (v === '' ? null : v)
+    const s = await updateStoreGeneral(context.tx, context.scope.storeId, {
+      name: input.name,
+      contactEmail: empty(input.contactEmail),
+      contactPhone: empty(input.contactPhone),
+      address: input.address,
+      gstin: empty(input.gstin),
+      timezone: input.timezone,
+    })
+    return s ? presentStoreGeneral(s) : null
   }),
 
   updateTheme: storeProcedure

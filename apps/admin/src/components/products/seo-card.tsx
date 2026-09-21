@@ -53,7 +53,7 @@ export function SeoCard({
   const url = `${storefrontOrigin}${copy.handlePrefix}${handle}`
 
   return (
-    <Card>
+    <Card size="form">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
         {!editing ? (
@@ -79,6 +79,7 @@ export function SeoCard({
             <Field>
               <FieldLabel htmlFor="seo-title">{copy.title}</FieldLabel>
               <Input
+                size="lg"
                 id="seo-title"
                 value={seoTitle}
                 onChange={(e) => onSeoTitle(e.target.value)}
@@ -91,6 +92,7 @@ export function SeoCard({
             <Field>
               <FieldLabel htmlFor="seo-description">{copy.description}</FieldLabel>
               <Textarea
+                size="lg"
                 id="seo-description"
                 value={seoDescription}
                 onChange={(e) => onSeoDescription(e.target.value)}
@@ -101,7 +103,7 @@ export function SeoCard({
             </Field>
             <Field>
               <FieldLabel htmlFor="seo-handle">{copy.handle}</FieldLabel>
-              <InputGroup>
+              <InputGroup size="lg">
                 <InputGroupAddon>
                   <InputGroupText>{copy.handlePrefix}</InputGroupText>
                 </InputGroupAddon>

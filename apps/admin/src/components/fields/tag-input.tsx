@@ -49,6 +49,7 @@ export function TagInput({ id, tags, suggestions, onChange, placeholder }: TagIn
   return (
     <div className="flex flex-col gap-2">
       <Input
+        size="lg"
         id={id}
         list={listId}
         value={draft}

@@ -44,14 +44,16 @@ export function DashboardStats({ sales, orders, pending, cancelled }: DashboardS
           <div className="border-r border-border-soft pr-4">
             <p className="text-sm text-muted-foreground">{c.stats.pendingCancelled.pending}</p>
             <div className="mt-1 flex items-end gap-2">
-              <span className="text-stat-sm text-ink-strong">{formatCompact(pending.value)}</span>
+              <span className="text-stat-sm tabular-nums text-ink-strong">
+                {formatCompact(pending.value)}
+              </span>
               <DeltaChip delta={percentDelta(pending.value, pending.previous)} invert />
             </div>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">{c.stats.pendingCancelled.cancelled}</p>
             <div className="mt-1 flex items-end gap-2">
-              <span className="text-stat-sm text-destructive">
+              <span className="text-stat-sm tabular-nums text-destructive">
                 {formatCompact(cancelled.value)}
               </span>
               <DeltaChip delta={percentDelta(cancelled.value, cancelled.previous)} invert />

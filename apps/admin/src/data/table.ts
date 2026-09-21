@@ -12,7 +12,7 @@ export const tableContent = {
   selected: (n: number, singular: string, plural: string) =>
     `${n} ${n === 1 ? singular : plural} selected`,
   clearSelection: 'Clear',
-  range: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+  range: (from: number, to: number, total: number) => `${from}-${to} of ${total}`,
   noResults: 'No results',
   previous: 'Previous page',
   next: 'Next page',

@@ -34,7 +34,7 @@ export function CustomerCard({ order }: CustomerCardProps) {
           ) : null}
         </div>
         <div className="border-t border-border pt-4">
-          <p className="text-caption mb-1">{copy.customer.address}</p>
+          <p className="text-caption text-muted-foreground-soft mb-1">{copy.customer.address}</p>
           {a ? (
             <address className="not-italic">
               <p>{a.name}</p>
@@ -48,7 +48,9 @@ export function CustomerCard({ order }: CustomerCardProps) {
           ) : (
             <p className="text-muted-foreground">{copy.customer.noAddress}</p>
           )}
-          <p className="text-caption mt-2">{copy.customer.billingSame}</p>
+          <p className="text-caption text-muted-foreground-soft mt-2">
+            {copy.customer.billingSame}
+          </p>
         </div>
       </div>
     </DataCard>

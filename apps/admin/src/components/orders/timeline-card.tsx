@@ -62,7 +62,7 @@ function buildEntries(order: OrderDetail): Entry[] {
       title: t.refund(formatPaise(r.amountPaise)),
       detail: [copy.payment.refundStatus[r.status] ?? r.status, r.reason]
         .filter(Boolean)
-        .join(' · '),
+        .join(', '),
       tone: r.status === 'failed' ? 'destructive' : undefined,
     })
   }
@@ -95,7 +95,7 @@ function buildEntries(order: OrderDetail): Entry[] {
         at: new Date(e.at),
         kind: 'shipment',
         title: t.shipment(shipmentPanelContent.status[e.status] ?? e.status),
-        detail: [e.location, e.description].filter(Boolean).join(' — ') || undefined,
+        detail: [e.location, e.description].filter(Boolean).join(', ') || undefined,
       })
     }
   }
@@ -165,7 +165,7 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
               >
                 {e.title}
               </p>
-              <p className="text-caption">
+              <p className="text-caption text-muted-foreground-soft">
                 {when(e.at)}
                 {e.detail ? ` · ${e.detail}` : ''}
               </p>

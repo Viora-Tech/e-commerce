@@ -30,7 +30,7 @@ export const productsListContent = {
   },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
-  none: '—',
+  none: '-',
   bulk: {
     setActive: 'Set as active',
     archive: 'Archive',

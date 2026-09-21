@@ -13,7 +13,7 @@ const copy = productFormContent.media
 /** Read-only for now: uploads arrive with the media library PR (extension point: `onDrop`). */
 export function MediaCard({ images }: MediaCardProps) {
   return (
-    <Card>
+    <Card size="form">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
       </CardHeader>

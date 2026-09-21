@@ -88,7 +88,7 @@ export function BandHead({ children, className }: { children: ReactNode; classNa
   return (
     <div
       className={cn(
-        'mx-5 grid h-12 items-center rounded-lg bg-primary-soft px-5 text-table-head',
+        'mx-5 grid h-12 items-center rounded-lg bg-primary-soft px-5 text-table-head uppercase text-muted-foreground',
         className,
       )}
     >

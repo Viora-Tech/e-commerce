@@ -23,7 +23,8 @@ type VariantMatrixProps = {
 const copy = productFormContent.variants.columns
 
 /** Kit table: tinted rounded header band, hairline rows (same as ResourceTable). */
-const HEAD = 'h-12 bg-primary-soft px-4 text-table-head first:rounded-l-lg last:rounded-r-lg'
+const HEAD =
+  'h-12 bg-primary-soft px-4 text-table-head uppercase text-muted-foreground first:rounded-l-lg last:rounded-r-lg'
 const CELL = 'border-b border-border-soft px-4 py-2 text-body'
 
 const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)

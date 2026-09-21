@@ -23,7 +23,7 @@ type StatusCardProps = { status: ProductStatus; onChange: (status: ProductStatus
 
 export function StatusCard({ status, onChange }: StatusCardProps) {
   return (
-    <Card>
+    <Card size="form">
       <CardHeader>
         <CardTitle>{copy.status.heading}</CardTitle>
       </CardHeader>
@@ -37,7 +37,7 @@ export function StatusCard({ status, onChange }: StatusCardProps) {
             value={status}
             onValueChange={(s) => onChange(s as ProductStatus)}
           >
-            <SelectTrigger id="product-status" className="w-full">
+            <SelectTrigger size="lg" id="product-status" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -77,7 +77,7 @@ export function OrganisationCard({
   onTags,
 }: OrganisationCardProps) {
   return (
-    <Card>
+    <Card size="form">
       <CardHeader>
         <CardTitle>{copy.organisation.heading}</CardTitle>
       </CardHeader>
@@ -113,7 +113,7 @@ export function OrganisationCard({
           </Field>
           <Field data-disabled="true">
             <FieldLabel htmlFor="product-collections">{copy.organisation.collections}</FieldLabel>
-            <Input id="product-collections" value="" readOnly disabled />
+            <Input size="lg" id="product-collections" value="" readOnly disabled />
             <FieldDescription>{copy.organisation.collectionsSoon}</FieldDescription>
           </Field>
         </FieldGroup>
