@@ -1,12 +1,34 @@
+import {
+  createProduct,
+  deleteProduct,
+  HandleSchema,
+  InvalidProduct,
+  ProductStatusSchema,
+  ProductWriteSchema,
+  uniqueHandle,
+  updateProduct as writeProduct,
+} from '@commerce/core'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
-import { getProduct, listProducts, updateProduct, updateVariant } from '../services/product.service'
+import {
+  getProduct,
+  listProducts,
+  productFacets,
+  updateProduct,
+  updateVariant,
+} from '../services/product.service'
 
-const status = z.enum(['draft', 'active', 'archived'])
-const handle = z
-  .string()
-  .trim()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (err) {
+    if (err instanceof InvalidProduct) {
+      throw new ORPCError('BAD_REQUEST', { message: err.errors.join('. ') })
+    }
+    throw err
+  }
+}
 
 export const productsRouter = {
   list: storeProcedure
@@ -15,7 +37,7 @@ export const productsRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(100).default(25),
         search: z.string().trim().max(200).optional(),
-        status: status.optional(),
+        status: ProductStatusSchema.optional(),
       }),
     )
     .handler(({ context, input }) => listProducts(context.tx, input)),
@@ -24,16 +46,42 @@ export const productsRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
 
+  facets: storeProcedure.handler(({ context }) => productFacets(context.tx)),
+
+  /** Full write from the product form: options, variants and inventory in one transaction. */
+  save: storeProcedure
+    .input(ProductWriteSchema.extend({ id: z.uuid().optional() }))
+    .handler(({ context, input: { id, ...write } }) =>
+      invalidToBadRequest(async () => {
+        const productId = id
+          ? await writeProduct(context.tx, context.scope.storeId, id, write)
+          : await createProduct(context.tx, context.scope.storeId, write)
+        return getProduct(context.tx, productId)
+      }),
+    ),
+
+  delete: storeProcedure.input(z.object({ id: z.uuid() })).handler(async ({ context, input }) => {
+    const existing = await getProduct(context.tx, input.id)
+    if (!existing) throw new ORPCError('NOT_FOUND', { message: 'Product not found' })
+    return { outcome: await deleteProduct(context.tx, input.id) }
+  }),
+
+  generateHandle: storeProcedure
+    .input(z.object({ title: z.string().trim().min(1).max(200), exceptId: z.uuid().optional() }))
+    .handler(async ({ context, input }) => ({
+      handle: await uniqueHandle(context.tx, input.title, input.exceptId),
+    })),
+
+  /** Small patches from the list page (bulk status). The form uses `save`. */
   update: storeProcedure
     .input(
       z.object({
         id: z.uuid(),
         title: z.string().trim().min(1).max(200).optional(),
-        handle: handle.optional(),
-        description: z.string().max(20000).nullable().optional(),
+        handle: HandleSchema.optional(),
         vendor: z.string().max(100).nullable().optional(),
         productType: z.string().max(100).nullable().optional(),
-        status: status.optional(),
+        status: ProductStatusSchema.optional(),
       }),
     )
     .handler(({ context, input: { id, ...patch } }) => updateProduct(context.tx, id, patch)),

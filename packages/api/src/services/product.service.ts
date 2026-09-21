@@ -1,6 +1,15 @@
 import type { StoreTx } from '@commerce/db'
-import { inventoryLevel, media, product, productMedia, variant } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
+import {
+  inventoryLevel,
+  media,
+  product,
+  productMedia,
+  productOption,
+  productOptionValue,
+  variant,
+  variantOptionValue,
+} from '@commerce/db'
+import { and, asc, count, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
@@ -88,27 +97,95 @@ export async function getProduct(tx: StoreTx, id: string) {
       id: variant.id,
       title: variant.title,
       sku: variant.sku,
+      barcode: variant.barcode,
       pricePaise: variant.pricePaise,
       mrpPaise: variant.mrpPaise,
+      costPaise: variant.costPaise,
+      taxable: variant.taxable,
+      trackInventory: variant.trackInventory,
+      weightGrams: variant.weightGrams,
+      mediaId: variant.mediaId,
       onHand: inventoryLevel.onHand,
+      reserved: inventoryLevel.reserved,
     })
     .from(variant)
     .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
-    .where(eq(variant.productId, id))
+    .where(and(eq(variant.productId, id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))
+  const options = await tx
+    .select()
+    .from(productOption)
+    .where(eq(productOption.productId, id))
+    .orderBy(asc(productOption.position))
+  const values = options.length
+    ? await tx
+        .select()
+        .from(productOptionValue)
+        .where(
+          inArray(
+            productOptionValue.optionId,
+            options.map((o) => o.id),
+          ),
+        )
+        .orderBy(asc(productOptionValue.position))
+    : []
+  const links = variants.length
+    ? await tx
+        .select()
+        .from(variantOptionValue)
+        .where(
+          inArray(
+            variantOptionValue.variantId,
+            variants.map((v) => v.id),
+          ),
+        )
+    : []
   const images = await tx
     .select({ id: media.id, url: media.url, alt: media.alt })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(eq(productMedia.productId, id))
     .orderBy(asc(productMedia.position))
-  return { ...p, variants, images }
+  const valueById = new Map(values.map((v) => [v.id, v]))
+  return {
+    ...p,
+    images,
+    options: options.map((o) => ({
+      id: o.id,
+      name: o.name,
+      values: values.filter((v) => v.optionId === o.id).map((v) => ({ id: v.id, value: v.value })),
+    })),
+    variants: variants.map((v) => ({
+      ...v,
+      /** Values in option order, so the form can rebuild the matrix row. */
+      optionValues: options.map(
+        (o) =>
+          links
+            .filter((l) => l.variantId === v.id)
+            .map((l) => valueById.get(l.optionValueId))
+            .find((val) => val?.optionId === o.id)?.value ?? '',
+      ),
+    })),
+  }
+}
+
+/** Distinct vendors, types and tags already used in the store, for autocomplete. */
+export async function productFacets(tx: StoreTx) {
+  const rows = await tx
+    .select({ vendor: product.vendor, productType: product.productType, tags: product.tags })
+    .from(product)
+  const uniq = (xs: (string | null)[]) =>
+    [...new Set(xs.filter((x): x is string => Boolean(x)))].sort((a, b) => a.localeCompare(b))
+  return {
+    vendors: uniq(rows.map((r) => r.vendor)),
+    productTypes: uniq(rows.map((r) => r.productType)),
+    tags: uniq(rows.flatMap((r) => r.tags)),
+  }
 }
 
 export type ProductPatch = {
   title?: string | undefined
   handle?: string | undefined
-  description?: string | null | undefined
   vendor?: string | null | undefined
   productType?: string | null | undefined
   status?: ProductStatus | undefined
@@ -116,7 +193,11 @@ export type ProductPatch = {
 
 export async function updateProduct(tx: StoreTx, id: string, patch: ProductPatch) {
   const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
-  const [row] = await tx.update(product).set(set).where(eq(product.id, id)).returning()
+  const [row] = await tx
+    .update(product)
+    .set({ ...set, updatedAt: new Date() })
+    .where(eq(product.id, id))
+    .returning()
   return row ?? null
 }
 

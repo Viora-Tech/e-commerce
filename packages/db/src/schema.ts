@@ -47,13 +47,18 @@ export const product = pgTable('product', {
   storeId: storeId(),
   handle: text('handle').notNull(),
   title: text('title').notNull(),
-  description: text('description'),
+  /** Lexical JSON (see @commerce/richtext). Legacy rows hold a plain string; parseRichText copes. */
+  description: jsonb('description'),
   vendor: text('vendor'),
   productType: text('product_type'),
+  tags: text('tags').array().notNull().default([]),
+  seoTitle: text('seo_title'),
+  seoDescription: text('seo_description'),
   status: text('status', { enum: ['draft', 'active', 'archived'] })
     .notNull()
     .default('draft'),
   createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 /** Structured options: Colour / Size. A variant is one combination of values. */
@@ -107,11 +112,23 @@ export const variant = pgTable('variant', {
     .notNull()
     .references(() => product.id),
   sku: text('sku'),
+  barcode: text('barcode'),
   title: text('title').notNull(),
   pricePaise: integer('price_paise').notNull(),
   mrpPaise: integer('mrp_paise'),
+  /** What the merchant paid; never shown to shoppers. */
+  costPaise: integer('cost_paise'),
+  taxable: boolean('taxable').notNull().default(true),
+  /** false = always purchasable regardless of inventory_level. */
+  trackInventory: boolean('track_inventory').notNull().default(true),
+  weightGrams: integer('weight_grams'),
   position: integer('position').notNull().default(0),
   mediaId: uuid('media_id').references(() => media.id),
+  /**
+   * Variants referenced by order lines are never deleted; removing one from
+   * the matrix archives it so old orders keep their titles and prices.
+   */
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
 })
 
 export const variantOptionValue = pgTable('variant_option_value', {
@@ -134,6 +151,21 @@ export const inventoryLevel = pgTable('inventory_level', {
     .unique(),
   onHand: integer('on_hand').notNull().default(0),
   reserved: integer('reserved').notNull().default(0),
+})
+
+/** Every change to on_hand, with why. Reconciles counts against the merchant's memory. */
+export const inventoryAdjustment = pgTable('inventory_adjustment', {
+  id: id(),
+  storeId: storeId(),
+  variantId: uuid('variant_id')
+    .notNull()
+    .references(() => variant.id),
+  delta: integer('delta').notNull(),
+  reason: text('reason', {
+    enum: ['correction', 'received', 'damaged', 'returned', 'sold', 'other'],
+  }).notNull(),
+  note: text('note'),
+  createdAt: createdAt(),
 })
 
 export const customer = pgTable('customer', {

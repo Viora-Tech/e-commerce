@@ -97,6 +97,12 @@ const reserveStock: WorkflowStep<State> = {
   async run({ ctx, lines }) {
     const reserved: Line[] = []
     for (const line of lines) {
+      // Untracked variants (made-to-order, digital) never run out: nothing to reserve.
+      const [v] = await ctx.tx
+        .select({ trackInventory: variant.trackInventory })
+        .from(variant)
+        .where(eq(variant.id, line.variantId))
+      if (v && !v.trackInventory) continue
       const rows = await ctx.tx
         .update(inventoryLevel)
         .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
