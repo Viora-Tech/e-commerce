@@ -34,6 +34,8 @@
     "shadcn": "^4.13.0",
     "@tailwindcss/typography": "^0.5.19",
     "@commerce/blocks": "workspace:*",
+    "@commerce/editor": "workspace:*",
+    "@commerce/richtext": "workspace:*",
     "@measured/puck": "^0.20.2",
     "@commerce/payments": "workspace:*",
     "@commerce/payments-razorpay": "workspace:*"
