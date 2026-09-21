@@ -345,7 +345,7 @@
 
 /*
  * Kit form scale (docs/design/admin-tokens.md, "Profile Update" frame 5:5480):
- * 18/700 card titles, 20px card padding, 15px labels, 48px inputs with a soft
+ * 16/700 card titles, 20px card padding, 13px labels, 40px inputs with a soft
  * fill and 8px radius, 24px between rows. Scoped so list/dashboard cards keep
  * their own rhythm; wrap any form page in `.kit-form`. Unlayered on purpose:
  * it has to beat the components' size utilities.
@@ -355,14 +355,14 @@
   --card-spacing: 1.25rem;
 }
 .kit-form [data-slot="card-title"] {
-  font-size: 18px;
-  line-height: 26px;
+  font-size: 16px;
+  line-height: 22px;
   font-weight: 700;
   color: var(--foreground);
 }
 .kit-form [data-slot="field-label"] {
-  font-size: 15px;
-  line-height: 18px;
+  font-size: 13px;
+  line-height: 16px;
   font-weight: 500;
   color: var(--foreground);
 }
@@ -373,10 +373,10 @@
 .kit-form [data-slot="select-trigger"],
 .kit-form [data-slot="native-select"],
 .kit-form [data-slot="input-group"] {
-  height: 3rem;
+  height: 2.5rem;
   border-radius: var(--radius);
   padding-inline: 0.75rem;
-  font-size: 15px;
+  font-size: 13px;
   background-color: var(--muted);
 }
 .kit-form [data-slot="input-group"] {
@@ -384,7 +384,7 @@
 }
 .kit-form [data-slot="input-group-control"] {
   height: 100%;
-  font-size: 15px;
+  font-size: 13px;
   background-color: transparent;
 }
 .kit-form [data-slot="input-group"]:focus-within {
@@ -393,7 +393,7 @@
 .kit-form [data-slot="textarea"] {
   border-radius: var(--radius);
   padding: 0.75rem;
-  font-size: 15px;
+  font-size: 13px;
   background-color: var(--muted);
 }
 .kit-form [data-slot="input"]:focus-visible,
@@ -403,13 +403,13 @@
 }
 .kit-form [data-slot="field-description"],
 .kit-form [data-slot="field-error"] {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 12px;
+  line-height: 16px;
 }
 /* Inline table cells keep the compact height; only standalone fields grow. */
 .kit-form table [data-slot="input"],
 .kit-form table [data-slot="input-group"] {
-  height: 2.5rem;
+  height: 2.25rem;
   background-color: transparent;
 }
 

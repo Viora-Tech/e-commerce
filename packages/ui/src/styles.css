@@ -203,45 +203,45 @@
    survive being imported from a package. */
 @layer components {
   .text-page-title {
-  font-size: 22px;
-  line-height: 28px;
+  font-size: 20px;
+  line-height: 26px;
   font-weight: 700;
   letter-spacing: 0.11px;
   color: var(--ink-strong);
   }
   .text-card-title {
-  font-size: 18px;
-  line-height: 26px;
+  font-size: 16px;
+  line-height: 22px;
   font-weight: 700;
   color: var(--foreground);
   }
   .text-stat {
-  font-size: 32px;
-  line-height: 36px;
+  font-size: 28px;
+  line-height: 32px;
   font-weight: 700;
   color: var(--ink-strong);
   font-variant-numeric: tabular-nums;
   }
   .text-stat-sm {
-  font-size: 24px;
-  line-height: 22px;
+  font-size: 20px;
+  line-height: 24px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   }
   .text-body {
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 13px;
+  line-height: 20px;
   }
   .text-caption {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 500;
   letter-spacing: -0.26px;
   color: var(--muted-foreground-soft);
   }
   .text-table-head {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 12px;
+  line-height: 16px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.02em;

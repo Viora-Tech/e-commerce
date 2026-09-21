@@ -99,7 +99,7 @@ export function TopProductsCard({ products }: { products: TopProduct[] }) {
     <DataCard
       title={c.title}
       action={
-        <Link href="/products" className="text-[13px] text-link hover:underline">
+        <Link href="/products" className="text-[12px] text-link hover:underline">
           {c.all}
         </Link>
       }
@@ -119,7 +119,7 @@ export function TopProductsCard({ products }: { products: TopProduct[] }) {
                   <span className="block truncate text-body font-bold text-ink-strong">
                     {p.title}
                   </span>
-                  <span className="block text-[13px] text-muted-foreground">
+                  <span className="block text-[12px] text-muted-foreground">
                     {c.units(p.units)}
                   </span>
                 </span>
@@ -160,7 +160,7 @@ export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; thresho
                   {r.title}
                 </span>
                 {r.variantTitle !== 'Default' ? (
-                  <span className="block text-[13px] text-muted-foreground">{r.variantTitle}</span>
+                  <span className="block text-[12px] text-muted-foreground">{r.variantTitle}</span>
                 ) : null}
               </span>
               <StatusPill tone={r.available <= 0 ? 'destructive' : 'warning'}>
@@ -168,7 +168,7 @@ export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; thresho
               </StatusPill>
               <Link
                 href={`/products/${r.productId}`}
-                className="text-[13px] font-medium text-link hover:underline"
+                className="text-[12px] font-medium text-link hover:underline"
               >
                 {c.restock}
               </Link>

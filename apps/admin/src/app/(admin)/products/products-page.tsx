@@ -161,7 +161,7 @@ function ProductsContent() {
           <Button
             render={<Link href="/products/new" />}
             nativeButton={false}
-            className="h-10 rounded-full px-4 text-[15px]"
+            className="h-10 rounded-full px-4 text-[12px]"
           >
             <Plus />
             {copy.add}

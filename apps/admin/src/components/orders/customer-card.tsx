@@ -94,7 +94,7 @@ export function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
             {tags.map((t) => (
               <li
                 key={t}
-                className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-[13px] text-foreground"
+                className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-[12px] text-foreground"
               >
                 {t}
                 <button

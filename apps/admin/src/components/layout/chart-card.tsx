@@ -42,7 +42,7 @@ export function ChartCard({ title, periods, tabs, formatValue, className }: Char
         <p className="text-card-title">{title}</p>
         <div className="flex items-center gap-4">
           {periods.length > 1 ? (
-            <div className="flex h-9 items-center rounded-full bg-muted p-1 text-[13px]">
+            <div className="flex h-9 items-center rounded-full bg-muted p-1 text-[12px]">
               {periods.map((p) => (
                 <button
                   key={p.id}

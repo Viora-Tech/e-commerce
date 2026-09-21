@@ -49,10 +49,10 @@ type AdminSidebarProps = {
 }
 
 const NAV_ITEM =
-  'h-10 gap-3 rounded-lg px-3 text-[15px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground'
+  'h-10 gap-3 rounded-lg px-3 text-[12px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground'
 
 const NAV_CHILD =
-  'h-9 rounded-md px-3 text-[14px] text-muted-foreground hover:text-foreground data-active:bg-primary-soft data-active:font-semibold data-active:text-primary'
+  'h-9 rounded-md px-3 text-[12px] text-muted-foreground hover:text-foreground data-active:bg-primary-soft data-active:font-semibold data-active:text-primary'
 
 function initials(name: string): string {
   return (
@@ -141,7 +141,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
                   <Store className="size-5" />
                 </div>
                 <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-[15px] font-bold text-foreground">
+                  <span className="truncate text-[12px] font-bold text-foreground">
                     {active?.name ?? navigationContent.pickStore}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
@@ -206,7 +206,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
             {initials(user.name)}
           </div>
           <div className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate text-[15px] font-bold text-foreground">{user.name}</span>
+            <span className="truncate text-[12px] font-bold text-foreground">{user.name}</span>
             <span className="truncate text-xs text-muted-foreground">{user.email}</span>
           </div>
           <button
@@ -223,7 +223,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
           href={storefrontUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[15px] font-medium text-foreground shadow-card hover:bg-sidebar-accent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[12px] font-medium text-foreground shadow-card hover:bg-sidebar-accent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
           <Store className="size-5 text-primary" />
           <span className="flex-1 group-data-[collapsible=icon]:hidden">
