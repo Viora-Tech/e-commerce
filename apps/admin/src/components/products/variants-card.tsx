@@ -1,20 +1,14 @@
 'use client'
 
-import { variantTitle } from '@commerce/core/catalog'
-import {
-  BlockStack,
-  Button,
-  Card,
-  Divider,
-  FormLayout,
-  IndexTable,
-  InlineStack,
-  Text,
-  TextField,
-} from '@shopify/polaris'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { productFormContent } from '@/data/products'
 import { MAX_OPTIONS, type OptionRow, type VariantRow } from './form-state'
+import { VariantMatrix } from './variant-matrix'
 
 type VariantsCardProps = {
   options: OptionRow[]
@@ -52,6 +46,9 @@ export function VariantsCard({
     options.map((o) => o.values.join(', ')),
   )
 
+  const hasOptions = options.length > 0
+  const atMax = options.length >= MAX_OPTIONS
+
   const setOption = (i: number, patch: Partial<OptionRow>) =>
     onOptions(options.map((o, j) => (j === i ? { ...o, ...patch } : o)))
 
@@ -70,140 +67,66 @@ export function VariantsCard({
     onOptions(options.filter((_, j) => j !== i))
   }
 
-  const hasOptions = options.length > 0
-
   return (
-    <Card padding="0">
-      <BlockStack gap="0">
-        <div style={{ padding: 'var(--p-space-400)' }}>
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingSm">
-              {copy.heading}
-            </Text>
-            {options.map((o, i) => (
-              <FormLayout key={o.id ?? `new-${i}`}>
-                <FormLayout.Group>
-                  <TextField
-                    label={copy.optionName}
-                    value={o.name}
-                    onChange={(name) => setOption(i, { name })}
-                    placeholder={copy.optionNamePlaceholder}
-                    autoComplete="off"
-                  />
-                  <TextField
-                    label={copy.optionValues}
-                    value={valueText[i] ?? ''}
-                    onChange={(text) => handleValues(i, text)}
-                    placeholder={copy.optionValuesPlaceholder}
-                    helpText={copy.optionValuesHelp}
-                    autoComplete="off"
-                    connectedRight={
-                      <Button tone="critical" onClick={() => removeOption(i)}>
-                        {copy.remove}
-                      </Button>
-                    }
-                  />
-                </FormLayout.Group>
-              </FormLayout>
-            ))}
-            <InlineStack gap="200" blockAlign="center">
-              <Button onClick={addOption} disabled={options.length >= MAX_OPTIONS}>
-                {hasOptions ? copy.addAnother : copy.addOption}
-              </Button>
-              {options.length >= MAX_OPTIONS ? (
-                <Text as="span" tone="subdued" variant="bodySm">
-                  {copy.maxOptions}
-                </Text>
-              ) : null}
-            </InlineStack>
-            {error ? (
-              <Text as="p" tone="critical" variant="bodySm">
-                {error}
-              </Text>
-            ) : null}
-            {variants.length > 30 ? (
-              <Text as="p" tone="subdued" variant="bodySm">
-                {copy.tooMany(variants.length)}
-              </Text>
-            ) : null}
-          </BlockStack>
-        </div>
+    <Card className="pb-0">
+      <CardHeader>
+        <CardTitle>{copy.heading}</CardTitle>
         {hasOptions ? (
-          <>
-            <Divider />
-            <IndexTable
-              itemCount={variants.length}
-              selectable={false}
-              headings={[
-                { title: copy.columns.variant },
-                { title: copy.columns.price },
-                { title: copy.columns.mrp },
-                { title: copy.columns.sku },
-                { title: copy.columns.available },
-              ]}
-            >
-              {variants.map((v, i) => (
-                <IndexTable.Row
-                  id={v.id ?? variantTitle(v.optionValues)}
-                  key={v.id ?? variantTitle(v.optionValues)}
-                  position={i}
-                >
-                  <IndexTable.Cell>
-                    <Text as="span" fontWeight="semibold">
-                      {variantTitle(v.optionValues)}
-                    </Text>
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <TextField
-                      label={copy.columns.price}
-                      labelHidden
-                      prefix="₹"
-                      type="number"
-                      min={0}
-                      value={v.price}
-                      onChange={(price) => onVariant(i, { price })}
-                      autoComplete="off"
-                    />
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <TextField
-                      label={copy.columns.mrp}
-                      labelHidden
-                      prefix="₹"
-                      type="number"
-                      min={0}
-                      value={v.mrp}
-                      onChange={(mrp) => onVariant(i, { mrp })}
-                      autoComplete="off"
-                    />
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <TextField
-                      label={copy.columns.sku}
-                      labelHidden
-                      value={v.sku}
-                      onChange={(sku) => onVariant(i, { sku })}
-                      autoComplete="off"
-                    />
-                  </IndexTable.Cell>
-                  <IndexTable.Cell>
-                    <TextField
-                      label={copy.columns.available}
-                      labelHidden
-                      type="number"
-                      min={0}
-                      value={v.quantity}
-                      disabled={!v.trackInventory}
-                      onChange={(quantity) => onVariant(i, { quantity })}
-                      autoComplete="off"
-                    />
-                  </IndexTable.Cell>
-                </IndexTable.Row>
-              ))}
-            </IndexTable>
-          </>
+          <span className="text-sm text-muted-foreground">{copy.count(variants.length)}</span>
         ) : null}
-      </BlockStack>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 pb-(--card-spacing)">
+        {options.map((o, i) => (
+          <div
+            key={o.id ?? `new-${i}`}
+            className="grid gap-3 rounded-lg border p-3 md:grid-cols-[1fr_2fr_auto] md:items-start"
+          >
+            <Field>
+              <FieldLabel htmlFor={`option-name-${i}`}>{copy.optionName}</FieldLabel>
+              <Input
+                id={`option-name-${i}`}
+                value={o.name}
+                onChange={(e) => setOption(i, { name: e.target.value })}
+                placeholder={copy.optionNamePlaceholder}
+                autoComplete="off"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`option-values-${i}`}>{copy.optionValues}</FieldLabel>
+              <Input
+                id={`option-values-${i}`}
+                value={valueText[i] ?? ''}
+                onChange={(e) => handleValues(i, e.target.value)}
+                placeholder={copy.optionValuesPlaceholder}
+                autoComplete="off"
+              />
+              <FieldDescription>{copy.optionValuesHelp}</FieldDescription>
+            </Field>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive md:mt-6"
+              onClick={() => removeOption(i)}
+              aria-label={copy.remove}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        ))}
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="outline" size="sm" onClick={addOption} disabled={atMax}>
+            <Plus />
+            {hasOptions ? copy.addAnother : copy.addOption}
+          </Button>
+          {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
+        </div>
+        {error ? <FieldError>{error}</FieldError> : null}
+        {variants.length > 30 ? (
+          <p className="text-xs text-muted-foreground">{copy.tooMany(variants.length)}</p>
+        ) : null}
+      </CardContent>
+      {hasOptions ? <VariantMatrix variants={variants} onVariant={onVariant} /> : null}
     </Card>
   )
 }

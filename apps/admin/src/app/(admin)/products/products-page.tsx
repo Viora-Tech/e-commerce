@@ -1,92 +1,112 @@
 'use client'
 
-import { Badge, ChoiceList, InlineStack, Page, Text, Thumbnail } from '@shopify/polaris'
-import { ImageIcon } from '@shopify/polaris-icons'
-import { useRouter } from 'next/navigation'
+import type { ProductStatus } from '@commerce/core/catalog'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
+import { Download, Plus, Upload } from 'lucide-react'
+import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import { ResourceTable, type ResourceTableColumn } from '@/components/polaris/resource-table'
+import { toast } from 'sonner'
+import { PageBody } from '@/components/layout/page-body'
+import { ProductStatusBadge, ProductThumb } from '@/components/products/product-badges'
+import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
+import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
 type Item = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
-const STATUS = ['draft', 'active', 'archived'] as const
 const PER_PAGE = 25
+const ALL = 'all'
+const copy = productsListContent
+const TAB =
+  'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
 
-const tone: Record<Item['status'], 'success' | 'info' | undefined> = {
-  active: 'success',
-  draft: 'info',
-  archived: undefined,
+type Query = { page: number; query: string; status: ProductStatus | null }
+
+function fetchProducts(q: Query) {
+  return api.products.list({
+    page: q.page,
+    perPage: PER_PAGE,
+    search: q.query || undefined,
+    status: q.status ?? undefined,
+  })
 }
 
-const columns: ResourceTableColumn<Item>[] = [
+const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'product',
-    title: 'Product',
+    title: copy.columns.product,
+    sortValue: (p) => p.title,
+    hideable: false,
     render: (p) => (
-      <InlineStack gap="300" blockAlign="center" wrap={false}>
-        <Thumbnail source={p.imageUrl ?? ImageIcon} alt="" size="small" />
-        <Text as="span" variant="bodyMd" fontWeight="semibold">
-          {p.title}
-        </Text>
-      </InlineStack>
+      <span className="flex items-center gap-3">
+        <ProductThumb url={p.imageUrl} />
+        <span className="font-bold text-ink-strong">{p.title}</span>
+      </span>
     ),
   },
   {
     id: 'status',
-    title: 'Status',
-    render: (p) => (
-      <Badge tone={tone[p.status]}>{p.status[0]?.toUpperCase() + p.status.slice(1)}</Badge>
-    ),
+    title: copy.columns.status,
+    sortValue: (p) => p.status,
+    render: (p) => <ProductStatusBadge status={p.status} />,
   },
   {
     id: 'inventory',
-    title: 'Inventory',
+    title: copy.columns.inventory,
+    sortValue: (p) => p.available,
     render: (p) => (
-      <Text as="span" tone={p.available === 0 ? 'critical' : undefined}>
-        {p.available} in stock for {p.variantCount} variant{p.variantCount === 1 ? '' : 's'}
-      </Text>
+      <span className={p.available === 0 ? 'text-destructive' : 'text-muted-foreground'}>
+        {copy.inventory(p.available, p.variantCount)}
+      </span>
     ),
   },
-  { id: 'type', title: 'Type', render: (p) => <Text as="span">{p.productType ?? '—'}</Text> },
-  { id: 'vendor', title: 'Vendor', render: (p) => <Text as="span">{p.vendor ?? '—'}</Text> },
+  {
+    id: 'type',
+    title: copy.columns.type,
+    sortValue: (p) => p.productType ?? '',
+    render: (p) => <span className="text-muted-foreground">{p.productType ?? copy.none}</span>,
+  },
+  {
+    id: 'vendor',
+    title: copy.columns.vendor,
+    sortValue: (p) => p.vendor ?? '',
+    render: (p) => <span className="text-muted-foreground">{p.vendor ?? copy.none}</span>,
+  },
   {
     id: 'price',
-    title: 'Price',
-    alignment: 'end',
+    title: copy.columns.price,
+    sortValue: (p) => p.minPricePaise ?? 0,
+    align: 'end',
     render: (p) => (
-      <Text as="span">{p.minPricePaise != null ? formatPaise(p.minPricePaise) : '—'}</Text>
+      <span className="font-bold text-ink-strong tabular-nums">
+        {p.minPricePaise != null ? formatPaise(p.minPricePaise) : copy.none}
+      </span>
     ),
   },
 ]
 
 function ProductsContent() {
-  const router = useRouter()
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
-      status: parseAsStringLiteral(STATUS),
+      status: parseAsStringLiteral(PRODUCT_STATUSES),
     },
     { shallow: true },
   )
   const [items, setItems] = useState<Item[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [refreshKey, setRefreshKey] = useState(0)
+
+  const { page, query, status } = q
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    void refreshKey // re-run after bulk actions
-    api.products
-      .list({
-        page: q.page,
-        perPage: PER_PAGE,
-        search: q.query || undefined,
-        status: q.status ?? undefined,
-      })
+    fetchProducts({ page, query, status })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -96,70 +116,98 @@ function ProductsContent() {
     return () => {
       cancelled = true
     }
-  }, [q.page, q.query, q.status, refreshKey])
+  }, [page, query, status])
+
+  async function bulkSetStatus(ids: string[], next: ProductStatus, clear: () => void) {
+    try {
+      await Promise.all(ids.map((id) => api.products.update({ id, status: next })))
+      toast.success(copy.bulk.updated(ids.length))
+      clear()
+      const r = await fetchProducts(q)
+      setItems(r.items)
+      setTotal(r.total)
+    } catch {
+      toast.error(copy.bulk.failed)
+    }
+  }
 
   return (
-    <Page
-      title="Products"
-      primaryAction={{ content: 'Add product', url: '/products/new' }}
-      secondaryActions={[
-        { content: 'Export', disabled: true },
-        { content: 'Import', disabled: true },
-      ]}
-    >
+    <PageBody>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs
+          value={q.status ?? ALL}
+          onValueChange={(v) => setQ({ status: v === ALL ? null : (v as ProductStatus), page: 1 })}
+        >
+          <TabsList className="h-10 rounded-full bg-card p-1 shadow-card">
+            <TabsTrigger value={ALL} className={TAB}>
+              {copy.tabs.all}
+            </TabsTrigger>
+            {PRODUCT_STATUSES.map((s) => (
+              <TabsTrigger key={s} value={s} className={TAB}>
+                {copy.status[s]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" disabled className="h-10 rounded-full px-4">
+            <Download />
+            {copy.export}
+          </Button>
+          <Button variant="outline" disabled className="h-10 rounded-full px-4">
+            <Upload />
+            {copy.import}
+          </Button>
+          <Button
+            render={<Link href="/products/new" />}
+            nativeButton={false}
+            className="h-10 rounded-full px-4 text-[15px]"
+          >
+            <Plus />
+            {copy.add}
+          </Button>
+        </div>
+      </div>
       <ResourceTable
-        resourceName={{ singular: 'product', plural: 'products' }}
+        resourceName={copy.resource}
         columns={columns}
         items={items}
         getId={(p) => p.id}
-        onRowClick={(p) => router.push(`/products/${p.id}`)}
+        href={(p) => `/products/${p.id}`}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        filters={[
-          {
-            key: 'status',
-            label: 'Status',
-            filter: (
-              <ChoiceList
-                title="Status"
-                titleHidden
-                choices={STATUS.map((s) => ({ label: s[0]?.toUpperCase() + s.slice(1), value: s }))}
-                selected={q.status ? [q.status] : []}
-                onChange={(v) =>
-                  setQ({ status: (v[0] as (typeof STATUS)[number]) ?? null, page: 1 })
-                }
-              />
-            ),
-            appliedLabel: q.status ? `Status: ${q.status}` : null,
-            onRemove: () => setQ({ status: null, page: 1 }),
-          },
-        ]}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
         page={q.page}
         perPage={PER_PAGE}
         total={total}
         onPageChange={(page) => setQ({ page })}
-        bulkActions={(ids, clear) => [
-          {
-            content: 'Set as active',
-            onAction: async () => {
-              await Promise.all(ids.map((id) => api.products.update({ id, status: 'active' })))
-              clear()
-              setRefreshKey((k) => k + 1)
-            },
-          },
-          {
-            content: 'Archive',
-            onAction: async () => {
-              await Promise.all(ids.map((id) => api.products.update({ id, status: 'archived' })))
-              clear()
-              setRefreshKey((k) => k + 1)
-            },
-          },
-        ]}
+        bulkActions={(ids, clear) => (
+          <>
+            <Button variant="outline" size="sm" onClick={() => bulkSetStatus(ids, 'active', clear)}>
+              {copy.bulk.setActive}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => bulkSetStatus(ids, 'archived', clear)}
+            >
+              {copy.bulk.archive}
+            </Button>
+          </>
+        )}
+        empty={{
+          heading: copy.empty.heading,
+          body: copy.empty.body,
+          action: (
+            <Button render={<Link href="/products/new" />} nativeButton={false}>
+              <Plus />
+              {copy.add}
+            </Button>
+          ),
+        }}
       />
-    </Page>
+    </PageBody>
   )
 }
 

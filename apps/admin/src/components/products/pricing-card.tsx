@@ -1,6 +1,9 @@
 'use client'
 
-import { BlockStack, Card, Checkbox, FormLayout, Text, TextField } from '@shopify/polaris'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { MoneyInput } from '@/components/fields/money-input'
 import { productFormContent } from '@/data/products'
 import { formatPaise } from '@/lib/money'
 import { margin, type VariantRow } from './form-state'
@@ -18,51 +21,57 @@ export function PricingCard({ variant, onChange }: PricingCardProps) {
 
   return (
     <Card>
-      <BlockStack gap="300">
-        <Text as="h2" variant="headingSm">
-          {copy.heading}
-        </Text>
-        <FormLayout>
-          <FormLayout.Group>
-            <TextField
-              label={copy.price}
-              prefix="₹"
-              type="number"
-              min={0}
-              value={variant.price}
-              onChange={(price) => onChange({ price })}
-              autoComplete="off"
-              requiredIndicator
+      <CardHeader>
+        <CardTitle>{copy.heading}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FieldGroup>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="variant-price">
+                {copy.price}
+                <span aria-hidden="true">*</span>
+              </FieldLabel>
+              <MoneyInput
+                id="variant-price"
+                value={variant.price}
+                onChange={(price) => onChange({ price })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="variant-mrp">{copy.mrp}</FieldLabel>
+              <MoneyInput
+                id="variant-mrp"
+                value={variant.mrp}
+                onChange={(mrp) => onChange({ mrp })}
+              />
+            </Field>
+          </div>
+          <Field orientation="horizontal">
+            <Checkbox
+              id="variant-taxable"
+              checked={variant.taxable}
+              onCheckedChange={(taxable) => onChange({ taxable: Boolean(taxable) })}
             />
-            <TextField
-              label={copy.mrp}
-              prefix="₹"
-              type="number"
-              min={0}
-              value={variant.mrp}
-              onChange={(mrp) => onChange({ mrp })}
-              autoComplete="off"
-            />
-          </FormLayout.Group>
-          <Checkbox
-            label={copy.taxable}
-            checked={variant.taxable}
-            onChange={(taxable) => onChange({ taxable })}
-          />
-          <FormLayout.Group>
-            <TextField
-              label={copy.cost}
-              prefix="₹"
-              type="number"
-              min={0}
-              value={variant.cost}
-              onChange={(cost) => onChange({ cost })}
-              autoComplete="off"
-              helpText={m ? copy.margin(`${m.pct}%`, formatPaise(m.profitPaise)) : copy.costHelp}
-            />
-          </FormLayout.Group>
-        </FormLayout>
-      </BlockStack>
+            <FieldLabel htmlFor="variant-taxable" className="font-normal">
+              {copy.taxable}
+            </FieldLabel>
+          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="variant-cost">{copy.cost}</FieldLabel>
+              <MoneyInput
+                id="variant-cost"
+                value={variant.cost}
+                onChange={(cost) => onChange({ cost })}
+              />
+              <FieldDescription>
+                {m ? copy.margin(`${m.pct}%`, formatPaise(m.profitPaise)) : copy.costHelp}
+              </FieldDescription>
+            </Field>
+          </div>
+        </FieldGroup>
+      </CardContent>
     </Card>
   )
 }
