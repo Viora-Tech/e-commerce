@@ -1,11 +1,13 @@
 'use client'
 
+import type { PaymentAdjustment } from '@commerce/core'
 import {
   Badge,
   Banner,
   BlockStack,
   Card,
   Checkbox,
+  Divider,
   FormLayout,
   InlineStack,
   Layout,
@@ -15,14 +17,21 @@ import {
   Toast,
 } from '@shopify/polaris'
 import { useEffect, useState } from 'react'
+import { PaymentAdjustmentFields } from '@/components/settings/payment-adjustment-fields'
+import { paymentsSettingsContent as copy } from '@/data/payments'
 import { api } from '@/lib/api-client'
 
 type Data = Awaited<ReturnType<typeof api.store.getPayments>>
+type Providers = Record<string, Record<string, string>>
+type Adjustments = Record<string, PaymentAdjustment>
+
+const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
 export function PaymentsSettings() {
   const [data, setData] = useState<Data | null>(null)
   const [enabled, setEnabled] = useState<string[]>([])
-  const [providers, setProviders] = useState<Record<string, Record<string, string>>>({})
+  const [providers, setProviders] = useState<Providers>({})
+  const [adjustments, setAdjustments] = useState<Adjustments>({})
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +41,7 @@ export function PaymentsSettings() {
       setData(d)
       setEnabled(d.settings.enabled)
       setProviders(d.settings.providers)
+      setAdjustments(d.settings.adjustments)
     })
   }, [])
 
@@ -39,14 +49,15 @@ export function PaymentsSettings() {
     setBusy(true)
     setError(null)
     try {
-      const saved = await api.store.updatePayments({ enabled, providers })
+      const saved = await api.store.updatePayments({ enabled, providers, adjustments })
       if (saved) {
         setEnabled(saved.enabled)
         setProviders(saved.providers)
+        setAdjustments(saved.adjustments)
       }
-      setToast('Payment settings saved')
+      setToast(copy.saved)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
+      setError(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
       setBusy(false)
     }
@@ -56,19 +67,24 @@ export function PaymentsSettings() {
     setEnabled((e) => (on ? [...new Set([...e, id])] : e.filter((x) => x !== id)))
   const setField = (id: string, key: string, value: string) =>
     setProviders((p) => ({ ...p, [id]: { ...(p[id] ?? {}), [key]: value } }))
+  const setAdjustment = (id: string, adj: PaymentAdjustment | undefined) =>
+    setAdjustments((a) => {
+      const { [id]: _drop, ...rest } = a
+      return adj ? { ...rest, [id]: adj } : rest
+    })
 
   return (
     <Page
-      title="Payments"
-      backAction={{ content: 'Settings', url: '/settings' }}
-      primaryAction={{ content: 'Save', onAction: save, loading: busy, disabled: !data }}
+      title={copy.title}
+      backAction={{ content: copy.back, url: '/settings' }}
+      primaryAction={{ content: copy.save, onAction: save, loading: busy, disabled: !data }}
     >
       {toast ? <Toast content={toast} onDismiss={() => setToast(null)} /> : null}
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             {error ? (
-              <Banner tone="critical" title="Could not save">
+              <Banner tone="critical" title={copy.couldNotSave}>
                 <p>{error}</p>
               </Banner>
             ) : null}
@@ -82,9 +98,17 @@ export function PaymentsSettings() {
                         <Text as="h2" variant="headingSm">
                           {m.label}
                         </Text>
-                        {on ? <Badge tone="success">Active</Badge> : <Badge>Off</Badge>}
+                        {on ? (
+                          <Badge tone="success">{copy.active}</Badge>
+                        ) : (
+                          <Badge>{copy.off}</Badge>
+                        )}
                       </InlineStack>
-                      <Checkbox label="Enabled" checked={on} onChange={(v) => toggle(m.id, v)} />
+                      <Checkbox
+                        label={copy.enabled}
+                        checked={on}
+                        onChange={(v) => toggle(m.id, v)}
+                      />
                     </InlineStack>
                     {m.fields.length > 0 ? (
                       <FormLayout>
@@ -107,26 +131,31 @@ export function PaymentsSettings() {
                               value={providers[m.id]?.[f.key] ?? ''}
                               onChange={(v) => setField(m.id, f.key, v)}
                               autoComplete="off"
-                              helpText={
-                                f.secret
-                                  ? 'Stored encrypted. Leave the masked value to keep it.'
-                                  : f.help
-                              }
+                              helpText={f.secret ? copy.secretHelp : f.help}
                             />
                           ),
                         )}
                         {m.id === 'razorpay' ? (
                           <Text as="p" tone="subdued" variant="bodySm">
-                            Webhook URL for the Razorpay dashboard:{' '}
-                            <code>{`${process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'}/webhooks/payments/razorpay/<store id>`}</code>
+                            {copy.webhookHint}{' '}
+                            <code>{`${WORKER_URL}/webhooks/payments/razorpay/<store id>`}</code>
                           </Text>
                         ) : null}
                       </FormLayout>
                     ) : (
                       <Text as="p" tone="subdued">
-                        No configuration needed.
+                        {copy.noConfig}
                       </Text>
                     )}
+                    {on ? (
+                      <>
+                        <Divider />
+                        <PaymentAdjustmentFields
+                          value={adjustments[m.id]}
+                          onChange={(adj) => setAdjustment(m.id, adj)}
+                        />
+                      </>
+                    ) : null}
                   </BlockStack>
                 </Card>
               )

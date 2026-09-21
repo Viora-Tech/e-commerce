@@ -173,3 +173,13 @@ h3 {
   margin-top: 0.35rem;
   color: var(--color-accent);
 }
+.checkout__option-label {
+  flex: 1;
+}
+.checkout__adjustment {
+  opacity: 0.75;
+}
+.checkout__adjustment--discount {
+  color: var(--color-accent);
+  opacity: 1;
+}

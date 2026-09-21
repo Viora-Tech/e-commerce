@@ -20,6 +20,8 @@ import type {
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
+import { applyPaymentAdjustment } from '../payments/adjustments'
+import { parsePaymentSettings } from '../payments/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
 export type CheckoutDetails = {
@@ -58,6 +60,8 @@ type State = {
   reserved: Line[]
   orderId: string | null
   orderNumber: number | null
+  /** Subtotal plus the payment-method fee or discount; what the provider is asked to charge. */
+  totalPaise: number
   providerRef: string | null
   paymentStatus: PaymentStatus | null
   session: CheckoutSession | null
@@ -149,10 +153,14 @@ const createOrder: WorkflowStep<State> = {
       .update(store)
       .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
       .where(eq(store.id, ctx.storeId))
-      .returning({ next: store.nextOrderNumber })
+      .returning({ next: store.nextOrderNumber, payments: store.payments })
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const orderNumber = s.next - 1
     const subtotalPaise = sumPaise(lines)
+    // The merchant's fee or discount for this method is applied server-side
+    // here; the checkout preview is only ever a hint.
+    const adjustment = parsePaymentSettings(s.payments).adjustments[input.paymentProvider.id]
+    const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(subtotalPaise, adjustment)
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -160,7 +168,9 @@ const createOrder: WorkflowStep<State> = {
         number: orderNumber,
         status: 'placed',
         subtotalPaise,
-        totalPaise: subtotalPaise,
+        paymentAdjustmentPaise: adjustmentPaise,
+        paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,
+        totalPaise,
         customerId,
         shippingAddressId,
         email: input.checkout?.email ?? null,
@@ -180,7 +190,7 @@ const createOrder: WorkflowStep<State> = {
         unitPricePaise: l.unitPricePaise,
       })),
     )
-    return { orderId: o.id, orderNumber }
+    return { orderId: o.id, orderNumber, totalPaise }
   },
   async compensate({ ctx, orderId }) {
     if (!orderId) return
@@ -204,13 +214,13 @@ function toPaymentShipping(co: CheckoutDetails): PaymentShipping {
 /** External side effect only. Kept separate so a later DB failure still triggers the refund. */
 const chargePayment: WorkflowStep<State> = {
   name: 'chargePayment',
-  async run({ ctx, input, lines, orderId, orderNumber }) {
+  async run({ ctx, input, lines, orderId, orderNumber, totalPaise }) {
     if (!orderId) throw new Error('chargePayment before createOrder')
     try {
       const result = await input.paymentProvider.createPayment({
         orderId,
         orderNumber: orderNumber ?? undefined,
-        amountPaise: sumPaise(lines),
+        amountPaise: totalPaise,
         currency: 'INR',
         customer: {
           email: input.checkout?.email,
@@ -236,18 +246,18 @@ const chargePayment: WorkflowStep<State> = {
       throw new PaymentFailed(input.paymentProvider.id, cause, ctx.storeId)
     }
   },
-  async compensate({ input, lines, providerRef, paymentStatus }) {
+  async compensate({ input, totalPaise, providerRef, paymentStatus }) {
     // Only money actually taken needs returning. providerRef doubles as the
     // payment id for providers that capture at creation.
     if (providerRef && paymentStatus !== 'pending' && paymentStatus !== 'failed') {
-      await input.paymentProvider.refund(providerRef, sumPaise(lines))
+      await input.paymentProvider.refund(providerRef, totalPaise)
     }
   },
 }
 
 const recordPayment: WorkflowStep<State> = {
   name: 'recordPayment',
-  async run({ ctx, input, lines, orderId, providerRef, paymentStatus, session }) {
+  async run({ ctx, input, totalPaise, orderId, providerRef, paymentStatus, session }) {
     if (!orderId || !paymentStatus) throw new Error('recordPayment before chargePayment')
     await ctx.tx.insert(payment).values({
       storeId: ctx.storeId,
@@ -257,7 +267,7 @@ const recordPayment: WorkflowStep<State> = {
       providerPaymentId: paymentStatus === 'captured' ? providerRef : null,
       checkoutSession: session,
       status: paymentStatus === 'authorized' ? 'pending' : paymentStatus,
-      amountPaise: sumPaise(lines),
+      amountPaise: totalPaise,
     })
     if (paymentStatus === 'captured') {
       await ctx.tx.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
@@ -293,6 +303,7 @@ export async function placeOrder(
       reserved: [],
       orderId: null,
       orderNumber: null,
+      totalPaise: 0,
       providerRef: null,
       paymentStatus: null,
       session: null,

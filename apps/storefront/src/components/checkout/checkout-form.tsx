@@ -2,44 +2,17 @@
 
 import { formatPaise } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
+import { applyPaymentAdjustment, formatPaymentAdjustment } from '@commerce/core/adjustments'
 import { useState, useTransition } from 'react'
+import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
 import { checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
+import type { CheckoutMethod } from '@/lib/payments'
 
-const STATES: readonly [string, string][] = [
-  ['AP', 'Andhra Pradesh'],
-  ['AR', 'Arunachal Pradesh'],
-  ['AS', 'Assam'],
-  ['BR', 'Bihar'],
-  ['CG', 'Chhattisgarh'],
-  ['CH', 'Chandigarh'],
-  ['DL', 'Delhi'],
-  ['GA', 'Goa'],
-  ['GJ', 'Gujarat'],
-  ['HR', 'Haryana'],
-  ['HP', 'Himachal Pradesh'],
-  ['JK', 'Jammu and Kashmir'],
-  ['JH', 'Jharkhand'],
-  ['KA', 'Karnataka'],
-  ['KL', 'Kerala'],
-  ['LA', 'Ladakh'],
-  ['MP', 'Madhya Pradesh'],
-  ['MH', 'Maharashtra'],
-  ['MN', 'Manipur'],
-  ['ML', 'Meghalaya'],
-  ['MZ', 'Mizoram'],
-  ['NL', 'Nagaland'],
-  ['OD', 'Odisha'],
-  ['PY', 'Puducherry'],
-  ['PB', 'Punjab'],
-  ['RJ', 'Rajasthan'],
-  ['SK', 'Sikkim'],
-  ['TN', 'Tamil Nadu'],
-  ['TS', 'Telangana'],
-  ['TR', 'Tripura'],
-  ['UP', 'Uttar Pradesh'],
-  ['UK', 'Uttarakhand'],
-  ['WB', 'West Bengal'],
-]
+type CheckoutFormProps = {
+  storeId: string
+  cart: CartView
+  methods: CheckoutMethod[]
+}
 
 type FieldProps = {
   label: string
@@ -50,6 +23,23 @@ type FieldProps = {
   pattern?: string
   autoComplete?: string
 }
+
+type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
+
+const EMPTY_FORM: Omit<Form, 'payment'> = {
+  name: '',
+  email: '',
+  phone: '',
+  line1: '',
+  line2: '',
+  city: '',
+  stateCode: 'HR',
+  pincode: '',
+}
+
+/** "+₹49.00" / "−₹99.98" for the summary row; the option row uses the compact "+₹49" / "−2%". */
+const formatSigned = (paise: number): string =>
+  `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
 
 function Field({
   label,
@@ -76,52 +66,43 @@ function Field({
   )
 }
 
-export function CheckoutForm({
-  storeId,
-  cart,
-  methods,
-}: {
-  storeId: string
-  cart: CartView
-  methods: { id: string; label: string }[]
-}) {
+export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
   const [pending, start] = useTransition()
-  const [form, setForm] = useState<Form>({
-    name: '',
-    email: '',
-    phone: '',
-    line1: '',
-    line2: '',
-    city: '',
-    stateCode: 'HR',
-    pincode: '',
-    payment: methods[0]?.id ?? 'cod',
-  })
-  const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }))
+  const [form, setForm] = useState<Form>({ ...EMPTY_FORM, payment: methods[0]?.id ?? 'cod' })
+
+  // Preview only: placeOrder recomputes the adjustment server-side from store settings.
+  const selected = methods.find((m) => m.id === form.payment)
+  const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(
+    cart.subtotalPaise,
+    selected?.adjustment,
+  )
+  const f = content.fields
+
+  const set =
+    (k: keyof Form): ChangeHandler =>
+    (e) =>
+      setForm((prev) => ({ ...prev, [k]: e.target.value }))
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    start(() => checkoutAction(storeId, form))
+  }
 
   return (
     <section className="section-cart page-width">
-      <h1 className="cart-page__title h2">Checkout</h1>
-      <form
-        className="cart-layout"
-        onSubmit={(e) => {
-          e.preventDefault()
-          start(() => checkoutAction(storeId, form))
-        }}
-      >
+      <h1 className="cart-page__title h2">{content.title}</h1>
+      <form className="cart-layout" onSubmit={handleSubmit}>
         <div className="cart-layout__lines">
           <fieldset className="checkout__group">
-            <legend className="h4">Contact</legend>
+            <legend className="h4">{content.contact}</legend>
             <Field
-              label="Name"
+              label={f.name}
               required
               autoComplete="name"
               value={form.name}
               onChange={set('name')}
             />
             <Field
-              label="Email"
+              label={f.email}
               type="email"
               required
               autoComplete="email"
@@ -129,7 +110,7 @@ export function CheckoutForm({
               onChange={set('email')}
             />
             <Field
-              label="Phone"
+              label={f.phone}
               type="tel"
               required
               pattern="[0-9]{10}"
@@ -140,32 +121,32 @@ export function CheckoutForm({
           </fieldset>
 
           <fieldset className="checkout__group">
-            <legend className="h4">Delivery address</legend>
+            <legend className="h4">{content.address}</legend>
             <Field
-              label="Address"
+              label={f.line1}
               required
               autoComplete="address-line1"
               value={form.line1}
               onChange={set('line1')}
             />
             <Field
-              label="Apartment, landmark (optional)"
+              label={f.line2}
               autoComplete="address-line2"
               value={form.line2}
               onChange={set('line2')}
             />
             <div className="checkout__row">
               <Field
-                label="City"
+                label={f.city}
                 required
                 autoComplete="address-level2"
                 value={form.city}
                 onChange={set('city')}
               />
               <label className="field">
-                <span className="field__label text-small">State</span>
+                <span className="field__label text-small">{f.state}</span>
                 <select className="field__input" value={form.stateCode} onChange={set('stateCode')}>
-                  {STATES.map(([code, name]) => (
+                  {INDIAN_STATES.map(([code, name]) => (
                     <option key={code} value={code}>
                       {name}
                     </option>
@@ -173,7 +154,7 @@ export function CheckoutForm({
                 </select>
               </label>
               <Field
-                label="Pincode"
+                label={f.pincode}
                 required
                 pattern="[1-9][0-9]{5}"
                 autoComplete="postal-code"
@@ -184,7 +165,7 @@ export function CheckoutForm({
           </fieldset>
 
           <fieldset className="checkout__group">
-            <legend className="h4">Payment</legend>
+            <legend className="h4">{content.payment}</legend>
             {methods.map((m) => (
               <label key={m.id} className="checkout__option">
                 <input
@@ -194,7 +175,14 @@ export function CheckoutForm({
                   checked={form.payment === m.id}
                   onChange={set('payment')}
                 />
-                <span>{m.label}</span>
+                <span className="checkout__option-label">{m.label}</span>
+                {m.adjustment && m.adjustment.value !== 0 ? (
+                  <span
+                    className={`checkout__adjustment text-small${m.adjustment.value < 0 ? ' checkout__adjustment--discount' : ''}`}
+                  >
+                    {formatPaymentAdjustment(m.adjustment)}
+                  </span>
+                ) : null}
               </label>
             ))}
           </fieldset>
@@ -202,7 +190,7 @@ export function CheckoutForm({
 
         <aside className="cart-layout__summary">
           <div className="cart-summary">
-            <h2 className="cart-summary__heading h4">Order summary</h2>
+            <h2 className="cart-summary__heading h4">{content.summary}</h2>
             {cart.lines.map((l) => (
               <div key={l.id} className="cart-summary__row">
                 <span>
@@ -211,9 +199,23 @@ export function CheckoutForm({
                 <span>{formatPaise(l.linePaise)}</span>
               </div>
             ))}
+            {adjustmentPaise !== 0 ? (
+              <>
+                <div className="cart-summary__row">
+                  <span>{content.subtotal}</span>
+                  <span>{formatPaise(cart.subtotalPaise)}</span>
+                </div>
+                <div className="cart-summary__row">
+                  <span>
+                    {selected?.adjustment?.label || content.adjustmentFallback(adjustmentPaise)}
+                  </span>
+                  <span>{formatSigned(adjustmentPaise)}</span>
+                </div>
+              </>
+            ) : null}
             <div className="cart-summary__row cart-summary__row--total">
-              <span>Total</span>
-              <span>{formatPaise(cart.subtotalPaise)}</span>
+              <span>{content.total}</span>
+              <span>{formatPaise(totalPaise)}</span>
             </div>
             <button
               type="submit"
@@ -221,7 +223,7 @@ export function CheckoutForm({
               disabled={pending}
             >
               <span className="btn__label">
-                {form.payment === 'cod' ? 'Place order' : 'Continue to payment'}
+                {form.payment === 'cod' ? content.placeOrder : content.continueToPayment}
               </span>
             </button>
           </div>

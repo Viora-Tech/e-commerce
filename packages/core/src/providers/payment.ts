@@ -11,13 +11,17 @@ export type { PaymentProvider, PaymentStatus } from '@commerce/payments'
 
 /** Test double on the shared contract. `capture` mode captures at creation; `fail` throws. */
 export class FakePaymentProvider implements PaymentProvider {
-  readonly id = 'fake'
+  readonly id: string
   readonly label = 'Test gateway'
   readonly calls: string[] = []
   private counter = 0
   private readonly captured = new Set<string>()
 
-  constructor(private readonly opts: { mode: 'capture' | 'fail' } = { mode: 'capture' }) {}
+  constructor(
+    private readonly opts: { mode: 'capture' | 'fail'; id?: string } = { mode: 'capture' },
+  ) {
+    this.id = opts.id ?? 'fake'
+  }
 
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
     this.calls.push(`createPayment:${input.orderId}:${input.amountPaise}`)

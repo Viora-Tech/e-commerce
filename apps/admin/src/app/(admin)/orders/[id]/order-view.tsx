@@ -87,6 +87,18 @@ export function OrderView({ order }: { order: Order }) {
                   <Text as="span">Shipping</Text>
                   <Text as="span">{formatPaise(order.shippingPaise)}</Text>
                 </InlineStack>
+                {order.paymentAdjustmentPaise !== 0 ? (
+                  <InlineStack align="space-between">
+                    <Text as="span">
+                      {order.paymentAdjustmentLabel ??
+                        (order.paymentAdjustmentPaise < 0 ? 'Payment discount' : 'Payment fee')}
+                    </Text>
+                    <Text as="span">
+                      {order.paymentAdjustmentPaise < 0 ? '−' : '+'}
+                      {formatPaise(Math.abs(order.paymentAdjustmentPaise))}
+                    </Text>
+                  </InlineStack>
+                ) : null}
                 <InlineStack align="space-between">
                   <Text as="span" fontWeight="semibold">
                     Total

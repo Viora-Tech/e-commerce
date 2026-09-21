@@ -59,6 +59,6 @@ describe('payment settings', () => {
   })
 
   it('falls back to COD only when settings are missing', () => {
-    expect(parsePaymentSettings(null)).toEqual({ enabled: ['cod'], providers: {} })
+    expect(parsePaymentSettings(null)).toEqual({ enabled: ['cod'], providers: {}, adjustments: {} })
   })
 })

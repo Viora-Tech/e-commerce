@@ -3,16 +3,23 @@ import { z } from 'zod'
 import { codFactory } from '../providers/cod'
 import { manualFactory } from '../providers/manual'
 import { decryptSecret, encryptSecret, isEncrypted } from '../secrets'
+import { PaymentAdjustmentSchema } from './adjustments'
 
 /** Stored on store.payments. Secret fields are encrypted before they reach the row. */
 export const PaymentSettingsSchema = z.object({
   /** Methods shown at checkout, in order. 'cod' is built in; others must be registered. */
   enabled: z.array(z.string().min(1)).default(['cod']),
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
+  /** Optional fee or discount per method id, applied to the order total at checkout. */
+  adjustments: z.record(z.string(), PaymentAdjustmentSchema).default({}),
 })
 export type PaymentSettings = z.infer<typeof PaymentSettingsSchema>
 
-export const defaultPaymentSettings: PaymentSettings = { enabled: ['cod'], providers: {} }
+export const defaultPaymentSettings: PaymentSettings = {
+  enabled: ['cod'],
+  providers: {},
+  adjustments: {},
+}
 
 export function parsePaymentSettings(raw: unknown): PaymentSettings {
   const r = PaymentSettingsSchema.safeParse(raw)

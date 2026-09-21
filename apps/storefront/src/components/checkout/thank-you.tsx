@@ -10,6 +10,10 @@ type ThankYouTemplateProps = {
   payment: typeof payment.$inferSelect | undefined
 }
 
+/** "+₹49.00" / "−₹99.98" for the fee or discount row. */
+const formatSigned = (paise: number): string =>
+  `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
+
 function statusLine(
   method: string | null,
   awaiting: boolean,
@@ -46,6 +50,18 @@ export function ThankYouTemplate({ order: o, lines, payment: pay }: ThankYouTemp
               <span>{formatPaise(l.quantity * l.unitPricePaise)}</span>
             </li>
           ))}
+          {o.paymentAdjustmentPaise !== 0 ? (
+            <li className="cart-summary__row">
+              <span>
+                {o.paymentAdjustmentLabel ?? content.adjustmentFallback(o.paymentAdjustmentPaise)}
+              </span>
+              <span>{formatSigned(o.paymentAdjustmentPaise)}</span>
+            </li>
+          ) : null}
+          <li className="cart-summary__row cart-summary__row--total">
+            <span>{content.total}</span>
+            <span>{total}</span>
+          </li>
         </ul>
         {awaiting && session?.kind === 'client' ? (
           <a href={`/checkout/pay/${o.number}`} className="btn btn--primary">

@@ -127,6 +127,13 @@
       "when": 1789932396727,
       "tag": "0017_payment_session",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789968207130,
+      "tag": "0018_payment_adjustment",
+      "breakpoints": true
     }
   ]
 }

@@ -189,6 +189,9 @@ export const order = pgTable('order', {
     .default('placed'),
   subtotalPaise: integer('subtotal_paise').notNull(),
   shippingPaise: integer('shipping_paise').notNull().default(0),
+  /** Fee (+) or discount (−) for the chosen payment method, already inside total_paise. */
+  paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
+  paymentAdjustmentLabel: text('payment_adjustment_label'),
   totalPaise: integer('total_paise').notNull(),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
 })

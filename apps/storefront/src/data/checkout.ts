@@ -14,6 +14,10 @@ export const thankYouContent = {
   },
   payNow: 'Pay now',
   continueShopping: 'Continue shopping',
+  subtotal: 'Subtotal',
+  total: 'Total',
+  /** Fallback label for a fee/discount row when the merchant left the label blank. */
+  adjustmentFallback: (paise: number) => (paise < 0 ? 'Payment discount' : 'Payment fee'),
   lineTitle: (title: string | null, variant: string | null) =>
     variant && variant !== 'Default' ? `${title ?? ''} / ${variant}` : (title ?? ''),
 } as const
@@ -41,3 +45,62 @@ export const manualPaymentContent = {
 
 /** Pixel size of the rendered UPI QR on the thank-you page. */
 export const UPI_QR_SIZE = 220
+
+export const checkoutContent = {
+  title: 'Checkout',
+  contact: 'Contact',
+  address: 'Delivery address',
+  payment: 'Payment',
+  summary: 'Order summary',
+  subtotal: 'Subtotal',
+  total: 'Total',
+  placeOrder: 'Place order',
+  continueToPayment: 'Continue to payment',
+  fields: {
+    name: 'Name',
+    email: 'Email',
+    phone: 'Phone',
+    line1: 'Address',
+    line2: 'Apartment, landmark (optional)',
+    city: 'City',
+    state: 'State',
+    pincode: 'Pincode',
+  },
+  adjustmentFallback: thankYouContent.adjustmentFallback,
+} as const
+
+export const INDIAN_STATES: readonly [string, string][] = [
+  ['AP', 'Andhra Pradesh'],
+  ['AR', 'Arunachal Pradesh'],
+  ['AS', 'Assam'],
+  ['BR', 'Bihar'],
+  ['CG', 'Chhattisgarh'],
+  ['CH', 'Chandigarh'],
+  ['DL', 'Delhi'],
+  ['GA', 'Goa'],
+  ['GJ', 'Gujarat'],
+  ['HR', 'Haryana'],
+  ['HP', 'Himachal Pradesh'],
+  ['JK', 'Jammu and Kashmir'],
+  ['JH', 'Jharkhand'],
+  ['KA', 'Karnataka'],
+  ['KL', 'Kerala'],
+  ['LA', 'Ladakh'],
+  ['MP', 'Madhya Pradesh'],
+  ['MH', 'Maharashtra'],
+  ['MN', 'Manipur'],
+  ['ML', 'Meghalaya'],
+  ['MZ', 'Mizoram'],
+  ['NL', 'Nagaland'],
+  ['OD', 'Odisha'],
+  ['PY', 'Puducherry'],
+  ['PB', 'Punjab'],
+  ['RJ', 'Rajasthan'],
+  ['SK', 'Sikkim'],
+  ['TN', 'Tamil Nadu'],
+  ['TS', 'Telangana'],
+  ['TR', 'Tripura'],
+  ['UP', 'Uttar Pradesh'],
+  ['UK', 'Uttarakhand'],
+  ['WB', 'West Bengal'],
+]
