@@ -21,6 +21,27 @@ export type CreatePaymentInput = {
   customer: PaymentCustomer
   /** Where the gateway should send the shopper afterwards, for redirect flows. */
   returnUrl?: string | undefined
+  /** Delivery address; EMI/BNPL providers use it for risk checks. */
+  shipping?: PaymentShipping | undefined
+  /** Basket summary; gateways forward it to lenders and show it on their pages. */
+  lines?: PaymentLine[] | undefined
+}
+
+export type PaymentShipping = {
+  name: string
+  line1: string
+  line2?: string | undefined
+  city: string
+  state: string
+  postalCode: string
+  /** ISO 3166-1 alpha-2. */
+  country: string
+}
+
+export type PaymentLine = {
+  title: string
+  quantity: number
+  unitPricePaise: number
 }
 
 /**
@@ -146,6 +167,8 @@ export type ProviderField = {
   secret?: boolean
   required?: boolean
   multiline?: boolean
+  /** `boolean` renders a checkbox and stores 'true' | 'false'. Defaults to text. */
+  type?: 'text' | 'boolean'
   help?: string
 }
 

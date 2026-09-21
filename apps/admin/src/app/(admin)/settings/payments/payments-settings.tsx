@@ -88,23 +88,33 @@ export function PaymentsSettings() {
                     </InlineStack>
                     {m.fields.length > 0 ? (
                       <FormLayout>
-                        {m.fields.map((f) => (
-                          <TextField
-                            key={f.key}
-                            label={f.label}
-                            type={f.secret ? 'password' : 'text'}
-                            multiline={f.multiline ? 3 : undefined}
-                            requiredIndicator={f.required}
-                            value={providers[m.id]?.[f.key] ?? ''}
-                            onChange={(v) => setField(m.id, f.key, v)}
-                            autoComplete="off"
-                            helpText={
-                              f.secret
-                                ? 'Stored encrypted. Leave the masked value to keep it.'
-                                : f.help
-                            }
-                          />
-                        ))}
+                        {m.fields.map((f) =>
+                          f.type === 'boolean' ? (
+                            <Checkbox
+                              key={f.key}
+                              label={f.label}
+                              helpText={f.help}
+                              checked={providers[m.id]?.[f.key] === 'true'}
+                              onChange={(v) => setField(m.id, f.key, v ? 'true' : 'false')}
+                            />
+                          ) : (
+                            <TextField
+                              key={f.key}
+                              label={f.label}
+                              type={f.secret ? 'password' : 'text'}
+                              multiline={f.multiline ? 3 : undefined}
+                              requiredIndicator={f.required}
+                              value={providers[m.id]?.[f.key] ?? ''}
+                              onChange={(v) => setField(m.id, f.key, v)}
+                              autoComplete="off"
+                              helpText={
+                                f.secret
+                                  ? 'Stored encrypted. Leave the masked value to keep it.'
+                                  : f.help
+                              }
+                            />
+                          ),
+                        )}
                         {m.id === 'razorpay' ? (
                           <Text as="p" tone="subdued" variant="bodySm">
                             Webhook URL for the Razorpay dashboard:{' '}

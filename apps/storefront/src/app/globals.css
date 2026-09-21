@@ -169,3 +169,7 @@ h3 {
   margin-top: 1rem;
   white-space: pre-line;
 }
+.emi-hint {
+  margin-top: 0.35rem;
+  color: var(--color-accent);
+}

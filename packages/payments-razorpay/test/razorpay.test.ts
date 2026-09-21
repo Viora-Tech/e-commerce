@@ -1,7 +1,12 @@
 import { createHmac } from 'node:crypto'
 import { describePaymentProvider } from '@commerce/payments/testing'
 import { describe, expect, it } from 'vitest'
-import { RazorpayProvider, razorpayFactory } from '../src/razorpay'
+import {
+  buildDisplayConfig,
+  buildOrderNotes,
+  RazorpayProvider,
+  razorpayFactory,
+} from '../src/razorpay'
 
 const live = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
 const config = {
@@ -77,5 +82,75 @@ describe('razorpay specifics', () => {
   it('validates config', () => {
     expect(razorpayFactory.validateConfig({}).ok).toBe(false)
     expect(razorpayFactory.validateConfig(config).ok).toBe(true)
+  })
+
+  it('reads enableEmi from a form string', () => {
+    const r = razorpayFactory.validateConfig({ ...config, enableEmi: 'true' })
+    expect(r.ok && r.config.enableEmi).toBe(true)
+    const off = razorpayFactory.validateConfig(config)
+    expect(off.ok && off.config.enableEmi).toBe(false)
+  })
+})
+
+describe('order notes', () => {
+  const base = { orderId: 'o1', amountPaise: 100, currency: 'INR' as const, customer: {} }
+
+  it('flattens shipping and basket, skips absent fields', () => {
+    const notes = buildOrderNotes({
+      ...base,
+      orderNumber: 7,
+      shipping: {
+        name: 'Asha',
+        line1: '12 MG Road',
+        city: 'Pune',
+        state: 'MH',
+        postalCode: '411001',
+        country: 'IN',
+      },
+      lines: [{ title: 'Mouse', quantity: 2, unitPricePaise: 149900 }],
+    })
+    expect(notes).toEqual({
+      orderId: 'o1',
+      orderNumber: '7',
+      shipping_name: 'Asha',
+      shipping_line1: '12 MG Road',
+      shipping_city: 'Pune',
+      shipping_state: 'MH',
+      shipping_postal_code: '411001',
+      shipping_country: 'IN',
+      basket: '2x Mouse @1499.00',
+    })
+  })
+
+  it('clips every value to 256 characters and never exceeds 15 keys', () => {
+    const notes = buildOrderNotes({
+      ...base,
+      lines: Array.from({ length: 40 }, (_, i) => ({
+        title: `Item ${i}`,
+        quantity: 1,
+        unitPricePaise: 100,
+      })),
+    })
+    expect(notes.basket?.length).toBe(256)
+    expect(Object.keys(notes).length).toBeLessThanOrEqual(15)
+  })
+})
+
+describe('display config', () => {
+  it('keeps defaults only when EMI is off', () => {
+    expect(buildDisplayConfig(false)).toEqual({
+      display: { preferences: { show_default_blocks: true } },
+    })
+  })
+
+  it('leads with a Snapmint cardless EMI block when EMI is on', () => {
+    const c = buildDisplayConfig(true) as {
+      display: { blocks: { emi: { instruments: unknown[] } }; sequence: string[] }
+    }
+    expect(c.display.sequence).toEqual(['block.emi'])
+    expect(c.display.blocks.emi.instruments[0]).toEqual({
+      method: 'cardless_emi',
+      providers: ['snapmint'],
+    })
   })
 })

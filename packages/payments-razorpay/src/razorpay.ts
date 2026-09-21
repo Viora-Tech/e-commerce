@@ -17,6 +17,73 @@ export type RazorpayConfig = {
   webhookSecret: string
   /** Shown in the Checkout modal. */
   displayName?: string | undefined
+  /** Surface EMI (Snapmint cardless EMI first) as its own block at the top of Checkout. */
+  enableEmi?: boolean | undefined
+}
+
+/** Razorpay caps order notes at 15 keys, 256 characters per value. */
+const NOTES_MAX_KEYS = 15
+const NOTE_MAX_LEN = 256
+
+/** Razorpay cardless-EMI provider code for Snapmint. Enabled from the Razorpay dashboard, no extra API. */
+export const SNAPMINT_PROVIDER = 'snapmint'
+
+function clip(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  return value.length > NOTE_MAX_LEN ? value.slice(0, NOTE_MAX_LEN) : value
+}
+
+/**
+ * Notes travel with the Razorpay order to lenders (Snapmint et al) and show in
+ * the dashboard. Address is flattened, the basket is one compact line.
+ */
+export function buildOrderNotes(input: CreatePaymentInput): Record<string, string> {
+  const s = input.shipping
+  const basket = input.lines
+    ?.map((l) => `${l.quantity}x ${l.title} @${(l.unitPricePaise / 100).toFixed(2)}`)
+    .join('; ')
+  const candidates: Record<string, string | undefined> = {
+    orderId: input.orderId,
+    orderNumber: input.orderNumber != null ? String(input.orderNumber) : undefined,
+    shipping_name: s?.name,
+    shipping_line1: s?.line1,
+    shipping_line2: s?.line2,
+    shipping_city: s?.city,
+    shipping_state: s?.state,
+    shipping_postal_code: s?.postalCode,
+    shipping_country: s?.country,
+    basket,
+  }
+  const notes: Record<string, string> = {}
+  for (const [k, v] of Object.entries(candidates)) {
+    const c = clip(v)
+    if (c !== undefined) notes[k] = c
+    if (Object.keys(notes).length === NOTES_MAX_KEYS) break
+  }
+  return notes
+}
+
+/**
+ * Checkout `config.display`. With EMI on, a "Pay in EMIs" block leads with
+ * Snapmint (cardless) then card EMI; default blocks still follow.
+ */
+export function buildDisplayConfig(enableEmi: boolean | undefined): Record<string, unknown> {
+  if (!enableEmi) return { display: { preferences: { show_default_blocks: true } } }
+  return {
+    display: {
+      blocks: {
+        emi: {
+          name: 'Pay in EMIs',
+          instruments: [
+            { method: 'cardless_emi', providers: [SNAPMINT_PROVIDER] },
+            { method: 'emi' },
+          ],
+        },
+      },
+      sequence: ['block.emi'],
+      preferences: { show_default_blocks: true },
+    },
+  }
 }
 
 const RAZORPAY_STATUS: Record<string, PaymentStatus> = {
@@ -67,7 +134,7 @@ export class RazorpayProvider implements PaymentProvider {
       currency: input.currency,
       receipt: input.orderNumber != null ? `order-${input.orderNumber}` : input.orderId,
       payment_capture: true,
-      notes: { orderId: input.orderId },
+      notes: buildOrderNotes(input),
     })
     return {
       providerRef: order.id,
@@ -89,7 +156,7 @@ export class RazorpayProvider implements PaymentProvider {
             name: input.customer.name,
           },
           // UPI intent on mobile, dynamic QR on desktop; Checkout decides by device.
-          config: { display: { preferences: { show_default_blocks: true } } },
+          config: buildDisplayConfig(this.config.enableEmi),
         },
       },
     }
@@ -229,9 +296,17 @@ export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
       help: 'Set the same value in the Razorpay dashboard webhook.',
     },
     { key: 'displayName', label: 'Name shown in checkout' },
+    {
+      key: 'enableEmi',
+      label: 'Offer EMI (Snapmint cardless EMI, card EMI)',
+      type: 'boolean',
+      help: 'Turn Snapmint on under Razorpay Dashboard > Payment Methods first; this only moves EMI to the top of Checkout.',
+    },
   ],
   validateConfig(raw) {
-    const r = (raw ?? {}) as Partial<RazorpayConfig>
+    const r = (raw ?? {}) as Partial<Omit<RazorpayConfig, 'enableEmi'>> & {
+      enableEmi?: boolean | string | undefined
+    }
     const errors: string[] = []
     if (!r.keyId?.startsWith('rzp_')) errors.push('keyId must start with rzp_')
     if (!r.keySecret) errors.push('keySecret is required')
@@ -244,6 +319,7 @@ export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
         keySecret: r.keySecret as string,
         webhookSecret: r.webhookSecret as string,
         displayName: r.displayName,
+        enableEmi: r.enableEmi === true || r.enableEmi === 'true',
       },
     }
   },

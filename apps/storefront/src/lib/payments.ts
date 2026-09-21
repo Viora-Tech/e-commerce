@@ -24,3 +24,10 @@ export async function storePaymentProviders(tx: StoreTx, storeId: string) {
   if (errors.length) console.warn('[payments] misconfigured providers:', errors.join('; '))
   return providers
 }
+
+/** True when Razorpay is enabled with EMI switched on; drives the product-page EMI hint. */
+export async function storeOffersEmi(tx: StoreTx, storeId: string): Promise<boolean> {
+  const [s] = await tx.select({ payments: store.payments }).from(store).where(eq(store.id, storeId))
+  const settings = parsePaymentSettings(s?.payments)
+  return settings.enabled.includes('razorpay') && settings.providers.razorpay?.enableEmi === 'true'
+}

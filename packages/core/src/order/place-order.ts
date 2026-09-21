@@ -11,7 +11,12 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import type { CheckoutSession, PaymentProvider, PaymentStatus } from '@commerce/payments'
+import type {
+  CheckoutSession,
+  PaymentProvider,
+  PaymentShipping,
+  PaymentStatus,
+} from '@commerce/payments'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
@@ -184,6 +189,18 @@ const createOrder: WorkflowStep<State> = {
   },
 }
 
+function toPaymentShipping(co: CheckoutDetails): PaymentShipping {
+  return {
+    name: co.name,
+    line1: co.address.line1,
+    line2: co.address.line2,
+    city: co.address.city,
+    state: co.address.stateCode,
+    postalCode: co.address.pincode,
+    country: 'IN',
+  }
+}
+
 /** External side effect only. Kept separate so a later DB failure still triggers the refund. */
 const chargePayment: WorkflowStep<State> = {
   name: 'chargePayment',
@@ -200,6 +217,15 @@ const chargePayment: WorkflowStep<State> = {
           phone: input.checkout?.phone,
           name: input.checkout?.name,
         },
+        shipping: input.checkout ? toPaymentShipping(input.checkout) : undefined,
+        lines: lines.map((l) => ({
+          title:
+            l.variantTitle && l.variantTitle !== 'Default'
+              ? `${l.title} / ${l.variantTitle}`
+              : l.title,
+          quantity: l.quantity,
+          unitPricePaise: l.unitPricePaise,
+        })),
       })
       return {
         providerRef: result.providerRef,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { type ComponentType, useState, useTransition } from 'react'
 import type { ProductDetail } from '../types'
 import { Price } from './price'
 
@@ -9,9 +9,12 @@ import { Price } from './price'
 export function ProductView({
   product,
   onAddToCart,
+  UnderPrice,
 }: {
   product: ProductDetail
   onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
+  /** Rendered below the price with the selected variant's price (EMI hint, offers). */
+  UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
 }) {
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
@@ -89,6 +92,7 @@ export function ProductView({
             <div className="product-info__price product-info__price--large">
               <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
               <p className="text-caption">Inclusive of all taxes</p>
+              {UnderPrice ? <UnderPrice pricePaise={variant.pricePaise} /> : null}
             </div>
           ) : null}
 
