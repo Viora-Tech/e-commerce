@@ -13,19 +13,10 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar,
 } from '@commerce/ui/shadcn/sidebar'
-import { ChevronsUpDown, ExternalLink, LogOut, PanelLeftClose, Store } from 'lucide-react'
+import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -48,11 +39,16 @@ type AdminSidebarProps = {
   storefrontUrl: string
 }
 
-const NAV_ITEM =
-  'h-10 gap-3 rounded-lg px-3 text-[13px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
-
-const NAV_CHILD =
-  'h-9 rounded-md px-3 text-[13px] text-muted-foreground hover:text-foreground data-active:bg-primary-soft data-active:font-semibold data-active:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
+/* Frame 5:1368: rail 260 wide, white, "3dp Penumbra" shadow. Items sit in a
+   14px gutter, each 16/9 padded with an 8px gap; the active one is a solid
+   green 6px pill with bold white text. Group labels are 15px at a 24px inset. */
+const FOCUS =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
+const NAV_ITEM = `flex w-full items-center gap-2 rounded-[6px] px-4 py-[9px] text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-[22px] [&_svg]:shrink-0 ${FOCUS}`
+const NAV_ITEM_ACTIVE =
+  'bg-primary font-bold text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+const NAV_CHILD = `flex w-full items-center rounded-[6px] py-[7px] pl-[46px] pr-4 text-[15px] leading-[22px] text-sidebar-foreground transition-colors hover:text-foreground ${FOCUS}`
+const NAV_CHILD_ACTIVE = 'bg-primary-soft font-bold text-primary hover:text-primary'
 
 function initials(name: string): string {
   return (
@@ -67,45 +63,70 @@ function initials(name: string): string {
 
 type NavSectionProps = { item: NavItem; pathname: string }
 
-/** One top-level entry; its children unfold beneath it while the section is active. */
+/** One entry; its Shopify sub-pages unfold beneath it while the section is active. */
 function NavSection({ item, pathname }: NavSectionProps) {
   const open = isSectionActive(pathname, item)
   const children = item.children ?? []
+  const linkActive = isSectionLinkActive(pathname, item)
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        render={<Link href={item.href} />}
-        isActive={isSectionLinkActive(pathname, item)}
-        tooltip={item.label}
+    <li className="flex flex-col gap-1">
+      <Link
+        href={item.href}
+        aria-current={linkActive ? 'page' : undefined}
         className={cn(
           NAV_ITEM,
-          open && !isSectionLinkActive(pathname, item) && 'font-semibold text-foreground',
+          linkActive && NAV_ITEM_ACTIVE,
+          open && !linkActive && 'font-bold text-foreground',
         )}
       >
         <item.icon strokeWidth={1.8} />
-        <span>{item.label}</span>
-      </SidebarMenuButton>
+        <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
+          {item.label}
+        </span>
+      </Link>
       {open && children.length > 0 ? (
-        <SidebarMenuSub className="mx-0 mt-0.5 gap-0.5 border-0 pl-11 pr-0">
-          {children.map((child) => (
-            <SidebarMenuSubItem key={child.href}>
-              <SidebarMenuSubButton
-                render={<Link href={child.href} />}
-                isActive={isChildActive(pathname, child)}
-                className={NAV_CHILD}
-              >
-                <span>{child.label}</span>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          ))}
-        </SidebarMenuSub>
+        <ul className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
+          {children.map((child) => {
+            const active = isChildActive(pathname, child)
+            return (
+              <li key={child.href}>
+                <Link
+                  href={child.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(NAV_CHILD, active && NAV_CHILD_ACTIVE)}
+                >
+                  {child.label}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
       ) : null}
-    </SidebarMenuItem>
+    </li>
   )
 }
 
-/** Kit sidebar: white rail, Shopify sections with unfolding sub-pages, green active pill, settings + user pinned bottom. */
+type NavGroupBlockProps = { label?: string | undefined; items: NavItem[]; pathname: string }
+
+/** Label block (24px tall, 24px inset) then the item list in the 14px gutter, 12px below. */
+function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
+  return (
+    <div className="flex flex-col">
+      {label ? (
+        <p className="px-6 pb-3 text-[15px] leading-6 text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+          {label}
+        </p>
+      ) : null}
+      <ul className="flex flex-col gap-2 px-[14px] group-data-[collapsible=icon]:px-2">
+        {items.map((item) => (
+          <NavSection key={item.href} item={item} pathname={pathname} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -124,97 +145,76 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="h-16 justify-center px-3">
-        <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <SidebarMenuButton
-                    size="lg"
-                    className="h-11 data-open:bg-sidebar-accent [&_svg]:size-5"
-                  />
-                }
-              >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Store className="size-5" />
-                </div>
-                <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate text-[13px] font-bold text-foreground">
-                    {active?.name ?? navigationContent.pickStore}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {active?.slug ?? navigationContent.storesAvailable(stores.length)}
-                  </span>
-                </div>
-                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-60">
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  {navigationContent.stores}
-                </DropdownMenuLabel>
-                {stores.map((s) => (
-                  <DropdownMenuItem key={s.id} onSelect={() => switchStore(s.id)}>
-                    <Store className="size-4" />
-                    {s.name}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem render={<Link href="/select-store" />}>
-                  {navigationContent.allStores}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              aria-label={navigationContent.collapse}
-              className="hidden size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
-            >
-              <PanelLeftClose className="size-5" />
-            </button>
-          </SidebarMenuItem>
-        </SidebarMenu>
+    <Sidebar collapsible="icon" className="border-r-0 shadow-rail">
+      {/* 5:1369: 64px tall, 20px padding, wordmark left and collapse glyph right. */}
+      <SidebarHeader className="h-16 flex-row items-center justify-between p-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex h-6 min-w-0 items-center gap-1.5 text-left">
+            <Store className="size-[22px] shrink-0 text-primary" />
+            <span className="truncate text-[18px] font-bold leading-6 text-ink-strong group-data-[collapsible=icon]:hidden">
+              {active?.name ?? navigationContent.pickStore}
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-60">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              {navigationContent.stores}
+            </DropdownMenuLabel>
+            {stores.map((s) => (
+              <DropdownMenuItem key={s.id} onSelect={() => switchStore(s.id)}>
+                <Store className="size-4" />
+                {s.name}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/select-store" />}>
+              {navigationContent.allStores}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label={navigationContent.collapse}
+          className="hidden size-6 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+        >
+          <PanelLeftClose className="size-6" strokeWidth={1.6} />
+        </button>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0 px-3">
+      {/* Group rhythm from the frame: first label 8px under the header, groups 24px apart. */}
+      <SidebarContent className="no-scrollbar gap-6 pt-2">
         {NAV_GROUPS.map((group, gi) => (
-          <SidebarGroup key={group.label ?? gi} className="px-0 py-2">
-            {group.label ? (
-              <SidebarGroupLabel className="h-7 px-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground-soft">
-                {group.label}
-              </SidebarGroupLabel>
-            ) : null}
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
-                {group.items.map((item) => (
-                  <NavSection key={item.href} item={item} pathname={pathname} />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <NavGroupBlock
+            key={group.label ?? gi}
+            label={group.label}
+            items={group.items}
+            pathname={pathname}
+          />
         ))}
+        <NavGroupBlock
+          label={navigationContent.adminGroup}
+          items={[SETTINGS_NAV]}
+          pathname={pathname}
+        />
       </SidebarContent>
 
-      <SidebarFooter className="gap-3 px-3 pb-4">
-        <SidebarMenu>
-          <NavSection item={SETTINGS_NAV} pathname={pathname} />
-        </SidebarMenu>
-        <div className="flex items-center gap-3 rounded-lg px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      {/* 5:1477: user card (20/12 padding, 40px avatar) then the shop card, 12px apart. */}
+      <SidebarFooter className="gap-3 p-0 pb-5 pt-10">
+        <div className="flex items-center gap-4 px-5 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
             {initials(user.name)}
           </div>
-          <div className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate text-[13px] font-bold text-foreground">{user.name}</span>
-            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1 text-[14px] leading-4 group-data-[collapsible=icon]:hidden">
+            <span className="truncate font-semibold text-foreground">{user.name}</span>
+            <span className="truncate text-muted-foreground">{user.email}</span>
           </div>
           <button
             type="button"
             onClick={signOut}
             aria-label={navigationContent.signOut}
             title={navigationContent.signOut}
-            className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
+            className="flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden"
           >
             <LogOut className="size-5" />
           </button>
@@ -223,10 +223,10 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
           href={storefrontUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[13px] font-medium text-foreground shadow-card hover:bg-sidebar-accent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="mx-2 flex items-center gap-2 rounded-[6px] bg-card px-5 py-3 text-[15px] font-medium tracking-[0.075px] text-ink-strong shadow-lift transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <Store className="size-5 text-primary" />
-          <span className="flex-1 group-data-[collapsible=icon]:hidden">
+          <Store className="size-6 text-primary" strokeWidth={1.8} />
+          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {navigationContent.viewStore}
           </span>
           <ExternalLink className="size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />

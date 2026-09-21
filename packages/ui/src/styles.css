@@ -70,11 +70,15 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-toggle: var(--shadow-toggle);
+  --shadow-rail: var(--shadow-rail);
+  --shadow-lift: var(--shadow-lift);
 }
 
 :root {
   --radius: 0.5rem; /* 8px cards, kit 5:1494 */
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.12); /* kit "1dp Ambient", softened */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.2); /* kit "1dp Ambient" 5:1494 */
+  --shadow-rail: 0 3px 4px 0 rgb(0 0 0 / 0.12); /* sidebar 5:1368 */
+  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.2); /* Your Shop card 5:1488 */
   --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.14);
 
   /* Canvas and surfaces */
@@ -136,6 +140,8 @@
 
 .dark {
   --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-rail: 0 3px 4px 0 rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.5);
   --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.4);
 
   --background: #111318;
@@ -214,33 +220,40 @@
  * weight and tracking. Colour, case and numerals stay at the usage site.
  */
 @theme {
-  --text-page-title: 20px;
-  --text-page-title--line-height: 26px;
+  /* Frame 5:1346 measurements: 22 title, 18 card title, 32 stat, 24 tab stat, 15 body, 13 caption, 16 nav. */
+  --text-page-title: 22px;
+  --text-page-title--line-height: 28px;
   --text-page-title--font-weight: 700;
   --text-page-title--letter-spacing: 0.11px;
 
-  --text-card-title: 16px;
-  --text-card-title--line-height: 22px;
+  --text-card-title: 18px;
+  --text-card-title--line-height: 26px;
   --text-card-title--font-weight: 700;
 
-  --text-stat: 28px;
-  --text-stat--line-height: 32px;
+  --text-stat: 32px;
+  --text-stat--line-height: 38px;
   --text-stat--font-weight: 700;
 
-  --text-stat-sm: 20px;
-  --text-stat-sm--line-height: 24px;
+  --text-stat-sm: 24px;
+  --text-stat-sm--line-height: 22px;
   --text-stat-sm--font-weight: 700;
 
-  --text-body: 13px;
-  --text-body--line-height: 20px;
+  --text-body: 15px;
+  --text-body--line-height: 22px;
 
-  --text-caption: 12px;
-  --text-caption--line-height: 16px;
+  --text-caption: 13px;
+  --text-caption--line-height: 18px;
   --text-caption--font-weight: 500;
   --text-caption--letter-spacing: -0.26px;
 
-  --text-table-head: 12px;
-  --text-table-head--line-height: 16px;
+  --text-table-head: 13px;
+  --text-table-head--line-height: 15px;
   --text-table-head--font-weight: 500;
-  --text-table-head--letter-spacing: 0.02em;
+
+  --text-nav: 16px;
+  --text-nav--line-height: 22px;
+
+  --text-period: 14px;
+  --text-period--line-height: 17px;
+  --text-period--letter-spacing: -0.28px;
 }

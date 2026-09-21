@@ -62,8 +62,9 @@ export function hasOwnHeading(pathname: string): boolean {
 export const layoutContent = {
   dashboard: 'Dashboard',
   details: 'Details',
-  filter: 'Filter',
   noChange: 'No change',
+  moreActions: 'More actions',
+  filter: 'Filter',
   skipToContent: 'Skip to content',
   notFound: {
     heading: 'Page not found',

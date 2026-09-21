@@ -15,7 +15,7 @@ type DashboardStatsProps = {
 export function DashboardStats({ sales, orders, pending, cancelled }: DashboardStatsProps) {
   const c = homeContent
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <StatCard
         title={c.stats.sales.title}
         period={c.period}
@@ -40,20 +40,21 @@ export function DashboardStats({ sales, orders, pending, cancelled }: DashboardS
         value=""
         detailsHref="/orders?status=placed"
       >
-        <div className="mt-5 grid grid-cols-2 gap-4">
-          <div className="border-r border-border-soft pr-4">
-            <p className="text-sm text-muted-foreground">{c.stats.pendingCancelled.pending}</p>
-            <div className="mt-1 flex items-end gap-2">
-              <span className="text-stat-sm tabular-nums text-ink-strong">
+        <div className="mt-4 grid grid-cols-[138px_1px_138px] items-start gap-x-[21px]">
+          <div>
+            <p className="text-period text-foreground">{c.stats.pendingCancelled.pending}</p>
+            <div className="mt-[7px] flex items-center gap-2">
+              <span className="text-stat-sm leading-[26px] tabular-nums text-ink-strong">
                 {formatCompact(pending.value)}
               </span>
               <DeltaChip delta={percentDelta(pending.value, pending.previous)} invert />
             </div>
           </div>
+          <span className="mt-[9px] h-8 w-px bg-border" aria-hidden="true" />
           <div>
-            <p className="text-sm text-muted-foreground">{c.stats.pendingCancelled.cancelled}</p>
-            <div className="mt-1 flex items-end gap-2">
-              <span className="text-stat-sm tabular-nums text-destructive">
+            <p className="text-period text-foreground">{c.stats.pendingCancelled.cancelled}</p>
+            <div className="mt-[7px] flex items-center gap-2">
+              <span className="text-stat-sm leading-[26px] tabular-nums text-destructive">
                 {formatCompact(cancelled.value)}
               </span>
               <DeltaChip delta={percentDelta(cancelled.value, cancelled.previous)} invert />

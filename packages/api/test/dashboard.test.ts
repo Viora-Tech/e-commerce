@@ -1,5 +1,6 @@
 import { createMerchantAuth } from '@commerce/auth'
 import {
+  address,
   createDb,
   customer,
   inventoryLevel,
@@ -47,6 +48,7 @@ async function merchant(email: string, slug: string) {
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000)
+const hoursAgo = (n: number) => new Date(Date.now() - n * 3_600_000)
 
 beforeEach(async () => {
   await resetDb(owner)
@@ -81,11 +83,30 @@ describe('dashboard.summary', () => {
       .insert(customer)
       .values({ storeId: a.storeId, name: 'Asha', email: 'asha@example.com' })
       .returning()
+    const [addr] = await owner
+      .insert(address)
+      .values({
+        storeId: a.storeId,
+        name: 'Asha',
+        line1: '12 MG Road',
+        city: 'Bengaluru',
+        stateCode: 'KA',
+        pincode: '560001',
+        phone: '9999999999',
+      })
+      .returning()
     const base = { storeId: a.storeId, customerId: c?.id, subtotalPaise: 100000 }
     const [o1, o2, o3, o4] = await owner
       .insert(order)
       .values([
-        { ...base, number: 1, totalPaise: 100000, status: 'paid', placedAt: daysAgo(1) },
+        {
+          ...base,
+          number: 1,
+          totalPaise: 100000,
+          status: 'paid',
+          placedAt: hoursAgo(2),
+          shippingAddressId: addr?.id,
+        },
         { ...base, number: 2, totalPaise: 50000, status: 'placed', placedAt: daysAgo(2) },
         { ...base, number: 3, totalPaise: 70000, status: 'cancelled', placedAt: daysAgo(3) },
         { ...base, number: 4, totalPaise: 20000, status: 'paid', placedAt: daysAgo(9) },
@@ -147,8 +168,19 @@ describe('dashboard.summary', () => {
     expect(s.report.lastWeek.reduce((n, d) => n + d.orders, 0)).toBe(1)
     expect(s.recentOrders.map((o) => o.number)).toEqual([1, 2, 3, 4])
     expect(s.topProducts).toEqual([
-      expect.objectContaining({ title: 'Mouse', units: 4, revenuePaise: 170000, imageUrl: null }),
+      expect.objectContaining({
+        title: 'Mouse',
+        units: 4,
+        revenuePaise: 170000,
+        imageUrl: null,
+        pricePaise: 100000,
+        inStock: true,
+      }),
     ])
+    expect(s.activity.ordersLast24h).toBe(1)
+    expect(s.activity.perHour).toHaveLength(24)
+    expect(s.activity.perHour.reduce((n, v) => n + v, 0)).toBe(1)
+    expect(s.salesByState).toEqual([{ stateCode: 'KA', revenuePaise: 100000, orders: 1, share: 1 }])
     expect(s.lowStock).toEqual([
       expect.objectContaining({ title: 'Mouse', variantTitle: 'Default', available: 2 }),
     ])
@@ -162,5 +194,7 @@ describe('dashboard.summary', () => {
     expect(s.recentOrders).toEqual([])
     expect(s.topProducts).toEqual([])
     expect(s.lowStock).toEqual([])
+    expect(s.activity).toEqual({ ordersLast24h: 0, perHour: Array.from({ length: 24 }, () => 0) })
+    expect(s.salesByState).toEqual([])
   })
 })
