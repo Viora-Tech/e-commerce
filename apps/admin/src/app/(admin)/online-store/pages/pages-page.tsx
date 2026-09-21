@@ -3,7 +3,7 @@
 import { Badge, Modal, Page, Text, TextField } from '@shopify/polaris'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { ResourceTable, type ResourceTableColumn } from '@/components/resource-table'
+import { ResourceTable, type ResourceTableColumn } from '@/components/polaris/resource-table'
 import { api } from '@/lib/api-client'
 
 type Item = Awaited<ReturnType<typeof api.pages.list>>[number]
