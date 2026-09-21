@@ -27,7 +27,7 @@ export function PackingSlip({ order }: PackingSlipProps) {
       ) : null}
       <table className="mt-6 w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-black text-left">
+          <tr className="border-b border-neutral-800 text-left">
             <th className="py-1">{copy.items.heading}</th>
             <th className="py-1">{copy.items.sku}</th>
             <th className="py-1 text-right">{copy.print.qty}</th>
@@ -38,7 +38,7 @@ export function PackingSlip({ order }: PackingSlipProps) {
             <tr key={l.id} className="border-b border-neutral-300">
               <td className="py-1">
                 {l.title}
-                {l.variantTitle && l.variantTitle !== 'Default' ? `, ${l.variantTitle}` : ''}
+                {l.variantTitle && l.variantTitle !== 'Default' ? ` - ${l.variantTitle}` : ''}
               </td>
               <td className="py-1">{l.sku ?? ''}</td>
               <td className="py-1 text-right">{l.quantity}</td>

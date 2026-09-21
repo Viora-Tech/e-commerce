@@ -128,7 +128,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'h-12 bg-primary-soft px-5 text-table-head first:rounded-l-lg last:rounded-r-lg',
+                        'h-12 bg-primary-soft px-5 text-table-head uppercase text-muted-foreground first:rounded-l-lg last:rounded-r-lg',
                         meta?.align === 'end' && 'text-right',
                         meta?.className,
                       )}

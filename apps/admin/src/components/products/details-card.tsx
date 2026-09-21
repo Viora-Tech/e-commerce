@@ -25,7 +25,7 @@ export function DetailsCard({
   onDescription,
 }: DetailsCardProps) {
   return (
-    <Card>
+    <Card size="form">
       <CardContent>
         <FieldGroup>
           <Field data-invalid={Boolean(titleError)}>
@@ -34,6 +34,7 @@ export function DetailsCard({
               <span aria-hidden="true">*</span>
             </FieldLabel>
             <Input
+              size="lg"
               id="product-title"
               value={title}
               onChange={(e) => onTitle(e.target.value)}

@@ -133,7 +133,7 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
             <Button
               variant="ghost"
               size="sm"
-              className="-ml-2 h-7 gap-1 px-2 text-table-head hover:text-foreground data-open:bg-accent"
+              className="-ml-2 h-7 gap-1 px-2 text-table-head uppercase text-muted-foreground hover:text-foreground data-open:bg-accent"
             />
           }
         >

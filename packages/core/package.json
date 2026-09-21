@@ -9,7 +9,8 @@
     "./emi": "./src/payments/emi.ts",
     "./adjustments": "./src/payments/adjustments.ts",
     "./registries": "./src/plugins/registries.ts",
-    "./catalog": "./src/catalog/client.ts"
+    "./catalog": "./src/catalog/client.ts",
+    "./store-settings": "./src/settings/general.ts"
   },
   "scripts": {
     "test": "vitest run",

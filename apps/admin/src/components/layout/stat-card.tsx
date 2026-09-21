@@ -79,7 +79,7 @@ export function StatCard({
       </div>
       {children ?? (
         <div className="mt-5 flex items-end gap-4">
-          <p className="text-stat">{value}</p>
+          <p className="text-stat text-ink-strong tabular-nums">{value}</p>
           <div className="mb-1 flex items-end gap-1">
             {unit ? <span className="text-base text-foreground">{unit}</span> : null}
             <DeltaChip delta={delta} invert={invert} />

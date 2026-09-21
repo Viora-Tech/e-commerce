@@ -69,17 +69,17 @@ export function ShipmentPanel({
       <div className="flex flex-col gap-4">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-body sm:grid-cols-3">
           <div>
-            <dt className="text-caption">{copy.courier}</dt>
+            <dt className="text-caption text-muted-foreground-soft">{copy.courier}</dt>
             <dd className="font-medium">{shipment.provider}</dd>
           </div>
           <div>
-            <dt className="text-caption">{copy.waybill}</dt>
+            <dt className="text-caption text-muted-foreground-soft">{copy.waybill}</dt>
             <dd className="font-medium">
               <code>{shipment.waybill}</code>
             </dd>
           </div>
           <div>
-            <dt className="text-caption">{copy.updated}</dt>
+            <dt className="text-caption text-muted-foreground-soft">{copy.updated}</dt>
             <dd className="font-medium">
               {when(shipment.updatedAt)}
               {tracking?.expectedDate ? (
@@ -131,7 +131,7 @@ export function ShipmentPanel({
         </div>
 
         <section className="border-t border-border pt-4">
-          <p className="text-caption mb-2">{copy.events}</p>
+          <p className="text-caption text-muted-foreground-soft mb-2">{copy.events}</p>
           {events.length === 0 ? (
             <p className="text-body text-muted-foreground">{copy.noEvents}</p>
           ) : (
@@ -148,7 +148,7 @@ export function ShipmentPanel({
                       <span className="text-muted-foreground">, {e.location}</span>
                     ) : null}
                   </p>
-                  <p className="text-caption">
+                  <p className="text-caption text-muted-foreground-soft">
                     {when(e.at)}
                     {e.description ? `: ${e.description}` : ''}
                   </p>

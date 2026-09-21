@@ -24,6 +24,7 @@ export function SuggestInput({ id, value, onChange, suggestions, placeholder }: 
   return (
     <>
       <Input
+        size="lg"
         id={id}
         list={listId}
         value={value}

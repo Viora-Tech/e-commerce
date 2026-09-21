@@ -25,3 +25,17 @@ export async function updateStoreNotifications(
   const [s] = await tx.update(store).set({ notifications }).where(eq(store.id, storeId)).returning()
   return s ?? null
 }
+
+export type StoreGeneralPatch = {
+  name: string
+  contactEmail: string | null
+  contactPhone: string | null
+  address: unknown
+  gstin: string | null
+  timezone: string
+}
+
+export async function updateStoreGeneral(tx: StoreTx, storeId: string, patch: StoreGeneralPatch) {
+  const [s] = await tx.update(store).set(patch).where(eq(store.id, storeId)).returning()
+  return s ?? null
+}

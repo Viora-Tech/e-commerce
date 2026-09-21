@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
 import './globals.css'
-import { PolarisProvider } from '@/components/polaris-provider'
 import { layoutContent } from '@/data/layout'
 
 export const metadata: Metadata = { title: 'Admin' }
@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {layoutContent.skipToContent}
         </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <PolarisProvider>{children}</PolarisProvider>
+          <NuqsAdapter>{children}</NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>

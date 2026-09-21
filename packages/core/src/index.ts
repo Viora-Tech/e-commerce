@@ -41,6 +41,7 @@ export { LogNotificationChannel, logChannelFactory } from './providers/log-chann
 export { ManualPaymentProvider, manualFactory, upiDeepLink } from './providers/manual'
 export * from './providers/payment'
 export { decryptSecret, encryptSecret, isEncrypted as isEncryptedSecret } from './secrets'
+export * from './settings/general'
 export * from './settings/secrets'
 export * from './shipping/settings'
 export * from './shipping/shipments'

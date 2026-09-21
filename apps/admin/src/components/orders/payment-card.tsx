@@ -80,7 +80,7 @@ export function PaymentCard({ order, onRefund }: PaymentCardProps) {
 
         {order.refunds.length > 0 ? (
           <section className="border-t border-border pt-4">
-            <p className="text-caption mb-2">{copy.payment.refunds}</p>
+            <p className="text-caption text-muted-foreground-soft mb-2">{copy.payment.refunds}</p>
             <ul className="flex flex-col gap-2">
               {order.refunds.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 text-body">
@@ -102,7 +102,7 @@ export function PaymentCard({ order, onRefund }: PaymentCardProps) {
         ) : null}
 
         <section className="border-t border-border pt-4">
-          <p className="text-caption mb-2">{copy.payment.events}</p>
+          <p className="text-caption text-muted-foreground-soft mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
             <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>
           ) : (

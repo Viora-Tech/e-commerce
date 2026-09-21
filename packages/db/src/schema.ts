@@ -39,6 +39,13 @@ export const store = pgTable('store', {
   shipping: jsonb('shipping'),
   /** Installed plugins: { installed: string[] }. Validated by @commerce/core AppsSettingsSchema. */
   apps: jsonb('apps'),
+  /** Store details shown to shoppers and on invoices. Validated by @commerce/core StoreGeneralSchema. */
+  contactEmail: text('contact_email'),
+  contactPhone: text('contact_phone'),
+  /** { line1, line2, city, state, pincode, country } */
+  address: jsonb('address'),
+  gstin: text('gstin'),
+  timezone: text('timezone').notNull().default('Asia/Kolkata'),
   createdAt: createdAt(),
 })
 

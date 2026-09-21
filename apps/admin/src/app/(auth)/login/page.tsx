@@ -1,87 +1,131 @@
 'use client'
 
-import { BlockStack, Button, Card, Form, FormLayout, Page, Text, TextField } from '@shopify/polaris'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { type FormEvent, useState } from 'react'
+import { authContent } from '@/data/auth'
 import { authClient } from '@/lib/auth-client'
+
+type Step = 'email' | 'otp'
+
+const copy = authContent.login
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
-  const [step, setStep] = useState<'email' | 'otp'>('email')
+  const [step, setStep] = useState<Step>('email')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function sendCode() {
+  async function sendCode(e: FormEvent) {
+    e.preventDefault()
     setBusy(true)
     setError(null)
     const res = await authClient.emailOtp.sendVerificationOtp({ email, type: 'sign-in' })
     setBusy(false)
-    if (res.error) return setError(res.error.message ?? 'Could not send the code')
+    if (res.error) return setError(res.error.message ?? copy.sendFailed)
     setStep('otp')
   }
 
-  async function verify() {
+  async function verify(e: FormEvent) {
+    e.preventDefault()
     setBusy(true)
     setError(null)
     const res = await authClient.signIn.emailOtp({ email, otp })
     setBusy(false)
-    if (res.error) return setError(res.error.message ?? 'Wrong code')
+    if (res.error) return setError(res.error.message ?? copy.wrongCode)
     router.push('/')
     router.refresh()
   }
 
   return (
-    <Page narrowWidth>
-      <div style={{ maxWidth: 400, margin: '10vh auto 0' }}>
-        <Card>
-          <BlockStack gap="400">
-            <Text as="h1" variant="headingLg">
-              Log in
-            </Text>
-            {step === 'email' ? (
-              <Form onSubmit={sendCode}>
-                <FormLayout>
-                  <TextField
-                    label="Email"
+    <main className="flex min-h-svh items-start justify-center px-4 pt-[12vh]">
+      <Card size="form" className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-page-title text-ink-strong">{copy.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {step === 'email' ? (
+            <form onSubmit={sendCode}>
+              <FieldGroup>
+                <Field data-invalid={error ? true : undefined}>
+                  <FieldLabel htmlFor="login-email">{copy.email}</FieldLabel>
+                  <Input
+                    id="login-email"
+                    size="lg"
                     type="email"
                     value={email}
-                    onChange={setEmail}
+                    onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
-                    error={error ?? undefined}
-                    helpText="We will email you a one-time code."
+                    aria-invalid={error ? true : undefined}
+                    autoFocus
+                    required
                   />
-                  <Button submit variant="primary" loading={busy}>
-                    Continue with email
-                  </Button>
-                </FormLayout>
-              </Form>
-            ) : (
-              <Form onSubmit={verify}>
-                <FormLayout>
-                  <TextField
-                    label={`Code sent to ${email}`}
+                  {error ? (
+                    <FieldError>{error}</FieldError>
+                  ) : (
+                    <FieldDescription>{copy.emailHelp}</FieldDescription>
+                  )}
+                </Field>
+                <Button type="submit" className="w-full" disabled={busy}>
+                  {busy ? <Spinner /> : null}
+                  {copy.continue}
+                </Button>
+              </FieldGroup>
+            </form>
+          ) : (
+            <form onSubmit={verify}>
+              <FieldGroup>
+                <Field data-invalid={error ? true : undefined}>
+                  <FieldLabel htmlFor="login-otp">{copy.code(email)}</FieldLabel>
+                  <Input
+                    id="login-otp"
+                    size="lg"
                     value={otp}
-                    onChange={setOtp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                     autoComplete="one-time-code"
                     inputMode="numeric"
                     maxLength={6}
-                    error={error ?? undefined}
-                    helpText="In development the code is printed in the admin server log."
+                    aria-invalid={error ? true : undefined}
+                    autoFocus
                   />
-                  <Button submit variant="primary" loading={busy} disabled={otp.length < 6}>
-                    Log in
-                  </Button>
-                  <Button variant="plain" onClick={() => setStep('email')}>
-                    Use a different email
-                  </Button>
-                </FormLayout>
-              </Form>
-            )}
-          </BlockStack>
-        </Card>
-      </div>
-    </Page>
+                  {error ? (
+                    <FieldError>{error}</FieldError>
+                  ) : (
+                    <FieldDescription>{copy.codeHelp}</FieldDescription>
+                  )}
+                </Field>
+                <Button type="submit" className="w-full" disabled={busy || otp.length < 6}>
+                  {busy ? <Spinner /> : null}
+                  {copy.submit}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setStep('email')
+                    setError(null)
+                  }}
+                >
+                  {copy.differentEmail}
+                </Button>
+              </FieldGroup>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+    </main>
   )
 }

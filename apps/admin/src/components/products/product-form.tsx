@@ -122,7 +122,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   if (!first) return null
 
   return (
-    <PageBody width="narrow" className="kit-form">
+    <PageBody width="narrow">
       {dirty ? (
         <SaveBar
           message={copy.saveBar.message}

@@ -5,7 +5,7 @@ import type { RichTextValue } from '@commerce/richtext'
 import { cn } from '@commerce/ui/lib/utils'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useId } from 'react'
-import '@commerce/editor/editor.css'
+import '@/styles/vendor-editor.css'
 
 type RichTextFieldProps = {
   label: string
@@ -49,7 +49,7 @@ export function RichTextField({
         media={media}
         maxLength={maxLength}
         minHeight={minHeight}
-        className={cn('rich-text-field__editor', error && 'rich-text-field__editor--error')}
+        className={cn(error && 'rounded-lg ring-2 ring-destructive/30')}
       />
       {helpText && !error ? <FieldDescription>{helpText}</FieldDescription> : null}
       {error ? <FieldError>{error}</FieldError> : null}

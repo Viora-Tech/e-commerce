@@ -31,7 +31,7 @@ export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
   const c = homeContent.recentOrders
   return (
     <DataCard title={c.title} detailsHref="/orders" flush>
-      <div className={cn(ROW, 'h-9 text-table-head')}>
+      <div className={cn(ROW, 'h-9 text-table-head uppercase text-muted-foreground')}>
         <span>{c.columns.order}</span>
         <span>{c.columns.date}</span>
         <span>{c.columns.status}</span>

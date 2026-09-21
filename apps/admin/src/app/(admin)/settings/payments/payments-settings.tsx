@@ -1,7 +1,6 @@
 'use client'
 
 import type { PaymentAdjustment } from '@commerce/core'
-import { Divider, Text } from '@shopify/polaris'
 import { PaymentAdjustmentFields } from '@/components/settings/payment-adjustment-fields'
 import {
   type ProviderDef,
@@ -21,9 +20,12 @@ const save = (next: Parameters<typeof api.store.updatePayments>[0]) =>
 function webhookHint(m: ProviderDef) {
   if (m.id !== 'razorpay') return null
   return (
-    <Text as="p" tone="subdued" variant="bodySm">
-      {copy.webhookHint} <code>{`${WORKER_URL}/webhooks/payments/razorpay/<store id>`}</code>
-    </Text>
+    <p className="text-caption text-muted-foreground">
+      {copy.webhookHint}{' '}
+      <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
+        {`${WORKER_URL}/webhooks/payments/razorpay/<store id>`}
+      </code>
+    </p>
   )
 }
 
@@ -33,10 +35,11 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
     setExtra({ adjustments: adj ? { ...rest, [m.id]: adj } : rest })
   }
   return (
-    <>
-      <Divider />
-      <PaymentAdjustmentFields value={extra.adjustments[m.id]} onChange={setAdjustment} />
-    </>
+    <PaymentAdjustmentFields
+      providerId={m.id}
+      value={extra.adjustments[m.id]}
+      onChange={setAdjustment}
+    />
   )
 }
 
@@ -44,6 +47,7 @@ export function PaymentsSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      intro={copy.intro}
       load={load}
       save={save}
       emptyExtra={{ adjustments: {} }}

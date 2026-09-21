@@ -125,8 +125,8 @@ export function StatTabs({ items, active = 0, onChange }: StatTabsProps) {
               : 'border-border-soft',
           )}
         >
-          <span className="text-stat-sm">{it.value}</span>
-          <span className="text-caption">{it.label}</span>
+          <span className="text-stat-sm tabular-nums">{it.value}</span>
+          <span className="text-caption text-muted-foreground-soft">{it.label}</span>
         </button>
       ))}
     </div>
