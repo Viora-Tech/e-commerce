@@ -22,7 +22,10 @@
     "drizzle-orm": "^0.45.2",
     "zod": "^4.6.5",
     "@commerce/payments": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*"
+    "@commerce/payments-razorpay": "workspace:*",
+    "@commerce/notifications": "workspace:*",
+    "@commerce/notifications-ses": "workspace:*",
+    "@commerce/notifications-whatsapp": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

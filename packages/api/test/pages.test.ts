@@ -32,7 +32,10 @@ async function merchant(email: string, slug: string) {
     .insert(store)
     .values({ slug, name: slug, organizationId: org?.id as string })
     .returning()
-  return { ctx: { db: app, auth, headers } as ApiContext, storeId: s?.id as string }
+  return {
+    ctx: { db: app, auth, headers, notifications: { add: async () => undefined } } as ApiContext,
+    storeId: s?.id as string,
+  }
 }
 
 beforeEach(async () => {

@@ -33,7 +33,7 @@ async function merchant(email: string, orgSlug: string) {
 }
 
 function ctx(headers: Headers): ApiContext {
-  return { db: app, auth, headers }
+  return { db: app, auth, headers, notifications: { add: async () => undefined } }
 }
 
 beforeEach(async () => {
