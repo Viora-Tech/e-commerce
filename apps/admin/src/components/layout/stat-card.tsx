@@ -99,7 +99,7 @@ export function StatCard({
         {detailsHref ? (
           <Link
             href={detailsHref}
-            className="inline-flex h-8 shrink-0 items-center rounded-full border border-link px-4 text-[15px] text-link transition-colors hover:bg-link-soft"
+            className="inline-flex h-8 shrink-0 items-center rounded-full border border-link px-4 text-[12px] text-link transition-colors hover:bg-link-soft"
           >
             {detailsLabel}
           </Link>

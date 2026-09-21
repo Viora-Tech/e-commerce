@@ -68,7 +68,7 @@ export function TopBar({ title, user }: TopBarProps) {
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="hidden h-11 w-full max-w-[360px] items-center gap-3 rounded-full bg-muted px-5 text-[15px] text-muted-foreground transition-colors hover:bg-secondary md:flex"
+        className="hidden h-11 w-full max-w-[360px] items-center gap-3 rounded-full bg-muted px-5 text-[12px] text-muted-foreground transition-colors hover:bg-secondary md:flex"
       >
         <span className="flex-1 truncate text-left">{navigationContent.search.placeholder}</span>
         <Kbd className="bg-card">{navigationContent.search.shortcut}</Kbd>

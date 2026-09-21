@@ -107,7 +107,7 @@ export function PaymentCard({ order, onRefund }: PaymentCardProps) {
               {events.map((e) => (
                 <li key={e.id} className="flex items-center justify-between gap-3 text-body">
                   <span>
-                    <code className="text-[13px]">{e.type}</code>
+                    <code className="text-[12px]">{e.type}</code>
                     <span className="text-muted-foreground"> · {when(e.receivedAt)}</span>
                     {e.error ? <span className="text-destructive"> · {e.error}</span> : null}
                   </span>
