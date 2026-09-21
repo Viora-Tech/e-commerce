@@ -1,7 +1,7 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@commerce/ui/lib/utils'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { tableContent } from '@/data/table'
 
 type PaginationProps = {
@@ -11,39 +11,77 @@ type PaginationProps = {
   onPageChange: (page: number) => void
 }
 
-/** Server-paged footer: "1-25 of 312" plus previous/next. */
+const EDGE_PAGES = 5
+
+/* 5:2856: 42px edge buttons with a 24px arrow; 5:2865: 36px squares, 4px radius. */
+const EDGE =
+  'flex h-[42px] items-center gap-1 rounded-lg border border-line bg-card px-2 text-[15px] font-medium text-ink-strong transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-6'
+const SQUARE =
+  'flex size-9 items-center justify-center rounded-[4px] text-[15px] text-ink-strong transition-colors'
+
+type Slot = number | 'gap'
+
+/** First five pages, a gap, then the last page; the kit shows "1 2 3 4 5 ..... 24". */
+function pageSlots(current: number, totalPages: number): Slot[] {
+  if (totalPages <= EDGE_PAGES + 2) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1)
+  }
+  const start = Math.max(1, Math.min(current - 2, totalPages - EDGE_PAGES))
+  const head = Array.from({ length: EDGE_PAGES }, (_, i) => start + i)
+  const tail: Slot[] = head[head.length - 1] === totalPages ? [] : ['gap', totalPages]
+  const lead: Slot[] = start > 1 ? [1, 'gap'] : []
+  return [...lead, ...head, ...tail]
+}
+
 export function ResourceTablePagination({ page, perPage, total, onPageChange }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / perPage))
-  const from = total === 0 ? 0 : (page - 1) * perPage + 1
-  const to = Math.min(page * perPage, total)
+  const slots = pageSlots(page, totalPages)
 
   return (
-    <div className="flex items-center justify-between pt-4">
-      <span className="text-sm text-muted-foreground tabular-nums">
-        {total === 0 ? tableContent.noResults : tableContent.range(from, to, total)}
-      </span>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="icon-sm"
-          className="rounded-lg"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
-          aria-label={tableContent.previous}
-        >
-          <ChevronLeft />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          className="rounded-lg"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-          aria-label={tableContent.next}
-        >
-          <ChevronRight />
-        </Button>
-      </div>
-    </div>
+    <nav aria-label="Pagination" className="mt-[50px] flex items-center justify-between">
+      <button
+        type="button"
+        className={cn(EDGE, 'pr-3')}
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+      >
+        <ArrowLeft strokeWidth={1.6} />
+        {tableContent.previousLabel}
+      </button>
+      <ol className="flex items-center gap-3">
+        {slots.map((slot, i) =>
+          slot === 'gap' ? (
+            <li key={`gap-${i.toString()}`} className={cn(SQUARE, 'border border-line font-bold')}>
+              {tableContent.ellipsis}
+            </li>
+          ) : (
+            <li key={slot}>
+              <button
+                type="button"
+                aria-current={slot === page ? 'page' : undefined}
+                onClick={() => onPageChange(slot)}
+                className={cn(
+                  SQUARE,
+                  slot === page
+                    ? 'bg-primary-tint font-bold'
+                    : 'border border-line font-medium hover:bg-muted',
+                )}
+              >
+                {slot}
+              </button>
+            </li>
+          ),
+        )}
+      </ol>
+      <button
+        type="button"
+        className={cn(EDGE, 'pl-4')}
+        disabled={page >= totalPages}
+        onClick={() => onPageChange(page + 1)}
+      >
+        {tableContent.nextLabel}
+        <ArrowRight strokeWidth={1.6} />
+      </button>
+    </nav>
   )
 }

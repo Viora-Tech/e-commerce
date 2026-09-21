@@ -8,6 +8,7 @@ import {
   addOrderNote,
   getOrder,
   listOrders,
+  orderStats,
   refundOrderPayment,
   setOrderStatus,
   setOrderTags,
@@ -40,6 +41,8 @@ export const ordersRouter = {
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
+
+  stats: storeProcedure.handler(({ context }) => orderStats(context.tx)),
 
   get: storeProcedure.input(z.object({ id: z.uuid() })).handler(async ({ context, input }) => {
     const o = await getOrder(context.tx, input.id)

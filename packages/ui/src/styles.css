@@ -40,6 +40,8 @@
   --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-border-soft: var(--border-soft);
+  --color-line: var(--line);
+  --color-primary-tint: var(--primary-tint);
   --color-link: var(--link);
   --color-link-soft: var(--link-soft);
   --color-primary-soft: var(--primary-soft);
@@ -117,6 +119,8 @@
   /* Lines and focus */
   --border: #dbdade; /* Divider */
   --border-soft: #e9e7fd;
+  --line: #d1d5db; /* Neutal/300: table rows, icon buttons, paging 5:2606 */
+  --primary-tint: #c1e6ba; /* active page number 5:2865 */
   --input: #dbdade;
   --ring: #4ea674;
 
@@ -176,6 +180,8 @@
 
   --border: rgb(255 255 255 / 0.08);
   --border-soft: rgb(255 255 255 / 0.06);
+  --line: #2c313a;
+  --primary-tint: #2f5a3d;
   --input: rgb(255 255 255 / 0.12);
   --ring: #5fbf87;
 

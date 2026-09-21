@@ -4,10 +4,22 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number]
 /** Copy for the orders list and shared order labels. */
 export const ordersContent = {
   title: 'Orders',
+  /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
+  heading: 'Order list',
+  addOrder: 'Add order',
+  moreActions: 'More actions',
+  menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
+  tiles: {
+    total: 'Total orders',
+    placed: 'New orders',
+    delivered: 'Completed orders',
+    cancelled: 'Cancelled orders',
+    period: 'Last 7 days',
+  },
   tabs: {
-    all: 'All',
+    all: 'All orders',
   },
   status: {
     placed: 'Placed',
@@ -17,19 +29,21 @@ export const ordersContent = {
     cancelled: 'Cancelled',
   } satisfies Record<OrderStatus, string>,
   payment: {
-    codPending: 'COD pending',
+    codPending: 'Unpaid',
     cod: 'COD',
     paid: 'Paid',
   },
   guest: 'Guest',
   columns: {
-    order: 'Order',
+    order: 'Order id',
+    product: 'Product',
     date: 'Date',
     customer: 'Customer',
-    total: 'Total',
+    total: 'Price',
     payment: 'Payment',
     status: 'Status',
   },
+  moreLines: (n: number) => `+${n} more`,
   bulk: {
     markAs: 'Mark as',
     updated: (n: number, status: string) => `${n} marked ${status.toLowerCase()}`,

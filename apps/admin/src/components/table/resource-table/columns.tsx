@@ -26,12 +26,15 @@ export type ResourceColumn<T extends RowData> = ColumnDef<ResourceTableFeatures,
 
 type SortValue = string | number | Date | null
 
+export type CellAlign = 'start' | 'center' | 'end'
+
 export type ResourceColumnSpec<T extends RowData> = {
   id: string
   title: string
   /** Value used for sorting; omit to make the column unsortable. */
   sortValue?: (item: T) => SortValue | undefined
-  align?: 'start' | 'end'
+  /** Frame 5:2591 centres every column; product-style cells pass `start`. */
+  align?: CellAlign
   /** `false` keeps the column out of the "View" toggle. */
   hideable?: boolean
   /** Tailwind width/utility classes for both header and cells. */
@@ -48,14 +51,12 @@ export function defineColumns<T extends RowData>(
 ): ResourceColumn<T>[] {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return specs.map((spec) => {
-    const align = spec.align ?? 'start'
+    const align = spec.align ?? 'center'
     const meta = { align, className: spec.className }
     if (!spec.sortValue) {
       return helper.display({
         id: spec.id,
-        header: () => (
-          <span className={cn(align === 'end' && 'block text-right')}>{spec.title}</span>
-        ),
+        header: () => <PlainHeader title={spec.title} align={align} />,
         cell: ({ row }) => spec.render(row.original),
         enableSorting: false,
         enableHiding: spec.hideable ?? true,
@@ -75,49 +76,55 @@ export function defineColumns<T extends RowData>(
   })
 }
 
-export function selectionColumn<T extends RowData>(): ResourceColumn<T> {
+/** Frame 5:2607: the "No." column is a 20px checkbox and the row number, 44px wide. */
+export function selectionColumn<T extends RowData>(offset: number): ResourceColumn<T> {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return helper.display({
     id: '__select',
     header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label={tableContent.selectAll}
-      />
+      <span className="flex items-center gap-2">
+        <Checkbox
+          className="size-5 border-[1.5px] border-primary-soft bg-card"
+          checked={table.getIsAllPageRowsSelected()}
+          indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label={tableContent.selectAll}
+        />
+        {tableContent.number}
+      </span>
     ),
     cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        onClick={(e) => e.stopPropagation()}
-        aria-label={tableContent.selectRow}
-      />
+      <span className="flex items-center gap-2">
+        <Checkbox
+          className="size-5 border-[1.5px] border-primary-soft bg-card"
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={tableContent.selectRow}
+        />
+        <span className="tabular-nums">{offset + row.index + 1}</span>
+      </span>
     ),
     enableSorting: false,
     enableHiding: false,
-    meta: { align: 'start', className: 'w-8 pr-0' },
+    meta: { align: 'start', className: 'w-[68px]' },
   })
 }
 
-function PlainHeader({ title, align }: { title: string; align: 'start' | 'end' }) {
-  return (
-    <span
-      className={cn(
-        'block text-xs font-medium text-muted-foreground',
-        align === 'end' && 'text-right',
-      )}
-    >
-      {title}
-    </span>
-  )
+const HEAD_ALIGN: Record<CellAlign, string> = {
+  start: 'justify-start',
+  center: 'justify-center',
+  end: 'justify-end',
+}
+
+function PlainHeader({ title, align }: { title: string; align: CellAlign }) {
+  return <span className={cn('flex items-center', HEAD_ALIGN[align])}>{title}</span>
 }
 
 type ColumnHeaderProps<T extends RowData> = {
   column: Column<ResourceTableFeatures, T, SortValue>
   title: string
-  align: 'start' | 'end'
+  align: CellAlign
 }
 
 function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderProps<T>) {
@@ -126,19 +133,19 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
   const Icon = sorted === 'desc' ? ArrowDown : sorted === 'asc' ? ArrowUp : ChevronsUpDown
 
   return (
-    <div className={cn('flex items-center', align === 'end' && 'justify-end')}>
+    <div className={cn('flex items-center', HEAD_ALIGN[align])}>
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
             <Button
               variant="ghost"
               size="sm"
-              className="-ml-2 h-7 gap-1 px-2 text-table-head uppercase text-muted-foreground hover:text-foreground data-open:bg-accent"
+              className="h-7 gap-1 px-1 text-[15px] font-medium text-ink-strong hover:bg-transparent hover:text-primary data-open:bg-transparent"
             />
           }
         >
           {title}
-          <Icon className={cn('size-3.5', sorted && 'text-foreground')} />
+          <Icon className={cn('size-3.5 text-muted-foreground', sorted && 'text-primary')} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align={align === 'end' ? 'end' : 'start'}>
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
