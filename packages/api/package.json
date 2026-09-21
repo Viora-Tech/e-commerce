@@ -25,7 +25,9 @@
     "@commerce/payments-razorpay": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
-    "@commerce/notifications-whatsapp": "workspace:*"
+    "@commerce/notifications-whatsapp": "workspace:*",
+    "@commerce/shipping": "workspace:*",
+    "@commerce/shipping-delhivery": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

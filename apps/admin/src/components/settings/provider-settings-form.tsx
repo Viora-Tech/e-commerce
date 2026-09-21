@@ -50,6 +50,8 @@ type ProviderSettingsFormProps<Extra> = {
   renderExtra?:
     | ((provider: ProviderDef, extra: Extra, setExtra: (next: Extra) => void) => ReactNode)
     | undefined
+  /** Rendered once below every provider card; for store-wide settings that live in the same blob. */
+  renderFooter?: ((extra: Extra, setExtra: (next: Extra) => void) => ReactNode) | undefined
   /** Copy shown when a provider has no fields. */
   noConfigText?: string | undefined
 }
@@ -66,6 +68,7 @@ export function ProviderSettingsForm<Extra extends object>({
   emptyExtra,
   renderHint,
   renderExtra,
+  renderFooter,
   noConfigText,
 }: ProviderSettingsFormProps<Extra>) {
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
@@ -189,6 +192,7 @@ export function ProviderSettingsForm<Extra extends object>({
                 </Card>
               )
             })}
+            {available && renderFooter ? renderFooter(extra, setExtra) : null}
           </BlockStack>
         </Layout.Section>
       </Layout>

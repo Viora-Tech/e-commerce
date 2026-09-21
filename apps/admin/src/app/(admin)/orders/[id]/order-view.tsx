@@ -14,6 +14,8 @@ import {
 } from '@shopify/polaris'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { ShipmentPanel } from '@/components/orders/shipment-panel'
+import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
@@ -31,6 +33,7 @@ const cap = (s: string) => s[0]?.toUpperCase() + s.slice(1)
 export function OrderView({ order }: { order: Order }) {
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const next = NEXT[order.status]
 
   async function move(to: Status) {
@@ -38,6 +41,37 @@ export function OrderView({ order }: { order: Order }) {
     setToast(`Order marked as ${to}`)
     router.refresh()
   }
+
+  /** Courier calls can fail; the message is the app's wording from the API, shown as a toast. */
+  async function courier<T>(run: () => Promise<T>, done: (result: T) => string) {
+    setBusy(true)
+    try {
+      setToast(done(await run()))
+      router.refresh()
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Courier request failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const shipmentId = order.shipment?.id
+  const handleBook = () =>
+    courier(
+      () => api.orders.createShipment({ orderId: order.id }),
+      (s) => shipmentPanelContent.booked(s.waybill),
+    )
+  const handleRefresh = () =>
+    shipmentId &&
+    courier(
+      () => api.orders.refreshTracking({ shipmentId }),
+      () => 'Tracking updated',
+    )
+  const handleCancel = () =>
+    shipmentId &&
+    courier(
+      () => api.orders.cancelShipment({ shipmentId }),
+      () => shipmentPanelContent.cancelled,
+    )
 
   return (
     <Page
@@ -109,6 +143,15 @@ export function OrderView({ order }: { order: Order }) {
                 </InlineStack>
               </BlockStack>
             </Card>
+
+            <ShipmentPanel
+              orderStatus={order.status}
+              shipment={order.shipment}
+              busy={busy}
+              onBook={handleBook}
+              onRefresh={handleRefresh}
+              onCancel={handleCancel}
+            />
 
             <Card>
               <BlockStack gap="300">

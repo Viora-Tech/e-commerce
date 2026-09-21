@@ -120,6 +120,8 @@
         "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+        "@commerce/shipping-delhivery": "workspace:*",
         "@orpc/client": "^1.15.2",
         "@orpc/server": "^1.15.2",
         "@orpc/zod": "^1.15.2",

@@ -10,6 +10,11 @@ const SECTIONS = [
     body: 'Cash on delivery, Razorpay and other gateways.',
   },
   {
+    href: '/settings/shipping',
+    title: 'Shipping',
+    body: 'Couriers, delivery estimates and dispatch policy.',
+  },
+  {
     href: '/settings/notifications',
     title: 'Notifications',
     body: 'Order emails and WhatsApp messages to shoppers.',
