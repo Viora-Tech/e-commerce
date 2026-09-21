@@ -36,13 +36,15 @@ const slugify = (title: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
-export function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) {
+export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) {
+  // Hooks
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function create() {
+  // Event handlers
+  const handleCreate = async () => {
     setBusy(true)
     try {
       const p = await api.pages.create({
@@ -99,7 +101,7 @@ export function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) 
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button type="button" onClick={create} disabled={!title.trim() || busy}>
+          <Button type="button" onClick={handleCreate} disabled={!title.trim() || busy}>
             {busy ? <Spinner /> : null}
             {copy.confirm}
           </Button>

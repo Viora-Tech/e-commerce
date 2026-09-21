@@ -9,7 +9,7 @@ type EmiHintProps = {
 }
 
 /** "EMI from ₹X/month" under the product price. Only mounted when the store offers EMI. */
-export function EmiHint({ pricePaise }: EmiHintProps) {
+export default function EmiHint({ pricePaise }: EmiHintProps) {
   if (pricePaise < emiHintContent.minPricePaise) return null
   const monthly = formatPaise(lowestEmiPaise(pricePaise))
 

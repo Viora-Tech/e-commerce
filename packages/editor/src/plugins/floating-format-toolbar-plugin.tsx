@@ -52,25 +52,8 @@ type ToolbarProps = {
 }
 
 function FormatToolbar({ editor, anchorElem, formats, setIsLinkEditMode }: ToolbarProps) {
+  // Hooks
   const boxRef = useRef<HTMLDivElement | null>(null)
-
-  const $reposition = () => {
-    const box = boxRef.current
-    const native = window.getSelection()
-    const root = editor.getRootElement()
-    if (!box) return
-    const selection = $getSelection()
-    if (selection && native && !native.isCollapsed && root?.contains(native.anchorNode)) {
-      setFloatingElemPosition(
-        getDOMRangeRect(native, root),
-        box,
-        anchorElem.getBoundingClientRect(),
-      )
-    } else {
-      hideFloatingElem(box)
-    }
-  }
-
   useEffect(() => {
     const scroller = anchorElem.parentElement
     const update = () => editor.getEditorState().read($reposition)
@@ -96,6 +79,24 @@ function FormatToolbar({ editor, anchorElem, formats, setIsLinkEditMode }: Toolb
       ),
     )
   })
+
+  // Helpers
+  const $reposition = () => {
+    const box = boxRef.current
+    const native = window.getSelection()
+    const root = editor.getRootElement()
+    if (!box) return
+    const selection = $getSelection()
+    if (selection && native && !native.isCollapsed && root?.contains(native.anchorNode)) {
+      setFloatingElemPosition(
+        getDOMRangeRect(native, root),
+        box,
+        anchorElem.getBoundingClientRect(),
+      )
+    } else {
+      hideFloatingElem(box)
+    }
+  }
 
   const toggleLink = () => {
     if (formats.link) {
@@ -163,13 +164,13 @@ type FloatingFormatToolbarPluginProps = {
 }
 
 /** Bubble toolbar that appears over a non-empty text selection. */
-export function FloatingFormatToolbarPlugin({
+export default function FloatingFormatToolbarPlugin({
   anchorElem,
   setIsLinkEditMode,
 }: FloatingFormatToolbarPluginProps) {
+  // Hooks
   const [editor] = useLexicalComposerContext()
   const [formats, setFormats] = useState<Formats | null>(null)
-
   useEffect(() => {
     const $update = () => {
       if (editor.isComposing()) return
@@ -216,7 +217,9 @@ export function FloatingFormatToolbarPlugin({
     )
   }, [editor])
 
+  // Early returns
   if (!formats) return null
+
   return createPortal(
     <FormatToolbar
       editor={editor}

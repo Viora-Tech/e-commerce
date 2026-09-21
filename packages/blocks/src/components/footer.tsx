@@ -1,5 +1,5 @@
 // Port of sections/footer.liquid.
-export function Footer({
+export default function Footer({
   storeName,
   tagline,
   columns,

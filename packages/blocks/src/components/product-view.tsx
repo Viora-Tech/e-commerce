@@ -8,7 +8,7 @@ import {
 } from '@commerce/richtext'
 import { type ComponentType, type ReactNode, useState, useTransition } from 'react'
 import type { ProductDetail } from '../types'
-import { Price } from './price'
+import Price from './price'
 
 /** Imported products hold a plain string; the admin editor writes Lexical JSON. */
 function descriptionDoc(raw: ProductDetail['description']) {
@@ -17,9 +17,20 @@ function descriptionDoc(raw: ProductDetail['description']) {
   return typeof raw === 'string' && raw.trim() ? plainTextToRichText(raw) : null
 }
 
+function defaultVariant(product: ProductDetail) {
+  return product.variants.find((v) => v.available > 0) ?? product.variants[0]
+}
+
+function slideFor(product: ProductDetail, variant: ProductDetail['variants'][number] | undefined) {
+  return Math.max(
+    0,
+    product.images.findIndex((i) => i.url === variant?.imageUrl),
+  )
+}
+
 // Port of sections/main-product.liquid with snippets/product-gallery,
 // variant-picker and buy-buttons. Cart wiring comes with the cart PR.
-export function ProductView({
+export default function ProductView({
   product,
   onAddToCart,
   UnderPrice,
@@ -32,26 +43,24 @@ export function ProductView({
   /** Rendered under the buy buttons (delivery estimate). */
   belowBuy?: ReactNode
 }) {
+  // Hooks
   const [pending, startTransition] = useTransition()
   const [added, setAdded] = useState(false)
-  const firstAvailable = product.variants.find((v) => v.available > 0) ?? product.variants[0]
-  const [variantId, setVariantId] = useState(firstAvailable?.id)
-  const variant = product.variants.find((v) => v.id === variantId) ?? firstAvailable
-  const [slide, setSlide] = useState(() =>
-    Math.max(
-      0,
-      product.images.findIndex((i) => i.url === variant?.imageUrl),
-    ),
-  )
+  const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
+  const [slide, setSlide] = useState(() => slideFor(product, defaultVariant(product)))
   const [expanded, setExpanded] = useState(false)
 
-  function pick(id: string) {
+  // Event handlers
+  const handlePick = (id: string) => {
     setVariantId(id)
     const v = product.variants.find((x) => x.id === id)
     const idx = product.images.findIndex((i) => i.url === v?.imageUrl)
     if (idx >= 0) setSlide(idx)
   }
 
+  // Render logic
+  const firstAvailable = defaultVariant(product)
+  const variant = product.variants.find((v) => v.id === variantId) ?? firstAvailable
   const selectedValues = new Set(variant?.optionValueIds ?? [])
   const description = descriptionDoc(product.description)
   const longDescription = description ? richTextToPlainText(description).length > 280 : false
@@ -136,7 +145,7 @@ export function ProductView({
                         name={o.id}
                         value={val.id}
                         checked={selectedValues.has(val.id)}
-                        onChange={() => target && pick(target.id)}
+                        onChange={() => target && handlePick(target.id)}
                       />
                       {val.value}
                     </label>

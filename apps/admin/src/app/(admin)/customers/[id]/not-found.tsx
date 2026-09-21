@@ -1,5 +1,5 @@
 import { UserRound } from 'lucide-react'
-import { SectionEmpty } from '@/components/layout/section-empty'
+import SectionEmpty from '@/components/layout/section-empty'
 import { customersContent } from '@/data/customers'
 
 export default function NotFound() {

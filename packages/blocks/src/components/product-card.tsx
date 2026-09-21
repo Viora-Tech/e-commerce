@@ -1,9 +1,15 @@
 import type { CardProduct } from '../types'
-import { Price } from './price'
+import Price from './price'
 
 // Port of snippets/product-card.liquid. Hover swap only; cursor scrubbing
 // (card-scrub.js) comes with the interactive pass.
-export function ProductCard({ product, lazy = true }: { product: CardProduct; lazy?: boolean }) {
+export default function ProductCard({
+  product,
+  lazy = true,
+}: {
+  product: CardProduct
+  lazy?: boolean
+}) {
   const [primary, hover] = product.images
   const soldOut = product.available <= 0
   const lowStock = !soldOut && product.available <= 5

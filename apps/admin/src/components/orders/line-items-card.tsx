@@ -1,5 +1,5 @@
-import { DataCard } from '@/components/layout/data-card'
-import { ProductThumb } from '@/components/products/product-badges'
+import DataCard from '@/components/layout/data-card'
+import ProductThumb from '@/components/products/product-thumb'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 import { type OrderDetail, refundedTotal } from './order-detail-types'
@@ -15,6 +15,7 @@ function totalRows(order: OrderDetail): TotalRow[] {
     { label: copy.items.subtotal, value: formatPaise(order.subtotalPaise) },
     { label: copy.items.shipping, value: formatPaise(order.shippingPaise) },
   ]
+
   const adj = order.paymentAdjustmentPaise
   if (adj !== 0) {
     rows.push({
@@ -28,11 +29,12 @@ function totalRows(order: OrderDetail): TotalRow[] {
     rows.push({ label: copy.items.refunded, value: `−${formatPaise(back)}`, muted: true })
     rows.push({ label: copy.items.net, value: formatPaise(order.totalPaise - back), strong: true })
   }
+
   return rows
 }
 
 /** What was bought, at the prices captured when the order was placed. */
-export function LineItemsCard({ order }: LineItemsCardProps) {
+export default function LineItemsCard({ order }: LineItemsCardProps) {
   const rows = totalRows(order)
 
   return (

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 // Port of snippets/section-frame.liquid: colour scheme class + vertical padding.
-export function SectionFrame({
+export default function SectionFrame({
   scheme = 'scheme-1',
   padTop = 40,
   padBottom = 40,

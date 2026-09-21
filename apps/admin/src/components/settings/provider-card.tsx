@@ -8,7 +8,7 @@ import { Separator } from '@commerce/ui/shadcn/separator'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import type { ReactNode } from 'react'
-import { StatusPill } from '@/components/layout/status-pill'
+import StatusPill from '@/components/layout/status-pill'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 
 /** One field of a provider's config, as its factory declares it. */
@@ -47,6 +47,7 @@ type ProviderFieldProps = {
 }
 
 function ProviderField({ providerId, field: f, value, onChange }: ProviderFieldProps) {
+  // Early returns
   const id = fieldId(providerId, f.key)
   if (f.type === 'boolean') {
     return (
@@ -65,7 +66,10 @@ function ProviderField({ providerId, field: f, value, onChange }: ProviderFieldP
       </Field>
     )
   }
+
+  // Render logic
   const help = f.secret ? copy.secretHelp : f.help
+
   return (
     <Field>
       <FieldLabel htmlFor={id}>
@@ -100,7 +104,7 @@ function ProviderField({ providerId, field: f, value, onChange }: ProviderFieldP
 }
 
 /** A provider (gateway, courier, channel): enable switch, its declared fields, page-specific extras. */
-export function ProviderCard({
+export default function ProviderCard({
   provider,
   enabled,
   values,

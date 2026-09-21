@@ -1,12 +1,10 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { X } from 'lucide-react'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { customerDetailContent as copy } from '@/data/customers'
 import { api } from '@/lib/api-client'
 
@@ -17,11 +15,13 @@ type TagsCardProps = {
 }
 
 /** Free-form labels, saved on every add/remove (same pattern as order tags). */
-export function CustomerTagsCard({ customerId, tags, onChanged }: TagsCardProps) {
+export default function CustomerTagsCard({ customerId, tags, onChanged }: TagsCardProps) {
+  // Hooks
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
-  async function save(next: string[]) {
+  // Event handlers
+  const handleSave = async (next: string[]) => {
     setSaving(true)
     try {
       await api.customers.update({ id: customerId, tags: next })
@@ -32,13 +32,13 @@ export function CustomerTagsCard({ customerId, tags, onChanged }: TagsCardProps)
     }
   }
 
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
     e.preventDefault()
     const tag = draft.trim()
     if (!tag || tags.includes(tag)) return
     setDraft('')
-    void save([...tags, tag])
+    void handleSave([...tags, tag])
   }
 
   return (
@@ -54,7 +54,7 @@ export function CustomerTagsCard({ customerId, tags, onChanged }: TagsCardProps)
                 {t}
                 <button
                   type="button"
-                  onClick={() => save(tags.filter((x) => x !== t))}
+                  onClick={() => handleSave(tags.filter((x) => x !== t))}
                   disabled={saving}
                   className="rounded-full p-0.5 hover:bg-primary/20"
                   aria-label={`Remove ${t}`}
@@ -72,50 +72,6 @@ export function CustomerTagsCard({ customerId, tags, onChanged }: TagsCardProps)
           placeholder={copy.tags.placeholder}
           disabled={saving}
         />
-      </div>
-    </DataCard>
-  )
-}
-
-type NoteCardProps = {
-  customerId: string
-  note: string | null
-  onChanged: () => void
-}
-
-/** One internal note per customer; saved explicitly. */
-export function CustomerNoteCard({ customerId, note, onChanged }: NoteCardProps) {
-  const [draft, setDraft] = useState(note ?? '')
-  const [saving, setSaving] = useState(false)
-  const dirty = draft.trim() !== (note ?? '').trim()
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await api.customers.update({ id: customerId, note: draft.trim() || null })
-      toast.success(copy.note.saved)
-      onChanged()
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <DataCard title={copy.note.heading}>
-      <div className="flex flex-col gap-2">
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={copy.note.placeholder}
-          rows={3}
-        />
-        {dirty ? (
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" onClick={handleSave} disabled={saving}>
-              {copy.note.save}
-            </Button>
-          </div>
-        ) : null}
       </div>
     </DataCard>
   )

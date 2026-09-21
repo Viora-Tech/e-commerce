@@ -18,7 +18,14 @@ const MAX_SUGGESTIONS = 50
  * Free text with suggestions from a native datalist. Vendors and product
  * types are open vocabularies, so a combobox that forces a pick would be wrong.
  */
-export function SuggestInput({ id, value, onChange, suggestions, placeholder }: SuggestInputProps) {
+export default function SuggestInput({
+  id,
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+}: SuggestInputProps) {
+  // Hooks
   const listId = useId()
 
   return (

@@ -17,20 +17,20 @@ import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
 import type { EditorState, SerializedEditorState } from 'lexical'
 import { useEffect, useRef, useState } from 'react'
 import { editorContent } from './content'
-import { type EditorMedia, MediaProvider } from './context/media-context'
+import MediaProvider, { type EditorMedia } from './context/media-context'
 import { editorTheme } from './editor-theme'
 import { editorNodes } from './nodes'
 import { CodeHighlightPlugin } from './plugins/code-highlight-plugin'
-import { CollapsiblePlugin } from './plugins/collapsible-plugin'
-import { EmbedsPlugin } from './plugins/embeds-plugin'
-import { FloatingFormatToolbarPlugin } from './plugins/floating-format-toolbar-plugin'
-import { FloatingLinkEditorPlugin } from './plugins/floating-link-editor-plugin'
-import { ImagesPlugin } from './plugins/images-plugin'
-import { LinksPlugin } from './plugins/links-plugin'
+import CollapsiblePlugin from './plugins/collapsible-plugin'
+import EmbedsPlugin from './plugins/embeds-plugin'
+import FloatingFormatToolbarPlugin from './plugins/floating-format-toolbar-plugin'
+import FloatingLinkEditorPlugin from './plugins/floating-link-editor-plugin'
+import ImagesPlugin from './plugins/images-plugin'
+import LinksPlugin from './plugins/links-plugin'
 import { TRANSFORMERS } from './plugins/markdown-transformers'
 import { ShortcutsPlugin } from './plugins/shortcuts-plugin'
-import { TableMenuPlugin } from './plugins/table-menu-plugin'
-import { ToolbarPlugin } from './plugins/toolbar-plugin'
+import TableMenuPlugin from './plugins/table-menu-plugin'
+import ToolbarPlugin from './plugins/toolbar-plugin'
 
 export type RichTextEditorProps = {
   /** Lexical JSON. `null` or `undefined` starts an empty document. */
@@ -84,7 +84,7 @@ function ReadOnlyPlugin({ readOnly }: { readOnly: boolean }) {
  * The shared rich-text editor. Emits Lexical JSON that `@commerce/richtext`
  * renders on the server; nothing here assumes a particular host app.
  */
-export function RichTextEditor({
+export default function RichTextEditor({
   value,
   onChange,
   placeholder = editorContent.placeholder,
@@ -95,10 +95,19 @@ export function RichTextEditor({
   className,
   id,
 }: RichTextEditorProps) {
+  // Hooks
   const [anchorElem, setAnchorElem] = useState<HTMLDivElement | null>(null)
   const [isLinkEditMode, setIsLinkEditMode] = useState(false)
   const lastEmitted = useRef<RichTextValue | null>(value ?? null)
 
+  // Event handlers
+  const handleChange = (editorState: EditorState) => {
+    const next = editorState.toJSON() as unknown as RichTextValue
+    lastEmitted.current = next
+    onChange(next)
+  }
+
+  // Render logic
   const initialConfig = {
     namespace: 'commerce-editor',
     theme: editorTheme,
@@ -108,12 +117,6 @@ export function RichTextEditor({
     onError: (error: Error) => {
       throw error
     },
-  }
-
-  const handleChange = (editorState: EditorState) => {
-    const next = editorState.toJSON() as unknown as RichTextValue
-    lastEmitted.current = next
-    onChange(next)
   }
 
   const rootClass = ['editor-shell', readOnly ? 'editor-shell--readonly' : '', className ?? '']

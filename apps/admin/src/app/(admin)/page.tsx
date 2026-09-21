@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { DashboardPage } from '@/components/home/dashboard-page'
+import DashboardPage from '@/components/home/dashboard-page'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export default async function Home() {

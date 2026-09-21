@@ -33,7 +33,7 @@ const MATCHERS = [
 ]
 
 /** Explicit links, auto-detected URLs/emails, and ctrl-click to open. */
-export function LinksPlugin() {
+export default function LinksPlugin() {
   return (
     <>
       <LexicalLinkPlugin validateUrl={validateUrl} />

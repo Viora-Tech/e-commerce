@@ -3,8 +3,8 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { CircleAlert } from 'lucide-react'
 import { useEffect } from 'react'
-import { EmptyState } from '@/components/layout/empty-state'
-import { PageBody } from '@/components/layout/page-body'
+import EmptyState from '@/components/layout/empty-state'
+import PageBody from '@/components/layout/page-body'
 import { layoutContent } from '@/data/layout'
 
 type RouteErrorProps = {
@@ -13,7 +13,8 @@ type RouteErrorProps = {
 }
 
 /** Shared body for every `error.tsx`: what went wrong, one retry. */
-export function RouteError({ error, reset }: RouteErrorProps) {
+export default function RouteError({ error, reset }: RouteErrorProps) {
+  // Hooks
   useEffect(() => {
     console.error(error)
   }, [error])

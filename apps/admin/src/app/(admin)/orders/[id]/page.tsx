@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { OrderView } from '@/components/orders/order-view'
+import OrderView from '@/components/orders/order-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 type Params = { params: Promise<{ id: string }> }

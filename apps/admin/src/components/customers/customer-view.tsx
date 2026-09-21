@@ -2,16 +2,18 @@
 
 import { Card } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
-import { PageBody, PageColumns } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
+import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
 import { customerDetailContent as copy, customersContent } from '@/data/customers'
 import { formatPaise } from '@/lib/money'
-import { CustomerAvatar } from './customer-avatar'
+import CustomerAvatar from './customer-avatar'
 import { averageOrderPaise, type CustomerDetail, day } from './customer-detail-types'
-import { CustomerOrdersCard } from './customer-orders-card'
-import { MessagesCard } from './messages-card'
-import { CustomerNoteCard, CustomerTagsCard } from './notes-card'
-import { ProfileCard } from './profile-card'
+import CustomerNoteCard from './customer-note-card'
+import CustomerOrdersCard from './customer-orders-card'
+import CustomerTagsCard from './customer-tags-card'
+import MessagesCard from './messages-card'
+import ProfileCard from './profile-card'
 
 type CustomerViewProps = {
   customer: CustomerDetail
@@ -29,9 +31,14 @@ function Total({ label, value }: TotalProps) {
   )
 }
 
-export function CustomerView({ customer }: CustomerViewProps) {
+export default function CustomerView({ customer }: CustomerViewProps) {
+  // Hooks
   const router = useRouter()
+
+  // Helpers
   const refresh = () => router.refresh()
+
+  // Render logic
   const { totals } = customer
   const title = customer.name ?? customer.email ?? customersContent.unnamed
 

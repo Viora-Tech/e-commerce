@@ -7,7 +7,7 @@ import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { customerDetailContent as copy } from '@/data/customers'
 import { api } from '@/lib/api-client'
 import type { CustomerDetail } from './customer-detail-types'
@@ -28,13 +28,13 @@ function isDirty(a: Draft, b: Draft): boolean {
 }
 
 /** Contact details and the default address, edited in place (Profile Update frame 5:5480). */
-export function ProfileCard({ customer, onChanged }: ProfileCardProps) {
+export default function ProfileCard({ customer, onChanged }: ProfileCardProps) {
+  // Hooks
   const [draft, setDraft] = useState<Draft>(() => draftFrom(customer))
   const [saving, setSaving] = useState(false)
-  const a = customer.defaultAddress
-  const dirty = isDirty(draft, draftFrom(customer))
 
-  async function handleSave() {
+  // Event handlers
+  const handleSave = async () => {
     setSaving(true)
     try {
       await api.customers.update({
@@ -51,6 +51,10 @@ export function ProfileCard({ customer, onChanged }: ProfileCardProps) {
       setSaving(false)
     }
   }
+
+  // Render logic
+  const a = customer.defaultAddress
+  const dirty = isDirty(draft, draftFrom(customer))
 
   return (
     <DataCard title={copy.profile.heading}>

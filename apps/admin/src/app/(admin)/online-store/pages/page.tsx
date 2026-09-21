@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PagesList } from '@/components/online-store/pages-list'
+import PagesList from '@/components/online-store/pages-list'
 
 export const metadata: Metadata = { title: 'Pages' }
 

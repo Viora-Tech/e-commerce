@@ -28,12 +28,12 @@ const LIMIT = 5
 const DEBOUNCE_MS = 200
 
 /** ⌘K search across orders and products; results come from the existing list endpoints. */
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export default function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  // Hooks
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [orders, setOrders] = useState<OrderHit[]>([])
   const [products, setProducts] = useState<ProductHit[]>([])
-
   useEffect(() => {
     if (!open) return
     let cancelled = false
@@ -69,7 +69,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
   }, [open, query])
 
-  function go(href: string) {
+  // Event handlers
+  const handleGo = (href: string) => {
     onOpenChange(false)
     router.push(href)
   }
@@ -94,7 +95,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <CommandItem
                   key={o.id}
                   value={`order-${o.id}`}
-                  onSelect={() => go(`/orders/${o.id}`)}
+                  onSelect={() => handleGo(`/orders/${o.id}`)}
                 >
                   <ShoppingBag />
                   <span className="flex-1 truncate">
@@ -113,7 +114,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <CommandItem
                   key={p.id}
                   value={`product-${p.id}`}
-                  onSelect={() => go(`/products/${p.id}`)}
+                  onSelect={() => handleGo(`/products/${p.id}`)}
                 >
                   <Package />
                   <span className="flex-1 truncate">{p.title}</span>

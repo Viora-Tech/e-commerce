@@ -1,5 +1,5 @@
 // Port of snippets/section-heading.liquid.
-export function SectionHeading({
+export default function SectionHeading({
   kicker,
   heading,
   viewAll,

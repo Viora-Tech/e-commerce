@@ -32,20 +32,15 @@ const toStored = (text: string): number | null => {
 const toText = (stored: number | undefined): string =>
   stored === undefined ? '' : String(stored / 100)
 
-export function PaymentAdjustmentFields({
+export default function PaymentAdjustmentFields({
   providerId,
   value,
   onChange,
 }: PaymentAdjustmentFieldsProps) {
+  // Hooks
   const [amountText, setAmountText] = useState(toText(value?.value))
 
-  const type: AdjustmentType | 'none' = value?.type ?? 'none'
-  const ids = {
-    type: `adj-${providerId}-type`,
-    amount: `adj-${providerId}-amount`,
-    label: `adj-${providerId}-label`,
-  }
-
+  // Event handlers
   const handleType = (next: string | null) => {
     if (!next || next === 'none') {
       setAmountText('')
@@ -55,15 +50,25 @@ export function PaymentAdjustmentFields({
     const t = next as AdjustmentType
     onChange({ type: t, value: toStored(amountText) ?? 0, label: value?.label })
   }
+
   const handleAmount = (text: string) => {
     setAmountText(text)
     if (type === 'none') return
     const stored = toStored(text)
     if (stored !== null) onChange({ type, value: stored, label: value?.label })
   }
+
   const handleLabel = (label: string) => {
     if (type === 'none') return
     onChange({ type, value: value?.value ?? 0, label: label || undefined })
+  }
+
+  // Render logic
+  const type: AdjustmentType | 'none' = value?.type ?? 'none'
+  const ids = {
+    type: `adj-${providerId}-type`,
+    amount: `adj-${providerId}-amount`,
+    label: `adj-${providerId}-label`,
   }
 
   return (

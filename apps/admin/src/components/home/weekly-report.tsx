@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ChartCard, type ChartPoint, StatTabs } from '@/components/layout/chart-card'
+import ChartCard from '@/components/layout/chart-card'
+import type { ChartPoint } from '@/components/layout/chart-config'
+import StatTabs from '@/components/layout/stat-tabs'
 import { homeContent } from '@/data/home'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'
 
@@ -27,8 +29,11 @@ function toPoints(days: Day[], metric: 'revenuePaise' | 'orders'): ChartPoint[] 
 }
 
 /** "Report for this week": headline tabs + this/last week area chart of revenue (or orders). */
-export function WeeklyReport(props: WeeklyReportProps) {
+export default function WeeklyReport(props: WeeklyReportProps) {
+  // Hooks
   const [tab, setTab] = useState(4)
+
+  // Render logic
   const c = homeContent.report
   // Only revenue has a daily series; every other tab still charts revenue so the card never goes blank.
   const metric = 'revenuePaise'

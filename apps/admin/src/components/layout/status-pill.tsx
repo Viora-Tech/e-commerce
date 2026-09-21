@@ -25,7 +25,7 @@ const TEXT: Record<StatusTone, string> = {
 }
 
 /** Kit status: 8px dot + coloured label, no background. */
-export function StatusPill({ tone, children, className }: StatusPillProps) {
+export default function StatusPill({ tone, children, className }: StatusPillProps) {
   return (
     <span className={cn('inline-flex items-center gap-2 text-body', TEXT[tone], className)}>
       <span className={cn('size-2 shrink-0 rounded-full', DOT[tone])} aria-hidden="true" />

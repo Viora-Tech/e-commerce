@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Icon } from './icon'
+import Icon from './icon'
 
 export type HeroSlide = {
   heading: string
@@ -14,7 +14,7 @@ export type HeroSlide = {
 
 // Port of sections/hero-carousel.liquid + hero-carousel.js: a CSS scroll-snap
 // track, dots that reflect the snapped slide, prev/next, optional autoplay.
-export function HeroCarousel({
+export default function HeroCarousel({
   slides,
   autoplaySeconds = 5,
   heightVh = 72,
@@ -23,9 +23,9 @@ export function HeroCarousel({
   autoplaySeconds?: number
   heightVh?: number
 }) {
+  // Hooks
   const track = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
-
   useEffect(() => {
     const el = track.current
     if (!el) return
@@ -33,15 +33,15 @@ export function HeroCarousel({
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
-
   useEffect(() => {
     if (!autoplaySeconds || slides.length < 2) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const id = setInterval(() => go((active + 1) % slides.length), autoplaySeconds * 1000)
+    const id = setInterval(() => handleGo((active + 1) % slides.length), autoplaySeconds * 1000)
     return () => clearInterval(id)
   })
 
-  function go(i: number) {
+  // Event handlers
+  const handleGo = (i: number) => {
     const el = track.current
     if (!el) return
     el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
@@ -118,7 +118,7 @@ export function HeroCarousel({
               type="button"
               className="hero-carousel__control hero-carousel__control--prev"
               aria-label="Previous slide"
-              onClick={() => go((active - 1 + slides.length) % slides.length)}
+              onClick={() => handleGo((active - 1 + slides.length) % slides.length)}
             >
               <Icon name="arrow" size={16} />
             </button>
@@ -126,7 +126,7 @@ export function HeroCarousel({
               type="button"
               className="hero-carousel__control hero-carousel__control--next"
               aria-label="Next slide"
-              onClick={() => go((active + 1) % slides.length)}
+              onClick={() => handleGo((active + 1) % slides.length)}
             >
               <Icon name="arrow" size={16} />
             </button>
@@ -138,7 +138,7 @@ export function HeroCarousel({
                   className={`hero-carousel__dot${i === active ? ' is-active' : ''}`}
                   aria-label={`Go to slide ${i + 1}`}
                   aria-current={i === active}
-                  onClick={() => go(i)}
+                  onClick={() => handleGo(i)}
                 >
                   <span className="hero-carousel__dot-fill" />
                 </button>

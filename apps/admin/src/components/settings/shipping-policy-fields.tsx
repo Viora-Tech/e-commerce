@@ -41,8 +41,10 @@ type WeekdayPickerProps = {
 
 /** Seven checkboxes in a row. */
 function WeekdayPicker({ name, legend, selected, onChange }: WeekdayPickerProps) {
+  // Helpers
   const toggle = (day: number, on: boolean) =>
     onChange(toDays(on ? [...selected, day] : selected.filter((d) => d !== day)))
+
   return (
     <FieldSet>
       <FieldLegend variant="label">{legend}</FieldLegend>
@@ -94,7 +96,8 @@ function TextField({ id, label, value, onChange, help, type = 'text' }: TextFiel
 }
 
 /** The store-wide dispatch calendar and return address, edited on Settings › Shipping. */
-export function ShippingPolicyFields({ value, onChange }: ShippingPolicyFieldsProps) {
+export default function ShippingPolicyFields({ value, onChange }: ShippingPolicyFieldsProps) {
+  // Helpers
   const set = <K extends keyof ShippingPolicySettings>(k: K, v: ShippingPolicySettings[K]) =>
     onChange({ ...value, [k]: v })
   const setWarehouse = (k: keyof Warehouse, v: string) =>

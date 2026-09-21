@@ -1,7 +1,7 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { PageBody } from '@/components/layout/page-body'
+import PageBody from '@/components/layout/page-body'
 import { SETTINGS_SECTIONS, type SettingsSection } from '@/data/settings'
 
 type SettingsTileProps = { section: SettingsSection }
@@ -27,7 +27,7 @@ function SettingsTile({ section }: SettingsTileProps) {
 }
 
 /** Settings index: one tile per section, Shopify's order. */
-export function SettingsGrid() {
+export default function SettingsGrid() {
   return (
     <PageBody>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

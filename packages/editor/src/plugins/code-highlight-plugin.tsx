@@ -13,6 +13,7 @@ function $documentHasCodeNode(): boolean {
     if ($isCodeNode(node)) return true
     if ($isElementNode(node)) stack.push(...node.getChildren())
   }
+
   return false
 }
 

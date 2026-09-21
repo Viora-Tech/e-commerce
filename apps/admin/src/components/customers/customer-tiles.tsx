@@ -27,7 +27,7 @@ function Tile({ title, value, period }: TileProps) {
 }
 
 /** The four tiles above the customer list. */
-export function CustomerTiles({ stats }: { stats: CustomerStats }) {
+export default function CustomerTiles({ stats }: { stats: CustomerStats }) {
   const t = customersContent.tiles
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

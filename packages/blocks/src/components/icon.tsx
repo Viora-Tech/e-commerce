@@ -64,7 +64,7 @@ const paths: Record<Name, { viewBox: string; body: string }> = {
   },
 }
 
-export function Icon({ name, size = 24 }: { name: Name; size?: number }) {
+export default function Icon({ name, size = 24 }: { name: Name; size?: number }) {
   const { viewBox, body } = paths[name]
   return (
     <svg

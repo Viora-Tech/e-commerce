@@ -1,10 +1,10 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
-import { ArrowDown, ArrowUp } from 'lucide-react'
-import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
-import { CardMenu, type MenuLink } from './data-card'
+import CardMenu, { type MenuLink } from './card-menu'
+import DeltaChip from './delta-chip'
+import DetailsLink from './details-link'
 
 type StatCardProps = {
   title: string
@@ -28,58 +28,12 @@ type StatCardProps = {
   className?: string
 }
 
-/** Percent change between two window values; null when there is nothing to compare against. */
-export function percentDelta(value: number, previous: number): number | null {
-  if (previous === 0) return value === 0 ? 0 : null
-  return ((value - previous) / previous) * 100
-}
-
-/** 5:1508: 16px arrow glyph and a 14px figure, green up / red down. */
-export function DeltaChip({
-  delta,
-  invert,
-}: {
-  delta: number | null | undefined
-  invert?: boolean
-}) {
-  if (delta === null || delta === undefined) return null
-  const flat = Math.abs(delta) < 0.05
-  const up = delta > 0
-  const good = invert ? !up : up
-  const Icon = up ? ArrowUp : ArrowDown
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center text-period tabular-nums',
-        flat ? 'text-muted-foreground' : good ? 'text-success' : 'text-destructive',
-      )}
-    >
-      {flat ? null : <Icon className="size-4" />}
-      {flat ? layoutContent.noChange : `${Math.abs(delta).toFixed(1)}%`}
-    </span>
-  )
-}
-
-type DetailsLinkProps = { href: string; label?: string | undefined }
-
-/** 5:1509: 96 x 32 outline pill in the link colour, 16px label. */
-export function DetailsLink({ href, label = layoutContent.details }: DetailsLinkProps) {
-  return (
-    <Link
-      href={href}
-      className="inline-flex h-8 min-w-24 items-center justify-center rounded-full border border-link px-6 text-[0.8125rem] leading-5  text-link transition-colors hover:bg-link-soft"
-    >
-      {label}
-    </Link>
-  )
-}
-
 /**
  * Frame 5:1494 "Base" (361 x 222): title row with a 20px kebab, period label,
  * the 32px figure with its unit and delta 20px lower, the previous-period
  * line, and the Details pill pinned to the bottom-right 20px corner.
  */
-export function StatCard({
+export default function StatCard({
   title,
   period,
   value,

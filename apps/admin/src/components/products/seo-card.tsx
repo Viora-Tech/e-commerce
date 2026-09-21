@@ -32,7 +32,7 @@ const TITLE_MAX = 70
 const DESCRIPTION_MAX = 320
 const PREVIEW_CHARS = 160
 
-export function SeoCard({
+export default function SeoCard({
   title,
   description,
   seoTitle,
@@ -43,13 +43,16 @@ export function SeoCard({
   onSeoDescription,
   onHandle,
 }: SeoCardProps) {
+  // Hooks
   const [editing, setEditing] = useState(Boolean(seoTitle || seoDescription))
 
+  // Render logic
   const previewTitle = seoTitle || title
   const previewDescription = (seoDescription || richTextToPlainText(description)).slice(
     0,
     PREVIEW_CHARS,
   )
+
   const url = `${storefrontOrigin}${copy.handlePrefix}${handle}`
 
   return (

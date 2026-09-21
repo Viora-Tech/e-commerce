@@ -160,7 +160,8 @@ const INITIAL: ToolbarState = {
   canRedo: false,
 }
 
-export function ToolbarPlugin({ setIsLinkEditMode }: ToolbarPluginProps) {
+export default function ToolbarPlugin({ setIsLinkEditMode }: ToolbarPluginProps) {
+  // Hooks
   const [editor] = useLexicalComposerContext()
   const media = useEditorMedia()
   const [state, setState] = useState<ToolbarState>(INITIAL)
@@ -168,7 +169,6 @@ export function ToolbarPlugin({ setIsLinkEditMode }: ToolbarPluginProps) {
   // Lexical selectors must run inside editor reads; the ref lets listeners merge
   // without a lazy setState updater that React may call later, outside the read.
   const stateRef = useRef<ToolbarState>(INITIAL)
-
   useEffect(() => {
     return mergeRegister(
       editor.registerCommand(
@@ -207,6 +207,7 @@ export function ToolbarPlugin({ setIsLinkEditMode }: ToolbarPluginProps) {
     )
   }, [editor])
 
+  // Helpers
   const setBlockType = (type: BlockTypeId) => {
     if (type === 'bullet') return editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
     if (type === 'number') return editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)
@@ -263,28 +264,6 @@ export function ToolbarPlugin({ setIsLinkEditMode }: ToolbarPluginProps) {
     editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3', includeHeaders: true })
   }
 
-  const insertItems: [string, () => void, React.ReactNode][] = [
-    [copy.image, insertImage, <ImageIcon size={14} key="img" />],
-    [copy.youtube, insertYouTube, <Youtube size={14} key="yt" />],
-    [copy.table, insertTable, <Table size={14} key="tbl" />],
-    [
-      copy.collapsible,
-      () => {
-        setInsertOpen(false)
-        editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, undefined)
-      },
-      <ChevronsDownUp size={14} key="col" />,
-    ],
-    [
-      copy.horizontalRule,
-      () => {
-        setInsertOpen(false)
-        editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)
-      },
-      <Minus size={14} key="hr" />,
-    ],
-  ]
-
   const iconButton = (
     label: string,
     active: boolean,
@@ -306,6 +285,29 @@ export function ToolbarPlugin({ setIsLinkEditMode }: ToolbarPluginProps) {
       {icon}
     </button>
   )
+
+  // Render logic
+  const insertItems: [string, () => void, React.ReactNode][] = [
+    [copy.image, insertImage, <ImageIcon size={14} key="img" />],
+    [copy.youtube, insertYouTube, <Youtube size={14} key="yt" />],
+    [copy.table, insertTable, <Table size={14} key="tbl" />],
+    [
+      copy.collapsible,
+      () => {
+        setInsertOpen(false)
+        editor.dispatchCommand(INSERT_COLLAPSIBLE_COMMAND, undefined)
+      },
+      <ChevronsDownUp size={14} key="col" />,
+    ],
+    [
+      copy.horizontalRule,
+      () => {
+        setInsertOpen(false)
+        editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)
+      },
+      <Minus size={14} key="hr" />,
+    ],
+  ]
 
   return (
     <div className="editor-toolbar" role="toolbar">

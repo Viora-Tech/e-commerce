@@ -1,12 +1,12 @@
 import type { RichTextValue } from '@commerce/richtext'
 import type { Config, CustomField, Data } from '@measured/puck'
 import type { ComponentType } from 'react'
-import { HeroCarousel, type HeroSlide } from './components/hero-carousel'
-import { ProductCard } from './components/product-card'
-import { TabbedProducts } from './components/product-grid'
-import { RichTextBlock } from './components/rich-text'
-import { SectionFrame } from './components/section-frame'
-import { SectionHeading } from './components/section-heading'
+import HeroCarousel, { type HeroSlide } from './components/hero-carousel'
+import ProductCard from './components/product-card'
+import TabbedProducts from './components/product-grid'
+import RichTextBlock from './components/rich-text'
+import SectionFrame from './components/section-frame'
+import SectionHeading from './components/section-heading'
 import type { CardProduct } from './types'
 
 /**

@@ -16,12 +16,12 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { CircleAlert, Puzzle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { EmptyState } from '@/components/layout/empty-state'
-import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
+import EmptyState from '@/components/layout/empty-state'
+import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import { appsContent as copy } from '@/data/apps'
 import { api } from '@/lib/api-client'
-import { AppCard, type AppSummary } from './app-card'
+import AppCard, { type AppSummary } from './app-card'
 
 function describeError(err: unknown, fallback: string) {
   return err instanceof Error && err.message ? err.message : fallback
@@ -42,12 +42,12 @@ function LoadingCards() {
 }
 
 /** Apps: every plugin from commerce.config.ts, installable per store. */
-export function AppsList() {
+export default function AppsList() {
+  // Hooks
   const [apps, setApps] = useState<AppSummary[] | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pendingUninstall, setPendingUninstall] = useState<AppSummary | null>(null)
-
   useEffect(() => {
     api.apps
       .list()
@@ -55,7 +55,8 @@ export function AppsList() {
       .catch((err) => setError(describeError(err, copy.loadFailed)))
   }, [])
 
-  async function toggle(app: AppSummary, install: boolean) {
+  // Event handlers
+  const handleToggle = async (app: AppSummary, install: boolean) => {
     setBusyId(app.id)
     setError(null)
     try {
@@ -70,10 +71,10 @@ export function AppsList() {
     }
   }
 
-  function confirmUninstall() {
+  const handleConfirmUninstall = () => {
     const app = pendingUninstall
     setPendingUninstall(null)
-    if (app) void toggle(app, false)
+    if (app) void handleToggle(app, false)
   }
 
   return (
@@ -99,7 +100,7 @@ export function AppsList() {
               key={app.id}
               app={app}
               busy={busyId === app.id}
-              onInstall={(a) => toggle(a, true)}
+              onInstall={(a) => handleToggle(a, true)}
               onUninstall={setPendingUninstall}
             />
           ))
@@ -120,7 +121,7 @@ export function AppsList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{copy.confirmUninstall.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmUninstall}>
+            <AlertDialogAction onClick={handleConfirmUninstall}>
               {copy.confirmUninstall.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>

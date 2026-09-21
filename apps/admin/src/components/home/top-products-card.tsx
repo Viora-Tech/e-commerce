@@ -1,0 +1,63 @@
+import { Search } from 'lucide-react'
+import Link from 'next/link'
+import DataCard from '@/components/layout/data-card'
+import { homeContent } from '@/data/home'
+import { formatPaise } from '@/lib/money'
+import HomeProductThumb from './product-thumb'
+import type { TopProduct } from './top-product-types'
+
+/**
+ * Frame 5:2088 "Top Products" (292 x 420, 16px side padding): title with an
+ * "All product" link, a search field, then rows of thumb / name / item code /
+ * price separated by hairlines.
+ */
+export default function TopProductsCard({ products }: { products: TopProduct[] }) {
+  const c = homeContent.topProducts
+  return (
+    <DataCard
+      title={c.title}
+      className="px-4"
+      action={
+        <Link href="/products" className="text-xs text-link hover:underline">
+          {c.all}
+        </Link>
+      }
+    >
+      <label className="-mt-1 flex h-9 items-center gap-2 rounded-lg bg-background px-3 text-xs text-muted-foreground">
+        <Search className="size-4" aria-hidden="true" />
+        <input
+          type="search"
+          placeholder={c.search}
+          className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
+        />
+      </label>
+      {products.length === 0 ? (
+        <p className="pt-4 text-body text-muted-foreground">{c.empty}</p>
+      ) : (
+        <ul className="mt-1 divide-y divide-border-soft">
+          {products.map((p) => (
+            <li key={p.productId}>
+              <Link
+                href={`/products/${p.productId}`}
+                className="flex h-14 items-center gap-3 transition-colors hover:bg-background"
+              >
+                <HomeProductThumb url={p.imageUrl} title={p.title} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-semibold leading-4 text-ink-strong">
+                    {p.title}
+                  </span>
+                  <span className="block text-xs leading-4 text-muted-foreground">
+                    {c.units(p.units)}
+                  </span>
+                </span>
+                <span className="text-[0.8125rem] font-bold tabular-nums text-ink-strong">
+                  {formatPaise(p.pricePaise)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </DataCard>
+  )
+}

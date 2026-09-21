@@ -37,7 +37,7 @@ function imageFiles(transfer: DataTransfer | null): File[] {
  * Registers INSERT_IMAGE_COMMAND and turns dropped or pasted image files into
  * image nodes, uploading through the host's media hook when one is provided.
  */
-export function ImagesPlugin(): null {
+export default function ImagesPlugin(): null {
   const [editor] = useLexicalComposerContext()
   const media = useEditorMedia()
 

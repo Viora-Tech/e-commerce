@@ -1,8 +1,7 @@
 'use client'
 
-import {
+import ProviderSettingsForm, {
   type ProviderDef,
-  ProviderSettingsForm,
 } from '@/components/settings/provider-settings-form'
 import { notificationsSettingsContent as copy } from '@/data/notifications'
 import { api } from '@/lib/api-client'
@@ -18,7 +17,7 @@ function channelHint(m: ProviderDef) {
   return hint ? <p className="text-caption text-muted-foreground">{hint}</p> : null
 }
 
-export function NotificationsSettings() {
+export default function NotificationsSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}

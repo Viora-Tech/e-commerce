@@ -21,12 +21,12 @@ import {
 } from '@tanstack/react-table'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
-import { EmptyState } from '@/components/layout/empty-state'
+import EmptyState from '@/components/layout/empty-state'
 import { tableContent } from '@/data/table'
 import { type CellAlign, defineColumns, type ResourceColumnSpec, selectionColumn } from './columns'
 import { resourceTableFeatures } from './features'
-import { ResourceTablePagination } from './pagination'
-import { type AppliedFilter, ResourceTableToolbar } from './toolbar'
+import ResourceTablePagination from './pagination'
+import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
 
@@ -71,34 +71,36 @@ const ALIGN: Record<CellAlign, string> = {
  * search row, a tinted header band, 68px rows on hairlines, numbered paging.
  * Paging and search are server-side; sorting and selection act on the loaded page.
  */
-export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
+function tableColumns<T extends RowData>(props: ResourceTableProps<T>) {
+  const selectable = props.selectable ?? true
+  const offset = (props.page - 1) * props.perPage
+  return [...(selectable ? [selectionColumn<T>(offset)] : []), ...defineColumns(props.columns)]
+}
+
+export default function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
+  // Hooks
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-
-  const selectable = props.selectable ?? true
-  const offset = (props.page - 1) * props.perPage
-  const columns = [
-    ...(selectable ? [selectionColumn<T>(offset)] : []),
-    ...defineColumns(props.columns),
-  ]
-  const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
-
   const table = useTable({
     features: resourceTableFeatures,
     data: props.items,
-    columns,
+    columns: tableColumns(props),
     getRowId: (row) => props.getId(row),
-    enableRowSelection: selectable,
+    enableRowSelection: props.selectable ?? true,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: { sorting, columnVisibility, rowSelection },
   })
 
-  const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
+  // Helpers
   const clearSelection = () => setRowSelection({})
+
+  // Render logic
+  const columnTitles = Object.fromEntries(props.columns.map((c) => [c.id, c.title]))
+  const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id])
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
   const isEmpty = !props.loading && props.items.length === 0

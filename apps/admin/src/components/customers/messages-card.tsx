@@ -1,6 +1,6 @@
 import { Bell } from 'lucide-react'
-import { DataCard } from '@/components/layout/data-card'
-import { StatusPill, type StatusTone } from '@/components/layout/status-pill'
+import DataCard from '@/components/layout/data-card'
+import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
 import { customerDetailContent as copy } from '@/data/customers'
 import { type CustomerMessage, when } from './customer-detail-types'
 
@@ -15,7 +15,7 @@ const TONE: Record<string, StatusTone> = {
 }
 
 /** Every notification the store sent to this email, newest first. */
-export function MessagesCard({ messages }: MessagesCardProps) {
+export default function MessagesCard({ messages }: MessagesCardProps) {
   const c = copy.timeline
   return (
     <DataCard title={c.heading}>

@@ -22,6 +22,7 @@ function describe(r: Estimate): { tone: Tone; lines: string[] } {
     copy.tryPin.serviceable(r.dateRange, r.dispatchLabel),
     copy.tryPin.cod(r.codAvailable),
   ]
+
   if (r.fallback) lines.push(copy.tryPin.fallback)
   return { tone: r.fallback ? 'warning' : 'success', lines }
 }
@@ -48,13 +49,15 @@ function ResultAlert({ tone, lines }: { tone: Tone; lines: string[] }) {
 }
 
 /** "Try a PIN" and "Test connection" for Settings › Shipping. Both hit the saved settings. */
-export function ShippingTryPin() {
+export default function ShippingTryPin() {
+  // Hooks
   const [pincode, setPincode] = useState('')
   const [estimate, setEstimate] = useState<Estimate | null>(null)
   const [verify, setVerify] = useState<Verify | null>(null)
   const [checking, setChecking] = useState(false)
   const [verifying, setVerifying] = useState(false)
 
+  // Event handlers
   const handleCheck = async () => {
     setChecking(true)
     try {
@@ -65,6 +68,7 @@ export function ShippingTryPin() {
       setChecking(false)
     }
   }
+
   const handleVerify = async () => {
     setVerifying(true)
     try {
@@ -76,6 +80,7 @@ export function ShippingTryPin() {
     }
   }
 
+  // Render logic
   const shown = estimate ? describe(estimate) : null
 
   return (

@@ -19,24 +19,25 @@ const MAX_SUGGESTIONS = 50
 const sameTag = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
 /** Enter or comma adds the typed tag; Backspace on an empty box removes the last one. */
-export function TagInput({ id, tags, suggestions, onChange, placeholder }: TagInputProps) {
+export default function TagInput({ id, tags, suggestions, onChange, placeholder }: TagInputProps) {
+  // Hooks
   const [draft, setDraft] = useState('')
   const listId = useId()
 
-  const open = suggestions.filter((s) => !tags.some((t) => sameTag(t, s))).slice(0, MAX_SUGGESTIONS)
-
+  // Helpers
   const add = (raw: string) => {
     const tag = raw.trim()
     if (!tag || tags.some((t) => sameTag(t, tag))) return
     onChange([...tags, tag])
   }
-  const remove = (tag: string) => onChange(tags.filter((t) => t !== tag))
 
+  const remove = (tag: string) => onChange(tags.filter((t) => t !== tag))
   const commit = () => {
     add(draft)
     setDraft('')
   }
 
+  // Event handlers
   const handleKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
@@ -45,6 +46,9 @@ export function TagInput({ id, tags, suggestions, onChange, placeholder }: TagIn
       onChange(tags.slice(0, -1))
     }
   }
+
+  // Render logic
+  const open = suggestions.filter((s) => !tags.some((t) => sameTag(t, s))).slice(0, MAX_SUGGESTIONS)
 
   return (
     <div className="flex flex-col gap-2">

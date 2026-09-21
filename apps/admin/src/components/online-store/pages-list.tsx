@@ -3,12 +3,12 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { PageBody } from '@/components/layout/page-body'
-import { StatusPill } from '@/components/layout/status-pill'
-import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
+import PageBody from '@/components/layout/page-body'
+import StatusPill from '@/components/layout/status-pill'
+import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { onlineStoreContent } from '@/data/online-store'
 import { api } from '@/lib/api-client'
-import { CreatePageDialog } from './create-page-dialog'
+import CreatePageDialog from './create-page-dialog'
 
 type Item = Awaited<ReturnType<typeof api.pages.list>>[number]
 
@@ -55,12 +55,12 @@ const columns: ResourceColumnSpec<Item>[] = [
 ]
 
 /** Online Store › Pages: every Puck page, published or draft. */
-export function PagesList() {
+export default function PagesList() {
+  // Hooks
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
-
   useEffect(() => {
     api.pages
       .list()
@@ -68,6 +68,7 @@ export function PagesList() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Render logic
   const shown = items.filter((p) => !query || p.title.toLowerCase().includes(query.toLowerCase()))
 
   return (

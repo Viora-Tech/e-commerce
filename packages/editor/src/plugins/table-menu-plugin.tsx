@@ -29,12 +29,12 @@ type TableMenuPluginProps = { anchorElem: HTMLElement }
 const copy = editorContent.tableMenu
 
 /** A small "⋯" button on the active table cell with row/column actions. */
-export function TableMenuPlugin({ anchorElem }: TableMenuPluginProps) {
+export default function TableMenuPlugin({ anchorElem }: TableMenuPluginProps) {
+  // Hooks
   const [editor] = useLexicalComposerContext()
   const [cellKey, setCellKey] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const buttonRef = useRef<HTMLDivElement | null>(null)
-
   useEffect(() => {
     const $update = () => {
       const selection = $getSelection()
@@ -54,7 +54,6 @@ export function TableMenuPlugin({ anchorElem }: TableMenuPluginProps) {
       COMMAND_PRIORITY_LOW,
     )
   }, [editor])
-
   useEffect(() => {
     const box = buttonRef.current
     if (!box) return
@@ -72,6 +71,7 @@ export function TableMenuPlugin({ anchorElem }: TableMenuPluginProps) {
     box.style.left = `${cellRect.right - anchorRect.left - 26}px`
   }, [cellKey, editor, anchorElem])
 
+  // Helpers
   const run = (fn: () => void) => {
     editor.update(fn)
     setOpen(false)
@@ -84,6 +84,7 @@ export function TableMenuPlugin({ anchorElem }: TableMenuPluginProps) {
     if ($isTableCellNode(cell)) fn(cell)
   }
 
+  // Render logic
   const toggleHeaderRow = $withCell((cell) => {
     const row = cell.getParent()
     if (!$isTableRowNode(row)) return

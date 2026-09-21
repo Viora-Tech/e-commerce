@@ -20,7 +20,7 @@ export const INSERT_YOUTUBE_COMMAND: LexicalCommand<string> =
   createCommand('INSERT_YOUTUBE_COMMAND')
 
 /** YouTube embeds: an insert command plus auto-embed when a bare video URL is pasted. */
-export function EmbedsPlugin(): null {
+export default function EmbedsPlugin(): null {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {

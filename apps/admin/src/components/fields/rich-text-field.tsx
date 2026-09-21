@@ -21,7 +21,7 @@ type RichTextFieldProps = {
 }
 
 /** shadcn Field wrapper (label / help / error) around the shared Lexical editor. */
-export function RichTextField({
+export default function RichTextField({
   label,
   value,
   onChange,
@@ -33,6 +33,7 @@ export function RichTextField({
   minHeight,
   required,
 }: RichTextFieldProps) {
+  // Hooks
   const id = useId()
 
   return (

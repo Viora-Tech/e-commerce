@@ -29,7 +29,14 @@ type ImageComponentProps = {
 
 const copy = editorContent.image
 
-export function ImageComponent({ nodeKey, src, altText, width, showCaption }: ImageComponentProps) {
+export default function ImageComponent({
+  nodeKey,
+  src,
+  altText,
+  width,
+  showCaption,
+}: ImageComponentProps) {
+  // Hooks
   const [editor] = useLexicalComposerContext()
   const media = useEditorMedia()
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(nodeKey)
@@ -38,7 +45,6 @@ export function ImageComponent({ nodeKey, src, altText, width, showCaption }: Im
   const [alt, setAlt] = useState(altText)
   const fileInput = useRef<HTMLInputElement>(null)
   const wrapper = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     const $remove = () => {
       const selection = $getSelection()
@@ -63,6 +69,7 @@ export function ImageComponent({ nodeKey, src, altText, width, showCaption }: Im
     )
   }, [editor, isSelected, nodeKey, clearSelection, setSelected])
 
+  // Helpers
   const update = (patch: {
     src?: string | undefined
     altText?: string | undefined
@@ -82,6 +89,11 @@ export function ImageComponent({ nodeKey, src, altText, width, showCaption }: Im
     })
   }
 
+  const commitAlt = () => {
+    if (alt !== altText) update({ altText: alt })
+  }
+
+  // Event handlers
   const handleFile = async (file: File | undefined) => {
     if (!file || !media?.upload) return
     setUploading(true)
@@ -113,10 +125,7 @@ export function ImageComponent({ nodeKey, src, altText, width, showCaption }: Im
     }
   }
 
-  const commitAlt = () => {
-    if (alt !== altText) update({ altText: alt })
-  }
-
+  // Early returns
   if (editing) {
     return (
       <div ref={wrapper} className="editor-image-card" contentEditable={false}>

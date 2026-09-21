@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { CustomerView } from '@/components/customers/customer-view'
+import CustomerView from '@/components/customers/customer-view'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 type Params = { params: Promise<{ id: string }> }

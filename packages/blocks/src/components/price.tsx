@@ -1,7 +1,13 @@
 import { formatPaise } from '../money'
 
 // Port of snippets/price.liquid.
-export function Price({ pricePaise, mrpPaise }: { pricePaise: number; mrpPaise: number | null }) {
+export default function Price({
+  pricePaise,
+  mrpPaise,
+}: {
+  pricePaise: number
+  mrpPaise: number | null
+}) {
   const onSale = mrpPaise != null && mrpPaise > pricePaise
   const off = onSale ? Math.round((1 - pricePaise / mrpPaise) * 100) : 0
   return (

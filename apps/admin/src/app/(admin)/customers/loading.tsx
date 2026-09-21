@@ -1,4 +1,4 @@
-import { ListPageSkeleton } from '@/components/layout/page-skeletons'
+import ListPageSkeleton from '@/components/layout/list-page-skeleton'
 
 export default function Loading() {
   return <ListPageSkeleton />

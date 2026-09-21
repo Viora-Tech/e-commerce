@@ -12,7 +12,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { StatusPill } from '@/components/layout/status-pill'
+import StatusPill from '@/components/layout/status-pill'
 import { onlineStoreContent } from '@/data/online-store'
 import { api } from '@/lib/api-client'
 
@@ -63,6 +63,7 @@ type ThemeFrameProps = { children: ReactNode; document?: Document | undefined; c
  * into the admin document would restyle the editor chrome.
  */
 function ThemeFrame({ children, document, css }: ThemeFrameProps) {
+  // Hooks
   useEffect(() => {
     if (!document) return
     const el = document.createElement('style')
@@ -70,6 +71,7 @@ function ThemeFrame({ children, document, css }: ThemeFrameProps) {
     document.head.appendChild(el)
     return () => el.remove()
   }, [document, css])
+
   return <>{children}</>
 }
 
@@ -82,8 +84,11 @@ function EditorHeader({
   storefrontOrigin,
   onSave,
 }: EditorHeaderProps) {
+  // Hooks
   const data = usePuck((s) => s.appState.data)
   const hasPast = usePuck((s) => s.history.hasPast)
+
+  // Render logic
   const dirty = hasPast && (savedJson === null || JSON.stringify(data) !== savedJson)
   const path = pagePath(page.handle)
 
@@ -130,12 +135,14 @@ function EditorHeader({
   )
 }
 
-export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps) {
+export default function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps) {
+  // Hooks
   const [busy, setBusy] = useState(false)
   const [savedJson, setSavedJson] = useState<string | null>(null)
   const [published, setPublished] = useState(Boolean(page.publishedAt))
 
-  async function save(data: PageData, publish: boolean) {
+  // Event handlers
+  const handleSave = async (data: PageData, publish: boolean) => {
     setBusy(true)
     try {
       await api.pages.saveDraft({ id: page.id, data })
@@ -155,7 +162,7 @@ export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps
       <Puck
         config={config}
         data={page.data as PageData}
-        onPublish={(data) => save(data as PageData, true)}
+        onPublish={(data) => handleSave(data as PageData, true)}
         overrides={{
           iframe: ({ children, document }) => (
             <ThemeFrame document={document} css={themeCss}>
@@ -169,7 +176,7 @@ export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps
               savedJson={savedJson}
               busy={busy}
               storefrontOrigin={storefrontOrigin}
-              onSave={save}
+              onSave={handleSave}
             />
           ),
         }}

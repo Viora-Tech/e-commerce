@@ -1,6 +1,6 @@
 import { getCart } from '@commerce/core'
 import { redirect } from 'next/navigation'
-import { CheckoutForm } from '@/components/checkout/checkout-form'
+import CheckoutForm from '@/components/checkout/checkout-form'
 import { readCartId } from '@/lib/cart-cookie'
 import { storeCheckoutMethods } from '@/lib/payments'
 import { inStore } from '@/lib/store-context'

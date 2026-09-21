@@ -127,22 +127,31 @@ function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   )
 }
 
-export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: AdminSidebarProps) {
+export default function AdminSidebar({
+  user,
+  stores,
+  activeStoreId,
+  storefrontUrl,
+}: AdminSidebarProps) {
+  // Hooks
   const pathname = usePathname()
   const router = useRouter()
   const { toggleSidebar } = useSidebar()
-  const active = stores.find((s) => s.id === activeStoreId) ?? null
 
-  async function switchStore(id: string) {
+  // Event handlers
+  const handleSwitchStore = async (id: string) => {
     await authClient.organization.setActive({ organizationId: id })
     router.refresh()
   }
 
-  async function signOut() {
+  const handleSignOut = async () => {
     await authClient.signOut()
     router.push('/login')
     router.refresh()
   }
+
+  // Render logic
+  const active = stores.find((s) => s.id === activeStoreId) ?? null
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 shadow-rail">
@@ -161,7 +170,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
               {navigationContent.stores}
             </DropdownMenuLabel>
             {stores.map((s) => (
-              <DropdownMenuItem key={s.id} onSelect={() => switchStore(s.id)}>
+              <DropdownMenuItem key={s.id} onSelect={() => handleSwitchStore(s.id)}>
                 <Store className="size-4" />
                 {s.name}
               </DropdownMenuItem>
@@ -211,7 +220,7 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
           </div>
           <button
             type="button"
-            onClick={signOut}
+            onClick={handleSignOut}
             aria-label={navigationContent.signOut}
             title={navigationContent.signOut}
             className="flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden"

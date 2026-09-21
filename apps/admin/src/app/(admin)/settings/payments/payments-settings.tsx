@@ -1,10 +1,9 @@
 'use client'
 
 import type { PaymentAdjustment } from '@commerce/core'
-import { PaymentAdjustmentFields } from '@/components/settings/payment-adjustment-fields'
-import {
+import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
+import ProviderSettingsForm, {
   type ProviderDef,
-  ProviderSettingsForm,
 } from '@/components/settings/provider-settings-form'
 import { paymentsSettingsContent as copy } from '@/data/payments'
 import { api } from '@/lib/api-client'
@@ -34,6 +33,7 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
     const { [m.id]: _drop, ...rest } = extra.adjustments
     setExtra({ adjustments: adj ? { ...rest, [m.id]: adj } : rest })
   }
+
   return (
     <PaymentAdjustmentFields
       providerId={m.id}
@@ -43,7 +43,7 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
   )
 }
 
-export function PaymentsSettings() {
+export default function PaymentsSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}

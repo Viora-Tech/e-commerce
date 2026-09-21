@@ -3,8 +3,8 @@
 import type { Tracking } from '@commerce/core'
 import { Button } from '@commerce/ui/shadcn/button'
 import { ExternalLink, Printer, RefreshCw } from 'lucide-react'
-import { DataCard } from '@/components/layout/data-card'
-import { StatusPill, type StatusTone } from '@/components/layout/status-pill'
+import DataCard from '@/components/layout/data-card'
+import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
 import { shipmentPanelContent as copy } from '@/data/shipping'
 import { type OrderShipment, when } from './order-detail-types'
 
@@ -28,7 +28,7 @@ const TONE: Record<string, StatusTone> = {
 }
 
 /** Book, refresh or cancel the consignment for an order, and show the courier's scans. */
-export function ShipmentPanel({
+export default function ShipmentPanel({
   orderStatus,
   shipment,
   busy,
@@ -36,12 +36,9 @@ export function ShipmentPanel({
   onRefresh,
   onCancel,
 }: ShipmentPanelProps) {
-  const tracking = (shipment?.tracking ?? null) as Tracking | null
+  // Early returns
   const canBook = !shipment || shipment.status === 'cancelled'
   const bookable = canBook && orderStatus !== 'cancelled' && orderStatus !== 'delivered'
-  const open = shipment && shipment.status !== 'cancelled' && shipment.status !== 'delivered'
-  const events = tracking?.events.slice().reverse() ?? []
-
   if (!shipment || canBook) {
     return (
       <DataCard title={copy.heading}>
@@ -56,6 +53,11 @@ export function ShipmentPanel({
       </DataCard>
     )
   }
+
+  // Render logic
+  const tracking = (shipment?.tracking ?? null) as Tracking | null
+  const open = shipment && shipment.status !== 'cancelled' && shipment.status !== 'delivered'
+  const events = tracking?.events.slice().reverse() ?? []
 
   return (
     <DataCard

@@ -5,12 +5,9 @@ import { useTheme } from 'next-themes'
 import { useEffect } from 'react'
 import { Button } from '../../shadcn/button'
 
-export function ModeToggle() {
+export default function ModeToggle() {
+  // Hooks
   const { theme, setTheme } = useTheme()
-  const handleSwitchTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'm' && (e.metaKey || e.ctrlKey)) {
@@ -21,6 +18,11 @@ export function ModeToggle() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [setTheme])
+
+  // Event handlers
+  const handleSwitchTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light')
+  }
 
   return (
     <Button className="relative" onClick={handleSwitchTheme} size="icon-sm" variant="ghost">

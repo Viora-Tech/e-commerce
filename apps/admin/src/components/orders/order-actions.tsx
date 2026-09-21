@@ -39,8 +39,17 @@ const NEXT: Partial<Record<OrderStatus, { label: string; to: OrderStatus }>> = {
 }
 
 /** Header buttons: primary status move, refund, and the rest behind a menu. */
-export function OrderActions({ status, canRefund, busy, onMove, onRefund }: OrderActionsProps) {
+export default function OrderActions({
+  status,
+  canRefund,
+  busy,
+  onMove,
+  onRefund,
+}: OrderActionsProps) {
+  // Hooks
   const [confirmCancel, setConfirmCancel] = useState(false)
+
+  // Render logic
   const next = NEXT[status]
   const cancellable = status !== 'cancelled' && status !== 'delivered'
 

@@ -17,7 +17,7 @@ type SaveBarProps = {
  * Contextual save bar: sticks to the top of the scrolling page while the form
  * has unsaved changes. Render it as the first child of PageBody.
  */
-export function SaveBar({
+export default function SaveBar({
   message,
   saveLabel,
   discardLabel,

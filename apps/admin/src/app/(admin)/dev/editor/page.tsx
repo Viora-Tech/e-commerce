@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { EditorPlayground } from './editor-playground'
+import EditorPlayground from './editor-playground'
 
 export const metadata: Metadata = { title: 'Editor playground' }
 

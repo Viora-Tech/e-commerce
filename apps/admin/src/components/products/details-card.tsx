@@ -4,7 +4,7 @@ import type { RichTextValue } from '@commerce/richtext'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { RichTextField } from '@/components/fields/rich-text-field'
+import RichTextField from '@/components/fields/rich-text-field'
 import { productFormContent } from '@/data/products'
 
 type DetailsCardProps = {
@@ -17,7 +17,7 @@ type DetailsCardProps = {
 
 const copy = productFormContent.details
 
-export function DetailsCard({
+export default function DetailsCard({
   title,
   description,
   titleError,

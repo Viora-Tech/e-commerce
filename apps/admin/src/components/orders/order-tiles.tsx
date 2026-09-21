@@ -1,5 +1,5 @@
 import { Card } from '@commerce/ui/shadcn/card'
-import { DeltaChip, percentDelta } from '@/components/layout/stat-card'
+import DeltaChip, { percentDelta } from '@/components/layout/delta-chip'
 import { ordersContent } from '@/data/orders'
 import type { api } from '@/lib/api-client'
 
@@ -30,7 +30,7 @@ function Tile({ title, value, previous, invert }: TileProps) {
 }
 
 /** The four tiles above the order list (5:2511): 15px apart, equal widths. */
-export function OrderTiles({ stats }: { stats: OrderStats }) {
+export default function OrderTiles({ stats }: { stats: OrderStats }) {
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
       <Tile title={ordersContent.tiles.total} {...stats.total} />

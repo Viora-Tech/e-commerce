@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { PRODUCT_STATUSES } from '@/data/products'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
-import { ProductsPage } from './products-page'
+import ProductsPage from './products-page'
 
 export const metadata: Metadata = { title: 'Products' }
 
@@ -24,5 +24,6 @@ export default async function Page({ searchParams }: Props) {
     ),
     call(appRouter.products.list, { page: 1, perPage: 1 }, { context }),
   ])
+
   return <ProductsPage initial={{ query, result, allCount: all.total }} />
 }

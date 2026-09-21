@@ -77,24 +77,15 @@ function Field({
   )
 }
 
-export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
+export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
+  // Hooks
   const [pending, start] = useTransition()
   const [checking, startCheck] = useTransition()
   const [form, setForm] = useState<Form>({ ...EMPTY_FORM, payment: methods[0]?.id ?? 'cod' })
   const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Preview only: placeOrder recomputes the adjustment server-side from store settings.
-  const selected = methods.find((m) => m.id === form.payment)
-  const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(
-    cart.subtotalPaise,
-    selected?.adjustment,
-  )
-  const f = content.fields
-  const codBlocked = delivery?.ok === true && delivery.serviceable && !delivery.codAvailable
-  const unserviceable = delivery?.ok === true && !delivery.serviceable
-  const deliveryText = deliveryLine(delivery, checking)
-
+  // Helpers
   const set =
     (k: keyof Form): ChangeHandler =>
     (e) =>
@@ -117,6 +108,8 @@ export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
       }
     })
   }
+
+  // Event handlers
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -125,6 +118,19 @@ export function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
       if (r?.error) setError(r.error)
     })
   }
+
+  // Render logic
+  // Preview only: placeOrder recomputes the adjustment server-side from store settings.
+  const selected = methods.find((m) => m.id === form.payment)
+  const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(
+    cart.subtotalPaise,
+    selected?.adjustment,
+  )
+
+  const f = content.fields
+  const codBlocked = delivery?.ok === true && delivery.serviceable && !delivery.codAvailable
+  const unserviceable = delivery?.ok === true && !delivery.serviceable
+  const deliveryText = deliveryLine(delivery, checking)
 
   return (
     <section className="section-cart page-width">

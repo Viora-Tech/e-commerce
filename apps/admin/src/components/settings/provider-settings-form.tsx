@@ -8,12 +8,12 @@ import { CircleAlert, Puzzle } from 'lucide-react'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { EmptyState } from '@/components/layout/empty-state'
-import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
-import { SaveBar } from '@/components/layout/save-bar'
+import EmptyState from '@/components/layout/empty-state'
+import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
-import { ProviderCard, type ProviderDef } from './provider-card'
+import ProviderCard, { type ProviderDef } from './provider-card'
 
 export type { ProviderDef, ProviderFieldDef } from './provider-card'
 
@@ -72,7 +72,7 @@ function LoadingCards() {
  * from the server registry, so an adapter package adds itself without admin
  * changes. Unsaved edits raise the contextual save bar like every other form.
  */
-export function ProviderSettingsForm<Extra extends object>({
+export default function ProviderSettingsForm<Extra extends object>({
   title,
   intro,
   load,
@@ -83,16 +83,17 @@ export function ProviderSettingsForm<Extra extends object>({
   renderFooter,
   noConfigText,
 }: ProviderSettingsFormProps<Extra>) {
+  // Hooks
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
   const [form, setForm] = useState<FormState<Extra>>({
     enabled: [],
     providers: {},
     extra: emptyExtra,
   })
+
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
     load().then((d) => {
       const next = split(d.settings)
@@ -102,7 +103,7 @@ export function ProviderSettingsForm<Extra extends object>({
     })
   }, [load])
 
-  const dirty = saved !== null && JSON.stringify(form) !== saved
+  // Helpers
   const setExtra = (extra: Extra) => setForm((f) => ({ ...f, extra }))
   const toggle = (id: string, on: boolean) =>
     setForm((f) => ({
@@ -115,7 +116,8 @@ export function ProviderSettingsForm<Extra extends object>({
       providers: { ...f.providers, [id]: { ...(f.providers[id] ?? {}), [key]: value } },
     }))
 
-  async function handleSave() {
+  // Event handlers
+  const handleSave = async () => {
     setBusy(true)
     setError(null)
     try {
@@ -131,10 +133,13 @@ export function ProviderSettingsForm<Extra extends object>({
     }
   }
 
-  function discard() {
+  const handleDiscard = () => {
     if (saved) setForm(JSON.parse(saved) as FormState<Extra>)
     setError(null)
   }
+
+  // Render logic
+  const dirty = saved !== null && JSON.stringify(form) !== saved
 
   return (
     <PageBody width="narrow">
@@ -144,7 +149,7 @@ export function ProviderSettingsForm<Extra extends object>({
           saveLabel={copy.save}
           discardLabel={copy.discard}
           onSave={handleSave}
-          onDiscard={discard}
+          onDiscard={handleDiscard}
           saving={busy}
         />
       ) : null}

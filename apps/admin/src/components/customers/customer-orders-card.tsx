@@ -1,7 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
-import { DataCard } from '@/components/layout/data-card'
-import { OrderStatusPill } from '@/components/orders/order-badges'
+import DataCard from '@/components/layout/data-card'
+import OrderStatusPill from '@/components/orders/order-status-pill'
 import { customerDetailContent as copy } from '@/data/customers'
 import { formatPaise } from '@/lib/money'
 import { type CustomerOrder, day } from './customer-detail-types'
@@ -14,7 +14,7 @@ type CustomerOrdersCardProps = {
 const ROW = 'grid grid-cols-[7rem_minmax(0,1fr)_9rem_7rem] items-center px-6'
 
 /** Every order this customer placed, newest first, linking into the order page. */
-export function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) {
+export default function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) {
   const c = copy.orders
   return (
     <DataCard title={c.heading} flush>
