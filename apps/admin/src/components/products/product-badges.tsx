@@ -12,18 +12,21 @@ export function ProductStatusBadge({ status }: { status: ProductStatus }) {
 
 type ProductThumbProps = { url: string | null; alt?: string; className?: string }
 
-/** Kit product thumbnail (46px, radius 12) with an icon placeholder when there is no image. */
+/* Frame 5:2613: 40px box, Neutal/200 hairline, 4px radius, picture inset to 30px. */
 export function ProductThumb({ url, alt = '', className }: ProductThumbProps) {
-  const box = cn('size-[46px] shrink-0 rounded-xl border border-border-soft bg-muted', className)
-  if (!url) {
-    return (
-      <span className={cn(box, 'flex items-center justify-center text-muted-foreground')}>
-        <ImageIcon className="size-5" aria-hidden />
-      </span>
-    )
-  }
   return (
-    // biome-ignore lint/performance/noImgElement: remote catalogue images, no optimisation pipeline yet.
-    <img src={url} alt={alt} className={cn(box, 'object-cover')} />
+    <span
+      className={cn(
+        'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[4px] border border-secondary bg-card text-muted-foreground',
+        className,
+      )}
+    >
+      {url ? (
+        // biome-ignore lint/performance/noImgElement: remote catalogue images, no optimisation pipeline yet.
+        <img src={url} alt={alt} className="size-[30px] object-contain" />
+      ) : (
+        <ImageIcon className="size-5" aria-hidden />
+      )}
+    </span>
   )
 }

@@ -11,11 +11,13 @@ export const PRODUCT_STATUS_TONE: Record<ProductStatus, 'success' | 'info' | 'ne
 /** Every string the products list shows. */
 export const productsListContent = {
   title: 'Products',
+  /* Same frame family as the order list (5:2353): heading, primary action, tab group. */
+  heading: 'Product list',
   resource: { singular: 'product', plural: 'products' },
   add: 'Add product',
   export: 'Export',
   import: 'Import',
-  tabs: { all: 'All' },
+  tabs: { all: 'All products' },
   status: { active: 'Active', draft: 'Draft', archived: 'Archived' } satisfies Record<
     ProductStatus,
     string
