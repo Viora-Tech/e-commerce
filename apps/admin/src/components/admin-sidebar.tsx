@@ -49,10 +49,10 @@ type AdminSidebarProps = {
 }
 
 const NAV_ITEM =
-  'h-10 gap-3 rounded-lg px-3 text-[13px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground'
+  'h-10 gap-3 rounded-lg px-3 text-[13px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
 
 const NAV_CHILD =
-  'h-9 rounded-md px-3 text-[13px] text-muted-foreground hover:text-foreground data-active:bg-primary-soft data-active:font-semibold data-active:text-primary'
+  'h-9 rounded-md px-3 text-[13px] text-muted-foreground hover:text-foreground data-active:bg-primary-soft data-active:font-semibold data-active:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
 
 function initials(name: string): string {
   return (

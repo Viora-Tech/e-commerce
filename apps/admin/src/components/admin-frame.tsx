@@ -5,7 +5,7 @@ import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { Frame } from '@shopify/polaris'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties, ReactNode } from 'react'
-import { isShadcnRoute, pageTitleFor } from '@/data/layout'
+import { hasOwnHeading, isShadcnRoute, pageTitleFor } from '@/data/layout'
 import { AdminSidebar } from './admin-sidebar'
 import { TopBar } from './layout/top-bar'
 
@@ -24,7 +24,7 @@ const SIDEBAR_WIDTH = '260px'
 /**
  * Shell = kit sidebar + top bar + page content. Pages rebuilt on shadcn render
  * bare; the rest still sit inside the Polaris Frame (Toast + ContextualSaveBar
- * context) until their migration PR lands — see POLARIS_ROUTES.
+ * context) until their migration PR lands; see POLARIS_ROUTES.
  */
 export function AdminFrame({
   children,
@@ -48,11 +48,13 @@ export function AdminFrame({
         storefrontUrl={storefrontUrl}
       />
       <SidebarInset className="min-h-0 overflow-hidden">
-        <TopBar title={pageTitleFor(pathname)} user={user} />
+        <TopBar title={pageTitleFor(pathname)} heading={!hasOwnHeading(pathname)} user={user} />
         {migrated ? (
-          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+          <main id="main" className="min-h-0 flex-1 overflow-y-auto">
+            {children}
+          </main>
         ) : (
-          <div className="polaris-scope min-h-0 flex-1 overflow-y-auto">
+          <div id="main" className="polaris-scope min-h-0 flex-1 overflow-y-auto">
             <Frame>{children}</Frame>
           </div>
         )}

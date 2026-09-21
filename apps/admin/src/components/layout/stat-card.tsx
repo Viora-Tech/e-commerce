@@ -1,13 +1,14 @@
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import { ArrowDown, ArrowUp, MoreVertical } from 'lucide-react'
+import { ArrowDown, ArrowUp } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
 
 type StatCardProps = {
   title: string
-  /** "Last 7 days" — sits under the title. */
+  /** "Last 7 days", sits under the title. */
   period: string
   value: string
   /** Word after the number, e.g. "Sales". */
@@ -51,7 +52,7 @@ export function DeltaChip({
       )}
     >
       {flat ? null : <Icon className="size-4" />}
-      {flat ? '0%' : `${Math.abs(delta).toFixed(1)}%`}
+      {flat ? layoutContent.noChange : `${Math.abs(delta).toFixed(1)}%`}
     </span>
   )
 }
@@ -72,12 +73,9 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <Card className={cn('relative gap-0 px-5 py-5', className)}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-card-title">{title}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{period}</p>
-        </div>
-        <MoreVertical className="size-5 text-muted-foreground" aria-hidden="true" />
+      <div>
+        <p className="text-card-title">{title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{period}</p>
       </div>
       {children ?? (
         <div className="mt-5 flex items-end gap-4">
@@ -91,18 +89,22 @@ export function StatCard({
       <div className="mt-3 flex items-end justify-between gap-3">
         {previous ? (
           <p className="text-sm text-muted-foreground">
-            {previous.label} <span className="font-bold text-link">({previous.value})</span>
+            {previous.label}{' '}
+            <span className="font-semibold text-foreground">({previous.value})</span>
           </p>
         ) : (
           <span />
         )}
         {detailsHref ? (
-          <Link
-            href={detailsHref}
-            className="inline-flex h-8 shrink-0 items-center rounded-full border border-link px-4 text-[12px] text-link transition-colors hover:bg-link-soft"
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 rounded-full"
+            render={<Link href={detailsHref} />}
+            nativeButton={false}
           >
             {detailsLabel}
-          </Link>
+          </Button>
         ) : null}
       </div>
     </Card>

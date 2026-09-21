@@ -143,7 +143,7 @@ export function ResourceTable<T>(props: ResourceTableProps<T>) {
         <Text as="span" tone="subdued" variant="bodySm">
           {props.total === 0
             ? 'No results'
-            : `${(props.page - 1) * props.perPage + 1}–${Math.min(props.page * props.perPage, props.total)} of ${props.total}`}
+            : `${(props.page - 1) * props.perPage + 1}-${Math.min(props.page * props.perPage, props.total)} of ${props.total}`}
         </Text>
         <Pagination
           hasPrevious={props.page > 1}

@@ -103,7 +103,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
         columnTitles={columnTitles}
       />
       {selectedIds.length > 0 && props.bulkActions ? (
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-link-soft px-4 py-2 text-sm">
+        <div className="mb-3 flex items-center gap-3 rounded-lg bg-primary-soft px-4 py-2 text-sm">
           <span className="font-medium">
             {tableContent.selected(
               selectedIds.length,
@@ -161,7 +161,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
                       className={cn(
-                        'border-0 hover:bg-muted/60 data-[state=selected]:bg-link-soft',
+                        'border-0 hover:bg-muted/60 data-[state=selected]:bg-primary-soft',
                         target && 'cursor-pointer',
                       )}
                       onClick={target ? () => router.push(target) : undefined}
