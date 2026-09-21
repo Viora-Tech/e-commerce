@@ -37,7 +37,7 @@ export function InventoryCard({
   onReason,
 }: InventoryCardProps) {
   return (
-    <Card>
+    <Card size="form">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
       </CardHeader>
@@ -47,6 +47,7 @@ export function InventoryCard({
             <Field>
               <FieldLabel htmlFor="variant-sku">{copy.sku}</FieldLabel>
               <Input
+                size="lg"
                 id="variant-sku"
                 value={variant.sku}
                 onChange={(e) => onChange({ sku: e.target.value })}
@@ -56,6 +57,7 @@ export function InventoryCard({
             <Field>
               <FieldLabel htmlFor="variant-barcode">{copy.barcode}</FieldLabel>
               <Input
+                size="lg"
                 id="variant-barcode"
                 value={variant.barcode}
                 onChange={(e) => onChange({ barcode: e.target.value })}
@@ -78,6 +80,7 @@ export function InventoryCard({
               <Field>
                 <FieldLabel htmlFor="variant-quantity">{copy.quantity}</FieldLabel>
                 <MoneyInput
+                  size="lg"
                   id="variant-quantity"
                   currency={false}
                   value={variant.quantity}
@@ -92,7 +95,7 @@ export function InventoryCard({
                     value={reason}
                     onValueChange={(r) => onReason(r as InventoryReason)}
                   >
-                    <SelectTrigger id="inventory-reason" className="w-full">
+                    <SelectTrigger size="lg" id="inventory-reason" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -111,6 +114,7 @@ export function InventoryCard({
             <Field>
               <FieldLabel htmlFor="variant-weight">{copy.weight}</FieldLabel>
               <MoneyInput
+                size="lg"
                 id="variant-weight"
                 currency={false}
                 suffix="g"

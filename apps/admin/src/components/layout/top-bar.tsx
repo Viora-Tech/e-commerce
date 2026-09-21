@@ -63,7 +63,9 @@ export function TopBar({ title, user }: TopBarProps) {
   return (
     <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border/60 bg-card px-4 md:px-6">
       <SidebarTrigger className="-ml-1 md:hidden" />
-      <h1 className="min-w-0 flex-1 truncate text-page-title">{title}</h1>
+      <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
+        {title}
+      </h1>
 
       <button
         type="button"

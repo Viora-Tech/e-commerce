@@ -6,11 +6,13 @@ import {
   type RichTextValue,
   richTextToPlainText,
 } from '@commerce/richtext'
-import { Card, Layout, Page, Text } from '@shopify/polaris'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { RichTextField } from '@/components/fields/rich-text-field'
+import { PageBody } from '@/components/layout/page-body'
+import { PageHeader } from '@/components/layout/page-header'
 import { devEditorContent as copy } from '@/data/dev-editor'
-import '@commerce/blocks/styles.css'
+import '@/styles/vendor-blocks.css'
 
 /** Local-only media hooks: images become object URLs so the flow can be tried without S3. */
 const localMedia = {
@@ -21,49 +23,52 @@ export function EditorPlayground() {
   const [value, setValue] = useState<RichTextValue>(emptyRichText)
 
   return (
-    <Page title={copy.title} subtitle={copy.subtitle}>
-      <Layout>
-        <Layout.Section>
-          <Card>
-            <RichTextField
-              label={copy.fieldLabel}
-              helpText={copy.fieldHelp}
-              value={value}
-              onChange={setValue}
-              media={localMedia}
-              minHeight={320}
-            />
-          </Card>
-        </Layout.Section>
-        <Layout.Section>
-          <Card>
-            <Text as="h2" variant="headingSm">
-              {copy.previewHeading}
-            </Text>
-            <div className="rich-text-block">
-              <RichTextRenderer data={value} className="rte" />
-            </div>
-          </Card>
-        </Layout.Section>
-        <Layout.Section variant="oneHalf">
-          <Card>
-            <Text as="h2" variant="headingSm">
-              {copy.plainHeading}
-            </Text>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{richTextToPlainText(value)}</pre>
-          </Card>
-        </Layout.Section>
-        <Layout.Section variant="oneHalf">
-          <Card>
-            <Text as="h2" variant="headingSm">
-              {copy.jsonHeading}
-            </Text>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, maxHeight: 400, overflow: 'auto' }}>
+    <PageBody>
+      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <Card size="form">
+        <CardContent>
+          <RichTextField
+            label={copy.fieldLabel}
+            helpText={copy.fieldHelp}
+            value={value}
+            onChange={setValue}
+            media={localMedia}
+            minHeight={320}
+          />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{copy.previewHeading}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rich-text-block">
+            <RichTextRenderer data={value} className="rte" />
+          </div>
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{copy.plainHeading}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap text-caption text-foreground">
+              {richTextToPlainText(value)}
+            </pre>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{copy.jsonHeading}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-foreground">
               {JSON.stringify(value, null, 2)}
             </pre>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+          </CardContent>
+        </Card>
+      </div>
+    </PageBody>
   )
 }

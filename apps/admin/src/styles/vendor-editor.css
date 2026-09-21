@@ -1,0 +1,2 @@
+/* Lexical editor chrome, layered below the admin's utilities. */
+@import "@commerce/editor/editor.css" layer(vendor);

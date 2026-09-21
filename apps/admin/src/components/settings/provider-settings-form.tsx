@@ -1,45 +1,34 @@
 'use client'
 
-import {
-  Badge,
-  Banner,
-  BlockStack,
-  Card,
-  Checkbox,
-  FormLayout,
-  InlineStack,
-  Layout,
-  Page,
-  Text,
-  TextField,
-  Toast,
-} from '@shopify/polaris'
-import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card } from '@commerce/ui/shadcn/card'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import { CircleAlert, Puzzle } from 'lucide-react'
+import Link from 'next/link'
+import { type ReactNode, useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { EmptyState } from '@/components/layout/empty-state'
+import { PageBody } from '@/components/layout/page-body'
+import { PageHeader } from '@/components/layout/page-header'
+import { SaveBar } from '@/components/layout/save-bar'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
+import { ProviderCard, type ProviderDef } from './provider-card'
 
-/** One field of a provider's config, as its factory declares it. */
-export type ProviderFieldDef = {
-  key: string
-  label: string
-  secret?: boolean | undefined
-  required?: boolean | undefined
-  multiline?: boolean | undefined
-  type?: 'text' | 'boolean' | undefined
-  help?: string | undefined
-}
-
-export type ProviderDef = { id: string; label: string; fields: ProviderFieldDef[] }
+export type { ProviderDef, ProviderFieldDef } from './provider-card'
 
 export type ProviderValues = Record<string, Record<string, string>>
 
 /** The enabled list plus per-provider config; the generic part of every settings blob. */
 export type ProviderState = { enabled: string[]; providers: ProviderValues }
 
+type Loaded<Extra> = { settings: ProviderState & Extra; available: ProviderDef[] }
+
 type ProviderSettingsFormProps<Extra> = {
   title: string
+  intro?: string | undefined
   /** Fetch `{ settings, available }`; `extra` is whatever else the blob carries (e.g. adjustments). */
-  load: () => Promise<{ settings: ProviderState & Extra; available: ProviderDef[] }>
+  load: () => Promise<Loaded<Extra>>
   /** Persist; returns the saved blob or null. */
   save: (next: ProviderState & Extra) => Promise<(ProviderState & Extra) | null>
   /** Starting value for the extra part while loading. */
@@ -56,13 +45,36 @@ type ProviderSettingsFormProps<Extra> = {
   noConfigText?: string | undefined
 }
 
+type FormState<Extra> = { enabled: string[]; providers: ProviderValues; extra: Extra }
+
+function split<Extra>(blob: ProviderState & Extra): FormState<Extra> {
+  const { enabled, providers, ...rest } = blob
+  return { enabled, providers, extra: rest as Extra }
+}
+
+function LoadingCards() {
+  return (
+    <>
+      {[0, 1].map((i) => (
+        <Card key={i} className="gap-4 p-6">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </Card>
+      ))}
+    </>
+  )
+}
+
 /**
  * Generic "enable providers and fill their credentials" page used by
- * Payments and Notifications. The provider list and its fields come from the
- * server registry, so an adapter package adds itself without admin changes.
+ * Payments, Shipping and Notifications. The provider list and its fields come
+ * from the server registry, so an adapter package adds itself without admin
+ * changes. Unsaved edits raise the contextual save bar like every other form.
  */
 export function ProviderSettingsForm<Extra extends object>({
   title,
+  intro,
   load,
   save,
   emptyExtra,
@@ -72,35 +84,46 @@ export function ProviderSettingsForm<Extra extends object>({
   noConfigText,
 }: ProviderSettingsFormProps<Extra>) {
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
-  const [enabled, setEnabled] = useState<string[]>([])
-  const [providers, setProviders] = useState<ProviderValues>({})
-  const [extra, setExtra] = useState<Extra>(emptyExtra)
+  const [form, setForm] = useState<FormState<Extra>>({
+    enabled: [],
+    providers: {},
+    extra: emptyExtra,
+  })
+  const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     load().then((d) => {
-      const { enabled: e, providers: p, ...rest } = d.settings
+      const next = split(d.settings)
       setAvailable(d.available)
-      setEnabled(e)
-      setProviders(p)
-      setExtra(rest as Extra)
+      setForm(next)
+      setSaved(JSON.stringify(next))
     })
   }, [load])
 
-  const handleSave = async () => {
+  const dirty = saved !== null && JSON.stringify(form) !== saved
+  const setExtra = (extra: Extra) => setForm((f) => ({ ...f, extra }))
+  const toggle = (id: string, on: boolean) =>
+    setForm((f) => ({
+      ...f,
+      enabled: on ? [...new Set([...f.enabled, id])] : f.enabled.filter((x) => x !== id),
+    }))
+  const setField = (id: string, key: string, value: string) =>
+    setForm((f) => ({
+      ...f,
+      providers: { ...f.providers, [id]: { ...(f.providers[id] ?? {}), [key]: value } },
+    }))
+
+  async function handleSave() {
     setBusy(true)
     setError(null)
     try {
-      const saved = await save({ enabled, providers, ...extra })
-      if (saved) {
-        const { enabled: e, providers: p, ...rest } = saved
-        setEnabled(e)
-        setProviders(p)
-        setExtra(rest as Extra)
-      }
-      setToast(copy.saved)
+      const result = await save({ enabled: form.enabled, providers: form.providers, ...form.extra })
+      const next = result ? split(result) : form
+      setForm(next)
+      setSaved(JSON.stringify(next))
+      toast.success(copy.saved)
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
@@ -108,94 +131,69 @@ export function ProviderSettingsForm<Extra extends object>({
     }
   }
 
-  const toggle = (id: string, on: boolean) =>
-    setEnabled((e) => (on ? [...new Set([...e, id])] : e.filter((x) => x !== id)))
-  const setField = (id: string, key: string, value: string) =>
-    setProviders((p) => ({ ...p, [id]: { ...(p[id] ?? {}), [key]: value } }))
+  function discard() {
+    if (saved) setForm(JSON.parse(saved) as FormState<Extra>)
+    setError(null)
+  }
 
   return (
-    <Page
-      title={title}
-      backAction={{ content: copy.back, url: '/settings' }}
-      primaryAction={{
-        content: copy.save,
-        onAction: handleSave,
-        loading: busy,
-        disabled: !available,
-      }}
-    >
-      {toast ? <Toast content={toast} onDismiss={() => setToast(null)} /> : null}
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="400">
-            {error ? (
-              <Banner tone="critical" title={copy.couldNotSave}>
-                <p>{error}</p>
-              </Banner>
-            ) : null}
-            {(available ?? []).map((m) => {
-              const on = enabled.includes(m.id)
-              return (
-                <Card key={m.id}>
-                  <BlockStack gap="300">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <InlineStack gap="200" blockAlign="center">
-                        <Text as="h2" variant="headingSm">
-                          {m.label}
-                        </Text>
-                        {on ? (
-                          <Badge tone="success">{copy.active}</Badge>
-                        ) : (
-                          <Badge>{copy.off}</Badge>
-                        )}
-                      </InlineStack>
-                      <Checkbox
-                        label={copy.enabled}
-                        checked={on}
-                        onChange={(v) => toggle(m.id, v)}
-                      />
-                    </InlineStack>
-                    {m.fields.length > 0 ? (
-                      <FormLayout>
-                        {m.fields.map((f) =>
-                          f.type === 'boolean' ? (
-                            <Checkbox
-                              key={f.key}
-                              label={f.label}
-                              helpText={f.help}
-                              checked={providers[m.id]?.[f.key] === 'true'}
-                              onChange={(v) => setField(m.id, f.key, v ? 'true' : 'false')}
-                            />
-                          ) : (
-                            <TextField
-                              key={f.key}
-                              label={f.label}
-                              type={f.secret ? 'password' : 'text'}
-                              multiline={f.multiline ? 3 : undefined}
-                              requiredIndicator={f.required}
-                              value={providers[m.id]?.[f.key] ?? ''}
-                              onChange={(v) => setField(m.id, f.key, v)}
-                              autoComplete="off"
-                              helpText={f.secret ? copy.secretHelp : f.help}
-                            />
-                          ),
-                        )}
-                        {renderHint?.(m)}
-                      </FormLayout>
-                    ) : (
-                      <Text as="p" tone="subdued">
-                        {noConfigText ?? copy.noConfig}
-                      </Text>
-                    )}
-                    {on && renderExtra ? renderExtra(m, extra, setExtra) : null}
-                  </BlockStack>
-                </Card>
-              )
-            })}
-            {available && renderFooter ? renderFooter(extra, setExtra) : null}
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    <PageBody width="narrow">
+      {dirty ? (
+        <SaveBar
+          message={copy.unsaved}
+          saveLabel={copy.save}
+          discardLabel={copy.discard}
+          onSave={handleSave}
+          onDiscard={discard}
+          saving={busy}
+        />
+      ) : null}
+      <PageHeader
+        title={title}
+        subtitle={intro}
+        breadcrumbs={[{ label: copy.back, href: '/settings' }, { label: title }]}
+      />
+      {error ? (
+        <Alert variant="destructive">
+          <CircleAlert />
+          <AlertTitle>{copy.couldNotSave}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {available === null ? (
+        <LoadingCards />
+      ) : available.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={Puzzle}
+            heading={copy.noProviders.heading}
+            body={copy.noProviders.body}
+            action={
+              <Button variant="outline" render={<Link href={copy.noProviders.href} />}>
+                {copy.noProviders.action}
+              </Button>
+            }
+          />
+        </Card>
+      ) : (
+        available.map((m) => {
+          const on = form.enabled.includes(m.id)
+          return (
+            <ProviderCard
+              key={m.id}
+              provider={m}
+              enabled={on}
+              values={form.providers[m.id] ?? {}}
+              onToggle={(v) => toggle(m.id, v)}
+              onField={(k, v) => setField(m.id, k, v)}
+              hint={renderHint?.(m)}
+              extra={on && renderExtra ? renderExtra(m, form.extra, setExtra) : null}
+              noConfigText={noConfigText}
+            />
+          )
+        })
+      )}
+      {available && renderFooter ? renderFooter(form.extra, setExtra) : null}
+    </PageBody>
   )
 }

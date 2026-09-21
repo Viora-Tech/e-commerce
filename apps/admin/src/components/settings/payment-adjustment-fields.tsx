@@ -1,11 +1,20 @@
 'use client'
 
 import type { PaymentAdjustment } from '@commerce/core'
-import { BlockStack, FormLayout, Select, Text, TextField } from '@shopify/polaris'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
 import { paymentsSettingsContent } from '@/data/payments'
 
 type PaymentAdjustmentFieldsProps = {
+  providerId: string
   value: PaymentAdjustment | undefined
   onChange: (next: PaymentAdjustment | undefined) => void
 }
@@ -13,6 +22,7 @@ type PaymentAdjustmentFieldsProps = {
 type AdjustmentType = PaymentAdjustment['type']
 
 const copy = paymentsSettingsContent.adjustment
+const typeItems = Object.fromEntries(copy.types.map((t) => [t.value, t.label]))
 
 /** Rupees and percent both store ×100 (paise / basis points). */
 const toStored = (text: string): number | null => {
@@ -22,13 +32,22 @@ const toStored = (text: string): number | null => {
 const toText = (stored: number | undefined): string =>
   stored === undefined ? '' : String(stored / 100)
 
-export function PaymentAdjustmentFields({ value, onChange }: PaymentAdjustmentFieldsProps) {
+export function PaymentAdjustmentFields({
+  providerId,
+  value,
+  onChange,
+}: PaymentAdjustmentFieldsProps) {
   const [amountText, setAmountText] = useState(toText(value?.value))
 
   const type: AdjustmentType | 'none' = value?.type ?? 'none'
+  const ids = {
+    type: `adj-${providerId}-type`,
+    amount: `adj-${providerId}-amount`,
+    label: `adj-${providerId}-label`,
+  }
 
-  const handleType = (next: string) => {
-    if (next === 'none') {
+  const handleType = (next: string | null) => {
+    if (!next || next === 'none') {
       setAmountText('')
       onChange(undefined)
       return
@@ -48,40 +67,55 @@ export function PaymentAdjustmentFields({ value, onChange }: PaymentAdjustmentFi
   }
 
   return (
-    <BlockStack gap="200">
-      <Text as="h3" variant="headingXs">
-        {copy.heading}
-      </Text>
-      <FormLayout>
-        <FormLayout.Group condensed>
-          <Select
-            label={copy.typeLabel}
-            options={[...copy.types]}
-            value={type}
-            onChange={handleType}
-          />
+    <div className="flex flex-col gap-4">
+      <h3 className="text-body font-bold text-ink-strong">{copy.heading}</h3>
+      <FieldGroup>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor={ids.type}>{copy.typeLabel}</FieldLabel>
+            <Select items={typeItems} value={type} onValueChange={handleType}>
+              <SelectTrigger size="lg" id={ids.type} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {copy.types.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
           {type !== 'none' ? (
-            <TextField
-              label={copy.amountLabel[type]}
-              type="number"
-              step={type === 'percent' ? 0.5 : 1}
-              value={amountText}
-              onChange={handleAmount}
-              helpText={copy.amountHelp}
+            <Field>
+              <FieldLabel htmlFor={ids.amount}>{copy.amountLabel[type]}</FieldLabel>
+              <Input
+                size="lg"
+                id={ids.amount}
+                type="number"
+                step={type === 'percent' ? 0.5 : 1}
+                value={amountText}
+                onChange={(e) => handleAmount(e.target.value)}
+                autoComplete="off"
+              />
+              <FieldDescription>{copy.amountHelp}</FieldDescription>
+            </Field>
+          ) : null}
+        </div>
+        {type !== 'none' ? (
+          <Field>
+            <FieldLabel htmlFor={ids.label}>{copy.labelLabel}</FieldLabel>
+            <Input
+              size="lg"
+              id={ids.label}
+              value={value?.label ?? ''}
+              placeholder={copy.labelPlaceholder[type]}
+              onChange={(e) => handleLabel(e.target.value)}
               autoComplete="off"
             />
-          ) : null}
-        </FormLayout.Group>
-        {type !== 'none' ? (
-          <TextField
-            label={copy.labelLabel}
-            value={value?.label ?? ''}
-            placeholder={copy.labelPlaceholder[type]}
-            onChange={handleLabel}
-            autoComplete="off"
-          />
+          </Field>
         ) : null}
-      </FormLayout>
-    </BlockStack>
+      </FieldGroup>
+    </div>
   )
 }

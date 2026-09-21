@@ -81,7 +81,7 @@ export const orderDetailContent = {
     reason: 'Reason',
     reasonPlaceholder: 'Damaged in transit, size exchange…',
     manualNote:
-      'This method is settled outside the platform — refund the shopper yourself and record it here.',
+      'This method is settled outside the platform. Refund the shopper yourself and record it here.',
     confirm: 'Refund',
     close: 'Close',
     full: 'Refund remaining',

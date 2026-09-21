@@ -2,12 +2,12 @@
 export const marketingContent = {
   index: {
     heading: 'Marketing',
-    body: 'Campaigns and automations that bring shoppers back — email, WhatsApp and discount-led promotions.',
+    body: 'Campaigns and automations that bring shoppers back: email, WhatsApp and discount-led promotions.',
     action: { label: 'View discounts', href: '/discounts' },
   },
   campaigns: {
     heading: 'No campaigns',
-    body: 'A campaign is a one-off send — a launch, a sale, a restock — to a segment of your customers.',
+    body: 'A campaign is a one-off send, such as a launch, a sale or a restock, to a segment of your customers.',
     action: { label: 'View discounts', href: '/discounts' },
   },
   automations: {

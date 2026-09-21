@@ -1,7 +1,8 @@
+import { loadEnv } from '@commerce/config'
 import { parseTheme, themeToCss } from '@commerce/core'
 import { notFound, redirect } from 'next/navigation'
+import { PageEditor } from '@/components/online-store/page-editor'
 import { appRouter, call, serverContext } from '@/lib/api'
-import { PageEditor } from './page-editor'
 
 export default async function PageEditorRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -12,5 +13,11 @@ export default async function PageEditorRoute({ params }: { params: Promise<{ id
   ])
   if (page === undefined || !store) redirect('/select-store')
   if (!page) notFound()
-  return <PageEditor page={page} themeCss={themeToCss(parseTheme(store.theme))} />
+  return (
+    <PageEditor
+      page={page}
+      themeCss={themeToCss(parseTheme(store.theme))}
+      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+    />
+  )
 }

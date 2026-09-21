@@ -1,416 +1,47 @@
 /*
- * Layer order: Polaris (legacy pages) sits above Tailwind's preflight so its
- * components still render, but below components/utilities so its global
- * resets (html font-size 13px, h1 { font-size: 1em }) never beat ours.
+ * Admin styles. Everything visual is Tailwind: tokens live in @commerce/ui
+ * styles.css (@theme) and components carry their own utilities. This file
+ * holds only base scrollbar styling and print rules; Puck and Lexical ship
+ * their own stylesheets.
  */
-@layer theme, base, polaris, components, utilities;
+/* Vendor stylesheets (Puck, Lexical, storefront blocks) sit below components/utilities. */
+@layer theme, base, vendor, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@commerce/ui/styles.css";
-@import "@shopify/polaris/build/esm/styles.css" layer(polaris);
-@plugin "@tailwindcss/typography";
 
 /* Monorepo: tell Tailwind to scan shared packages for class names */
 @source "../../../../packages/ui/src/**/*.tsx";
 
-/* Admin-only variables (fonts, Lexical typeahead surface, legacy aliases). */
+/* Admin-only variables. */
 :root {
   --font-mono-code: ui-monospace, SFMono-Regular, Menlo, monospace;
-  --brand-color-blue: var(--primary);
-  --typeahead-bg: var(--popover);
-  --typeahead-fg: var(--popover-foreground);
-  --typeahead-border: var(--border);
 }
 
-
-@layer utilities {
-  .shadow-top-inset {
-    box-shadow: 0 1px 0 0 var(--color-muted-foreground-30, rgba(161, 161, 170, 0.3)) inset;
+/* Thin auto-hiding scrollbar; base styling, not a component. */
+@layer base {
+  * {
+    scrollbar-width: auto;
+    scrollbar-color: #bebebee8 transparent;
   }
-}
-
-/* RichText inline code — must be non-layered to beat @tailwindcss/typography prose backticks */
-.cms-richtext code:not(pre code),
-.prose code:not(pre code) {
-  font-family: var(--font-mono-code), ui-monospace, monospace;
-  font-size: 0.875em;
-  font-weight: 500;
-  background-color: var(--secondary);
-  color: var(--destructive);
-  padding: 0.2em 0.4em;
-  border-radius: 0.375rem;
-  white-space: nowrap;
-}
-
-.cms-richtext code:not(pre code)::before,
-.cms-richtext code:not(pre code)::after,
-.prose code:not(pre code)::before,
-.prose code:not(pre code)::after {
-  content: none !important;
-}
-
-.dark .cms-richtext code:not(pre code),
-.dark .prose code:not(pre code) {
-  background-color: var(--secondary);
-  color: var(--destructive);
-}
-
-/* Tighter spacing — !important to override @tailwindcss/typography :where() selectors */
-.prose p,
-.cms-richtext p {
-  margin-top: 0.5em !important;
-  margin-bottom: 0.5em !important;
-}
-
-.prose h1,
-.cms-richtext h1 {
-  margin-top: 0 !important;
-  margin-bottom: 0.5em !important;
-}
-
-.prose h2,
-.cms-richtext h2 {
-  margin-top: 1em !important;
-  margin-bottom: 0.35em !important;
-}
-
-.prose h3,
-.cms-richtext h3 {
-  margin-top: 0.85em !important;
-  margin-bottom: 0.3em !important;
-}
-
-.prose h4,
-.prose h5,
-.prose h6,
-.cms-richtext h4,
-.cms-richtext h5,
-.cms-richtext h6 {
-  margin-top: 0.75em !important;
-  margin-bottom: 0.25em !important;
-}
-
-.prose ul,
-.prose ol,
-.cms-richtext ul,
-.cms-richtext ol {
-  margin-top: 0.5em !important;
-  margin-bottom: 0.5em !important;
-}
-
-.prose li,
-.cms-richtext li {
-  margin-top: 0.25em !important;
-  margin-bottom: 0.25em !important;
-}
-
-.prose blockquote,
-.cms-richtext blockquote {
-  margin-top: 0.75em !important;
-  margin-bottom: 0.75em !important;
-}
-
-.prose pre,
-.cms-richtext pre {
-  margin-top: 0.75em !important;
-  margin-bottom: 0.75em !important;
-}
-
-.prose hr,
-.cms-richtext hr {
-  margin-top: 1.5em !important;
-  margin-bottom: 1.5em !important;
-}
-
-.prose > :first-child,
-.cms-richtext > :first-child {
-  margin-top: 0 !important;
-}
-
-.prose > :last-child,
-.cms-richtext > :last-child {
-  margin-bottom: 0 !important;
-}
-
-@layer components {
-  /* RichText link styling */
-  .cms-richtext a,
-  .prose a {
-    color: var(--brand-color-blue);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
   }
-
-  .cms-richtext a:hover,
-  .prose a:hover {
-    opacity: 0.8;
+  *::-webkit-scrollbar-track {
+    background: transparent;
   }
-
-  /* RichText table styling */
-  .richtext-table-wrapper {
-    overflow-x: auto;
-    margin: 1em 0;
+  *::-webkit-scrollbar-thumb {
+    background-color: #bebebee8;
+    border-radius: 10px;
+    visibility: hidden;
   }
-
-  .richtext-table {
-    border-collapse: collapse !important;
-    border-spacing: 0 !important;
-    width: 100% !important;
-    table-layout: auto;
+  *:active::-webkit-scrollbar-thumb,
+  *:focus::-webkit-scrollbar-thumb,
+  *:hover::-webkit-scrollbar-thumb {
+    visibility: visible;
   }
-
-  .richtext-table th {
-    border: 1px solid var(--border) !important;
-    padding: 0.5rem 0.75rem !important;
-    text-align: start !important;
-    vertical-align: top !important;
-    background-color: var(--secondary) !important;
-    font-weight: 600 !important;
-    font-size: 0.875rem;
-  }
-
-  .richtext-table td {
-    border: 1px solid var(--border) !important;
-    padding: 0.5rem 0.75rem !important;
-    text-align: start !important;
-    vertical-align: top !important;
-    font-size: 0.875rem;
-  }
-
-  .richtext-table tr:hover {
-    background-color: color-mix(in srgb, var(--secondary) 30%, transparent);
-  }
-
-  /* RichText checklist styling */
-  .cms-richtext ul.list-check,
-  .prose ul.list-check {
-    list-style: none;
-    padding-left: 0;
-  }
-
-  .cms-richtext .list-item-checkbox,
-  .prose .list-item-checkbox {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    list-style: none;
-  }
-
-  .cms-richtext .list-item-checkbox input[type="checkbox"],
-  .prose .list-item-checkbox input[type="checkbox"] {
-    margin-top: 0.25em;
-    flex-shrink: 0;
-    accent-color: var(--primary);
-  }
-
-  .cms-richtext .list-item-checkbox label,
-  .prose .list-item-checkbox label {
-    flex: 1;
-  }
-
-  .cms-richtext .list-item-checkbox-checked label,
-  .prose .list-item-checkbox-checked label {
-    text-decoration: line-through;
-    opacity: 0.6;
-  }
-
-  .cms-richtext .list-item-checkbox br,
-  .prose .list-item-checkbox br {
-    display: none;
-  }
-}
-
-/* Lexical typeahead menu (slash commands, emoji picker, mentions) */
-#typeahead-menu {
-  z-index: 200;
-}
-
-#typeahead-menu > .typeahead-menu-list {
-  min-width: 260px;
-  max-height: 360px;
-  overflow-y: auto;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background-color: var(--popover);
-  color: var(--popover-foreground);
-  padding: 0.25rem;
-  box-shadow:
-    0 4px 6px -1px rgb(0 0 0 / 0.1),
-    0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-#typeahead-menu > ul:not(.typeahead-menu-list) {
-  min-width: 200px;
-  max-height: 300px;
-  overflow-y: auto;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background-color: var(--popover);
-  color: var(--popover-foreground);
-  padding: 0.25rem;
-  box-shadow:
-    0 4px 6px -1px rgb(0 0 0 / 0.1),
-    0 2px 4px -2px rgb(0 0 0 / 0.1);
-}
-
-@keyframes accordion-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-accordion-content-height);
-  }
-}
-
-@keyframes accordion-up {
-  from {
-    height: var(--radix-accordion-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-
-@keyframes collapsible-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-collapsible-content-height);
-  }
-}
-
-@keyframes collapsible-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-
-/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
-
-/* Hide scrollbar utility */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Thin auto-hiding scrollbar (matches web app) */
-* {
-  scrollbar-width: auto;
-  scrollbar-color: #bebebee8 #ffffff00;
-}
-
-*::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-*::-webkit-scrollbar-track {
-  background: #ffffff00;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: #bebebee8;
-  border-radius: 10px;
-  border: 2px solid #80ed9900;
-  visibility: hidden;
-}
-
-*:active::-webkit-scrollbar-thumb,
-*:focus::-webkit-scrollbar-thumb,
-*:hover::-webkit-scrollbar-thumb {
-  visibility: visible;
-}
-
-* {
-  scroll-behavior: smooth;
-}
-
-/* Polaris owns the page content; its canvas colour comes from its own theme tokens. */
-.polaris-scope {
-  background: var(--p-color-bg, #f1f1f1);
-}
-
-/* RichTextField: Polaris-like spacing around the shared Lexical editor. */
-.rich-text-field__editor--error {
-  border-color: var(--destructive);
-}
-
-/*
- * Kit form scale (docs/design/admin-tokens.md, "Profile Update" frame 5:5480):
- * 16/700 card titles, 20px card padding, 13px labels, 40px inputs with a soft
- * fill and 8px radius, 24px between rows. Scoped so list/dashboard cards keep
- * their own rhythm; wrap any form page in `.kit-form`. Unlayered on purpose:
- * it has to beat the components' size utilities.
- */
-.kit-form [data-slot="card"] {
-  border-radius: var(--radius);
-  --card-spacing: 1.25rem;
-}
-.kit-form [data-slot="card-title"] {
-  font-size: 16px;
-  line-height: 22px;
-  font-weight: 700;
-  color: var(--foreground);
-}
-.kit-form [data-slot="field-label"] {
-  font-size: 13px;
-  line-height: 16px;
-  font-weight: 500;
-  color: var(--foreground);
-}
-.kit-form [data-slot="field-group"] {
-  gap: 1.5rem;
-}
-.kit-form [data-slot="input"],
-.kit-form [data-slot="select-trigger"],
-.kit-form [data-slot="native-select"],
-.kit-form [data-slot="input-group"] {
-  height: 2.5rem;
-  border-radius: var(--radius);
-  padding-inline: 0.75rem;
-  font-size: 13px;
-  background-color: var(--muted);
-}
-.kit-form [data-slot="input-group"] {
-  padding-inline: 0;
-}
-.kit-form [data-slot="input-group-control"] {
-  height: 100%;
-  font-size: 13px;
-  background-color: transparent;
-}
-.kit-form [data-slot="input-group"]:focus-within {
-  background-color: var(--card);
-}
-.kit-form [data-slot="textarea"] {
-  border-radius: var(--radius);
-  padding: 0.75rem;
-  font-size: 13px;
-  background-color: var(--muted);
-}
-.kit-form [data-slot="input"]:focus-visible,
-.kit-form [data-slot="textarea"]:focus-visible,
-.kit-form [data-slot="select-trigger"]:focus-visible {
-  background-color: var(--card);
-}
-.kit-form [data-slot="field-description"],
-.kit-form [data-slot="field-error"] {
-  font-size: 12px;
-  line-height: 16px;
-}
-/* Inline table cells keep the compact height; only standalone fields grow. */
-.kit-form table [data-slot="input"],
-.kit-form table [data-slot="input-group"] {
-  height: 2.25rem;
-  background-color: transparent;
 }
 
 /*
@@ -432,7 +63,7 @@
   }
   .packing-slip {
     padding: 24px;
-    color: #000;
+    color: #1a1a1a;
     background: #fff;
   }
 }

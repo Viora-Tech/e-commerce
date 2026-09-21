@@ -9,6 +9,7 @@ import {
 import { productFormContent } from '@/data/products'
 
 type MoneyInputProps = {
+  size?: 'default' | 'lg'
   id?: string | undefined
   value: string
   onChange: (value: string) => void
@@ -33,9 +34,10 @@ export function MoneyInput({
   invalid,
   placeholder,
   'aria-label': ariaLabel,
+  size = 'default',
 }: MoneyInputProps) {
   return (
-    <InputGroup>
+    <InputGroup size={size}>
       {currency ? (
         <InputGroupAddon>
           <InputGroupText aria-label={productFormContent.currency}>₹</InputGroupText>

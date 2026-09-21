@@ -7,7 +7,7 @@ export const customersContent = {
   },
   segments: {
     heading: 'No segments',
-    body: 'Segments are saved customer filters — repeat buyers, big spenders, a city — for targeted discounts and messages.',
+    body: 'Segments are saved customer filters, such as repeat buyers, big spenders or one city, for targeted discounts and messages.',
     action: { label: 'View customers', href: '/customers' },
   },
   detail: {

@@ -1,0 +1,6 @@
+/*
+ * Puck editor chrome, layered below the admin's utilities. The `no-external`
+ * build skips Puck's remote Inter @import (invalid inside a layer, and the
+ * admin already loads Inter through next/font).
+ */
+@import "@measured/puck/no-external.css" layer(vendor);

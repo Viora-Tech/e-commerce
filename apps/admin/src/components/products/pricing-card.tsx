@@ -20,7 +20,7 @@ export function PricingCard({ variant, onChange }: PricingCardProps) {
   const m = margin(variant.price, variant.cost)
 
   return (
-    <Card>
+    <Card size="form">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
       </CardHeader>
@@ -33,6 +33,7 @@ export function PricingCard({ variant, onChange }: PricingCardProps) {
                 <span aria-hidden="true">*</span>
               </FieldLabel>
               <MoneyInput
+                size="lg"
                 id="variant-price"
                 value={variant.price}
                 onChange={(price) => onChange({ price })}
@@ -41,6 +42,7 @@ export function PricingCard({ variant, onChange }: PricingCardProps) {
             <Field>
               <FieldLabel htmlFor="variant-mrp">{copy.mrp}</FieldLabel>
               <MoneyInput
+                size="lg"
                 id="variant-mrp"
                 value={variant.mrp}
                 onChange={(mrp) => onChange({ mrp })}
@@ -61,6 +63,7 @@ export function PricingCard({ variant, onChange }: PricingCardProps) {
             <Field>
               <FieldLabel htmlFor="variant-cost">{copy.cost}</FieldLabel>
               <MoneyInput
+                size="lg"
                 id="variant-cost"
                 value={variant.cost}
                 onChange={(cost) => onChange({ cost })}
