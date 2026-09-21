@@ -1,5 +1,6 @@
 import { protectedProcedure } from '../procedures'
 import { appsRouter } from './apps'
+import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
@@ -12,6 +13,7 @@ export const appRouter = {
   products: productsRouter,
   pages: pagesRouter,
   orders: ordersRouter,
+  customers: customersRouter,
   apps: appsRouter,
   dashboard: dashboardRouter,
 }
