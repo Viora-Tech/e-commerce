@@ -23,12 +23,7 @@ export function ModeToggle() {
   }, [setTheme])
 
   return (
-    <Button
-      className="relative cursor-pointer rounded-xl text-primary hover:shadow-input dark:text-primary"
-      onClick={handleSwitchTheme}
-      size="icon"
-      variant="ghost"
-    >
+    <Button className="relative" onClick={handleSwitchTheme} size="icon-sm" variant="ghost">
       <SunIcon
         className="rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-100"
         size={16}

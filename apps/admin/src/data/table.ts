@@ -1,0 +1,21 @@
+/** Copy shared by every ResourceTable in the admin. */
+export const tableContent = {
+  search: (plural: string) => `Search ${plural}`,
+  clearFilters: 'Clear',
+  view: 'View',
+  toggleColumns: 'Toggle columns',
+  sortAsc: 'Sort ascending',
+  sortDesc: 'Sort descending',
+  hideColumn: 'Hide column',
+  selectAll: 'Select all',
+  selectRow: 'Select row',
+  selected: (n: number, singular: string, plural: string) =>
+    `${n} ${n === 1 ? singular : plural} selected`,
+  clearSelection: 'Clear',
+  range: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+  noResults: 'No results',
+  previous: 'Previous page',
+  next: 'Next page',
+  emptyHeading: (plural: string) => `No ${plural} yet`,
+  emptyBody: 'Try a different search or clear the filters.',
+} as const
