@@ -1,6 +1,7 @@
 'use client'
 
-import { BlockStack, Card, DropZone, InlineGrid, Text, Thumbnail } from '@shopify/polaris'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { ImagePlus } from 'lucide-react'
 import { productFormContent } from '@/data/products'
 
 type MediaCardProps = {
@@ -13,21 +14,34 @@ const copy = productFormContent.media
 export function MediaCard({ images }: MediaCardProps) {
   return (
     <Card>
-      <BlockStack gap="300">
-        <Text as="h2" variant="headingSm">
-          {copy.heading}
-        </Text>
+      <CardHeader>
+        <CardTitle>{copy.heading}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
         {images.length > 0 ? (
-          <InlineGrid columns={{ xs: 3, md: 5 }} gap="200">
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
             {images.map((img) => (
-              <Thumbnail key={img.id} source={img.url} alt={img.alt ?? ''} size="large" />
+              // biome-ignore lint/performance/noImgElement: remote catalogue images, no optimisation pipeline yet.
+              <img
+                key={img.id}
+                src={img.url}
+                alt={img.alt ?? ''}
+                className="aspect-square w-full rounded-lg border bg-muted object-cover"
+              />
             ))}
-          </InlineGrid>
+          </div>
         ) : null}
-        <DropZone disabled label={images.length === 0 ? copy.empty : undefined} labelHidden>
-          <DropZone.FileUpload actionHint={copy.uploadSoon} />
-        </DropZone>
-      </BlockStack>
+        <div
+          aria-disabled="true"
+          className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center text-muted-foreground opacity-70"
+        >
+          <ImagePlus className="size-5" aria-hidden />
+          <span className="text-sm font-medium">
+            {images.length === 0 ? copy.empty : copy.dropzone}
+          </span>
+          <span className="text-xs">{copy.uploadSoon}</span>
+        </div>
+      </CardContent>
     </Card>
   )
 }

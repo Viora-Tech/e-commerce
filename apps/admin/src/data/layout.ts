@@ -4,7 +4,6 @@
  * When this list is empty, delete it along with @shopify/polaris.
  */
 export const POLARIS_ROUTES = [
-  '/products',
   '/online-store/pages',
   '/apps',
   '/settings/payments',
@@ -13,20 +12,11 @@ export const POLARIS_ROUTES = [
   '/dev',
 ] as const
 
-/** Products' own sub-sections are already shadcn even though the list/form are not yet. */
-const SHADCN_OVERRIDES = [
-  '/products/collections',
-  '/products/inventory',
-  '/products/transfers',
-  '/products/gift-cards',
-] as const
-
 function under(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
 export function isShadcnRoute(pathname: string): boolean {
-  if (SHADCN_OVERRIDES.some((r) => under(pathname, r))) return true
   return !POLARIS_ROUTES.some((r) => under(pathname, r))
 }
 

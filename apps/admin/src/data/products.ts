@@ -1,3 +1,48 @@
+import type { ProductStatus } from '@commerce/core/catalog'
+
+export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
+
+export const PRODUCT_STATUS_TONE: Record<ProductStatus, 'success' | 'info' | 'neutral'> = {
+  active: 'success',
+  draft: 'info',
+  archived: 'neutral',
+}
+
+/** Every string the products list shows. */
+export const productsListContent = {
+  title: 'Products',
+  resource: { singular: 'product', plural: 'products' },
+  add: 'Add product',
+  export: 'Export',
+  import: 'Import',
+  tabs: { all: 'All' },
+  status: { active: 'Active', draft: 'Draft', archived: 'Archived' } satisfies Record<
+    ProductStatus,
+    string
+  >,
+  columns: {
+    product: 'Product',
+    status: 'Status',
+    inventory: 'Inventory',
+    type: 'Type',
+    vendor: 'Vendor',
+    price: 'Price',
+  },
+  inventory: (available: number, variants: number) =>
+    `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
+  none: '—',
+  bulk: {
+    setActive: 'Set as active',
+    archive: 'Archive',
+    updated: (n: number) => `${n} product${n === 1 ? '' : 's'} updated`,
+    failed: 'Could not update products',
+  },
+  empty: {
+    heading: 'No products yet',
+    body: 'Add your first product to start selling.',
+  },
+} as const
+
 /** Every string the product form shows. Change copy here, never in a component. */
 export const productFormContent = {
   newTitle: 'Add product',
@@ -14,7 +59,10 @@ export const productFormContent = {
   errors: {
     title: 'Add a title',
     variantsBanner: 'Fix the variants before saving',
+    required: 'Required',
   },
+  /** Aria label for the money prefix so screen readers read the currency. */
+  currency: 'Rupees',
   details: {
     title: 'Title',
     titlePlaceholder: 'Short sleeve t-shirt',
@@ -24,6 +72,7 @@ export const productFormContent = {
   media: {
     heading: 'Media',
     empty: 'No images yet',
+    dropzone: 'Drop images here or click to upload',
     uploadSoon: 'Uploads land with the media library. Images from the import are shown here.',
   },
   pricing: {
@@ -62,8 +111,10 @@ export const productFormContent = {
     optionValues: 'Option values',
     optionValuesPlaceholder: 'Small, Medium, Large',
     optionValuesHelp: 'Separate values with commas.',
-    remove: 'Remove',
+    remove: 'Remove option',
+    done: 'Done',
     maxOptions: 'Up to 3 options',
+    count: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
     tooMany: (n: number) =>
       `${n} variants. Large matrices are slow to edit; consider fewer values.`,
@@ -88,6 +139,7 @@ export const productFormContent = {
     vendor: 'Vendor',
     tags: 'Tags',
     tagsPlaceholder: 'Add a tag and press Enter',
+    removeTag: (tag: string) => `Remove ${tag}`,
     collections: 'Collections',
     collectionsSoon: 'Collections arrive in a later release.',
   },
@@ -100,6 +152,7 @@ export const productFormContent = {
     descriptionHelp: (n: number) => `${n} of 320 characters used`,
     handle: 'URL handle',
     handlePrefix: '/products/',
+    previewLabel: 'Preview',
     previewHint:
       'Add a title and description to see how this product might appear in a search engine listing.',
   },
