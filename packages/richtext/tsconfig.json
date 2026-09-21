@@ -1,0 +1,9 @@
+{
+  "extends": "@commerce/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "jsx": "react-jsx",
+    "types": ["react", "react-dom", "node"]
+  },
+  "include": ["src", "test"]
+}
