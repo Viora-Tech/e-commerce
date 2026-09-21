@@ -2,7 +2,11 @@ import { type PaymentProvider, PaymentRegistry } from '@commerce/payments'
 import { z } from 'zod'
 import { codFactory } from '../providers/cod'
 import { manualFactory } from '../providers/manual'
-import { decryptSecret, encryptSecret, isEncrypted } from '../secrets'
+import {
+  decryptProviderSettings,
+  encryptProviderSettings,
+  maskProviderSettings,
+} from '../settings/secrets'
 import { PaymentAdjustmentSchema } from './adjustments'
 
 /** Stored on store.payments. Secret fields are encrypted before they reach the row. */
@@ -26,42 +30,14 @@ export function parsePaymentSettings(raw: unknown): PaymentSettings {
   return r.success ? r.data : defaultPaymentSettings
 }
 
-/** Field names that must never be stored in clear. Adapters name their secrets with these suffixes. */
-const SECRET_KEY = /secret|token|password/i
+export const encryptPaymentSettings = (s: PaymentSettings, secret: string): PaymentSettings =>
+  encryptProviderSettings(s, secret)
 
-export function encryptPaymentSettings(s: PaymentSettings, secret: string): PaymentSettings {
-  const providers: PaymentSettings['providers'] = {}
-  for (const [id, cfg] of Object.entries(s.providers)) {
-    providers[id] = Object.fromEntries(
-      Object.entries(cfg).map(([k, v]) => [
-        k,
-        SECRET_KEY.test(k) && v && !isEncrypted(v) ? encryptSecret(v, secret) : v,
-      ]),
-    )
-  }
-  return { ...s, providers }
-}
-
-export function decryptPaymentSettings(s: PaymentSettings, secret: string): PaymentSettings {
-  const providers: PaymentSettings['providers'] = {}
-  for (const [id, cfg] of Object.entries(s.providers)) {
-    providers[id] = Object.fromEntries(
-      Object.entries(cfg).map(([k, v]) => [k, isEncrypted(v) ? decryptSecret(v, secret) : v]),
-    )
-  }
-  return { ...s, providers }
-}
+export const decryptPaymentSettings = (s: PaymentSettings, secret: string): PaymentSettings =>
+  decryptProviderSettings(s, secret)
 
 /** Mask secrets for the admin UI: keep the last 4 characters. */
-export function maskPaymentSettings(s: PaymentSettings): PaymentSettings {
-  const providers: PaymentSettings['providers'] = {}
-  for (const [id, cfg] of Object.entries(s.providers)) {
-    providers[id] = Object.fromEntries(
-      Object.entries(cfg).map(([k, v]) => [k, SECRET_KEY.test(k) && v ? `••••${v.slice(-4)}` : v]),
-    )
-  }
-  return { ...s, providers }
-}
+export const maskPaymentSettings = (s: PaymentSettings): PaymentSettings => maskProviderSettings(s)
 
 /** Methods every deployment has, with no adapter package: COD and manual UPI/bank transfer. */
 export function builtInPaymentRegistry(): PaymentRegistry {

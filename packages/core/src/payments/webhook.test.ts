@@ -98,11 +98,21 @@ describe('payment webhooks', () => {
     const first = await withStore(app, storeId, (tx) =>
       handlePaymentWebhook({ storeId, tx }, p, { rawBody: 'captured', headers: { sig: 'good' } }),
     )
-    expect(first).toMatchObject({ ok: true, applied: true, duplicate: false })
+    expect(first).toMatchObject({
+      ok: true,
+      applied: true,
+      duplicate: false,
+      capturedOrderId: orderId,
+    })
     const again = await withStore(app, storeId, (tx) =>
       handlePaymentWebhook({ storeId, tx }, p, { rawBody: 'captured', headers: { sig: 'good' } }),
     )
-    expect(again).toMatchObject({ ok: true, applied: false, duplicate: true })
+    expect(again).toMatchObject({
+      ok: true,
+      applied: false,
+      duplicate: true,
+      capturedOrderId: null,
+    })
 
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
     expect(o?.status).toBe('paid')

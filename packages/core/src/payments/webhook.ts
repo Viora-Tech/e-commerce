@@ -5,7 +5,14 @@ import type { StoreContext } from '../context'
 import { applyPaymentStatus } from './confirm'
 
 export type WebhookOutcome =
-  | { ok: true; eventId: string; applied: boolean; duplicate: boolean }
+  | {
+      ok: true
+      eventId: string
+      applied: boolean
+      duplicate: boolean
+      /** Set when this event moved a payment to captured; the caller enqueues the notification. */
+      capturedOrderId: string | null
+    }
   | { ok: false; reason: string }
 
 /**
@@ -26,7 +33,13 @@ export async function handlePaymentWebhook(
     .from(paymentEvent)
     .where(and(eq(paymentEvent.provider, provider.id), eq(paymentEvent.eventId, parsed.eventId)))
   if (existing?.status === 'processed') {
-    return { ok: true, eventId: parsed.eventId, applied: false, duplicate: true }
+    return {
+      ok: true,
+      eventId: parsed.eventId,
+      applied: false,
+      duplicate: true,
+      capturedOrderId: null,
+    }
   }
 
   const [row] = existing
@@ -44,15 +57,17 @@ export async function handlePaymentWebhook(
   if (!row) throw new Error('payment_event insert returned nothing')
 
   let applied = false
+  let capturedOrderId: string | null = null
   try {
     const e = parsed.event
     if (e.type === 'payment.captured' || e.type === 'payment.authorized') {
-      applied =
-        (await applyPaymentStatus(ctx, {
-          providerRef: e.providerRef,
-          status: e.type === 'payment.captured' ? 'captured' : 'authorized',
-          providerPaymentId: e.providerPaymentId,
-        })) !== null
+      const r = await applyPaymentStatus(ctx, {
+        providerRef: e.providerRef,
+        status: e.type === 'payment.captured' ? 'captured' : 'authorized',
+        providerPaymentId: e.providerPaymentId,
+      })
+      applied = r !== null
+      if (r?.becameCaptured) capturedOrderId = r.payment.orderId
     } else if (e.type === 'payment.failed') {
       applied =
         (await applyPaymentStatus(ctx, {
@@ -79,5 +94,5 @@ export async function handlePaymentWebhook(
       .where(eq(paymentEvent.id, row.id))
     throw err
   }
-  return { ok: true, eventId: parsed.eventId, applied, duplicate: false }
+  return { ok: true, eventId: parsed.eventId, applied, duplicate: false, capturedOrderId }
 }

@@ -1,11 +1,6 @@
-import { Queue, Worker } from 'bullmq'
-import IORedis from 'ioredis'
+import { HEARTBEAT_QUEUE, type IORedis, Queue, Worker } from '@commerce/queue'
 
-export const HEARTBEAT_QUEUE = '{system}-heartbeat'
-
-export function createConnection(redisUrl: string): IORedis {
-  return new IORedis(redisUrl, { maxRetriesPerRequest: null })
-}
+export { createConnection, HEARTBEAT_QUEUE } from '@commerce/queue'
 
 export function createHeartbeat(connection: IORedis) {
   const queue = new Queue(HEARTBEAT_QUEUE, { connection })
