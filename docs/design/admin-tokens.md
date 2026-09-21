@@ -40,18 +40,18 @@ derived — the kit ships light only.
 
 | Role | Font | Size / line | Weight | From |
 | --- | --- | --- | --- | --- |
-| Family | **Lato** (Google Fonts) — table headers use Public Sans 13/500 uppercase; we use Lato for both | | | 5:1498, 5:2148 |
-| Page title | Lato | 22 / auto, tracking 0.11px | 700 | 5:1367 |
-| Card title | Lato | 18 / 26 | 700 | 5:1498, 5:2140 |
-| Stat number | Lato | 32 / auto | 700 | 5:1502 |
-| Tab number | Lato | 24 / 22 | 700 | 5:1597 |
-| Tab caption | Lato | 13 / 18, tracking −0.26px | 500 | 5:1598 |
-| Sidebar item | Lato | 16 / 22 | 400 (700 when active) | 5:1402, 5:1395 |
-| Body / table cell | Lato | 15 / 22 | 400 (700 for names & money) | 5:2187, 5:2174, 5:2199 |
+| Family | Kit uses **Lato**; we use **Inter** (Kuldeep's choice, 2026-09-21) everywhere incl. table headers | | | 5:1498, 5:2148 |
+| Page title | Inter | 22 / auto, tracking 0.11px | 700 | 5:1367 |
+| Card title | Inter | 18 / 26 | 700 | 5:1498, 5:2140 |
+| Stat number | Inter | 32 / auto | 700 | 5:1502 |
+| Tab number | Inter | 24 / 22 | 700 | 5:1597 |
+| Tab caption | Inter | 13 / 18, tracking −0.26px | 500 | 5:1598 |
+| Sidebar item | Inter | 16 / 22 | 400 (700 when active) | 5:1402, 5:1395 |
+| Body / table cell | Inter | 15 / 22 | 400 (700 for names & money) | 5:2187, 5:2174, 5:2199 |
 | Table header | Public Sans → Lato | 13 / auto, uppercase | 500 | 5:2148 |
-| Caption / period | Lato | 14 / auto, tracking −0.28px | 400 | 5:1495 |
-| Button | Lato | 16 / 26, tracking −0.32px | 400 | 5:1510 |
-| Filter button | Lato | 14 | 400 | 5:2142 |
+| Caption / period | Inter | 14 / auto, tracking −0.28px | 400 | 5:1495 |
+| Button | Inter | 16 / 26, tracking −0.32px | 400 | 5:1510 |
+| Filter button | Inter | 14 | 400 | 5:2142 |
 
 ## Shape, spacing, elevation
 

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Lato } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import type { ReactNode } from 'react'
 import './globals.css'
@@ -7,7 +7,7 @@ import { PolarisProvider } from '@/components/polaris-provider'
 
 export const metadata: Metadata = { title: 'Admin' }
 
-const sans = Lato({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-primary' })
+const sans = Inter({ subsets: ['latin'], variable: '--font-primary' })
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
