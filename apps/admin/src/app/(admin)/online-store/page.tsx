@@ -1,15 +1,5 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import { Card, EmptyState, Page } from '@shopify/polaris'
-
-export default function Placeholder() {
-  return (
-    <Page title="Online Store">
-      <Card>
-        <EmptyState heading="Online Store" image="">
-          <p>Coming in a later PR.</p>
-        </EmptyState>
-      </Card>
-    </Page>
-  )
+export default function Page() {
+  redirect('/online-store/themes')
 }

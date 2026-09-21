@@ -168,7 +168,7 @@ export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; thresho
               </StatusPill>
               <Link
                 href={`/products/${r.productId}`}
-                className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-[13px] text-primary-foreground hover:bg-primary/90"
+                className="text-[13px] font-medium text-link hover:underline"
               >
                 {c.restock}
               </Link>

@@ -39,18 +39,19 @@ export function DeltaChip({
   invert?: boolean
 }) {
   if (delta === null || delta === undefined) return null
-  const up = delta >= 0
+  const flat = Math.abs(delta) < 0.05
+  const up = delta > 0
   const good = invert ? !up : up
   const Icon = up ? ArrowUp : ArrowDown
   return (
     <span
       className={cn(
         'inline-flex items-center gap-0.5 text-sm font-medium tabular-nums',
-        good ? 'text-success' : 'text-destructive',
+        flat ? 'text-muted-foreground' : good ? 'text-success' : 'text-destructive',
       )}
     >
-      <Icon className="size-4" />
-      {Math.abs(delta).toFixed(1)}%
+      {flat ? null : <Icon className="size-4" />}
+      {flat ? '0%' : `${Math.abs(delta).toFixed(1)}%`}
     </span>
   )
 }
