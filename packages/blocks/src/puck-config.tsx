@@ -1,7 +1,10 @@
-import type { Config, Data } from '@measured/puck'
+import type { RichTextValue } from '@commerce/richtext'
+import type { Config, CustomField, Data } from '@measured/puck'
+import type { ComponentType } from 'react'
 import { HeroCarousel, type HeroSlide } from './components/hero-carousel'
 import { ProductCard } from './components/product-card'
 import { TabbedProducts } from './components/product-grid'
+import { RichTextBlock } from './components/rich-text'
 import { SectionFrame } from './components/section-frame'
 import { SectionHeading } from './components/section-heading'
 import type { CardProduct } from './types'
@@ -54,7 +57,28 @@ export type FeaturedProductsProps = Frame & {
   resolved?: CardProduct[]
 }
 
-export type RichTextProps = Frame & { heading: string; body: string; align: 'left' | 'center' }
+export type RichTextProps = Frame & {
+  heading: string
+  /** Lexical JSON. Older pages may still hold a plain string; the block renders both. */
+  body: RichTextValue | string
+  align: 'left' | 'center'
+}
+
+/** A field editor the host supplies (admin passes the Lexical editor). */
+export type RichTextFieldEditor = ComponentType<{
+  value: RichTextValue | null | undefined
+  onChange: (value: RichTextValue) => void
+  placeholder?: string | undefined
+}>
+
+export type BlocksConfigOptions = {
+  /**
+   * Editor for rich-text fields. Only the admin needs it; the storefront
+   * renders published data and never shows a field, so it leaves this out
+   * and keeps the client editor out of its bundle.
+   */
+  RichTextEditor?: RichTextFieldEditor | undefined
+}
 
 export type BlockProps = {
   Hero: HeroProps
@@ -65,8 +89,30 @@ export type BlockProps = {
 
 export type PageData = Data<BlockProps>
 
+function richTextField(
+  Editor: RichTextFieldEditor | undefined,
+): CustomField<RichTextValue | string> {
+  return {
+    type: 'custom',
+    label: 'Body',
+    render: ({ value, onChange }) =>
+      Editor ? (
+        <Editor
+          value={typeof value === 'string' ? null : value}
+          onChange={onChange}
+          placeholder="Write the section text…"
+        />
+      ) : (
+        <textarea readOnly value={typeof value === 'string' ? value : JSON.stringify(value)} />
+      ),
+  }
+}
+
 /** Build the Puck config. `loadProducts` resolves product blocks (editor + storefront). */
-export function createBlocksConfig(loadProducts: ProductLoader): Config<BlockProps> {
+export function createBlocksConfig(
+  loadProducts: ProductLoader,
+  options: BlocksConfigOptions = {},
+): Config<BlockProps> {
   return {
     categories: {
       layout: { title: 'Layout', components: ['Hero', 'RichText'] },
@@ -244,7 +290,7 @@ export function createBlocksConfig(loadProducts: ProductLoader): Config<BlockPro
         label: 'Rich text',
         fields: {
           heading: { type: 'text', label: 'Heading' },
-          body: { type: 'textarea', label: 'Body' },
+          body: richTextField(options.RichTextEditor),
           align: {
             type: 'radio',
             label: 'Align',
@@ -265,19 +311,8 @@ export function createBlocksConfig(loadProducts: ProductLoader): Config<BlockPro
         },
         render: ({ heading, body, align, scheme, padTop, padBottom }) => (
           <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
-            <div
-              className="page-width"
-              style={{ textAlign: align, maxWidth: 720, marginInline: 'auto' }}
-            >
-              {heading ? <h2 className="h2">{heading}</h2> : null}
-              {body
-                .split('\n')
-                .filter(Boolean)
-                .map((line) => (
-                  <p key={line} className="text-body">
-                    {line}
-                  </p>
-                ))}
+            <div className="page-width">
+              <RichTextBlock heading={heading} body={body} align={align} />
             </div>
           </SectionFrame>
         ),
