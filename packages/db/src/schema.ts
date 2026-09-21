@@ -175,13 +175,36 @@ export const inventoryAdjustment = pgTable('inventory_adjustment', {
   createdAt: createdAt(),
 })
 
-export const customer = pgTable('customer', {
-  id: id(),
-  storeId: storeId(),
-  email: text('email'),
-  phone: text('phone'),
-  name: text('name'),
-})
+export type CustomerAddress = {
+  name: string
+  line1: string
+  line2?: string | null
+  city: string
+  stateCode: string
+  pincode: string
+  country?: string
+  phone?: string | null
+}
+
+/** One row per shopper per store, keyed by lower-cased email; orders link to it. */
+export const customer = pgTable(
+  'customer',
+  {
+    id: id(),
+    storeId: storeId(),
+    email: text('email'),
+    phone: text('phone'),
+    name: text('name'),
+    /** Snapshot of the address from the latest order, so the profile card needs no join. */
+    defaultAddress: jsonb('default_address').$type<CustomerAddress>(),
+    tags: text('tags').array().notNull().default([]),
+    note: text('note'),
+    acceptsMarketing: boolean('accepts_marketing').notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('customer_store_email').on(t.storeId, t.email)],
+)
 
 /** One address table, reused by customers and orders. state_code drives CGST/SGST vs IGST. */
 export const address = pgTable('address', {

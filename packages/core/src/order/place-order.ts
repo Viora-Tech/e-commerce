@@ -135,9 +135,25 @@ const createOrder: WorkflowStep<State> = {
     let shippingAddressId: string | null = null
     if (input.checkout) {
       const co = input.checkout
+      const email = co.email.trim().toLowerCase()
+      const defaultAddress = {
+        name: co.name,
+        line1: co.address.line1,
+        line2: co.address.line2 ?? null,
+        city: co.address.city,
+        stateCode: co.address.stateCode,
+        pincode: co.address.pincode,
+        country: 'IN',
+        phone: co.phone,
+      }
+      /* One customer per email per store; a repeat order refreshes name, phone and address. */
       const [cu] = await ctx.tx
         .insert(customer)
-        .values({ storeId: ctx.storeId, email: co.email, phone: co.phone, name: co.name })
+        .values({ storeId: ctx.storeId, email, phone: co.phone, name: co.name, defaultAddress })
+        .onConflictDoUpdate({
+          target: [customer.storeId, customer.email],
+          set: { phone: co.phone, name: co.name, defaultAddress, updatedAt: new Date() },
+        })
         .returning({ id: customer.id })
       const [ad] = await ctx.tx
         .insert(address)

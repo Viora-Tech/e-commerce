@@ -2,6 +2,7 @@ import {
   cart,
   cartLine,
   createDb,
+  customer,
   inventoryLevel,
   order,
   orderLine,
@@ -134,6 +135,56 @@ describe('placeOrder', () => {
     const [p2] = await owner.select().from(payment).where(eq(payment.orderId, r2.orderId))
     expect(p2?.amountPaise).toBe(489902)
     expect(upi.calls).toEqual([`createPayment:${r2.orderId}:489902`])
+  })
+
+  it('keeps one customer per email per store and refreshes their details on a repeat order', async () => {
+    const first = await seed({ onHand: 10, quantity: 1 })
+    const [c2] = await owner.insert(cart).values({ storeId: first.storeId }).returning()
+    if (!c2) throw new Error('seed')
+    await owner.insert(cartLine).values({
+      storeId: first.storeId,
+      cartId: c2.id,
+      variantId: first.variantId,
+      quantity: 1,
+      unitPricePaise: 499900,
+    })
+    const checkout = (name: string, email: string, city: string) => ({
+      name,
+      email,
+      phone: '9999999999',
+      address: { line1: '12 MG Road', city, stateCode: 'KA', pincode: '560001' },
+    })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+
+    const r1 = await withStore(app, first.storeId, (tx) =>
+      placeOrder(
+        { storeId: first.storeId, tx },
+        {
+          cartId: first.cartId,
+          paymentProvider: provider,
+          checkout: checkout('Asha Menon', 'Asha@Example.com', 'Bengaluru'),
+        },
+      ),
+    )
+    const r2 = await withStore(app, first.storeId, (tx) =>
+      placeOrder(
+        { storeId: first.storeId, tx },
+        {
+          cartId: c2.id,
+          paymentProvider: provider,
+          checkout: checkout('Asha M.', 'asha@example.com ', 'Mysuru'),
+        },
+      ),
+    )
+
+    const rows = await owner.select().from(customer).where(eq(customer.storeId, first.storeId))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ email: 'asha@example.com', name: 'Asha M.' })
+    expect(rows[0]?.defaultAddress?.city).toBe('Mysuru')
+    const [o1] = await owner.select().from(order).where(eq(order.id, r1.orderId))
+    const [o2] = await owner.select().from(order).where(eq(order.id, r2.orderId))
+    expect(o1?.customerId).toBe(rows[0]?.id)
+    expect(o2?.customerId).toBe(rows[0]?.id)
   })
 
   it('throws OutOfStock and leaves nothing behind when stock is short', async () => {

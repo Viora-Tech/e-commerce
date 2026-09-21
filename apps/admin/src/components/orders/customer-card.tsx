@@ -2,6 +2,7 @@
 
 import { Input } from '@commerce/ui/shadcn/input'
 import { X } from 'lucide-react'
+import Link from 'next/link'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { DataCard } from '@/components/layout/data-card'
@@ -37,6 +38,14 @@ export function CustomerCard({ order }: CustomerCardProps) {
             >
               {order.phone}
             </a>
+          ) : null}
+          {order.customer ? (
+            <Link
+              href={`/customers/${order.customer.id}`}
+              className="mt-1 inline-block text-caption text-link hover:underline focus-visible:outline-none focus-visible:underline"
+            >
+              {copy.customer.view}
+            </Link>
           ) : null}
         </div>
         <div className="border-t border-border pt-4">

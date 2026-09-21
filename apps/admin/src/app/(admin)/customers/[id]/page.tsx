@@ -1,11 +1,14 @@
-import { UserRound } from 'lucide-react'
-import type { Metadata } from 'next'
-import { SectionEmpty } from '@/components/layout/section-empty'
-import { customersContent } from '@/data/customers'
+import { notFound, redirect } from 'next/navigation'
+import { CustomerView } from '@/components/customers/customer-view'
+import { appRouter, call, serverContext } from '@/lib/api'
 
-export const metadata: Metadata = { title: 'Customer' }
+type Params = { params: Promise<{ id: string }> }
 
-/** Customer records arrive with the customers module; until then any id resolves to this. */
-export default function Page() {
-  return <SectionEmpty {...customersContent.detail} icon={UserRound} />
+export default async function CustomerPage({ params }: Params) {
+  const { id } = await params
+  const context = await serverContext()
+  const customer = await call(appRouter.customers.get, { id }, { context }).catch(() => undefined)
+  if (customer === undefined) redirect('/select-store')
+  if (!customer) notFound()
+  return <CustomerView customer={customer} />
 }
