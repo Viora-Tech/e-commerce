@@ -166,3 +166,17 @@ export const orderDetailContent = {
     qty: 'Qty',
   },
 } as const
+
+/** Sub-sections under Orders that have no records yet. */
+export const ordersSectionsContent = {
+  drafts: {
+    heading: 'No draft orders',
+    body: 'Drafts let you build an order for a customer over the phone or WhatsApp and send them a link to pay.',
+    action: { label: 'View orders', href: '/orders' },
+  },
+  abandoned: {
+    heading: 'No abandoned checkouts',
+    body: 'When a shopper enters their details but leaves before paying, the checkout lands here so you can follow up.',
+    action: { label: 'View orders', href: '/orders' },
+  },
+} as const

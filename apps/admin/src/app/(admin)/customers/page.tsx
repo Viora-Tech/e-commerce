@@ -1,15 +1,10 @@
-'use client'
+import { Users } from 'lucide-react'
+import type { Metadata } from 'next'
+import { SectionEmpty } from '@/components/layout/section-empty'
+import { customersContent } from '@/data/customers'
 
-import { Card, EmptyState, Page } from '@shopify/polaris'
+export const metadata: Metadata = { title: 'Customers' }
 
-export default function Placeholder() {
-  return (
-    <Page title="Customers">
-      <Card>
-        <EmptyState heading="Customers" image="">
-          <p>Coming in a later PR.</p>
-        </EmptyState>
-      </Card>
-    </Page>
-  )
+export default function Page() {
+  return <SectionEmpty {...customersContent.index} icon={Users} />
 }
