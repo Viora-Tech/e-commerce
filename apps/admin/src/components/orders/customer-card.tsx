@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import { orderDetailContent as copy } from '@/data/orders'
 import type { OrderDetail } from './order-detail-types'
@@ -8,6 +9,7 @@ type CustomerCardProps = {
 
 /** Who ordered and where it goes. */
 export default function CustomerCard({ order }: CustomerCardProps) {
+  // Render logic
   const a = order.shippingAddress
 
   return (
@@ -30,6 +32,14 @@ export default function CustomerCard({ order }: CustomerCardProps) {
             >
               {order.phone}
             </a>
+          ) : null}
+          {order.customer ? (
+            <Link
+              href={`/customers/${order.customer.id}`}
+              className="mt-1 inline-block text-caption text-link hover:underline focus-visible:outline-none focus-visible:underline"
+            >
+              {copy.customer.view}
+            </Link>
           ) : null}
         </div>
         <div className="border-t border-border pt-4">
