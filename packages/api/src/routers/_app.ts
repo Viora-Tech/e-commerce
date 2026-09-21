@@ -1,5 +1,6 @@
 import { protectedProcedure } from '../procedures'
 import { appsRouter } from './apps'
+import { dashboardRouter } from './dashboard'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { productsRouter } from './products'
@@ -12,6 +13,7 @@ export const appRouter = {
   pages: pagesRouter,
   orders: ordersRouter,
   apps: appsRouter,
+  dashboard: dashboardRouter,
 }
 
 export type AppRouter = typeof appRouter
