@@ -3,9 +3,9 @@
  * Polaris Frame until its own migration PR lands; when this list covers every
  * page, delete it along with @shopify/polaris.
  */
-export const SHADCN_ROUTES = ['/', '/orders'] as const
+export const SHADCN_ROUTES = ['/', '/orders', '/products'] as const
 
-/** `/orders` also covers `/orders/<id>`; `/` only matches itself. */
+/** `/` matches itself only; every other entry also covers its sub-routes (`/orders/<id>`, `/products/new`). */
 export function isShadcnRoute(pathname: string): boolean {
   return SHADCN_ROUTES.some((r) =>
     r === '/' ? pathname === '/' : pathname === r || pathname.startsWith(`${r}/`),

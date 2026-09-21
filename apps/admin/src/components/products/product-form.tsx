@@ -1,18 +1,25 @@
 'use client'
 
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
-  Banner,
-  BlockStack,
-  ContextualSaveBar,
-  Layout,
-  Modal,
-  Page,
-  Text,
-  Toast,
-} from '@shopify/polaris'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@commerce/ui/shadcn/alert-dialog'
+import { Button } from '@commerce/ui/shadcn/button'
+import { CircleAlert, ExternalLink, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { productFormContent } from '@/data/products'
+import { toast } from 'sonner'
+import { PageBody, PageColumns } from '@/components/layout/page-body'
+import { PageHeader } from '@/components/layout/page-header'
+import { SaveBar } from '@/components/layout/save-bar'
+import { productFormContent, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import { DetailsCard } from './details-card'
 import {
@@ -47,7 +54,6 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   const [form, setForm] = useState<ProductFormState>(initial)
   const [saved, setSaved] = useState(() => JSON.stringify(initial))
   const [busy, setBusy] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -82,7 +88,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
       const next = fromProduct(result)
       setForm(next)
       setSaved(JSON.stringify(next))
-      setToast(product ? copy.toasts.saved : copy.toasts.created)
+      toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(`/products/${result.id}`)
       else router.refresh()
     } catch (err) {
@@ -103,7 +109,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
     setBusy(true)
     try {
       const { outcome } = await api.products.delete({ id: product.id })
-      setToast(outcome === 'deleted' ? copy.toasts.deleted : copy.toasts.archived)
+      toast.success(outcome === 'deleted' ? copy.toasts.deleted : copy.toasts.archived)
       router.push('/products')
       router.refresh()
     } catch (err) {
@@ -116,119 +122,134 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   if (!first) return null
 
   return (
-    <Page
-      backAction={{ content: copy.backLabel, url: '/products' }}
-      title={product ? product.title : copy.newTitle}
-      secondaryActions={
-        product
-          ? [
-              {
-                content: copy.preview,
-                url: `${storefrontOrigin}/products/${product.handle}`,
-                external: true,
-              },
-              {
-                content: copy.delete.action,
-                destructive: true,
-                onAction: () => setConfirmDelete(true),
-              },
-            ]
-          : []
-      }
-    >
+    <PageBody width="narrow" className="kit-form">
       {dirty || !product ? (
-        <ContextualSaveBar
+        <SaveBar
           message={copy.saveBar.message}
-          saveAction={{ onAction: save, loading: busy, content: copy.saveBar.save }}
-          discardAction={{ onAction: discard, content: copy.saveBar.discard, disabled: !dirty }}
+          saveLabel={copy.saveBar.save}
+          discardLabel={copy.saveBar.discard}
+          onSave={save}
+          onDiscard={discard}
+          saving={busy}
+          canDiscard={dirty}
         />
       ) : null}
-      {toast ? <Toast content={toast} onDismiss={() => setToast(null)} /> : null}
-
-      <BlockStack gap="400">
-        {serverError ? (
-          <Banner tone="critical" title={copy.toasts.failed} onDismiss={() => setServerError(null)}>
-            <Text as="p">{serverError}</Text>
-          </Banner>
-        ) : null}
-        <Layout>
-          <Layout.Section>
-            <BlockStack gap="400">
-              <DetailsCard
-                title={form.title}
-                description={form.description}
-                titleError={showErrors ? errors.title : undefined}
-                onTitle={(title) => patch({ title })}
-                onDescription={(description) => patch({ description })}
-              />
-              <MediaCard images={product?.images ?? []} />
-              {single ? (
-                <>
-                  <PricingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
-                  <InventoryCard
-                    variant={first}
-                    quantityChanged={quantityChanged}
-                    reason={form.inventoryReason}
-                    onChange={(vp) => patchVariant(0, vp)}
-                    onReason={(inventoryReason) => patch({ inventoryReason })}
-                  />
-                </>
-              ) : null}
-              <VariantsCard
-                options={form.options}
-                variants={form.variants}
-                error={showErrors ? errors.variants : undefined}
-                onOptions={setOptions}
-                onVariant={patchVariant}
-              />
-              <SeoCard
-                title={form.title}
-                description={form.description}
-                seoTitle={form.seoTitle}
-                seoDescription={form.seoDescription}
-                handle={form.handle}
-                storefrontOrigin={storefrontOrigin}
-                onSeoTitle={(seoTitle) => patch({ seoTitle })}
-                onSeoDescription={(seoDescription) => patch({ seoDescription })}
-                onHandle={(handle) => patch({ handle })}
-              />
-            </BlockStack>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="400">
-              <StatusCard status={form.status} onChange={(status) => patch({ status })} />
-              <OrganisationCard
-                productType={form.productType}
-                vendor={form.vendor}
-                tags={form.tags}
-                facets={facets}
-                onProductType={(productType) => patch({ productType })}
-                onVendor={(vendor) => patch({ vendor })}
-                onTags={(tags) => patch({ tags })}
-              />
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
-      </BlockStack>
-
-      <Modal
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title={copy.delete.title(product?.title ?? '')}
-        primaryAction={{
-          content: copy.delete.confirm,
-          destructive: true,
-          loading: busy,
-          onAction: remove,
-        }}
-        secondaryActions={[
-          { content: copy.delete.cancel, onAction: () => setConfirmDelete(false) },
+      <PageHeader
+        title={product ? product.title : copy.newTitle}
+        breadcrumbs={[
+          { label: productsListContent.title, href: '/products' },
+          { label: product ? product.title : copy.newTitle },
         ]}
-      >
-        <Modal.Section>
-          <Text as="p">{copy.delete.body}</Text>
-        </Modal.Section>
-      </Modal>
-    </Page>
+        actions={
+          product ? (
+            <>
+              <Button
+                variant="outline"
+                className="h-10 rounded-full px-4"
+                render={
+                  <a
+                    href={`${storefrontOrigin}/products/${product.handle}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  />
+                }
+                nativeButton={false}
+              >
+                {copy.preview}
+                <ExternalLink />
+              </Button>
+              <Button
+                variant="destructive"
+                className="h-10 rounded-full px-4"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 />
+                {copy.delete.action}
+              </Button>
+            </>
+          ) : null
+        }
+      />
+      {serverError ? (
+        <Alert variant="destructive">
+          <CircleAlert />
+          <AlertTitle>{copy.toasts.failed}</AlertTitle>
+          <AlertDescription>{serverError}</AlertDescription>
+        </Alert>
+      ) : null}
+      <PageColumns
+        main={
+          <>
+            <DetailsCard
+              title={form.title}
+              description={form.description}
+              titleError={showErrors ? errors.title : undefined}
+              onTitle={(title) => patch({ title })}
+              onDescription={(description) => patch({ description })}
+            />
+            <MediaCard images={product?.images ?? []} />
+            {single ? (
+              <>
+                <PricingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
+                <InventoryCard
+                  variant={first}
+                  quantityChanged={quantityChanged}
+                  reason={form.inventoryReason}
+                  onChange={(vp) => patchVariant(0, vp)}
+                  onReason={(inventoryReason) => patch({ inventoryReason })}
+                />
+              </>
+            ) : null}
+            <VariantsCard
+              options={form.options}
+              variants={form.variants}
+              error={showErrors ? errors.variants : undefined}
+              onOptions={setOptions}
+              onVariant={patchVariant}
+            />
+            <SeoCard
+              title={form.title}
+              description={form.description}
+              seoTitle={form.seoTitle}
+              seoDescription={form.seoDescription}
+              handle={form.handle}
+              storefrontOrigin={storefrontOrigin}
+              onSeoTitle={(seoTitle) => patch({ seoTitle })}
+              onSeoDescription={(seoDescription) => patch({ seoDescription })}
+              onHandle={(handle) => patch({ handle })}
+            />
+          </>
+        }
+        side={
+          <>
+            <StatusCard status={form.status} onChange={(status) => patch({ status })} />
+            <OrganisationCard
+              productType={form.productType}
+              vendor={form.vendor}
+              tags={form.tags}
+              facets={facets}
+              onProductType={(productType) => patch({ productType })}
+              onVendor={(vendor) => patch({ vendor })}
+              onTags={(tags) => patch({ tags })}
+            />
+          </>
+        }
+      />
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{copy.delete.title(product?.title ?? '')}</AlertDialogTitle>
+            <AlertDialogDescription>{copy.delete.body}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>{copy.delete.cancel}</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={remove} disabled={busy}>
+              {copy.delete.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </PageBody>
   )
 }

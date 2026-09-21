@@ -1,15 +1,17 @@
 'use client'
 
 import { type RichTextValue, richTextToPlainText } from '@commerce/richtext'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
 import {
-  BlockStack,
-  Button,
-  Card,
-  FormLayout,
-  InlineStack,
-  Text,
-  TextField,
-} from '@shopify/polaris'
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '@commerce/ui/shadcn/input-group'
+import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
 import { productFormContent } from '@/data/products'
 
@@ -26,6 +28,9 @@ type SeoCardProps = {
 }
 
 const copy = productFormContent.seo
+const TITLE_MAX = 70
+const DESCRIPTION_MAX = 320
+const PREVIEW_CHARS = 160
 
 export function SeoCard({
   title,
@@ -41,69 +46,76 @@ export function SeoCard({
   const [editing, setEditing] = useState(Boolean(seoTitle || seoDescription))
 
   const previewTitle = seoTitle || title
-  const previewDescription = (seoDescription || richTextToPlainText(description)).slice(0, 160)
+  const previewDescription = (seoDescription || richTextToPlainText(description)).slice(
+    0,
+    PREVIEW_CHARS,
+  )
   const url = `${storefrontOrigin}${copy.handlePrefix}${handle}`
 
   return (
     <Card>
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="center">
-          <Text as="h2" variant="headingSm">
-            {copy.heading}
-          </Text>
-          {!editing ? (
-            <Button variant="plain" onClick={() => setEditing(true)}>
+      <CardHeader>
+        <CardTitle>{copy.heading}</CardTitle>
+        {!editing ? (
+          <CardAction>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)}>
               {copy.edit}
             </Button>
-          ) : null}
-        </InlineStack>
+          </CardAction>
+        ) : null}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
         {previewTitle ? (
-          <BlockStack gap="050">
-            <Text as="p" variant="bodySm" tone="subdued">
-              {url}
-            </Text>
-            <Text as="p" variant="headingMd" tone="magic">
-              {previewTitle}
-            </Text>
-            <Text as="p" variant="bodySm">
-              {previewDescription}
-            </Text>
-          </BlockStack>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted-foreground">{url}</span>
+            <span className="text-base font-medium text-primary">{previewTitle}</span>
+            <span className="text-sm text-muted-foreground">{previewDescription}</span>
+          </div>
         ) : (
-          <Text as="p" tone="subdued" variant="bodySm">
-            {copy.previewHint}
-          </Text>
+          <p className="text-sm text-muted-foreground">{copy.previewHint}</p>
         )}
         {editing ? (
-          <FormLayout>
-            <TextField
-              label={copy.title}
-              value={seoTitle}
-              onChange={onSeoTitle}
-              placeholder={title}
-              maxLength={70}
-              helpText={copy.titleHelp(seoTitle.length)}
-              autoComplete="off"
-            />
-            <TextField
-              label={copy.description}
-              value={seoDescription}
-              onChange={onSeoDescription}
-              multiline={3}
-              maxLength={320}
-              helpText={copy.descriptionHelp(seoDescription.length)}
-              autoComplete="off"
-            />
-            <TextField
-              label={copy.handle}
-              prefix={copy.handlePrefix}
-              value={handle}
-              onChange={onHandle}
-              autoComplete="off"
-            />
-          </FormLayout>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="seo-title">{copy.title}</FieldLabel>
+              <Input
+                id="seo-title"
+                value={seoTitle}
+                onChange={(e) => onSeoTitle(e.target.value)}
+                placeholder={title}
+                maxLength={TITLE_MAX}
+                autoComplete="off"
+              />
+              <FieldDescription>{copy.titleHelp(seoTitle.length)}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="seo-description">{copy.description}</FieldLabel>
+              <Textarea
+                id="seo-description"
+                value={seoDescription}
+                onChange={(e) => onSeoDescription(e.target.value)}
+                rows={3}
+                maxLength={DESCRIPTION_MAX}
+              />
+              <FieldDescription>{copy.descriptionHelp(seoDescription.length)}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="seo-handle">{copy.handle}</FieldLabel>
+              <InputGroup>
+                <InputGroupAddon>
+                  <InputGroupText>{copy.handlePrefix}</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="seo-handle"
+                  value={handle}
+                  onChange={(e) => onHandle(e.target.value)}
+                  autoComplete="off"
+                />
+              </InputGroup>
+            </Field>
+          </FieldGroup>
         ) : null}
-      </BlockStack>
+      </CardContent>
     </Card>
   )
 }
