@@ -1,7 +1,14 @@
+/*
+ * Layer order: Polaris (legacy pages) sits above Tailwind's preflight so its
+ * components still render, but below components/utilities so its global
+ * resets (html font-size 13px, h1 { font-size: 1em }) never beat ours.
+ */
+@layer theme, base, polaris, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@commerce/ui/styles.css";
+@import "@shopify/polaris/build/esm/styles.css" layer(polaris);
 @plugin "@tailwindcss/typography";
 
 /* Monorepo: tell Tailwind to scan shared packages for class names */
