@@ -70,6 +70,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/queue": "workspace:*",
+        "@commerce/richtext": "workspace:*",
         "@commerce/shipping": "workspace:*",
         "@measured/puck": "^0.20.2",
         "drizzle-orm": "^0.45.2",

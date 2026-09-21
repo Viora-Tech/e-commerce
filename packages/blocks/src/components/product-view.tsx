@@ -1,8 +1,21 @@
 'use client'
 
+import {
+  parseRichText,
+  plainTextToRichText,
+  RichTextRenderer,
+  richTextToPlainText,
+} from '@commerce/richtext'
 import { type ComponentType, type ReactNode, useState, useTransition } from 'react'
 import type { ProductDetail } from '../types'
 import { Price } from './price'
+
+/** Imported products hold a plain string; the admin editor writes Lexical JSON. */
+function descriptionDoc(raw: ProductDetail['description']) {
+  const doc = parseRichText(raw)
+  if (doc) return doc
+  return typeof raw === 'string' && raw.trim() ? plainTextToRichText(raw) : null
+}
 
 // Port of sections/main-product.liquid with snippets/product-gallery,
 // variant-picker and buy-buttons. Cart wiring comes with the cart PR.
@@ -40,8 +53,9 @@ export function ProductView({
   }
 
   const selectedValues = new Set(variant?.optionValueIds ?? [])
-  const description = product.description?.split('\n').filter(Boolean) ?? []
-  const clamped = description.length > 3 && !expanded
+  const description = descriptionDoc(product.description)
+  const longDescription = description ? richTextToPlainText(description).length > 280 : false
+  const clamped = longDescription && !expanded
 
   return (
     <section className="section-product page-width">
@@ -173,16 +187,14 @@ export function ProductView({
             {belowBuy}
           </div>
 
-          {description.length > 0 ? (
+          {description ? (
             <div
-              className={`product-info__description text-body${clamped ? ' product-info__description--clamped' : ''}`}
+              className={`product-info__description text-body rte${clamped ? ' product-info__description--clamped' : ''}`}
             >
               <div className="product-info__description-body">
-                {description.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
+                <RichTextRenderer data={description} />
               </div>
-              {description.length > 3 ? (
+              {longDescription ? (
                 <button
                   type="button"
                   className="product-info__read-more"

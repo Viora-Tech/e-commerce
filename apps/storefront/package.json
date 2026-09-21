@@ -23,6 +23,7 @@
     "@commerce/payments": "workspace:*",
     "qrcode": "^1.5.4",
     "@commerce/queue": "workspace:*",
+    "@commerce/richtext": "workspace:*",
     "@commerce/shipping": "workspace:*"
   },
   "devDependencies": {

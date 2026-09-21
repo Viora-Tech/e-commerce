@@ -1,3 +1,4 @@
+import type { RichTextValue } from '@commerce/richtext'
 /** Data shapes blocks render. Apps fetch these; blocks never touch the database. */
 
 export type CardProduct = {
@@ -16,7 +17,8 @@ export type ProductDetail = {
   id: string
   handle: string
   title: string
-  description: string | null
+  /** Lexical JSON, or a plain string from the Shopify import. */
+  description: RichTextValue | string | null
   vendor: string | null
   productType: string | null
   images: { url: string; alt: string | null }[]

@@ -10,9 +10,20 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import type { RichTextValue } from '@commerce/richtext'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 export type { CardProduct, ProductDetail }
+
+/** Untracked variants are always purchasable; the cart still caps at what is on hand when tracked. */
+function availableFor(v: {
+  onHand: number | null
+  reserved: number | null
+  trackInventory: boolean
+}): number {
+  if (!v.trackInventory) return 999
+  return Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0))
+}
 
 /** Products for cards: first two images, lowest price, summed availability. */
 export async function listCardProducts(
@@ -41,10 +52,11 @@ export async function listCardProducts(
       mrpPaise: variant.mrpPaise,
       onHand: inventoryLevel.onHand,
       reserved: inventoryLevel.reserved,
+      trackInventory: variant.trackInventory,
     })
     .from(variant)
     .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
-    .where(inArray(variant.productId, ids))
+    .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
 
   const images = await tx
     .select({
@@ -72,7 +84,7 @@ export async function listCardProducts(
       productType: p.productType,
       pricePaise: cheapest?.pricePaise ?? 0,
       mrpPaise: cheapest?.mrpPaise ?? null,
-      available: vs.reduce((n, v) => n + Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)), 0),
+      available: vs.reduce((n, v) => n + availableFor(v), 0),
       images: images.filter((i) => i.productId === p.id).map((i) => ({ url: i.url, alt: i.alt })),
     }
   })
@@ -119,12 +131,13 @@ export async function getProductByHandle(
       mrpPaise: variant.mrpPaise,
       onHand: inventoryLevel.onHand,
       reserved: inventoryLevel.reserved,
+      trackInventory: variant.trackInventory,
       imageUrl: media.url,
     })
     .from(variant)
     .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
     .leftJoin(media, eq(media.id, variant.mediaId))
-    .where(eq(variant.productId, p.id))
+    .where(and(eq(variant.productId, p.id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))
   const vids = vs.map((v) => v.id)
   const links =
@@ -139,7 +152,7 @@ export async function getProductByHandle(
     id: p.id,
     handle: p.handle,
     title: p.title,
-    description: p.description,
+    description: p.description as RichTextValue | string | null,
     vendor: p.vendor,
     productType: p.productType,
     images,
@@ -154,7 +167,7 @@ export async function getProductByHandle(
       sku: v.sku,
       pricePaise: v.pricePaise,
       mrpPaise: v.mrpPaise,
-      available: Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)),
+      available: availableFor(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,
     })),
