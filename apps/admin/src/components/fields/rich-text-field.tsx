@@ -2,7 +2,8 @@
 
 import { type EditorMedia, RichTextEditor } from '@commerce/editor'
 import type { RichTextValue } from '@commerce/richtext'
-import { InlineError, Text } from '@shopify/polaris'
+import { cn } from '@commerce/ui/lib/utils'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useId } from 'react'
 import '@commerce/editor/editor.css'
 
@@ -16,10 +17,10 @@ type RichTextFieldProps = {
   media?: EditorMedia | null | undefined
   maxLength?: number | undefined
   minHeight?: number | undefined
-  requiredIndicator?: boolean | undefined
+  required?: boolean | undefined
 }
 
-/** Polaris-styled label / help / error wrapper around the shared Lexical editor. */
+/** shadcn Field wrapper (label / help / error) around the shared Lexical editor. */
 export function RichTextField({
   label,
   value,
@@ -30,21 +31,16 @@ export function RichTextField({
   media,
   maxLength,
   minHeight,
-  requiredIndicator,
+  required,
 }: RichTextFieldProps) {
   const id = useId()
-  const errorId = `${id}-error`
 
   return (
-    <div className="rich-text-field">
-      <div className="rich-text-field__label">
-        <label htmlFor={id}>
-          <Text as="span" variant="bodyMd">
-            {label}
-            {requiredIndicator ? <span aria-hidden="true"> *</span> : null}
-          </Text>
-        </label>
-      </div>
+    <Field data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={id}>
+        {label}
+        {required ? <span aria-hidden="true">*</span> : null}
+      </FieldLabel>
       <RichTextEditor
         id={id}
         value={value}
@@ -53,24 +49,10 @@ export function RichTextField({
         media={media}
         maxLength={maxLength}
         minHeight={minHeight}
-        className={
-          error
-            ? 'rich-text-field__editor rich-text-field__editor--error'
-            : 'rich-text-field__editor'
-        }
+        className={cn('rich-text-field__editor', error && 'rich-text-field__editor--error')}
       />
-      {helpText && !error ? (
-        <div className="rich-text-field__help">
-          <Text as="span" tone="subdued" variant="bodySm">
-            {helpText}
-          </Text>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="rich-text-field__help">
-          <InlineError message={error} fieldID={errorId} />
-        </div>
-      ) : null}
-    </div>
+      {helpText && !error ? <FieldDescription>{helpText}</FieldDescription> : null}
+      {error ? <FieldError>{error}</FieldError> : null}
+    </Field>
   )
 }
