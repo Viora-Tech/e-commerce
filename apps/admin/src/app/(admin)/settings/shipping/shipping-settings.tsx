@@ -1,7 +1,6 @@
 'use client'
 
 import type { ShippingPolicySettings } from '@commerce/core'
-import { Text } from '@shopify/polaris'
 import {
   type ProviderDef,
   ProviderSettingsForm,
@@ -20,12 +19,7 @@ const save = (next: Parameters<typeof api.store.updateShipping>[0]) =>
 
 function courierHint(m: ProviderDef) {
   const hint = copy.hints[m.id]
-  if (!hint) return null
-  return (
-    <Text as="p" tone="subdued" variant="bodySm">
-      {hint}
-    </Text>
-  )
+  return hint ? <p className="text-caption text-muted-foreground">{hint}</p> : null
 }
 
 function footer(extra: Extra, setExtra: (next: Extra) => void) {
@@ -42,6 +36,7 @@ export function ShippingSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      intro={copy.intro}
       load={load}
       save={save}
       emptyExtra={{}}

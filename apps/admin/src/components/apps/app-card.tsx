@@ -1,7 +1,12 @@
 'use client'
 
-import { Badge, BlockStack, Button, Card, InlineStack, Text } from '@shopify/polaris'
+import { Badge } from '@commerce/ui/shadcn/badge'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { ArrowRight, Puzzle } from 'lucide-react'
 import Link from 'next/link'
+import { StatusPill } from '@/components/layout/status-pill'
 import { type AppKind, appsContent as copy } from '@/data/apps'
 
 export type AppSummary = {
@@ -32,58 +37,64 @@ export function AppCard({ app, busy, onInstall, onUninstall }: AppCardProps) {
   const kinds = providedKinds(app)
 
   return (
-    <Card>
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="start" gap="400">
-          <BlockStack gap="100">
-            <InlineStack gap="200" blockAlign="center">
-              <Text as="h2" variant="headingSm">
-                {app.name}
-              </Text>
-              <Text as="span" tone="subdued" variant="bodySm">
+    <Card className="h-full">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+            <Puzzle className="size-5" strokeWidth={1.8} />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="truncate">{app.name}</CardTitle>
+              <span className="text-caption text-muted-foreground-soft">
                 {copy.version(app.version)}
-              </Text>
-              {app.builtIn ? (
-                <Badge>{copy.builtIn}</Badge>
-              ) : app.installed ? (
-                <Badge tone="success">{copy.installed}</Badge>
-              ) : null}
-            </InlineStack>
-            {app.description ? (
-              <Text as="p" tone="subdued">
-                {app.description}
-              </Text>
+              </span>
+            </div>
+            {app.builtIn ? (
+              <StatusPill tone="neutral">{copy.builtIn}</StatusPill>
+            ) : app.installed ? (
+              <StatusPill tone="success">{copy.installed}</StatusPill>
             ) : null}
-          </BlockStack>
-          {app.builtIn ? null : app.installed ? (
-            <Button loading={busy} onClick={() => onUninstall(app)}>
-              {copy.uninstall}
-            </Button>
-          ) : (
-            <Button variant="primary" loading={busy} onClick={() => onInstall(app)}>
-              {copy.install}
-            </Button>
-          )}
-        </InlineStack>
-
-        <InlineStack gap="200" blockAlign="center">
+          </div>
+        </div>
+        {app.builtIn ? null : app.installed ? (
+          <Button type="button" variant="outline" disabled={busy} onClick={() => onUninstall(app)}>
+            {busy ? <Spinner /> : null}
+            {copy.uninstall}
+          </Button>
+        ) : (
+          <Button type="button" disabled={busy} onClick={() => onInstall(app)}>
+            {busy ? <Spinner /> : null}
+            {copy.install}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-4">
+        {app.description ? (
+          <p className="text-body text-muted-foreground">{app.description}</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
           {kinds.map((k) => (
-            <Badge key={k} tone="info">
+            <Badge key={k} variant="secondary">
               {`${copy.kinds[k].label}: ${app.provides[k].map((p) => p.label).join(', ')}`}
             </Badge>
           ))}
-        </InlineStack>
-
+        </div>
         {app.installed ? (
-          <InlineStack gap="300">
+          <div className="mt-auto flex flex-wrap gap-4">
             {kinds.map((k) => (
-              <Link key={k} href={copy.kinds[k].href}>
+              <Link
+                key={k}
+                href={copy.kinds[k].href}
+                className="inline-flex items-center gap-1 text-body font-medium text-link hover:underline"
+              >
                 {copy.configure(copy.kinds[k].label)}
+                <ArrowRight className="size-3.5" />
               </Link>
             ))}
-          </InlineStack>
+          </div>
         ) : null}
-      </BlockStack>
+      </CardContent>
     </Card>
   )
 }

@@ -1,45 +1,59 @@
 'use client'
 
-import { BlockStack, Button, Card, EmptyState, Page, Text } from '@shopify/polaris'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { ArrowRight, Store } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { EmptyState } from '@/components/layout/empty-state'
+import { PageBody } from '@/components/layout/page-body'
+import { PageHeader } from '@/components/layout/page-header'
+import { authContent } from '@/data/auth'
 import { authClient } from '@/lib/auth-client'
 
-export function SelectStore({ stores }: { stores: { id: string; name: string; slug: string }[] }) {
+type StoreOption = { id: string; name: string; slug: string }
+
+const copy = authContent.selectStore
+
+export function SelectStore({ stores }: { stores: StoreOption[] }) {
   const router = useRouter()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
   async function pick(id: string) {
+    setBusyId(id)
     await authClient.organization.setActive({ organizationId: id })
     router.push('/')
     router.refresh()
   }
+
   return (
-    <Page title="Choose a store" narrowWidth>
+    <PageBody width="narrow">
+      <PageHeader title={copy.title} />
       {stores.length === 0 ? (
         <Card>
-          <EmptyState heading="No stores yet" image="">
-            <p>Store creation lands with onboarding. Ask an owner to invite you.</p>
-          </EmptyState>
+          <EmptyState icon={Store} heading={copy.empty.heading} body={copy.empty.body} />
         </Card>
       ) : (
-        <BlockStack gap="400">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {stores.map((s) => (
             <Card key={s.id}>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  {s.name}
-                </Text>
-                <Text as="p" tone="subdued">
-                  {s.slug}
-                </Text>
-                <div>
-                  <Button variant="primary" onClick={() => pick(s.id)}>
-                    Open {s.name}
-                  </Button>
+              <CardContent className="flex items-center gap-4">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <Store className="size-5" strokeWidth={1.8} />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-card-title">{s.name}</span>
+                  <span className="text-caption text-muted-foreground-soft">{s.slug}</span>
                 </div>
-              </BlockStack>
+                <Button type="button" disabled={busyId !== null} onClick={() => pick(s.id)}>
+                  {copy.open(s.name)}
+                  <ArrowRight />
+                </Button>
+              </CardContent>
             </Card>
           ))}
-        </BlockStack>
+        </div>
       )}
-    </Page>
+    </PageBody>
   )
 }

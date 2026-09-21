@@ -1,6 +1,8 @@
 /** Copy for Settings → Payments. */
 export const paymentsSettingsContent = {
   title: 'Payments',
+  intro:
+    'Enable the methods shoppers can pay with and add a fee or discount per method. Gateway keys are stored encrypted.',
   webhookHint: 'Webhook URL for the Razorpay dashboard:',
   adjustment: {
     heading: 'Fee or discount',

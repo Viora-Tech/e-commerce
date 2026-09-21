@@ -56,9 +56,45 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 
 export const settingsContent = {
   general: {
-    heading: 'General',
-    body: 'Store name, contact email, address, currency and timezone will be editable here.',
-    action: { label: 'Notification settings', href: '/settings/notifications' },
+    title: 'General',
+    intro: 'What shoppers see in emails and invoices, and where your store operates.',
+    details: {
+      heading: 'Store details',
+      name: 'Store name',
+      email: 'Contact email',
+      emailHelp: 'Shown on order emails and used for replies.',
+      phone: 'Phone',
+    },
+    address: {
+      heading: 'Business address',
+      help: 'Printed on invoices and used as the default origin for delivery estimates.',
+      line1: 'Address line 1',
+      line2: 'Address line 2',
+      city: 'City',
+      state: 'State',
+      pincode: 'PIN code',
+      country: 'Country',
+    },
+    locale: {
+      heading: 'Standards and formats',
+      currency: 'Currency',
+      currencyHelp: 'INR is the only currency for now.',
+      timezone: 'Timezone',
+      gstin: 'GSTIN',
+      gstinHelp: 'Leave blank if not registered. Appears on tax invoices.',
+    },
+    timezones: [
+      { value: 'Asia/Kolkata', label: 'India (Asia/Kolkata)' },
+      { value: 'Asia/Dubai', label: 'Gulf (Asia/Dubai)' },
+      { value: 'Asia/Singapore', label: 'Singapore (Asia/Singapore)' },
+      { value: 'Europe/London', label: 'London (Europe/London)' },
+      { value: 'America/New_York', label: 'New York (America/New_York)' },
+    ],
+    saved: 'Store details saved',
+    failed: 'Could not save store details',
+    unsaved: 'Unsaved changes',
+    save: 'Save',
+    discard: 'Discard',
   },
   staff: {
     heading: 'Only you, for now',

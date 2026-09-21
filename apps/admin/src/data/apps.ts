@@ -13,6 +13,13 @@ export const appsContent = {
   actionFailed: 'Could not update app',
   installedToast: (name: string) => `${name} installed`,
   uninstalledToast: (name: string) => `${name} uninstalled`,
+  confirmUninstall: {
+    title: (name: string) => `Uninstall ${name}?`,
+    body: 'Its providers are switched off for this store. Saved credentials are kept until you remove them from Settings.',
+    cancel: 'Keep',
+    confirm: 'Uninstall',
+  },
+  emptyHeading: 'No apps available',
   kinds: {
     payments: { label: 'Payments', href: '/settings/payments' },
     shipping: { label: 'Shipping', href: '/settings/shipping' },

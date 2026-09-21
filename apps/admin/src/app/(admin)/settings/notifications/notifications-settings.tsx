@@ -1,6 +1,5 @@
 'use client'
 
-import { Text } from '@shopify/polaris'
 import {
   type ProviderDef,
   ProviderSettingsForm,
@@ -16,18 +15,14 @@ const save = (next: Parameters<typeof api.store.updateNotifications>[0]) =>
 
 function channelHint(m: ProviderDef) {
   const hint = copy.hints[m.id]
-  if (!hint) return null
-  return (
-    <Text as="p" tone="subdued" variant="bodySm">
-      {hint}
-    </Text>
-  )
+  return hint ? <p className="text-caption text-muted-foreground">{hint}</p> : null
 }
 
 export function NotificationsSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      intro={copy.intro}
       load={load}
       save={save}
       emptyExtra={{}}

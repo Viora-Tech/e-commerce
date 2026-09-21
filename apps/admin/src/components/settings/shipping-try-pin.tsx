@@ -1,14 +1,21 @@
 'use client'
 
-import { Banner, BlockStack, Button, Card, InlineStack, Text, TextField } from '@shopify/polaris'
+import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { CircleAlert, CircleCheck, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 
 type Estimate = Awaited<ReturnType<typeof api.store.estimateDelivery>>
 type Verify = Awaited<ReturnType<typeof api.store.verifyShipping>>
+type Tone = 'success' | 'warning' | 'critical'
 
-function describe(r: Estimate): { tone: 'success' | 'warning' | 'critical'; lines: string[] } {
+function describe(r: Estimate): { tone: Tone; lines: string[] } {
   if (!r.ok) return { tone: 'critical', lines: [r.error] }
   if (!r.serviceable) return { tone: 'warning', lines: [copy.tryPin.unserviceable(r.reason)] }
   const lines = [
@@ -17,6 +24,27 @@ function describe(r: Estimate): { tone: 'success' | 'warning' | 'critical'; line
   ]
   if (r.fallback) lines.push(copy.tryPin.fallback)
   return { tone: r.fallback ? 'warning' : 'success', lines }
+}
+
+const TONE_ICON = { success: CircleCheck, warning: TriangleAlert, critical: CircleAlert }
+const TONE_CLASS: Record<Tone, string> = {
+  success: 'text-success [&_svg]:text-success',
+  warning: 'text-warning-foreground [&_svg]:text-warning dark:text-warning',
+  critical: 'text-destructive [&_svg]:text-destructive',
+}
+
+function ResultAlert({ tone, lines }: { tone: Tone; lines: string[] }) {
+  const Icon = TONE_ICON[tone]
+  return (
+    <Alert className={TONE_CLASS[tone]}>
+      <Icon />
+      <AlertDescription className="text-foreground">
+        {lines.map((l) => (
+          <p key={l}>{l}</p>
+        ))}
+      </AlertDescription>
+    </Alert>
+  )
 }
 
 /** "Try a PIN" and "Test connection" for Settings › Shipping. Both hit the saved settings. */
@@ -51,42 +79,44 @@ export function ShippingTryPin() {
   const shown = estimate ? describe(estimate) : null
 
   return (
-    <Card>
-      <BlockStack gap="300">
-        <Text as="h2" variant="headingSm">
-          {copy.tryPin.heading}
-        </Text>
-        <Text as="p" tone="subdued" variant="bodySm">
-          {copy.tryPin.help}
-        </Text>
-        <InlineStack gap="200" blockAlign="end">
-          <TextField
-            label={copy.tryPin.label}
-            value={pincode}
-            onChange={setPincode}
-            autoComplete="off"
-            inputMode="numeric"
-          />
-          <Button onClick={handleCheck} loading={checking} disabled={pincode.length < 6}>
+    <Card size="form">
+      <CardHeader>
+        <CardTitle>{copy.tryPin.heading}</CardTitle>
+        <CardDescription>{copy.tryPin.help}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <Field className="w-44">
+            <FieldLabel htmlFor="try-pin">{copy.tryPin.label}</FieldLabel>
+            <Input
+              size="lg"
+              id="try-pin"
+              inputMode="numeric"
+              maxLength={6}
+              value={pincode}
+              onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+              autoComplete="off"
+            />
+          </Field>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCheck}
+            disabled={checking || pincode.length < 6}
+          >
+            {checking ? <Spinner /> : null}
             {checking ? copy.tryPin.checking : copy.tryPin.button}
           </Button>
-          <Button onClick={handleVerify} loading={verifying} variant="secondary">
+          <Button type="button" variant="outline" onClick={handleVerify} disabled={verifying}>
+            {verifying ? <Spinner /> : null}
             {verifying ? copy.verifying : copy.verify}
           </Button>
-        </InlineStack>
-        {shown ? (
-          <Banner tone={shown.tone}>
-            {shown.lines.map((l) => (
-              <p key={l}>{l}</p>
-            ))}
-          </Banner>
-        ) : null}
+        </div>
+        {shown ? <ResultAlert tone={shown.tone} lines={shown.lines} /> : null}
         {verify ? (
-          <Banner tone={verify.ok ? 'success' : 'critical'}>
-            <p>{verify.message}</p>
-          </Banner>
+          <ResultAlert tone={verify.ok ? 'success' : 'critical'} lines={[verify.message]} />
         ) : null}
-      </BlockStack>
+      </CardContent>
     </Card>
   )
 }
