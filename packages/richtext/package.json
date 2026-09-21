@@ -1,0 +1,28 @@
+{
+  "name": "@commerce/richtext",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Server-safe Lexical JSON renderer: React, HTML string and plain text. No 'use client'.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,9 +1,11 @@
 'use client'
 
 import { createBlocksConfig, type PageData } from '@commerce/blocks/puck'
+import { RichTextEditor } from '@commerce/editor'
 import { createUsePuck, Puck } from '@measured/puck'
 import '@measured/puck/puck.css'
 import '@commerce/blocks/styles.css'
+import '@commerce/editor/editor.css'
 import { Toast } from '@shopify/polaris'
 import { useState } from 'react'
 import { api } from '@/lib/api-client'
@@ -27,21 +29,24 @@ function SaveDraftButton({ onSave, busy }: { onSave: (data: PageData) => void; b
 }
 
 /** Product blocks in the editor resolve through the API, scoped to the active store. */
-const config = createBlocksConfig(async ({ productType, limit }) => {
-  const r = await api.products.list({ page: 1, perPage: limit, status: 'active' })
-  const items = productType ? r.items.filter((p) => p.productType === productType) : r.items
-  return items.map((p) => ({
-    id: p.id,
-    handle: p.handle,
-    title: p.title,
-    vendor: p.vendor,
-    productType: p.productType,
-    pricePaise: p.minPricePaise ?? 0,
-    mrpPaise: null,
-    available: p.available,
-    images: p.imageUrl ? [{ url: p.imageUrl, alt: p.title }] : [],
-  }))
-})
+const config = createBlocksConfig(
+  async ({ productType, limit }) => {
+    const r = await api.products.list({ page: 1, perPage: limit, status: 'active' })
+    const items = productType ? r.items.filter((p) => p.productType === productType) : r.items
+    return items.map((p) => ({
+      id: p.id,
+      handle: p.handle,
+      title: p.title,
+      vendor: p.vendor,
+      productType: p.productType,
+      pricePaise: p.minPricePaise ?? 0,
+      mrpPaise: null,
+      available: p.available,
+      images: p.imageUrl ? [{ url: p.imageUrl, alt: p.title }] : [],
+    }))
+  },
+  { RichTextEditor },
+)
 
 export function PageEditor({ page, themeCss }: { page: PageRow; themeCss: string }) {
   const [toast, setToast] = useState<string | null>(null)
