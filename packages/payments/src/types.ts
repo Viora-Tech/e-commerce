@@ -38,7 +38,22 @@ export type CheckoutSession =
       options: Record<string, unknown>
     }
   | { kind: 'redirect'; provider: string; providerRef: string; url: string }
+  | {
+      /** Shopper pays on their own (UPI, bank transfer); the merchant confirms later. */
+      kind: 'manual'
+      provider: string
+      providerRef: string
+      instructions: ManualInstructions
+    }
   | { kind: 'none'; provider: string; providerRef: string }
+
+export type ManualInstructions = {
+  /** Text the shopper must quote so the merchant can match the payment. */
+  reference: string
+  upi?: { id: string; payeeName: string; deepLink: string } | undefined
+  bank?: { bankName: string; accountName: string; accountNumber: string; ifsc: string } | undefined
+  note?: string | undefined
+}
 
 export type CreatePaymentResult = {
   providerRef: string
@@ -124,9 +139,21 @@ export interface PaymentProvider {
   }): WebhookVerification
 }
 
+export type ProviderField = {
+  key: string
+  label: string
+  /** Encrypted at rest and masked in the UI. */
+  secret?: boolean
+  required?: boolean
+  multiline?: boolean
+  help?: string
+}
+
 export type PaymentProviderFactory<Config> = {
   id: string
   label: string
+  /** What the merchant fills in Settings > Payments. Drives the form; nothing is hard-coded in the admin. */
+  fields: ProviderField[]
   /** Zod-like validator kept minimal so this package has no runtime deps. */
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): PaymentProvider

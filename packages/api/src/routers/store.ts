@@ -1,10 +1,10 @@
 import { loadEnv } from '@commerce/config'
 import {
+  builtInPaymentRegistry,
   decryptPaymentSettings,
   encryptPaymentSettings,
   isEncryptedSecret,
   maskPaymentSettings,
-  PaymentRegistry,
   PaymentSettingsSchema,
   parsePaymentSettings,
   parseTheme,
@@ -14,7 +14,7 @@ import { razorpayFactory } from '@commerce/payments-razorpay'
 import { storeProcedure } from '../procedures'
 import { getStore, updateStorePayments, updateStoreTheme } from '../services/store.service'
 
-const registry = new PaymentRegistry().register(razorpayFactory)
+const registry = builtInPaymentRegistry().register(razorpayFactory)
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 export const storeRouter = {
@@ -33,25 +33,10 @@ export const storeRouter = {
     const settings = parsePaymentSettings(s?.payments)
     return {
       settings: maskPaymentSettings(decryptPaymentSettings(settings, secret())),
-      available: [
-        {
-          id: 'cod',
-          label: 'Cash on delivery',
-          fields: [] as { key: string; label: string; secret: boolean }[],
-        },
-        ...registry.ids().map((id) => ({
-          id,
-          label: registry.get(id)?.label ?? id,
-          fields:
-            id === 'razorpay'
-              ? [
-                  { key: 'keyId', label: 'Key ID', secret: false },
-                  { key: 'keySecret', label: 'Key secret', secret: true },
-                  { key: 'webhookSecret', label: 'Webhook secret', secret: true },
-                ]
-              : [],
-        })),
-      ],
+      available: registry.ids().map((id) => {
+        const f = registry.get(id)
+        return { id, label: f?.label ?? id, fields: f?.fields ?? [] }
+      }),
     }
   }),
 
@@ -78,7 +63,6 @@ export const storeRouter = {
         )
       }
       for (const id of merged.enabled) {
-        if (id === 'cod') continue
         const f = registry.get(id)
         if (!f) throw new Error(`unknown payment provider ${id}`)
         const check = f.validateConfig(

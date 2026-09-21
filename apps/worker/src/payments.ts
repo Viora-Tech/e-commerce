@@ -1,6 +1,6 @@
 import {
+  builtInPaymentRegistry,
   handlePaymentWebhook,
-  PaymentRegistry,
   parsePaymentSettings,
   resolvePaymentProviders,
 } from '@commerce/core'
@@ -9,7 +9,7 @@ import { razorpayFactory } from '@commerce/payments-razorpay'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 
-export const paymentRegistry = new PaymentRegistry().register(razorpayFactory)
+export const paymentRegistry = builtInPaymentRegistry().register(razorpayFactory)
 
 /**
  * POST /webhooks/payments/:provider/:storeId

@@ -218,6 +218,18 @@ export class RazorpayProvider implements PaymentProvider {
 export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
   id: 'razorpay',
   label: 'Razorpay',
+  fields: [
+    { key: 'keyId', label: 'Key ID', required: true },
+    { key: 'keySecret', label: 'Key secret', secret: true, required: true },
+    {
+      key: 'webhookSecret',
+      label: 'Webhook secret',
+      secret: true,
+      required: true,
+      help: 'Set the same value in the Razorpay dashboard webhook.',
+    },
+    { key: 'displayName', label: 'Name shown in checkout' },
+  ],
   validateConfig(raw) {
     const r = (raw ?? {}) as Partial<RazorpayConfig>
     const errors: string[] = []

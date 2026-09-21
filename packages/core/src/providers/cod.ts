@@ -2,6 +2,7 @@ import type {
   CreatePaymentInput,
   CreatePaymentResult,
   PaymentProvider,
+  PaymentProviderFactory,
   WebhookVerification,
 } from '@commerce/payments'
 
@@ -37,4 +38,12 @@ export class CodPaymentProvider implements PaymentProvider {
   parseWebhook(): WebhookVerification {
     return { ok: false, reason: 'cod has no webhooks' }
   }
+}
+
+export const codFactory: PaymentProviderFactory<Record<string, never>> = {
+  id: 'cod',
+  label: 'Cash on delivery',
+  fields: [],
+  validateConfig: () => ({ ok: true, config: {} }),
+  create: () => new CodPaymentProvider(),
 }

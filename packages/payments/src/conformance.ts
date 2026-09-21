@@ -72,6 +72,7 @@ export function describePaymentProvider(name: string, opts: ConformanceOptions):
         expect(r.providerRef).toBeTruthy()
         expect(['pending', 'captured']).toContain(r.status)
         expect(r.session.providerRef).toBe(r.providerRef)
+        expect(['client', 'redirect', 'manual', 'none']).toContain(r.session.kind)
       })
 
       it('reports status for a fresh payment as pending', async () => {

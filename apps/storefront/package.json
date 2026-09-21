@@ -21,7 +21,8 @@
     "@commerce/blocks": "workspace:*",
     "@measured/puck": "^0.20.2",
     "@commerce/payments": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*"
+    "@commerce/payments-razorpay": "workspace:*",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -31,6 +32,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "@types/qrcode": "^1.5.6"
   }
 }

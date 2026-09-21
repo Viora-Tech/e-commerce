@@ -93,13 +93,15 @@ export function PaymentsSettings() {
                             key={f.key}
                             label={f.label}
                             type={f.secret ? 'password' : 'text'}
+                            multiline={f.multiline ? 3 : undefined}
+                            requiredIndicator={f.required}
                             value={providers[m.id]?.[f.key] ?? ''}
                             onChange={(v) => setField(m.id, f.key, v)}
                             autoComplete="off"
                             helpText={
                               f.secret
                                 ? 'Stored encrypted. Leave the masked value to keep it.'
-                                : undefined
+                                : f.help
                             }
                           />
                         ))}

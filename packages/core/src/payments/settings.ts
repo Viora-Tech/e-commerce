@@ -1,6 +1,7 @@
 import { type PaymentProvider, PaymentRegistry } from '@commerce/payments'
 import { z } from 'zod'
-import { CodPaymentProvider } from '../providers/cod'
+import { codFactory } from '../providers/cod'
+import { manualFactory } from '../providers/manual'
 import { decryptSecret, encryptSecret, isEncrypted } from '../secrets'
 
 /** Stored on store.payments. Secret fields are encrypted before they reach the row. */
@@ -55,9 +56,14 @@ export function maskPaymentSettings(s: PaymentSettings): PaymentSettings {
   return { ...s, providers }
 }
 
+/** Methods every deployment has, with no adapter package: COD and manual UPI/bank transfer. */
+export function builtInPaymentRegistry(): PaymentRegistry {
+  return new PaymentRegistry().register(codFactory).register(manualFactory)
+}
+
 /**
- * Build the providers a store has enabled. COD needs no config. Anything else
- * comes from the registry with that store's decrypted credentials.
+ * Build the providers a store has enabled, in checkout order, from the
+ * registry with that store's decrypted credentials.
  */
 export function resolvePaymentProviders(
   registry: PaymentRegistry,
@@ -68,11 +74,7 @@ export function resolvePaymentProviders(
   const providers: PaymentProvider[] = []
   const errors: string[] = []
   for (const id of decrypted.enabled) {
-    if (id === 'cod') {
-      providers.push(new CodPaymentProvider())
-      continue
-    }
-    const r = registry.create(id, decrypted.providers[id])
+    const r = registry.create(id, decrypted.providers[id] ?? {})
     if (r.ok) providers.push(r.provider)
     else errors.push(`${id}: ${r.errors.join(', ')}`)
   }

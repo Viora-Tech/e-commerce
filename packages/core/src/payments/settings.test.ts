@@ -1,7 +1,7 @@
-import { PaymentRegistry } from '@commerce/payments'
 import { describe, expect, it } from 'vitest'
 import { decryptSecret, encryptSecret } from '../secrets'
 import {
+  builtInPaymentRegistry,
   decryptPaymentSettings,
   encryptPaymentSettings,
   maskPaymentSettings,
@@ -38,11 +38,24 @@ describe('payment settings', () => {
     expect(encryptPaymentSettings(enc, secret)).toEqual(enc)
   })
 
-  it('resolves COD without config and reports misconfigured providers', () => {
-    const registry = new PaymentRegistry()
-    const r = resolvePaymentProviders(registry, settings, secret)
+  it('resolves built-ins without config and reports unknown providers', () => {
+    const r = resolvePaymentProviders(builtInPaymentRegistry(), settings, secret)
     expect(r.providers.map((p) => p.id)).toEqual(['cod'])
     expect(r.errors).toEqual(['razorpay: unknown payment provider: razorpay'])
+  })
+
+  it('resolves the manual method only when it has UPI or bank details', () => {
+    const bad = parsePaymentSettings({
+      enabled: ['manual'],
+      providers: { manual: { upiId: 'x@y' } },
+    })
+    expect(resolvePaymentProviders(builtInPaymentRegistry(), bad, secret).errors).toHaveLength(1)
+    const good = parsePaymentSettings({
+      enabled: ['manual'],
+      providers: { manual: { upiId: 'waimers@hdfcbank', payeeName: 'Waimers' } },
+    })
+    const r = resolvePaymentProviders(builtInPaymentRegistry(), good, secret)
+    expect(r.providers.map((p) => p.id)).toEqual(['manual'])
   })
 
   it('falls back to COD only when settings are missing', () => {
