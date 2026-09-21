@@ -1,7 +1,9 @@
 'use client'
 
 import type { RichTextValue } from '@commerce/richtext'
-import { Card, FormLayout, TextField } from '@shopify/polaris'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
 import { RichTextField } from '@/components/fields/rich-text-field'
 import { productFormContent } from '@/data/products'
 
@@ -24,24 +26,32 @@ export function DetailsCard({
 }: DetailsCardProps) {
   return (
     <Card>
-      <FormLayout>
-        <TextField
-          label={copy.title}
-          value={title}
-          onChange={onTitle}
-          placeholder={copy.titlePlaceholder}
-          autoComplete="off"
-          requiredIndicator
-          error={titleError ? productFormContent.errors.title : undefined}
-        />
-        <RichTextField
-          label={copy.description}
-          value={description}
-          onChange={onDescription}
-          placeholder={copy.descriptionPlaceholder}
-          minHeight={220}
-        />
-      </FormLayout>
+      <CardContent>
+        <FieldGroup>
+          <Field data-invalid={Boolean(titleError)}>
+            <FieldLabel htmlFor="product-title">
+              {copy.title}
+              <span aria-hidden="true">*</span>
+            </FieldLabel>
+            <Input
+              id="product-title"
+              value={title}
+              onChange={(e) => onTitle(e.target.value)}
+              placeholder={copy.titlePlaceholder}
+              autoComplete="off"
+              aria-invalid={Boolean(titleError)}
+            />
+            {titleError ? <FieldError>{productFormContent.errors.title}</FieldError> : null}
+          </Field>
+          <RichTextField
+            label={copy.description}
+            value={description}
+            onChange={onDescription}
+            placeholder={copy.descriptionPlaceholder}
+            minHeight={220}
+          />
+        </FieldGroup>
+      </CardContent>
     </Card>
   )
 }

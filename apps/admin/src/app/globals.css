@@ -1,7 +1,14 @@
+/*
+ * Layer order: Polaris (legacy pages) sits above Tailwind's preflight so its
+ * components still render, but below components/utilities so its global
+ * resets (html font-size 13px, h1 { font-size: 1em }) never beat ours.
+ */
+@layer theme, base, polaris, components, utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@commerce/ui/styles.css";
+@import "@shopify/polaris/build/esm/styles.css" layer(polaris);
 @plugin "@tailwindcss/typography";
 
 /* Monorepo: tell Tailwind to scan shared packages for class names */
@@ -332,12 +339,76 @@
 }
 
 /* RichTextField: Polaris-like spacing around the shared Lexical editor. */
-.rich-text-field__label {
-  margin-bottom: 4px;
-}
-.rich-text-field__help {
-  margin-top: 4px;
-}
 .rich-text-field__editor--error {
-  border-color: var(--p-color-border-critical, #e51c00);
+  border-color: var(--destructive);
+}
+
+/*
+ * Kit form scale (docs/design/admin-tokens.md, "Profile Update" frame 5:5480):
+ * 18/700 card titles, 20px card padding, 15px labels, 48px inputs with a soft
+ * fill and 8px radius, 24px between rows. Scoped so list/dashboard cards keep
+ * their own rhythm; wrap any form page in `.kit-form`. Unlayered on purpose:
+ * it has to beat the components' size utilities.
+ */
+.kit-form [data-slot="card"] {
+  border-radius: var(--radius);
+  --card-spacing: 1.25rem;
+}
+.kit-form [data-slot="card-title"] {
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.kit-form [data-slot="field-label"] {
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+.kit-form [data-slot="field-group"] {
+  gap: 1.5rem;
+}
+.kit-form [data-slot="input"],
+.kit-form [data-slot="select-trigger"],
+.kit-form [data-slot="native-select"],
+.kit-form [data-slot="input-group"] {
+  height: 3rem;
+  border-radius: var(--radius);
+  padding-inline: 0.75rem;
+  font-size: 15px;
+  background-color: var(--muted);
+}
+.kit-form [data-slot="input-group"] {
+  padding-inline: 0;
+}
+.kit-form [data-slot="input-group-control"] {
+  height: 100%;
+  font-size: 15px;
+  background-color: transparent;
+}
+.kit-form [data-slot="input-group"]:focus-within {
+  background-color: var(--card);
+}
+.kit-form [data-slot="textarea"] {
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  font-size: 15px;
+  background-color: var(--muted);
+}
+.kit-form [data-slot="input"]:focus-visible,
+.kit-form [data-slot="textarea"]:focus-visible,
+.kit-form [data-slot="select-trigger"]:focus-visible {
+  background-color: var(--card);
+}
+.kit-form [data-slot="field-description"],
+.kit-form [data-slot="field-error"] {
+  font-size: 13px;
+  line-height: 18px;
+}
+/* Inline table cells keep the compact height; only standalone fields grow. */
+.kit-form table [data-slot="input"],
+.kit-form table [data-slot="input-group"] {
+  height: 2.5rem;
+  background-color: transparent;
 }

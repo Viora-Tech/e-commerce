@@ -1,8 +1,14 @@
 import { Badge } from '@commerce/ui/shadcn/badge'
+import { StatusPill } from '@/components/layout/status-pill'
 import { ORDER_STATUS_TONE, type OrderStatus, ordersContent } from '@/data/orders'
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return <Badge variant={ORDER_STATUS_TONE[status]}>{ordersContent.status[status]}</Badge>
+}
+
+/** Dot + label variant used in tables (kit style). */
+export function OrderStatusPill({ status }: { status: OrderStatus }) {
+  return <StatusPill tone={ORDER_STATUS_TONE[status]}>{ordersContent.status[status]}</StatusPill>
 }
 
 type PaymentBadgeProps = { status: OrderStatus; paymentMethod: string | null }
@@ -10,10 +16,10 @@ type PaymentBadgeProps = { status: OrderStatus; paymentMethod: string | null }
 export function OrderPaymentBadge({ status, paymentMethod }: PaymentBadgeProps) {
   if (paymentMethod === 'cod') {
     return status === 'placed' ? (
-      <Badge variant="warning">{ordersContent.payment.codPending}</Badge>
+      <StatusPill tone="warning">{ordersContent.payment.codPending}</StatusPill>
     ) : (
-      <Badge variant="neutral">{ordersContent.payment.cod}</Badge>
+      <StatusPill tone="neutral">{ordersContent.payment.cod}</StatusPill>
     )
   }
-  return <Badge variant="success">{ordersContent.payment.paid}</Badge>
+  return <StatusPill tone="success">{ordersContent.payment.paid}</StatusPill>
 }

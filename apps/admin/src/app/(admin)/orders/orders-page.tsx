@@ -13,8 +13,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
-import { OrderPaymentBadge, OrderStatusBadge } from '@/components/orders/order-badges'
+import { OrderPaymentBadge, OrderStatusPill } from '@/components/orders/order-badges'
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
@@ -24,6 +23,8 @@ type Item = Awaited<ReturnType<typeof api.orders.list>>['items'][number]
 
 const PER_PAGE = 25
 const ALL = 'all'
+const TAB =
+  'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
 
 const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -44,7 +45,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: ordersContent.columns.order,
     sortValue: (o) => o.number,
     hideable: false,
-    render: (o) => <span className="font-medium">#{o.number}</span>,
+    render: (o) => <span className="font-bold text-ink-strong">#{o.number}</span>,
   },
   {
     id: 'date',
@@ -65,7 +66,9 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: ordersContent.columns.total,
     sortValue: (o) => o.totalPaise,
     align: 'end',
-    render: (o) => <span className="tabular-nums">{formatPaise(o.totalPaise)}</span>,
+    render: (o) => (
+      <span className="font-bold text-ink-strong tabular-nums">{formatPaise(o.totalPaise)}</span>
+    ),
   },
   {
     id: 'payment',
@@ -76,7 +79,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'status',
     title: ordersContent.columns.status,
     sortValue: (o) => o.status,
-    render: (o) => <OrderStatusBadge status={o.status} />,
+    render: (o) => <OrderStatusPill status={o.status} />,
   },
 ]
 
@@ -125,27 +128,26 @@ function OrdersContent() {
 
   return (
     <PageBody>
-      <PageHeader
-        title={ordersContent.title}
-        actions={
-          <Button variant="outline" disabled>
-            {ordersContent.export}
-          </Button>
-        }
-      />
-      <Tabs
-        value={q.status ?? ALL}
-        onValueChange={(v) => setQ({ status: v === ALL ? null : (v as OrderStatus), page: 1 })}
-      >
-        <TabsList>
-          <TabsTrigger value={ALL}>{ordersContent.tabs.all}</TabsTrigger>
-          {ORDER_STATUSES.map((s) => (
-            <TabsTrigger key={s} value={s}>
-              {ordersContent.status[s]}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs
+          value={q.status ?? ALL}
+          onValueChange={(v) => setQ({ status: v === ALL ? null : (v as OrderStatus), page: 1 })}
+        >
+          <TabsList className="h-10 rounded-full bg-card p-1 shadow-card">
+            <TabsTrigger value={ALL} className={TAB}>
+              {ordersContent.tabs.all}
             </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+            {ORDER_STATUSES.map((s) => (
+              <TabsTrigger key={s} value={s} className={TAB}>
+                {ordersContent.status[s]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <Button variant="outline" disabled className="rounded-full">
+          {ordersContent.export}
+        </Button>
+      </div>
       <ResourceTable
         resourceName={ordersContent.resource}
         columns={columns}

@@ -1,39 +1,56 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
 import {
-  Autocomplete,
-  BlockStack,
-  Card,
-  InlineStack,
   Select,
-  Tag,
-  Text,
-  TextField,
-} from '@shopify/polaris'
-import { type FormEvent, useState } from 'react'
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
+import { SuggestInput } from '@/components/fields/suggest-input'
+import { TagInput } from '@/components/fields/tag-input'
 import { productFormContent } from '@/data/products'
 
 const copy = productFormContent
+
+const statusItems = Object.fromEntries(copy.status.options.map((o) => [o.value, o.label]))
 
 type StatusCardProps = { status: ProductStatus; onChange: (status: ProductStatus) => void }
 
 export function StatusCard({ status, onChange }: StatusCardProps) {
   return (
     <Card>
-      <BlockStack gap="200">
-        <Text as="h2" variant="headingSm">
-          {copy.status.heading}
-        </Text>
-        <Select
-          label={copy.status.label}
-          labelHidden
-          options={[...copy.status.options]}
-          value={status}
-          onChange={(s) => onChange(s as ProductStatus)}
-          helpText={copy.status.help[status]}
-        />
-      </BlockStack>
+      <CardHeader>
+        <CardTitle>{copy.status.heading}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Field>
+          <FieldLabel htmlFor="product-status" className="sr-only">
+            {copy.status.label}
+          </FieldLabel>
+          <Select
+            items={statusItems}
+            value={status}
+            onValueChange={(s) => onChange(s as ProductStatus)}
+          >
+            <SelectTrigger id="product-status" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {copy.status.options.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldDescription>{copy.status.help[status]}</FieldDescription>
+        </Field>
+      </CardContent>
     </Card>
   )
 }
@@ -61,123 +78,46 @@ export function OrganisationCard({
 }: OrganisationCardProps) {
   return (
     <Card>
-      <BlockStack gap="300">
-        <Text as="h2" variant="headingSm">
-          {copy.organisation.heading}
-        </Text>
-        <SuggestField
-          label={copy.organisation.type}
-          value={productType}
-          suggestions={facets.productTypes}
-          onChange={onProductType}
-        />
-        <SuggestField
-          label={copy.organisation.vendor}
-          value={vendor}
-          suggestions={facets.vendors}
-          onChange={onVendor}
-        />
-        <TagsField tags={tags} suggestions={facets.tags} onChange={onTags} />
-        <TextField
-          label={copy.organisation.collections}
-          value=""
-          onChange={() => {}}
-          disabled
-          helpText={copy.organisation.collectionsSoon}
-          autoComplete="off"
-        />
-      </BlockStack>
-    </Card>
-  )
-}
-
-type SuggestFieldProps = {
-  label: string
-  value: string
-  suggestions: string[]
-  onChange: (value: string) => void
-}
-
-/** Free text with the store's existing values offered as you type. */
-function SuggestField({ label, value, suggestions, onChange }: SuggestFieldProps) {
-  const matches = suggestions
-    .filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s !== value)
-    .slice(0, 8)
-
-  return (
-    <Autocomplete
-      options={matches.map((s) => ({ value: s, label: s }))}
-      selected={[]}
-      onSelect={([picked]) => picked && onChange(picked)}
-      textField={
-        <Autocomplete.TextField
-          label={label}
-          value={value}
-          onChange={onChange}
-          autoComplete="off"
-        />
-      }
-    />
-  )
-}
-
-type TagsFieldProps = { tags: string[]; suggestions: string[]; onChange: (tags: string[]) => void }
-
-function TagsField({ tags, suggestions, onChange }: TagsFieldProps) {
-  const [input, setInput] = useState('')
-
-  const add = (tag: string) => {
-    const t = tag.trim()
-    if (!t || tags.some((x) => x.toLowerCase() === t.toLowerCase())) return
-    onChange([...tags, t])
-  }
-  const remove = (tag: string) => onChange(tags.filter((t) => t !== tag))
-
-  const matches = suggestions
-    .filter((s) => s.toLowerCase().includes(input.toLowerCase()) && !tags.includes(s))
-    .slice(0, 8)
-
-  // Enter adds the typed tag; Polaris' Autocomplete only reports picks from the list.
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    add(input)
-    setInput('')
-  }
-
-  return (
-    <BlockStack gap="200">
-      <form onSubmit={handleSubmit}>
-        <Autocomplete
-          options={matches.map((s) => ({ value: s, label: s }))}
-          selected={[]}
-          onSelect={([picked]) => {
-            if (picked) add(picked)
-            setInput('')
-          }}
-          textField={
-            <Autocomplete.TextField
-              label={copy.organisation.tags}
-              value={input}
-              onChange={setInput}
-              placeholder={copy.organisation.tagsPlaceholder}
-              autoComplete="off"
-              onBlur={() => {
-                add(input)
-                setInput('')
-              }}
+      <CardHeader>
+        <CardTitle>{copy.organisation.heading}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="product-type">{copy.organisation.type}</FieldLabel>
+            <SuggestInput
+              id="product-type"
+              value={productType}
+              suggestions={facets.productTypes}
+              onChange={onProductType}
             />
-          }
-        />
-      </form>
-      {tags.length ? (
-        <InlineStack gap="100" wrap>
-          {tags.map((t) => (
-            <Tag key={t} onRemove={() => remove(t)}>
-              {t}
-            </Tag>
-          ))}
-        </InlineStack>
-      ) : null}
-    </BlockStack>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="product-vendor">{copy.organisation.vendor}</FieldLabel>
+            <SuggestInput
+              id="product-vendor"
+              value={vendor}
+              suggestions={facets.vendors}
+              onChange={onVendor}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="product-tags">{copy.organisation.tags}</FieldLabel>
+            <TagInput
+              id="product-tags"
+              tags={tags}
+              suggestions={facets.tags}
+              onChange={onTags}
+              placeholder={copy.organisation.tagsPlaceholder}
+            />
+          </Field>
+          <Field data-disabled="true">
+            <FieldLabel htmlFor="product-collections">{copy.organisation.collections}</FieldLabel>
+            <Input id="product-collections" value="" readOnly disabled />
+            <FieldDescription>{copy.organisation.collectionsSoon}</FieldDescription>
+          </Field>
+        </FieldGroup>
+      </CardContent>
+    </Card>
   )
 }

@@ -1,3 +1,4 @@
+import { loadEnv } from '@commerce/config'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -18,7 +19,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       user={{ name: session.user.name, email: session.user.email }}
       stores={orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))}
       activeStoreId={active?.id ?? null}
-      storeName={active?.name ?? null}
+      storefrontUrl={loadEnv(process.env).STOREFRONT_URL}
     >
       {children}
     </AdminFrame>

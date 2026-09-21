@@ -91,7 +91,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
   const isEmpty = !props.loading && props.items.length === 0
 
   return (
-    <Card className="gap-0 py-0">
+    <Card className="gap-0 px-5 py-5">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
@@ -103,7 +103,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
         columnTitles={columnTitles}
       />
       {selectedIds.length > 0 && props.bulkActions ? (
-        <div className="flex items-center gap-3 border-b bg-accent/60 px-3 py-2 text-sm">
+        <div className="mb-3 flex items-center gap-3 rounded-lg bg-link-soft px-4 py-2 text-sm">
           <span className="font-medium">
             {tableContent.selected(
               selectedIds.length,
@@ -118,8 +118,8 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
         </div>
       ) : null}
       <div className="overflow-x-auto">
-        <Table>
-          <TableHeader className="sticky top-0 z-10 bg-card">
+        <Table className="border-separate border-spacing-0">
+          <TableHeader className="sticky top-0 z-10 [&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((header) => {
@@ -127,7 +127,11 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn(meta?.align === 'end' && 'text-right', meta?.className)}
+                      className={cn(
+                        'h-12 bg-primary-soft px-5 text-table-head first:rounded-l-lg last:rounded-r-lg',
+                        meta?.align === 'end' && 'text-right',
+                        meta?.className,
+                      )}
                     >
                       {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                     </TableHead>
@@ -141,7 +145,10 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
               ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
                   <TableRow key={`skeleton-${i.toString()}`} className="hover:bg-transparent">
                     {Array.from({ length: visibleCount }, (_, j) => (
-                      <TableCell key={`skeleton-${i.toString()}-${j.toString()}`}>
+                      <TableCell
+                        key={`skeleton-${i.toString()}-${j.toString()}`}
+                        className="h-[54px] px-5"
+                      >
                         <Skeleton className="h-4 w-full max-w-40" />
                       </TableCell>
                     ))}
@@ -153,7 +160,10 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
-                      className={cn(target && 'cursor-pointer')}
+                      className={cn(
+                        'border-0 hover:bg-muted/60 data-[state=selected]:bg-link-soft',
+                        target && 'cursor-pointer',
+                      )}
                       onClick={target ? () => router.push(target) : undefined}
                     >
                       {row.getVisibleCells().map((cell) => {
@@ -161,7 +171,11 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                         return (
                           <TableCell
                             key={cell.id}
-                            className={cn(meta?.align === 'end' && 'text-right', meta?.className)}
+                            className={cn(
+                              'h-[54px] border-b border-border-soft px-5 text-body',
+                              meta?.align === 'end' && 'text-right',
+                              meta?.className,
+                            )}
                           >
                             <table.FlexRender cell={cell} />
                           </TableCell>
