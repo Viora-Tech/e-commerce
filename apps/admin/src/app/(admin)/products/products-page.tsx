@@ -5,7 +5,7 @@ import { ImageIcon } from '@shopify/polaris-icons'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import { ResourceTable, type ResourceTableColumn } from '@/components/resource-table'
+import { ResourceTable, type ResourceTableColumn } from '@/components/polaris/resource-table'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
