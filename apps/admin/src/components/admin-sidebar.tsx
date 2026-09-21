@@ -88,19 +88,19 @@ export function AdminSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                    <Store className="size-4" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{active?.name ?? 'Pick a store'}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {active?.slug ?? `${stores.length} available`}
-                    </span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
-                </SidebarMenuButton>
+              <DropdownMenuTrigger
+                render={<SidebarMenuButton size="lg" className="data-open:bg-sidebar-accent" />}
+              >
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Store className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">{active?.name ?? 'Pick a store'}</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {active?.slug ?? `${stores.length} available`}
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-60">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -113,8 +113,8 @@ export function AdminSidebar({
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/select-store">All stores</Link>
+                <DropdownMenuItem render={<Link href="/select-store" />}>
+                  All stores
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -128,11 +128,13 @@ export function AdminSidebar({
             <SidebarMenu>
               {MAIN.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={is(item.href)} tooltip={item.label}>
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
+                  <SidebarMenuButton
+                    render={<Link href={item.href} />}
+                    isActive={is(item.href)}
+                    tooltip={item.label}
+                  >
+                    <item.icon />
+                    <span>{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -145,19 +147,22 @@ export function AdminSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={is('/online-store')} tooltip="Online Store">
-                  <Link href="/online-store">
-                    <Globe />
-                    <span>Online Store</span>
-                  </Link>
+                <SidebarMenuButton
+                  render={<Link href="/online-store" />}
+                  isActive={is('/online-store')}
+                  tooltip="Online Store"
+                >
+                  <Globe />
+                  <span>Online Store</span>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   {ONLINE_STORE.map((sub) => (
                     <SidebarMenuSubItem key={sub.href}>
-                      <SidebarMenuSubButton asChild isActive={is(sub.href)}>
-                        <Link href={sub.href}>
-                          <span>{sub.label}</span>
-                        </Link>
+                      <SidebarMenuSubButton
+                        render={<Link href={sub.href} />}
+                        isActive={is(sub.href)}
+                      >
+                        <span>{sub.label}</span>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   ))}
@@ -172,11 +177,13 @@ export function AdminSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={is('/apps')} tooltip="Apps">
-                  <Link href="/apps">
-                    <Blocks />
-                    <span>Apps</span>
-                  </Link>
+                <SidebarMenuButton
+                  render={<Link href="/apps" />}
+                  isActive={is('/apps')}
+                  tooltip="Apps"
+                >
+                  <Blocks />
+                  <span>Apps</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -187,31 +194,31 @@ export function AdminSidebar({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={is('/settings')} tooltip="Settings">
-              <Link href="/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
+            <SidebarMenuButton
+              render={<Link href="/settings" />}
+              isActive={is('/settings')}
+              tooltip="Settings"
+            >
+              <Settings />
+              <span>Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg">
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-semibold">
-                    {user.name
-                      .split(' ')
-                      .map((p) => p[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase() || 'U'}
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
-                </SidebarMenuButton>
+              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
+                <div className="flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-semibold">
+                  {user.name
+                    .split(' ')
+                    .map((p) => p[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase() || 'U'}
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top" className="w-56">
                 <DropdownMenuItem onSelect={signOut}>
