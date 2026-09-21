@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.750.0",
-    "@commerce/notifications": "workspace:*"
+    "@commerce/notifications": "workspace:*",
+    "@commerce/plugins": "workspace:*"
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",

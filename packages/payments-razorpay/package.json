@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@commerce/payments": "workspace:*",
+    "@commerce/plugins": "workspace:*",
     "razorpay": "^2.9.8"
   },
   "devDependencies": {

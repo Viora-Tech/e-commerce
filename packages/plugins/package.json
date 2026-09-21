@@ -1,0 +1,25 @@
+{
+  "name": "@commerce/plugins",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Plugin manifests and loader: a plugin bundles payment, shipping and notification providers.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/notifications": "workspace:*",
+    "@commerce/payments": "workspace:*",
+    "@commerce/shipping": "workspace:*"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

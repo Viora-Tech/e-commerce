@@ -6,3 +6,4 @@ export {
   delhiveryFactory,
   mapDelhiveryStatus,
 } from './delhivery'
+export { delhiveryPlugin } from './plugin'

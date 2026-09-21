@@ -4,6 +4,13 @@
   "workspaces": {
     "": {
       "name": "commerce",
+      "dependencies": {
+        "@commerce/notifications-ses": "workspace:*",
+        "@commerce/notifications-whatsapp": "workspace:*",
+        "@commerce/payments-razorpay": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping-delhivery": "workspace:*",
+      },
       "devDependencies": {
         "@biomejs/biome": "2.5.14",
         "turbo": "^2.11.2",
@@ -22,7 +29,6 @@
         "@commerce/db": "workspace:*",
         "@commerce/editor": "workspace:*",
         "@commerce/payments": "workspace:*",
-        "@commerce/payments-razorpay": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/ui": "workspace:*",
@@ -63,10 +69,8 @@
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/payments": "workspace:*",
-        "@commerce/payments-razorpay": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/shipping": "workspace:*",
-        "@commerce/shipping-delhivery": "workspace:*",
         "@measured/puck": "^0.20.2",
         "drizzle-orm": "^0.45.2",
         "next": "16.3.5",
@@ -94,13 +98,9 @@
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/notifications": "workspace:*",
-        "@commerce/notifications-ses": "workspace:*",
-        "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments": "workspace:*",
-        "@commerce/payments-razorpay": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/shipping": "workspace:*",
-        "@commerce/shipping-delhivery": "workspace:*",
         "bullmq": "^5.81.5",
         "drizzle-orm": "^0.45.2",
         "hono": "^4.13.8",
@@ -120,12 +120,9 @@
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/notifications": "workspace:*",
-        "@commerce/notifications-ses": "workspace:*",
-        "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments": "workspace:*",
-        "@commerce/payments-razorpay": "workspace:*",
+        "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
-        "@commerce/shipping-delhivery": "workspace:*",
         "@orpc/client": "^1.15.2",
         "@orpc/server": "^1.15.2",
         "@orpc/zod": "^1.15.2",
@@ -195,6 +192,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
         "drizzle-orm": "^0.45.2",
         "zod": "^4.6.5",
@@ -274,6 +272,7 @@
       "dependencies": {
         "@aws-sdk/client-sesv2": "^3.750.0",
         "@commerce/notifications": "workspace:*",
+        "@commerce/plugins": "workspace:*",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
@@ -288,6 +287,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/notifications": "workspace:*",
+        "@commerce/plugins": "workspace:*",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
@@ -312,12 +312,28 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/payments": "workspace:*",
+        "@commerce/plugins": "workspace:*",
         "razorpay": "^2.9.8",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
         "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/plugins": {
+      "name": "@commerce/plugins",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/notifications": "workspace:*",
+        "@commerce/payments": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
       },
@@ -368,6 +384,7 @@
       "name": "@commerce/shipping-delhivery",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
       },
       "devDependencies": {
@@ -597,6 +614,8 @@
     "@commerce/payments": ["@commerce/payments@workspace:packages/payments"],
 
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
+
+    "@commerce/plugins": ["@commerce/plugins@workspace:packages/plugins"],
 
     "@commerce/queue": ["@commerce/queue@workspace:packages/queue"],
 

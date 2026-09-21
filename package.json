@@ -24,5 +24,12 @@
     "@biomejs/biome": "2.5.14",
     "turbo": "^2.11.2",
     "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "@commerce/plugins": "workspace:*",
+    "@commerce/payments-razorpay": "workspace:*",
+    "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/notifications-ses": "workspace:*",
+    "@commerce/notifications-whatsapp": "workspace:*"
   }
 }

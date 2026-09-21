@@ -18,6 +18,7 @@ export type {
   ShippingProviderFactory,
   Tracking,
 } from '@commerce/shipping'
+export * from './apps/settings'
 export * from './cart/cart'
 export type { StoreContext } from './context'
 export * from './errors'
@@ -30,6 +31,7 @@ export * from './payments/confirm'
 export * from './payments/emi'
 export * from './payments/settings'
 export * from './payments/webhook'
+export { corePlugin } from './plugins/core-plugin'
 export { CodPaymentProvider, codFactory } from './providers/cod'
 export { LogNotificationChannel, logChannelFactory } from './providers/log-channel'
 export { ManualPaymentProvider, manualFactory, upiDeepLink } from './providers/manual'

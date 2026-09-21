@@ -1,3 +1,4 @@
+export { whatsappPlugin } from './plugin'
 export {
   buildPayload,
   type FetchLike,
