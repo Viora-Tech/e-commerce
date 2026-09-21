@@ -3,13 +3,12 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
-import { Plus } from 'lucide-react'
+import { Download, Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
 import { ProductStatusBadge, ProductThumb } from '@/components/products/product-badges'
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
@@ -21,6 +20,8 @@ type Item = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 const PER_PAGE = 25
 const ALL = 'all'
 const copy = productsListContent
+const TAB =
+  'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
 
 type Query = { page: number; query: string; status: ProductStatus | null }
 
@@ -42,7 +43,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     render: (p) => (
       <span className="flex items-center gap-3">
         <ProductThumb url={p.imageUrl} />
-        <span className="font-medium">{p.title}</span>
+        <span className="font-bold text-ink-strong">{p.title}</span>
       </span>
     ),
   },
@@ -66,13 +67,13 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'type',
     title: copy.columns.type,
     sortValue: (p) => p.productType ?? '',
-    render: (p) => p.productType ?? copy.none,
+    render: (p) => <span className="text-muted-foreground">{p.productType ?? copy.none}</span>,
   },
   {
     id: 'vendor',
     title: copy.columns.vendor,
     sortValue: (p) => p.vendor ?? '',
-    render: (p) => p.vendor ?? copy.none,
+    render: (p) => <span className="text-muted-foreground">{p.vendor ?? copy.none}</span>,
   },
   {
     id: 'price',
@@ -80,7 +81,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     sortValue: (p) => p.minPricePaise ?? 0,
     align: 'end',
     render: (p) => (
-      <span className="tabular-nums">
+      <span className="font-bold text-ink-strong tabular-nums">
         {p.minPricePaise != null ? formatPaise(p.minPricePaise) : copy.none}
       </span>
     ),
@@ -132,36 +133,41 @@ function ProductsContent() {
 
   return (
     <PageBody>
-      <PageHeader
-        title={copy.title}
-        actions={
-          <>
-            <Button variant="outline" disabled>
-              {copy.export}
-            </Button>
-            <Button variant="outline" disabled>
-              {copy.import}
-            </Button>
-            <Button render={<Link href="/products/new" />} nativeButton={false}>
-              <Plus />
-              {copy.add}
-            </Button>
-          </>
-        }
-      />
-      <Tabs
-        value={q.status ?? ALL}
-        onValueChange={(v) => setQ({ status: v === ALL ? null : (v as ProductStatus), page: 1 })}
-      >
-        <TabsList>
-          <TabsTrigger value={ALL}>{copy.tabs.all}</TabsTrigger>
-          {PRODUCT_STATUSES.map((s) => (
-            <TabsTrigger key={s} value={s}>
-              {copy.status[s]}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs
+          value={q.status ?? ALL}
+          onValueChange={(v) => setQ({ status: v === ALL ? null : (v as ProductStatus), page: 1 })}
+        >
+          <TabsList className="h-10 rounded-full bg-card p-1 shadow-card">
+            <TabsTrigger value={ALL} className={TAB}>
+              {copy.tabs.all}
             </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+            {PRODUCT_STATUSES.map((s) => (
+              <TabsTrigger key={s} value={s} className={TAB}>
+                {copy.status[s]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" disabled className="h-10 rounded-full px-4">
+            <Download />
+            {copy.export}
+          </Button>
+          <Button variant="outline" disabled className="h-10 rounded-full px-4">
+            <Upload />
+            {copy.import}
+          </Button>
+          <Button
+            render={<Link href="/products/new" />}
+            nativeButton={false}
+            className="h-10 rounded-full px-4 text-[15px]"
+          >
+            <Plus />
+            {copy.add}
+          </Button>
+        </div>
+      </div>
       <ResourceTable
         resourceName={copy.resource}
         columns={columns}

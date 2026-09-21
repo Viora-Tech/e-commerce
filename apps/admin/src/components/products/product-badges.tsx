@@ -1,25 +1,29 @@
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Badge } from '@commerce/ui/shadcn/badge'
+import { cn } from '@commerce/ui/lib/utils'
 import { ImageIcon } from 'lucide-react'
+import { StatusPill } from '@/components/layout/status-pill'
 import { PRODUCT_STATUS_TONE, productsListContent } from '@/data/products'
 
 export function ProductStatusBadge({ status }: { status: ProductStatus }) {
-  return <Badge variant={PRODUCT_STATUS_TONE[status]}>{productsListContent.status[status]}</Badge>
+  return (
+    <StatusPill tone={PRODUCT_STATUS_TONE[status]}>{productsListContent.status[status]}</StatusPill>
+  )
 }
 
-type ProductThumbProps = { url: string | null; alt?: string }
+type ProductThumbProps = { url: string | null; alt?: string; className?: string }
 
-/** 40px square thumbnail with an icon placeholder when the product has no image. */
-export function ProductThumb({ url, alt = '' }: ProductThumbProps) {
+/** Kit product thumbnail (46px, radius 12) with an icon placeholder when there is no image. */
+export function ProductThumb({ url, alt = '', className }: ProductThumbProps) {
+  const box = cn('size-[46px] shrink-0 rounded-xl border border-border-soft bg-muted', className)
   if (!url) {
     return (
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted text-muted-foreground">
-        <ImageIcon className="size-4" aria-hidden />
+      <span className={cn(box, 'flex items-center justify-center text-muted-foreground')}>
+        <ImageIcon className="size-5" aria-hidden />
       </span>
     )
   }
   return (
     // biome-ignore lint/performance/noImgElement: remote catalogue images, no optimisation pipeline yet.
-    <img src={url} alt={alt} className="size-10 shrink-0 rounded-md border bg-muted object-cover" />
+    <img src={url} alt={alt} className={cn(box, 'object-cover')} />
   )
 }

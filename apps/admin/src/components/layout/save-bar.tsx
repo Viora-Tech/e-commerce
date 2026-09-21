@@ -29,22 +29,21 @@ export function SaveBar({
   canDiscard = true,
 }: SaveBarProps) {
   return (
-    <div className="sticky top-0 z-20 -mx-4 -mt-4 md:-mx-6 md:-mt-6">
-      <div className="flex items-center gap-3 border-b bg-foreground px-4 py-2 text-background shadow-sm md:px-6">
-        <CircleAlert className="size-4 shrink-0 opacity-80" aria-hidden />
-        <span className="text-sm font-medium">{message}</span>
+    <div className="sticky top-2 z-20">
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-card md:px-5">
+        <CircleAlert className="size-5 shrink-0 text-warning" aria-hidden />
+        <span className="text-body font-bold text-ink-strong">{message}</span>
         <div className="ml-auto flex items-center gap-2">
           <Button
             type="button"
-            variant="ghost"
-            size="sm"
-            className="text-background hover:bg-background/10 hover:text-background"
+            variant="outline"
+            className="h-9 rounded-lg px-4"
             onClick={onDiscard}
             disabled={saving || !canDiscard}
           >
             {discardLabel}
           </Button>
-          <Button type="button" size="sm" onClick={onSave} disabled={saving}>
+          <Button type="button" className="h-9 rounded-lg px-4" onClick={onSave} disabled={saving}>
             {saving ? <Spinner /> : null}
             {saveLabel}
           </Button>

@@ -122,7 +122,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   if (!first) return null
 
   return (
-    <PageBody width="narrow">
+    <PageBody width="narrow" className="kit-form">
       {dirty || !product ? (
         <SaveBar
           message={copy.saveBar.message}
@@ -145,6 +145,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
             <>
               <Button
                 variant="outline"
+                className="h-10 rounded-full px-4"
                 render={
                   <a
                     href={`${storefrontOrigin}/products/${product.handle}`}
@@ -157,7 +158,11 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
                 {copy.preview}
                 <ExternalLink />
               </Button>
-              <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
+              <Button
+                variant="destructive"
+                className="h-10 rounded-full px-4"
+                onClick={() => setConfirmDelete(true)}
+              >
                 <Trash2 />
                 {copy.delete.action}
               </Button>
