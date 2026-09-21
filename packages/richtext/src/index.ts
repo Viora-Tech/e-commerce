@@ -1,5 +1,6 @@
+// richTextToHtml lives at '@commerce/richtext/html': it needs react-dom/server, which Next
+// refuses inside a component graph. Import it from workers and email code only.
 export { defaultConverters } from './converters'
-export { richTextToHtml } from './html'
 export { renderText } from './render-text'
 export { RichTextRenderer } from './rich-text-renderer'
 export { sanitizeHref, sanitizeImageSrc } from './sanitize'

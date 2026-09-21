@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Server-safe Lexical JSON renderer: React, HTML string and plain text. No 'use client'.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./html": "./src/html.tsx"
   },
   "scripts": {
     "test": "vitest run",

@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  emptyRichText,
-  isRichTextEmpty,
-  parseRichText,
-  richTextToHtml,
-  richTextToPlainText,
-} from '../src/index'
+import { richTextToHtml } from '../src/html'
+import { emptyRichText, isRichTextEmpty, parseRichText, richTextToPlainText } from '../src/index'
 import { fixture } from './fixture'
 
 describe('richTextToHtml', () => {
