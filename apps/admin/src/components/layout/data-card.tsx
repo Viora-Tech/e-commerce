@@ -42,7 +42,7 @@ export function DataCard({
   flush,
 }: DataCardProps) {
   return (
-    <Card className={cn('relative gap-0 p-5', detailsHref && 'pb-[72px]', className)}>
+    <Card className={cn('relative gap-0 p-5', detailsHref && 'pb-16', className)}>
       <div className="flex h-8 items-center justify-between gap-3">
         <p className="text-card-title text-foreground">{title}</p>
         <div className="flex items-center gap-3">
@@ -90,7 +90,7 @@ export function FilterButton({ label = layoutContent.filter, items }: FilterButt
   if (items.length === 0) return null
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-8 items-center gap-2 rounded-lg bg-primary px-3 text-[14px] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      <DropdownMenuTrigger className="inline-flex h-8 items-center gap-2 rounded-lg bg-primary px-3 text-xs text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
         {label}
         <SlidersHorizontal className="size-5" strokeWidth={1.6} aria-hidden="true" />
       </DropdownMenuTrigger>

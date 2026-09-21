@@ -44,11 +44,11 @@ type AdminSidebarProps = {
    green 6px pill with bold white text. Group labels are 15px at a 24px inset. */
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
-const NAV_ITEM = `flex w-full items-center gap-2 rounded-[6px] px-4 py-[9px] text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-[22px] [&_svg]:shrink-0 ${FOCUS}`
+const NAV_ITEM = `flex h-8 w-full items-center gap-2 rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0 ${FOCUS}`
 const NAV_ITEM_ACTIVE =
-  'bg-primary font-bold text-primary-foreground hover:bg-primary hover:text-primary-foreground'
-const NAV_CHILD = `flex w-full items-center rounded-[6px] py-[7px] pl-[46px] pr-4 text-[15px] leading-[22px] text-sidebar-foreground transition-colors hover:text-foreground ${FOCUS}`
-const NAV_CHILD_ACTIVE = 'bg-primary-soft font-bold text-primary hover:text-primary'
+  'bg-primary font-semibold text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+const NAV_CHILD = `flex h-7 w-full items-center rounded-[0.375rem] pl-9 pr-3 text-nav font-normal text-sidebar-foreground transition-colors hover:text-foreground ${FOCUS}`
+const NAV_CHILD_ACTIVE = 'bg-primary-soft font-semibold text-primary hover:text-primary'
 
 function initials(name: string): string {
   return (
@@ -114,11 +114,11 @@ function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   return (
     <div className="flex flex-col">
       {label ? (
-        <p className="px-6 pb-3 text-[15px] leading-6 text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+        <p className="px-5 pb-2 text-caption text-muted-foreground-soft group-data-[collapsible=icon]:hidden">
           {label}
         </p>
       ) : null}
-      <ul className="flex flex-col gap-2 px-[14px] group-data-[collapsible=icon]:px-2">
+      <ul className="flex flex-col gap-1 px-3 group-data-[collapsible=icon]:px-2">
         {items.map((item) => (
           <NavSection key={item.href} item={item} pathname={pathname} />
         ))}
@@ -147,11 +147,11 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
   return (
     <Sidebar collapsible="icon" className="border-r-0 shadow-rail">
       {/* 5:1369: 64px tall, 20px padding, wordmark left and collapse glyph right. */}
-      <SidebarHeader className="h-16 flex-row items-center justify-between p-5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="h-14 flex-row items-center justify-between px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex h-6 min-w-0 items-center gap-1.5 text-left">
-            <Store className="size-[22px] shrink-0 text-primary" />
-            <span className="truncate text-[18px] font-bold leading-6 text-ink-strong group-data-[collapsible=icon]:hidden">
+            <Store className="size-4 shrink-0 text-primary" />
+            <span className="truncate text-card-title text-ink-strong group-data-[collapsible=icon]:hidden">
               {active?.name ?? navigationContent.pickStore}
             </span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -178,12 +178,12 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
           aria-label={navigationContent.collapse}
           className="hidden size-6 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
         >
-          <PanelLeftClose className="size-6" strokeWidth={1.6} />
+          <PanelLeftClose className="size-4" strokeWidth={1.6} />
         </button>
       </SidebarHeader>
 
       {/* Group rhythm from the frame: first label 8px under the header, groups 24px apart. */}
-      <SidebarContent className="no-scrollbar gap-6 pt-2">
+      <SidebarContent className="no-scrollbar gap-5 pt-1">
         {NAV_GROUPS.map((group, gi) => (
           <NavGroupBlock
             key={group.label ?? gi}
@@ -200,12 +200,12 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
       </SidebarContent>
 
       {/* 5:1477: user card (20/12 padding, 40px avatar) then the shop card, 12px apart. */}
-      <SidebarFooter className="gap-3 p-0 pb-5 pt-10">
-        <div className="flex items-center gap-4 px-5 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
+      <SidebarFooter className="gap-2 p-0 pb-4 pt-6">
+        <div className="flex items-center gap-3 px-4 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
             {initials(user.name)}
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-1 text-[14px] leading-4 group-data-[collapsible=icon]:hidden">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs leading-4 group-data-[collapsible=icon]:hidden">
             <span className="truncate font-semibold text-foreground">{user.name}</span>
             <span className="truncate text-muted-foreground">{user.email}</span>
           </div>
@@ -216,16 +216,16 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
             title={navigationContent.signOut}
             className="flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden"
           >
-            <LogOut className="size-5" />
+            <LogOut className="size-4" />
           </button>
         </div>
         <a
           href={storefrontUrl}
           target="_blank"
           rel="noreferrer"
-          className="mx-2 flex items-center gap-2 rounded-[6px] bg-card px-5 py-3 text-[15px] font-medium tracking-[0.075px] text-ink-strong shadow-lift transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="mx-2 flex h-9 items-center gap-2 rounded-[0.375rem] bg-card px-4 text-nav text-ink-strong shadow-lift transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <Store className="size-6 text-primary" strokeWidth={1.8} />
+          <Store className="size-4 text-primary" strokeWidth={1.8} />
           <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {navigationContent.viewStore}
           </span>

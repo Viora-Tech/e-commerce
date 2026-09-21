@@ -40,21 +40,21 @@ export function DashboardStats({ sales, orders, pending, cancelled }: DashboardS
         value=""
         detailsHref="/orders?status=placed"
       >
-        <div className="mt-4 grid grid-cols-[138px_1px_138px] items-start gap-x-[21px]">
+        <div className="mt-4 grid grid-cols-[1fr_1px_1fr] items-start gap-x-5">
           <div>
             <p className="text-period text-foreground">{c.stats.pendingCancelled.pending}</p>
-            <div className="mt-[7px] flex items-center gap-2">
-              <span className="text-stat-sm leading-[26px] tabular-nums text-ink-strong">
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="text-stat-sm leading-5 tabular-nums text-ink-strong">
                 {formatCompact(pending.value)}
               </span>
               <DeltaChip delta={percentDelta(pending.value, pending.previous)} invert />
             </div>
           </div>
-          <span className="mt-[9px] h-8 w-px bg-border" aria-hidden="true" />
+          <span className="mt-2 h-8 w-px bg-border" aria-hidden="true" />
           <div>
             <p className="text-period text-foreground">{c.stats.pendingCancelled.cancelled}</p>
-            <div className="mt-[7px] flex items-center gap-2">
-              <span className="text-stat-sm leading-[26px] tabular-nums text-destructive">
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="text-stat-sm leading-5 tabular-nums text-destructive">
                 {formatCompact(cancelled.value)}
               </span>
               <DeltaChip delta={percentDelta(cancelled.value, cancelled.previous)} invert />

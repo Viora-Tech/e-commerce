@@ -144,7 +144,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
             <>
               <Button
                 variant="outline"
-                className="h-10 px-4"
+                className="min-w-24"
                 render={
                   <a
                     href={`${storefrontOrigin}/products/${product.handle}`}
@@ -159,7 +159,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
               </Button>
               <Button
                 variant="destructive"
-                className="h-10 px-4"
+                className="min-w-24"
                 onClick={() => setConfirmDelete(true)}
               >
                 <Trash2 />
@@ -167,7 +167,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
               </Button>
             </>
           ) : dirty ? null : (
-            <Button className="h-10 px-4" onClick={save} disabled={busy}>
+            <Button className="min-w-24" onClick={save} disabled={busy}>
               {copy.saveBar.save}
             </Button>
           )

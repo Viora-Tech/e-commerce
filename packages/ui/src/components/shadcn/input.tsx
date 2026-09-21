@@ -9,8 +9,8 @@ const inputVariants = cva(
     variants: {
       size: {
         default: 'h-8 bg-transparent px-2.5 py-1 text-base md:text-sm dark:bg-input/30',
-        /** Frame 5:5495 "Outline Input Field": 48px, Neutal/50 fill, Neutal/200 hairline, bold 15px value. */
-        lg: 'h-12 border-secondary bg-background px-3 py-2.5 text-[15px] font-bold text-ink-strong placeholder:font-normal focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
+        /** Frame 5:5495 "Outline Input Field" at Shopify density: h-9, Neutal/50 fill, Neutal/200 hairline, 0.8125rem/500 value. */
+        lg: 'h-9 border-secondary bg-background px-3 py-2 text-[0.8125rem] font-medium text-ink-strong placeholder:font-normal focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
       },
     },
     defaultVariants: { size: 'default' },

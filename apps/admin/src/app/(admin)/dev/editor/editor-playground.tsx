@@ -63,7 +63,7 @@ export function EditorPlayground() {
             <CardTitle>{copy.jsonHeading}</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-foreground">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap font-mono text-[0.6875rem] text-foreground">
               {JSON.stringify(value, null, 2)}
             </pre>
           </CardContent>

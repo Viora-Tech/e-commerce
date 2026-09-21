@@ -84,7 +84,7 @@ export function selectionColumn<T extends RowData>(offset: number): ResourceColu
     header: ({ table }) => (
       <span className="flex items-center gap-2">
         <Checkbox
-          className="size-5 border-[1.5px] border-primary-soft bg-card"
+          className="size-4 border-primary-soft bg-card"
           checked={table.getIsAllPageRowsSelected()}
           indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
@@ -96,7 +96,7 @@ export function selectionColumn<T extends RowData>(offset: number): ResourceColu
     cell: ({ row }) => (
       <span className="flex items-center gap-2">
         <Checkbox
-          className="size-5 border-[1.5px] border-primary-soft bg-card"
+          className="size-4 border-primary-soft bg-card"
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           onClick={(e) => e.stopPropagation()}
@@ -107,7 +107,7 @@ export function selectionColumn<T extends RowData>(offset: number): ResourceColu
     ),
     enableSorting: false,
     enableHiding: false,
-    meta: { align: 'start', className: 'w-[68px]' },
+    meta: { align: 'start', className: 'w-14' },
   })
 }
 
@@ -140,7 +140,7 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-1 text-[15px] font-medium text-ink-strong hover:bg-transparent hover:text-primary data-open:bg-transparent"
+              className="h-6 gap-1 px-1 text-table-head text-ink-strong hover:bg-transparent hover:text-primary data-open:bg-transparent"
             />
           }
         >

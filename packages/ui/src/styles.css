@@ -226,40 +226,43 @@
  * weight and tracking. Colour, case and numerals stay at the usage site.
  */
 @theme {
-  /* Frame 5:1346 measurements: 22 title, 18 card title, 32 stat, 24 tab stat, 15 body, 13 caption, 16 nav. */
-  --text-page-title: 22px;
-  --text-page-title--line-height: 28px;
-  --text-page-title--font-weight: 700;
-  --text-page-title--letter-spacing: 0.11px;
+  /* Shopify-admin density on the Dealport layout (docs/design/admin-frames.md, global deviation):
+     1rem/600 page title, 0.875rem/600 card title, 0.75rem body, 0.8125rem primary cell text, 0.75rem/500 captions, 1.25rem/600 stats, 0.8125rem/500 nav. Rem only, never px. */
+  --text-page-title: 1rem;
+  --text-page-title--line-height: 1.25rem;
+  --text-page-title--font-weight: 600;
 
-  --text-card-title: 18px;
-  --text-card-title--line-height: 26px;
-  --text-card-title--font-weight: 700;
+  --text-card-title: 0.875rem;
+  --text-card-title--line-height: 1.25rem;
+  --text-card-title--font-weight: 600;
 
-  --text-stat: 32px;
-  --text-stat--line-height: 38px;
-  --text-stat--font-weight: 700;
+  --text-stat: 1.25rem;
+  --text-stat--line-height: 1.5rem;
+  --text-stat--font-weight: 600;
 
-  --text-stat-sm: 24px;
-  --text-stat-sm--line-height: 22px;
-  --text-stat-sm--font-weight: 700;
+  --text-stat-sm: 1rem;
+  --text-stat-sm--line-height: 1.25rem;
+  --text-stat-sm--font-weight: 600;
 
-  --text-body: 15px;
-  --text-body--line-height: 22px;
+  --text-body: 0.75rem;
+  --text-body--line-height: 1rem;
 
-  --text-caption: 13px;
-  --text-caption--line-height: 18px;
+  --text-body-strong: 0.8125rem;
+  --text-body-strong--line-height: 1rem;
+  --text-body-strong--font-weight: 500;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
   --text-caption--font-weight: 500;
-  --text-caption--letter-spacing: -0.26px;
 
-  --text-table-head: 13px;
-  --text-table-head--line-height: 15px;
+  --text-table-head: 0.75rem;
+  --text-table-head--line-height: 1rem;
   --text-table-head--font-weight: 500;
 
-  --text-nav: 16px;
-  --text-nav--line-height: 22px;
+  --text-nav: 0.8125rem;
+  --text-nav--line-height: 1.125rem;
+  --text-nav--font-weight: 500;
 
-  --text-period: 14px;
-  --text-period--line-height: 17px;
-  --text-period--letter-spacing: -0.28px;
+  --text-period: 0.75rem;
+  --text-period--line-height: 1rem;
 }

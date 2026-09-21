@@ -186,6 +186,11 @@ export const productsSectionsContent = {
     body: 'Stock levels and adjustments are tracked per variant. Open a product to change quantities or see its adjustment history.',
     action: { label: 'View products', href: '/products' },
   },
+  purchaseOrders: {
+    heading: 'No purchase orders',
+    body: 'Purchase orders track what you have ordered from suppliers and what has arrived, so incoming stock is expected before it lands.',
+    action: { label: 'View products', href: '/products' },
+  },
   transfers: {
     heading: 'No transfers',
     body: 'Transfers record stock moving between locations or arriving from a supplier so counts stay accurate.',

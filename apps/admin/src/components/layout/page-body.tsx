@@ -14,8 +14,8 @@ export function PageBody({ children, width = 'wide', className }: PageBodyProps)
     <div
       className={cn(
         /* Frame 5:1346: content starts 20px in from the rail and 20px under the bar, 44px from the right edge. */
-        'mx-auto flex w-full flex-col gap-5 p-4 md:py-5 md:pl-5 md:pr-11',
-        width === 'wide' ? 'max-w-[1440px]' : 'max-w-5xl',
+        'mx-auto flex w-full flex-col gap-4 p-4 md:py-4 md:pl-5 md:pr-6',
+        width === 'wide' ? 'max-w-[90rem]' : 'max-w-5xl',
         className,
       )}
     >

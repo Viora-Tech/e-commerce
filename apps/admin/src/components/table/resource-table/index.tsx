@@ -104,7 +104,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
   const isEmpty = !props.loading && props.items.length === 0
 
   return (
-    <Card className="gap-0 p-6">
+    <Card className="gap-0 p-5">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
@@ -132,7 +132,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
         </div>
       ) : null}
       {/* 5:2590: table starts 40px under the toolbar. */}
-      <div className="mt-10 overflow-x-auto">
+      <div className="mt-5 overflow-x-auto">
         <Table className="w-full table-fixed border-separate border-spacing-0">
           {/* 5:2591: header band, 8px inset, 6px radius, 40px cells. */}
           <TableHeader className="[&_tr]:border-0">
@@ -144,7 +144,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'h-14 bg-primary-soft px-2.5 py-2 text-[15px] font-medium text-ink-strong first:rounded-l-[6px] first:pl-4 last:rounded-r-[6px] last:pr-4',
+                        'h-10 bg-primary-soft px-2.5 py-1 text-table-head text-ink-strong first:rounded-l-[0.375rem] first:pl-4 last:rounded-r-[0.375rem] last:pr-4',
                         ALIGN[meta?.align ?? 'center'],
                         meta?.className,
                       )}
@@ -163,7 +163,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                     {Array.from({ length: visibleCount }, (_, j) => (
                       <TableCell
                         key={`skeleton-${i.toString()}-${j.toString()}`}
-                        className="h-[68px] border-b border-line px-2.5"
+                        className="h-12 border-b border-line px-2.5"
                       >
                         <Skeleton className="mx-auto h-4 w-full max-w-32" />
                       </TableCell>
@@ -188,7 +188,7 @@ export function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
                           <TableCell
                             key={cell.id}
                             className={cn(
-                              'h-[68px] border-b border-line px-2.5 py-3 text-[15px] text-foreground first:pl-4 last:pr-4',
+                              'h-12 border-b border-line px-2.5 py-2 text-body text-foreground first:pl-4 last:pr-4',
                               ALIGN[meta?.align ?? 'center'],
                               meta?.className,
                             )}

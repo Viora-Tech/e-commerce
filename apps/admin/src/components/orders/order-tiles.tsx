@@ -18,15 +18,13 @@ const number = new Intl.NumberFormat('en-IN')
    32/700 figure with the delta hanging off its baseline, period line at 100px. */
 function Tile({ title, value, previous, invert }: TileProps) {
   return (
-    <Card className="h-[135px] gap-0 rounded-lg p-4">
+    <Card className="h-[6.5rem] gap-0 rounded-lg p-4">
       <p className="text-card-title">{title}</p>
-      <div className="mt-4 flex items-end gap-2">
-        <span className="text-[32px] leading-[34px] font-bold text-ink-strong tabular-nums">
-          {number.format(value)}
-        </span>
+      <div className="mt-3 flex items-end gap-2">
+        <span className="text-stat text-ink-strong tabular-nums">{number.format(value)}</span>
         <DeltaChip delta={percentDelta(value, previous)} invert={invert} />
       </div>
-      <p className="mt-2 text-period text-muted-foreground">{ordersContent.tiles.period}</p>
+      <p className="mt-1.5 text-period text-muted-foreground">{ordersContent.tiles.period}</p>
     </Card>
   )
 }
@@ -34,7 +32,7 @@ function Tile({ title, value, previous, invert }: TileProps) {
 /** The four tiles above the order list (5:2511): 15px apart, equal widths. */
 export function OrderTiles({ stats }: { stats: OrderStats }) {
   return (
-    <div className="grid grid-cols-2 gap-[15px] xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
       <Tile title={ordersContent.tiles.total} {...stats.total} />
       <Tile title={ordersContent.tiles.placed} {...stats.placed} />
       <Tile title={ordersContent.tiles.delivered} {...stats.delivered} />

@@ -63,7 +63,7 @@ export function TopBar({ title, heading, user }: TopBarProps) {
 
   return (
     /* 5:1347: 96px tall white bar; title 22/700 at x 24; controls 32px apart, 44px from the right edge. */
-    <header className="flex h-24 shrink-0 items-center gap-8 bg-card pl-6 pr-11">
+    <header className="flex h-14 shrink-0 items-center gap-6 bg-card pl-5 pr-6">
       <SidebarTrigger className="-ml-2 md:hidden" />
       {heading ? (
         <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong">{title}</h1>
@@ -75,22 +75,22 @@ export function TopBar({ title, heading, user }: TopBarProps) {
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="hidden h-12 w-[407px] items-center rounded-[30px] bg-background p-1.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
+        className="hidden h-8 w-80 items-center rounded-full bg-background p-1 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
       >
-        <span className="flex-1 truncate px-[27px] text-[16px] tracking-[0.08px] text-foreground/60">
+        <span className="flex-1 truncate px-6 text-[0.8125rem]  text-foreground/60">
           {navigationContent.search.placeholder}
         </span>
         <span className="flex h-9 w-12 items-center justify-center text-foreground">
-          <Search className="size-6" strokeWidth={1.6} />
+          <Search className="size-4" strokeWidth={1.6} />
         </span>
       </button>
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
         aria-label={navigationContent.search.placeholder}
-        className="flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted md:hidden"
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted md:hidden"
       >
-        <Search className="size-6" />
+        <Search className="size-4" />
       </button>
 
       {/* 5:1356: bell 24, toggle 56 x 32 on a soft-green track, 40px avatar; 20px apart. */}
@@ -98,9 +98,9 @@ export function TopBar({ title, heading, user }: TopBarProps) {
         <Popover>
           <PopoverTrigger
             aria-label={navigationContent.notifications.label}
-            className="flex size-6 items-center justify-center text-foreground hover:text-primary"
+            className="flex size-5 items-center justify-center text-foreground hover:text-primary"
           >
-            <Bell className="size-6" strokeWidth={1.6} />
+            <Bell className="size-5" strokeWidth={1.6} />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72">
             <p className="text-sm font-bold">{navigationContent.notifications.label}</p>
@@ -116,12 +116,12 @@ export function TopBar({ title, heading, user }: TopBarProps) {
           aria-checked={dark}
           aria-label={navigationContent.toggleTheme}
           onClick={() => setTheme(dark ? 'light' : 'dark')}
-          className="flex h-8 w-14 items-center rounded-full bg-primary-soft p-1 transition-colors"
+          className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 transition-colors"
         >
           <span
             className={cn(
-              'flex size-6 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform',
-              dark && 'translate-x-6',
+              'flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform',
+              dark && 'translate-x-5',
             )}
           >
             {dark ? <Moon className="size-3" /> : <Sun className="size-3" />}
@@ -131,7 +131,7 @@ export function TopBar({ title, heading, user }: TopBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={navigationContent.account}
-            className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30"
+            className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30"
           >
             {initials(user.name)}
           </DropdownMenuTrigger>

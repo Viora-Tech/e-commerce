@@ -67,7 +67,7 @@ export function DetailsLink({ href, label = layoutContent.details }: DetailsLink
   return (
     <Link
       href={href}
-      className="inline-flex h-8 min-w-24 items-center justify-center rounded-[50px] border border-link px-6 text-[16px] leading-[26px] tracking-[-0.32px] text-link transition-colors hover:bg-link-soft"
+      className="inline-flex h-8 min-w-24 items-center justify-center rounded-full border border-link px-6 text-[0.8125rem] leading-5  text-link transition-colors hover:bg-link-soft"
     >
       {label}
     </Link>
@@ -97,11 +97,11 @@ export function StatCard({
     menu ??
     (detailsHref ? [{ label: detailsLabel ?? layoutContent.details, href: detailsHref }] : [])
   return (
-    <Card className={cn('relative h-[222px] gap-0 p-5', className)}>
+    <Card className={cn('relative h-48 gap-0 p-5', className)}>
       <div className="flex items-start justify-between">
         <p className="text-card-title text-foreground">{title}</p>
         {items.length > 0 ? (
-          <div className="mt-[3px]">
+          <div className="mt-0.5">
             <CardMenu items={items} />
           </div>
         ) : null}
@@ -112,7 +112,7 @@ export function StatCard({
           <p className="text-stat text-ink-strong tabular-nums">{value}</p>
           <div className="flex items-center gap-1">
             {unit ? (
-              <span className="text-[16px] leading-[19px] text-foreground">{unit}</span>
+              <span className="text-[0.8125rem] leading-5 text-foreground">{unit}</span>
             ) : null}
             <DeltaChip delta={delta} invert={invert} />
           </div>

@@ -9,7 +9,7 @@ const textareaVariants = cva(
       size: {
         default: 'bg-transparent px-2.5 py-2 text-base md:text-sm dark:bg-input/30',
         /** Frame 5:5556: Neutal/50 fill, Neutal/200 hairline, 15/24 text, 12px inset. */
-        lg: 'min-h-[117px] border-secondary bg-background p-3 text-[15px] leading-6 text-ink-strong focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
+        lg: 'min-h-24 border-secondary bg-background p-3 text-[0.8125rem] leading-5 text-ink-strong focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
       },
     },
     defaultVariants: { size: 'default' },

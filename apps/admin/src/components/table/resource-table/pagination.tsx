@@ -15,9 +15,9 @@ const EDGE_PAGES = 5
 
 /* 5:2856: 42px edge buttons with a 24px arrow; 5:2865: 36px squares, 4px radius. */
 const EDGE =
-  'flex h-[42px] items-center gap-1 rounded-lg border border-line bg-card px-2 text-[15px] font-medium text-ink-strong transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-6'
+  'flex h-8 items-center gap-1 rounded-lg border border-line bg-card px-2 text-xs font-medium text-ink-strong transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
 const SQUARE =
-  'flex size-9 items-center justify-center rounded-[4px] text-[15px] text-ink-strong transition-colors'
+  'flex size-8 items-center justify-center rounded-[0.25rem] text-xs text-ink-strong transition-colors'
 
 type Slot = number | 'gap'
 
@@ -38,7 +38,7 @@ export function ResourceTablePagination({ page, perPage, total, onPageChange }: 
   const slots = pageSlots(page, totalPages)
 
   return (
-    <nav aria-label="Pagination" className="mt-[50px] flex items-center justify-between">
+    <nav aria-label="Pagination" className="mt-8 flex items-center justify-between">
       <button
         type="button"
         className={cn(EDGE, 'pr-3')}
@@ -48,7 +48,7 @@ export function ResourceTablePagination({ page, perPage, total, onPageChange }: 
         <ArrowLeft strokeWidth={1.6} />
         {tableContent.previousLabel}
       </button>
-      <ol className="flex items-center gap-3">
+      <ol className="flex items-center gap-2">
         {slots.map((slot, i) =>
           slot === 'gap' ? (
             <li key={`gap-${i.toString()}`} className={cn(SQUARE, 'border border-line font-bold')}>

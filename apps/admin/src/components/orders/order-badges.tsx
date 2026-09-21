@@ -34,8 +34,8 @@ const STATUS_CELL: Record<OrderStatus, { icon: LucideIcon; className: string }> 
 export function OrderStatusCell({ status }: { status: OrderStatus }) {
   const { icon: Icon, className } = STATUS_CELL[status]
   return (
-    <span className={cn('inline-flex items-center gap-2 text-[15px]', className)}>
-      <Icon className="size-6" strokeWidth={1.5} />
+    <span className={cn('inline-flex items-center gap-1.5 text-body', className)}>
+      <Icon className="size-4" strokeWidth={1.5} />
       {ordersContent.status[status]}
     </span>
   )
@@ -60,7 +60,7 @@ function paymentState({ status, paymentMethod }: PaymentProps) {
 export function OrderPaymentCell(props: PaymentProps) {
   const { label, dot } = paymentState(props)
   return (
-    <span className="inline-flex items-center gap-2 text-[15px] text-foreground">
+    <span className="inline-flex items-center gap-2 text-body text-foreground">
       <span className={cn('size-2 shrink-0 rounded-full', dot)} aria-hidden="true" />
       {label}
     </span>

@@ -49,6 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { href: '/products/collections', label: 'Collections' },
           { href: '/products/inventory', label: 'Inventory' },
+          { href: '/products/purchase-orders', label: 'Purchase orders' },
           { href: '/products/transfers', label: 'Transfers' },
           { href: '/products/gift-cards', label: 'Gift cards' },
         ],

@@ -31,7 +31,7 @@ const copy = productsListContent
 
 /* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill. */
 const TAB =
-  'flex h-8 items-center gap-1 rounded-[6px] px-3 text-[15px] font-medium leading-5 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-xs font-medium leading-4 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const TAB_ACTIVE = 'bg-card text-foreground'
 
 type Query = ListQuery<ProductStatus>
@@ -52,11 +52,11 @@ const columns: ResourceColumnSpec<Item>[] = [
     sortValue: (p) => p.title,
     hideable: false,
     align: 'start',
-    className: 'w-[320px] px-3 whitespace-normal',
+    className: 'w-80 px-3 whitespace-normal',
     render: (p) => (
       <span className="flex items-center gap-3 text-left">
         <ProductThumb url={p.imageUrl} />
-        <span className="line-clamp-2 text-[15px] leading-[18px]">{p.title}</span>
+        <span className="line-clamp-2 text-body-strong">{p.title}</span>
       </span>
     ),
   },
@@ -147,15 +147,12 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   return (
     <PageBody className="gap-6">
       {/* 5:2375 + 5:2503: heading left, the 48px primary action right. */}
-      <div className="flex h-12 items-center justify-between">
+      <div className="flex h-9 items-center justify-between">
         <h1 className="text-page-title">{copy.heading}</h1>
-        <Link
-          href="/products/new"
-          className="flex h-12 items-center justify-center gap-1 rounded-lg bg-primary pr-4 pl-3 text-[15px] font-bold tracking-[-0.3px] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <SquarePlus className="size-6" strokeWidth={1.6} />
+        <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
+          <SquarePlus strokeWidth={1.6} />
           {copy.add}
-        </Link>
+        </Button>
       </div>
       <ResourceTable
         resourceName={copy.resource}
@@ -177,7 +174,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
               className={cn(TAB, q.status === null && TAB_ACTIVE)}
             >
               {copy.tabs.all}
-              <span className="text-[14px] font-bold text-primary tabular-nums">
+              <span className="text-xs font-semibold text-primary tabular-nums">
                 ({initial.allCount})
               </span>
             </button>

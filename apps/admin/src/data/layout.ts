@@ -10,6 +10,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/products', 'Products'],
   ['/products/collections', 'Collections'],
   ['/products/inventory', 'Inventory'],
+  ['/products/purchase-orders', 'Purchase orders'],
   ['/products/transfers', 'Transfers'],
   ['/products/gift-cards', 'Gift cards'],
   ['/customers', 'Customers'],
@@ -51,7 +52,7 @@ export function pageTitleFor(pathname: string): string {
 }
 
 /** List pages drawn to frame 5:2353 carry their own "Order List" style heading under the bar. */
-const HEADED_LISTS = ['/orders', '/products', '/customers']
+const HEADED_LISTS = ['/orders', '/products']
 
 /**
  * The top bar shows the section name. Pages with a heading of their own (a

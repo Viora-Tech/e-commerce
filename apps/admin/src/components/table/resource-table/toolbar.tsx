@@ -36,7 +36,7 @@ type ToolbarProps<T extends RowData> = {
 
 /* 5:2576: 40px square, white, Neutal/300 hairline, 4px radius, 20px glyph. */
 const ICON_BUTTON =
-  'flex size-10 shrink-0 items-center justify-center rounded-[4px] border border-line bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-5'
+  'flex size-8 shrink-0 items-center justify-center rounded-[0.25rem] border border-line bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4'
 
 function IconButton({ className, ...props }: ComponentProps<'button'>) {
   return <button type="button" className={cn(ICON_BUTTON, className)} {...props} />
@@ -63,14 +63,14 @@ export function ResourceTableToolbar<T extends RowData>({
         <div className="min-w-0">{tabs}</div>
         {/* 5:2571: search 264 x 40 then icon buttons, 12px apart. */}
         <div className="flex items-center gap-3">
-          <label className="flex h-10 w-[264px] items-center gap-1.5 rounded-lg bg-background py-1.5 pr-2 pl-3 focus-within:ring-2 focus-within:ring-ring">
+          <label className="flex h-8 w-60 items-center gap-1.5 rounded-lg bg-background py-1 pr-2 pl-3 focus-within:ring-2 focus-within:ring-ring">
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               placeholder={tableContent.search(plural)}
-              className="min-w-0 flex-1 bg-transparent text-[14px] leading-5 text-foreground outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground"
             />
-            <Search className="size-6 shrink-0 text-foreground" strokeWidth={1.6} />
+            <Search className="size-4 shrink-0 text-foreground" strokeWidth={1.6} />
           </label>
           {filters ? (
             <Popover>
@@ -147,7 +147,7 @@ export function ResourceTableToolbar<T extends RowData>({
           <button
             type="button"
             onClick={onClearAll}
-            className="text-[14px] text-muted-foreground hover:text-foreground"
+            className="text-body text-muted-foreground hover:text-foreground"
           >
             {tableContent.clearFilters}
           </button>

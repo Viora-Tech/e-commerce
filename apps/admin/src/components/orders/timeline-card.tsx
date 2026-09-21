@@ -153,7 +153,7 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
           return (
             <li key={e.id} className="relative">
               <span
-                className={`absolute top-0 -left-[35px] flex size-6 items-center justify-center rounded-full border border-border bg-card ${
+                className={`absolute top-0 -left-8 flex size-6 items-center justify-center rounded-full border border-border bg-card ${
                   e.tone === 'destructive' ? 'text-destructive' : 'text-muted-foreground'
                 }`}
                 aria-hidden="true"

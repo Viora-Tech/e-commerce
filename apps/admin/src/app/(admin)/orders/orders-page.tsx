@@ -37,7 +37,7 @@ const PER_PAGE = LIST_PER_PAGE
 
 /* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill. */
 const TAB =
-  'flex h-8 items-center gap-1 rounded-[6px] px-3 text-[15px] font-medium leading-5 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-xs font-medium leading-4 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const TAB_ACTIVE = 'bg-card text-foreground'
 
 /* Frame 5:2617 writes dates as 01-01-2025. */
@@ -60,14 +60,14 @@ function ProductCell({ item }: { item: Item }) {
   const extra = item.lineCount - 1
   return (
     <span className="flex items-center gap-3 text-left">
-      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[4px] border border-secondary bg-card">
+      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.25rem] border border-secondary bg-card">
         {item.firstLineImage ? (
           // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
-          <img src={item.firstLineImage} alt="" className="size-[30px] object-contain" />
+          <img src={item.firstLineImage} alt="" className="size-6 object-contain" />
         ) : null}
       </span>
       <span className="min-w-0">
-        <span className="line-clamp-2 text-[15px] leading-[18px]">
+        <span className="line-clamp-2 text-body-strong">
           {item.firstLineTitle ?? ordersContent.guest}
         </span>
         {extra > 0 ? (
@@ -86,14 +86,14 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: ordersContent.columns.order,
     sortValue: (o) => o.number,
     hideable: false,
-    className: 'w-[129px]',
+    className: 'w-28',
     render: (o) => <span className="tabular-nums">#{o.number}</span>,
   },
   {
     id: 'product',
     title: ordersContent.columns.product,
     align: 'start',
-    className: 'w-[260px] px-3 whitespace-normal',
+    className: 'w-60 px-3 whitespace-normal',
     render: (o) => <ProductCell item={o} />,
   },
   {
@@ -144,7 +144,7 @@ function StatusTabs({ value, allCount, onChange }: TabsProps) {
         className={cn(TAB, value === null && TAB_ACTIVE)}
       >
         {ordersContent.tabs.all}
-        <span className="text-[14px] font-bold text-primary tabular-nums">({allCount})</span>
+        <span className="text-xs font-semibold text-primary tabular-nums">({allCount})</span>
       </button>
       {ORDER_STATUSES.map((s) => (
         <button
@@ -166,21 +166,18 @@ function StatusTabs({ value, allCount, onChange }: TabsProps) {
 function HeaderActions() {
   return (
     <div className="flex items-center gap-3">
-      <Link
-        href="/orders/drafts"
-        className="flex h-12 w-[142px] items-center justify-center gap-1 rounded-lg bg-primary pr-4 pl-3 text-[15px] font-bold tracking-[-0.3px] text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      <Button
+        size="lg"
+        className="w-32"
+        render={<Link href="/orders/drafts" />}
+        nativeButton={false}
       >
-        <SquarePlus className="size-6" strokeWidth={1.6} />
+        <SquarePlus strokeWidth={1.6} />
         {ordersContent.addOrder}
-      </Link>
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={
-            <Button
-              variant="outline"
-              className="h-12 w-[142px] justify-center gap-1 rounded-lg border-secondary pr-2 pl-3 text-[15px] font-bold tracking-[-0.3px] text-ink-strong"
-            />
-          }
+          render={<Button variant="outline" size="lg" className="w-32 pr-2 text-ink-strong" />}
         >
           {ordersContent.moreActions}
           <MoreVertical className="size-4" />
@@ -245,7 +242,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   return (
     <PageBody className="gap-6">
       {/* 5:2375 + 5:2502: heading on the left, the two 48px actions on the right, 24px under the bar. */}
-      <div className="flex h-12 items-center justify-between">
+      <div className="flex h-9 items-center justify-between">
         <h1 className="text-page-title">{ordersContent.heading}</h1>
         <HeaderActions />
       </div>

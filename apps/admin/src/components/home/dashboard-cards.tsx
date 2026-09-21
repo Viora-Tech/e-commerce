@@ -38,7 +38,7 @@ export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
       detailsHref="/orders"
       flush
     >
-      <div className={cn(TX_ROW, 'h-[33px] text-[14px] text-muted-foreground')}>
+      <div className={cn(TX_ROW, 'h-8 text-xs text-muted-foreground')}>
         <span>{c.columns.no}</span>
         <span>{c.columns.order}</span>
         <span>{c.columns.date}</span>
@@ -55,7 +55,7 @@ export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
               href={`/orders/${o.id}`}
               className={cn(
                 TX_ROW,
-                'h-[41px] text-[14px] text-foreground transition-colors hover:bg-background',
+                'h-10 text-xs text-foreground transition-colors hover:bg-background',
               )}
             >
               <span>{i + 1}.</span>
@@ -85,9 +85,9 @@ type TopProduct = {
 function Thumb({ url, title }: { url: string | null; title: string }) {
   return url ? (
     // biome-ignore lint/performance/noImgElement: merchant media URLs, no optimisation pipeline yet.
-    <img src={url} alt="" className="size-[46px] shrink-0 rounded-xl bg-background object-cover" />
+    <img src={url} alt="" className="size-10 shrink-0 rounded-xl bg-background object-cover" />
   ) : (
-    <span className="flex size-[46px] shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
       <Package className="size-5" aria-hidden="true" />
       <span className="sr-only">{title}</span>
     </span>
@@ -106,12 +106,12 @@ export function TopProductsCard({ products }: { products: TopProduct[] }) {
       title={c.title}
       className="px-4"
       action={
-        <Link href="/products" className="text-[13px] text-link hover:underline">
+        <Link href="/products" className="text-xs text-link hover:underline">
           {c.all}
         </Link>
       }
     >
-      <label className="-mt-1 flex h-9 items-center gap-2 rounded-lg bg-background px-3 text-[14px] text-muted-foreground">
+      <label className="-mt-1 flex h-9 items-center gap-2 rounded-lg bg-background px-3 text-xs text-muted-foreground">
         <Search className="size-4" aria-hidden="true" />
         <input
           type="search"
@@ -127,18 +127,18 @@ export function TopProductsCard({ products }: { products: TopProduct[] }) {
             <li key={p.productId}>
               <Link
                 href={`/products/${p.productId}`}
-                className="flex h-[66px] items-center gap-3 transition-colors hover:bg-background"
+                className="flex h-14 items-center gap-3 transition-colors hover:bg-background"
               >
                 <Thumb url={p.imageUrl} title={p.title} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-semibold leading-[18px] text-ink-strong">
+                  <span className="block truncate text-xs font-semibold leading-4 text-ink-strong">
                     {p.title}
                   </span>
-                  <span className="block text-[12px] leading-4 text-muted-foreground">
+                  <span className="block text-xs leading-4 text-muted-foreground">
                     {c.units(p.units)}
                   </span>
                 </span>
-                <span className="text-[16px] font-bold tabular-nums text-ink-strong">
+                <span className="text-[0.8125rem] font-bold tabular-nums text-ink-strong">
                   {formatPaise(p.pricePaise)}
                 </span>
               </Link>
@@ -161,7 +161,7 @@ export function BestSellingCard({ products }: { products: TopProduct[] }) {
       <BandHead className={BEST_ROW}>
         <span>{c.columns.product}</span>
         <span>
-          <TrendingUp className="size-[18px] text-muted-foreground" aria-hidden="true" />
+          <TrendingUp className="size-4 text-muted-foreground" aria-hidden="true" />
         </span>
         <span>{c.columns.totalOrder}</span>
         <span>{c.columns.status}</span>
@@ -175,14 +175,14 @@ export function BestSellingCard({ products }: { products: TopProduct[] }) {
             <Link
               key={p.productId}
               href={`/products/${p.productId}`}
-              className={cn(BEST_ROW, 'h-[54px] transition-colors hover:bg-background')}
+              className={cn(BEST_ROW, 'h-12 transition-colors hover:bg-background')}
             >
               <span className="flex min-w-0 items-center gap-1">
                 <Thumb url={p.imageUrl} title={p.title} />
                 <span className="truncate text-body font-bold text-ink-strong">{p.title}</span>
               </span>
               <span>
-                <TrendingUp className="size-[18px] text-success" aria-hidden="true" />
+                <TrendingUp className="size-4 text-success" aria-hidden="true" />
               </span>
               <span className="text-body tabular-nums">{p.units}</span>
               <StatusPill tone={p.inStock ? 'success' : 'destructive'}>
@@ -218,12 +218,12 @@ export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; thresho
     <DataCard
       title={c.title}
       action={
-        <Link href="/products/inventory" className="text-[13px] text-link hover:underline">
+        <Link href="/products/inventory" className="text-xs text-link hover:underline">
           {c.viewAll}
         </Link>
       }
     >
-      <p className="-mt-2 text-[14px] text-muted-foreground">{c.subtitle(threshold)}</p>
+      <p className="-mt-2 text-xs text-muted-foreground">{c.subtitle(threshold)}</p>
       {rows.length === 0 ? (
         <p className="pt-4 text-body text-muted-foreground">{c.empty}</p>
       ) : (
@@ -231,20 +231,20 @@ export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; thresho
           {rows.map((r) => (
             <li
               key={r.variantId}
-              className="flex h-[58px] items-center gap-3 rounded-lg border border-border-soft px-3"
+              className="flex h-14 items-center gap-3 rounded-lg border border-border-soft px-3"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-semibold text-ink-strong">
+                <span className="block truncate text-xs font-semibold text-ink-strong">
                   {r.title}
                 </span>
-                <span className="block text-[13px] text-muted-foreground">
+                <span className="block text-xs text-muted-foreground">
                   {r.variantTitle !== 'Default' ? `${r.variantTitle}, ` : ''}
                   {c.left(r.available)}
                 </span>
               </span>
               <Link
                 href={`/products/${r.productId}`}
-                className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-[13px] text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 {c.restock}
               </Link>

@@ -17,15 +17,15 @@ export function ProductThumb({ url, alt = '', className }: ProductThumbProps) {
   return (
     <span
       className={cn(
-        'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[4px] border border-secondary bg-card text-muted-foreground',
+        'flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.25rem] border border-secondary bg-card text-muted-foreground',
         className,
       )}
     >
       {url ? (
         // biome-ignore lint/performance/noImgElement: remote catalogue images, no optimisation pipeline yet.
-        <img src={url} alt={alt} className="size-[30px] object-contain" />
+        <img src={url} alt={alt} className="size-6 object-contain" />
       ) : (
-        <ImageIcon className="size-5" aria-hidden />
+        <ImageIcon className="size-4" aria-hidden />
       )}
     </span>
   )
