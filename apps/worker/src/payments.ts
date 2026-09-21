@@ -1,6 +1,8 @@
 import {
   builtInPaymentRegistry,
+  enqueueNotification,
   handlePaymentWebhook,
+  type NotificationQueue,
   parsePaymentSettings,
   resolvePaymentProviders,
 } from '@commerce/core'
@@ -16,7 +18,7 @@ export const paymentRegistry = builtInPaymentRegistry().register(razorpayFactory
  * The store id is in the URL because a gateway's dashboard is configured per
  * merchant; the signature check inside the adapter is what authenticates it.
  */
-export function paymentWebhooks(db: Db, settingsSecret: string) {
+export function paymentWebhooks(db: Db, settingsSecret: string, notifications: NotificationQueue) {
   const app = new Hono()
   app.post('/webhooks/payments/:provider/:storeId', async (c) => {
     const { provider: providerId, storeId } = c.req.param()
@@ -49,6 +51,13 @@ export function paymentWebhooks(db: Db, settingsSecret: string) {
     console.log(
       `[webhook] ${providerId} ${outcome.eventId} applied=${outcome.applied} duplicate=${outcome.duplicate}`,
     )
+    if (outcome.capturedOrderId) {
+      await enqueueNotification(notifications, {
+        storeId,
+        orderId: outcome.capturedOrderId,
+        template: 'payment_received',
+      })
+    }
     return c.json(outcome)
   })
   return app

@@ -17,7 +17,11 @@
     "hono": "^4.13.8",
     "ioredis": "^5.10.1",
     "@commerce/payments": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*"
+    "@commerce/payments-razorpay": "workspace:*",
+    "@commerce/notifications": "workspace:*",
+    "@commerce/notifications-ses": "workspace:*",
+    "@commerce/notifications-whatsapp": "workspace:*",
+    "@commerce/queue": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

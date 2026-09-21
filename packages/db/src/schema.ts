@@ -33,6 +33,8 @@ export const store = pgTable('store', {
   theme: jsonb('theme'),
   /** Payment settings: enabled methods and encrypted gateway credentials. */
   payments: jsonb('payments'),
+  /** Notification settings: enabled channels and encrypted channel credentials. */
+  notifications: jsonb('notifications'),
   createdAt: createdAt(),
 })
 
@@ -255,6 +257,29 @@ export const paymentEvent = pgTable(
     processedAt: timestamp('processed_at', { withTimezone: true }),
   },
   (t) => [uniqueIndex('payment_event_provider_event').on(t.storeId, t.provider, t.eventId)],
+)
+
+/** One row per message attempted, so admin can see what a shopper was told and retries never double-send. */
+export const notification = pgTable(
+  'notification',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    channel: text('channel').notNull(),
+    template: text('template').notNull(),
+    /** Email address or phone the message went to. */
+    to: text('to').notNull(),
+    status: text('status', { enum: ['queued', 'sent', 'failed'] })
+      .notNull()
+      .default('queued'),
+    providerRef: text('provider_ref'),
+    error: text('error'),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template)],
 )
 
 export const storeDomain = pgTable('store_domain', {

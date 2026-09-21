@@ -14,6 +14,7 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
+import { notify } from './notifications'
 import { storePaymentProviders } from './payments'
 import { inStore } from './store-context'
 
@@ -81,6 +82,7 @@ export async function checkoutAction(storeId: string, form: CheckoutForm) {
     )
   })
   await clearCartId()
+  await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
   if (result.session.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
   if (result.session.kind === 'redirect') redirect(result.session.url)
   redirect(`/checkout/thank-you/${result.orderNumber}`)
@@ -92,14 +94,16 @@ export async function confirmPaymentAction(
   providerRef: string,
   confirmation: ClientConfirmation,
 ) {
-  const status = await inStore(storeId, async (tx) => {
+  const applied = await inStore(storeId, async (tx) => {
     const [p] = await tx.select().from(payment).where(eq(payment.providerRef, providerRef))
     if (!p) return null
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((x) => x.id === p.provider)
     if (!provider) return null
-    const updated = await confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
-    return updated?.status ?? null
+    return confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
   })
-  return status
+  if (applied?.becameCaptured) {
+    await notify({ storeId, orderId: applied.payment.orderId, template: 'payment_received' })
+  }
+  return applied?.payment.status ?? null
 }

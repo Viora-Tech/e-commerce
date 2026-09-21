@@ -1,7 +1,9 @@
 import { loadEnv } from '@commerce/config'
 import { createDb } from '@commerce/db'
+import { createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
 
@@ -9,11 +11,16 @@ const env = loadEnv(process.env)
 const db = createDb(env.DATABASE_URL)
 const redis = createConnection(env.REDIS_URL)
 const { queue, worker } = createHeartbeat(redis)
+const notifications = createNotificationQueue(redis)
+const notificationWorker = createNotificationWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 
 const app = new Hono()
-app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET))
+app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, notifications))
 
 app.get('/health', async (c) => {
   const [dbOk, queueOk] = await Promise.all([
@@ -32,7 +39,9 @@ app.get('/health', async (c) => {
 
 const shutdown = async () => {
   await worker.close()
+  await notificationWorker.close()
   await queue.close()
+  await notifications.close()
   redis.disconnect()
   await db.$client.end()
   process.exit(0)
