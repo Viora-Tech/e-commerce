@@ -69,7 +69,9 @@ export function TopBar({ title, heading, user }: TopBarProps) {
           {title}
         </h1>
       ) : (
-        <p className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">{title}</p>
+        <p className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
+          {title}
+        </p>
       )}
 
       <button

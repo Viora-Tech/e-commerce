@@ -166,7 +166,9 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
                 {e.title}
               </p>
               <p className="text-caption text-muted-foreground-soft">{when(e.at)}</p>
-              {e.detail ? <p className="text-caption text-muted-foreground-soft">{e.detail}</p> : null}
+              {e.detail ? (
+                <p className="text-caption text-muted-foreground-soft">{e.detail}</p>
+              ) : null}
             </li>
           )
         })}
