@@ -2,7 +2,7 @@
 export const discountsContent = {
   index: {
     heading: 'No discounts',
-    body: 'Discount codes and automatic offers — a percentage off, a fixed amount, free shipping — applied at checkout.',
+    body: 'Discount codes and automatic offers applied at checkout: a percentage off, a fixed amount or free shipping.',
     action: { label: 'Payment fees and discounts', href: '/settings/payments' },
   },
 } as const

@@ -21,7 +21,7 @@ export const homeContent = {
   },
   recentOrders: {
     title: 'Recent orders',
-    columns: { no: 'No', order: 'Order', date: 'Order date', status: 'Status', amount: 'Amount' },
+    columns: { order: 'Order', date: 'Order date', status: 'Status', amount: 'Amount' },
     empty: 'Orders appear here as soon as a customer checks out.',
   },
   topProducts: {

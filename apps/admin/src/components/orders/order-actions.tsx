@@ -86,6 +86,7 @@ export function OrderActions({ status, canRefund, busy, onMove, onRefund }: Orde
             <AlertDialogCancel>{copy.cancelDialog.keep}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
               onClick={() => {
                 setConfirmCancel(false)
                 onMove('cancelled')

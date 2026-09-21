@@ -68,10 +68,31 @@ export function pageTitleFor(pathname: string): string {
   return hit?.[1] ?? layoutContent.dashboard
 }
 
+/**
+ * Section pages take their h1 from the top bar; anything deeper (an order, a
+ * product, a page in the editor) owns its heading through PageHeader.
+ */
+export function hasOwnHeading(pathname: string): boolean {
+  if (pathname === '/') return false
+  return !PAGE_TITLES.some(([p]) => p === pathname)
+}
+
 export const layoutContent = {
   dashboard: 'Dashboard',
   details: 'Details',
   filter: 'Filter',
+  noChange: 'No change',
+  skipToContent: 'Skip to content',
+  notFound: {
+    heading: 'Page not found',
+    body: 'The link may be out of date, or the item was removed.',
+    home: 'Go to dashboard',
+  },
+  error: {
+    heading: 'This page did not load',
+    body: 'Something went wrong on our side. Try again in a moment.',
+    retry: 'Try again',
+  },
   seeMore: 'See more',
   viewAll: 'View all',
   noStore: 'No store selected',
