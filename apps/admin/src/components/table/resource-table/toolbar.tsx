@@ -46,15 +46,15 @@ export function ResourceTableToolbar<T extends RowData>({
   const hasApplied = applied.length > 0 || query.length > 0
 
   return (
-    <div className="flex flex-col gap-2 border-b px-3 py-2">
+    <div className="mb-4 flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1 md:max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={tableContent.search(plural)}
-            className="pl-8"
+            className="h-10 rounded-full bg-muted pl-9 shadow-none"
           />
         </div>
         {filters}
@@ -67,10 +67,15 @@ export function ResourceTableToolbar<T extends RowData>({
         {hideable.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="outline" size="sm" className="ml-auto" />}
+              render={
+                <Button
+                  size="sm"
+                  className="ml-auto h-8 rounded-lg bg-primary px-3 text-primary-foreground hover:bg-primary/90"
+                />
+              }
             >
-              <Settings2 />
               {tableContent.view}
+              <Settings2 />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuLabel>{tableContent.toggleColumns}</DropdownMenuLabel>

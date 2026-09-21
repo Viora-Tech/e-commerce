@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,57 +20,43 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  useSidebar,
 } from '@commerce/ui/shadcn/sidebar'
-import {
-  BadgePercent,
-  Blocks,
-  ChevronsUpDown,
-  Globe,
-  Home,
-  LogOut,
-  Package,
-  Settings,
-  ShoppingBag,
-  Store,
-  Users,
-} from 'lucide-react'
+import { ChevronsUpDown, ExternalLink, LogOut, PanelLeftClose, Store } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { isNavActive, NAV_GROUPS, navigationContent } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
-
-/** Shopify's route structure, shadcn's sidebar (CodeHelp admin style). */
-const MAIN = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/products', label: 'Products', icon: Package },
-  { href: '/customers', label: 'Customers', icon: Users },
-  { href: '/discounts', label: 'Discounts', icon: BadgePercent },
-]
-
-const ONLINE_STORE = [
-  { href: '/online-store/pages', label: 'Pages' },
-  { href: '/online-store/themes', label: 'Themes' },
-  { href: '/online-store/navigation', label: 'Navigation' },
-]
 
 type StoreOption = { id: string; name: string; slug: string }
 
-export function AdminSidebar({
-  user,
-  stores,
-  activeStoreId,
-}: {
+type AdminSidebarProps = {
   user: { name: string; email: string }
   stores: StoreOption[]
   activeStoreId: string | null
-}) {
+  storefrontUrl: string
+}
+
+const NAV_ITEM =
+  'h-10 gap-2 rounded-md px-4 text-[15px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-bold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground'
+
+function initials(name: string): string {
+  return (
+    name
+      .split(' ')
+      .map((p) => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U'
+  )
+}
+
+/** Kit sidebar: white rail, grouped sections, solid green active pill, user card at the bottom. */
+export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { toggleSidebar } = useSidebar()
   const active = stores.find((s) => s.id === activeStoreId) ?? null
-  const is = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href))
 
   async function switchStore(id: string) {
     await authClient.organization.setActive({ organizationId: id })
@@ -83,28 +70,35 @@ export function AdminSidebar({
   }
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="h-16 justify-center px-3">
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="flex items-center gap-1">
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<SidebarMenuButton size="lg" className="data-open:bg-sidebar-accent" />}
+                render={
+                  <SidebarMenuButton
+                    size="lg"
+                    className="h-11 data-open:bg-sidebar-accent [&_svg]:size-5"
+                  />
+                }
               >
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Store className="size-4" />
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Store className="size-5" />
                 </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{active?.name ?? 'Pick a store'}</span>
+                <div className="grid flex-1 text-left leading-tight">
+                  <span className="truncate text-[15px] font-bold text-foreground">
+                    {active?.name ?? navigationContent.pickStore}
+                  </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {active?.slug ?? `${stores.length} available`}
+                    {active?.slug ?? navigationContent.storesAvailable(stores.length)}
                   </span>
                 </div>
-                <ChevronsUpDown className="ml-auto size-4" />
+                <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-60">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Stores
+                  {navigationContent.stores}
                 </DropdownMenuLabel>
                 {stores.map((s) => (
                   <DropdownMenuItem key={s.id} onSelect={() => switchStore(s.id)}>
@@ -114,121 +108,80 @@ export function AdminSidebar({
                 ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem render={<Link href="/select-store" />}>
-                  All stores
+                  {navigationContent.allStores}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label={navigationContent.collapse}
+              className="hidden size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
+            >
+              <PanelLeftClose className="size-5" />
+            </button>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {MAIN.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={is(item.href)}
-                    tooltip={item.label}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Sales channels</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link href="/online-store" />}
-                  isActive={is('/online-store')}
-                  tooltip="Online Store"
-                >
-                  <Globe />
-                  <span>Online Store</span>
-                </SidebarMenuButton>
-                <SidebarMenuSub>
-                  {ONLINE_STORE.map((sub) => (
-                    <SidebarMenuSubItem key={sub.href}>
-                      <SidebarMenuSubButton
-                        render={<Link href={sub.href} />}
-                        isActive={is(sub.href)}
-                      >
-                        <span>{sub.label}</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Apps</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link href="/apps" />}
-                  isActive={is('/apps')}
-                  tooltip="Apps"
-                >
-                  <Blocks />
-                  <span>Apps</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+      <SidebarContent className="gap-1 px-1.5">
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label} className="py-1">
+            <SidebarGroupLabel className="h-6 px-4 text-[13px] font-medium text-muted-foreground-soft">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={`${group.label}-${item.label}`}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={isNavActive(pathname, item)}
+                      tooltip={item.label}
+                      className={cn(NAV_ITEM, item.soon && 'opacity-70')}
+                    >
+                      <item.icon strokeWidth={1.8} />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<Link href="/settings" />}
-              isActive={is('/settings')}
-              tooltip="Settings"
-            >
-              <Settings />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-                <div className="flex size-8 items-center justify-center rounded-lg bg-secondary text-xs font-semibold">
-                  {user.name
-                    .split(' ')
-                    .map((p) => p[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase() || 'U'}
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs text-muted-foreground">{user.email}</span>
-                </div>
-                <ChevronsUpDown className="ml-auto size-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-56">
-                <DropdownMenuItem onSelect={signOut}>
-                  <LogOut className="size-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="gap-2 px-3 pb-4">
+        <div className="flex items-center gap-3 rounded-lg px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
+            {initials(user.name)}
+          </div>
+          <div className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-[15px] font-bold text-foreground">{user.name}</span>
+            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+          </div>
+          <button
+            type="button"
+            onClick={signOut}
+            aria-label={navigationContent.signOut}
+            title={navigationContent.signOut}
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-data-[collapsible=icon]:hidden"
+          >
+            <LogOut className="size-5" />
+          </button>
+        </div>
+        <a
+          href={storefrontUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex h-11 items-center gap-2 rounded-lg border border-border bg-card px-4 text-[15px] font-medium text-foreground shadow-card hover:bg-sidebar-accent group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+        >
+          <Store className="size-5 text-primary" />
+          <span className="flex-1 group-data-[collapsible=icon]:hidden">
+            {navigationContent.viewStore}
+          </span>
+          <ExternalLink className="size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+        </a>
       </SidebarFooter>
     </Sidebar>
   )

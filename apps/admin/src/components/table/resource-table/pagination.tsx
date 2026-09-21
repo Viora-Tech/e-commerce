@@ -18,14 +18,15 @@ export function ResourceTablePagination({ page, perPage, total, onPageChange }: 
   const to = Math.min(page * perPage, total)
 
   return (
-    <div className="flex items-center justify-between border-t px-3 py-2">
-      <span className="text-xs text-muted-foreground tabular-nums">
+    <div className="flex items-center justify-between pt-4">
+      <span className="text-sm text-muted-foreground tabular-nums">
         {total === 0 ? tableContent.noResults : tableContent.range(from, to, total)}
       </span>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
           size="icon-sm"
+          className="rounded-full"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label={tableContent.previous}
@@ -35,6 +36,7 @@ export function ResourceTablePagination({ page, perPage, total, onPageChange }: 
         <Button
           variant="outline"
           size="icon-sm"
+          className="rounded-full"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label={tableContent.next}

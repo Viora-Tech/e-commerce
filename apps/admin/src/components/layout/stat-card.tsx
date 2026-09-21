@@ -1,79 +1,107 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
-import { TrendingDown, TrendingUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, MoreVertical } from 'lucide-react'
+import Link from 'next/link'
+import type { ReactNode } from 'react'
+import { layoutContent } from '@/data/layout'
 
 type StatCardProps = {
-  label: string
+  title: string
+  /** "Last 7 days" — sits under the title. */
+  period: string
   value: string
-  /** Percentage change vs the previous period; sign decides colour. */
-  delta?: number
-  deltaLabel?: string
-  /** Series for the background sparkline, oldest first. */
-  trend?: number[]
+  /** Word after the number, e.g. "Sales". */
+  unit?: string
+  /** Percent change vs the previous period; sign decides colour. */
+  delta?: number | null
+  /** Set when a rise is bad news (cancellations) so the colours flip. */
+  invert?: boolean
+  /** "Previous 7 days ($235)" line; the value is highlighted. */
+  previous?: { label: string; value: string }
+  detailsHref?: string
+  detailsLabel?: string
+  /** Replaces the number block entirely (the Pending & cancelled tile). */
+  children?: ReactNode
   className?: string
 }
 
-const SPARK_W = 120
-const SPARK_H = 36
-
-/** Polyline points for a sparkline, scaled to the box with a little vertical padding. */
-function sparkPoints(series: number[]): string {
-  if (series.length < 2) return ''
-  const min = Math.min(...series)
-  const max = Math.max(...series)
-  const span = max - min || 1
-  const step = SPARK_W / (series.length - 1)
-  return series
-    .map(
-      (v, i) =>
-        `${(i * step).toFixed(1)},${(SPARK_H - 3 - ((v - min) / span) * (SPARK_H - 6)).toFixed(1)}`,
-    )
-    .join(' ')
+/** Percent change between two window values; null when there is nothing to compare against. */
+export function percentDelta(value: number, previous: number): number | null {
+  if (previous === 0) return value === 0 ? 0 : null
+  return ((value - previous) / previous) * 100
 }
 
-/** KPI tile: label, big number, optional delta and sparkline. */
-export function StatCard({ label, value, delta, deltaLabel, trend, className }: StatCardProps) {
-  const points = trend ? sparkPoints(trend) : ''
-  const up = (delta ?? 0) >= 0
-  const DeltaIcon = up ? TrendingUp : TrendingDown
-
+export function DeltaChip({
+  delta,
+  invert,
+}: {
+  delta: number | null | undefined
+  invert?: boolean
+}) {
+  if (delta === null || delta === undefined) return null
+  const up = delta >= 0
+  const good = invert ? !up : up
+  const Icon = up ? ArrowUp : ArrowDown
   return (
-    <Card className={cn('relative justify-between gap-2 px-4', className)}>
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <div className="flex items-end justify-between gap-3">
+    <span
+      className={cn(
+        'inline-flex items-center gap-0.5 text-sm font-medium tabular-nums',
+        good ? 'text-success' : 'text-destructive',
+      )}
+    >
+      <Icon className="size-4" />
+      {Math.abs(delta).toFixed(1)}%
+    </span>
+  )
+}
+
+/** Kit stat card: title + period, big number with unit and delta, previous-period line, Details pill. */
+export function StatCard({
+  title,
+  period,
+  value,
+  unit,
+  delta,
+  invert,
+  previous,
+  detailsHref,
+  detailsLabel = layoutContent.details,
+  children,
+  className,
+}: StatCardProps) {
+  return (
+    <Card className={cn('relative gap-0 px-5 py-5', className)}>
+      <div className="flex items-start justify-between">
         <div>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
-          {delta !== undefined ? (
-            <p
-              className={cn(
-                'mt-1 flex items-center gap-1 text-xs',
-                up ? 'text-success' : 'text-destructive',
-              )}
-            >
-              <DeltaIcon className="size-3.5" />
-              {up ? '+' : ''}
-              {delta.toFixed(1)}%
-              {deltaLabel ? <span className="text-muted-foreground"> {deltaLabel}</span> : null}
-            </p>
-          ) : null}
+          <p className="text-card-title">{title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{period}</p>
         </div>
-        {points ? (
-          <svg
-            viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
-            width={SPARK_W}
-            height={SPARK_H}
-            className="shrink-0 overflow-visible text-primary"
-            aria-hidden="true"
+        <MoreVertical className="size-5 text-muted-foreground" aria-hidden="true" />
+      </div>
+      {children ?? (
+        <div className="mt-5 flex items-end gap-4">
+          <p className="text-stat">{value}</p>
+          <div className="mb-1 flex items-end gap-1">
+            {unit ? <span className="text-base text-foreground">{unit}</span> : null}
+            <DeltaChip delta={delta} invert={invert} />
+          </div>
+        </div>
+      )}
+      <div className="mt-3 flex items-end justify-between gap-3">
+        {previous ? (
+          <p className="text-sm text-muted-foreground">
+            {previous.label} <span className="font-bold text-link">({previous.value})</span>
+          </p>
+        ) : (
+          <span />
+        )}
+        {detailsHref ? (
+          <Link
+            href={detailsHref}
+            className="inline-flex h-8 shrink-0 items-center rounded-full border border-link px-4 text-[15px] text-link transition-colors hover:bg-link-soft"
           >
-            <polyline
-              points={points}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+            {detailsLabel}
+          </Link>
         ) : null}
       </div>
     </Card>
