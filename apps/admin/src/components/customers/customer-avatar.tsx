@@ -16,7 +16,7 @@ export function initials(name: string | null, email: string | null): string {
 }
 
 /** Frame 5:2488 style picture slot, filled with initials since shoppers have no photo. */
-export function CustomerAvatar({ name, email, className }: CustomerAvatarProps) {
+export default function CustomerAvatar({ name, email, className }: CustomerAvatarProps) {
   return (
     <span
       aria-hidden="true"

@@ -3,10 +3,10 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import { CustomerAvatar } from '@/components/customers/customer-avatar'
-import { type CustomerStats, CustomerTiles } from '@/components/customers/customer-tiles'
-import { PageBody } from '@/components/layout/page-body'
-import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
+import CustomerAvatar from '@/components/customers/customer-avatar'
+import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
+import PageBody from '@/components/layout/page-body'
+import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -156,7 +156,8 @@ function SegmentTabs({ value, allCount, onChange }: TabsProps) {
 }
 
 function CustomersContent({ initial }: { initial: CustomersInitial }) {
-  const [q, setQ] = useQueryStates(
+  // Hooks
+  const [{ page, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
@@ -164,12 +165,10 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     },
     { shallow: true },
   )
+
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
-
-  const { page, query, status } = q
-
   useEffect(() => {
     if (sameListQuery({ page, query, status }, initial.query)) return
     let cancelled = false
@@ -200,17 +199,17 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           getId={(c) => c.id}
           href={(c) => `/customers/${c.id}`}
           loading={loading}
-          query={q.query}
+          query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
           tabs={
             <SegmentTabs
-              value={q.status}
+              value={status}
               allCount={initial.allCount}
               onChange={(s) => setQ({ status: s, page: 1 })}
             />
           }
-          page={q.page}
+          page={page}
           perPage={PER_PAGE}
           total={total}
           onPageChange={(page) => setQ({ page })}
@@ -222,7 +221,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
   )
 }
 
-export function CustomersPage({ initial }: { initial: CustomersInitial }) {
+export default function CustomersPage({ initial }: { initial: CustomersInitial }) {
   return (
     <Suspense>
       <CustomersContent initial={initial} />

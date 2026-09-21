@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { CUSTOMER_SEGMENTS } from '@/data/customers'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
-import { CustomersPage } from './customers-page'
+import CustomersPage from './customers-page'
 
 export const metadata: Metadata = { title: 'Customers' }
 
@@ -24,5 +24,6 @@ export default async function Page({ searchParams }: Props) {
     ),
     call(appRouter.customers.stats, undefined, { context }),
   ])
+
   return <CustomersPage initial={{ query, result, stats, allCount: stats.total }} />
 }
