@@ -15,6 +15,7 @@
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/queue": "workspace:*",
     "@orpc/client": "^1.15.2",
     "@orpc/server": "^1.15.2",
     "better-auth": "^1.7.5",

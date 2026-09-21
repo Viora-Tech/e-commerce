@@ -16,3 +16,12 @@ export async function updateStorePayments(tx: StoreTx, storeId: string, payments
   const [s] = await tx.update(store).set({ payments }).where(eq(store.id, storeId)).returning()
   return s ?? null
 }
+
+export async function updateStoreNotifications(
+  tx: StoreTx,
+  storeId: string,
+  notifications: unknown,
+) {
+  const [s] = await tx.update(store).set({ notifications }).where(eq(store.id, storeId)).returning()
+  return s ?? null
+}
