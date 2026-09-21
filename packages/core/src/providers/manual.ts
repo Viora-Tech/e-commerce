@@ -100,6 +100,16 @@ export class ManualPaymentProvider implements PaymentProvider {
   }
 }
 
+/** Trim every field, drop blanks, upper-case the IFSC so validation matches what banks print. */
+function normaliseManualConfig(raw: ManualConfig): ManualConfig {
+  const out: ManualConfig = {}
+  for (const [k, v] of Object.entries(raw) as [keyof ManualConfig, string | undefined][]) {
+    const t = v?.trim()
+    if (t) out[k] = k === 'ifsc' ? t.toUpperCase() : t
+  }
+  return out
+}
+
 export const manualFactory: PaymentProviderFactory<ManualConfig> = {
   id: 'manual',
   label: 'UPI or bank transfer',
@@ -113,13 +123,13 @@ export const manualFactory: PaymentProviderFactory<ManualConfig> = {
     { key: 'note', label: 'Instructions for the shopper', multiline: true },
   ],
   validateConfig(raw) {
-    const r = (raw ?? {}) as ManualConfig
+    const r = normaliseManualConfig((raw ?? {}) as ManualConfig)
     const hasUpi = Boolean(r.upiId && r.payeeName)
     const hasBank = Boolean(r.bankName && r.accountName && r.accountNumber && r.ifsc)
     if (!hasUpi && !hasBank) {
       return { ok: false, errors: ['enter a UPI ID with payee name, or full bank details'] }
     }
-    if (r.upiId && !/^[\w.-]+@[\w]+$/.test(r.upiId)) {
+    if (r.upiId && !/^[\w.-]+@[\w.-]+$/.test(r.upiId)) {
       return { ok: false, errors: ['UPI ID should look like name@bank'] }
     }
     if (r.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(r.ifsc)) {

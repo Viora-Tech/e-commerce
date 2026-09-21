@@ -11,6 +11,7 @@ import {
   ThemeSchema,
 } from '@commerce/core'
 import { razorpayFactory } from '@commerce/payments-razorpay'
+import { ORPCError } from '@orpc/server'
 import { storeProcedure } from '../procedures'
 import { getStore, updateStorePayments, updateStoreTheme } from '../services/store.service'
 
@@ -64,7 +65,7 @@ export const storeRouter = {
       }
       for (const id of merged.enabled) {
         const f = registry.get(id)
-        if (!f) throw new Error(`unknown payment provider ${id}`)
+        if (!f) throw new ORPCError('BAD_REQUEST', { message: `Unknown payment provider ${id}` })
         const check = f.validateConfig(
           Object.fromEntries(
             Object.entries(merged.providers[id] ?? {}).map(([k, v]) => [
@@ -73,7 +74,9 @@ export const storeRouter = {
             ]),
           ),
         )
-        if (!check.ok) throw new Error(`${id}: ${check.errors.join(', ')}`)
+        if (!check.ok) {
+          throw new ORPCError('BAD_REQUEST', { message: `${f.label}: ${check.errors.join(', ')}` })
+        }
       }
       const saved = await updateStorePayments(
         context.tx,
