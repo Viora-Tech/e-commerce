@@ -17,18 +17,23 @@ import { OrderPaymentBadge, OrderStatusPill } from '@/components/orders/order-ba
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
+import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 
-type Item = Awaited<ReturnType<typeof api.orders.list>>['items'][number]
+type ListResult = Awaited<ReturnType<typeof api.orders.list>>
+type Item = ListResult['items'][number]
 
-const PER_PAGE = 25
+/** First page rendered on the server so the table never paints empty. */
+export type OrdersInitial = { query: ListQuery<OrderStatus>; result: ListResult }
+
+const PER_PAGE = LIST_PER_PAGE
 const ALL = 'all'
 const TAB =
   'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
 
 const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 
-type Query = { page: number; query: string; status: OrderStatus | null }
+type Query = ListQuery<OrderStatus>
 
 function fetchOrders(q: Query) {
   return api.orders.list({
@@ -83,7 +88,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   },
 ]
 
-function OrdersContent() {
+function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -92,13 +97,14 @@ function OrdersContent() {
     },
     { shallow: true },
   )
-  const [items, setItems] = useState<Item[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [items, setItems] = useState<Item[]>(initial.result.items)
+  const [total, setTotal] = useState(initial.result.total)
+  const [loading, setLoading] = useState(false)
 
   const { page, query, status } = q
 
   useEffect(() => {
+    if (sameListQuery({ page, query, status }, initial.query)) return
     let cancelled = false
     setLoading(true)
     fetchOrders({ page, query, status })
@@ -111,7 +117,7 @@ function OrdersContent() {
     return () => {
       cancelled = true
     }
-  }, [page, query, status])
+  }, [page, query, status, initial.query])
 
   async function bulkSetStatus(ids: string[], status: OrderStatus, clear: () => void) {
     try {
@@ -144,9 +150,6 @@ function OrdersContent() {
             ))}
           </TabsList>
         </Tabs>
-        <Button variant="outline" disabled className="rounded-full">
-          {ordersContent.export}
-        </Button>
       </div>
       <ResourceTable
         resourceName={ordersContent.resource}
@@ -183,10 +186,10 @@ function OrdersContent() {
   )
 }
 
-export function OrdersPage() {
+export function OrdersPage({ initial }: { initial: OrdersInitial }) {
   return (
     <Suspense>
-      <OrdersContent />
+      <OrdersContent initial={initial} />
     </Suspense>
   )
 }

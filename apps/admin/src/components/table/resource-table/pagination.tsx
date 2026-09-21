@@ -11,7 +11,7 @@ type PaginationProps = {
   onPageChange: (page: number) => void
 }
 
-/** Server-paged footer: "1–25 of 312" plus previous/next. */
+/** Server-paged footer: "1-25 of 312" plus previous/next. */
 export function ResourceTablePagination({ page, perPage, total, onPageChange }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const from = total === 0 ? 0 : (page - 1) * perPage + 1
@@ -26,7 +26,7 @@ export function ResourceTablePagination({ page, perPage, total, onPageChange }: 
         <Button
           variant="outline"
           size="icon-sm"
-          className="rounded-full"
+          className="rounded-lg"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
           aria-label={tableContent.previous}
@@ -36,7 +36,7 @@ export function ResourceTablePagination({ page, perPage, total, onPageChange }: 
         <Button
           variant="outline"
           size="icon-sm"
-          className="rounded-full"
+          className="rounded-lg"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
           aria-label={tableContent.next}

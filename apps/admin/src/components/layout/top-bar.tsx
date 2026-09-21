@@ -10,9 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
-import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
-import { Bell, LogOut, Moon, Search, Sun } from 'lucide-react'
+import { LogOut, Moon, Search, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
@@ -22,6 +21,8 @@ import { CommandPalette } from './command-palette'
 
 type TopBarProps = {
   title: string
+  /** False on detail pages, which render their own h1 through PageHeader. */
+  heading: boolean
   user: { name: string; email: string }
 }
 
@@ -36,8 +37,8 @@ function initials(name: string): string {
   )
 }
 
-/** Kit top bar: page title left; search pill, bell, theme switch and avatar right. */
-export function TopBar({ title, user }: TopBarProps) {
+/** Kit top bar: section title left; search, theme switch and avatar right. */
+export function TopBar({ title, heading, user }: TopBarProps) {
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -63,14 +64,20 @@ export function TopBar({ title, user }: TopBarProps) {
   return (
     <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border/60 bg-card px-4 md:px-6">
       <SidebarTrigger className="-ml-1 md:hidden" />
-      <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
-        {title}
-      </h1>
+      {heading ? (
+        <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
+          {title}
+        </h1>
+      ) : (
+        <p className="min-w-0 flex-1 truncate text-page-title text-ink-strong normal-case">
+          {title}
+        </p>
+      )}
 
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="hidden h-11 w-full max-w-[360px] items-center gap-3 rounded-full bg-muted px-5 text-[12px] text-muted-foreground transition-colors hover:bg-secondary md:flex"
+        className="hidden h-10 w-full max-w-[360px] items-center gap-3 rounded-lg bg-muted px-4 text-[13px] text-muted-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
       >
         <span className="flex-1 truncate text-left">{navigationContent.search.placeholder}</span>
         <Kbd className="bg-card">{navigationContent.search.shortcut}</Kbd>
@@ -80,25 +87,10 @@ export function TopBar({ title, user }: TopBarProps) {
         type="button"
         onClick={() => setPaletteOpen(true)}
         aria-label={navigationContent.search.placeholder}
-        className="flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted md:hidden"
+        className="flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
       >
         <Search className="size-5" />
       </button>
-
-      <Popover>
-        <PopoverTrigger
-          aria-label={navigationContent.notifications.label}
-          className="flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Bell className="size-5" />
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-72">
-          <p className="text-sm font-bold">{navigationContent.notifications.label}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {navigationContent.notifications.empty}
-          </p>
-        </PopoverContent>
-      </Popover>
 
       <button
         type="button"
@@ -106,7 +98,7 @@ export function TopBar({ title, user }: TopBarProps) {
         aria-checked={dark}
         aria-label={navigationContent.toggleTheme}
         onClick={() => setTheme(dark ? 'light' : 'dark')}
-        className="flex h-8 w-14 items-center rounded-full bg-primary-soft p-1 transition-colors"
+        className="flex h-8 w-14 items-center rounded-full bg-primary-soft p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <span
           className={cn(
@@ -121,7 +113,7 @@ export function TopBar({ title, user }: TopBarProps) {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={navigationContent.account}
-          className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30"
+          className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {initials(user.name)}
         </DropdownMenuTrigger>

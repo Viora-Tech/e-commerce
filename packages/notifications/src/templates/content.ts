@@ -15,7 +15,7 @@ type TemplateCopy = {
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
-    heading: (d) => `Thanks, ${d.customerName}!`,
+    heading: (d) => `Thanks, ${d.customerName}`,
     intro: (d) =>
       `We have your order #${d.orderNumber} for ${d.totalLabel} (${d.paymentMethodLabel}).`,
     outro: () => 'We will message you again as soon as it ships.',
@@ -32,7 +32,7 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   },
   order_shipped: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} is on its way`,
-    heading: () => 'Shipped!',
+    heading: () => 'Your order has shipped',
     intro: (d) =>
       `Order #${d.orderNumber} has left our warehouse.${d.waybill ? ` Tracking number: ${d.waybill}.` : ''}`,
     outro: (d) =>
@@ -46,7 +46,7 @@ export const sharedContent = {
   itemsHeading: 'Items',
   totalLabel: 'Total',
   viewOrder: 'View your order',
-  lineText: (l: TemplateData['lines'][number]) => `${l.title} x ${l.quantity} — ${l.priceLabel}`,
+  lineText: (l: TemplateData['lines'][number]) => `${l.title} x${l.quantity}, ${l.priceLabel}`,
   footer: (d: TemplateData) =>
     `Sent by ${d.storeName}. Reply to this email if anything looks wrong.`,
 } as const

@@ -62,7 +62,9 @@ export function LineItemsCard({ order }: LineItemsCardProps) {
                   l.sku ? `${copy.items.sku} ${l.sku}` : null,
                 ]
                   .filter(Boolean)
-                  .join(', ')}{' '}
+                  .join(', ')}
+              </p>
+              <p className="text-caption tabular-nums text-muted-foreground-soft">
                 {formatPaise(l.unitPricePaise)} × {l.quantity}
               </p>
             </div>

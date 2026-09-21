@@ -6,7 +6,7 @@ describe('templates', () => {
   it.each(TEMPLATE_IDS)('%s renders subject, text and html', (id) => {
     const e = renderEmail(id, sampleTemplateData)
     expect(e.subject).toContain('#42')
-    expect(e.text).toContain('Maboroshi mousepad x 1')
+    expect(e.text).toContain('Maboroshi mousepad x1, ')
     expect(e.html).toContain('<li>')
     expect(renderWhatsapp(id, sampleTemplateData).text).toContain('#42')
   })

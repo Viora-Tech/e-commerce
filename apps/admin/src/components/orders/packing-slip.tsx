@@ -10,9 +10,8 @@ export function PackingSlip({ order }: PackingSlipProps) {
   const a = order.shippingAddress
   return (
     <section className="packing-slip hidden print:block">
-      <h1 className="text-xl font-semibold">
-        {copy.print.title} · {copy.title(order.number)}
-      </h1>
+      <h1 className="text-xl font-semibold">{copy.print.title}</h1>
+      <p className="text-base font-medium">{copy.title(order.number)}</p>
       <p className="text-sm">{copy.placed(new Date(order.placedAt).toLocaleDateString('en-IN'))}</p>
       {a ? (
         <address className="mt-4 not-italic text-sm">

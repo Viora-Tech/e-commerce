@@ -3,7 +3,7 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Tabs, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
-import { Download, Plus, Upload } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -13,17 +13,22 @@ import { ProductStatusBadge, ProductThumb } from '@/components/products/product-
 import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
+import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 
-type Item = Awaited<ReturnType<typeof api.products.list>>['items'][number]
+type ListResult = Awaited<ReturnType<typeof api.products.list>>
+type Item = ListResult['items'][number]
 
-const PER_PAGE = 25
+/** First page rendered on the server so the table never paints empty. */
+export type ProductsInitial = { query: ListQuery<ProductStatus>; result: ListResult }
+
+const PER_PAGE = LIST_PER_PAGE
 const ALL = 'all'
 const copy = productsListContent
 const TAB =
   'h-8 rounded-full px-4 text-sm data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none'
 
-type Query = { page: number; query: string; status: ProductStatus | null }
+type Query = ListQuery<ProductStatus>
 
 function fetchProducts(q: Query) {
   return api.products.list({
@@ -88,7 +93,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   },
 ]
 
-function ProductsContent() {
+function ProductsContent({ initial }: { initial: ProductsInitial }) {
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -97,13 +102,14 @@ function ProductsContent() {
     },
     { shallow: true },
   )
-  const [items, setItems] = useState<Item[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [items, setItems] = useState<Item[]>(initial.result.items)
+  const [total, setTotal] = useState(initial.result.total)
+  const [loading, setLoading] = useState(false)
 
   const { page, query, status } = q
 
   useEffect(() => {
+    if (sameListQuery({ page, query, status }, initial.query)) return
     let cancelled = false
     setLoading(true)
     fetchProducts({ page, query, status })
@@ -116,7 +122,7 @@ function ProductsContent() {
     return () => {
       cancelled = true
     }
-  }, [page, query, status])
+  }, [page, query, status, initial.query])
 
   async function bulkSetStatus(ids: string[], next: ProductStatus, clear: () => void) {
     try {
@@ -150,19 +156,7 @@ function ProductsContent() {
           </TabsList>
         </Tabs>
         <div className="flex items-center gap-2">
-          <Button variant="outline" disabled className="h-10 rounded-full px-4">
-            <Download />
-            {copy.export}
-          </Button>
-          <Button variant="outline" disabled className="h-10 rounded-full px-4">
-            <Upload />
-            {copy.import}
-          </Button>
-          <Button
-            render={<Link href="/products/new" />}
-            nativeButton={false}
-            className="h-10 rounded-full px-4 text-[12px]"
-          >
+          <Button render={<Link href="/products/new" />} nativeButton={false} className="h-10 px-4">
             <Plus />
             {copy.add}
           </Button>
@@ -211,10 +205,10 @@ function ProductsContent() {
   )
 }
 
-export function ProductsPage() {
+export function ProductsPage({ initial }: { initial: ProductsInitial }) {
   return (
     <Suspense>
-      <ProductsContent />
+      <ProductsContent initial={initial} />
     </Suspense>
   )
 }

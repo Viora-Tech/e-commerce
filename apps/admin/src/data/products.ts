@@ -140,8 +140,6 @@ export const productFormContent = {
     tags: 'Tags',
     tagsPlaceholder: 'Add a tag and press Enter',
     removeTag: (tag: string) => `Remove ${tag}`,
-    collections: 'Collections',
-    collectionsSoon: 'Collections arrive in a later release.',
   },
   seo: {
     heading: 'Search engine listing',

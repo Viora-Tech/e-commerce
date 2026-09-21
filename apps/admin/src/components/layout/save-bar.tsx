@@ -2,7 +2,7 @@
 
 import { Button } from '@commerce/ui/shadcn/button'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { CircleAlert } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 
 type SaveBarProps = {
   message: string
@@ -11,8 +11,6 @@ type SaveBarProps = {
   onSave: () => void
   onDiscard: () => void
   saving?: boolean
-  /** Discard is pointless when nothing changed (e.g. a fresh "new" form). */
-  canDiscard?: boolean
 }
 
 /**
@@ -26,20 +24,19 @@ export function SaveBar({
   onSave,
   onDiscard,
   saving = false,
-  canDiscard = true,
 }: SaveBarProps) {
   return (
     <div className="sticky top-2 z-20">
       <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-card md:px-5">
-        <CircleAlert className="size-5 shrink-0 text-warning" aria-hidden />
-        <span className="text-body font-bold text-ink-strong">{message}</span>
+        <Pencil className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="text-body font-semibold text-foreground">{message}</span>
         <div className="ml-auto flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
             className="h-9 rounded-lg px-4"
             onClick={onDiscard}
-            disabled={saving || !canDiscard}
+            disabled={saving}
           >
             {discardLabel}
           </Button>

@@ -3,7 +3,6 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
   SelectContent,
@@ -110,11 +109,6 @@ export function OrganisationCard({
               onChange={onTags}
               placeholder={copy.organisation.tagsPlaceholder}
             />
-          </Field>
-          <Field data-disabled="true">
-            <FieldLabel htmlFor="product-collections">{copy.organisation.collections}</FieldLabel>
-            <Input size="lg" id="product-collections" value="" readOnly disabled />
-            <FieldDescription>{copy.organisation.collectionsSoon}</FieldDescription>
           </Field>
         </FieldGroup>
       </CardContent>

@@ -54,7 +54,7 @@ export function ResourceTableToolbar<T extends RowData>({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={tableContent.search(plural)}
-            className="h-10 rounded-full bg-muted pl-9 shadow-none"
+            className="h-10 rounded-lg bg-muted pl-9 shadow-none"
           />
         </div>
         {filters}

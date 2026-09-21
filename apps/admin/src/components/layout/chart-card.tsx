@@ -8,7 +8,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@commerce/ui/shadcn/chart'
-import { MoreVertical } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
@@ -58,7 +57,6 @@ export function ChartCard({ title, periods, tabs, formatValue, className }: Char
               ))}
             </div>
           ) : null}
-          <MoreVertical className="size-5 text-muted-foreground" aria-hidden="true" />
         </div>
       </div>
       {tabs ? <div className="mt-4">{tabs}</div> : null}
@@ -137,7 +135,7 @@ export function StatTabs({ items, active = 0, onChange }: StatTabsProps) {
 
 type MiniBarsProps = { data: ChartPoint[]; className?: string }
 
-/** Thin bar strip ("Users per minute") — no axes, primary fill. */
+/** Thin bar strip ("Users per minute"): no axes, primary fill. */
 export function MiniBars({ data, className }: MiniBarsProps) {
   return (
     <ChartContainer config={chartConfig} className={cn('aspect-auto h-10 w-full', className)}>

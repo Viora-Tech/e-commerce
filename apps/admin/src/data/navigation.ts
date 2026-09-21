@@ -128,11 +128,7 @@ export const navigationContent = {
     empty: 'Nothing matches',
     orders: 'Orders',
     products: 'Products',
-    orderLabel: (n: number, who: string | null) => `#${n}${who ? ` · ${who}` : ''}`,
-  },
-  notifications: {
-    label: 'Notifications',
-    empty: 'You are all caught up.',
+    orderLabel: (n: number, who: string | null) => `#${n}${who ? `, ${who}` : ''}`,
   },
   account: 'Account',
   toggleTheme: 'Toggle theme',
