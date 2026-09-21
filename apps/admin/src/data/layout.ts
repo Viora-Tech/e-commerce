@@ -1,23 +1,5 @@
-/**
- * Pages still rendered inside the Polaris Frame (Toast + ContextualSaveBar
- * context) until their own migration PR lands. Everything else is shadcn.
- * When this list is empty, delete it along with @shopify/polaris.
- */
-export const POLARIS_ROUTES = [
-  '/online-store/pages',
-  '/apps',
-  '/settings/payments',
-  '/settings/shipping',
-  '/settings/notifications',
-  '/dev',
-] as const
-
 function under(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
-}
-
-export function isShadcnRoute(pathname: string): boolean {
-  return !POLARIS_ROUTES.some((r) => under(pathname, r))
 }
 
 /** Top-bar title per section, longest prefix wins. */
