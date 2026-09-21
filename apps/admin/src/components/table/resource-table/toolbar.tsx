@@ -68,10 +68,7 @@ export function ResourceTableToolbar<T extends RowData>({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button
-                  size="sm"
-                  className="ml-auto h-8 rounded-lg bg-primary px-3 text-primary-foreground hover:bg-primary/90"
-                />
+                <Button size="sm" variant="outline" className="ml-auto h-8 rounded-lg px-3" />
               }
             >
               {tableContent.view}

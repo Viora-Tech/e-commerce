@@ -24,7 +24,7 @@ const SIDEBAR_WIDTH = '260px'
 /**
  * Shell = kit sidebar + top bar + page content. Pages rebuilt on shadcn render
  * bare; the rest still sit inside the Polaris Frame (Toast + ContextualSaveBar
- * context) until their migration PR lands — see SHADCN_ROUTES.
+ * context) until their migration PR lands — see POLARIS_ROUTES.
  */
 export function AdminFrame({
   children,

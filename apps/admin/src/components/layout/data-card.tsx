@@ -54,7 +54,7 @@ export function DataCard({
   )
 }
 
-/** Green "Filter" button from the kit; wire `onClick` when the card gets real filters. */
+/** Secondary "Filter" button; wire `onClick` when the card gets real filters. */
 export function FilterButton({
   label = layoutContent.filter,
   onClick,
@@ -66,7 +66,7 @@ export function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex h-8 items-center gap-2 rounded-lg bg-primary px-3 text-sm text-primary-foreground transition-colors hover:bg-primary/90"
+      className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
     >
       {label}
       <svg

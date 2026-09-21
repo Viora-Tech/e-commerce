@@ -1,9 +1,17 @@
 import { loadEnv } from '@commerce/config'
-import { enqueueNotification, type TemplateId } from '@commerce/core'
+import { CommerceError, enqueueNotification, type TemplateId } from '@commerce/core'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
-import { getOrder, listOrders, setOrderStatus } from '../services/order.service'
+import {
+  addOrderNote,
+  getOrder,
+  listOrders,
+  refundOrderPayment,
+  setOrderStatus,
+  setOrderTags,
+} from '../services/order.service'
 import {
   bookShipment,
   cancelStoreShipment,
@@ -99,4 +107,43 @@ export const ordersRouter = {
       }
       return o
     }),
+
+  /** Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed. */
+  refund: storeProcedure
+    .input(
+      z.object({
+        paymentId: z.uuid(),
+        amountPaise: z.number().int().positive(),
+        reason: z.string().trim().max(500).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      try {
+        return await refundOrderPayment(
+          context.tx,
+          context.scope.storeId,
+          payments,
+          secret(),
+          input,
+        )
+      } catch (err) {
+        if (err instanceof CommerceError)
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        throw err
+      }
+    }),
+
+  addNote: storeProcedure
+    .input(z.object({ orderId: z.uuid(), body: z.string().trim().min(1).max(2000) }))
+    .handler(({ context, input }) =>
+      addOrderNote(context.tx, context.scope.storeId, {
+        ...input,
+        author: context.session.user.email,
+      }),
+    ),
+
+  setTags: storeProcedure
+    .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
+    .handler(({ context, input }) => setOrderTags(context.tx, input.id, input.tags)),
 }

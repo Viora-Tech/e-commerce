@@ -412,3 +412,27 @@
   height: 2.5rem;
   background-color: transparent;
 }
+
+/*
+ * Packing slip: the order page hides its chrome with `print:hidden` and shows
+ * `.packing-slip`; the shell's fixed-height scroll containers would clip it,
+ * so let the document grow and drop the sidebar and top bar.
+ */
+@media print {
+  [data-slot='sidebar-wrapper'],
+  [data-slot='sidebar-inset'],
+  main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  [data-slot='sidebar'],
+  [data-slot='sidebar-container'],
+  header {
+    display: none !important;
+  }
+  .packing-slip {
+    padding: 24px;
+    color: #000;
+    background: #fff;
+  }
+}

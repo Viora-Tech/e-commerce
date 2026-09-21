@@ -20,12 +20,23 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   useSidebar,
 } from '@commerce/ui/shadcn/sidebar'
 import { ChevronsUpDown, ExternalLink, LogOut, PanelLeftClose, Store } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { isNavActive, NAV_GROUPS, navigationContent } from '@/data/navigation'
+import {
+  isChildActive,
+  isSectionActive,
+  isSectionLinkActive,
+  NAV_GROUPS,
+  type NavItem,
+  navigationContent,
+  SETTINGS_NAV,
+} from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -38,7 +49,10 @@ type AdminSidebarProps = {
 }
 
 const NAV_ITEM =
-  'h-10 gap-2 rounded-md px-4 text-[15px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-bold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground'
+  'h-10 gap-3 rounded-lg px-3 text-[15px] text-sidebar-foreground [&_svg]:size-5 data-active:bg-primary data-active:font-semibold data-active:text-primary-foreground data-active:hover:bg-primary data-active:hover:text-primary-foreground'
+
+const NAV_CHILD =
+  'h-9 rounded-md px-3 text-[14px] text-muted-foreground hover:text-foreground data-active:bg-primary-soft data-active:font-semibold data-active:text-primary'
 
 function initials(name: string): string {
   return (
@@ -51,7 +65,47 @@ function initials(name: string): string {
   )
 }
 
-/** Kit sidebar: white rail, grouped sections, solid green active pill, user card at the bottom. */
+type NavSectionProps = { item: NavItem; pathname: string }
+
+/** One top-level entry; its children unfold beneath it while the section is active. */
+function NavSection({ item, pathname }: NavSectionProps) {
+  const open = isSectionActive(pathname, item)
+  const children = item.children ?? []
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        render={<Link href={item.href} />}
+        isActive={isSectionLinkActive(pathname, item)}
+        tooltip={item.label}
+        className={cn(
+          NAV_ITEM,
+          open && !isSectionLinkActive(pathname, item) && 'font-semibold text-foreground',
+        )}
+      >
+        <item.icon strokeWidth={1.8} />
+        <span>{item.label}</span>
+      </SidebarMenuButton>
+      {open && children.length > 0 ? (
+        <SidebarMenuSub className="mx-0 mt-0.5 gap-0.5 border-0 pl-11 pr-0">
+          {children.map((child) => (
+            <SidebarMenuSubItem key={child.href}>
+              <SidebarMenuSubButton
+                render={<Link href={child.href} />}
+                isActive={isChildActive(pathname, child)}
+                className={NAV_CHILD}
+              >
+                <span>{child.label}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      ) : null}
+    </SidebarMenuItem>
+  )
+}
+
+/** Kit sidebar: white rail, Shopify sections with unfolding sub-pages, green active pill, settings + user pinned bottom. */
 export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -124,26 +178,18 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="gap-1 px-1.5">
-        {NAV_GROUPS.map((group) => (
-          <SidebarGroup key={group.label} className="py-1">
-            <SidebarGroupLabel className="h-6 px-4 text-[13px] font-medium text-muted-foreground-soft">
-              {group.label}
-            </SidebarGroupLabel>
+      <SidebarContent className="gap-0 px-3">
+        {NAV_GROUPS.map((group, gi) => (
+          <SidebarGroup key={group.label ?? gi} className="px-0 py-2">
+            {group.label ? (
+              <SidebarGroupLabel className="h-7 px-3 text-[12px] font-medium uppercase tracking-wide text-muted-foreground-soft">
+                {group.label}
+              </SidebarGroupLabel>
+            ) : null}
             <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
+              <SidebarMenu className="gap-0.5">
                 {group.items.map((item) => (
-                  <SidebarMenuItem key={`${group.label}-${item.label}`}>
-                    <SidebarMenuButton
-                      render={<Link href={item.href} />}
-                      isActive={isNavActive(pathname, item)}
-                      tooltip={item.label}
-                      className={cn(NAV_ITEM, item.soon && 'opacity-70')}
-                    >
-                      <item.icon strokeWidth={1.8} />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <NavSection key={item.href} item={item} pathname={pathname} />
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -151,7 +197,10 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="gap-2 px-3 pb-4">
+      <SidebarFooter className="gap-3 px-3 pb-4">
+        <SidebarMenu>
+          <NavSection item={SETTINGS_NAV} pathname={pathname} />
+        </SidebarMenu>
         <div className="flex items-center gap-3 rounded-lg px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary">
             {initials(user.name)}

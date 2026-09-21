@@ -1,6 +1,27 @@
+import {
+  type PaymentProvider,
+  parsePaymentSettings,
+  refundPayment,
+  resolvePaymentProviders,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { address, customer, order, orderLine, payment } from '@commerce/db'
-import { and, count, desc, eq, ilike, or } from 'drizzle-orm'
+import {
+  address,
+  customer,
+  media,
+  notification,
+  order,
+  orderLine,
+  orderNote,
+  payment,
+  paymentEvent,
+  productMedia,
+  refund,
+  store,
+  variant,
+} from '@commerce/db'
+import type { PaymentRegistry } from '@commerce/payments'
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 
 export type OrderStatus = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
 
@@ -48,18 +69,139 @@ export async function listOrders(
 export async function getOrder(tx: StoreTx, id: string) {
   const [o] = await tx.select().from(order).where(eq(order.id, id))
   if (!o) return null
-  const lines = await tx.select().from(orderLine).where(eq(orderLine.orderId, id))
-  const payments = await tx.select().from(payment).where(eq(payment.orderId, id))
+  const [lines, payments, refunds, notes, notifications] = await Promise.all([
+    tx.select().from(orderLine).where(eq(orderLine.orderId, id)),
+    tx.select().from(payment).where(eq(payment.orderId, id)),
+    tx.select().from(refund).where(eq(refund.orderId, id)).orderBy(asc(refund.createdAt)),
+    tx.select().from(orderNote).where(eq(orderNote.orderId, id)).orderBy(asc(orderNote.createdAt)),
+    tx
+      .select()
+      .from(notification)
+      .where(eq(notification.orderId, id))
+      .orderBy(asc(notification.createdAt)),
+  ])
   const [cust] = o.customerId
     ? await tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
   const [ship] = o.shippingAddressId
     ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
-  return { ...o, lines, payments, customer: cust ?? null, shippingAddress: ship ?? null }
+  return {
+    ...o,
+    lines: await withThumbnails(tx, lines),
+    payments,
+    refunds,
+    notes,
+    notifications,
+    paymentEvents: await eventsForPayments(tx, payments),
+    customer: cust ?? null,
+    shippingAddress: ship ?? null,
+  }
 }
 
+type Line = typeof orderLine.$inferSelect
+
+/** Variant image, else the product's first image, else nothing. */
+async function withThumbnails(tx: StoreTx, lines: Line[]) {
+  if (lines.length === 0) return []
+  const ids = lines.map((l) => l.variantId)
+  const rows = await tx
+    .select({
+      variantId: variant.id,
+      sku: variant.sku,
+      variantImage: media.url,
+      productImage: sql<string | null>`(
+        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
+        where pm.product_id = ${variant.productId} order by pm.position limit 1)`,
+    })
+    .from(variant)
+    .leftJoin(media, eq(media.id, variant.mediaId))
+    .where(inArray(variant.id, ids))
+  const byId = new Map(rows.map((r) => [r.variantId, r]))
+  return lines.map((l) => {
+    const v = byId.get(l.variantId)
+    return { ...l, sku: v?.sku ?? null, imageUrl: v?.variantImage ?? v?.productImage ?? null }
+  })
+}
+
+type Payment = typeof payment.$inferSelect
+
+/**
+ * payment_event has no order column (webhooks arrive before we know the
+ * order); match on the gateway's own ids inside the stored payload instead.
+ */
+async function eventsForPayments(tx: StoreTx, payments: Payment[]) {
+  const refs = payments.flatMap((p) => [p.providerRef, p.providerPaymentId]).filter(Boolean)
+  if (refs.length === 0) return []
+  return tx
+    .select({
+      id: paymentEvent.id,
+      provider: paymentEvent.provider,
+      type: paymentEvent.type,
+      status: paymentEvent.status,
+      error: paymentEvent.error,
+      receivedAt: paymentEvent.receivedAt,
+    })
+    .from(paymentEvent)
+    .where(or(...refs.map((r) => sql`${paymentEvent.payload}::text like ${`%${r}%`}`)))
+    .orderBy(asc(paymentEvent.receivedAt))
+}
+
+export async function addOrderNote(
+  tx: StoreTx,
+  storeId: string,
+  input: { orderId: string; body: string; author: string },
+) {
+  const [row] = await tx
+    .insert(orderNote)
+    .values({ storeId, orderId: input.orderId, body: input.body, author: input.author })
+    .returning()
+  return row ?? null
+}
+
+export async function setOrderTags(tx: StoreTx, id: string, tags: string[]) {
+  const [o] = await tx.update(order).set({ tags }).where(eq(order.id, id)).returning()
+  return o ?? null
+}
+
+/** Build the gateway for a payment from the store's saved credentials; null for offline methods. */
+async function providerForPayment(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  secret: string,
+  providerId: string,
+): Promise<PaymentProvider | null> {
+  const [s] = await tx.select({ payments: store.payments }).from(store).where(eq(store.id, storeId))
+  const { providers } = resolvePaymentProviders(registry, parsePaymentSettings(s?.payments), secret)
+  return providers.find((p) => p.id === providerId) ?? null
+}
+
+export async function refundOrderPayment(
+  tx: StoreTx,
+  storeId: string,
+  registry: PaymentRegistry,
+  secret: string,
+  input: { paymentId: string; amountPaise: number; reason?: string | undefined },
+) {
+  const [p] = await tx.select().from(payment).where(eq(payment.id, input.paymentId))
+  if (!p) return null
+  const provider = await providerForPayment(tx, storeId, registry, secret, p.provider)
+  return refundPayment({ tx, storeId }, provider, input)
+}
+
+/**
+ * Merchant-driven status change. "Paid" means the money arrived (cash on
+ * delivery, a bank transfer they matched by hand), so pending payments are
+ * captured too; otherwise the order and payment rows would disagree.
+ */
 export async function setOrderStatus(tx: StoreTx, id: string, status: OrderStatus) {
   const [o] = await tx.update(order).set({ status }).where(eq(order.id, id)).returning()
+  if (o && status === 'paid') {
+    await tx
+      .update(payment)
+      .set({ status: 'captured' })
+      .where(and(eq(payment.orderId, id), eq(payment.status, 'pending')))
+  }
   return o ?? null
 }

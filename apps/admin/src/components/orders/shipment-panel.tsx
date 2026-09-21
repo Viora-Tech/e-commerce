@@ -1,38 +1,31 @@
 'use client'
 
 import type { Tracking } from '@commerce/core'
-import {
-  Badge,
-  BlockStack,
-  Button,
-  ButtonGroup,
-  Card,
-  InlineStack,
-  Link,
-  Text,
-} from '@shopify/polaris'
+import { Button } from '@commerce/ui/shadcn/button'
+import { ExternalLink, Printer, RefreshCw } from 'lucide-react'
+import { DataCard } from '@/components/layout/data-card'
+import { StatusPill, type StatusTone } from '@/components/layout/status-pill'
 import { shipmentPanelContent as copy } from '@/data/shipping'
-import type { api } from '@/lib/api-client'
-
-type Shipment = NonNullable<NonNullable<Awaited<ReturnType<typeof api.orders.get>>>['shipment']>
+import { type OrderShipment, when } from './order-detail-types'
 
 type ShipmentPanelProps = {
   orderStatus: string
-  shipment: Shipment | null
+  shipment: OrderShipment
   busy: boolean
   onBook: () => void
   onRefresh: () => void
   onCancel: () => void
 }
 
-const TONE: Record<string, 'success' | 'critical' | 'attention' | 'info'> = {
+const TONE: Record<string, StatusTone> = {
   delivered: 'success',
-  rto: 'critical',
-  cancelled: 'critical',
-  created: 'attention',
+  out_for_delivery: 'success',
+  in_transit: 'info',
+  picked_up: 'info',
+  created: 'warning',
+  rto: 'destructive',
+  cancelled: 'destructive',
 }
-
-const when = (iso: string | Date) => new Date(iso).toLocaleString('en-IN')
 
 /** Book, refresh or cancel the consignment for an order, and show the courier's scans. */
 export function ShipmentPanel({
@@ -44,94 +37,117 @@ export function ShipmentPanel({
   onCancel,
 }: ShipmentPanelProps) {
   const tracking = (shipment?.tracking ?? null) as Tracking | null
-  const open = shipment && shipment.status !== 'cancelled' && shipment.status !== 'delivered'
   const canBook = !shipment || shipment.status === 'cancelled'
   const bookable = canBook && orderStatus !== 'cancelled' && orderStatus !== 'delivered'
+  const open = shipment && shipment.status !== 'cancelled' && shipment.status !== 'delivered'
+  const events = tracking?.events.slice().reverse() ?? []
 
   if (!shipment || canBook) {
     return (
-      <Card>
-        <BlockStack gap="200">
-          <Text as="h2" variant="headingSm">
-            {copy.heading}
-          </Text>
-          <Text as="p" tone="subdued">
-            {copy.none}
-          </Text>
+      <DataCard title={copy.heading}>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-body text-muted-foreground">{copy.none}</p>
           {bookable ? (
-            <Button variant="primary" onClick={onBook} loading={busy}>
+            <Button onClick={onBook} disabled={busy}>
               {busy ? copy.booking : copy.book}
             </Button>
           ) : null}
-        </BlockStack>
-      </Card>
+        </div>
+      </DataCard>
     )
   }
 
   return (
-    <Card>
-      <BlockStack gap="300">
-        <InlineStack align="space-between" blockAlign="center">
-          <Text as="h2" variant="headingSm">
-            {copy.heading}
-          </Text>
-          <Badge tone={TONE[shipment.status] ?? 'info'}>
-            {copy.status[shipment.status] ?? shipment.status}
-          </Badge>
-        </InlineStack>
-        <BlockStack gap="100">
-          <Text as="p">
-            {copy.courier}: {shipment.provider} · {copy.waybill}: <code>{shipment.waybill}</code>
-          </Text>
-          <Text as="p" tone="subdued" variant="bodySm">
-            {copy.updated} {when(shipment.updatedAt)}
-            {tracking?.expectedDate ? ` · ${copy.expected} ${tracking.expectedDate}` : ''}
-          </Text>
-          <InlineStack gap="300">
-            {shipment.labelUrl ? (
-              <Link url={shipment.labelUrl} target="_blank">
-                {copy.label}
-              </Link>
-            ) : null}
-            {shipment.trackingUrl ? (
-              <Link url={shipment.trackingUrl} target="_blank">
-                {copy.track}
-              </Link>
-            ) : null}
-          </InlineStack>
-        </BlockStack>
-        {open ? (
-          <ButtonGroup>
-            <Button onClick={onRefresh} loading={busy}>
-              {copy.refresh}
+    <DataCard
+      title={copy.heading}
+      action={
+        <StatusPill tone={TONE[shipment.status] ?? 'neutral'}>
+          {copy.status[shipment.status] ?? shipment.status}
+        </StatusPill>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-body sm:grid-cols-3">
+          <div>
+            <dt className="text-caption">{copy.courier}</dt>
+            <dd className="font-medium">{shipment.provider}</dd>
+          </div>
+          <div>
+            <dt className="text-caption">{copy.waybill}</dt>
+            <dd className="font-medium">
+              <code>{shipment.waybill}</code>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-caption">{copy.updated}</dt>
+            <dd className="font-medium">
+              {when(shipment.updatedAt)}
+              {tracking?.expectedDate ? ` · ${copy.expected} ${tracking.expectedDate}` : ''}
+            </dd>
+          </div>
+        </dl>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {shipment.labelUrl ? (
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={shipment.labelUrl} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              <Printer aria-hidden="true" /> {copy.label}
             </Button>
-            <Button tone="critical" onClick={onCancel} disabled={busy}>
-              {copy.cancel}
+          ) : null}
+          {shipment.trackingUrl ? (
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={shipment.trackingUrl} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              <ExternalLink aria-hidden="true" /> {copy.track}
             </Button>
-          </ButtonGroup>
-        ) : null}
-        <BlockStack gap="100">
-          <Text as="h3" variant="headingXs">
-            {copy.events}
-          </Text>
-          {tracking?.events.length ? (
-            tracking.events
-              .slice()
-              .reverse()
-              .map((e) => (
-                <Text key={`${e.at}-${e.description}`} as="p" variant="bodySm">
-                  {when(e.at)} · {copy.status[e.status] ?? e.status}
-                  {e.location ? ` · ${e.location}` : ''}
-                  {e.description ? ` — ${e.description}` : ''}
-                </Text>
-              ))
+          ) : null}
+          {open ? (
+            <>
+              <Button variant="outline" size="sm" onClick={onRefresh} disabled={busy}>
+                <RefreshCw aria-hidden="true" /> {copy.refresh}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={onCancel} disabled={busy}>
+                {copy.cancel}
+              </Button>
+            </>
+          ) : null}
+        </div>
+
+        <section className="border-t border-border pt-4">
+          <p className="text-caption mb-2">{copy.events}</p>
+          {events.length === 0 ? (
+            <p className="text-body text-muted-foreground">{copy.noEvents}</p>
           ) : (
-            <Text as="p" tone="subdued" variant="bodySm">
-              {copy.noEvents}
-            </Text>
+            <ol className="relative flex flex-col gap-3 border-l border-border pl-4">
+              {events.map((e) => (
+                <li key={`${e.at}-${e.description}`} className="relative text-body">
+                  <span
+                    className="absolute top-1.5 -left-[21px] size-2.5 rounded-full bg-primary"
+                    aria-hidden="true"
+                  />
+                  <p className="font-medium">
+                    {copy.status[e.status] ?? e.status}
+                    {e.location ? (
+                      <span className="text-muted-foreground"> · {e.location}</span>
+                    ) : null}
+                  </p>
+                  <p className="text-caption">
+                    {when(e.at)}
+                    {e.description ? ` — ${e.description}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ol>
           )}
-        </BlockStack>
-      </BlockStack>
-    </Card>
+        </section>
+      </div>
+    </DataCard>
   )
 }
