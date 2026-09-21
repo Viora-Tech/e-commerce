@@ -1,4 +1,4 @@
-import { customer, notification, order, orderLine, store } from '@commerce/db'
+import { customer, notification, order, orderLine, shipment, store } from '@commerce/db'
 import type {
   NotificationChannel,
   NotificationRegistry,
@@ -52,6 +52,10 @@ export async function buildTemplateData(
   const [cu] = o.customerId
     ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
+  const [ship] = await ctx.tx
+    .select({ waybill: shipment.waybill, trackingUrl: shipment.trackingUrl })
+    .from(shipment)
+    .where(eq(shipment.orderId, orderId))
   const method = o.paymentMethod ?? ''
   return {
     data: {
@@ -68,6 +72,8 @@ export async function buildTemplateData(
       })),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
       orderUrl: storefrontUrl ? `${storefrontUrl}/checkout/thank-you/${o.number}` : undefined,
+      waybill: ship?.waybill ?? undefined,
+      trackingUrl: ship?.trackingUrl ?? undefined,
     },
     to: { email: o.email ?? undefined, phone: o.phone ?? undefined },
   }

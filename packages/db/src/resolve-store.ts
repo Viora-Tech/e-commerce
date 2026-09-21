@@ -23,3 +23,9 @@ export async function resolveStoreForOrganization(
   )
   return row?.id ?? null
 }
+
+/** Store ids with parcels still moving, for the worker's tracking job. SECURITY DEFINER backed. */
+export async function storesWithOpenShipments(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_open_shipments() as id`)
+  return rows.map((r) => r.id)
+}

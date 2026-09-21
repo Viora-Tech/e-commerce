@@ -21,7 +21,9 @@
     "@commerce/notifications": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/notifications-whatsapp": "workspace:*",
-    "@commerce/queue": "workspace:*"
+    "@commerce/queue": "workspace:*",
+    "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/shipping": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

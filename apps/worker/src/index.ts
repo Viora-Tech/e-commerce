@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
+import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 
 const env = loadEnv(process.env)
 const db = createDb(env.DATABASE_URL)
@@ -17,7 +18,14 @@ const notificationWorker = createNotificationWorker(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 
+const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
+await tracker.queue.upsertJobScheduler(
+  'track-open-shipments',
+  { every: TRACK_EVERY_MS },
+  { name: 'track' },
+)
 
 const app = new Hono()
 app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, notifications))
@@ -40,6 +48,8 @@ app.get('/health', async (c) => {
 const shutdown = async () => {
   await worker.close()
   await notificationWorker.close()
+  await tracker.worker.close()
+  await tracker.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

@@ -1,0 +1,73 @@
+import {
+  applyTracking,
+  builtInShippingRegistry,
+  listOpenShipments,
+  parseShippingSettings,
+  resolveShippingProviders,
+} from '@commerce/core'
+import { type Db, store, storesWithOpenShipments, withStore } from '@commerce/db'
+import { type IORedis, Queue, SHIPPING_TRACK_QUEUE, Worker } from '@commerce/queue'
+import { delhiveryFactory } from '@commerce/shipping-delhivery'
+import { eq } from 'drizzle-orm'
+
+export const shippingRegistry = builtInShippingRegistry().register(delhiveryFactory)
+
+/** How often open shipments are polled. Couriers update scans a few times a day. */
+export const TRACK_EVERY_MS = 30 * 60_000
+
+/**
+ * One repeat job walks every store with open shipments, asks each store's
+ * courier for fresh tracking and records it. A courier that fails for one
+ * store is logged and skipped; the next tick tries again.
+ */
+export function createShippingTracker(
+  connection: IORedis,
+  db: Db,
+  opts: { settingsSecret: string },
+) {
+  const queue = new Queue(SHIPPING_TRACK_QUEUE, { connection })
+  const worker = new Worker(
+    SHIPPING_TRACK_QUEUE,
+    async () => {
+      // Which stores have parcels in flight; every read after this is scoped to one store.
+      const storeIds = await storesWithOpenShipments(db)
+      let updated = 0
+      for (const storeId of storeIds) {
+        const { settings, open } = await withStore(db, storeId, async (tx) => {
+          const [s] = await tx
+            .select({ shipping: store.shipping })
+            .from(store)
+            .where(eq(store.id, storeId))
+          return {
+            settings: parseShippingSettings(s?.shipping),
+            open: await listOpenShipments({ storeId, tx }),
+          }
+        })
+        const { providers } = resolveShippingProviders(
+          shippingRegistry,
+          settings,
+          opts.settingsSecret,
+        )
+        for (const row of open) {
+          const provider = providers.find((p) => p.id === row.provider)
+          if (!provider) continue
+          try {
+            const tracking = await provider.track(row.waybill)
+            const r = await withStore(db, storeId, (tx) =>
+              applyTracking({ storeId, tx }, row.id, tracking),
+            )
+            updated += 1
+            if (r.becameDelivered) {
+              console.log(`[shipping] ${row.waybill} delivered (order ${row.orderId})`)
+            }
+          } catch (err) {
+            console.warn(`[shipping] track ${row.provider}/${row.waybill} failed:`, err)
+          }
+        }
+      }
+      return { stores: storeIds.length, updated }
+    },
+    { connection },
+  )
+  return { queue, worker }
+}

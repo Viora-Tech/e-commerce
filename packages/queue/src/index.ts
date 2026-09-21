@@ -3,6 +3,8 @@ import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
 
 export const HEARTBEAT_QUEUE = '{system}-heartbeat'
+/** Repeat job that polls open shipments. Braces keep every key on one slot. */
+export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
 
 export function createConnection(redisUrl: string): IORedis {
   return new IORedis(redisUrl, { maxRetriesPerRequest: null })
@@ -27,5 +29,13 @@ export function notificationQueue(redisUrl: string): NotificationQueue {
   return g.__notificationQueue
 }
 
+/** One process-wide Redis connection for caches; same globalThis caching as the queue. */
+export function sharedRedis(redisUrl: string): IORedis {
+  const g = globalThis as { __commerceRedis?: IORedis }
+  if (!g.__commerceRedis) g.__commerceRedis = createConnection(redisUrl)
+  return g.__commerceRedis
+}
+
+export * from './cache'
 export { Queue, Worker } from 'bullmq'
 export type { default as IORedis } from 'ioredis'

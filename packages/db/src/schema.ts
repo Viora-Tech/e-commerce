@@ -35,6 +35,8 @@ export const store = pgTable('store', {
   payments: jsonb('payments'),
   /** Notification settings: enabled channels and encrypted channel credentials. */
   notifications: jsonb('notifications'),
+  /** Shipping settings: enabled couriers, encrypted credentials and the dispatch policy. */
+  shipping: jsonb('shipping'),
   createdAt: createdAt(),
 })
 
@@ -280,6 +282,40 @@ export const notification = pgTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template)],
+)
+
+/** One courier consignment per order. Tracking is the courier's normalised answer, refreshed by the worker. */
+export const shipment = pgTable(
+  'shipment',
+  {
+    id: id(),
+    storeId: storeId(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => order.id),
+    provider: text('provider').notNull(),
+    waybill: text('waybill').notNull(),
+    status: text('status', {
+      enum: [
+        'created',
+        'picked_up',
+        'in_transit',
+        'out_for_delivery',
+        'delivered',
+        'rto',
+        'cancelled',
+      ],
+    })
+      .notNull()
+      .default('created'),
+    labelUrl: text('label_url'),
+    trackingUrl: text('tracking_url'),
+    /** Last Tracking payload from the provider. */
+    tracking: jsonb('tracking'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill)],
 )
 
 export const storeDomain = pgTable('store_domain', {

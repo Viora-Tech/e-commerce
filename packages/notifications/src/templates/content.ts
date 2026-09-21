@@ -33,11 +33,12 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
   order_shipped: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} is on its way`,
     heading: () => 'Shipped!',
-    intro: (d) => `Order #${d.orderNumber} has left our warehouse.`,
+    intro: (d) =>
+      `Order #${d.orderNumber} has left our warehouse.${d.waybill ? ` Tracking number: ${d.waybill}.` : ''}`,
     outro: (d) =>
       d.trackingUrl ? `Track it here: ${d.trackingUrl}` : 'Tracking details follow shortly.',
     whatsapp: (d) =>
-      `${d.storeName} order #${d.orderNumber} has shipped.${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
+      `${d.storeName} order #${d.orderNumber} has shipped.${d.waybill ? ` AWB ${d.waybill}.` : ''}${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
   },
 }
 

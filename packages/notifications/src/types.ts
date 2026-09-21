@@ -23,6 +23,8 @@ export type TemplateData = {
   paymentMethodLabel: string
   /** Set on order_shipped when the carrier gave us one. */
   trackingUrl?: string | undefined
+  /** Courier tracking number, printed so the shopper can quote it. */
+  waybill?: string | undefined
   /** Where the shopper can see the order (thank-you page). */
   orderUrl?: string | undefined
 }

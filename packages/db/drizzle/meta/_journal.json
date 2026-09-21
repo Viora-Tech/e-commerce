@@ -141,6 +141,13 @@
       "when": 1789971045388,
       "tag": "0019_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789973079411,
+      "tag": "0020_shipping",
+      "breakpoints": true
     }
   ]
 }
