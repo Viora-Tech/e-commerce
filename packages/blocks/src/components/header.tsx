@@ -1,12 +1,12 @@
 import type { ThemeMode } from '../types'
-import { Icon } from './icon'
-import { ThemeToggle } from './theme-toggle'
+import Icon from './icon'
+import ThemeToggle from './theme-toggle'
 
 export type NavLink = { label: string; href: string }
 
 // Port of sections/header.liquid: logo, inline nav, icons. Mega-menu and
 // search overlay come with the interactive pass.
-export function Header({
+export default function Header({
   storeName,
   links,
   themeMode,

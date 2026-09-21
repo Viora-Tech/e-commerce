@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { NotificationsSettings } from './notifications-settings'
+import NotificationsSettings from './notifications-settings'
 
 export const metadata: Metadata = { title: 'Notifications' }
 

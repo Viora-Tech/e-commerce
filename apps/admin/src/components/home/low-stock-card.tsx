@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
 
 type LowStockRow = {
@@ -15,7 +15,13 @@ type LowStockRow = {
  * detail with a 62 x 28 green pill on the right, "See more" underneath.
  * Ours lists the variants running out, with Restock as the pill.
  */
-export function LowStockCard({ rows, threshold }: { rows: LowStockRow[]; threshold: number }) {
+export default function LowStockCard({
+  rows,
+  threshold,
+}: {
+  rows: LowStockRow[]
+  threshold: number
+}) {
   const c = homeContent.lowStock
   return (
     <DataCard

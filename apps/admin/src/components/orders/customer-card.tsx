@@ -1,4 +1,4 @@
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { orderDetailContent as copy } from '@/data/orders'
 import type { OrderDetail } from './order-detail-types'
 
@@ -7,7 +7,7 @@ type CustomerCardProps = {
 }
 
 /** Who ordered and where it goes. */
-export function CustomerCard({ order }: CustomerCardProps) {
+export default function CustomerCard({ order }: CustomerCardProps) {
   const a = order.shippingAddress
 
   return (

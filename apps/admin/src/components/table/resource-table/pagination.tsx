@@ -26,6 +26,7 @@ function pageSlots(current: number, totalPages: number): Slot[] {
   if (totalPages <= EDGE_PAGES + 2) {
     return Array.from({ length: totalPages }, (_, i) => i + 1)
   }
+
   const start = Math.max(1, Math.min(current - 2, totalPages - EDGE_PAGES))
   const head = Array.from({ length: EDGE_PAGES }, (_, i) => start + i)
   const tail: Slot[] = head[head.length - 1] === totalPages ? [] : ['gap', totalPages]
@@ -33,7 +34,12 @@ function pageSlots(current: number, totalPages: number): Slot[] {
   return [...lead, ...head, ...tail]
 }
 
-export function ResourceTablePagination({ page, perPage, total, onPageChange }: PaginationProps) {
+export default function ResourceTablePagination({
+  page,
+  perPage,
+  total,
+  onPageChange,
+}: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const slots = pageSlots(page, totalPages)
 

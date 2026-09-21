@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { MoneyInput } from '@/components/fields/money-input'
+import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/products'
 import { formatPaise } from '@/lib/money'
 import { margin, type VariantRow } from './form-state'
@@ -16,7 +16,7 @@ type PricingCardProps = {
 const copy = productFormContent.pricing
 
 /** Shown for single-variant products; the variants table carries these fields otherwise. */
-export function PricingCard({ variant, onChange }: PricingCardProps) {
+export default function PricingCard({ variant, onChange }: PricingCardProps) {
   const m = margin(variant.price, variant.cost)
 
   return (

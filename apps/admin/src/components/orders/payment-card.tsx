@@ -1,6 +1,6 @@
 import { Button } from '@commerce/ui/shadcn/button'
-import { DataCard } from '@/components/layout/data-card'
-import { StatusPill, type StatusTone } from '@/components/layout/status-pill'
+import DataCard from '@/components/layout/data-card'
+import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 import {
@@ -41,7 +41,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /** Gateway, references, what was captured and what went back. */
-export function PaymentCard({ order, onRefund }: PaymentCardProps) {
+export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
   const events = order.paymentEvents
 
   return (

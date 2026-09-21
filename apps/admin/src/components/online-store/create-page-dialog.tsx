@@ -36,12 +36,14 @@ const slugify = (title: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
-export function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) {
+export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialogProps) {
+  // Hooks
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Event handlers
   const handleCreate = async () => {
     setBusy(true)
     try {

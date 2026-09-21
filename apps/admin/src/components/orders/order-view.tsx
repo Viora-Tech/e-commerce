@@ -3,16 +3,16 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody } from '@/components/layout/page-body'
-import { PageColumns } from '@/components/layout/page-columns'
-import { PageHeader } from '@/components/layout/page-header'
-import { StatusPill } from '@/components/layout/status-pill'
+import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
+import StatusPill from '@/components/layout/status-pill'
 import { orderDetailContent as copy, ORDER_STATUS_TONE, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
-import { CustomerCard } from './customer-card'
-import { LineItemsCard } from './line-items-card'
-import { OrderActions } from './order-actions'
+import CustomerCard from './customer-card'
+import LineItemsCard from './line-items-card'
+import OrderActions from './order-actions'
 import {
   fulfilmentPill,
   type OrderDetail,
@@ -23,35 +23,28 @@ import {
   refundedTotal,
   when,
 } from './order-detail-types'
-import { PackingSlip } from './packing-slip'
-import { PaymentCard } from './payment-card'
-import { RefundDialog } from './refund-dialog'
-import { ShipmentPanel } from './shipment-panel'
-import { TagsCard } from './tags-card'
-import { TimelineCard } from './timeline-card'
+import PackingSlip from './packing-slip'
+import PaymentCard from './payment-card'
+import RefundDialog from './refund-dialog'
+import ShipmentPanel from './shipment-panel'
+import TagsCard from './tags-card'
+import TimelineCard from './timeline-card'
 
 type OrderViewProps = {
   order: OrderDetail
 }
 
-export function OrderView({ order }: OrderViewProps) {
+export default function OrderView({ order }: OrderViewProps) {
+  // Hooks
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
 
-  const payment = primaryPayment(order.payments)
-  const pay = paymentPill(payment, order.refunds)
-  const ful = fulfilmentPill(order.status)
-  const remaining = refunding
-    ? refunding.amountPaise - refundedTotal(order.refunds, refunding.id)
-    : 0
-  const canRefund = order.payments.some(
-    (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
-  )
-  const shipmentId = order.shipment?.id
-
+  // Helpers
   const refresh = () => router.refresh()
+  const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
 
+  // Event handlers
   const handleMove = async (to: OrderStatus) => {
     setBusy(true)
     try {
@@ -64,7 +57,6 @@ export function OrderView({ order }: OrderViewProps) {
       setBusy(false)
     }
   }
-
   /** Courier calls can fail; the message is the app's wording from the API, shown as a toast. */
   const handleCourier = async <T,>(run: () => Promise<T>, done: (result: T) => string) => {
     setBusy(true)
@@ -95,7 +87,19 @@ export function OrderView({ order }: OrderViewProps) {
       () => api.orders.cancelShipment({ shipmentId }),
       () => shipmentPanelContent.cancelled,
     )
-  const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
+
+  // Render logic
+  const payment = primaryPayment(order.payments)
+  const pay = paymentPill(payment, order.refunds)
+  const ful = fulfilmentPill(order.status)
+  const remaining = refunding
+    ? refunding.amountPaise - refundedTotal(order.refunds, refunding.id)
+    : 0
+  const canRefund = order.payments.some(
+    (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
+  )
+
+  const shipmentId = order.shipment?.id
 
   return (
     <PageBody>

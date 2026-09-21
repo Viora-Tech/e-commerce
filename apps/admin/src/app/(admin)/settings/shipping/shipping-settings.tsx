@@ -1,12 +1,11 @@
 'use client'
 
 import type { ShippingPolicySettings } from '@commerce/core'
-import {
+import ProviderSettingsForm, {
   type ProviderDef,
-  ProviderSettingsForm,
 } from '@/components/settings/provider-settings-form'
-import { ShippingPolicyFields } from '@/components/settings/shipping-policy-fields'
-import { ShippingTryPin } from '@/components/settings/shipping-try-pin'
+import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
+import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 
@@ -32,7 +31,7 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
   )
 }
 
-export function ShippingSettings() {
+export default function ShippingSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}

@@ -2,7 +2,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { type PaymentProps, paymentState } from './order-payment-state'
 
 /* Frame 5:2621: 8px dot, label in body ink. */
-export function OrderPaymentCell(props: PaymentProps) {
+export default function OrderPaymentCell(props: PaymentProps) {
   const { label, dot } = paymentState(props)
   return (
     <span className="inline-flex items-center gap-2 text-body text-foreground">

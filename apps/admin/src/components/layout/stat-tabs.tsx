@@ -9,7 +9,7 @@ type StatTabsProps = {
 }
 
 /** 5:1595: five 78px cells, 20px apart; 24px figure over a 13px caption, active one tinted with a green rule. */
-export function StatTabs({ items, active = 0, onChange }: StatTabsProps) {
+export default function StatTabs({ items, active = 0, onChange }: StatTabsProps) {
   return (
     <div
       className="grid gap-5"

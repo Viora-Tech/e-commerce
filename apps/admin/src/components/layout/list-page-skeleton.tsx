@@ -1,11 +1,11 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { PageBody } from '@/components/layout/page-body'
+import PageBody from '@/components/layout/page-body'
 
 const ROWS = 6
 
 /** Shape of a list page (frame 5:2353) while the first fetch runs: heading, tiles, table card. */
-export function ListPageSkeleton() {
+export default function ListPageSkeleton() {
   return (
     <PageBody className="gap-6">
       <div className="flex h-9 items-center justify-between">

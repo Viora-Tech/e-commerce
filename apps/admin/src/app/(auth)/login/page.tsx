@@ -21,6 +21,7 @@ type Step = 'email' | 'otp'
 const copy = authContent.login
 
 export default function LoginPage() {
+  // Hooks
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
@@ -28,6 +29,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Event handlers
   const handleSendCode = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)

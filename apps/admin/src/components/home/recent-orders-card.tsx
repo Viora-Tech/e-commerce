@@ -1,8 +1,8 @@
 import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
-import { DataCard } from '@/components/layout/data-card'
-import { FilterButton } from '@/components/layout/filter-button'
-import { OrderStatusPill } from '@/components/orders/order-status-pill'
+import DataCard from '@/components/layout/data-card'
+import FilterButton from '@/components/layout/filter-button'
+import OrderStatusPill from '@/components/orders/order-status-pill'
 import { homeContent } from '@/data/home'
 import type { OrderStatus } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
@@ -28,7 +28,7 @@ type RecentOrder = {
 const TX_ROW = 'grid grid-cols-[123px_189px_216px_175px_minmax(0,1fr)] items-center px-6'
 
 /** Frame 5:2032 "Transaction": 33px header, 41px rows 4px apart, 14px text. */
-export function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
+export default function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) {
   const c = homeContent.recentOrders
   return (
     <DataCard

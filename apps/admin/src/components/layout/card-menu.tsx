@@ -13,7 +13,7 @@ export type MenuLink = { label: string; href: string }
 type CardMenuProps = { items: readonly MenuLink[]; label?: string }
 
 /** 5:1499: the 20px kebab, backed by a real menu of links. */
-export function CardMenu({ items, label = layoutContent.moreActions }: CardMenuProps) {
+export default function CardMenu({ items, label = layoutContent.moreActions }: CardMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

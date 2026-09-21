@@ -5,7 +5,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@commerce/ui/shadcn/chart'
 import { type ReactNode, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { CardMenu, type MenuLink } from './card-menu'
+import CardMenu, { type MenuLink } from './card-menu'
 import { type ChartPoint, chartConfig } from './chart-config'
 
 type PeriodOption = { id: string; label: string; data: ChartPoint[] }
@@ -27,8 +27,18 @@ type ChartCardProps = {
  * toggle (178 x 38, two 83 x 30 buttons) and a kebab, the stat tabs 20px
  * below, then the area chart with its axis labels filling the rest.
  */
-export function ChartCard({ title, periods, tabs, formatValue, menu, className }: ChartCardProps) {
+export default function ChartCard({
+  title,
+  periods,
+  tabs,
+  formatValue,
+  menu,
+  className,
+}: ChartCardProps) {
+  // Hooks
   const [periodId, setPeriodId] = useState(periods[0]?.id ?? '')
+
+  // Render logic
   const period = periods.find((p) => p.id === periodId) ?? periods[0]
   const data = period?.data ?? []
 

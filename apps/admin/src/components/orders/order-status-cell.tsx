@@ -20,7 +20,7 @@ const STATUS_CELL: Record<OrderStatus, { icon: LucideIcon; className: string }> 
 }
 
 /** Status column of the order list. */
-export function OrderStatusCell({ status }: { status: OrderStatus }) {
+export default function OrderStatusCell({ status }: { status: OrderStatus }) {
   const { icon: Icon, className } = STATUS_CELL[status]
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-body', className)}>

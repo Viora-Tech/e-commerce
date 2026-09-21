@@ -14,7 +14,7 @@ export type EditorMedia = {
 
 const MediaContext = createContext<EditorMedia | null>(null)
 
-export function MediaProvider({
+export default function MediaProvider({
   media,
   children,
 }: {

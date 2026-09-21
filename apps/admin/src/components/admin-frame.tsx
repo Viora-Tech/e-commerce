@@ -5,8 +5,8 @@ import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties, ReactNode } from 'react'
 import { hasOwnHeading, pageTitleFor } from '@/data/layout'
-import { AdminSidebar } from './admin-sidebar'
-import { TopBar } from './layout/top-bar'
+import AdminSidebar from './admin-sidebar'
+import TopBar from './layout/top-bar'
 
 type StoreOption = { id: string; name: string; slug: string }
 
@@ -21,13 +21,14 @@ type AdminFrameProps = {
 const SIDEBAR_WIDTH = '260px'
 
 /** Shell = kit sidebar + top bar + scrolling page content. */
-export function AdminFrame({
+export default function AdminFrame({
   children,
   user,
   stores,
   activeStoreId,
   storefrontUrl,
 }: AdminFrameProps) {
+  // Hooks
   const pathname = usePathname()
 
   return (

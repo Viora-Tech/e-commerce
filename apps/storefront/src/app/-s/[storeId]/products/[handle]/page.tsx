@@ -1,7 +1,7 @@
 import { ProductView } from '@commerce/blocks'
 import { notFound } from 'next/navigation'
-import { DeliveryEstimateWidget } from '@/components/product/delivery-estimate'
-import { EmiHint } from '@/components/product/emi-hint'
+import DeliveryEstimateWidget from '@/components/product/delivery-estimate'
+import EmiHint from '@/components/product/emi-hint'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle } from '@/lib/catalog'
 import { storeOffersEmi } from '@/lib/payments'
@@ -15,6 +15,7 @@ export default async function ProductPage({ params }: Params) {
     product: await getProductByHandle(tx, handle),
     emi: await storeOffersEmi(tx, storeId),
   }))
+
   if (!product) notFound()
   const add = addLineAction.bind(null, storeId)
   return (

@@ -17,7 +17,7 @@ type EmptyStateProps = {
 }
 
 /** Centered empty state: 40px icon in a soft circle, card-title heading, one action. */
-export function EmptyState({ heading, body, icon: Icon = Inbox, action }: EmptyStateProps) {
+export default function EmptyState({ heading, body, icon: Icon = Inbox, action }: EmptyStateProps) {
   return (
     <Empty className="gap-4 py-10">
       <EmptyHeader className="gap-2">

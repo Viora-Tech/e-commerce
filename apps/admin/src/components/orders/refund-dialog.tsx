@@ -34,14 +34,18 @@ function toPaise(rupees: string): number {
   return Math.round(Number.parseFloat(rupees) * 100)
 }
 
-export function RefundDialog({ payment, remainingPaise, onClose, onDone }: RefundDialogProps) {
+export default function RefundDialog({
+  payment,
+  remainingPaise,
+  onClose,
+  onDone,
+}: RefundDialogProps) {
+  // Hooks
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
-  const paise = toPaise(amount)
-  const valid = Number.isInteger(paise) && paise > 0 && paise <= remainingPaise
-  const offline = payment ? OFFLINE.has(payment.provider) : false
 
+  // Event handlers
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!payment || !valid) return
@@ -62,6 +66,11 @@ export function RefundDialog({ payment, remainingPaise, onClose, onDone }: Refun
       setBusy(false)
     }
   }
+
+  // Render logic
+  const paise = toPaise(amount)
+  const valid = Number.isInteger(paise) && paise > 0 && paise <= remainingPaise
+  const offline = payment ? OFFLINE.has(payment.provider) : false
 
   return (
     <Dialog open={payment !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>

@@ -28,12 +28,12 @@ const LIMIT = 5
 const DEBOUNCE_MS = 200
 
 /** ⌘K search across orders and products; results come from the existing list endpoints. */
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export default function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+  // Hooks
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [orders, setOrders] = useState<OrderHit[]>([])
   const [products, setProducts] = useState<ProductHit[]>([])
-
   useEffect(() => {
     if (!open) return
     let cancelled = false
@@ -69,6 +69,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     }
   }, [open, query])
 
+  // Event handlers
   const handleGo = (href: string) => {
     onOpenChange(false)
     router.push(href)

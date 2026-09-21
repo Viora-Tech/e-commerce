@@ -1,5 +1,5 @@
-import { DeltaChip, percentDelta } from '@/components/layout/delta-chip'
-import { StatCard } from '@/components/layout/stat-card'
+import DeltaChip, { percentDelta } from '@/components/layout/delta-chip'
+import StatCard from '@/components/layout/stat-card'
 import { homeContent } from '@/data/home'
 import { formatCompact, formatPaise, formatPaiseCompact } from '@/lib/money'
 
@@ -13,7 +13,7 @@ type DashboardStatsProps = {
 }
 
 /** The three kit stat cards across the top of the dashboard. */
-export function DashboardStats({ sales, orders, pending, cancelled }: DashboardStatsProps) {
+export default function DashboardStats({ sales, orders, pending, cancelled }: DashboardStatsProps) {
   const c = homeContent
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

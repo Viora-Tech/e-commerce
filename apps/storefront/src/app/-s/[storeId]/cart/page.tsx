@@ -2,16 +2,16 @@ import { formatPaise } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
 import { readCartId } from '@/lib/cart-cookie'
 import { inStore } from '@/lib/store-context'
-import { CartLines } from './cart-lines'
+import CartLines from './cart-lines'
 
 type Params = { params: Promise<{ storeId: string }> }
 
 export default async function CartPage({ params }: Params) {
+  // Early returns
   const { storeId } = await params
   const cartId = await readCartId()
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
   const lines = cart?.status === 'open' ? cart.lines : []
-
   if (lines.length === 0) {
     return (
       <section className="section-cart page-width">

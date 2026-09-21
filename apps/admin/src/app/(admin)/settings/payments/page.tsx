@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PaymentsSettings } from './payments-settings'
+import PaymentsSettings from './payments-settings'
 
 export const metadata: Metadata = { title: 'Payments' }
 

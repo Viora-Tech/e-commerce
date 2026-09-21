@@ -8,10 +8,10 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody } from '@/components/layout/page-body'
-import { ProductStatusBadge } from '@/components/products/product-status-badge'
-import { ProductThumb } from '@/components/products/product-thumb'
-import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
+import PageBody from '@/components/layout/page-body'
+import ProductStatusBadge from '@/components/products/product-status-badge'
+import ProductThumb from '@/components/products/product-thumb'
+import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -102,7 +102,8 @@ const columns: ResourceColumnSpec<Item>[] = [
 ]
 
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
-  const [q, setQ] = useQueryStates(
+  // Hooks
+  const [{ page, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
@@ -110,11 +111,10 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     },
     { shallow: true },
   )
+
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
-
-  const { page, query, status } = q
 
   useEffect(() => {
     if (sameListQuery({ page, query, status }, initial.query)) return
@@ -132,12 +132,13 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     }
   }, [page, query, status, initial.query])
 
+  // Event handlers
   const handleBulkSetStatus = async (ids: string[], next: ProductStatus, clear: () => void) => {
     try {
       await Promise.all(ids.map((id) => api.products.update({ id, status: next })))
       toast.success(copy.bulk.updated(ids.length))
       clear()
-      const r = await fetchProducts(q)
+      const r = await fetchProducts({ page, query, status })
       setItems(r.items)
       setTotal(r.total)
     } catch {
@@ -162,7 +163,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         getId={(p) => p.id}
         href={(p) => `/products/${p.id}`}
         loading={loading}
-        query={q.query}
+        query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
         tabs={
@@ -170,9 +171,9 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             <button
               type="button"
               role="tab"
-              aria-selected={q.status === null}
+              aria-selected={status === null}
               onClick={() => setQ({ status: null, page: 1 })}
-              className={cn(TAB, q.status === null && TAB_ACTIVE)}
+              className={cn(TAB, status === null && TAB_ACTIVE)}
             >
               {copy.tabs.all}
               <span className="text-xs font-semibold text-primary tabular-nums">
@@ -184,16 +185,16 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
                 key={s}
                 type="button"
                 role="tab"
-                aria-selected={q.status === s}
+                aria-selected={status === s}
                 onClick={() => setQ({ status: s, page: 1 })}
-                className={cn(TAB, q.status === s && TAB_ACTIVE)}
+                className={cn(TAB, status === s && TAB_ACTIVE)}
               >
                 {copy.status[s]}
               </button>
             ))}
           </div>
         }
-        page={q.page}
+        page={page}
         perPage={PER_PAGE}
         total={total}
         onPageChange={(page) => setQ({ page })}
@@ -230,7 +231,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   )
 }
 
-export function ProductsPage({ initial }: { initial: ProductsInitial }) {
+export default function ProductsPage({ initial }: { initial: ProductsInitial }) {
   return (
     <Suspense>
       <ProductsContent initial={initial} />

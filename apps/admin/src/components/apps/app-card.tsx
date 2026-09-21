@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ArrowRight, Puzzle } from 'lucide-react'
 import Link from 'next/link'
-import { StatusPill } from '@/components/layout/status-pill'
+import StatusPill from '@/components/layout/status-pill'
 import { type AppKind, appsContent as copy } from '@/data/apps'
 
 export type AppSummary = {
@@ -33,7 +33,7 @@ function providedKinds(app: AppSummary): AppKind[] {
   return KINDS.filter((k) => app.provides[k].length > 0)
 }
 
-export function AppCard({ app, busy, onInstall, onUninstall }: AppCardProps) {
+export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardProps) {
   const kinds = providedKinds(app)
 
   return (

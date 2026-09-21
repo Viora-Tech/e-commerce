@@ -6,7 +6,7 @@ type PackingSlipProps = {
 }
 
 /** Hidden on screen; `window.print()` shows only this block (see globals.css). */
-export function PackingSlip({ order }: PackingSlipProps) {
+export default function PackingSlip({ order }: PackingSlipProps) {
   const a = order.shippingAddress
   return (
     <section className="packing-slip hidden print:block">

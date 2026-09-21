@@ -18,7 +18,7 @@ const statusItems = Object.fromEntries(copy.status.options.map((o) => [o.value, 
 
 type StatusCardProps = { status: ProductStatus; onChange: (status: ProductStatus) => void }
 
-export function StatusCard({ status, onChange }: StatusCardProps) {
+export default function StatusCard({ status, onChange }: StatusCardProps) {
   return (
     <Card>
       <CardHeader>

@@ -8,7 +8,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { productFormContent } from '@/data/products'
 import { MAX_OPTIONS, type OptionRow, type VariantRow } from './form-state'
-import { VariantMatrix } from './variant-matrix'
+import VariantMatrix from './variant-matrix'
 
 type VariantsCardProps = {
   options: OptionRow[]
@@ -34,29 +34,22 @@ function parseValues(text: string): string[] {
     })
 }
 
-export function VariantsCard({
+export default function VariantsCard({
   options,
   variants,
   error,
   onOptions,
   onVariant,
 }: VariantsCardProps) {
+  // Hooks
   // Raw comma text per option, so a trailing comma survives typing.
   const [valueText, setValueText] = useState<string[]>(() =>
     options.map((o) => o.values.join(', ')),
   )
 
-  const hasOptions = options.length > 0
-  const atMax = options.length >= MAX_OPTIONS
-
+  // Helpers
   const setOption = (i: number, patch: Partial<OptionRow>) =>
     onOptions(options.map((o, j) => (j === i ? { ...o, ...patch } : o)))
-
-  const handleValues = (i: number, text: string) => {
-    setValueText((t) => t.map((x, j) => (j === i ? text : x)))
-    setOption(i, { values: parseValues(text) })
-  }
-
   const addOption = () => {
     setValueText((t) => [...t, ''])
     onOptions([...options, { name: '', values: [] }])
@@ -66,6 +59,16 @@ export function VariantsCard({
     setValueText((t) => t.filter((_, j) => j !== i))
     onOptions(options.filter((_, j) => j !== i))
   }
+
+  // Event handlers
+  const handleValues = (i: number, text: string) => {
+    setValueText((t) => t.map((x, j) => (j === i ? text : x)))
+    setOption(i, { values: parseValues(text) })
+  }
+
+  // Render logic
+  const hasOptions = options.length > 0
+  const atMax = options.length >= MAX_OPTIONS
 
   return (
     <Card size="form" className="pb-0">

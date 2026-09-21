@@ -9,7 +9,7 @@ export function percentDelta(value: number, previous: number): number | null {
 }
 
 /** 5:1508: 16px arrow glyph and a 14px figure, green up / red down. */
-export function DeltaChip({
+export default function DeltaChip({
   delta,
   invert,
 }: {

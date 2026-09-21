@@ -16,13 +16,13 @@ import { CircleAlert, ExternalLink, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody } from '@/components/layout/page-body'
-import { PageColumns } from '@/components/layout/page-columns'
-import { PageHeader } from '@/components/layout/page-header'
-import { SaveBar } from '@/components/layout/save-bar'
+import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import { productFormContent, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
-import { DetailsCard } from './details-card'
+import DetailsCard from './details-card'
 import {
   emptyForm,
   formErrors,
@@ -34,13 +34,13 @@ import {
   toWrite,
   type VariantRow,
 } from './form-state'
-import { InventoryCard } from './inventory-card'
-import { MediaCard } from './media-card'
-import { type Facets, OrganisationCard } from './organisation-card'
-import { PricingCard } from './pricing-card'
-import { SeoCard } from './seo-card'
-import { StatusCard } from './status-card'
-import { VariantsCard } from './variants-card'
+import InventoryCard from './inventory-card'
+import MediaCard from './media-card'
+import OrganisationCard, { type Facets } from './organisation-card'
+import PricingCard from './pricing-card'
+import SeoCard from './seo-card'
+import StatusCard from './status-card'
+import VariantsCard from './variants-card'
 
 type ProductFormProps = {
   product: LoadedProduct | null
@@ -50,26 +50,21 @@ type ProductFormProps = {
 
 const copy = productFormContent
 
-export function ProductForm({ product, facets, storefrontOrigin }: ProductFormProps) {
+function initialForm(product: LoadedProduct | null): ProductFormState {
+  return product ? fromProduct(product) : emptyForm()
+}
+
+export default function ProductForm({ product, facets, storefrontOrigin }: ProductFormProps) {
+  // Hooks
   const router = useRouter()
-  const initial = product ? fromProduct(product) : emptyForm()
-  const [form, setForm] = useState<ProductFormState>(initial)
-  const [saved, setSaved] = useState(() => JSON.stringify(initial))
+  const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
+  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(product)))
   const [busy, setBusy] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const dirty = JSON.stringify(form) !== saved
-  const errors = formErrors(form)
-  const showErrors = attempted
-  const single = form.options.length === 0
-  const first = form.variants[0]
-  const savedForm = JSON.parse(saved) as ProductFormState
-  const quantityChanged = form.variants.some(
-    (v, i) => v.quantity !== savedForm.variants[i]?.quantity,
-  )
-
+  // Helpers
   const patch = (p: Partial<ProductFormState>) => setForm((f) => ({ ...f, ...p }))
   const patchVariant = (index: number, vp: Partial<VariantRow>) =>
     setForm((f) => ({
@@ -79,9 +74,10 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   const setOptions = (options: OptionRow[]) =>
     setForm((f) => ({ ...f, options, variants: reconcileVariants(options, f.variants) }))
 
+  // Event handlers
   const handleSave = async () => {
     setAttempted(true)
-    if (Object.keys(errors).length) return
+    if (Object.keys(formErrors(form)).length) return
     setBusy(true)
     setServerError(null)
     try {
@@ -101,7 +97,7 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
   }
 
   const handleDiscard = () => {
-    setForm(initial)
+    setForm(initialForm(product))
     setAttempted(false)
     setServerError(null)
   }
@@ -121,7 +117,19 @@ export function ProductForm({ product, facets, storefrontOrigin }: ProductFormPr
     }
   }
 
+  // Early returns
+  const first = form.variants[0]
   if (!first) return null
+
+  // Render logic
+  const dirty = JSON.stringify(form) !== saved
+  const errors = formErrors(form)
+  const showErrors = attempted
+  const single = form.options.length === 0
+  const savedForm = JSON.parse(saved) as ProductFormState
+  const quantityChanged = form.variants.some(
+    (v, i) => v.quantity !== savedForm.variants[i]?.quantity,
+  )
 
   return (
     <PageBody width="narrow" className="kit-form">

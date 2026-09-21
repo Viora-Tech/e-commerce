@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Icon } from './icon'
+import Icon from './icon'
 
 export type HeroSlide = {
   heading: string
@@ -14,7 +14,7 @@ export type HeroSlide = {
 
 // Port of sections/hero-carousel.liquid + hero-carousel.js: a CSS scroll-snap
 // track, dots that reflect the snapped slide, prev/next, optional autoplay.
-export function HeroCarousel({
+export default function HeroCarousel({
   slides,
   autoplaySeconds = 5,
   heightVh = 72,
@@ -23,9 +23,9 @@ export function HeroCarousel({
   autoplaySeconds?: number
   heightVh?: number
 }) {
+  // Hooks
   const track = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(0)
-
   useEffect(() => {
     const el = track.current
     if (!el) return
@@ -33,7 +33,6 @@ export function HeroCarousel({
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
-
   useEffect(() => {
     if (!autoplaySeconds || slides.length < 2) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -41,6 +40,7 @@ export function HeroCarousel({
     return () => clearInterval(id)
   })
 
+  // Event handlers
   const handleGo = (i: number) => {
     const el = track.current
     if (!el) return

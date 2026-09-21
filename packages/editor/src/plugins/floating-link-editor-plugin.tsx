@@ -57,36 +57,12 @@ function FloatingLinkEditor({
   isLinkEditMode,
   setIsLinkEditMode,
 }: FloatingLinkEditorProps) {
+  // Hooks
   const boxRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [linkUrl, setLinkUrl] = useState('')
   const [draft, setDraft] = useState('https://')
   const [lastSelection, setLastSelection] = useState<BaseSelection | null>(null)
-
-  const $reposition = () => {
-    const box = boxRef.current
-    if (!box) return
-    const selection = $getSelection()
-    const url = $selectedLinkUrl()
-    setLinkUrl(url)
-    const native = window.getSelection()
-    const root = editor.getRootElement()
-    if (selection && native && root && editor.isEditable() && root.contains(native.anchorNode)) {
-      const rect = native.focusNode?.parentElement?.getBoundingClientRect()
-      if (rect) {
-        const anchorRect = anchorElem.getBoundingClientRect()
-        box.style.top = `${rect.bottom - anchorRect.top + 4}px`
-        box.style.left = `${Math.max(0, Math.min(rect.left - anchorRect.left, anchorRect.width - box.offsetWidth))}px`
-      }
-      setLastSelection(selection)
-    } else if (document.activeElement !== inputRef.current) {
-      hideFloatingElem(box)
-      setLastSelection(null)
-      setIsLinkEditMode(false)
-      setLinkUrl('')
-    }
-  }
-
   useEffect(() => {
     const scroller = anchorElem.parentElement
     const update = () => editor.getEditorState().read($reposition)
@@ -125,6 +101,31 @@ function FloatingLinkEditor({
     if (isLinkEditMode) inputRef.current?.focus()
   }, [isLinkEditMode])
 
+  // Helpers
+  const $reposition = () => {
+    const box = boxRef.current
+    if (!box) return
+    const selection = $getSelection()
+    const url = $selectedLinkUrl()
+    setLinkUrl(url)
+    const native = window.getSelection()
+    const root = editor.getRootElement()
+    if (selection && native && root && editor.isEditable() && root.contains(native.anchorNode)) {
+      const rect = native.focusNode?.parentElement?.getBoundingClientRect()
+      if (rect) {
+        const anchorRect = anchorElem.getBoundingClientRect()
+        box.style.top = `${rect.bottom - anchorRect.top + 4}px`
+        box.style.left = `${Math.max(0, Math.min(rect.left - anchorRect.left, anchorRect.width - box.offsetWidth))}px`
+      }
+      setLastSelection(selection)
+    } else if (document.activeElement !== inputRef.current) {
+      hideFloatingElem(box)
+      setLastSelection(null)
+      setIsLinkEditMode(false)
+      setLinkUrl('')
+    }
+  }
+
   const submit = () => {
     if (lastSelection === null) return
     editor.update(() => {
@@ -155,6 +156,7 @@ function FloatingLinkEditor({
     }
   }
 
+  // Early returns
   if (!isLink) return null
 
   return (
@@ -241,14 +243,14 @@ type FloatingLinkEditorPluginProps = {
 }
 
 /** Shows a small popover under the caret whenever it sits inside a single link. */
-export function FloatingLinkEditorPlugin({
+export default function FloatingLinkEditorPlugin({
   anchorElem,
   isLinkEditMode,
   setIsLinkEditMode,
 }: FloatingLinkEditorPluginProps) {
+  // Hooks
   const [editor] = useLexicalComposerContext()
   const [isLink, setIsLink] = useState(false)
-
   useEffect(() => {
     const $update = () => {
       const selection = $getSelection()

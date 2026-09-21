@@ -42,7 +42,7 @@ function IconButton({ className, ...props }: ComponentProps<'button'>) {
   return <button type="button" className={cn(ICON_BUTTON, className)} {...props} />
 }
 
-export function ResourceTableToolbar<T extends RowData>({
+export default function ResourceTableToolbar<T extends RowData>({
   table,
   plural,
   query,

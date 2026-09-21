@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import { MoneyInput } from '@/components/fields/money-input'
+import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/products'
 import type { VariantRow } from './form-state'
 
@@ -30,7 +30,7 @@ const CELL = 'border-b border-border-soft px-4 py-2 text-body'
 const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)
 
 /** One row per option combination with the fields merchants edit in bulk. */
-export function VariantMatrix({ variants, onVariant }: VariantMatrixProps) {
+export default function VariantMatrix({ variants, onVariant }: VariantMatrixProps) {
   return (
     <div className="px-5 pb-5">
       <Table className="border-separate border-spacing-0">

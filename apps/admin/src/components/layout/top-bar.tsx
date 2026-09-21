@@ -17,7 +17,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { navigationContent } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
-import { CommandPalette } from './command-palette'
+import CommandPalette from './command-palette'
 
 type TopBarProps = {
   title: string
@@ -38,12 +38,11 @@ function initials(name: string): string {
 }
 
 /** Kit top bar: page title left; search pill, bell, theme switch and avatar right. */
-export function TopBar({ title, heading, user }: TopBarProps) {
+export default function TopBar({ title, heading, user }: TopBarProps) {
+  // Hooks
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const dark = resolvedTheme === 'dark'
-
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -55,11 +54,15 @@ export function TopBar({ title, heading, user }: TopBarProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Event handlers
   const handleSignOut = async () => {
     await authClient.signOut()
     router.push('/login')
     router.refresh()
   }
+
+  // Render logic
+  const dark = resolvedTheme === 'dark'
 
   return (
     /* 5:1347: 96px tall white bar; title 22/700 at x 24; controls 32px apart, 44px from the right edge. */

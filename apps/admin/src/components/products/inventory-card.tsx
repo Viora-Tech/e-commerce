@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { MoneyInput } from '@/components/fields/money-input'
+import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/products'
 import type { VariantRow } from './form-state'
 
@@ -29,7 +29,7 @@ const copy = productFormContent.inventory
 
 const reasonItems = Object.fromEntries(copy.reasons.map((r) => [r.value, r.label]))
 
-export function InventoryCard({
+export default function InventoryCard({
   variant,
   quantityChanged,
   reason,

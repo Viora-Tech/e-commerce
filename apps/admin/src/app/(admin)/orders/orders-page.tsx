@@ -13,11 +13,11 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody } from '@/components/layout/page-body'
-import { OrderPaymentCell } from '@/components/orders/order-payment-cell'
-import { OrderStatusCell } from '@/components/orders/order-status-cell'
-import { type OrderStats, OrderTiles } from '@/components/orders/order-tiles'
-import { type ResourceColumnSpec, ResourceTable } from '@/components/table/resource-table'
+import PageBody from '@/components/layout/page-body'
+import OrderPaymentCell from '@/components/orders/order-payment-cell'
+import OrderStatusCell from '@/components/orders/order-status-cell'
+import OrderTiles, { type OrderStats } from '@/components/orders/order-tiles'
+import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -197,7 +197,8 @@ function HeaderActions() {
 }
 
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
-  const [q, setQ] = useQueryStates(
+  // Hooks
+  const [{ page, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
@@ -205,11 +206,10 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     },
     { shallow: true },
   )
+
   const [items, setItems] = useState<Item[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
-
-  const { page, query, status } = q
 
   useEffect(() => {
     if (sameListQuery({ page, query, status }, initial.query)) return
@@ -227,12 +227,13 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     }
   }, [page, query, status, initial.query])
 
+  // Event handlers
   const handleBulkSetStatus = async (ids: string[], status: OrderStatus, clear: () => void) => {
     try {
       await Promise.all(ids.map((id) => api.orders.setStatus({ id, status })))
       toast.success(ordersContent.bulk.updated(ids.length, ordersContent.status[status]))
       clear()
-      const r = await fetchOrders(q)
+      const r = await fetchOrders({ page, query, status })
       setItems(r.items)
       setTotal(r.total)
     } catch {
@@ -256,17 +257,17 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           getId={(o) => o.id}
           href={(o) => `/orders/${o.id}`}
           loading={loading}
-          query={q.query}
+          query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
           tabs={
             <StatusTabs
-              value={q.status}
+              value={status}
               allCount={initial.allCount}
               onChange={(s) => setQ({ status: s, page: 1 })}
             />
           }
-          page={q.page}
+          page={page}
           perPage={PER_PAGE}
           total={total}
           onPageChange={(page) => setQ({ page })}
@@ -292,7 +293,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   )
 }
 
-export function OrdersPage({ initial }: { initial: OrdersInitial }) {
+export default function OrdersPage({ initial }: { initial: OrdersInitial }) {
   return (
     <Suspense>
       <OrdersContent initial={initial} />

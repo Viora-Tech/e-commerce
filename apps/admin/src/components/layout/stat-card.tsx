@@ -2,9 +2,9 @@ import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
-import { CardMenu, type MenuLink } from './card-menu'
-import { DeltaChip } from './delta-chip'
-import { DetailsLink } from './details-link'
+import CardMenu, { type MenuLink } from './card-menu'
+import DeltaChip from './delta-chip'
+import DetailsLink from './details-link'
 
 type StatCardProps = {
   title: string
@@ -33,7 +33,7 @@ type StatCardProps = {
  * the 32px figure with its unit and delta 20px lower, the previous-period
  * line, and the Details pill pinned to the bottom-right 20px corner.
  */
-export function StatCard({
+export default function StatCard({
   title,
   period,
   value,

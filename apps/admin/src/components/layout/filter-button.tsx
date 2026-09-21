@@ -12,7 +12,7 @@ import type { MenuLink } from './card-menu'
 type FilterButtonProps = { label?: string; items: readonly MenuLink[] }
 
 /** 5:2141: 85 x 32 solid green button, 14px label, 20px sort glyph; opens the filter links. */
-export function FilterButton({ label = layoutContent.filter, items }: FilterButtonProps) {
+export default function FilterButton({ label = layoutContent.filter, items }: FilterButtonProps) {
   if (items.length === 0) return null
   return (
     <DropdownMenu>

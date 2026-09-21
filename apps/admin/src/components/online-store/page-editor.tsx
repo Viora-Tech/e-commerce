@@ -12,7 +12,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { StatusPill } from '@/components/layout/status-pill'
+import StatusPill from '@/components/layout/status-pill'
 import { onlineStoreContent } from '@/data/online-store'
 import { api } from '@/lib/api-client'
 
@@ -63,6 +63,7 @@ type ThemeFrameProps = { children: ReactNode; document?: Document | undefined; c
  * into the admin document would restyle the editor chrome.
  */
 function ThemeFrame({ children, document, css }: ThemeFrameProps) {
+  // Hooks
   useEffect(() => {
     if (!document) return
     const el = document.createElement('style')
@@ -70,6 +71,7 @@ function ThemeFrame({ children, document, css }: ThemeFrameProps) {
     document.head.appendChild(el)
     return () => el.remove()
   }, [document, css])
+
   return <>{children}</>
 }
 
@@ -82,8 +84,11 @@ function EditorHeader({
   storefrontOrigin,
   onSave,
 }: EditorHeaderProps) {
+  // Hooks
   const data = usePuck((s) => s.appState.data)
   const hasPast = usePuck((s) => s.history.hasPast)
+
+  // Render logic
   const dirty = hasPast && (savedJson === null || JSON.stringify(data) !== savedJson)
   const path = pagePath(page.handle)
 
@@ -130,11 +135,13 @@ function EditorHeader({
   )
 }
 
-export function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps) {
+export default function PageEditor({ page, themeCss, storefrontOrigin }: PageEditorProps) {
+  // Hooks
   const [busy, setBusy] = useState(false)
   const [savedJson, setSavedJson] = useState<string | null>(null)
   const [published, setPublished] = useState(Boolean(page.publishedAt))
 
+  // Event handlers
   const handleSave = async (data: PageData, publish: boolean) => {
     setBusy(true)
     try {

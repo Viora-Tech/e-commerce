@@ -1,8 +1,8 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
-import { CardMenu, type MenuLink } from './card-menu'
-import { DetailsLink } from './details-link'
+import CardMenu, { type MenuLink } from './card-menu'
+import DetailsLink from './details-link'
 
 type DataCardProps = {
   title: string
@@ -22,7 +22,7 @@ type DataCardProps = {
  * Frame 5:2032 / 5:2138: 20px padding, a 32px header row with an 18px title,
  * body 20px below, and the Details pill 20px from the bottom-right corner.
  */
-export function DataCard({
+export default function DataCard({
   title,
   action,
   menu,

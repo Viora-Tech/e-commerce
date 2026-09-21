@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 type BandHeadProps = { children: ReactNode; className?: string }
 
 /** 5:2146: 48px tinted header band, 8px radius, 13px uppercase labels, 20px cell inset. */
-export function BandHead({ children, className }: BandHeadProps) {
+export default function BandHead({ children, className }: BandHeadProps) {
   return (
     <div
       className={cn(

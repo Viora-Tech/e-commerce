@@ -6,9 +6,11 @@ import type { ThemeMode } from '../types'
 const next: Record<ThemeMode, ThemeMode> = { light: 'dark', dark: 'system', system: 'light' }
 const label: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark', system: 'Auto' }
 
-export function ThemeToggle({ initial }: { initial: ThemeMode }) {
+export default function ThemeToggle({ initial }: { initial: ThemeMode }) {
+  // Hooks
   const [mode, setMode] = useState<ThemeMode>(initial)
 
+  // Event handlers
   const handleCycle = () => {
     const m = next[mode]
     setMode(m)

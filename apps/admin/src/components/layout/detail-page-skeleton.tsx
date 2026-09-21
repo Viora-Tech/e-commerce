@@ -1,9 +1,9 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { PageBody } from '@/components/layout/page-body'
+import PageBody from '@/components/layout/page-body'
 
 /** Shape of a detail page: header, two thirds main column, one third side column. */
-export function DetailPageSkeleton() {
+export default function DetailPageSkeleton() {
   return (
     <PageBody width="narrow">
       <div className="flex flex-col gap-3">

@@ -22,7 +22,10 @@ const SAFE_ID = /^[a-zA-Z0-9_-]+$/
 
 /** Click-to-load facade: a thumbnail until played, so embeds do not slow typing. */
 function YouTubeComponent({ videoID }: { videoID: string }) {
+  // Hooks
   const [active, setActive] = useState(false)
+
+  // Early returns
   if (!SAFE_ID.test(videoID)) return null
   if (!active) {
     return (
@@ -43,6 +46,7 @@ function YouTubeComponent({ videoID }: { videoID: string }) {
       </div>
     )
   }
+
   return (
     <div className="editor-youtube">
       <iframe

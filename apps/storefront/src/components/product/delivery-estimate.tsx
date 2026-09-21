@@ -18,23 +18,28 @@ function lines(r: DeliveryEstimate): string[] {
     r.dispatchesToday ? content.dispatchToday : content.dispatchOn(r.dispatchLabel),
     r.codAvailable ? content.cod : content.prepaidOnly,
   ]
+
   if (r.fallback) out.push(content.fallback)
   return out
 }
 
 /** PIN code → honest delivery window under the add-to-cart button. */
-export function DeliveryEstimateWidget({ storeId }: DeliveryEstimateProps) {
+export default function DeliveryEstimateWidget({ storeId }: DeliveryEstimateProps) {
+  // Hooks
   const [pincode, setPincode] = useState('')
   const [result, setResult] = useState<DeliveryEstimate | null>(null)
   const [pending, start] = useTransition()
 
-  const tone = !result ? '' : !result.ok || !result.serviceable ? ' is-negative' : ' is-positive'
-
+  // Event handlers
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     start(async () => setResult(await estimateDeliveryAction(storeId, pincode)))
   }
+
   const handleChange = () => setResult(null)
+
+  // Render logic
+  const tone = !result ? '' : !result.ok || !result.serviceable ? ' is-negative' : ' is-positive'
 
   return (
     <div className="delivery-estimate">

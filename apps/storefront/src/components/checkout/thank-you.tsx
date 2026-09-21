@@ -2,7 +2,7 @@ import { formatPaise } from '@commerce/blocks'
 import type { order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { thankYouContent as content } from '@/data/checkout'
-import { ManualPaymentInstructions } from './manual-payment-instructions'
+import ManualPaymentInstructions from './manual-payment-instructions'
 
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
@@ -26,7 +26,7 @@ function statusLine(
   return content.status.paid(total)
 }
 
-export function ThankYouTemplate({ order: o, lines, payment: pay }: ThankYouTemplateProps) {
+export default function ThankYouTemplate({ order: o, lines, payment: pay }: ThankYouTemplateProps) {
   const awaiting = o.paymentMethod !== 'cod' && pay?.status === 'pending'
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null

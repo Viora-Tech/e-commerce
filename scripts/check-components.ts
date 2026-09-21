@@ -74,7 +74,19 @@ function hasExportModifier(node: ts.Node): boolean {
 }
 
 /** Function-like nodes whose name is PascalCase and body renders JSX. */
-type ComponentDecl = { name: string; node: ts.Node; body: ts.Block | undefined; exported: boolean }
+type ComponentDecl = {
+  name: string
+  node: ts.Node
+  body: ts.Block | undefined
+  /** `export function X` / `export const X` (named). */
+  exported: boolean
+  /** `export default function X`, or a later `export default X`. */
+  isDefault: boolean
+}
+
+function isDefaultExport(node: ts.Node): boolean {
+  return (ts.getCombinedModifierFlags(node as ts.Declaration) & ts.ModifierFlags.Default) !== 0
+}
 
 function findComponents(sf: ts.SourceFile): ComponentDecl[] {
   const out: ComponentDecl[] = []
@@ -90,7 +102,8 @@ function findComponents(sf: ts.SourceFile): ComponentDecl[] {
         name: stmt.name.text,
         node: stmt,
         body: stmt.body,
-        exported: hasExportModifier(stmt),
+        exported: hasExportModifier(stmt) && !isDefaultExport(stmt),
+        isDefault: isDefaultExport(stmt),
       })
     }
     if (ts.isVariableStatement(stmt)) {
@@ -99,9 +112,21 @@ function findComponents(sf: ts.SourceFile): ComponentDecl[] {
         const init = decl.initializer
         if ((ts.isArrowFunction(init) || ts.isFunctionExpression(init)) && containsJsx(init)) {
           const body = ts.isBlock(init.body) ? init.body : undefined
-          out.push({ name: decl.name.text, node: stmt, body, exported: hasExportModifier(stmt) })
+          out.push({
+            name: decl.name.text,
+            node: stmt,
+            body,
+            exported: hasExportModifier(stmt),
+            isDefault: false,
+          })
         }
       }
+    }
+  }
+  for (const stmt of sf.statements) {
+    if (ts.isExportAssignment(stmt) && !stmt.isExportEquals && ts.isIdentifier(stmt.expression)) {
+      const target = out.find((c) => c.name === stmt.expression.getText())
+      if (target) target.isDefault = true
     }
   }
   return out
@@ -125,76 +150,87 @@ function isHookCall(node: ts.Node): node is ts.CallExpression {
   return false
 }
 
+const SECTION_COMMENTS = [
+  '// Hooks',
+  '// Helpers',
+  '// Event handlers',
+  '// Early returns',
+  '// Render logic',
+]
+
+/**
+ * Body order from docs/conventions.md: hooks -> arrow helpers/handlers -> early
+ * returns -> render logic (derived consts) -> one return. Each statement is
+ * classified into a phase; a phase lower than the current one is an error.
+ */
+const PHASE = { hooks: 0, arrows: 1, earlyReturns: 2, render: 3 } as const
+type Phase = (typeof PHASE)[keyof typeof PHASE]
+const PHASE_LABEL: Record<Phase, string> = {
+  0: 'hooks',
+  1: 'helpers and handlers',
+  2: 'early returns',
+  3: 'render logic',
+}
+
+function isGuardReturn(stmt: ts.Statement): boolean {
+  if (!ts.isIfStatement(stmt)) return false
+  const s = stmt.thenStatement
+  return (
+    ts.isReturnStatement(s) ||
+    (ts.isBlock(s) &&
+      s.statements.length === 1 &&
+      ts.isReturnStatement(s.statements[0] as ts.Statement))
+  )
+}
+
+function isHookStatement(stmt: ts.Statement): boolean {
+  if (ts.isExpressionStatement(stmt)) return isHookCall(stmt.expression)
+  if (!ts.isVariableStatement(stmt)) return false
+  return stmt.declarationList.declarations.some((d) => {
+    const init = d.initializer
+    return (
+      !!init && (isHookCall(init) || (ts.isAwaitExpression(init) && isHookCall(init.expression)))
+    )
+  })
+}
+
+function isArrowStatement(stmt: ts.Statement): boolean {
+  if (!ts.isVariableStatement(stmt)) return false
+  return stmt.declarationList.declarations.some((d) => {
+    const init = d.initializer
+    return !!init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))
+  })
+}
+
+function statementLabel(stmt: ts.Statement): string {
+  if (ts.isVariableStatement(stmt)) {
+    const d = stmt.declarationList.declarations[0]
+    return d && ts.isIdentifier(d.name) ? d.name.text : 'declaration'
+  }
+  if (ts.isExpressionStatement(stmt) && ts.isCallExpression(stmt.expression)) {
+    return stmt.expression.expression.getText()
+  }
+  return stmt.kind === ts.SyntaxKind.IfStatement ? 'if' : ts.SyntaxKind[stmt.kind]
+}
+
 function checkComponentBody(file: string, comp: ComponentDecl) {
   if (!comp.body) return
-  let seenHandler = false
-  let seenEarlyReturn = false
+  let phase: Phase = PHASE.hooks
   let fullReturns = 0
+  let hasHooks = false
+  let hasArrows = false
 
   for (const stmt of comp.body.statements) {
-    // Nested function declarations: helpers belong at module scope; handlers must be arrows.
+    // Nested function declarations: helpers belong at module scope or as arrows; handlers must be arrows.
     if (ts.isFunctionDeclaration(stmt)) {
       const name = stmt.name?.text ?? ''
-      if (/^handle[A-Z]/.test(name)) {
-        report(
-          file,
-          stmt,
-          `handler "${name}" must be an arrow function (const ${name} = () => ...)`,
-        )
-      } else {
-        report(
-          file,
-          stmt,
-          `nested function "${name}" in ${comp.name}: move helpers to module scope`,
-        )
-      }
-      seenHandler = true
-      continue
-    }
-
-    if (ts.isVariableStatement(stmt)) {
-      for (const decl of stmt.declarationList.declarations) {
-        const init = decl.initializer
-        const name = ts.isIdentifier(decl.name) ? decl.name.text : ''
-        const isHook =
-          !!init &&
-          (isHookCall(init) || (ts.isAwaitExpression(init) && isHookCall(init.expression)))
-        const isArrow = !!init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))
-        if (isHook) {
-          if (seenHandler)
-            report(
-              file,
-              stmt,
-              `hook "${name}" declared after a handler in ${comp.name}: hooks first`,
-            )
-          if (seenEarlyReturn)
-            report(file, stmt, `hook "${name}" declared after an early return in ${comp.name}`)
-        }
-        if (isArrow && /^handle[A-Z]/.test(name)) seenHandler = true
-      }
-      continue
-    }
-
-    // Bare hook call as a statement, e.g. useEffect(...)
-    if (ts.isExpressionStatement(stmt) && isHookCall(stmt.expression)) {
-      const name = ts.isIdentifier(stmt.expression.expression)
-        ? stmt.expression.expression.text
-        : stmt.expression.expression.getText()
-      if (seenHandler)
-        report(file, stmt, `hook "${name}" called after a handler in ${comp.name}: hooks first`)
-      if (seenEarlyReturn)
-        report(file, stmt, `hook "${name}" called after an early return in ${comp.name}`)
-      continue
-    }
-
-    if (ts.isIfStatement(stmt)) {
-      const guardReturns = (s: ts.Statement | undefined): boolean =>
-        !!s &&
-        (ts.isReturnStatement(s) ||
-          (ts.isBlock(s) &&
-            s.statements.length === 1 &&
-            ts.isReturnStatement(s.statements[0] as ts.Statement)))
-      if (guardReturns(stmt.thenStatement)) seenEarlyReturn = true
+      report(
+        file,
+        stmt,
+        /^handle[A-Z]/.test(name)
+          ? `handler "${name}" must be an arrow function (const ${name} = () => ...)`
+          : `nested function "${name}" in ${comp.name}: use a module-scope helper or an arrow`,
+      )
       continue
     }
 
@@ -206,6 +242,47 @@ function checkComponentBody(file: string, comp: ComponentDecl) {
           stmt,
           `${comp.name} has more than one top-level return: use early-return guards, then a single render return`,
         )
+      continue
+    }
+
+    let want: Phase
+    if (isHookStatement(stmt)) {
+      want = PHASE.hooks
+      hasHooks = true
+    } else if (isArrowStatement(stmt)) {
+      want = PHASE.arrows
+      hasArrows = true
+    } else if (isGuardReturn(stmt)) {
+      want = PHASE.earlyReturns
+    } else {
+      want = PHASE.render
+    }
+
+    // A guard may need a value computed just above it: consts are allowed inside the
+    // early-returns block (they count as render logic that the guard depends on).
+    if (want === PHASE.render && phase === PHASE.earlyReturns) continue
+    // ...and a guard may follow such consts, as long as no hook or arrow sits between.
+    if (want === PHASE.earlyReturns && phase === PHASE.render) continue
+    if (want < phase) {
+      report(
+        file,
+        stmt,
+        `"${statementLabel(stmt)}" belongs in ${PHASE_LABEL[want]} but appears after ${PHASE_LABEL[phase]} in ${comp.name}: order is hooks, helpers/handlers, early returns, render logic, return`,
+      )
+      continue
+    }
+    phase = want
+  }
+
+  if (hasHooks || hasArrows) {
+    const text = comp.body.getFullText()
+    if (!SECTION_COMMENTS.some((c) => text.includes(c))) {
+      report(
+        file,
+        comp.node,
+        `${comp.name} has no section comments (${SECTION_COMMENTS.join(', ')})`,
+        'warn',
+      )
     }
   }
 }
@@ -240,15 +317,12 @@ function checkFile(file: string) {
   visitAll(sf)
 
   const comps = findComponents(sf)
-  const [first, ...rest] = comps.filter((c) => c.exported)
-  if (first) {
-    for (const c of rest) {
-      report(
-        file,
-        c.node,
-        `second exported component "${c.name}" (first: "${first.name}"): one component per file`,
-      )
-    }
+  for (const c of comps.filter((c) => c.exported)) {
+    report(file, c.node, `component "${c.name}" is a named export: use export default`)
+  }
+  const defaults = comps.filter((c) => c.isDefault)
+  for (const c of defaults.slice(1)) {
+    report(file, c.node, `second default-exported component "${c.name}": one component per file`)
   }
   for (const c of comps) checkComponentBody(file, c)
 }

@@ -9,7 +9,7 @@ type PageBodyProps = {
 }
 
 /** Page frame: padding, max width, vertical rhythm between header and cards. */
-export function PageBody({ children, width = 'wide', className }: PageBodyProps) {
+export default function PageBody({ children, width = 'wide', className }: PageBodyProps) {
   return (
     <div
       className={cn(

@@ -11,6 +11,7 @@ export async function renderPage(tx: StoreTx, data: PageData) {
   const config = createBlocksConfig(({ productType, limit }) =>
     listCardProducts(tx, limit, productType),
   )
+
   const resolved = await resolveAllData(data, config)
   return <Render config={config} data={resolved} />
 }

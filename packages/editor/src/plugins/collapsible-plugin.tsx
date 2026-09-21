@@ -45,6 +45,7 @@ function $exitAfter(container: ElementNode): true {
     next.selectStart()
     return true
   }
+
   const paragraph = $createParagraphNode()
   container.insertAfter(paragraph)
   paragraph.selectStart()
@@ -52,7 +53,7 @@ function $exitAfter(container: ElementNode): true {
 }
 
 /** Enter in title → content; Enter on empty last line → exit; Backspace on empty title → unwrap. */
-export function CollapsiblePlugin(): null {
+export default function CollapsiblePlugin(): null {
   const [editor] = useLexicalComposerContext()
 
   useEffect(() => {

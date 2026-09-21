@@ -2,7 +2,7 @@ import { loadEnv } from '@commerce/config'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { AdminFrame } from '@/components/admin-frame'
+import AdminFrame from '@/components/admin-frame'
 import { auth, getSession } from '@/lib/auth'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

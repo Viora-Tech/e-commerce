@@ -8,9 +8,9 @@ import {
 } from '@commerce/richtext'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
-import { RichTextField } from '@/components/fields/rich-text-field'
-import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
+import RichTextField from '@/components/fields/rich-text-field'
+import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import { devEditorContent as copy } from '@/data/dev-editor'
 import '@/styles/vendor-blocks.css'
 
@@ -19,7 +19,8 @@ const localMedia = {
   upload: async (file: File) => ({ url: URL.createObjectURL(file), alt: file.name }),
 }
 
-export function EditorPlayground() {
+export default function EditorPlayground() {
+  // Hooks
   const [value, setValue] = useState<RichTextValue>(emptyRichText)
 
   return (

@@ -2,8 +2,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import type { LucideIcon } from 'lucide-react'
 import Link from 'next/link'
-import { EmptyState } from './empty-state'
-import { PageBody } from './page-body'
+import EmptyState from './empty-state'
+import PageBody from './page-body'
 
 export type SectionEmptyContent = {
   heading: string
@@ -15,7 +15,7 @@ export type SectionEmptyContent = {
 type SectionEmptyProps = SectionEmptyContent & { icon: LucideIcon }
 
 /** Whole-page empty state for a section that has no records yet. */
-export function SectionEmpty({ heading, body, action, icon }: SectionEmptyProps) {
+export default function SectionEmpty({ heading, body, action, icon }: SectionEmptyProps) {
   return (
     <PageBody>
       <Card className="py-10">

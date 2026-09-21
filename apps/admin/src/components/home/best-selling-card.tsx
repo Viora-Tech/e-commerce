@@ -1,20 +1,20 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { TrendingUp } from 'lucide-react'
 import Link from 'next/link'
-import { BandHead } from '@/components/layout/band-head'
-import { DataCard } from '@/components/layout/data-card'
-import { FilterButton } from '@/components/layout/filter-button'
-import { StatusPill } from '@/components/layout/status-pill'
+import BandHead from '@/components/layout/band-head'
+import DataCard from '@/components/layout/data-card'
+import FilterButton from '@/components/layout/filter-button'
+import StatusPill from '@/components/layout/status-pill'
 import { homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
-import { HomeProductThumb } from './product-thumb'
+import HomeProductThumb from './product-thumb'
 import type { TopProduct } from './top-product-types'
 
 /* 5:2146: Product 240 / trend 148 / Total order 152 / Status 152 / Price. */
 const BEST_ROW = 'grid grid-cols-[minmax(0,2.4fr)_1fr_1.1fr_1.1fr_1fr] items-center px-5'
 
 /** Frame 5:2138 "Best selling product": tinted 48px header band, 54px rows with thumbnails. */
-export function BestSellingCard({ products }: { products: TopProduct[] }) {
+export default function BestSellingCard({ products }: { products: TopProduct[] }) {
   const c = homeContent.bestSelling
   return (
     <DataCard title={c.title} action={<FilterButton items={c.filters} />} detailsHref="/products">

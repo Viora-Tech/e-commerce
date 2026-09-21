@@ -2,8 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { SuggestInput } from '@/components/fields/suggest-input'
-import { TagInput } from '@/components/fields/tag-input'
+import SuggestInput from '@/components/fields/suggest-input'
+import TagInput from '@/components/fields/tag-input'
 import { productFormContent } from '@/data/products'
 
 const copy = productFormContent
@@ -20,7 +20,7 @@ type OrganisationCardProps = {
   onTags: (tags: string[]) => void
 }
 
-export function OrganisationCard({
+export default function OrganisationCard({
   productType,
   vendor,
   tags,

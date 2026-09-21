@@ -24,7 +24,7 @@ type MoneyInputProps = {
 }
 
 /** Numeric input with a ₹ prefix; the value stays a string so typing "12." survives. */
-export function MoneyInput({
+export default function MoneyInput({
   id,
   value,
   onChange,

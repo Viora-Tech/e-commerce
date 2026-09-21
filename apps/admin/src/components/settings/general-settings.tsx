@@ -20,9 +20,9 @@ import {
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
-import { SaveBar } from '@/components/layout/save-bar'
+import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
 import { providerSettingsContent } from '@/data/provider-settings'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
@@ -97,12 +97,12 @@ function LoadingCards() {
 }
 
 /** Settings › General: store name, contact, address, GSTIN, timezone. Currency is read-only. */
-export function GeneralSettings() {
+export default function GeneralSettings() {
+  // Hooks
   const [form, setForm] = useState<Loaded | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
-
   useEffect(() => {
     api.store.getGeneral().then((g) => {
       if (!g) return
@@ -111,13 +111,12 @@ export function GeneralSettings() {
     })
   }, [])
 
-  const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
-  const errors = form && attempted ? validate(form) : {}
-
+  // Helpers
   const patch = (p: Partial<Loaded>) => setForm((f) => (f ? { ...f, ...p } : f))
   const patchAddress = (p: Partial<Loaded['address']>) =>
     setForm((f) => (f ? { ...f, address: { ...f.address, ...p } } : f))
 
+  // Event handlers
   const handleSave = async () => {
     if (!form) return
     setAttempted(true)
@@ -142,6 +141,10 @@ export function GeneralSettings() {
     if (saved) setForm(JSON.parse(saved) as Loaded)
     setAttempted(false)
   }
+
+  // Render logic
+  const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
+  const errors = form && attempted ? validate(form) : {}
 
   return (
     <PageBody width="narrow">

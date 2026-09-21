@@ -127,12 +127,18 @@ function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   )
 }
 
-export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: AdminSidebarProps) {
+export default function AdminSidebar({
+  user,
+  stores,
+  activeStoreId,
+  storefrontUrl,
+}: AdminSidebarProps) {
+  // Hooks
   const pathname = usePathname()
   const router = useRouter()
   const { toggleSidebar } = useSidebar()
-  const active = stores.find((s) => s.id === activeStoreId) ?? null
 
+  // Event handlers
   const handleSwitchStore = async (id: string) => {
     await authClient.organization.setActive({ organizationId: id })
     router.refresh()
@@ -143,6 +149,9 @@ export function AdminSidebar({ user, stores, activeStoreId, storefrontUrl }: Adm
     router.push('/login')
     router.refresh()
   }
+
+  // Render logic
+  const active = stores.find((s) => s.id === activeStoreId) ?? null
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 shadow-rail">

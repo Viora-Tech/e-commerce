@@ -26,6 +26,7 @@ export default async function StoreLayout({ children, params }: Props) {
     const [s] = await tx.select().from(store).where(eq(store.id, storeId))
     return s
   })
+
   if (!current) notFound()
 
   const cartId = await readCartId()

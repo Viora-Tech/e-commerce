@@ -4,7 +4,7 @@ import { ImageIcon } from 'lucide-react'
 type ProductThumbProps = { url: string | null; alt?: string; className?: string }
 
 /* Frame 5:2613: 40px box, Neutal/200 hairline, 4px radius, picture inset to 30px. */
-export function ProductThumb({ url, alt = '', className }: ProductThumbProps) {
+export default function ProductThumb({ url, alt = '', className }: ProductThumbProps) {
   return (
     <span
       className={cn(

@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import type { CardProduct } from '../types'
-import { ProductCard } from './product-card'
+import ProductCard from './product-card'
 
 // Port of sections/tabbed-products.liquid. Tabs are product types.
-export function TabbedProducts({
+export default function TabbedProducts({
   heading,
   tabs,
   columns = 4,
@@ -14,7 +14,10 @@ export function TabbedProducts({
   tabs: { label: string; products: CardProduct[] }[]
   columns?: number
 }) {
+  // Hooks
   const [active, setActive] = useState(0)
+
+  // Early returns
   const current = tabs[active] ?? tabs[0]
   if (!current) return null
 

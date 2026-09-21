@@ -20,7 +20,7 @@ type PageHeaderProps = {
 }
 
 /** Title row every admin page starts with. */
-export function PageHeader({ title, subtitle, breadcrumbs, actions }: PageHeaderProps) {
+export default function PageHeader({ title, subtitle, breadcrumbs, actions }: PageHeaderProps) {
   return (
     <div className="flex flex-col gap-3">
       {breadcrumbs && breadcrumbs.length > 0 ? (

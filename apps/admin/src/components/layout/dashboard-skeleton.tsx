@@ -1,9 +1,9 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { PageBody } from '@/components/layout/page-body'
+import PageBody from '@/components/layout/page-body'
 
 /** Dashboard shape: three stat cards, a chart, two data cards. */
-export function DashboardSkeleton() {
+export default function DashboardSkeleton() {
   return (
     <PageBody>
       <div className="grid gap-6 lg:grid-cols-3">

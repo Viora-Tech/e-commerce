@@ -1,6 +1,6 @@
 import { Boxes } from 'lucide-react'
 import type { Metadata } from 'next'
-import { SectionEmpty } from '@/components/layout/section-empty'
+import SectionEmpty from '@/components/layout/section-empty'
 import { productsSectionsContent } from '@/data/products'
 
 export const metadata: Metadata = { title: 'Inventory' }

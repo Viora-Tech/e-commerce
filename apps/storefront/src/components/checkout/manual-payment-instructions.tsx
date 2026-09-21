@@ -11,7 +11,7 @@ type ManualPaymentInstructionsProps = {
 type BankRow = [string, string, boolean]
 
 /** Server component: the QR is rendered to a data URI here, nothing runs in the browser. */
-export async function ManualPaymentInstructions({
+export default async function ManualPaymentInstructions({
   instructions,
   amountLabel,
 }: ManualPaymentInstructionsProps) {

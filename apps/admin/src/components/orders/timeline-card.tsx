@@ -6,7 +6,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { Bell, CreditCard, MessageSquare, RotateCcw, ShoppingBag, Truck } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { orderDetailContent as copy } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
@@ -44,6 +44,7 @@ function buildEntries(order: OrderDetail): Entry[] {
   const entries: Entry[] = [
     { id: 'placed', at: new Date(order.placedAt), kind: 'order', title: t.placed },
   ]
+
   for (const e of order.paymentEvents) {
     entries.push({
       id: `pe-${e.id}`,
@@ -54,6 +55,7 @@ function buildEntries(order: OrderDetail): Entry[] {
       tone: e.status === 'failed' ? 'destructive' : undefined,
     })
   }
+
   for (const r of order.refunds) {
     entries.push({
       id: `rf-${r.id}`,
@@ -66,6 +68,7 @@ function buildEntries(order: OrderDetail): Entry[] {
       tone: r.status === 'failed' ? 'destructive' : undefined,
     })
   }
+
   for (const n of order.notifications) {
     const template = t.templates[n.template] ?? n.template
     const failed = n.status === 'failed'
@@ -80,6 +83,7 @@ function buildEntries(order: OrderDetail): Entry[] {
       tone: failed ? 'destructive' : undefined,
     })
   }
+
   const tracking = (order.shipment?.tracking ?? null) as Tracking | null
   if (order.shipment) {
     entries.push({
@@ -99,6 +103,7 @@ function buildEntries(order: OrderDetail): Entry[] {
       })
     }
   }
+
   for (const n of order.notes) {
     entries.push({
       id: `no-${n.id}`,
@@ -108,15 +113,17 @@ function buildEntries(order: OrderDetail): Entry[] {
       detail: n.author ?? undefined,
     })
   }
+
   return entries.sort((a, b) => b.at.getTime() - a.at.getTime())
 }
 
 /** Order history with a note composer at the top. */
-export function TimelineCard({ order, onChanged }: TimelineCardProps) {
+export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
+  // Hooks
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
-  const entries = buildEntries(order)
 
+  // Event handlers
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const body = note.trim()
@@ -131,6 +138,9 @@ export function TimelineCard({ order, onChanged }: TimelineCardProps) {
       setSaving(false)
     }
   }
+
+  // Render logic
+  const entries = buildEntries(order)
 
   return (
     <DataCard title={copy.timeline.heading} className="print:hidden">

@@ -1,9 +1,9 @@
 import { Search } from 'lucide-react'
 import Link from 'next/link'
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
-import { HomeProductThumb } from './product-thumb'
+import HomeProductThumb from './product-thumb'
 import type { TopProduct } from './top-product-types'
 
 /**
@@ -11,7 +11,7 @@ import type { TopProduct } from './top-product-types'
  * "All product" link, a search field, then rows of thumb / name / item code /
  * price separated by hairlines.
  */
-export function TopProductsCard({ products }: { products: TopProduct[] }) {
+export default function TopProductsCard({ products }: { products: TopProduct[] }) {
   const c = homeContent.topProducts
   return (
     <DataCard

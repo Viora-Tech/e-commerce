@@ -1,6 +1,6 @@
 import { loadEnv } from '@commerce/config'
 import { notFound, redirect } from 'next/navigation'
-import { ProductForm } from '@/components/products/product-form'
+import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 type Params = { params: Promise<{ id: string }> }

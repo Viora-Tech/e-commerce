@@ -4,7 +4,7 @@ import { layoutContent } from '@/data/layout'
 type DetailsLinkProps = { href: string; label?: string | undefined }
 
 /** 5:1509: 96 x 32 outline pill in the link colour, 16px label. */
-export function DetailsLink({ href, label = layoutContent.details }: DetailsLinkProps) {
+export default function DetailsLink({ href, label = layoutContent.details }: DetailsLinkProps) {
   return (
     <Link
       href={href}

@@ -32,7 +32,7 @@ const COPY: Record<State, string> = {
  * confirmation back. The webhook remains the source of truth; this page just
  * gets the shopper to the thank-you page quickly when the gateway confirms.
  */
-export function PayClient({
+export default function PayClient({
   storeId,
   orderNumber,
   session,
@@ -43,10 +43,10 @@ export function PayClient({
   session: Extract<CheckoutSession, { kind: 'client' }>
   amountPaise: number
 }) {
+  // Hooks
   const router = useRouter()
   const [state, setState] = useState<State>('loading')
   const opened = useRef(false)
-
   useEffect(() => {
     const src = SCRIPTS[session.provider]
     if (!src) return
@@ -64,6 +64,7 @@ export function PayClient({
     }
   })
 
+  // Event handlers
   const handleOpen = () => {
     const Rzp = window.Razorpay
     if (!Rzp) return

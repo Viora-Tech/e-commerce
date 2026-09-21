@@ -5,9 +5,9 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { ArrowRight, Store } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { EmptyState } from '@/components/layout/empty-state'
-import { PageBody } from '@/components/layout/page-body'
-import { PageHeader } from '@/components/layout/page-header'
+import EmptyState from '@/components/layout/empty-state'
+import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 import { authContent } from '@/data/auth'
 import { authClient } from '@/lib/auth-client'
 
@@ -15,10 +15,12 @@ type StoreOption = { id: string; name: string; slug: string }
 
 const copy = authContent.selectStore
 
-export function SelectStore({ stores }: { stores: StoreOption[] }) {
+export default function SelectStore({ stores }: { stores: StoreOption[] }) {
+  // Hooks
   const router = useRouter()
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  // Event handlers
   const handlePick = async (id: string) => {
     setBusyId(id)
     await authClient.organization.setActive({ organizationId: id })

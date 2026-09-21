@@ -1,9 +1,9 @@
 'use client'
 
 import { Card } from '@commerce/ui/shadcn/card'
-import { CardMenu } from '@/components/layout/card-menu'
-import { DetailsLink } from '@/components/layout/details-link'
-import { MiniBars } from '@/components/layout/mini-bars'
+import CardMenu from '@/components/layout/card-menu'
+import DetailsLink from '@/components/layout/details-link'
+import MiniBars from '@/components/layout/mini-bars'
 import { homeContent } from '@/data/home'
 import { INDIAN_STATES } from '@/data/india'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'
@@ -35,7 +35,7 @@ function StateBadge({ code }: { code: string }) {
  * progress bar, delta) and a full-width outline pill at the bottom. Ours shows
  * orders per hour and sales by Indian state; no map, no geo delta.
  */
-export function ActivityCard({ ordersLast24h, perHour, salesByState }: ActivityCardProps) {
+export default function ActivityCard({ ordersLast24h, perHour, salesByState }: ActivityCardProps) {
   const c = homeContent.activity
   const bars = perHour.map((value, i) => ({ label: String(i), value }))
 

@@ -4,7 +4,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { X } from 'lucide-react'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { DataCard } from '@/components/layout/data-card'
+import DataCard from '@/components/layout/data-card'
 import { orderDetailContent as copy } from '@/data/orders'
 import { api } from '@/lib/api-client'
 
@@ -15,10 +15,12 @@ type TagsCardProps = {
 }
 
 /** Free-form labels for filtering later; saved on every add/remove. */
-export function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
+export default function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
+  // Hooks
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Event handlers
   const handleSave = async (next: string[]) => {
     setSaving(true)
     try {
