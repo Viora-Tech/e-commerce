@@ -10,6 +10,7 @@ import {
   ProductStatusSchema,
   ProductWriteSchema,
   parseProductCsv,
+  permissions,
   summariseImport,
   syncAutomaticCollections,
   uniqueHandle,
@@ -17,7 +18,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import {
   getProduct,
   listProductHandles,
@@ -52,7 +53,7 @@ async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 export const productsRouter = {
-  list: storeProcedure
+  list: can(permissions.PRODUCTS_READ)
     .input(
       ListFiltersSchema.extend({
         page: z.number().int().min(1).default(1),
@@ -62,21 +63,21 @@ export const productsRouter = {
     .handler(({ context, input }) => listProducts(context.tx, input)),
 
   /** Tiles above the list. */
-  stats: storeProcedure.handler(({ context }) => productStats(context.tx)),
+  stats: can(permissions.PRODUCTS_READ).handler(({ context }) => productStats(context.tx)),
 
   /** Stock movements for the product form's inventory history. */
-  adjustments: storeProcedure
+  adjustments: can(permissions.INVENTORY_READ)
     .input(z.object({ productId: z.uuid(), limit: z.number().int().min(1).max(100).default(20) }))
     .handler(({ context, input }) => productAdjustments(context.tx, input.productId, input.limit)),
 
-  get: storeProcedure
+  get: can(permissions.PRODUCTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
 
-  facets: storeProcedure.handler(({ context }) => productFacets(context.tx)),
+  facets: can(permissions.PRODUCTS_READ).handler(({ context }) => productFacets(context.tx)),
 
   /** Variant picker for the draft order editor. */
-  searchVariants: storeProcedure
+  searchVariants: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
         search: z.string().trim().max(200).optional(),
@@ -86,7 +87,7 @@ export const productsRouter = {
     .handler(({ context, input }) => searchVariants(context.tx, input)),
 
   /** Full write from the product form: options, variants and inventory in one transaction. */
-  save: storeProcedure
+  save: can(permissions.PRODUCTS_WRITE)
     .input(ProductWriteSchema.extend({ id: z.uuid().optional() }))
     .handler(({ context, input: { id, ...write } }) =>
       invalidToBadRequest(async () => {
@@ -100,14 +101,16 @@ export const productsRouter = {
       }),
     ),
 
-  delete: storeProcedure.input(z.object({ id: z.uuid() })).handler(async ({ context, input }) => {
-    const existing = await getProduct(context.tx, input.id)
-    if (!existing) throw new ORPCError('NOT_FOUND', { message: 'Product not found' })
-    return { outcome: await deleteProduct(context.tx, input.id) }
-  }),
+  delete: can(permissions.PRODUCTS_DELETE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const existing = await getProduct(context.tx, input.id)
+      if (!existing) throw new ORPCError('NOT_FOUND', { message: 'Product not found' })
+      return { outcome: await deleteProduct(context.tx, input.id) }
+    }),
 
   /** One action over many products: status, tags or delete. */
-  bulk: storeProcedure
+  bulk: can(permissions.PRODUCTS_WRITE)
     .input(
       z.object({
         ids: z.array(z.uuid()).min(1).max(200),
@@ -121,21 +124,23 @@ export const productsRouter = {
     )
     .handler(({ context, input }) => bulkUpdateProducts(context.tx, input.ids, input.action)),
 
-  duplicate: storeProcedure.input(z.object({ id: z.uuid() })).handler(({ context, input }) =>
-    invalidToBadRequest(async () => ({
-      id: await duplicateProduct(context.tx, context.scope.storeId, input.id),
-    })),
-  ),
+  duplicate: can(permissions.PRODUCTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) =>
+      invalidToBadRequest(async () => ({
+        id: await duplicateProduct(context.tx, context.scope.storeId, input.id),
+      })),
+    ),
 
   /** Rows for the CSV the browser downloads, honouring the current filter. */
-  exportRows: storeProcedure
+  exportRows: can(permissions.PRODUCTS_READ)
     .input(ListFiltersSchema)
     .handler(async ({ context, input }) =>
       exportRows(context.tx, await listProductIds(context.tx, { ...input, page: 1, perPage: 1 })),
     ),
 
   /** Dry run: parse the file and say what would change, writing nothing. */
-  previewImport: storeProcedure
+  previewImport: can(permissions.PRODUCTS_IMPORT)
     .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
     .handler(async ({ context, input }) => {
       const parsed = parseProductCsv(input.csv)
@@ -153,7 +158,7 @@ export const productsRouter = {
       }
     }),
 
-  import: storeProcedure
+  import: can(permissions.PRODUCTS_IMPORT)
     .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
     .handler(({ context, input }) =>
       invalidToBadRequest(() =>
@@ -166,14 +171,14 @@ export const productsRouter = {
       ),
     ),
 
-  generateHandle: storeProcedure
+  generateHandle: can(permissions.PRODUCTS_READ)
     .input(z.object({ title: z.string().trim().min(1).max(200), exceptId: z.uuid().optional() }))
     .handler(async ({ context, input }) => ({
       handle: await uniqueHandle(context.tx, input.title, input.exceptId),
     })),
 
   /** Small patches from the list page (bulk status). The form uses `save`. */
-  update: storeProcedure
+  update: can(permissions.PRODUCTS_WRITE)
     .input(
       z.object({
         id: z.uuid(),
@@ -186,7 +191,7 @@ export const productsRouter = {
     )
     .handler(({ context, input: { id, ...patch } }) => updateProduct(context.tx, id, patch)),
 
-  updateVariant: storeProcedure
+  updateVariant: can(permissions.INVENTORY_WRITE)
     .input(
       z.object({
         id: z.uuid(),

@@ -9,6 +9,7 @@ import { mediaRouter } from './media'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { productsRouter } from './products'
+import { staffRouter } from './staff'
 import { storeRouter } from './store'
 
 export const appRouter = {
@@ -24,6 +25,7 @@ export const appRouter = {
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   media: mediaRouter,
+  staff: staffRouter,
 }
 
 export type AppRouter = typeof appRouter

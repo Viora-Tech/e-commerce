@@ -652,3 +652,60 @@ export const page = pgTable(
   },
   (t) => [uniqueIndex('page_store_handle').on(t.storeId, t.handle)],
 )
+
+/**
+ * Store roles. `is_system` rows (owner, admin, staff) are seeded per store and
+ * may not be renamed, re-permissioned or deleted from the admin.
+ */
+export const role = pgTable(
+  'role',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    description: text('description'),
+    isSystem: boolean('is_system').notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('role_store_slug').on(t.storeId, t.slug)],
+)
+
+/** One row per granted permission, so "who can refund?" is a plain query. */
+export const rolePermission = pgTable(
+  'role_permission',
+  {
+    id: id(),
+    storeId: storeId(),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => role.id, { onDelete: 'cascade' }),
+    permission: text('permission').notNull(),
+  },
+  (t) => [uniqueIndex('role_permission_role_permission').on(t.roleId, t.permission)],
+)
+
+/**
+ * Authorisation record for a member of this store. Better Auth still owns
+ * sign-in and the organization membership; this row decides what they may do.
+ */
+export const storeMember = pgTable(
+  'store_member',
+  {
+    id: id(),
+    storeId: storeId(),
+    userId: text('user_id').notNull(),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => role.id),
+    status: text('status').notNull().default('active'),
+    invitedBy: text('invited_by'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('store_member_store_user').on(t.storeId, t.userId),
+    check('store_member_status', sql`${t.status} in ('active','invited')`),
+  ],
+)

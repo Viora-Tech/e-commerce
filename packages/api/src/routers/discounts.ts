@@ -1,7 +1,7 @@
-import { DiscountInputSchema } from '@commerce/core'
+import { DiscountInputSchema, permissions } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import {
   createDiscount,
   DiscountCodeTaken,
@@ -25,7 +25,7 @@ function surfaceCodeClash<T>(work: () => Promise<T>): Promise<T> {
 }
 
 export const discountsRouter = {
-  list: storeProcedure
+  list: can(permissions.DISCOUNTS_READ)
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -36,19 +36,19 @@ export const discountsRouter = {
     )
     .handler(({ context, input }) => listDiscounts(context.tx, input)),
 
-  stats: storeProcedure.handler(({ context }) => discountStats(context.tx)),
+  stats: can(permissions.DISCOUNTS_READ).handler(({ context }) => discountStats(context.tx)),
 
-  get: storeProcedure
+  get: can(permissions.DISCOUNTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getDiscount(context.tx, input.id)),
 
-  create: storeProcedure
+  create: can(permissions.DISCOUNTS_WRITE)
     .input(DiscountInputSchema)
     .handler(({ context, input }) =>
       surfaceCodeClash(() => createDiscount(context.tx, context.scope.storeId, input)),
     ),
 
-  update: storeProcedure
+  update: can(permissions.DISCOUNTS_WRITE)
     .input(z.object({ id: z.uuid(), data: DiscountInputSchema }))
     .handler(({ context, input }) =>
       surfaceCodeClash(() =>
@@ -56,11 +56,11 @@ export const discountsRouter = {
       ),
     ),
 
-  toggle: storeProcedure
+  toggle: can(permissions.DISCOUNTS_WRITE)
     .input(z.object({ id: z.uuid(), status: z.enum(['active', 'disabled']) }))
     .handler(({ context, input }) => setDiscountStatus(context.tx, input.id, input.status)),
 
-  delete: storeProcedure
+  delete: can(permissions.DISCOUNTS_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => deleteDiscount(context.tx, input.id)),
 }

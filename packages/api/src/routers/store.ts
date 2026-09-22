@@ -6,6 +6,7 @@ import {
   parsePaymentSettings,
   parseShippingSettings,
   parseTheme,
+  permissions,
   presentStoreGeneral,
   ShippingSettingsSchema,
   StorageSettingsSchema,
@@ -13,7 +14,7 @@ import {
   ThemeSchema,
 } from '@commerce/core'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   loadStorageSettings,
@@ -41,37 +42,39 @@ import {
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 export const storeRouter = {
-  current: storeProcedure.handler(async ({ context }) => {
+  current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     return s ? { ...s, theme: parseTheme(s.theme), role: context.scope.role } : null
   }),
 
   /** Store details for Settings › General. */
-  getGeneral: storeProcedure.handler(async ({ context }) => {
+  getGeneral: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     return s ? presentStoreGeneral(s) : null
   }),
 
-  updateGeneral: storeProcedure.input(StoreGeneralSchema).handler(async ({ context, input }) => {
-    const empty = (v: string) => (v === '' ? null : v)
-    const s = await updateStoreGeneral(context.tx, context.scope.storeId, {
-      name: input.name,
-      contactEmail: empty(input.contactEmail),
-      contactPhone: empty(input.contactPhone),
-      address: input.address,
-      gstin: empty(input.gstin),
-      gstRatePercent: Math.round(input.gstRatePercent),
-      timezone: input.timezone,
-    })
-    return s ? presentStoreGeneral(s) : null
-  }),
+  updateGeneral: can(permissions.SETTINGS_MANAGE)
+    .input(StoreGeneralSchema)
+    .handler(async ({ context, input }) => {
+      const empty = (v: string) => (v === '' ? null : v)
+      const s = await updateStoreGeneral(context.tx, context.scope.storeId, {
+        name: input.name,
+        contactEmail: empty(input.contactEmail),
+        contactPhone: empty(input.contactPhone),
+        address: input.address,
+        gstin: empty(input.gstin),
+        gstRatePercent: Math.round(input.gstRatePercent),
+        timezone: input.timezone,
+      })
+      return s ? presentStoreGeneral(s) : null
+    }),
 
-  updateTheme: storeProcedure
+  updateTheme: can(permissions.SETTINGS_MANAGE)
     .input(ThemeSchema)
     .handler(({ context, input }) => updateStoreTheme(context.tx, context.scope.storeId, input)),
 
   /** Payment settings with secrets masked, plus the gateways this deployment can offer. */
-  getPayments: storeProcedure.handler(async ({ context }) => {
+  getPayments: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     const { payments } = await storeRegistries(context.tx, context.scope.storeId)
     return {
@@ -84,7 +87,7 @@ export const storeRouter = {
    * Save payment settings. A masked secret value (••••1234) means "unchanged":
    * the stored encrypted value is kept. Anything else is encrypted before saving.
    */
-  updatePayments: storeProcedure
+  updatePayments: can(permissions.SETTINGS_MANAGE)
     .input(PaymentSettingsSchema)
     .handler(async ({ context, input }) => {
       const current = parsePaymentSettings(
@@ -97,7 +100,7 @@ export const storeRouter = {
     }),
 
   /** Notification settings with secrets masked, plus the channels this deployment can offer. */
-  getNotifications: storeProcedure.handler(async ({ context }) => {
+  getNotifications: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
     return {
@@ -106,7 +109,7 @@ export const storeRouter = {
     }
   }),
 
-  updateNotifications: storeProcedure
+  updateNotifications: can(permissions.SETTINGS_MANAGE)
     .input(NotificationSettingsSchema)
     .handler(async ({ context, input }) => {
       const current = parseNotificationSettings(
@@ -127,7 +130,7 @@ export const storeRouter = {
     }),
 
   /** Shipping settings with secrets masked, the couriers on offer, and the dispatch policy. */
-  getShipping: storeProcedure.handler(async ({ context }) => {
+  getShipping: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const s = await getStore(context.tx, context.scope.storeId)
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
     return {
@@ -136,7 +139,7 @@ export const storeRouter = {
     }
   }),
 
-  updateShipping: storeProcedure
+  updateShipping: can(permissions.SETTINGS_MANAGE)
     .input(ShippingSettingsSchema)
     .handler(async ({ context, input }) => {
       const current = parseShippingSettings(
@@ -149,20 +152,20 @@ export const storeRouter = {
     }),
 
   /** "Try a PIN" on the settings page: the exact answer the storefront would give. */
-  estimateDelivery: storeProcedure
+  estimateDelivery: can(permissions.SETTINGS_READ)
     .input(z.object({ pincode: z.string().trim().max(10) }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       return tryEstimate(context.tx, context.scope.storeId, shipping, secret(), input.pincode)
     }),
 
-  verifyShipping: storeProcedure.handler(async ({ context }) => {
+  verifyShipping: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
     return verifyShippingCredentials(context.tx, context.scope.storeId, shipping, secret())
   }),
 
   /** Storage settings with secrets masked, plus the providers this deployment can offer. */
-  getStorage: storeProcedure.handler(async ({ context }) => {
+  getStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storage } = await storeRegistries(context.tx, context.scope.storeId)
     return {
       settings: presentProviderSettings(
@@ -173,20 +176,22 @@ export const storeRouter = {
     }
   }),
 
-  updateStorage: storeProcedure.input(StorageSettingsSchema).handler(async ({ context, input }) => {
-    const current = await loadStorageSettings(context.tx, context.scope.storeId)
-    const { storage } = await storeRegistries(context.tx, context.scope.storeId)
-    const next = prepareProviderSettings(input, current, storage, secret(), 'storage provider')
-    const saved = await updateStoreStorage(context.tx, context.scope.storeId, next)
-    return saved
-      ? presentProviderSettings(
-          await loadStorageSettings(context.tx, context.scope.storeId),
-          secret(),
-        )
-      : null
-  }),
+  updateStorage: can(permissions.SETTINGS_MANAGE)
+    .input(StorageSettingsSchema)
+    .handler(async ({ context, input }) => {
+      const current = await loadStorageSettings(context.tx, context.scope.storeId)
+      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const next = prepareProviderSettings(input, current, storage, secret(), 'storage provider')
+      const saved = await updateStoreStorage(context.tx, context.scope.storeId, next)
+      return saved
+        ? presentProviderSettings(
+            await loadStorageSettings(context.tx, context.scope.storeId),
+            secret(),
+          )
+        : null
+    }),
 
-  verifyStorage: storeProcedure.handler(async ({ context }) => {
+  verifyStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storage } = await storeRegistries(context.tx, context.scope.storeId)
     return verifyStorageCredentials(context.tx, context.scope.storeId, storage, secret())
   }),

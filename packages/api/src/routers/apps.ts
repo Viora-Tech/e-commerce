@@ -1,7 +1,8 @@
+import { permissions } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import { getStoreApps, installStoreApp, uninstallStoreApp } from '../services/apps.service'
 
 const pluginId = z.object({ id: z.string().min(1).max(64) })
@@ -17,20 +18,24 @@ function requirePlugin(id: string) {
 
 export const appsRouter = {
   /** Every plugin this deployment ships, flagged with whether this store installed it. */
-  list: storeProcedure.handler(async ({ context }) => {
+  list: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const apps = await getStoreApps(context.tx, context.scope.storeId)
     return getRegistries()
       .summaries()
       .map((p) => ({ ...p, installed: p.builtIn || apps.installed.includes(p.id) }))
   }),
 
-  install: storeProcedure.input(pluginId).handler(({ context, input }) => {
-    requirePlugin(input.id)
-    return installStoreApp(context.tx, context.scope.storeId, input.id)
-  }),
+  install: can(permissions.APPS_MANAGE)
+    .input(pluginId)
+    .handler(({ context, input }) => {
+      requirePlugin(input.id)
+      return installStoreApp(context.tx, context.scope.storeId, input.id)
+    }),
 
-  uninstall: storeProcedure.input(pluginId).handler(({ context, input }) => {
-    requirePlugin(input.id)
-    return uninstallStoreApp(context.tx, context.scope.storeId, input.id)
-  }),
+  uninstall: can(permissions.APPS_MANAGE)
+    .input(pluginId)
+    .handler(({ context, input }) => {
+      requirePlugin(input.id)
+      return uninstallStoreApp(context.tx, context.scope.storeId, input.id)
+    }),
 }

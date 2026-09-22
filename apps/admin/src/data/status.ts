@@ -17,6 +17,7 @@ import { onlineStoreContent } from '@/data/online-store'
 import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
 import { shipmentPanelContent } from '@/data/shipping'
+import { staffContent } from '@/data/staff'
 
 /*
  * Every status the admin shows, in one place. Tones come from the kit's
@@ -133,6 +134,12 @@ export const STATUS = {
     enabled: entry('Active', 'success'),
     disabled: entry('Off', 'neutral'),
   },
+  /** Staff members on the team page. */
+  member: {
+    active: entry(staffContent.status.active, 'success'),
+    invited: entry(staffContent.status.invited, 'pending'),
+  },
+  /** Badges on the customer detail header. */
   /** Badges on the customer detail header and the list's status column (5:3148). */
   customer: {
     returning: entry(customerDetailContent.badges.returning, 'info'),

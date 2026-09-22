@@ -1,10 +1,8 @@
-import { UserCog } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SettingsEmpty from '@/components/settings/settings-empty'
-import { settingsContent } from '@/data/settings'
+import StaffSettings from '@/components/staff/staff-settings'
 
 export const metadata: Metadata = { title: 'Staff' }
 
 export default function Page() {
-  return <SettingsEmpty {...settingsContent.staff} icon={UserCog} />
+  return <StaffSettings />
 }

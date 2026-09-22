@@ -1,5 +1,6 @@
+import { permissions } from '@commerce/core'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import { analyticsLive, analyticsOverview, analyticsReport } from '../services/analytics.service'
 import { REPORTS } from '../services/analytics-reports'
 
@@ -12,7 +13,7 @@ const rangeInput = z.object({
 
 export const analyticsRouter = {
   /** KPI tiles, sales over time, breakdown cards and the funnel for one range. */
-  overview: storeProcedure
+  overview: can(permissions.ANALYTICS_READ)
     .input(z.object({ range: rangeInput.default({ key: '30d' }) }))
     .handler(({ context, input }) =>
       analyticsOverview(context.tx, {
@@ -23,7 +24,7 @@ export const analyticsRouter = {
     ),
 
   /** Visitors now, carts in flight and the last hour of activity. */
-  live: storeProcedure.handler(({ context }) =>
+  live: can(permissions.ANALYTICS_READ).handler(({ context }) =>
     analyticsLive(context.tx, {
       storeId: context.scope.storeId,
       visitors: context.visitors,
@@ -31,9 +32,9 @@ export const analyticsRouter = {
   ),
 
   /** The report catalogue; static, so the page can render before any query runs. */
-  reports: storeProcedure.handler(() => REPORTS),
+  reports: can(permissions.ANALYTICS_READ).handler(() => REPORTS),
 
-  report: storeProcedure
+  report: can(permissions.ANALYTICS_READ)
     .input(
       z.object({
         slug: z.string().trim().min(1).max(60),

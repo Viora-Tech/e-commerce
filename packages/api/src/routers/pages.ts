@@ -1,5 +1,6 @@
+import { permissions } from '@commerce/core'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import {
   createPage,
   deletePage,
@@ -22,17 +23,17 @@ const pageData = z.object({
 })
 
 export const pagesRouter = {
-  list: storeProcedure.handler(({ context }) => listPages(context.tx)),
+  list: can(permissions.ONLINE_STORE_READ).handler(({ context }) => listPages(context.tx)),
 
-  get: storeProcedure
+  get: can(permissions.ONLINE_STORE_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getPage(context.tx, input.id)),
 
-  create: storeProcedure
+  create: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ handle, title: z.string().trim().min(1).max(120), data: pageData }))
     .handler(({ context, input }) => createPage(context.tx, context.scope.storeId, input)),
 
-  saveDraft: storeProcedure
+  saveDraft: can(permissions.ONLINE_STORE_WRITE)
     .input(
       z.object({
         id: z.uuid(),
@@ -42,11 +43,11 @@ export const pagesRouter = {
     )
     .handler(({ context, input: { id, ...rest } }) => saveDraft(context.tx, id, rest)),
 
-  publish: storeProcedure
+  publish: can(permissions.ONLINE_STORE_PUBLISH)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => publishPage(context.tx, input.id)),
 
-  delete: storeProcedure
+  delete: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => deletePage(context.tx, input.id)),
 }

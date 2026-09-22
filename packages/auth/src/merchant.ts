@@ -5,11 +5,20 @@ import { emailOTP, organization } from 'better-auth/plugins'
 
 export type SendOtp = (input: { email: string; otp: string; type: string }) => Promise<void>
 
+export type SendInvite = (input: {
+  email: string
+  organizationName: string
+  inviterEmail: string
+  acceptUrl: string
+}) => Promise<void>
+
 export type MerchantAuthOptions = {
   db: Db
   baseURL: string
   secret: string
   sendOtp: SendOtp
+  /** Staff invitation email. Defaults to a console line so dev needs no mailer. */
+  sendInvite?: SendInvite
   /** Extra origins allowed to call the auth API (the storefront, dev hosts). */
   trustedOrigins?: string[]
 }
@@ -41,6 +50,20 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
         allowUserToCreateOrganization: true,
         organizationLimit: 10,
         membershipLimit: 50,
+        sendInvitationEmail: async (data) => {
+          const acceptUrl = `${opts.baseURL}/accept-invitation/${data.id}`
+          const send =
+            opts.sendInvite ??
+            (async (i) => {
+              console.log(`[invite] ${i.email} for ${i.organizationName}: ${i.acceptUrl}`)
+            })
+          await send({
+            email: data.email,
+            organizationName: data.organization.name,
+            inviterEmail: data.inviter.user.email,
+            acceptUrl,
+          })
+        },
       }),
     ],
   })

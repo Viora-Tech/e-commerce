@@ -1,5 +1,6 @@
+import { permissions } from '@commerce/core'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import {
   customerOverview,
   customerStats,
@@ -43,7 +44,7 @@ const RulesSchema = z.object({
 })
 
 export const customersRouter = {
-  list: storeProcedure
+  list: can(permissions.CUSTOMERS_READ)
     .input(
       FiltersSchema.extend({
         page: z.number().int().min(1).default(1),
@@ -53,28 +54,28 @@ export const customersRouter = {
     )
     .handler(({ context, input }) => listCustomers(context.tx, input)),
 
-  stats: storeProcedure.handler(({ context }) => customerStats(context.tx)),
+  stats: can(permissions.CUSTOMERS_READ).handler(({ context }) => customerStats(context.tx)),
 
   /** Headline figures and the weekly series behind the Customer Overview card. */
-  overview: storeProcedure.handler(({ context }) =>
+  overview: can(permissions.CUSTOMERS_READ).handler(({ context }) =>
     customerOverview(context.tx, {
       storeId: context.scope.storeId,
       visitors: context.visitors,
     }),
   ),
 
-  tags: storeProcedure.handler(({ context }) => customerTags(context.tx)),
+  tags: can(permissions.CUSTOMERS_READ).handler(({ context }) => customerTags(context.tx)),
 
   /** Rows for a CSV export of the current filter; the browser builds the file. */
-  export: storeProcedure
+  export: can(permissions.CUSTOMERS_READ)
     .input(FiltersSchema)
     .handler(({ context, input }) => listAllCustomers(context.tx, input)),
 
-  get: storeProcedure
+  get: can(permissions.CUSTOMERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getCustomer(context.tx, input.id)),
 
-  update: storeProcedure
+  update: can(permissions.CUSTOMERS_WRITE)
     .input(
       z.object({
         id: z.uuid(),
@@ -87,11 +88,11 @@ export const customersRouter = {
     )
     .handler(({ context, input: { id, ...patch } }) => updateCustomer(context.tx, id, patch)),
 
-  delete: storeProcedure
+  delete: can(permissions.CUSTOMERS_DELETE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => deleteCustomer(context.tx, input.id)),
 
-  tagMany: storeProcedure
+  tagMany: can(permissions.CUSTOMERS_WRITE)
     .input(
       z.object({
         ids: z.array(z.uuid()).min(1).max(200),
@@ -101,13 +102,13 @@ export const customersRouter = {
     )
     .handler(({ context, input }) => tagCustomers(context.tx, input)),
 
-  segments: storeProcedure.handler(({ context }) => listSegments(context.tx)),
+  segments: can(permissions.CUSTOMERS_READ).handler(({ context }) => listSegments(context.tx)),
 
-  segment: storeProcedure
+  segment: can(permissions.CUSTOMERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getSegment(context.tx, input.id)),
 
-  saveSegment: storeProcedure
+  saveSegment: can(permissions.CUSTOMERS_WRITE)
     .input(
       z.object({
         id: z.uuid().optional(),
@@ -119,12 +120,12 @@ export const customersRouter = {
       saveSegment(context.tx, { ...input, storeId: context.scope.storeId }),
     ),
 
-  deleteSegment: storeProcedure
+  deleteSegment: can(permissions.CUSTOMERS_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => deleteSegment(context.tx, input.id)),
 
   /** Live count and a sample for the rule builder. */
-  previewSegment: storeProcedure
+  previewSegment: can(permissions.CUSTOMERS_READ)
     .input(z.object({ rules: RulesSchema }))
     .handler(async ({ context, input }) => {
       const matches = await listSegmentCustomers(context.tx, input.rules)
