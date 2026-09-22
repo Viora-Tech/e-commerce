@@ -21,6 +21,8 @@ export type {
 export * from './apps/settings'
 export * from './cart/abandoned'
 export * from './cart/cart'
+export * from './catalog/bulk'
+export * from './catalog/import-csv'
 export * from './catalog/products'
 export * from './catalog/schemas'
 export * from './catalog/variants'

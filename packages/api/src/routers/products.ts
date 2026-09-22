@@ -1,10 +1,16 @@
 import {
+  bulkUpdateProducts,
   createProduct,
   deleteProduct,
+  duplicateProduct,
+  exportRows,
   HandleSchema,
   InvalidProduct,
+  importProducts,
   ProductStatusSchema,
   ProductWriteSchema,
+  parseProductCsv,
+  summariseImport,
   uniqueHandle,
   updateProduct as writeProduct,
 } from '@commerce/core'
@@ -13,12 +19,25 @@ import { z } from 'zod'
 import { storeProcedure } from '../procedures'
 import {
   getProduct,
+  listProductHandles,
+  listProductIds,
   listProducts,
+  productAdjustments,
   productFacets,
+  productStats,
   searchVariants,
   updateProduct,
   updateVariant,
 } from '../services/product.service'
+
+const ListFiltersSchema = z.object({
+  search: z.string().trim().max(200).optional(),
+  status: ProductStatusSchema.optional(),
+  vendor: z.string().trim().max(100).optional(),
+  productType: z.string().trim().max(100).optional(),
+  tag: z.string().trim().max(50).optional(),
+  stock: z.enum(['in', 'out', 'low']).optional(),
+})
 
 async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
   try {
@@ -34,14 +53,20 @@ async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
 export const productsRouter = {
   list: storeProcedure
     .input(
-      z.object({
+      ListFiltersSchema.extend({
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(100).default(25),
-        search: z.string().trim().max(200).optional(),
-        status: ProductStatusSchema.optional(),
       }),
     )
     .handler(({ context, input }) => listProducts(context.tx, input)),
+
+  /** Tiles above the list. */
+  stats: storeProcedure.handler(({ context }) => productStats(context.tx)),
+
+  /** Stock movements for the product form's inventory history. */
+  adjustments: storeProcedure
+    .input(z.object({ productId: z.uuid(), limit: z.number().int().min(1).max(100).default(20) }))
+    .handler(({ context, input }) => productAdjustments(context.tx, input.productId, input.limit)),
 
   get: storeProcedure
     .input(z.object({ id: z.uuid() }))
@@ -76,6 +101,61 @@ export const productsRouter = {
     if (!existing) throw new ORPCError('NOT_FOUND', { message: 'Product not found' })
     return { outcome: await deleteProduct(context.tx, input.id) }
   }),
+
+  /** One action over many products: status, tags or delete. */
+  bulk: storeProcedure
+    .input(
+      z.object({
+        ids: z.array(z.uuid()).min(1).max(200),
+        action: z.discriminatedUnion('kind', [
+          z.object({ kind: z.literal('status'), status: ProductStatusSchema }),
+          z.object({ kind: z.literal('addTag'), tag: z.string().trim().min(1).max(50) }),
+          z.object({ kind: z.literal('removeTag'), tag: z.string().trim().min(1).max(50) }),
+          z.object({ kind: z.literal('delete') }),
+        ]),
+      }),
+    )
+    .handler(({ context, input }) => bulkUpdateProducts(context.tx, input.ids, input.action)),
+
+  duplicate: storeProcedure.input(z.object({ id: z.uuid() })).handler(({ context, input }) =>
+    invalidToBadRequest(async () => ({
+      id: await duplicateProduct(context.tx, context.scope.storeId, input.id),
+    })),
+  ),
+
+  /** Rows for the CSV the browser downloads, honouring the current filter. */
+  exportRows: storeProcedure
+    .input(ListFiltersSchema)
+    .handler(async ({ context, input }) =>
+      exportRows(context.tx, await listProductIds(context.tx, { ...input, page: 1, perPage: 1 })),
+    ),
+
+  /** Dry run: parse the file and say what would change, writing nothing. */
+  previewImport: storeProcedure
+    .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
+    .handler(async ({ context, input }) => {
+      const parsed = parseProductCsv(input.csv)
+      const handles = await listProductHandles(context.tx)
+      return {
+        summary: summariseImport(parsed, handles),
+        issues: parsed.issues.slice(0, 50),
+        ignoredColumns: parsed.ignoredColumns,
+        sample: parsed.products.slice(0, 5).map((p) => ({
+          handle: p.handle,
+          title: p.title,
+          variants: p.variants.length,
+          exists: handles.includes(p.handle),
+        })),
+      }
+    }),
+
+  import: storeProcedure
+    .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
+    .handler(({ context, input }) =>
+      invalidToBadRequest(() =>
+        importProducts(context.tx, context.scope.storeId, parseProductCsv(input.csv).products),
+      ),
+    ),
 
   generateHandle: storeProcedure
     .input(z.object({ title: z.string().trim().min(1).max(200), exceptId: z.uuid().optional() }))

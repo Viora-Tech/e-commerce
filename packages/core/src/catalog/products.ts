@@ -99,6 +99,8 @@ function variantRow(input: VariantInput) {
     taxable: input.taxable ?? true,
     trackInventory: input.trackInventory ?? true,
     weightGrams: input.weightGrams ?? null,
+    hsCode: input.hsCode ?? null,
+    countryOfOrigin: input.countryOfOrigin ?? null,
     mediaId: input.mediaId ?? null,
   }
 }

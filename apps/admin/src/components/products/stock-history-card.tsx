@@ -1,0 +1,86 @@
+'use client'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import { useEffect, useState } from 'react'
+import { productFormContent } from '@/data/products'
+import { api } from '@/lib/api-client'
+
+type Adjustment = Awaited<ReturnType<typeof api.products.adjustments>>[number]
+
+type StockHistoryCardProps = { productId: string }
+
+const when = new Intl.DateTimeFormat('en-IN', {
+  day: 'numeric',
+  month: 'short',
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+const copy = productFormContent.history
+const reasonLabels = Object.fromEntries(
+  productFormContent.inventory.reasons.map((r) => [r.value, r.label]),
+)
+
+/** Recent stock movements, newest first, so a wrong count can be traced. */
+export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
+  // Hooks
+  const [rows, setRows] = useState<Adjustment[] | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    api.products
+      .adjustments({ productId, limit: 20 })
+      .then((r) => !cancelled && setRows(r))
+      .catch(() => !cancelled && setRows([]))
+    return () => {
+      cancelled = true
+    }
+  }, [productId])
+
+  // Render logic
+  return (
+    <Card size="form">
+      <CardHeader>
+        <CardTitle>{copy.heading}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {rows === null ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-4/5" />
+            <Skeleton className="h-5 w-3/5" />
+          </div>
+        ) : rows.length === 0 ? (
+          <p className="text-body text-muted-foreground">{copy.empty}</p>
+        ) : (
+          <ul className="flex flex-col">
+            {rows.map((row) => (
+              <li
+                key={row.id}
+                className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-border-soft border-b py-2 last:border-b-0"
+              >
+                <span className="truncate text-body-strong">{row.variantTitle}</span>
+                <span
+                  className={
+                    row.delta > 0
+                      ? 'text-body-strong text-success tabular-nums'
+                      : 'text-body-strong text-destructive tabular-nums'
+                  }
+                >
+                  {row.delta > 0 ? `+${row.delta}` : row.delta}
+                </span>
+                <span className="text-caption text-muted-foreground">
+                  {when.format(new Date(row.createdAt))}
+                </span>
+                <span className="text-caption text-muted-foreground">
+                  {reasonLabels[row.reason] ?? row.reason}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

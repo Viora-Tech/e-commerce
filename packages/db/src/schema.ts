@@ -146,6 +146,9 @@ export const variant = pgTable('variant', {
   /** false = always purchasable regardless of inventory_level. */
   trackInventory: boolean('track_inventory').notNull().default(true),
   weightGrams: integer('weight_grams'),
+  /** Customs fields printed on international labels and invoices. */
+  hsCode: text('hs_code'),
+  countryOfOrigin: text('country_of_origin'),
   position: integer('position').notNull().default(0),
   mediaId: uuid('media_id').references(() => media.id),
   /**

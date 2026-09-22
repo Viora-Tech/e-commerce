@@ -211,6 +211,13 @@
       "when": 1790075778915,
       "tag": "0029_drafts_abandoned",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790078879434,
+      "tag": "0032_variant_customs",
+      "breakpoints": true
     }
   ]
 }

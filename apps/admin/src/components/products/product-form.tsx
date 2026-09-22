@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, ExternalLink, Trash2 } from '@commerce/ui/icons'
+import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -12,9 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { Button } from '@commerce/ui/shadcn/button'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
@@ -38,8 +37,11 @@ import InventoryCard from './inventory-card'
 import MediaCard from './media-card'
 import OrganisationCard, { type Facets } from './organisation-card'
 import PricingCard from './pricing-card'
+import ProductFormActions from './product-form-actions'
 import SeoCard from './seo-card'
+import ShippingCard from './shipping-card'
 import StatusCard from './status-card'
+import StockHistoryCard from './stock-history-card'
 import VariantsCard from './variants-card'
 
 type ProductFormProps = {
@@ -63,6 +65,14 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  /* Browser guard: a reload or a close with edits pending asks first. */
+  useEffect(() => {
+    if (JSON.stringify(form) === saved) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [form, saved])
 
   // Helpers
   const patch = (p: Partial<ProductFormState>) => setForm((f) => ({ ...f, ...p }))
@@ -97,9 +107,24 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   }
 
   const handleDiscard = () => {
-    setForm(initialForm(product))
+    /* Restore the last saved snapshot, not the page prop: after a save the prop
+       still holds the old product until the router refresh lands. */
+    setForm(JSON.parse(saved) as ProductFormState)
     setAttempted(false)
     setServerError(null)
+  }
+
+  const handleDuplicate = async () => {
+    if (!product) return
+    setBusy(true)
+    try {
+      const { id } = await api.products.duplicate({ id: product.id })
+      toast.success(copy.duplicate.toast)
+      router.push(`/products/${id}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.duplicate.failed)
+      setBusy(false)
+    }
   }
 
   const handleRemove = async () => {
@@ -122,7 +147,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   if (!first) return null
 
   // Render logic
-  const dirty = JSON.stringify(form) !== saved
+  const isDirty = JSON.stringify(form) !== saved
   const errors = formErrors(form)
   const showErrors = attempted
   const single = form.options.length === 0
@@ -134,7 +159,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   return (
     <PageBody width="narrow" className="kit-form">
       <SaveBar
-        open={dirty}
+        open={isDirty}
         message={copy.saveBar.message}
         saveLabel={copy.saveBar.save}
         discardLabel={copy.saveBar.discard}
@@ -149,37 +174,15 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
           { label: product ? product.title : copy.newTitle },
         ]}
         actions={
-          product ? (
-            <>
-              <Button
-                variant="outline"
-                className="min-w-24"
-                render={
-                  <a
-                    href={`${storefrontOrigin}/products/${product.handle}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  />
-                }
-                nativeButton={false}
-              >
-                {copy.preview}
-                <ExternalLink />
-              </Button>
-              <Button
-                variant="destructive"
-                className="min-w-24"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 />
-                {copy.delete.action}
-              </Button>
-            </>
-          ) : dirty ? null : (
-            <Button className="min-w-24" onClick={handleSave} disabled={busy}>
-              {copy.saveBar.save}
-            </Button>
-          )
+          <ProductFormActions
+            product={product}
+            busy={busy}
+            dirty={isDirty}
+            storefrontOrigin={storefrontOrigin}
+            onDuplicate={handleDuplicate}
+            onDelete={() => setConfirmDelete(true)}
+            onSave={handleSave}
+          />
         }
       />
       {serverError ? (
@@ -218,10 +221,13 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             <VariantsCard
               options={form.options}
               variants={form.variants}
+              media={form.media}
               error={showErrors ? errors.variants : undefined}
               onOptions={setOptions}
               onVariant={patchVariant}
             />
+            <ShippingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
+            {product ? <StockHistoryCard productId={product.id} /> : null}
             <SeoCard
               title={form.title}
               description={form.description}

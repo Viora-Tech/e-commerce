@@ -21,6 +21,9 @@ export type VariantInput = {
   taxable?: boolean | undefined
   trackInventory?: boolean | undefined
   weightGrams?: number | null | undefined
+  /** Customs fields for international labels. */
+  hsCode?: string | null | undefined
+  countryOfOrigin?: string | null | undefined
   /** Absolute on-hand count when the merchant edits it inline. */
   onHand?: number | undefined
   mediaId?: string | null | undefined
