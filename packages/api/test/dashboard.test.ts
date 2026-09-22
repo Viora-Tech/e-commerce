@@ -3,6 +3,7 @@ import {
   address,
   createDb,
   customer,
+  inventoryAdjustment,
   inventoryLevel,
   order,
   orderLine,
@@ -163,9 +164,11 @@ describe('dashboard.summary', () => {
     expect(s.report.inStock).toBe(1)
     expect(s.report.outOfStock).toBe(0)
     expect(s.report.revenuePaise).toBe(170000)
-    expect(s.report.thisWeek).toHaveLength(7)
-    expect(s.report.thisWeek.reduce((n, d) => n + d.revenuePaise, 0)).toBe(150000)
-    expect(s.report.lastWeek.reduce((n, d) => n + d.orders, 0)).toBe(1)
+    expect(s.report.thisWeek.days).toHaveLength(7)
+    expect(s.report.thisWeek.revenuePaise.reduce((n, v) => n + v, 0)).toBe(150000)
+    expect(s.report.lastWeek.revenuePaise.reduce((n, v) => n + v, 0)).toBe(20000)
+    expect(s.report.thisWeek.customers.reduce((n, v) => n + v, 0)).toBe(1)
+    expect(s.report.thisWeek.products.reduce((n, v) => n + v, 0)).toBe(1)
     expect(s.recentOrders.map((o) => o.number)).toEqual([1, 2, 3, 4])
     expect(s.topProducts).toEqual([
       expect.objectContaining({
@@ -188,6 +191,75 @@ describe('dashboard.summary', () => {
     expect(s.latestProducts).toEqual([
       expect.objectContaining({ title: 'Mouse', pricePaise: 100000, imageUrl: null }),
     ])
+  })
+
+  it('buckets the report series by IST day and rebuilds stock from the adjustment log', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [p] = await owner
+      .insert(product)
+      .values({ storeId: a.storeId, handle: 'pad', title: 'Pad', status: 'active' })
+      .returning()
+    const [v1, v2] = await owner
+      .insert(variant)
+      .values([
+        { storeId: a.storeId, productId: p?.id as string, title: 'Black', pricePaise: 1000 },
+        { storeId: a.storeId, productId: p?.id as string, title: 'White', pricePaise: 1000 },
+      ])
+      .returning()
+    await owner.insert(inventoryLevel).values([
+      { storeId: a.storeId, variantId: v1?.id as string, onHand: 0, reserved: 0 },
+      { storeId: a.storeId, variantId: v2?.id as string, onHand: 4, reserved: 0 },
+    ])
+    // Black sold out 2 days ago (5 -> 0); White was received 4 days ago (0 -> 4).
+    await owner.insert(inventoryAdjustment).values([
+      {
+        storeId: a.storeId,
+        variantId: v1?.id as string,
+        delta: -5,
+        reason: 'sold',
+        createdAt: daysAgo(2),
+      },
+      {
+        storeId: a.storeId,
+        variantId: v2?.id as string,
+        delta: 4,
+        reason: 'received',
+        createdAt: daysAgo(4),
+      },
+    ])
+    // Two customers on one IST day, one the day before; one product just now.
+    await owner.insert(customer).values([
+      { storeId: a.storeId, name: 'A', email: 'a1@example.com', createdAt: daysAgo(1) },
+      { storeId: a.storeId, name: 'B', email: 'b1@example.com', createdAt: daysAgo(1) },
+      { storeId: a.storeId, name: 'C', email: 'c1@example.com', createdAt: daysAgo(2) },
+    ])
+
+    const s = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })
+    const week = s.report.thisWeek
+
+    expect(week.days).toHaveLength(7)
+    // Days are contiguous ISO dates ending today (IST).
+    const istToday = new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10)
+    expect(week.days.at(-1)).toBe(istToday)
+    expect(new Set(week.days).size).toBe(7)
+    expect(week.customers.reduce((n, x) => n + x, 0)).toBe(3)
+    expect(Math.max(...week.customers)).toBe(2)
+    expect(week.products.reduce((n, x) => n + x, 0)).toBe(1)
+    expect(week.products.at(-1)).toBe(1)
+
+    // Today: Black out, White in. Before the sale (3+ days ago): both in stock.
+    expect(week.inStock.at(-1)).toBe(1)
+    expect(week.outOfStock.at(-1)).toBe(1)
+    expect(week.inStock.at(-4)).toBe(2)
+    expect(week.outOfStock.at(-4)).toBe(0)
+    // Before White was received (5+ days ago): Black in, White out; carried across quiet days.
+    expect(week.inStock.at(-6)).toBe(1)
+    expect(week.outOfStock.at(-6)).toBe(1)
+    expect(week.inStock[0]).toBe(1)
+    expect(week.outOfStock[0]).toBe(1)
+    // Last week is entirely before both adjustments and carries the same state.
+    expect(s.report.lastWeek.inStock.every((x) => x === 1)).toBe(true)
+    expect(s.report.lastWeek.outOfStock.every((x) => x === 1)).toBe(true)
   })
 
   it('reads live visitors from the host when one is wired', async () => {

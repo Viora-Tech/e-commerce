@@ -2,6 +2,7 @@ import type { StoreTx } from '@commerce/db'
 import {
   address,
   customer,
+  inventoryAdjustment,
   inventoryLevel,
   media,
   order,
@@ -32,11 +33,20 @@ export type DashboardWindow = {
   previous: number
 }
 
-export type DashboardDay = {
-  /** ISO date (YYYY-MM-DD) in the server's timezone. */
-  date: string
-  revenuePaise: number
-  orders: number
+/** One value per day for the report chart, oldest first; every array has `days.length` entries. */
+export type DashboardSeries = {
+  /** ISO dates (YYYY-MM-DD) in Indian Standard Time. */
+  days: string[]
+  /** New customers created that day. */
+  customers: number[]
+  /** Products created that day. */
+  products: number[]
+  /** Tracked variants with stock at the end of that day. */
+  inStock: number[]
+  /** Tracked variants with no stock at the end of that day. */
+  outOfStock: number[]
+  /** Paid (non-cancelled) order totals placed that day. */
+  revenuePaise: number[]
 }
 
 export type DashboardSummary = {
@@ -50,8 +60,8 @@ export type DashboardSummary = {
     inStock: number
     outOfStock: number
     revenuePaise: number
-    thisWeek: DashboardDay[]
-    lastWeek: DashboardDay[]
+    thisWeek: DashboardSeries
+    lastWeek: DashboardSeries
   }
   recentOrders: {
     id: string
@@ -110,41 +120,105 @@ export type DashboardSummary = {
   }[]
 }
 
-/** Midnight `daysAgo` days before `now`, local time. */
+const IST_OFFSET_MS = 5.5 * 3_600_000
+
+/** Midnight `daysAgo` days before `now` in Indian Standard Time (fixed +05:30, no DST). */
 function startOfDay(now: Date, daysAgo: number): Date {
-  const d = new Date(now)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() - daysAgo)
-  return d
+  const shifted = new Date(now.getTime() + IST_OFFSET_MS)
+  const utcMidnight = Date.UTC(
+    shifted.getUTCFullYear(),
+    shifted.getUTCMonth(),
+    shifted.getUTCDate() - daysAgo,
+  )
+  return new Date(utcMidnight - IST_OFFSET_MS)
 }
 
+/** ISO date of an instant, read in IST. */
 function isoDate(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10)
 }
 
-/** Bucket orders into one entry per day between `from` (inclusive) and `to` (exclusive). */
-function bucketByDay(
-  rows: { placedAt: Date; totalPaise: number }[],
+/** Day index of `at` counted from `from` (IST midnight), or -1 when outside `days`. */
+function dayIndex(at: Date, from: Date, days: number): number {
+  const idx = Math.floor((at.getTime() - from.getTime()) / DAY_MS)
+  return idx >= 0 && idx < days ? idx : -1
+}
+
+function zeros(n: number): number[] {
+  return Array.from({ length: n }, () => 0)
+}
+
+/** Count `rows` into one bucket per day between `from` (inclusive) and `from + days`. */
+function countByDay(rows: { at: Date; weight?: number }[], from: Date, days: number): number[] {
+  const out = zeros(days)
+  for (const r of rows) {
+    const i = dayIndex(r.at, from, days)
+    if (i >= 0) out[i] = (out[i] ?? 0) + (r.weight ?? 1)
+  }
+  return out
+}
+
+/**
+ * End-of-day in-stock / out-of-stock counts for every day in the window, rebuilt
+ * from today's levels by undoing the adjustment log backwards. A day with no
+ * adjustments carries the next day's state, so the series never goes blank.
+ */
+function stockByDay(
+  current: { variantId: string; available: number }[],
+  adjustments: { variantId: string; delta: number; at: Date }[],
   from: Date,
   days: number,
-): DashboardDay[] {
-  const buckets: DashboardDay[] = Array.from({ length: days }, (_, i) => {
-    const d = new Date(from)
-    d.setDate(d.getDate() + i)
-    return { date: isoDate(d), revenuePaise: 0, orders: 0 }
-  })
-  for (const r of rows) {
-    const idx = Math.floor((r.placedAt.getTime() - from.getTime()) / DAY_MS)
-    const b = buckets[idx]
-    if (b) {
-      b.revenuePaise += r.totalPaise
-      b.orders += 1
+): { inStock: number[]; outOfStock: number[] } {
+  const deltaByDay = new Map<string, number[]>()
+  for (const a of adjustments) {
+    const i = dayIndex(a.at, from, days)
+    if (i < 0) continue
+    const arr = deltaByDay.get(a.variantId) ?? zeros(days)
+    arr[i] = (arr[i] ?? 0) + a.delta
+    deltaByDay.set(a.variantId, arr)
+  }
+  const inStock = zeros(days)
+  const outOfStock = zeros(days)
+  for (const v of current) {
+    const deltas = deltaByDay.get(v.variantId)
+    let available = v.available
+    for (let d = days - 1; d >= 0; d--) {
+      if (available > 0) inStock[d] = (inStock[d] ?? 0) + 1
+      else outOfStock[d] = (outOfStock[d] ?? 0) + 1
+      // Moving to the previous day's close means undoing everything logged on day `d`.
+      available -= deltas?.[d] ?? 0
     }
   }
-  return buckets
+  return { inStock, outOfStock }
+}
+
+type SeriesInput = {
+  orders: { placedAt: Date; totalPaise: number }[]
+  customers: { at: Date }[]
+  products: { at: Date }[]
+  stock: { variantId: string; available: number }[]
+  adjustments: { variantId: string; delta: number; at: Date }[]
+}
+
+/** One `DashboardSeries` for the `days` starting at `from` (IST midnight). */
+function buildSeries(input: SeriesInput, from: Date, days: number): DashboardSeries {
+  const dayList = Array.from({ length: days }, (_, i) =>
+    isoDate(new Date(from.getTime() + i * DAY_MS)),
+  )
+  const revenuePaise = countByDay(
+    input.orders.map((o) => ({ at: o.placedAt, weight: o.totalPaise })),
+    from,
+    days,
+  )
+  const { inStock, outOfStock } = stockByDay(input.stock, input.adjustments, from, days)
+  return {
+    days: dayList,
+    customers: countByDay(input.customers, from, days),
+    products: countByDay(input.products, from, days),
+    inStock,
+    outOfStock,
+    revenuePaise,
+  }
 }
 
 /**
@@ -186,6 +260,7 @@ export async function dashboardSummary(
     .where(ne(product.status, 'archived'))
   const stockRows = await tx
     .select({
+      variantId: inventoryLevel.variantId,
       available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
     })
     .from(inventoryLevel)
@@ -193,6 +268,42 @@ export async function dashboardSummary(
     .where(eq(variant.trackInventory, true))
   const inStock = stockRows.filter((r) => r.available > 0).length
   const outOfStock = stockRows.length - inStock
+  const newCustomers = await tx
+    .select({ at: customer.createdAt })
+    .from(customer)
+    .where(gte(customer.createdAt, lastStart))
+  const newProducts = await tx
+    .select({ at: product.createdAt })
+    .from(product)
+    .where(gte(product.createdAt, lastStart))
+  const adjustments = await tx
+    .select({
+      variantId: inventoryAdjustment.variantId,
+      delta: inventoryAdjustment.delta,
+      at: inventoryAdjustment.createdAt,
+    })
+    .from(inventoryAdjustment)
+    .where(gte(inventoryAdjustment.createdAt, lastStart))
+  /* The stock series is rebuilt from today backwards across both weeks at once, then split. */
+  const twoWeeks = buildSeries(
+    {
+      orders: live(inWindow(lastStart)),
+      customers: newCustomers,
+      products: newProducts,
+      stock: stockRows,
+      adjustments,
+    },
+    lastStart,
+    WINDOW_DAYS * 2,
+  )
+  const sliceSeries = (from: number): DashboardSeries => ({
+    days: twoWeeks.days.slice(from, from + WINDOW_DAYS),
+    customers: twoWeeks.customers.slice(from, from + WINDOW_DAYS),
+    products: twoWeeks.products.slice(from, from + WINDOW_DAYS),
+    inStock: twoWeeks.inStock.slice(from, from + WINDOW_DAYS),
+    outOfStock: twoWeeks.outOfStock.slice(from, from + WINDOW_DAYS),
+    revenuePaise: twoWeeks.revenuePaise.slice(from, from + WINDOW_DAYS),
+  })
   const [allTimeRevenue] = await tx
     .select({ total: sum(order.totalPaise).mapWith(Number) })
     .from(order)
@@ -395,8 +506,8 @@ export async function dashboardSummary(
       inStock,
       outOfStock,
       revenuePaise: allTimeRevenue?.total ?? 0,
-      thisWeek: bucketByDay(live(cur), thisStart, WINDOW_DAYS),
-      lastWeek: bucketByDay(live(prev), lastStart, WINDOW_DAYS),
+      thisWeek: sliceSeries(WINDOW_DAYS),
+      lastWeek: sliceSeries(0),
     },
     recentOrders,
     topProducts: topRows.map((r) => ({
