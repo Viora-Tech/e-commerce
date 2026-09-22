@@ -48,6 +48,8 @@ import {
   InboxIcon,
   InformationCircleIcon,
   Layers01Icon,
+  LayoutBottomIcon,
+  LayoutTopIcon,
   LeftToRightListBulletIcon,
   Link01Icon,
   LinkSquare01Icon,
@@ -67,6 +69,7 @@ import {
   PrinterIcon,
   PuzzleIcon,
   Radio02Icon,
+  Redo02Icon,
   RefreshIcon,
   RotateLeft01Icon,
   Search01Icon,
@@ -82,12 +85,14 @@ import {
   Tablet01Icon,
   Tick02Icon,
   Ticket01Icon,
+  Undo02Icon,
   UnfoldMoreIcon,
   Upload04Icon,
   User03Icon,
   UserMultipleIcon,
   UserSettings01Icon,
   Video01Icon,
+  ViewIcon,
   ViewOffIcon,
   WorkflowIcon,
 } from '@hugeicons/core-free-icons'
@@ -205,6 +210,11 @@ export const RotateCcw = defineIcon(RotateLeft01Icon, 'RotateCcw')
 export const Printer = defineIcon(PrinterIcon, 'Printer')
 export const Copy = defineIcon(Copy01Icon, 'Copy')
 export const EyeOff = defineIcon(ViewOffIcon, 'EyeOff')
+export const Eye = defineIcon(ViewIcon, 'Eye')
+export const Undo = defineIcon(Undo02Icon, 'Undo')
+export const Redo = defineIcon(Redo02Icon, 'Redo')
+export const PanelTop = defineIcon(LayoutTopIcon, 'PanelTop')
+export const PanelBottom = defineIcon(LayoutBottomIcon, 'PanelBottom')
 export const X = defineIcon(Cancel01Icon, 'X')
 export const XIcon = X
 export const CheckIcon = defineIcon(Tick02Icon, 'CheckIcon')

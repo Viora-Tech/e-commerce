@@ -45,6 +45,8 @@ export type ProductFormState = {
   tags: string[]
   seoTitle: string
   seoDescription: string
+  /** Alternate product template; blank is the default. */
+  templateSuffix: string
   handle: string
   /** Prices already carry tax; drives the "Tax included" choice on the form. */
   taxIncluded: boolean
@@ -92,6 +94,7 @@ export function emptyForm(): ProductFormState {
     tags: [],
     seoTitle: '',
     seoDescription: '',
+    templateSuffix: '',
     handle: '',
     taxIncluded: true,
     featured: false,
@@ -114,6 +117,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     tags: p.tags,
     seoTitle: p.seoTitle ?? '',
     seoDescription: p.seoDescription ?? '',
+    templateSuffix: p.templateSuffix ?? '',
     handle: p.handle,
     taxIncluded: p.taxIncluded,
     featured: p.featured,
@@ -201,6 +205,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
     tags: form.tags,
     seoTitle: form.seoTitle.trim() || null,
     seoDescription: form.seoDescription.trim() || null,
+    templateSuffix: form.templateSuffix || null,
     status: form.status,
     taxIncluded: form.taxIncluded,
     featured: form.featured,

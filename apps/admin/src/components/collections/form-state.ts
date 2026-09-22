@@ -21,6 +21,7 @@ export type LoadedCollection = {
   sortOrder: CollectionSort
   seoTitle: string | null
   seoDescription: string | null
+  templateSuffix: string | null
   status: CollectionStatus
   products: { id: string; title: string; imageUrl: string | null }[]
 }
@@ -35,6 +36,8 @@ export type CollectionFormState = {
   sortOrder: CollectionSort
   seoTitle: string
   seoDescription: string
+  /** Alternate collection template; blank is the default. */
+  templateSuffix: string
   status: CollectionStatus
   products: PickedProduct[]
 }
@@ -50,6 +53,7 @@ export function emptyCollectionForm(): CollectionFormState {
     sortOrder: 'manual',
     seoTitle: '',
     seoDescription: '',
+    templateSuffix: '',
     status: 'active',
     products: [],
   }
@@ -66,6 +70,7 @@ export function fromCollection(c: LoadedCollection): CollectionFormState {
     sortOrder: c.sortOrder,
     seoTitle: c.seoTitle ?? '',
     seoDescription: c.seoDescription ?? '',
+    templateSuffix: c.templateSuffix ?? '',
     status: c.status,
     products: c.products.map((p) => ({ id: p.id, title: p.title, imageUrl: p.imageUrl })),
   }
@@ -81,6 +86,7 @@ export function toWrite(form: CollectionFormState): CollectionWrite {
     sortOrder: form.sortOrder,
     seoTitle: form.seoTitle.trim() || null,
     seoDescription: form.seoDescription.trim() || null,
+    templateSuffix: form.templateSuffix || null,
     status: form.status,
     productIds: form.kind === 'manual' ? form.products.map((p) => p.id) : undefined,
   }
