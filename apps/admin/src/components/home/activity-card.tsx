@@ -46,7 +46,7 @@ export default function ActivityCard({ ordersLast24h, perHour, salesByState }: A
     <Card className="relative h-[28.75rem] gap-0 p-5 pb-16">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-kit-link text-link">{c.title}</p>
+          <p className="text-kit-link text-muted-foreground">{c.title}</p>
           <p className="mt-1 text-kit-stat-tight text-foreground tabular-nums">
             {formatCompact(ordersLast24h)}
           </p>

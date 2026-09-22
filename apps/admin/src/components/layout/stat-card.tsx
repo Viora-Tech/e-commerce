@@ -96,7 +96,7 @@ export default function StatCard({
       )}
       {previous ? (
         <p className="mt-2 text-kit-body text-muted-foreground">
-          {previous.label} <span className="font-bold text-link">({previous.value})</span>
+          {previous.label} <span className="font-bold text-ink-strong">({previous.value})</span>
         </p>
       ) : null}
       {detailsHref ? (
