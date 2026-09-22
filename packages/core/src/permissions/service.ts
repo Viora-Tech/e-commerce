@@ -1,6 +1,7 @@
 import type { StoreTx } from '@commerce/db'
 import { role, rolePermission, storeMember } from '@commerce/db'
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { roleHasPendingInvitations } from './invitations'
 import { isSystemRoleSlug, roleSlug, SYSTEM_ROLES } from './roles'
 import { type Permission, sanitisePermissions } from './statement'
 
@@ -268,5 +269,8 @@ export async function deleteRole(tx: StoreTx, storeId: string, id: string): Prom
     .from(storeMember)
     .where(eq(storeMember.roleId, id))
   if (held.length > 0) throw new Error('Move the members on this role first')
+  if (await roleHasPendingInvitations(tx, id)) {
+    throw new Error('Cancel the pending invitations to this role first')
+  }
   await tx.delete(role).where(eq(role.id, id))
 }
