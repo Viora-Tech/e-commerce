@@ -123,6 +123,9 @@ export async function blogSitemapEntries(tx: StoreTx, now: Date = new Date()) {
   ])
   return [
     ...blogs.map((b) => ({ path: `/blogs/${b.handle}`, updatedAt: b.updatedAt })),
-    ...articles.map((a) => ({ path: `/blogs/${a.blogHandle}/${a.handle}`, updatedAt: a.updatedAt })),
+    ...articles.map((a) => ({
+      path: `/blogs/${a.blogHandle}/${a.handle}`,
+      updatedAt: a.updatedAt,
+    })),
   ]
 }

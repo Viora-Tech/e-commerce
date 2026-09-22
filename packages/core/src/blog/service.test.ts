@@ -118,7 +118,13 @@ describe('articles', () => {
       await createArticle(
         tx,
         storeId,
-        { blogId: news.id, title: 'Out now', status: 'published', publishedAt: past, tags: ['Launch'] },
+        {
+          blogId: news.id,
+          title: 'Out now',
+          status: 'published',
+          publishedAt: past,
+          tags: ['Launch'],
+        },
         now,
       )
       await createArticle(

@@ -13,7 +13,9 @@ import {
   listArticles,
   listBlogs,
   permissions,
+  recentVisibleArticles,
   setArticlesPublished,
+  toCardArticle,
   updateArticle,
   updateBlog,
 } from '@commerce/core'
@@ -77,6 +79,18 @@ export const blogRouter = {
       if (!row) throw new ORPCError('NOT_FOUND', { message: 'This post no longer exists' })
       return row
     }),
+
+  /** Newest visible posts as cards, for the "Blog posts" block in the page editor. */
+  recent: read()
+    .input(
+      z.object({
+        blogHandle: z.string().max(200).optional(),
+        limit: z.number().int().min(1).max(12),
+      }),
+    )
+    .handler(async ({ context, input }) =>
+      (await recentVisibleArticles(context.tx, input)).map(toCardArticle),
+    ),
 
   /** Prefills for a new post: the signed-in staff member as author. */
   defaults: read().handler(({ context }) => ({

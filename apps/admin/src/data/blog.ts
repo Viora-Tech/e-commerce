@@ -66,14 +66,16 @@ export const articleFormContent = {
     titlePlaceholder: 'e.g. Blog about your latest products or deals',
     content: 'Content',
     excerpt: 'Excerpt',
-    excerptHelp: 'Shown on the blog page and in search results. Leave empty to use the start of the post.',
+    excerptHelp:
+      'Shown on the blog page and in search results. Leave empty to use the start of the post.',
   },
   visibility: {
     heading: 'Visibility',
     published: 'Visible',
     scheduled: 'Scheduled',
     draft: 'Hidden',
-    publishedHelp: (when: string | null) => (when ? `Published ${when}` : 'Publishes when you save'),
+    publishedHelp: (when: string | null) =>
+      when ? `Published ${when}` : 'Publishes when you save',
     scheduledHelp: 'The post goes live on the storefront at this time.',
     draftHelp: 'Only staff can see hidden posts.',
     when: 'Publish date',
@@ -99,7 +101,8 @@ export const articleFormContent = {
   seo: {
     heading: 'Search engine listing',
     edit: 'Edit',
-    previewHint: 'Add a title and content to see how this post might appear in a search engine listing.',
+    previewHint:
+      'Add a title and content to see how this post might appear in a search engine listing.',
     title: 'Page title',
     titleHelp: (n: number) => `${n} of 70 characters used`,
     description: 'Meta description',

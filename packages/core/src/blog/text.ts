@@ -45,7 +45,11 @@ export function richTextToText(body: unknown): string {
 }
 
 /** The merchant's excerpt, or the opening of the body cut at a word boundary. */
-export function articleExcerpt(excerpt: string | null | undefined, body: unknown, max = 160): string {
+export function articleExcerpt(
+  excerpt: string | null | undefined,
+  body: unknown,
+  max = 160,
+): string {
   const own = excerpt?.trim()
   if (own) return own
   const text = richTextToText(body).replace(/\s+/g, ' ').trim()
@@ -93,4 +97,31 @@ export function displayStatus(
 ): ArticleStatus {
   if (status === 'scheduled' && isArticleVisible(status, publishedAt, now)) return 'published'
   return status
+}
+
+/** A visible post row mapped to the card shape the storefront blocks render. */
+export function toCardArticle(row: {
+  id: string
+  title: string
+  handle: string
+  author: string
+  excerpt: string | null
+  body: unknown
+  publishedAt: Date | string | null
+  imageUrl: string | null
+  imageAlt: string | null
+  blogHandle: string
+  blogTitle: string
+}) {
+  return {
+    id: row.id,
+    href: `/blogs/${row.blogHandle}/${row.handle}`,
+    title: row.title,
+    excerpt: articleExcerpt(row.excerpt, row.body),
+    author: row.author,
+    publishedAt: new Date(row.publishedAt ?? 0).toISOString(),
+    imageUrl: row.imageUrl,
+    imageAlt: row.imageAlt,
+    blogTitle: row.blogTitle,
+  }
 }

@@ -52,7 +52,7 @@ const config = createBlocksConfig(
       images: p.imageUrl ? [{ url: p.imageUrl, alt: p.title }] : [],
     }))
   },
-  { RichTextEditor },
+  { RichTextEditor, loadArticles: (query) => api.blog.recent(query) },
 )
 
 type ThemeFrameProps = { children: ReactNode; document?: Document | undefined; css: string }

@@ -45,3 +45,17 @@ export type NavLink = {
   href: string
   children?: NavLink[] | undefined
 }
+
+/** A blog post as cards render it; `href` is the storefront path. */
+export type CardArticle = {
+  id: string
+  href: string
+  title: string
+  excerpt: string
+  author: string
+  /** ISO timestamp. */
+  publishedAt: string
+  imageUrl: string | null
+  imageAlt: string | null
+  blogTitle: string
+}
