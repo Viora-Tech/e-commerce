@@ -394,8 +394,18 @@ describe('customers', () => {
     const [asha, ravi] = await owner
       .insert(customer)
       .values([
-        { storeId: a.storeId, name: 'Asha Menon', email: 'asha@example.com', createdAt: daysAgo(3) },
-        { storeId: a.storeId, name: 'Ravi Iyer', email: 'ravi@example.com', createdAt: daysAgo(10) },
+        {
+          storeId: a.storeId,
+          name: 'Asha Menon',
+          email: 'asha@example.com',
+          createdAt: daysAgo(3),
+        },
+        {
+          storeId: a.storeId,
+          name: 'Ravi Iyer',
+          email: 'ravi@example.com',
+          createdAt: daysAgo(10),
+        },
       ])
       .returning()
     const base = { storeId: a.storeId, subtotalPaise: 1, totalPaise: 1000 }
