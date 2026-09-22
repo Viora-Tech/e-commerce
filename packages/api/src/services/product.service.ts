@@ -7,6 +7,7 @@ import {
   productMedia,
   productOption,
   productOptionValue,
+  sellableLevel,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -65,7 +66,7 @@ function listWhere(input: ProductListInput) {
     input.stock
       ? sql`(
           select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-          from variant v left join inventory_level il on il.variant_id = v.id
+          from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
           where v.product_id = ${product.id} and v.archived_at is null
         ) ${
           input.stock === 'out'
@@ -73,7 +74,7 @@ function listWhere(input: ProductListInput) {
             : input.stock === 'low'
               ? sql`> 0 and (
                   select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-                  from variant v left join inventory_level il on il.variant_id = v.id
+                  from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
                   where v.product_id = ${product.id} and v.archived_at is null
                 ) <= ${LOW_STOCK_AT}`
               : sql`> 0`
@@ -117,7 +118,7 @@ export async function listProducts(
       reserved: inventoryLevel.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(inArray(variant.productId, ids))
   const images = await tx
     .select({ productId: productMedia.productId, url: media.url })
@@ -169,7 +170,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       reserved: inventoryLevel.reserved,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(and(eq(variant.productId, id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))
   const options = await tx
@@ -275,7 +276,10 @@ export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch
     await tx.update(variant).set(variantPatch).where(eq(variant.id, id))
   }
   if (onHand !== undefined) {
-    await tx.update(inventoryLevel).set({ onHand }).where(eq(inventoryLevel.variantId, id))
+    await tx
+      .update(inventoryLevel)
+      .set({ onHand })
+      .where(and(eq(inventoryLevel.variantId, id), sellableLevel))
   }
   const [row] = await tx.select().from(variant).where(eq(variant.id, id))
   return row ?? null
@@ -345,7 +349,7 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
       value: sql<number>`coalesce(sum(greatest(0, ${inventoryLevel.onHand}) * coalesce(${variant.costPaise}, ${variant.pricePaise})), 0)`,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(isNull(variant.archivedAt))
   const [out] = await tx
     .select({ n: sql<number>`count(*)` })
@@ -353,7 +357,7 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
     .where(
       sql`(
         select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-        from variant v left join inventory_level il on il.variant_id = v.id
+        from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
         where v.product_id = ${product.id} and v.archived_at is null
       ) = 0`,
     )

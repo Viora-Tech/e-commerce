@@ -5,10 +5,11 @@ import {
   product,
   productOption,
   productOptionValue,
+  sellableLevel,
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { ImportProduct } from './import-csv'
 import { createProduct, deleteProduct, uniqueHandle, updateProduct } from './products'
 import type { ProductStatus, ProductWrite } from './schemas'
@@ -172,7 +173,7 @@ export async function exportRows(tx: StoreTx, productIds: string[]): Promise<Exp
       onHand: inventoryLevel.onHand,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(inArray(variant.productId, productIds))
     .orderBy(asc(variant.position))
 
@@ -251,9 +252,12 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
         .select({ variantId: inventoryLevel.variantId, onHand: inventoryLevel.onHand })
         .from(inventoryLevel)
         .where(
-          inArray(
-            inventoryLevel.variantId,
-            variants.map((v) => v.id),
+          and(
+            inArray(
+              inventoryLevel.variantId,
+              variants.map((v) => v.id),
+            ),
+            sellableLevel,
           ),
         )
     : []

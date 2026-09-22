@@ -7,7 +7,12 @@ export type MenuItem = {
   title: string
   type: NavigationItemType
   value?: string
+  /** Nested items; a menu is at most three levels deep. */
+  children?: MenuItem[]
 }
+
+/** How far one nesting level indents a row, in rem. Dragging this far sideways changes level. */
+export const MENU_INDENT_REM = 2
 
 export type MenuListItem = {
   id: string
@@ -49,7 +54,7 @@ export const storefrontContent = {
   save: 'Save',
   saved: 'Storefront navigation saved',
   failed: 'Could not save the storefront navigation',
-  noMenus: 'Add a menu first — the header and footer can only render menus that exist.',
+  noMenus: 'Add a menu first. The header and footer can only render menus that exist.',
 } as const
 
 export const menusContent = {
@@ -101,12 +106,15 @@ export const menusContent = {
     itemsHeading: 'Menu items',
     addItem: 'Add menu item',
     save: 'Save',
+    discard: 'Discard',
     saving: 'Saving…',
     saved: 'Menu saved',
     failed: 'Save failed',
     unsaved: 'Unsaved changes',
     empty: 'No items yet. Add the first link below.',
-    hint: 'The top item appears first. Use the arrows to reorder.',
+    hint: 'Drag to reorder. Drag right to nest under the item above, left to lift it out.',
+    addChild: (parent: string) => `Add menu item to ${parent}`,
+    levelLimit: 'Menus go three levels deep.',
     storefrontNote: 'The storefront renders this menu wherever the header or footer points at it.',
   },
   item: {
@@ -133,5 +141,20 @@ export const menusContent = {
     moveDown: 'Move down',
     edit: 'Edit item',
     remove: 'Remove item',
+    drag: (title: string) => `Move ${title}`,
+    expand: (title: string) => `Show items under ${title}`,
+    collapse: (title: string) => `Hide items under ${title}`,
+    carried: (n: number) => `+${n}`,
+  },
+  /** Screen-reader copy for moving rows, by pointer or keyboard. */
+  a11y: {
+    instructions:
+      'To move an item, press space on its handle. Use the up and down arrows to move it, right to nest it under the item above and left to lift it out. Press space again to drop it, or escape to cancel.',
+    picked: (title: string) => `Picked up ${title}.`,
+    position: (title: string, position: number, total: number, level: number) =>
+      `${title}, position ${position} of ${total}, level ${level}.`,
+    dropped: (title: string, position: number, total: number, level: number) =>
+      `Dropped ${title} at position ${position} of ${total}, level ${level}.`,
+    cancelled: (title: string) => `Move cancelled. ${title} is back where it was.`,
   },
 } as const

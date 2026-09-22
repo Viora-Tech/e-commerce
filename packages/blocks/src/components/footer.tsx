@@ -6,7 +6,7 @@ export default function Footer({
 }: {
   storeName: string
   tagline: string
-  columns: { heading: string; links: { label: string; href: string }[] }[]
+  columns: { id: string; heading: string; links: { id: string; label: string; href: string }[] }[]
 }) {
   return (
     <footer className="footer color-scheme-3">
@@ -21,11 +21,11 @@ export default function Footer({
           </div>
         </div>
         {columns.map((c) => (
-          <div key={c.heading} className="footer__block footer__block--menu">
+          <div key={c.id} className="footer__block footer__block--menu">
             <p className="footer__heading">{c.heading}</p>
             <ul className="footer__menu-list">
               {c.links.map((l) => (
-                <li key={l.href}>
+                <li key={l.id}>
                   <a href={l.href} className="footer__menu-link">
                     {l.label}
                   </a>

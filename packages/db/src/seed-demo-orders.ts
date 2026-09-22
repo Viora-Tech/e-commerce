@@ -8,6 +8,7 @@ import {
   orderLine,
   payment,
   product,
+  sellableLevel,
   store,
   variant,
 } from './schema'
@@ -138,7 +139,7 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
       })
       .from(variant)
       .innerJoin(product, eq(product.id, variant.productId))
-      .innerJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+      .innerJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
       .where(
         and(
           eq(variant.storeId, storeId),

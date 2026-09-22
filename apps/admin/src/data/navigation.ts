@@ -62,8 +62,16 @@ export const NAV_GROUPS: NavGroup[] = [
             label: 'Inventory',
             permission: permissions.INVENTORY_READ,
           },
-          { href: '/products/purchase-orders', label: 'Purchase orders' },
-          { href: '/products/transfers', label: 'Transfers' },
+          {
+            href: '/products/purchase-orders',
+            label: 'Purchase orders',
+            permission: permissions.INVENTORY_READ,
+          },
+          {
+            href: '/products/transfers',
+            label: 'Transfers',
+            permission: permissions.INVENTORY_READ,
+          },
           { href: '/products/gift-cards', label: 'Gift cards' },
         ],
       },

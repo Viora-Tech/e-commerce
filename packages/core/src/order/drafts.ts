@@ -8,6 +8,7 @@ import {
   orderNote,
   payment,
   product,
+  sellableLevel,
   store,
   variant,
 } from '@commerce/db'
@@ -309,6 +310,7 @@ export async function convertDraft(
       .where(
         and(
           eq(inventoryLevel.variantId, line.variantId),
+          sellableLevel,
           sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
         ),
       )
@@ -318,7 +320,7 @@ export async function convertDraft(
       const [level] = await ctx.tx
         .select({ variantId: inventoryLevel.variantId })
         .from(inventoryLevel)
-        .where(eq(inventoryLevel.variantId, line.variantId))
+        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
       if (level) throw new OutOfStock(line.variantId, ctx.storeId)
     }
   }

@@ -7,6 +7,7 @@ import {
   productMedia,
   productOption,
   productOptionValue,
+  sellableLevel,
   variant,
   variantOptionValue,
 } from '@commerce/db'
@@ -55,7 +56,7 @@ export async function listCardProducts(
       trackInventory: variant.trackInventory,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
 
   const images = await tx
@@ -135,7 +136,7 @@ export async function getProductByHandle(
       imageUrl: media.url,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(and(eq(variant.productId, p.id), isNull(variant.archivedAt)))
     .orderBy(asc(variant.position))

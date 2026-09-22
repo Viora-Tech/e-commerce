@@ -1,0 +1,336 @@
+/** Copy for Products > Inventory, Purchase orders and Transfers. */
+
+export const STOCK_STATES = ['in', 'low', 'out'] as const
+export type StockState = (typeof STOCK_STATES)[number]
+
+export const MANUAL_REASONS = [
+  { value: 'correction', label: 'Correction' },
+  { value: 'received', label: 'Received' },
+  { value: 'damaged', label: 'Damaged' },
+  { value: 'returned', label: 'Returned' },
+  { value: 'theft', label: 'Theft or loss' },
+] as const
+export type ManualReasonValue = (typeof MANUAL_REASONS)[number]['value']
+
+/** Every reason the adjustment log can hold, for the history drawer. */
+export const REASON_LABELS: Record<string, string> = {
+  correction: 'Correction',
+  received: 'Received',
+  damaged: 'Damaged',
+  returned: 'Returned',
+  theft: 'Theft or loss',
+  transfer: 'Transfer',
+  sold: 'Sold',
+  other: 'Other',
+}
+
+export const inventoryContent = {
+  heading: 'Inventory',
+  resource: { singular: 'SKU', plural: 'SKUs' },
+  export: 'Export',
+  location: 'Location',
+  defaultBadge: 'Online orders',
+  reason: 'Reason for edits',
+  tiles: {
+    skus: 'SKUs tracked',
+    out: 'Out of stock',
+    low: 'Low stock',
+    value: 'Stock value',
+    skusCaption: 'Variants that track stock',
+    outCaption: 'Nothing available to sell',
+    lowCaption: (n: number) => `${n} or fewer available`,
+    valueCaption: 'On hand at cost',
+  },
+  columns: {
+    product: 'Product',
+    sku: 'SKU',
+    available: 'Available',
+    committed: 'Committed',
+    incoming: 'Incoming',
+    onHand: 'On hand',
+  },
+  none: 'None',
+  noSku: 'No SKU',
+  filters: {
+    stock: 'Stock',
+    vendor: 'Vendor',
+    productType: 'Product type',
+    any: 'Any',
+    clear: 'Clear filters',
+    stockOptions: [
+      { value: 'in', label: 'In stock' },
+      { value: 'low', label: 'Low stock' },
+      { value: 'out', label: 'Out of stock' },
+    ] as { value: StockState; label: string }[],
+  },
+  cell: {
+    decrease: 'Remove one',
+    increase: 'Add one',
+    label: (name: string) => `Available for ${name}`,
+    saved: (name: string, available: number) => `${name}: ${available} available`,
+    failed: 'Could not update stock',
+    history: 'Stock history',
+  },
+  bulk: {
+    adjust: 'Adjust by',
+    set: 'Set on hand to',
+    title: (mode: 'adjust' | 'set', n: number) =>
+      `${mode === 'adjust' ? 'Adjust' : 'Set'} stock for ${n} ${n === 1 ? 'SKU' : 'SKUs'}`,
+    quantity: 'Quantity',
+    adjustHint: 'Use a negative number to remove stock.',
+    setHint: 'Every selected SKU gets this on hand count at the chosen location.',
+    reason: 'Reason',
+    note: 'Note',
+    notePlaceholder: 'Optional, shown in stock history',
+    apply: 'Apply',
+    cancel: 'Cancel',
+    done: (n: number) => `Updated ${n} ${n === 1 ? 'SKU' : 'SKUs'}`,
+    failed: 'Could not update stock',
+  },
+  history: {
+    title: 'Stock history',
+    empty: 'No stock changes recorded yet.',
+    failed: 'Could not load history',
+  },
+  exporting: {
+    filename: 'inventory.csv',
+    empty: 'Nothing to export',
+    failed: 'Export failed',
+    headers: [
+      'Product',
+      'Variant',
+      'SKU',
+      'Location',
+      'Available',
+      'Committed',
+      'Incoming',
+      'On hand',
+      'Unit cost',
+    ],
+  },
+  empty: {
+    heading: 'No stock to track yet',
+    body: 'Variants that track inventory show up here with their counts at the selected location.',
+    action: 'Add a product',
+  },
+  noMatch: 'No SKUs match these filters',
+} as const
+
+export const locationsContent = {
+  add: 'Add location',
+  title: 'Add location',
+  body: 'A location is anywhere you keep stock: a warehouse, a shop or a partner. New locations do not sell online until stock is moved to the default location.',
+  name: 'Name',
+  namePlaceholder: 'Bengaluru warehouse',
+  line1: 'Address',
+  city: 'City',
+  stateCode: 'State code',
+  pincode: 'PIN code',
+  phone: 'Phone',
+  save: 'Save location',
+  saving: 'Saving',
+  cancel: 'Cancel',
+  created: (name: string) => `${name} added`,
+  failed: 'Could not add location',
+  invalidPincode: 'PIN code has six digits',
+} as const
+
+export const PURCHASE_ORDER_STATUSES = [
+  'draft',
+  'ordered',
+  'partially_received',
+  'received',
+  'closed',
+] as const
+export type PurchaseOrderStatus = (typeof PURCHASE_ORDER_STATUSES)[number]
+
+export const purchaseOrdersContent = {
+  heading: 'Purchase orders',
+  resource: { singular: 'purchase order', plural: 'purchase orders' },
+  create: 'Create purchase order',
+  status: {
+    draft: 'Draft',
+    ordered: 'Ordered',
+    partially_received: 'Partially received',
+    received: 'Received',
+    closed: 'Closed',
+  } satisfies Record<PurchaseOrderStatus, string>,
+  tabs: { all: 'All' },
+  tiles: {
+    draft: 'Drafts',
+    open: 'Open orders',
+    incoming: 'Units incoming',
+    received: 'Received',
+    draftCaption: 'Not sent to a supplier yet',
+    openCaption: 'Ordered, waiting on stock',
+    incomingCaption: 'Still to arrive',
+    receivedCaption: 'Fully received',
+  },
+  columns: {
+    number: 'Order',
+    supplier: 'Supplier',
+    destination: 'Destination',
+    status: 'Status',
+    received: 'Received',
+    total: 'Total',
+    expected: 'Expected',
+  },
+  number: (n: number) => `#PO${n}`,
+  receivedOf: (received: number, units: number) => `${received} of ${units}`,
+  none: 'None',
+  empty: {
+    heading: 'No purchase orders',
+    body: 'Purchase orders track what you have ordered from suppliers and what has arrived, so incoming stock shows before it lands.',
+  },
+} as const
+
+export const purchaseOrderFormContent = {
+  newTitle: 'Create purchase order',
+  title: (n: number) => `Purchase order #PO${n}`,
+  back: 'Purchase orders',
+  supplier: {
+    heading: 'Supplier',
+    name: 'Supplier name',
+    email: 'Email',
+    phone: 'Phone',
+  },
+  destination: {
+    heading: 'Destination',
+    location: 'Location',
+    expected: 'Expected arrival',
+  },
+  lines: {
+    heading: 'Products',
+    search: 'Search products to add',
+    empty: 'Add the variants you are ordering.',
+    quantity: 'Quantity',
+    cost: 'Unit cost',
+    received: 'Received',
+    lineTotal: 'Total',
+    remove: 'Remove',
+    noSku: 'No SKU',
+  },
+  cost: {
+    heading: 'Cost summary',
+    subtotal: 'Subtotal',
+    units: (n: number) => `${n} ${n === 1 ? 'unit' : 'units'}`,
+    shipping: 'Shipping',
+    tax: 'Taxes',
+    total: 'Total',
+  },
+  notes: { heading: 'Notes', placeholder: 'Reference numbers, terms or anything else' },
+  save: 'Save',
+  saving: 'Saving',
+  saved: 'Purchase order saved',
+  created: 'Purchase order created',
+  saveFailed: 'Could not save purchase order',
+  needSupplier: 'Add a supplier name',
+  needLines: 'Add at least one product',
+  markOrdered: 'Mark as ordered',
+  ordered: 'Marked as ordered. Units now show as incoming.',
+  receive: 'Receive items',
+  close: 'Close',
+  closed: 'Purchase order closed',
+  delete: 'Delete',
+  deleted: 'Purchase order deleted',
+  locked: 'Received and closed purchase orders cannot be edited.',
+  headerOnly: 'Lines are locked once ordered. Supplier details and notes can still change.',
+  unsaved: 'Unsaved purchase order',
+  discard: 'Discard',
+  confirmDelete: {
+    title: 'Delete this draft?',
+    body: 'The draft and its lines are removed. Stock is not affected.',
+    confirm: 'Delete draft',
+    cancel: 'Cancel',
+  },
+  confirmClose: {
+    title: 'Close this purchase order?',
+    body: 'Anything not received yet stops showing as incoming. Received stock stays.',
+    confirm: 'Close order',
+    cancel: 'Cancel',
+  },
+  receiving: {
+    title: 'Receive items',
+    body: 'Enter what arrived. Received units move from incoming to available at the destination.',
+    all: 'Receive all',
+    outstanding: (n: number) => `${n} outstanding`,
+    confirm: 'Receive',
+    cancel: 'Cancel',
+    done: (n: number) => `Received ${n} ${n === 1 ? 'unit' : 'units'}`,
+    nothing: 'Enter at least one quantity',
+    failed: 'Could not receive items',
+  },
+} as const
+
+export const TRANSFER_STATUSES = ['draft', 'in_transit', 'received'] as const
+export type TransferStatus = (typeof TRANSFER_STATUSES)[number]
+
+export const transfersContent = {
+  heading: 'Transfers',
+  resource: { singular: 'transfer', plural: 'transfers' },
+  create: 'Create transfer',
+  status: {
+    draft: 'Draft',
+    in_transit: 'In transit',
+    received: 'Received',
+  } satisfies Record<TransferStatus, string>,
+  tabs: { all: 'All' },
+  columns: {
+    number: 'Transfer',
+    from: 'Origin',
+    to: 'Destination',
+    status: 'Status',
+    units: 'Units',
+    created: 'Created',
+  },
+  number: (n: number) => `#T${n}`,
+  single: {
+    heading: 'Transfers move stock between locations',
+    body: 'You have one location, so there is nowhere to move stock to yet. Add a warehouse, shop or partner location to start transferring.',
+  },
+  empty: {
+    heading: 'No transfers',
+    body: 'Transfers record stock moving between your locations, so counts at both ends stay accurate.',
+  },
+} as const
+
+export const transferFormContent = {
+  newTitle: 'Create transfer',
+  title: (n: number) => `Transfer #T${n}`,
+  back: 'Transfers',
+  route: {
+    heading: 'Route',
+    from: 'Origin',
+    to: 'Destination',
+    same: 'Pick two different locations',
+  },
+  lines: {
+    heading: 'Products',
+    search: 'Search products to add',
+    empty: 'Add the variants you are moving.',
+    quantity: 'Quantity',
+    atOrigin: (n: number) => `${n} available at origin`,
+    remove: 'Remove',
+    noSku: 'No SKU',
+  },
+  notes: { heading: 'Notes', placeholder: 'Carrier, tracking number or anything else' },
+  save: 'Save draft',
+  saving: 'Saving',
+  saved: 'Transfer saved',
+  created: 'Transfer created',
+  saveFailed: 'Could not save transfer',
+  needLines: 'Add at least one product',
+  ship: 'Mark as shipped',
+  shipped: 'Shipped. Stock left the origin and shows as incoming at the destination.',
+  receive: 'Receive transfer',
+  received: 'Received. Stock is on hand at the destination.',
+  delete: 'Delete',
+  deleted: 'Transfer deleted',
+  locked: 'Shipped transfers cannot be edited.',
+  confirmDelete: {
+    title: 'Delete this draft?',
+    body: 'The draft is removed. Stock is not affected.',
+    confirm: 'Delete draft',
+    cancel: 'Cancel',
+  },
+} as const

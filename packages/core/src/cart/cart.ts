@@ -1,4 +1,12 @@
-import { cart, cartLine, inventoryLevel, media, product, variant } from '@commerce/db'
+import {
+  cart,
+  cartLine,
+  inventoryLevel,
+  media,
+  product,
+  sellableLevel,
+  variant,
+} from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CartNotOpen } from '../errors'
@@ -52,7 +60,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .leftJoin(media, eq(media.id, variant.mediaId))
     .where(eq(cartLine.cartId, cartId))
   const lines: CartLineView[] = rows.map((r) => ({
