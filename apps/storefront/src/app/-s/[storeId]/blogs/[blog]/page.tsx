@@ -8,6 +8,7 @@ import TagFilter from '@/components/blog/tag-filter'
 import { BLOG_PER_PAGE, blogContent as copy } from '@/data/blog'
 import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/blog'
 import { inStore } from '@/lib/store-context'
+import { renderTemplate } from '@/lib/template-render'
 
 type Params = {
   params: Promise<{ storeId: string; blog: string }>
@@ -71,7 +72,7 @@ export default async function BlogPage({ params, searchParams }: Params) {
     ],
   }
 
-  return (
+  const main = (
     <section className="page-width flex flex-col gap-8 py-12">
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data, `<` escaped. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(schema)} />
@@ -99,5 +100,8 @@ export default async function BlogPage({ params, searchParams }: Params) {
 
       <BlogPagination path={path} tag={tag} page={page} pages={pages} />
     </section>
+  )
+  return inStore(storeId, (tx) =>
+    renderTemplate(tx, storeId, 'blog', { renderers: { MainBlog: () => main } }),
   )
 }

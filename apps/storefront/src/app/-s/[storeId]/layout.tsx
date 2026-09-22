@@ -27,6 +27,7 @@ import { readCartId } from '@/lib/cart-cookie'
 import { themeFontVariables } from '@/lib/fonts'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
+import { renderTemplate } from '@/lib/template-render'
 import { htmlThemeAttr, parseThemeMode, THEME_COOKIE } from '@/lib/theme-mode'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }
@@ -36,6 +37,17 @@ async function previewRequest(storeId: string) {
   const h = await headers()
   const preview = readPreview(storeId, h.get('x-theme-preview'))
   return preview ? { ...preview, inFrame: h.get('sec-fetch-dest') === 'iframe' } : null
+}
+
+/** The Header section's menu, or the Navigation setting's main menu when it names none. */
+function menuLinks(
+  menus: Map<string, { items: Parameters<typeof toNavLinks>[0] }>,
+  handle: unknown,
+  fallback: string | null,
+) {
+  const picked = typeof handle === 'string' && handle ? handle : fallback
+  const menu = picked === null ? undefined : menus.get(picked)
+  return toNavLinks(menu?.items ?? [])
 }
 
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
@@ -91,13 +103,45 @@ export default async function StoreLayout({ children, params }: Props) {
   // rows. A handle that points at nothing renders nothing rather than a broken link.
   const settings = parseNavigationSettings(current.navigation)
   const menusByHandle = new Map(menus.map((menu) => [menu.handle, menu]))
-  const mainMenu = settings.main === null ? undefined : menusByHandle.get(settings.main)
-  const navLinks = toNavLinks(mainMenu?.items ?? [])
   // A nested footer menu splits into one column per parent, as Shopify's does.
   const footerColumns = settings.footer.flatMap((handle) => {
     const menu = menusByHandle.get(handle)
     return menu ? toFooterColumns(menu, menu.items) : []
   })
+
+  // The header and footer are the theme's section groups: announcement bars and
+  // signups sit around the Header and Footer sections, which draw the store's menus.
+  const header = await inStore(storeId, (tx) =>
+    renderTemplate(tx, storeId, 'header', {
+      renderers: {
+        Header: (s) => (
+          <Header
+            storeName={current.name}
+            links={menuLinks(menusByHandle, s.menu, settings.main)}
+            themeMode={mode}
+            showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
+            cartCount={cartCount}
+            logo={
+              theme.brand.logo ? { url: theme.brand.logo.url, width: theme.brand.logoWidth } : null
+            }
+          />
+        ),
+      },
+    }),
+  )
+  const footer = await inStore(storeId, (tx) =>
+    renderTemplate(tx, storeId, 'footer', {
+      renderers: {
+        Footer: (s) => (
+          <Footer
+            storeName={current.name}
+            tagline={typeof s.tagline === 'string' ? s.tagline : ''}
+            columns={footerColumns}
+          />
+        ),
+      },
+    }),
+  )
 
   return (
     <html
@@ -113,16 +157,7 @@ export default async function StoreLayout({ children, params }: Props) {
       </head>
       <body>
         {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
-        <Header
-          storeName={current.name}
-          links={navLinks}
-          themeMode={mode}
-          showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
-          cartCount={cartCount}
-          logo={
-            theme.brand.logo ? { url: theme.brand.logo.url, width: theme.brand.logoWidth } : null
-          }
-        />
+        {header}
         <main id="MainContent">{children}</main>
         <VisitBeacon />
         <ThemePreviewBridge storeId={storeId} adminOrigin={adminOrigin} />
@@ -133,11 +168,7 @@ export default async function StoreLayout({ children, params }: Props) {
             initial={decodeConsent(jar.get(CONSENT_COOKIE)?.value)}
           />
         )}
-        <Footer
-          storeName={current.name}
-          tagline="Gaming peripherals built for the grind."
-          columns={footerColumns}
-        />
+        {footer}
       </body>
     </html>
   )

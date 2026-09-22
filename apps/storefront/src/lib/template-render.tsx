@@ -1,0 +1,123 @@
+import {
+  type BlockProps,
+  createBlocksConfig,
+  type PageData,
+  type SectionMetadata,
+} from '@commerce/blocks/puck'
+import {
+  defaultTemplate,
+  isSectionHidden,
+  loadTemplate,
+  mainThemeId,
+  recentVisibleArticles,
+  type TemplateKey,
+  toCardArticle,
+} from '@commerce/core'
+import type { StoreTx } from '@commerce/db'
+import type { ComponentConfig } from '@measured/puck'
+import { resolveAllData } from '@measured/puck'
+import { headers } from 'next/headers'
+import { Fragment } from 'react'
+import RecentlyViewed from '@/components/product/recently-viewed'
+import { listCardProducts } from './catalog'
+import { collectionCards, listCollections } from './collections'
+import { subscribeAction } from './newsletter-actions'
+import { readPreview } from './storefront-gate'
+
+export type TemplateOptions = {
+  /** The resource's assigned alternate (`product.template_suffix`); blank for the default. */
+  suffix?: string | null | undefined
+  /** `?view=` from the Customize preview, which wins over `suffix` while previewing. */
+  view?: string | undefined
+  /** Renderers for the dynamic sections this route can fill (its main section, header, ...). */
+  renderers?: SectionMetadata['renderers']
+}
+
+/** Whether this request is a verified theme preview (Customize, or the Preview button). */
+export async function isThemePreview(storeId: string): Promise<boolean> {
+  return readPreview(storeId, (await headers()).get('x-theme-preview')) !== null
+}
+
+/** Which theme this request renders, and whether it is the Customize preview. */
+async function requestTheme(tx: StoreTx, storeId: string) {
+  const preview = readPreview(storeId, (await headers()).get('x-theme-preview'))
+  return {
+    themeId: preview?.themeId ?? (await mainThemeId(tx)),
+    preview: Boolean(preview),
+  }
+}
+
+function blocksConfig(tx: StoreTx) {
+  return createBlocksConfig(
+    ({ productType, collectionHandle, limit }) =>
+      collectionHandle
+        ? collectionCards(tx, collectionHandle, limit)
+        : listCardProducts(tx, limit, productType),
+    {
+      loadArticles: async (query) => (await recentVisibleArticles(tx, query)).map(toCardArticle),
+      loadCollections: async (handles) => {
+        const all = await listCollections(tx)
+        return handles.flatMap((h) => all.filter((c) => c.handle === h))
+      },
+      loadProduct: async (handle) =>
+        (await listCardProducts(tx, 1, undefined, [handle]))[0] ?? null,
+    },
+  )
+}
+
+/**
+ * Renders a theme template (or the header or footer group) for this request: the
+ * live theme's saved sections, or in the Customize preview the previewed theme
+ * with its unsaved drafts. Hidden sections are skipped.
+ */
+export async function renderTemplate(
+  tx: StoreTx,
+  storeId: string,
+  key: TemplateKey,
+  options: TemplateOptions = {},
+) {
+  const { themeId, preview } = await requestTheme(tx, storeId)
+  const suffix = (preview && options.view) || options.suffix || ''
+  const data = themeId
+    ? (await loadTemplate(tx, themeId, key, suffix, { withDraft: preview })).data
+    : defaultTemplate(key)
+  const visible = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  const config = blocksConfig(tx)
+  const metadata: SectionMetadata = {
+    renderers: {
+      // Any template can show the shopper's history; routes add their own sections.
+      RecentlyViewed: (settings) => (
+        <RecentlyViewed
+          storeId={storeId}
+          heading={typeof settings.heading === 'string' ? settings.heading : ''}
+          limit={typeof settings.limit === 'number' ? settings.limit : 4}
+        />
+      ),
+      ...options.renderers,
+    },
+    newsletterAction: subscribeAction.bind(null, storeId),
+  }
+  const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)
+  const components = config.components as unknown as Record<string, ComponentConfig | undefined>
+  const puck = { metadata, isEditing: false, renderDropZone: () => null, dragRef: null }
+
+  return (
+    <>
+      {resolved.content.map((item) => {
+        const section = components[item.type]
+        if (!section?.render) return null
+        const Section = section.render as (props: Record<string, unknown>) => React.ReactNode
+        const props = {
+          ...section.defaultProps,
+          ...item.props,
+          puck,
+        } as BlockProps[keyof BlockProps]
+        return (
+          <Fragment key={item.props.id}>
+            <Section {...(props as Record<string, unknown>)} />
+          </Fragment>
+        )
+      })}
+    </>
+  )
+}
