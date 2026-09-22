@@ -8,15 +8,16 @@ export function percentDelta(value: number, previous: number): number | null {
   return ((value - previous) / previous) * 100
 }
 
-/** 5:1508: 16px arrow glyph and a 14px figure, green up / red down. */
+/** Sheet 14:359: 16px arrow glyph and a 14/500 figure, Success/500 up, Error/500 down. */
 type DeltaChipProps = {
   delta: number | null | undefined
   invert?: boolean
-  /** `kit` = frame size (13/17 figure, 16px arrow) for the dashboard tiles. */
+  /** `kit` = sheet 14:357 (14/500 figure, 16px arrow) for the dashboard tiles. */
   size?: 'default' | 'kit'
+  className?: string
 }
 
-export default function DeltaChip({ delta, invert, size = 'default' }: DeltaChipProps) {
+export default function DeltaChip({ delta, invert, size = 'default', className }: DeltaChipProps) {
   if (delta === null || delta === undefined) return null
   const flat = Math.abs(delta) < 0.05
   const up = delta > 0
@@ -26,8 +27,9 @@ export default function DeltaChip({ delta, invert, size = 'default' }: DeltaChip
     <span
       className={cn(
         'inline-flex items-center tabular-nums',
-        size === 'kit' ? 'text-kit-body' : 'text-period',
+        size === 'kit' ? 'text-kit-body font-medium' : 'text-period',
         flat ? 'text-muted-foreground' : good ? 'text-success' : 'text-destructive',
+        className,
       )}
     >
       {flat ? null : <Icon className="size-4" />}

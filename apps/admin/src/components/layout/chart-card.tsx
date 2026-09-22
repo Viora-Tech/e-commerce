@@ -5,6 +5,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@commerce/ui/shadcn/chart'
 import { type ReactNode, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import KitWeekToggle from '@/components/kit/kit-week-toggle'
 import CardMenu, { type MenuLink } from './card-menu'
 import { type ChartPoint, chartConfig } from './chart-config'
 
@@ -23,9 +24,9 @@ type ChartCardProps = {
 }
 
 /**
- * Frame 5:1558 (739 x 460, 20px padding): 38px header row with the period
- * toggle (178 x 38, two 83 x 30 buttons) and a kebab, the stat tabs 20px
- * below, then the area chart with its axis labels filling the rest.
+ * Sheet 14:366 (739 x 460, 20px padding): 38px header row with the period
+ * toggle (Aqua Spring track, white active tab) and a kebab, the stat tabs 20px
+ * below, then the area chart: 14px y labels, 12px day labels, green curve with a 4% fill.
  */
 export default function ChartCard({
   title,
@@ -46,23 +47,13 @@ export default function ChartCard({
     <Card className={cn('h-[28.75rem] gap-0 p-5', className)}>
       <div className="flex h-[2.375rem] items-center justify-between gap-3">
         <p className="text-kit-title text-foreground">{title}</p>
-        <div className="flex items-center gap-7">
+        <div className="flex items-center gap-2">
           {periods.length > 1 ? (
-            <div className="flex h-[2.375rem] w-[11.125rem] items-center rounded-full bg-background p-1 text-kit-body">
-              {periods.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setPeriodId(p.id)}
-                  className={cn(
-                    'h-[1.875rem] flex-1 rounded-full text-muted-foreground transition-colors',
-                    p.id === periodId && 'bg-card font-bold text-primary shadow-toggle',
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            <KitWeekToggle
+              options={periods.map((p) => ({ id: p.id, label: p.label }))}
+              value={periodId}
+              onChange={setPeriodId}
+            />
           ) : null}
           {menu ? <CardMenu items={menu} /> : null}
         </div>
@@ -86,13 +77,13 @@ export default function ChartCard({
             tickLine={false}
             axisLine={false}
             tickMargin={12}
-            tick={{ fontSize: 13, fill: 'var(--muted-foreground)' }}
+            tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
           />
           <YAxis
             tickLine={false}
             axisLine={false}
             width={48}
-            tick={{ fontSize: 13, fill: 'var(--muted-foreground)' }}
+            tick={{ fontSize: 14, fill: 'var(--muted-foreground)' }}
             tickFormatter={(v: number) => formatValue(v)}
           />
           <ChartTooltip
