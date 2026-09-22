@@ -132,7 +132,7 @@ export default function ProviderSettingsForm<Extra extends object>({
       setSaved(JSON.stringify(next))
       toast.success(copy.saved)
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.saveFailed)
+      toast.error(err instanceof Error ? err.message : copy.saveFailed)
     } finally {
       setBusy(false)
     }
