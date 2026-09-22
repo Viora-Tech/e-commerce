@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -146,12 +147,14 @@ export default function TopBar({ title, heading, user, scrolled = false }: TopBa
             {initials(user.name)}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
-            <DropdownMenuLabel className="grid leading-tight">
-              <span className="truncate font-bold">{user.name}</span>
-              <span className="truncate text-xs font-normal text-muted-foreground">
-                {user.email}
-              </span>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="grid leading-tight">
+                <span className="truncate font-bold">{user.name}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  {user.email}
+                </span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="size-4" />
