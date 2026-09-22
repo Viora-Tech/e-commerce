@@ -112,6 +112,9 @@ export const settingsContent = {
       timezone: 'Timezone',
       gstin: 'GSTIN',
       gstinHelp: 'Leave blank if not registered. Appears on tax invoices.',
+      gstRate: 'GST rate (%)',
+      gstRateHelp:
+        'The tax already included in your listed prices. Used to split CGST, SGST and IGST on orders.',
     },
     timezones: [
       { value: 'Asia/Kolkata', label: 'India (Asia/Kolkata)' },

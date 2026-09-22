@@ -30,6 +30,14 @@ import {
   setOrderTags,
 } from '../services/order.service'
 import {
+  collectOrderPayment,
+  customerOrderCount,
+  customerOrderIndex,
+  fulfilOrder,
+  orderBalance,
+  orderNeighbours,
+} from '../services/order-fulfil.service'
+import {
   bookShipment,
   cancelStoreShipment,
   getShipmentForOrder,
@@ -64,8 +72,69 @@ export const ordersRouter = {
   get: storeProcedure.input(z.object({ id: z.uuid() })).handler(async ({ context, input }) => {
     const o = await getOrder(context.tx, input.id)
     if (!o) return null
-    return { ...o, shipment: await getShipmentForOrder(context.tx, input.id) }
+    const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
+      getShipmentForOrder(context.tx, input.id),
+      orderBalance(context.tx, context.scope.storeId, input.id, o.totalPaise),
+      customerOrderCount(context.tx, o.customerId),
+      customerOrderIndex(context.tx, o.customerId, o.placedAt),
+    ])
+    return { ...o, shipment, balance, customerOrders, customerOrderNumber }
   }),
+
+  /** Order numbers either side of this one, for the arrows in the detail header. */
+  neighbours: storeProcedure
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => orderNeighbours(context.tx, input.id)),
+
+  /** Pack some or all of the lines; the shopper is told once the parcel is complete. */
+  fulfil: storeProcedure
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        lines: z.array(z.object({ lineId: z.uuid(), quantity: z.number().int().min(0) })).min(1),
+        courier: z.string().trim().max(60).optional(),
+        trackingNumber: z.string().trim().max(60).optional(),
+        trackingUrl: z.url().max(500).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      try {
+        const result = await fulfilOrder(context.tx, context.scope.storeId, input)
+        if (result.complete) {
+          await enqueueNotification(context.notifications, {
+            storeId: context.scope.storeId,
+            orderId: input.orderId,
+            template: 'order_shipped',
+          })
+        }
+        return result
+      } catch (err) {
+        if (err instanceof CommerceError)
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        throw err
+      }
+    }),
+
+  /** Record money collected outside a gateway; the order becomes paid. */
+  collectPayment: storeProcedure
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        amountPaise: z.number().int().positive(),
+        method: z.string().trim().max(40).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const o = await collectOrderPayment(context.tx, context.scope.storeId, input)
+      if (o) {
+        await enqueueNotification(context.notifications, {
+          storeId: context.scope.storeId,
+          orderId: o.id,
+          template: 'payment_received',
+        })
+      }
+      return o
+    }),
 
   /** Book the parcel with the store's courier; the order becomes fulfilled and the shopper is told. */
   createShipment: storeProcedure

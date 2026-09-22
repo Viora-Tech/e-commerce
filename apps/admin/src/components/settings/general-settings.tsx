@@ -285,6 +285,14 @@ export default function GeneralSettings() {
                   error={errors.gstin}
                   help={copy.locale.gstinHelp}
                 />
+                <TextField
+                  id="store-gst-rate"
+                  label={copy.locale.gstRate}
+                  value={String(form.gstRatePercent)}
+                  onChange={(rate) => patch({ gstRatePercent: Number(rate) || 0 })}
+                  error={errors.gstRatePercent}
+                  help={copy.locale.gstRateHelp}
+                />
               </FieldGroup>
             </CardContent>
           </Card>

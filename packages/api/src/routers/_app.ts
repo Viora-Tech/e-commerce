@@ -1,4 +1,5 @@
 import { protectedProcedure } from '../procedures'
+import { analyticsRouter } from './analytics'
 import { appsRouter } from './apps'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
@@ -19,6 +20,7 @@ export const appRouter = {
   discounts: discountsRouter,
   apps: appsRouter,
   dashboard: dashboardRouter,
+  analytics: analyticsRouter,
   media: mediaRouter,
 }
 

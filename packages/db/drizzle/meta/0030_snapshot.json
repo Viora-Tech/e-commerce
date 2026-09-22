@@ -1,5 +1,5 @@
 {
-  "id": "bda0f329-e55e-48c2-bd6b-9ac7e5d2b6e1",
+  "id": "36c1d42a-3d95-4e97-a8b1-40f033acbcbf",
   "prevId": "a07b43f6-d6bc-49ba-bf92-6e156b871f81",
   "version": "7",
   "dialect": "postgresql",
@@ -1246,6 +1246,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "tax_paise": {
+          "name": "tax_paise",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "tax_breakdown": {
+          "name": "tax_breakdown",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "tags": {
           "name": "tags",
           "type": "text[]",
@@ -1360,6 +1373,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "fulfilled_quantity": {
+          "name": "fulfilled_quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         }
       },
       "indexes": {},
@@ -2484,6 +2504,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gst_rate_percent": {
+          "name": "gst_rate_percent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 18
+        },
         "timezone": {
           "name": "timezone",
           "type": "text",
@@ -2657,18 +2684,6 @@
         "weight_grams": {
           "name": "weight_grams",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hs_code": {
-          "name": "hs_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "country_of_origin": {
-          "name": "country_of_origin",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

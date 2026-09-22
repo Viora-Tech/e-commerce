@@ -5,30 +5,34 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
+import CollectPaymentDialog from './collect-payment-dialog'
 import CustomerCard from './customer-card'
+import FulfilDialog from './fulfil-dialog'
 import LineItemsCard from './line-items-card'
+import OrderActionBar from './order-action-bar'
 import OrderActions from './order-actions'
 import {
   fulfilmentStatus,
+  isOfflineMethod,
   type OrderDetail,
   type OrderPayment,
   type OrderStatus,
   paymentStatus,
   primaryPayment,
   refundedTotal,
-  when,
+  unfulfilledLines,
 } from './order-detail-types'
+import OrderHeader from './order-header'
 import PackingSlip from './packing-slip'
 import PaymentCard from './payment-card'
 import RefundDialog from './refund-dialog'
 import ShipmentPanel from './shipment-panel'
 import TagsCard from './tags-card'
 import TimelineCard from './timeline-card'
+import UnfulfilledCard from './unfulfilled-card'
 
 type OrderViewProps = {
   order: OrderDetail
@@ -39,10 +43,16 @@ export default function OrderView({ order }: OrderViewProps) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
+  const [fulfilling, setFulfilling] = useState(false)
+  const [collecting, setCollecting] = useState(false)
 
   // Helpers
   const refresh = () => router.refresh()
   const openRefund = () => setRefunding(payment?.status === 'captured' ? payment : null)
+  const closeAndRefresh = (close: () => void) => () => {
+    close()
+    refresh()
+  }
 
   // Event handlers
   const handleMove = async (to: OrderStatus) => {
@@ -98,42 +108,48 @@ export default function OrderView({ order }: OrderViewProps) {
   const canRefund = order.payments.some(
     (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
   )
-
   const shipmentId = order.shipment?.id
+  const live = order.status !== 'cancelled'
+  const owed = order.balance.balancePaise
+  const canCollect = live && owed > 0
+  const canFulfil = live && unfulfilledLines(order).length > 0
+  const offline = isOfflineMethod(order.paymentMethod)
+
+  /* One next step, in the order a merchant works: take the money, then pack it. */
+  const nextAction = canCollect
+    ? { label: copy.actions.collect, onClick: () => setCollecting(true) }
+    : canFulfil
+      ? { label: copy.actions.fulfilItems, onClick: () => setFulfilling(true) }
+      : null
 
   return (
     <PageBody width="frame">
-      <div className="print:hidden">
-        <PageHeader
-          size="frame"
-          title={copy.title(order.number)}
-          subtitle={copy.placed(when(order.placedAt))}
-          breadcrumbs={[{ label: copy.back, href: '/orders' }, { label: `#${order.number}` }]}
-          actions={
-            <OrderActions
-              status={order.status}
-              canRefund={canRefund}
-              busy={busy}
-              onMove={handleMove}
-              onRefund={openRefund}
-            />
-          }
-        />
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          {order.status === 'cancelled' ? (
-            <StatusLabel kind="order" value="cancelled" variant="pill" />
-          ) : null}
-          <StatusLabel kind="payment" value={pay} variant="pill" />
-          <StatusLabel kind="fulfilment" value={ful} variant="pill" />
-        </div>
-      </div>
+      <OrderHeader
+        order={order}
+        payment={pay}
+        fulfilment={ful}
+        actions={
+          <OrderActions
+            status={order.status}
+            canRefund={canRefund}
+            busy={busy}
+            onMove={handleMove}
+            onRefund={openRefund}
+          />
+        }
+      />
 
       <div className="print:hidden">
         <PageColumns
           main={
             <>
+              <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />
               <LineItemsCard order={order} />
-              <PaymentCard order={order} onRefund={canRefund ? setRefunding : undefined} />
+              <PaymentCard
+                order={order}
+                onRefund={canRefund ? setRefunding : undefined}
+                onCollect={canCollect ? () => setCollecting(true) : undefined}
+              />
               <ShipmentPanel
                 orderStatus={order.status}
                 shipment={order.shipment}
@@ -154,15 +170,27 @@ export default function OrderView({ order }: OrderViewProps) {
         />
       </div>
 
+      <OrderActionBar action={nextAction} orderNumber={order.number} busy={busy} />
+
       <PackingSlip order={order} />
       <RefundDialog
         payment={refunding}
         remainingPaise={remaining}
         onClose={() => setRefunding(null)}
-        onDone={() => {
-          setRefunding(null)
-          refresh()
-        }}
+        onDone={closeAndRefresh(() => setRefunding(null))}
+      />
+      <FulfilDialog
+        order={fulfilling ? order : null}
+        onClose={() => setFulfilling(false)}
+        onDone={closeAndRefresh(() => setFulfilling(false))}
+      />
+      <CollectPaymentDialog
+        order={collecting ? order : null}
+        balancePaise={owed}
+        gateway={!offline}
+        payHref={`/orders/${order.id}`}
+        onClose={() => setCollecting(false)}
+        onDone={closeAndRefresh(() => setCollecting(false))}
       />
     </PageBody>
   )

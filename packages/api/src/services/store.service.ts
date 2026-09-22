@@ -32,6 +32,7 @@ export type StoreGeneralPatch = {
   contactPhone: string | null
   address: unknown
   gstin: string | null
+  gstRatePercent: number
   timezone: string
 }
 
