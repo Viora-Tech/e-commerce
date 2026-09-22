@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Plus, SquarePlus } from '@commerce/ui/icons'
+import { Download, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -9,113 +9,94 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
-import ProductThumb from '@/components/products/product-thumb'
-import StatusLabel from '@/components/status/status-label'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import BulkTagDialog from '@/components/products/bulk-tag-dialog'
+import ConfirmBulkDelete from '@/components/products/confirm-bulk-delete'
+import { downloadProductCsv } from '@/components/products/export-products'
+import ImportDialog from '@/components/products/import-dialog'
+import ProductBulkActions from '@/components/products/product-bulk-actions'
+import { productColumns } from '@/components/products/product-columns'
+import ProductFilters, { type StockFilter } from '@/components/products/product-filters'
+import ProductTiles, { type ProductStats } from '@/components/products/product-tiles'
+import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
-import { formatPaise } from '@/lib/money'
 
 type ListResult = Awaited<ReturnType<typeof api.products.list>>
-type Item = ListResult['items'][number]
+type Facets = Awaited<ReturnType<typeof api.products.facets>>
+type BulkAction = Parameters<typeof api.products.bulk>[0]['action']
+type BulkResult = Awaited<ReturnType<typeof api.products.bulk>>
 
 /** First page rendered on the server so the table never paints empty. */
 export type ProductsInitial = {
   query: ListQuery<ProductStatus>
   result: ListResult
   allCount: number
+  stats: ProductStats
+  facets: Facets
+}
+
+type Query = {
+  page: number
+  query: string
+  status: ProductStatus | null
+  vendor: string | null
+  productType: string | null
+  tag: string | null
+  stock: StockFilter | null
 }
 
 const PER_PAGE = LIST_PER_PAGE
+const STOCK_FILTERS = ['in', 'out', 'low'] as const
 const copy = productsListContent
 
-type Query = ListQuery<ProductStatus>
-
-function fetchProducts(q: Query) {
-  return api.products.list({
-    page: q.page,
-    perPage: PER_PAGE,
+function listInput(q: Query) {
+  return {
     search: q.query || undefined,
     status: q.status ?? undefined,
-  })
+    vendor: q.vendor ?? undefined,
+    productType: q.productType ?? undefined,
+    tag: q.tag ?? undefined,
+    stock: q.stock ?? undefined,
+  }
 }
 
-const columns: ResourceColumnSpec<Item>[] = [
-  {
-    id: 'product',
-    title: copy.columns.product,
-    sortValue: (p) => p.title,
-    hideable: false,
-    align: 'start',
-    className: 'w-80 px-3 whitespace-normal',
-    render: (p) => (
-      <span className="flex items-center gap-3 text-left">
-        <ProductThumb url={p.imageUrl} />
-        <span className="line-clamp-2 text-body-strong">{p.title}</span>
-      </span>
-    ),
-  },
-  {
-    id: 'status',
-    title: copy.columns.status,
-    sortValue: (p) => p.status,
-    render: (p) => <StatusLabel kind="product" value={p.status} variant="pill" />,
-  },
-  {
-    id: 'inventory',
-    title: copy.columns.inventory,
-    sortValue: (p) => p.available,
-    render: (p) => (
-      <span className={p.available === 0 ? 'text-destructive' : undefined}>
-        {copy.inventory(p.available, p.variantCount)}
-      </span>
-    ),
-  },
-  {
-    id: 'type',
-    title: copy.columns.type,
-    sortValue: (p) => p.productType ?? '',
-    render: (p) => p.productType ?? copy.none,
-  },
-  {
-    id: 'vendor',
-    title: copy.columns.vendor,
-    sortValue: (p) => p.vendor ?? '',
-    render: (p) => p.vendor ?? copy.none,
-  },
-  {
-    id: 'price',
-    title: copy.columns.price,
-    sortValue: (p) => p.minPricePaise ?? 0,
-    render: (p) => (
-      <span className="tabular-nums">
-        {p.minPricePaise != null ? formatPaise(p.minPricePaise) : copy.none}
-      </span>
-    ),
-  },
-]
+function hasFilters(q: Query) {
+  return Boolean(q.vendor || q.productType || q.tag || q.stock)
+}
 
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
-  const [{ page, query, status }, setQ] = useQueryStates(
+  const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
       status: parseAsStringLiteral(PRODUCT_STATUSES),
+      vendor: parseAsString,
+      productType: parseAsString,
+      tag: parseAsString,
+      stock: parseAsStringLiteral(STOCK_FILTERS),
     },
     { shallow: true },
   )
-
-  const [items, setItems] = useState<Item[]>(initial.result.items)
+  const [items, setItems] = useState(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [tagging, setTagging] = useState<{ ids: string[]; clear: () => void } | null>(null)
+  const [deleting, setDeleting] = useState<{ ids: string[]; clear: () => void } | null>(null)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query)) return
+    const sameQuery = sameListQuery(
+      { page: q.page, query: q.query, status: q.status },
+      initial.query,
+    )
+    if (sameQuery && !hasFilters(q)) return
     let cancelled = false
     setLoading(true)
-    fetchProducts({ page, query, status })
+    api.products
+      .list({ page: q.page, perPage: PER_PAGE, ...listInput(q) })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -125,73 +106,167 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, initial.query])
+  }, [q, initial.query])
 
-  // Event handlers
-  const handleBulkSetStatus = async (ids: string[], next: ProductStatus, clear: () => void) => {
+  // Helpers
+  const refresh = async () => {
+    const r = await api.products.list({ page: q.page, perPage: PER_PAGE, ...listInput(q) })
+    setItems(r.items)
+    setTotal(r.total)
+  }
+
+  const runBulk = async (
+    ids: string[],
+    action: BulkAction,
+    clear: () => void,
+    message: (result: BulkResult) => string,
+  ) => {
+    setBusy(true)
     try {
-      await Promise.all(ids.map((id) => api.products.update({ id, status: next })))
-      toast.success(copy.bulk.updated(ids.length))
+      const result = await api.products.bulk({ ids, action })
+      toast.success(message(result))
       clear()
-      const r = await fetchProducts({ page, query, status })
-      setItems(r.items)
-      setTotal(r.total)
-    } catch {
-      toast.error(copy.bulk.failed)
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.bulk.failed)
+    } finally {
+      setBusy(false)
     }
   }
 
+  // Event handlers
+  const handleExport = async () => {
+    setBusy(true)
+    try {
+      const rows = await api.products.exportRows(listInput(q))
+      if (rows.length === 0) {
+        toast.error(copy.exporting.empty)
+        return
+      }
+      downloadProductCsv(rows)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.exporting.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleApplyTag = (tag: string) => {
+    if (!tagging) return
+    const { ids, clear } = tagging
+    setTagging(null)
+    void runBulk(ids, { kind: 'addTag', tag }, clear, (r) => copy.bulk.tagged(r.changed, tag))
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleting) return
+    const { ids, clear } = deleting
+    setDeleting(null)
+    void runBulk(ids, { kind: 'delete' }, clear, (r) => copy.bulk.removed(r.deleted, r.archived))
+  }
+
+  // Render logic
+  const stockLabel = copy.filters.stockOptions.find((o) => o.value === q.stock)?.label ?? q.stock
+  const applied = [
+    q.vendor && {
+      key: 'vendor',
+      label: `${copy.filters.vendor}: ${q.vendor}`,
+      onRemove: () => setQ({ vendor: null, page: 1 }),
+    },
+    q.productType && {
+      key: 'type',
+      label: `${copy.filters.productType}: ${q.productType}`,
+      onRemove: () => setQ({ productType: null, page: 1 }),
+    },
+    q.tag && {
+      key: 'tag',
+      label: `${copy.filters.tag}: ${q.tag}`,
+      onRemove: () => setQ({ tag: null, page: 1 }),
+    },
+    q.stock && {
+      key: 'stock',
+      label: `${copy.filters.stock}: ${stockLabel}`,
+      onRemove: () => setQ({ stock: null, page: 1 }),
+    },
+  ].filter(Boolean) as AppliedFilter[]
+
   return (
     <PageBody className="gap-6">
-      {/* 5:2375 + 5:2503: heading left, the 48px primary action right. */}
-      <div className="flex h-9 items-center justify-between">
+      {/* 5:2375 + 5:2503: heading left, actions right. */}
+      <div className="flex h-9 items-center justify-between gap-3">
         <h1 className="text-page-title">{copy.heading}</h1>
-        <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
-          <SquarePlus strokeWidth={1.6} />
-          {copy.add}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={busy}>
+            <Download strokeWidth={1.6} />
+            {copy.export}
+          </Button>
+          <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
+            <Upload strokeWidth={1.6} />
+            {copy.import}
+          </Button>
+          <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
+            <SquarePlus strokeWidth={1.6} />
+            {copy.add}
+          </Button>
+        </div>
       </div>
+
+      <ProductTiles stats={initial.stats} />
+
       <ResourceTable
         resourceName={copy.resource}
-        columns={columns}
+        columns={productColumns}
         items={items}
         getId={(p) => p.id}
         href={(p) => `/products/${p.id}`}
         loading={loading}
-        query={query}
+        query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
-        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        onClearAll={() =>
+          setQ({
+            query: '',
+            status: null,
+            vendor: null,
+            productType: null,
+            tag: null,
+            stock: null,
+            page: 1,
+          })
+        }
+        filters={
+          <ProductFilters
+            values={{ vendor: q.vendor, productType: q.productType, tag: q.tag, stock: q.stock }}
+            facets={initial.facets}
+            onChange={(patch) => setQ({ ...patch, page: 1 })}
+            onClear={() =>
+              setQ({ vendor: null, productType: null, tag: null, stock: null, page: 1 })
+            }
+          />
+        }
+        applied={applied}
         tabs={
           <PillTabs
-            value={status}
-            onChange={(s) => setQ({ status: s, page: 1 })}
+            value={q.status}
+            onChange={(status) => setQ({ status, page: 1 })}
             tabs={[
               { value: null, label: copy.tabs.all, count: initial.allCount },
               ...PRODUCT_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
             ]}
           />
         }
-        page={page}
+        page={q.page}
         perPage={PER_PAGE}
         total={total}
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkSetStatus(ids, 'active', clear)}
-            >
-              {copy.bulk.setActive}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkSetStatus(ids, 'archived', clear)}
-            >
-              {copy.bulk.archive}
-            </Button>
-          </>
+          <ProductBulkActions
+            busy={busy}
+            onStatus={(status) =>
+              runBulk(ids, { kind: 'status', status }, clear, (r) => copy.bulk.updated(r.changed))
+            }
+            onTag={() => setTagging({ ids, clear })}
+            onDelete={() => setDeleting({ ids, clear })}
+          />
         )}
         empty={{
           heading: copy.empty.heading,
@@ -203,6 +278,20 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             </Button>
           ),
         }}
+      />
+
+      <ImportDialog open={importing} onOpenChange={setImporting} onImported={refresh} />
+      <BulkTagDialog
+        open={tagging !== null}
+        onOpenChange={(open) => !open && setTagging(null)}
+        onApply={handleApplyTag}
+      />
+      <ConfirmBulkDelete
+        count={deleting?.ids.length ?? 0}
+        open={deleting !== null}
+        busy={busy}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        onConfirm={handleConfirmDelete}
       />
     </PageBody>
   )

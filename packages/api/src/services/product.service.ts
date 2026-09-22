@@ -1,5 +1,6 @@
 import type { StoreTx } from '@commerce/db'
 import {
+  inventoryAdjustment,
   inventoryLevel,
   media,
   product,
@@ -23,21 +24,33 @@ export type ProductListItem = {
   vendor: string | null
   productType: string | null
   imageUrl: string | null
+  tags: string[]
   variantCount: number
   minPricePaise: number | null
+  maxPricePaise: number | null
   available: number
 }
 
-export async function listProducts(
-  tx: StoreTx,
-  input: {
-    page: number
-    perPage: number
-    search?: string | undefined
-    status?: ProductStatus | undefined
-  },
-): Promise<{ items: ProductListItem[]; total: number }> {
-  const where = and(
+export type ProductStockFilter = 'in' | 'out' | 'low'
+
+export type ProductListInput = {
+  page: number
+  perPage: number
+  search?: string | undefined
+  status?: ProductStatus | undefined
+  vendor?: string | undefined
+  productType?: string | undefined
+  tag?: string | undefined
+  stock?: ProductStockFilter | undefined
+  /** Ids only: the export route reuses the current filter without paging. */
+  idsOnly?: boolean | undefined
+}
+
+/** At or below this count a tracked product counts as low stock. */
+export const LOW_STOCK_AT = 5
+
+function listWhere(input: ProductListInput) {
+  return and(
     input.search
       ? or(
           ilike(product.title, `%${input.search}%`),
@@ -46,7 +59,44 @@ export async function listProducts(
         )
       : undefined,
     input.status ? eq(product.status, input.status) : undefined,
+    input.vendor ? eq(product.vendor, input.vendor) : undefined,
+    input.productType ? eq(product.productType, input.productType) : undefined,
+    input.tag ? sql`${input.tag} = ANY(${product.tags})` : undefined,
+    input.stock
+      ? sql`(
+          select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
+          from variant v left join inventory_level il on il.variant_id = v.id
+          where v.product_id = ${product.id} and v.archived_at is null
+        ) ${
+          input.stock === 'out'
+            ? sql`= 0`
+            : input.stock === 'low'
+              ? sql`> 0 and (
+                  select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
+                  from variant v left join inventory_level il on il.variant_id = v.id
+                  where v.product_id = ${product.id} and v.archived_at is null
+                ) <= ${LOW_STOCK_AT}`
+              : sql`> 0`
+        }`
+      : undefined,
   )
+}
+
+/** Every product id matching the current filter, for export and select-all. */
+export async function listProductIds(tx: StoreTx, input: ProductListInput): Promise<string[]> {
+  const rows = await tx
+    .select({ id: product.id })
+    .from(product)
+    .where(listWhere(input))
+    .orderBy(desc(product.createdAt))
+  return rows.map((r) => r.id)
+}
+
+export async function listProducts(
+  tx: StoreTx,
+  input: ProductListInput,
+): Promise<{ items: ProductListItem[]; total: number }> {
+  const where = listWhere(input)
   const [countRow] = await tx.select({ total: count() }).from(product).where(where)
   const total = countRow?.total ?? 0
   const rows = await tx
@@ -87,8 +137,10 @@ export async function listProducts(
         vendor: r.vendor,
         productType: r.productType,
         imageUrl: images.find((i) => i.productId === r.id)?.url ?? null,
+        tags: r.tags,
         variantCount: vs.length,
         minPricePaise: vs.length ? Math.min(...vs.map((v) => v.pricePaise)) : null,
+        maxPricePaise: vs.length ? Math.max(...vs.map((v) => v.pricePaise)) : null,
         available: vs.reduce((n, v) => n + Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)), 0),
       }
     }),
@@ -110,6 +162,8 @@ export async function getProduct(tx: StoreTx, id: string) {
       taxable: variant.taxable,
       trackInventory: variant.trackInventory,
       weightGrams: variant.weightGrams,
+      hsCode: variant.hsCode,
+      countryOfOrigin: variant.countryOfOrigin,
       mediaId: variant.mediaId,
       onHand: inventoryLevel.onHand,
       reserved: inventoryLevel.reserved,
@@ -269,4 +323,82 @@ export async function searchVariants(
     )
     .orderBy(asc(product.title), asc(variant.position))
     .limit(input.limit ?? 20)
+}
+
+export type ProductStats = {
+  total: number
+  active: number
+  outOfStock: number
+  stockValuePaise: number
+}
+
+/** Tiles above the list: counts plus what the stock on hand is worth at cost. */
+export async function productStats(tx: StoreTx): Promise<ProductStats> {
+  const [counts] = await tx
+    .select({
+      total: count(),
+      active: sql<number>`count(*) filter (where ${product.status} = 'active')`,
+    })
+    .from(product)
+  const [stock] = await tx
+    .select({
+      value: sql<number>`coalesce(sum(greatest(0, ${inventoryLevel.onHand}) * coalesce(${variant.costPaise}, ${variant.pricePaise})), 0)`,
+    })
+    .from(variant)
+    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .where(isNull(variant.archivedAt))
+  const [out] = await tx
+    .select({ n: sql<number>`count(*)` })
+    .from(product)
+    .where(
+      sql`(
+        select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
+        from variant v left join inventory_level il on il.variant_id = v.id
+        where v.product_id = ${product.id} and v.archived_at is null
+      ) = 0`,
+    )
+  return {
+    total: counts?.total ?? 0,
+    active: Number(counts?.active ?? 0),
+    outOfStock: Number(out?.n ?? 0),
+    stockValuePaise: Number(stock?.value ?? 0),
+  }
+}
+
+export type AdjustmentRow = {
+  id: string
+  variantTitle: string
+  delta: number
+  reason: string
+  note: string | null
+  createdAt: Date
+}
+
+/** Recent stock movements for one product, newest first. */
+export async function productAdjustments(
+  tx: StoreTx,
+  productId: string,
+  limit = 20,
+): Promise<AdjustmentRow[]> {
+  const rows = await tx
+    .select({
+      id: inventoryAdjustment.id,
+      variantTitle: variant.title,
+      delta: inventoryAdjustment.delta,
+      reason: inventoryAdjustment.reason,
+      note: inventoryAdjustment.note,
+      createdAt: inventoryAdjustment.createdAt,
+    })
+    .from(inventoryAdjustment)
+    .innerJoin(variant, eq(variant.id, inventoryAdjustment.variantId))
+    .where(eq(variant.productId, productId))
+    .orderBy(desc(inventoryAdjustment.createdAt))
+    .limit(limit)
+  return rows
+}
+
+/** Handles already in the store, so the import preview can say create or update. */
+export async function listProductHandles(tx: StoreTx): Promise<string[]> {
+  const rows = await tx.select({ handle: product.handle }).from(product)
+  return rows.map((r) => r.handle)
 }

@@ -7,12 +7,15 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/sh
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { productFormContent } from '@/data/products'
-import { MAX_OPTIONS, type OptionRow, type VariantRow } from './form-state'
+import { MAX_OPTIONS, type MediaItem, type OptionRow, type VariantRow } from './form-state'
+import VariantBulkBar from './variant-bulk-bar'
 import VariantMatrix from './variant-matrix'
 
 type VariantsCardProps = {
   options: OptionRow[]
   variants: VariantRow[]
+  /** Gallery, so a variant can point at one of its images. */
+  media: MediaItem[]
   error?: string | undefined
   onOptions: (options: OptionRow[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
@@ -37,6 +40,7 @@ function parseValues(text: string): string[] {
 export default function VariantsCard({
   options,
   variants,
+  media,
   error,
   onOptions,
   onVariant,
@@ -46,6 +50,7 @@ export default function VariantsCard({
   const [valueText, setValueText] = useState<string[]>(() =>
     options.map((o) => o.values.join(', ')),
   )
+  const [selected, setSelected] = useState<number[]>([])
 
   // Helpers
   const setOption = (i: number, patch: Partial<OptionRow>) =>
@@ -64,6 +69,11 @@ export default function VariantsCard({
   const handleValues = (i: number, text: string) => {
     setValueText((t) => t.map((x, j) => (j === i ? text : x)))
     setOption(i, { values: parseValues(text) })
+    setSelected([])
+  }
+
+  const handleBulkApply = (patch: { price?: string; quantity?: string }) => {
+    for (const index of selected) onVariant(index, patch)
   }
 
   // Render logic
@@ -131,7 +141,22 @@ export default function VariantsCard({
           <p className="text-xs text-muted-foreground">{copy.tooMany(variants.length)}</p>
         ) : null}
       </CardContent>
-      {hasOptions ? <VariantMatrix variants={variants} onVariant={onVariant} /> : null}
+      {hasOptions && selected.length > 0 ? (
+        <VariantBulkBar
+          count={selected.length}
+          onApply={handleBulkApply}
+          onClear={() => setSelected([])}
+        />
+      ) : null}
+      {hasOptions ? (
+        <VariantMatrix
+          variants={variants}
+          media={media}
+          selected={selected}
+          onSelectedChange={setSelected}
+          onVariant={onVariant}
+        />
+      ) : null}
     </Card>
   )
 }

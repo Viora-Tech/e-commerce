@@ -25,6 +25,8 @@ export type VariantRow = {
   trackInventory: boolean
   quantity: string
   weight: string
+  hsCode: string
+  countryOfOrigin: string
   mediaId: string | null
 }
 
@@ -62,6 +64,8 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     trackInventory: template?.trackInventory ?? true,
     quantity: '0',
     weight: template?.weight ?? '',
+    hsCode: template?.hsCode ?? '',
+    countryOfOrigin: template?.countryOfOrigin ?? '',
     mediaId: null,
   }
 }
@@ -112,6 +116,8 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       trackInventory: v.trackInventory,
       quantity: String(v.onHand ?? 0),
       weight: v.weightGrams == null ? '' : String(v.weightGrams),
+      hsCode: v.hsCode ?? '',
+      countryOfOrigin: v.countryOfOrigin ?? '',
       mediaId: v.mediaId,
     })),
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
@@ -168,6 +174,8 @@ export function toWrite(form: ProductFormState): ProductWrite {
       taxable: v.taxable,
       trackInventory: v.trackInventory,
       weightGrams: intOrNull(v.weight),
+      hsCode: v.hsCode.trim() || null,
+      countryOfOrigin: v.countryOfOrigin.trim() || null,
       onHand: v.trackInventory ? (intOrNull(v.quantity) ?? 0) : undefined,
       mediaId: v.mediaId,
     })),
