@@ -11,10 +11,15 @@ type LineItemsCardProps = {
 type TotalRow = { label: string; value: string; strong?: boolean; muted?: boolean }
 
 function totalRows(order: OrderDetail): TotalRow[] {
-  const rows: TotalRow[] = [
-    { label: copy.items.subtotal, value: formatPaise(order.subtotalPaise) },
-    { label: copy.items.shipping, value: formatPaise(order.shippingPaise) },
-  ]
+  const rows: TotalRow[] = [{ label: copy.items.subtotal, value: formatPaise(order.subtotalPaise) }]
+  if (order.discountPaise > 0) {
+    const code = order.discountCode ? ` (${order.discountCode})` : ''
+    rows.push({
+      label: `${order.discountLabel ?? copy.items.orderDiscount}${code}`,
+      value: `−${formatPaise(order.discountPaise)}`,
+    })
+  }
+  rows.push({ label: copy.items.shipping, value: formatPaise(order.shippingPaise) })
 
   const adj = order.paymentAdjustmentPaise
   if (adj !== 0) {
