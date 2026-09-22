@@ -1,0 +1,100 @@
+/* Collection index and collection page, following the Glide grid rhythm. */
+.section-collection {
+  padding-block: 3rem 4rem;
+}
+
+.collection__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.collection__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.collection__sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection__grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 750px) {
+  .collection__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 990px) {
+  .collection__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.collection__index {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 750px) {
+  .collection__index {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.collection__tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  padding-bottom: 1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.collection__tile-image {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.collection__tile-title {
+  padding-inline: 1rem;
+  font-weight: 600;
+}
+
+.collection__tile-count {
+  padding-inline: 1rem;
+  color: var(--color-ink-muted, inherit);
+  opacity: 0.7;
+}
+
+.collection__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.collection__empty {
+  padding-block: 3rem;
+  text-align: center;
+}
