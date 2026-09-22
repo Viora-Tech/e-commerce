@@ -19,7 +19,8 @@
     "./inventory": "./src/inventory/client.ts",
     "./navigation-tree": "./src/navigation/tree.ts",
     "./theme": "./src/theme/client.ts",
-    "./preferences": "./src/online-store/preferences.ts"
+    "./preferences": "./src/online-store/preferences.ts",
+    "./blog": "./src/blog/client.ts"
   },
   "scripts": {
     "test": "vitest run",

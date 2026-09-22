@@ -91,6 +91,7 @@ export const NAV_GROUPS: NavGroup[] = [
           { href: '/content/files', label: 'Files' },
           { href: '/content/metaobjects', label: 'Metaobjects' },
           { href: '/content/menus', label: 'Menus' },
+          { href: '/content/blog-posts', label: 'Blog posts' },
         ],
       },
       {
@@ -131,7 +132,6 @@ export const NAV_GROUPS: NavGroup[] = [
         children: [
           { href: '/online-store/themes', label: 'Themes' },
           { href: '/online-store/pages', label: 'Pages' },
-          { href: '/online-store/blog', label: 'Blog posts' },
           { href: '/online-store/preferences', label: 'Preferences' },
         ],
       },

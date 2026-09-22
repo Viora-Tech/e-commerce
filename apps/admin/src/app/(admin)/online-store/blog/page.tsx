@@ -1,10 +1,6 @@
-import { Newspaper } from '@commerce/ui/icons'
-import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { onlineStoreContent } from '@/data/online-store'
+import { permanentRedirect } from 'next/navigation'
 
-export const metadata: Metadata = { title: 'Blog posts' }
-
+/** Blog posts moved under Content, as in Shopify; keep old links working. */
 export default function Page() {
-  return <SectionEmpty {...onlineStoreContent.blog} icon={Newspaper} />
+  permanentRedirect('/content/blog-posts')
 }
