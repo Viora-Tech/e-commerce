@@ -6,3 +6,4 @@
 - Copy lives in `data/<feature>.ts`; sizes in rem; Tailwind only, no handwritten CSS.
 - Architecture: `docs/architecture.md`. Plugins: `docs/plugins.md`. Admin design frames:
   `docs/design/admin-frames.md`.
+- Starting fresh with no conversation history? Read `docs/handoff.md` first.
