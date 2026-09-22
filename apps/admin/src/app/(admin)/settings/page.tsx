@@ -1,8 +1,6 @@
-import type { Metadata } from 'next'
-import SettingsGrid from '@/components/settings/settings-grid'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = { title: 'Settings' }
-
+/** The settings index is the first tab. */
 export default function Page() {
-  return <SettingsGrid />
+  redirect('/settings/general')
 }

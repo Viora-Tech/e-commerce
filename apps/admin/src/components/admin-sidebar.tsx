@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,16 +18,9 @@ import {
 import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  isChildActive,
-  isSectionActive,
-  isSectionLinkActive,
-  NAV_GROUPS,
-  type NavItem,
-  navigationContent,
-  SETTINGS_NAV,
-} from '@/data/navigation'
+import { NAV_GROUPS, navigationContent, SETTINGS_NAV } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
+import NavGroupBlock from './nav-group-block'
 
 type StoreOption = { id: string; name: string; slug: string }
 
@@ -39,17 +31,6 @@ type AdminSidebarProps = {
   storefrontUrl: string
 }
 
-/* Frame 5:1368: rail 260 wide, white, "3dp Penumbra" shadow. Items sit in a
-   14px gutter, each 16/9 padded with an 8px gap; the active one is a solid
-   green 6px pill with bold white text. Group labels are 15px at a 24px inset. */
-const FOCUS =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
-const NAV_ITEM = `flex h-8 w-full items-center gap-2 rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0 ${FOCUS}`
-const NAV_ITEM_ACTIVE =
-  'bg-primary font-semibold text-primary-foreground hover:bg-primary hover:text-primary-foreground'
-const NAV_CHILD = `flex h-7 w-full items-center rounded-[0.375rem] pl-9 pr-3 text-nav font-normal text-sidebar-foreground transition-colors hover:text-foreground ${FOCUS}`
-const NAV_CHILD_ACTIVE = 'bg-primary-soft font-semibold text-primary hover:text-primary'
-
 function initials(name: string): string {
   return (
     name
@@ -58,72 +39,6 @@ function initials(name: string): string {
       .join('')
       .slice(0, 2)
       .toUpperCase() || 'U'
-  )
-}
-
-type NavSectionProps = { item: NavItem; pathname: string }
-
-/** One entry; its Shopify sub-pages unfold beneath it while the section is active. */
-function NavSection({ item, pathname }: NavSectionProps) {
-  const open = isSectionActive(pathname, item)
-  const children = item.children ?? []
-  const linkActive = isSectionLinkActive(pathname, item)
-
-  return (
-    <li className="flex flex-col gap-1">
-      <Link
-        href={item.href}
-        aria-current={linkActive ? 'page' : undefined}
-        className={cn(
-          NAV_ITEM,
-          linkActive && NAV_ITEM_ACTIVE,
-          open && !linkActive && 'font-bold text-foreground',
-        )}
-      >
-        <item.icon strokeWidth={1.8} />
-        <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
-          {item.label}
-        </span>
-      </Link>
-      {open && children.length > 0 ? (
-        <ul className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
-          {children.map((child) => {
-            const active = isChildActive(pathname, child)
-            return (
-              <li key={child.href}>
-                <Link
-                  href={child.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(NAV_CHILD, active && NAV_CHILD_ACTIVE)}
-                >
-                  {child.label}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      ) : null}
-    </li>
-  )
-}
-
-type NavGroupBlockProps = { label?: string | undefined; items: NavItem[]; pathname: string }
-
-/** Label block (24px tall, 24px inset) then the item list in the 14px gutter, 12px below. */
-function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
-  return (
-    <div className="flex flex-col">
-      {label ? (
-        <p className="px-5 pb-2 text-caption text-muted-foreground-soft group-data-[collapsible=icon]:hidden">
-          {label}
-        </p>
-      ) : null}
-      <ul className="flex flex-col gap-1 px-3 group-data-[collapsible=icon]:px-2">
-        {items.map((item) => (
-          <NavSection key={item.href} item={item} pathname={pathname} />
-        ))}
-      </ul>
-    </div>
   )
 }
 

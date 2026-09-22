@@ -5,6 +5,7 @@ import ProviderSettingsForm, {
 } from '@/components/settings/provider-settings-form'
 import StorageVerify from '@/components/settings/storage-verify'
 import { mediaContent } from '@/data/media'
+import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 
 const copy = mediaContent.settings
@@ -20,7 +21,11 @@ function providerHint(m: ProviderDef) {
 }
 
 function footer() {
-  return <StorageVerify />
+  return (
+    <section id={settingsContent.sections.files[1]?.id} className="scroll-mt-20">
+      <StorageVerify />
+    </section>
+  )
 }
 
 export default function FilesSettings() {
@@ -34,6 +39,7 @@ export default function FilesSettings() {
       renderHint={providerHint}
       renderFooter={footer}
       noConfigText={copy.hints.local}
+      sections={settingsContent.sections.files}
     />
   )
 }

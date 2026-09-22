@@ -9,11 +9,11 @@ import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
-import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
+import SectionNav, { type SectionLink } from './section-nav'
 
 export type { ProviderDef, ProviderFieldDef } from './provider-card'
 
@@ -43,6 +43,10 @@ type ProviderSettingsFormProps<Extra> = {
   renderFooter?: ((extra: Extra, setExtra: (next: Extra) => void) => ReactNode) | undefined
   /** Copy shown when a provider has no fields. */
   noConfigText?: string | undefined
+  /** In-page anchors shown on the left; the provider list itself takes the first id. */
+  sections?: readonly SectionLink[] | undefined
+  /** Anchor id placed on the first enabled provider's extra block (e.g. fees). */
+  extraSectionId?: string | undefined
 }
 
 type FormState<Extra> = { enabled: string[]; providers: ProviderValues; extra: Extra }
@@ -82,6 +86,8 @@ export default function ProviderSettingsForm<Extra extends object>({
   renderExtra,
   renderFooter,
   noConfigText,
+  sections,
+  extraSectionId,
 }: ProviderSettingsFormProps<Extra>) {
   // Hooks
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
@@ -141,8 +147,11 @@ export default function ProviderSettingsForm<Extra extends object>({
   // Render logic
   const dirty = saved !== null && JSON.stringify(form) !== saved
 
+  const providersSectionId = sections?.[0]?.id
+  let extraAnchorUsed = false
+
   return (
-    <PageBody width="narrow">
+    <div className="flex flex-col gap-4">
       {dirty ? (
         <SaveBar
           message={copy.unsaved}
@@ -153,11 +162,7 @@ export default function ProviderSettingsForm<Extra extends object>({
           saving={busy}
         />
       ) : null}
-      <PageHeader
-        title={title}
-        subtitle={intro}
-        breadcrumbs={[{ label: copy.back, href: '/settings' }, { label: title }]}
-      />
+      <PageHeader title={title} subtitle={intro} />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
@@ -165,40 +170,56 @@ export default function ProviderSettingsForm<Extra extends object>({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      {available === null ? (
-        <LoadingCards />
-      ) : available.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon={Puzzle}
-            heading={copy.noProviders.heading}
-            body={copy.noProviders.body}
-            action={
-              <Button variant="outline" render={<Link href={copy.noProviders.href} />}>
-                {copy.noProviders.action}
-              </Button>
-            }
-          />
-        </Card>
-      ) : (
-        available.map((m) => {
-          const on = form.enabled.includes(m.id)
-          return (
-            <ProviderCard
-              key={m.id}
-              provider={m}
-              enabled={on}
-              values={form.providers[m.id] ?? {}}
-              onToggle={(v) => toggle(m.id, v)}
-              onField={(k, v) => setField(m.id, k, v)}
-              hint={renderHint?.(m)}
-              extra={on && renderExtra ? renderExtra(m, form.extra, setExtra) : null}
-              noConfigText={noConfigText}
-            />
-          )
-        })
-      )}
-      {available && renderFooter ? renderFooter(form.extra, setExtra) : null}
-    </PageBody>
+      <div className="flex items-start gap-6">
+        {sections && sections.length > 0 ? <SectionNav sections={sections} /> : null}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <section id={providersSectionId} className="flex scroll-mt-20 flex-col gap-4">
+            {available === null ? (
+              <LoadingCards />
+            ) : available.length === 0 ? (
+              <Card>
+                <EmptyState
+                  icon={Puzzle}
+                  heading={copy.noProviders.heading}
+                  body={copy.noProviders.body}
+                  action={
+                    <Button variant="outline" render={<Link href={copy.noProviders.href} />}>
+                      {copy.noProviders.action}
+                    </Button>
+                  }
+                />
+              </Card>
+            ) : (
+              available.map((m) => {
+                const on = form.enabled.includes(m.id)
+                const anchor = on && extraSectionId && !extraAnchorUsed ? extraSectionId : undefined
+                if (anchor) extraAnchorUsed = true
+                const extra = on && renderExtra ? renderExtra(m, form.extra, setExtra) : null
+                return (
+                  <ProviderCard
+                    key={m.id}
+                    provider={m}
+                    enabled={on}
+                    values={form.providers[m.id] ?? {}}
+                    onToggle={(v) => toggle(m.id, v)}
+                    onField={(k, v) => setField(m.id, k, v)}
+                    hint={renderHint?.(m)}
+                    extra={
+                      extra ? (
+                        <div id={anchor} className="scroll-mt-20">
+                          {extra}
+                        </div>
+                      ) : null
+                    }
+                    noConfigText={noConfigText}
+                  />
+                )
+              })
+            )}
+          </section>
+          {available && renderFooter ? renderFooter(form.extra, setExtra) : null}
+        </div>
+      </div>
+    </div>
   )
 }
