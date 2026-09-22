@@ -55,18 +55,6 @@ export const ordersContent = {
   },
 } as const
 
-/** Badge tone per order status. */
-export const ORDER_STATUS_TONE: Record<
-  OrderStatus,
-  'warning' | 'info' | 'success' | 'destructive' | 'neutral'
-> = {
-  placed: 'warning',
-  paid: 'info',
-  fulfilled: 'success',
-  delivered: 'success',
-  cancelled: 'destructive',
-}
-
 /** Copy for the order detail page. */
 export const orderDetailContent = {
   back: 'Orders',

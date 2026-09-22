@@ -4,7 +4,7 @@ import type { Tracking } from '@commerce/core'
 import { ExternalLink, Printer, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
-import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { shipmentPanelContent as copy } from '@/data/shipping'
 import { type OrderShipment, when } from './order-detail-types'
 
@@ -15,16 +15,6 @@ type ShipmentPanelProps = {
   onBook: () => void
   onRefresh: () => void
   onCancel: () => void
-}
-
-const TONE: Record<string, StatusTone> = {
-  delivered: 'success',
-  out_for_delivery: 'success',
-  in_transit: 'info',
-  picked_up: 'info',
-  created: 'warning',
-  rto: 'destructive',
-  cancelled: 'destructive',
 }
 
 /** Book, refresh or cancel the consignment for an order, and show the courier's scans. */
@@ -63,11 +53,7 @@ export default function ShipmentPanel({
     <DataCard
       size="kit"
       title={copy.heading}
-      action={
-        <StatusPill tone={TONE[shipment.status] ?? 'neutral'}>
-          {copy.status[shipment.status] ?? shipment.status}
-        </StatusPill>
-      }
+      action={<StatusLabel kind="shipment" value={shipment.status} variant="glyph" />}
     >
       <div className="flex flex-col gap-4">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-kit-cell sm:grid-cols-3">

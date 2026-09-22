@@ -1,5 +1,5 @@
-import type { StatusTone } from '@/components/layout/status-pill'
 import { orderDetailContent as copy } from '@/data/orders'
+import type { StatusValue } from '@/data/status'
 import type { api } from '@/lib/api-client'
 
 export type OrderDetail = NonNullable<Awaited<ReturnType<typeof api.orders.get>>>
@@ -25,28 +25,22 @@ export function primaryPayment(payments: OrderPayment[]): OrderPayment | null {
   return payments.find((p) => p.status === 'captured') ?? payments.at(-1) ?? null
 }
 
-export function paymentPill(
+/** Which `STATUS.payment` value the detail header shows for a payment row. */
+export function paymentStatus(
   payment: OrderPayment | null,
   refunds: OrderRefund[],
-): { tone: StatusTone; label: string } {
-  if (!payment) return { tone: 'neutral', label: copy.pills.payment.pending }
+): StatusValue<'payment'> {
+  if (!payment) return 'pending'
   const back = refundedTotal(refunds, payment.id)
-  if (payment.status === 'captured' && back > 0) {
-    return { tone: 'warning', label: copy.pills.partiallyRefunded }
-  }
-  const tone: Record<OrderPayment['status'], StatusTone> = {
-    pending: 'warning',
-    captured: 'success',
-    refunded: 'destructive',
-    failed: 'destructive',
-  }
-  return { tone: tone[payment.status], label: copy.pills.payment[payment.status] }
+  if (payment.status === 'captured' && back > 0) return 'partially_refunded'
+  return payment.status
 }
 
-export function fulfilmentPill(status: OrderStatus): { tone: StatusTone; label: string } {
-  if (status === 'delivered') return { tone: 'success', label: copy.pills.fulfilment.delivered }
-  if (status === 'fulfilled') return { tone: 'info', label: copy.pills.fulfilment.fulfilled }
-  return { tone: 'neutral', label: copy.pills.fulfilment.unfulfilled }
+/** Which `STATUS.fulfilment` value an order status maps to. */
+export function fulfilmentStatus(status: OrderStatus): StatusValue<'fulfilment'> {
+  if (status === 'delivered') return 'delivered'
+  if (status === 'fulfilled') return 'fulfilled'
+  return 'unfulfilled'
 }
 
 export function methodLabel(provider: string): string {

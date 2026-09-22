@@ -1,7 +1,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
-import OrderStatusPill from '@/components/orders/order-status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { customerDetailContent as copy } from '@/data/customers'
 import { formatPaise } from '@/lib/money'
 import { type CustomerOrder, day } from './customer-detail-types'
@@ -39,7 +39,7 @@ export default function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) 
             >
               <span className="font-medium tabular-nums">#{o.number}</span>
               <span>{day(o.placedAt)}</span>
-              <OrderStatusPill status={o.status} />
+              <StatusLabel kind="order" value={o.status} size="sm" />
               <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
             </Link>
           ))}

@@ -1,17 +1,11 @@
 import { Bell } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
-import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { customerDetailContent as copy } from '@/data/customers'
 import { type CustomerMessage, when } from './customer-detail-types'
 
 type MessagesCardProps = {
   messages: CustomerMessage[]
-}
-
-const TONE: Record<string, StatusTone> = {
-  sent: 'success',
-  queued: 'warning',
-  failed: 'destructive',
 }
 
 /** Every notification the store sent to this email, newest first. */
@@ -33,9 +27,7 @@ export default function MessagesCard({ messages }: MessagesCardProps) {
               </span>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-body font-medium">{c.template[m.template] ?? m.template}</p>
-                <StatusPill tone={TONE[m.status] ?? 'neutral'}>
-                  {c.status[m.status] ?? m.status}
-                </StatusPill>
+                <StatusLabel kind="message" value={m.status} variant="pill" size="sm" />
               </div>
               <p className="text-caption">
                 {when(m.createdAt)} {c.via(m.channel)}

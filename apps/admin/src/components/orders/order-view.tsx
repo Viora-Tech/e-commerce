@@ -6,19 +6,19 @@ import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
-import StatusPill from '@/components/layout/status-pill'
-import { orderDetailContent as copy, ORDER_STATUS_TONE, ordersContent } from '@/data/orders'
+import StatusLabel from '@/components/status/status-label'
+import { orderDetailContent as copy, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 import CustomerCard from './customer-card'
 import LineItemsCard from './line-items-card'
 import OrderActions from './order-actions'
 import {
-  fulfilmentPill,
+  fulfilmentStatus,
   type OrderDetail,
   type OrderPayment,
   type OrderStatus,
-  paymentPill,
+  paymentStatus,
   primaryPayment,
   refundedTotal,
   when,
@@ -90,8 +90,8 @@ export default function OrderView({ order }: OrderViewProps) {
 
   // Render logic
   const payment = primaryPayment(order.payments)
-  const pay = paymentPill(payment, order.refunds)
-  const ful = fulfilmentPill(order.status)
+  const pay = paymentStatus(payment, order.refunds)
+  const ful = fulfilmentStatus(order.status)
   const remaining = refunding
     ? refunding.amountPaise - refundedTotal(order.refunds, refunding.id)
     : 0
@@ -121,16 +121,10 @@ export default function OrderView({ order }: OrderViewProps) {
         />
         <div className="mt-3 flex flex-wrap items-center gap-4">
           {order.status === 'cancelled' ? (
-            <StatusPill tone={ORDER_STATUS_TONE.cancelled} className="text-kit-cell">
-              {ordersContent.status.cancelled}
-            </StatusPill>
+            <StatusLabel kind="order" value="cancelled" variant="pill" />
           ) : null}
-          <StatusPill tone={pay.tone} className="text-kit-cell">
-            {pay.label}
-          </StatusPill>
-          <StatusPill tone={ful.tone} className="text-kit-cell">
-            {ful.label}
-          </StatusPill>
+          <StatusLabel kind="payment" value={pay} variant="pill" />
+          <StatusLabel kind="fulfilment" value={ful} variant="pill" />
         </div>
       </div>
 

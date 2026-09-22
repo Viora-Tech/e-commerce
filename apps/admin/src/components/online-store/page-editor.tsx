@@ -12,7 +12,7 @@ import { ArrowLeft, ExternalLink } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import StatusPill from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { onlineStoreContent } from '@/data/online-store'
 import { api } from '@/lib/api-client'
 
@@ -106,9 +106,9 @@ function EditorHeader({
         <span className="truncate text-card-title">{page.title}</span>
         <span className="hidden text-caption text-muted-foreground-soft md:inline">{path}</span>
         {dirty ? (
-          <StatusPill tone="warning">{copy.unsaved}</StatusPill>
+          <StatusLabel kind="page" value="unsaved" variant="pill" size="sm" />
         ) : published ? (
-          <StatusPill tone="success">{copy.published}</StatusPill>
+          <StatusLabel kind="page" value="published" variant="pill" size="sm" />
         ) : null}
       </div>
       <Button

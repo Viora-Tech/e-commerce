@@ -9,8 +9,8 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
-import ProductStatusBadge from '@/components/products/product-status-badge'
 import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
@@ -60,7 +60,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'status',
     title: copy.columns.status,
     sortValue: (p) => p.status,
-    render: (p) => <ProductStatusBadge status={p.status} />,
+    render: (p) => <StatusLabel kind="product" value={p.status} variant="pill" />,
   },
   {
     id: 'inventory',
