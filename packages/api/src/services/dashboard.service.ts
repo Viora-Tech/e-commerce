@@ -14,7 +14,7 @@ import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizz
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
-const RECENT_ORDERS = 5
+const RECENT_ORDERS = 7
 const TOP_PRODUCTS = 5
 const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6

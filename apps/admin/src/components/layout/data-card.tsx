@@ -44,7 +44,7 @@ export default function DataCard({
         : 'text-kit-title'
       : 'text-card-title'
   return (
-    <Card className={cn('relative gap-0 p-5', detailsHref && 'pb-16', className)}>
+    <Card className={cn('relative h-full gap-0 p-5', detailsHref && 'pb-16', className)}>
       <div className="flex h-8 items-center justify-between gap-3">
         <p className={cn(titleClass, 'text-foreground')}>{title}</p>
         <div className="flex items-center gap-3">
