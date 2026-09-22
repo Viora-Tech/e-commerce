@@ -13,7 +13,8 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 import ProviderCard, { type ProviderDef } from './provider-card'
-import SectionNav, { type SectionLink } from './section-nav'
+import SectionTabs, { type SectionTab } from './section-tabs'
+import SettingsSection from './settings-section'
 
 export type { ProviderDef, ProviderFieldDef } from './provider-card'
 
@@ -44,9 +45,8 @@ type ProviderSettingsFormProps<Extra> = {
   /** Copy shown when a provider has no fields. */
   noConfigText?: string | undefined
   /** In-page anchors shown on the left; the provider list itself takes the first id. */
-  sections?: readonly SectionLink[] | undefined
+  sections?: readonly SectionTab[] | undefined
   /** Anchor id placed on the first enabled provider's extra block (e.g. fees). */
-  extraSectionId?: string | undefined
 }
 
 type FormState<Extra> = { enabled: string[]; providers: ProviderValues; extra: Extra }
@@ -87,7 +87,6 @@ export default function ProviderSettingsForm<Extra extends object>({
   renderFooter,
   noConfigText,
   sections,
-  extraSectionId,
 }: ProviderSettingsFormProps<Extra>) {
   // Hooks
   const [available, setAvailable] = useState<ProviderDef[] | null>(null)
@@ -148,7 +147,6 @@ export default function ProviderSettingsForm<Extra extends object>({
   const dirty = saved !== null && JSON.stringify(form) !== saved
 
   const providersSectionId = sections?.[0]?.id
-  let extraAnchorUsed = false
 
   return (
     <div className="flex flex-col gap-4">
@@ -169,10 +167,12 @@ export default function ProviderSettingsForm<Extra extends object>({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      {sections && sections.length > 0 ? <SectionNav sections={sections} /> : null}
-      <div className="flex flex-col gap-4">
+      <SectionTabs tabs={sections ?? []}>
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <section id={providersSectionId} className="flex scroll-mt-20 flex-col gap-4">
+          <SettingsSection
+            id={providersSectionId ?? 'section-providers'}
+            className="flex flex-col gap-4"
+          >
             {available === null ? (
               <LoadingCards />
             ) : available.length === 0 ? (
@@ -191,8 +191,6 @@ export default function ProviderSettingsForm<Extra extends object>({
             ) : (
               available.map((m) => {
                 const on = form.enabled.includes(m.id)
-                const anchor = on && extraSectionId && !extraAnchorUsed ? extraSectionId : undefined
-                if (anchor) extraAnchorUsed = true
                 const extra = on && renderExtra ? renderExtra(m, form.extra, setExtra) : null
                 return (
                   <ProviderCard
@@ -203,22 +201,16 @@ export default function ProviderSettingsForm<Extra extends object>({
                     onToggle={(v) => toggle(m.id, v)}
                     onField={(k, v) => setField(m.id, k, v)}
                     hint={renderHint?.(m)}
-                    extra={
-                      extra ? (
-                        <div id={anchor} className="scroll-mt-20">
-                          {extra}
-                        </div>
-                      ) : null
-                    }
+                    extra={extra}
                     noConfigText={noConfigText}
                   />
                 )
               })
             )}
-          </section>
+          </SettingsSection>
           {available && renderFooter ? renderFooter(form.extra, setExtra) : null}
         </div>
-      </div>
+      </SectionTabs>
     </div>
   )
 }
