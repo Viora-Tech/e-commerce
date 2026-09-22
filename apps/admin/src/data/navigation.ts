@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from '@commerce/ui/icons'
 import {
   BadgePercent,
   BarChart3,
@@ -11,7 +11,7 @@ import {
   ShoppingBag,
   Store,
   Users,
-} from 'lucide-react'
+} from '@commerce/ui/icons'
 
 export type NavChild = { href: string; label: string }
 

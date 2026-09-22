@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowUpDown, MoreHorizontal, Search, SlidersHorizontal, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import {
@@ -13,7 +14,6 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import type { ReactTable, RowData } from '@tanstack/react-table'
-import { ArrowUpDown, MoreHorizontal, Search, SlidersHorizontal, X } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { tableContent } from '@/data/table'
 import type { ResourceTableFeatures } from './features'

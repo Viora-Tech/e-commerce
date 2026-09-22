@@ -1,4 +1,4 @@
-import { ArrowLeftRight } from 'lucide-react'
+import { ArrowLeftRight } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { productsSectionsContent } from '@/data/products'

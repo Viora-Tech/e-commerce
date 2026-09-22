@@ -1,4 +1,4 @@
-import { Boxes } from 'lucide-react'
+import { Boxes } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { productsSectionsContent } from '@/data/products'

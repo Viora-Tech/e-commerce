@@ -1,5 +1,6 @@
 'use client'
 
+import { MoreHorizontal, Printer, RotateCcw } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +19,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { MoreHorizontal, Printer, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { orderDetailContent as copy } from '@/data/orders'
 import type { OrderStatus } from './order-detail-types'

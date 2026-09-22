@@ -1,10 +1,10 @@
+import { MoreVertical } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { MoreVertical } from 'lucide-react'
 import Link from 'next/link'
 import { layoutContent } from '@/data/layout'
 

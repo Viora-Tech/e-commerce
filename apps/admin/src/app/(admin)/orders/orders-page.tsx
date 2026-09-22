@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronDown, MoreVertical, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -7,7 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { ChevronDown, MoreVertical, SquarePlus } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'

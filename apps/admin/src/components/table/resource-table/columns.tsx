@@ -1,5 +1,6 @@
 'use client'
 
+import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -16,7 +17,6 @@ import {
   createColumnHelper,
   type RowData,
 } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { tableContent } from '@/data/table'
 import type { ResourceTableFeatures } from './features'

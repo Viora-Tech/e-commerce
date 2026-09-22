@@ -1,4 +1,3 @@
-import { cn } from '@commerce/ui/lib/utils'
 import {
   CircleCheck,
   type LucideIcon,
@@ -6,7 +5,8 @@ import {
   PackageOpen,
   PackageX,
   Truck,
-} from 'lucide-react'
+} from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { type OrderStatus, ordersContent } from '@/data/orders'
 
 /* Frame 5:2624: a 24px glyph and the label 8px apart; delivered green,

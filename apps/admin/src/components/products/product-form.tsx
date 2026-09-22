@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleAlert, ExternalLink, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -12,7 +13,6 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import { CircleAlert, ExternalLink, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'

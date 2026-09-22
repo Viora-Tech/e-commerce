@@ -1,10 +1,10 @@
 'use client'
 
+import { ArrowRight, Puzzle } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { ArrowRight, Puzzle } from 'lucide-react'
 import Link from 'next/link'
 import StatusPill from '@/components/layout/status-pill'
 import { type AppKind, appsContent as copy } from '@/data/apps'

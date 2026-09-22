@@ -1,4 +1,4 @@
-import { Package } from 'lucide-react'
+import { Package } from '@commerce/ui/icons'
 
 type ProductThumbProps = { url: string | null; title: string }
 

@@ -1,5 +1,5 @@
+import { SearchX } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { SearchX } from 'lucide-react'
 import Link from 'next/link'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'

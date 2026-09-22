@@ -1,8 +1,8 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
+import { Plus, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Plus, SquarePlus } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'

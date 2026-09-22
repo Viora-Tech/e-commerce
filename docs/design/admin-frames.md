@@ -68,7 +68,7 @@ into code.
 - Dashboard "Add New Product" panel `5:2288` is replaced by Low stock (the kit's panel is a category picker with no counterpart here).
 - Order list keeps a Customer column the kit lacks; the Product column is 260px (kit 203px) so real titles fit on two lines.
 - Order ids are `#3` rather than `#ORD0001`; dates are `21-09-2026`.
-- Status glyphs use Lucide (PackageCheck, PackageOpen, Truck, PackageX, CircleCheck) in place of the kit's mixed icon sets.
+- Status glyphs use Hugeicons stroke (PackageDelivered, PackageOpen, DeliveryTruck, PackageRemove, CheckmarkCircle) via `@commerce/ui/icons`; the kit mixes several icon sets. All admin icons come from that module, 1.25rem at stroke 1.5.
 - Tiles show "No change" instead of a percentage when the previous window is zero.
 - Customers, order detail, settings index, login and store picker have no frame in the kit; they reuse the card, table and form patterns above.
 

@@ -1,7 +1,7 @@
 'use client'
 
+import { ArrowLeft, ArrowRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { tableContent } from '@/data/table'
 
 type PaginationProps = {

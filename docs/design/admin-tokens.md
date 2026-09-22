@@ -40,18 +40,18 @@ derived — the kit ships light only.
 
 | Role | Font | Size / line | Weight | From |
 | --- | --- | --- | --- | --- |
-| Family | Kit uses **Lato**; we use **Inter** (Kuldeep's choice, 2026-09-21) everywhere incl. table headers | | | 5:1498, 5:2148 |
-| Page title | Inter | 22 / auto, tracking 0.11px | 700 | 5:1367 |
-| Card title | Inter | 18 / 26 | 700 | 5:1498, 5:2140 |
-| Stat number | Inter | 32 / auto | 700 | 5:1502 |
-| Tab number | Inter | 24 / 22 | 700 | 5:1597 |
-| Tab caption | Inter | 13 / 18, tracking −0.26px | 500 | 5:1598 |
-| Sidebar item | Inter | 16 / 22 | 400 (700 when active) | 5:1402, 5:1395 |
-| Body / table cell | Inter | 15 / 22 | 400 (700 for names & money) | 5:2187, 5:2174, 5:2199 |
+| Family | Kit uses **Lato**; we use **Satoshi** (Fontshare ITF FFL, self-hosted in `apps/admin/public/fonts/satoshi`, weight axis 300 to 900; chosen 2026-09-22 for a more distinctive feel than Inter) everywhere incl. table headers. Headings >= 1rem carry -0.01em tracking, stats -0.02em; figures use tabular numerals. | | | 5:1498, 5:2148 |
+| Page title | Satoshi | 22 / auto, tracking 0.11px | 700 | 5:1367 |
+| Card title | Satoshi | 18 / 26 | 700 | 5:1498, 5:2140 |
+| Stat number | Satoshi | 32 / auto | 700 | 5:1502 |
+| Tab number | Satoshi | 24 / 22 | 700 | 5:1597 |
+| Tab caption | Satoshi | 13 / 18, tracking −0.26px | 500 | 5:1598 |
+| Sidebar item | Satoshi | 16 / 22 | 400 (700 when active) | 5:1402, 5:1395 |
+| Body / table cell | Satoshi | 15 / 22 | 400 (700 for names & money) | 5:2187, 5:2174, 5:2199 |
 | Table header | Public Sans → Lato | 13 / auto, uppercase | 500 | 5:2148 |
-| Caption / period | Inter | 14 / auto, tracking −0.28px | 400 | 5:1495 |
-| Button | Inter | 16 / 26, tracking −0.32px | 400 | 5:1510 |
-| Filter button | Inter | 14 | 400 | 5:2142 |
+| Caption / period | Satoshi | 14 / auto, tracking −0.28px | 400 | 5:1495 |
+| Button | Satoshi | 16 / 26, tracking −0.32px | 400 | 5:1510 |
+| Filter button | Satoshi | 14 | 400 | 5:2142 |
 
 ## Shape, spacing, elevation
 
@@ -82,3 +82,7 @@ derived — the kit ships light only.
 Canvas `#111318`, card `#1a1d24`, border `rgba(255,255,255,.08)`, foreground
 `#e8eaee`, muted `#9aa1ad`, primary lifted to `#5fbf87`, link `#8b8dff`,
 primary-soft `rgba(78,166,116,.16)`. Same hues, contrast-adjusted.
+
+## Icons
+
+Hugeicons stroke set (`@hugeicons/core-free-icons`) through `packages/ui/src/icons.tsx` (`@commerce/ui/icons`). Default 1.25rem, `strokeWidth` 1.5, sized with Tailwind `size-*`. Named exports keep the identifiers call sites use (`Home`, `Bell`, `ChevronDownIcon`); the `icons` map groups them by meaning for new code. Never import a glyph pack directly from a component.

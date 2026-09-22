@@ -244,6 +244,15 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* Figures line up in tiles, tables and prices. */
+  .text-stat,
+  .text-stat-sm,
+  .text-kit-stat,
+  .text-kit-stat-sm,
+  td,
+  th {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /*
@@ -257,6 +266,7 @@
   --text-page-title: 1rem;
   --text-page-title--line-height: 1.25rem;
   --text-page-title--font-weight: 600;
+  --text-page-title--letter-spacing: -0.01em;
 
   --text-card-title: 0.875rem;
   --text-card-title--line-height: 1.25rem;
@@ -265,10 +275,12 @@
   --text-stat: 1.25rem;
   --text-stat--line-height: 1.5rem;
   --text-stat--font-weight: 600;
+  --text-stat--letter-spacing: -0.01em;
 
   --text-stat-sm: 1rem;
   --text-stat-sm--line-height: 1.25rem;
   --text-stat-sm--font-weight: 600;
+  --text-stat-sm--letter-spacing: -0.01em;
 
   --text-body: 0.75rem;
   --text-body--line-height: 1rem;
@@ -298,18 +310,22 @@
   --text-kit-title: 1.125rem;
   --text-kit-title--line-height: 1.625rem;
   --text-kit-title--font-weight: 700;
+  --text-kit-title--letter-spacing: -0.01em;
 
   --text-kit-stat: 2rem;
   --text-kit-stat--line-height: 2.375rem;
   --text-kit-stat--font-weight: 700;
+  --text-kit-stat--letter-spacing: -0.02em;
 
   --text-kit-stat-sm: 1.5rem;
   --text-kit-stat-sm--line-height: 1.75rem;
   --text-kit-stat-sm--font-weight: 700;
+  --text-kit-stat-sm--letter-spacing: -0.01em;
 
   --text-kit-table-title: 1rem;
   --text-kit-table-title--line-height: 1.375rem;
   --text-kit-table-title--font-weight: 600;
+  --text-kit-table-title--letter-spacing: -0.01em;
 
   --text-kit-label: 1rem;
   --text-kit-label--line-height: 1.625rem;

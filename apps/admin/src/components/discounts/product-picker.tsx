@@ -1,9 +1,9 @@
 'use client'
 
+import { Search, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import ProductThumb from '@/components/products/product-thumb'
 import { discountFormContent } from '@/data/discounts'

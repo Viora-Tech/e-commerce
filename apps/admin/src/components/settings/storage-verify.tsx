@@ -1,10 +1,10 @@
 'use client'
 
+import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { CircleAlert, CircleCheck } from 'lucide-react'
 import { useState } from 'react'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'

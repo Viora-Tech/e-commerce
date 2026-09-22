@@ -1,5 +1,6 @@
 'use client'
 
+import { MoreHorizontal, Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -8,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { MoreHorizontal, Video } from 'lucide-react'
 import type { DragEvent } from 'react'
 import { mediaContent } from '@/data/media'
 

@@ -1,4 +1,4 @@
-import { BarChart3 } from 'lucide-react'
+import { BarChart3 } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { analyticsContent } from '@/data/analytics'

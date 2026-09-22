@@ -1,4 +1,4 @@
-import { LayoutGrid } from 'lucide-react'
+import { LayoutGrid } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { productsSectionsContent } from '@/data/products'

@@ -1,10 +1,10 @@
 'use client'
 
+import { CircleAlert, Puzzle } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { CircleAlert, Puzzle } from 'lucide-react'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'

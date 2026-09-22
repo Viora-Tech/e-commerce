@@ -1,4 +1,4 @@
-import { Globe } from 'lucide-react'
+import { Globe } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SettingsEmpty from '@/components/settings/settings-empty'
 import { settingsContent } from '@/data/settings'

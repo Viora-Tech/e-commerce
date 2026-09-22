@@ -1,8 +1,8 @@
 'use client'
 
-import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import * as React from 'react'
 import { type DayButton, DayPicker, getDefaultClassNames, type Locale } from 'react-day-picker'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '../../icons'
 import { cn } from '../../lib/utils'
 import { Button, buttonVariants } from './button'
 

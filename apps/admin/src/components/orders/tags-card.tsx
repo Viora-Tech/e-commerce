@@ -1,7 +1,7 @@
 'use client'
 
+import { X } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
-import { X } from 'lucide-react'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'

@@ -1,8 +1,8 @@
 'use client'
 
+import { X } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Input } from '@commerce/ui/shadcn/input'
-import { X } from 'lucide-react'
 import { type KeyboardEvent, useId, useState } from 'react'
 import { productFormContent } from '@/data/products'
 

@@ -1,8 +1,8 @@
 'use client'
 
 import type { Tracking } from '@commerce/core'
+import { ExternalLink, Printer, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { ExternalLink, Printer, RefreshCw } from 'lucide-react'
 import DataCard from '@/components/layout/data-card'
 import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
 import { shipmentPanelContent as copy } from '@/data/shipping'
