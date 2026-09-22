@@ -1,10 +1,11 @@
-import { FileBarChart } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { analyticsContent } from '@/data/analytics'
+import ReportsList from '@/components/analytics/reports-list'
+import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Reports' }
 
-export default function Page() {
-  return <SectionEmpty {...analyticsContent.reports} icon={FileBarChart} />
+export default async function Page() {
+  const context = await serverContext()
+  const reports = await call(appRouter.analytics.reports, undefined, { context })
+  return <ReportsList reports={reports} />
 }
