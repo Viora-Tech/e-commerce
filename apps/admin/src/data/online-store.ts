@@ -39,11 +39,6 @@ export const onlineStoreContent = {
     body: 'Posts publish to your storefront blog and help search engines find you for the topics your shoppers care about.',
     action: { label: 'Edit pages', href: '/online-store/pages' },
   },
-  navigation: {
-    heading: 'Navigation',
-    body: 'Menus for the storefront header and footer. Today they come from the theme; soon you will edit them here.',
-    action: { label: 'Edit pages', href: '/online-store/pages' },
-  },
   preferences: {
     heading: 'Preferences',
     body: 'Storefront title, meta description, social sharing image and password protection.',

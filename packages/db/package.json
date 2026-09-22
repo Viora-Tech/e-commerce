@@ -14,6 +14,7 @@
     "seed": "bun run --env-file=../../.env src/seed.ts",
     "seed:demo": "bun run --env-file=../../.env src/seed-demo-orders.ts && bun run --env-file=../../.env src/seed-demo-drafts.ts && bun run --env-file=../../.env src/seed-demo-collections.ts",
     "seed:demo:collections": "bun run --env-file=../../.env src/seed-demo-collections.ts",
+    "seed:navigation": "bun run --env-file=../../.env src/seed-navigation.ts",
     "seed:demo:drafts": "bun run --env-file=../../.env src/seed-demo-drafts.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

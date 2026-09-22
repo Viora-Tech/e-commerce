@@ -14,6 +14,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import {
   type ColumnVisibilityState,
+  createColumnHelper,
   type RowData,
   type RowSelectionState,
   type SortingState,
@@ -25,8 +26,14 @@ import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import { tableContent } from '@/data/table'
 import { fast, instant } from '@/lib/motion'
-import { type CellAlign, defineColumns, type ResourceColumnSpec, selectionColumn } from './columns'
-import { resourceTableFeatures } from './features'
+import {
+  type CellAlign,
+  defineColumns,
+  type ResourceColumn,
+  type ResourceColumnSpec,
+  selectionColumn,
+} from './columns'
+import { type ResourceTableFeatures, resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
 import { RESOURCE_TABLE_METRICS, type ResourceTableSize } from './sizes'
 import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
@@ -59,6 +66,11 @@ export type ResourceTableProps<T extends RowData> = {
   /** Rendered in the selection bar; call `clear` after a bulk action. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   empty?: { heading: string; body?: string; action?: ReactNode }
+  /**
+   * Per-row actions, drawn in a trailing cell. The cell's own controls must stop
+   * propagation: a table with `href` navigates from a click anywhere in the row.
+   */
+  rowActions?: (item: T) => ReactNode
   /** `frame` draws Dealport 5:2560 at its own px; `compact` (default) is the density scale. */
   size?: ResourceTableSize
 }
@@ -79,7 +91,24 @@ const ALIGN: Record<CellAlign, string> = {
 function tableColumns<T extends RowData>(props: ResourceTableProps<T>) {
   const selectable = props.selectable ?? true
   const offset = (props.page - 1) * props.perPage
-  return [...(selectable ? [selectionColumn<T>(offset)] : []), ...defineColumns(props.columns)]
+  return [
+    ...(selectable ? [selectionColumn<T>(offset)] : []),
+    ...defineColumns(props.columns),
+    ...(props.rowActions ? [actionsColumn<T>(props.rowActions)] : []),
+  ]
+}
+
+/** The trailing actions column: unnamed, unsortable and never hidden by the View menu. */
+function actionsColumn<T extends RowData>(render: (item: T) => ReactNode): ResourceColumn<T> {
+  const helper = createColumnHelper<ResourceTableFeatures, T>()
+  return helper.display({
+    id: '__actions',
+    header: () => null,
+    cell: ({ row }) => render(row.original),
+    enableSorting: false,
+    enableHiding: false,
+    meta: { align: 'end', className: 'w-16' },
+  })
 }
 
 export default function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {

@@ -1,3 +1,4 @@
+import { parseNavigationSettings } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
@@ -10,6 +11,27 @@ export async function getStore(tx: StoreTx, storeId: string) {
 export async function updateStoreTheme(tx: StoreTx, storeId: string, theme: unknown) {
   const [s] = await tx.update(store).set({ theme }).where(eq(store.id, storeId)).returning()
   return s ?? null
+}
+
+export async function updateStoreNavigation(tx: StoreTx, storeId: string, navigation: unknown) {
+  const [s] = await tx.update(store).set({ navigation }).where(eq(store.id, storeId)).returning()
+  return s ?? null
+}
+
+/**
+ * Drop a handle from the storefront pointer once its menu is gone. The pointer must
+ * not outlive the menu it names: a dangling handle renders an empty header with
+ * nothing on screen or in the admin to say why.
+ */
+export async function forgetNavigationHandle(tx: StoreTx, storeId: string, handle: string) {
+  const s = await getStore(tx, storeId)
+  if (!s) return
+  const settings = parseNavigationSettings(s.navigation)
+  if (settings.main !== handle && !settings.footer.includes(handle)) return
+  await updateStoreNavigation(tx, storeId, {
+    main: settings.main === handle ? null : settings.main,
+    footer: settings.footer.filter((h) => h !== handle),
+  })
 }
 
 export async function updateStorePayments(tx: StoreTx, storeId: string, payments: unknown) {

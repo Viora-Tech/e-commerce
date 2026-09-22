@@ -31,6 +31,8 @@ export const store = pgTable('store', {
   nextOrderNumber: integer('next_order_number').notNull().default(1),
   /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
   theme: jsonb('theme'),
+  /** Which menus the storefront renders, by handle. Validated by @commerce/core NavigationSettingsSchema. */
+  navigation: jsonb('navigation'),
   /** Payment settings: enabled methods and encrypted gateway credentials. */
   payments: jsonb('payments'),
   /** Notification settings: enabled channels and encrypted channel credentials. */
@@ -651,6 +653,35 @@ export const page = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('page_store_handle').on(t.storeId, t.handle)],
+)
+
+export type NavigationItemType = 'home' | 'product' | 'collection' | 'page' | 'url'
+
+/** One entry in a storefront menu, kept in order inside navigation_menu.items. */
+export type NavigationItem = {
+  id: string
+  title: string
+  type: NavigationItemType
+  /** Handle for product/collection/page, the URL for url; absent for home. */
+  value?: string | undefined
+}
+
+/**
+ * Storefront menus (header, footer). The storefront renders them later;
+ * for now the admin owns the list and every item's destination.
+ */
+export const navigationMenu = pgTable(
+  'navigation_menu',
+  {
+    id: id(),
+    storeId: storeId(),
+    title: text('title').notNull(),
+    handle: text('handle').notNull(),
+    items: jsonb('items').$type<NavigationItem[]>().notNull().default([]),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('navigation_menu_store_handle').on(t.storeId, t.handle)],
 )
 
 /**

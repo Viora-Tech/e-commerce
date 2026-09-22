@@ -1,0 +1,31 @@
+/**
+ * Development-only delivery for login codes.
+ *
+ * Nothing sends mail in development: `sendOtp` prints the code to the admin
+ * server's stdout. When that terminal is not the one in front of you the code is
+ * effectively lost for the ten minutes it lives, so the login page reads it back
+ * from here instead.
+ *
+ * The guard is deliberately two keys rather than one. This hands out working login
+ * codes, so a single misfiled env var must not be enough to expose it: it is off
+ * in production builds and off unless `DEV_LOGIN_OTP=1` was set on purpose.
+ */
+const g = globalThis as unknown as { __devOtp?: Map<string, string> }
+
+/** Whether a code may be read back, by anyone, at all. */
+export function devOtpEnabled(): boolean {
+  return process.env.NODE_ENV !== 'production' && process.env.DEV_LOGIN_OTP === '1'
+}
+
+/** Remembers the newest code handed to an email. No-op unless the handoff is on. */
+export function rememberDevOtp(email: string, otp: string): void {
+  if (!devOtpEnabled()) return
+  g.__devOtp ??= new Map()
+  g.__devOtp.set(email.trim().toLowerCase(), otp)
+}
+
+/** The code last handed to this email, or null. */
+export function recallDevOtp(email: string): string | null {
+  if (!devOtpEnabled()) return null
+  return g.__devOtp?.get(email.trim().toLowerCase()) ?? null
+}

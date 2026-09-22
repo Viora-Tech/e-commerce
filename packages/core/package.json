@@ -14,7 +14,8 @@
     "./store-settings": "./src/settings/general.ts",
     "./segments": "./src/customers/segments.ts",
     "./permissions": "./src/permissions/client.ts",
-    "./collections": "./src/collections/client.ts"
+    "./collections": "./src/collections/client.ts",
+    "./navigation": "./src/navigation/client.ts"
   },
   "scripts": {
     "test": "vitest run",

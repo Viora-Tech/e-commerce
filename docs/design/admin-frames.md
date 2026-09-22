@@ -86,6 +86,8 @@ Products, customers and pages lists keep `size="compact"` (the density table abo
 
 - Sidebar wordmark: the store name and switcher replace the DealPort logo.
 - Sidebar items follow the Shopify route map, not the kit's demo menu.
+- Menus sit under Content (`/content/menus`), following Shopify's November 2024 move of navigation out of Online Store. Menu reordering uses up/down buttons rather than Shopify's drag handle (`⠿`); nothing in the kit covers either.
+- The Menus page carries the header/footer assignment card. Shopify assigns menus in the theme editor's Header and Footer sections; this admin has no theme editor, so the storefront pointer (`store.navigation`, `main` + `footer` handles) is edited beside the menus it names. The card is a deviation, not a reproduction.
 - Dashboard "Users in last 30 minutes" `5:1618` is real: the storefront sends a page-view beacon (`/api/beacon`, anonymous `wc_vid` cookie) into per-minute HyperLogLogs in Dragonfly; the card shows unique visitors and 30 per-minute bars. It reads zero until the storefront has traffic.
 - Dashboard "Sales by country" (map + flags in `5:1618`) shows sales by Indian state with a two-letter badge in place of the flag and the order count in place of the geo delta (no country data beyond the shipping address).
 - Dashboard "Add New Product" panel `5:2288` lists product types (with counts, linking to the products list filtered by that type) as the categories and the three newest products with an "Edit" pill; the kit's "Add" adds to a cart-like list that does not exist here. "See more" goes to the products list.
