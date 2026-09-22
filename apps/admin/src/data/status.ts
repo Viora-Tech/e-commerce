@@ -20,10 +20,11 @@ import { shipmentPanelContent } from '@/data/shipping'
 /*
  * Every status the admin shows, in one place. Tones come from the kit's
  * Colors sheet (8:33): Success #21C45D, Pending #F0D411, Error #EF4343,
- * Cyprus #023337 for the neutral "in progress" ink, Grey #7C7C7C for muted.
+ * Cyprus #023337 for in-progress ink, Primary #6467F2 for the accent, Grey #7C7C7C
+ * for muted. Every order status gets its own hue so a glance reads the stage.
  * Glyphs come from the status cell on the sheet (14:1041 / frame 5:2624).
  */
-export type StatusTone = 'success' | 'pending' | 'error' | 'info' | 'neutral'
+export type StatusTone = 'success' | 'pending' | 'error' | 'info' | 'accent' | 'neutral'
 
 export type StatusEntry = {
   label: string
@@ -41,7 +42,7 @@ const entry = (label: string, tone: StatusTone, glyph?: IconComponent): StatusEn
 export const STATUS = {
   order: {
     placed: entry(ordersContent.status.placed, 'pending', DeliveryDelay),
-    paid: entry(ordersContent.status.paid, 'info', CircleCheck),
+    paid: entry(ordersContent.status.paid, 'accent', CircleCheck),
     fulfilled: entry(ordersContent.status.fulfilled, 'info', Truck),
     delivered: entry(ordersContent.status.delivered, 'success', PackageCheck),
     cancelled: entry(ordersContent.status.cancelled, 'error', CancelCircle),
@@ -76,7 +77,7 @@ export const STATUS = {
   },
   shipment: {
     created: entry(shipmentPanelContent.status.created ?? 'Created', 'pending', DeliveryDelay),
-    picked_up: entry(shipmentPanelContent.status.picked_up ?? 'Picked up', 'info', Truck),
+    picked_up: entry(shipmentPanelContent.status.picked_up ?? 'Picked up', 'accent', Truck),
     in_transit: entry(shipmentPanelContent.status.in_transit ?? 'In transit', 'info', Truck),
     out_for_delivery: entry(
       shipmentPanelContent.status.out_for_delivery ?? 'Out for delivery',
@@ -89,7 +90,7 @@ export const STATUS = {
   },
   discount: {
     active: entry(discountsContent.lifecycle.active, 'success'),
-    scheduled: entry(discountsContent.lifecycle.scheduled, 'info'),
+    scheduled: entry(discountsContent.lifecycle.scheduled, 'accent'),
     expired: entry(discountsContent.lifecycle.expired, 'neutral'),
     disabled: entry(discountsContent.lifecycle.disabled, 'error'),
   } satisfies Record<DiscountLifecycle, StatusEntry>,
