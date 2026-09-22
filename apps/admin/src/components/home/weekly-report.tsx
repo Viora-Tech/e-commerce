@@ -7,7 +7,14 @@ import StatTabs from '@/components/layout/stat-tabs'
 import { homeContent } from '@/data/home'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'
 
-type Day = { date: string; revenuePaise: number; orders: number }
+type Series = {
+  days: string[]
+  customers: number[]
+  products: number[]
+  inStock: number[]
+  outOfStock: number[]
+  revenuePaise: number[]
+}
 
 type WeeklyReportProps = {
   customers: number
@@ -15,28 +22,40 @@ type WeeklyReportProps = {
   inStock: number
   outOfStock: number
   revenuePaise: number
-  thisWeek: Day[]
-  lastWeek: Day[]
+  thisWeek: Series
+  lastWeek: Series
 }
+
+type Metric = keyof Omit<Series, 'days'>
+
+/** Tab order on the sheet (14:403); Revenue is highlighted in the frame, so it opens selected. */
+const METRICS: readonly Metric[] = [
+  'customers',
+  'products',
+  'inStock',
+  'outOfStock',
+  'revenuePaise',
+]
+const INITIAL_TAB = METRICS.indexOf('revenuePaise')
 
 const weekday = new Intl.DateTimeFormat('en-IN', { weekday: 'short' })
 
-function toPoints(days: Day[], metric: 'revenuePaise' | 'orders'): ChartPoint[] {
-  return days.map((d) => ({
-    label: weekday.format(new Date(`${d.date}T00:00:00`)),
-    value: d[metric],
+function toPoints(series: Series, metric: Metric): ChartPoint[] {
+  return series.days.map((date, i) => ({
+    label: weekday.format(new Date(`${date}T00:00:00`)),
+    value: series[metric][i] ?? 0,
   }))
 }
 
-/** "Report for this week": headline tabs + this/last week area chart of revenue (or orders). */
+/** "Report for this week": five headline tabs pick which daily series the this/last week chart plots. */
 export default function WeeklyReport(props: WeeklyReportProps) {
   // Hooks
-  const [tab, setTab] = useState(4)
+  const [tab, setTab] = useState(INITIAL_TAB)
 
   // Render logic
   const c = homeContent.report
-  // Only revenue has a daily series; every other tab still charts revenue so the card never goes blank.
-  const metric = 'revenuePaise'
+  const metric = METRICS[tab] ?? 'revenuePaise'
+  const isMoney = metric === 'revenuePaise'
   const tabs = [
     { label: c.tabs.customers, value: formatCompact(props.customers) },
     { label: c.tabs.products, value: formatCompact(props.products) },
@@ -53,7 +72,9 @@ export default function WeeklyReport(props: WeeklyReportProps) {
         { id: 'last', label: c.lastWeek, data: toPoints(props.lastWeek, metric) },
       ]}
       tabs={<StatTabs items={tabs} active={tab} onChange={setTab} />}
-      formatValue={formatPaiseCompact}
+      seriesKey={metric}
+      seriesLabel={c.series[metric]}
+      formatValue={isMoney ? formatPaiseCompact : formatCompact}
     />
   )
 }

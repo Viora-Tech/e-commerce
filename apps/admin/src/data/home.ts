@@ -18,6 +18,14 @@ export const homeContent = {
       outOfStock: 'Out of stock',
       revenue: 'Revenue',
     },
+    /** Tooltip names for the plotted daily series, keyed by metric. */
+    series: {
+      customers: 'New customers',
+      products: 'Products added',
+      inStock: 'Variants in stock',
+      outOfStock: 'Variants out of stock',
+      revenuePaise: 'Revenue',
+    },
   },
   recentOrders: {
     title: 'Recent orders',
