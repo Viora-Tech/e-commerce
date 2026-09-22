@@ -55,7 +55,11 @@ export default function PillTabs<T extends string | null>({
   return (
     <div
       role="tablist"
-      className={cn('flex items-center rounded-lg bg-primary-soft p-1', TRACK_SIZE[size], className)}
+      className={cn(
+        'flex items-center rounded-lg bg-primary-soft p-1',
+        TRACK_SIZE[size],
+        className,
+      )}
     >
       {tabs.map((tab) => {
         const active = tab.value === value
@@ -78,7 +82,9 @@ export default function PillTabs<T extends string | null>({
             ) : null}
             {tab.label}
             {tab.count != null ? (
-              <span className={cn(COUNT_SIZE[size], 'text-primary tabular-nums')}>({tab.count})</span>
+              <span className={cn(COUNT_SIZE[size], 'text-primary tabular-nums')}>
+                ({tab.count})
+              </span>
             ) : null}
           </button>
         )

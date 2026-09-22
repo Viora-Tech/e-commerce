@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
