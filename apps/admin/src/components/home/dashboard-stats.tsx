@@ -41,24 +41,28 @@ export default function DashboardStats({ sales, orders, pending, cancelled }: Da
         value=""
         detailsHref="/orders?status=placed"
       >
-        <div className="mt-4 grid grid-cols-[1fr_1px_1fr] items-start gap-x-5">
+        <div className="mt-[1.375rem] grid grid-cols-[1fr_1px_1fr] items-start gap-x-5">
           <div>
-            <p className="text-period text-foreground">{c.stats.pendingCancelled.pending}</p>
+            <p className="text-kit-body text-foreground">{c.stats.pendingCancelled.pending}</p>
             <div className="mt-1.5 flex items-center gap-2">
-              <span className="text-stat-sm leading-5 tabular-nums text-ink-strong">
+              <span className="text-kit-stat-sm tabular-nums text-ink-strong">
                 {formatCompact(pending.value)}
               </span>
-              <DeltaChip delta={percentDelta(pending.value, pending.previous)} invert />
+              <DeltaChip delta={percentDelta(pending.value, pending.previous)} invert size="kit" />
             </div>
           </div>
-          <span className="mt-2 h-8 w-px bg-border" aria-hidden="true" />
+          <span className="mt-1 h-[1.9375rem] w-px bg-border" aria-hidden="true" />
           <div>
-            <p className="text-period text-foreground">{c.stats.pendingCancelled.cancelled}</p>
+            <p className="text-kit-body text-foreground">{c.stats.pendingCancelled.cancelled}</p>
             <div className="mt-1.5 flex items-center gap-2">
-              <span className="text-stat-sm leading-5 tabular-nums text-destructive">
+              <span className="text-kit-stat-sm tabular-nums text-destructive">
                 {formatCompact(cancelled.value)}
               </span>
-              <DeltaChip delta={percentDelta(cancelled.value, cancelled.previous)} invert />
+              <DeltaChip
+                delta={percentDelta(cancelled.value, cancelled.previous)}
+                invert
+                size="kit"
+              />
             </div>
           </div>
         </div>

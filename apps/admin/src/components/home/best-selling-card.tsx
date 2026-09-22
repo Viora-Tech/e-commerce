@@ -17,7 +17,13 @@ const BEST_ROW = 'grid grid-cols-[minmax(0,2.4fr)_1fr_1.1fr_1.1fr_1fr] items-cen
 export default function BestSellingCard({ products }: { products: TopProduct[] }) {
   const c = homeContent.bestSelling
   return (
-    <DataCard title={c.title} action={<FilterButton items={c.filters} />} detailsHref="/products">
+    <DataCard
+      title={c.title}
+      action={<FilterButton items={c.filters} />}
+      detailsHref="/products"
+      size="kit"
+      titleSize="table"
+    >
       <BandHead className={BEST_ROW}>
         <span>{c.columns.product}</span>
         <span>
@@ -28,27 +34,27 @@ export default function BestSellingCard({ products }: { products: TopProduct[] }
         <span>{c.columns.price}</span>
       </BandHead>
       {products.length === 0 ? (
-        <p className="px-5 py-6 text-body text-muted-foreground">{c.empty}</p>
+        <p className="px-5 py-6 text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
         <div className="mt-3 flex flex-col gap-1">
           {products.map((p) => (
             <Link
               key={p.productId}
               href={`/products/${p.productId}`}
-              className={cn(BEST_ROW, 'h-12 transition-colors hover:bg-background')}
+              className={cn(BEST_ROW, 'h-[3.375rem] transition-colors hover:bg-background')}
             >
               <span className="flex min-w-0 items-center gap-1">
                 <HomeProductThumb url={p.imageUrl} title={p.title} />
-                <span className="truncate text-body font-bold text-ink-strong">{p.title}</span>
+                <span className="truncate text-kit-cell font-bold text-ink-strong">{p.title}</span>
               </span>
               <span>
                 <TrendingUp className="size-4 text-success" aria-hidden="true" />
               </span>
-              <span className="text-body tabular-nums">{p.units}</span>
+              <span className="text-kit-cell tabular-nums">{p.units}</span>
               <StatusPill tone={p.inStock ? 'success' : 'destructive'}>
                 {p.inStock ? c.inStock : c.outOfStock}
               </StatusPill>
-              <span className="text-body font-bold tabular-nums text-ink-strong">
+              <span className="text-kit-cell font-bold tabular-nums text-ink-strong">
                 {formatPaise(p.pricePaise)}
               </span>
             </Link>

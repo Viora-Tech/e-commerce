@@ -17,13 +17,14 @@ export default function TopProductsCard({ products }: { products: TopProduct[] }
     <DataCard
       title={c.title}
       className="px-4"
+      size="kit"
       action={
-        <Link href="/products" className="text-xs text-link hover:underline">
+        <Link href="/products" className="text-kit-body text-link hover:underline">
           {c.all}
         </Link>
       }
     >
-      <label className="-mt-1 flex h-9 items-center gap-2 rounded-lg bg-background px-3 text-xs text-muted-foreground">
+      <label className="-mt-1 flex h-10 items-center gap-2 rounded-lg bg-background px-3 text-kit-body text-muted-foreground">
         <Search className="size-4" aria-hidden="true" />
         <input
           type="search"
@@ -32,25 +33,25 @@ export default function TopProductsCard({ products }: { products: TopProduct[] }
         />
       </label>
       {products.length === 0 ? (
-        <p className="pt-4 text-body text-muted-foreground">{c.empty}</p>
+        <p className="pt-4 text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
         <ul className="mt-1 divide-y divide-border-soft">
           {products.map((p) => (
             <li key={p.productId}>
               <Link
                 href={`/products/${p.productId}`}
-                className="flex h-14 items-center gap-3 transition-colors hover:bg-background"
+                className="flex h-[4.125rem] items-center gap-3 transition-colors hover:bg-background"
               >
                 <HomeProductThumb url={p.imageUrl} title={p.title} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs font-semibold leading-4 text-ink-strong">
+                  <span className="block truncate text-kit-cell font-semibold text-ink-strong">
                     {p.title}
                   </span>
-                  <span className="block text-xs leading-4 text-muted-foreground">
+                  <span className="block text-kit-body text-muted-foreground">
                     {c.units(p.units)}
                   </span>
                 </span>
-                <span className="text-[0.8125rem] font-bold tabular-nums text-ink-strong">
+                <span className="text-kit-cell font-bold tabular-nums text-ink-strong">
                   {formatPaise(p.pricePaise)}
                 </span>
               </Link>

@@ -23,7 +23,7 @@ function stateName(code: string): string {
 /** Two-letter badge standing in for the kit's flag (5:1671). */
 function StateBadge({ code }: { code: string }) {
   return (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[0.6875rem] font-bold text-primary">
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-bold text-primary">
       {code}
     </span>
   )
@@ -40,35 +40,35 @@ export default function ActivityCard({ ordersLast24h, perHour, salesByState }: A
   const bars = perHour.map((value, i) => ({ label: String(i), value }))
 
   return (
-    <Card className="relative h-[26rem] gap-0 p-5 pb-16">
+    <Card className="relative h-[28.75rem] gap-0 p-5 pb-16">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs leading-4 text-link">{c.title}</p>
-          <p className="mt-1 text-stat text-ink-strong tabular-nums">
+          <p className="text-kit-body text-link">{c.title}</p>
+          <p className="mt-1 text-kit-stat text-ink-strong tabular-nums">
             {formatCompact(ordersLast24h)}
           </p>
         </div>
         <CardMenu items={[{ label: homeContent.menu.viewOrders, href: '/orders' }]} />
       </div>
-      <p className="mt-5 text-xs text-muted-foreground">{c.perHour}</p>
-      <MiniBars data={bars} className="mt-2" />
+      <p className="mt-5 text-kit-body text-muted-foreground">{c.perHour}</p>
+      <MiniBars data={bars} className="mt-3" />
 
       <div className="mt-6 flex items-center justify-between">
-        <p className="text-card-title text-foreground">{c.byState}</p>
-        <p className="text-[0.8125rem] text-foreground">{c.sales}</p>
+        <p className="text-kit-title text-foreground">{c.byState}</p>
+        <p className="text-kit-title text-foreground">{c.sales}</p>
       </div>
       {salesByState.length === 0 ? (
-        <p className="mt-4 text-body text-muted-foreground">{c.empty}</p>
+        <p className="mt-4 text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
         <ul className="mt-4 flex flex-col gap-6">
           {salesByState.map((row) => (
             <li key={row.stateCode} className="flex items-center gap-3">
               <StateBadge code={row.stateCode} />
               <span className="w-24 shrink-0">
-                <span className="block text-[0.8125rem] font-bold leading-5 text-ink-strong tabular-nums">
+                <span className="block text-kit-cell font-bold text-ink-strong tabular-nums">
                   {formatPaiseCompact(row.revenuePaise)}
                 </span>
-                <span className="block truncate text-xs leading-4 text-muted-foreground">
+                <span className="block truncate text-kit-body text-muted-foreground">
                   {stateName(row.stateCode)}
                 </span>
               </span>
@@ -78,7 +78,7 @@ export default function ActivityCard({ ordersLast24h, perHour, salesByState }: A
                   style={{ width: `${Math.max(4, Math.round(row.share * 100))}%` }}
                 />
               </span>
-              <span className="w-12 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+              <span className="w-16 shrink-0 whitespace-nowrap text-right text-kit-body text-muted-foreground tabular-nums">
                 {c.ordersCount(row.orders)}
               </span>
             </li>
