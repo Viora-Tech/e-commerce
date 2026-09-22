@@ -120,7 +120,13 @@ describe('customers', () => {
     expect(search.total).toBe(1)
 
     const stats = await call(appRouter.customers.stats, undefined, { context: a.ctx })
-    expect(stats).toEqual({ total: 2, newThisWeek: 1, returning: 1, marketing: 1 })
+    expect(stats).toEqual({
+      total: 2,
+      newThisMonth: 1,
+      returning: 1,
+      marketing: 1,
+      averageLifetimePaise: 110000,
+    })
   })
 
   it('returns a customer with orders, totals and messages sent to them, and updates tags and note', async () => {
@@ -179,5 +185,203 @@ describe('customers', () => {
       { context: a.ctx },
     )
     expect(missing).toBeNull()
+  })
+
+  it('filters by state, spend, orders, marketing and tag', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        {
+          storeId: a.storeId,
+          name: 'Asha Menon',
+          email: 'asha@example.com',
+          acceptsMarketing: true,
+          tags: ['vip'],
+          defaultAddress: {
+            name: 'Asha Menon',
+            line1: '12 MG Road',
+            city: 'Mumbai',
+            stateCode: 'MH',
+            pincode: '400001',
+          },
+        },
+        {
+          storeId: a.storeId,
+          name: 'Ravi Iyer',
+          email: 'ravi@example.com',
+          defaultAddress: {
+            name: 'Ravi Iyer',
+            line1: '9 Church Street',
+            city: 'Kochi',
+            stateCode: 'KL',
+            pincode: '682001',
+          },
+        },
+      ])
+      .returning()
+    const base = { storeId: a.storeId, subtotalPaise: 1, status: 'paid' as const }
+    await owner.insert(order).values([
+      { ...base, customerId: asha?.id, number: 1, totalPaise: 300000, placedAt: daysAgo(3) },
+      { ...base, customerId: asha?.id, number: 2, totalPaise: 100000, placedAt: daysAgo(2) },
+      { ...base, customerId: ravi?.id, number: 3, totalPaise: 50000, placedAt: daysAgo(1) },
+    ])
+
+    const inMaharashtra = await call(
+      appRouter.customers.list,
+      { stateCode: 'MH' },
+      { context: a.ctx },
+    )
+    expect(inMaharashtra.items.map((c) => c.email)).toEqual(['asha@example.com'])
+    expect(inMaharashtra.items[0]).toMatchObject({ city: 'Mumbai', stateCode: 'MH' })
+
+    const bigSpenders = await call(
+      appRouter.customers.list,
+      { minSpentPaise: 200000 },
+      { context: a.ctx },
+    )
+    expect(bigSpenders.items.map((c) => c.email)).toEqual(['asha@example.com'])
+
+    const repeat = await call(appRouter.customers.list, { minOrders: 2 }, { context: a.ctx })
+    expect(repeat.items.map((c) => c.email)).toEqual(['asha@example.com'])
+
+    const subscribed = await call(
+      appRouter.customers.list,
+      { acceptsMarketing: true },
+      { context: a.ctx },
+    )
+    expect(subscribed.items.map((c) => c.email)).toEqual(['asha@example.com'])
+
+    const tagged = await call(appRouter.customers.list, { tag: 'vip' }, { context: a.ctx })
+    expect(tagged.items.map((c) => c.email)).toEqual(['asha@example.com'])
+
+    const cheap = await call(appRouter.customers.list, { maxSpentPaise: 60000 }, { context: a.ctx })
+    expect(cheap.items.map((c) => c.email)).toEqual(['ravi@example.com'])
+  })
+
+  it('adds and removes a tag across a selection without touching other tags', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        { storeId: a.storeId, email: 'asha@example.com', tags: ['vip'] },
+        { storeId: a.storeId, email: 'ravi@example.com', tags: [] },
+      ])
+      .returning()
+    const ids = [asha?.id as string, ravi?.id as string]
+
+    const added = await call(
+      appRouter.customers.tagMany,
+      { ids, tag: 'Wholesale', action: 'add' },
+      { context: a.ctx },
+    )
+    expect(added.updated).toBe(2)
+    const afterAdd = await call(appRouter.customers.list, {}, { context: a.ctx })
+    expect(afterAdd.items.find((c) => c.email === 'asha@example.com')?.tags).toEqual([
+      'vip',
+      'wholesale',
+    ])
+
+    const again = await call(
+      appRouter.customers.tagMany,
+      { ids, tag: 'wholesale', action: 'add' },
+      { context: a.ctx },
+    )
+    expect(again.updated).toBe(0)
+
+    const removed = await call(
+      appRouter.customers.tagMany,
+      { ids, tag: 'wholesale', action: 'remove' },
+      { context: a.ctx },
+    )
+    expect(removed.updated).toBe(2)
+    const afterRemove = await call(appRouter.customers.list, {}, { context: a.ctx })
+    expect(afterRemove.items.find((c) => c.email === 'asha@example.com')?.tags).toEqual(['vip'])
+  })
+
+  it('saves a segment, counts its members and previews rules before saving', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const b = await merchant('b@example.com', 'store-b')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        { storeId: a.storeId, email: 'asha@example.com', tags: ['vip'] },
+        { storeId: a.storeId, email: 'ravi@example.com' },
+        { storeId: b.storeId, email: 'other@example.com', tags: ['vip'] },
+      ])
+      .returning()
+    const base = { storeId: a.storeId, subtotalPaise: 1, status: 'paid' as const }
+    await owner.insert(order).values([
+      { ...base, customerId: asha?.id, number: 1, totalPaise: 300000, placedAt: daysAgo(3) },
+      { ...base, customerId: ravi?.id, number: 2, totalPaise: 10000, placedAt: daysAgo(1) },
+    ])
+
+    const rules = {
+      match: 'all' as const,
+      conditions: [{ field: 'spend' as const, op: 'gte' as const, value: '200000' }],
+    }
+    const preview = await call(appRouter.customers.previewSegment, { rules }, { context: a.ctx })
+    expect(preview.total).toBe(1)
+    expect(preview.sample.map((c) => c.email)).toEqual(['asha@example.com'])
+
+    const saved = await call(
+      appRouter.customers.saveSegment,
+      { name: 'Big spenders', rules },
+      { context: a.ctx },
+    )
+    expect(saved).toMatchObject({ name: 'Big spenders' })
+
+    const list = await call(appRouter.customers.segments, undefined, { context: a.ctx })
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ name: 'Big spenders', customerCount: 1 })
+
+    // The other store shares the rule shape but never the rows.
+    const otherStore = await call(appRouter.customers.segments, undefined, { context: b.ctx })
+    expect(otherStore).toHaveLength(0)
+
+    const renamed = await call(
+      appRouter.customers.saveSegment,
+      { id: saved?.id as string, name: 'Top buyers', rules },
+      { context: a.ctx },
+    )
+    expect(renamed).toMatchObject({ name: 'Top buyers' })
+
+    await call(appRouter.customers.deleteSegment, { id: saved?.id as string }, { context: a.ctx })
+    expect(await call(appRouter.customers.segments, undefined, { context: a.ctx })).toHaveLength(0)
+  })
+
+  it('keeps a customer with orders and deletes one without', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [withOrders, without] = await owner
+      .insert(customer)
+      .values([
+        { storeId: a.storeId, email: 'asha@example.com' },
+        { storeId: a.storeId, email: 'ravi@example.com' },
+      ])
+      .returning()
+    await owner.insert(order).values({
+      storeId: a.storeId,
+      customerId: withOrders?.id,
+      number: 1,
+      subtotalPaise: 1,
+      totalPaise: 1000,
+      status: 'paid',
+    })
+
+    const blocked = await call(
+      appRouter.customers.delete,
+      { id: withOrders?.id as string },
+      { context: a.ctx },
+    )
+    expect(blocked).toEqual({ deleted: false, orders: 1 })
+
+    const gone = await call(
+      appRouter.customers.delete,
+      { id: without?.id as string },
+      { context: a.ctx },
+    )
+    expect(gone).toEqual({ deleted: true, orders: 0 })
+    const list = await call(appRouter.customers.list, {}, { context: a.ctx })
+    expect(list.items.map((c) => c.email)).toEqual(['asha@example.com'])
   })
 })

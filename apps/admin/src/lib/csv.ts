@@ -1,12 +1,14 @@
 /** Minimal CSV writing for report exports; no dependency, RFC-4180 quoting. */
 
-function cell(value: string | number | null | undefined): string {
+type Cell = string | number | Date | null | undefined
+
+function cell(value: Cell): string {
   if (value === null || value === undefined) return ''
-  const text = String(value)
+  const text = value instanceof Date ? value.toISOString() : String(value)
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
-export function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
+export function toCsv(headers: string[], rows: Cell[][]): string {
   return [headers.map(cell).join(','), ...rows.map((r) => r.map(cell).join(','))].join('\r\n')
 }
 

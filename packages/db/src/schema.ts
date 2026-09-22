@@ -225,6 +225,41 @@ export const customer = pgTable(
   (t) => [uniqueIndex('customer_store_email').on(t.storeId, t.email)],
 )
 
+export type CustomerSegmentField =
+  | 'spend'
+  | 'orders'
+  | 'state'
+  | 'tag'
+  | 'last_order_days'
+  | 'marketing'
+export type CustomerSegmentOp = 'gte' | 'lte' | 'eq' | 'neq' | 'contains'
+export type CustomerSegmentCondition = {
+  field: CustomerSegmentField
+  op: CustomerSegmentOp
+  value: string
+}
+export type CustomerSegmentRules = {
+  match: 'all' | 'any'
+  conditions: CustomerSegmentCondition[]
+}
+
+/** A saved customer filter: `rules` holds `{ match, conditions[] }` evaluated by core. */
+export const customerSegment = pgTable(
+  'customer_segment',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    rules: jsonb('rules').$type<CustomerSegmentRules>().notNull().default({
+      match: 'all',
+      conditions: [],
+    }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('customer_segment_store_name').on(t.storeId, t.name)],
+)
+
 /** One address table, reused by customers and orders. state_code drives CGST/SGST vs IGST. */
 export const address = pgTable('address', {
   id: id(),
