@@ -93,9 +93,9 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
     if (!s) throw new Error('seed the store first (bun run db:seed)')
     const storeId = s.id
 
-    // Remove anything tagged demo (orders cascade by hand: payments, lines, then orders, addresses, customers).
+    // Remove the demo orders (by hand: payments, lines, then orders and their addresses).
     const demoOrders = await db
-      .select({ id: order.id, addressId: order.shippingAddressId, customerId: order.customerId })
+      .select({ id: order.id, addressId: order.shippingAddressId })
       .from(order)
       .where(and(eq(order.storeId, storeId), sql`${order.tags} @> ARRAY[${DEMO_TAG}]::text[]`))
     if (demoOrders.length > 0) {
@@ -105,14 +105,29 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
       await db.delete(order).where(inArray(order.id, ids))
       const addrIds = demoOrders.map((o) => o.addressId).filter((x): x is string => !!x)
       if (addrIds.length) await db.delete(address).where(inArray(address.id, addrIds))
-      await db
-        .delete(customer)
-        .where(
-          and(eq(customer.storeId, storeId), sql`${customer.tags} @> ARRAY[${DEMO_TAG}]::text[]`),
-        )
       console.log(`demo: removed ${ids.length} orders`)
     }
-    if (opts.clean) return
+
+    if (opts.clean) {
+      // Customers go only when nothing else still points at them: the drafts and
+      // abandoned-cart seed reuses these people, so run its --clean first to
+      // remove them too. Deleting blindly used to fail here and leave the demo
+      // customers behind, which then broke every later run.
+      const removed = await db
+        .delete(customer)
+        .where(
+          and(
+            eq(customer.storeId, storeId),
+            sql`${customer.tags} @> ARRAY[${DEMO_TAG}]::text[]`,
+            sql`not exists (select 1 from "order" o where o.customer_id = ${customer.id})`,
+            sql`not exists (select 1 from cart c where c.customer_id = ${customer.id})`,
+            sql`not exists (select 1 from discount_usage d where d.customer_id = ${customer.id})`,
+          ),
+        )
+        .returning({ id: customer.id })
+      console.log(`demo: removed ${removed.length} customers`)
+      return
+    }
 
     const variants = await db
       .select({
@@ -136,21 +151,33 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
     const customerIds = new Map<string, string>()
     for (const [name, handle, city, stateCode, pincode] of CUSTOMERS) {
       const email = `${handle}@example.in`
+      const values = {
+        storeId,
+        email,
+        name,
+        phone: `9${Math.floor(100000000 + r() * 899999999)}`,
+        tags: [DEMO_TAG],
+        defaultAddress: {
+          name,
+          line1: pick(STREETS, r),
+          city,
+          stateCode,
+          pincode,
+          country: 'IN',
+        },
+      }
+      // Upsert by (store, email): the people may already exist from an earlier run
+      // or from orders linked by the customer backfill. Keep their other tags.
       const [c] = await db
         .insert(customer)
-        .values({
-          storeId,
-          email,
-          name,
-          phone: `9${Math.floor(100000000 + r() * 899999999)}`,
-          tags: [DEMO_TAG],
-          defaultAddress: {
-            name,
-            line1: pick(STREETS, r),
-            city,
-            stateCode,
-            pincode,
-            country: 'IN',
+        .values(values)
+        .onConflictDoUpdate({
+          target: [customer.storeId, customer.email],
+          set: {
+            name: values.name,
+            phone: values.phone,
+            defaultAddress: values.defaultAddress,
+            tags: sql`case when ${DEMO_TAG} = any(${customer.tags}) then ${customer.tags} else array_append(${customer.tags}, ${DEMO_TAG}) end`,
           },
         })
         .returning({ id: customer.id })
