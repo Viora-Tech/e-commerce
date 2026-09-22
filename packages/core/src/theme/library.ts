@@ -3,6 +3,7 @@ import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
+import { copyTemplates } from './templates'
 
 /**
  * The theme library: a store's themes, one of which (`main`) is live on the
@@ -139,7 +140,7 @@ export async function ensureMainTheme(tx: StoreTx, storeId: string): Promise<The
 
 /**
  * A new unpublished theme from a preset. It keeps the live theme's brand (logo,
- * favicon), which belongs to the store rather than the look.
+ * favicon) and templates, which belong to the store rather than the look.
  */
 export async function createThemeFromPreset(
   tx: StoreTx,
@@ -161,6 +162,8 @@ export async function createThemeFromPreset(
     })
     .returning()
   if (!created) throw new Error('theme insert returned nothing')
+  // The content (home page, page layouts) belongs to the store; a new look keeps it.
+  await copyTemplates(tx, storeId, live.id, created.id)
   return toRecord(created)
 }
 
@@ -212,6 +215,7 @@ export async function duplicateTheme(
     })
     .returning()
   if (!created) throw new Error('theme insert returned nothing')
+  await copyTemplates(tx, storeId, source.id, created.id)
   return toRecord(created)
 }
 

@@ -70,6 +70,8 @@ export const product = pgTable('product', {
   storeId: storeId(),
   handle: text('handle').notNull(),
   title: text('title').notNull(),
+  /** Alternate product template (`product.<suffix>`); null uses the default. */
+  templateSuffix: text('template_suffix'),
   /** Lexical JSON (see @commerce/richtext). Legacy rows hold a plain string; parseRichText copes. */
   description: jsonb('description'),
   vendor: text('vendor'),
@@ -177,6 +179,8 @@ export const collection = pgTable(
     title: text('title').notNull(),
     /** Lexical JSON, like product.description. */
     description: jsonb('description'),
+    /** Alternate collection template (`collection.<suffix>`); null uses the default. */
+    templateSuffix: text('template_suffix'),
     imageMediaId: uuid('image_media_id').references(() => media.id),
     kind: text('kind', { enum: ['manual', 'automatic'] })
       .notNull()
@@ -852,6 +856,13 @@ export const page = pgTable(
     storeId: storeId(),
     handle: text('handle').notNull(),
     title: text('title').notNull(),
+    /** Page content (Lexical JSON), rendered by the template's Main page section. */
+    body: jsonb('body'),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    /** Alternate page template (`page.<suffix>`); null uses the default page template. */
+    templateSuffix: text('template_suffix'),
+    /** Legacy Puck layout from before theme templates; kept read-only for rollback. */
     data: jsonb('data').notNull(),
     publishedData: jsonb('published_data'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
@@ -902,6 +913,54 @@ export const theme = pgTable(
     check('theme_role', sql`${t.role} in ('main','unpublished')`),
     uniqueIndex('theme_one_main_per_store').on(t.storeId).where(sql`role = 'main'`),
     index('theme_store').on(t.storeId),
+  ],
+)
+
+/** Templates a theme renders, plus the two section groups every template shares. */
+export const THEME_TEMPLATE_KINDS = [
+  'home',
+  'product',
+  'collection',
+  'page',
+  'blog',
+  'article',
+  'cart',
+  'search',
+  'not_found',
+  'header',
+  'footer',
+] as const
+export type ThemeTemplateKind = (typeof THEME_TEMPLATE_KINDS)[number]
+
+/**
+ * One template of one theme, as Puck data (`content` is its ordered sections).
+ * `suffix` names an alternate (`page.contact` is template `page`, suffix `contact`);
+ * the empty string is the default. `draft` holds unsaved Customize edits: previews of
+ * this theme render it, the storefront never does.
+ */
+export const themeTemplate = pgTable(
+  'theme_template',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    template: text('template').notNull(),
+    suffix: text('suffix').notNull().default(''),
+    sections: jsonb('sections').notNull(),
+    draft: jsonb('draft'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'theme_template_kind',
+      sql`${t.template} in ('home','product','collection','page','blog','article','cart','search','not_found','header','footer')`,
+    ),
+    check('theme_template_suffix', sql`${t.suffix} ~ '^[a-z0-9-]{0,40}$'`),
+    uniqueIndex('theme_template_unique').on(t.themeId, t.template, t.suffix),
+    index('theme_template_store').on(t.storeId),
   ],
 )
 

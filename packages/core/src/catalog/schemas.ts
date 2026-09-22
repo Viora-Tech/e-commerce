@@ -52,6 +52,12 @@ export const ProductFieldsSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(50)).max(100).optional(),
   seoTitle: z.string().trim().max(70).nullable().optional(),
   seoDescription: z.string().trim().max(320).nullable().optional(),
+  /** Alternate product template (`product.<suffix>`); blank or null is the default. */
+  templateSuffix: z
+    .string()
+    .regex(/^[a-z0-9-]{0,40}$/)
+    .nullable()
+    .optional(),
   status: ProductStatusSchema.optional(),
   /** Prices already carry tax; the GST split is extracted rather than added. */
   taxIncluded: z.boolean().optional(),

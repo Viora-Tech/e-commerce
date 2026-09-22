@@ -135,6 +135,7 @@ function collectionRow(write: CollectionWrite) {
     sortOrder: write.sortOrder ?? 'manual',
     seoTitle: write.seoTitle || null,
     seoDescription: write.seoDescription || null,
+    ...(write.templateSuffix === undefined ? {} : { templateSuffix: write.templateSuffix || null }),
     status: write.status ?? 'active',
   }
 }

@@ -31,6 +31,12 @@ export const CollectionWriteSchema = z.object({
   sortOrder: CollectionSortSchema.optional(),
   seoTitle: z.string().trim().max(200).nullable().optional(),
   seoDescription: z.string().trim().max(400).nullable().optional(),
+  /** Alternate collection template (`collection.<suffix>`); blank or null is the default. */
+  templateSuffix: z
+    .string()
+    .regex(/^[a-z0-9-]{0,40}$/)
+    .nullable()
+    .optional(),
   status: CollectionStatusSchema.optional(),
   /** Manual collections only; ignored for automatic ones. */
   productIds: z.array(z.uuid()).max(500).optional(),

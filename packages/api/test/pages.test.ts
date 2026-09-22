@@ -47,50 +47,53 @@ afterAll(async () => {
   await app.$client.end()
 })
 
-const data = {
-  root: { props: {} },
-  content: [{ type: 'RichText', props: { id: 'r1', body: 'hi' } }],
-}
-
 describe('pages', () => {
-  it('creates a draft, publishes it, and only the published copy is visible to the storefront query', async () => {
+  it('creates a hidden page, then edits its content, SEO, template and visibility', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const created = await call(
       appRouter.pages.create,
-      { handle: 'home', title: 'Home', data },
+      { handle: 'about', title: 'About' },
       { context: a.ctx },
     )
-    expect(created?.publishedData).toBeNull()
+    expect(created?.publishedAt).toBeNull()
 
-    const edited = { ...data, content: [{ type: 'RichText', props: { id: 'r1', body: 'edited' } }] }
-    await call(
-      appRouter.pages.saveDraft,
-      { id: created?.id as string, data: edited },
+    const body = { root: { type: 'root', children: [] } }
+    const updated = await call(
+      appRouter.pages.update,
+      {
+        id: created?.id as string,
+        body,
+        seoTitle: 'About us',
+        templateSuffix: 'about',
+        visible: true,
+      },
       { context: a.ctx },
     )
-    const published = await call(
-      appRouter.pages.publish,
-      { id: created?.id as string },
-      { context: a.ctx },
-    )
-    expect(published?.publishedData).toEqual(edited)
+    expect(updated).toMatchObject({ body, seoTitle: 'About us', templateSuffix: 'about' })
+    expect(updated?.publishedAt).not.toBeNull()
 
+    const cleared = await call(
+      appRouter.pages.update,
+      { id: created?.id as string, templateSuffix: '', visible: false },
+      { context: a.ctx },
+    )
     const [row] = await owner
       .select()
       .from(page)
       .where(eq(page.id, created?.id as string))
-    expect(row?.publishedAt).not.toBeNull()
+    expect(cleared?.templateSuffix).toBeNull()
+    expect(row?.publishedAt).toBeNull()
   })
 
   it('handles are unique per store, not globally', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const b = await merchant('b@example.com', 'store-b')
-    await call(appRouter.pages.create, { handle: 'home', title: 'A', data }, { context: a.ctx })
-    await call(appRouter.pages.create, { handle: 'home', title: 'B', data }, { context: b.ctx })
+    await call(appRouter.pages.create, { handle: 'home', title: 'A' }, { context: a.ctx })
+    await call(appRouter.pages.create, { handle: 'home', title: 'B' }, { context: b.ctx })
     const listA = await call(appRouter.pages.list, undefined, { context: a.ctx })
     expect(listA.map((p) => p.title)).toEqual(['A'])
     await expect(
-      call(appRouter.pages.create, { handle: 'home', title: 'A again', data }, { context: a.ctx }),
+      call(appRouter.pages.create, { handle: 'home', title: 'A again' }, { context: a.ctx }),
     ).rejects.toThrow()
   })
 })
