@@ -1,7 +1,7 @@
 'use client'
 
 import { DOCUMENT_KINDS, type DocumentKind } from '@commerce/invoices'
-import { Download, Printer, Send, Settings } from '@commerce/ui/icons'
+import { Download, Printer, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -29,7 +29,8 @@ type Page = Awaited<ReturnType<typeof api.gstInvoices.list>>
 type Progress = { batchId: string; total: number; sent: number; failed: number }
 
 const copy = gstInvoicesContent.list
-const kindCopy = gstInvoicesContent.orderCard.kinds
+const kindCopy = gstInvoicesContent.kinds
+const statusCopy = gstInvoicesContent.statuses
 const ALL = 'all'
 const KIND_OPTIONS = [
   { value: ALL, label: copy.all },
@@ -133,10 +134,6 @@ export default function InvoicesList() {
       setProgress({ batchId: r.batchId, total: r.total, sent: 0, failed: 0 })
       toast.success(copy.emailQueued(r.total))
     })
-  const handleGstr1 = () =>
-    bulk(async () =>
-      saveFile(await api.gstInvoices.gstr1({ from: istStart(range.from), to: istEnd(range.to) })),
-    )
 
   // Render logic
   const rows = data?.rows ?? []
@@ -146,26 +143,7 @@ export default function InvoicesList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              onClick={handleGstr1}
-              disabled={busy || !range.from || !range.to}
-            >
-              <Download />
-              {copy.gstr1}
-            </Button>
-            <Button variant="ghost" render={<Link href="/settings/apps/gst-invoices" />}>
-              <Settings />
-              {copy.settings}
-            </Button>
-          </>
-        }
-      />
+      <PageHeader title={copy.title} subtitle={copy.subtitle} />
       <DataCard title={copy.title} flush>
         <div className="flex flex-col gap-3 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_12rem_10rem_10rem]">
@@ -249,6 +227,7 @@ export default function InvoicesList() {
               <TableHead>{copy.columns.order}</TableHead>
               <TableHead>{copy.columns.buyer}</TableHead>
               <TableHead>{copy.columns.date}</TableHead>
+              <TableHead>{copy.columns.status}</TableHead>
               <TableHead className="text-right">{copy.columns.tax}</TableHead>
               <TableHead className="text-right">{copy.columns.total}</TableHead>
             </TableRow>
@@ -256,7 +235,7 @@ export default function InvoicesList() {
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
                   {copy.empty}
                 </TableCell>
               </TableRow>
@@ -270,7 +249,11 @@ export default function InvoicesList() {
                     aria-label={r.number ?? r.orderName}
                   />
                 </TableCell>
-                <TableCell className="font-medium">{r.number ?? '-'}</TableCell>
+                <TableCell className="font-medium">
+                  <Link href={`/apps/gst-invoices/invoices/${r.id}`} className="hover:underline">
+                    {r.number ?? '-'}
+                  </Link>
+                </TableCell>
                 <TableCell>{kindCopy[r.kind]}</TableCell>
                 <TableCell>
                   <Link href={`/orders/${r.orderId}`} className="hover:underline">
@@ -285,7 +268,8 @@ export default function InvoicesList() {
                     ) : null}
                   </span>
                 </TableCell>
-                <TableCell>{formatDay(r.issuedAt)}</TableCell>
+                <TableCell>{formatDay(r.invoiceDate ?? r.issuedAt)}</TableCell>
+                <TableCell>{statusCopy[r.status]}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatPaise(r.taxPaise)}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPaise(r.totalPaise)}

@@ -13,6 +13,6 @@ export default async function OrderPage({ params }: Params) {
   ])
   if (order === undefined) redirect('/select-store')
   if (!order) notFound()
-  const appCards = apps.filter((a) => a.installed && a.admin.orderCard).map((a) => a.id)
+  const appCards = apps.filter((a) => a.installed && a.admin.orderDetailCard).map((a) => a.id)
   return <OrderView order={order} appCards={appCards} />
 }

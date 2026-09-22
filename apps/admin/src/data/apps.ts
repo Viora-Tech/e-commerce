@@ -2,7 +2,9 @@
 export const appsContent = {
   title: 'Apps',
   intro:
-    'Payment gateways, couriers and messaging channels ship as plugins. Install one to use it in this store; its settings then appear under Settings.',
+    'Payment gateways, couriers, messaging channels and apps ship as plugins. Install one to use it in this store; apps with their own screens appear under Apps in the sidebar.',
+  installFirst: 'Install this app from Apps to use it in this store.',
+  openApps: 'Open Apps',
   install: 'Install',
   uninstall: 'Uninstall',
   installed: 'Installed',

@@ -1,10 +1,7 @@
 'use client'
 
 import { type DocumentKind, type InvoiceSettings, InvoiceSettingsSchema } from '@commerce/invoices'
-import { FileText } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
@@ -123,16 +120,7 @@ export default function SettingsEditor() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        actions={
-          <Button variant="outline" render={<Link href="/orders/invoices" />}>
-            <FileText />
-            {copy.invoicesLink}
-          </Button>
-        }
-      />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       <SplitPane
         label={copy.previewOf}
         left={

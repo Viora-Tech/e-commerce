@@ -19,7 +19,8 @@ import {
 } from '@commerce/ui/shadcn/sidebar'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { NAV_GROUPS, navigationContent, SETTINGS_NAV } from '@/data/navigation'
+import { appIcon } from '@/apps/registry'
+import { APPS_GROUP, NAV_GROUPS, navigationContent, SETTINGS_NAV } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
 import NavGroupBlock from './nav-group-block'
 
@@ -30,6 +31,7 @@ type AdminSidebarProps = {
   stores: StoreOption[]
   activeStoreId: string | null
   storefrontUrl: string
+  apps: { id: string; name: string; icon: string | null }[]
 }
 
 function initials(name: string): string {
@@ -48,6 +50,7 @@ export default function AdminSidebar({
   stores,
   activeStoreId,
   storefrontUrl,
+  apps,
 }: AdminSidebarProps) {
   // Hooks
   const pathname = usePathname()
@@ -68,6 +71,11 @@ export default function AdminSidebar({
 
   // Render logic
   const active = stores.find((s) => s.id === activeStoreId) ?? null
+  const appItems = apps.map((a) => ({
+    href: `/apps/${a.id}`,
+    label: a.name,
+    icon: appIcon(a.icon),
+  }))
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 shadow-rail">
@@ -121,7 +129,7 @@ export default function AdminSidebar({
           <NavGroupBlock
             key={group.label ?? gi}
             label={group.label}
-            items={group.items}
+            items={group.label === APPS_GROUP ? [...group.items, ...appItems] : group.items}
             pathname={pathname}
           />
         ))}

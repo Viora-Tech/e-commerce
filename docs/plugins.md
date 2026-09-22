@@ -212,8 +212,9 @@ that installed the app from Admin → Apps.
 | `orderLinks` | Links on the shopper's order page and in order emails (`ctx.surface` says which). Failures are swallowed. |
 | `emailAttachments` | Files attached to one order email (`{ orderId, template }`). A failure fails the notification job so it retries. SES sends them; other channels ignore them. |
 | `productFields` | Variant fields the product form shows when installed. Keys are platform columns (`hsCode`, `gstRatePercent`), so apps never alter core tables. |
-| `admin.settingsPage` | Adds `/settings/apps/<pluginId>` and a Settings tab. |
-| `admin.orderCard` | Adds a card to the order detail page. |
+| `admin.icon` | Icon name (from the admin icon set) for the sidebar entry and the app header. |
+| `admin.pages[]` | `{ path, title, navLabel?, icon? }`. Each page renders at `/apps/<pluginId>/<path>` inside the admin shell with the app header (icon and name) and tabs for every page that has a `navLabel`. `path: ''` is the app root, which the sidebar links to. Dynamic segments use `[name]`, e.g. `invoices/[id]`. |
+| `admin.orderDetailCard` | Adds a card to the order detail page. |
 
 Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
 the store's RLS), `storage()` (the store's provider, now with server-side
@@ -221,11 +222,16 @@ the store's RLS), `storage()` (the store's provider, now with server-side
 store's channels), `settingsSecret` (for signing links), `storefrontUrl` and
 `log`.
 
-**Admin components.** The manifest only *declares* admin contributions, so
-server code never imports React. The components are registered in
-`apps/admin/src/apps/registry.tsx`, keyed by plugin id, and are rendered by
-the settings and order routes only when the store has the app installed. They
-live in the admin app because they use the admin kit and API client.
+**Admin placement (Shopify model).** Installed apps never mount inside
+Settings. Each installed app with pages gets an entry under **Apps** in the
+sidebar (its icon and name, linking to its root page) and owns everything
+under `/apps/<pluginId>/...`; the `/apps` page stays the install and manage
+list. The manifest only *declares* pages and the order card, so server code
+never imports React. The components are registered in
+`apps/admin/src/apps/registry.ts` (`ADMIN_APPS[pluginId].pages[path]` and
+`.OrderCard`), keyed by the manifest page path, and each page receives its
+dynamic segments as `params`. They live in the admin app because they use the
+admin kit and API client.
 
 **API.** App procedures live in `packages/api/src/routers/<app>.ts` and call
 the plugin's `./server` entry, behind `can()` and an installed check. The API

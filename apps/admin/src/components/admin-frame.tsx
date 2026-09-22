@@ -17,6 +17,8 @@ type AdminFrameProps = {
   stores: StoreOption[]
   activeStoreId: string | null
   storefrontUrl: string
+  /** Installed apps with their own pages, listed under Apps in the sidebar. */
+  apps: { id: string; name: string; icon: string | null }[]
 }
 
 const SIDEBAR_WIDTH = '15rem'
@@ -28,6 +30,7 @@ export default function AdminFrame({
   stores,
   activeStoreId,
   storefrontUrl,
+  apps,
 }: AdminFrameProps) {
   // Hooks
   const pathname = usePathname()
@@ -49,6 +52,7 @@ export default function AdminFrame({
         stores={stores}
         activeStoreId={activeStoreId}
         storefrontUrl={storefrontUrl}
+        apps={apps}
       />
       <SidebarInset className="min-h-0 overflow-hidden">
         <TopBar

@@ -20,10 +20,14 @@ type OrderCardProps = { orderId: string }
 type Data = Awaited<ReturnType<typeof api.gstInvoices.forOrder>>
 
 const copy = gstInvoicesContent.orderCard
+const APP = '/apps/gst-invoices'
 
 const cleanGstin = (v: string) => (v.trim() ? v.trim().toUpperCase() : null)
 
-/** GST documents on the order page: issue, download, regenerate, credit notes for refunds. */
+/**
+ * GST documents on the order page: queue the order for invoicing, download
+ * what was issued, add a buyer GSTIN, credit notes for refunds, slips.
+ */
 export default function OrderCard({ orderId }: OrderCardProps) {
   // Hooks
   const [data, setData] = useState<Data | null>(null)
@@ -39,11 +43,12 @@ export default function OrderCard({ orderId }: OrderCardProps) {
 
   // Helpers
   const reload = async () => setData(await api.gstInvoices.forOrder({ orderId }))
-  const run = async (key: string, fn: () => Promise<unknown>) => {
+  const run = async (key: string, fn: () => Promise<unknown>, done?: string) => {
     setBusy(key)
     try {
       await fn()
       await reload()
+      if (done) toast.success(done)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
@@ -52,11 +57,10 @@ export default function OrderCard({ orderId }: OrderCardProps) {
   }
 
   // Event handlers
-  const handleIssue = (kind: 'tax_invoice' | 'packing_slip' | 'order_confirmation') =>
-    run(kind, async () => {
-      const r = await api.gstInvoices.issue({ orderId, kind, buyerGstin: cleanGstin(gstin) })
-      toast.success(copy.issued(r?.number ?? copy.kinds[kind]))
-    })
+  const handleQueue = () =>
+    run('queue', () => api.gstInvoices.queue.add({ orderIds: [orderId] }), copy.queued)
+  const handleSlip = (kind: 'packing_slip' | 'order_confirmation') =>
+    run(kind, () => api.gstInvoices.issue({ orderId, kind }))
   const handleDownload = (id: string) =>
     run(`dl-${id}`, async () => saveFile(await api.gstInvoices.download({ id })))
   const handleRegenerate = (id: string) =>
@@ -68,27 +72,26 @@ export default function OrderCard({ orderId }: OrderCardProps) {
   if (!data) return null
 
   // Render logic
-  const invoice = data.documents.find((d) => d.kind === 'tax_invoice')
+  const invoice = data.documents.find((d) => d.kind === 'tax_invoice' && d.status !== 'cancelled')
   const credited = new Set(data.documents.map((d) => d.refundId).filter(Boolean))
   const openRefunds =
-    invoice && data.enabled.credit_note ? data.refunds.filter((r) => !credited.has(r.id)) : []
+    invoice?.status === 'issued' && data.enabled.credit_note
+      ? data.refunds.filter((r) => !credited.has(r.id))
+      : []
   const buyerGstin = cleanGstin(gstin)
   const gstinBad = buyerGstin !== null && !validateGstin(buyerGstin).ok
-  const missing = (['tax_invoice', 'packing_slip', 'order_confirmation'] as const).filter(
+  const editable = invoice && (invoice.status === 'draft' || !invoice.reportedPeriod)
+  const slips = (['packing_slip', 'order_confirmation'] as const).filter(
     (k) => data.enabled[k] && !data.documents.some((d) => d.kind === k),
   )
-  const issueLabel = {
-    tax_invoice: copy.issue,
-    packing_slip: copy.issueSlip,
-    order_confirmation: copy.issueConfirmation,
-  }
+  const issued = data.documents.filter((d) => d.status !== 'draft')
 
   return (
     <DataCard
       title={copy.title}
       action={
         <Link
-          href="/settings/apps/gst-invoices"
+          href={`${APP}/settings`}
           className="text-caption text-muted-foreground hover:text-foreground"
         >
           {copy.settings}
@@ -96,33 +99,48 @@ export default function OrderCard({ orderId }: OrderCardProps) {
       }
     >
       <div className="flex flex-col gap-3">
-        {data.documents.length === 0 ? (
+        {issued.length === 0 && !invoice ? (
           <p className="text-body text-muted-foreground">{copy.empty}</p>
         ) : null}
-        {data.documents.map((d) => (
+        {invoice?.status === 'draft' ? (
+          <div className="flex items-center justify-between gap-3 rounded-[0.5rem] bg-secondary p-2.5">
+            <span className="text-body">{copy.statuses.draft}</span>
+            <Link href={APP} className="text-caption font-medium hover:underline">
+              {copy.openQueue}
+            </Link>
+          </div>
+        ) : null}
+        {issued.map((d) => (
           <div
             key={d.id}
             className="flex items-center gap-3 rounded-[0.5rem] border border-border p-2.5"
           >
             <FileText className="size-4 shrink-0 text-muted-foreground" />
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-body font-medium">
+              <Link
+                href={`${APP}/invoices/${d.id}`}
+                className="truncate text-body font-medium hover:underline"
+              >
                 {d.number ?? copy.kinds[d.kind]}
-              </span>
+              </Link>
               <span className="text-caption text-muted-foreground">
-                {copy.kinds[d.kind]}, {formatDay(d.issuedAt)}, {formatPaise(d.totalPaise)}
+                {copy.kinds[d.kind]}, {formatDay(d.invoiceDate ?? d.issuedAt)},{' '}
+                {formatPaise(d.totalPaise)}
+                {d.status === 'cancelled' ? `, ${copy.statuses.cancelled}` : ''}
                 {d.pdfStatus === 'failed' ? `, ${copy.pdfFailed}` : ''}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={copy.regenerate}
-              disabled={busy !== null}
-              onClick={() => handleRegenerate(d.id)}
-            >
-              <RefreshCw />
-            </Button>
+            {d.kind === 'tax_invoice' && d.status === 'issued' && !d.reportedPeriod ? (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={copy.regenerate}
+                disabled={busy !== null}
+                onClick={() => handleRegenerate(d.id)}
+              >
+                <RefreshCw />
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               size="sm"
@@ -149,35 +167,53 @@ export default function OrderCard({ orderId }: OrderCardProps) {
             </Button>
           </div>
         ))}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`buyer-gstin-${orderId}`} className="text-caption">
-            {copy.buyerGstin}
-          </Label>
-          <Input
-            id={`buyer-gstin-${orderId}`}
-            value={gstin}
-            maxLength={15}
-            aria-invalid={gstinBad || undefined}
-            onChange={(e) => setGstin(e.target.value.toUpperCase())}
-            placeholder="27AAPFU0939F1ZV"
-          />
-          <span className="text-caption text-muted-foreground">{copy.buyerGstinHelp}</span>
-        </div>
-        {missing.length ? (
-          <div className="flex flex-wrap gap-2">
-            {missing.map((k) => (
+        {openRefunds.length && invoice?.buyerGstin ? (
+          <p className="text-caption text-muted-foreground">{copy.b2bNotice}</p>
+        ) : null}
+        {editable ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`buyer-gstin-${orderId}`} className="text-caption">
+              {copy.buyerGstin}
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id={`buyer-gstin-${orderId}`}
+                value={gstin}
+                maxLength={15}
+                aria-invalid={gstinBad || undefined}
+                onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                placeholder="27AAPFU0939F1ZV"
+              />
               <Button
-                key={k}
+                variant="outline"
                 size="sm"
-                variant={k === 'tax_invoice' ? 'default' : 'outline'}
                 disabled={busy !== null || gstinBad}
-                onClick={() => handleIssue(k)}
+                onClick={() => handleRegenerate(invoice.id)}
               >
-                {issueLabel[k]}
+                {copy.saveGstin}
               </Button>
-            ))}
+            </div>
+            <span className="text-caption text-muted-foreground">{copy.buyerGstinHelp}</span>
           </div>
         ) : null}
+        <div className="flex flex-wrap gap-2">
+          {!invoice && data.enabled.tax_invoice ? (
+            <Button size="sm" disabled={busy !== null} onClick={handleQueue}>
+              {copy.queue}
+            </Button>
+          ) : null}
+          {slips.map((k) => (
+            <Button
+              key={k}
+              size="sm"
+              variant="outline"
+              disabled={busy !== null}
+              onClick={() => handleSlip(k)}
+            >
+              {k === 'packing_slip' ? copy.issueSlip : copy.issueConfirmation}
+            </Button>
+          ))}
+        </div>
       </div>
     </DataCard>
   )
