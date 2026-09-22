@@ -295,6 +295,13 @@
       "when": 1790110040389,
       "tag": "0041_themes_and_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790110512583,
+      "tag": "0042_gst_invoices",
+      "breakpoints": true
     }
   ]
 }
