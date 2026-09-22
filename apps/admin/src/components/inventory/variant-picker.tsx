@@ -24,7 +24,10 @@ export function variantLabel(hit: { productTitle: string; variantTitle: string }
     : hit.productTitle
 }
 
-/** Search box that lists matching variants to add to a purchase order or transfer. */
+/**
+ * Search box for purchase order and transfer lines. Matches list inline under
+ * the field because form cards clip overflow.
+ */
 export default function VariantPicker({
   placeholder,
   locationId,
@@ -65,7 +68,7 @@ export default function VariantPicker({
   const unpicked = results.filter((r) => !pickedIds.includes(r.variantId))
 
   return (
-    <div className="relative">
+    <div>
       <KitSearch
         size="toolbar"
         className="w-full"
@@ -76,7 +79,7 @@ export default function VariantPicker({
         onChange={(e) => setSearch(e.target.value)}
       />
       {unpicked.length > 0 ? (
-        <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-line bg-card shadow-popover">
+        <ul className="mt-1 w-full overflow-hidden rounded-lg border border-line bg-card">
           {unpicked.map((r) => (
             <li key={r.variantId}>
               <button
