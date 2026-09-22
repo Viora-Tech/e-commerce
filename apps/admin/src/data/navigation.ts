@@ -43,6 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
         permission: permissions.ORDERS_READ,
         children: [
           { href: '/orders/drafts', label: 'Drafts', permission: permissions.DRAFTS_READ },
+          { href: '/orders/invoices', label: 'Invoices', permission: permissions.ORDERS_READ },
           {
             href: '/orders/abandoned-checkouts',
             label: 'Abandoned checkouts',

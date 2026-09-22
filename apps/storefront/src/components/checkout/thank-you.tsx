@@ -8,6 +8,8 @@ type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
   lines: (typeof orderLine.$inferSelect)[]
   payment: typeof payment.$inferSelect | undefined
+  /** Links from installed apps, e.g. a signed invoice download. */
+  links?: { label: string; url: string }[]
 }
 
 /** "+₹49.00" / "−₹99.98" for the fee or discount row. */
@@ -26,7 +28,12 @@ function statusLine(
   return content.status.paid(total)
 }
 
-export default function ThankYouTemplate({ order: o, lines, payment: pay }: ThankYouTemplateProps) {
+export default function ThankYouTemplate({
+  order: o,
+  lines,
+  payment: pay,
+  links = [],
+}: ThankYouTemplateProps) {
   const awaiting = o.paymentMethod !== 'cod' && pay?.status === 'pending'
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
@@ -69,6 +76,11 @@ export default function ThankYouTemplate({ order: o, lines, payment: pay }: Than
             <span>{total}</span>
           </li>
         </ul>
+        {links.map((l) => (
+          <a key={l.url} href={l.url} className="btn btn--secondary">
+            {l.label}
+          </a>
+        ))}
         {awaiting && session?.kind === 'client' ? (
           <a href={`/checkout/pay/${o.number}`} className="btn btn--primary">
             {content.payNow}

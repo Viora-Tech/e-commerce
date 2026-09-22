@@ -6,6 +6,7 @@ function under(pathname: string, prefix: string): boolean {
 const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/orders', 'Orders'],
   ['/orders/drafts', 'Draft orders'],
+  ['/orders/invoices', 'Invoices'],
   ['/orders/abandoned-checkouts', 'Abandoned checkouts'],
   ['/products', 'Products'],
   ['/products/collections', 'Collections'],

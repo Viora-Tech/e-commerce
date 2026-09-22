@@ -1,10 +1,6 @@
-import { FileText } from '@commerce/ui/icons'
-import type { Metadata } from 'next'
-import SettingsEmpty from '@/components/settings/settings-empty'
-import { settingsContent } from '@/data/settings'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = { title: 'Invoices' }
-
+/** Old address of the invoices settings; the GST invoices app owns them now. */
 export default function Page() {
-  return <SettingsEmpty {...settingsContent.invoices} icon={FileText} />
+  redirect('/settings/apps/gst-invoices')
 }

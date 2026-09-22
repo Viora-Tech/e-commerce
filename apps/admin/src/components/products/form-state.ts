@@ -29,6 +29,8 @@ export type VariantRow = {
   weight: string
   hsCode: string
   countryOfOrigin: string
+  /** Blank uses the store rate. */
+  gstRate: string
   mediaId: string | null
 }
 
@@ -75,6 +77,7 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     weight: template?.weight ?? '',
     hsCode: template?.hsCode ?? '',
     countryOfOrigin: template?.countryOfOrigin ?? '',
+    gstRate: template?.gstRate ?? '',
     mediaId: null,
   }
 }
@@ -135,6 +138,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       weight: v.weightGrams == null ? '' : String(v.weightGrams),
       hsCode: v.hsCode ?? '',
       countryOfOrigin: v.countryOfOrigin ?? '',
+      gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
       mediaId: v.mediaId,
     })),
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
@@ -222,6 +226,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
       weightGrams: intOrNull(v.weight),
       hsCode: v.hsCode.trim() || null,
       countryOfOrigin: v.countryOfOrigin.trim() || null,
+      gstRatePercent: v.gstRate.trim() === '' ? null : Number(v.gstRate),
       onHand: v.trackInventory ? (intOrNull(v.quantity) ?? 0) : undefined,
       mediaId: v.mediaId,
     })),

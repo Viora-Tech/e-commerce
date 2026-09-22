@@ -62,7 +62,8 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     icon: Globe,
   },
   {
-    href: '/settings/invoices',
+    // Served by the GST invoices app; the route explains how to install it.
+    href: '/settings/apps/gst-invoices',
     title: 'Invoices',
     body: 'GST details, invoice numbering and the PDF your customers receive.',
     icon: FileText,
