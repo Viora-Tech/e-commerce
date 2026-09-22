@@ -1,13 +1,15 @@
 import { allocatePaise, type GstRateRow, sameState, splitByRate } from '@commerce/core/gst'
-import type {
-  DocumentKind,
-  DocumentLine,
-  DocumentSnapshot,
-  DocumentTotals,
-  HsnRow,
-  Party,
-  Place,
-  TaxRow,
+import {
+  type DocumentKind,
+  type DocumentLine,
+  type DocumentSnapshot,
+  type DocumentTotals,
+  type ExportSupply,
+  type HsnRow,
+  OUTSIDE_INDIA,
+  type Party,
+  type Place,
+  type TaxRow,
 } from './snapshot'
 import { amountInWords } from './words'
 
@@ -53,6 +55,8 @@ export type BuildDocumentInput = {
   hsnDigits: 4 | 6 | 8
   /** Store default rate, for lines on orders placed before rates were recorded. */
   fallbackRatePercent: number
+  /** Goods shipped outside India: zero-rated, place of supply 96 (Other Country). */
+  exportSupply?: ExportSupply | null | undefined
 }
 
 type Recorded = {
@@ -120,11 +124,16 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
     totalPaise: order.totalPaise,
     reductionPaise: reduction,
   })
+  const exp = input.exportSupply ?? null
   const interState =
-    recorded?.interState ??
-    !sameState(input.placeOfSupply?.code ?? null, input.seller.state?.code ?? null)
+    exp !== null ||
+    (recorded?.interState ??
+      !sameState(input.placeOfSupply?.code ?? null, input.seller.state?.code ?? null))
 
-  const groups = groupsFor(split.rates, split.amounts, recorded, interState, order.totalPaise)
+  // Under LUT the whole amount is the taxable value and no IGST is charged.
+  const groups = groupsFor(split.rates, split.amounts, recorded, interState, order.totalPaise).map(
+    (g) => (exp?.mode === 'lut' ? { ...g, taxPaise: 0, sgstPaise: 0 } : g),
+  )
 
   const principalIndex = goods.findIndex((l) => rateOf(l) === split.principalRate)
   const principalHsn = hsnFor(goods[principalIndex]?.hsn ?? null, input.defaultHsn, input.hsnDigits)
@@ -227,9 +236,10 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
     seller: input.seller,
     buyer: input.buyer,
     shipTo: input.shipTo,
-    placeOfSupply: input.placeOfSupply,
+    placeOfSupply: exp ? { ...OUTSIDE_INDIA } : input.placeOfSupply,
     interState,
     reverseCharge: false,
+    exportSupply: exp,
     lines,
     taxSummary: summariseByRate(lines),
     hsnSummary: summariseByHsn(lines),
@@ -363,7 +373,7 @@ function partialCreditLines(invoice: DocumentSnapshot, refund: number): Document
   for (const rate of rates) {
     const members = lines.filter((l) => l.ratePercent === rate)
     const amount = members.reduce((a, l) => a + l.totalPaise, 0)
-    const tax = inclusiveTax(amount, rate)
+    const tax = invoice.exportSupply?.mode === 'lut' ? 0 : inclusiveTax(amount, rate)
     applyTax(members, tax, invoice.interState ? 0 : Math.floor(tax / 2), invoice.interState)
   }
   return lines.filter((l) => l.totalPaise > 0)
@@ -429,4 +439,63 @@ export function summariseByHsn(lines: readonly DocumentLine[]): HsnRow[] {
   return [...rows.values()].sort(
     (a, b) => a.hsn.localeCompare(b.hsn) || a.ratePercent - b.ratePercent,
   )
+}
+
+export type VoucherInput = {
+  /** The order as a document (any kind); only its parties and order block are kept. */
+  base: DocumentSnapshot
+  kind: 'receipt_voucher' | 'refund_voucher'
+  number: string
+  issuedAt: Date
+  amountPaise: number
+  /** For a refund voucher, the receipt voucher it returns money against. */
+  original?: { number: string; issuedAt: string } | undefined
+  reason?: string | null | undefined
+}
+
+/**
+ * Receipt voucher (rule 50) for an advance on goods, or refund voucher
+ * (rule 51) returning it. GST on goods is due at supply, not on advances
+ * (Notification 66/2017-Central Tax), so both carry no tax: one line for the
+ * amount, rate 0.
+ */
+export function buildVoucher(input: VoucherInput): DocumentSnapshot {
+  const hsn = input.base.lines.find((l) => !l.charge)?.hsn ?? ''
+  const line: DocumentLine = {
+    description:
+      input.kind === 'receipt_voucher'
+        ? `Advance received for order ${input.base.order.name}`
+        : `Advance refunded for order ${input.base.order.name}`,
+    sku: null,
+    hsn,
+    quantity: 1,
+    unit: 'NOS',
+    unitPricePaise: input.amountPaise,
+    grossPaise: input.amountPaise,
+    discountPaise: 0,
+    taxablePaise: input.amountPaise,
+    ratePercent: 0,
+    cgstPaise: 0,
+    sgstPaise: 0,
+    igstPaise: 0,
+    totalPaise: input.amountPaise,
+    charge: false,
+  }
+  const lines = [line]
+  const totals = totalsOf(lines)
+  return {
+    ...input.base,
+    kind: input.kind,
+    number: input.number,
+    issuedAt: input.issuedAt.toISOString(),
+    order: { ...input.base.order, collectPaise: 0 },
+    original: input.original ?? null,
+    reason: input.reason ?? null,
+    lines,
+    taxSummary: [],
+    hsnSummary: summariseByHsn(lines),
+    totals,
+    amountInWords: amountInWords(totals.totalPaise),
+    einvoice: null,
+  }
 }

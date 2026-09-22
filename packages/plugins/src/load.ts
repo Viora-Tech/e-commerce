@@ -132,13 +132,9 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
         hooks: Object.keys(p.hooks ?? {}) as AppEvent[],
         productFields: p.productFields ?? [],
         admin: {
-          settingsPage: p.admin?.settingsPage
-            ? {
-                label: p.admin.settingsPage.label,
-                description: p.admin.settingsPage.description ?? null,
-              }
-            : null,
-          orderCard: p.admin?.orderCard === true,
+          icon: p.admin?.icon ?? null,
+          pages: (p.admin?.pages ?? []).map((page) => ({ ...page })),
+          orderDetailCard: p.admin?.orderDetailCard === true,
         },
         provides: {
           payments: (p.provides.payments ?? []).map((f) => ({ id: f.id, label: f.label })),

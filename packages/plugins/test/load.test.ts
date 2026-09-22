@@ -153,7 +153,11 @@ describe('loadPlugins', () => {
       emailAttachments: async () => [
         { filename: 'a.pdf', contentType: 'application/pdf', content: new Uint8Array([1]) },
       ],
-      admin: { settingsPage: { label: 'GST invoices' }, orderCard: true },
+      admin: {
+        icon: 'FileText',
+        pages: [{ path: '', title: 'Invoice queue', navLabel: 'Queue' }],
+        orderDetailCard: true,
+      },
     })
     const loaded = loadPlugins([core, razorpay, invoices])
     expect(loaded.hooksFor('order.paid', [])).toEqual([])
@@ -189,7 +193,11 @@ describe('loadPlugins', () => {
     expect(summary).toMatchObject({
       category: 'invoicing',
       hooks: ['order.paid'],
-      admin: { settingsPage: { label: 'GST invoices', description: null }, orderCard: true },
+      admin: {
+        icon: 'FileText',
+        pages: [{ path: '', title: 'Invoice queue', navLabel: 'Queue' }],
+        orderDetailCard: true,
+      },
     })
   })
 })

@@ -65,6 +65,11 @@ export default function CompactTemplate(props: TemplateProps & { fontFamily: str
             {view.title}
           </Text>
         </View>
+        {view.endorsement ? (
+          <Text style={{ marginTop: 4, textAlign: 'center', fontWeight: 700 }}>
+            {view.endorsement}
+          </Text>
+        ) : null}
         <Dashed />
         {view.meta.map((m) => (
           <View key={m.label} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

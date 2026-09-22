@@ -1,4 +1,4 @@
-import { media, refund, type StoreTx, store } from '@commerce/db'
+import { media, order, refund, type StoreTx, store } from '@commerce/db'
 import { invoiceBatch } from '@commerce/plugin-gst-invoices/server'
 import { eq, inArray } from 'drizzle-orm'
 
@@ -41,4 +41,15 @@ export async function createEmailBatch(tx: StoreTx, storeId: string, total: numb
 export async function emailBatch(tx: StoreTx, id: string) {
   const [b] = await tx.select().from(invoiceBatch).where(eq(invoiceBatch.id, id))
   return b ?? null
+}
+
+/** Order ids for the order numbers a merchant typed, and the numbers that matched nothing. */
+export async function orderIdsByNumber(tx: StoreTx, numbers: readonly number[]) {
+  if (numbers.length === 0) return { ids: [] as string[], missing: [] as number[] }
+  const rows = await tx
+    .select({ id: order.id, number: order.number })
+    .from(order)
+    .where(inArray(order.number, [...numbers]))
+  const found = new Set(rows.map((r) => r.number))
+  return { ids: rows.map((r) => r.id), missing: numbers.filter((n) => !found.has(n)) }
 }

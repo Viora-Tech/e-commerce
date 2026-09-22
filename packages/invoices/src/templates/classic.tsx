@@ -54,6 +54,11 @@ export default function ClassicTemplate(props: TemplateProps & { fontFamily: str
           </View>
         </View>
 
+        {view.endorsement ? (
+          <Text style={{ marginTop: 6, fontSize: 7.5, fontWeight: 700, color: view.accent }}>
+            {view.endorsement}
+          </Text>
+        ) : null}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
           <View style={{ gap: 2 }}>
             {view.meta.map((m) => (

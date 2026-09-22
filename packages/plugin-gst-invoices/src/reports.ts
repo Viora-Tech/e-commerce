@@ -6,12 +6,20 @@ import {
   gstr1CreditNote,
   gstr1Invoice,
 } from '@commerce/invoices'
-import { and, desc, eq, gte, ilike, inArray, lt, or, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL } from 'drizzle-orm'
 import { invoice } from './schema'
 
 export type ListFilter = {
   q?: string | undefined
-  kind?: 'tax_invoice' | 'credit_note' | 'packing_slip' | 'order_confirmation' | undefined
+  kind?:
+    | 'tax_invoice'
+    | 'credit_note'
+    | 'packing_slip'
+    | 'order_confirmation'
+    | 'receipt_voucher'
+    | 'refund_voucher'
+    | undefined
+  status?: 'issued' | 'cancelled' | undefined
   /** Inclusive start and exclusive end, as instants. */
   from?: Date | undefined
   to?: Date | undefined
@@ -19,10 +27,13 @@ export type ListFilter = {
 
 function where(filter: ListFilter): SQL | undefined {
   const q = filter.q?.trim()
+  // Drafts live in the queue, not in the issued list.
   return and(
+    ne(invoice.status, 'draft'),
     filter.kind ? eq(invoice.kind, filter.kind) : undefined,
-    filter.from ? gte(invoice.issuedAt, filter.from) : undefined,
-    filter.to ? lt(invoice.issuedAt, filter.to) : undefined,
+    filter.status ? eq(invoice.status, filter.status) : undefined,
+    filter.from ? gte(invoice.invoiceDate, filter.from) : undefined,
+    filter.to ? lt(invoice.invoiceDate, filter.to) : undefined,
     q
       ? or(
           ilike(invoice.number, `%${q}%`),
@@ -50,12 +61,15 @@ export async function listDocuments(
       sgstPaise: invoice.sgstPaise,
       igstPaise: invoice.igstPaise,
       pdfStatus: invoice.pdfStatus,
+      status: invoice.status,
+      reportedPeriod: invoice.reportedPeriod,
       issuedAt: invoice.issuedAt,
+      invoiceDate: invoice.invoiceDate,
       snapshot: invoice.snapshot,
     })
     .from(invoice)
     .where(where(filter))
-    .orderBy(desc(invoice.issuedAt), desc(invoice.id))
+    .orderBy(desc(invoice.invoiceDate), desc(invoice.seq), desc(invoice.id))
     .limit(filter.limit + 1)
     .offset(filter.offset)
   return {
@@ -77,7 +91,7 @@ export async function documentIds(tx: StoreTx, filter: ListFilter, cap = 500): P
     .select({ id: invoice.id })
     .from(invoice)
     .where(where(filter))
-    .orderBy(invoice.issuedAt)
+    .orderBy(invoice.invoiceDate)
     .limit(cap)
   return rows.map((r) => r.id)
 }
@@ -101,20 +115,28 @@ export async function gstr1ForPeriod(tx: StoreTx, from: Date, to: Date): Promise
     .from(invoice)
     .where(
       and(
-        inArray(invoice.kind, ['tax_invoice', 'credit_note']),
-        gte(invoice.issuedAt, from),
-        lt(invoice.issuedAt, to),
+        inArray(invoice.kind, ['tax_invoice', 'credit_note', 'receipt_voucher', 'refund_voucher']),
+        inArray(invoice.status, ['issued', 'cancelled']),
+        gte(invoice.invoiceDate, from),
+        lt(invoice.invoiceDate, to),
       ),
     )
-    .orderBy(invoice.issuedAt)
-  const invoices = inPeriod.filter((r) => r.kind === 'tax_invoice')
-  const notes = inPeriod.filter((r) => r.kind === 'credit_note')
+    .orderBy(invoice.invoiceDate, invoice.seq)
+  const live = inPeriod.filter((r) => r.status === 'issued')
+  const invoices = live.filter((r) => r.kind === 'tax_invoice')
+  const notes = live.filter((r) => r.kind === 'credit_note')
   const orderIds = [...new Set(notes.map((n) => n.orderId))]
   const originals = orderIds.length
     ? await tx
         .select()
         .from(invoice)
-        .where(and(eq(invoice.kind, 'tax_invoice'), inArray(invoice.orderId, orderIds)))
+        .where(
+          and(
+            eq(invoice.kind, 'tax_invoice'),
+            eq(invoice.status, 'issued'),
+            inArray(invoice.orderId, orderIds),
+          ),
+        )
     : []
   const byOrder = new Map(originals.map((o) => [o.orderId, o]))
   const snap = (raw: unknown) => DocumentSnapshotSchema.parse(raw)
@@ -124,5 +146,19 @@ export async function gstr1ForPeriod(tx: StoreTx, from: Date, to: Date): Promise
       const orig = byOrder.get(n.orderId)
       return orig ? [gstr1CreditNote(snap(n.snapshot), snap(orig.snapshot))] : []
     }),
+    // Table 13 counts every number used, cancelled ones included.
+    inPeriod.flatMap((r) =>
+      r.number && r.seq !== null
+        ? [
+            {
+              kind: r.kind as 'tax_invoice' | 'credit_note' | 'receipt_voucher' | 'refund_voucher',
+              series: r.seriesId ?? r.kind,
+              number: r.number,
+              seq: r.seq,
+              cancelled: r.status === 'cancelled',
+            },
+          ]
+        : [],
+    ),
   )
 }

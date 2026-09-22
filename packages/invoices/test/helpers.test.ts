@@ -8,18 +8,22 @@ import {
   code128Values,
   code128Widths,
   defaultInvoiceSettings,
+  EXPORT_ENDORSEMENTS,
   financialYear,
   formatDocumentNumber,
   formatRupees,
+  formatSeriesNumber,
   gstr1Bucket,
   gstr1CreditNote,
   gstr1Invoice,
   InvoiceSettingsSchema,
   indianNumberInWords,
+  isEligible,
   parseInvoiceSettings,
+  pickSeries,
   placeOf,
+  type Series,
   sampleDocument,
-  shouldAutoIssue,
 } from '../src'
 import { buildCreditNote } from '../src/document'
 import { documentLinkPath, signDocumentLink, verifyDocumentLink } from '../src/link'
@@ -72,9 +76,38 @@ describe('settings', () => {
     expect(defaultInvoiceSettings.documents.tax_invoice.fields.hsn).toBe(true)
   })
 
-  it('refuses a prefix that would overflow sixteen characters', () => {
-    const r = InvoiceSettingsSchema.safeParse({ invoicePrefix: 'ABCDEFGHIJ', pad: 5 })
+  it('refuses a series whose numbers would overflow sixteen characters', () => {
+    const series = [...defaultInvoiceSettings.series]
+    series[0] = { ...(series[0] as Series), pattern: 'INVOICE/{FY}/', pad: 5 }
+    const r = InvoiceSettingsSchema.safeParse({ series })
     expect(r.success).toBe(false)
+  })
+
+  it('needs a domestic and an export series for every numbered kind', () => {
+    const r = InvoiceSettingsSchema.safeParse({
+      series: defaultInvoiceSettings.series.filter((x) => x.id !== 'exp'),
+    })
+    expect(r.success).toBe(false)
+  })
+
+  it('picks the series by kind and rule, B2B before domestic when listed first', () => {
+    const series = [
+      {
+        id: 'b2b',
+        name: 'B2B',
+        kind: 'tax_invoice' as const,
+        rule: 'b2b' as const,
+        pattern: 'B2B/{FY}/',
+        pad: 4,
+      },
+      ...defaultInvoiceSettings.series,
+    ]
+    expect(pickSeries(series, 'tax_invoice', { export: false, b2b: true })?.id).toBe('b2b')
+    expect(pickSeries(series, 'tax_invoice', { export: false, b2b: false })?.id).toBe('inv')
+    expect(pickSeries(series, 'tax_invoice', { export: true, b2b: true })?.id).toBe('exp')
+    expect(pickSeries(series, 'credit_note', { export: true, b2b: false })?.id).toBe('ecn')
+    const fy = financialYear(new Date('2026-04-01T00:00:00Z'))
+    expect(formatSeriesNumber(series[2] as Series, fy, 7)).toBe('EXP/26-27/0007')
   })
 
   it('validates the seller GSTIN checksum', () => {
@@ -84,11 +117,13 @@ describe('settings', () => {
     expect(good.success && good.data.seller.gstin).toBe('27AAPFU0939F1ZV')
   })
 
-  it('issues on the configured event only', () => {
-    expect(shouldAutoIssue(defaultInvoiceSettings, 'paid')).toBe(true)
-    expect(shouldAutoIssue(defaultInvoiceSettings, 'fulfilled')).toBe(false)
-    const manual = parseInvoiceSettings({ issueOn: 'manual' })
-    expect(shouldAutoIssue(manual, 'paid')).toBe(false)
+  it('queues on the configured event, and pre-orders only at dispatch', () => {
+    expect(isEligible(defaultInvoiceSettings, 'paid', false)).toBe(true)
+    expect(isEligible(defaultInvoiceSettings, 'paid', true)).toBe(false)
+    expect(isEligible(defaultInvoiceSettings, 'fulfilled', true)).toBe(true)
+    const onShip = parseInvoiceSettings({ issueOn: 'fulfilment' })
+    expect(isEligible(onShip, 'paid', false)).toBe(false)
+    expect(isEligible(parseInvoiceSettings({ issueOn: 'manual' }), 'fulfilled', false)).toBe(false)
   })
 })
 
@@ -199,6 +234,108 @@ describe('GSTR-1', () => {
     expect(out.b2cl.split('\n')[1]).toBe(
       'INV/25-26/0100,01-Jun-2025,200000.00,29-Karnataka,,18,169491.53,0.00,',
     )
+  })
+})
+
+const NL = String.fromCharCode(10)
+
+describe('GSTR-1 Table 13', () => {
+  it('counts issued and cancelled per series, never reusing numbers', () => {
+    const out = buildGstr1(
+      [],
+      [],
+      [
+        { kind: 'tax_invoice', series: 'inv', number: 'INV/26-27/0003', seq: 3, cancelled: false },
+        { kind: 'tax_invoice', series: 'inv', number: 'INV/26-27/0001', seq: 1, cancelled: false },
+        { kind: 'tax_invoice', series: 'inv', number: 'INV/26-27/0002', seq: 2, cancelled: true },
+        { kind: 'tax_invoice', series: 'exp', number: 'EXP/26-27/0001', seq: 1, cancelled: false },
+        { kind: 'credit_note', series: 'cn', number: 'CN/26-27/0001', seq: 1, cancelled: false },
+      ],
+    )
+    expect(out.docs.split(NL)).toEqual([
+      'Nature of Document,Sr. No. From,Sr. No. To,Total Number,Cancelled,Net Issued',
+      'Invoices for outward supply,EXP/26-27/0001,EXP/26-27/0001,1,0,1',
+      'Invoices for outward supply,INV/26-27/0001,INV/26-27/0003,3,1,2',
+      'Credit Note,CN/26-27/0001,CN/26-27/0001,1,0,1',
+    ])
+  })
+})
+
+describe('exports', () => {
+  const now = new Date('2026-09-10T06:00:00Z')
+  const base = sampleDocument(defaultInvoiceSettings, 'tax_invoice', 'Wmr', now)
+  const exportDoc = (mode: 'lut' | 'igst') =>
+    buildDocument({
+      kind: 'tax_invoice',
+      number: 'EXP/26-27/0001',
+      issuedAt: now,
+      order: {
+        id: 'o',
+        number: 7,
+        placedAt: now,
+        paymentMethod: null,
+        collectPaise: 0,
+        shippingPaise: 0,
+        discountPaise: 0,
+        paymentAdjustmentPaise: 0,
+        paymentAdjustmentLabel: null,
+        totalPaise: 1_18_000,
+        taxBreakdown: null,
+      },
+      lines: [
+        {
+          title: 'Kurta',
+          variantTitle: null,
+          sku: null,
+          quantity: 1,
+          unitPricePaise: 1_18_000,
+          hsn: '6205',
+          ratePercent: 18,
+        },
+      ],
+      seller: base.seller,
+      buyer: { ...base.buyer, gstin: null, state: null },
+      shipTo: null,
+      placeOfSupply: null,
+      defaultHsn: '',
+      hsnDigits: 4,
+      fallbackRatePercent: 18,
+      exportSupply: {
+        mode,
+        country: 'AE',
+        countryName: 'United Arab Emirates',
+        lutNumber: mode === 'lut' ? 'AD0604260012345' : null,
+        endorsement: EXPORT_ENDORSEMENTS[mode],
+        portCode: 'INBOM4',
+        shippingBillNumber: '1234567',
+        shippingBillDate: '2026-09-11',
+        currency: 'USD',
+        exchangeRate: 83.5,
+      },
+    })
+
+  it('under LUT charges no IGST and carries the endorsement and place of supply 96', () => {
+    const doc = exportDoc('lut')
+    expect(doc.totals).toMatchObject({ taxPaise: 0, taxablePaise: 1_18_000, totalPaise: 1_18_000 })
+    expect(doc.placeOfSupply).toEqual({ code: 'OT', gstCode: '96', name: 'Outside India' })
+    expect(doc.exportSupply?.endorsement).toBe(
+      'SUPPLY MEANT FOR EXPORT UNDER LETTER OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX',
+    )
+  })
+
+  it('with payment of IGST extracts IGST; both go to Table 6A, not B2C', () => {
+    const paid = exportDoc('igst')
+    expect(paid.totals.igstPaise).toBe(18_000)
+    const out = buildGstr1(
+      [gstr1Invoice(exportDoc('lut')), gstr1Invoice({ ...paid, number: 'EXP/26-27/0002' })],
+      [],
+    )
+    expect(out.exp.split(NL).slice(1)).toEqual([
+      'WOPAY,EXP/26-27/0001,10-Sep-2026,1180.00,INBOM4,1234567,11-Sep-2026,0,1180.00,0.00',
+      'WPAY,EXP/26-27/0002,10-Sep-2026,1180.00,INBOM4,1234567,11-Sep-2026,18,1000.00,0.00',
+    ])
+    expect(out.b2cs.split(NL)).toHaveLength(1)
+    expect(out.b2cl.split(NL)).toHaveLength(1)
   })
 })
 

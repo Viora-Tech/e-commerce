@@ -7,6 +7,15 @@ const TITLES: Record<DocumentKind, string> = {
   credit_note: 'Credit Note',
   packing_slip: 'Packing Slip',
   order_confirmation: 'Order Confirmation',
+  receipt_voucher: 'Receipt Voucher',
+  refund_voucher: 'Refund Voucher',
+}
+
+const NUMBER_LABELS: Partial<Record<DocumentKind, string>> = {
+  tax_invoice: 'Invoice no.',
+  credit_note: 'Credit note no.',
+  receipt_voucher: 'Voucher no.',
+  refund_voucher: 'Voucher no.',
 }
 
 const DEFAULT_LABELS: Record<LabelKey, string> = {
@@ -53,6 +62,8 @@ export type TemplateView = {
   config: DocumentConfig
   /** Printed under the heading: invoice number, dates, order. */
   meta: { label: string; value: string }[]
+  /** Rule 46 export endorsement, printed under the title. */
+  endorsement: string | null
 }
 
 const date = (iso: string) =>
@@ -77,7 +88,7 @@ export function templateView({ doc, settings }: TemplateProps): TemplateView {
     ...(doc.number
       ? [
           {
-            label: doc.kind === 'credit_note' ? 'Credit note no.' : 'Invoice no.',
+            label: NUMBER_LABELS[doc.kind] ?? 'No.',
             value: doc.number,
           },
         ]
@@ -87,7 +98,7 @@ export function templateView({ doc, settings }: TemplateProps): TemplateView {
     ...(doc.original
       ? [
           {
-            label: 'Against invoice',
+            label: doc.kind === 'refund_voucher' ? 'Against receipt voucher' : 'Against invoice',
             value: `${doc.original.number}, ${date(doc.original.issuedAt)}`,
           },
         ]
@@ -101,6 +112,7 @@ export function templateView({ doc, settings }: TemplateProps): TemplateView {
         ]
       : []),
     ...(taxDocument ? [{ label: 'Reverse charge', value: 'No' }] : []),
+    ...exportRows(doc),
     ...(config.fields.paymentMethod && doc.order.paymentMethod
       ? [{ label: 'Payment', value: doc.order.paymentMethod }]
       : []),
@@ -118,7 +130,33 @@ export function templateView({ doc, settings }: TemplateProps): TemplateView {
     lines: doc.kind === 'packing_slip' ? doc.lines.filter((l) => !l.charge) : doc.lines,
     config,
     meta,
+    endorsement: doc.exportSupply?.endorsement ?? null,
   }
+}
+
+/** Destination, LUT, shipping bill and foreign-currency rows for export documents. */
+function exportRows(doc: DocumentSnapshot): { label: string; value: string }[] {
+  const x = doc.exportSupply
+  if (!x) return []
+  const rows = [{ label: 'Destination', value: x.countryName }]
+  if (x.mode === 'lut' && x.lutNumber) rows.push({ label: 'LUT', value: x.lutNumber })
+  if (x.shippingBillNumber) {
+    rows.push({
+      label: 'Shipping bill',
+      value: [
+        x.shippingBillNumber,
+        x.shippingBillDate ? date(x.shippingBillDate) : null,
+        x.portCode,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    })
+  }
+  if (x.currency && x.exchangeRate) {
+    const foreign = (doc.totals.totalPaise / 100 / x.exchangeRate).toFixed(2)
+    rows.push({ label: 'Currency', value: `${x.currency} ${foreign} at ${x.exchangeRate} INR` })
+  }
+  return rows
 }
 
 /** All printable text, so the font stack can add CJK only when it is needed. */

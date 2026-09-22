@@ -302,6 +302,13 @@
       "when": 1790110512583,
       "tag": "0042_gst_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790111665267,
+      "tag": "0043_gst_invoice_queue",
+      "breakpoints": true
     }
   ]
 }

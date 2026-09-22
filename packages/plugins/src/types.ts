@@ -94,15 +94,33 @@ export type ProductField = {
 }
 
 /**
- * What an app adds to the admin. The components themselves are registered in
- * `commerce.admin.ts` (client code), keyed by plugin id; the manifest only
- * declares that they exist so server code never imports React.
+ * One page an installed app adds under `/apps/<pluginId>/<path>`, inside the
+ * normal admin shell with the app's header and tabs.
+ */
+export type AppPage = {
+  /** Relative to the app root: `''` is `/apps/<pluginId>`, `'settings'` is `/apps/<pluginId>/settings`. */
+  path: string
+  title: string
+  /** Tab label in the app's sub-navigation; omit to keep the page out of the tabs (detail pages). */
+  navLabel?: string | undefined
+  /** Icon name from the admin icon set, e.g. `FileText`. */
+  icon?: string | undefined
+}
+
+/**
+ * What an app adds to the admin, Shopify style: its own pages under
+ * `/apps/<pluginId>/...` and an entry in the sidebar's Apps group. Apps never
+ * mount inside Settings. The components are registered in the admin app's
+ * registry (client code), keyed by plugin id; the manifest only declares them
+ * so server code never imports React.
  */
 export type AppAdmin = {
-  /** A settings page at /settings/apps/<pluginId>, listed under Settings when installed. */
-  settingsPage?: { label: string; description?: string | undefined } | undefined
+  /** Sidebar and app-header icon name. */
+  icon?: string | undefined
+  /** The first page is the app's root and the sidebar link. */
+  pages?: AppPage[] | undefined
   /** A card on the order detail page. */
-  orderCard?: boolean | undefined
+  orderDetailCard?: boolean | undefined
 }
 
 export type PluginManifest = {
@@ -142,5 +160,5 @@ export type PluginSummary = {
   /** Lifecycle events the app subscribes to. */
   hooks: AppEvent[]
   productFields: ProductField[]
-  admin: { settingsPage: { label: string; description: string | null } | null; orderCard: boolean }
+  admin: { icon: string | null; pages: AppPage[]; orderDetailCard: boolean }
 }

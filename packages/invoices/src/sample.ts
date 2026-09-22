@@ -1,6 +1,7 @@
 import { buildCreditNote, buildDocument } from './document'
-import { financialYear, formatDocumentNumber } from './numbering'
+import { financialYear } from './numbering'
 import { placeOf, sellerParty } from './parties'
+import { formatSeriesNumber, pickSeries } from './series'
 import type { InvoiceSettings } from './settings'
 import type { DocumentKind, DocumentSnapshot } from './snapshot'
 
@@ -16,15 +17,14 @@ export function sampleDocument(
   now: Date = new Date(),
 ): DocumentSnapshot {
   const fy = financialYear(now)
-  const numberFor = (prefix: string, seq: number) =>
-    formatDocumentNumber({ prefix, fy, seq, pad: settings.pad, includeFy: settings.includeFy })
+  const numberFor = (kind: 'tax_invoice' | 'credit_note', seq: number) => {
+    const series = pickSeries(settings.series, kind, { export: false, b2b: true })
+    return series ? formatSeriesNumber(series, fy, seq) : `${seq}`
+  }
   const buyerPlace = placeOf('MH')
   const invoice = buildDocument({
     kind: kind === 'credit_note' ? 'tax_invoice' : kind,
-    number:
-      kind === 'tax_invoice' || kind === 'credit_note'
-        ? numberFor(settings.invoicePrefix, 42)
-        : null,
+    number: kind === 'tax_invoice' || kind === 'credit_note' ? numberFor('tax_invoice', 42) : null,
     issuedAt: now,
     order: {
       id: '00000000-0000-4000-8000-000000001042',
@@ -89,7 +89,7 @@ export function sampleDocument(
   if (kind !== 'credit_note') return invoice
   return buildCreditNote({
     invoice,
-    number: numberFor(settings.creditNotePrefix, 3),
+    number: numberFor('credit_note', 3),
     issuedAt: now,
     amountPaise: 1_18_200,
     reason: 'Returned: Brass diya set arrived damaged',

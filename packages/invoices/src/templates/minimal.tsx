@@ -50,6 +50,20 @@ export default function MinimalTemplate(props: TemplateProps & { fontFamily: str
           {view.barcode ? <Barcode value={view.barcode} /> : null}
         </View>
 
+        {view.endorsement ? (
+          <Text
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 14,
+              fontSize: 7.5,
+              fontWeight: 600,
+              borderBottomWidth: 0.5,
+              borderColor: RULE,
+            }}
+          >
+            {view.endorsement}
+          </Text>
+        ) : null}
         <View style={{ flexDirection: 'row', borderBottomWidth: 0.5, borderColor: RULE }}>
           <View
             style={{

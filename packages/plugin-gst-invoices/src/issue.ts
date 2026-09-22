@@ -18,17 +18,21 @@ import {
   type DocumentSnapshot,
   DocumentSnapshotSchema,
   defaultInvoiceSettings,
+  EXPORT_ENDORSEMENTS,
+  type ExportSupply,
   financialYear,
-  formatDocumentNumber,
+  formatSeriesNumber,
   type InvoiceSettings,
   InvoiceSettingsSchema,
-  isNumberedKind,
   type NumberedKind,
   parseInvoiceSettings,
+  pickSeries,
   placeOf,
+  type SeriesContext,
   sellerParty,
 } from '@commerce/invoices'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, ne, sql } from 'drizzle-orm'
+import { assertPeriodOpen } from './periods'
 import { invoice, invoiceLine, invoiceSequence, invoiceSettings } from './schema'
 
 export type InvoiceRow = typeof invoice.$inferSelect
@@ -36,7 +40,16 @@ export type InvoiceRow = typeof invoice.$inferSelect
 /** A stored row whose kind the caller did not expect, or an order the store cannot see. */
 export class InvoiceError extends Error {
   constructor(
-    readonly code: 'order_not_found' | 'no_invoice' | 'disabled' | 'not_found' | 'invalid',
+    readonly code:
+      | 'order_not_found'
+      | 'no_invoice'
+      | 'disabled'
+      | 'not_found'
+      | 'invalid'
+      | 'locked'
+      | 'closed'
+      | 'backdated'
+      | 'expired',
     message: string,
   ) {
     super(message)
@@ -101,31 +114,38 @@ export async function takeNumber(
   kind: NumberedKind,
   at: Date,
   settings: InvoiceSettings,
-): Promise<{ number: string; seq: number; fyStartYear: number }> {
+  ctx: SeriesContext,
+): Promise<{ number: string; seq: number; fyStartYear: number; seriesId: string }> {
+  const series = pickSeries(settings.series, kind, ctx)
+  if (!series)
+    throw new InvoiceError('invalid', `No ${kind.replace('_', ' ')} series matches this order`)
   const fy = financialYear(at)
   const [row] = await tx
     .insert(invoiceSequence)
-    .values({ storeId, kind, fyStartYear: fy.startYear, next: 2 })
+    .values({ storeId, kind, seriesId: series.id, fyStartYear: fy.startYear, next: 2 })
     .onConflictDoUpdate({
-      target: [invoiceSequence.storeId, invoiceSequence.kind, invoiceSequence.fyStartYear],
+      target: [invoiceSequence.storeId, invoiceSequence.seriesId, invoiceSequence.fyStartYear],
       set: { next: sql`${invoiceSequence.next} + 1` },
     })
     .returning({ next: invoiceSequence.next })
   if (!row) throw new Error('sequence upsert returned nothing')
   const seq = row.next - 1
-  const prefix = kind === 'credit_note' ? settings.creditNotePrefix : settings.invoicePrefix
-  const number = formatDocumentNumber({
-    prefix,
-    fy,
+  return {
+    number: formatSeriesNumber(series, fy, seq),
     seq,
-    pad: settings.pad,
-    includeFy: settings.includeFy,
-  })
-  return { number, seq, fyStartYear: fy.startYear }
+    fyStartYear: fy.startYear,
+    seriesId: series.id,
+  }
 }
 
+/** Which series rule a document falls under. */
+export const seriesContextOf = (doc: DocumentSnapshot): SeriesContext => ({
+  export: doc.exportSupply !== null,
+  b2b: Boolean(doc.buyer.gstin),
+})
+
 /** Everything about an order a document prints, read inside the store's RLS scope. */
-async function orderSnapshot(
+export async function orderSnapshot(
   tx: StoreTx,
   storeId: string,
   orderId: string,
@@ -134,6 +154,8 @@ async function orderSnapshot(
   issuedAt: Date,
   settings: InvoiceSettings,
   buyerGstin: string | null,
+  /** Shipping bill and currency details already entered on the draft, kept on rebuild. */
+  prior?: ExportSupply | null,
 ): Promise<DocumentSnapshot> {
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new InvoiceError('order_not_found', `order ${orderId} not found`)
@@ -174,7 +196,24 @@ async function orderSnapshot(
     gstin: buyerGstin,
   })
   const cod = o.paymentMethod === 'cod' && o.status !== 'paid'
+  const country = (ship?.country ?? 'IN').toUpperCase()
+  const exportSupply: ExportSupply | null =
+    country === 'IN'
+      ? null
+      : {
+          mode: settings.exportMode,
+          country,
+          countryName: countryName(country),
+          lutNumber: settings.exportMode === 'lut' ? settings.lutNumber || null : null,
+          endorsement: EXPORT_ENDORSEMENTS[settings.exportMode],
+          portCode: prior?.portCode ?? null,
+          shippingBillNumber: prior?.shippingBillNumber ?? null,
+          shippingBillDate: prior?.shippingBillDate ?? null,
+          currency: prior?.currency ?? null,
+          exchangeRate: prior?.exchangeRate ?? null,
+        }
   return buildDocument({
+    exportSupply,
     kind,
     number,
     issuedAt,
@@ -212,6 +251,14 @@ async function orderSnapshot(
   })
 }
 
+const countryName = (code: string) => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
 const PAYMENT_LABELS: Record<string, string> = {
   cod: 'Cash on delivery',
   manual: 'UPI or bank transfer',
@@ -219,11 +266,20 @@ const PAYMENT_LABELS: Record<string, string> = {
 }
 const paymentLabel = (id: string | null) => (id ? (PAYMENT_LABELS[id] ?? id) : null)
 
-async function insertDocument(
+export async function insertDocument(
   tx: StoreTx,
   storeId: string,
   doc: DocumentSnapshot,
-  extra: { refundId?: string | null; seq?: number | null; fyStartYear?: number | null },
+  extra: {
+    refundId?: string | null
+    seq?: number | null
+    fyStartYear?: number | null
+    status?: InvoiceRow['status']
+    seriesId?: string | null
+    invoiceDate?: Date | null
+    eligibleAt?: Date | null
+    dispatchedAt?: Date | null
+  },
 ): Promise<InvoiceRow | null> {
   const [row] = await tx
     .insert(invoice)
@@ -235,6 +291,11 @@ async function insertDocument(
       number: doc.number,
       seq: extra.seq ?? null,
       fyStartYear: extra.fyStartYear ?? null,
+      seriesId: extra.seriesId ?? null,
+      status: extra.status ?? 'issued',
+      invoiceDate: extra.invoiceDate ?? (extra.status === 'draft' ? null : new Date(doc.issuedAt)),
+      eligibleAt: extra.eligibleAt ?? null,
+      dispatchedAt: extra.dispatchedAt ?? null,
       snapshot: doc,
       ...totalsColumns(doc),
       issuedAt: new Date(doc.issuedAt),
@@ -246,7 +307,7 @@ async function insertDocument(
   return row
 }
 
-function totalsColumns(doc: DocumentSnapshot) {
+export function totalsColumns(doc: DocumentSnapshot) {
   return {
     buyerName: doc.buyer.name,
     buyerGstin: doc.buyer.gstin,
@@ -259,7 +320,12 @@ function totalsColumns(doc: DocumentSnapshot) {
   }
 }
 
-async function writeLines(tx: StoreTx, storeId: string, invoiceId: string, doc: DocumentSnapshot) {
+export async function writeLines(
+  tx: StoreTx,
+  storeId: string,
+  invoiceId: string,
+  doc: DocumentSnapshot,
+) {
   await tx.delete(invoiceLine).where(eq(invoiceLine.invoiceId, invoiceId))
   if (doc.lines.length === 0) return
   await tx.insert(invoiceLine).values(
@@ -284,24 +350,27 @@ async function writeLines(tx: StoreTx, storeId: string, invoiceId: string, doc: 
   )
 }
 
-async function existing(tx: StoreTx, orderId: string, kind: DocumentKind) {
+/** The order's live (draft or issued, never cancelled) document of a kind. */
+export async function existing(tx: StoreTx, orderId: string, kind: DocumentKind) {
   const [row] = await tx
     .select()
     .from(invoice)
-    .where(and(eq(invoice.orderId, orderId), eq(invoice.kind, kind)))
+    .where(
+      and(eq(invoice.orderId, orderId), eq(invoice.kind, kind), ne(invoice.status, 'cancelled')),
+    )
   return row ?? null
 }
 
 /**
- * Issue an order's tax invoice, packing slip or confirmation, or return the
- * one already issued: idempotent on (order, kind), so a retried hook or a
- * double click never makes a second document or burns a number.
+ * Issue an order's packing slip or order confirmation, or return the one
+ * already issued: idempotent on (order, kind). These carry no GST number, so
+ * they skip the invoice queue. Tax invoices go through `queue.ts`.
  */
 export async function issueDocument(
   tx: StoreTx,
   storeId: string,
   orderId: string,
-  kind: Exclude<DocumentKind, 'credit_note'>,
+  kind: 'packing_slip' | 'order_confirmation',
   opts: { at?: Date; buyerGstin?: string | null } = {},
 ): Promise<{ row: InvoiceRow; created: boolean }> {
   const prior = await existing(tx, orderId, kind)
@@ -317,21 +386,17 @@ export async function issueDocument(
   const again = await existing(tx, orderId, kind)
   if (again) return { row: again, created: false }
   const at = opts.at ?? new Date()
-  const numbered = isNumberedKind(kind) ? await takeNumber(tx, storeId, kind, at, settings) : null
   const doc = await orderSnapshot(
     tx,
     storeId,
     orderId,
     kind,
-    numbered?.number ?? null,
+    null,
     at,
     settings,
     opts.buyerGstin ?? null,
   )
-  const row = await insertDocument(tx, storeId, doc, {
-    seq: numbered?.seq ?? null,
-    fyStartYear: numbered?.fyStartYear ?? null,
-  })
+  const row = await insertDocument(tx, storeId, doc, {})
   if (!row) throw new Error('invoice insert raced past the advisory lock')
   return { row, created: true }
 }
@@ -345,10 +410,29 @@ export async function regenerateDocument(
   tx: StoreTx,
   storeId: string,
   invoiceId: string,
-  opts: { buyerGstin?: string | null | undefined } = {},
+  opts: {
+    buyerGstin?: string | null | undefined
+    /** Shipping bill, port and currency for an export invoice. */
+    exportDetails?:
+      | Partial<
+          Pick<
+            ExportSupply,
+            'portCode' | 'shippingBillNumber' | 'shippingBillDate' | 'currency' | 'exchangeRate'
+          >
+        >
+      | undefined
+  } = {},
 ): Promise<InvoiceRow> {
   const [row] = await tx.select().from(invoice).where(eq(invoice.id, invoiceId))
   if (!row) throw new InvoiceError('not_found', `invoice ${invoiceId} not found`)
+  if (row.status === 'cancelled' || row.reportedPeriod) {
+    throw new InvoiceError(
+      'locked',
+      row.reportedPeriod
+        ? `${row.number} is reported in GSTR-1 for ${row.reportedPeriod}; issue a credit note instead`
+        : `${row.number} is cancelled`,
+    )
+  }
   const prior = DocumentSnapshotSchema.parse(row.snapshot)
   const settings = await loadSettings(tx, storeId)
   let doc: DocumentSnapshot
@@ -362,9 +446,10 @@ export async function regenerateDocument(
       row.orderId,
       row.kind,
       row.number,
-      row.issuedAt,
+      row.invoiceDate ?? row.issuedAt,
       settings,
       opts.buyerGstin === undefined ? prior.buyer.gstin : opts.buyerGstin,
+      prior.exportSupply ? { ...prior.exportSupply, ...opts.exportDetails } : null,
     )
   }
   const [updated] = await tx
@@ -384,6 +469,20 @@ export async function regenerateDocument(
 }
 
 /**
+ * The last moment a credit note may be issued for a supply (CGST s.34(2)):
+ * 30 November after the end of the financial year of the invoice, or the
+ * annual return filing date if earlier.
+ */
+export function creditNoteCutoff(invoiceDate: Date, gstr9FiledOn: string | null): Date {
+  const fyStart = financialYear(invoiceDate).startYear
+  // 30 November of the year the FY ends, end of day IST.
+  const nov30 = new Date(Date.UTC(fyStart + 1, 10, 30, 18, 29, 59))
+  if (!gstr9FiledOn) return nov30
+  const annual = new Date(`${gstr9FiledOn}T23:59:59+05:30`)
+  return annual.getTime() < nov30.getTime() ? annual : nov30
+}
+
+/**
  * The credit note for a refund (rule 53(1A)), idempotent on the refund. Null
  * when the order has no tax invoice: nothing was invoiced, so nothing to credit.
  */
@@ -398,7 +497,7 @@ export async function issueCreditNote(
   const [r] = await tx.select().from(refund).where(eq(refund.id, refundId))
   if (!r || r.status === 'failed') return null
   const original = await existing(tx, r.orderId, 'tax_invoice')
-  if (!original) return null
+  if (original?.status !== 'issued') return null
   const settings = await loadSettings(tx, storeId)
   if (!settings.documents.credit_note.enabled) return null
   await tx.execute(
@@ -407,9 +506,18 @@ export async function issueCreditNote(
   const [again] = await tx.select().from(invoice).where(eq(invoice.refundId, refundId))
   if (again) return { row: again, created: false }
   const at = opts.at ?? new Date()
-  const n = await takeNumber(tx, storeId, 'credit_note', at, settings)
+  await assertPeriodOpen(tx, storeId, at)
+  const cutoff = creditNoteCutoff(original.invoiceDate ?? original.issuedAt, settings.gstr9FiledOn)
+  if (at.getTime() > cutoff.getTime()) {
+    throw new InvoiceError(
+      'expired',
+      `Credit notes for ${original.number} were allowed until ${cutoff.toISOString().slice(0, 10)} (section 34(2)). Refund without a credit note and keep the record.`,
+    )
+  }
+  const invoiceDoc = DocumentSnapshotSchema.parse(original.snapshot)
+  const n = await takeNumber(tx, storeId, 'credit_note', at, settings, seriesContextOf(invoiceDoc))
   const doc = buildCreditNote({
-    invoice: DocumentSnapshotSchema.parse(original.snapshot),
+    invoice: invoiceDoc,
     number: n.number,
     issuedAt: at,
     amountPaise: r.amountPaise,
@@ -419,6 +527,7 @@ export async function issueCreditNote(
     refundId,
     seq: n.seq,
     fyStartYear: n.fyStartYear,
+    seriesId: n.seriesId,
   })
   if (!row) throw new Error('credit note insert raced past the advisory lock')
   return { row, created: true }

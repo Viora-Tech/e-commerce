@@ -1,6 +1,6 @@
 import { validateGstin } from '@commerce/core/gstin'
 import { z } from 'zod'
-import { checkDocumentNumber, financialYear, widestDocumentNumber } from './numbering'
+import { DEFAULT_SERIES, pickSeries, SERIES_KINDS, SeriesSchema, seriesProblem } from './series'
 import type { DocumentKind } from './snapshot'
 
 /** When the tax invoice is issued without anyone clicking a button. */
@@ -48,17 +48,8 @@ export const LABEL_KEYS = [
 ] as const
 export type LabelKey = (typeof LABEL_KEYS)[number]
 
-const PREFIX = /^[A-Za-z0-9/-]{1,10}$/
 const HSN = /^[0-9]{4}([0-9]{2}){0,2}$/
 const HEX = /^#[0-9a-fA-F]{6}$/
-
-const prefix = (fallback: string) =>
-  z
-    .string()
-    .trim()
-    .toUpperCase()
-    .refine((v) => PREFIX.test(v), 'Use up to 10 letters, digits, hyphens or slashes')
-    .default(fallback)
 
 const FieldsSchema = z.object(
   Object.fromEntries(FIELD_KEYS.map((k) => [k, z.boolean().default(true)])) as Record<
@@ -139,12 +130,20 @@ export const InvoiceSettingsSchema = z
     signatureMediaId: z.uuid().nullable().default(null),
     signatoryName: z.string().trim().max(80).default(''),
 
-    invoicePrefix: prefix('INV'),
-    creditNotePrefix: prefix('CN'),
-    /** Minimum width of the running number: 4 gives 0001. */
-    pad: z.coerce.number().int().min(3).max(6).default(4),
-    /** Put the financial year (25-26) in the number; the count resets each April either way. */
-    includeFy: z.boolean().default(true),
+    /** Numbering series, in priority order; see series.ts. */
+    series: z.array(SeriesSchema).min(1).max(30).default(DEFAULT_SERIES),
+    /**
+     * Exports are zero-rated (IGST Act s.16): under a Letter of Undertaking
+     * without IGST, or with IGST paid and refunded later.
+     */
+    exportMode: z.enum(['lut', 'igst']).default('lut'),
+    lutNumber: z.string().trim().max(40).default(''),
+    /** The financial year the LUT covers, e.g. `2026-27`. */
+    lutFy: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || /^20[0-9]{2}-[0-9]{2}$/.test(v), 'Use the form 2026-27')
+      .default(''),
 
     /** Printed on lines whose variant has no HSN code of its own. */
     defaultHsn: z
@@ -171,7 +170,20 @@ export const InvoiceSettingsSchema = z
     notes: z.string().trim().max(500).default(''),
     footer: z.string().trim().max(300).default(''),
 
+    /** When an order joins the invoice queue. Pre-orders always wait for dispatch. */
     issueOn: z.enum(ISSUE_ON).default('payment'),
+    /** Issue queue entries straight away (dated when they became eligible) instead of waiting for review. */
+    autoIssue: z.boolean().default(false),
+    /** Orders carrying this tag are pre-orders: invoiced at dispatch, the time of supply for goods. */
+    preorderTag: z.string().trim().toLowerCase().max(40).default('pre-order'),
+    /**
+     * Invoice pre-orders when paid instead of at dispatch. Brings the tax
+     * forward, and a cancellation then needs a credit note rather than a
+     * refund voucher.
+     */
+    preorderInvoiceAtPayment: z.boolean().default(false),
+    /** Date the annual return (GSTR-9) was filed; credit notes for that year stop then (s.34(2)). */
+    gstr9FiledOn: z.iso.date().nullable().default(null),
     /** Link to the invoice in the payment and shipping emails. */
     emailLink: z.boolean().default(true),
     /** "Download invoice" on the storefront order page. */
@@ -185,31 +197,47 @@ export const InvoiceSettingsSchema = z
         credit_note: docConfig(),
         packing_slip: docConfig({ enabled: false }),
         order_confirmation: docConfig({ enabled: false }),
+        receipt_voucher: docConfig(),
+        refund_voucher: docConfig(),
       })
       .default({
         tax_invoice: DocumentConfigSchema.parse({ attachToEmail: true }),
         credit_note: DocumentConfigSchema.parse({}),
         packing_slip: DocumentConfigSchema.parse({ enabled: false }),
         order_confirmation: DocumentConfigSchema.parse({ enabled: false }),
+        receipt_voucher: DocumentConfigSchema.parse({}),
+        refund_voucher: DocumentConfigSchema.parse({}),
       }),
     /** Packing slips can leave prices off entirely. */
     packingSlipPrices: z.boolean().default(false),
   })
   .superRefine((s, ctx) => {
-    const fy = financialYear(new Date())
-    for (const key of ['invoicePrefix', 'creditNotePrefix'] as const) {
-      const widest = widestDocumentNumber({
-        prefix: s[key],
-        fy,
-        pad: s.pad,
-        includeFy: s.includeFy,
-      })
-      if (!checkDocumentNumber(widest).ok) {
+    const ids = new Set<string>()
+    s.series.forEach((series, index) => {
+      if (ids.has(series.id)) {
         ctx.addIssue({
           code: 'custom',
-          path: [key],
-          message: `Numbers would reach ${widest.length} characters; GST allows 16. Shorten the prefix or turn off the year.`,
+          path: ['series', index, 'id'],
+          message: 'Series ids must be unique',
         })
+      }
+      ids.add(series.id)
+      const problem = seriesProblem(series)
+      if (problem)
+        ctx.addIssue({ code: 'custom', path: ['series', index, 'pattern'], message: problem })
+    })
+    for (const kind of SERIES_KINDS) {
+      for (const need of [
+        { export: false, b2b: false },
+        { export: true, b2b: false },
+      ]) {
+        if (!pickSeries(s.series, kind, need)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['series'],
+            message: `Add a ${need.export ? 'export' : 'domestic'} series for ${kind.replace('_', ' ')}s`,
+          })
+        }
       }
     }
   })
@@ -225,12 +253,21 @@ export function parseInvoiceSettings(raw: unknown): InvoiceSettings {
   return r.success ? r.data : defaultInvoiceSettings
 }
 
-/** Whether a lifecycle event should issue the tax invoice automatically. */
-export function shouldAutoIssue(settings: InvoiceSettings, event: 'paid' | 'fulfilled'): boolean {
-  if (!settings.documents.tax_invoice.enabled) return false
-  if (settings.issueOn === 'payment') return event === 'paid'
-  if (settings.issueOn === 'fulfilment') return event === 'fulfilled'
-  return false
+/**
+ * Whether an event makes an order eligible for the invoice queue. Pre-orders
+ * only become eligible at dispatch: for goods the time of supply is removal,
+ * not the order date.
+ */
+export function isEligible(
+  settings: InvoiceSettings,
+  event: 'paid' | 'fulfilled',
+  preorder: boolean,
+): boolean {
+  if (!settings.documents.tax_invoice.enabled || settings.issueOn === 'manual') return false
+  if ((preorder && !settings.preorderInvoiceAtPayment) || settings.issueOn === 'fulfilment') {
+    return event === 'fulfilled'
+  }
+  return event === 'paid' || event === 'fulfilled'
 }
 
 /** The template a document type prints with. */

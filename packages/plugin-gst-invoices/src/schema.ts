@@ -47,13 +47,17 @@ export const invoiceSequence = pgTable(
   {
     id: id(),
     storeId: storeId(),
-    kind: text('kind', { enum: ['tax_invoice', 'credit_note'] }).notNull(),
+    kind: text('kind', {
+      enum: ['tax_invoice', 'credit_note', 'receipt_voucher', 'refund_voucher'],
+    }).notNull(),
+    /** Settings series id; each series counts on its own. */
+    seriesId: text('series_id').notNull().default(''),
     /** 2025 for FY 2025-26. */
     fyStartYear: integer('fy_start_year').notNull(),
     /** The number the next document takes. */
     next: integer('next').notNull().default(1),
   },
-  (t) => [uniqueIndex('invoice_sequence_series').on(t.storeId, t.kind, t.fyStartYear)],
+  (t) => [uniqueIndex('invoice_sequence_series_fy').on(t.storeId, t.seriesId, t.fyStartYear)],
 )
 
 export const INVOICE_KINDS = [
@@ -61,9 +65,18 @@ export const INVOICE_KINDS = [
   'credit_note',
   'packing_slip',
   'order_confirmation',
+  'receipt_voucher',
+  'refund_voucher',
 ] as const
 
 export const PDF_STATUSES = ['pending', 'ready', 'failed'] as const
+
+/**
+ * `draft` is a queue entry: an order waiting to be invoiced, with no number.
+ * Numbers are assigned only on `issued`. A `cancelled` invoice keeps its
+ * number forever (it is reported in GSTR-1 Table 13) and is never reused.
+ */
+export const INVOICE_STATUSES = ['draft', 'issued', 'cancelled'] as const
 
 export const invoice = pgTable(
   'invoice',
@@ -76,8 +89,11 @@ export const invoice = pgTable(
     /** The refund a credit note reverses. */
     refundId: uuid('refund_id').references(() => refund.id),
     kind: text('kind', { enum: INVOICE_KINDS }).notNull(),
+    status: text('status', { enum: INVOICE_STATUSES }).notNull().default('issued'),
     /** GST serial; null on packing slips and order confirmations. */
     number: text('number'),
+    /** The series the number came from (settings `series[].id`). */
+    seriesId: text('series_id'),
     fyStartYear: integer('fy_start_year'),
     seq: integer('seq'),
     /** DocumentSnapshot: everything printed, frozen at issue. */
@@ -96,23 +112,35 @@ export const invoice = pgTable(
     pdfStatus: text('pdf_status', { enum: PDF_STATUSES }).notNull().default('pending'),
     pdfError: text('pdf_error'),
     issuedAt: at('issued_at'),
+    /** The date printed on the invoice and used for its period; set when issued. */
+    invoiceDate: timestamp('invoice_date', { withTimezone: true }),
+    /** When the order became eligible to invoice (paid, or dispatched for pre-orders). */
+    eligibleAt: timestamp('eligible_at', { withTimezone: true }),
+    /** When the goods left: the default invoice date for goods (time of supply). */
+    dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    cancelReason: text('cancel_reason'),
+    /** `2026-09` once that month's GSTR-1 is marked filed; the invoice can no longer be cancelled. */
+    reportedPeriod: text('reported_period'),
     createdAt: at('created_at'),
     updatedAt: at('updated_at'),
   },
   (t) => [
     check(
       'invoice_kind_check',
-      sql`${t.kind} in ('tax_invoice', 'credit_note', 'packing_slip', 'order_confirmation')`,
+      sql`${t.kind} in ('tax_invoice', 'credit_note', 'packing_slip', 'order_confirmation', 'receipt_voucher', 'refund_voucher')`,
     ),
     check('invoice_pdf_status_check', sql`${t.pdfStatus} in ('pending', 'ready', 'failed')`),
+    check('invoice_status_check', sql`${t.status} in ('draft', 'issued', 'cancelled')`),
     // Rule 46(b): unique per financial year within a series.
     uniqueIndex('invoice_number_unique')
-      .on(t.storeId, t.kind, t.fyStartYear, t.number)
+      .on(t.storeId, t.fyStartYear, t.number)
       .where(sql`${t.number} is not null`),
     // Idempotency: one invoice, slip or confirmation per order...
-    uniqueIndex('invoice_order_kind_unique')
+    // A cancelled invoice frees the order for a fresh one.
+    uniqueIndex('invoice_order_kind_live')
       .on(t.storeId, t.orderId, t.kind)
-      .where(sql`${t.kind} <> 'credit_note'`),
+      .where(sql`${t.kind} <> 'credit_note' and ${t.status} <> 'cancelled'`),
     // ...and one credit note per refund.
     uniqueIndex('invoice_refund_unique')
       .on(t.storeId, t.refundId)
@@ -160,3 +188,21 @@ export const invoiceBatch = pgTable('invoice_batch', {
   createdAt: at('created_at'),
   updatedAt: at('updated_at'),
 })
+
+/**
+ * A calendar month (IST) of the store's GST return. Filing marks every
+ * invoice in it reported (no more cancellation); closing stops issuing or
+ * backdating into it.
+ */
+export const invoicePeriod = pgTable(
+  'invoice_period',
+  {
+    id: id(),
+    storeId: storeId(),
+    /** `2026-09`. */
+    period: text('period').notNull(),
+    gstr1FiledAt: timestamp('gstr1_filed_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('invoice_period_store').on(t.storeId, t.period)],
+)
