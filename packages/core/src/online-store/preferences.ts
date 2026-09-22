@@ -99,7 +99,7 @@ export function decodeConsent(raw: string | null | undefined): Consent | null {
  * one, they wait for the shopper's choice per category.
  */
 export function allowedTags(
-  prefs: StorePreferences,
+  prefs: Pick<StorePreferences, 'privacy' | 'tracking'>,
   consent: Consent | null,
 ): { ga4: string | null; gtm: string | null; metaPixel: string | null } {
   const analytics = !prefs.privacy.bannerEnabled || consent?.analytics === true

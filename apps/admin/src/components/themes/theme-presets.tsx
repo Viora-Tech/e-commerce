@@ -45,7 +45,7 @@ export default function ThemePresets({ theme, onChange }: ThemePresetsProps) {
           {copy.presets.reset}
         </Button>
       </div>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2">
         {THEME_PRESET_IDS.map((id) => {
           const p = THEME_PRESETS[id]
           const active = theme.preset === id

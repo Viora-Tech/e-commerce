@@ -26,7 +26,7 @@ const byCategory = (['sans', 'serif'] as const).map((category) => ({
   ids: THEME_FONT_IDS.filter((id) => THEME_FONTS[id].category === category),
 }))
 
-/** The admin loads every curated face from Google Fonts (see ThemeEditor) so samples are real. */
+/** The admin loads every curated face from Google Fonts (see ThemeCustomizer) so samples are real. */
 const family = (id: ThemeFontId) => ({ fontFamily: `"${THEME_FONTS[id].label}"` })
 
 /** Font dropdown where each option is set in its own face, with a live sample underneath. */
