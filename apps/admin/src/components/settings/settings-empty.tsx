@@ -1,6 +1,6 @@
+import type { LucideIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
-import type { LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import EmptyState from '@/components/layout/empty-state'
 import type { SectionEmptyContent } from '@/components/layout/section-empty'

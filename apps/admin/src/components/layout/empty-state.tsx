@@ -1,3 +1,4 @@
+import { Inbox, type LucideIcon } from '@commerce/ui/icons'
 import {
   Empty,
   EmptyContent,
@@ -6,7 +7,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@commerce/ui/shadcn/empty'
-import { Inbox, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 type EmptyStateProps = {

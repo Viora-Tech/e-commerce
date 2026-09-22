@@ -1,8 +1,8 @@
 'use client'
 
+import { Search } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Search } from 'lucide-react'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'

@@ -1,5 +1,6 @@
 'use client'
 
+import { Bell, LogOut, Moon, Search, Sun } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import {
   DropdownMenu,
@@ -11,7 +12,6 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
-import { Bell, LogOut, Moon, Search, Sun } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
@@ -141,7 +141,7 @@ export default function TopBar({ title, heading, user, scrolled = false }: TopBa
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={navigationContent.account}
-            className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary ring-offset-background hover:ring-2 hover:ring-primary/30"
+            className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary ring-1 ring-primary/20 ring-offset-background transition-shadow hover:ring-2 hover:ring-primary/30"
           >
             {initials(user.name)}
           </DropdownMenuTrigger>

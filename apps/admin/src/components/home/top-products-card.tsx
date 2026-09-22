@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { Search } from '@commerce/ui/icons'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'

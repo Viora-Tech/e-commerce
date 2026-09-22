@@ -1,4 +1,4 @@
-import { BadgePercent } from 'lucide-react'
+import { BadgePercent } from '@commerce/ui/icons'
 import SectionEmpty from '@/components/layout/section-empty'
 import { discountsContent } from '@/data/discounts'
 

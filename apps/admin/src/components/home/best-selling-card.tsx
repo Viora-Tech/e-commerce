@@ -1,5 +1,5 @@
+import { TrendingUp } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import BandHead from '@/components/layout/band-head'
 import DataCard from '@/components/layout/data-card'

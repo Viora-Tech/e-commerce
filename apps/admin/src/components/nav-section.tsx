@@ -1,7 +1,7 @@
 'use client'
 
+import { ChevronDown } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { ChevronDown } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { useState } from 'react'

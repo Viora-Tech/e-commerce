@@ -1,5 +1,14 @@
-import type { LucideIcon } from 'lucide-react'
-import { Bell, CreditCard, FileText, Globe, Images, Store, Truck, UserCog } from 'lucide-react'
+import type { LucideIcon } from '@commerce/ui/icons'
+import {
+  Bell,
+  CreditCard,
+  FileText,
+  Globe,
+  Images,
+  Store,
+  Truck,
+  UserCog,
+} from '@commerce/ui/icons'
 
 export type SettingsSection = {
   href: string

@@ -1,7 +1,7 @@
 'use client'
 
+import { CircleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { CircleAlert } from 'lucide-react'
 import { useEffect } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'

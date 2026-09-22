@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,6 @@ import {
   SidebarHeader,
   useSidebar,
 } from '@commerce/ui/shadcn/sidebar'
-import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { NAV_GROUPS, navigationContent, SETTINGS_NAV } from '@/data/navigation'
@@ -73,9 +73,15 @@ export default function AdminSidebar({
       {/* 5:1369: 64px tall, 20px padding, wordmark left and collapse glyph right. */}
       <SidebarHeader className="h-14 flex-row items-center justify-between px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex h-6 min-w-0 items-center gap-1.5 text-left">
-            <Store className="size-4 shrink-0 text-primary" />
-            <span className="truncate text-card-title text-ink-strong group-data-[collapsible=icon]:hidden">
+          <DropdownMenuTrigger className="flex h-8 min-w-0 items-center gap-2 text-left">
+            {/* Wordmark: initial on the brand colour until a logo upload exists. */}
+            <span
+              aria-hidden="true"
+              className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[0.75rem] font-bold text-primary-foreground shadow-lift"
+            >
+              {(active?.name ?? navigationContent.pickStore).charAt(0).toUpperCase()}
+            </span>
+            <span className="truncate text-card-title font-bold tracking-tight text-ink-strong group-data-[collapsible=icon]:hidden">
               {active?.name ?? navigationContent.pickStore}
             </span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -126,7 +132,7 @@ export default function AdminSidebar({
       {/* 5:1477: user card (20/12 padding, 40px avatar) then the shop card, 12px apart. */}
       <SidebarFooter className="gap-2 p-0 pb-4 pt-6">
         <div className="flex items-center gap-3 px-4 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary ring-1 ring-primary/20">
             {initials(user.name)}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs leading-4 group-data-[collapsible=icon]:hidden">

@@ -1,10 +1,10 @@
+import { SlidersHorizontal } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { layoutContent } from '@/data/layout'
 import type { MenuLink } from './card-menu'

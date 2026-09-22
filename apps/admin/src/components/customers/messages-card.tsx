@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react'
+import { Bell } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
 import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
 import { customerDetailContent as copy } from '@/data/customers'
