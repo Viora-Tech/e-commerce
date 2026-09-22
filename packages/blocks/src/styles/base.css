@@ -244,6 +244,7 @@ body {
   flex-direction: column;
   min-height: 100svh;
   font-family: var(--font-body);
+  font-size: var(--font-body-size, 1rem);
   background-color: var(--color-bg);
   color: var(--color-ink);
   line-height: 1.5;
@@ -319,40 +320,41 @@ h6,
 .h6 {
   font-family: var(--font-heading);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: var(--heading-tracking, 0.01em);
   line-height: 1.2;
 }
 
+/* Heading sizes are the Glide scale times the theme's heading scale (1 by default). */
 h1,
 .h1 {
-  font-size: 40px;
+  font-size: calc(2.5rem * var(--font-heading-scale, 1));
   text-transform: uppercase;
 }
 
 h2,
 .h2 {
-  font-size: 32px;
+  font-size: calc(2rem * var(--font-heading-scale, 1));
   text-transform: uppercase;
 }
 
 h3,
 .h3 {
-  font-size: 24px;
+  font-size: calc(1.5rem * var(--font-heading-scale, 1));
 }
 
 h4,
 .h4 {
-  font-size: 20px;
+  font-size: calc(1.25rem * var(--font-heading-scale, 1));
 }
 
 h5,
 .h5 {
-  font-size: 16px;
+  font-size: calc(1rem * var(--font-heading-scale, 1));
 }
 
 h6,
 .h6 {
-  font-size: 14px;
+  font-size: calc(0.875rem * var(--font-heading-scale, 1));
 }
 
 .text-body {
@@ -376,7 +378,7 @@ h6,
 @media screen and (min-width: 750px) {
   h1,
   .h1 {
-    font-size: 48px;
+    font-size: calc(3rem * var(--font-heading-scale, 1));
   }
 }
 
@@ -430,12 +432,12 @@ h6,
   gap: var(--space-2);
   height: 56px;
   padding-inline: var(--space-5);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-button, var(--radius-m));
   font-family: var(--font-heading);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.01em;
-  text-transform: uppercase;
+  text-transform: var(--btn-transform, uppercase);
   text-decoration: none;
   white-space: nowrap;
   border: 1px solid transparent;
@@ -476,13 +478,15 @@ h6,
    the solid one did rather than thinning out to an outline - and it is not
    mistakable for a resting .btn--secondary, which has one. Nothing here is
    visible at rest: the ring lives on a layer clipped to zero radius. */
+/* --btn-bg and --btn-text come from the theme: the ink/page pair by default
+   (Waimers), or the brand pair when the merchant chooses brand buttons. */
 .btn--primary,
 .shopify-payment-button__button.shopify-payment-button__button--unbranded {
-  background-color: var(--color-ink);
-  color: var(--color-bg);
-  border-color: var(--color-ink);
-  --btn-fill-color: var(--color-bg);
-  --btn-fill-edge: var(--color-ink);
+  background-color: var(--btn-bg, var(--color-ink));
+  color: var(--btn-text, var(--color-bg));
+  border-color: var(--btn-bg, var(--color-ink));
+  --btn-fill-color: var(--btn-text, var(--color-bg));
+  --btn-fill-edge: var(--btn-bg, var(--color-ink));
 }
 
 /* The no-cursor-fill fallback (touch, reduced motion, before motion.js runs):
@@ -491,10 +495,23 @@ h6,
    under html.has-cursor-fill below takes it back off again. */
 .btn--primary:hover,
 .shopify-payment-button__button.shopify-payment-button__button--unbranded:hover {
-  background-color: var(--color-bg);
-  color: var(--color-ink);
-  border-color: var(--color-ink);
-  box-shadow: inset 0 0 0 1px var(--color-ink);
+  background-color: var(--btn-text, var(--color-bg));
+  color: var(--btn-bg, var(--color-ink));
+  border-color: var(--btn-bg, var(--color-ink));
+  box-shadow: inset 0 0 0 1px var(--btn-bg, var(--color-ink));
+}
+
+/* Theme setting "outline buttons": the primary button starts as its own hover
+   state's outline and fills on hover, the same inversion run the other way. */
+:root[data-button-style="outline"] .btn--primary {
+  background-color: transparent;
+  color: var(--btn-bg, var(--color-ink));
+  --btn-fill-color: var(--btn-bg, var(--color-ink));
+}
+
+:root[data-button-style="outline"] .btn--primary:hover {
+  background-color: var(--btn-bg, var(--color-ink));
+  color: var(--btn-text, var(--color-bg));
 }
 
 .btn--secondary {
@@ -839,8 +856,8 @@ html.has-cursor-fill [data-icon-close]:hover {
 .field__input {
   height: 48px;
   padding-inline: var(--space-4);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-m);
+  border: var(--border-width, 1px) solid var(--color-line);
+  border-radius: var(--radius-input, var(--radius-m));
   background-color: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-body);
@@ -875,7 +892,7 @@ html.has-cursor-fill [data-icon-close]:hover {
 }
 
 .badge--sale {
-  background-color: var(--color-brand);
+  background-color: var(--color-sale, var(--color-brand));
   color: var(--color-bg);
 }
 

@@ -1,8 +1,10 @@
 import { Footer, Header } from '@commerce/blocks'
+import { loadEnv } from '@commerce/config'
 import {
   getCart,
   parseNavigationSettings,
   parseTheme,
+  themeRootAttrs,
   themeToCss,
   toNavLinks,
 } from '@commerce/core'
@@ -12,8 +14,9 @@ import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import VisitBeacon from '@/components/analytics/visit-beacon'
+import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { readCartId } from '@/lib/cart-cookie'
-import { archivo, figtree, fontVar } from '@/lib/fonts'
+import { themeFontVariables } from '@/lib/fonts'
 import { inStore } from '@/lib/store-context'
 import { htmlThemeAttr, parseThemeMode, THEME_COOKIE } from '@/lib/theme-mode'
 
@@ -35,7 +38,7 @@ export default async function StoreLayout({ children, params }: Props) {
     : 0
   const theme = parseTheme(current.theme)
   const mode = parseThemeMode((await cookies()).get(THEME_COOKIE)?.value, theme.darkMode.default)
-  const fontStyle = `:root{--font-heading:${fontVar[theme.fonts.heading]};--font-body:${fontVar[theme.fonts.body]}}`
+  const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
 
   // Which menus to render comes from the store setting; the menus themselves are
   // rows. A handle that points at nothing renders nothing rather than a broken link.
@@ -52,11 +55,13 @@ export default async function StoreLayout({ children, params }: Props) {
     <html
       lang="en"
       data-theme={htmlThemeAttr(mode)}
-      className={`${archivo.variable} ${figtree.variable}`}
+      className={themeFontVariables}
+      {...themeRootAttrs(theme)}
     >
       <head>
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours and enums; no user string reaches it. */}
-        <style dangerouslySetInnerHTML={{ __html: `${themeToCss(theme)}\n${fontStyle}` }} />
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: CSS is built only from ThemeSchema-validated hex colours, numbers and enums; no free-form user string reaches it. */}
+        <style dangerouslySetInnerHTML={{ __html: themeToCss(theme) }} />
+        {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
       </head>
       <body>
         <Header
@@ -68,6 +73,7 @@ export default async function StoreLayout({ children, params }: Props) {
         />
         <main id="MainContent">{children}</main>
         <VisitBeacon />
+        <ThemePreviewBridge storeId={storeId} adminOrigin={adminOrigin} />
         <Footer
           storeName={current.name}
           tagline="Gaming peripherals built for the grind."

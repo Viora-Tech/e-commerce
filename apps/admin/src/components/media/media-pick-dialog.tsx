@@ -3,25 +3,29 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/shadcn/dialog'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { collectionFormContent as copy } from '@/data/collections'
 import { api } from '@/lib/api-client'
 
 type MediaItem = { id: string; url: string; alt: string | null }
 
-type CollectionImageDialogProps = {
+type MediaPickDialogProps = {
   open: boolean
+  title: string
+  /** Shown when the library has no images yet. */
+  empty?: string
   onClose: () => void
   onPick: (media: { id: string; url: string } | null) => void
 }
 
 /** Pick an existing library image; uploading happens on the media pages. */
-export default function CollectionImageDialog({
+export default function MediaPickDialog({
   open,
+  title,
+  empty,
   onClose,
   onPick,
-}: CollectionImageDialogProps) {
+}: MediaPickDialogProps) {
   // Hooks
-  const [items, setItems] = useState<MediaItem[]>([])
+  const [items, setItems] = useState<MediaItem[] | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -39,10 +43,13 @@ export default function CollectionImageDialog({
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{copy.details.pickImage}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
+        {items?.length === 0 && empty ? (
+          <p className="text-body text-muted-foreground">{empty}</p>
+        ) : null}
         <div className="grid max-h-[28rem] grid-cols-4 gap-3 overflow-y-auto">
-          {items.map((m) => (
+          {(items ?? []).map((m) => (
             <button
               key={m.id}
               type="button"

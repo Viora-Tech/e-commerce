@@ -8,8 +8,8 @@ import { Input } from '@commerce/ui/shadcn/input'
 import Image from 'next/image'
 import { useState } from 'react'
 import RichTextField from '@/components/fields/rich-text-field'
+import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { collectionFormContent as copy } from '@/data/collections'
-import CollectionImageDialog from './collection-image-dialog'
 
 type CollectionDetailsCardProps = {
   title: string
@@ -90,8 +90,9 @@ export default function CollectionDetailsCard({
           </Field>
         </FieldGroup>
       </CardContent>
-      <CollectionImageDialog
+      <MediaPickDialog
         open={picking}
+        title={copy.details.pickImage}
         onClose={() => setPicking(false)}
         onPick={handlePicked}
       />
