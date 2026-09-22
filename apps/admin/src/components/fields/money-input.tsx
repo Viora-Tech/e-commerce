@@ -9,7 +9,7 @@ import {
 import { productFormContent } from '@/data/products'
 
 type MoneyInputProps = {
-  size?: 'default' | 'lg'
+  size?: 'default' | 'lg' | 'kit'
   id?: string | undefined
   value: string
   onChange: (value: string) => void
@@ -21,6 +21,8 @@ type MoneyInputProps = {
   invalid?: boolean | undefined
   placeholder?: string | undefined
   'aria-label'?: string | undefined
+  /** Extra classes on the group, e.g. to drop the border inside a composed field. */
+  className?: string | undefined
 }
 
 /** Numeric input with a ₹ prefix; the value stays a string so typing "12." survives. */
@@ -35,9 +37,10 @@ export default function MoneyInput({
   placeholder,
   'aria-label': ariaLabel,
   size = 'default',
+  className,
 }: MoneyInputProps) {
   return (
-    <InputGroup size={size}>
+    <InputGroup size={size} className={className}>
       {currency ? (
         <InputGroupAddon>
           <InputGroupText aria-label={productFormContent.currency}>₹</InputGroupText>

@@ -71,6 +71,10 @@ function productRow(fields: ProductFields) {
     seoTitle: fields.seoTitle || null,
     seoDescription: fields.seoDescription || null,
     status: fields.status ?? 'draft',
+    taxIncluded: fields.taxIncluded ?? true,
+    featured: fields.featured ?? false,
+    saleStartsAt: fields.saleStartsAt ?? null,
+    saleEndsAt: fields.saleEndsAt ?? null,
     updatedAt: new Date(),
   }
 }

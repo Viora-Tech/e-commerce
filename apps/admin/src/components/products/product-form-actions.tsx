@@ -1,68 +1,55 @@
 'use client'
 
 import { Copy, ExternalLink, Trash2 } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import KitButton from '@/components/kit/kit-button'
 import { productFormContent } from '@/data/products'
 import type { LoadedProduct } from './form-state'
 
 type ProductFormActionsProps = {
-  product: LoadedProduct | null
+  product: LoadedProduct
   busy: boolean
-  dirty: boolean
   storefrontOrigin: string
   onDuplicate: () => void
   onDelete: () => void
-  onSave: () => void
 }
 
 const copy = productFormContent
 
-/** Header actions: preview, duplicate and delete once saved; Save while creating. */
+/** Preview, duplicate and delete for a saved product; publishing lives on the frame's buttons. */
 export default function ProductFormActions({
   product,
   busy,
-  dirty,
   storefrontOrigin,
   onDuplicate,
   onDelete,
-  onSave,
 }: ProductFormActionsProps) {
-  // Early returns
-  if (!product) {
-    if (dirty) return null
-    return (
-      <Button className="min-w-24" onClick={onSave} disabled={busy}>
-        {copy.saveBar.save}
-      </Button>
-    )
-  }
-
   // Render logic
   return (
-    <>
-      <Button
-        variant="outline"
-        className="min-w-24"
-        render={
-          <a
-            href={`${storefrontOrigin}/products/${product.handle}`}
-            target="_blank"
-            rel="noreferrer"
-          />
-        }
-        nativeButton={false}
-      >
-        {copy.preview}
-        <ExternalLink />
-      </Button>
-      <Button variant="outline" className="min-w-24" onClick={onDuplicate} disabled={busy}>
-        <Copy />
-        {copy.duplicate.action}
-      </Button>
-      <Button variant="destructive" className="min-w-24" onClick={onDelete} disabled={busy}>
-        <Trash2 />
-        {copy.delete.action}
-      </Button>
-    </>
+    <Card size="form" className="p-6">
+      <CardContent className="flex flex-wrap gap-3 p-0">
+        <KitButton
+          variant="secondary"
+          href={`${storefrontOrigin}/products/${product.handle}`}
+          className="flex-1"
+        >
+          {copy.preview}
+          <ExternalLink className="size-4" aria-hidden="true" />
+        </KitButton>
+        <KitButton variant="secondary" className="flex-1" onClick={onDuplicate} disabled={busy}>
+          <Copy className="size-4" aria-hidden="true" />
+          {copy.duplicate.action}
+        </KitButton>
+        <KitButton
+          variant="secondary"
+          className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+          onClick={onDelete}
+          disabled={busy}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+          {copy.delete.action}
+        </KitButton>
+      </CardContent>
+    </Card>
   )
 }

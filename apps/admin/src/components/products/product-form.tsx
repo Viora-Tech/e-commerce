@@ -1,5 +1,6 @@
 'use client'
 
+import type { ProductStatus } from '@commerce/core/catalog'
 import { CircleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
@@ -16,28 +17,28 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { productFormContent, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
-import DetailsCard from './details-card'
 import {
   emptyForm,
+  type Facets,
   formErrors,
   fromProduct,
   type LoadedProduct,
   type OptionRow,
   type ProductFormState,
   reconcileVariants,
+  snapshot,
   toWrite,
   type VariantRow,
 } from './form-state'
-import InventoryCard from './inventory-card'
-import MediaCard from './media-card'
-import OrganisationCard, { type Facets } from './organisation-card'
-import PricingCard from './pricing-card'
+import ProductCategoriesCard from './product-categories-card'
 import ProductFormActions from './product-form-actions'
+import ProductImageCard from './product-image-card'
+import ProductMainCard from './product-main-card'
+import ProductPageActions from './product-page-actions'
 import SeoCard from './seo-card'
 import ShippingCard from './shipping-card'
 import StatusCard from './status-card'
@@ -56,19 +57,26 @@ function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()
 }
 
+/** Values of the colour option, for the swatch row on the categories card. */
+function colourValues(options: OptionRow[]): string[] {
+  const option = options.find((o) => /colou?r/i.test(o.name))
+  return option ? option.values.filter((v) => v.trim()) : []
+}
+
 export default function ProductForm({ product, facets, storefrontOrigin }: ProductFormProps) {
   // Hooks
   const router = useRouter()
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
-  const [saved, setSaved] = useState(() => JSON.stringify(initialForm(product)))
+  const [saved, setSaved] = useState(() => snapshot(initialForm(product)))
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   /* Browser guard: a reload or a close with edits pending asks first. */
   useEffect(() => {
-    if (JSON.stringify(form) === saved) return
+    if (snapshot(form) === saved) return
     const warn = (event: BeforeUnloadEvent) => event.preventDefault()
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
@@ -85,17 +93,19 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
     setForm((f) => ({ ...f, options, variants: reconcileVariants(options, f.variants) }))
 
   // Event handlers
-  const handleSave = async () => {
+  const handleSave = async (status?: ProductStatus) => {
     setAttempted(true)
-    if (Object.keys(formErrors(form)).length) return
+    const next = status ? { ...form, status } : form
+    if (Object.keys(formErrors(next)).length) return
+    if (status) setForm(next)
     setBusy(true)
     setServerError(null)
     try {
-      const result = await api.products.save({ ...toWrite(form), id: product?.id })
+      const result = await api.products.save({ ...toWrite(next), id: product?.id })
       if (!result) throw new Error(copy.toasts.failed)
-      const next = fromProduct(result)
-      setForm(next)
-      setSaved(JSON.stringify(next))
+      const fresh = fromProduct(result)
+      setForm(fresh)
+      setSaved(snapshot(fresh))
       toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(`/products/${result.id}`)
       else router.refresh()
@@ -147,7 +157,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   if (!first) return null
 
   // Render logic
-  const isDirty = JSON.stringify(form) !== saved
+  const isDirty = snapshot(form) !== saved
   const errors = formErrors(form)
   const showErrors = attempted
   const single = form.options.length === 0
@@ -155,15 +165,16 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   const quantityChanged = form.variants.some(
     (v, i) => v.quantity !== savedForm.variants[i]?.quantity,
   )
+  const working = busy || uploading
 
   return (
-    <PageBody width="narrow" className="kit-form">
+    <PageBody>
       <SaveBar
-        open={isDirty}
+        open={Boolean(product) && isDirty}
         message={copy.saveBar.message}
         saveLabel={copy.saveBar.save}
         discardLabel={copy.saveBar.discard}
-        onSave={handleSave}
+        onSave={() => void handleSave()}
         onDiscard={handleDiscard}
         saving={busy}
       />
@@ -174,14 +185,10 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
           { label: product ? product.title : copy.newTitle },
         ]}
         actions={
-          <ProductFormActions
-            product={product}
-            busy={busy}
-            dirty={isDirty}
-            storefrontOrigin={storefrontOrigin}
-            onDuplicate={handleDuplicate}
-            onDelete={() => setConfirmDelete(true)}
-            onSave={handleSave}
+          <ProductPageActions
+            busy={working}
+            onPublish={() => void handleSave('active')}
+            onSaveDraft={() => void handleSave('draft')}
           />
         }
       />
@@ -192,70 +199,76 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
           <AlertDescription>{serverError}</AlertDescription>
         </Alert>
       ) : null}
-      <PageColumns
-        main={
-          <>
-            <DetailsCard
-              title={form.title}
-              description={form.description}
-              titleError={showErrors ? errors.title : undefined}
-              onTitle={(title) => patch({ title })}
-              onDescription={(description) => patch({ description })}
-            />
-            <MediaCard
-              items={form.media}
-              onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
-            />
-            {single ? (
-              <>
-                <PricingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
-                <InventoryCard
-                  variant={first}
-                  quantityChanged={quantityChanged}
-                  reason={form.inventoryReason}
-                  onChange={(vp) => patchVariant(0, vp)}
-                  onReason={(inventoryReason) => patch({ inventoryReason })}
-                />
-              </>
-            ) : null}
-            <VariantsCard
-              options={form.options}
-              variants={form.variants}
-              media={form.media}
-              error={showErrors ? errors.variants : undefined}
-              onOptions={setOptions}
-              onVariant={patchVariant}
-            />
-            <ShippingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
-            {product ? <StockHistoryCard productId={product.id} /> : null}
-            <SeoCard
-              title={form.title}
-              description={form.description}
-              seoTitle={form.seoTitle}
-              seoDescription={form.seoDescription}
-              handle={form.handle}
+
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,611fr)_minmax(0,485fr)]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <ProductMainCard
+            form={form}
+            variant={first}
+            singleVariant={single}
+            titleError={showErrors ? errors.title : undefined}
+            quantityChanged={quantityChanged}
+            busy={working}
+            onPatch={patch}
+            onVariant={(vp) => patchVariant(0, vp)}
+            onReason={(inventoryReason) => patch({ inventoryReason })}
+            onPublish={() => void handleSave('active')}
+            onSaveDraft={() => void handleSave('draft')}
+          />
+          <VariantsCard
+            options={form.options}
+            variants={form.variants}
+            media={form.media}
+            error={showErrors ? errors.variants : undefined}
+            onOptions={setOptions}
+            onVariant={patchVariant}
+          />
+          <ShippingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
+          {product ? <StockHistoryCard productId={product.id} /> : null}
+          <SeoCard
+            title={form.title}
+            description={form.description}
+            seoTitle={form.seoTitle}
+            seoDescription={form.seoDescription}
+            handle={form.handle}
+            storefrontOrigin={storefrontOrigin}
+            onSeoTitle={(seoTitle) => patch({ seoTitle })}
+            onSeoDescription={(seoDescription) => patch({ seoDescription })}
+            onHandle={(handle) => patch({ handle })}
+          />
+        </div>
+        <div className="flex min-w-0 flex-col gap-5">
+          <ProductImageCard
+            items={form.media}
+            onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
+            onUploading={setUploading}
+          />
+          <ProductCategoriesCard
+            productType={form.productType}
+            tags={form.tags}
+            colours={colourValues(form.options)}
+            facets={facets}
+            onProductType={(productType) => patch({ productType })}
+            onTags={(tags) => patch({ tags })}
+          />
+          <StatusCard
+            status={form.status}
+            vendor={form.vendor}
+            facets={facets}
+            onChange={(status) => patch({ status })}
+            onVendor={(vendor) => patch({ vendor })}
+          />
+          {product ? (
+            <ProductFormActions
+              product={product}
+              busy={working}
               storefrontOrigin={storefrontOrigin}
-              onSeoTitle={(seoTitle) => patch({ seoTitle })}
-              onSeoDescription={(seoDescription) => patch({ seoDescription })}
-              onHandle={(handle) => patch({ handle })}
+              onDuplicate={handleDuplicate}
+              onDelete={() => setConfirmDelete(true)}
             />
-          </>
-        }
-        side={
-          <>
-            <StatusCard status={form.status} onChange={(status) => patch({ status })} />
-            <OrganisationCard
-              productType={form.productType}
-              vendor={form.vendor}
-              tags={form.tags}
-              facets={facets}
-              onProductType={(productType) => patch({ productType })}
-              onVendor={(vendor) => patch({ vendor })}
-              onTags={(tags) => patch({ tags })}
-            />
-          </>
-        }
-      />
+          ) : null}
+        </div>
+      </div>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>

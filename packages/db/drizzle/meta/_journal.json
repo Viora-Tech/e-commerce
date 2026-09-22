@@ -232,6 +232,13 @@
       "when": 1790081101529,
       "tag": "0032_variant_customs",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790082251244,
+      "tag": "0033_product_sale_fields",
+      "breakpoints": true
     }
   ]
 }
