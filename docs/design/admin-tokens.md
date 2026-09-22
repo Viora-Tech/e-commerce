@@ -74,7 +74,9 @@ derived — the kit ships light only.
 | status dot | 8px | 5:2193 |
 | icon (sidebar) | 22–24px | 5:1391 |
 | icon (kebab / chevrons) | 20px | 5:1499 |
-| `--shadow-card` | `0 1px 3px rgba(0,0,0,.2)` (kit "1dp Ambient") | 5:1494 |
+| `--shadow-card` | `--shadow-kit-1` = `0 1px 3px rgba(0,0,0,.2)` (kit "1 Ambient") | 5:6061, 5:1494 |
+| `--shadow-card-hover`, `--shadow-popover` | `--shadow-kit-3` = `0 1px 8px rgba(0,0,0,.2)` ("3 Ambient") | 5:6061 |
+| `--shadow-dialog` | `--shadow-kit-6` = `0 3px 5px rgba(0,0,0,.2)` ("6 Ambient") | 5:6061 |
 | `--shadow-toggle` | `0 2px 2px rgba(0,0,0,.14)` | 5:1361 |
 
 ## Dark mode (derived)
@@ -86,3 +88,7 @@ primary-soft `rgba(78,166,116,.16)`. Same hues, contrast-adjusted.
 ## Icons
 
 Hugeicons stroke set (`@hugeicons/core-free-icons`) through `packages/ui/src/icons.tsx` (`@commerce/ui/icons`). Default 1.25rem, `strokeWidth` 1.5, sized with Tailwind `size-*`. Named exports keep the identifiers call sites use (`Home`, `Bell`, `ChevronDownIcon`); the `icons` map groups them by meaning for new code. Never import a glyph pack directly from a component.
+
+## Design-system pages (2026-09-22)
+
+Colours `8:33`, typography `5:5870`, space & effect `5:6061`, icons `11:127` and the component sheet `14:99` are now the source of truth; per-component values and the node → component map live in `admin-kit-components.md`. Additions from the sheets: `--brand-secondary` (Cyprus), `--helper` (Grey #7C7C7C), `--warning` Pending #F0D411, `--line-list` #D1D1D1, kit type tokens `text-kit-*` (display 57, h2 32, body-lg 22, body-16, head/cell/name/price 15, field/value/button 15, link 14, mini/chip 12), spacing scale 4 to 64.

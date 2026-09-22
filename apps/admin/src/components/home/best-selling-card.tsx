@@ -1,20 +1,21 @@
 import { TrendingUp } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
+import KitThumb from '@/components/kit/kit-thumb'
 import BandHead from '@/components/layout/band-head'
 import DataCard from '@/components/layout/data-card'
 import FilterButton from '@/components/layout/filter-button'
 import StatusPill from '@/components/layout/status-pill'
 import { homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
-import HomeProductThumb from './product-thumb'
 import type { TopProduct } from './top-product-types'
 
 /* 5:2146: Product 240 / trend 148 / Total order 152 / Status 152 / Price. */
 const BEST_ROW = 'grid grid-cols-[minmax(0,2.4fr)_1fr_1.1fr_1.1fr_1fr] items-center px-5'
 
-/** Frame 5:2138 "Best selling product": tinted 48px header band, 54px rows with thumbnails. */
+/** Frame 5:2138 "Best selling product" (dashboard variant): tinted 48px header band, 54px rows with 40px sheet thumbs (14:1029). */
 export default function BestSellingCard({ products }: { products: TopProduct[] }) {
+  // Render logic
   const c = homeContent.bestSelling
   return (
     <DataCard
@@ -47,7 +48,7 @@ export default function BestSellingCard({ products }: { products: TopProduct[] }
               )}
             >
               <span className="flex min-w-0 items-center gap-1">
-                <HomeProductThumb url={p.imageUrl} title={p.title} />
+                <KitThumb src={p.imageUrl} alt={p.title} />
                 <span className="truncate text-kit-cell font-bold text-ink-strong">{p.title}</span>
               </span>
               <span>
