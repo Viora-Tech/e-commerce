@@ -15,6 +15,8 @@ export const thankYouContent = {
   payNow: 'Pay now',
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',
+  discount: 'Discount',
+  shipping: 'Shipping',
   total: 'Total',
   /** Fallback label for a fee/discount row when the merchant left the label blank. */
   adjustmentFallback: (paise: number) => (paise < 0 ? 'Payment discount' : 'Payment fee'),
@@ -53,6 +55,9 @@ export const checkoutContent = {
   payment: 'Payment',
   summary: 'Order summary',
   subtotal: 'Subtotal',
+  discount: 'Discount',
+  shipping: 'Shipping',
+  shippingFree: 'Free',
   total: 'Total',
   placeOrder: 'Place order',
   continueToPayment: 'Continue to payment',
