@@ -55,6 +55,7 @@ import {
   Logout01Icon,
   Megaphone01Icon,
   Message01Icon,
+  MinusSignIcon,
   Moon02Icon,
   MoreHorizontalIcon as MoreHorizontalGlyph,
   MoreVerticalIcon as MoreVerticalGlyph,
@@ -185,6 +186,7 @@ export const ArrowLeftRight = defineIcon(ArrowDataTransferHorizontalIcon, 'Arrow
 /* Actions */
 export const Plus = defineIcon(Add01Icon, 'Plus')
 export const SquarePlus = Plus
+export const Minus = defineIcon(MinusSignIcon, 'Minus')
 export const MoreHorizontal = defineIcon(MoreHorizontalGlyph, 'MoreHorizontal')
 export const MoreHorizontalIcon = MoreHorizontal
 export const MoreVertical = defineIcon(MoreVerticalGlyph, 'MoreVertical')
