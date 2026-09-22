@@ -63,7 +63,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 export const settingsContent = {
   nav: {
     label: 'Settings sections',
-    onThisPage: 'On this page',
   },
   sections: {
     shipping: [
@@ -71,10 +70,7 @@ export const settingsContent = {
       { id: 'section-policy', label: 'Dispatch policy' },
       { id: 'section-try-pin', label: 'Try a PIN code' },
     ],
-    payments: [
-      { id: 'section-methods', label: 'Payment methods' },
-      { id: 'section-fees', label: 'Fees and discounts' },
-    ],
+    payments: [{ id: 'section-methods', label: 'Payment methods' }],
     files: [
       { id: 'section-providers', label: 'Storage' },
       { id: 'section-verify', label: 'Connection' },
