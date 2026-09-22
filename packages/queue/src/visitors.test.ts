@@ -2,10 +2,12 @@ import IORedis from 'ioredis'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createConnection } from './index'
 import {
+  dailyVisitors,
   EMPTY_LIVE_VISITORS,
   LIVE_MINUTES,
   liveVisitors,
   recordVisit,
+  visitorsDayKey,
   visitorsKey,
 } from './visitors'
 
@@ -64,6 +66,41 @@ describe('live visitors', () => {
     dead.on('error', () => undefined)
     const live = await liveVisitors(dead, storeId)
     expect(live).toEqual(EMPTY_LIVE_VISITORS)
+    dead.disconnect()
+  })
+})
+
+/* Its own store: the live tests above also write day keys for the same dates. */
+const dayStoreId = `${storeId}-daily`
+
+describe('daily visitors', () => {
+  it('counts uniques per IST day and de-duplicates across the span', async () => {
+    // 21 Sept 20:00 UTC is already the 22nd in IST, so both visits land on the 22nd.
+    await recordVisit(redis, dayStoreId, 'day-a', new Date('2026-09-21T20:00:00Z'))
+    await recordVisit(redis, dayStoreId, 'day-b', new Date('2026-09-22T04:00:00Z'))
+    await recordVisit(redis, dayStoreId, 'day-a', new Date('2026-09-23T04:00:00Z'))
+
+    const out = await dailyVisitors(redis, dayStoreId, ['2026-09-21', '2026-09-22', '2026-09-23'])
+    expect(out.perDay).toEqual([0, 2, 1])
+    // day-a came back on the 23rd, so the union is two people, not three visits.
+    expect(out.total).toBe(2)
+  })
+
+  it('keeps day keys well past the live window', async () => {
+    await recordVisit(redis, dayStoreId, 'day-c', new Date('2026-09-24T04:00:00Z'))
+    const ttl = await redis.ttl(visitorsDayKey(dayStoreId, '2026-09-24'))
+    expect(ttl).toBeGreaterThan(2 * 3600)
+    expect(ttl).toBeLessThanOrEqual(90 * 86_400)
+  })
+
+  it('reads zeros when Dragonfly is unreachable', async () => {
+    const dead = new IORedis('redis://127.0.0.1:1', {
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+      lazyConnect: true,
+    })
+    dead.on('error', () => undefined)
+    expect(await dailyVisitors(dead, dayStoreId, ['2026-09-22'])).toEqual({ perDay: [0], total: 0 })
     dead.disconnect()
   })
 })
