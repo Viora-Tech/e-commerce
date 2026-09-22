@@ -218,6 +218,13 @@
       "when": 1790078009861,
       "tag": "0030_order_tax_and_fulfilment",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790080982151,
+      "tag": "0032_variant_customs",
+      "breakpoints": true
     }
   ]
 }
