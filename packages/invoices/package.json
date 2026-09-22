@@ -1,0 +1,33 @@
+{
+  "name": "@commerce/invoices",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GST documents: pure maths, snapshots, GSTR-1 export and PDF templates (templates ported from invoicely, MIT).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./link": "./src/link.ts",
+    "./pdf": "./src/pdf/index.ts",
+    "./render": "./src/pdf/render.ts",
+    "./templates": "./src/templates/index.tsx"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@react-pdf/renderer": "^4.9.0",
+    "fflate": "^0.8.3",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.2.8",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
