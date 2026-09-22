@@ -11,6 +11,7 @@ import {
   ShippingSettingsSchema,
   StorageSettingsSchema,
   StoreGeneralSchema,
+  signThemePreviewToken,
   ThemeSchema,
 } from '@commerce/core'
 import { z } from 'zod'
@@ -69,9 +70,26 @@ export const storeRouter = {
       return s ? presentStoreGeneral(s) : null
     }),
 
-  updateTheme: can(permissions.SETTINGS_MANAGE)
+  /**
+   * The storefront theme for Online Store › Themes, with a short-lived token that
+   * lets the storefront accept live (unsaved) theme changes from the editor frame.
+   */
+  getTheme: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
+    const { storeId } = context.scope
+    const s = await getStore(context.tx, storeId)
+    return {
+      theme: parseTheme(s?.theme),
+      previewToken: signThemePreviewToken({ secret: secret(), storeId }),
+    }
+  }),
+
+  /** Theme editing lives under Online Store, so it is an online store permission. */
+  updateTheme: can(permissions.ONLINE_STORE_WRITE)
     .input(ThemeSchema)
-    .handler(({ context, input }) => updateStoreTheme(context.tx, context.scope.storeId, input)),
+    .handler(async ({ context, input }) => {
+      const s = await updateStoreTheme(context.tx, context.scope.storeId, input)
+      return parseTheme(s?.theme)
+    }),
 
   /** Payment settings with secrets masked, plus the gateways this deployment can offer. */
   getPayments: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
