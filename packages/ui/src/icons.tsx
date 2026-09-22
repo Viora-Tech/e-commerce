@@ -18,7 +18,6 @@ import {
   ArrowUp02Icon,
   ArrowUpDownIcon,
   BarChartIcon,
-  BlocksIcon,
   BoxesIcon,
   Cancel01Icon,
   CancelCircleIcon,
@@ -26,7 +25,6 @@ import {
   CheckmarkCircle02Icon,
   Clock01Icon,
   Copy01Icon,
-  CouponPercentIcon,
   CreditCardIcon,
   DashboardSquare01Icon,
   Delete02Icon,
@@ -37,19 +35,19 @@ import {
   FileEditIcon,
   FilterHorizontalIcon,
   Folder01Icon,
-  FolderOpenIcon,
   GiftIcon,
   GlobeIcon,
   Home01Icon,
   Image01Icon,
+  Image02Icon,
   ImageAdd01Icon,
   InboxIcon,
   InformationCircleIcon,
   Layers01Icon,
   LeftToRightListBulletIcon,
-  LinkSquare02Icon,
+  LinkSquare01Icon,
   Loading03Icon,
-  Logout03Icon,
+  Logout01Icon,
   Megaphone01Icon,
   Message01Icon,
   Moon02Icon,
@@ -57,7 +55,6 @@ import {
   MoreVerticalIcon as MoreVerticalGlyph,
   News01Icon,
   Notification03Icon,
-  Package01Icon,
   PackageDeliveredIcon,
   PackageOpenIcon,
   PackageRemoveIcon,
@@ -70,8 +67,8 @@ import {
   Search01Icon,
   SearchRemoveIcon,
   Sent02Icon,
-  Settings02Icon,
-  ShoppingBag02Icon,
+  Settings01Icon,
+  ShapesIcon,
   ShoppingCart01Icon,
   SidebarLeft01Icon,
   SidebarLeftIcon,
@@ -79,6 +76,7 @@ import {
   Store01Icon,
   Sun02Icon,
   Tick02Icon,
+  Ticket01Icon,
   UnfoldMoreIcon,
   Upload04Icon,
   User03Icon,
@@ -96,18 +94,18 @@ export type LucideIcon = IconComponent
 
 /* Navigation */
 export const Home = defineIcon(Home01Icon, 'Home')
-export const ShoppingBag = defineIcon(ShoppingBag02Icon, 'ShoppingBag')
+export const ShoppingBag = defineIcon(ShoppingCart01Icon, 'ShoppingBag') // kit nav: cart
 export const ShoppingCart = defineIcon(ShoppingCart01Icon, 'ShoppingCart')
-export const Package = defineIcon(Package01Icon, 'Package')
+export const Package = defineIcon(PackageOpenIcon, 'Package') // kit nav: product list box
 export const Users = defineIcon(UserMultipleIcon, 'Users')
-export const FolderOpen = defineIcon(FolderOpenIcon, 'FolderOpen')
+export const FolderOpen = defineIcon(Image02Icon, 'FolderOpen') // kit nav: product media
 export const BarChart3 = defineIcon(Analytics01Icon, 'BarChart3')
 export const Megaphone = defineIcon(Megaphone01Icon, 'Megaphone')
-export const BadgePercent = defineIcon(CouponPercentIcon, 'BadgePercent')
+export const BadgePercent = defineIcon(Ticket01Icon, 'BadgePercent') // kit nav: coupon code
 export const Store = defineIcon(Store01Icon, 'Store')
-export const Blocks = defineIcon(BlocksIcon, 'Blocks')
+export const Blocks = defineIcon(ShapesIcon, 'Blocks') // kit nav: categories glyph
 export const Puzzle = defineIcon(PuzzleIcon, 'Puzzle')
-export const Settings = defineIcon(Settings02Icon, 'Settings')
+export const Settings = defineIcon(Settings01Icon, 'Settings') // kit nav: control authority
 export const LayoutGrid = defineIcon(DashboardSquare01Icon, 'LayoutGrid')
 export const Boxes = defineIcon(BoxesIcon, 'Boxes')
 export const Gift = defineIcon(GiftIcon, 'Gift')
@@ -140,10 +138,10 @@ export const Sun = defineIcon(Sun02Icon, 'Sun')
 export const SunIcon = Sun
 export const Moon = defineIcon(Moon02Icon, 'Moon')
 export const MoonIcon = Moon
-export const LogOut = defineIcon(Logout03Icon, 'LogOut')
+export const LogOut = defineIcon(Logout01Icon, 'LogOut') // kit user card
 export const PanelLeftIcon = defineIcon(SidebarLeftIcon, 'PanelLeftIcon')
 export const PanelLeftClose = defineIcon(SidebarLeft01Icon, 'PanelLeftClose')
-export const ExternalLink = defineIcon(LinkSquare02Icon, 'ExternalLink')
+export const ExternalLink = defineIcon(LinkSquare01Icon, 'ExternalLink') // kit Your Shop
 
 /* Arrows and chevrons */
 export const ChevronDown = defineIcon(ArrowDown01Icon, 'ChevronDown')
