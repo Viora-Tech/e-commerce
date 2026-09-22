@@ -8,6 +8,7 @@ import {
   media,
   product,
   productMedia,
+  sellableLevel,
   variant,
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
@@ -151,7 +152,7 @@ export async function listCollectionProducts(
       trackInventory: variant.trackInventory,
     })
     .from(variant)
-    .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
     .where(and(inArray(variant.productId, ids), isNull(variant.archivedAt)))
   const images = await tx
     .select({

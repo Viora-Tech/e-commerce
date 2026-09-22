@@ -16,6 +16,8 @@
     "./permissions": "./src/permissions/client.ts",
     "./collections": "./src/collections/client.ts",
     "./navigation": "./src/navigation/client.ts",
+    "./inventory": "./src/inventory/client.ts",
+    "./navigation-tree": "./src/navigation/tree.ts",
     "./theme": "./src/theme/client.ts",
     "./blog": "./src/blog/client.ts"
   },

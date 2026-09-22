@@ -65,6 +65,8 @@ export const InventoryReasonSchema = z.enum([
   'received',
   'damaged',
   'returned',
+  'theft',
+  'transfer',
   'sold',
   'other',
 ])

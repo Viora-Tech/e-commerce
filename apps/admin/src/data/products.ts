@@ -322,21 +322,6 @@ export const productsSectionsContent = {
     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
     action: { label: 'View products', href: '/products' },
   },
-  inventory: {
-    heading: 'Inventory lives on each product',
-    body: 'Stock levels and adjustments are tracked per variant. Open a product to change quantities or see its adjustment history.',
-    action: { label: 'View products', href: '/products' },
-  },
-  purchaseOrders: {
-    heading: 'No purchase orders',
-    body: 'Purchase orders track what you have ordered from suppliers and what has arrived, so incoming stock is expected before it lands.',
-    action: { label: 'View products', href: '/products' },
-  },
-  transfers: {
-    heading: 'No transfers',
-    body: 'Transfers record stock moving between locations or arriving from a supplier so counts stay accurate.',
-    action: { label: 'View products', href: '/products' },
-  },
   giftCards: {
     heading: 'No gift cards',
     body: 'Gift cards are prepaid balances shoppers redeem at checkout. Issue them manually or sell them as a product.',

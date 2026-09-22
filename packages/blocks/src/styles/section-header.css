@@ -306,6 +306,15 @@ focus-disclosure {
   display: none;
 }
 
+/* A merchant logo from the theme: the brand setting picks the width
+   (--logo-width, set by the theme vars), the file keeps its aspect ratio. */
+.header__logo-image--sized {
+  width: var(--logo-width, 8.75rem);
+  height: auto;
+  max-width: none;
+  max-height: 4rem;
+}
+
 :root[data-theme="dark"] .header__logo:not(:has(.header__logo-image--dark)) .header__logo-image {
   filter: brightness(0) invert(1);
 }
@@ -1875,3 +1884,172 @@ html:not(.has-cursor-fill) .search-overlay__pill:hover {
 }
 
 /* sync kick: 7e4d22f */
+
+/* ------------------------------------------------------------------ */
+/* Nested menus: a dropdown for two levels, grouped mega columns for   */
+/* three, and the drawer's nested accordions.                          */
+/* ------------------------------------------------------------------ */
+
+/* A parent item is a button (it opens its menu; its own link lives inside
+   the menu as "All <label>"). Reset the button so it reads as the links. */
+button.header__menu-link {
+  padding-inline: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+}
+
+.header__menu-link[aria-expanded="true"] {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.header__menu-link[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* Two-level menus drop down under their own item, not across the bar. */
+.header__menu-item--dropdown {
+  position: relative;
+}
+
+.header__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-4));
+  left: calc(var(--space-4) * -1);
+  z-index: 20;
+  min-width: 14rem;
+  padding-block: var(--space-2);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  box-shadow: 0 12px 24px rgb(0 0 0 / 8%);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+}
+
+/* Bridge over the gap between the item and the dropdown, so the pointer does
+   not read the crossing as leaving the menu. */
+.header__dropdown::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: var(--space-4);
+}
+
+.header__dropdown.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .header__dropdown {
+    transition:
+      opacity 200ms ease,
+      transform 200ms ease,
+      visibility 0s linear 200ms;
+  }
+
+  .header__dropdown.is-open {
+    transition:
+      opacity 200ms ease,
+      transform 200ms ease,
+      visibility 0s linear;
+  }
+}
+
+.header__dropdown-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.header__dropdown-link {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.header__dropdown-link:hover,
+.header__dropdown-link:focus-visible {
+  color: var(--color-ink);
+  background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
+  outline: none;
+}
+
+.header__dropdown-all {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-line);
+}
+
+/* Three-level menus: the shared full-width panel, one column per second-level
+   item with its children listed under it. */
+.header__mega-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-6) var(--space-8);
+  margin-bottom: var(--space-6);
+}
+
+.header__mega-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.header__mega-heading {
+  margin-bottom: var(--space-3);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.header__mega-heading:hover,
+.header__mega-heading:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  outline: none;
+}
+
+.header__mega-column .header__expansion-sublist {
+  padding-inline-start: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header__expansion-panel,
+  .header__expansion-panel.is-open {
+    transition: none;
+  }
+}
+
+/* Drawer: the scrim is a button so a tap closes the menu. */
+.header-drawer__scrim {
+  padding: 0;
+  border: 0;
+  cursor: default;
+}
+
+.header-drawer__close {
+  display: inline-flex;
+  padding: var(--space-1);
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.header-drawer__link--sub {
+  padding-block: var(--space-2);
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.header-drawer__sublist .header-drawer__details {
+  width: 100%;
+}

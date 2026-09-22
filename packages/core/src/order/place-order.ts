@@ -10,6 +10,7 @@ import {
   orderLine,
   payment,
   product,
+  sellableLevel,
   store,
   variant,
 } from '@commerce/db'
@@ -135,6 +136,7 @@ const reserveStock: WorkflowStep<State> = {
         .where(
           and(
             eq(inventoryLevel.variantId, line.variantId),
+            sellableLevel,
             sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
           ),
         )
@@ -149,7 +151,7 @@ const reserveStock: WorkflowStep<State> = {
       await ctx.tx
         .update(inventoryLevel)
         .set({ reserved: sql`${inventoryLevel.reserved} - ${line.quantity}` })
-        .where(eq(inventoryLevel.variantId, line.variantId))
+        .where(and(eq(inventoryLevel.variantId, line.variantId), sellableLevel))
     }
   },
 }

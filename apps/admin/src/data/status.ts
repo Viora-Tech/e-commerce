@@ -14,6 +14,12 @@ import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
 import { homeContent } from '@/data/home'
+import {
+  type PurchaseOrderStatus,
+  purchaseOrdersContent,
+  type TransferStatus,
+  transfersContent,
+} from '@/data/inventory'
 import { onlineStoreContent } from '@/data/online-store'
 import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
@@ -102,6 +108,18 @@ export const STATUS = {
     draft: entry(productsListContent.status.draft, 'info'),
     archived: entry(productsListContent.status.archived, 'neutral'),
   } satisfies Record<ProductStatus, StatusEntry>,
+  purchaseOrder: {
+    draft: entry(purchaseOrdersContent.status.draft, 'info'),
+    ordered: entry(purchaseOrdersContent.status.ordered, 'accent'),
+    partially_received: entry(purchaseOrdersContent.status.partially_received, 'pending'),
+    received: entry(purchaseOrdersContent.status.received, 'success'),
+    closed: entry(purchaseOrdersContent.status.closed, 'neutral'),
+  } satisfies Record<PurchaseOrderStatus, StatusEntry>,
+  transfer: {
+    draft: entry(transfersContent.status.draft, 'info'),
+    in_transit: entry(transfersContent.status.in_transit, 'pending'),
+    received: entry(transfersContent.status.received, 'success'),
+  } satisfies Record<TransferStatus, StatusEntry>,
   stock: {
     inStock: entry(homeContent.bestSelling.inStock, 'success'),
     outOfStock: entry(homeContent.bestSelling.outOfStock, 'error'),

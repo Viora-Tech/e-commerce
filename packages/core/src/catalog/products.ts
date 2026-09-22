@@ -14,6 +14,7 @@ import {
 } from '@commerce/db'
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
+import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
@@ -334,7 +335,7 @@ async function removeVariants(tx: StoreTx, ids: string[]) {
   }
 }
 
-/** Set an absolute on-hand count, recording the delta as an adjustment. */
+/** Set an absolute on-hand count at the default location, recording the delta. */
 export async function setOnHand(
   tx: StoreTx,
   storeId: string,
@@ -343,14 +344,10 @@ export async function setOnHand(
   reason: InventoryReason,
   note?: string,
 ) {
-  const [level] = await tx
-    .select({ onHand: inventoryLevel.onHand })
-    .from(inventoryLevel)
-    .where(eq(inventoryLevel.variantId, variantId))
-  const current = level?.onHand ?? 0
-  return adjustInventory(tx, storeId, variantId, onHand - current, reason, note)
+  await setStock(tx, { storeId, variantId, onHand, reason, note })
 }
 
+/** Change on-hand stock at the default location and log why. */
 export async function adjustInventory(
   tx: StoreTx,
   storeId: string,
@@ -360,19 +357,7 @@ export async function adjustInventory(
   note?: string,
 ) {
   if (delta === 0) return
-  const [row] = await tx
-    .update(inventoryLevel)
-    .set({ onHand: sql`${inventoryLevel.onHand} + ${delta}` })
-    .where(eq(inventoryLevel.variantId, variantId))
-    .returning({ onHand: inventoryLevel.onHand })
-  if (!row) {
-    await tx.insert(inventoryLevel).values({ id: newId(), storeId, variantId, onHand: delta })
-  } else if (row.onHand < 0) {
-    throw new CommerceError('NEGATIVE_STOCK', 'Stock cannot go below zero', { storeId })
-  }
-  await tx
-    .insert(inventoryAdjustment)
-    .values({ id: newId(), storeId, variantId, delta, reason, note: note ?? null })
+  await adjustStock(tx, { storeId, variantId, delta, reason, note })
 }
 
 /**

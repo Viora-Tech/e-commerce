@@ -9,6 +9,7 @@ import {
   orderLine,
   product,
   productMedia,
+  sellableLevel,
   variant,
 } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizzle-orm'
@@ -268,7 +269,7 @@ export async function dashboardSummary(
       available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
     })
     .from(inventoryLevel)
-    .innerJoin(variant, eq(variant.id, inventoryLevel.variantId))
+    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
     .where(eq(variant.trackInventory, true))
   const inStock = stockRows.filter((r) => r.available > 0).length
   const outOfStock = stockRows.length - inStock
@@ -356,7 +357,7 @@ export async function dashboardSummary(
       available: sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`.mapWith(Number),
     })
     .from(inventoryLevel)
-    .innerJoin(variant, eq(variant.id, inventoryLevel.variantId))
+    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(
       and(
@@ -391,7 +392,7 @@ export async function dashboardSummary(
           inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${inventoryLevel.onHand} - ${inventoryLevel.reserved}, 0) > 0)`,
         })
         .from(variant)
-        .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+        .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
         .where(inArray(variant.productId, topIds))
         .groupBy(variant.productId)
     : []
