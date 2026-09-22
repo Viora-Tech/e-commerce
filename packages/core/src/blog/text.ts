@@ -99,6 +99,16 @@ export function displayStatus(
   return status
 }
 
+/** "23 Sept 2026" in the store's time zone; an unknown zone falls back to UTC. */
+export function formatArticleDate(value: Date | string | number, timeZone: string): string {
+  const date = new Date(value)
+  try {
+    return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone }).format(date)
+  } catch {
+    return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'UTC' }).format(date)
+  }
+}
+
 /** A visible post row mapped to the card shape the storefront blocks render. */
 export function toCardArticle(row: {
   id: string
@@ -112,6 +122,7 @@ export function toCardArticle(row: {
   imageAlt: string | null
   blogHandle: string
   blogTitle: string
+  timeZone: string
 }) {
   return {
     id: row.id,
@@ -120,6 +131,7 @@ export function toCardArticle(row: {
     excerpt: articleExcerpt(row.excerpt, row.body),
     author: row.author,
     publishedAt: new Date(row.publishedAt ?? 0).toISOString(),
+    dateLabel: formatArticleDate(row.publishedAt ?? 0, row.timeZone),
     imageUrl: row.imageUrl,
     imageAlt: row.imageAlt,
     blogTitle: row.blogTitle,

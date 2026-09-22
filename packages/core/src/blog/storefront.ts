@@ -1,4 +1,4 @@
-import { article, blog, media, type StoreTx } from '@commerce/db'
+import { article, blog, media, type StoreTx, store } from '@commerce/db'
 import { and, asc, count, desc, eq, gt, lt, sql } from 'drizzle-orm'
 import { visibleNow } from './service'
 
@@ -22,6 +22,8 @@ const cardColumns = {
   imageAlt: article.imageAlt,
   blogHandle: blog.handle,
   blogTitle: blog.title,
+  /** Dates on cards read in the store's own time zone. */
+  timeZone: store.timezone,
 }
 
 export async function listVisibleArticles(
@@ -40,6 +42,7 @@ export async function listVisibleArticles(
       .select(cardColumns)
       .from(article)
       .innerJoin(blog, eq(blog.id, article.blogId))
+      .innerJoin(store, eq(store.id, article.storeId))
       .leftJoin(media, eq(media.id, article.imageMediaId))
       .where(where)
       .orderBy(desc(article.publishedAt), desc(article.id))
@@ -70,6 +73,7 @@ export async function getVisibleArticle(
     })
     .from(article)
     .innerJoin(blog, eq(blog.id, article.blogId))
+    .innerJoin(store, eq(store.id, article.storeId))
     .leftJoin(media, eq(media.id, article.imageMediaId))
     .where(and(eq(article.blogId, blogId), eq(article.handle, handle), visibleNow(now)))
   if (!row?.publishedAt) return null
@@ -105,6 +109,7 @@ export async function recentVisibleArticles(
     .select(cardColumns)
     .from(article)
     .innerJoin(blog, eq(blog.id, article.blogId))
+    .innerJoin(store, eq(store.id, article.storeId))
     .leftJoin(media, eq(media.id, article.imageMediaId))
     .where(and(visibleNow(now), opts.blogHandle ? eq(blog.handle, opts.blogHandle) : undefined))
     .orderBy(desc(article.publishedAt), desc(article.id))

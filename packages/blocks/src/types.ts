@@ -55,6 +55,8 @@ export type CardArticle = {
   author: string
   /** ISO timestamp. */
   publishedAt: string
+  /** The date as the store shows it, already in its time zone. */
+  dateLabel: string
   imageUrl: string | null
   imageAlt: string | null
   blogTitle: string

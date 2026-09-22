@@ -4,8 +4,9 @@ import { blogContent as copy } from '@/data/blog'
 type TagFilterProps = { path: string; tags: string[]; active: string | undefined }
 
 const PILL = 'rounded-full border px-4 py-1.5 text-sm transition-colors'
-const IDLE = 'border-line text-ink hover:border-ink'
-const ACTIVE = 'border-ink bg-ink text-bg'
+/* The theme's unlayered link colour outranks utilities, so the colours are marked important. */
+const IDLE = 'border-line text-ink! hover:border-ink'
+const ACTIVE = 'border-ink bg-ink text-bg!'
 
 const pill = (active: boolean) => `${PILL} ${active ? ACTIVE : IDLE}`
 
