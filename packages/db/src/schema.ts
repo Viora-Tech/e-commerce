@@ -803,6 +803,11 @@ export type NavigationItem = {
   type: NavigationItemType
   /** Handle for product/collection/page, the URL for url; absent for home. */
   value?: string | undefined
+  /**
+   * Nested items. A menu is at most three levels deep (top, dropdown, and the
+   * grouped columns of a mega menu), the same ceiling Shopify sets.
+   */
+  children?: NavigationItem[] | undefined
 }
 
 /**
