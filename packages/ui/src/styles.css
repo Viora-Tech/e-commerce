@@ -111,8 +111,9 @@
   --shadow-kit-1: 0 1px 3px 0 rgb(0 0 0 / 0.2);
   --shadow-kit-3: 0 1px 8px 0 rgb(0 0 0 / 0.2);
   --shadow-kit-6: 0 3px 5px 0 rgb(0 0 0 / 0.2);
-  --shadow-card: var(--shadow-kit-1);
-  --shadow-card-hover: var(--shadow-kit-3);
+  /* Cards sit on the kit's 3 Ambient tier at rest (Kuldeep wants visible depth), lift to a soft 6 on hover. */
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1);
+  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16);
   --shadow-rail: 1px 0 0 0 var(--border), 4px 0 16px -6px rgb(16 24 40 / 0.08); /* sidebar edge */
   --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.2); /* kit 14:917 category rows, user card */
   --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.14);
@@ -188,8 +189,9 @@
   --shadow-kit-1: 0 0 0 1px rgb(255 255 255 / 0.04);
   --shadow-kit-3: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.5);
   --shadow-kit-6: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 64px -12px rgb(0 0 0 / 0.7);
-  --shadow-card: var(--shadow-kit-1);
-  --shadow-card-hover: var(--shadow-kit-3);
+  /* Cards sit on the kit's 3 Ambient tier at rest (Kuldeep wants visible depth), lift to a soft 6 on hover. */
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1);
+  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16);
   --shadow-rail: 0 0 0 1px rgb(255 255 255 / 0.04);
   --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.05);
   --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.4);
