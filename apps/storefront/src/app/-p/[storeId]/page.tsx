@@ -35,26 +35,28 @@ export default async function PasswordPage({ params }: Params) {
   const message = parsePreferences(s.preferences).password.message || copy.title
   const logo = s.theme.brand.logo
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-md flex-col items-center justify-center gap-8 px-6 py-16 text-center">
-      {logo ? (
-        <Image
-          src={logo.url}
-          alt={s.name}
-          width={s.theme.brand.logoWidth}
-          height={Math.round(s.theme.brand.logoWidth / 2)}
-          className="h-auto max-w-full object-contain"
-        />
-      ) : (
-        <p className="font-heading text-2xl font-bold">{s.name}</p>
-      )}
-      <h1 className="h2 whitespace-pre-line">{message}</h1>
-      <PasswordForm />
-      <p className="text-sm text-muted">
-        {copy.owner}{' '}
-        <a href={loadEnv(process.env).ADMIN_URL} className="underline underline-offset-4">
-          {copy.ownerLink}
-        </a>
-      </p>
+    <main className="grid min-h-svh w-full place-items-center px-6 py-16">
+      <div className="flex w-full max-w-md flex-col items-center gap-8 text-center">
+        {logo ? (
+          <Image
+            src={logo.url}
+            alt={s.name}
+            width={s.theme.brand.logoWidth}
+            height={Math.round(s.theme.brand.logoWidth / 2)}
+            className="h-auto max-w-full object-contain"
+          />
+        ) : (
+          <p className="font-heading text-2xl font-bold">{s.name}</p>
+        )}
+        <h1 className="h2 whitespace-pre-line">{message}</h1>
+        <PasswordForm />
+        <p className="text-sm text-muted">
+          {copy.owner}{' '}
+          <a href={loadEnv(process.env).ADMIN_URL} className="underline underline-offset-4">
+            {copy.ownerLink}
+          </a>
+        </p>
+      </div>
     </main>
   )
 }

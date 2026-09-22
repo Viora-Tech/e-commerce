@@ -54,82 +54,84 @@ export default function ConsentManager({ privacy, tracking, initial }: ConsentMa
     <>
       <TrackingTags {...tags} />
       {ask ? (
-        <section
-          aria-label={copy.label}
-          className="fixed inset-x-3 bottom-3 z-50 mx-auto flex max-w-2xl flex-col gap-4 rounded-lg border border-line bg-surface p-5 text-ink shadow-lg"
-        >
-          <div className="flex flex-col gap-1">
-            <h2 className="text-base font-semibold">{copy.heading}</h2>
-            <p className="text-sm text-muted">{privacy.message || copy.body}</p>
-          </div>
-          {choosing ? (
-            <ul className="flex flex-col gap-3">
-              <li className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked
-                  disabled
-                  className="mt-1"
-                  aria-labelledby="c-necessary"
-                />
-                <span className="flex flex-col">
-                  <span id="c-necessary" className="text-sm font-semibold">
-                    {copy.categories.necessary.label}
-                  </span>
-                  <span className="text-sm text-muted">{copy.categories.necessary.body}</span>
-                </span>
-              </li>
-              {OPTIONAL.map((key) => (
-                <li key={key} className="flex items-start gap-3">
-                  <input
-                    id={`c-${key}`}
-                    type="checkbox"
-                    checked={draft[key]}
-                    onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.checked }))}
-                    className="mt-1"
-                  />
-                  <label htmlFor={`c-${key}`} className="flex flex-col">
-                    <span className="text-sm font-semibold">{copy.categories[key].label}</span>
-                    <span className="text-sm text-muted">{copy.categories[key].body}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <div className="flex flex-wrap justify-end gap-2">
+        <div className="pointer-events-none fixed inset-x-3 bottom-3 z-50 flex justify-center">
+          <section
+            aria-label={copy.label}
+            className="pointer-events-auto flex w-full max-w-2xl flex-col gap-4 rounded-lg border border-line bg-surface p-5 text-ink shadow-lg"
+          >
+            <div className="flex flex-col gap-1">
+              <p className="text-base font-semibold">{copy.heading}</p>
+              <p className="text-sm text-muted">{privacy.message || copy.body}</p>
+            </div>
             {choosing ? (
+              <ul className="flex flex-col gap-3">
+                <li className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled
+                    className="mt-1"
+                    aria-labelledby="c-necessary"
+                  />
+                  <span className="flex flex-col">
+                    <span id="c-necessary" className="text-sm font-semibold">
+                      {copy.categories.necessary.label}
+                    </span>
+                    <span className="text-sm text-muted">{copy.categories.necessary.body}</span>
+                  </span>
+                </li>
+                {OPTIONAL.map((key) => (
+                  <li key={key} className="flex items-start gap-3">
+                    <input
+                      id={`c-${key}`}
+                      type="checkbox"
+                      checked={draft[key]}
+                      onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.checked }))}
+                      className="mt-1"
+                    />
+                    <label htmlFor={`c-${key}`} className="flex flex-col">
+                      <span className="text-sm font-semibold">{copy.categories[key].label}</span>
+                      <span className="text-sm text-muted">{copy.categories[key].body}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="flex flex-wrap justify-end gap-2">
+              {choosing ? (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--small"
+                  onClick={() => handleChoose(draft)}
+                >
+                  {copy.save}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--small"
+                  onClick={() => setChoosing(true)}
+                >
+                  {copy.customise}
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn--secondary btn--small"
-                onClick={() => handleChoose(draft)}
+                onClick={() => handleChoose({ analytics: false, marketing: false })}
               >
-                {copy.save}
+                {copy.rejectAll}
               </button>
-            ) : (
               <button
                 type="button"
-                className="btn btn--secondary btn--small"
-                onClick={() => setChoosing(true)}
+                className="btn btn--primary btn--small"
+                onClick={() => handleChoose({ analytics: true, marketing: true })}
               >
-                {copy.customise}
+                {copy.acceptAll}
               </button>
-            )}
-            <button
-              type="button"
-              className="btn btn--secondary btn--small"
-              onClick={() => handleChoose({ analytics: false, marketing: false })}
-            >
-              {copy.rejectAll}
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary btn--small"
-              onClick={() => handleChoose({ analytics: true, marketing: true })}
-            >
-              {copy.acceptAll}
-            </button>
-          </div>
-        </section>
+            </div>
+          </section>
+        </div>
       ) : null}
     </>
   )

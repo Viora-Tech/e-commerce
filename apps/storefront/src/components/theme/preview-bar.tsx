@@ -1,12 +1,29 @@
+'use client'
+
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
+import { useEffect, useState } from 'react'
 import { previewBarContent as copy } from '@/data/online-store'
 
 type PreviewBarProps = {
   themeName: string
 }
 
-/** Pinned bar while a merchant previews an unpublished theme in a normal tab. */
+/**
+ * Pinned bar while a merchant previews an unpublished theme in a normal tab. Hidden
+ * inside a frame (the admin editor and thumbnails), which the server cannot always
+ * tell apart once the router fetches in the background.
+ */
 export default function PreviewBar({ themeName }: PreviewBarProps) {
+  // Hooks
+  const [framed, setFramed] = useState(false)
+
+  useEffect(() => {
+    setFramed(window.parent !== window)
+  }, [])
+
+  // Early returns
+  if (framed) return null
+
   // Render logic
   return (
     <div

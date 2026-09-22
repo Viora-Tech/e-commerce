@@ -72,7 +72,7 @@ export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
   url.pathname = locked ? `${PASSWORD_PREFIX}/${storeId}` : route.path
   const response = NextResponse.rewrite(url, { request: { headers } })
-  if (preview && param && !inFrame) {
+  if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
     response.cookies.set(PREVIEW_COOKIE, param, {
       httpOnly: true,
       sameSite: 'lax',
