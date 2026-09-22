@@ -138,4 +138,66 @@ describe('loadPlugins', () => {
       storage: [],
     })
   })
+
+  it('runs app hooks, jobs, links and attachments only for installed apps', async () => {
+    const calls: string[] = []
+    const invoices = definePlugin({
+      id: 'gst-invoices',
+      name: 'GST invoices',
+      version: '1',
+      category: 'invoicing',
+      provides: {},
+      hooks: { 'order.paid': async (_ctx, p) => void calls.push(`paid:${p.orderId}`) },
+      jobs: { render: async () => void calls.push('render') },
+      orderLinks: async (_ctx, orderId) => [{ label: 'Invoice', url: `/d/${orderId}` }],
+      emailAttachments: async () => [
+        { filename: 'a.pdf', contentType: 'application/pdf', content: new Uint8Array([1]) },
+      ],
+      admin: {
+        icon: 'FileText',
+        pages: [{ path: '', title: 'Invoice queue', navLabel: 'Queue' }],
+        orderDetailCard: true,
+      },
+    })
+    const loaded = loadPlugins([core, razorpay, invoices])
+    expect(loaded.hooksFor('order.paid', [])).toEqual([])
+    expect(loaded.hooksFor('order.paid', ['gst-invoices']).map((h) => h.pluginId)).toEqual([
+      'gst-invoices',
+    ])
+    expect(loaded.jobFor('gst-invoices', 'render', [])).toBeNull()
+    expect(loaded.jobFor('gst-invoices', 'nope', ['gst-invoices'])).toBeNull()
+    expect(loaded.jobFor('gst-invoices', 'render', ['gst-invoices'])).toBeTypeOf('function')
+    const linkCtx = {
+      storeId: 's',
+      inStore: async () => undefined as never,
+      settingsSecret: 'x',
+      storefrontUrl: null,
+      surface: 'email' as const,
+    }
+    expect(await loaded.orderLinks([], linkCtx, 'o1')).toEqual([])
+    expect(await loaded.orderLinks(['gst-invoices'], linkCtx, 'o1')).toEqual([
+      { label: 'Invoice', url: '/d/o1' },
+    ])
+    const hookCtx = {
+      ...linkCtx,
+      storage: async () => undefined as never,
+      log: () => {},
+      notify: async () => ({ sent: 0, errors: [] }),
+    }
+    const files = await loaded.emailAttachments(['gst-invoices'], hookCtx, {
+      orderId: 'o1',
+      template: 'payment_received',
+    })
+    expect(files.map((f) => f.filename)).toEqual(['a.pdf'])
+    const summary = loaded.summaries().find((p) => p.id === 'gst-invoices')
+    expect(summary).toMatchObject({
+      category: 'invoicing',
+      hooks: ['order.paid'],
+      admin: {
+        icon: 'FileText',
+        pages: [{ path: '', title: 'Invoice queue', navLabel: 'Queue' }],
+        orderDetailCard: true,
+      },
+    })
+  })
 })

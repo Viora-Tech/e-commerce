@@ -27,6 +27,9 @@ export type NavItem = {
 }
 export type NavGroup = { label?: string; items: NavItem[] }
 
+/** Installed apps with their own pages are appended to this group. */
+export const APPS_GROUP = 'Apps'
+
 /**
  * Sidebar sections, in Shopify's order. Route structure mirrors Shopify's
  * admin so merchants coming from it find everything where they expect.
@@ -138,7 +141,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Apps',
+    label: APPS_GROUP,
     items: [{ href: '/apps', label: 'Apps', icon: Blocks, permission: permissions.SETTINGS_READ }],
   },
 ]
@@ -179,7 +182,8 @@ export const navigationContent = {
 
 /** A section is active for its own path and everything nested under it; home only for itself. */
 export function isSectionActive(pathname: string, item: NavItem): boolean {
-  if (item.href === '/') return pathname === '/'
+  // Home, and Apps whose installed apps are listed as their own items.
+  if (item.href === '/' || item.href === '/apps') return pathname === item.href
   return pathname === item.href || pathname.startsWith(`${item.href}/`)
 }
 

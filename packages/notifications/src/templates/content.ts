@@ -57,6 +57,16 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `Your ${d.storeName} basket (${d.totalLabel}) is still saved.${d.actionUrl ? ` Finish here: ${d.actionUrl}` : ''}`,
   },
+  document_copy: {
+    subject: (d) =>
+      `${d.storeName}: your ${d.documentLabel ?? 'invoice'} for order #${d.orderNumber}`,
+    heading: (d) => `Hi ${d.customerName}`,
+    intro: (d) =>
+      `Your ${d.documentLabel ?? 'invoice'} for order #${d.orderNumber} (${d.totalLabel}) is attached.`,
+    outro: () => 'Keep it for your records.',
+    whatsapp: (d) =>
+      `${d.storeName}: your ${d.documentLabel ?? 'invoice'} for order #${d.orderNumber}.${d.links?.[0] ? ` Download: ${d.links[0].url}` : ''}`,
+  },
 }
 
 export const sharedContent = {

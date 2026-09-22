@@ -43,6 +43,31 @@ describe('ses specifics', () => {
     expect(input?.Content?.Simple?.Body?.Html?.Data).toContain('<li>')
   })
 
+  it('attaches files and prints app links', async () => {
+    const rec: Recorder = { sent: [] }
+    const content = new Uint8Array([37, 80, 68, 70])
+    await new SesChannel(config, fakeClient(rec)).send({
+      to: { email: 'asha@example.com' },
+      template: 'payment_received',
+      data: {
+        ...sampleTemplateData,
+        links: [{ label: 'Download invoice', url: 'https://s.test/d/1' }],
+      },
+      attachments: [{ filename: 'INV-0001.pdf', contentType: 'application/pdf', content }],
+    })
+    const simple = rec.sent[0]?.input.Content?.Simple
+    expect(simple?.Attachments).toEqual([
+      {
+        FileName: 'INV-0001.pdf',
+        ContentType: 'application/pdf',
+        RawContent: content,
+        ContentDisposition: 'ATTACHMENT',
+      },
+    ])
+    expect(simple?.Body?.Html?.Data).toContain('href="https://s.test/d/1"')
+    expect(simple?.Body?.Text?.Data).toContain('Download invoice: https://s.test/d/1')
+  })
+
   it('turns SDK errors into a failed result', async () => {
     const rec: Recorder = { sent: [], fail: new Error('MessageRejected') }
     const r = await new SesChannel(config, fakeClient(rec)).send({

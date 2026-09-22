@@ -2,6 +2,7 @@ import { loadEnv } from '@commerce/config'
 import {
   CommerceError,
   DraftInputSchema,
+  enqueueAppEvent,
   enqueueNotification,
   permissions,
   type TemplateId,
@@ -219,13 +220,23 @@ export const ordersRouter = {
     .handler(async ({ context, input }) => {
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
       try {
-        return await refundOrderPayment(
+        const r = await refundOrderPayment(
           context.tx,
           context.scope.storeId,
           payments,
           secret(),
           input,
         )
+        // Failed gateway refunds returned no money, so there is nothing to credit.
+        if (r && r.status !== 'failed' && context.appEvents) {
+          await enqueueAppEvent(context.appEvents, {
+            storeId: context.scope.storeId,
+            event: 'refund.created',
+            orderId: r.orderId,
+            refundId: r.id,
+          })
+        }
+        return r
       } catch (err) {
         if (err instanceof CommerceError)
           throw new ORPCError('BAD_REQUEST', { message: err.message })

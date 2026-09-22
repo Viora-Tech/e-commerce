@@ -165,6 +165,7 @@ export async function getProduct(tx: StoreTx, id: string) {
       weightGrams: variant.weightGrams,
       hsCode: variant.hsCode,
       countryOfOrigin: variant.countryOfOrigin,
+      gstRatePercent: variant.gstRatePercent,
       mediaId: variant.mediaId,
       onHand: inventoryLevel.onHand,
       reserved: inventoryLevel.reserved,

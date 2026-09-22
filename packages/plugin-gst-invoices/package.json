@@ -1,0 +1,33 @@
+{
+  "name": "@commerce/plugin-gst-invoices",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GST invoices app: tax invoices, credit notes, packing slips, GSTR-1 export.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@commerce/db": "workspace:*",
+    "@commerce/invoices": "workspace:*",
+    "@commerce/notifications": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "@commerce/storage": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "dotenv": "^18.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

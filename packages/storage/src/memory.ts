@@ -1,4 +1,4 @@
-import type { PresignedUpload, PresignInput, StorageProvider } from './types'
+import type { PresignedUpload, PresignInput, PutInput, StorageProvider } from './types'
 
 export type MemoryStorageOptions = {
   /** Where `publicUrl` points; tests only ever compare the string. */
@@ -16,6 +16,7 @@ export class MemoryStorageProvider implements StorageProvider {
   readonly label = 'In-memory (tests)'
   readonly signed: PresignInput[] = []
   readonly deleted: string[] = []
+  readonly objects = new Map<string, { body: Uint8Array; contentType: string }>()
   private readonly publicBase: string
   private readonly uploadBase: string
 
@@ -38,8 +39,17 @@ export class MemoryStorageProvider implements StorageProvider {
     return `${this.publicBase}/${key}`
   }
 
+  async put(input: PutInput): Promise<void> {
+    this.objects.set(input.key, { body: input.body, contentType: input.contentType })
+  }
+
+  async get(key: string): Promise<Uint8Array | null> {
+    return this.objects.get(key)?.body ?? null
+  }
+
   async delete(key: string): Promise<void> {
     this.deleted.push(key)
+    this.objects.delete(key)
   }
 
   async verifyCredentials() {

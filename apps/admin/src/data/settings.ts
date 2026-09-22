@@ -1,14 +1,5 @@
 import type { LucideIcon } from '@commerce/ui/icons'
-import {
-  Bell,
-  CreditCard,
-  FileText,
-  Globe,
-  Images,
-  Store,
-  Truck,
-  UserCog,
-} from '@commerce/ui/icons'
+import { Bell, CreditCard, Globe, Images, Store, Truck, UserCog } from '@commerce/ui/icons'
 
 export type SettingsSection = {
   href: string
@@ -60,12 +51,6 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Domains',
     body: 'The addresses your storefront answers on.',
     icon: Globe,
-  },
-  {
-    href: '/settings/invoices',
-    title: 'Invoices',
-    body: 'GST details, invoice numbering and the PDF your customers receive.',
-    icon: FileText,
   },
 ]
 
@@ -136,10 +121,5 @@ export const settingsContent = {
   domains: {
     heading: 'Domains',
     body: 'Connect your own domain and manage which hostnames route to this storefront.',
-  },
-  invoices: {
-    heading: 'Invoices',
-    body: 'GSTIN, HSN codes, invoice numbering and the PDF sent with each order.',
-    action: { label: 'View orders', href: '/orders' },
   },
 } as const

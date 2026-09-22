@@ -27,6 +27,7 @@ export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
     '',
     c.outro(d),
     d.orderUrl ? `${shared.viewOrder}: ${d.orderUrl}` : '',
+    ...(d.links ?? []).map((l) => `${l.label}: ${l.url}`),
     '',
     shared.footer(d),
   ])
@@ -40,6 +41,9 @@ export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
     `<p><strong>${shared.totalLabel}: ${escapeHtml(d.totalLabel)}</strong></p>`,
     `<p>${escapeHtml(c.outro(d))}</p>`,
     d.orderUrl ? `<p><a href="${escapeHtml(d.orderUrl)}">${shared.viewOrder}</a></p>` : '',
+    ...(d.links ?? []).map(
+      (l) => `<p><a href="${escapeHtml(l.url)}">${escapeHtml(l.label)}</a></p>`,
+    ),
     `<p style="font-size:12px;color:#666">${escapeHtml(shared.footer(d))}</p>`,
     '</body></html>',
   ].join('\n')

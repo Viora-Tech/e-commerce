@@ -10,8 +10,11 @@ const config: NextConfig = {
     '@commerce/auth',
     '@commerce/ui',
     '@commerce/storage',
+    '@commerce/invoices',
+    '@commerce/plugin-gst-invoices',
   ],
-  serverExternalPackages: ['postgres'],
+  // react-pdf and pdf-lib load fonts and wasm at runtime; keep them out of the bundle.
+  serverExternalPackages: ['postgres', '@react-pdf/renderer', 'pdf-lib'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.shopify.com' },

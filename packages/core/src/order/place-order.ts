@@ -28,7 +28,7 @@ import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
 import { applyPaymentAdjustment } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
 import { StoreAddressSchema } from '../settings/general'
-import { computeGst } from '../tax/gst'
+import { computeOrderGst } from '../tax/gst'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
 export type CheckoutDetails = {
@@ -60,6 +60,10 @@ type Line = {
   unitPricePaise: number
   title: string
   variantTitle: string
+  /** The variant's own GST rate; null falls back to the store default. */
+  gstRatePercent: number | null
+  taxable: boolean
+  hsCode: string | null
 }
 
 type State = {
@@ -93,6 +97,9 @@ const loadCart: WorkflowStep<State> = {
         unitPricePaise: cartLine.unitPricePaise,
         title: product.title,
         variantTitle: variant.title,
+        gstRatePercent: variant.gstRatePercent,
+        taxable: variant.taxable,
+        hsCode: variant.hsCode,
       })
       .from(cartLine)
       .innerJoin(variant, eq(variant.id, cartLine.variantId))
@@ -228,9 +235,13 @@ const createOrder: WorkflowStep<State> = {
     /* Listed prices include GST, so the tax is split out of the total rather
        than added to it; the shopper pays the same either way. */
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
-    const tax = computeGst({
-      amountPaise: totalPaise,
-      ratePercent: s.gstRatePercent,
+    const tax = computeOrderGst({
+      lines: lines.map((l) => ({
+        grossPaise: l.quantity * l.unitPricePaise,
+        ratePercent: l.taxable ? (l.gstRatePercent ?? s.gstRatePercent) : 0,
+      })),
+      totalPaise,
+      reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
       shipToState: input.checkout?.address.stateCode ?? null,
       storeState: storeAddress.success ? storeAddress.data.state : null,
     })
@@ -268,6 +279,8 @@ const createOrder: WorkflowStep<State> = {
         variantTitle: l.variantTitle,
         quantity: l.quantity,
         unitPricePaise: l.unitPricePaise,
+        gstRatePercent: l.taxable ? (l.gstRatePercent ?? s.gstRatePercent) : 0,
+        hsCode: l.hsCode,
       })),
     )
     if (applied) {

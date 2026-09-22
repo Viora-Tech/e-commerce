@@ -63,6 +63,20 @@ export default function ShippingCard({ variant, onChange }: ShippingCardProps) {
               />
               <FieldDescription>{copy.hsCodeHelp}</FieldDescription>
             </Field>
+            <Field>
+              <FieldLabel htmlFor="variant-gst">{copy.gstRate}</FieldLabel>
+              <Input
+                size="lg"
+                id="variant-gst"
+                value={variant.gstRate}
+                onChange={(e) =>
+                  onChange({ gstRate: e.target.value.replace(/\D/g, '').slice(0, 2) })
+                }
+                autoComplete="off"
+                inputMode="numeric"
+              />
+              <FieldDescription>{copy.gstRateHelp}</FieldDescription>
+            </Field>
           </div>
           <Field>
             <FieldLabel htmlFor="variant-origin">{copy.country}</FieldLabel>

@@ -35,6 +35,13 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     name: input.name,
     version: input.version,
     description: input.description,
+    category: input.category,
+    hooks: input.hooks,
+    orderLinks: input.orderLinks,
+    productFields: input.productFields,
+    admin: input.admin,
+    jobs: input.jobs,
+    emailAttachments: input.emailAttachments,
     provides: {
       payments: input.provides.payments ?? [],
       shipping: input.provides.shipping ?? [],

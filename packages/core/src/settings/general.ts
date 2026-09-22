@@ -1,10 +1,8 @@
 import { z } from 'zod'
+import { validateGstin } from '../tax/gstin'
 
 /** Most gaming and electronics accessories sit at 18%; merchants can change it. */
 export const DEFAULT_GST_RATE_PERCENT = 18
-
-/** Indian GSTIN: 2-digit state code, PAN, entity number, Z, checksum. */
-const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 
 export const StoreAddressSchema = z.object({
   line1: z.string().trim().max(200).default(''),
@@ -41,7 +39,20 @@ export const StoreGeneralSchema = z.object({
     .string()
     .trim()
     .toUpperCase()
-    .refine((v) => v === '' || GSTIN.test(v), 'GSTIN should look like 06AAACW1234A1Z5')
+    .superRefine((v, ctx) => {
+      if (v === '') return
+      const check = validateGstin(v)
+      if (check.ok) return
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          check.reason === 'checksum'
+            ? 'This GSTIN has a typo: its last character does not match the rest'
+            : check.reason === 'state'
+              ? 'The first two digits are not a GST state code'
+              : 'GSTIN should look like 06AAACW1234A1Z5',
+      })
+    })
     .default(''),
   timezone: z.string().trim().min(1).default('Asia/Kolkata'),
   /** GST rate contained in listed prices; 0 turns the tax line off. */

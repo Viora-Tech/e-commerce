@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { ADMIN_APPS } from '@/apps/registry'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import { orderDetailContent as copy, ordersContent } from '@/data/orders'
@@ -36,9 +37,11 @@ import UnfulfilledCard from './unfulfilled-card'
 
 type OrderViewProps = {
   order: OrderDetail
+  /** Installed apps that add a card to this page, by plugin id. */
+  appCards?: string[]
 }
 
-export default function OrderView({ order }: OrderViewProps) {
+export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   // Hooks
   const router = useRouter()
   const [busy, setBusy] = useState(false)
@@ -164,6 +167,10 @@ export default function OrderView({ order }: OrderViewProps) {
           side={
             <>
               <CustomerCard order={order} />
+              {appCards.map((id) => {
+                const Card = ADMIN_APPS[id]?.OrderCard
+                return Card ? <Card key={id} orderId={order.id} /> : null
+              })}
               <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
             </>
           }

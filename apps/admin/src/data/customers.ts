@@ -222,6 +222,7 @@ export const customerDetailContent = {
       payment_received: 'Payment received',
       order_shipped: 'Shipping update',
       checkout_recovery: 'Checkout reminder',
+      document_copy: 'Invoice copy',
     } as Record<string, string>,
     status: { queued: 'Queued', sent: 'Sent', failed: 'Failed' } as Record<string, string>,
     via: (channel: string) => `via ${channel}`,

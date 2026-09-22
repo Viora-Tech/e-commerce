@@ -1,6 +1,13 @@
 import { appRouter } from '@commerce/api'
 import { loadEnv } from '@commerce/config'
-import { dailyVisitors, liveVisitors, notificationQueue, sharedRedis } from '@commerce/queue'
+import {
+  appEventQueue,
+  appJobQueue,
+  dailyVisitors,
+  liveVisitors,
+  notificationQueue,
+  sharedRedis,
+} from '@commerce/queue'
 import { call } from '@orpc/server'
 import { headers } from 'next/headers'
 import { auth } from './auth'
@@ -12,6 +19,8 @@ export function apiHost() {
     db: db(),
     auth: auth(),
     notifications: notificationQueue(loadEnv(process.env).REDIS_URL),
+    appEvents: appEventQueue(loadEnv(process.env).REDIS_URL),
+    appJobs: appJobQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

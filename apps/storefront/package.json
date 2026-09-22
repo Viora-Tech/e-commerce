@@ -11,20 +11,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/blocks": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "next": "16.3.5",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "@commerce/blocks": "workspace:*",
-    "@measured/puck": "^0.20.2",
+    "@commerce/invoices": "workspace:*",
     "@commerce/payments": "workspace:*",
-    "qrcode": "^1.5.4",
+    "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",
-    "@commerce/shipping": "workspace:*"
+    "@commerce/shipping": "workspace:*",
+    "@measured/puck": "^0.20.2",
+    "@react-pdf/renderer": "^4.9.0",
+    "drizzle-orm": "^0.45.2",
+    "next": "16.3.5",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

@@ -98,6 +98,7 @@ function variantRow(input: VariantInput) {
     weightGrams: input.weightGrams ?? null,
     hsCode: input.hsCode ?? null,
     countryOfOrigin: input.countryOfOrigin ?? null,
+    gstRatePercent: input.gstRatePercent ?? null,
     mediaId: input.mediaId ?? null,
   }
 }

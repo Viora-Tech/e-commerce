@@ -151,6 +151,12 @@ R2) and `packages/core/src/providers/local-storage.ts` for the development
 folder. An S3, GCS or Bunny adapter is the same ~150 lines with a different
 client.
 
+Storage providers also implement `put({ key, body, contentType })` and
+`get(key)` for files the server generates (invoice PDFs). Keys under
+`stores/<id>/private/` are never linked publicly; they are read back with
+`get` behind a signed route. Run the conformance suite with
+`offlineObjects: true` when the provider can round-trip without credentials.
+
 ## 4. Tests
 
 Run the conformance suite from your own test file; it checks the behaviour
@@ -190,3 +196,49 @@ cases for webhooks.
 
 3. Publish to npm (`@yourorg/commerce-plugin-fedex` or similar). Consumers add
    it to their config exactly the same way.
+
+## 6. Apps: hooks, jobs, admin and shopper surfaces
+
+A plugin does not have to provide a gateway or a courier. An *app* reacts to
+orders and adds screens. `packages/plugin-gst-invoices` is the worked example.
+Everything below is optional on the manifest and only ever runs for stores
+that installed the app from Admin → Apps.
+
+| Field | What it does |
+| --- | --- |
+| `category` | Badge on the Apps page, e.g. `invoicing`. |
+| `hooks` | `order.paid`, `order.fulfilled`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `refund.created` is queued by the refund route. |
+| `jobs` | Named background jobs the app queues for itself with `enqueueAppJob(context.appJobs, { storeId, pluginId, name, data })`. They run on `{apps}-jobs` with the same context as hooks. |
+| `orderLinks` | Links on the shopper's order page and in order emails (`ctx.surface` says which). Failures are swallowed. |
+| `emailAttachments` | Files attached to one order email (`{ orderId, template }`). A failure fails the notification job so it retries. SES sends them; other channels ignore them. |
+| `productFields` | Variant fields the product form shows when installed. Keys are platform columns (`hsCode`, `gstRatePercent`), so apps never alter core tables. |
+| `admin.icon` | Icon name (from the admin icon set) for the sidebar entry and the app header. |
+| `admin.pages[]` | `{ path, title, navLabel?, icon? }`. Each page renders at `/apps/<pluginId>/<path>` inside the admin shell with the app header (icon and name) and tabs for every page that has a `navLabel`. `path: ''` is the app root, which the sidebar links to. Dynamic segments use `[name]`, e.g. `invoices/[id]`. |
+| `admin.orderDetailCard` | Adds a card to the order detail page. |
+
+Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
+the store's RLS), `storage()` (the store's provider, now with server-side
+`put`/`get`), `notify(...)` (send an order email with attachments through the
+store's channels), `settingsSecret` (for signing links), `storefrontUrl` and
+`log`.
+
+**Admin placement (Shopify model).** Installed apps never mount inside
+Settings. Each installed app with pages gets an entry under **Apps** in the
+sidebar (its icon and name, linking to its root page) and owns everything
+under `/apps/<pluginId>/...`; the `/apps` page stays the install and manage
+list. The manifest only *declares* pages and the order card, so server code
+never imports React. The components are registered in
+`apps/admin/src/apps/registry.ts` (`ADMIN_APPS[pluginId].pages[path]` and
+`.OrderCard`), keyed by the manifest page path, and each page receives its
+dynamic segments as `params`. They live in the admin app because they use the
+admin kit and API client.
+
+**API.** App procedures live in `packages/api/src/routers/<app>.ts` and call
+the plugin's `./server` entry, behind `can()` and an installed check. The API
+depends on the plugin, never the other way round.
+
+**Tables.** An app that needs tables exports them from its own `schema.ts`,
+listed in `packages/db/drizzle.config.ts`, so its migration joins the one
+chain in `packages/db/drizzle`. Every table carries `store_id` and the
+migration ends with `SELECT apply_store_rls();` (the RLS coverage test fails
+otherwise).

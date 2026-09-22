@@ -62,6 +62,17 @@ export class SesChannel implements NotificationChannel {
                 Text: { Data: body.text, Charset: 'UTF-8' },
                 Html: { Data: body.html, Charset: 'UTF-8' },
               },
+              // SES v2 carries files on a simple message; no hand-built MIME.
+              ...(message.attachments?.length
+                ? {
+                    Attachments: message.attachments.map((f) => ({
+                      FileName: f.filename,
+                      ContentType: f.contentType,
+                      RawContent: f.content,
+                      ContentDisposition: 'ATTACHMENT' as const,
+                    })),
+                  }
+                : {}),
             },
           },
         }),

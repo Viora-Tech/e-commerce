@@ -1,0 +1,52 @@
+import { Puzzle } from '@commerce/ui/icons'
+import { notFound, redirect } from 'next/navigation'
+import { ADMIN_APPS, matchAppPage } from '@/apps/registry'
+import AppShell from '@/components/apps/app-shell'
+import SectionEmpty from '@/components/layout/section-empty'
+import { appsContent } from '@/data/apps'
+import { appRouter, call, serverContext } from '@/lib/api'
+
+type Params = { params: Promise<{ pluginId: string; path?: string[] }> }
+
+/**
+ * An installed app's pages, Shopify style: `/apps/<pluginId>/<path>` inside the
+ * normal admin shell. The manifest lists the pages; the admin registry holds
+ * the components.
+ */
+export default async function AppPage({ params }: Params) {
+  const { pluginId, path = [] } = await params
+  const registered = ADMIN_APPS[pluginId]
+  if (!registered) notFound()
+  const context = await serverContext()
+  const apps = await call(appRouter.apps.list, undefined, { context }).catch(() => undefined)
+  if (apps === undefined) redirect('/select-store')
+  const app = apps.find((a) => a.id === pluginId)
+  if (!app) notFound()
+  if (!app.installed) {
+    return (
+      <SectionEmpty
+        heading={app.name}
+        body={appsContent.installFirst}
+        action={{ label: appsContent.openApps, href: '/apps' }}
+        icon={Puzzle}
+      />
+    )
+  }
+  const match = matchAppPage(app.admin.pages, path)
+  const Page = match ? registered.pages[match.page.path] : undefined
+  if (!match || !Page) notFound()
+  const tabs = app.admin.pages.flatMap((p) =>
+    p.navLabel ? [{ path: p.path, label: p.navLabel }] : [],
+  )
+  return (
+    <AppShell
+      appId={app.id}
+      name={app.name}
+      icon={app.admin.icon}
+      tabs={tabs}
+      active={match.page.path}
+    >
+      <Page params={match.params} />
+    </AppShell>
+  )
+}
