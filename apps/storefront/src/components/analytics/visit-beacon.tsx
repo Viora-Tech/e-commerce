@@ -1,0 +1,26 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
+
+const BEACON_PATH = '/api/beacon'
+
+/** Sends one page-view beacon per navigation; nothing is read back. */
+export default function VisitBeacon() {
+  // Hooks
+  const pathname = usePathname()
+
+  // One beacon per navigation: the pathname is the trigger, not an input.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run on every route change
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(BEACON_PATH)
+      return
+    }
+    void fetch(BEACON_PATH, { method: 'POST', keepalive: true })
+  }, [pathname])
+
+  // Render logic
+  return null
+}

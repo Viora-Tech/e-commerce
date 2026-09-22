@@ -9,7 +9,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
@@ -38,7 +38,13 @@ export async function listProducts(
   },
 ): Promise<{ items: ProductListItem[]; total: number }> {
   const where = and(
-    input.search ? ilike(product.title, `%${input.search}%`) : undefined,
+    input.search
+      ? or(
+          ilike(product.title, `%${input.search}%`),
+          ilike(product.productType, `%${input.search}%`),
+          ilike(product.vendor, `%${input.search}%`),
+        )
+      : undefined,
     input.status ? eq(product.status, input.status) : undefined,
   )
   const [countRow] = await tx.select({ total: count() }).from(product).where(where)

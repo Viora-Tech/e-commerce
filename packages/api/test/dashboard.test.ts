@@ -184,6 +184,18 @@ describe('dashboard.summary', () => {
     expect(s.lowStock).toEqual([
       expect.objectContaining({ title: 'Mouse', variantTitle: 'Default', available: 2 }),
     ])
+    expect(s.liveVisitors).toEqual({ last30: 0, perMinute: Array.from({ length: 30 }, () => 0) })
+    expect(s.latestProducts).toEqual([
+      expect.objectContaining({ title: 'Mouse', pricePaise: 100000, imageUrl: null }),
+    ])
+  })
+
+  it('reads live visitors from the host when one is wired', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const perMinute = Array.from({ length: 30 }, (_, i) => (i === 29 ? 4 : 0))
+    const ctx = { ...a.ctx, visitors: { live: async () => ({ last30: 4, perMinute }) } }
+    const s = await call(appRouter.dashboard.summary, undefined, { context: ctx })
+    expect(s.liveVisitors).toEqual({ last30: 4, perMinute })
   })
 
   it('is all zeros for an empty store', async () => {
@@ -196,5 +208,7 @@ describe('dashboard.summary', () => {
     expect(s.lowStock).toEqual([])
     expect(s.activity).toEqual({ ordersLast24h: 0, perHour: Array.from({ length: 24 }, () => 0) })
     expect(s.salesByState).toEqual([])
+    expect(s.categories).toEqual([])
+    expect(s.latestProducts).toEqual([])
   })
 })

@@ -45,8 +45,8 @@ export const homeContent = {
     empty: 'Sales in the last 30 days will rank products here.',
   },
   activity: {
-    title: 'Orders in the last 24 hours',
-    perHour: 'Orders per hour',
+    title: 'Users in last 30 minutes',
+    perMinute: 'Users per minute',
     byState: 'Sales by state',
     sales: 'Sales',
     ordersCount: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
@@ -60,6 +60,17 @@ export const homeContent = {
     left: (n: number) => (n <= 0 ? 'Out of stock' : `${n} left`),
     empty: 'Every tracked variant has stock.',
     restock: 'Restock',
+  },
+  quickAdd: {
+    title: 'Add new product',
+    addNew: 'Add new',
+    categories: 'Categories',
+    products: 'Product',
+    seeMore: 'See more',
+    edit: 'Edit',
+    count: (n: number) => (n === 1 ? '1 product' : `${n} products`),
+    emptyCategories: 'Set a product type on your products to group them here.',
+    emptyProducts: 'Products you add appear here.',
   },
   bestSelling: {
     title: 'Best selling products',
@@ -77,5 +88,6 @@ export const homeContent = {
     viewOrders: 'View orders',
     viewProducts: 'View products',
     viewInventory: 'View inventory',
+    viewAnalytics: 'View analytics',
   },
 } as const

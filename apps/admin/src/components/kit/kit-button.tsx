@@ -25,7 +25,8 @@ const kitButton = cva(
         pill: 'h-8 min-w-24 rounded-lg border border-border bg-card px-3 py-1 text-kit-label text-ink-strong hover:bg-background',
         add: 'rounded-lg bg-primary py-1.5 pr-3 pl-2 text-kit-chip text-primary-foreground hover:bg-primary/90 [&_svg]:size-4',
         link: 'h-auto gap-1 text-kit-link text-ink-strong underline-offset-4 hover:text-primary hover:underline [&_svg]:size-5',
-        linkSm: 'h-auto text-kit-mini text-ink-strong underline-offset-4 hover:text-primary hover:underline',
+        linkSm:
+          'h-auto text-kit-mini text-ink-strong underline-offset-4 hover:text-primary hover:underline',
       },
     },
     defaultVariants: { variant: 'primary' },

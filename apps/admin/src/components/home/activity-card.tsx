@@ -12,8 +12,7 @@ import { formatCompact, formatPaiseCompact } from '@/lib/money'
 type StateRow = { stateCode: string; revenuePaise: number; orders: number; share: number }
 
 type ActivityCardProps = {
-  ordersLast24h: number
-  perHour: number[]
+  liveVisitors: { last30: number; perMinute: number[] }
   salesByState: StateRow[]
 }
 
@@ -34,13 +33,14 @@ function StateBadge({ code }: { code: string }) {
  * Sheet 14:426 (361 x 460, 20px inset): 14px Primary/500 label over a 32/32/700 figure,
  * a 14/500 "per minute" label, the 35px strip of 8px green bars, then an 18/600 "Sales by
  * Country / Sales" row and 34px-flag rows (value 14/600, name 12, 6px Primary progress bar,
- * 10px delta) with a full-width outline pill 16px from the bottom. Ours shows orders per
- * hour and sales by Indian state; no map, order count in place of the geo delta.
+ * 10px delta) with a full-width outline pill 16px from the bottom. Live visitors come from
+ * the storefront beacon; sales by Indian state stand in for the country map, order count
+ * in place of the geo delta.
  */
-export default function ActivityCard({ ordersLast24h, perHour, salesByState }: ActivityCardProps) {
+export default function ActivityCard({ liveVisitors, salesByState }: ActivityCardProps) {
   // Render logic
   const c = homeContent.activity
-  const bars = perHour.map((value, i) => ({ label: String(i), value }))
+  const bars = liveVisitors.perMinute.map((value, i) => ({ label: String(i), value }))
 
   return (
     <Card className="relative h-[28.75rem] gap-0 p-5 pb-16">
@@ -48,12 +48,12 @@ export default function ActivityCard({ ordersLast24h, perHour, salesByState }: A
         <div>
           <p className="text-kit-link text-muted-foreground">{c.title}</p>
           <p className="mt-1 text-kit-stat-tight text-foreground tabular-nums">
-            {formatCompact(ordersLast24h)}
+            {formatCompact(liveVisitors.last30)}
           </p>
         </div>
-        <CardMenu items={[{ label: homeContent.menu.viewOrders, href: '/orders' }]} />
+        <CardMenu items={[{ label: homeContent.menu.viewAnalytics, href: '/analytics/live' }]} />
       </div>
-      <p className="mt-5 text-kit-link font-medium text-muted-foreground">{c.perHour}</p>
+      <p className="mt-5 text-kit-link font-medium text-muted-foreground">{c.perMinute}</p>
       <MiniBars data={bars} className="mt-3" />
 
       <div className="mt-6 flex items-center justify-between text-kit-title font-semibold text-foreground">
