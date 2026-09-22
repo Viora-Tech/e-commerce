@@ -18,7 +18,7 @@ type AdminFrameProps = {
   storefrontUrl: string
 }
 
-const SIDEBAR_WIDTH = '260px'
+const SIDEBAR_WIDTH = '15rem'
 
 /** Shell = kit sidebar + top bar + scrolling page content. */
 export default function AdminFrame({

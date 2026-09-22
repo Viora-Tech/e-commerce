@@ -36,7 +36,7 @@ export default function MediaCard({ images }: MediaCardProps) {
           className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center text-muted-foreground opacity-70"
         >
           <ImagePlus className="size-5" aria-hidden />
-          <span className="text-sm font-medium">
+          <span className="text-body-strong font-medium">
             {images.length === 0 ? copy.empty : copy.dropzone}
           </span>
           <span className="text-xs">{copy.uploadSoon}</span>
