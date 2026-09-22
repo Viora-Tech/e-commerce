@@ -21,14 +21,14 @@ export default function StatTabs({ items, active = 0, onChange }: StatTabsProps)
           type="button"
           onClick={onChange ? () => onChange(i) : undefined}
           className={cn(
-            'flex h-16 flex-col items-start gap-2 rounded-t-sm border-b-2 px-2 pt-3 text-left transition-colors',
+            'flex h-[4.875rem] flex-col items-start gap-2 rounded-t-sm border-b-2 px-3 pt-3.5 text-left transition-colors',
             i === active
               ? 'border-primary bg-background'
               : 'border-border-soft hover:bg-background/60',
           )}
         >
-          <span className="text-stat-sm text-foreground tabular-nums">{it.value}</span>
-          <span className="text-caption text-muted-foreground-soft">{it.label}</span>
+          <span className="text-kit-stat-sm text-foreground tabular-nums">{it.value}</span>
+          <span className="text-kit-body text-muted-foreground-soft">{it.label}</span>
         </button>
       ))}
     </div>

@@ -18,6 +18,7 @@
     "db:generate": "bun run --cwd packages/db generate",
     "db:migrate": "bun run --cwd packages/db migrate",
     "db:seed": "bun run --cwd packages/db seed",
+    "db:seed:demo": "bun run --cwd packages/db seed:demo",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down"
   },

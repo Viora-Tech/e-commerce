@@ -43,19 +43,19 @@ export default function ChartCard({
   const data = period?.data ?? []
 
   return (
-    <Card className={cn('h-[26rem] gap-0 p-5', className)}>
-      <div className="flex h-9 items-center justify-between gap-3">
-        <p className="text-card-title text-foreground">{title}</p>
+    <Card className={cn('h-[28.75rem] gap-0 p-5', className)}>
+      <div className="flex h-[2.375rem] items-center justify-between gap-3">
+        <p className="text-kit-title text-foreground">{title}</p>
         <div className="flex items-center gap-7">
           {periods.length > 1 ? (
-            <div className="flex h-9 items-center rounded-full bg-background p-1 text-xs">
+            <div className="flex h-[2.375rem] w-[11.125rem] items-center rounded-full bg-background p-1 text-kit-body">
               {periods.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => setPeriodId(p.id)}
                   className={cn(
-                    'h-7 rounded-full px-3 text-muted-foreground transition-colors',
+                    'h-[1.875rem] flex-1 rounded-full text-muted-foreground transition-colors',
                     p.id === periodId && 'bg-card font-bold text-primary shadow-toggle',
                   )}
                 >
@@ -68,7 +68,7 @@ export default function ChartCard({
         </div>
       </div>
       {tabs ? <div className="mt-5 px-1">{tabs}</div> : null}
-      <ChartContainer config={chartConfig} className="mt-10 aspect-auto h-56 w-full">
+      <ChartContainer config={chartConfig} className="mt-8 aspect-auto h-[14.5rem] w-full">
         <AreaChart data={data} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
           <defs>
             <linearGradient id="chart-area-fill" x1="0" y1="0" x2="0" y2="1">

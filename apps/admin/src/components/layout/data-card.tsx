@@ -16,6 +16,10 @@ type DataCardProps = {
   className?: string
   /** Let tables run edge to edge (they carry their own 24px cell inset). */
   flush?: boolean
+  /** `kit` = dashboard frame sizes (18/26 title, 16/22 table title via `titleSize`). */
+  size?: 'default' | 'kit'
+  /** Dashboard tables use the 16/22 title (5:2034); cards use 18/26 (5:1668). */
+  titleSize?: 'card' | 'table'
 }
 
 /**
@@ -30,11 +34,19 @@ export default function DataCard({
   children,
   className,
   flush,
+  size = 'default',
+  titleSize = 'card',
 }: DataCardProps) {
+  const titleClass =
+    size === 'kit'
+      ? titleSize === 'table'
+        ? 'text-kit-table-title'
+        : 'text-kit-title'
+      : 'text-card-title'
   return (
     <Card className={cn('relative gap-0 p-5', detailsHref && 'pb-16', className)}>
       <div className="flex h-8 items-center justify-between gap-3">
-        <p className="text-card-title text-foreground">{title}</p>
+        <p className={cn(titleClass, 'text-foreground')}>{title}</p>
         <div className="flex items-center gap-3">
           {action}
           {menu ? <CardMenu items={menu} /> : null}

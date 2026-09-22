@@ -106,8 +106,8 @@ export default function TopBar({ title, heading, user }: TopBarProps) {
             <Bell className="size-5" strokeWidth={1.6} />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72">
-            <p className="text-sm font-bold">{navigationContent.notifications.label}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-body-strong font-bold">{navigationContent.notifications.label}</p>
+            <p className="mt-1 text-body text-muted-foreground">
               {navigationContent.notifications.empty}
             </p>
           </PopoverContent>
