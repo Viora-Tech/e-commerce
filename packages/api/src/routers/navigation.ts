@@ -1,4 +1,9 @@
-import { NavigationSettingsSchema, parseNavigationSettings, permissions } from '@commerce/core'
+import {
+  MenuItemsSchema,
+  NavigationSettingsSchema,
+  parseNavigationSettings,
+  permissions,
+} from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { deleteMenu, getMenu, listMenus, saveMenu } from '../services/navigation.service'
@@ -8,19 +13,6 @@ const handle = z
   .string()
   .trim()
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-
-/** One menu item: title plus a destination. 'value' is the handle (product, collection, page) or the URL. */
-const itemSchema = z
-  .object({
-    id: z.string().min(1).max(64),
-    title: z.string().trim().min(1).max(120),
-    type: z.enum(['home', 'product', 'collection', 'page', 'url']),
-    value: z.string().trim().max(500).optional(),
-  })
-  .refine((i) => i.type === 'home' || (i.value !== undefined && i.value !== ''), {
-    message: 'A destination is required',
-    path: ['value'],
-  })
 
 export const navigationRouter = {
   list: can(permissions.ONLINE_STORE_READ).handler(({ context }) => listMenus(context.tx)),
@@ -35,7 +27,8 @@ export const navigationRouter = {
         id: z.uuid().optional(),
         title: z.string().trim().min(1).max(120),
         handle,
-        items: z.array(itemSchema).max(50),
+        // Nested up to three levels, unique ids, bounded size: see MenuItemsSchema.
+        items: MenuItemsSchema,
       }),
     )
     .handler(({ context, input }) => saveMenu(context.tx, context.scope.storeId, input)),
