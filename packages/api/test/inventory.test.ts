@@ -1,0 +1,144 @@
+import { createMerchantAuth } from '@commerce/auth'
+import { createDb, inventoryLevel, newId, product, store, variant } from '@commerce/db'
+import { resetDb } from '@commerce/db/test'
+import { call } from '@orpc/server'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import type { ApiContext } from '../src/context'
+import { appRouter } from '../src/routers/_app'
+
+const owner = createDb(process.env.DATABASE_URL_OWNER as string)
+const app = createDb(process.env.DATABASE_URL as string)
+
+const sent: { email: string; otp: string }[] = []
+const auth = createMerchantAuth({
+  db: app,
+  baseURL: 'http://localhost:3200',
+  secret: 'test-secret-test-secret-test-secret-1234',
+  sendOtp: async (m) => {
+    sent.push(m)
+  },
+})
+
+async function merchant(email: string, slug: string) {
+  await auth.api.sendVerificationOTP({ body: { email, type: 'sign-in' } })
+  const res = await auth.api.signInEmailOTP({
+    body: { email, otp: sent.at(-1)?.otp as string },
+    asResponse: true,
+  })
+  const headers = new Headers({ cookie: res.headers.get('set-cookie') ?? '' })
+  const org = await auth.api.createOrganization({ headers, body: { name: slug, slug } })
+  await auth.api.setActiveOrganization({ headers, body: { organizationId: org?.id as string } })
+  const [s] = await owner
+    .insert(store)
+    .values({ slug, name: slug, organizationId: org?.id as string })
+    .returning()
+  const ctx: ApiContext = { db: app, auth, headers, notifications: { add: async () => undefined } }
+  return { ctx, storeId: s?.id as string }
+}
+
+async function seedVariant(storeId: string, onHand: number) {
+  const productId = newId()
+  await owner
+    .insert(product)
+    .values({ id: productId, storeId, title: 'Glasspad', handle: `pad-${productId}` })
+  const variantId = newId()
+  await owner
+    .insert(variant)
+    .values({
+      id: variantId,
+      storeId,
+      productId,
+      title: 'Default',
+      pricePaise: 250000,
+      sku: 'GP-1',
+    })
+  await owner.insert(inventoryLevel).values({ storeId, variantId, onHand })
+  return variantId
+}
+
+beforeEach(async () => {
+  await resetDb(owner)
+  sent.length = 0
+})
+afterAll(async () => {
+  await owner.$client.end()
+  await app.$client.end()
+})
+
+describe('inventory router', () => {
+  it('lists stock at the default location and edits it inline', async () => {
+    const m = await merchant('inv@example.com', 'inv-a')
+    const variantId = await seedVariant(m.storeId, 8)
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    expect(loc).toMatchObject({ isDefault: true, fulfilsOnlineOrders: true })
+    const locationId = loc?.id as string
+
+    const list = await call(appRouter.inventory.list, { locationId }, { context: m.ctx })
+    expect(list.total).toBe(1)
+    expect(list.rows[0]).toMatchObject({ variantId, onHand: 8, available: 8, sku: 'GP-1' })
+
+    const next = await call(
+      appRouter.inventory.edit,
+      { variantId, locationId, mode: 'set', value: 3, reason: 'correction' },
+      { context: m.ctx },
+    )
+    expect(next).toBe(3)
+
+    await expect(
+      call(
+        appRouter.inventory.edit,
+        { variantId, locationId, mode: 'adjust', value: -4, reason: 'damaged' },
+        { context: m.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+
+    const history = await call(appRouter.inventory.history, { variantId }, { context: m.ctx })
+    expect(history.map((h) => h.delta)).toEqual([-5])
+
+    const stats = await call(appRouter.inventory.stats, { locationId }, { context: m.ctx })
+    expect(stats).toMatchObject({ skus: 1, outOfStock: 0, lowStock: 1 })
+  })
+
+  it('runs a purchase order from draft to received', async () => {
+    const m = await merchant('po@example.com', 'inv-b')
+    const variantId = await seedVariant(m.storeId, 0)
+    const [loc] = await call(appRouter.inventory.locations, undefined, { context: m.ctx })
+    const locationId = loc?.id as string
+
+    const id = await call(
+      appRouter.purchaseOrders.save,
+      {
+        supplierName: 'Pulsar Gaming',
+        locationId,
+        shippingPaise: 10000,
+        taxPaise: 0,
+        lines: [{ variantId, quantity: 10, unitCostPaise: 120000 }],
+      },
+      { context: m.ctx },
+    )
+    await call(appRouter.purchaseOrders.markOrdered, { id }, { context: m.ctx })
+    let [row] = (await call(appRouter.inventory.list, { locationId }, { context: m.ctx })).rows
+    expect(row).toMatchObject({ onHand: 0, incoming: 10 })
+
+    const po = await call(appRouter.purchaseOrders.get, { id }, { context: m.ctx })
+    expect(po?.totals).toMatchObject({ units: 10, totalPaise: 1210000 })
+    const lineId = po?.lines[0]?.id as string
+    await call(
+      appRouter.purchaseOrders.receive,
+      { id, receipts: [{ lineId, quantity: 10 }] },
+      { context: m.ctx },
+    )
+    ;[row] = (await call(appRouter.inventory.list, { locationId }, { context: m.ctx })).rows
+    expect(row).toMatchObject({ onHand: 10, incoming: 0 })
+    const listed = await call(appRouter.purchaseOrders.list, {}, { context: m.ctx })
+    expect(listed.rows[0]).toMatchObject({ number: 1, status: 'received', receivedUnits: 10 })
+  })
+
+  it('keeps each store to its own locations', async () => {
+    const a = await merchant('a@example.com', 'inv-c')
+    const b = await merchant('b@example.com', 'inv-d')
+    await call(appRouter.inventory.createLocation, { name: 'Warehouse' }, { context: a.ctx })
+    const seen = await call(appRouter.inventory.locations, undefined, { context: b.ctx })
+    expect(seen.map((l) => l.name)).toEqual(['Default location'])
+  })
+})
