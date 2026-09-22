@@ -60,7 +60,7 @@ export default function AdminFrame({
         <main id="main" className="min-h-0 flex-1 overflow-y-auto" onScroll={handleScroll}>
           {children}
         </main>
-        <Toaster position="bottom-center" />
+        <Toaster />
       </SidebarInset>
     </SidebarProvider>
   )

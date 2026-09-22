@@ -65,7 +65,7 @@ export default function AppsList() {
       setApps(await api.apps.list())
       toast.success(install ? copy.installedToast(app.name) : copy.uninstalledToast(app.name))
     } catch (err) {
-      setError(describeError(err, copy.actionFailed))
+      toast.error(describeError(err, copy.actionFailed))
     } finally {
       setBusyId(null)
     }
