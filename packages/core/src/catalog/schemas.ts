@@ -51,6 +51,13 @@ export const ProductFieldsSchema = z.object({
   seoTitle: z.string().trim().max(70).nullable().optional(),
   seoDescription: z.string().trim().max(320).nullable().optional(),
   status: ProductStatusSchema.optional(),
+  /** Prices already carry tax; the GST split is extracted rather than added. */
+  taxIncluded: z.boolean().optional(),
+  /** Shown in the storefront's featured section. */
+  featured: z.boolean().optional(),
+  /** Window the compare-at price applies in; both null means it always applies. */
+  saleStartsAt: z.coerce.date().nullable().optional(),
+  saleEndsAt: z.coerce.date().nullable().optional(),
 })
 
 export const InventoryReasonSchema = z.enum([

@@ -5,11 +5,13 @@ import {
   type ProductWrite,
   variantTitle,
 } from '@commerce/core/catalog'
-import { parseRichText, type RichTextValue } from '@commerce/richtext'
+import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
 import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
+
+export type Facets = { vendors: string[]; productTypes: string[]; tags: string[] }
 
 export type OptionRow = { id?: string | undefined; name: string; values: string[] }
 
@@ -42,6 +44,13 @@ export type ProductFormState = {
   seoTitle: string
   seoDescription: string
   handle: string
+  /** Prices already carry tax; drives the "Tax included" choice on the form. */
+  taxIncluded: boolean
+  /** Highlights the product in the storefront's featured section. */
+  featured: boolean
+  /** `yyyy-mm-dd` bounds for the compare-at price; empty means no bound. */
+  saleStartsAt: string
+  saleEndsAt: string
   options: OptionRow[]
   variants: VariantRow[]
   /** Gallery in display order; the first item is the cover. */
@@ -81,6 +90,10 @@ export function emptyForm(): ProductFormState {
     seoTitle: '',
     seoDescription: '',
     handle: '',
+    taxIncluded: true,
+    featured: false,
+    saleStartsAt: '',
+    saleEndsAt: '',
     options: [],
     variants: [emptyVariant([])],
     media: [],
@@ -99,6 +112,10 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     seoTitle: p.seoTitle ?? '',
     seoDescription: p.seoDescription ?? '',
     handle: p.handle,
+    taxIncluded: p.taxIncluded,
+    featured: p.featured,
+    saleStartsAt: toDateField(p.saleStartsAt),
+    saleEndsAt: toDateField(p.saleEndsAt),
     options: p.options.map((o) => ({
       id: o.id,
       name: o.name,
@@ -126,6 +143,17 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
 }
 
 /**
+ * Comparable form snapshot. The editor reports an empty document where the
+ * form starts at `null`, so an untouched description must not read as an edit.
+ */
+export function snapshot(form: ProductFormState): string {
+  return JSON.stringify({
+    ...form,
+    description: form.description && isRichTextEmpty(form.description) ? null : form.description,
+  })
+}
+
+/**
  * Options changed: rebuild the matrix, keeping rows whose combination still
  * exists so their price, SKU and quantity survive a rename elsewhere.
  */
@@ -140,6 +168,20 @@ export function reconcileVariants(options: OptionRow[], previous: VariantRow[]):
   })
 }
 
+/** Timestamp to the `yyyy-mm-dd` a date input wants, in the browser's zone. */
+function toDateField(value: Date | string | null): string {
+  if (!value) return ''
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function fromDateField(value: string): Date | null {
+  if (!value.trim()) return null
+  const d = new Date(`${value}T00:00:00`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 const intOrNull = (text: string): number | null => {
   const n = Number(text)
   return text.trim() === '' || !Number.isInteger(n) ? null : n
@@ -149,13 +191,17 @@ export function toWrite(form: ProductFormState): ProductWrite {
   return {
     title: form.title.trim(),
     handle: form.handle.trim() || undefined,
-    description: form.description,
+    description: form.description && isRichTextEmpty(form.description) ? null : form.description,
     vendor: form.vendor.trim() || null,
     productType: form.productType.trim() || null,
     tags: form.tags,
     seoTitle: form.seoTitle.trim() || null,
     seoDescription: form.seoDescription.trim() || null,
     status: form.status,
+    taxIncluded: form.taxIncluded,
+    featured: form.featured,
+    saleStartsAt: fromDateField(form.saleStartsAt),
+    saleEndsAt: fromDateField(form.saleEndsAt),
     inventoryReason: form.inventoryReason,
     mediaIds: form.media.map((m) => m.id),
     options: form.options.map((o) => ({

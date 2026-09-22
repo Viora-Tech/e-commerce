@@ -10,6 +10,7 @@ type SuggestInputProps = {
   /** Existing values in the store, offered as the merchant types. */
   suggestions: readonly string[]
   placeholder?: string | undefined
+  size?: 'lg' | 'kit'
 }
 
 const MAX_SUGGESTIONS = 50
@@ -24,6 +25,7 @@ export default function SuggestInput({
   onChange,
   suggestions,
   placeholder,
+  size = 'lg',
 }: SuggestInputProps) {
   // Hooks
   const listId = useId()
@@ -31,7 +33,7 @@ export default function SuggestInput({
   return (
     <>
       <Input
-        size="lg"
+        size={size}
         id={id}
         list={listId}
         value={value}

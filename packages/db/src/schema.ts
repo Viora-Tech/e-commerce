@@ -68,6 +68,13 @@ export const product = pgTable('product', {
   status: text('status', { enum: ['draft', 'active', 'archived'] })
     .notNull()
     .default('draft'),
+  /** Prices already carry tax; the GST split is extracted rather than added at checkout. */
+  taxIncluded: boolean('tax_included').notNull().default(true),
+  /** Shown in the storefront's featured section. */
+  featured: boolean('featured').notNull().default(false),
+  /** Optional window for the compare-at price; outside it the storefront shows the plain price. */
+  saleStartsAt: timestamp('sale_starts_at', { withTimezone: true }),
+  saleEndsAt: timestamp('sale_ends_at', { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

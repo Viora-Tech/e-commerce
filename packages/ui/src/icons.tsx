@@ -184,6 +184,7 @@ export const Video = defineIcon(Video01Icon, 'Video')
 export const Upload = defineIcon(Upload04Icon, 'Upload')
 export const Download = defineIcon(Download04Icon, 'Download')
 export const RefreshCw = defineIcon(RefreshIcon, 'RefreshCw')
+export const Save = defineIcon(Download04Icon, 'Save') // kit "save-01" on Save to draft
 export const RotateCcw = defineIcon(RotateLeft01Icon, 'RotateCcw')
 export const Printer = defineIcon(PrinterIcon, 'Printer')
 export const Copy = defineIcon(Copy01Icon, 'Copy')
