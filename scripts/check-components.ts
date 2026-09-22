@@ -31,21 +31,71 @@ function report(
   findings.push({ file: path.relative(ROOT, file).replaceAll('\\', '/'), line, rule, level })
 }
 
-async function collectFiles(): Promise<string[]> {
+async function collectFiles(pattern: '**/*.tsx' | '**/*.ts'): Promise<string[]> {
   const roots = ['apps', 'packages/blocks/src', 'packages/editor/src', 'packages/ui/src']
   const files = new Set<string>()
   for (const root of roots) {
-    const glob = new Bun.Glob('**/*.tsx')
+    const glob = new Bun.Glob(pattern)
     for await (const rel of glob.scan({ cwd: path.join(ROOT, root) })) {
       const norm = `${root}/${rel}`.replaceAll('\\', '/')
       if (norm.includes('/node_modules/') || norm.includes('/.next/')) continue
       if (root === 'apps' && !/^apps\/[^/]+\/src\//.test(norm)) continue
       if (norm.startsWith('packages/ui/src/components/shadcn/')) continue
-      if (norm.endsWith('.test.tsx')) continue
+      if (/\.test\.tsx?$/.test(norm) || norm.endsWith('.d.ts')) continue
       files.add(path.join(ROOT, norm))
     }
   }
   return [...files].sort()
+}
+
+/**
+ * Server barrels. Their root entry pulls in Drizzle and postgres, so a client
+ * module that imports a value from one drags a database driver into the
+ * browser bundle and breaks the build. Client code imports types from them,
+ * or values from the pure subpaths (`@commerce/core/catalog`, `/permissions`,
+ * `/segments`, `/navigation`, ...).
+ */
+const SERVER_BARRELS = new Set(['@commerce/core', '@commerce/db'])
+
+function isClientModule(sf: ts.SourceFile): boolean {
+  const first = sf.statements[0]
+  return (
+    !!first &&
+    ts.isExpressionStatement(first) &&
+    ts.isStringLiteral(first.expression) &&
+    first.expression.text === 'use client'
+  )
+}
+
+/** Whether an import or re-export brings in a runtime value rather than only types. */
+function bringsValues(stmt: ts.ImportDeclaration | ts.ExportDeclaration): boolean {
+  if (ts.isExportDeclaration(stmt)) {
+    if (stmt.isTypeOnly) return false
+    const clause = stmt.exportClause
+    return !clause || !ts.isNamedExports(clause) || clause.elements.some((e) => !e.isTypeOnly)
+  }
+  const clause = stmt.importClause
+  if (!clause) return true // side-effect import runs the module
+  if (clause.isTypeOnly) return false
+  if (clause.name) return true
+  const bindings = clause.namedBindings
+  if (!bindings) return false
+  return ts.isNamespaceImport(bindings) || bindings.elements.some((e) => !e.isTypeOnly)
+}
+
+function checkClientImports(file: string, sf: ts.SourceFile) {
+  if (!isClientModule(sf)) return
+  for (const stmt of sf.statements) {
+    if (!ts.isImportDeclaration(stmt) && !ts.isExportDeclaration(stmt)) continue
+    const spec = stmt.moduleSpecifier
+    if (!spec || !ts.isStringLiteral(spec) || !SERVER_BARRELS.has(spec.text)) continue
+    if (!bringsValues(stmt)) continue
+    report(
+      file,
+      stmt,
+      `'use client' module imports values from "${spec.text}", which pulls the database driver into the browser: import types only, or use a pure subpath such as "${spec.text}/<feature>"`,
+    )
+  }
 }
 
 function isPascal(name: string | undefined): boolean {
@@ -296,6 +346,7 @@ function checkFile(file: string) {
     report(file, 1, `file has ${lines} lines (soft cap ${SOFT_LOC})`, 'warn')
 
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  checkClientImports(file, sf)
 
   const visitAll = (n: ts.Node) => {
     // `declare global { interface Window {...} }` is the only way to augment globals; allow it.
@@ -327,8 +378,18 @@ function checkFile(file: string) {
   for (const c of comps) checkComponentBody(file, c)
 }
 
-const files = await collectFiles()
+const files = await collectFiles('**/*.tsx')
 for (const f of files) checkFile(f)
+
+// Plain .ts client modules (hooks, *-client.ts) only get the import rule.
+const modules = await collectFiles('**/*.ts')
+for (const f of modules) {
+  const text = readFileSync(f, 'utf8')
+  checkClientImports(
+    f,
+    ts.createSourceFile(f, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS),
+  )
+}
 
 findings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)
 for (const f of findings) {
@@ -336,5 +397,7 @@ for (const f of findings) {
 }
 const errors = findings.filter((f) => f.level === 'error').length
 const warns = findings.length - errors
-console.log(`\n${files.length} files checked, ${errors} error(s), ${warns} warning(s)`)
+console.log(
+  `\n${files.length} files checked (+${modules.length} modules for client imports), ${errors} error(s), ${warns} warning(s)`,
+)
 process.exit(errors > 0 ? 1 : 0)
