@@ -1,18 +1,22 @@
 import { loadEnv } from '@commerce/config'
 import {
+  ensureMainTheme,
+  liveThemeSettings,
   NotificationSettingsSchema,
   PaymentSettingsSchema,
   parseNotificationSettings,
   parsePaymentSettings,
+  parsePreferences,
   parseShippingSettings,
-  parseTheme,
   permissions,
   presentStoreGeneral,
   ShippingSettingsSchema,
   StorageSettingsSchema,
   StoreGeneralSchema,
+  StorePreferencesSchema,
   signThemePreviewToken,
   ThemeSchema,
+  updateThemeSettings,
 } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
@@ -37,15 +41,17 @@ import {
   updateStoreGeneral,
   updateStoreNotifications,
   updateStorePayments,
-  updateStoreTheme,
+  updateStorePreferences,
 } from '../services/store.service'
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 export const storeRouter = {
   current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
-    const s = await getStore(context.tx, context.scope.storeId)
-    return s ? { ...s, theme: parseTheme(s.theme), role: context.scope.role } : null
+    const { storeId } = context.scope
+    const s = await getStore(context.tx, storeId)
+    if (!s) return null
+    return { ...s, theme: await liveThemeSettings(context.tx, storeId), role: context.scope.role }
   }),
 
   /** Store details for Settings › General. */
@@ -74,21 +80,36 @@ export const storeRouter = {
    * The storefront theme for Online Store › Themes, with a short-lived token that
    * lets the storefront accept live (unsaved) theme changes from the editor frame.
    */
+  /** The live theme's settings. Kept for callers that predate the theme library (`themes.*`). */
   getTheme: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const { storeId } = context.scope
-    const s = await getStore(context.tx, storeId)
+    const main = await ensureMainTheme(context.tx, storeId)
     return {
-      theme: parseTheme(s?.theme),
+      theme: main.settings,
       previewToken: signThemePreviewToken({ secret: secret(), storeId }),
     }
   }),
 
-  /** Theme editing lives under Online Store, so it is an online store permission. */
+  /** Saves the live theme's settings. Theme editing lives under Online Store, so it is an online store permission. */
   updateTheme: can(permissions.ONLINE_STORE_WRITE)
     .input(ThemeSchema)
     .handler(async ({ context, input }) => {
-      const s = await updateStoreTheme(context.tx, context.scope.storeId, input)
-      return parseTheme(s?.theme)
+      const main = await ensureMainTheme(context.tx, context.scope.storeId)
+      const saved = await updateThemeSettings(context.tx, main.id, input)
+      return saved.settings
+    }),
+
+  /** Online Store › Preferences: SEO defaults, password page, privacy banner and tracking. */
+  getPreferences: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
+    const s = await getStore(context.tx, context.scope.storeId)
+    return parsePreferences(s?.preferences)
+  }),
+
+  updatePreferences: can(permissions.ONLINE_STORE_WRITE)
+    .input(StorePreferencesSchema)
+    .handler(async ({ context, input }) => {
+      const s = await updateStorePreferences(context.tx, context.scope.storeId, input)
+      return parsePreferences(s?.preferences)
     }),
 
   /** Payment settings with secrets masked, plus the gateways this deployment can offer. */

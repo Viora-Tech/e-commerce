@@ -31,8 +31,14 @@ export const store = pgTable('store', {
   organizationId: text('organization_id').unique(),
   currency: text('currency').notNull().default('INR'),
   nextOrderNumber: integer('next_order_number').notNull().default(1),
-  /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
+  /**
+   * Legacy theme tokens, validated by @commerce/core ThemeSchema. Superseded by the
+   * `theme` table (the store's main theme); still read as a fallback for stores that
+   * have no theme row yet, and no longer written.
+   */
   theme: jsonb('theme'),
+  /** Online Store preferences: SEO defaults, password page, privacy banner, tracking ids. Validated by @commerce/core StorePreferencesSchema. */
+  preferences: jsonb('preferences'),
   /** Which menus the storefront renders, by handle. Validated by @commerce/core NavigationSettingsSchema. */
   navigation: jsonb('navigation'),
   /** Payment settings: enabled methods and encrypted gateway credentials. */
@@ -667,6 +673,34 @@ export type NavigationItem = {
   /** Handle for product/collection/page, the URL for url; absent for home. */
   value?: string | undefined
 }
+
+/**
+ * A store's themes, Shopify style: exactly one `main` theme is live on the
+ * storefront; the rest are `unpublished` drafts in the theme library. `settings`
+ * is the colours/typography/shape document validated by @commerce/core ThemeSchema.
+ * Per-template section data (home, product, collection, page) belongs in its own
+ * table keyed by theme id, not here.
+ */
+export const theme = pgTable(
+  'theme',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    role: text('role').notNull().default('unpublished'),
+    /** The preset it was created from; informational ("Based on Minimal"). */
+    preset: text('preset'),
+    settings: jsonb('settings').notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  (t) => [
+    check('theme_role', sql`${t.role} in ('main','unpublished')`),
+    uniqueIndex('theme_one_main_per_store').on(t.storeId).where(sql`role = 'main'`),
+    index('theme_store').on(t.storeId),
+  ],
+)
 
 /**
  * Storefront menus (header, footer). The storefront renders them later;

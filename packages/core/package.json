@@ -16,7 +16,8 @@
     "./permissions": "./src/permissions/client.ts",
     "./collections": "./src/collections/client.ts",
     "./navigation": "./src/navigation/client.ts",
-    "./theme": "./src/theme/client.ts"
+    "./theme": "./src/theme/client.ts",
+    "./preferences": "./src/online-store/preferences.ts"
   },
   "scripts": {
     "test": "vitest run",
