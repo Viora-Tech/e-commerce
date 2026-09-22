@@ -4,7 +4,12 @@
  * enabled. Channels never touch the database or the order.
  */
 
-export type TemplateId = 'order_placed' | 'payment_received' | 'order_shipped'
+export type TemplateId =
+  | 'order_placed'
+  | 'payment_received'
+  | 'order_shipped'
+  | 'draft_invoice'
+  | 'checkout_recovery'
 
 export type Recipient = {
   email?: string | undefined
@@ -16,7 +21,8 @@ export type Recipient = {
 /** Everything a template needs; built by the worker from the order row. */
 export type TemplateData = {
   storeName: string
-  orderNumber: number
+  /** Absent for messages about a cart that is not an order yet. */
+  orderNumber?: number | undefined
   customerName: string
   totalLabel: string
   lines: { title: string; quantity: number; priceLabel: string }[]
@@ -27,6 +33,8 @@ export type TemplateData = {
   waybill?: string | undefined
   /** Where the shopper can see the order (thank-you page). */
   orderUrl?: string | undefined
+  /** Pay link on a draft invoice, or the restore link on an abandoned cart. */
+  actionUrl?: string | undefined
 }
 
 export type Message = {

@@ -1,6 +1,6 @@
 {
-  "id": "35444df2-29ae-4781-bd76-6999910ee5e2",
-  "prevId": "38ad599f-833a-4a4d-a801-c5351fd16421",
+  "id": "36c1d42a-3d95-4e97-a8b1-40f033acbcbf",
+  "prevId": "a07b43f6-d6bc-49ba-bf92-6e156b871f81",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -127,12 +127,43 @@
           "primaryKey": false,
           "notNull": false
         },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_name": {
+          "name": "customer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "recovery_sent_at": {
+          "name": "recovery_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -942,7 +973,13 @@
           "name": "order_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "cart_id": {
+          "name": "cart_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "channel": {
           "name": "channel",
@@ -1016,6 +1053,34 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "notification_cart_channel_template": {
+          "name": "notification_cart_channel_template",
+          "columns": [
+            {
+              "expression": "cart_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "channel",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "template",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "cart_id is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1038,6 +1103,19 @@
           "tableTo": "order",
           "columnsFrom": [
             "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "notification_cart_id_cart_id_fk": {
+          "name": "notification_cart_id_cart_id_fk",
+          "tableFrom": "notification",
+          "tableTo": "cart",
+          "columnsFrom": [
+            "cart_id"
           ],
           "columnsTo": [
             "id"

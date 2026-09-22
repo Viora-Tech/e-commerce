@@ -3,6 +3,7 @@ import { createDb } from '@commerce/db'
 import { createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { createAbandonedSweeper, SWEEP_EVERY_MS } from './abandoned'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
@@ -19,12 +20,21 @@ const notificationWorker = createNotificationWorker(redis, db, {
 })
 
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const abandoned = createAbandonedSweeper(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
   'track-open-shipments',
   { every: TRACK_EVERY_MS },
   { name: 'track' },
+)
+await abandoned.queue.upsertJobScheduler(
+  'sweep-abandoned-carts',
+  { every: SWEEP_EVERY_MS },
+  { name: 'sweep' },
 )
 
 const app = new Hono()
@@ -50,6 +60,8 @@ const shutdown = async () => {
   await notificationWorker.close()
   await tracker.worker.close()
   await tracker.queue.close()
+  await abandoned.worker.close()
+  await abandoned.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

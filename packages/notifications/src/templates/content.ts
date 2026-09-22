@@ -40,6 +40,23 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `${d.storeName} order #${d.orderNumber} has shipped.${d.waybill ? ` AWB ${d.waybill}.` : ''}${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
   },
+  draft_invoice: {
+    subject: (d) => `${d.storeName}: your order #${d.orderNumber} is ready to pay`,
+    heading: (d) => `Hi ${d.customerName}`,
+    intro: (d) => `We have prepared order #${d.orderNumber} for ${d.totalLabel}.`,
+    outro: (d) => (d.actionUrl ? `Pay securely here: ${d.actionUrl}` : 'Reply to confirm.'),
+    whatsapp: (d) =>
+      `${d.storeName}: order #${d.orderNumber} for ${d.totalLabel} is ready.${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+  },
+  checkout_recovery: {
+    subject: (d) => `${d.storeName}: you left something behind`,
+    heading: (d) => `Still thinking it over, ${d.customerName}?`,
+    intro: (d) => `Your basket of ${d.totalLabel} is saved and waiting.`,
+    outro: (d) =>
+      d.actionUrl ? `Pick up where you left off: ${d.actionUrl}` : 'Your basket is still saved.',
+    whatsapp: (d) =>
+      `Your ${d.storeName} basket (${d.totalLabel}) is still saved.${d.actionUrl ? ` Finish here: ${d.actionUrl}` : ''}`,
+  },
 }
 
 export const sharedContent = {

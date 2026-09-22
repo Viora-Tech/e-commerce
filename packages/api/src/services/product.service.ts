@@ -9,7 +9,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
 
@@ -225,4 +225,48 @@ export async function updateVariant(tx: StoreTx, id: string, patch: VariantPatch
   }
   const [row] = await tx.select().from(variant).where(eq(variant.id, id))
   return row ?? null
+}
+
+export type VariantSearchRow = {
+  variantId: string
+  productId: string
+  title: string
+  variantTitle: string
+  sku: string | null
+  pricePaise: number
+  imageUrl: string | null
+}
+
+/** Variant picker for the draft order editor: one row per sellable variant. */
+export async function searchVariants(
+  tx: StoreTx,
+  input: { search?: string | undefined; limit?: number | undefined },
+): Promise<VariantSearchRow[]> {
+  const search = input.search?.trim()
+  return tx
+    .select({
+      variantId: variant.id,
+      productId: product.id,
+      title: product.title,
+      variantTitle: variant.title,
+      sku: variant.sku,
+      pricePaise: variant.pricePaise,
+      imageUrl: sql<string | null>`coalesce((
+        select m.url from ${media} m where m.id = ${variant.mediaId}), (
+        select m2.url from ${productMedia} pm join ${media} m2 on m2.id = pm.media_id
+        where pm.product_id = ${product.id} order by pm.position limit 1))`,
+    })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .where(
+      and(
+        isNull(variant.archivedAt),
+        ne(product.status, 'archived'),
+        search
+          ? or(ilike(product.title, `%${search}%`), ilike(variant.sku, `%${search}%`))
+          : undefined,
+      ),
+    )
+    .orderBy(asc(product.title), asc(variant.position))
+    .limit(input.limit ?? 20)
 }

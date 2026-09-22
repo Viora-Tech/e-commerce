@@ -2,6 +2,7 @@ type CheckoutFieldProps = {
   label: string
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void
   type?: string
   required?: boolean
   pattern?: string
@@ -17,6 +18,7 @@ export default function CheckoutField({
   autoComplete,
   value,
   onChange,
+  onBlur,
 }: CheckoutFieldProps) {
   return (
     <label className="field">
@@ -29,6 +31,7 @@ export default function CheckoutField({
         autoComplete={autoComplete}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
       />
     </label>
   )

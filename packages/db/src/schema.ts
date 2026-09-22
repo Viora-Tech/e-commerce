@@ -248,7 +248,14 @@ export const cart = pgTable('cart', {
     .default('open'),
   /** Code the shopper typed; re-validated at checkout, never trusted for the amount. */
   discountCode: text('discount_code'),
+  /** Contact captured at checkout before the order exists; what makes a cart recoverable. */
+  email: text('email'),
+  phone: text('phone'),
+  customerName: text('customer_name'),
   createdAt: createdAt(),
+  /** Touched on every line or contact change; the abandoned window is measured from here. */
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  recoverySentAt: timestamp('recovery_sent_at', { withTimezone: true }),
 })
 
 export const cartLine = pgTable('cart_line', {
@@ -273,7 +280,10 @@ export const order = pgTable('order', {
   phone: text('phone'),
   shippingAddressId: uuid('shipping_address_id').references(() => address.id),
   paymentMethod: text('payment_method'),
-  status: text('status', { enum: ['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'] })
+  /** `draft` is a merchant-built order that has not been placed: no stock held, no revenue. */
+  status: text('status', {
+    enum: ['draft', 'placed', 'paid', 'fulfilled', 'delivered', 'cancelled'],
+  })
     .notNull()
     .default('placed'),
   subtotalPaise: integer('subtotal_paise').notNull(),
@@ -397,9 +407,9 @@ export const notification = pgTable(
   {
     id: id(),
     storeId: storeId(),
-    orderId: uuid('order_id')
-      .notNull()
-      .references(() => order.id),
+    /** Null for messages about a cart that never became an order (checkout recovery). */
+    orderId: uuid('order_id').references(() => order.id),
+    cartId: uuid('cart_id').references(() => cart.id),
     channel: text('channel').notNull(),
     template: text('template').notNull(),
     /** Email address or phone the message went to. */
@@ -411,7 +421,12 @@ export const notification = pgTable(
     error: text('error'),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template)],
+  (t) => [
+    uniqueIndex('notification_order_channel_template').on(t.orderId, t.channel, t.template),
+    uniqueIndex('notification_cart_channel_template')
+      .on(t.cartId, t.channel, t.template)
+      .where(sql`cart_id is not null`),
+  ],
 )
 
 /** One courier consignment per order. Tracking is the courier's normalised answer, refreshed by the worker. */

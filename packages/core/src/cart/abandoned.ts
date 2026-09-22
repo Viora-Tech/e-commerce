@@ -1,0 +1,208 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { cart, cartLine } from '@commerce/db'
+import { and, desc, eq, gte, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
+import type { StoreContext } from '../context'
+
+/**
+ * Abandoned checkouts: carts that captured a contact at checkout and then went
+ * quiet. A cart is only "abandoned" after a grace period, because a shopper
+ * still typing their address has not abandoned anything.
+ */
+
+/** How long a cart must sit untouched before it counts as abandoned. */
+export const ABANDONED_AFTER_MS = 60 * 60_000
+/** How long a recovery link stays valid. */
+export const RECOVERY_TTL_MS = 7 * 24 * 60 * 60_000
+
+export type AbandonedCart = {
+  id: string
+  email: string | null
+  phone: string | null
+  customerName: string | null
+  itemCount: number
+  subtotalPaise: number
+  updatedAt: Date
+  recoverySentAt: Date | null
+  /** The cart converted after we asked; the whole point of the feature. */
+  recovered: boolean
+}
+
+export type AbandonedStats = {
+  carts: number
+  valuePaise: number
+  recovered: number
+  /** Share of abandoned carts in the window that later converted, 0 to 1. */
+  recoveryRate: number
+}
+
+/*
+ * Written literally rather than with `${cart.id}`: Drizzle renders an
+ * interpolated column unqualified inside a projection subquery, which binds to
+ * the wrong scope and silently returns zero.
+ */
+const lineCount = sql<number>`(select coalesce(sum(cl.quantity), 0)::int from cart_line cl where cl.cart_id = cart.id)`
+const subtotal = sql<number>`(select coalesce(sum(cl.quantity * cl.unit_price_paise), 0)::int from cart_line cl where cl.cart_id = cart.id)`
+
+/** Carts with a contact, at least one line and no activity for the grace period. */
+function abandonedWhere(now: Date, since: Date) {
+  return and(
+    or(isNotNull(cart.email), isNotNull(cart.phone)),
+    gte(cart.updatedAt, since),
+    lt(cart.updatedAt, new Date(now.getTime() - ABANDONED_AFTER_MS)),
+    sql`${lineCount} > 0`,
+  )
+}
+
+export async function listAbandoned(
+  ctx: StoreContext,
+  input: { page: number; perPage: number; sinceDays?: number | undefined; now?: Date | undefined },
+): Promise<{ items: AbandonedCart[]; total: number }> {
+  const now = input.now ?? new Date()
+  const since = new Date(now.getTime() - (input.sinceDays ?? 30) * 86_400_000)
+  const where = abandonedWhere(now, since)
+  const [countRow] = await ctx.tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(cart)
+    .where(where)
+  const rows = await ctx.tx
+    .select({
+      id: cart.id,
+      email: cart.email,
+      phone: cart.phone,
+      customerName: cart.customerName,
+      status: cart.status,
+      updatedAt: cart.updatedAt,
+      recoverySentAt: cart.recoverySentAt,
+      itemCount: lineCount,
+      subtotalPaise: subtotal,
+    })
+    .from(cart)
+    .where(where)
+    .orderBy(desc(cart.updatedAt))
+    .limit(input.perPage)
+    .offset((input.page - 1) * input.perPage)
+  return {
+    items: rows.map(({ status, ...r }) => ({ ...r, recovered: status === 'converted' })),
+    total: countRow?.total ?? 0,
+  }
+}
+
+export async function abandonedStats(
+  ctx: StoreContext,
+  opts: { days?: number | undefined; now?: Date | undefined } = {},
+): Promise<AbandonedStats> {
+  const now = opts.now ?? new Date()
+  const since = new Date(now.getTime() - (opts.days ?? 7) * 86_400_000)
+  const rows = await ctx.tx
+    .select({ status: cart.status, subtotalPaise: subtotal })
+    .from(cart)
+    .where(abandonedWhere(now, since))
+  const recovered = rows.filter((r) => r.status === 'converted').length
+  return {
+    carts: rows.length,
+    valuePaise: rows
+      .filter((r) => r.status !== 'converted')
+      .reduce((sum, r) => sum + r.subtotalPaise, 0),
+    recovered,
+    recoveryRate: rows.length === 0 ? 0 : recovered / rows.length,
+  }
+}
+
+export async function getAbandonedCart(ctx: StoreContext, cartId: string) {
+  const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
+  if (!c) return null
+  const lines = await ctx.tx
+    .select({
+      id: cartLine.id,
+      quantity: cartLine.quantity,
+      unitPricePaise: cartLine.unitPricePaise,
+      variantId: cartLine.variantId,
+    })
+    .from(cartLine)
+    .where(eq(cartLine.cartId, cartId))
+  return { ...c, lines }
+}
+
+/**
+ * Signed recovery link. The cart id alone would let anyone walk ids and read
+ * a stranger's basket, so the link carries an HMAC over the id and an expiry.
+ */
+export function recoveryToken(cartId: string, secret: string, now = new Date()): string {
+  const expires = now.getTime() + RECOVERY_TTL_MS
+  const body = `${cartId}.${expires}`
+  return `${body}.${sign(body, secret)}`
+}
+
+export function verifyRecoveryToken(
+  token: string,
+  secret: string,
+  now = new Date(),
+): { ok: true; cartId: string } | { ok: false; reason: 'malformed' | 'expired' | 'signature' } {
+  const parts = token.split('.')
+  if (parts.length !== 3) return { ok: false, reason: 'malformed' }
+  const [cartId, expires, mac] = parts as [string, string, string]
+  const expiresAt = Number(expires)
+  if (!cartId || !Number.isFinite(expiresAt)) return { ok: false, reason: 'malformed' }
+  const expected = sign(`${cartId}.${expires}`, secret)
+  const a = Buffer.from(mac)
+  const b = Buffer.from(expected)
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, reason: 'signature' }
+  if (expiresAt < now.getTime()) return { ok: false, reason: 'expired' }
+  return { ok: true, cartId }
+}
+
+function sign(body: string, secret: string): string {
+  return createHmac('sha256', secret).update(body).digest('base64url')
+}
+
+export const recoveryPath = (token: string) => `/checkout/recover/${token}`
+
+export function recoveryUrl(cartId: string, secret: string, storefrontUrl: string): string {
+  return `${storefrontUrl.replace(/\/$/, '')}${recoveryPath(recoveryToken(cartId, secret))}`
+}
+
+/** Contact typed into the checkout form; what turns a cart into a recoverable one. */
+export async function captureCartContact(
+  ctx: StoreContext,
+  cartId: string,
+  contact: { email?: string | undefined; phone?: string | undefined; name?: string | undefined },
+) {
+  const email = contact.email?.trim().toLowerCase()
+  const [row] = await ctx.tx
+    .update(cart)
+    .set({
+      email: email || null,
+      phone: contact.phone?.trim() || null,
+      customerName: contact.name?.trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(cart.id, cartId), eq(cart.status, 'open')))
+    .returning({ id: cart.id })
+  return row ?? null
+}
+
+export async function markRecoverySent(ctx: StoreContext, cartId: string, at = new Date()) {
+  await ctx.tx.update(cart).set({ recoverySentAt: at }).where(eq(cart.id, cartId))
+}
+
+/** Carts that deserve an automatic nudge: quiet long enough, never nudged before. */
+export async function cartsAwaitingRecovery(
+  ctx: StoreContext,
+  opts: { afterMs: number; limit?: number | undefined; now?: Date | undefined },
+) {
+  const now = opts.now ?? new Date()
+  const cutoff = new Date(now.getTime() - opts.afterMs)
+  return ctx.tx
+    .select({ id: cart.id, email: cart.email })
+    .from(cart)
+    .where(
+      and(
+        eq(cart.status, 'open'),
+        isNotNull(cart.email),
+        isNull(cart.recoverySentAt),
+        lt(cart.updatedAt, cutoff),
+        sql`${lineCount} > 0`,
+      ),
+    )
+    .limit(opts.limit ?? 50)
+}

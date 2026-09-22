@@ -3,6 +3,7 @@ export { createDb, type Db } from './client'
 export {
   resolveStore,
   resolveStoreForOrganization,
+  storesWithAbandonedCarts,
   storesWithOpenShipments,
 } from './resolve-store'
 export * from './schema'

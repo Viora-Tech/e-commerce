@@ -29,3 +29,11 @@ export async function storesWithOpenShipments(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_open_shipments() as id`)
   return rows.map((r) => r.id)
 }
+
+/** Store ids with baskets worth a recovery nudge, for the worker. SECURITY DEFINER backed. */
+export async function storesWithAbandonedCarts(db: Db, cutoff: Date): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_abandoned_carts(${cutoff}) as id`,
+  )
+  return rows.map((r) => r.id)
+}
