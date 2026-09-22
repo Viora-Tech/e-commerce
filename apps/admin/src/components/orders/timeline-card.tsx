@@ -143,7 +143,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   const entries = buildEntries(order)
 
   return (
-    <DataCard title={copy.timeline.heading} className="print:hidden">
+    <DataCard size="kit" title={copy.timeline.heading} className="print:hidden">
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <Textarea
           value={note}
@@ -171,12 +171,12 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
                 <Icon className="size-3.5" />
               </span>
               <p
-                className={`text-body ${e.kind === 'note' ? 'whitespace-pre-wrap' : 'font-medium'}`}
+                className={`text-kit-cell ${e.kind === 'note' ? 'whitespace-pre-wrap' : 'font-medium'}`}
               >
                 {e.title}
               </p>
-              <p className="text-caption">{when(e.at)}</p>
-              {e.detail ? <p className="text-caption">{e.detail}</p> : null}
+              <p className="text-kit-body">{when(e.at)}</p>
+              {e.detail ? <p className="text-kit-body">{e.detail}</p> : null}
             </li>
           )
         })}

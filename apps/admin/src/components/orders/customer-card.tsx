@@ -13,8 +13,8 @@ export default function CustomerCard({ order }: CustomerCardProps) {
   const a = order.shippingAddress
 
   return (
-    <DataCard title={copy.customer.heading}>
-      <div className="flex flex-col gap-4 text-body">
+    <DataCard size="kit" title={copy.customer.heading}>
+      <div className="flex flex-col gap-4 text-kit-cell">
         <div>
           <p className="font-medium">{order.customer?.name ?? copy.customer.guest}</p>
           {order.email ? (
@@ -36,14 +36,14 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           {order.customer ? (
             <Link
               href={`/customers/${order.customer.id}`}
-              className="mt-1 inline-block text-caption text-link hover:underline focus-visible:outline-none focus-visible:underline"
+              className="mt-1 inline-block text-kit-body text-link hover:underline focus-visible:outline-none focus-visible:underline"
             >
               {copy.customer.view}
             </Link>
           ) : null}
         </div>
         <div className="border-t border-border pt-4">
-          <p className="text-caption text-muted-foreground-soft mb-1">{copy.customer.address}</p>
+          <p className="text-kit-body text-muted-foreground-soft mb-1">{copy.customer.address}</p>
           {a ? (
             <address className="not-italic">
               <p>{a.name}</p>
@@ -57,7 +57,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           ) : (
             <p className="text-muted-foreground">{copy.customer.noAddress}</p>
           )}
-          <p className="text-caption text-muted-foreground-soft mt-2">
+          <p className="text-kit-body text-muted-foreground-soft mt-2">
             {copy.customer.billingSame}
           </p>
         </div>

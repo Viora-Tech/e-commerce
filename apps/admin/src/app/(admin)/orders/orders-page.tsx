@@ -51,23 +51,23 @@ function fetchOrders(q: Query) {
   })
 }
 
-/* Frame 5:2612: 40px bordered thumb with the picture inset, title beside it. */
+/* Frame 5:2612: 40px bordered thumb with a 30px picture inset, 14px two-line title 12px beside it. */
 function ProductCell({ item }: { item: Item }) {
   const extra = item.lineCount - 1
   return (
     <span className="flex items-center gap-3 text-left">
-      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.25rem] border border-secondary bg-card">
+      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[0.25rem] border border-secondary bg-card">
         {item.firstLineImage ? (
           // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
-          <img src={item.firstLineImage} alt="" className="size-6 object-contain" />
+          <img src={item.firstLineImage} alt="" className="size-[1.875rem] object-contain" />
         ) : null}
       </span>
       <span className="min-w-0">
-        <span className="line-clamp-2 text-body-strong">
+        <span className="line-clamp-2 text-kit-cell text-foreground">
           {item.firstLineTitle ?? ordersContent.guest}
         </span>
         {extra > 0 ? (
-          <span className="block text-caption text-muted-foreground">
+          <span className="block text-kit-body text-muted-foreground">
             {ordersContent.moreLines(extra)}
           </span>
         ) : null}
@@ -82,14 +82,14 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: ordersContent.columns.order,
     sortValue: (o) => o.number,
     hideable: false,
-    className: 'w-28',
+    className: 'w-32',
     render: (o) => <span className="tabular-nums">#{o.number}</span>,
   },
   {
     id: 'product',
     title: ordersContent.columns.product,
     align: 'start',
-    className: 'w-60 px-3 whitespace-normal',
+    className: 'w-[13.75rem] whitespace-normal',
     render: (o) => <ProductCell item={o} />,
   },
   {
@@ -132,6 +132,7 @@ type TabsProps = {
 function StatusTabs({ value, allCount, onChange }: TabsProps) {
   return (
     <PillTabs
+      size="frame"
       value={value}
       onChange={onChange}
       tabs={[
@@ -142,13 +143,15 @@ function StatusTabs({ value, allCount, onChange }: TabsProps) {
   )
 }
 
-/* Frame 5:2502: 142 x 48 green primary with a 24px glyph, 142 x 48 outlined secondary. */
+/* Frame 5:2502: 142 x 48 green primary with a 24px glyph, 142 x 48 outlined secondary, 12px apart. */
+const ACTION = 'h-12 w-[8.875rem] rounded-lg text-kit-cell font-medium [&_svg]:size-6'
+
 function HeaderActions() {
   return (
     <div className="flex items-center gap-3">
       <Button
         size="lg"
-        className="w-32"
+        className={ACTION}
         render={<Link href="/orders/drafts" />}
         nativeButton={false}
       >
@@ -157,7 +160,9 @@ function HeaderActions() {
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="outline" size="lg" className="w-32 pr-2 text-ink-strong" />}
+          render={
+            <Button variant="outline" size="lg" className={cn(ACTION, 'pr-2 text-ink-strong')} />
+          }
         >
           {ordersContent.moreActions}
           <MoreVertical className="size-4" />
@@ -221,15 +226,17 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   return (
-    <PageBody className="gap-6">
-      {/* 5:2375 + 5:2502: heading on the left, the two 48px actions on the right, 24px under the bar. */}
-      <div className="flex h-9 items-center justify-between">
-        <h1 className="text-page-title">{ordersContent.heading}</h1>
+    <PageBody width="frame" className="gap-6">
+      {/* 5:2375 + 5:2502: 22px heading on the left, the two 48px actions on the right, 24px under the bar. */}
+      <div className="flex h-12 items-center justify-between">
+        <h1 className="text-kit-heading text-ink-strong">{ordersContent.heading}</h1>
         <HeaderActions />
       </div>
       <OrderTiles stats={initial.stats} />
+      {/* 5:2560: the table card sits 20px under the tiles. */}
       <div className="-mt-1">
         <ResourceTable
+          size="frame"
           resourceName={ordersContent.resource}
           columns={columns}
           items={items}

@@ -3,21 +3,22 @@
 import { ArrowLeft, ArrowRight } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { tableContent } from '@/data/table'
+import { RESOURCE_TABLE_METRICS, type ResourceTableSize } from './sizes'
 
 type PaginationProps = {
   page: number
   perPage: number
   total: number
   onPageChange: (page: number) => void
+  size?: ResourceTableSize
 }
 
 const EDGE_PAGES = 5
 
 /* 5:2856: 42px edge buttons with a 24px arrow; 5:2865: 36px squares, 4px radius. */
 const EDGE =
-  'flex h-8 items-center gap-1 rounded-lg border border-line bg-card px-2 text-xs font-medium text-ink-strong transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
-const SQUARE =
-  'flex size-8 items-center justify-center rounded-[0.25rem] text-xs text-ink-strong transition-colors'
+  'flex items-center gap-1 border border-line bg-card font-medium text-ink-strong transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40'
+const SQUARE = 'flex items-center justify-center text-ink-strong transition-colors'
 
 type Slot = number | 'gap'
 
@@ -39,15 +40,22 @@ export default function ResourceTablePagination({
   perPage,
   total,
   onPageChange,
+  size = 'compact',
 }: PaginationProps) {
+  const m = RESOURCE_TABLE_METRICS[size]
+  const edge = cn(EDGE, m.pageEdge)
+  const square = cn(SQUARE, m.pageSquare)
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const slots = pageSlots(page, totalPages)
 
   return (
-    <nav aria-label="Pagination" className="mt-8 flex items-center justify-between">
+    <nav
+      aria-label="Pagination"
+      className={cn('flex items-center justify-between', m.paginationGap)}
+    >
       <button
         type="button"
-        className={cn(EDGE, 'pr-3')}
+        className={cn(edge, 'pr-3')}
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
@@ -57,7 +65,7 @@ export default function ResourceTablePagination({
       <ol className="flex items-center gap-2">
         {slots.map((slot, i) =>
           slot === 'gap' ? (
-            <li key={`gap-${i.toString()}`} className={cn(SQUARE, 'border border-line font-bold')}>
+            <li key={`gap-${i.toString()}`} className={cn(square, 'border border-line font-bold')}>
               {tableContent.ellipsis}
             </li>
           ) : (
@@ -67,7 +75,7 @@ export default function ResourceTablePagination({
                 aria-current={slot === page ? 'page' : undefined}
                 onClick={() => onPageChange(slot)}
                 className={cn(
-                  SQUARE,
+                  square,
                   slot === page
                     ? 'bg-primary-tint font-bold'
                     : 'border border-line font-medium hover:bg-muted',
@@ -81,7 +89,7 @@ export default function ResourceTablePagination({
       </ol>
       <button
         type="button"
-        className={cn(EDGE, 'pl-4')}
+        className={cn(edge, 'pl-4')}
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >

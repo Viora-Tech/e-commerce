@@ -43,14 +43,14 @@ export default function LineItemsCard({ order }: LineItemsCardProps) {
   const rows = totalRows(order)
 
   return (
-    <DataCard title={copy.items.heading}>
+    <DataCard size="kit" title={copy.items.heading}>
       <ul className="divide-y divide-border">
         {order.lines.map((l) => (
           <li key={l.id} className="flex items-center gap-4 py-3 first:pt-0">
             <ProductThumb url={l.imageUrl} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{l.title}</p>
-              <p className="text-caption">
+              <p className="text-kit-body">
                 {[
                   l.variantTitle && l.variantTitle !== 'Default' ? l.variantTitle : null,
                   l.sku ? `${copy.items.sku} ${l.sku}` : null,
@@ -58,7 +58,7 @@ export default function LineItemsCard({ order }: LineItemsCardProps) {
                   .filter(Boolean)
                   .join(', ')}
               </p>
-              <p className="text-caption tabular-nums">
+              <p className="text-kit-body tabular-nums">
                 {formatPaise(l.unitPricePaise)} × {l.quantity}
               </p>
             </div>

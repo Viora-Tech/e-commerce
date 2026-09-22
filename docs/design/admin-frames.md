@@ -60,13 +60,35 @@ into code.
 | Buttons | 42-48px, 15/700 | h-8, text-xs/500; `size="lg"` h-9 for the page's primary action |
 | Inputs | 48px | h-8 in toolbars, h-9 (`size="lg"`) in forms |
 
+## Frame-size pages (no density overlay)
+
+The dashboard (`5:1346`) and the order pages (`5:2353`) are drawn at the frame's
+own px, converted to rem, with fluid width (the 1440 artboard is not a cap).
+`ResourceTable size="frame"` and `PageBody width="frame"` carry the measurements:
+
+| Element | Frame | Shipped (rem) |
+| --- | --- | --- |
+| Page heading | 22/26/700 (`5:2375`) | `text-kit-heading` 1.375/1.625/700 |
+| Header actions | 142 x 48, 24px glyph (`5:2502`) | h-12 w-[8.875rem], `[&_svg]:size-6` |
+| Stat tiles | 135 tall, 16 inset, 18/26 title, 32/34 figure, 13 period (`5:2512`) | h-[8.4375rem] p-4, `text-kit-title`, `text-kit-stat`, `text-kit-body` |
+| Table card | 24 inset (`5:2560`) | p-6 |
+| Tab pill group | 40 track, 32 tabs, 14 labels (`5:2561`) | h-10 p-1, h-8 `text-kit-cell` |
+| Search / icon buttons | 264 x 40 / 40 x 40 (`5:2571`) | h-10 w-[16.5rem] / size-10 |
+| Header band | 56, 13/500 (`5:2591`) | h-14 `text-kit-body` font-medium |
+| Rows | 68, 14 ink, 40 thumb with 30 picture (`5:2606`) | h-[4.25rem] `text-kit-cell`, size-10 / size-[1.875rem] |
+| Payment / status cells | 8 dot / 24 glyph, 8 gap (`5:2621`, `5:2624`) | size-2 / size-6, gap-2 |
+| Pagination | 42 edge buttons, 36 squares (`5:2856`, `5:2865`) | h-[2.625rem] / size-9 |
+| Order detail | no frame | kit cards (`DataCard size="kit"`, 18/26 titles, 14 body, 13 captions), 40px actions, Shopify order-page structure |
+
+Products, customers and pages lists keep `size="compact"` (the density table above).
+
 ## Deviations (real data or missing frames)
 
 - Sidebar wordmark: the store name and switcher replace the DealPort logo.
 - Sidebar items follow the Shopify route map, not the kit's demo menu.
 - Dashboard "Sales by country" `5:1618` shows sales by Indian state (no geo data beyond the shipping address).
 - Dashboard "Add New Product" panel `5:2288` is replaced by Low stock (the kit's panel is a category picker with no counterpart here).
-- Order list keeps a Customer column the kit lacks; the Product column is 260px (kit 203px) so real titles fit on two lines.
+- Order list keeps a Customer column the kit lacks; the Product column is 220px (kit 203px) so real titles fit on two lines. "Add order" opens Drafts (no draft-order form yet); "More actions" lists Drafts and Abandoned checkouts (no CSV export exists).
 - Order ids are `#3` rather than `#ORD0001`; dates are `21-09-2026`.
 - Status glyphs use Hugeicons stroke (PackageDelivered, PackageOpen, DeliveryTruck, PackageRemove, CheckmarkCircle) via `@commerce/ui/icons`; the kit mixes several icon sets. All admin icons come from that module, 1.25rem at stroke 1.5.
 - Tiles show "No change" instead of a percentage when the previous window is zero.

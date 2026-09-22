@@ -55,7 +55,6 @@ export default function PaymentsSettings() {
       renderHint={webhookHint}
       renderExtra={adjustmentFields}
       sections={settingsContent.sections.payments}
-      extraSectionId={settingsContent.sections.payments[1]?.id}
     />
   )
 }
