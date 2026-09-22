@@ -55,6 +55,13 @@ async function merchant(email: string, slug: string) {
 const hoursAgo = (n: number) => new Date(Date.now() - n * 3_600_000)
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000)
 
+/**
+ * The IST day a timestamp falls in, the way the analytics buckets compute it.
+ * Tests that seed "a few hours ago" cannot assume that is still today: between
+ * midnight and 05:30 IST those rows belong to the previous day's bucket.
+ */
+const istDay = (at: Date) => new Date(at.getTime() + 19_800_000).toISOString().slice(0, 10)
+
 beforeEach(async () => {
   await resetDb(owner)
   sent.length = 0
@@ -172,6 +179,8 @@ describe('analytics.overview', () => {
 describe('analytics.report', () => {
   it('breaks sales down by product and by day', async () => {
     const a = await merchant('c@example.com', 'store-c')
+    const first = hoursAgo(3)
+    const second = hoursAgo(4)
     await owner.insert(order).values([
       {
         storeId: a.storeId,
@@ -179,7 +188,7 @@ describe('analytics.report', () => {
         subtotalPaise: 50000,
         totalPaise: 50000,
         status: 'paid',
-        placedAt: hoursAgo(3),
+        placedAt: first,
       },
       {
         storeId: a.storeId,
@@ -187,7 +196,7 @@ describe('analytics.report', () => {
         subtotalPaise: 30000,
         totalPaise: 30000,
         status: 'paid',
-        placedAt: hoursAgo(4),
+        placedAt: second,
       },
     ])
     const overTime = await call(
@@ -197,7 +206,21 @@ describe('analytics.report', () => {
     )
     expect(overTime.rows).toHaveLength(7)
     expect(overTime.totals).toEqual({ orders: 2, revenuePaise: 80000 })
-    expect(overTime.rows.at(-1)).toMatchObject({ orders: 2, revenuePaise: 80000 })
+
+    // Assert against the day each order actually falls in, not "the last row":
+    // near midnight IST the two seeds can sit on yesterday, or straddle the boundary.
+    const perDay = new Map<string, { orders: number; revenuePaise: number }>()
+    for (const [at, paise] of [
+      [first, 50000],
+      [second, 30000],
+    ] as const) {
+      const key = istDay(at)
+      const seen = perDay.get(key) ?? { orders: 0, revenuePaise: 0 }
+      perDay.set(key, { orders: seen.orders + 1, revenuePaise: seen.revenuePaise + paise })
+    }
+    for (const [key, want] of perDay) {
+      expect(overTime.rows.find((r) => r.key === key)).toMatchObject(want)
+    }
 
     const unknown = await call(
       appRouter.analytics.report,
