@@ -6,7 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
-import StatusPill from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { type AppKind, appsContent as copy } from '@/data/apps'
 
 export type AppSummary = {
@@ -51,9 +51,9 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
               </span>
             </div>
             {app.builtIn ? (
-              <StatusPill tone="neutral">{copy.builtIn}</StatusPill>
+              <StatusLabel kind="app" value="builtIn" variant="pill" size="sm" />
             ) : app.installed ? (
-              <StatusPill tone="success">{copy.installed}</StatusPill>
+              <StatusLabel kind="app" value="installed" variant="pill" size="sm" />
             ) : null}
           </div>
         </div>

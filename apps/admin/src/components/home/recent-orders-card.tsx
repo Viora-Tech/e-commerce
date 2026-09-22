@@ -2,7 +2,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import FilterButton from '@/components/layout/filter-button'
-import OrderStatusPill from '@/components/orders/order-status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { homeContent } from '@/data/home'
 import type { OrderStatus } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
@@ -62,7 +62,7 @@ export default function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) 
               <span>{i + 1}.</span>
               <span className="truncate">#{o.number}</span>
               <span>{dateTime.format(new Date(o.placedAt))}</span>
-              <OrderStatusPill status={o.status} />
+              <StatusLabel kind="order" value={o.status} size="sm" />
               <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
             </Link>
           ))}

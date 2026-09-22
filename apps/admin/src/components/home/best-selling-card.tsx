@@ -5,7 +5,7 @@ import KitThumb from '@/components/kit/kit-thumb'
 import BandHead from '@/components/layout/band-head'
 import DataCard from '@/components/layout/data-card'
 import FilterButton from '@/components/layout/filter-button'
-import StatusPill from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
 import type { TopProduct } from './top-product-types'
@@ -55,9 +55,7 @@ export default function BestSellingCard({ products }: { products: TopProduct[] }
                 <TrendingUp className="size-4 text-success" aria-hidden="true" />
               </span>
               <span className="text-kit-cell tabular-nums">{p.units}</span>
-              <StatusPill tone={p.inStock ? 'success' : 'destructive'}>
-                {p.inStock ? c.inStock : c.outOfStock}
-              </StatusPill>
+              <StatusLabel kind="stock" value={p.inStock ? 'inStock' : 'outOfStock'} size="sm" />
               <span className="text-kit-cell font-bold tabular-nums text-ink-strong">
                 {formatPaise(p.pricePaise)}
               </span>

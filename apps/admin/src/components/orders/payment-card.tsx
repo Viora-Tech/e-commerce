@@ -1,13 +1,13 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
-import StatusPill, { type StatusTone } from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 import {
   methodLabel,
   type OrderDetail,
   type OrderPayment,
-  paymentPill,
+  paymentStatus,
   refundedTotal,
   when,
 } from './order-detail-types'
@@ -16,19 +16,6 @@ type PaymentCardProps = {
   order: OrderDetail
   /** Present when at least one payment can still be refunded. */
   onRefund?: (payment: OrderPayment) => void
-}
-
-const REFUND_TONE: Record<string, StatusTone> = {
-  pending: 'warning',
-  processed: 'success',
-  failed: 'destructive',
-  manual: 'info',
-}
-
-const EVENT_TONE: Record<string, StatusTone> = {
-  processed: 'success',
-  failed: 'destructive',
-  pending: 'warning',
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -48,7 +35,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
     <DataCard size="kit" title={copy.payment.heading}>
       <div className="flex flex-col gap-5">
         {order.payments.map((p) => {
-          const pill = paymentPill(p, order.refunds)
+          const pill = paymentStatus(p, order.refunds)
           const back = refundedTotal(order.refunds, p.id)
           const refundable = p.status === 'captured' && back < p.amountPaise
           return (
@@ -56,7 +43,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{methodLabel(p.provider)}</p>
                 <div className="flex items-center gap-3">
-                  <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
+                  <StatusLabel kind="payment" value={pill} variant="pill" />
                   {refundable && onRefund ? (
                     <Button size="sm" variant="outline" onClick={() => onRefund(p)}>
                       {copy.actions.refund}
@@ -92,9 +79,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
                       {[when(r.createdAt), r.reason].filter(Boolean).join(', ')}
                     </span>
                   </span>
-                  <StatusPill tone={REFUND_TONE[r.status] ?? 'neutral'}>
-                    {copy.payment.refundStatus[r.status] ?? r.status}
-                  </StatusPill>
+                  <StatusLabel kind="refund" value={r.status} variant="pill" size="sm" />
                 </li>
               ))}
             </ul>
@@ -116,7 +101,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
                       <span className="block truncate text-xs text-destructive">{e.error}</span>
                     ) : null}
                   </span>
-                  <StatusPill tone={EVENT_TONE[e.status] ?? 'neutral'}>{e.status}</StatusPill>
+                  <StatusLabel kind="event" value={e.status} variant="pill" size="sm" />
                 </li>
               ))}
             </ul>

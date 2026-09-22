@@ -28,6 +28,7 @@ import {
   CreditCardIcon,
   DashboardSquare01Icon,
   Delete02Icon,
+  DeliveryDelay02Icon,
   DeliveryTruck01Icon,
   Download04Icon,
   Edit02Icon,
@@ -205,6 +206,8 @@ export const PackageCheck = defineIcon(PackageDeliveredIcon, 'PackageCheck')
 export const PackageOpen = defineIcon(PackageOpenIcon, 'PackageOpen')
 export const PackageX = defineIcon(PackageRemoveIcon, 'PackageX')
 export const Clock = defineIcon(Clock01Icon, 'Clock')
+export const DeliveryDelay = defineIcon(DeliveryDelay02Icon, 'DeliveryDelay') // kit status: Pending
+export const CancelCircle = defineIcon(CancelCircleIcon, 'CancelCircle') // kit status: Cancelled
 
 /** Semantic map for new code. */
 export const icons = {

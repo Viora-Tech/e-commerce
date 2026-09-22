@@ -4,7 +4,7 @@ import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import PageBody from '@/components/layout/page-body'
-import StatusPill from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { onlineStoreContent } from '@/data/online-store'
 import { api } from '@/lib/api-client'
@@ -36,9 +36,9 @@ const columns: ResourceColumnSpec<Item>[] = [
     sortValue: (p) => (p.publishedAt ? 1 : 0),
     render: (p) =>
       p.publishedAt ? (
-        <StatusPill tone="success">{copy.status.published}</StatusPill>
+        <StatusLabel kind="page" value="published" variant="pill" size="sm" />
       ) : (
-        <StatusPill tone="info">{copy.status.draft}</StatusPill>
+        <StatusLabel kind="page" value="draft" variant="pill" size="sm" />
       ),
   },
   {

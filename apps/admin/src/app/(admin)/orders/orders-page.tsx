@@ -15,9 +15,9 @@ import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
-import OrderPaymentCell from '@/components/orders/order-payment-cell'
-import OrderStatusCell from '@/components/orders/order-status-cell'
+import { paymentStatusOf } from '@/components/orders/order-payment-state'
 import OrderTiles, { type OrderStats } from '@/components/orders/order-tiles'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
@@ -114,13 +114,18 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'payment',
     title: ordersContent.columns.payment,
-    render: (o) => <OrderPaymentCell status={o.status} paymentMethod={o.paymentMethod} />,
+    render: (o) => (
+      <StatusLabel
+        kind="payment"
+        value={paymentStatusOf({ status: o.status, paymentMethod: o.paymentMethod })}
+      />
+    ),
   },
   {
     id: 'status',
     title: ordersContent.columns.status,
     sortValue: (o) => o.status,
-    render: (o) => <OrderStatusCell status={o.status} />,
+    render: (o) => <StatusLabel kind="order" value={o.status} variant="glyph" />,
   },
 ]
 

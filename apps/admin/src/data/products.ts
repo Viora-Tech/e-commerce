@@ -2,12 +2,6 @@ import type { ProductStatus } from '@commerce/core/catalog'
 
 export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
 
-export const PRODUCT_STATUS_TONE: Record<ProductStatus, 'success' | 'info' | 'neutral'> = {
-  active: 'success',
-  draft: 'info',
-  archived: 'neutral',
-}
-
 /** Every string the products list shows. */
 export const productsListContent = {
   title: 'Products',

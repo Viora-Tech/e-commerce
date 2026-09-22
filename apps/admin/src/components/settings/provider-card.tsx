@@ -8,7 +8,7 @@ import { Separator } from '@commerce/ui/shadcn/separator'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import type { ReactNode } from 'react'
-import StatusPill from '@/components/layout/status-pill'
+import StatusLabel from '@/components/status/status-label'
 import { providerSettingsContent as copy } from '@/data/provider-settings'
 
 /** One field of a provider's config, as its factory declares it. */
@@ -121,9 +121,12 @@ export default function ProviderCard({
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <CardTitle>{provider.label}</CardTitle>
-          <StatusPill tone={enabled ? 'success' : 'neutral'}>
-            {enabled ? copy.active : copy.off}
-          </StatusPill>
+          <StatusLabel
+            kind="provider"
+            value={enabled ? 'enabled' : 'disabled'}
+            size="sm"
+            label={enabled ? copy.active : copy.off}
+          />
         </div>
         <label htmlFor={switchId} className="flex items-center gap-2 text-body">
           <span className="text-muted-foreground">{copy.enabled}</span>

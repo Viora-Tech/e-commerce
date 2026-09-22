@@ -6,10 +6,10 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import DiscountLifecyclePill from '@/components/discounts/discount-lifecycle-pill'
 import DiscountTiles, { type DiscountStats } from '@/components/discounts/discount-tiles'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
+import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { api } from '@/lib/api-client'
@@ -98,7 +98,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'status',
     title: discountsContent.columns.status,
-    render: (d) => <DiscountLifecyclePill lifecycle={d.lifecycle} />,
+    render: (d) => <StatusLabel kind="discount" value={d.lifecycle} variant="pill" />,
   },
 ]
 
