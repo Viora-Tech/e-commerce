@@ -1,8 +1,17 @@
+import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { resolveStore } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { db } from './lib/db'
-import { DERIVED_HEADERS, routeForStore } from './lib/routing'
+import { DERIVED_HEADERS, PASSWORD_PREFIX, routeForStore } from './lib/routing'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
+import {
+  ACCESS_COOKIE,
+  hasAccess,
+  PREVIEW_COOKIE,
+  PREVIEW_MAX_AGE,
+  readPreview,
+  storefrontLock,
+} from './lib/storefront-gate'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from './lib/visitor-cookie'
 
 const resolve = createStoreResolver({ lookup: (hostname) => resolveStore(db(), hostname) })
@@ -35,9 +44,43 @@ export async function proxy(request: NextRequest) {
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
 
+  // Theme preview: `?theme-preview=<token>` from the admin renders that theme. A top-level
+  // visit keeps it in a cookie so links keep previewing; frames (the admin thumbnail and
+  // editor) never set it, so the merchant's own storefront tab is not left previewing.
+  const param = request.nextUrl.searchParams.get(THEME_PREVIEW_PARAM)
+  const secure = request.nextUrl.protocol === 'https:'
+  if (param === 'exit') {
+    const back = request.nextUrl.clone()
+    back.searchParams.delete(THEME_PREVIEW_PARAM)
+    const exit = NextResponse.redirect(back)
+    exit.cookies.delete(PREVIEW_COOKIE)
+    return exit
+  }
+  const inFrame = request.headers.get('sec-fetch-dest') === 'iframe'
+  const token = param ?? (inFrame ? null : (request.cookies.get(PREVIEW_COOKIE)?.value ?? null))
+  const preview = readPreview(storeId, token)
+  if (preview && token) headers.set('x-theme-preview', token)
+
+  // Password page: while it is on, every page renders it unless the visitor has the
+  // signed pass or a valid preview token.
+  const lock = await storefrontLock(storeId)
+  const locked =
+    lock.enabled &&
+    !preview &&
+    !hasAccess(storeId, lock.password, request.cookies.get(ACCESS_COOKIE)?.value)
+
   const url = request.nextUrl.clone()
-  url.pathname = route.path
+  url.pathname = locked ? `${PASSWORD_PREFIX}/${storeId}` : route.path
   const response = NextResponse.rewrite(url, { request: { headers } })
+  if (preview && param && request.headers.get('sec-fetch-dest') === 'document') {
+    response.cookies.set(PREVIEW_COOKIE, param, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      path: '/',
+      maxAge: PREVIEW_MAX_AGE,
+    })
+  }
   // First page view mints the anonymous visitor id the beacon reports; the beacon itself
   // is a keepalive POST whose Set-Cookie some browsers drop, so it is done here.
   if (!parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {

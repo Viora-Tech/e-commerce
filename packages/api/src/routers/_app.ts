@@ -15,10 +15,12 @@ import { pagesRouter } from './pages'
 import { productsRouter } from './products'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
+import { themesRouter } from './themes'
 
 export const appRouter = {
   me: protectedProcedure.handler(({ context }) => context.session),
   store: storeRouter,
+  themes: themesRouter,
   products: productsRouter,
   collections: collectionsRouter,
   inventory: inventoryRouter,

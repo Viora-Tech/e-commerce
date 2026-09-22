@@ -29,9 +29,4 @@ export const onlineStoreContent = {
     unsaved: 'Unsaved changes',
     viewLive: 'View on store',
   },
-  preferences: {
-    heading: 'Preferences',
-    body: 'Storefront title, meta description, social sharing image and password protection.',
-    action: { label: 'Store settings', href: '/settings/general' },
-  },
 } as const

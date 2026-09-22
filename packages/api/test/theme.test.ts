@@ -2,11 +2,13 @@ import { createMerchantAuth } from '@commerce/auth'
 import { loadEnv } from '@commerce/config'
 import {
   applyThemePreset,
+  defaultPreferences,
   defaultTheme,
+  readThemePreviewToken,
   THEME_PRESET_IDS,
   verifyThemePreviewToken,
 } from '@commerce/core'
-import { createDb, role, store, storeMember } from '@commerce/db'
+import { createDb, role, store, storeMember, theme } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
@@ -84,6 +86,15 @@ describe('store theme', () => {
     const second = await call(appRouter.store.getTheme, undefined, { context: ctx(m.headers) })
     expect(second.theme).toEqual(soft)
     expect(THEME_PRESET_IDS).toContain(saved.preset)
+
+    const [legacy] = await owner
+      .select({ theme: store.theme })
+      .from(store)
+      .where(eq(store.id, m.storeId))
+    expect(legacy?.theme).toBeNull()
+    const rows = await owner.select().from(theme).where(eq(theme.storeId, m.storeId))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ role: 'main', preset: 'soft' })
   })
 
   it('rejects a scheme id that could escape the storefront style block', async () => {
@@ -123,6 +134,89 @@ describe('store theme', () => {
 
     await expect(
       call(appRouter.store.updateTheme, defaultTheme, { context: ctx(helperHeaders) }),
+    ).rejects.toThrow()
+  })
+})
+
+describe('theme library', () => {
+  it('lists the live theme, adds from a preset, publishes it, and guards deleting the live one', async () => {
+    const m = await merchantWithStore('library@example.com', 'theme-lib')
+    const c = { context: ctx(m.headers) }
+    const [live] = await call(appRouter.themes.list, undefined, c)
+    expect(live).toMatchObject({ role: 'main', name: 'Waimers' })
+
+    const bold = await call(appRouter.themes.create, { preset: 'bold' }, c)
+    expect(bold).toMatchObject({ role: 'unpublished', name: 'Bold' })
+    expect(
+      readThemePreviewToken({
+        secret: loadEnv(process.env).SETTINGS_SECRET,
+        storeId: m.storeId,
+        token: bold.previewToken,
+      }),
+    ).toEqual({ themeId: bold.id })
+
+    const edited = { ...bold.settings, roundedSections: !bold.settings.roundedSections }
+    const saved = await call(appRouter.themes.update, { id: bold.id, settings: edited }, c)
+    expect(saved.settings.roundedSections).toBe(edited.roundedSections)
+    expect((await call(appRouter.store.getTheme, undefined, c)).theme.preset).toBe('waimers')
+
+    await call(appRouter.themes.publish, { id: bold.id }, c)
+    expect((await call(appRouter.store.getTheme, undefined, c)).theme.preset).toBe('bold')
+    await expect(call(appRouter.themes.delete, { id: bold.id }, c)).rejects.toThrow(
+      /Publish another theme/,
+    )
+    await call(appRouter.themes.delete, { id: live?.id as string }, c)
+    expect(await call(appRouter.themes.list, undefined, c)).toHaveLength(1)
+    await expect(call(appRouter.themes.get, { id: live?.id as string }, c)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    })
+  })
+
+  it('keeps another store out', async () => {
+    const a = await merchantWithStore('lib-a@example.com', 'theme-lib-a')
+    const b = await merchantWithStore('lib-b@example.com', 'theme-lib-b')
+    const aTheme = await call(
+      appRouter.themes.create,
+      { preset: 'soft' },
+      { context: ctx(a.headers) },
+    )
+    await expect(
+      call(appRouter.themes.publish, { id: aTheme.id }, { context: ctx(b.headers) }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+})
+
+describe('store preferences', () => {
+  it('defaults, saves, and validates tracking ids and the password', async () => {
+    const m = await merchantWithStore('prefs@example.com', 'prefs-a')
+    const c = { context: ctx(m.headers) }
+    expect(await call(appRouter.store.getPreferences, undefined, c)).toEqual(defaultPreferences)
+
+    const saved = await call(
+      appRouter.store.updatePreferences,
+      {
+        ...defaultPreferences,
+        seo: { ...defaultPreferences.seo, title: 'Waimers', description: 'Handmade goods' },
+        tracking: { ga4: ' g-abc123xyz ', gtm: '', metaPixel: '' },
+      },
+      c,
+    )
+    expect(saved.tracking.ga4).toBe('G-ABC123XYZ')
+    expect((await call(appRouter.store.getPreferences, undefined, c)).seo.title).toBe('Waimers')
+
+    await expect(
+      call(
+        appRouter.store.updatePreferences,
+        { ...defaultPreferences, tracking: { ga4: 'UA-1234', gtm: '', metaPixel: '' } },
+        c,
+      ),
+    ).rejects.toThrow()
+    await expect(
+      call(
+        appRouter.store.updatePreferences,
+        { ...defaultPreferences, password: { enabled: true, password: 'ab', message: '' } },
+        c,
+      ),
     ).rejects.toThrow()
   })
 })

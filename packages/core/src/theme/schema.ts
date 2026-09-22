@@ -13,7 +13,7 @@ const StatusColorsSchema = z.object({
 export type StatusColors = z.infer<typeof StatusColorsSchema>
 
 /** A picked library image: the id to find it again, the url so the storefront needs no join. */
-const MediaRefSchema = z.object({
+export const MediaRefSchema = z.object({
   mediaId: z.string().min(1),
   /** Rendered into href/src, so only http(s) or a root-relative path. */
   url: z.string().regex(/^(https?:\/\/|\/(?!\/))/, 'an http(s) or root-relative url'),
