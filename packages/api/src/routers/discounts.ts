@@ -1,0 +1,66 @@
+import { DiscountInputSchema } from '@commerce/core'
+import { ORPCError } from '@orpc/server'
+import { z } from 'zod'
+import { storeProcedure } from '../procedures'
+import {
+  createDiscount,
+  DiscountCodeTaken,
+  deleteDiscount,
+  discountStats,
+  getDiscount,
+  listDiscounts,
+  setDiscountStatus,
+  updateDiscount,
+} from '../services/discount.service'
+
+const LIFECYCLES = ['active', 'scheduled', 'expired', 'disabled'] as const
+
+function surfaceCodeClash<T>(work: () => Promise<T>): Promise<T> {
+  return work().catch((err: unknown) => {
+    if (err instanceof DiscountCodeTaken) {
+      throw new ORPCError('CONFLICT', { message: err.message })
+    }
+    throw err
+  })
+}
+
+export const discountsRouter = {
+  list: storeProcedure
+    .input(
+      z.object({
+        page: z.number().int().min(1).default(1),
+        perPage: z.number().int().min(1).max(100).default(25),
+        search: z.string().trim().max(200).optional(),
+        lifecycle: z.enum(LIFECYCLES).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listDiscounts(context.tx, input)),
+
+  stats: storeProcedure.handler(({ context }) => discountStats(context.tx)),
+
+  get: storeProcedure
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => getDiscount(context.tx, input.id)),
+
+  create: storeProcedure
+    .input(DiscountInputSchema)
+    .handler(({ context, input }) =>
+      surfaceCodeClash(() => createDiscount(context.tx, context.scope.storeId, input)),
+    ),
+
+  update: storeProcedure
+    .input(z.object({ id: z.uuid(), data: DiscountInputSchema }))
+    .handler(({ context, input }) =>
+      surfaceCodeClash(() =>
+        updateDiscount(context.tx, context.scope.storeId, input.id, input.data),
+      ),
+    ),
+
+  toggle: storeProcedure
+    .input(z.object({ id: z.uuid(), status: z.enum(['active', 'disabled']) }))
+    .handler(({ context, input }) => setDiscountStatus(context.tx, input.id, input.status)),
+
+  delete: storeProcedure
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => deleteDiscount(context.tx, input.id)),
+}

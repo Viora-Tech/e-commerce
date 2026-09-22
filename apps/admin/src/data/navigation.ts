@@ -125,6 +125,10 @@ export const navigationContent = {
   signOut: 'Sign out',
   collapse: 'Collapse sidebar',
   adminGroup: 'Admin',
+  expandSection: (label: string) => `Show ${label} pages`,
+  collapseSection: (label: string) => `Hide ${label} pages`,
+  expandGroup: (label: string) => `Show ${label}`,
+  collapseGroup: (label: string) => `Hide ${label}`,
   search: {
     placeholder: 'Search orders, products or customers',
     shortcut: '⌘K',

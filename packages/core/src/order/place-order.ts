@@ -3,6 +3,8 @@ import {
   cart,
   cartLine,
   customer,
+  discount,
+  discountUsage,
   inventoryLevel,
   order,
   orderLine,
@@ -19,6 +21,8 @@ import type {
 } from '@commerce/payments'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { applyDiscount } from '../discounts/evaluate'
+import { type ResolvedDiscount, resolveCartDiscount } from '../discounts/resolve'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
 import { applyPaymentAdjustment } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
@@ -36,6 +40,8 @@ export type PlaceOrderInput = {
   paymentProvider: PaymentProvider
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
+  /** Overrides the code saved on the cart; re-validated here regardless of what the client showed. */
+  discountCode?: string | null
 }
 export type PlaceOrderResult = {
   orderId: string
@@ -57,6 +63,8 @@ type State = {
   ctx: StoreContext
   input: PlaceOrderInput
   lines: Line[]
+  cartDiscountCode: string | null
+  discount: ResolvedDiscount | null
   reserved: Line[]
   orderId: string | null
   orderNumber: number | null
@@ -88,7 +96,23 @@ const loadCart: WorkflowStep<State> = {
       .innerJoin(product, eq(product.id, variant.productId))
       .where(eq(cartLine.cartId, input.cartId))
     if (lines.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
-    return { lines }
+    return { lines, cartDiscountCode: c.discountCode }
+  },
+}
+
+/**
+ * Decide the discount inside the transaction, from the rules as they are now.
+ * A code that stopped working since the shopper typed it is dropped (the best
+ * automatic offer, if any, takes its place); the order is never blocked over it.
+ */
+const resolveDiscount: WorkflowStep<State> = {
+  name: 'resolveDiscount',
+  async run({ ctx, input, cartDiscountCode }) {
+    const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
+    const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
+      email: input.checkout?.email,
+    })
+    return { discount: outcome }
   },
 }
 
@@ -130,7 +154,7 @@ const reserveStock: WorkflowStep<State> = {
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input }) {
+  async run({ ctx, lines, input, discount: applied }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -179,10 +203,19 @@ const createOrder: WorkflowStep<State> = {
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const orderNumber = s.next - 1
     const subtotalPaise = sumPaise(lines)
-    // The merchant's fee or discount for this method is applied server-side
-    // here; the checkout preview is only ever a hint.
+    // Discount first, then the payment-method fee or discount on what is left.
+    // Both are applied server-side here; the checkout preview is only a hint.
+    const { discountPaise, shippingPaise, discountedSubtotalPaise } = applyDiscount(
+      subtotalPaise,
+      0,
+      applied,
+    )
     const adjustment = parsePaymentSettings(s.payments).adjustments[input.paymentProvider.id]
-    const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(subtotalPaise, adjustment)
+    const { adjustmentPaise, totalPaise: afterAdjustment } = applyPaymentAdjustment(
+      discountedSubtotalPaise,
+      adjustment,
+    )
+    const totalPaise = afterAdjustment + shippingPaise
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -190,8 +223,13 @@ const createOrder: WorkflowStep<State> = {
         number: orderNumber,
         status: 'placed',
         subtotalPaise,
+        shippingPaise,
         paymentAdjustmentPaise: adjustmentPaise,
         paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,
+        discountId: applied?.discount.id ?? null,
+        discountCode: applied?.discount.code ?? null,
+        discountLabel: applied ? applied.label : null,
+        discountPaise,
         totalPaise,
         customerId,
         shippingAddressId,
@@ -212,10 +250,33 @@ const createOrder: WorkflowStep<State> = {
         unitPricePaise: l.unitPricePaise,
       })),
     )
+    if (applied) {
+      // Usage is counted in the same transaction as the order, so a limit of
+      // 100 means 100 orders even under concurrent checkouts.
+      await ctx.tx.insert(discountUsage).values({
+        storeId: ctx.storeId,
+        discountId: applied.discount.id,
+        orderId: o.id,
+        customerId,
+        email: input.checkout?.email.trim().toLowerCase() ?? null,
+        amountPaise: discountPaise,
+      })
+      await ctx.tx
+        .update(discount)
+        .set({ usedCount: sql`${discount.usedCount} + 1` })
+        .where(eq(discount.id, applied.discount.id))
+    }
     return { orderId: o.id, orderNumber, totalPaise }
   },
-  async compensate({ ctx, orderId }) {
+  async compensate({ ctx, orderId, discount: applied }) {
     if (!orderId) return
+    if (applied) {
+      await ctx.tx.delete(discountUsage).where(eq(discountUsage.orderId, orderId))
+      await ctx.tx
+        .update(discount)
+        .set({ usedCount: sql`greatest(${discount.usedCount} - 1, 0)` })
+        .where(eq(discount.id, applied.discount.id))
+    }
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
@@ -322,6 +383,8 @@ export async function placeOrder(
       ctx,
       input,
       lines: [],
+      cartDiscountCode: null,
+      discount: null,
       reserved: [],
       orderId: null,
       orderNumber: null,
@@ -330,7 +393,15 @@ export async function placeOrder(
       paymentStatus: null,
       session: null,
     },
-    [loadCart, reserveStock, createOrder, chargePayment, recordPayment, markCartConverted],
+    [
+      loadCart,
+      resolveDiscount,
+      reserveStock,
+      createOrder,
+      chargePayment,
+      recordPayment,
+      markCartConverted,
+    ],
     log,
   )
   if (!state.orderId || state.orderNumber === null || !state.paymentStatus || !state.session) {

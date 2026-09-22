@@ -20,10 +20,8 @@ import {
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { providerSettingsContent } from '@/data/provider-settings'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 
@@ -147,25 +145,17 @@ export default function GeneralSettings() {
   const errors = form && attempted ? validate(form) : {}
 
   return (
-    <PageBody width="narrow">
-      {dirty ? (
-        <SaveBar
-          message={copy.unsaved}
-          saveLabel={copy.save}
-          discardLabel={copy.discard}
-          onSave={handleSave}
-          onDiscard={handleDiscard}
-          saving={busy}
-        />
-      ) : null}
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        breadcrumbs={[
-          { label: providerSettingsContent.back, href: '/settings' },
-          { label: copy.title },
-        ]}
+    <div className="flex max-w-3xl flex-col gap-4">
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
       />
+      <PageHeader title={copy.title} subtitle={copy.intro} />
       {!form ? (
         <LoadingCards />
       ) : (
@@ -300,6 +290,6 @@ export default function GeneralSettings() {
           </Card>
         </>
       )}
-    </PageBody>
+    </div>
   )
 }

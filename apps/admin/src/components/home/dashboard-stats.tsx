@@ -1,3 +1,4 @@
+import CountUp from '@/components/layout/count-up'
 import DeltaChip, { percentDelta } from '@/components/layout/delta-chip'
 import StatCard from '@/components/layout/stat-card'
 import { homeContent } from '@/data/home'
@@ -46,7 +47,7 @@ export default function DashboardStats({ sales, orders, pending, cancelled }: Da
             <p className="text-kit-body text-foreground">{c.stats.pendingCancelled.pending}</p>
             <div className="mt-1.5 flex items-center gap-2">
               <span className="text-kit-stat-sm tabular-nums text-ink-strong">
-                {formatCompact(pending.value)}
+                <CountUp value={formatCompact(pending.value)} />
               </span>
               <DeltaChip delta={percentDelta(pending.value, pending.previous)} invert size="kit" />
             </div>
@@ -56,7 +57,7 @@ export default function DashboardStats({ sales, orders, pending, cancelled }: Da
             <p className="text-kit-body text-foreground">{c.stats.pendingCancelled.cancelled}</p>
             <div className="mt-1.5 flex items-center gap-2">
               <span className="text-kit-stat-sm tabular-nums text-destructive">
-                {formatCompact(cancelled.value)}
+                <CountUp value={formatCompact(cancelled.value)} />
               </span>
               <DeltaChip
                 delta={percentDelta(cancelled.value, cancelled.previous)}

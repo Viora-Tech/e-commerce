@@ -19,10 +19,12 @@ import {
   type SortingState,
   useTable,
 } from '@tanstack/react-table'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import { tableContent } from '@/data/table'
+import { fast, instant } from '@/lib/motion'
 import { type CellAlign, defineColumns, type ResourceColumnSpec, selectionColumn } from './columns'
 import { resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
@@ -83,6 +85,7 @@ function tableColumns<T extends RowData>(props: ResourceTableProps<T>) {
 export default function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
   // Hooks
   const router = useRouter()
+  const reduced = useReducedMotion()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -123,21 +126,32 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         columnTitles={columnTitles}
         size={props.size ?? 'compact'}
       />
-      {selectedIds.length > 0 && props.bulkActions ? (
-        <div className={cn('flex items-center gap-3 rounded-lg bg-primary-soft', m.bulkBar)}>
-          <span className="font-medium">
-            {tableContent.selected(
-              selectedIds.length,
-              props.resourceName.singular,
-              props.resourceName.plural,
-            )}
-          </span>
-          {props.bulkActions(selectedIds, clearSelection)}
-          <Button variant="ghost" size="sm" className="ml-auto" onClick={clearSelection}>
-            {tableContent.clearSelection}
-          </Button>
-        </div>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {selectedIds.length > 0 && props.bulkActions ? (
+          <motion.div
+            key="bulk"
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            transition={reduced ? instant : fast}
+            className="overflow-hidden"
+          >
+            <div className={cn('flex items-center gap-3 rounded-lg bg-primary-soft', m.bulkBar)}>
+              <span className="font-medium">
+                {tableContent.selected(
+                  selectedIds.length,
+                  props.resourceName.singular,
+                  props.resourceName.plural,
+                )}
+              </span>
+              {props.bulkActions(selectedIds, clearSelection)}
+              <Button variant="ghost" size="sm" className="ml-auto" onClick={clearSelection}>
+                {tableContent.clearSelection}
+              </Button>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       {/* 5:2590: table starts 40px under the toolbar. */}
       <div className={cn('overflow-x-auto', m.gapAfterToolbar)}>
         <Table className="w-full table-fixed border-separate border-spacing-0">
@@ -186,8 +200,9 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
                       className={cn(
-                        'border-0 hover:bg-muted/60 data-[state=selected]:bg-primary-soft/50',
-                        target && 'cursor-pointer',
+                        'border-0 transition-[background-color,box-shadow] duration-150 ease-out hover:bg-muted/60 data-[state=selected]:bg-primary-soft/50 motion-reduce:transition-none',
+                        target &&
+                          'cursor-pointer hover:relative hover:z-[1] hover:shadow-card-hover',
                       )}
                       onClick={target ? () => router.push(target) : undefined}
                     >

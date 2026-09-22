@@ -1,7 +1,6 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Plus, SquarePlus } from 'lucide-react'
 import Link from 'next/link'
@@ -9,6 +8,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
+import PillTabs from '@/components/layout/pill-tabs'
 import ProductStatusBadge from '@/components/products/product-status-badge'
 import ProductThumb from '@/components/products/product-thumb'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
@@ -29,11 +29,6 @@ export type ProductsInitial = {
 
 const PER_PAGE = LIST_PER_PAGE
 const copy = productsListContent
-
-/* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill. */
-const TAB =
-  'flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-xs font-medium leading-4 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-const TAB_ACTIVE = 'bg-card text-foreground'
 
 type Query = ListQuery<ProductStatus>
 
@@ -167,32 +162,14 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         onQueryChange={(query) => setQ({ query, page: 1 })}
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
         tabs={
-          <div role="tablist" className="flex items-center rounded-lg bg-primary-soft p-1">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={status === null}
-              onClick={() => setQ({ status: null, page: 1 })}
-              className={cn(TAB, status === null && TAB_ACTIVE)}
-            >
-              {copy.tabs.all}
-              <span className="text-xs font-semibold text-primary tabular-nums">
-                ({initial.allCount})
-              </span>
-            </button>
-            {PRODUCT_STATUSES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                role="tab"
-                aria-selected={status === s}
-                onClick={() => setQ({ status: s, page: 1 })}
-                className={cn(TAB, status === s && TAB_ACTIVE)}
-              >
-                {copy.status[s]}
-              </button>
-            ))}
-          </div>
+          <PillTabs
+            value={status}
+            onChange={(s) => setQ({ status: s, page: 1 })}
+            tabs={[
+              { value: null, label: copy.tabs.all, count: initial.allCount },
+              ...PRODUCT_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
+            ]}
+          />
         }
         page={page}
         perPage={PER_PAGE}

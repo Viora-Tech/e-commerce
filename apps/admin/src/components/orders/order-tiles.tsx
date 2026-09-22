@@ -1,4 +1,5 @@
 import { Card } from '@commerce/ui/shadcn/card'
+import CountUp from '@/components/layout/count-up'
 import DeltaChip, { percentDelta } from '@/components/layout/delta-chip'
 import { ordersContent } from '@/data/orders'
 import type { api } from '@/lib/api-client'
@@ -23,7 +24,9 @@ function Tile({ title, value, previous, invert }: TileProps) {
     <Card className="h-[8.4375rem] gap-0 rounded-lg p-4">
       <p className="text-kit-title text-foreground">{title}</p>
       <div className="mt-4 flex items-end gap-2">
-        <span className="text-kit-stat text-ink-strong tabular-nums">{number.format(value)}</span>
+        <span className="text-kit-stat text-ink-strong tabular-nums">
+          <CountUp value={number.format(value)} />
+        </span>
         <span className="pb-1">
           <DeltaChip delta={percentDelta(value, previous)} invert={invert} />
         </span>

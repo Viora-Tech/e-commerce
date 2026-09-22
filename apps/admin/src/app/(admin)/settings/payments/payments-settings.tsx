@@ -6,6 +6,7 @@ import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
 import { paymentsSettingsContent as copy } from '@/data/payments'
+import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 
 type Extra = { adjustments: Record<string, PaymentAdjustment> }
@@ -53,6 +54,8 @@ export default function PaymentsSettings() {
       emptyExtra={{ adjustments: {} }}
       renderHint={webhookHint}
       renderExtra={adjustmentFields}
+      sections={settingsContent.sections.payments}
+      extraSectionId={settingsContent.sections.payments[1]?.id}
     />
   )
 }

@@ -3,6 +3,8 @@ import {
   cartLine,
   createDb,
   customer,
+  discount,
+  discountUsage,
   inventoryLevel,
   order,
   orderLine,
@@ -135,6 +137,112 @@ describe('placeOrder', () => {
     const [p2] = await owner.select().from(payment).where(eq(payment.orderId, r2.orderId))
     expect(p2?.amountPaise).toBe(489902)
     expect(upi.calls).toEqual([`createPayment:${r2.orderId}:489902`])
+  })
+
+  it('applies a discount code from the cart, records usage and drops a used-up code', async () => {
+    const first = await seed({ onHand: 10, quantity: 1 })
+    const [d] = await owner
+      .insert(discount)
+      .values({
+        storeId: first.storeId,
+        title: 'Launch 10% off',
+        kind: 'code',
+        code: 'LAUNCH10',
+        method: 'percent',
+        value: 1000,
+        usageLimit: 1,
+      })
+      .returning()
+    if (!d) throw new Error('seed')
+    await owner.update(cart).set({ discountCode: 'launch10' }).where(eq(cart.id, first.cartId))
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+
+    const r1 = await withStore(app, first.storeId, (tx) =>
+      placeOrder(
+        { storeId: first.storeId, tx },
+        { cartId: first.cartId, paymentProvider: provider },
+      ),
+    )
+    const [o1] = await owner.select().from(order).where(eq(order.id, r1.orderId))
+    expect(o1).toMatchObject({
+      subtotalPaise: 499900,
+      discountCode: 'LAUNCH10',
+      discountLabel: 'Launch 10% off',
+      discountPaise: 49990,
+      totalPaise: 449910,
+    })
+    expect(provider.calls).toEqual([`createPayment:${r1.orderId}:449910`])
+    const [used] = await owner.select().from(discount).where(eq(discount.id, d.id))
+    expect(used?.usedCount).toBe(1)
+    const usage = await owner
+      .select()
+      .from(discountUsage)
+      .where(eq(discountUsage.orderId, r1.orderId))
+    expect(usage).toHaveLength(1)
+
+    // Limit reached: the next cart with the same code is charged full price, not blocked.
+    const [c2] = await owner
+      .insert(cart)
+      .values({ storeId: first.storeId, discountCode: 'LAUNCH10' })
+      .returning()
+    if (!c2) throw new Error('seed')
+    await owner.insert(cartLine).values({
+      storeId: first.storeId,
+      cartId: c2.id,
+      variantId: first.variantId,
+      quantity: 1,
+      unitPricePaise: 499900,
+    })
+    const r2 = await withStore(app, first.storeId, (tx) =>
+      placeOrder({ storeId: first.storeId, tx }, { cartId: c2.id, paymentProvider: provider }),
+    )
+    const [o2] = await owner.select().from(order).where(eq(order.id, r2.orderId))
+    expect(o2).toMatchObject({ discountCode: null, discountPaise: 0, totalPaise: 499900 })
+  })
+
+  it('applies the best automatic discount without a code and undoes usage on failure', async () => {
+    const first = await seed({ onHand: 10, quantity: 2 })
+    await owner.insert(discount).values([
+      {
+        storeId: first.storeId,
+        title: 'Festive 5%',
+        kind: 'automatic',
+        method: 'percent',
+        value: 500,
+      },
+      {
+        storeId: first.storeId,
+        title: 'Flat 200',
+        kind: 'automatic',
+        method: 'fixed',
+        value: 20000,
+        minSubtotalPaise: 900000,
+      },
+    ])
+
+    const declined = new FakePaymentProvider({ mode: 'fail' })
+    await expect(
+      withStore(app, first.storeId, (tx) =>
+        placeOrder(
+          { storeId: first.storeId, tx },
+          { cartId: first.cartId, paymentProvider: declined },
+        ),
+      ),
+    ).rejects.toBeInstanceOf(PaymentFailed)
+    const rows = await owner.select().from(discount)
+    expect(rows.every((r) => r.usedCount === 0)).toBe(true)
+
+    const ok = new FakePaymentProvider({ mode: 'capture' })
+    const r = await withStore(app, first.storeId, (tx) =>
+      placeOrder({ storeId: first.storeId, tx }, { cartId: first.cartId, paymentProvider: ok }),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
+    // 5% of 999800 = 49990 beats the flat 200.
+    expect(o).toMatchObject({
+      discountLabel: 'Festive 5%',
+      discountPaise: 49990,
+      totalPaise: 949810,
+    })
   })
 
   it('keeps one customer per email per store and refreshes their details on a repeat order', async () => {
