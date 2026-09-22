@@ -1,11 +1,22 @@
 import { evaluateSegment, type SegmentCustomer } from '@commerce/core'
 import type { CustomerSegmentRules, StoreTx } from '@commerce/db'
 import { customer, customerSegment, notification, order } from '@commerce/db'
-import { and, asc, count, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
+import type { VisitorSource } from '../context'
+import { conversionRate, istIsoDate, startOfIstDay } from './analytics-buckets'
+import {
+  buildCustomerOverviewSeries,
+  type CustomerOverviewSeries,
+  type OverviewOrder,
+} from './customer-overview'
 
 const DAY_MS = 86_400_000
 const RECENT_WINDOW_DAYS = 30
+/** The overview card plots one week against the week before (frame 5:3062). */
+const WINDOW_DAYS = 7
+/** Drafts are not orders yet, so they never count as customer activity. */
+const notDraft = ne(order.status, 'draft')
 
 export type CustomerSegmentName = 'new' | 'returning' | 'subscribed'
 export type CustomerSort = 'recent' | 'name' | 'orders' | 'spent'
@@ -42,7 +53,11 @@ export type CustomerListItem = {
 
 export type CustomerStats = {
   total: number
+  /** How many existed a week ago, so the tile can show a change (frame 5:3026). */
+  totalPrevious: number
   newThisMonth: number
+  newLast7: number
+  newPrevious7: number
   returning: number
   marketing: number
   averageLifetimePaise: number
@@ -141,10 +156,15 @@ export async function listCustomers(
 
 export async function customerStats(tx: StoreTx, now = new Date()): Promise<CustomerStats> {
   const monthAgo = new Date(now.getTime() - RECENT_WINDOW_DAYS * DAY_MS)
+  const weekStart = startOfIstDay(now, WINDOW_DAYS - 1)
+  const previousStart = startOfIstDay(now, WINDOW_DAYS * 2 - 1)
   const [row] = await tx
     .select({
       total: count(),
+      totalPrevious: sql<number>`count(*) filter (where ${c.createdAt} < ${weekStart.toISOString()}::timestamptz)::int`,
       newThisMonth: sql<number>`count(*) filter (where ${c.createdAt} >= ${monthAgo.toISOString()}::timestamptz)::int`,
+      newLast7: sql<number>`count(*) filter (where ${c.createdAt} >= ${weekStart.toISOString()}::timestamptz)::int`,
+      newPrevious7: sql<number>`count(*) filter (where ${c.createdAt} >= ${previousStart.toISOString()}::timestamptz and ${c.createdAt} < ${weekStart.toISOString()}::timestamptz)::int`,
       returning: sql<number>`count(*) filter (where ${orderCountSql} > 1)::int`,
       marketing: sql<number>`count(*) filter (where ${c.acceptsMarketing})::int`,
       averageLifetimePaise: sql<number>`coalesce(round(avg(${spentSql})), 0)::int`,
@@ -152,10 +172,99 @@ export async function customerStats(tx: StoreTx, now = new Date()): Promise<Cust
     .from(c)
   return {
     total: row?.total ?? 0,
+    totalPrevious: row?.totalPrevious ?? 0,
     newThisMonth: row?.newThisMonth ?? 0,
+    newLast7: row?.newLast7 ?? 0,
+    newPrevious7: row?.newPrevious7 ?? 0,
     returning: row?.returning ?? 0,
     marketing: row?.marketing ?? 0,
     averageLifetimePaise: row?.averageLifetimePaise ?? 0,
+  }
+}
+
+export type CustomerOverview = {
+  /** Headline figures above the chart, covering the last seven days. */
+  activeCustomers: number
+  repeatCustomers: number
+  shopVisitors: number
+  /** Orders per visitor over the window, as a percentage. */
+  conversionRate: number
+  /** Visitor window for the third tile, with the week before for its delta. */
+  visitors: { value: number; previous: number }
+  thisWeek: CustomerOverviewSeries
+  lastWeek: CustomerOverviewSeries
+}
+
+const sum = (values: number[]) => values.reduce((total, n) => total + n, 0)
+
+/**
+ * The "Customer Overview" card (frame 5:3062): who bought, who came back, who
+ * browsed, and how the two relate, for this week and the week before. Visitors
+ * come from the same daily HyperLogLogs the analytics section reads; without a
+ * visitor source the browsing series reads zero rather than guessing.
+ */
+export async function customerOverview(
+  tx: StoreTx,
+  opts: { storeId?: string | undefined; visitors?: VisitorSource | undefined; now?: Date } = {},
+): Promise<CustomerOverview> {
+  const now = opts.now ?? new Date()
+  const thisStart = startOfIstDay(now, WINDOW_DAYS - 1)
+  const lastStart = startOfIstDay(now, WINDOW_DAYS * 2 - 1)
+  const allDays = Array.from({ length: WINDOW_DAYS * 2 }, (_, i) =>
+    istIsoDate(new Date(lastStart.getTime() + i * DAY_MS)),
+  )
+
+  const rows = await tx
+    .select({ at: order.placedAt, customerId: order.customerId })
+    .from(order)
+    .where(and(notDraft, gte(order.placedAt, lastStart)))
+
+  const ids = [...new Set(rows.map((r) => r.customerId).filter((id): id is string => id !== null))]
+  const lifetime =
+    ids.length > 0
+      ? await tx
+          .select({ id: order.customerId, orders: count() })
+          .from(order)
+          .where(and(notDraft, inArray(order.customerId, ids)))
+          .groupBy(order.customerId)
+      : []
+  const repeatIds = new Set(lifetime.filter((r) => r.orders > 1).map((r) => r.id))
+
+  const orders: OverviewOrder[] = rows.map((r) => ({
+    at: r.at,
+    customerId: r.customerId,
+    repeat: r.customerId !== null && repeatIds.has(r.customerId),
+  }))
+  const daily = (await opts.visitors?.daily?.(opts.storeId ?? '', allDays)) ?? {
+    perDay: allDays.map(() => 0),
+    total: 0,
+  }
+
+  const lastWeek = buildCustomerOverviewSeries({
+    days: allDays.slice(0, WINDOW_DAYS),
+    orders,
+    visitors: daily.perDay.slice(0, WINDOW_DAYS),
+  })
+  const thisWeek = buildCustomerOverviewSeries({
+    days: allDays.slice(WINDOW_DAYS),
+    orders,
+    visitors: daily.perDay.slice(WINDOW_DAYS),
+  })
+
+  const recent = orders.filter((o) => o.at >= thisStart)
+  const active = new Set(recent.map((o, i) => o.customerId ?? `guest:${i}`))
+  const repeat = new Set(
+    recent.filter((o) => o.repeat).map((o, i) => o.customerId ?? `repeat-guest:${i}`),
+  )
+  const visitorsThis = sum(thisWeek.shopVisitors)
+  return {
+    activeCustomers: active.size,
+    repeatCustomers: repeat.size,
+    shopVisitors: visitorsThis,
+    conversionRate: Math.round(conversionRate(recent.length, visitorsThis) * 1000) / 10,
+    visitors: { value: visitorsThis, previous: sum(lastWeek.shopVisitors) },
+    thisWeek,
+    lastWeek,
   }
 }
 

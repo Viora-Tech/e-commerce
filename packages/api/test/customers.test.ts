@@ -122,7 +122,11 @@ describe('customers', () => {
     const stats = await call(appRouter.customers.stats, undefined, { context: a.ctx })
     expect(stats).toEqual({
       total: 2,
+      // Asha joined 30 days ago, Ravi yesterday: one arrived inside the week.
+      totalPrevious: 1,
       newThisMonth: 1,
+      newLast7: 1,
+      newPrevious7: 0,
       returning: 1,
       marketing: 1,
       averageLifetimePaise: 110000,
@@ -383,5 +387,60 @@ describe('customers', () => {
     expect(gone).toEqual({ deleted: true, orders: 0 })
     const list = await call(appRouter.customers.list, {}, { context: a.ctx })
     expect(list.items.map((c) => c.email)).toEqual(['asha@example.com'])
+  })
+
+  it('builds the overview from orders and the visitor source, one week against the last', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha, ravi] = await owner
+      .insert(customer)
+      .values([
+        { storeId: a.storeId, name: 'Asha Menon', email: 'asha@example.com', createdAt: daysAgo(3) },
+        { storeId: a.storeId, name: 'Ravi Iyer', email: 'ravi@example.com', createdAt: daysAgo(10) },
+      ])
+      .returning()
+    const base = { storeId: a.storeId, subtotalPaise: 1, totalPaise: 1000 }
+    await owner.insert(order).values([
+      // Asha ordered twice this week, so she is active and a repeat buyer.
+      { ...base, customerId: asha?.id, number: 1, status: 'paid', placedAt: daysAgo(3) },
+      { ...base, customerId: asha?.id, number: 2, status: 'paid', placedAt: daysAgo(1) },
+      // Ravi bought once, last week only.
+      { ...base, customerId: ravi?.id, number: 3, status: 'paid', placedAt: daysAgo(9) },
+      // Drafts are not activity.
+      { ...base, customerId: ravi?.id, number: 4, status: 'draft', placedAt: daysAgo(1) },
+    ])
+
+    const asked: string[][] = []
+    const ctx: ApiContext = {
+      ...a.ctx,
+      visitors: {
+        live: async () => ({ last30: 0, perMinute: [] }),
+        daily: async (_storeId, days) => {
+          asked.push(days)
+          return { perDay: days.map((_, i) => i + 1), total: days.length }
+        },
+      },
+    }
+    const overview = await call(appRouter.customers.overview, undefined, { context: ctx })
+
+    expect(asked[0]).toHaveLength(14)
+    expect(overview.thisWeek.days).toHaveLength(7)
+    expect(overview.lastWeek.days).toHaveLength(7)
+    // Asha only, counted once despite two orders; the draft never shows up.
+    expect(overview.activeCustomers).toBe(1)
+    expect(overview.repeatCustomers).toBe(1)
+    expect(overview.thisWeek.activeCustomers.reduce((t, n) => t + n, 0)).toBe(2)
+    expect(overview.lastWeek.activeCustomers.reduce((t, n) => t + n, 0)).toBe(1)
+    // The stub hands back 1..14, so this week is 8..14 and the week before 1..7.
+    expect(overview.shopVisitors).toBe(77)
+    expect(overview.visitors).toEqual({ value: 77, previous: 28 })
+    expect(overview.conversionRate).toBeCloseTo(2.6, 1)
+  })
+
+  it('reads zero visitors when no visitor source is wired', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const overview = await call(appRouter.customers.overview, undefined, { context: a.ctx })
+    expect(overview.shopVisitors).toBe(0)
+    expect(overview.conversionRate).toBe(0)
+    expect(overview.thisWeek.shopVisitors).toEqual([0, 0, 0, 0, 0, 0, 0])
   })
 })
