@@ -4,6 +4,7 @@ import {
   parseNavigationSettings,
   parseTheme,
   themeToCss,
+  toFooterColumns,
   toNavLinks,
 } from '@commerce/core'
 import { navigationMenu, store } from '@commerce/db'
@@ -43,9 +44,10 @@ export default async function StoreLayout({ children, params }: Props) {
   const menusByHandle = new Map(menus.map((menu) => [menu.handle, menu]))
   const mainMenu = settings.main === null ? undefined : menusByHandle.get(settings.main)
   const navLinks = toNavLinks(mainMenu?.items ?? [])
+  // A nested footer menu splits into one column per parent, as Shopify's does.
   const footerColumns = settings.footer.flatMap((handle) => {
     const menu = menusByHandle.get(handle)
-    return menu ? [{ heading: menu.title, links: toNavLinks(menu.items) }] : []
+    return menu ? toFooterColumns(menu.title, menu.items) : []
   })
 
   return (

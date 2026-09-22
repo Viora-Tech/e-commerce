@@ -36,3 +36,6 @@ export type ProductDetail = {
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system'
+
+/** A menu link as the header and footer render it; children nest up to three levels. */
+export type NavLink = { label: string; href: string; children?: NavLink[] | undefined }

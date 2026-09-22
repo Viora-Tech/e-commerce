@@ -21,11 +21,14 @@ export default function Footer({
           </div>
         </div>
         {columns.map((c) => (
-          <div key={c.heading} className="footer__block footer__block--menu">
+          <div
+            key={`${c.heading}-${c.links[0]?.href ?? ''}`}
+            className="footer__block footer__block--menu"
+          >
             <p className="footer__heading">{c.heading}</p>
             <ul className="footer__menu-list">
               {c.links.map((l) => (
-                <li key={l.href}>
+                <li key={`${l.href}-${l.label}`}>
                   <a href={l.href} className="footer__menu-link">
                     {l.label}
                   </a>

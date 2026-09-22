@@ -1,11 +1,16 @@
-import type { ThemeMode } from '../types'
+import { navigationContent } from '../data/navigation'
+import type { NavLink, ThemeMode } from '../types'
+import HeaderDrawer from './header-drawer'
+import HeaderNav from './header-nav'
 import Icon from './icon'
 import ThemeToggle from './theme-toggle'
 
-export type NavLink = { label: string; href: string }
+export type { NavLink }
 
-// Port of sections/header.liquid: logo, inline nav, icons. Mega-menu and
-// search overlay come with the interactive pass.
+const copy = navigationContent
+
+// Port of sections/header.liquid: logo, nested nav (dropdowns and mega menu),
+// icons, and the mobile drawer. The search overlay comes with its own pass.
 export default function Header({
   storeName,
   links,
@@ -23,31 +28,24 @@ export default function Header({
     <div className="header-wrapper" data-sticky-type="on-scroll-up">
       <header className="header page-width">
         <div className="header__row header__row--logo-left">
+          <div className="only-mobile">
+            <HeaderDrawer storeName={storeName} links={links} />
+          </div>
           <a href="/" className="header__logo" aria-label={storeName}>
             <span className="header__logo-text">{storeName}</span>
           </a>
           <div className="header__nav only-desktop">
-            <nav aria-label="Primary">
-              <ul className="header__menu-list">
-                {links.map((l) => (
-                  <li key={l.href} className="header__menu-item">
-                    <a href={l.href} className="header__menu-link">
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <HeaderNav links={links} />
           </div>
           <div className="header__icons">
             {showThemeToggle ? <ThemeToggle initial={themeMode} /> : null}
-            <a href="/search" className="header__icon-btn" aria-label="Search">
+            <a href="/search" className="header__icon-btn" aria-label={copy.search}>
               <Icon name="search" size={24} />
             </a>
-            <a href="/account" className="header__icon-btn" aria-label="Account">
+            <a href="/account" className="header__icon-btn" aria-label={copy.account}>
               <Icon name="user" size={24} />
             </a>
-            <a href="/cart" className="header__icon-btn" aria-label={`Cart, ${cartCount} items`}>
+            <a href="/cart" className="header__icon-btn" aria-label={copy.cart(cartCount)}>
               <Icon name="cart" size={24} />
               {cartCount > 0 ? <span className="header__cart-count">{cartCount}</span> : null}
             </a>
