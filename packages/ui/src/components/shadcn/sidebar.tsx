@@ -238,7 +238,7 @@ function Sidebar({
 }
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, state } = useSidebar()
 
   return (
     <Button
@@ -253,7 +253,8 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       }}
       {...props}
     >
-      <PanelLeftIcon className="cn-rtl-flip" />
+      {/* Kit "arrow-menu-close" glyph; mirrored while the rail is collapsed so it points back out. */}
+      <PanelLeftIcon className={cn('cn-rtl-flip', state === 'collapsed' && '-scale-x-100')} />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

@@ -54,7 +54,6 @@ import {
   MoreHorizontalIcon as MoreHorizontalGlyph,
   MoreVerticalIcon as MoreVerticalGlyph,
   News01Icon,
-  Notification03Icon,
   PackageDeliveredIcon,
   PackageOpenIcon,
   PackageRemoveIcon,
@@ -70,8 +69,6 @@ import {
   Settings01Icon,
   ShapesIcon,
   ShoppingCart01Icon,
-  SidebarLeft01Icon,
-  SidebarLeftIcon,
   SourceCodeIcon,
   Store01Icon,
   Sun02Icon,
@@ -86,7 +83,7 @@ import {
   ViewOffIcon,
   WorkflowIcon,
 } from '@hugeicons/core-free-icons'
-import { defineIcon, type IconComponent } from './lib/icon'
+import { defineIcon, definePath, type IconComponent } from './lib/icon'
 
 export type { IconComponent, IconProps } from './lib/icon'
 /** Legacy alias for call sites typed against Lucide. */
@@ -133,14 +130,27 @@ export const TrendingUp = defineIcon(ChartUpIcon, 'TrendingUp')
 export const Search = defineIcon(Search01Icon, 'Search')
 export const SearchIcon = Search
 export const SearchX = defineIcon(SearchRemoveIcon, 'SearchX')
-export const Bell = defineIcon(Notification03Icon, 'Bell')
+/* Kit 5:1357 "Bell outline": outline bell with a dot for unread. */
+export const Bell = definePath(
+  ['M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15L6 17z', 'M10 21a2 2 0 0 0 4 0'],
+  'Bell',
+)
+export const BellDot = definePath(
+  ['M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15L6 17z', 'M10 21a2 2 0 0 0 4 0'],
+  'BellDot',
+  { fill: 'M17 6.5a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0z' },
+)
 export const Sun = defineIcon(Sun02Icon, 'Sun')
 export const SunIcon = Sun
 export const Moon = defineIcon(Moon02Icon, 'Moon')
 export const MoonIcon = Moon
 export const LogOut = defineIcon(Logout01Icon, 'LogOut') // kit user card
-export const PanelLeftIcon = defineIcon(SidebarLeftIcon, 'PanelLeftIcon')
-export const PanelLeftClose = defineIcon(SidebarLeft01Icon, 'PanelLeftClose')
+/* Kit 5:1384 "arrow-menu-close": a bar on the right with a chevron pointing at it. Mirror with `-scale-x-100` when collapsed. */
+export const PanelLeftClose = definePath(
+  ['M20 5v14', 'M13 8l-4 4 4 4', 'M9 12h7'],
+  'PanelLeftClose',
+)
+export const PanelLeftIcon = PanelLeftClose
 export const ExternalLink = defineIcon(LinkSquare01Icon, 'ExternalLink') // kit Your Shop
 
 /* Arrows and chevrons */

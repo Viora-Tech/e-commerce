@@ -109,9 +109,9 @@ export default function TopBar({ title, heading, user, scrolled = false }: TopBa
         <Popover>
           <PopoverTrigger
             aria-label={navigationContent.notifications.label}
-            className="flex size-5 items-center justify-center text-foreground hover:text-primary"
+            className="flex size-6 items-center justify-center text-foreground hover:text-primary"
           >
-            <Bell className="size-5" strokeWidth={1.6} />
+            <Bell className="size-6" strokeWidth={1.6} />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72">
             <p className="text-body-strong font-bold">{navigationContent.notifications.label}</p>

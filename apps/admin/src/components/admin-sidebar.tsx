@@ -111,7 +111,7 @@ export default function AdminSidebar({
           aria-label={navigationContent.collapse}
           className="hidden size-6 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
         >
-          <PanelLeftClose className="size-4" strokeWidth={1.6} />
+          <PanelLeftClose className="size-6" strokeWidth={1.6} />
         </button>
       </SidebarHeader>
 

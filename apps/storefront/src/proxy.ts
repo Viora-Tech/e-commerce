@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { db } from './lib/db'
 import { DERIVED_HEADERS, routeForStore } from './lib/routing'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
+import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from './lib/visitor-cookie'
 
 const resolve = createStoreResolver({ lookup: (hostname) => resolveStore(db(), hostname) })
 
@@ -36,7 +37,18 @@ export async function proxy(request: NextRequest) {
 
   const url = request.nextUrl.clone()
   url.pathname = route.path
-  return NextResponse.rewrite(url, { request: { headers } })
+  const response = NextResponse.rewrite(url, { request: { headers } })
+  // First page view mints the anonymous visitor id the beacon reports; the beacon itself
+  // is a keepalive POST whose Set-Cookie some browsers drop, so it is done here.
+  if (!parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {
+    response.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: VISITOR_COOKIE_MAX_AGE,
+    })
+  }
+  return response
 }
 
 export const config = {

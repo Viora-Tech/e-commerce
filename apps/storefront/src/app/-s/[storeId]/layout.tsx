@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
+import VisitBeacon from '@/components/analytics/visit-beacon'
 import { readCartId } from '@/lib/cart-cookie'
 import { archivo, figtree, fontVar } from '@/lib/fonts'
 import { inStore } from '@/lib/store-context'
@@ -56,6 +57,7 @@ export default async function StoreLayout({ children, params }: Props) {
           cartCount={cartCount}
         />
         <main id="MainContent">{children}</main>
+        <VisitBeacon />
         <Footer
           storeName={current.name}
           tagline="Gaming peripherals built for the grind."

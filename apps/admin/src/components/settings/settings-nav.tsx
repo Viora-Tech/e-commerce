@@ -29,7 +29,10 @@ export default function SettingsNav() {
   const slide = reduced ? instant : pill
 
   return (
-    <nav aria-label={settingsContent.nav.label} className="w-full md:w-56 md:shrink-0">
+    <nav
+      aria-label={settingsContent.nav.label}
+      className="w-full md:sticky md:top-[4.5rem] md:w-56 md:shrink-0 md:self-start"
+    >
       <ul className="flex flex-row gap-1 overflow-x-auto md:flex-col md:overflow-visible">
         {SETTINGS_SECTIONS.map((section) => {
           const active = isTabActive(pathname, section.href)

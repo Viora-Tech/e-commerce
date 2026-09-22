@@ -11,6 +11,7 @@ import {
   variant,
 } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizzle-orm'
+import type { LiveVisitors, VisitorSource } from '../context'
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
@@ -20,6 +21,9 @@ const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6
 const HOURS = 24
 const STATE_ROWS = 3
+const LIVE_MINUTES = 30
+const CATEGORY_ROWS = 3
+const LATEST_PRODUCTS = 3
 
 export type DashboardWindow = {
   /** Current window value. */
@@ -83,6 +87,20 @@ export type DashboardSummary = {
     ordersLast24h: number
     perHour: number[]
   }
+  /** Kit 5:1618 "Users in last 30 minutes": unique storefront visitors from the beacon. */
+  liveVisitors: LiveVisitors
+  /** Kit "Add New Product" panel: product types with counts and a cover, then the newest products. */
+  categories: {
+    type: string
+    count: number
+    imageUrl: string | null
+  }[]
+  latestProducts: {
+    productId: string
+    title: string
+    pricePaise: number
+    imageUrl: string | null
+  }[]
   /** Kit "Sales by Country" with Indian states; share is of the 30-day total. */
   salesByState: {
     stateCode: string
@@ -134,7 +152,11 @@ function bucketByDay(
  * "last 7 days" vs the 7 before, matching the kit's stat cards. Cancelled
  * orders are excluded from money and counts except the cancelled tile itself.
  */
-export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<DashboardSummary> {
+export async function dashboardSummary(
+  tx: StoreTx,
+  opts: { storeId?: string; visitors?: VisitorSource | undefined; now?: Date } = {},
+): Promise<DashboardSummary> {
+  const now = opts.now ?? new Date()
   const thisStart = startOfDay(now, WINDOW_DAYS - 1)
   const lastStart = startOfDay(now, WINDOW_DAYS * 2 - 1)
 
@@ -291,6 +313,77 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
     share: stateTotal > 0 ? r.revenuePaise / stateTotal : 0,
   }))
 
+  const typeRows = await tx
+    .select({ type: product.productType, n: count() })
+    .from(product)
+    .where(
+      and(
+        ne(product.status, 'archived'),
+        sql`${product.productType} is not null and ${product.productType} <> ''`,
+      ),
+    )
+    .groupBy(product.productType)
+    .orderBy(desc(count()))
+    .limit(CATEGORY_ROWS)
+  const latestRows = await tx
+    .select({ productId: product.id, title: product.title })
+    .from(product)
+    .where(ne(product.status, 'archived'))
+    .orderBy(desc(product.createdAt))
+    .limit(LATEST_PRODUCTS)
+  const coverRows = typeRows.length
+    ? await tx
+        .select({ type: product.productType, productId: product.id })
+        .from(product)
+        .where(
+          and(
+            ne(product.status, 'archived'),
+            inArray(
+              product.productType,
+              typeRows.map((r) => r.type ?? ''),
+            ),
+          ),
+        )
+        .orderBy(desc(product.createdAt))
+    : []
+  const coverByType = new Map<string, string>()
+  for (const r of coverRows)
+    if (r.type && !coverByType.has(r.type)) coverByType.set(r.type, r.productId)
+  const extraIds = [
+    ...new Set([...latestRows.map((r) => r.productId), ...coverByType.values()]),
+  ].filter((id) => !firstImage.has(id))
+  const extraImages = extraIds.length
+    ? await tx
+        .select({ productId: productMedia.productId, url: media.url })
+        .from(productMedia)
+        .innerJoin(media, eq(media.id, productMedia.mediaId))
+        .where(inArray(productMedia.productId, extraIds))
+        .orderBy(asc(productMedia.position))
+    : []
+  for (const img of extraImages)
+    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
+  const latestPrices = latestRows.length
+    ? await tx
+        .select({
+          productId: variant.productId,
+          pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
+        })
+        .from(variant)
+        .where(
+          inArray(
+            variant.productId,
+            latestRows.map((r) => r.productId),
+          ),
+        )
+        .groupBy(variant.productId)
+    : []
+  const priceByProduct = new Map(latestPrices.map((r) => [r.productId, r.pricePaise]))
+
+  const liveVisitors =
+    opts.visitors && opts.storeId
+      ? await opts.visitors.live(opts.storeId)
+      : { last30: 0, perMinute: Array.from({ length: LIVE_MINUTES }, () => 0) }
+
   return {
     sales: { value: sumPaise(live(cur)), previous: sumPaise(live(prev)) },
     orders: { value: live(cur).length, previous: live(prev).length },
@@ -314,6 +407,17 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
     })),
     lowStock,
     activity: { ordersLast24h: perHour.reduce((n, v) => n + v, 0), perHour },
+    liveVisitors,
+    categories: typeRows.map((r) => ({
+      type: r.type ?? '',
+      count: r.n,
+      imageUrl: (r.type && firstImage.get(coverByType.get(r.type) ?? '')) || null,
+    })),
+    latestProducts: latestRows.map((r) => ({
+      ...r,
+      pricePaise: priceByProduct.get(r.productId) ?? 0,
+      imageUrl: firstImage.get(r.productId) ?? null,
+    })),
     salesByState,
   }
 }

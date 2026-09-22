@@ -86,8 +86,11 @@ Products, customers and pages lists keep `size="compact"` (the density table abo
 
 - Sidebar wordmark: the store name and switcher replace the DealPort logo.
 - Sidebar items follow the Shopify route map, not the kit's demo menu.
-- Dashboard "Sales by country" `5:1618` shows sales by Indian state (no geo data beyond the shipping address).
-- Dashboard "Add New Product" panel `5:2288` is replaced by Low stock (the kit's panel is a category picker with no counterpart here).
+- Dashboard "Users in last 30 minutes" `5:1618` is real: the storefront sends a page-view beacon (`/api/beacon`, anonymous `wc_vid` cookie) into per-minute HyperLogLogs in Dragonfly; the card shows unique visitors and 30 per-minute bars. It reads zero until the storefront has traffic.
+- Dashboard "Sales by country" (map + flags in `5:1618`) shows sales by Indian state with a two-letter badge in place of the flag and the order count in place of the geo delta (no country data beyond the shipping address).
+- Dashboard "Add New Product" panel `5:2288` lists product types (with counts, linking to the products list filtered by that type) as the categories and the three newest products with an "Edit" pill; the kit's "Add" adds to a cart-like list that does not exist here. "See more" goes to the products list.
+- Dashboard rows all use the 739 / 361 split (the frame's transactions row is 808 / 292) so the right rail aligns top to bottom; Low stock is an extra row under the frame's last one.
+- Top-bar bell is the kit's outline bell without the red dot until there are unread notifications; the sidebar toggle is the kit's `arrow-menu-close` glyph, mirrored while the rail is collapsed.
 - Order list keeps a Customer column the kit lacks; the Product column is 220px (kit 203px) so real titles fit on two lines. "Add order" opens Drafts (no draft-order form yet); "More actions" lists Drafts and Abandoned checkouts (no CSV export exists).
 - Order ids are `#3` rather than `#ORD0001`; dates are `21-09-2026`.
 - Status glyphs use Hugeicons stroke (PackageDelivered, PackageOpen, DeliveryTruck, PackageRemove, CheckmarkCircle) via `@commerce/ui/icons`; the kit mixes several icon sets. All admin icons come from that module, 1.25rem at stroke 1.5.
