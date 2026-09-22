@@ -1,10 +1,23 @@
-import { ShoppingCart } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { ordersSectionsContent } from '@/data/orders'
+import { abandonedContent } from '@/data/drafts'
+import { appRouter, call, serverContext } from '@/lib/api'
+import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import AbandonedPage from './abandoned-page'
 
-export const metadata: Metadata = { title: 'Abandoned checkouts' }
+export const metadata: Metadata = { title: abandonedContent.title }
 
-export default function Page() {
-  return <SectionEmpty {...ordersSectionsContent.abandoned} icon={ShoppingCart} />
+type Props = { searchParams: Promise<SearchParams> }
+
+export default async function Page({ searchParams }: Props) {
+  const query = parseListQuery(await searchParams, [])
+  const context = await serverContext()
+  const [result, stats] = await Promise.all([
+    call(
+      appRouter.orders.listAbandoned,
+      { page: query.page, perPage: LIST_PER_PAGE, sinceDays: 30 },
+      { context },
+    ),
+    call(appRouter.orders.abandonedStats, undefined, { context }),
+  ])
+  return <AbandonedPage initial={{ page: query.page, result, stats }} />
 }

@@ -1,9 +1,25 @@
 import { loadEnv } from '@commerce/config'
-import { CommerceError, enqueueNotification, type TemplateId } from '@commerce/core'
+import {
+  CommerceError,
+  DraftInputSchema,
+  enqueueNotification,
+  type TemplateId,
+} from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
+import {
+  convertStoreDraft,
+  getDraft,
+  listStoreAbandoned,
+  listStoreDrafts,
+  recordInvoiceSent,
+  removeDraft,
+  saveDraft,
+  sendRecovery,
+  storeAbandonedStats,
+} from '../services/draft.service'
 import {
   addOrderNote,
   getOrder,
@@ -21,6 +37,7 @@ import {
 } from '../services/shipping.service'
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
+const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 
 const status = z.enum(['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'])
 
@@ -149,4 +166,86 @@ export const ordersRouter = {
   setTags: storeProcedure
     .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
     .handler(({ context, input }) => setOrderTags(context.tx, input.id, input.tags)),
+
+  /* Draft orders: built by hand in admin, invisible to the storefront until converted. */
+
+  listDrafts: storeProcedure
+    .input(
+      z.object({
+        page: z.number().int().min(1).default(1),
+        perPage: z.number().int().min(1).max(100).default(25),
+        search: z.string().trim().max(200).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
+
+  getDraft: storeProcedure
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => getDraft(context.tx, input.id)),
+
+  saveDraft: storeProcedure
+    .input(z.object({ id: z.uuid().optional(), draft: DraftInputSchema }))
+    .handler(({ context, input }) => saveDraft(context.tx, context.scope.storeId, input)),
+
+  deleteDraft: storeProcedure
+    .input(z.object({ id: z.uuid() }))
+    .handler(({ context, input }) => removeDraft(context.tx, context.scope.storeId, input.id)),
+
+  /** Email the shopper a pay link for the draft. */
+  sendInvoice: storeProcedure
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const draft = await getDraft(context.tx, input.id)
+      if (!draft) throw new ORPCError('NOT_FOUND', { message: 'Draft not found' })
+      if (!draft.email) {
+        throw new ORPCError('BAD_REQUEST', { message: 'Add an email address first' })
+      }
+      await recordInvoiceSent(context.tx, context.scope.storeId, input.id, draft.email)
+      await enqueueNotification(context.notifications, {
+        storeId: context.scope.storeId,
+        orderId: input.id,
+        template: 'draft_invoice',
+      })
+      return { sentTo: draft.email }
+    }),
+
+  convertDraft: storeProcedure
+    .input(z.object({ id: z.uuid(), paymentMethod: z.string().trim().max(60).optional() }))
+    .handler(async ({ context, input }) => {
+      const row = await convertStoreDraft(context.tx, context.scope.storeId, input)
+      await enqueueNotification(context.notifications, {
+        storeId: context.scope.storeId,
+        orderId: input.id,
+        template: 'order_placed',
+      })
+      return row
+    }),
+
+  /* Abandoned checkouts: carts that captured a contact and went quiet. */
+
+  listAbandoned: storeProcedure
+    .input(
+      z.object({
+        page: z.number().int().min(1).default(1),
+        perPage: z.number().int().min(1).max(100).default(25),
+        sinceDays: z.number().int().min(1).max(90).default(30),
+      }),
+    )
+    .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),
+
+  abandonedStats: storeProcedure.handler(({ context }) =>
+    storeAbandonedStats(context.tx, context.scope.storeId),
+  ),
+
+  sendRecovery: storeProcedure
+    .input(z.object({ cartId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
+      return sendRecovery(context.tx, context.scope.storeId, {
+        cartId: input.cartId,
+        registry: notifications,
+        settingsSecret: secret(),
+        storefrontUrl: storefrontUrl(),
+      })
+    }),
 }

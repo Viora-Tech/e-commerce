@@ -1,10 +1,20 @@
-import { FileEdit } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { ordersSectionsContent } from '@/data/orders'
+import { draftsContent } from '@/data/drafts'
+import { appRouter, call, serverContext } from '@/lib/api'
+import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import DraftsPage from './drafts-page'
 
-export const metadata: Metadata = { title: 'Draft orders' }
+export const metadata: Metadata = { title: draftsContent.title }
 
-export default function Page() {
-  return <SectionEmpty {...ordersSectionsContent.drafts} icon={FileEdit} />
+type Props = { searchParams: Promise<SearchParams> }
+
+export default async function Page({ searchParams }: Props) {
+  const query = parseListQuery(await searchParams, [])
+  const context = await serverContext()
+  const result = await call(
+    appRouter.orders.listDrafts,
+    { page: query.page, perPage: LIST_PER_PAGE, search: query.query || undefined },
+    { context },
+  )
+  return <DraftsPage initial={{ query, result }} />
 }

@@ -21,9 +21,12 @@ import {
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, ne, or, sql } from 'drizzle-orm'
 
 export type OrderStatus = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
+
+/** Drafts live in the same table but are not orders yet; every list and tile hides them. */
+const notDraft = ne(order.status, 'draft')
 
 export async function listOrders(
   tx: StoreTx,
@@ -35,6 +38,7 @@ export async function listOrders(
   },
 ) {
   const where = and(
+    notDraft,
     input.search
       ? or(ilike(order.email, `%${input.search}%`), ilike(customer.name, `%${input.search}%`))
       : undefined,
@@ -44,7 +48,8 @@ export async function listOrders(
     .select({
       id: order.id,
       number: order.number,
-      status: order.status,
+      /* `notDraft` in the filter guarantees the narrower type callers rely on. */
+      status: sql<OrderStatus>`${order.status}`,
       paymentMethod: order.paymentMethod,
       totalPaise: order.totalPaise,
       email: order.email,
@@ -98,7 +103,7 @@ export async function orderStats(tx: StoreTx, now = new Date()): Promise<OrderSt
   const rows = await tx
     .select({ status: order.status, placedAt: order.placedAt })
     .from(order)
-    .where(gte(order.placedAt, lastStart))
+    .where(and(notDraft, gte(order.placedAt, lastStart)))
   const cur = rows.filter((r) => r.placedAt >= thisStart)
   const prev = rows.filter((r) => r.placedAt < thisStart)
   const window = (pick: (r: (typeof rows)[number]) => boolean): OrderWindow => ({
@@ -114,7 +119,10 @@ export async function orderStats(tx: StoreTx, now = new Date()): Promise<OrderSt
 }
 
 export async function getOrder(tx: StoreTx, id: string) {
-  const [o] = await tx.select().from(order).where(eq(order.id, id))
+  const [o] = await tx
+    .select()
+    .from(order)
+    .where(and(eq(order.id, id), notDraft))
   if (!o) return null
   const [lines, payments, refunds, notes, notifications] = await Promise.all([
     tx.select().from(orderLine).where(eq(orderLine.orderId, id)),
@@ -135,6 +143,7 @@ export async function getOrder(tx: StoreTx, id: string) {
     : []
   return {
     ...o,
+    status: o.status as OrderStatus,
     lines: await withThumbnails(tx, lines),
     payments,
     refunds,

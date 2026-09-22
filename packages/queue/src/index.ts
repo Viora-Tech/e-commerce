@@ -5,6 +5,8 @@ import IORedis from 'ioredis'
 export const HEARTBEAT_QUEUE = '{system}-heartbeat'
 /** Repeat job that polls open shipments. Braces keep every key on one slot. */
 export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
+/** Repeat job that nudges shoppers who left a basket behind. */
+export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 
 export function createConnection(redisUrl: string): IORedis {
   return new IORedis(redisUrl, { maxRetriesPerRequest: null })

@@ -7,7 +7,7 @@ import { useState, useTransition } from 'react'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import CheckoutField from '@/components/checkout/checkout-field'
 import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
-import { checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
+import { captureContactAction, checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
 import type { CartDiscountView } from '@/lib/discount-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
@@ -80,6 +80,16 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
   }
 
   // Event handlers
+  /* Save the contact as soon as it is typed, so a basket left here can be recovered. */
+  const handleContactBlur = () => {
+    if (!form.email.includes('@')) return
+    void captureContactAction(storeId, {
+      email: form.email,
+      phone: form.phone,
+      name: form.name,
+    })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -122,6 +132,7 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
               autoComplete="email"
               value={form.email}
               onChange={set('email')}
+              onBlur={handleContactBlur}
             />
             <CheckoutField
               label={f.phone}
