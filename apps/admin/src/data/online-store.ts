@@ -29,11 +29,6 @@ export const onlineStoreContent = {
     unsaved: 'Unsaved changes',
     viewLive: 'View on store',
   },
-  blog: {
-    heading: 'No blog posts',
-    body: 'Posts publish to your storefront blog and help search engines find you for the topics your shoppers care about.',
-    action: { label: 'Edit pages', href: '/online-store/pages' },
-  },
   preferences: {
     heading: 'Preferences',
     body: 'Storefront title, meta description, social sharing image and password protection.',

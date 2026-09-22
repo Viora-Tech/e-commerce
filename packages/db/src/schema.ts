@@ -210,6 +210,61 @@ export const collectionProduct = pgTable(
   (t) => [uniqueIndex('collection_product_unique').on(t.collectionId, t.productId)],
 )
 
+/** A blog the storefront lists at `/blogs/<handle>`, Shopify-style. */
+export const blog = pgTable(
+  'blog',
+  {
+    id: id(),
+    storeId: storeId(),
+    title: text('title').notNull(),
+    handle: text('handle').notNull(),
+    commentPolicy: text('comment_policy', { enum: ['disabled', 'moderated', 'open'] })
+      .notNull()
+      .default('disabled'),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('blog_store_handle').on(t.storeId, t.handle)],
+)
+
+/**
+ * One blog post. `status` is what the merchant chose; visibility on the
+ * storefront is `published`, or `scheduled` once `published_at` has passed.
+ */
+export const article = pgTable(
+  'article',
+  {
+    id: id(),
+    storeId: storeId(),
+    blogId: uuid('blog_id')
+      .notNull()
+      .references(() => blog.id),
+    title: text('title').notNull(),
+    handle: text('handle').notNull(),
+    author: text('author').notNull().default(''),
+    /** Lexical JSON, like product.description. */
+    body: jsonb('body'),
+    excerpt: text('excerpt'),
+    imageMediaId: uuid('image_media_id').references(() => media.id),
+    imageAlt: text('image_alt'),
+    tags: text('tags').array().notNull().default([]),
+    status: text('status', { enum: ['draft', 'scheduled', 'published'] })
+      .notNull()
+      .default('draft'),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('article_blog_handle').on(t.blogId, t.handle),
+    index('article_store_published').on(t.storeId, t.status, t.publishedAt),
+  ],
+)
+
 export const variant = pgTable('variant', {
   id: id(),
   storeId: storeId(),

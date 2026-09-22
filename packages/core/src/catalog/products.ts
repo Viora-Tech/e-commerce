@@ -16,6 +16,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { setProductMedia } from '../media/service'
 import type { InventoryReason, ProductWrite } from './schemas'
+import { slugify } from './slug'
 import {
   DEFAULT_VARIANT_TITLE,
   diffVariants,
@@ -33,16 +34,7 @@ export class InvalidProduct extends CommerceError {
   }
 }
 
-/** "Talongames 幻 Maboroshi" → "talongames-maboroshi". ASCII only so the URL is typeable. */
-export function slugify(input: string): string {
-  return input
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 200)
-}
+export { slugify }
 
 /** First free handle: `slug`, then `slug-2`, `slug-3`… ignoring `exceptId` (the product being edited). */
 export async function uniqueHandle(tx: StoreTx, base: string, exceptId?: string): Promise<string> {

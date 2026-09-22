@@ -1,0 +1,156 @@
+import type { ArticleStatus, CommentPolicy } from '@commerce/core/blog'
+
+export const ARTICLE_TABS = ['published', 'scheduled', 'draft'] as const
+export type ArticleTab = (typeof ARTICLE_TABS)[number]
+
+const status: Record<ArticleStatus, string> = {
+  published: 'Published',
+  scheduled: 'Scheduled',
+  draft: 'Draft',
+}
+
+export const blogListContent = {
+  heading: 'Blog posts',
+  add: 'Add blog post',
+  manageBlogs: 'Manage blogs',
+  resource: { singular: 'blog post', plural: 'blog posts' },
+  none: 'None',
+  columns: {
+    title: 'Title',
+    blog: 'Blog',
+    status: 'Status',
+    author: 'Author',
+    published: 'Published',
+  },
+  tabs: { all: 'All', published: 'Published', scheduled: 'Scheduled', draft: 'Drafts' },
+  status,
+  scheduledFor: (when: string) => `Scheduled ${when}`,
+  filters: { blog: 'Blog', tag: 'Tag', any: 'Any', clear: 'Clear filters' },
+  bulk: {
+    publish: 'Publish',
+    unpublish: 'Unpublish',
+    delete: 'Delete',
+    published: (n: number) => `${n} ${n === 1 ? 'post' : 'posts'} published`,
+    unpublished: (n: number) => `${n} ${n === 1 ? 'post' : 'posts'} moved to drafts`,
+    deleted: (n: number) => `${n} ${n === 1 ? 'post' : 'posts'} deleted`,
+    failed: 'That did not work. Try again',
+    confirmDelete: {
+      title: (n: number) => `Delete ${n} ${n === 1 ? 'blog post' : 'blog posts'}?`,
+      body: 'Deleted posts are removed from your storefront and cannot be recovered.',
+      cancel: 'Cancel',
+      confirm: 'Delete',
+    },
+  },
+  empty: {
+    heading: 'Write your first blog post',
+    body: 'Posts publish to your storefront blog and help search engines find you for the topics your shoppers care about.',
+  },
+} as const
+
+export const articleFormContent = {
+  newTitle: 'Add blog post',
+  editTitle: 'Edit blog post',
+  back: 'Blog posts',
+  save: 'Save',
+  saving: 'Saving…',
+  discard: 'Discard',
+  unsaved: 'Unsaved blog post',
+  created: 'Blog post created',
+  saved: 'Blog post saved',
+  deletedToast: 'Blog post deleted',
+  saveFailed: 'Could not save the blog post',
+  titleRequired: 'Give the post a title',
+  viewLive: 'View on store',
+  main: {
+    title: 'Title',
+    titlePlaceholder: 'e.g. Blog about your latest products or deals',
+    content: 'Content',
+    excerpt: 'Excerpt',
+    excerptHelp: 'Shown on the blog page and in search results. Leave empty to use the start of the post.',
+  },
+  visibility: {
+    heading: 'Visibility',
+    published: 'Visible',
+    scheduled: 'Scheduled',
+    draft: 'Hidden',
+    publishedHelp: (when: string | null) => (when ? `Published ${when}` : 'Publishes when you save'),
+    scheduledHelp: 'The post goes live on the storefront at this time.',
+    draftHelp: 'Only staff can see hidden posts.',
+    when: 'Publish date',
+    tz: 'Times are in your browser time zone.',
+  },
+  image: {
+    heading: 'Image',
+    pick: 'Add image',
+    change: 'Change',
+    remove: 'Remove',
+    alt: 'Alt text',
+    altHelp: 'Describe the image for screen readers and search engines.',
+    empty: 'Upload images in Content > Files first.',
+  },
+  organisation: {
+    heading: 'Organization',
+    blog: 'Blog',
+    createBlog: 'Create blog',
+    author: 'Author',
+    tags: 'Tags',
+    tagsPlaceholder: 'Find or create tags',
+  },
+  seo: {
+    heading: 'Search engine listing',
+    edit: 'Edit',
+    previewHint: 'Add a title and content to see how this post might appear in a search engine listing.',
+    title: 'Page title',
+    titleHelp: (n: number) => `${n} of 70 characters used`,
+    description: 'Meta description',
+    descriptionHelp: (n: number) => `${n} of 320 characters used`,
+    handle: 'URL handle',
+  },
+  delete: {
+    action: 'Delete blog post',
+    heading: 'Delete this blog post?',
+    body: 'It is removed from your storefront and cannot be recovered.',
+    cancel: 'Cancel',
+    confirm: 'Delete',
+  },
+} as const
+
+const commentPolicy: Record<CommentPolicy, string> = {
+  disabled: 'Comments are disabled',
+  moderated: 'Comments are allowed, pending moderation',
+  open: 'Comments are allowed, published automatically',
+}
+
+export const blogsManageContent = {
+  heading: 'Manage blogs',
+  back: 'Blog posts',
+  add: 'Create blog',
+  posts: (n: number) => `${n} ${n === 1 ? 'post' : 'posts'}`,
+  edit: 'Edit',
+  delete: 'Delete',
+  commentPolicy,
+  dialog: {
+    createTitle: 'Create blog',
+    editTitle: 'Edit blog',
+    title: 'Title',
+    titlePlaceholder: 'e.g. News, Guides',
+    handle: 'URL handle',
+    handleHelp: 'Leave empty to build it from the title.',
+    comments: 'Comments',
+    cancel: 'Cancel',
+    save: 'Save',
+    saving: 'Saving…',
+  },
+  created: 'Blog created',
+  saved: 'Blog saved',
+  deleted: 'Blog deleted',
+  failed: 'Could not save the blog',
+  confirmDelete: {
+    title: (name: string) => `Delete ${name}?`,
+    body: 'Only a blog with no posts can be deleted.',
+    hasPosts: (n: number) =>
+      `This blog has ${n} ${n === 1 ? 'post' : 'posts'}. Move or delete them before deleting the blog.`,
+    cancel: 'Cancel',
+    confirm: 'Delete',
+  },
+} as const

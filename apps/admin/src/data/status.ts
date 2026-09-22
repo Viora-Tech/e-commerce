@@ -9,6 +9,7 @@ import {
   Truck,
 } from '@commerce/ui/icons'
 import { appsContent } from '@/data/apps'
+import { blogListContent } from '@/data/blog'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
@@ -114,6 +115,12 @@ export const STATUS = {
     published: entry(onlineStoreContent.pages.status.published, 'success'),
     draft: entry(onlineStoreContent.pages.status.draft, 'info'),
     unsaved: entry(onlineStoreContent.editor.unsaved, 'pending'),
+  },
+  /** Blog posts: a scheduled post that is due reads as published. */
+  article: {
+    published: entry(blogListContent.status.published, 'success'),
+    scheduled: entry(blogListContent.status.scheduled, 'accent'),
+    draft: entry(blogListContent.status.draft, 'info'),
   },
   app: {
     installed: entry(appsContent.installed, 'success'),
