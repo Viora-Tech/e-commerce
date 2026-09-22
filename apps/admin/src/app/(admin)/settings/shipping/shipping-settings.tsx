@@ -4,6 +4,7 @@ import type { ShippingPolicySettings } from '@commerce/core'
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
+import SettingsSection from '@/components/settings/settings-section'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import { settingsContent } from '@/data/settings'
@@ -27,12 +28,12 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
   const [, policy, tryPin] = settingsContent.sections.shipping
   return (
     <>
-      <section id={policy?.id} className="scroll-mt-20">
+      <SettingsSection id={policy?.id ?? 'section-policy'}>
         <ShippingPolicyFields value={extra.policy} onChange={(policy) => setExtra({ policy })} />
-      </section>
-      <section id={tryPin?.id} className="scroll-mt-20">
+      </SettingsSection>
+      <SettingsSection id={tryPin?.id ?? 'section-try-pin'}>
         <ShippingTryPin />
-      </section>
+      </SettingsSection>
     </>
   )
 }
