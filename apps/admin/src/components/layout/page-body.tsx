@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 type PageBodyProps = {
   children: ReactNode
-  /** `wide` for lists, `frame` for the dashboard (1116px content as in 5:1346), `narrow` for forms. */
+  /** `wide` for lists, `frame` for the dashboard (fluid; 5:1346 is a 1440 artboard, not a cap), `narrow` for forms. */
   width?: 'wide' | 'frame' | 'narrow'
   className?: string
 }
@@ -18,7 +18,7 @@ export default function PageBody({ children, width = 'wide', className }: PageBo
         width === 'wide'
           ? 'max-w-[90rem]'
           : width === 'frame'
-            ? 'max-w-[72.5rem] md:mx-0 md:pl-5 md:pr-5'
+            ? 'max-w-none md:mx-0 md:pl-5 md:pr-5'
             : 'max-w-5xl',
         className,
       )}
