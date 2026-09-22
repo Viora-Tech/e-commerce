@@ -3,13 +3,14 @@ import { whatsappPlugin } from '@commerce/notifications-whatsapp'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
+import { r2Plugin } from '@commerce/storage-r2'
 
 /**
- * Plugins this deployment ships. Adding a gateway, courier or channel is one
+ * Plugins this deployment ships. Adding a gateway, courier, channel or bucket is one
  * import here; each store then installs it from Admin → Apps. The core
- * plugin (COD, UPI/bank transfer, demo courier, log channel) is implicit.
+ * plugin (COD, UPI/bank transfer, demo courier, log channel, local files) is implicit.
  * See docs/plugins.md to write one.
  */
 export default defineConfig({
-  plugins: [razorpayPlugin, delhiveryPlugin, sesPlugin, whatsappPlugin],
+  plugins: [razorpayPlugin, delhiveryPlugin, sesPlugin, whatsappPlugin, r2Plugin],
 })

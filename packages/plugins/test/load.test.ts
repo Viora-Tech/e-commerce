@@ -129,7 +129,13 @@ describe('loadPlugins', () => {
       payments: [],
       shipping: ['fedex'],
       notifications: [],
+      storage: [],
     })
-    expect(loaded.providerIds('nope')).toEqual({ payments: [], shipping: [], notifications: [] })
+    expect(loaded.providerIds('nope')).toEqual({
+      payments: [],
+      shipping: [],
+      notifications: [],
+      storage: [],
+    })
   })
 })
