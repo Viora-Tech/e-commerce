@@ -30,7 +30,7 @@ export default function DashboardPage({ summary }: { summary: DashboardSummary }
           salesByState={summary.salesByState}
         />
       </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,808fr)_minmax(0,292fr)]">
+      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
         <RecentOrdersCard orders={summary.recentOrders} />
         <TopProductsCard products={summary.topProducts} />
       </div>
