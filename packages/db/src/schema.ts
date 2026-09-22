@@ -37,6 +37,8 @@ export const store = pgTable('store', {
   notifications: jsonb('notifications'),
   /** Shipping settings: enabled couriers, encrypted credentials and the dispatch policy. */
   shipping: jsonb('shipping'),
+  /** Enabled storage provider and its (encrypted) credentials; see core media settings. */
+  storage: jsonb('storage'),
   /** Installed plugins: { installed: string[] }. Validated by @commerce/core AppsSettingsSchema. */
   apps: jsonb('apps'),
   /** Store details shown to shoppers and on invoices. Validated by @commerce/core StoreGeneralSchema. */
@@ -89,15 +91,30 @@ export const productOptionValue = pgTable('product_option_value', {
   position: integer('position').notNull().default(0),
 })
 
-/** Uploaded once, referenced anywhere. `url` is external until R2 upload lands, then r2Key fills. */
+/**
+ * Uploaded once, referenced anywhere (products, variants, pages). Rows are
+ * created `pending` when the browser asks for a presigned upload and become
+ * `ready` on confirm; a nightly sweep can drop stale pending rows. `key` is
+ * null for imported catalogue images that live on someone else's CDN.
+ */
 export const media = pgTable('media', {
   id: id(),
   storeId: storeId(),
   url: text('url').notNull(),
-  r2Key: text('r2_key'),
+  /** Object key in the storage provider; see @commerce/storage mediaKey. */
+  key: text('key'),
+  /** Which provider holds the object, so deletes go to the right bucket. */
+  provider: text('provider'),
+  contentType: text('content_type'),
+  /** Bytes as declared at presign time. */
+  size: integer('size'),
   alt: text('alt'),
   width: integer('width'),
   height: integer('height'),
+  status: text('status', { enum: ['pending', 'ready'] })
+    .notNull()
+    .default('ready'),
+  createdAt: createdAt(),
 })
 
 export const productMedia = pgTable('product_media', {

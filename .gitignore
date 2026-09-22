@@ -6,3 +6,5 @@ dist
 *.tsbuildinfo
 coverage
 .next
+# Development storage provider writes here; production uses a bucket.
+apps/admin/public/uploads

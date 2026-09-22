@@ -141,7 +141,7 @@ export async function getProduct(tx: StoreTx, id: string) {
         )
     : []
   const images = await tx
-    .select({ id: media.id, url: media.url, alt: media.alt })
+    .select({ id: media.id, url: media.url, alt: media.alt, contentType: media.contentType })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(eq(productMedia.productId, id))

@@ -20,6 +20,7 @@
     "@commerce/payments": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping": "workspace:*",
+    "@commerce/storage": "workspace:*",
     "@orpc/client": "^1.15.2",
     "@orpc/server": "^1.15.2",
     "@orpc/zod": "^1.15.2",

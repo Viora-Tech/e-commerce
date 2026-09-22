@@ -66,5 +66,7 @@ export const ProductWriteSchema = ProductFieldsSchema.extend({
   variants: z.array(VariantInputSchema).min(1).max(100),
   /** Logged against every on-hand change in this write. */
   inventoryReason: InventoryReasonSchema.optional(),
+  /** Gallery in display order, cover first. Omitted = leave the gallery alone. */
+  mediaIds: z.array(z.uuid()).max(50).optional(),
 })
 export type ProductWrite = z.infer<typeof ProductWriteSchema>
