@@ -281,6 +281,13 @@
       "when": 1790104243378,
       "tag": "0039_inventory_locations",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790108431431,
+      "tag": "0040_themes_and_preferences",
+      "breakpoints": true
     }
   ]
 }
