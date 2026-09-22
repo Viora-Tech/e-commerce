@@ -146,7 +146,10 @@ export async function enqueueAppJob(
   dedupeKey?: string,
 ): Promise<void> {
   await queue.add(`${job.pluginId}:${job.name}`, job, {
-    ...(dedupeKey ? { jobId: `${job.storeId}:${job.pluginId}:${dedupeKey}` } : {}),
+    // BullMQ allows ':' in a custom id only as exactly three parts.
+    ...(dedupeKey
+      ? { jobId: `${job.storeId}:${job.pluginId}:${dedupeKey.replace(/:/g, '-')}` }
+      : {}),
     attempts: 3,
     backoff: { type: 'exponential', delay: 5_000 },
     removeOnComplete: true,
