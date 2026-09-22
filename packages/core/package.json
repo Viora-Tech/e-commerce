@@ -10,6 +10,7 @@
     "./adjustments": "./src/payments/adjustments.ts",
     "./registries": "./src/plugins/registries.ts",
     "./catalog": "./src/catalog/client.ts",
+    "./discounts": "./src/discounts/client.ts",
     "./store-settings": "./src/settings/general.ts"
   },
   "scripts": {

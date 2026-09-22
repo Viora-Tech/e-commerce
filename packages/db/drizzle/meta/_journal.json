@@ -183,6 +183,13 @@
       "when": 1790007529497,
       "tag": "0025_customer_records",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790050928728,
+      "tag": "0026_discounts",
+      "breakpoints": true
     }
   ]
 }

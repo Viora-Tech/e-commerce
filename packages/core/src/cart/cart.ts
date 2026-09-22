@@ -22,6 +22,8 @@ export type CartView = {
   lines: CartLineView[]
   itemCount: number
   subtotalPaise: number
+  /** Code the shopper applied; the amount is only ever computed by the discount resolver. */
+  discountCode: string | null
 }
 
 export async function createCart(ctx: StoreContext): Promise<string> {
@@ -71,6 +73,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     lines,
     itemCount: lines.reduce((n, l) => n + l.quantity, 0),
     subtotalPaise: lines.reduce((n, l) => n + l.linePaise, 0),
+    discountCode: c.discountCode,
   }
 }
 
