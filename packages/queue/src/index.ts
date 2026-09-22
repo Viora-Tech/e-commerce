@@ -1,4 +1,14 @@
-import { NOTIFICATIONS_QUEUE, type NotificationJob, type NotificationQueue } from '@commerce/core'
+import {
+  APP_EVENTS_QUEUE,
+  APP_JOBS_QUEUE,
+  type AppEventJob,
+  type AppEventQueue,
+  type AppJobData,
+  type AppJobQueue,
+  NOTIFICATIONS_QUEUE,
+  type NotificationJob,
+  type NotificationQueue,
+} from '@commerce/core'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
 
@@ -29,6 +39,28 @@ export function notificationQueue(redisUrl: string): NotificationQueue {
     g.__notificationQueue = createNotificationQueue(createConnection(redisUrl))
   }
   return g.__notificationQueue
+}
+
+export function createAppEventQueue(connection: IORedis): Queue<AppEventJob> & AppEventQueue {
+  return new Queue<AppEventJob>(APP_EVENTS_QUEUE, { connection })
+}
+
+export function createAppJobQueue(connection: IORedis): Queue<AppJobData> & AppJobQueue {
+  return new Queue<AppJobData>(APP_JOBS_QUEUE, { connection })
+}
+
+/** Process-wide app jobs queue. */
+export function appJobQueue(redisUrl: string): AppJobQueue {
+  const g = globalThis as { __appJobQueue?: AppJobQueue }
+  if (!g.__appJobQueue) g.__appJobQueue = createAppJobQueue(createConnection(redisUrl))
+  return g.__appJobQueue
+}
+
+/** Process-wide app events queue, cached like the notification queue. */
+export function appEventQueue(redisUrl: string): AppEventQueue {
+  const g = globalThis as { __appEventQueue?: AppEventQueue }
+  if (!g.__appEventQueue) g.__appEventQueue = createAppEventQueue(createConnection(redisUrl))
+  return g.__appEventQueue
 }
 
 /** One process-wide Redis connection for caches; same globalThis caching as the queue. */

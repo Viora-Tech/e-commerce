@@ -1,20 +1,36 @@
+import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
 import { createDb } from '@commerce/db'
-import { createNotificationQueue } from '@commerce/queue'
+import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { createAbandonedSweeper, SWEEP_EVERY_MS } from './abandoned'
+import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
+
+/* The local storage provider writes relative to the admin app, which serves
+   the folder; point this process at the same place for generated files. */
+process.env.LOCAL_UPLOAD_ROOT ??= resolve(import.meta.dir, '../../admin')
 
 const env = loadEnv(process.env)
 const db = createDb(env.DATABASE_URL)
 const redis = createConnection(env.REDIS_URL)
 const { queue, worker } = createHeartbeat(redis)
 const notifications = createNotificationQueue(redis)
+const appEvents = createAppEventQueue(redis)
 const notificationWorker = createNotificationWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+  appEvents,
+})
+const appEventWorker = createAppEventWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
+const appJobWorker = createAppJobWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
@@ -58,6 +74,8 @@ app.get('/health', async (c) => {
 const shutdown = async () => {
   await worker.close()
   await notificationWorker.close()
+  await appEventWorker.close()
+  await appJobWorker.close()
   await tracker.worker.close()
   await tracker.queue.close()
   await abandoned.worker.close()

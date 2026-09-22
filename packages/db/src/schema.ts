@@ -232,6 +232,8 @@ export const variant = pgTable('variant', {
   /** Customs fields printed on international labels and invoices. */
   hsCode: text('hs_code'),
   countryOfOrigin: text('country_of_origin'),
+  /** GST rate for this variant; null uses the store default. Ignored when `taxable` is false. */
+  gstRatePercent: integer('gst_rate_percent'),
   position: integer('position').notNull().default(0),
   mediaId: uuid('media_id').references(() => media.id),
   /**
@@ -575,6 +577,10 @@ export const orderLine = pgTable('order_line', {
   unitPricePaise: integer('unit_price_paise').notNull(),
   /** How many of `quantity` have been packed; below it the line is unfulfilled. */
   fulfilledQuantity: integer('fulfilled_quantity').notNull().default(0),
+  /** GST rate charged, 0 for exempt goods. Null on orders placed before rates were recorded. */
+  gstRatePercent: integer('gst_rate_percent'),
+  /** HSN code as it stood when the order was placed. */
+  hsCode: text('hs_code'),
 })
 
 export const payment = pgTable(

@@ -42,6 +42,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, n, d.totalLabel, d.actionUrl ?? '-']
     case 'checkout_recovery':
       return [d.customerName, d.storeName, d.totalLabel, d.actionUrl ?? '-']
+    case 'document_copy':
+      return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
   }
 }
 

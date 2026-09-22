@@ -1,7 +1,15 @@
-import { deliverNotification, NOTIFICATIONS_QUEUE, type NotificationJob } from '@commerce/core'
+import {
+  type AppEventQueue,
+  appEventForTemplate,
+  deliverNotification,
+  enqueueAppEvent,
+  NOTIFICATIONS_QUEUE,
+  type NotificationJob,
+} from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import { type IORedis, Worker } from '@commerce/queue'
+import { appEmailExtras } from './app-events'
 
 /**
  * Consumes {storeId, orderId, template} jobs. A job succeeds only when every
@@ -11,12 +19,23 @@ import { type IORedis, Worker } from '@commerce/queue'
 export function createNotificationWorker(
   connection: IORedis,
   db: Db,
-  opts: { settingsSecret: string; storefrontUrl?: string | undefined },
+  opts: {
+    settingsSecret: string
+    storefrontUrl?: string | undefined
+    /** Order paid/shipped notifications double as the app lifecycle events. */
+    appEvents?: AppEventQueue | undefined
+  },
 ) {
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     async (job) => {
       const { storeId, orderId, template } = job.data
+      const event = appEventForTemplate(template)
+      // Queued before delivery: a channel failure retries this job, and the app
+      // event's own job id makes the repeat a no-op.
+      if (event && opts.appEvents) {
+        await enqueueAppEvent(opts.appEvents, { storeId, event, orderId })
+      }
       const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(
           { storeId, tx },
@@ -25,6 +44,7 @@ export function createNotificationWorker(
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,
             storefrontUrl: opts.storefrontUrl,
+            extras: appEmailExtras(db, opts, storeId),
           },
         ),
       )

@@ -1,9 +1,10 @@
-import { rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { dirname, isAbsolute, join } from 'node:path'
 import type {
   CredentialCheck,
   PresignedUpload,
   PresignInput,
+  PutInput,
   StorageProvider,
   StorageProviderFactory,
 } from '@commerce/storage'
@@ -47,8 +48,35 @@ export class LocalStorageProvider implements StorageProvider {
     return `${this.base}/uploads/${key}`
   }
 
+  async put(input: PutInput): Promise<void> {
+    const path = this.pathOf(input.key)
+    await mkdir(dirname(path), { recursive: true })
+    await writeFile(path, input.body)
+  }
+
+  async get(key: string): Promise<Uint8Array | null> {
+    try {
+      return new Uint8Array(await readFile(this.pathOf(key)))
+    } catch (err) {
+      if ((err as { code?: string }).code === 'ENOENT') return null
+      throw err
+    }
+  }
+
   async delete(key: string): Promise<void> {
-    await rm(join(this.config.dir, key), { force: true })
+    await rm(this.pathOf(key), { force: true })
+  }
+
+  /**
+   * The folder is relative to the admin app. Other processes (the worker writing
+   * invoice PDFs, the storefront streaming them) set `LOCAL_UPLOAD_ROOT` to the
+   * admin app directory so every process agrees on one folder.
+   */
+  private pathOf(key: string): string {
+    if (key.split('/').includes('..')) throw new Error(`refusing path traversal in key ${key}`)
+    const dir = this.config.dir
+    const root = process.env.LOCAL_UPLOAD_ROOT
+    return join(isAbsolute(dir) || !root ? dir : join(root, dir), key)
   }
 
   async verifyCredentials(): Promise<CredentialCheck> {

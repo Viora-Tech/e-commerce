@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   PutObjectCommand,
   S3Client,
@@ -10,6 +11,7 @@ import type {
   CredentialCheck,
   PresignedUpload,
   PresignInput,
+  PutInput,
   StorageProvider,
   StorageProviderFactory,
 } from '@commerce/storage'
@@ -94,6 +96,31 @@ export class R2StorageProvider implements StorageProvider {
 
   publicUrl(key: string): string {
     return `${this.publicBase}/${key}`
+  }
+
+  async put(input: PutInput): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.config.bucket,
+        Key: input.key,
+        Body: input.body,
+        ContentType: input.contentType,
+        ContentLength: input.body.byteLength,
+      }),
+    )
+  }
+
+  async get(key: string): Promise<Uint8Array | null> {
+    try {
+      const res = await this.client.send(
+        new GetObjectCommand({ Bucket: this.config.bucket, Key: key }),
+      )
+      return res.Body ? await res.Body.transformToByteArray() : null
+    } catch (err) {
+      const name = err instanceof Error ? err.name : ''
+      if (name === 'NoSuchKey' || name === 'NotFound') return null
+      throw err
+    }
   }
 
   async delete(key: string): Promise<void> {

@@ -11,6 +11,7 @@ import {
   variant,
 } from '@commerce/db'
 import type {
+  Attachment,
   NotificationChannel,
   NotificationRegistry,
   Recipient,
@@ -48,6 +49,19 @@ export type DeliverOptions = {
   storefrontUrl?: string | undefined
   /** Override channel resolution; tests inject fakes here. */
   channels?: NotificationChannel[] | undefined
+  /** Send again even to channels that already sent this template (a copy on request). */
+  resend?: boolean | undefined
+  /** Only channels that need this recipient field, e.g. email for a file. */
+  requires?: 'email' | 'phone' | undefined
+  /** Extra template fields, e.g. the document label of a copy. */
+  data?: Partial<TemplateData> | undefined
+  /** Links and files installed apps add to this order email (invoice link, invoice PDF). */
+  extras?:
+    | ((input: { orderId: string; template: TemplateId }) => Promise<{
+        links: { label: string; url: string }[]
+        attachments: Attachment[]
+      }>)
+    | undefined
 }
 
 /** Load everything a template needs from the order. Null when the order is not visible. */
@@ -212,18 +226,28 @@ export async function deliverNotification(
   if (!built) return []
 
   const channels = await channelsFor(ctx, opts)
+  const extras = opts.extras ? await opts.extras(input) : null
+  const data = {
+    ...built.data,
+    ...opts.data,
+    ...(extras?.links.length ? { links: extras.links } : {}),
+  }
+  const attachments = extras?.attachments.length ? extras.attachments : undefined
 
   const already = await ctx.tx
     .select({ channel: notification.channel, status: notification.status })
     .from(notification)
     .where(and(eq(notification.orderId, input.orderId), eq(notification.template, input.template)))
-  const sent = new Set(already.filter((n) => n.status === 'sent').map((n) => n.channel))
+  const sent = new Set(
+    opts.resend ? [] : already.filter((n) => n.status === 'sent').map((n) => n.channel),
+  )
 
   const results: DeliveryResult[] = []
   for (const channel of channels) {
+    if (opts.requires && channel.requires !== opts.requires) continue
     const to = built.to[channel.requires]
     if (!to || sent.has(channel.id)) continue
-    const r = await channel.send({ to: built.to, template: input.template, data: built.data })
+    const r = await channel.send({ to: built.to, template: input.template, data, attachments })
     await ctx.tx
       .insert(notification)
       .values({

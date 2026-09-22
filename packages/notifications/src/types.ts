@@ -10,6 +10,8 @@ export type TemplateId =
   | 'order_shipped'
   | 'draft_invoice'
   | 'checkout_recovery'
+  /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */
+  | 'document_copy'
 
 export type Recipient = {
   email?: string | undefined
@@ -35,12 +37,24 @@ export type TemplateData = {
   orderUrl?: string | undefined
   /** Pay link on a draft invoice, or the restore link on an abandoned cart. */
   actionUrl?: string | undefined
+  /** For document_copy: what is attached, e.g. "tax invoice INV/25-26/0007". */
+  documentLabel?: string | undefined
+  /** Extra links installed apps add, e.g. "Download invoice". */
+  links?: { label: string; url: string }[] | undefined
+}
+
+/** A file sent with an email. Channels that cannot carry files ignore it. */
+export type Attachment = {
+  filename: string
+  contentType: string
+  content: Uint8Array
 }
 
 export type Message = {
   to: Recipient
   template: TemplateId
   data: TemplateData
+  attachments?: Attachment[] | undefined
 }
 
 export type SendResult = { ok: true; providerRef: string } | { ok: false; error: string }

@@ -7,6 +7,8 @@ export type ConformanceOptions = {
   create: () => StorageProvider | Promise<StorageProvider>
   /** Runs live network calls (presign is offline everywhere; delete and verify are not). */
   live?: boolean
+  /** True when put/get need no network (memory, local folder); runs the round-trip offline. */
+  offlineObjects?: boolean
 }
 
 const sampleKey = mediaKey({
@@ -47,6 +49,20 @@ export function describeStorageProvider(name: string, opts: ConformanceOptions):
       const ct = Object.entries(r.headers).find(([k]) => k.toLowerCase() === 'content-type')
       expect(ct?.[1]).toBe('image/png')
     })
+
+    if (opts.offlineObjects || opts.live) {
+      it('writes bytes with put, reads them back with get, and gets null once deleted', async () => {
+        const p = await opts.create()
+        const key = `${sampleKey}.roundtrip.pdf`
+        const body = new TextEncoder().encode('%PDF-1.7 conformance')
+        await p.put({ key, body, contentType: 'application/pdf' })
+        const back = await p.get(key)
+        expect(back && new TextDecoder().decode(back)).toBe('%PDF-1.7 conformance')
+        await p.delete(key)
+        expect(await p.get(key)).toBeNull()
+        expect(await p.get(`${sampleKey}.never-written`)).toBeNull()
+      })
+    }
 
     if (opts.live) {
       it('answers verifyCredentials with an actionable message instead of throwing', async () => {

@@ -1,8 +1,18 @@
-import { NotificationRegistry } from '@commerce/notifications'
+import { type Attachment, NotificationRegistry, type TemplateId } from '@commerce/notifications'
 import { PaymentRegistry } from '@commerce/payments'
 import { ShippingRegistry } from '@commerce/shipping'
 import { StorageRegistry } from '@commerce/storage'
-import type { PluginManifest, PluginSummary, ProviderKind } from './types'
+import type {
+  AppEvent,
+  AppHook,
+  AppHookContext,
+  AppJob,
+  OrderLink,
+  OrderLinkContext,
+  PluginManifest,
+  PluginSummary,
+  ProviderKind,
+} from './types'
 
 export type Registries = {
   payments: PaymentRegistry
@@ -27,6 +37,26 @@ export type LoadedPlugins = Registries & {
   forStore(installed: readonly string[]): Registries
   /** Provider ids a plugin contributes, per kind; used to clean up settings on uninstall. */
   providerIds(pluginId: string): Record<ProviderKind, string[]>
+  /** Hooks for one event from the plugins a store installed, in config order. */
+  hooksFor(event: AppEvent, installed: readonly string[]): { pluginId: string; hook: AppHook }[]
+  /** Order links from every installed app; an app that throws is skipped, never fatal. */
+  orderLinks(
+    installed: readonly string[],
+    ctx: OrderLinkContext,
+    orderId: string,
+  ): Promise<OrderLink[]>
+  /** An installed app's named job, or null when the app or job is unknown or not installed. */
+  jobFor(pluginId: string, name: string, installed: readonly string[]): AppJob | null
+  /**
+   * Attachments for one order email from every installed app. Unlike links, a
+   * failure here throws: the notification job retries rather than sending an
+   * email that silently lacks the invoice the store promised.
+   */
+  emailAttachments(
+    installed: readonly string[],
+    ctx: AppHookContext,
+    input: { orderId: string; template: TemplateId },
+  ): Promise<Attachment[]>
 }
 
 export const CORE_PLUGIN_ID = 'core'
@@ -98,6 +128,18 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
         version: p.version,
         description: p.description ?? null,
         builtIn: p.id === CORE_PLUGIN_ID,
+        category: p.category ?? null,
+        hooks: Object.keys(p.hooks ?? {}) as AppEvent[],
+        productFields: p.productFields ?? [],
+        admin: {
+          settingsPage: p.admin?.settingsPage
+            ? {
+                label: p.admin.settingsPage.label,
+                description: p.admin.settingsPage.description ?? null,
+              }
+            : null,
+          orderCard: p.admin?.orderCard === true,
+        },
         provides: {
           payments: (p.provides.payments ?? []).map((f) => ({ id: f.id, label: f.label })),
           shipping: (p.provides.shipping ?? []).map((f) => ({ id: f.id, label: f.label })),
@@ -111,6 +153,36 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
     forStore: (installed) => {
       const allowed = new Set([CORE_PLUGIN_ID, ...installed])
       return buildRegistries(plugins.filter((p) => allowed.has(p.id)))
+    },
+    hooksFor: (event, installed) => {
+      const allowed = new Set([CORE_PLUGIN_ID, ...installed])
+      return plugins.flatMap((p) => {
+        const hook = p.hooks?.[event]
+        return hook && allowed.has(p.id) ? [{ pluginId: p.id, hook }] : []
+      })
+    },
+    orderLinks: async (installed, ctx, orderId) => {
+      const allowed = new Set([CORE_PLUGIN_ID, ...installed])
+      const sources = plugins.filter((p) => p.orderLinks && allowed.has(p.id))
+      const results = await Promise.all(
+        sources.map((p) =>
+          (p.orderLinks?.(ctx, orderId) ?? Promise.resolve([])).catch((): OrderLink[] => []),
+        ),
+      )
+      return results.flat()
+    },
+    jobFor: (pluginId, name, installed) => {
+      if (pluginId !== CORE_PLUGIN_ID && !installed.includes(pluginId)) return null
+      return byId.get(pluginId)?.jobs?.[name] ?? null
+    },
+    emailAttachments: async (installed, ctx, input) => {
+      const allowed = new Set([CORE_PLUGIN_ID, ...installed])
+      const out: Attachment[] = []
+      for (const p of plugins) {
+        if (!p.emailAttachments || !allowed.has(p.id)) continue
+        out.push(...(await p.emailAttachments(ctx, input)))
+      }
+      return out
     },
     providerIds: (pluginId) => {
       const p = byId.get(pluginId)

@@ -1,4 +1,6 @@
+import { type StoreTx, store } from '@commerce/db'
 import { type StorageProvider, StorageRegistry } from '@commerce/storage'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { LOCAL_UPLOAD_DIR, localStorageFactory } from '../providers/local-storage'
 import {
@@ -72,3 +74,27 @@ export function storageDefaultsFromEnv(env: Record<string, string | undefined>):
 }
 
 export { StorageRegistry }
+
+/**
+ * Stored storage settings for a store, or the env-seeded defaults when the
+ * merchant has not saved any. Server only.
+ */
+export async function loadStoreStorageSettings(
+  tx: StoreTx,
+  storeId: string,
+): Promise<StorageSettings> {
+  const [s] = await tx.select({ storage: store.storage }).from(store).where(eq(store.id, storeId))
+  if (s?.storage) return parseStorageSettings(s.storage)
+  return storageDefaultsFromEnv(process.env)
+}
+
+/** The provider a store writes to right now; the local folder is the floor. */
+export async function storageForStore(
+  tx: StoreTx,
+  storeId: string,
+  registry: StorageRegistry,
+  secret: string,
+): Promise<StorageProvider> {
+  return resolveStorageProvider(registry, await loadStoreStorageSettings(tx, storeId), secret)
+    .provider
+}
