@@ -119,6 +119,7 @@ export const orderDetailContent = {
     shipping: 'Shipping',
     fee: 'Payment fee',
     discount: 'Payment discount',
+    orderDiscount: 'Discount',
     total: 'Total',
     refunded: 'Refunded',
     net: 'Net paid',

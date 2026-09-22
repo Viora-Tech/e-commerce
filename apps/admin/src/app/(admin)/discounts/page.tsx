@@ -1,10 +1,30 @@
-import { BadgePercent } from 'lucide-react'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { discountsContent } from '@/data/discounts'
+import { DISCOUNT_LIFECYCLES } from '@/data/discounts'
+import { appRouter, call, serverContext } from '@/lib/api'
+import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import DiscountsPage from './discounts-page'
 
 export const metadata: Metadata = { title: 'Discounts' }
 
-export default function Page() {
-  return <SectionEmpty {...discountsContent.index} icon={BadgePercent} />
+type Props = { searchParams: Promise<SearchParams> }
+
+export default async function Page({ searchParams }: Props) {
+  const query = parseListQuery(await searchParams, DISCOUNT_LIFECYCLES)
+  const context = await serverContext()
+  const [result, stats, all] = await Promise.all([
+    call(
+      appRouter.discounts.list,
+      {
+        page: query.page,
+        perPage: LIST_PER_PAGE,
+        search: query.query || undefined,
+        lifecycle: query.status ?? undefined,
+      },
+      { context },
+    ),
+    call(appRouter.discounts.stats, undefined, { context }),
+    call(appRouter.discounts.list, { page: 1, perPage: 1 }, { context }),
+  ])
+
+  return <DiscountsPage initial={{ query, result, stats, allCount: all.total }} />
 }

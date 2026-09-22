@@ -4,8 +4,11 @@ import { formatPaise } from '@commerce/blocks'
 import type { CartView, DeliveryEstimate } from '@commerce/core'
 import { applyPaymentAdjustment, formatPaymentAdjustment } from '@commerce/core/adjustments'
 import { useState, useTransition } from 'react'
+import DiscountCodeField from '@/components/cart/discount-code-field'
+import CheckoutField from '@/components/checkout/checkout-field'
 import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
 import { checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
+import type { CartDiscountView } from '@/lib/discount-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 
@@ -13,16 +16,8 @@ type CheckoutFormProps = {
   storeId: string
   cart: CartView
   methods: CheckoutMethod[]
-}
-
-type FieldProps = {
-  label: string
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  type?: string
-  required?: boolean
-  pattern?: string
-  autoComplete?: string
+  /** Discount in force for this cart, resolved on the server. */
+  discount: CartDiscountView | null
 }
 
 type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
@@ -52,32 +47,7 @@ function deliveryLine(d: DeliveryEstimate | null, checking: boolean): string | n
   return content.delivery.estimate(d.dateRange)
 }
 
-function Field({
-  label,
-  type = 'text',
-  required,
-  pattern,
-  autoComplete,
-  value,
-  onChange,
-}: FieldProps) {
-  return (
-    <label className="field">
-      <span className="field__label text-small">{label}</span>
-      <input
-        className="field__input"
-        type={type}
-        required={required}
-        pattern={pattern}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={onChange}
-      />
-    </label>
-  )
-}
-
-export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormProps) {
+export default function CheckoutForm({ storeId, cart, methods, discount }: CheckoutFormProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [checking, startCheck] = useTransition()
@@ -120,12 +90,11 @@ export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormPro
   }
 
   // Render logic
-  // Preview only: placeOrder recomputes the adjustment server-side from store settings.
+  // Preview only: placeOrder recomputes the discount and adjustment server-side.
   const selected = methods.find((m) => m.id === form.payment)
-  const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(
-    cart.subtotalPaise,
-    selected?.adjustment,
-  )
+  const discountPaise = discount?.amountPaise ?? 0
+  const discounted = Math.max(0, cart.subtotalPaise - discountPaise)
+  const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(discounted, selected?.adjustment)
 
   const f = content.fields
   const codBlocked = delivery?.ok === true && delivery.serviceable && !delivery.codAvailable
@@ -139,14 +108,14 @@ export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormPro
         <div className="cart-layout__lines">
           <fieldset className="checkout__group">
             <legend className="h4">{content.contact}</legend>
-            <Field
+            <CheckoutField
               label={f.name}
               required
               autoComplete="name"
               value={form.name}
               onChange={set('name')}
             />
-            <Field
+            <CheckoutField
               label={f.email}
               type="email"
               required
@@ -154,7 +123,7 @@ export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormPro
               value={form.email}
               onChange={set('email')}
             />
-            <Field
+            <CheckoutField
               label={f.phone}
               type="tel"
               required
@@ -167,21 +136,21 @@ export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormPro
 
           <fieldset className="checkout__group">
             <legend className="h4">{content.address}</legend>
-            <Field
+            <CheckoutField
               label={f.line1}
               required
               autoComplete="address-line1"
               value={form.line1}
               onChange={set('line1')}
             />
-            <Field
+            <CheckoutField
               label={f.line2}
               autoComplete="address-line2"
               value={form.line2}
               onChange={set('line2')}
             />
             <div className="checkout__row">
-              <Field
+              <CheckoutField
                 label={f.city}
                 required
                 autoComplete="address-level2"
@@ -198,7 +167,7 @@ export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormPro
                   ))}
                 </select>
               </label>
-              <Field
+              <CheckoutField
                 label={f.pincode}
                 required
                 pattern="[1-9][0-9]{5}"
@@ -253,19 +222,26 @@ export default function CheckoutForm({ storeId, cart, methods }: CheckoutFormPro
                 <span>{formatPaise(l.linePaise)}</span>
               </div>
             ))}
+            <DiscountCodeField storeId={storeId} discount={discount} />
+            {adjustmentPaise !== 0 || discountPaise > 0 ? (
+              <div className="cart-summary__row">
+                <span>{content.subtotal}</span>
+                <span>{formatPaise(cart.subtotalPaise)}</span>
+              </div>
+            ) : null}
+            {discount?.label && discountPaise > 0 ? (
+              <div className="cart-summary__row cart-summary__row--discount">
+                <span>{discount.label}</span>
+                <span>−{formatPaise(discountPaise)}</span>
+              </div>
+            ) : null}
             {adjustmentPaise !== 0 ? (
-              <>
-                <div className="cart-summary__row">
-                  <span>{content.subtotal}</span>
-                  <span>{formatPaise(cart.subtotalPaise)}</span>
-                </div>
-                <div className="cart-summary__row">
-                  <span>
-                    {selected?.adjustment?.label || content.adjustmentFallback(adjustmentPaise)}
-                  </span>
-                  <span>{formatSigned(adjustmentPaise)}</span>
-                </div>
-              </>
+              <div className="cart-summary__row">
+                <span>
+                  {selected?.adjustment?.label || content.adjustmentFallback(adjustmentPaise)}
+                </span>
+                <span>{formatSigned(adjustmentPaise)}</span>
+              </div>
             ) : null}
             <div className="cart-summary__row cart-summary__row--total">
               <span>{content.total}</span>

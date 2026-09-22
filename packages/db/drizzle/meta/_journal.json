@@ -197,6 +197,13 @@
       "when": 1790053447051,
       "tag": "0027_media_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790058860272,
+      "tag": "0028_discounts",
+      "breakpoints": true
     }
   ]
 }

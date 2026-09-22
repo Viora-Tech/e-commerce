@@ -244,6 +244,8 @@ export const cart = pgTable('cart', {
   status: text('status', { enum: ['open', 'converted', 'abandoned'] })
     .notNull()
     .default('open'),
+  /** Code the shopper typed; re-validated at checkout, never trusted for the amount. */
+  discountCode: text('discount_code'),
   createdAt: createdAt(),
 })
 
@@ -277,6 +279,11 @@ export const order = pgTable('order', {
   /** Fee (+) or discount (−) for the chosen payment method, already inside total_paise. */
   paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
   paymentAdjustmentLabel: text('payment_adjustment_label'),
+  /** Code or automatic discount taken off the subtotal, already inside total_paise. */
+  discountId: uuid('discount_id'),
+  discountCode: text('discount_code'),
+  discountLabel: text('discount_label'),
+  discountPaise: integer('discount_paise').notNull().default(0),
   totalPaise: integer('total_paise').notNull(),
   tags: text('tags').array().notNull().default([]),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
@@ -432,6 +439,59 @@ export const shipment = pgTable(
   },
   (t) => [uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill)],
 )
+
+export type DiscountKind = 'code' | 'automatic'
+export type DiscountMethod = 'percent' | 'fixed' | 'free_shipping'
+export type DiscountAppliesTo = 'all' | 'products' | 'collections'
+export type DiscountStatus = 'active' | 'disabled'
+
+/**
+ * A discount code or an automatic offer. `value` is basis points for
+ * `percent` and paise for `fixed`; free shipping has no value. Windows and
+ * usage limits are optional; `used_count` is bumped in the order transaction.
+ */
+export const discount = pgTable(
+  'discount',
+  {
+    id: id(),
+    storeId: storeId(),
+    title: text('title').notNull(),
+    kind: text('kind').$type<DiscountKind>().notNull().default('code'),
+    /** Upper-cased and trimmed; null for automatic discounts. */
+    code: text('code'),
+    method: text('method').$type<DiscountMethod>().notNull(),
+    value: integer('value').notNull().default(0),
+    minSubtotalPaise: integer('min_subtotal_paise'),
+    appliesTo: text('applies_to').$type<DiscountAppliesTo>().notNull().default('all'),
+    /** Product or collection ids when applies_to narrows the scope. */
+    appliesToIds: jsonb('applies_to_ids').$type<string[]>().notNull().default([]),
+    usageLimit: integer('usage_limit'),
+    usagePerCustomer: integer('usage_per_customer'),
+    usedCount: integer('used_count').notNull().default(0),
+    startsAt: timestamp('starts_at', { withTimezone: true }),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    status: text('status').$type<DiscountStatus>().notNull().default('active'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('discount_store_code').on(t.storeId, t.code)],
+)
+
+/** One row per order that used a discount; drives usage limits and per-customer caps. */
+export const discountUsage = pgTable('discount_usage', {
+  id: id(),
+  storeId: storeId(),
+  discountId: uuid('discount_id')
+    .notNull()
+    .references(() => discount.id),
+  orderId: uuid('order_id')
+    .notNull()
+    .references(() => order.id),
+  customerId: uuid('customer_id').references(() => customer.id),
+  email: text('email'),
+  amountPaise: integer('amount_paise').notNull(),
+  createdAt: createdAt(),
+})
 
 export const storeDomain = pgTable('store_domain', {
   id: id(),

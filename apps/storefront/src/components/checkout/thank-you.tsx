@@ -50,6 +50,12 @@ export default function ThankYouTemplate({ order: o, lines, payment: pay }: Than
               <span>{formatPaise(l.quantity * l.unitPricePaise)}</span>
             </li>
           ))}
+          {o.discountPaise > 0 ? (
+            <li className="cart-summary__row cart-summary__row--discount">
+              <span>{o.discountLabel ?? content.discount}</span>
+              <span>−{formatPaise(o.discountPaise)}</span>
+            </li>
+          ) : null}
           {o.paymentAdjustmentPaise !== 0 ? (
             <li className="cart-summary__row">
               <span>
