@@ -28,9 +28,9 @@
      stack below. Harmless on the plain <div> case too. */
   display: block;
   position: relative;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: var(--card-ratio, 1 / 1);
   overflow: hidden;
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-card, var(--radius-m));
   background-color: var(--color-card-media, rgb(0 0 0 / 4%));
 }
 
@@ -666,3 +666,36 @@
    are already pointing at the card is a buy button you have to discover, and
    it reads as the card being broken until you touch it. If the grid needs
    calming later, the answer is a lighter button treatment, not a hidden one. */
+
+/* ------------------------------------------------------------------ */
+/* Theme switches (Online Store > Themes > Cards)                      */
+/* Set as attributes on <html> so the live preview flips them without  */
+/* re-rendering; the markup is always present.                         */
+/* ------------------------------------------------------------------ */
+
+/* "Natural" ratio: the primary image sets the height instead of a fixed box,
+   so it leaves the absolute stack; the hover image still overlays it. */
+:root[data-card-ratio="natural"] .product-card__image--primary {
+  position: static;
+  height: auto;
+}
+
+:root[data-card-hover="off"] .product-card__image--hover {
+  display: none;
+}
+
+.product-card__vendor {
+  margin: 0 0 var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:root:not([data-card-vendor="on"]) .product-card__vendor {
+  display: none;
+}
+
+:root:not([data-card-sale-badge="on"]) .product-card__badge--sale {
+  display: none;
+}
