@@ -13,6 +13,7 @@ packages/plugins            definePlugin, defineConfig, loadPlugins
 packages/payments           PaymentProvider contract + conformance suite
 packages/shipping           ShippingProvider contract + conformance suite
 packages/notifications      NotificationChannel contract + conformance suite
+packages/storage            StorageProvider contract (presigned uploads) + conformance suite
 packages/*-razorpay etc.    reference adapters, one package each
 ```
 
@@ -137,8 +138,18 @@ export const fedexPlugin = definePlugin({
 ```
 
 A plugin may provide several kinds at once (`payments`, `shipping`,
-`notifications`) — an aggregator like Shiprocket would list couriers under
-`shipping` and its COD remittance under `payments`.
+`notifications`, `storage`) — an aggregator like Shiprocket would list couriers
+under `shipping` and its COD remittance under `payments`.
+
+### Storage providers
+
+`@commerce/storage` is the contract for where uploads live. The browser asks
+the API for a presigned request, PUTs the bytes straight to the store, then
+confirms; a provider only signs (`presignUpload`), names (`publicUrl`) and
+deletes. See `packages/storage-r2` for the S3-compatible reference (Cloudflare
+R2) and `packages/core/src/providers/local-storage.ts` for the development
+folder. An S3, GCS or Bunny adapter is the same ~150 lines with a different
+client.
 
 ## 4. Tests
 

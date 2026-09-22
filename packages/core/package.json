@@ -25,7 +25,8 @@
     "@commerce/payments": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/shipping": "workspace:*",
-    "@commerce/plugins": "workspace:*"
+    "@commerce/plugins": "workspace:*",
+    "@commerce/storage": "workspace:*"
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",

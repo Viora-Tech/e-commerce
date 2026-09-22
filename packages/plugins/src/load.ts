@@ -1,12 +1,14 @@
 import { NotificationRegistry } from '@commerce/notifications'
 import { PaymentRegistry } from '@commerce/payments'
 import { ShippingRegistry } from '@commerce/shipping'
+import { StorageRegistry } from '@commerce/storage'
 import type { PluginManifest, PluginSummary, ProviderKind } from './types'
 
 export type Registries = {
   payments: PaymentRegistry
   shipping: ShippingRegistry
   notifications: NotificationRegistry
+  storage: StorageRegistry
 }
 
 /** Which plugin contributed a provider id, per kind. Lets settings pages link back to the app. */
@@ -29,18 +31,20 @@ export type LoadedPlugins = Registries & {
 
 export const CORE_PLUGIN_ID = 'core'
 
-const KINDS: ProviderKind[] = ['payments', 'shipping', 'notifications']
+const KINDS: ProviderKind[] = ['payments', 'shipping', 'notifications', 'storage']
 
 function buildRegistries(plugins: PluginManifest[]): Registries {
   const r: Registries = {
     payments: new PaymentRegistry(),
     shipping: new ShippingRegistry(),
     notifications: new NotificationRegistry(),
+    storage: new StorageRegistry(),
   }
   for (const p of plugins) {
     for (const f of p.provides.payments ?? []) r.payments.register(f)
     for (const f of p.provides.shipping ?? []) r.shipping.register(f)
     for (const f of p.provides.notifications ?? []) r.notifications.register(f)
+    for (const f of p.provides.storage ?? []) r.storage.register(f)
   }
   return r
 }
@@ -48,7 +52,7 @@ function buildRegistries(plugins: PluginManifest[]): Registries {
 /** Fail loudly on two plugins claiming the same id, or the same provider id within a kind. */
 function checkDuplicates(plugins: PluginManifest[]): ProviderOwners {
   const seenPlugin = new Map<string, PluginManifest>()
-  const owners: ProviderOwners = { payments: {}, shipping: {}, notifications: {} }
+  const owners: ProviderOwners = { payments: {}, shipping: {}, notifications: {}, storage: {} }
   for (const p of plugins) {
     const prior = seenPlugin.get(p.id)
     if (prior) {
@@ -101,6 +105,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
             id: f.id,
             label: f.label,
           })),
+          storage: (p.provides.storage ?? []).map((f) => ({ id: f.id, label: f.label })),
         },
       })),
     forStore: (installed) => {
@@ -113,6 +118,7 @@ export function loadPlugins(plugins: PluginManifest[]): LoadedPlugins {
         payments: (p?.provides.payments ?? []).map((f) => f.id),
         shipping: (p?.provides.shipping ?? []).map((f) => f.id),
         notifications: (p?.provides.notifications ?? []).map((f) => f.id),
+        storage: (p?.provides.storage ?? []).map((f) => f.id),
       }
     },
   }

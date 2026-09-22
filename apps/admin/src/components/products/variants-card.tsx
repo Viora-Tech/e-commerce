@@ -75,7 +75,7 @@ export default function VariantsCard({
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
         {hasOptions ? (
-          <span className="text-sm text-muted-foreground">{copy.count(variants.length)}</span>
+          <span className="text-body text-muted-foreground">{copy.count(variants.length)}</span>
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pb-(--card-spacing)">

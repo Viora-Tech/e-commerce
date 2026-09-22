@@ -72,10 +72,10 @@ export default function SeoCard({
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-muted-foreground">{url}</span>
             <span className="text-base font-medium text-primary">{previewTitle}</span>
-            <span className="text-sm text-muted-foreground">{previewDescription}</span>
+            <span className="text-body text-muted-foreground">{previewDescription}</span>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{copy.previewHint}</p>
+          <p className="text-body text-muted-foreground">{copy.previewHint}</p>
         )}
         {editing ? (
           <FieldGroup>

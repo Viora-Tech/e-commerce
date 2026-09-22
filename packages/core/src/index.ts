@@ -28,6 +28,8 @@ export * from './discounts/evaluate'
 export * from './discounts/resolve'
 export * from './discounts/schemas'
 export * from './errors'
+export * from './media/service'
+export * from './media/settings'
 export * from './notifications/deliver'
 export * from './notifications/enqueue'
 export * from './notifications/settings'
@@ -40,6 +42,12 @@ export * from './payments/settings'
 export * from './payments/webhook'
 export { corePlugin } from './plugins/core-plugin'
 export { CodPaymentProvider, codFactory } from './providers/cod'
+export {
+  LOCAL_UPLOAD_DIR,
+  type LocalStorageConfig,
+  LocalStorageProvider,
+  localStorageFactory,
+} from './providers/local-storage'
 export { LogNotificationChannel, logChannelFactory } from './providers/log-channel'
 export { ManualPaymentProvider, manualFactory, upiDeepLink } from './providers/manual'
 export * from './providers/payment'

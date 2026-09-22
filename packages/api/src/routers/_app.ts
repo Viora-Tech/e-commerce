@@ -3,6 +3,7 @@ import { appsRouter } from './apps'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
+import { mediaRouter } from './media'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { productsRouter } from './products'
@@ -18,6 +19,7 @@ export const appRouter = {
   discounts: discountsRouter,
   apps: appsRouter,
   dashboard: dashboardRouter,
+  media: mediaRouter,
 }
 
 export type AppRouter = typeof appRouter

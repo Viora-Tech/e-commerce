@@ -14,6 +14,7 @@ import {
 } from '@commerce/db'
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
+import { setProductMedia } from '../media/service'
 import type { InventoryReason, ProductWrite } from './schemas'
 import {
   DEFAULT_VARIANT_TITLE,
@@ -109,6 +110,7 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
   const handle = await uniqueHandle(tx, write.handle ?? write.title)
   await tx.insert(product).values({ id, storeId, handle, ...productRow(write) })
   await setOptionsAndVariants(tx, storeId, id, write.options, write.variants, write.inventoryReason)
+  if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   return id
 }
 
@@ -123,6 +125,7 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, wr
     .set({ ...productRow(write), ...(handle ? { handle } : {}) })
     .where(eq(product.id, id))
   await setOptionsAndVariants(tx, storeId, id, write.options, write.variants, write.inventoryReason)
+  if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   return id
 }
 

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Bell, CreditCard, FileText, Globe, Store, Truck, UserCog } from 'lucide-react'
+import { Bell, CreditCard, FileText, Globe, Images, Store, Truck, UserCog } from 'lucide-react'
 
 export type SettingsSection = {
   href: string
@@ -33,6 +33,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Notifications',
     body: 'Order emails and WhatsApp messages to shoppers.',
     icon: Bell,
+  },
+  {
+    href: '/settings/files',
+    title: 'Files',
+    body: 'Where product images and uploads are stored: a local folder or your own R2 bucket.',
+    icon: Images,
   },
   {
     href: '/settings/staff',
