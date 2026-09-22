@@ -9,9 +9,22 @@ const config: NextConfig = {
     '@commerce/api',
     '@commerce/auth',
     '@commerce/ui',
+    '@commerce/storage',
   ],
   serverExternalPackages: ['postgres'],
-  images: { remotePatterns: [{ protocol: 'https', hostname: 'cdn.shopify.com' }] },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'cdn.shopify.com' },
+      ...(process.env.R2_PUBLIC_BASE_URL
+        ? [
+            {
+              protocol: 'https' as const,
+              hostname: new URL(process.env.R2_PUBLIC_BASE_URL).hostname,
+            },
+          ]
+        : []),
+    ],
+  },
 }
 
 export default config

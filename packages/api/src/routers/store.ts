@@ -8,12 +8,18 @@ import {
   parseTheme,
   presentStoreGeneral,
   ShippingSettingsSchema,
+  StorageSettingsSchema,
   StoreGeneralSchema,
   ThemeSchema,
 } from '@commerce/core'
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
+import {
+  loadStorageSettings,
+  updateStoreStorage,
+  verifyStorageCredentials,
+} from '../services/media.service'
 import {
   availableProviders,
   prepareProviderSettings,
@@ -152,5 +158,35 @@ export const storeRouter = {
   verifyShipping: storeProcedure.handler(async ({ context }) => {
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
     return verifyShippingCredentials(context.tx, context.scope.storeId, shipping, secret())
+  }),
+
+  /** Storage settings with secrets masked, plus the providers this deployment can offer. */
+  getStorage: storeProcedure.handler(async ({ context }) => {
+    const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+    return {
+      settings: presentProviderSettings(
+        await loadStorageSettings(context.tx, context.scope.storeId),
+        secret(),
+      ),
+      available: availableProviders(storage),
+    }
+  }),
+
+  updateStorage: storeProcedure.input(StorageSettingsSchema).handler(async ({ context, input }) => {
+    const current = await loadStorageSettings(context.tx, context.scope.storeId)
+    const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+    const next = prepareProviderSettings(input, current, storage, secret(), 'storage provider')
+    const saved = await updateStoreStorage(context.tx, context.scope.storeId, next)
+    return saved
+      ? presentProviderSettings(
+          await loadStorageSettings(context.tx, context.scope.storeId),
+          secret(),
+        )
+      : null
+  }),
+
+  verifyStorage: storeProcedure.handler(async ({ context }) => {
+    const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+    return verifyStorageCredentials(context.tx, context.scope.storeId, storage, secret())
   }),
 }

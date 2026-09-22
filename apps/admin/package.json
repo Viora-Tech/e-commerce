@@ -20,6 +20,7 @@
     "@commerce/payments": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",
+    "@commerce/storage": "workspace:*",
     "@commerce/ui": "workspace:*",
     "@measured/puck": "^0.20.2",
     "@orpc/client": "^1.15.2",

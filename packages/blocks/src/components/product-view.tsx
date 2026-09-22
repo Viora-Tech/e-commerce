@@ -17,6 +17,9 @@ function descriptionDoc(raw: ProductDetail['description']) {
   return typeof raw === 'string' && raw.trim() ? plainTextToRichText(raw) : null
 }
 
+const isVideo = (img: { contentType?: string | null | undefined }) =>
+  img.contentType?.startsWith('video/') ?? false
+
 function defaultVariant(product: ProductDetail) {
   return product.variants.find((v) => v.available > 0) ?? product.variants[0]
 }
@@ -79,15 +82,26 @@ export default function ProductView({
                     className={`product-gallery__slide${i === slide ? ' is-active' : ''}`}
                     hidden={i !== slide}
                   >
-                    <img
-                      src={img.url}
-                      alt={img.alt ?? product.title}
-                      width={1200}
-                      height={1200}
-                      loading={i === 0 ? 'eager' : 'lazy'}
-                      fetchPriority={i === 0 ? 'high' : undefined}
-                      sizes="(min-width: 990px) 55vw, 100vw"
-                    />
+                    {isVideo(img) ? (
+                      <video
+                        src={img.url}
+                        controls
+                        muted
+                        playsInline
+                        preload={i === 0 ? 'metadata' : 'none'}
+                        aria-label={img.alt ?? product.title}
+                      />
+                    ) : (
+                      <img
+                        src={img.url}
+                        alt={img.alt ?? product.title}
+                        width={1200}
+                        height={1200}
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                        fetchPriority={i === 0 ? 'high' : undefined}
+                        sizes="(min-width: 990px) 55vw, 100vw"
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -103,7 +117,11 @@ export default function ProductView({
                     aria-current={i === slide}
                     onClick={() => setSlide(i)}
                   >
-                    <img src={img.url} alt="" width={120} height={120} loading="lazy" />
+                    {isVideo(img) ? (
+                      <video src={img.url} muted playsInline preload="metadata" />
+                    ) : (
+                      <img src={img.url} alt="" width={120} height={120} loading="lazy" />
+                    )}
                   </button>
                 ))}
               </div>

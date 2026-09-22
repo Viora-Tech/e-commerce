@@ -200,7 +200,10 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
               onTitle={(title) => patch({ title })}
               onDescription={(description) => patch({ description })}
             />
-            <MediaCard images={product?.images ?? []} />
+            <MediaCard
+              items={form.media}
+              onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
+            />
             {single ? (
               <>
                 <PricingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />

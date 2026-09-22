@@ -32,6 +32,7 @@
     "@commerce/payments-razorpay": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
-    "@commerce/notifications-whatsapp": "workspace:*"
+    "@commerce/notifications-whatsapp": "workspace:*",
+    "@commerce/storage-r2": "workspace:*"
   }
 }

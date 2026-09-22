@@ -1,6 +1,7 @@
 import type { NotificationChannelFactory } from '@commerce/notifications'
 import type { PaymentProviderFactory } from '@commerce/payments'
 import type { ShippingProviderFactory } from '@commerce/shipping'
+import type { StorageProviderFactory } from '@commerce/storage'
 import type { CommerceConfig, PluginManifest } from './types'
 
 const ID_PATTERN = /^[a-z][a-z0-9-]*$/
@@ -14,6 +15,8 @@ type DefinePluginInput = Omit<PluginManifest, 'provides'> & {
     shipping?: ShippingProviderFactory<any>[] | undefined
     // biome-ignore lint/suspicious/noExplicitAny: same as above.
     notifications?: NotificationChannelFactory<any>[] | undefined
+    // biome-ignore lint/suspicious/noExplicitAny: same as above.
+    storage?: StorageProviderFactory<any>[] | undefined
   }
 }
 
@@ -36,6 +39,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
       payments: input.provides.payments ?? [],
       shipping: input.provides.shipping ?? [],
       notifications: input.provides.notifications ?? [],
+      storage: input.provides.storage ?? [],
     },
   }
 }

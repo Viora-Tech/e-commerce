@@ -5,6 +5,7 @@ import {
   parseNotificationSettings,
   parsePaymentSettings,
   parseShippingSettings,
+  parseStorageSettings,
   uninstallApp,
 } from '@commerce/core'
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
@@ -41,6 +42,7 @@ export async function uninstallStoreApp(tx: StoreTx, storeId: string, pluginId: 
   const payments = parsePaymentSettings(s.payments)
   const shipping = parseShippingSettings(s.shipping)
   const notifications = parseNotificationSettings(s.notifications)
+  const storage = parseStorageSettings(s.storage)
   const apps = uninstallApp(parseAppsSettings(s.apps), pluginId)
   await tx
     .update(store)
@@ -49,6 +51,7 @@ export async function uninstallStoreApp(tx: StoreTx, storeId: string, pluginId: 
       payments: { ...payments, enabled: drop(payments.enabled, ids.payments) },
       shipping: { ...shipping, enabled: drop(shipping.enabled, ids.shipping) },
       notifications: { ...notifications, enabled: drop(notifications.enabled, ids.notifications) },
+      storage: { ...storage, enabled: drop(storage.enabled, ids.storage) },
     })
     .where(eq(store.id, storeId))
   return apps

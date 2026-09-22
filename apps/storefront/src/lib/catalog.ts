@@ -101,7 +101,7 @@ export async function getProductByHandle(
   if (!p) return null
 
   const images = await tx
-    .select({ url: media.url, alt: media.alt })
+    .select({ url: media.url, alt: media.alt, contentType: media.contentType })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(eq(productMedia.productId, p.id))

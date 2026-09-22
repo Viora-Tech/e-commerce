@@ -1,46 +1,70 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { ImagePlus } from 'lucide-react'
+import { useState } from 'react'
+import AltTextDialog from '@/components/media/alt-text-dialog'
+import MediaDropzone from '@/components/media/media-dropzone'
+import MediaGrid from '@/components/media/media-grid'
+import type { MediaTileItem } from '@/components/media/media-tile'
+import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/products'
 
 type MediaCardProps = {
-  images: { id: string; url: string; alt: string | null }[]
+  items: MediaTileItem[]
+  /**
+   * Update the gallery from its latest value; the form owns the order and
+   * saves it with the product. Functional so parallel uploads never clobber
+   * each other.
+   */
+  onChange: (update: (prev: MediaTileItem[]) => MediaTileItem[]) => void
 }
 
 const copy = productFormContent.media
 
-/** Read-only for now: uploads arrive with the media library PR (extension point: `onDrop`). */
-export default function MediaCard({ images }: MediaCardProps) {
+/**
+ * Uploads go straight to storage and land in the library; the product only
+ * remembers which files it shows and in what order, saved with the form.
+ */
+export default function MediaCard({ items, onChange }: MediaCardProps) {
+  // Hooks
+  const queue = useUploadQueue((done) => onChange((prev) => [...prev, done]))
+  const [editing, setEditing] = useState<MediaTileItem | null>(null)
+
+  // Event handlers
+  const handleFiles = (files: File[]) => void queue.start(files)
+  const handleReorder = (next: MediaTileItem[]) => onChange(() => next)
+  const handleRemove = (item: MediaTileItem) =>
+    onChange((prev) => prev.filter((i) => i.id !== item.id))
+  const handleAltSaved = (id: string, alt: string | null) =>
+    onChange((prev) => prev.map((i) => (i.id === id ? { ...i, alt } : i)))
+
+  // Render logic
+  const empty = items.length === 0 && queue.pending.length === 0
+
   return (
     <Card size="form">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {images.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
-            {images.map((img) => (
-              // biome-ignore lint/performance/noImgElement: remote catalogue images, no optimisation pipeline yet.
-              <img
-                key={img.id}
-                src={img.url}
-                alt={img.alt ?? ''}
-                className="aspect-square w-full rounded-lg border bg-muted object-cover"
-              />
-            ))}
-          </div>
-        ) : null}
-        <div
-          aria-disabled="true"
-          className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center text-muted-foreground opacity-70"
-        >
-          <ImagePlus className="size-5" aria-hidden />
-          <span className="text-body-strong font-medium">
-            {images.length === 0 ? copy.empty : copy.dropzone}
-          </span>
-          <span className="text-xs">{copy.uploadSoon}</span>
-        </div>
+        {empty ? null : (
+          <MediaGrid
+            items={items}
+            pending={queue.pending}
+            onReorder={handleReorder}
+            onEditAlt={setEditing}
+            onRemove={handleRemove}
+            onRetry={queue.retry}
+            onDismiss={queue.dismiss}
+          />
+        )}
+        <MediaDropzone onFiles={handleFiles} compact={!empty} />
+        <AltTextDialog
+          key={editing?.id ?? 'none'}
+          item={editing}
+          onClose={() => setEditing(null)}
+          onSaved={handleAltSaved}
+        />
       </CardContent>
     </Card>
   )

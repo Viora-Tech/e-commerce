@@ -1,9 +1,10 @@
 import type { NotificationChannelFactory } from '@commerce/notifications'
 import type { PaymentProviderFactory } from '@commerce/payments'
 import type { ShippingProviderFactory } from '@commerce/shipping'
+import type { StorageProviderFactory } from '@commerce/storage'
 
 /** The kinds of provider a plugin can contribute. Each maps to one registry. */
-export type ProviderKind = 'payments' | 'shipping' | 'notifications'
+export type ProviderKind = 'payments' | 'shipping' | 'notifications' | 'storage'
 
 /**
  * What a plugin contributes. A plugin is a package that ships one or more
@@ -14,6 +15,7 @@ export type PluginProvides = {
   payments?: PaymentProviderFactory<unknown>[] | undefined
   shipping?: ShippingProviderFactory<unknown>[] | undefined
   notifications?: NotificationChannelFactory<unknown>[] | undefined
+  storage?: StorageProviderFactory<unknown>[] | undefined
 }
 
 export type PluginManifest = {
