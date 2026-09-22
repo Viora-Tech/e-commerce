@@ -11,9 +11,9 @@ type SectionNavProps = { sections: readonly SectionLink[] }
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
-/* Cloudflare's in-page nav: items sit on a hairline; the active one carries a
-   2px marker over the line, offset by -1px so the two overlap. */
-const ITEM = `relative -ml-px flex h-8 w-full items-center border-l-2 border-transparent pl-3 text-left text-nav text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`
+/* Horizontal section tabs under the page header: items sit on a bottom hairline; the
+   active one carries a 2px marker over the line, offset by -1px so the two overlap. */
+const ITEM = `relative -mb-px flex h-9 items-center border-b-2 border-transparent px-3 text-nav text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`
 const ITEM_ACTIVE = 'border-primary font-medium text-ink-strong'
 
 /** Anchor list for a long settings page; highlights the section in view and scrolls to the one clicked. */
@@ -50,14 +50,8 @@ export default function SectionNav({ sections }: SectionNavProps) {
 
   // Render logic
   return (
-    <nav
-      aria-label={settingsContent.nav.onThisPage}
-      className="hidden w-44 shrink-0 self-start lg:sticky lg:top-20 lg:block"
-    >
-      <p className="mb-2 pl-3 text-caption text-muted-foreground-soft">
-        {settingsContent.nav.onThisPage}
-      </p>
-      <ul className="flex flex-col border-border border-l">
+    <nav aria-label={settingsContent.nav.onThisPage} className="w-full">
+      <ul className="flex items-center gap-1 overflow-x-auto overflow-y-hidden border-border border-b">
         {sections.map((s) => (
           <li key={s.id}>
             <button

@@ -95,11 +95,11 @@
 
 :root {
   --radius: 0.5rem; /* 8px cards, kit 5:1494 */
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.2); /* kit "1dp Ambient" 5:1494 */
-  --shadow-card-hover: 0 4px 12px 0 rgb(0 0 0 / 0.08); /* interactive cards and rows on hover */
-  --shadow-rail: 0 3px 4px 0 rgb(0 0 0 / 0.12); /* sidebar 5:1368 */
-  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.2); /* Your Shop card 5:1488 */
-  --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.14);
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1); /* soft two-layer elevation; edge from the shadow, not the border */
+  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16); /* interactive cards and rows on hover */
+  --shadow-rail: 1px 0 0 0 var(--border), 4px 0 16px -6px rgb(16 24 40 / 0.08); /* sidebar edge */
+  --shadow-lift: 0 1px 2px 0 rgb(16 24 40 / 0.06), 0 3px 8px -2px rgb(16 24 40 / 0.1); /* small raised surfaces (user card, tiles) */
+  --shadow-toggle: 0 1px 2px 0 rgb(16 24 40 / 0.12), 0 2px 6px -1px rgb(16 24 40 / 0.12);
   --shadow-popover: 0 8px 24px -4px rgb(2 51 55 / 0.12), 0 2px 6px -2px rgb(2 51 55 / 0.08); /* menus, popovers */
   --shadow-dialog: 0 24px 64px -12px rgb(2 51 55 / 0.24), 0 8px 24px -8px rgb(2 51 55 / 0.12); /* dialogs, sheets */
   --shadow-bar: 0 1px 0 0 var(--border), 0 4px 12px -6px rgb(2 51 55 / 0.16); /* top bar once the page has scrolled */
@@ -138,7 +138,7 @@
   --info-foreground: #ffffff;
 
   /* Lines and focus */
-  --border: #dbdade; /* Divider */
+  --border: #e6e8ec; /* Divider, lightened so the shadow defines card edges */
   --border-soft: #e9e7fd;
   --line: #d1d5db; /* Neutal/300: table rows, icon buttons, paging 5:2606 */
   --primary-tint: #c1e6ba; /* active page number 5:2865 */

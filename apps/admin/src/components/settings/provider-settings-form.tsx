@@ -169,8 +169,8 @@ export default function ProviderSettingsForm<Extra extends object>({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
-      <div className="flex items-start gap-6">
-        {sections && sections.length > 0 ? <SectionNav sections={sections} /> : null}
+      {sections && sections.length > 0 ? <SectionNav sections={sections} /> : null}
+      <div className="flex flex-col gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <section id={providersSectionId} className="flex scroll-mt-20 flex-col gap-4">
             {available === null ? (
