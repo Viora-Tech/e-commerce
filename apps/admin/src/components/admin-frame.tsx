@@ -3,7 +3,8 @@
 import { SidebarInset, SidebarProvider } from '@commerce/ui/shadcn/sidebar'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { usePathname } from 'next/navigation'
-import type { CSSProperties, ReactNode } from 'react'
+import type React from 'react'
+import { type CSSProperties, type ReactNode, useState } from 'react'
 import { hasOwnHeading, pageTitleFor } from '@/data/layout'
 import AdminSidebar from './admin-sidebar'
 import TopBar from './layout/top-bar'
@@ -30,6 +31,13 @@ export default function AdminFrame({
 }: AdminFrameProps) {
   // Hooks
   const pathname = usePathname()
+  const [scrolled, setScrolled] = useState(false)
+
+  // Event handlers
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const next = e.currentTarget.scrollTop > 4
+    if (next !== scrolled) setScrolled(next)
+  }
 
   return (
     <SidebarProvider
@@ -43,8 +51,13 @@ export default function AdminFrame({
         storefrontUrl={storefrontUrl}
       />
       <SidebarInset className="min-h-0 overflow-hidden">
-        <TopBar title={pageTitleFor(pathname)} heading={!hasOwnHeading(pathname)} user={user} />
-        <main id="main" className="min-h-0 flex-1 overflow-y-auto">
+        <TopBar
+          title={pageTitleFor(pathname)}
+          heading={!hasOwnHeading(pathname)}
+          user={user}
+          scrolled={scrolled}
+        />
+        <main id="main" className="min-h-0 flex-1 overflow-y-auto" onScroll={handleScroll}>
           {children}
         </main>
         <Toaster position="bottom-center" />

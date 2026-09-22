@@ -37,7 +37,7 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
   const kinds = providedKinds(app)
 
   return (
-    <Card className="h-full">
+    <Card className="h-full transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">

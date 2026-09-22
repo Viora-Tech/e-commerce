@@ -152,16 +152,15 @@ export default function ProviderSettingsForm<Extra extends object>({
 
   return (
     <div className="flex flex-col gap-4">
-      {dirty ? (
-        <SaveBar
-          message={copy.unsaved}
-          saveLabel={copy.save}
-          discardLabel={copy.discard}
-          onSave={handleSave}
-          onDiscard={handleDiscard}
-          saving={busy}
-        />
-      ) : null}
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
+      />
       <PageHeader title={title} subtitle={intro} />
       {error ? (
         <Alert variant="destructive">

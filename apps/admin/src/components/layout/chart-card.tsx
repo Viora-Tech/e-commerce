@@ -68,7 +68,11 @@ export default function ChartCard({
         </div>
       </div>
       {tabs ? <div className="mt-5 px-1">{tabs}</div> : null}
-      <ChartContainer config={chartConfig} className="mt-8 aspect-auto h-[14.5rem] w-full">
+      {/* The curve draws itself once on mount (stroke-dashoffset); the fill fades in behind it. */}
+      <ChartContainer
+        config={chartConfig}
+        className="mt-8 aspect-auto h-[14.5rem] w-full [&_.recharts-area-area]:animate-in [&_.recharts-area-area]:fade-in [&_.recharts-area-area]:duration-700 [&_.recharts-area-curve]:animate-draw motion-reduce:[&_.recharts-area-area]:animate-none motion-reduce:[&_.recharts-area-curve]:animate-none"
+      >
         <AreaChart data={data} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
           <defs>
             <linearGradient id="chart-area-fill" x1="0" y1="0" x2="0" y2="1">

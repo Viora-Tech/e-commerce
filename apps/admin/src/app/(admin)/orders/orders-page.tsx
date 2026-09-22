@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -14,6 +13,7 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
+import PillTabs from '@/components/layout/pill-tabs'
 import OrderPaymentCell from '@/components/orders/order-payment-cell'
 import OrderStatusCell from '@/components/orders/order-status-cell'
 import OrderTiles, { type OrderStats } from '@/components/orders/order-tiles'
@@ -35,11 +35,6 @@ export type OrdersInitial = {
 }
 
 const PER_PAGE = LIST_PER_PAGE
-
-/* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill. */
-const TAB =
-  'flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-xs font-medium leading-4 text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-const TAB_ACTIVE = 'bg-card text-foreground'
 
 /* Frame 5:2617 writes dates as 01-01-2025. */
 const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -136,30 +131,14 @@ type TabsProps = {
 
 function StatusTabs({ value, allCount, onChange }: TabsProps) {
   return (
-    <div role="tablist" className="flex items-center rounded-lg bg-primary-soft p-1">
-      <button
-        type="button"
-        role="tab"
-        aria-selected={value === null}
-        onClick={() => onChange(null)}
-        className={cn(TAB, value === null && TAB_ACTIVE)}
-      >
-        {ordersContent.tabs.all}
-        <span className="text-xs font-semibold text-primary tabular-nums">({allCount})</span>
-      </button>
-      {ORDER_STATUSES.map((s) => (
-        <button
-          key={s}
-          type="button"
-          role="tab"
-          aria-selected={value === s}
-          onClick={() => onChange(s)}
-          className={cn(TAB, value === s && TAB_ACTIVE)}
-        >
-          {ordersContent.status[s]}
-        </button>
-      ))}
-    </div>
+    <PillTabs
+      value={value}
+      onChange={onChange}
+      tabs={[
+        { value: null, label: ordersContent.tabs.all, count: allCount },
+        ...ORDER_STATUSES.map((s) => ({ value: s, label: ordersContent.status[s] })),
+      ]}
+    />
   )
 }
 

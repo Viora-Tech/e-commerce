@@ -2,8 +2,10 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { ChevronDown } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { type NavItem, navigationContent } from '@/data/navigation'
+import { base, instant } from '@/lib/motion'
 import NavSection from './nav-section'
 
 type NavGroupBlockProps = { label?: string | undefined; items: NavItem[]; pathname: string }
@@ -14,6 +16,7 @@ const FOCUS =
 /** A labelled, collapsible group of rail entries (Cloudflare's "Observe" / "Build" blocks). */
 export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   // Hooks
+  const reduced = useReducedMotion()
   const [collapsed, setCollapsed] = useState(false)
 
   // Event handlers
@@ -27,6 +30,7 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
       ? navigationContent.expandGroup(label)
       : navigationContent.collapseGroup(label)
     : undefined
+  const reveal = reduced ? instant : base
 
   return (
     <div className="flex flex-col">
@@ -44,20 +48,29 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
           <span className="truncate">{label}</span>
           <ChevronDown
             className={cn(
-              'size-3.5 opacity-0 transition-[opacity,transform] duration-200 group-hover/label:opacity-100',
+              'size-3.5 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover/label:opacity-100 motion-reduce:transition-none',
               collapsed && '-rotate-90 opacity-100',
             )}
             strokeWidth={1.8}
           />
         </button>
       ) : null}
-      {!collapsed ? (
-        <ul className="flex flex-col gap-0.5 px-3 group-data-[collapsible=icon]:px-2">
-          {items.map((item) => (
-            <NavSection key={item.href} item={item} pathname={pathname} />
-          ))}
-        </ul>
-      ) : null}
+      <AnimatePresence initial={false}>
+        {!collapsed ? (
+          <motion.ul
+            key="items"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={reveal}
+            className="flex flex-col gap-0.5 overflow-hidden px-3 group-data-[collapsible=icon]:px-2"
+          >
+            {items.map((item) => (
+              <NavSection key={item.href} item={item} pathname={pathname} />
+            ))}
+          </motion.ul>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

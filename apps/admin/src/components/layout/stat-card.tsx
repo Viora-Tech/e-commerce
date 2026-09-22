@@ -3,6 +3,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
 import CardMenu, { type MenuLink } from './card-menu'
+import CountUp from './count-up'
 import DeltaChip from './delta-chip'
 import DetailsLink from './details-link'
 
@@ -60,7 +61,9 @@ export default function StatCard({
       <p className="mt-2 text-kit-body text-muted-foreground">{period}</p>
       {children ?? (
         <div className="mt-5 flex h-[2.375rem] items-center gap-4">
-          <p className="text-kit-stat text-ink-strong tabular-nums">{value}</p>
+          <p className="text-kit-stat text-ink-strong tabular-nums">
+            <CountUp value={value} />
+          </p>
           <div className="flex items-center gap-1.5">
             {unit ? <span className="text-kit-cell text-foreground">{unit}</span> : null}
             <DeltaChip delta={delta} invert={invert} size="kit" />

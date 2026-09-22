@@ -41,7 +41,10 @@ export default function BestSellingCard({ products }: { products: TopProduct[] }
             <Link
               key={p.productId}
               href={`/products/${p.productId}`}
-              className={cn(BEST_ROW, 'h-[3.375rem] transition-colors hover:bg-background')}
+              className={cn(
+                BEST_ROW,
+                'h-[3.375rem] transition-[background-color,transform] duration-150 ease-out hover:bg-background hover:-translate-y-px motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+              )}
             >
               <span className="flex min-w-0 items-center gap-1">
                 <HomeProductThumb url={p.imageUrl} title={p.title} />

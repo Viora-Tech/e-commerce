@@ -146,16 +146,15 @@ export default function GeneralSettings() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      {dirty ? (
-        <SaveBar
-          message={copy.unsaved}
-          saveLabel={copy.save}
-          discardLabel={copy.discard}
-          onSave={handleSave}
-          onDiscard={handleDiscard}
-          saving={busy}
-        />
-      ) : null}
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
+      />
       <PageHeader title={copy.title} subtitle={copy.intro} />
       {!form ? (
         <LoadingCards />
