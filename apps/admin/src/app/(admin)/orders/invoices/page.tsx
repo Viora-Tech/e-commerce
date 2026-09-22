@@ -2,6 +2,7 @@ import { FileText } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { ADMIN_APPS } from '@/apps/registry'
+import PageBody from '@/components/layout/page-body'
 import SectionEmpty from '@/components/layout/section-empty'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { appRouter, call, serverContext } from '@/lib/api'
@@ -26,5 +27,9 @@ export default async function Page() {
       />
     )
   }
-  return <List />
+  return (
+    <PageBody>
+      <List />
+    </PageBody>
+  )
 }
