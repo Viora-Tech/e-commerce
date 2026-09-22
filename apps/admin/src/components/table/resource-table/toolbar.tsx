@@ -17,6 +17,7 @@ import { ArrowUpDown, MoreHorizontal, Search, SlidersHorizontal, X } from 'lucid
 import type { ComponentProps, ReactNode } from 'react'
 import { tableContent } from '@/data/table'
 import type { ResourceTableFeatures } from './features'
+import { RESOURCE_TABLE_METRICS, type ResourceTableSize } from './sizes'
 
 export type AppliedFilter = { key: string; label: string; onRemove: () => void }
 
@@ -32,11 +33,12 @@ type ToolbarProps<T extends RowData> = {
   onClearAll?: () => void
   /** Human-readable column titles for the columns menu, by column id. */
   columnTitles: Record<string, string>
+  size: ResourceTableSize
 }
 
 /* 5:2576: 40px square, white, Neutal/300 hairline, 4px radius, 20px glyph. */
 const ICON_BUTTON =
-  'flex size-8 shrink-0 items-center justify-center rounded-[0.25rem] border border-line bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-4'
+  'flex shrink-0 items-center justify-center border border-line bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 function IconButton({ className, ...props }: ComponentProps<'button'>) {
   return <button type="button" className={cn(ICON_BUTTON, className)} {...props} />
@@ -52,10 +54,13 @@ export default function ResourceTableToolbar<T extends RowData>({
   applied = [],
   onClearAll,
   columnTitles,
+  size,
 }: ToolbarProps<T>) {
   const hideable = table.getAllColumns().filter((c) => c.getCanHide())
   const sortable = table.getAllColumns().filter((c) => c.getCanSort())
   const hasApplied = applied.length > 0 || query.length > 0
+  const m = RESOURCE_TABLE_METRICS[size]
+  const iconButton = cn(ICON_BUTTON, m.iconButton)
 
   return (
     <div className="flex flex-col gap-3">
@@ -63,18 +68,32 @@ export default function ResourceTableToolbar<T extends RowData>({
         <div className="min-w-0">{tabs}</div>
         {/* 5:2571: search 264 x 40 then icon buttons, 12px apart. */}
         <div className="flex items-center gap-3">
-          <label className="flex h-8 w-60 items-center gap-1.5 rounded-lg bg-background py-1 pr-2 pl-3 focus-within:ring-2 focus-within:ring-ring">
+          <label
+            className={cn(
+              'flex items-center gap-1.5 bg-background focus-within:ring-2 focus-within:ring-ring',
+              m.search,
+            )}
+          >
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               placeholder={tableContent.search(plural)}
-              className="min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground"
+              className={cn(
+                'min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground',
+                m.searchInput,
+              )}
             />
-            <Search className="size-4 shrink-0 text-foreground" strokeWidth={1.6} />
+            <Search
+              className={cn('shrink-0 text-foreground', size === 'frame' ? 'size-6' : 'size-4')}
+              strokeWidth={1.6}
+            />
           </label>
           {filters ? (
             <Popover>
-              <PopoverTrigger render={<IconButton aria-label={tableContent.filter} />} nativeButton>
+              <PopoverTrigger
+                render={<IconButton aria-label={tableContent.filter} className={iconButton} />}
+                nativeButton
+              >
                 <SlidersHorizontal />
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64">
@@ -85,7 +104,7 @@ export default function ResourceTableToolbar<T extends RowData>({
           {sortable.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<IconButton aria-label={tableContent.sort} />}
+                render={<IconButton aria-label={tableContent.sort} className={iconButton} />}
                 nativeButton
               >
                 <ArrowUpDown />
@@ -107,7 +126,7 @@ export default function ResourceTableToolbar<T extends RowData>({
           {hideable.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<IconButton aria-label={tableContent.more} />}
+                render={<IconButton aria-label={tableContent.more} className={iconButton} />}
                 nativeButton
               >
                 <MoreHorizontal />

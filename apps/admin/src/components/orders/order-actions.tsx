@@ -39,6 +39,9 @@ const NEXT: Partial<Record<OrderStatus, { label: string; to: OrderStatus }>> = {
 }
 
 /** Header buttons: primary status move, refund, and the rest behind a menu. */
+/* Kit action row (5:2502 language at detail scale): 40px buttons, 14px labels, 8px radius. */
+const ACTION = 'h-10 rounded-lg px-4 text-kit-cell font-medium'
+
 export default function OrderActions({
   status,
   canRefund,
@@ -56,12 +59,12 @@ export default function OrderActions({
   return (
     <div className="flex items-center gap-2 print:hidden">
       {canRefund ? (
-        <Button variant="outline" onClick={onRefund} disabled={busy}>
+        <Button variant="outline" className={ACTION} onClick={onRefund} disabled={busy}>
           <RotateCcw aria-hidden="true" /> {copy.actions.refund}
         </Button>
       ) : null}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="icon" />}>
+        <DropdownMenuTrigger render={<Button variant="outline" size="icon" className="size-10" />}>
           <MoreHorizontal aria-hidden="true" />
           <span className="sr-only">{copy.actions.more}</span>
         </DropdownMenuTrigger>
@@ -80,7 +83,7 @@ export default function OrderActions({
         </DropdownMenuContent>
       </DropdownMenu>
       {next ? (
-        <Button onClick={() => onMove(next.to)} disabled={busy}>
+        <Button className={ACTION} onClick={() => onMove(next.to)} disabled={busy}>
           {next.label}
         </Button>
       ) : null}

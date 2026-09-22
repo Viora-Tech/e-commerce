@@ -33,7 +33,7 @@ const EVENT_TONE: Record<string, StatusTone> = {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 text-body">
+    <div className="flex justify-between gap-4 text-kit-cell">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="truncate text-right font-medium">{value}</dd>
     </div>
@@ -45,7 +45,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
   const events = order.paymentEvents
 
   return (
-    <DataCard title={copy.payment.heading}>
+    <DataCard size="kit" title={copy.payment.heading}>
       <div className="flex flex-col gap-5">
         {order.payments.map((p) => {
           const pill = paymentPill(p, order.refunds)
@@ -80,15 +80,15 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
 
         {order.refunds.length > 0 ? (
           <section className="border-t border-border pt-4">
-            <p className="text-caption text-muted-foreground-soft mb-2">{copy.payment.refunds}</p>
+            <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.payment.refunds}</p>
             <ul className="flex flex-col gap-2">
               {order.refunds.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-3 text-body">
+                <li key={r.id} className="flex items-center justify-between gap-3 text-kit-cell">
                   <span className="min-w-0">
                     <span className="block font-medium tabular-nums">
                       {formatPaise(r.amountPaise)}
                     </span>
-                    <span className="block truncate text-caption">
+                    <span className="block truncate text-kit-body">
                       {[when(r.createdAt), r.reason].filter(Boolean).join(', ')}
                     </span>
                   </span>
@@ -102,16 +102,16 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
         ) : null}
 
         <section className="border-t border-border pt-4">
-          <p className="text-caption text-muted-foreground-soft mb-2">{copy.payment.events}</p>
+          <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>
+            <p className="text-kit-cell text-muted-foreground">{copy.payment.noEvents}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {events.map((e) => (
-                <li key={e.id} className="flex items-center justify-between gap-3 text-body">
+                <li key={e.id} className="flex items-center justify-between gap-3 text-kit-cell">
                   <span className="min-w-0">
                     <code className="block text-xs">{e.type}</code>
-                    <span className="block truncate text-caption">{when(e.receivedAt)}</span>
+                    <span className="block truncate text-kit-body">{when(e.receivedAt)}</span>
                     {e.error ? (
                       <span className="block truncate text-xs text-destructive">{e.error}</span>
                     ) : null}

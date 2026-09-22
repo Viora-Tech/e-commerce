@@ -71,6 +71,11 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --shadow-card: var(--shadow-card);
+
+  /* Frame 5:2375 / 5:1367: 22/26/700 page heading. */
+  --text-kit-heading: 1.375rem;
+  --text-kit-heading--line-height: 1.625rem;
+  --text-kit-heading--font-weight: 700;
   --shadow-toggle: var(--shadow-toggle);
   --shadow-rail: var(--shadow-rail);
   --shadow-lift: var(--shadow-lift);

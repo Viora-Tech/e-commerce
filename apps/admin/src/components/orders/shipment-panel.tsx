@@ -41,9 +41,9 @@ export default function ShipmentPanel({
   const bookable = canBook && orderStatus !== 'cancelled' && orderStatus !== 'delivered'
   if (!shipment || canBook) {
     return (
-      <DataCard title={copy.heading}>
+      <DataCard size="kit" title={copy.heading}>
         <div className="flex items-center justify-between gap-4">
-          <p className="text-body text-muted-foreground">{copy.none}</p>
+          <p className="text-kit-cell text-muted-foreground">{copy.none}</p>
           {bookable ? (
             <Button onClick={onBook} disabled={busy}>
               {busy ? copy.booking : copy.book}
@@ -61,6 +61,7 @@ export default function ShipmentPanel({
 
   return (
     <DataCard
+      size="kit"
       title={copy.heading}
       action={
         <StatusPill tone={TONE[shipment.status] ?? 'neutral'}>
@@ -69,23 +70,23 @@ export default function ShipmentPanel({
       }
     >
       <div className="flex flex-col gap-4">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-body sm:grid-cols-3">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-kit-cell sm:grid-cols-3">
           <div>
-            <dt className="text-caption text-muted-foreground-soft">{copy.courier}</dt>
+            <dt className="text-kit-body text-muted-foreground-soft">{copy.courier}</dt>
             <dd className="font-medium">{shipment.provider}</dd>
           </div>
           <div>
-            <dt className="text-caption text-muted-foreground-soft">{copy.waybill}</dt>
+            <dt className="text-kit-body text-muted-foreground-soft">{copy.waybill}</dt>
             <dd className="font-medium">
               <code>{shipment.waybill}</code>
             </dd>
           </div>
           <div>
-            <dt className="text-caption text-muted-foreground-soft">{copy.updated}</dt>
+            <dt className="text-kit-body text-muted-foreground-soft">{copy.updated}</dt>
             <dd className="font-medium">
               {when(shipment.updatedAt)}
               {tracking?.expectedDate ? (
-                <span className="block text-caption">
+                <span className="block text-kit-body">
                   {copy.expected} {tracking.expectedDate}
                 </span>
               ) : null}
@@ -133,13 +134,13 @@ export default function ShipmentPanel({
         </div>
 
         <section className="border-t border-border pt-4">
-          <p className="text-caption text-muted-foreground-soft mb-2">{copy.events}</p>
+          <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.events}</p>
           {events.length === 0 ? (
-            <p className="text-body text-muted-foreground">{copy.noEvents}</p>
+            <p className="text-kit-cell text-muted-foreground">{copy.noEvents}</p>
           ) : (
             <ol className="relative flex flex-col gap-3 border-l border-border pl-4">
               {events.map((e) => (
-                <li key={`${e.at}-${e.description}`} className="relative text-body">
+                <li key={`${e.at}-${e.description}`} className="relative text-kit-cell">
                   <span
                     className="absolute top-1.5 -left-5 size-2.5 rounded-full bg-primary"
                     aria-hidden="true"
@@ -150,7 +151,7 @@ export default function ShipmentPanel({
                       <span className="text-muted-foreground">, {e.location}</span>
                     ) : null}
                   </p>
-                  <p className="text-caption text-muted-foreground-soft">
+                  <p className="text-kit-body text-muted-foreground-soft">
                     {when(e.at)}
                     {e.description ? `: ${e.description}` : ''}
                   </p>
