@@ -1,6 +1,7 @@
 import { protectedProcedure } from '../procedures'
 import { analyticsRouter } from './analytics'
 import { appsRouter } from './apps'
+import { blogRouter } from './blog'
 import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
@@ -24,6 +25,7 @@ export const appRouter = {
   purchaseOrders: purchaseOrdersRouter,
   transfers: transfersRouter,
   pages: pagesRouter,
+  blog: blogRouter,
   navigation: navigationRouter,
   orders: ordersRouter,
   customers: customersRouter,

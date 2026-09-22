@@ -19,6 +19,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/content/files', 'Files'],
   ['/content/metaobjects', 'Metaobjects'],
   ['/content/menus', 'Menus'],
+  ['/content/blog-posts', 'Blog posts'],
   ['/analytics', 'Analytics'],
   ['/analytics/reports', 'Reports'],
   ['/analytics/live', 'Live view'],
@@ -29,7 +30,6 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/online-store', 'Online Store'],
   ['/online-store/themes', 'Themes'],
   ['/online-store/pages', 'Pages'],
-  ['/online-store/blog', 'Blog posts'],
   ['/online-store/preferences', 'Preferences'],
   ['/apps', 'Apps'],
   ['/settings', 'Settings'],
@@ -53,7 +53,7 @@ export function pageTitleFor(pathname: string): string {
 }
 
 /** List pages drawn to frame 5:2353 carry their own "Order List" style heading under the bar. */
-const HEADED_LISTS = ['/orders', '/products']
+const HEADED_LISTS = ['/orders', '/products', '/content/blog-posts']
 
 /**
  * The top bar shows the section name. Pages with a heading of their own (a
