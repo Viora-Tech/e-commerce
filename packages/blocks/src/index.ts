@@ -1,3 +1,5 @@
+export { default as ArticleCard } from './components/article-card'
+export { default as BlogPosts } from './components/blog-posts'
 export { default as Footer } from './components/footer'
 export { default as Header, type NavLink } from './components/header'
 export { default as HeroCarousel, type HeroSlide } from './components/hero-carousel'

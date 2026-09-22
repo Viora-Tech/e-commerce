@@ -8,8 +8,8 @@ export async function getStore(tx: StoreTx, storeId: string) {
   return s ?? null
 }
 
-export async function updateStoreTheme(tx: StoreTx, storeId: string, theme: unknown) {
-  const [s] = await tx.update(store).set({ theme }).where(eq(store.id, storeId)).returning()
+export async function updateStorePreferences(tx: StoreTx, storeId: string, preferences: unknown) {
+  const [s] = await tx.update(store).set({ preferences }).where(eq(store.id, storeId)).returning()
   return s ?? null
 }
 

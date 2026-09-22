@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INTERNAL_PREFIX, routeForStore } from './routing'
+import { INTERNAL_PREFIX, PASSWORD_PREFIX, routeForStore } from './routing'
 
 describe('routeForStore', () => {
   it('rewrites a public path onto the internal store segment', () => {
@@ -15,6 +15,7 @@ describe('routeForStore', () => {
       kind: 'forbidden',
     })
     expect(routeForStore('store-a', `${INTERNAL_PREFIX}`)).toEqual({ kind: 'forbidden' })
+    expect(routeForStore('store-a', `${PASSWORD_PREFIX}/store-b`)).toEqual({ kind: 'forbidden' })
   })
 
   it('leaves Next internals and API routes alone', () => {

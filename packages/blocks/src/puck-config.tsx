@@ -1,6 +1,7 @@
 import type { RichTextValue } from '@commerce/richtext'
 import type { Config, CustomField, Data } from '@measured/puck'
 import type { ComponentType } from 'react'
+import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
 import HeroCarousel, { type HeroSlide } from './components/hero-carousel'
 import ProductCard from './components/product-card'
 import TabbedProducts from './components/product-grid'
@@ -8,6 +9,8 @@ import RichTextBlock from './components/rich-text'
 import SectionFrame from './components/section-frame'
 import SectionHeading from './components/section-heading'
 import type { CardProduct } from './types'
+
+export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
 
 /**
  * How a block gets product data. The storefront supplies a database-backed
@@ -29,13 +32,13 @@ const SCHEMES = [
   { label: 'Mist', value: 'scheme-5' },
 ]
 
-const frameFields = {
+export const frameFields = {
   scheme: { type: 'select', label: 'Colour scheme', options: SCHEMES },
   padTop: { type: 'number', label: 'Padding top', min: 0, max: 160 },
   padBottom: { type: 'number', label: 'Padding bottom', min: 0, max: 160 },
 } as const
 
-type Frame = { scheme: string; padTop: number; padBottom: number }
+export type Frame = { scheme: string; padTop: number; padBottom: number }
 
 export type HeroProps = {
   slides: HeroSlide[]
@@ -88,6 +91,8 @@ export type BlocksConfigOptions = {
    * and keeps the client editor out of its bundle.
    */
   RichTextEditor?: RichTextFieldEditor | undefined
+  /** Posts for the "Blog posts" block; without it the block renders nothing. */
+  loadArticles?: ArticleLoader | undefined
 }
 
 export type BlockProps = {
@@ -96,6 +101,7 @@ export type BlockProps = {
   FeaturedProducts: FeaturedProductsProps
   CollectionGrid: CollectionGridProps
   RichText: RichTextProps
+  BlogPosts: BlogPostsProps
 }
 
 export type PageData = Data<BlockProps>
@@ -126,7 +132,7 @@ export function createBlocksConfig(
 ): Config<BlockProps> {
   return {
     categories: {
-      layout: { title: 'Layout', components: ['Hero', 'RichText'] },
+      layout: { title: 'Layout', components: ['Hero', 'RichText', 'BlogPosts'] },
       products: {
         title: 'Products',
         components: ['ProductGrid', 'FeaturedProducts', 'CollectionGrid'],
@@ -336,6 +342,8 @@ export function createBlocksConfig(
           </SectionFrame>
         ),
       },
+
+      BlogPosts: blogPostsBlock(frameFields, options.loadArticles),
 
       RichText: {
         label: 'Rich text',

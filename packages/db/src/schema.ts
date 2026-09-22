@@ -31,8 +31,14 @@ export const store = pgTable('store', {
   organizationId: text('organization_id').unique(),
   currency: text('currency').notNull().default('INR'),
   nextOrderNumber: integer('next_order_number').notNull().default(1),
-  /** Theme tokens, validated by @commerce/core ThemeSchema. Null = platform default. */
+  /**
+   * Legacy theme tokens, validated by @commerce/core ThemeSchema. Superseded by the
+   * `theme` table (the store's main theme); still read as a fallback for stores that
+   * have no theme row yet, and no longer written.
+   */
   theme: jsonb('theme'),
+  /** Online Store preferences: SEO defaults, password page, privacy banner, tracking ids. Validated by @commerce/core StorePreferencesSchema. */
+  preferences: jsonb('preferences'),
   /** Which menus the storefront renders, by handle. Validated by @commerce/core NavigationSettingsSchema. */
   navigation: jsonb('navigation'),
   /** Payment settings: enabled methods and encrypted gateway credentials. */
@@ -210,6 +216,61 @@ export const collectionProduct = pgTable(
     position: integer('position').notNull().default(0),
   },
   (t) => [uniqueIndex('collection_product_unique').on(t.collectionId, t.productId)],
+)
+
+/** A blog the storefront lists at `/blogs/<handle>`, Shopify-style. */
+export const blog = pgTable(
+  'blog',
+  {
+    id: id(),
+    storeId: storeId(),
+    title: text('title').notNull(),
+    handle: text('handle').notNull(),
+    commentPolicy: text('comment_policy', { enum: ['disabled', 'moderated', 'open'] })
+      .notNull()
+      .default('disabled'),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('blog_store_handle').on(t.storeId, t.handle)],
+)
+
+/**
+ * One blog post. `status` is what the merchant chose; visibility on the
+ * storefront is `published`, or `scheduled` once `published_at` has passed.
+ */
+export const article = pgTable(
+  'article',
+  {
+    id: id(),
+    storeId: storeId(),
+    blogId: uuid('blog_id')
+      .notNull()
+      .references(() => blog.id),
+    title: text('title').notNull(),
+    handle: text('handle').notNull(),
+    author: text('author').notNull().default(''),
+    /** Lexical JSON, like product.description. */
+    body: jsonb('body'),
+    excerpt: text('excerpt'),
+    imageMediaId: uuid('image_media_id').references(() => media.id),
+    imageAlt: text('image_alt'),
+    tags: text('tags').array().notNull().default([]),
+    status: text('status', { enum: ['draft', 'scheduled', 'published'] })
+      .notNull()
+      .default('draft'),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('article_blog_handle').on(t.blogId, t.handle),
+    index('article_store_published').on(t.storeId, t.status, t.publishedAt),
+  ],
 )
 
 export const variant = pgTable('variant', {
@@ -815,6 +876,34 @@ export type NavigationItem = {
    */
   children?: NavigationItem[] | undefined
 }
+
+/**
+ * A store's themes, Shopify style: exactly one `main` theme is live on the
+ * storefront; the rest are `unpublished` drafts in the theme library. `settings`
+ * is the colours/typography/shape document validated by @commerce/core ThemeSchema.
+ * Per-template section data (home, product, collection, page) belongs in its own
+ * table keyed by theme id, not here.
+ */
+export const theme = pgTable(
+  'theme',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    role: text('role').notNull().default('unpublished'),
+    /** The preset it was created from; informational ("Based on Minimal"). */
+    preset: text('preset'),
+    settings: jsonb('settings').notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  (t) => [
+    check('theme_role', sql`${t.role} in ('main','unpublished')`),
+    uniqueIndex('theme_one_main_per_store').on(t.storeId).where(sql`role = 'main'`),
+    index('theme_store').on(t.storeId),
+  ],
+)
 
 /**
  * Storefront menus (header, footer). The storefront renders them later;

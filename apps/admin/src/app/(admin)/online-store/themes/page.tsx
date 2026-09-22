@@ -1,8 +1,9 @@
 import { loadEnv } from '@commerce/config'
+import { permissions } from '@commerce/core'
 import { Palette } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
-import ThemeEditor from '@/components/themes/theme-editor'
+import ThemesLibrary from '@/components/themes/themes-library'
 import { themesContent } from '@/data/themes'
 import { appRouter, call, serverContext } from '@/lib/api'
 
@@ -10,14 +11,19 @@ export const metadata: Metadata = { title: 'Themes' }
 
 export default async function Page() {
   const context = await serverContext()
-  const loaded = await call(appRouter.store.getTheme, undefined, { context }).catch(() => null)
+  const [themes, me] = await Promise.all([
+    call(appRouter.themes.list, undefined, { context }).catch(() => null),
+    call(appRouter.staff.me, {}, { context }).catch(() => null),
+  ])
 
-  if (!loaded) return <SectionEmpty {...themesContent.unavailable} icon={Palette} />
+  if (!themes) return <SectionEmpty {...themesContent.unavailable} icon={Palette} />
+  const canPublish =
+    me?.isOwner === true || (me?.permissions ?? []).includes(permissions.ONLINE_STORE_PUBLISH)
   return (
-    <ThemeEditor
-      theme={loaded.theme}
-      previewToken={loaded.previewToken}
-      storefrontOrigin={new URL(loadEnv(process.env).STOREFRONT_URL).origin}
+    <ThemesLibrary
+      initial={themes}
+      origin={new URL(loadEnv(process.env).STOREFRONT_URL).origin}
+      canPublish={canPublish}
     />
   )
 }
