@@ -28,6 +28,8 @@ export const VariantInputSchema = z.object({
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
   hsCode: z.string().trim().max(20).nullable().optional(),
   countryOfOrigin: z.string().trim().max(2).nullable().optional(),
+  /** Null uses the store's GST rate. */
+  gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
   onHand: z.number().int().min(0).max(1_000_000).optional(),
   mediaId: z.uuid().nullable().optional(),
 })

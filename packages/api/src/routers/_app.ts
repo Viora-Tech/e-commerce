@@ -5,6 +5,7 @@ import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
+import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
 import { mediaRouter } from './media'
@@ -29,6 +30,7 @@ export const appRouter = {
   customers: customersRouter,
   discounts: discountsRouter,
   apps: appsRouter,
+  gstInvoices: gstInvoicesRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   media: mediaRouter,

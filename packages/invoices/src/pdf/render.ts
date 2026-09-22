@@ -17,9 +17,16 @@ import { registerFonts } from './fonts'
  * set INVOICE_FONTS_DIR to the package's fonts directory instead.
  */
 export function fontsDir(): string {
-  const fromEnv = process.env.INVOICE_FONTS_DIR
-  if (fromEnv && existsSync(fromEnv)) return fromEnv
-  return join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'fonts')
+  const candidates = [
+    process.env.INVOICE_FONTS_DIR,
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'fonts'),
+    // Next apps run from apps/<name>; the worker and tests from their package.
+    join(process.cwd(), '..', '..', 'packages', 'invoices', 'fonts'),
+    join(process.cwd(), 'packages', 'invoices', 'fonts'),
+  ]
+  const hit = candidates.find((dir) => dir && existsSync(join(dir, 'inter', 'Inter-Regular.ttf')))
+  if (!hit) throw new Error('invoice fonts not found; set INVOICE_FONTS_DIR')
+  return hit
 }
 
 export async function renderDocumentToBuffer(props: TemplateProps): Promise<Uint8Array> {

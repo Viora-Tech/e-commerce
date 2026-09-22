@@ -24,6 +24,7 @@ export type VariantInput = {
   /** Customs fields for international labels. */
   hsCode?: string | null | undefined
   countryOfOrigin?: string | null | undefined
+  gstRatePercent?: number | null | undefined
   /** Absolute on-hand count when the merchant edits it inline. */
   onHand?: number | undefined
   mediaId?: string | null | undefined
