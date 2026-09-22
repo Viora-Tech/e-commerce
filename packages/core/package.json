@@ -11,7 +11,8 @@
     "./registries": "./src/plugins/registries.ts",
     "./catalog": "./src/catalog/client.ts",
     "./discounts": "./src/discounts/client.ts",
-    "./store-settings": "./src/settings/general.ts"
+    "./store-settings": "./src/settings/general.ts",
+    "./segments": "./src/customers/segments.ts"
   },
   "scripts": {
     "test": "vitest run",
