@@ -26,34 +26,35 @@ export default function LowStockCard({
   return (
     <DataCard
       title={c.title}
+      size="kit"
       action={
-        <Link href="/products/inventory" className="text-xs text-link hover:underline">
+        <Link href="/products/inventory" className="text-kit-body text-link hover:underline">
           {c.viewAll}
         </Link>
       }
     >
-      <p className="-mt-2 text-xs text-muted-foreground">{c.subtitle(threshold)}</p>
+      <p className="-mt-2 text-kit-body text-muted-foreground">{c.subtitle(threshold)}</p>
       {rows.length === 0 ? (
-        <p className="pt-4 text-body text-muted-foreground">{c.empty}</p>
+        <p className="pt-4 text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
         <ul className="mt-3 flex flex-col gap-3">
           {rows.map((r) => (
             <li
               key={r.variantId}
-              className="flex h-14 items-center gap-3 rounded-lg border border-border-soft px-3"
+              className="flex h-[3.625rem] items-center gap-3 rounded-lg border border-border-soft px-3"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-ink-strong">
+                <span className="block truncate text-kit-cell font-semibold text-ink-strong">
                   {r.title}
                 </span>
-                <span className="block text-xs text-muted-foreground">
+                <span className="block text-kit-body text-muted-foreground">
                   {r.variantTitle !== 'Default' ? `${r.variantTitle}, ` : ''}
                   {c.left(r.available)}
                 </span>
               </span>
               <Link
                 href={`/products/${r.productId}`}
-                className="inline-flex h-7 items-center rounded-full bg-primary px-3 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex h-7 min-w-[3.875rem] items-center justify-center rounded-full bg-primary px-3 text-kit-body text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 {c.restock}
               </Link>

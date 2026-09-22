@@ -12,6 +12,7 @@
     "generate": "drizzle-kit generate",
     "migrate": "bun run --env-file=../../.env src/migrate.ts",
     "seed": "bun run --env-file=../../.env src/seed.ts",
+    "seed:demo": "bun run --env-file=../../.env src/seed-demo-orders.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"

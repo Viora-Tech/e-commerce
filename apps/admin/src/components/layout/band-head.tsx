@@ -8,7 +8,7 @@ export default function BandHead({ children, className }: BandHeadProps) {
   return (
     <div
       className={cn(
-        'grid h-12 items-center rounded-lg bg-primary-soft px-5 text-table-head uppercase text-muted-foreground',
+        'grid h-12 items-center rounded-lg bg-primary-soft px-5 text-kit-body font-medium uppercase text-muted-foreground',
         className,
       )}
     >
