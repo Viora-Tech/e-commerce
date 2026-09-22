@@ -19,8 +19,13 @@ import {
 } from '@commerce/ui/shadcn/sidebar'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { appIcon } from '@/apps/registry'
-import { APPS_GROUP, NAV_GROUPS, navigationContent, SETTINGS_NAV } from '@/data/navigation'
+import {
+  APPS_GROUP,
+  NAV_GROUPS,
+  type NavItem,
+  navigationContent,
+  SETTINGS_NAV,
+} from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
 import NavGroupBlock from './nav-group-block'
 
@@ -42,6 +47,14 @@ function initials(name: string): string {
       .join('')
       .slice(0, 2)
       .toUpperCase() || 'U'
+  )
+}
+
+/** Installed apps hang under the Apps entry, like Drafts under Orders. */
+function nestApps(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] {
+  const children = apps.map((a) => ({ href: `/apps/${a.id}`, label: a.name }))
+  return items.map((item) =>
+    item.href === '/apps' ? { ...item, children: [...(item.children ?? []), ...children] } : item,
   )
 }
 
@@ -71,11 +84,6 @@ export default function AdminSidebar({
 
   // Render logic
   const active = stores.find((s) => s.id === activeStoreId) ?? null
-  const appItems = apps.map((a) => ({
-    href: `/apps/${a.id}`,
-    label: a.name,
-    icon: appIcon(a.icon),
-  }))
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 shadow-rail">
@@ -129,7 +137,7 @@ export default function AdminSidebar({
           <NavGroupBlock
             key={group.label ?? gi}
             label={group.label}
-            items={group.label === APPS_GROUP ? [...group.items, ...appItems] : group.items}
+            items={group.label === APPS_GROUP ? nestApps(group.items, apps) : group.items}
             pathname={pathname}
           />
         ))}
