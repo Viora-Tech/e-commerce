@@ -20,6 +20,7 @@
     "db:seed": "bun run --cwd packages/db seed",
     "db:seed:demo": "bun run --cwd packages/db seed:demo",
     "db:seed:demo:collections": "bun run --cwd packages/db seed:demo:collections",
+    "db:seed:navigation": "bun run --cwd packages/db seed:navigation",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down"
   },

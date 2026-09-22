@@ -1,0 +1,17 @@
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import NavigationList from '@/components/navigation/navigation-list'
+import { appRouter, call, serverContext } from '@/lib/api'
+
+export const metadata: Metadata = { title: 'Menus' }
+
+export default async function Page() {
+  const context = await serverContext()
+  const [menus, settings] = await Promise.all([
+    call(appRouter.navigation.list, undefined, { context }),
+    call(appRouter.navigation.settings, undefined, { context }),
+  ]).catch(() => [undefined, undefined] as const)
+  if (!menus || !settings) redirect('/select-store')
+
+  return <NavigationList initialMenus={menus} initialSettings={settings} />
+}

@@ -2,7 +2,7 @@
 export const contentContent = {
   index: {
     heading: 'Content',
-    body: 'Files and structured content used across your storefront live here, separate from products and pages.',
+    body: 'Files, menus and structured content used across your storefront live here, separate from products and pages.',
     action: { label: 'Go to pages', href: '/online-store/pages' },
   },
   files: {

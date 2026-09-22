@@ -253,6 +253,20 @@
       "when": 1790084791183,
       "tag": "0035_roles_and_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790096951464,
+      "tag": "0036_navigation_menus",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790097341466,
+      "tag": "0037_store_navigation",
+      "breakpoints": true
     }
   ]
 }
