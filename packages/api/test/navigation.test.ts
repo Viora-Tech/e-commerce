@@ -84,8 +84,8 @@ describe('navigation', () => {
       { context: a.ctx },
     )
     expect(toNavLinks(read?.items ?? [])).toEqual([
-      { label: 'Glasspads', href: '/collections/glasspads' },
-      { label: 'Discord', href: 'https://discord.gg/waimers' },
+      { id: 'i1', label: 'Glasspads', href: '/collections/glasspads' },
+      { id: 'i2', label: 'Discord', href: 'https://discord.gg/waimers' },
     ])
   })
 

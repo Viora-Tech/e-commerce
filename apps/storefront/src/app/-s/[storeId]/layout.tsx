@@ -50,7 +50,7 @@ export default async function StoreLayout({ children, params }: Props) {
   // A nested footer menu splits into one column per parent, as Shopify's does.
   const footerColumns = settings.footer.flatMap((handle) => {
     const menu = menusByHandle.get(handle)
-    return menu ? toFooterColumns(menu.title, menu.items) : []
+    return menu ? toFooterColumns(menu, menu.items) : []
   })
 
   return (
@@ -72,6 +72,9 @@ export default async function StoreLayout({ children, params }: Props) {
           themeMode={mode}
           showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
           cartCount={cartCount}
+          logo={
+            theme.brand.logo ? { url: theme.brand.logo.url, width: theme.brand.logoWidth } : null
+          }
         />
         <main id="MainContent">{children}</main>
         <VisitBeacon />

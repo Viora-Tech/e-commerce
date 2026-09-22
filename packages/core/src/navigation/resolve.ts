@@ -1,10 +1,16 @@
 import type { NavigationItem, NavigationItemType } from '@commerce/db'
 
 /** A menu item as it renders, with its nested items. Matches the blocks package's NavLink. */
-export type NavLink = { label: string; href: string; children?: NavLink[] | undefined }
+export type NavLink = {
+  /** The menu item's id: stable, unique within the menu, so it keys the rendered list. */
+  id: string
+  label: string
+  href: string
+  children?: NavLink[] | undefined
+}
 
 /** A footer column: a heading over a list of links. */
-export type NavColumn = { heading: string; links: NavLink[] }
+export type NavColumn = { id: string; heading: string; links: NavLink[] }
 
 /**
  * Public path prefixes, keyed by item type. An item stores the handle rather
@@ -41,9 +47,8 @@ export function toNavLinks(items: readonly NavigationItem[]): NavLink[] {
     const href = itemHref(item)
     if (href === null) continue
     const children = toNavLinks(item.children ?? [])
-    links.push(
-      children.length > 0 ? { label: item.title, href, children } : { label: item.title, href },
-    )
+    const link = { id: item.id, label: item.title, href }
+    links.push(children.length > 0 ? { ...link, children } : link)
   }
   return links
 }
@@ -54,14 +59,22 @@ export function toNavLinks(items: readonly NavigationItem[]): NavLink[] {
  * has children becomes its own column, and any top-level links without
  * children are gathered into a column under the menu's title.
  */
-export function toFooterColumns(menuTitle: string, items: readonly NavigationItem[]): NavColumn[] {
+export function toFooterColumns(
+  menu: { id: string; title: string },
+  items: readonly NavigationItem[],
+): NavColumn[] {
   const links = toNavLinks(items)
   const grouped = links.filter((l) => (l.children?.length ?? 0) > 0)
-  if (grouped.length === 0) return links.length > 0 ? [{ heading: menuTitle, links }] : []
+  if (grouped.length === 0) {
+    return links.length > 0 ? [{ id: menu.id, heading: menu.title, links }] : []
+  }
   const loose = links.filter((l) => (l.children?.length ?? 0) === 0)
   const columns = grouped.map((l) => ({
+    id: l.id,
     heading: l.label,
-    links: (l.children ?? []).map(({ label, href }) => ({ label, href })),
+    links: (l.children ?? []).map(({ id, label, href }) => ({ id, label, href })),
   }))
-  return loose.length > 0 ? [{ heading: menuTitle, links: loose }, ...columns] : columns
+  return loose.length > 0
+    ? [{ id: menu.id, heading: menu.title, links: loose }, ...columns]
+    : columns
 }

@@ -55,8 +55,8 @@ describe('toNavLinks', () => {
         item({ id: 'b', title: 'Glasspads', type: 'collection', value: 'glasspads' }),
       ]),
     ).toEqual([
-      { label: 'Home', href: '/' },
-      { label: 'Glasspads', href: '/collections/glasspads' },
+      { id: 'a', label: 'Home', href: '/' },
+      { id: 'b', label: 'Glasspads', href: '/collections/glasspads' },
     ])
   })
 
@@ -66,7 +66,7 @@ describe('toNavLinks', () => {
         item({ id: 'a', title: 'Glasspads', type: 'collection', value: 'glasspads' }),
         item({ id: 'b', title: 'Broken', type: 'collection' }),
       ]),
-    ).toEqual([{ label: 'Glasspads', href: '/collections/glasspads' }])
+    ).toEqual([{ id: 'a', label: 'Glasspads', href: '/collections/glasspads' }])
   })
 
   it('keeps the order it was given', () => {
@@ -108,18 +108,20 @@ describe('nested menus', () => {
   it('resolves children recursively and omits empty child lists', () => {
     expect(toNavLinks(nested)).toEqual([
       {
+        id: 'shop',
         label: 'Shop',
         href: '/collections/all',
         children: [
           {
+            id: 'pads',
             label: 'Mousepads',
             href: '/collections/mousepads',
-            children: [{ label: 'Glasspads', href: '/collections/glasspads' }],
+            children: [{ id: 'glass', label: 'Glasspads', href: '/collections/glasspads' }],
           },
-          { label: 'Mice', href: '/collections/mice' },
+          { id: 'mice', label: 'Mice', href: '/collections/mice' },
         ],
       },
-      { label: 'Support', href: '/pages/support' },
+      { id: 'support', label: 'Support', href: '/pages/support' },
     ])
   })
 
@@ -136,13 +138,18 @@ describe('nested menus', () => {
   })
 
   it('turns nested footer menus into one column per parent, loose links under the menu title', () => {
-    expect(toFooterColumns('Footer', nested)).toEqual([
-      { heading: 'Footer', links: [{ label: 'Support', href: '/pages/support' }] },
+    expect(toFooterColumns({ id: 'footer', title: 'Footer' }, nested)).toEqual([
       {
+        id: 'footer',
+        heading: 'Footer',
+        links: [{ id: 'support', label: 'Support', href: '/pages/support' }],
+      },
+      {
+        id: 'shop',
         heading: 'Shop',
         links: [
-          { label: 'Mousepads', href: '/collections/mousepads' },
-          { label: 'Mice', href: '/collections/mice' },
+          { id: 'pads', label: 'Mousepads', href: '/collections/mousepads' },
+          { id: 'mice', label: 'Mice', href: '/collections/mice' },
         ],
       },
     ])
@@ -150,10 +157,14 @@ describe('nested menus', () => {
 
   it('keeps a flat footer menu as a single column', () => {
     const flat = [item({ id: 'a', title: 'About', type: 'page', value: 'about' })]
-    expect(toFooterColumns('Company', flat)).toEqual([
-      { heading: 'Company', links: [{ label: 'About', href: '/pages/about' }] },
+    expect(toFooterColumns({ id: 'company', title: 'Company' }, flat)).toEqual([
+      {
+        id: 'company',
+        heading: 'Company',
+        links: [{ id: 'a', label: 'About', href: '/pages/about' }],
+      },
     ])
-    expect(toFooterColumns('Empty', [])).toEqual([])
+    expect(toFooterColumns({ id: 'empty', title: 'Empty' }, [])).toEqual([])
   })
 })
 

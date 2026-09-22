@@ -306,6 +306,15 @@ focus-disclosure {
   display: none;
 }
 
+/* A merchant logo from the theme: the brand setting picks the width
+   (--logo-width, set by the theme vars), the file keeps its aspect ratio. */
+.header__logo-image--sized {
+  width: var(--logo-width, 8.75rem);
+  height: auto;
+  max-width: none;
+  max-height: 4rem;
+}
+
 :root[data-theme="dark"] .header__logo:not(:has(.header__logo-image--dark)) .header__logo-image {
   filter: brightness(0) invert(1);
 }

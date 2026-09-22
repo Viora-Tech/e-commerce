@@ -17,8 +17,11 @@ export default function Header({
   themeMode,
   showThemeToggle,
   cartCount = 0,
+  logo = null,
 }: {
   storeName: string
+  /** The merchant's logo from the theme; the store name as text when unset. */
+  logo?: { url: string; width: number } | null
   links: NavLink[]
   themeMode: ThemeMode
   showThemeToggle: boolean
@@ -31,8 +34,17 @@ export default function Header({
           <div className="only-mobile">
             <HeaderDrawer storeName={storeName} links={links} />
           </div>
-          <a href="/" className="header__logo" aria-label={storeName}>
-            <span className="header__logo-text">{storeName}</span>
+          <a href="/" className="header__logo">
+            {logo ? (
+              <img
+                src={logo.url}
+                alt={storeName}
+                width={logo.width}
+                className="header__logo-image header__logo-image--sized"
+              />
+            ) : (
+              <span className="header__logo-text">{storeName}</span>
+            )}
           </a>
           <div className="header__nav only-desktop">
             <HeaderNav links={links} />

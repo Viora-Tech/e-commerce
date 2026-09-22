@@ -74,7 +74,7 @@ export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {
         <nav className="header-drawer__nav" aria-label={copy.mobile}>
           <ul className="header-drawer__list">
             {links.map((link) => (
-              <li key={`${link.href}-${link.label}`} className="header-drawer__item">
+              <li key={link.id} className="header-drawer__item">
                 {link.children?.length ? (
                   <details className="header-drawer__details">
                     <summary className="header-drawer__link">
@@ -86,7 +86,7 @@ export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {
                         <a href={link.href}>{copy.viewAll(link.label)}</a>
                       </li>
                       {link.children.map((child) => (
-                        <li key={`${child.href}-${child.label}`}>
+                        <li key={child.id}>
                           {child.children?.length ? (
                             <details className="header-drawer__details">
                               <summary className="header-drawer__link header-drawer__link--sub">
@@ -98,7 +98,7 @@ export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {
                                   <a href={child.href}>{copy.viewAll(child.label)}</a>
                                 </li>
                                 {child.children.map((leaf) => (
-                                  <li key={`${leaf.href}-${leaf.label}`}>
+                                  <li key={leaf.id}>
                                     <a href={leaf.href}>{leaf.label}</a>
                                   </li>
                                 ))}

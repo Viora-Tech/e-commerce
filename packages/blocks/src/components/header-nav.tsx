@@ -124,7 +124,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
           if (children.length === 0) {
             return (
               <li
-                key={`${link.href}-${link.label}`}
+                key={link.id}
                 className="header__menu-item"
                 onPointerEnter={(event) => handlePointerEnter(null, event)}
               >
@@ -139,7 +139,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
           const panelId = `header-menu-${index}`
           return (
             <li
-              key={`${link.href}-${link.label}`}
+              key={link.id}
               className={
                 mega ? 'header__menu-item' : 'header__menu-item header__menu-item--dropdown'
               }
@@ -167,17 +167,14 @@ export default function HeaderNav({ links }: HeaderNavProps) {
                     <div className="page-width">
                       <div className="header__mega-columns">
                         {children.map((column) => (
-                          <div
-                            key={`${column.href}-${column.label}`}
-                            className="header__mega-column"
-                          >
+                          <div key={column.id} className="header__mega-column">
                             <a href={column.href} className="header__mega-heading">
                               {column.label}
                             </a>
                             {column.children?.length ? (
                               <ul className="header__expansion-sublist">
                                 {column.children.map((leaf) => (
-                                  <li key={`${leaf.href}-${leaf.label}`}>
+                                  <li key={leaf.id}>
                                     <a href={leaf.href}>{leaf.label}</a>
                                   </li>
                                 ))}
@@ -203,7 +200,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
                 >
                   <ul className="header__dropdown-list">
                     {children.map((child) => (
-                      <li key={`${child.href}-${child.label}`}>
+                      <li key={child.id}>
                         <a href={child.href} className="header__dropdown-link">
                           {child.label}
                         </a>
