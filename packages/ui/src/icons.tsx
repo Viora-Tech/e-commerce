@@ -13,6 +13,7 @@ import {
   ArrowDown01Icon,
   ArrowDown02Icon,
   ArrowLeft02Icon,
+  ArrowRight01Icon,
   ArrowRight02Icon,
   ArrowUp01Icon,
   ArrowUp02Icon,
@@ -31,6 +32,7 @@ import {
   DeliveryDelay02Icon,
   DeliveryTruck01Icon,
   Download04Icon,
+  DragDropVerticalIcon,
   Edit02Icon,
   File01Icon,
   FileEditIcon,
@@ -46,6 +48,7 @@ import {
   InformationCircleIcon,
   Layers01Icon,
   LeftToRightListBulletIcon,
+  Link01Icon,
   LinkSquare01Icon,
   Loading03Icon,
   Logout01Icon,
@@ -160,6 +163,11 @@ export const ChevronDownIcon = ChevronDown
 export const ChevronUpIcon = defineIcon(ArrowUp01Icon, 'ChevronUpIcon')
 export const ChevronLeftIcon = defineIcon(ArrowLeft02Icon, 'ChevronLeftIcon')
 export const ChevronRightIcon = defineIcon(ArrowRight02Icon, 'ChevronRightIcon')
+/** Six-dot grip on a draggable row. */
+export const GripVertical = defineIcon(DragDropVerticalIcon, 'GripVertical')
+/** Small disclosure chevron, pointing right when collapsed. */
+export const ChevronRight = defineIcon(ArrowRight01Icon, 'ChevronRight')
+export const LinkIcon = defineIcon(Link01Icon, 'LinkIcon')
 export const ChevronsUpDown = defineIcon(UnfoldMoreIcon, 'ChevronsUpDown')
 export const ArrowUp = defineIcon(ArrowUp02Icon, 'ArrowUp')
 export const ArrowDown = defineIcon(ArrowDown02Icon, 'ArrowDown')

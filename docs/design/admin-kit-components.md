@@ -92,3 +92,37 @@ The three differ only in what their data allows:
 | Orders | 4 stat tiles | status | yes, bulk status | row click |
 | Products | 4 stat tiles | status | yes, bulk status/tag/delete | row click |
 | Collections | 4 stat tiles + category cards | featured / on sale / out of stock | off (the frame's rows carry their own edit and delete glyphs) | edit and delete glyphs |
+
+## Drag and drop: `@commerce/ui/sortable`
+
+Every reorderable surface in the admin sorts through one set of primitives in
+`packages/ui/src/components/sortable/`, built on dnd-kit the way shadcn's dashboard-01 data table
+is (`DndContext`, `closestCenter`, mouse/touch/keyboard sensors, `SortableContext` with
+`verticalListSortingStrategy`, `CSS.Translate`). They share one timing, one overlay and one set of
+row surfaces, so a drag feels the same on every screen.
+
+| Primitive | Use it for | Notes |
+| --- | --- | --- |
+| `SortableList` | Flat vertical lists: product media order, variant options, collection products, table rows | Generic over `{ id }`; `renderItem(item, { handle, isDragging })`; `restrictToVerticalAxis` + `restrictToParentElement`; `onReorder(items)` |
+| `SortableTree` | Nested lists (store menus) | Vertical drag reorders, sideways drag changes level (`indentRem` per level, `maxLevels` ceiling); a parent carries its children with a `+N` badge; `renderRow(ctx)` and `renderAfterGroup(parent)` for inline "add" rows |
+| `DragHandle` | The grip on every row | Grip glyph from `@commerce/ui/icons`, focusable button, `aria-label` from the consumer, `cursor-grab` / `active:cursor-grabbing`, `lifted` state for the keyboard |
+| `useDndSensors({ keyboard })` | Custom sortables | Mouse after 4px of travel, touch after a 200ms hold (6px tolerance), keyboard with `sortableKeyboardCoordinates` |
+| `SortableOverlay` | The copy under the pointer | `DragOverlay` in a `bg-card` card with `shadow-popover` and a 1.02 scale; the source stays faint until the drop lands |
+| `ROW_STATE_CLASS` | Row surfaces | `row`, `placeholder` (dashed primary outline on `primary-soft`, content at 40%), `lifted` (inset primary ring) |
+| `@commerce/ui/sortable/tree` | Tree math, no React | `flatten`, `buildTree`, `projectDrop`, `moveNode`, `findNode`, `replaceNode`, `removeNode`, `appendNode` |
+
+Timing is `SORT_DURATION_MS` (200ms) with `SORT_EASING` (`cubic-bezier(0.25, 1, 0.5, 1)`) for the
+rows gliding aside and the drop animation alike. When the viewer prefers reduced motion the
+transitions, the drop animation and the overlay scale are all off.
+
+Keyboard: in `SortableList`, space picks up, arrows move, space drops, escape cancels (dnd-kit's
+keyboard sensor). `SortableTree` turns that sensor off and runs its own lift on the handle, because
+arrows there also change the level: up and down move one row, right nests under the row above, left
+lifts out a level. Both announce every step through the consumer's labels (`SortableListLabels`,
+`SortableTreeLabels`), which live in the screen's `data/<feature>.ts` like all copy.
+
+Adopting it on a new screen: keep the row's content in its own component, render it from
+`renderItem` / `renderRow` for both the list and the overlay (so they match exactly), put `handle`
+first in the row, and pass copy for the labels. Next up: product media (`media-grid.tsx` still has
+its own HTML5 drag), variant options, collection products, and `ResourceTable` rows where order
+matters.

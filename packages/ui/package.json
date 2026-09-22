@@ -11,13 +11,20 @@
     "./lib/utils": "./src/lib/utils.ts",
     "./styles.css": "./src/styles.css",
     "./icons": "./src/icons.tsx",
-    "./lib/icon": "./src/lib/icon.tsx"
+    "./lib/icon": "./src/lib/icon.tsx",
+    "./sortable": "./src/components/sortable/index.ts",
+    "./sortable/tree": "./src/components/sortable/tree.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hugeicons/core-free-icons": "4.3.5",
     "@hugeicons/react": "1.1.10",
     "class-variance-authority": "^0.7.1",
@@ -43,6 +50,7 @@
     "next": "16.3.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   }
 }
