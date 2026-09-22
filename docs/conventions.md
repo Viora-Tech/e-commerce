@@ -112,3 +112,14 @@ export default function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
 | `useCallback` / `useMemo` / `memo(` | `useX() is banned (React Compiler handles memoisation)` |
 | No section comments in a component with hooks or arrows | warning |
 | Over 500 lines | error; over 300 lines: warning |
+| `'use client'` file (`.tsx` or `.ts`) importing or re-exporting a value from `@commerce/core` or `@commerce/db` | `'use client' module imports values from "@commerce/core", which pulls the database driver into the browser` |
+
+### Client modules and the server barrels
+
+`@commerce/core` and `@commerce/db` are server barrels: their root entry pulls in Drizzle and
+postgres. A `'use client'` module that imports a value from either drags a database driver into
+the browser bundle, which fails the build (it happened four times before this rule). In client
+code, import types from the barrels (`import type { X }` or `import { type X }`) and import values
+from the pure subpaths that exist for this: `@commerce/core/catalog`, `/permissions`,
+`/segments`, `/navigation`, `/adjustments`, `/emi` and so on. If the value you need has no pure
+subpath yet, move it into one rather than importing the barrel.

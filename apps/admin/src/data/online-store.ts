@@ -29,11 +29,6 @@ export const onlineStoreContent = {
     unsaved: 'Unsaved changes',
     viewLive: 'View on store',
   },
-  themes: {
-    heading: 'One theme, live',
-    body: 'Your storefront runs the Glide theme. Colours, fonts and dark mode will be editable here.',
-    action: { label: 'Edit pages', href: '/online-store/pages' },
-  },
   blog: {
     heading: 'No blog posts',
     body: 'Posts publish to your storefront blog and help search engines find you for the topics your shoppers care about.',

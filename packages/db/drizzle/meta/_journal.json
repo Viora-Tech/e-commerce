@@ -271,8 +271,15 @@
     {
       "idx": 38,
       "version": "7",
+      "when": 1790104215885,
+      "tag": "0038_store_invitation",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
       "when": 1790104243378,
-      "tag": "0038_inventory_locations",
+      "tag": "0039_inventory_locations",
       "breakpoints": true
     }
   ]

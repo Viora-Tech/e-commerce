@@ -1,10 +1,54 @@
 import { z } from 'zod'
+import { THEME_FONT_IDS } from './fonts'
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'hex colour like #1F1F21')
 
+/** Status colours that do not come from a scheme. One set per mode. */
+const StatusColorsSchema = z.object({
+  success: hex,
+  danger: hex,
+  /** Sale badges. Defaults to the Waimers brand purple the badge wore before it had a role. */
+  sale: hex.default('#6C3BAA'),
+})
+export type StatusColors = z.infer<typeof StatusColorsSchema>
+
+/** A picked library image: the id to find it again, the url so the storefront needs no join. */
+const MediaRefSchema = z.object({
+  mediaId: z.string().min(1),
+  /** Rendered into href/src, so only http(s) or a root-relative path. */
+  url: z.string().regex(/^(https?:\/\/|\/(?!\/))/, 'an http(s) or root-relative url'),
+})
+export type ThemeMediaRef = z.infer<typeof MediaRefSchema>
+
+export const THEME_PRESET_IDS = ['waimers', 'minimal', 'bold', 'soft'] as const
+export type ThemePresetId = (typeof THEME_PRESET_IDS)[number]
+
+/*
+ * Every group added after the first theme shipped carries a default equal to the
+ * look the storefront already had, so a theme saved before it existed parses to
+ * the same page it rendered yesterday.
+ */
+const DEFAULT_SHARED_DARK: StatusColors = {
+  // Dark pages painted the light status colours before they had their own.
+  success: '#1F9254',
+  danger: '#D2331F',
+  sale: '#6C3BAA',
+}
+const DEFAULT_SHAPE = { buttonRadius: 8, cardRadius: 8, inputRadius: 8, borderWidth: 1 }
+const DEFAULT_LAYOUT = { pageWidth: 1440, sectionSpacing: 1 }
+const DEFAULT_BUTTONS = { style: 'solid', colour: 'text', uppercase: true } as const
+const DEFAULT_CARDS = {
+  imageRatio: 'square',
+  showVendor: false,
+  showSaleBadge: false,
+  hoverImage: true,
+} as const
+const DEFAULT_BRAND = { logo: null, logoWidth: 140, favicon: null }
+
 /** One colour scheme, same roles as Glide's color_scheme_group. */
 export const ColorSchemeSchema = z.object({
-  id: z.string().min(1),
+  /** Becomes a CSS class inside the storefront's <style> block, so only a safe slug is allowed. */
+  id: z.string().regex(/^[a-z0-9-]{1,40}$/, 'lowercase letters, digits and hyphens'),
   name: z.string().min(1),
   background: hex,
   text: hex,
@@ -20,23 +64,70 @@ export type ColorScheme = z.infer<typeof ColorSchemeSchema>
 export const ThemeSchema = z.object({
   schemes: z.array(ColorSchemeSchema).min(1),
   /** Scheme id used on light pages. */
-  lightScheme: z.string().min(1),
+  lightScheme: z.string().regex(/^[a-z0-9-]{1,40}$/),
   /** Scheme id swapped in for dark mode. Same as lightScheme disables the swap. */
-  darkScheme: z.string().min(1),
+  darkScheme: z.string().regex(/^[a-z0-9-]{1,40}$/),
   darkMode: z.object({
     enabled: z.boolean(),
     /** What a first-time visitor gets before they choose. */
     default: z.enum(['light', 'dark', 'system']),
     togglePosition: z.enum(['header', 'footer', 'none']),
   }),
-  shared: z.object({ success: hex, danger: hex }),
+  /** Status colours on light pages. */
+  shared: StatusColorsSchema,
+  /** Status colours on dark pages. */
+  sharedDark: StatusColorsSchema.default(DEFAULT_SHARED_DARK),
   fonts: z.object({
-    heading: z.enum(['archivo', 'figtree']),
-    body: z.enum(['archivo', 'figtree']),
+    heading: z.enum(THEME_FONT_IDS),
+    body: z.enum(THEME_FONT_IDS),
     headingScale: z.number().min(0.5).max(2),
     bodySizePx: z.number().int().min(12).max(22),
+    /** Heading letter spacing in em. */
+    headingTracking: z.number().min(-0.05).max(0.1).default(0.01),
   }),
   roundedSections: z.boolean(),
+  /** Corner radii and hairline width, in px as the merchant thinks of them. */
+  shape: z
+    .object({
+      buttonRadius: z.number().int().min(0).max(40),
+      cardRadius: z.number().int().min(0).max(40),
+      inputRadius: z.number().int().min(0).max(40),
+      borderWidth: z.number().int().min(0).max(4),
+    })
+    .default(DEFAULT_SHAPE),
+  layout: z
+    .object({
+      /** Content column width in px. */
+      pageWidth: z.number().int().min(960).max(1920),
+      /** Multiplier on the section rhythm (the larger spacing steps). */
+      sectionSpacing: z.number().min(0.5).max(1.5),
+    })
+    .default(DEFAULT_LAYOUT),
+  buttons: z
+    .object({
+      style: z.enum(['solid', 'outline']),
+      /** `text` keeps Waimers' ink buttons; `brand` paints them in the scheme's brand colour. */
+      colour: z.enum(['text', 'brand']),
+      uppercase: z.boolean(),
+    })
+    .default(DEFAULT_BUTTONS),
+  cards: z
+    .object({
+      imageRatio: z.enum(['square', 'portrait', 'landscape', 'natural']),
+      showVendor: z.boolean(),
+      showSaleBadge: z.boolean(),
+      hoverImage: z.boolean(),
+    })
+    .default(DEFAULT_CARDS),
+  brand: z
+    .object({
+      logo: MediaRefSchema.nullable(),
+      logoWidth: z.number().int().min(60).max(320),
+      favicon: MediaRefSchema.nullable(),
+    })
+    .default(DEFAULT_BRAND),
+  /** The preset this theme started from; "Reset to preset" re-applies it. */
+  preset: z.enum(THEME_PRESET_IDS).default('waimers'),
 })
 export type Theme = z.infer<typeof ThemeSchema>
 
@@ -107,9 +198,22 @@ export const defaultTheme: Theme = {
   lightScheme: 'scheme-5',
   darkScheme: 'scheme-3',
   darkMode: { enabled: true, default: 'system', togglePosition: 'header' },
-  shared: { success: '#1F9254', danger: '#D2331F' },
-  fonts: { heading: 'archivo', body: 'figtree', headingScale: 1, bodySizePx: 16 },
+  shared: { success: '#1F9254', danger: '#D2331F', sale: '#6C3BAA' },
+  sharedDark: DEFAULT_SHARED_DARK,
+  fonts: {
+    heading: 'archivo',
+    body: 'figtree',
+    headingScale: 1,
+    bodySizePx: 16,
+    headingTracking: 0.01,
+  },
   roundedSections: true,
+  shape: DEFAULT_SHAPE,
+  layout: DEFAULT_LAYOUT,
+  buttons: DEFAULT_BUTTONS,
+  cards: DEFAULT_CARDS,
+  brand: DEFAULT_BRAND,
+  preset: 'waimers',
 }
 
 /** Parse a stored theme, falling back to defaults for anything missing or invalid. */

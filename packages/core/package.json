@@ -16,7 +16,8 @@
     "./permissions": "./src/permissions/client.ts",
     "./collections": "./src/collections/client.ts",
     "./navigation": "./src/navigation/client.ts",
-    "./inventory": "./src/inventory/client.ts"
+    "./inventory": "./src/inventory/client.ts",
+    "./theme": "./src/theme/client.ts"
   },
   "scripts": {
     "test": "vitest run",

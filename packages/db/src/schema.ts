@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -11,6 +12,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 import { v7 as uuidv7 } from 'uuid'
+import { invitation } from './auth-schema'
 
 export const newId = (): string => uuidv7()
 
@@ -875,5 +877,32 @@ export const storeMember = pgTable(
   (t) => [
     uniqueIndex('store_member_store_user').on(t.storeId, t.userId),
     check('store_member_status', sql`${t.status} in ('active','invited')`),
+  ],
+)
+
+/**
+ * The store role a pending invitation grants. Better Auth's invitation only
+ * knows organization roles, so without this the role chosen on the Staff page
+ * would be lost between invite and accept, and the invitee would fall through
+ * to the default role instead.
+ */
+export const storeInvitation = pgTable(
+  'store_invitation',
+  {
+    id: id(),
+    storeId: storeId(),
+    invitationId: text('invitation_id')
+      .notNull()
+      .references(() => invitation.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    roleId: uuid('role_id')
+      .notNull()
+      .references(() => role.id),
+    invitedBy: text('invited_by'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('store_invitation_invitation').on(t.invitationId),
+    index('store_invitation_store_email').on(t.storeId, t.email),
   ],
 )

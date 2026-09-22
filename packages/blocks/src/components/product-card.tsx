@@ -1,8 +1,17 @@
 import type { CardProduct } from '../types'
 import Price from './price'
 
+const saleLabel = (percent: number) => `${percent}% off`
+
+/** Whole-percent saving against MRP, or null when the product is not discounted. */
+function salePercent(pricePaise: number, mrpPaise: number | null): number | null {
+  if (!mrpPaise || mrpPaise <= pricePaise) return null
+  return Math.round(((mrpPaise - pricePaise) / mrpPaise) * 100)
+}
+
 // Port of snippets/product-card.liquid. Hover swap only; cursor scrubbing
-// (card-scrub.js) comes with the interactive pass.
+// (card-scrub.js) comes with the interactive pass. The vendor line and sale
+// badge always render; the theme's card settings show or hide them in CSS.
 export default function ProductCard({
   product,
   lazy = true,
@@ -13,6 +22,7 @@ export default function ProductCard({
   const [primary, hover] = product.images
   const soldOut = product.available <= 0
   const lowStock = !soldOut && product.available <= 5
+  const sale = salePercent(product.pricePaise, product.mrpPaise)
 
   return (
     <div className="product-card" data-has-hover={hover ? '' : undefined}>
@@ -22,6 +32,10 @@ export default function ProductCard({
             <span className="badge product-card__badge product-card__badge--quiet">Sold out</span>
           ) : lowStock ? (
             <span className="badge product-card__badge product-card__badge--urgent">Low stock</span>
+          ) : sale ? (
+            <span className="badge badge--sale product-card__badge product-card__badge--sale">
+              {saleLabel(sale)}
+            </span>
           ) : null}
           {primary ? (
             <img
@@ -50,6 +64,7 @@ export default function ProductCard({
           ) : null}
         </div>
         <div className="product-card__info">
+          {product.vendor ? <p className="product-card__vendor">{product.vendor}</p> : null}
           <h3 className="product-card__title">{product.title}</h3>
           <div
             className={`product-card__price${soldOut ? ' product-card__price--unavailable' : ''}`}

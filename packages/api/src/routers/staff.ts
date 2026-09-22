@@ -1,4 +1,4 @@
-import { listMembers, permissions, upsertMember } from '@commerce/core'
+import { listMembers, permissions, recordInvitationRole, upsertMember } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can, storeProcedure } from '../procedures'
@@ -162,6 +162,16 @@ export const staffRouter = {
           throw new ORPCError('BAD_REQUEST', { message: err.message })
         })
 
+      const invitationId = (invitation as { id: string }).id
+      // Better Auth only knows organization roles; the store role lives here until accept.
+      await recordInvitationRole(context.tx, {
+        storeId: context.scope.storeId,
+        invitationId,
+        email: input.email,
+        roleId: target.id,
+        invitedBy: context.scope.userId,
+      })
+
       const invited = (invitation as { userId?: string } | null)?.userId
       if (invited) {
         await upsertMember(context.tx, {
@@ -172,6 +182,6 @@ export const staffRouter = {
           invitedBy: context.scope.userId,
         })
       }
-      return { id: (invitation as { id: string }).id, email: input.email }
+      return { id: invitationId, email: input.email }
     }),
 }

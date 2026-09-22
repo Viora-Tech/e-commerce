@@ -24,6 +24,7 @@ import {
   ChartUpIcon,
   CheckmarkCircle02Icon,
   Clock01Icon,
+  ComputerIcon,
   Copy01Icon,
   CreditCardIcon,
   DashboardSquare01Icon,
@@ -71,9 +72,11 @@ import {
   Settings01Icon,
   ShapesIcon,
   ShoppingCart01Icon,
+  SmartPhone01Icon,
   SourceCodeIcon,
   Store01Icon,
   Sun02Icon,
+  Tablet01Icon,
   Tick02Icon,
   Ticket01Icon,
   UnfoldMoreIcon,
@@ -119,6 +122,9 @@ export const Braces = defineIcon(SourceCodeIcon, 'Braces')
 export const Workflow = defineIcon(WorkflowIcon, 'Workflow')
 export const Radio = defineIcon(Radio02Icon, 'Radio')
 export const Palette = defineIcon(PaintBoardIcon, 'Palette')
+export const Monitor = defineIcon(ComputerIcon, 'Monitor')
+export const Tablet = defineIcon(Tablet01Icon, 'Tablet')
+export const Smartphone = defineIcon(SmartPhone01Icon, 'Smartphone')
 export const Images = defineIcon(Folder01Icon, 'Images')
 export const UserCog = defineIcon(UserSettings01Icon, 'UserCog')
 export const UserRound = defineIcon(User03Icon, 'UserRound')

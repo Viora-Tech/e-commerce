@@ -97,16 +97,11 @@ Migrations are at `0035`. Tests: 17 vitest projects, all green; `bun run test` f
 
 ## Open loose ends
 
-1. **Accept-invitation route** — staff invites send but cannot be joined yet (Better Auth
-   accept endpoint needs a page).
-2. **`bun run db:seed:demo` is not idempotent** — fails on existing customers; the collections
-   seed is fine.
-3. Order status duplicates payment and shipment state (`paid`, `fulfilled`, `delivered`);
+1. Order status duplicates payment and shipment state (`paid`, `fulfilled`, `delivered`);
    worth reducing to `open | cancelled` and deriving the rest. Schema change, own PR.
-4. Parallel worktrees share the dev and test databases, so migration numbers collide and the
+2. Parallel worktrees share the dev and test databases, so migration numbers collide and the
    `__drizzle_migrations` log drifts. Per-worktree database names would fix it.
-5. A lint rule for the client-imports-server-value trap.
-6. Sections still on empty states: Content (files beyond the media library, metaobjects),
+3. Sections still on empty states: Content (files beyond the media library, metaobjects),
    Marketing, Online Store (themes, navigation, blog, preferences), Settings (domains,
    invoices), Products sub-pages (inventory, transfers, gift cards).
 
