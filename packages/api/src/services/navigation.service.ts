@@ -16,7 +16,8 @@ export async function listMenus(tx: StoreTx): Promise<NavigationMenuListRow[]> {
       id: navigationMenu.id,
       title: navigationMenu.title,
       handle: navigationMenu.handle,
-      itemCount: sql<number>`jsonb_array_length(${navigationMenu.items})`,
+      // Every item at every level, not just the top row of the menu.
+      itemCount: sql<number>`jsonb_array_length(jsonb_path_query_array(${navigationMenu.items}, 'strict $.**.id'))`,
       updatedAt: navigationMenu.updatedAt,
     })
     .from(navigationMenu)

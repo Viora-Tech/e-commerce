@@ -155,4 +155,74 @@ describe('navigation', () => {
       ),
     ).rejects.toThrow()
   })
+
+  it('saves a nested menu, counts every level and refuses a fourth', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const nested = [
+      {
+        id: 'shop',
+        title: 'Shop',
+        type: 'url' as const,
+        value: '/collections/all',
+        children: [
+          {
+            id: 'pads',
+            title: 'Mousepads',
+            type: 'collection' as const,
+            value: 'mousepads',
+            children: [
+              { id: 'glass', title: 'Glasspads', type: 'collection' as const, value: 'glasspads' },
+            ],
+          },
+        ],
+      },
+      { id: 'support', title: 'Support', type: 'page' as const, value: 'support' },
+    ]
+    const menu = await call(
+      appRouter.navigation.save,
+      { title: 'Main menu', handle: 'main-menu', items: nested },
+      { context: a.ctx },
+    )
+    const read = await call(
+      appRouter.navigation.get,
+      { id: menu?.id as string },
+      { context: a.ctx },
+    )
+    expect(read?.items).toEqual(nested)
+
+    const list = await call(appRouter.navigation.list, undefined, { context: a.ctx })
+    expect(list.find((m) => m.handle === 'main-menu')?.itemCount).toBe(4)
+
+    const tooDeep = [
+      {
+        id: 'shop',
+        title: 'Shop',
+        type: 'home' as const,
+        children: [
+          {
+            id: 'pads',
+            title: 'Mousepads',
+            type: 'collection' as const,
+            value: 'mousepads',
+            children: [
+              {
+                id: 'glass',
+                title: 'Glasspads',
+                type: 'collection' as const,
+                value: 'glasspads',
+                children: [{ id: 'x', title: 'Too deep', type: 'home' as const }],
+              },
+            ],
+          },
+        ],
+      },
+    ]
+    await expect(
+      call(
+        appRouter.navigation.save,
+        { title: 'Deep', handle: 'deep', items: tooDeep },
+        { context: a.ctx },
+      ),
+    ).rejects.toThrow()
+  })
 })
