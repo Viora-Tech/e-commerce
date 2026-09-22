@@ -73,9 +73,6 @@ export const productFormContent = {
   },
   media: {
     heading: 'Media',
-    empty: 'No images yet',
-    dropzone: 'Drop images here or click to upload',
-    uploadSoon: 'Uploads land with the media library. Images from the import are shown here.',
   },
   pricing: {
     heading: 'Pricing',

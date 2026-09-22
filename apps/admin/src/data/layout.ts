@@ -37,6 +37,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/settings/payments', 'Payments'],
   ['/settings/shipping', 'Shipping'],
   ['/settings/notifications', 'Notifications'],
+  ['/settings/files', 'Files'],
   ['/settings/staff', 'Staff'],
   ['/settings/domains', 'Domains'],
   ['/settings/invoices', 'Invoices'],

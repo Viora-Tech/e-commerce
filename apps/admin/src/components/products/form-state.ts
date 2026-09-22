@@ -28,6 +28,8 @@ export type VariantRow = {
   mediaId: string | null
 }
 
+export type MediaItem = { id: string; url: string; alt: string | null; contentType: string | null }
+
 export type ProductFormState = {
   title: string
   description: RichTextValue | null
@@ -40,6 +42,8 @@ export type ProductFormState = {
   handle: string
   options: OptionRow[]
   variants: VariantRow[]
+  /** Gallery in display order; the first item is the cover. */
+  media: MediaItem[]
   /** Reason recorded against every quantity change in this save. */
   inventoryReason: InventoryReason
 }
@@ -75,6 +79,7 @@ export function emptyForm(): ProductFormState {
     handle: '',
     options: [],
     variants: [emptyVariant([])],
+    media: [],
     inventoryReason: 'correction',
   }
 }
@@ -109,6 +114,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       weight: v.weightGrams == null ? '' : String(v.weightGrams),
       mediaId: v.mediaId,
     })),
+    media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
     inventoryReason: 'correction',
   }
 }
@@ -145,6 +151,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
     seoDescription: form.seoDescription.trim() || null,
     status: form.status,
     inventoryReason: form.inventoryReason,
+    mediaIds: form.media.map((m) => m.id),
     options: form.options.map((o) => ({
       id: o.id,
       name: o.name.trim(),
