@@ -1,0 +1,1 @@
+ALTER TABLE "store" ADD COLUMN "gst_rate_percent" integer DEFAULT 18 NOT NULL;

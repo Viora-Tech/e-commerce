@@ -1,78 +1,53 @@
+import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
-import ProductThumb from '@/components/products/product-thumb'
+import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
-import { formatPaise } from '@/lib/money'
-import { type OrderDetail, refundedTotal } from './order-detail-types'
+import type { OrderDetail } from './order-detail-types'
+import OrderLineRow from './order-line-row'
+import { totalRows } from './order-totals'
 
 type LineItemsCardProps = {
   order: OrderDetail
 }
 
-type TotalRow = { label: string; value: string; strong?: boolean; muted?: boolean }
-
-function totalRows(order: OrderDetail): TotalRow[] {
-  const rows: TotalRow[] = [{ label: copy.items.subtotal, value: formatPaise(order.subtotalPaise) }]
-  if (order.discountPaise > 0) {
-    const code = order.discountCode ? ` (${order.discountCode})` : ''
-    rows.push({
-      label: `${order.discountLabel ?? copy.items.orderDiscount}${code}`,
-      value: `−${formatPaise(order.discountPaise)}`,
-    })
-  }
-  rows.push({ label: copy.items.shipping, value: formatPaise(order.shippingPaise) })
-
-  const adj = order.paymentAdjustmentPaise
-  if (adj !== 0) {
-    rows.push({
-      label: order.paymentAdjustmentLabel ?? (adj < 0 ? copy.items.discount : copy.items.fee),
-      value: `${adj < 0 ? '−' : '+'}${formatPaise(Math.abs(adj))}`,
-    })
-  }
-  rows.push({ label: copy.items.total, value: formatPaise(order.totalPaise), strong: true })
-  const back = refundedTotal(order.refunds)
-  if (back > 0) {
-    rows.push({ label: copy.items.refunded, value: `−${formatPaise(back)}`, muted: true })
-    rows.push({ label: copy.items.net, value: formatPaise(order.totalPaise - back), strong: true })
-  }
-
-  return rows
-}
-
 /** What was bought, at the prices captured when the order was placed. */
 export default function LineItemsCard({ order }: LineItemsCardProps) {
+  // Render logic
   const rows = totalRows(order)
+  const packed = order.lines.some((l) => l.fulfilledQuantity > 0)
+  const allPacked = order.lines.every((l) => l.fulfilledQuantity >= l.quantity)
+  const firstSettlement = rows.findIndex((r) => r.settlement)
 
   return (
-    <DataCard size="kit" title={copy.items.heading}>
+    <DataCard
+      size="kit"
+      title={copy.items.heading}
+      action={
+        packed ? (
+          <StatusLabel
+            kind="fulfilment"
+            value={allPacked ? 'fulfilled' : 'unfulfilled'}
+            variant="pill"
+            size="sm"
+          />
+        ) : undefined
+      }
+    >
       <ul className="divide-y divide-border">
         {order.lines.map((l) => (
-          <li key={l.id} className="flex items-center gap-4 py-3 first:pt-0">
-            <ProductThumb url={l.imageUrl} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{l.title}</p>
-              <p className="text-kit-body">
-                {[
-                  l.variantTitle && l.variantTitle !== 'Default' ? l.variantTitle : null,
-                  l.sku ? `${copy.items.sku} ${l.sku}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
-              </p>
-              <p className="text-kit-body tabular-nums">
-                {formatPaise(l.unitPricePaise)} × {l.quantity}
-              </p>
-            </div>
-            <p className="shrink-0 font-medium tabular-nums">
-              {formatPaise(l.unitPricePaise * l.quantity)}
-            </p>
-          </li>
+          <OrderLineRow key={l.id} line={l} />
         ))}
       </ul>
       <dl className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-        {rows.map((r) => (
+        {rows.map((r, i) => (
           <div
             key={r.label}
-            className={`flex justify-between ${r.strong ? 'font-semibold' : ''} ${r.muted ? 'text-muted-foreground' : ''}`}
+            className={cn(
+              'flex justify-between',
+              r.strong && 'font-semibold',
+              r.muted && 'text-muted-foreground',
+              i === firstSettlement && firstSettlement > 0 && 'mt-2 border-t border-border pt-4',
+            )}
           >
             <dt>{r.label}</dt>
             <dd className="tabular-nums">{r.value}</dd>

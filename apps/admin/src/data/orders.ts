@@ -1,6 +1,17 @@
 export const ORDER_STATUSES = ['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
+/** 1st, 2nd, 3rd, 4th — for "3rd order" on the customer card. */
+function ordinal(n: number): string {
+  const rest = n % 100
+  if (rest >= 11 && rest <= 13) return `${n}th`
+  const last = n % 10
+  if (last === 1) return `${n}st`
+  if (last === 2) return `${n}nd`
+  if (last === 3) return `${n}rd`
+  return `${n}th`
+}
+
 /** Copy for the orders list and shared order labels. */
 export const ordersContent = {
   title: 'Orders',
@@ -60,8 +71,12 @@ export const orderDetailContent = {
   back: 'Orders',
   title: (n: number) => `Order #${n}`,
   placed: (when: string) => `Placed ${when}`,
+  previous: 'Previous order',
+  next: 'Next order',
   actions: {
     markPaid: 'Mark as paid',
+    fulfilItems: 'Fulfil items',
+    collect: 'Collect payment',
     fulfil: 'Mark as fulfilled',
     deliver: 'Mark as delivered',
     cancel: 'Cancel order',
@@ -100,10 +115,52 @@ export const orderDetailContent = {
     partiallyRefunded: 'Partially refunded',
     fulfilment: { unfulfilled: 'Unfulfilled', fulfilled: 'Fulfilled', delivered: 'Delivered' },
   },
+  unfulfilled: {
+    heading: 'Unfulfilled',
+    fulfilled: 'Fulfilled',
+    ofQuantity: (done: number, total: number) => `${done} of ${total} packed`,
+    waybill: 'Tracking',
+  },
+  fulfilDialog: {
+    title: 'Fulfil items',
+    body: 'Pick what is going out now. The shopper is told once everything on the order has been packed.',
+    quantity: 'Quantity',
+    courier: 'Courier',
+    courierPlaceholder: 'Delhivery, Blue Dart, hand delivery…',
+    tracking: 'Tracking number',
+    trackingPlaceholder: 'Optional',
+    trackingUrl: 'Tracking link',
+    confirm: 'Fulfil items',
+    cancel: 'Cancel',
+    done: 'Items marked as fulfilled',
+    failed: 'Could not fulfil those items',
+    nothing: 'Nothing left to pack.',
+  },
+  collectDialog: {
+    title: 'Collect payment',
+    body: (amount: string) =>
+      `Record ${amount} received outside the gateway, for example cash on delivery or a bank transfer you matched by hand.`,
+    amount: 'Amount (₹)',
+    confirm: 'Mark as paid',
+    cancel: 'Cancel',
+    done: 'Payment recorded',
+    failed: 'Could not record that payment',
+    openPayPage: 'Open pay page',
+    gatewayNote:
+      'This order is on a gateway: send the shopper back to the pay page instead of recording it here.',
+  },
   items: {
     heading: 'Items',
     sku: 'SKU',
     subtotal: 'Subtotal',
+    tax: 'Tax',
+    cgst: (rate: number) => `CGST ${rate / 2}%`,
+    sgst: (rate: number) => `SGST ${rate / 2}%`,
+    igst: (rate: number) => `IGST ${rate}%`,
+    taxIncluded: 'included in the prices above',
+    paidByCustomer: 'Paid by customer',
+    balance: 'Balance',
+    balanceOwed: 'Balance due',
     shipping: 'Shipping',
     fee: 'Payment fee',
     discount: 'Payment discount',
@@ -118,6 +175,8 @@ export const orderDetailContent = {
     reference: 'Reference',
     gatewayId: 'Gateway payment id',
     captured: 'Captured',
+    authorised: 'Authorised, not yet captured',
+    awaiting: 'Awaiting collection',
     refundedTotal: 'Refunded',
     events: 'Gateway events',
     noEvents: 'No gateway events yet.',
@@ -131,6 +190,7 @@ export const orderDetailContent = {
   },
   timeline: {
     heading: 'Timeline',
+    today: 'Today',
     placed: 'Order placed',
     paymentCaptured: 'Payment captured',
     paymentEvent: (type: string) => `Gateway: ${type}`,
@@ -153,6 +213,12 @@ export const orderDetailContent = {
     heading: 'Customer',
     guest: 'Guest checkout',
     contact: 'Contact',
+    orderCount: (n: number) => (n === 1 ? 'First order' : `${ordinal(n)} order`),
+    copy: (what: string) => `Copy ${what}`,
+    copied: (what: string) => `${what} copied`,
+    email: 'Email',
+    phone: 'Phone',
+    addressLabel: 'Address',
     address: 'Shipping address',
     noAddress: 'No address on file',
     billingSame: 'Billing address is the same as shipping',

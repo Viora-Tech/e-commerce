@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+/** Most gaming and electronics accessories sit at 18%; merchants can change it. */
+export const DEFAULT_GST_RATE_PERCENT = 18
+
 /** Indian GSTIN: 2-digit state code, PAN, entity number, Z, checksum. */
 const GSTIN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/
 
@@ -41,6 +44,8 @@ export const StoreGeneralSchema = z.object({
     .refine((v) => v === '' || GSTIN.test(v), 'GSTIN should look like 06AAACW1234A1Z5')
     .default(''),
   timezone: z.string().trim().min(1).default('Asia/Kolkata'),
+  /** GST rate contained in listed prices; 0 turns the tax line off. */
+  gstRatePercent: z.coerce.number().min(0).max(40).default(DEFAULT_GST_RATE_PERCENT),
 })
 
 export type StoreGeneral = z.infer<typeof StoreGeneralSchema>
@@ -53,6 +58,7 @@ type StoreGeneralRow = {
   address: unknown
   gstin: string | null
   timezone: string
+  gstRatePercent?: number | null
 }
 
 /** Shape a store row for the General settings form; unknown address blobs fall back to empty. */
@@ -66,5 +72,6 @@ export function presentStoreGeneral(row: StoreGeneralRow): StoreGeneral & { curr
     address: address.success ? address.data : emptyStoreAddress,
     gstin: row.gstin ?? '',
     timezone: row.timezone,
+    gstRatePercent: row.gstRatePercent ?? DEFAULT_GST_RATE_PERCENT,
   }
 }
