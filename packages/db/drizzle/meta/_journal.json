@@ -239,6 +239,13 @@
       "when": 1790082251244,
       "tag": "0033_product_sale_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790084253100,
+      "tag": "0034_collections",
+      "breakpoints": true
     }
   ]
 }
