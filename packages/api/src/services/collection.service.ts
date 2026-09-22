@@ -119,7 +119,7 @@ export type CollectionProductsInput = {
 
 const availableSql = sql<number>`(
   select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-  from variant v left join inventory_level il on il.variant_id = v.id
+  from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
   where v.product_id = ${product.id} and v.archived_at is null
 )`
 

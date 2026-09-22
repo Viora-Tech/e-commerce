@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import {
   boolean,
   check,
@@ -52,6 +52,8 @@ export const store = pgTable('store', {
   /** GST rate contained in listed prices, as a percentage. */
   gstRatePercent: integer('gst_rate_percent').notNull().default(18),
   timezone: text('timezone').notNull().default('Asia/Kolkata'),
+  /** Variants at or below this available count show as low stock. */
+  lowStockThreshold: integer('low_stock_threshold').notNull().default(5),
   createdAt: createdAt(),
 })
 
@@ -248,16 +250,69 @@ export const variantOptionValue = pgTable('variant_option_value', {
     .references(() => productOptionValue.id),
 })
 
-export const inventoryLevel = pgTable('inventory_level', {
-  id: id(),
-  storeId: storeId(),
-  variantId: uuid('variant_id')
-    .notNull()
-    .references(() => variant.id)
-    .unique(),
-  onHand: integer('on_hand').notNull().default(0),
-  reserved: integer('reserved').notNull().default(0),
-})
+/**
+ * Where stock physically sits. Every store has exactly one default location,
+ * created with the store (or by the inventory_level insert trigger), and it is
+ * the one that fulfils online orders.
+ */
+export const location = pgTable(
+  'location',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    line1: text('line1'),
+    line2: text('line2'),
+    city: text('city'),
+    stateCode: text('state_code'),
+    pincode: text('pincode'),
+    country: text('country').notNull().default('IN'),
+    phone: text('phone'),
+    isDefault: boolean('is_default').notNull().default(false),
+    active: boolean('active').notNull().default(true),
+    /** Stock here is what the storefront sells and orders reserve. */
+    fulfilsOnlineOrders: boolean('fulfils_online_orders').notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('location_one_default').on(t.storeId).where(sql`${t.isDefault}`)],
+)
+
+/**
+ * Stock of one variant at one location. on_hand is physically there, reserved
+ * (shown as Committed) is held by open orders, incoming is on purchase orders or
+ * transfers not yet received. Available = on_hand - reserved.
+ *
+ * Exactly one row per variant has fulfils_online = true: the row the storefront,
+ * carts and orders read. Filter on it with `sellableLevel` whenever joining on
+ * variant_id alone.
+ */
+export const inventoryLevel = pgTable(
+  'inventory_level',
+  {
+    id: id(),
+    storeId: storeId(),
+    variantId: uuid('variant_id')
+      .notNull()
+      .references(() => variant.id),
+    /** Filled by trigger from the store's default location when omitted. */
+    locationId: uuid('location_id').references(() => location.id),
+    onHand: integer('on_hand').notNull().default(0),
+    reserved: integer('reserved').notNull().default(0),
+    incoming: integer('incoming').notNull().default(0),
+    fulfilsOnline: boolean('fulfils_online').notNull().default(true),
+  },
+  (t) => [
+    uniqueIndex('inventory_level_variant_location').on(t.variantId, t.locationId),
+    uniqueIndex('inventory_level_one_sellable').on(t.variantId).where(sql`${t.fulfilsOnline}`),
+  ],
+)
+
+/**
+ * The one inventory row per variant that online selling reads. Add it to any
+ * join or filter on inventory_level.variant_id alone, or rows at other
+ * locations multiply the result.
+ */
+export const sellableLevel = eq(inventoryLevel.fulfilsOnline, true)
 
 /** Every change to on_hand, with why. Reconciles counts against the merchant's memory. */
 export const inventoryAdjustment = pgTable('inventory_adjustment', {
@@ -266,12 +321,94 @@ export const inventoryAdjustment = pgTable('inventory_adjustment', {
   variantId: uuid('variant_id')
     .notNull()
     .references(() => variant.id),
+  /** Null on rows written before locations existed; those were the default location. */
+  locationId: uuid('location_id').references(() => location.id),
   delta: integer('delta').notNull(),
   reason: text('reason', {
-    enum: ['correction', 'received', 'damaged', 'returned', 'sold', 'other'],
+    enum: ['correction', 'received', 'damaged', 'returned', 'theft', 'transfer', 'sold', 'other'],
   }).notNull(),
   note: text('note'),
   createdAt: createdAt(),
+})
+
+/** Stock ordered from a supplier into one location; receiving turns incoming into on_hand. */
+export const purchaseOrder = pgTable(
+  'purchase_order',
+  {
+    id: id(),
+    storeId: storeId(),
+    number: integer('number').notNull(),
+    supplierName: text('supplier_name').notNull(),
+    supplierEmail: text('supplier_email'),
+    supplierPhone: text('supplier_phone'),
+    locationId: uuid('location_id')
+      .notNull()
+      .references(() => location.id),
+    status: text('status', {
+      enum: ['draft', 'ordered', 'partially_received', 'received', 'closed'],
+    })
+      .notNull()
+      .default('draft'),
+    expectedAt: timestamp('expected_at', { withTimezone: true }),
+    currency: text('currency').notNull().default('INR'),
+    shippingPaise: integer('shipping_paise').notNull().default(0),
+    taxPaise: integer('tax_paise').notNull().default(0),
+    note: text('note'),
+    orderedAt: timestamp('ordered_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('purchase_order_store_number').on(t.storeId, t.number)],
+)
+
+export const purchaseOrderLine = pgTable('purchase_order_line', {
+  id: id(),
+  storeId: storeId(),
+  purchaseOrderId: uuid('purchase_order_id')
+    .notNull()
+    .references(() => purchaseOrder.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id')
+    .notNull()
+    .references(() => variant.id),
+  quantity: integer('quantity').notNull(),
+  received: integer('received').notNull().default(0),
+  unitCostPaise: integer('unit_cost_paise').notNull().default(0),
+})
+
+/** Stock moving between two locations: shipping moves it to incoming, receiving lands it. */
+export const transfer = pgTable(
+  'transfer',
+  {
+    id: id(),
+    storeId: storeId(),
+    number: integer('number').notNull(),
+    fromLocationId: uuid('from_location_id')
+      .notNull()
+      .references(() => location.id),
+    toLocationId: uuid('to_location_id')
+      .notNull()
+      .references(() => location.id),
+    status: text('status', { enum: ['draft', 'in_transit', 'received'] })
+      .notNull()
+      .default('draft'),
+    note: text('note'),
+    shippedAt: timestamp('shipped_at', { withTimezone: true }),
+    receivedAt: timestamp('received_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('transfer_store_number').on(t.storeId, t.number)],
+)
+
+export const transferLine = pgTable('transfer_line', {
+  id: id(),
+  storeId: storeId(),
+  transferId: uuid('transfer_id')
+    .notNull()
+    .references(() => transfer.id, { onDelete: 'cascade' }),
+  variantId: uuid('variant_id')
+    .notNull()
+    .references(() => variant.id),
+  quantity: integer('quantity').notNull(),
 })
 
 export type CustomerAddress = {
