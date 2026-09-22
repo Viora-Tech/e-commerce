@@ -5,6 +5,7 @@ import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
+import { invitationsRouter } from './invitations'
 import { mediaRouter } from './media'
 import { navigationRouter } from './navigation'
 import { ordersRouter } from './orders'
@@ -28,6 +29,7 @@ export const appRouter = {
   analytics: analyticsRouter,
   media: mediaRouter,
   staff: staffRouter,
+  invitations: invitationsRouter,
 }
 
 export type AppRouter = typeof appRouter

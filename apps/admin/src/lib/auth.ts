@@ -2,6 +2,7 @@ import { createMerchantAuth, type MerchantAuth } from '@commerce/auth'
 import { loadEnv } from '@commerce/config'
 import { headers } from 'next/headers'
 import { db } from './db'
+import { rememberDevOtp } from './dev-otp'
 
 const g = globalThis as unknown as { __merchantAuth?: MerchantAuth }
 
@@ -14,9 +15,12 @@ export function auth(): MerchantAuth {
       baseURL: env.ADMIN_URL,
       secret: env.AUTH_SECRET,
       trustedOrigins: [env.ADMIN_URL],
-      // Dev delivery: print the code. SES adapter replaces this in the notifications PR.
+      // Dev delivery: print the code, and hand it to the readback route so the
+      // login page can show it when DEV_LOGIN_OTP is on. Production sends mail
+      // through the notification channels instead.
       sendOtp: async ({ email, otp, type }) => {
         console.log(`[otp] ${type} code for ${email}: ${otp}`)
+        rememberDevOtp(email, otp)
       },
     })
   }

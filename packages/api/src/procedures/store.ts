@@ -1,4 +1,6 @@
 import {
+  forgetInvitation,
+  invitationRoleForUser,
   listRoles,
   memberAccess,
   type Permission,
@@ -57,6 +59,26 @@ async function resolveAccess(
 
   await seedSystemRoles(tx, storeId)
   const roles = await listRoles(tx, storeId)
+
+  // Someone who joined through an invitation gets the role they were invited to,
+  // even if they accepted through Better Auth directly rather than our page. The
+  // admin fallback below is only for members who predate roles.
+  if (organizationRole !== 'owner') {
+    const invited = await invitationRoleForUser(tx, storeId, userId)
+    const invitedRole = invited ? roles.find((r) => r.id === invited.roleId) : undefined
+    if (invited && invitedRole) {
+      await upsertMember(tx, { storeId, userId, roleId: invitedRole.id })
+      await forgetInvitation(tx, invited.invitationId)
+      return {
+        roleId: invitedRole.id,
+        roleSlug: invitedRole.slug,
+        roleName: invitedRole.name,
+        isOwner: invitedRole.slug === 'owner',
+        permissions: invitedRole.permissions,
+      }
+    }
+  }
+
   const slug = organizationRole === 'owner' ? 'owner' : 'admin'
   const target = roles.find((r) => r.slug === slug) ?? roles.find((r) => r.slug === 'owner')
   if (!target) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'No roles for this store' })
