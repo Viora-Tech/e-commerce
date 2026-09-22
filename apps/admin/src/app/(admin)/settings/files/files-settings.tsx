@@ -3,6 +3,7 @@
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
+import SettingsSection from '@/components/settings/settings-section'
 import StorageVerify from '@/components/settings/storage-verify'
 import { mediaContent } from '@/data/media'
 import { settingsContent } from '@/data/settings'
@@ -22,9 +23,9 @@ function providerHint(m: ProviderDef) {
 
 function footer() {
   return (
-    <section id={settingsContent.sections.files[1]?.id} className="scroll-mt-20">
+    <SettingsSection id={settingsContent.sections.files[1]?.id ?? 'section-verify'}>
       <StorageVerify />
-    </section>
+    </SettingsSection>
   )
 }
 
