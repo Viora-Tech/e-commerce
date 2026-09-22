@@ -11,6 +11,7 @@ import {
   ProductWriteSchema,
   parseProductCsv,
   summariseImport,
+  syncAutomaticCollections,
   uniqueHandle,
   updateProduct as writeProduct,
 } from '@commerce/core'
@@ -92,6 +93,9 @@ export const productsRouter = {
         const productId = id
           ? await writeProduct(context.tx, context.scope.storeId, id, write)
           : await createProduct(context.tx, context.scope.storeId, write)
+        /* A title, type, vendor, tag or price edit can move the product in or
+           out of an automatic collection, so membership is recomputed here. */
+        await syncAutomaticCollections(context.tx, context.scope.storeId)
         return getProduct(context.tx, productId)
       }),
     ),
@@ -153,7 +157,12 @@ export const productsRouter = {
     .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
     .handler(({ context, input }) =>
       invalidToBadRequest(() =>
-        importProducts(context.tx, context.scope.storeId, parseProductCsv(input.csv).products),
+        importProducts(context.tx, context.scope.storeId, parseProductCsv(input.csv).products).then(
+          async (result) => {
+            await syncAutomaticCollections(context.tx, context.scope.storeId)
+            return result
+          },
+        ),
       ),
     ),
 

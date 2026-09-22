@@ -67,3 +67,28 @@ Row 1: three `StatCard size="lg"` (Pending & cancelled uses `children`). Row 2: 
 `StatTabs` / `ActivityCard`. Row 3: `RecentOrdersCard` (dashboard table variant 5:2032) /
 `TopProductsCard`. Row 4: `BestSellingCard` / `LowStockCard` (14:910 pattern). Deviations are logged in
 `admin-frames.md`.
+
+## The list page: one shell for every index screen
+
+`kit/kit-list-page.tsx` is the shared shell for `/orders`, `/products` and
+`/products/collections`, drawn to frames 5:2353 and 5:3936:
+
+| Slot | What it holds |
+| --- | --- |
+| Heading row (48px) | `text-kit-heading` title, then a green primary and any outline secondaries |
+| `strip` | Stat tiles (orders, products, collections) plus the category cards on collections |
+| children | Always `ResourceTable size="frame"` |
+
+`ResourceTable` already *is* the frame's card anatomy: a 24px-padded card holding the pill tabs,
+the search and icon-button toolbar with its applied-filter chips, the tinted header band, 68px
+rows, the selection bar and numbered paging. So the three pages share one table rather than each
+drawing its own, and a column spec (`ResourceColumnSpec`) is all a page contributes:
+`order-columns` in `orders-page.tsx`, `product-columns.tsx`, `collection-columns.tsx`.
+
+The three differ only in what their data allows:
+
+| | Strip | Tabs | Selection | Row actions |
+| --- | --- | --- | --- | --- |
+| Orders | 4 stat tiles | status | yes, bulk status | row click |
+| Products | 4 stat tiles | status | yes, bulk status/tag/delete | row click |
+| Collections | 4 stat tiles + category cards | featured / on sale / out of stock | off (the frame's rows carry their own edit and delete glyphs) | edit and delete glyphs |

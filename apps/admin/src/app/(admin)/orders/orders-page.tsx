@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
+import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
 import { paymentStatusOf } from '@/components/orders/order-payment-state'
 import OrderTiles, { type OrderStats } from '@/components/orders/order-tiles'
@@ -232,56 +232,51 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   return (
-    <PageBody width="frame" className="gap-6">
-      {/* 5:2375 + 5:2502: 22px heading on the left, the two 48px actions on the right, 24px under the bar. */}
-      <div className="flex h-12 items-center justify-between">
-        <h1 className="text-kit-heading text-ink-strong">{ordersContent.heading}</h1>
-        <HeaderActions />
-      </div>
-      <OrderTiles stats={initial.stats} />
-      {/* 5:2560: the table card sits 20px under the tiles. */}
-      <div className="-mt-1">
-        <ResourceTable
-          size="frame"
-          resourceName={ordersContent.resource}
-          columns={columns}
-          items={items}
-          getId={(o) => o.id}
-          href={(o) => `/orders/${o.id}`}
-          loading={loading}
-          query={query}
-          onQueryChange={(query) => setQ({ query, page: 1 })}
-          onClearAll={() => setQ({ query: '', status: null, page: 1 })}
-          tabs={
-            <StatusTabs
-              value={status}
-              allCount={initial.allCount}
-              onChange={(s) => setQ({ status: s, page: 1 })}
-            />
-          }
-          page={page}
-          perPage={PER_PAGE}
-          total={total}
-          onPageChange={(page) => setQ({ page })}
-          bulkActions={(ids, clear) => (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                {ordersContent.bulk.markAs}
-                <ChevronDown />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {ORDER_STATUSES.map((s) => (
-                  <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
-                    {ordersContent.status[s]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          empty={ordersContent.empty}
-        />
-      </div>
-    </PageBody>
+    <KitListPage
+      title={ordersContent.heading}
+      actions={<HeaderActions />}
+      strip={<OrderTiles stats={initial.stats} />}
+    >
+      <ResourceTable
+        size="frame"
+        resourceName={ordersContent.resource}
+        columns={columns}
+        items={items}
+        getId={(o) => o.id}
+        href={(o) => `/orders/${o.id}`}
+        loading={loading}
+        query={query}
+        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+        tabs={
+          <StatusTabs
+            value={status}
+            allCount={initial.allCount}
+            onChange={(s) => setQ({ status: s, page: 1 })}
+          />
+        }
+        page={page}
+        perPage={PER_PAGE}
+        total={total}
+        onPageChange={(page) => setQ({ page })}
+        bulkActions={(ids, clear) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+              {ordersContent.bulk.markAs}
+              <ChevronDown />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {ORDER_STATUSES.map((s) => (
+                <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
+                  {ordersContent.status[s]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        empty={ordersContent.empty}
+      />
+    </KitListPage>
   )
 }
 

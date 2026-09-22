@@ -16,6 +16,8 @@ import type { CardProduct } from './types'
  */
 export type ProductLoader = (query: {
   productType?: string | undefined
+  /** Set by the collection block; the loader reads membership rather than type. */
+  collectionHandle?: string | undefined
   limit: number
 }) => Promise<CardProduct[]>
 
@@ -57,6 +59,14 @@ export type FeaturedProductsProps = Frame & {
   resolved?: CardProduct[]
 }
 
+export type CollectionGridProps = Frame & {
+  heading: string
+  collectionHandle: string
+  limit: number
+  columns: number
+  resolved?: CardProduct[]
+}
+
 export type RichTextProps = Frame & {
   heading: string
   /** Lexical JSON. Older pages may still hold a plain string; the block renders both. */
@@ -84,6 +94,7 @@ export type BlockProps = {
   Hero: HeroProps
   ProductGrid: ProductGridProps
   FeaturedProducts: FeaturedProductsProps
+  CollectionGrid: CollectionGridProps
   RichText: RichTextProps
 }
 
@@ -116,7 +127,10 @@ export function createBlocksConfig(
   return {
     categories: {
       layout: { title: 'Layout', components: ['Hero', 'RichText'] },
-      products: { title: 'Products', components: ['ProductGrid', 'FeaturedProducts'] },
+      products: {
+        title: 'Products',
+        components: ['ProductGrid', 'FeaturedProducts', 'CollectionGrid'],
+      },
     },
     components: {
       Hero: {
@@ -282,6 +296,43 @@ export function createBlocksConfig(
                 ))}
               </div>
             </div>
+          </SectionFrame>
+        ),
+      },
+
+      CollectionGrid: {
+        label: 'Collection grid',
+        fields: {
+          heading: { type: 'text', label: 'Heading' },
+          collectionHandle: { type: 'text', label: 'Collection handle' },
+          limit: { type: 'number', label: 'Products', min: 1, max: 24 },
+          columns: { type: 'number', label: 'Columns', min: 2, max: 5 },
+          ...frameFields,
+        },
+        defaultProps: {
+          heading: 'Shop the collection',
+          collectionHandle: '',
+          limit: 8,
+          columns: 4,
+          scheme: 'scheme-1',
+          padTop: 56,
+          padBottom: 56,
+        },
+        resolveData: async ({ props }) => ({
+          props: {
+            resolved: props.collectionHandle
+              ? await loadProducts({ collectionHandle: props.collectionHandle, limit: props.limit })
+              : [],
+          },
+          readOnly: { resolved: true },
+        }),
+        render: ({ heading, columns, resolved, scheme, padTop, padBottom }) => (
+          <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
+            <TabbedProducts
+              heading={heading}
+              columns={columns}
+              tabs={[{ label: heading, products: resolved ?? [] }]}
+            />
           </SectionFrame>
         ),
       },
