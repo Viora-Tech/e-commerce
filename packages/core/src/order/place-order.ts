@@ -26,6 +26,8 @@ import { type ResolvedDiscount, resolveCartDiscount } from '../discounts/resolve
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
 import { applyPaymentAdjustment } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
+import { StoreAddressSchema } from '../settings/general'
+import { computeGst } from '../tax/gst'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
 export type CheckoutDetails = {
@@ -199,7 +201,12 @@ const createOrder: WorkflowStep<State> = {
       .update(store)
       .set({ nextOrderNumber: sql`${store.nextOrderNumber} + 1` })
       .where(eq(store.id, ctx.storeId))
-      .returning({ next: store.nextOrderNumber, payments: store.payments })
+      .returning({
+        next: store.nextOrderNumber,
+        payments: store.payments,
+        address: store.address,
+        gstRatePercent: store.gstRatePercent,
+      })
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
     const orderNumber = s.next - 1
     const subtotalPaise = sumPaise(lines)
@@ -216,6 +223,15 @@ const createOrder: WorkflowStep<State> = {
       adjustment,
     )
     const totalPaise = afterAdjustment + shippingPaise
+    /* Listed prices include GST, so the tax is split out of the total rather
+       than added to it; the shopper pays the same either way. */
+    const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
+    const tax = computeGst({
+      amountPaise: totalPaise,
+      ratePercent: s.gstRatePercent,
+      shipToState: input.checkout?.address.stateCode ?? null,
+      storeState: storeAddress.success ? storeAddress.data.state : null,
+    })
     const [o] = await ctx.tx
       .insert(order)
       .values({
@@ -223,6 +239,8 @@ const createOrder: WorkflowStep<State> = {
         number: orderNumber,
         status: 'placed',
         subtotalPaise,
+        taxPaise: tax.taxPaise,
+        taxBreakdown: tax,
         shippingPaise,
         paymentAdjustmentPaise: adjustmentPaise,
         paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,

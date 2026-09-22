@@ -2,6 +2,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
+import { formatWhen } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import {
   methodLabel,
@@ -9,13 +10,14 @@ import {
   type OrderPayment,
   paymentStatus,
   refundedTotal,
-  when,
 } from './order-detail-types'
 
 type PaymentCardProps = {
   order: OrderDetail
   /** Present when at least one payment can still be refunded. */
   onRefund?: (payment: OrderPayment) => void
+  /** Present when money is still owed and can be recorded by hand. */
+  onCollect?: (() => void) | undefined
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -28,11 +30,23 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /** Gateway, references, what was captured and what went back. */
-export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
+export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardProps) {
+  // Render logic
   const events = order.paymentEvents
+  const balance = order.balance
 
   return (
-    <DataCard size="kit" title={copy.payment.heading}>
+    <DataCard
+      size="kit"
+      title={copy.payment.heading}
+      action={
+        onCollect ? (
+          <Button size="sm" onClick={onCollect}>
+            {copy.actions.collect}
+          </Button>
+        ) : undefined
+      }
+    >
       <div className="flex flex-col gap-5">
         {order.payments.map((p) => {
           const pill = paymentStatus(p, order.refunds)
@@ -56,7 +70,10 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
                 {p.providerPaymentId ? (
                   <Row label={copy.payment.gatewayId} value={p.providerPaymentId} />
                 ) : null}
-                <Row label={copy.payment.captured} value={formatPaise(p.amountPaise)} />
+                <Row
+                  label={p.status === 'pending' ? copy.payment.authorised : copy.payment.captured}
+                  value={formatPaise(p.amountPaise)}
+                />
                 {back > 0 ? (
                   <Row label={copy.payment.refundedTotal} value={`−${formatPaise(back)}`} />
                 ) : null}
@@ -76,7 +93,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
                       {formatPaise(r.amountPaise)}
                     </span>
                     <span className="block truncate text-kit-body">
-                      {[when(r.createdAt), r.reason].filter(Boolean).join(', ')}
+                      {[formatWhen(r.createdAt), r.reason].filter(Boolean).join(', ')}
                     </span>
                   </span>
                   <StatusLabel kind="refund" value={r.status} variant="pill" size="sm" />
@@ -87,6 +104,18 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
         ) : null}
 
         <section className="border-t border-border pt-4">
+          <dl className="mb-4 flex flex-col gap-1.5">
+            <Row label={copy.items.paidByCustomer} value={formatPaise(balance.capturedPaise)} />
+            {balance.pendingPaise > 0 ? (
+              <Row label={copy.payment.awaiting} value={formatPaise(balance.pendingPaise)} />
+            ) : null}
+            {balance.balancePaise !== 0 ? (
+              <Row
+                label={balance.balancePaise > 0 ? copy.items.balanceOwed : copy.items.balance}
+                value={formatPaise(Math.abs(balance.balancePaise))}
+              />
+            ) : null}
+          </dl>
           <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
             <p className="text-kit-cell text-muted-foreground">{copy.payment.noEvents}</p>
@@ -96,7 +125,7 @@ export default function PaymentCard({ order, onRefund }: PaymentCardProps) {
                 <li key={e.id} className="flex items-center justify-between gap-3 text-kit-cell">
                   <span className="min-w-0">
                     <code className="block text-xs">{e.type}</code>
-                    <span className="block truncate text-kit-body">{when(e.receivedAt)}</span>
+                    <span className="block truncate text-kit-body">{formatWhen(e.receivedAt)}</span>
                     {e.error ? (
                       <span className="block truncate text-xs text-destructive">{e.error}</span>
                     ) : null}

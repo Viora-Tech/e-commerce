@@ -47,6 +47,8 @@ export const store = pgTable('store', {
   /** { line1, line2, city, state, pincode, country } */
   address: jsonb('address'),
   gstin: text('gstin'),
+  /** GST rate contained in listed prices, as a percentage. */
+  gstRatePercent: integer('gst_rate_percent').notNull().default(18),
   timezone: text('timezone').notNull().default('Asia/Kolkata'),
   createdAt: createdAt(),
 })
@@ -295,6 +297,10 @@ export const order = pgTable('order', {
   discountLabel: text('discount_label'),
   discountPaise: integer('discount_paise').notNull().default(0),
   totalPaise: integer('total_paise').notNull(),
+  /** GST already contained in total_paise (Indian prices are tax inclusive). */
+  taxPaise: integer('tax_paise').notNull().default(0),
+  /** GstBreakdown snapshot: rate, CGST/SGST or IGST, as charged. */
+  taxBreakdown: jsonb('tax_breakdown'),
   tags: text('tags').array().notNull().default([]),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -313,6 +319,8 @@ export const orderLine = pgTable('order_line', {
   variantTitle: text('variant_title'),
   quantity: integer('quantity').notNull(),
   unitPricePaise: integer('unit_price_paise').notNull(),
+  /** How many of `quantity` have been packed; below it the line is unfulfilled. */
+  fulfilledQuantity: integer('fulfilled_quantity').notNull().default(0),
 })
 
 export const payment = pgTable(

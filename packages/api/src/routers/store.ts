@@ -60,6 +60,7 @@ export const storeRouter = {
       contactPhone: empty(input.contactPhone),
       address: input.address,
       gstin: empty(input.gstin),
+      gstRatePercent: Math.round(input.gstRatePercent),
       timezone: input.timezone,
     })
     return s ? presentStoreGeneral(s) : null

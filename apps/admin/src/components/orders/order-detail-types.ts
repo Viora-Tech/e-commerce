@@ -7,6 +7,7 @@ export type OrderStatus = OrderDetail['status']
 export type OrderPayment = OrderDetail['payments'][number]
 export type OrderRefund = OrderDetail['refunds'][number]
 export type OrderShipment = OrderDetail['shipment']
+export type OrderLine = OrderDetail['lines'][number]
 
 export const when = (iso: string | Date) =>
   new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
@@ -41,6 +42,20 @@ export function fulfilmentStatus(status: OrderStatus): StatusValue<'fulfilment'>
   if (status === 'delivered') return 'delivered'
   if (status === 'fulfilled') return 'fulfilled'
   return 'unfulfilled'
+}
+
+/** Lines with something still to pack, with how many are left on each. */
+export function unfulfilledLines(order: OrderDetail): { line: OrderLine; remaining: number }[] {
+  return order.lines
+    .map((line) => ({ line, remaining: line.quantity - line.fulfilledQuantity }))
+    .filter((l) => l.remaining > 0)
+}
+
+/** Gateways settle themselves; these two are collected by the merchant. */
+const OFFLINE_METHODS = new Set(['cod', 'manual'])
+
+export function isOfflineMethod(method: string | null): boolean {
+  return method !== null && OFFLINE_METHODS.has(method)
 }
 
 export function methodLabel(provider: string): string {

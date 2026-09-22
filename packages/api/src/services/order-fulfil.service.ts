@@ -1,0 +1,137 @@
+import { type FulfilOrderInput, fulfilOrderLines, refundedPaise } from '@commerce/core'
+import type { StoreTx } from '@commerce/db'
+import { customer, order, payment } from '@commerce/db'
+import { and, asc, count, desc, eq, gt, lt, lte, ne } from 'drizzle-orm'
+
+/** The orders either side of this one by number, for the header's arrows. */
+export async function orderNeighbours(tx: StoreTx, id: string) {
+  const [current] = await tx.select({ number: order.number }).from(order).where(eq(order.id, id))
+  if (!current) return { previous: null, next: null }
+  const [previous] = await tx
+    .select({ id: order.id, number: order.number })
+    .from(order)
+    .where(lt(order.number, current.number))
+    .orderBy(desc(order.number))
+    .limit(1)
+  const [next] = await tx
+    .select({ id: order.id, number: order.number })
+    .from(order)
+    .where(gt(order.number, current.number))
+    .orderBy(asc(order.number))
+    .limit(1)
+  return { previous: previous ?? null, next: next ?? null }
+}
+
+/** How many orders this customer has placed, so the detail page can say "3rd order". */
+export async function customerOrderCount(tx: StoreTx, customerId: string | null): Promise<number> {
+  if (!customerId) return 0
+  const [row] = await tx
+    .select({ total: count() })
+    .from(order)
+    .where(and(eq(order.customerId, customerId), ne(order.status, 'cancelled')))
+  return row?.total ?? 0
+}
+
+/** Which order this one is in that customer's history (1 = their first). */
+export async function customerOrderIndex(
+  tx: StoreTx,
+  customerId: string | null,
+  placedAt: Date,
+): Promise<number> {
+  if (!customerId) return 0
+  const [row] = await tx
+    .select({ total: count() })
+    .from(order)
+    .where(
+      and(
+        eq(order.customerId, customerId),
+        ne(order.status, 'cancelled'),
+        lte(order.placedAt, placedAt),
+      ),
+    )
+  return row?.total ?? 0
+}
+
+export async function fulfilOrder(tx: StoreTx, storeId: string, input: FulfilOrderInput) {
+  return fulfilOrderLines({ tx, storeId }, input)
+}
+
+export type OrderBalance = {
+  /** Sum of payments the gateway has actually taken. */
+  capturedPaise: number
+  /** Taken but not yet captured (a gateway hold, or cash still to collect). */
+  pendingPaise: number
+  refundedPaise: number
+  /** What the shopper still owes: total minus captured, plus anything returned. */
+  balancePaise: number
+}
+
+/** The money summary under the totals: paid by customer, and what is left. */
+export async function orderBalance(
+  tx: StoreTx,
+  storeId: string,
+  orderId: string,
+  totalPaise: number,
+): Promise<OrderBalance> {
+  const rows = await tx.select().from(payment).where(eq(payment.orderId, orderId))
+  const capturedPaise = rows
+    .filter((p) => p.status === 'captured')
+    .reduce((sum, p) => sum + p.amountPaise, 0)
+  const pendingPaise = rows
+    .filter((p) => p.status === 'pending')
+    .reduce((sum, p) => sum + p.amountPaise, 0)
+  let back = 0
+  for (const p of rows) back += await refundedPaise({ tx, storeId }, p.id)
+  return {
+    capturedPaise,
+    pendingPaise,
+    refundedPaise: back,
+    balancePaise: totalPaise - capturedPaise + back,
+  }
+}
+
+/**
+ * Record money the merchant collected outside a gateway (cash on delivery, a
+ * bank transfer they matched by hand). The pending payment row is captured so
+ * the order and the payment never disagree; without one, a payment row is
+ * created so the history still shows where the money came from.
+ */
+export async function collectOrderPayment(
+  tx: StoreTx,
+  storeId: string,
+  input: { orderId: string; amountPaise: number; method?: string | undefined },
+) {
+  const pending = await tx
+    .select()
+    .from(payment)
+    .where(and(eq(payment.orderId, input.orderId), eq(payment.status, 'pending')))
+  const first = pending[0]
+  if (first) {
+    await tx.update(payment).set({ status: 'captured' }).where(eq(payment.id, first.id))
+  } else {
+    await tx.insert(payment).values({
+      storeId,
+      orderId: input.orderId,
+      provider: input.method ?? 'manual',
+      providerRef: `manual_${input.orderId}`,
+      status: 'captured',
+      amountPaise: input.amountPaise,
+    })
+  }
+  const [o] = await tx
+    .update(order)
+    .set({ status: 'paid' })
+    .where(and(eq(order.id, input.orderId), eq(order.status, 'placed')))
+    .returning()
+  return o ?? (await tx.select().from(order).where(eq(order.id, input.orderId)))[0] ?? null
+}
+
+/** Customer name for the header, without pulling the whole record. */
+export async function customerName(tx: StoreTx, customerId: string | null) {
+  if (!customerId) return null
+  const [row] = await tx
+    .select({ name: customer.name })
+    .from(customer)
+    .where(eq(customer.id, customerId))
+  return row?.name ?? null
+}
