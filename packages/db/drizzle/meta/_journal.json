@@ -232,6 +232,13 @@
       "when": 1790081101529,
       "tag": "0032_variant_customs",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790082917887,
+      "tag": "0033_roles_and_permissions",
+      "breakpoints": true
     }
   ]
 }

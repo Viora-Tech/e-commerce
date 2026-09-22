@@ -12,7 +12,8 @@
     "./catalog": "./src/catalog/client.ts",
     "./discounts": "./src/discounts/client.ts",
     "./store-settings": "./src/settings/general.ts",
-    "./segments": "./src/customers/segments.ts"
+    "./segments": "./src/customers/segments.ts",
+    "./permissions": "./src/permissions/client.ts"
   },
   "scripts": {
     "test": "vitest run",
