@@ -22,17 +22,17 @@ type PillTabsProps<T extends string | null> = {
   size?: 'default' | 'frame'
 }
 
-/* Frame 5:2561: soft-green track with 4px inset; the active tab is a white 6px pill
-   that slides between tabs (shared layout element per tab group). */
+/* Sheet 14:977: Aqua Spring track with 4px inset and radius 8; the active tab is a white
+   radius-6 pill (15/500 black, 14/700 green count) that slides between tabs. */
 const TAB =
   'relative isolate flex items-center gap-1 rounded-[0.375rem] font-medium text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 const TAB_SIZE = {
   default: 'h-7 px-2.5 text-xs leading-4',
-  frame: 'h-8 px-3 text-kit-cell',
+  frame: 'h-8 px-3 text-kit-cell font-medium text-muted-foreground',
 } as const
 const COUNT_SIZE = {
   default: 'text-xs font-semibold',
-  frame: 'text-kit-body font-medium',
+  frame: 'text-kit-body font-bold',
 } as const
 const TRACK_SIZE = { default: '', frame: 'h-10' } as const
 const TAB_ACTIVE = 'text-foreground'

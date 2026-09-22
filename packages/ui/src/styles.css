@@ -72,6 +72,13 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-kit-1: var(--shadow-kit-1);
+  --shadow-kit-3: var(--shadow-kit-3);
+  --shadow-kit-6: var(--shadow-kit-6);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-secondary-foreground: var(--brand-secondary-foreground);
+  --color-helper: var(--helper);
+  --color-line-list: var(--line-list);
 
   /* Frame 5:2375 / 5:1367: 22/26/700 page heading. */
   --text-kit-heading: 1.375rem;
@@ -100,19 +107,27 @@
 
 :root {
   --radius: 0.5rem; /* 8px cards, kit 5:1494 */
-  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1); /* soft two-layer elevation; edge from the shadow, not the border */
-  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16); /* interactive cards and rows on hover */
+  /* Kit effects 5:6061: 1 Ambient (cards), 3 Ambient (hover, popovers), 6 Ambient (dialogs). */
+  --shadow-kit-1: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+  --shadow-kit-3: 0 1px 8px 0 rgb(0 0 0 / 0.2);
+  --shadow-kit-6: 0 3px 5px 0 rgb(0 0 0 / 0.2);
+  /* Cards sit on the kit's 3 Ambient tier at rest (Kuldeep wants visible depth), lift to a soft 6 on hover. */
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1);
+  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16);
   --shadow-rail: 1px 0 0 0 var(--border), 4px 0 16px -6px rgb(16 24 40 / 0.08); /* sidebar edge */
-  --shadow-lift: 0 1px 2px 0 rgb(16 24 40 / 0.06), 0 3px 8px -2px rgb(16 24 40 / 0.1); /* small raised surfaces (user card, tiles) */
-  --shadow-toggle: 0 1px 2px 0 rgb(16 24 40 / 0.12), 0 2px 6px -1px rgb(16 24 40 / 0.12);
-  --shadow-popover: 0 8px 24px -4px rgb(2 51 55 / 0.12), 0 2px 6px -2px rgb(2 51 55 / 0.08); /* menus, popovers */
-  --shadow-dialog: 0 24px 64px -12px rgb(2 51 55 / 0.24), 0 8px 24px -8px rgb(2 51 55 / 0.12); /* dialogs, sheets */
+  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.2); /* kit 14:917 category rows, user card */
+  --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.14);
+  --shadow-popover: var(--shadow-kit-3);
+  --shadow-dialog: var(--shadow-kit-6);
   --shadow-bar: 0 1px 0 0 var(--border), 0 4px 12px -6px rgb(2 51 55 / 0.16); /* top bar once the page has scrolled */
 
   /* Canvas and surfaces */
   --background: #f9fafb; /* Neutal/50 */
   --foreground: #23272e;
-  --ink-strong: #023337; /* page title, stat numbers, product names */
+  --ink-strong: #023337; /* Cyprus: secondary brand, page title, stat numbers, product names */
+  --brand-secondary: #023337; /* Cyprus 8:33 */
+  --brand-secondary-foreground: #ffffff;
+  --helper: #7c7c7c; /* Grey 8:33: helper and de-emphasised text */
   --card: #ffffff;
   --card-foreground: var(--foreground);
   --popover: #ffffff;
@@ -121,7 +136,8 @@
   /* Brand */
   --primary: #4ea674; /* active pill, filter button, tab underline */
   --primary-foreground: #ffffff;
-  --primary-soft: #eaf8e7; /* table header band, toggle track */
+  --primary-soft: #eaf8e7; /* Aqua Spring 8:33: table header band, toggle track, subtle backgrounds */
+  --primary-tint: #c1e6ba; /* Surf Crest 8:33: hairlines, active page number */
   --link: #6467f2; /* Primary/500: outline CTAs, inline links */
   --link-soft: #f0f3ff;
   --secondary: #e5e7eb; /* Neutal/200 */
@@ -137,16 +153,16 @@
   --destructive-foreground: #ffffff;
   --success: #21c45d; /* Success/500 */
   --success-foreground: #ffffff;
-  --warning: #f5b400;
-  --warning-foreground: #5c4300;
+  --warning: #f0d411; /* Pending 8:33 */
+  --warning-foreground: #3d3400;
   --info: #6467f2;
   --info-foreground: #ffffff;
 
   /* Lines and focus */
   --border: #e6e8ec; /* Divider, lightened so the shadow defines card edges */
   --border-soft: #e9e7fd;
-  --line: #d1d5db; /* Neutal/300: table rows, icon buttons, paging 5:2606 */
-  --primary-tint: #c1e6ba; /* active page number 5:2865 */
+  --line: #d1d5db; /* Neutal/300: table rows, icon buttons, paging 14:1022 */
+  --line-list: #d1d1d1; /* list row dividers 14:873 */
   --input: #dbdade;
   --ring: #4ea674;
 
@@ -170,8 +186,12 @@
 
 .dark {
   /* Dark: depth comes from surface layering (card one step above canvas), shadows fall to near zero. */
-  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04);
-  --shadow-card-hover: 0 0 0 1px rgb(255 255 255 / 0.08);
+  --shadow-kit-1: 0 0 0 1px rgb(255 255 255 / 0.04);
+  --shadow-kit-3: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.5);
+  --shadow-kit-6: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 64px -12px rgb(0 0 0 / 0.7);
+  /* Cards sit on the kit's 3 Ambient tier at rest (Kuldeep wants visible depth), lift to a soft 6 on hover. */
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1);
+  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16);
   --shadow-rail: 0 0 0 1px rgb(255 255 255 / 0.04);
   --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.05);
   --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.4);
@@ -182,6 +202,9 @@
   --background: #111318;
   --foreground: #e8eaee;
   --ink-strong: #f4f6f8;
+  --brand-secondary: #e6f1f1;
+  --brand-secondary-foreground: #0b1a1b;
+  --helper: #8a919c;
   --card: #1a1d24;
   --card-foreground: var(--foreground);
   --popover: #1a1d24;
@@ -212,6 +235,7 @@
   --border: rgb(255 255 255 / 0.08);
   --border-soft: rgb(255 255 255 / 0.06);
   --line: #2c313a;
+  --line-list: #2c313a;
   --primary-tint: #2f5a3d;
   --input: rgb(255 255 255 / 0.12);
   --ring: #5fbf87;
@@ -253,7 +277,9 @@
   .text-stat,
   .text-stat-sm,
   .text-kit-stat,
+  .text-kit-stat-tight,
   .text-kit-stat-sm,
+  .text-kit-price,
   td,
   th {
     font-variant-numeric: tabular-nums;
@@ -309,35 +335,98 @@
   --text-period: 0.75rem;
   --text-period--line-height: 1rem;
 
-  /* Frame-size scale for the dashboard (Dealport 5:1346 at its own px, in rem):
-     18/26/700 card title, 32/38/700 stat, 24/28/700 tab figure, 16/22/600 table title,
-     16/26 pill label, 14/20 cell, 13/17 body. Data tables elsewhere keep the density scale above. */
+  /* Kit type scale (5:5870 typography sheet + 14:99 component sheet), px → rem, family from --font-primary.
+     Sheet: Display 57/700 -0.25%, H2 32/400, Dashboard title 18/700 -2%, Body large 22/500, Body 16/500 lh 140%, Button 16/700.
+     Components: card title 18/26/700, stat 32/38/700 (small tile 32/34), tab figure 24/22/700, tab caption 13/18/500 -0.26px,
+     table head 15/500, cell 15/400, list name 15/500, price 15/700 lh 22, body 14 (period, previous, labels), small link 14 -0.28px,
+     mini 12 (item code, toggle), field label 15/400, input value 15/700, button 15/700, pill label 16/26 -0.32px. */
+  --text-kit-display: 3.5625rem;
+  --text-kit-display--line-height: 1.1;
+  --text-kit-display--font-weight: 700;
+  --text-kit-display--letter-spacing: -0.0025em;
+
+  --text-kit-h2: 2rem;
+  --text-kit-h2--line-height: 1.25;
+  --text-kit-h2--font-weight: 400;
+
   --text-kit-title: 1.125rem;
   --text-kit-title--line-height: 1.625rem;
   --text-kit-title--font-weight: 700;
-  --text-kit-title--letter-spacing: -0.01em;
+  --text-kit-title--letter-spacing: -0.02em;
+
+  --text-kit-body-lg: 1.375rem;
+  --text-kit-body-lg--line-height: 1.75rem;
+  --text-kit-body-lg--font-weight: 500;
+
+  --text-kit-body-16: 1rem;
+  --text-kit-body-16--line-height: 1.4;
+  --text-kit-body-16--font-weight: 500;
 
   --text-kit-stat: 2rem;
   --text-kit-stat--line-height: 2.375rem;
   --text-kit-stat--font-weight: 700;
-  --text-kit-stat--letter-spacing: -0.02em;
+
+  --text-kit-stat-tight: 2rem;
+  --text-kit-stat-tight--line-height: 2rem;
+  --text-kit-stat-tight--font-weight: 700;
+  --text-kit-stat-tight--letter-spacing: -0.02em;
 
   --text-kit-stat-sm: 1.5rem;
-  --text-kit-stat-sm--line-height: 1.75rem;
+  --text-kit-stat-sm--line-height: 1.375rem;
   --text-kit-stat-sm--font-weight: 700;
-  --text-kit-stat-sm--letter-spacing: -0.01em;
+
+  --text-kit-caption: 0.8125rem;
+  --text-kit-caption--line-height: 1.125rem;
+  --text-kit-caption--font-weight: 500;
+  --text-kit-caption--letter-spacing: -0.02em;
 
   --text-kit-table-title: 1rem;
   --text-kit-table-title--line-height: 1.375rem;
   --text-kit-table-title--font-weight: 600;
-  --text-kit-table-title--letter-spacing: -0.01em;
+
+  --text-kit-head: 0.9375rem;
+  --text-kit-head--line-height: 1.125rem;
+  --text-kit-head--font-weight: 500;
+
+  --text-kit-cell: 0.9375rem;
+  --text-kit-cell--line-height: 1.125rem;
+
+  --text-kit-name: 0.9375rem;
+  --text-kit-name--line-height: 1.125rem;
+  --text-kit-name--font-weight: 500;
+  --text-kit-name--letter-spacing: -0.01em;
+
+  --text-kit-price: 0.9375rem;
+  --text-kit-price--line-height: 1.375rem;
+  --text-kit-price--font-weight: 700;
 
   --text-kit-label: 1rem;
   --text-kit-label--line-height: 1.625rem;
+  --text-kit-label--letter-spacing: -0.02em;
 
-  --text-kit-cell: 0.875rem;
-  --text-kit-cell--line-height: 1.25rem;
-
-  --text-kit-body: 0.8125rem;
+  --text-kit-body: 0.875rem;
   --text-kit-body--line-height: 1.0625rem;
+
+  --text-kit-link: 0.875rem;
+  --text-kit-link--line-height: 1.0625rem;
+  --text-kit-link--letter-spacing: -0.02em;
+
+  --text-kit-mini: 0.75rem;
+  --text-kit-mini--line-height: 0.875rem;
+
+  --text-kit-field: 0.9375rem;
+  --text-kit-field--line-height: 1.125rem;
+
+  --text-kit-value: 0.9375rem;
+  --text-kit-value--line-height: 1.125rem;
+  --text-kit-value--font-weight: 700;
+
+  --text-kit-button: 0.9375rem;
+  --text-kit-button--line-height: 1.125rem;
+  --text-kit-button--font-weight: 700;
+
+  --text-kit-chip: 0.75rem;
+  --text-kit-chip--line-height: 0.875rem;
+  --text-kit-chip--font-weight: 500;
+  --text-kit-chip--letter-spacing: -0.02em;
 }

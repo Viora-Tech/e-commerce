@@ -16,7 +16,7 @@ export default function FilterButton({ label = layoutContent.filter, items }: Fi
   if (items.length === 0) return null
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex h-8 items-center gap-2 rounded-lg bg-primary px-3 text-kit-cell text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      <DropdownMenuTrigger className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-card px-3 text-kit-cell text-ink-strong shadow-lift transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
         {label}
         <SlidersHorizontal className="size-5" strokeWidth={1.6} aria-hidden="true" />
       </DropdownMenuTrigger>

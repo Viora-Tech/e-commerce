@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import KitButton from '@/components/kit/kit-button'
+import KitProductRow from '@/components/kit/kit-product-row'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
 
@@ -8,12 +9,13 @@ type LowStockRow = {
   title: string
   variantTitle: string
   available: number
+  imageUrl?: string | null
 }
 
 /**
- * Frame 5:2288 "Add New Product" slot: label, 58px rows of thumb / name /
- * detail with a 62 x 28 green pill on the right, "See more" underneath.
- * Ours lists the variants running out, with Restock as the pill.
+ * Sheet 14:910 "Add New Product" slot, product half: 14px Neutral/500 label, then rows of
+ * 46px thumb / 14px name / 14/700 green figure with a green "Add" pill, split by hairlines,
+ * and a centred "See more" link. Ours lists the variants running out; the pill restocks.
  */
 export default function LowStockCard({
   rows,
@@ -22,45 +24,34 @@ export default function LowStockCard({
   rows: LowStockRow[]
   threshold: number
 }) {
+  // Render logic
   const c = homeContent.lowStock
+
   return (
     <DataCard
       title={c.title}
       size="kit"
       action={
-        <Link href="/products/inventory" className="text-kit-body text-link hover:underline">
+        <KitButton variant="link" href="/products/inventory">
           {c.viewAll}
-        </Link>
+        </KitButton>
       }
     >
-      <p className="-mt-2 text-kit-body text-muted-foreground">{c.subtitle(threshold)}</p>
+      <p className="-mt-2 text-kit-link text-muted-foreground">{c.subtitle(threshold)}</p>
       {rows.length === 0 ? (
         <p className="pt-4 text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
-        <ul className="mt-3 flex flex-col gap-3">
+        <div className="mt-3 flex flex-col gap-3">
           {rows.map((r) => (
-            <li
+            <KitProductRow
               key={r.variantId}
-              className="flex h-[3.625rem] items-center gap-3 rounded-lg border border-border-soft px-3"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-kit-cell font-semibold text-ink-strong">
-                  {r.title}
-                </span>
-                <span className="block text-kit-body text-muted-foreground">
-                  {r.variantTitle !== 'Default' ? `${r.variantTitle}, ` : ''}
-                  {c.left(r.available)}
-                </span>
-              </span>
-              <Link
-                href={`/products/${r.productId}`}
-                className="inline-flex h-7 min-w-[3.875rem] items-center justify-center rounded-full bg-primary px-3 text-kit-body text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                {c.restock}
-              </Link>
-            </li>
+              image={r.imageUrl ?? null}
+              title={r.variantTitle !== 'Default' ? `${r.title}, ${r.variantTitle}` : r.title}
+              price={c.left(r.available)}
+              action={{ label: c.restock, href: `/products/${r.productId}` }}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </DataCard>
   )

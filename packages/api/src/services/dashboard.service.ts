@@ -14,7 +14,7 @@ import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizz
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
-const RECENT_ORDERS = 5
+const RECENT_ORDERS = 7
 const TOP_PRODUCTS = 5
 const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6
@@ -76,6 +76,7 @@ export type DashboardSummary = {
     title: string
     variantTitle: string
     available: number
+    imageUrl: string | null
   }[]
   /** Kit 5:1618: headline count plus one bar per hour, oldest first. */
   activity: {
@@ -207,36 +208,7 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
     .orderBy(desc(sum(orderLine.quantity)))
     .limit(TOP_PRODUCTS)
   const topIds = topRows.map((r) => r.productId)
-  const images = topIds.length
-    ? await tx
-        .select({
-          productId: productMedia.productId,
-          url: media.url,
-          position: productMedia.position,
-        })
-        .from(productMedia)
-        .innerJoin(media, eq(media.id, productMedia.mediaId))
-        .where(inArray(productMedia.productId, topIds))
-        .orderBy(asc(productMedia.position))
-    : []
-  const firstImage = new Map<string, string>()
-  for (const img of images)
-    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
-  const stockByProduct = topIds.length
-    ? await tx
-        .select({
-          productId: variant.productId,
-          pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
-          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${inventoryLevel.onHand} - ${inventoryLevel.reserved}, 0) > 0)`,
-        })
-        .from(variant)
-        .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
-        .where(inArray(variant.productId, topIds))
-        .groupBy(variant.productId)
-    : []
-  const stockInfo = new Map(stockByProduct.map((r) => [r.productId, r]))
-
-  const lowStock = await tx
+  const lowStockRows = await tx
     .select({
       variantId: variant.id,
       productId: variant.productId,
@@ -256,6 +228,40 @@ export async function dashboardSummary(tx: StoreTx, now = new Date()): Promise<D
     )
     .orderBy(asc(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`))
     .limit(LOW_STOCK_ROWS)
+  const imageIds = [...new Set([...topIds, ...lowStockRows.map((r) => r.productId)])]
+  const images = imageIds.length
+    ? await tx
+        .select({
+          productId: productMedia.productId,
+          url: media.url,
+          position: productMedia.position,
+        })
+        .from(productMedia)
+        .innerJoin(media, eq(media.id, productMedia.mediaId))
+        .where(inArray(productMedia.productId, imageIds))
+        .orderBy(asc(productMedia.position))
+    : []
+  const firstImage = new Map<string, string>()
+  for (const img of images)
+    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
+  const stockByProduct = topIds.length
+    ? await tx
+        .select({
+          productId: variant.productId,
+          pricePaise: sql<number>`min(${variant.pricePaise})`.mapWith(Number),
+          inStock: sql<boolean>`bool_or(${variant.trackInventory} = false or coalesce(${inventoryLevel.onHand} - ${inventoryLevel.reserved}, 0) > 0)`,
+        })
+        .from(variant)
+        .leftJoin(inventoryLevel, eq(inventoryLevel.variantId, variant.id))
+        .where(inArray(variant.productId, topIds))
+        .groupBy(variant.productId)
+    : []
+  const stockInfo = new Map(stockByProduct.map((r) => [r.productId, r]))
+
+  const lowStock = lowStockRows.map((r) => ({
+    ...r,
+    imageUrl: firstImage.get(r.productId) ?? null,
+  }))
 
   const dayAgo = new Date(now.getTime() - HOURS * 3_600_000)
   const perHour = Array.from({ length: HOURS }, () => 0)

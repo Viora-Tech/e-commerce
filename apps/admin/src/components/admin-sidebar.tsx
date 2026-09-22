@@ -4,6 +4,7 @@ import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from '@comme
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -87,9 +88,11 @@ export default function AdminSidebar({
             <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-60">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              {navigationContent.stores}
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                {navigationContent.stores}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             {stores.map((s) => (
               <DropdownMenuItem key={s.id} onSelect={() => handleSwitchStore(s.id)}>
                 <Store className="size-4" />

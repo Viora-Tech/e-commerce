@@ -86,7 +86,7 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
               <Link
                 key={k}
                 href={copy.kinds[k].href}
-                className="inline-flex items-center gap-1 text-body font-medium text-link hover:underline"
+                className="inline-flex items-center gap-1 text-body font-medium text-ink-strong underline-offset-4 hover:text-primary hover:underline"
               >
                 {copy.configure(copy.kinds[k].label)}
                 <ArrowRight className="size-3.5" />

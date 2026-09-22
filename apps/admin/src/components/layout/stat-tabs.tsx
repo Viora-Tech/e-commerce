@@ -8,7 +8,7 @@ type StatTabsProps = {
   onChange?: (index: number) => void
 }
 
-/** 5:1595: five 78px cells, 20px apart; 24px figure over a 13px caption, active one tinted with a green rule. */
+/** Sheet 14:403: five 78px cells 20px apart, 8/15 inset; 24/22/700 figure over a 13/18/500 caption; the active cell carries a 2px Ocean Green rule and a 4% green wash, the rest a #e9e7fd hairline. */
 export default function StatTabs({ items, active = 0, onChange }: StatTabsProps) {
   return (
     <div
@@ -21,14 +21,14 @@ export default function StatTabs({ items, active = 0, onChange }: StatTabsProps)
           type="button"
           onClick={onChange ? () => onChange(i) : undefined}
           className={cn(
-            'flex h-[4.875rem] flex-col items-start gap-2 rounded-t-sm border-b-2 px-3 pt-3.5 text-left transition-colors',
+            'flex h-[4.875rem] flex-col items-start justify-center gap-2 px-2 py-[0.9375rem] text-left transition-colors',
             i === active
-              ? 'border-primary bg-background'
-              : 'border-border-soft hover:bg-background/60',
+              ? 'border-b-2 border-primary bg-gradient-to-b from-primary/0 to-primary/[0.04]'
+              : 'border-b border-border-soft hover:bg-background/60',
           )}
         >
           <span className="text-kit-stat-sm text-foreground tabular-nums">{it.value}</span>
-          <span className="text-kit-body text-muted-foreground-soft">{it.label}</span>
+          <span className="text-kit-caption text-muted-foreground-soft">{it.label}</span>
         </button>
       ))}
     </div>

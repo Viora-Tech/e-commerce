@@ -36,7 +36,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           {order.customer ? (
             <Link
               href={`/customers/${order.customer.id}`}
-              className="mt-1 inline-block text-kit-body text-link hover:underline focus-visible:outline-none focus-visible:underline"
+              className="mt-1 inline-block text-kit-body text-ink-strong underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:underline"
             >
               {copy.customer.view}
             </Link>

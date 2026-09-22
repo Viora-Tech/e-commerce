@@ -26,14 +26,16 @@ type StatCardProps = {
   menu?: MenuLink[]
   /** Replaces the number block (the Pending & cancelled tile, 5:1528). */
   children?: ReactNode
+  /** `sm` = sheet 14:847 (270 x 135, 16px inset, figure 32/34 with the delta beside it, period last). */
+  size?: 'lg' | 'sm'
   className?: string
 }
 
 /**
- * Frame 5:1494 "Base" (361 x 222, padding 20): title 18/26 with a 20px kebab,
- * "Last 7 days" 13/17 at y=54, the 32/38 figure at y=91 with unit and delta
- * beside it, the previous-period line at y=137, and the 96 x 32 Details pill
- * pinned to the bottom-right corner.
+ * Sheet 14:348 "Base" (361 x 222, padding 20): title 18/26/700 with a 20px kebab,
+ * "Last 7 days" 14/400 Neutral/500 at y=54, the 32/700 Cyprus figure at y=91 with the
+ * 16px unit and 14/500 delta beside it, the previous-period line at y=137 (value 700 in
+ * Primary/500), and the 96 x 32 Details pill pinned to the bottom-right corner.
  */
 export default function StatCard({
   title,
@@ -47,11 +49,31 @@ export default function StatCard({
   detailsLabel,
   menu,
   children,
+  size = 'lg',
   className,
 }: StatCardProps) {
+  // Render logic
   const items =
     menu ??
     (detailsHref ? [{ label: detailsLabel ?? layoutContent.details, href: detailsHref }] : [])
+  if (size === 'sm') {
+    return (
+      <Card className={cn('h-[8.4375rem] gap-0 p-4', className)}>
+        <div className="flex h-[1.625rem] items-center gap-0.5">
+          <p className="min-w-0 flex-1 text-kit-title text-foreground">{title}</p>
+          {items.length > 0 ? <CardMenu items={items} /> : null}
+        </div>
+        <div className="mt-4 flex items-end gap-2">
+          <p className="text-kit-stat leading-[2.125rem] text-ink-strong tabular-nums">
+            <CountUp value={value} />
+          </p>
+          <DeltaChip delta={delta} invert={invert} size="kit" className="leading-5" />
+        </div>
+        <p className="mt-2 text-kit-body text-muted-foreground">{period}</p>
+      </Card>
+    )
+  }
+
   return (
     <Card className={cn('relative h-[13.875rem] gap-0 p-5', className)}>
       <div className="flex h-[1.625rem] items-center justify-between">
@@ -64,19 +86,21 @@ export default function StatCard({
           <p className="text-kit-stat text-ink-strong tabular-nums">
             <CountUp value={value} />
           </p>
-          <div className="flex items-center gap-1.5">
-            {unit ? <span className="text-kit-cell text-foreground">{unit}</span> : null}
+          <div className="flex items-end gap-1">
+            {unit ? (
+              <span className="text-kit-body-16 font-normal text-foreground">{unit}</span>
+            ) : null}
             <DeltaChip delta={delta} invert={invert} size="kit" />
           </div>
         </div>
       )}
       {previous ? (
         <p className="mt-2 text-kit-body text-muted-foreground">
-          {previous.label} <span className="text-link">({previous.value})</span>
+          {previous.label} <span className="font-bold text-ink-strong">({previous.value})</span>
         </p>
       ) : null}
       {detailsHref ? (
-        <div className="absolute bottom-5 right-5">
+        <div className="absolute right-5 bottom-5">
           <DetailsLink href={detailsHref} label={detailsLabel} />
         </div>
       ) : null}
