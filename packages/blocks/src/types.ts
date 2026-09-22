@@ -22,6 +22,8 @@ export type ProductDetail = {
   vendor: string | null
   productType: string | null
   images: { url: string; alt: string | null; contentType?: string | null | undefined }[]
+  /** Alternate product template (`product.<suffix>`), when one is assigned. */
+  templateSuffix?: string | null | undefined
   options: { id: string; name: string; values: { id: string; value: string }[] }[]
   variants: {
     id: string
@@ -60,4 +62,12 @@ export type CardArticle = {
   imageUrl: string | null
   imageAlt: string | null
   blogTitle: string
+}
+
+/** A collection as the collection list section renders it. */
+export type CardCollection = {
+  handle: string
+  title: string
+  imageUrl: string | null
+  productCount: number
 }

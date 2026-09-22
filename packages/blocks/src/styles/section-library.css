@@ -1,0 +1,353 @@
+/**
+ * The Customize section library: announcement bar, image banner, image with
+ * text, multicolumn, collection list, featured product, testimonials, logo list,
+ * FAQ, video and email signup. Ported from the Glide sections' layout and
+ * spacing, drawn only with the theme's custom properties so every colour scheme
+ * and dark mode apply unchanged.
+ */
+
+.announcement-bar {
+  background-color: var(--color-brand);
+  color: var(--color-on-brand);
+  text-align: center;
+  padding: 0.5rem var(--page-margin);
+}
+
+.announcement-bar__message {
+  margin: 0;
+}
+
+.announcement-bar__link {
+  color: inherit;
+  margin-inline-start: 0.5rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Image banner */
+.image-banner {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  min-height: 26rem;
+  color: #ffffff;
+}
+
+.image-banner--small {
+  min-height: 18rem;
+}
+
+.image-banner--large {
+  min-height: 40rem;
+}
+
+.image-banner__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-banner__media--placeholder {
+  background: linear-gradient(135deg, var(--color-ink), var(--color-muted));
+}
+
+.image-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgb(0 0 0 / var(--banner-overlay, 0.3));
+}
+
+.image-banner__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 48rem;
+  padding-block: 4rem;
+}
+
+.image-banner--center .image-banner__content {
+  align-items: center;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.image-banner__content .h1,
+.image-banner__content .text-body {
+  color: inherit;
+  margin: 0;
+}
+
+/* Image with text */
+.image-with-text {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+
+.image-with-text__media {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: var(--color-surface);
+}
+
+.image-with-text__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-with-text__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (min-width: 62rem) {
+  .image-with-text {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+
+  .image-with-text--reverse .image-with-text__media {
+    order: 2;
+  }
+}
+
+/* Multicolumn, testimonials and logo list share the row layout */
+.multicolumn__heading,
+.testimonials__heading,
+.collection-list__heading,
+.faq__heading,
+.video-section__heading {
+  margin-block-end: 2rem;
+}
+
+.multicolumn__list,
+.testimonials__list,
+.collection-list__grid,
+.logo-list__row {
+  display: grid;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 48rem) {
+  .multicolumn__list,
+  .testimonials__list {
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
+
+  .collection-list__grid {
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  }
+}
+
+.multicolumn__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.multicolumn__image {
+  aspect-ratio: 3 / 2;
+  width: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-m);
+  margin-block-end: 0.5rem;
+}
+
+.testimonials__card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: var(--color-surface);
+}
+
+.testimonials__quote {
+  margin: 0;
+}
+
+.testimonials__author {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.logo-list {
+  text-align: center;
+}
+
+.logo-list__heading {
+  margin-block-end: 1.5rem;
+}
+
+.logo-list__row {
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  align-items: center;
+}
+
+.logo-list__item img {
+  max-height: 3rem;
+  margin-inline: auto;
+  object-fit: contain;
+  opacity: 0.8;
+}
+
+/* Collection list */
+.collection-list__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.collection-list__media {
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: var(--color-surface);
+}
+
+.collection-list__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--motion-overlay) var(--motion-overlay-ease);
+}
+
+.collection-list__card:hover .collection-list__media img {
+  transform: scale(1.04);
+}
+
+/* Featured product */
+.featured-product {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+
+.featured-product__media {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  padding: 2.5rem;
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+
+.featured-product__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.featured-product__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (min-width: 62rem) {
+  .featured-product {
+    grid-template-columns: 7fr 5fr;
+    gap: 4rem;
+  }
+}
+
+/* FAQ */
+.faq {
+  max-width: 50rem;
+}
+
+.faq__item {
+  border-block-end: 0.0625rem solid var(--color-line);
+}
+
+.faq__question {
+  cursor: pointer;
+  padding-block: 1.25rem;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.faq__question::-webkit-details-marker {
+  display: none;
+}
+
+.faq__question::after {
+  content: "+";
+  font-weight: 400;
+}
+
+.faq__item[open] .faq__question::after {
+  content: "\2212";
+}
+
+.faq__answer {
+  margin: 0;
+  padding-block-end: 1.25rem;
+  color: var(--color-muted);
+}
+
+/* Video */
+.video-section__frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: var(--color-surface);
+}
+
+.video-section__frame iframe,
+.video-section__frame video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Email signup */
+.newsletter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 40rem;
+  text-align: center;
+}
+
+.newsletter__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.newsletter__input {
+  flex: 1 1 14rem;
+}
+
+.newsletter__message {
+  margin: 0;
+}
