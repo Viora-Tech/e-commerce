@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { storeProcedure } from '../procedures'
 import {
+  customerOverview,
   customerStats,
   customerTags,
   deleteCustomer,
@@ -53,6 +54,14 @@ export const customersRouter = {
     .handler(({ context, input }) => listCustomers(context.tx, input)),
 
   stats: storeProcedure.handler(({ context }) => customerStats(context.tx)),
+
+  /** Headline figures and the weekly series behind the Customer Overview card. */
+  overview: storeProcedure.handler(({ context }) =>
+    customerOverview(context.tx, {
+      storeId: context.scope.storeId,
+      visitors: context.visitors,
+    }),
+  ),
 
   tags: storeProcedure.handler(({ context }) => customerTags(context.tx)),
 

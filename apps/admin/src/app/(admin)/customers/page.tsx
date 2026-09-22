@@ -11,7 +11,7 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(await searchParams, CUSTOMER_SEGMENTS)
   const context = await serverContext()
-  const [result, stats, tags] = await Promise.all([
+  const [result, stats, overview, tags] = await Promise.all([
     call(
       appRouter.customers.list,
       {
@@ -23,8 +23,9 @@ export default async function Page({ searchParams }: Props) {
       { context },
     ),
     call(appRouter.customers.stats, undefined, { context }),
+    call(appRouter.customers.overview, undefined, { context }),
     call(appRouter.customers.tags, undefined, { context }),
   ])
 
-  return <CustomersPage initial={{ query, result, stats, allCount: stats.total, tags }} />
+  return <CustomersPage initial={{ query, result, stats, overview, allCount: stats.total, tags }} />
 }
