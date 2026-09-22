@@ -16,7 +16,7 @@ const TEXT: Record<StatusTone, string> = {
   success: 'text-success',
   pending: 'text-warning-foreground dark:text-warning',
   error: 'text-destructive',
-  info: 'text-ink-strong',
+  info: 'text-ink-strong dark:text-teal-300',
   accent: 'text-link',
   neutral: 'text-muted-foreground',
 }
@@ -25,7 +25,7 @@ const DOT: Record<StatusTone, string> = {
   success: 'bg-success',
   pending: 'bg-warning',
   error: 'bg-destructive',
-  info: 'bg-ink-strong',
+  info: 'bg-ink-strong dark:bg-teal-300',
   accent: 'bg-link',
   neutral: 'bg-muted-foreground-soft',
 }
@@ -34,7 +34,7 @@ const PILL: Record<StatusTone, string> = {
   success: 'bg-success/10 text-success',
   pending: 'bg-warning/15 text-warning-foreground dark:text-warning',
   error: 'bg-destructive/10 text-destructive',
-  info: 'bg-primary-soft text-ink-strong',
+  info: 'bg-primary-soft text-ink-strong dark:bg-teal-400/15 dark:text-teal-300',
   accent: 'bg-link-soft text-link',
   neutral: 'bg-muted text-muted-foreground',
 }
