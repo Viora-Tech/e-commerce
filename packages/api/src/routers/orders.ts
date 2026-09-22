@@ -3,11 +3,12 @@ import {
   CommerceError,
   DraftInputSchema,
   enqueueNotification,
+  permissions,
   type TemplateId,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   convertStoreDraft,
@@ -56,7 +57,7 @@ const STATUS_TEMPLATE: Partial<Record<z.infer<typeof status>, TemplateId>> = {
 }
 
 export const ordersRouter = {
-  list: storeProcedure
+  list: can(permissions.ORDERS_READ)
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -67,27 +68,29 @@ export const ordersRouter = {
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
 
-  stats: storeProcedure.handler(({ context }) => orderStats(context.tx)),
+  stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
 
-  get: storeProcedure.input(z.object({ id: z.uuid() })).handler(async ({ context, input }) => {
-    const o = await getOrder(context.tx, input.id)
-    if (!o) return null
-    const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
-      getShipmentForOrder(context.tx, input.id),
-      orderBalance(context.tx, context.scope.storeId, input.id, o.totalPaise),
-      customerOrderCount(context.tx, o.customerId),
-      customerOrderIndex(context.tx, o.customerId, o.placedAt),
-    ])
-    return { ...o, shipment, balance, customerOrders, customerOrderNumber }
-  }),
+  get: can(permissions.ORDERS_READ)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const o = await getOrder(context.tx, input.id)
+      if (!o) return null
+      const [shipment, balance, customerOrders, customerOrderNumber] = await Promise.all([
+        getShipmentForOrder(context.tx, input.id),
+        orderBalance(context.tx, context.scope.storeId, input.id, o.totalPaise),
+        customerOrderCount(context.tx, o.customerId),
+        customerOrderIndex(context.tx, o.customerId, o.placedAt),
+      ])
+      return { ...o, shipment, balance, customerOrders, customerOrderNumber }
+    }),
 
   /** Order numbers either side of this one, for the arrows in the detail header. */
-  neighbours: storeProcedure
+  neighbours: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => orderNeighbours(context.tx, input.id)),
 
   /** Pack some or all of the lines; the shopper is told once the parcel is complete. */
-  fulfil: storeProcedure
+  fulfil: can(permissions.ORDERS_FULFIL)
     .input(
       z.object({
         orderId: z.uuid(),
@@ -116,7 +119,7 @@ export const ordersRouter = {
     }),
 
   /** Record money collected outside a gateway; the order becomes paid. */
-  collectPayment: storeProcedure
+  collectPayment: can(permissions.ORDERS_WRITE)
     .input(
       z.object({
         orderId: z.uuid(),
@@ -137,7 +140,7 @@ export const ordersRouter = {
     }),
 
   /** Book the parcel with the store's courier; the order becomes fulfilled and the shopper is told. */
-  createShipment: storeProcedure
+  createShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ orderId: z.uuid() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
@@ -156,7 +159,7 @@ export const ordersRouter = {
       return row
     }),
 
-  refreshTracking: storeProcedure
+  refreshTracking: can(permissions.ORDERS_READ)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
@@ -169,7 +172,7 @@ export const ordersRouter = {
       )
     }),
 
-  cancelShipment: storeProcedure
+  cancelShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ shipmentId: z.uuid() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
@@ -182,9 +185,16 @@ export const ordersRouter = {
       )
     }),
 
-  setStatus: storeProcedure
+  setStatus: can(permissions.ORDERS_WRITE)
     .input(z.object({ id: z.uuid(), status }))
     .handler(async ({ context, input }) => {
+      // Cancelling is its own grant; everything else on this route is orders.write.
+      if (input.status === 'cancelled' && !context.scope.can(permissions.ORDERS_CANCEL)) {
+        throw new ORPCError('FORBIDDEN', {
+          message: 'Your role does not allow cancelling orders',
+          data: { required: permissions.ORDERS_CANCEL, role: context.scope.roleSlug },
+        })
+      }
       const o = await setOrderStatus(context.tx, input.id, input.status)
       const template = STATUS_TEMPLATE[input.status]
       if (o && template) {
@@ -198,7 +208,7 @@ export const ordersRouter = {
     }),
 
   /** Send money back through the gateway (or record a cash/UPI refund); partial amounts allowed. */
-  refund: storeProcedure
+  refund: can(permissions.ORDERS_REFUND)
     .input(
       z.object({
         paymentId: z.uuid(),
@@ -223,7 +233,7 @@ export const ordersRouter = {
       }
     }),
 
-  addNote: storeProcedure
+  addNote: can(permissions.ORDERS_WRITE)
     .input(z.object({ orderId: z.uuid(), body: z.string().trim().min(1).max(2000) }))
     .handler(({ context, input }) =>
       addOrderNote(context.tx, context.scope.storeId, {
@@ -232,13 +242,13 @@ export const ordersRouter = {
       }),
     ),
 
-  setTags: storeProcedure
+  setTags: can(permissions.ORDERS_WRITE)
     .input(z.object({ id: z.uuid(), tags: z.array(z.string().trim().min(1).max(40)).max(20) }))
     .handler(({ context, input }) => setOrderTags(context.tx, input.id, input.tags)),
 
   /* Draft orders: built by hand in admin, invisible to the storefront until converted. */
 
-  listDrafts: storeProcedure
+  listDrafts: can(permissions.DRAFTS_READ)
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -248,20 +258,20 @@ export const ordersRouter = {
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
 
-  getDraft: storeProcedure
+  getDraft: can(permissions.DRAFTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getDraft(context.tx, input.id)),
 
-  saveDraft: storeProcedure
+  saveDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid().optional(), draft: DraftInputSchema }))
     .handler(({ context, input }) => saveDraft(context.tx, context.scope.storeId, input)),
 
-  deleteDraft: storeProcedure
+  deleteDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => removeDraft(context.tx, context.scope.storeId, input.id)),
 
   /** Email the shopper a pay link for the draft. */
-  sendInvoice: storeProcedure
+  sendInvoice: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
       const draft = await getDraft(context.tx, input.id)
@@ -278,7 +288,7 @@ export const ordersRouter = {
       return { sentTo: draft.email }
     }),
 
-  convertDraft: storeProcedure
+  convertDraft: can(permissions.DRAFTS_WRITE)
     .input(z.object({ id: z.uuid(), paymentMethod: z.string().trim().max(60).optional() }))
     .handler(async ({ context, input }) => {
       const row = await convertStoreDraft(context.tx, context.scope.storeId, input)
@@ -292,7 +302,7 @@ export const ordersRouter = {
 
   /* Abandoned checkouts: carts that captured a contact and went quiet. */
 
-  listAbandoned: storeProcedure
+  listAbandoned: can(permissions.ORDERS_READ)
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
@@ -302,11 +312,11 @@ export const ordersRouter = {
     )
     .handler(({ context, input }) => listStoreAbandoned(context.tx, context.scope.storeId, input)),
 
-  abandonedStats: storeProcedure.handler(({ context }) =>
+  abandonedStats: can(permissions.ORDERS_READ).handler(({ context }) =>
     storeAbandonedStats(context.tx, context.scope.storeId),
   ),
 
-  sendRecovery: storeProcedure
+  sendRecovery: can(permissions.ORDERS_WRITE)
     .input(z.object({ cartId: z.uuid() }))
     .handler(async ({ context, input }) => {
       const { notifications } = await storeRegistries(context.tx, context.scope.storeId)

@@ -1,2 +1,2 @@
 export { base, protectedProcedure } from './base'
-export { type StoreScope, storeProcedure } from './store'
+export { can, type StoreScope, storeProcedure } from './store'
