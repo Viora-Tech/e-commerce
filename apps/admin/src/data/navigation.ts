@@ -27,7 +27,7 @@ export type NavItem = {
 }
 export type NavGroup = { label?: string; items: NavItem[] }
 
-/** Installed apps with their own pages are appended to this group. */
+/** Installed apps with their own pages are listed under this group's Apps entry. */
 export const APPS_GROUP = 'Apps'
 
 /**
@@ -182,8 +182,7 @@ export const navigationContent = {
 
 /** A section is active for its own path and everything nested under it; home only for itself. */
 export function isSectionActive(pathname: string, item: NavItem): boolean {
-  // Home, and Apps whose installed apps are listed as their own items.
-  if (item.href === '/' || item.href === '/apps') return pathname === item.href
+  if (item.href === '/') return pathname === item.href
   return pathname === item.href || pathname.startsWith(`${item.href}/`)
 }
 
