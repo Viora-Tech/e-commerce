@@ -15,6 +15,7 @@ import {
   getProduct,
   listProducts,
   productFacets,
+  searchVariants,
   updateProduct,
   updateVariant,
 } from '../services/product.service'
@@ -47,6 +48,16 @@ export const productsRouter = {
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
 
   facets: storeProcedure.handler(({ context }) => productFacets(context.tx)),
+
+  /** Variant picker for the draft order editor. */
+  searchVariants: storeProcedure
+    .input(
+      z.object({
+        search: z.string().trim().max(200).optional(),
+        limit: z.number().int().min(1).max(50).default(20),
+      }),
+    )
+    .handler(({ context, input }) => searchVariants(context.tx, input)),
 
   /** Full write from the product form: options, variants and inventory in one transaction. */
   save: storeProcedure

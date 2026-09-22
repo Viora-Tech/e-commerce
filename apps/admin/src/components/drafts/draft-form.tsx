@@ -1,0 +1,184 @@
+'use client'
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@commerce/ui/shadcn/alert-dialog'
+import { Card } from '@commerce/ui/shadcn/card'
+import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import DraftActionsCard from '@/components/drafts/draft-actions-card'
+import DraftAddressCard from '@/components/drafts/draft-address-card'
+import DraftCustomerCard from '@/components/drafts/draft-customer-card'
+import {
+  type DraftFormState,
+  draftToForm,
+  emptyDraft,
+  formToDraft,
+} from '@/components/drafts/draft-form-state'
+import DraftProductsCard from '@/components/drafts/draft-products-card'
+import DraftTotalsCard from '@/components/drafts/draft-totals-card'
+import PageBody from '@/components/layout/page-body'
+import PageColumns from '@/components/layout/page-columns'
+import PageHeader from '@/components/layout/page-header'
+import SaveBar from '@/components/layout/save-bar'
+import { draftEditorContent as copy } from '@/data/drafts'
+import { api } from '@/lib/api-client'
+
+type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
+
+type DraftFormProps = { draft: Draft | null }
+
+const message = (err: unknown, fallback: string) =>
+  err instanceof Error && err.message ? err.message : fallback
+
+export default function DraftForm({ draft }: DraftFormProps) {
+  // Hooks
+  const router = useRouter()
+  const [id, setId] = useState<string | null>(draft?.id ?? null)
+  const [number, setNumber] = useState<number | null>(draft?.number ?? null)
+  const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
+  const [form, setForm] = useState<DraftFormState>(saved)
+  const [busy, setBusy] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Helpers
+  const patch = (next: Partial<DraftFormState>) => setForm((f) => ({ ...f, ...next }))
+
+  const persist = async () => {
+    const r = await api.orders.saveDraft({
+      ...(id ? { id } : {}),
+      draft: formToDraft(form),
+    })
+    setId(r.id)
+    setSaved(form)
+    if (!number) {
+      const fresh = await api.orders.getDraft({ id: r.id })
+      setNumber(fresh?.number ?? null)
+      window.history.replaceState(null, '', `/orders/drafts/${r.id}`)
+    }
+    return r.id
+  }
+
+  // Event handlers
+  const handleSave = async () => {
+    setBusy(true)
+    try {
+      await persist()
+      toast.success(copy.saved)
+    } catch (err) {
+      toast.error(message(err, copy.saveFailed))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleSendInvoice = async () => {
+    if (!id) return
+    setBusy(true)
+    try {
+      const r = await api.orders.sendInvoice({ id })
+      toast.success(copy.actions.invoiceSent(r.sentTo))
+    } catch (err) {
+      toast.error(message(err, copy.actions.invoiceFailed))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleConvert = async () => {
+    if (!id) return
+    setBusy(true)
+    try {
+      await api.orders.convertDraft({ id, paymentMethod: form.paymentMethod })
+      toast.success(copy.actions.converted)
+      router.push(`/orders/${id}`)
+    } catch (err) {
+      toast.error(message(err, copy.actions.convertFailed))
+      setBusy(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!id) return
+    setBusy(true)
+    try {
+      await api.orders.deleteDraft({ id })
+      toast.success(copy.actions.deleted)
+      router.push('/orders/drafts')
+    } catch (err) {
+      toast.error(message(err, copy.actions.deleteFailed))
+      setBusy(false)
+    }
+  }
+
+  // Render logic
+  const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+
+  return (
+    <PageBody width="frame" className="gap-6">
+      <SaveBar
+        open={dirty}
+        message={copy.unsaved}
+        saveLabel={copy.save}
+        discardLabel={copy.discard}
+        onSave={handleSave}
+        onDiscard={() => setForm(saved)}
+        saving={busy}
+      />
+      <PageHeader title={number ? copy.editTitle(number) : copy.newTitle} />
+      <PageColumns
+        main={
+          <>
+            <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
+            <DraftTotalsCard form={form} onChange={patch} />
+            <Card className="gap-3 p-5">
+              <p className="text-kit-card-title text-foreground">{copy.note.heading}</p>
+              <Textarea
+                value={form.note}
+                onChange={(e) => patch({ note: e.target.value })}
+                placeholder={copy.note.placeholder}
+                rows={3}
+              />
+            </Card>
+          </>
+        }
+        side={
+          <>
+            <DraftCustomerCard form={form} onChange={patch} />
+            <DraftAddressCard address={form.address} onChange={(address) => patch({ address })} />
+            <DraftActionsCard
+              saved={Boolean(id) && !dirty}
+              busy={busy}
+              paymentMethod={form.paymentMethod}
+              onPaymentMethod={(paymentMethod) => patch({ paymentMethod })}
+              onSendInvoice={handleSendInvoice}
+              onConvert={handleConvert}
+              onDelete={() => setConfirmDelete(true)}
+            />
+          </>
+        }
+      />
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{copy.actions.deleteTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{copy.actions.deleteBody}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{copy.actions.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>{copy.actions.delete}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </PageBody>
+  )
+}

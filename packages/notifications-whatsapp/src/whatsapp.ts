@@ -38,6 +38,10 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.totalLabel, d.storeName, n]
     case 'order_shipped':
       return [d.storeName, n, d.trackingUrl ?? '-']
+    case 'draft_invoice':
+      return [d.customerName, n, d.totalLabel, d.actionUrl ?? '-']
+    case 'checkout_recovery':
+      return [d.customerName, d.storeName, d.totalLabel, d.actionUrl ?? '-']
   }
 }
 

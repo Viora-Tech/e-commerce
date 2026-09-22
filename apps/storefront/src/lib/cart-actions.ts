@@ -2,6 +2,7 @@
 
 import {
   addToCart,
+  captureCartContact,
   confirmClientPayment,
   createCart,
   getCart,
@@ -59,6 +60,20 @@ export type CheckoutForm = {
 export type CheckoutResult = { error: string } | undefined
 
 /**
+ * Remember who is checking out before the order exists. Without this a cart
+ * that is left behind is anonymous and cannot be recovered; with it the
+ * merchant can email the shopper their basket back.
+ */
+export async function captureContactAction(
+  storeId: string,
+  contact: { email?: string; phone?: string; name?: string },
+) {
+  const cartId = await readCartId()
+  if (!cartId) return
+  await inStore(storeId, (tx) => captureCartContact({ storeId, tx }, cartId, contact))
+}
+
+/**
  * Place the order. Returns `{ error }` for things the shopper can fix (an
  * unserviceable PIN code, COD where the courier will not collect); throws
  * for everything else; redirects on success.
@@ -66,6 +81,15 @@ export type CheckoutResult = { error: string } | undefined
 export async function checkoutAction(storeId: string, form: CheckoutForm): Promise<CheckoutResult> {
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
+
+  /* Contact first: if anything below fails the cart is still recoverable. */
+  await inStore(storeId, (tx) =>
+    captureCartContact({ storeId, tx }, cartId, {
+      email: form.email,
+      phone: form.phone,
+      name: form.name,
+    }),
+  )
 
   // The courier's word on the destination, never the client's. A cached answer makes this cheap.
   const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))

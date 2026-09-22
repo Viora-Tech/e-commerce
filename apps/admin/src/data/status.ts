@@ -11,6 +11,7 @@ import {
 import { appsContent } from '@/data/apps'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
+import { abandonedContent, draftsContent } from '@/data/drafts'
 import { homeContent } from '@/data/home'
 import { onlineStoreContent } from '@/data/online-store'
 import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
@@ -115,6 +116,17 @@ export const STATUS = {
   app: {
     installed: entry(appsContent.installed, 'success'),
     builtIn: entry(appsContent.builtIn, 'neutral'),
+  },
+  /** Draft orders: open until an invoice goes out. */
+  draft: {
+    open: entry(draftsContent.status.open, 'info'),
+    invoiceSent: entry(draftsContent.status.invoiceSent, 'pending'),
+  },
+  /** Abandoned baskets: nudged, then recovered when the shopper comes back. */
+  abandoned: {
+    open: entry(abandonedContent.status.open, 'neutral'),
+    sent: entry(abandonedContent.status.sent, 'pending'),
+    recovered: entry(abandonedContent.status.recovered, 'success'),
   },
   provider: {
     enabled: entry('Active', 'success'),

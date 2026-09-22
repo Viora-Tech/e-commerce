@@ -13,9 +13,13 @@ import {
 } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
+import type { OrderStatus } from './order.service'
 
 const DAY_MS = 86_400_000
 const WINDOW_DAYS = 7
+/** Drafts are not orders yet: they never count towards revenue, tiles or the recent list. */
+const notDraft = ne(order.status, 'draft')
+
 const RECENT_ORDERS = 7
 const TOP_PRODUCTS = 5
 const LOW_STOCK_THRESHOLD = 5
@@ -66,7 +70,7 @@ export type DashboardSummary = {
   recentOrders: {
     id: string
     number: number
-    status: 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
+    status: OrderStatus
     totalPaise: number
     customerName: string | null
     email: string | null
@@ -242,7 +246,7 @@ export async function dashboardSummary(
       placedAt: order.placedAt,
     })
     .from(order)
-    .where(gte(order.placedAt, lastStart))
+    .where(and(notDraft, gte(order.placedAt, lastStart)))
 
   const inWindow = (from: Date, to?: Date) =>
     recentRows.filter((r) => r.placedAt >= from && (!to || r.placedAt < to))
@@ -307,13 +311,14 @@ export async function dashboardSummary(
   const [allTimeRevenue] = await tx
     .select({ total: sum(order.totalPaise).mapWith(Number) })
     .from(order)
-    .where(ne(order.status, 'cancelled'))
+    .where(and(notDraft, ne(order.status, 'cancelled')))
 
   const recentOrders = await tx
     .select({
       id: order.id,
       number: order.number,
-      status: order.status,
+      /* `notDraft` below guarantees the narrower type the dashboard exposes. */
+      status: sql<OrderStatus>`${order.status}`,
       totalPaise: order.totalPaise,
       customerName: customer.name,
       email: order.email,
@@ -321,6 +326,7 @@ export async function dashboardSummary(
     })
     .from(order)
     .leftJoin(customer, eq(customer.id, order.customerId))
+    .where(notDraft)
     .orderBy(desc(order.placedAt))
     .limit(RECENT_ORDERS)
 
@@ -336,7 +342,7 @@ export async function dashboardSummary(
     .innerJoin(order, eq(order.id, orderLine.orderId))
     .innerJoin(variant, eq(variant.id, orderLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
     .groupBy(variant.productId, product.title, product.handle)
     .orderBy(desc(sum(orderLine.quantity)))
     .limit(TOP_PRODUCTS)
@@ -415,7 +421,7 @@ export async function dashboardSummary(
     })
     .from(order)
     .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(and(ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, startOfDay(now, 29))))
     .groupBy(address.stateCode)
     .orderBy(desc(sum(order.totalPaise)))
   const stateTotal = stateRows.reduce((n, r) => n + r.revenuePaise, 0)

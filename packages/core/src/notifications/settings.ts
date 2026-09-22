@@ -12,10 +12,16 @@ export const NotificationSettingsSchema = z.object({
   /** Channels that receive every order event. */
   enabled: z.array(z.string().min(1)).default([]),
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
+  /** Nudge shoppers who left a basket behind. Off until a merchant turns it on. */
+  recoverAbandoned: z.boolean().default(false),
 })
 export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>
 
-export const defaultNotificationSettings: NotificationSettings = { enabled: [], providers: {} }
+export const defaultNotificationSettings: NotificationSettings = {
+  enabled: [],
+  providers: {},
+  recoverAbandoned: false,
+}
 
 export function parseNotificationSettings(raw: unknown): NotificationSettings {
   const r = NotificationSettingsSchema.safeParse(raw)

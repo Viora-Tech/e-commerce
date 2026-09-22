@@ -1,4 +1,15 @@
-import { customer, notification, order, orderLine, shipment, store } from '@commerce/db'
+import {
+  cart,
+  cartLine,
+  customer,
+  notification,
+  order,
+  orderLine,
+  product,
+  shipment,
+  store,
+  variant,
+} from '@commerce/db'
 import type {
   NotificationChannel,
   NotificationRegistry,
@@ -6,7 +17,7 @@ import type {
   TemplateData,
   TemplateId,
 } from '@commerce/notifications'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { parseNotificationSettings, resolveNotificationChannels } from './settings'
 
@@ -79,6 +90,114 @@ export async function buildTemplateData(
   }
 }
 
+/** The store's enabled channels, unless the caller injected fakes. */
+async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
+  if (opts.channels) return opts.channels
+  const [s] = await ctx.tx
+    .select({ notifications: store.notifications })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  return resolveNotificationChannels(
+    opts.registry,
+    parseNotificationSettings(s?.notifications),
+    opts.settingsSecret,
+  ).channels
+}
+
+/**
+ * Everything a recovery message needs, from the cart rather than an order.
+ * Null when the cart is gone or empty.
+ */
+export async function buildCartTemplateData(
+  ctx: StoreContext,
+  cartId: string,
+  actionUrl?: string,
+): Promise<{ data: TemplateData; to: Recipient } | null> {
+  const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
+  if (!c) return null
+  const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
+  const lines = await ctx.tx
+    .select({
+      quantity: cartLine.quantity,
+      unitPricePaise: cartLine.unitPricePaise,
+      productTitle: product.title,
+      variantTitle: variant.title,
+    })
+    .from(cartLine)
+    .innerJoin(variant, eq(variant.id, cartLine.variantId))
+    .innerJoin(product, eq(product.id, variant.productId))
+    .where(eq(cartLine.cartId, cartId))
+  if (lines.length === 0) return null
+  const subtotal = lines.reduce((sum, l) => sum + l.quantity * l.unitPricePaise, 0)
+  return {
+    data: {
+      storeName: s?.name ?? '',
+      customerName: c.customerName || 'there',
+      totalLabel: inr.format(subtotal / 100),
+      lines: lines.map((l) => ({
+        title: [l.productTitle, l.variantTitle !== 'Default' ? l.variantTitle : null]
+          .filter(Boolean)
+          .join(' / '),
+        quantity: l.quantity,
+        priceLabel: inr.format((l.quantity * l.unitPricePaise) / 100),
+      })),
+      paymentMethodLabel: '',
+      actionUrl,
+    },
+    to: { email: c.email ?? undefined, phone: c.phone ?? undefined },
+  }
+}
+
+/**
+ * Ask a shopper to come back to an abandoned basket. Recorded against the
+ * cart, so the same basket is never nudged twice by two code paths.
+ */
+export async function deliverCartRecovery(
+  ctx: StoreContext,
+  input: { cartId: string; actionUrl?: string | undefined },
+  opts: DeliverOptions,
+): Promise<DeliveryResult[]> {
+  const built = await buildCartTemplateData(ctx, input.cartId, input.actionUrl)
+  if (!built) return []
+  const template: TemplateId = 'checkout_recovery'
+  const channels = await channelsFor(ctx, opts)
+  const already = await ctx.tx
+    .select({ channel: notification.channel, status: notification.status })
+    .from(notification)
+    .where(and(eq(notification.cartId, input.cartId), eq(notification.template, template)))
+  const sent = new Set(already.filter((n) => n.status === 'sent').map((n) => n.channel))
+
+  const results: DeliveryResult[] = []
+  for (const channel of channels) {
+    const to = built.to[channel.requires]
+    if (!to || sent.has(channel.id)) continue
+    const r = await channel.send({ to: built.to, template, data: built.data })
+    await ctx.tx
+      .insert(notification)
+      .values({
+        storeId: ctx.storeId,
+        cartId: input.cartId,
+        channel: channel.id,
+        template,
+        to,
+        status: r.ok ? 'sent' : 'failed',
+        providerRef: r.ok ? r.providerRef : null,
+        error: r.ok ? null : r.error,
+      })
+      .onConflictDoUpdate({
+        target: [notification.cartId, notification.channel, notification.template],
+        targetWhere: sql`cart_id is not null`,
+        set: {
+          status: r.ok ? 'sent' : 'failed',
+          providerRef: r.ok ? r.providerRef : null,
+          error: r.ok ? null : r.error,
+        },
+      })
+    results.push({ channel: channel.id, to, ok: r.ok, error: r.ok ? undefined : r.error })
+  }
+  return results
+}
+
 /**
  * Send one template for one order through every enabled channel and record
  * the outcome. A channel that already sent this template is skipped, so a
@@ -92,18 +211,7 @@ export async function deliverNotification(
   const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl)
   if (!built) return []
 
-  let channels = opts.channels
-  if (!channels) {
-    const [s] = await ctx.tx
-      .select({ notifications: store.notifications })
-      .from(store)
-      .where(eq(store.id, ctx.storeId))
-    channels = resolveNotificationChannels(
-      opts.registry,
-      parseNotificationSettings(s?.notifications),
-      opts.settingsSecret,
-    ).channels
-  }
+  const channels = await channelsFor(ctx, opts)
 
   const already = await ctx.tx
     .select({ channel: notification.channel, status: notification.status })
