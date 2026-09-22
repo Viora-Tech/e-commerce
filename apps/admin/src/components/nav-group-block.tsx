@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { type NavItem, navigationContent } from '@/data/navigation'
+import { usePermissions } from '@/hooks/use-permissions'
 import { base, instant } from '@/lib/motion'
 import NavSection from './nav-section'
 
@@ -17,12 +18,26 @@ const FOCUS =
 export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   // Hooks
   const reduced = useReducedMotion()
+  const { loading, hasPermission } = usePermissions()
   const [collapsed, setCollapsed] = useState(false)
 
   // Event handlers
   const handleToggle = () => {
     setCollapsed((c) => !c)
   }
+
+  // Early returns
+  /* Hiding is a convenience: every page and procedure checks on the server too.
+     While permissions load, show the rail rather than flashing an empty one. */
+  const visible = loading
+    ? items
+    : items
+        .filter((item) => !item.permission || hasPermission(item.permission))
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter((c) => !c.permission || hasPermission(c.permission)),
+        }))
+  if (visible.length === 0) return null
 
   // Render logic
   const toggleLabel = label
@@ -65,7 +80,7 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
             transition={reveal}
             className="flex flex-col gap-0.5 overflow-hidden px-3 group-data-[collapsible=icon]:px-2"
           >
-            {items.map((item) => (
+            {visible.map((item) => (
               <NavSection key={item.href} item={item} pathname={pathname} />
             ))}
           </motion.ul>

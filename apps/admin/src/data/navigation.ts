@@ -1,3 +1,4 @@
+import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
   BadgePercent,
@@ -13,12 +14,14 @@ import {
   Users,
 } from '@commerce/ui/icons'
 
-export type NavChild = { href: string; label: string }
+export type NavChild = { href: string; label: string; permission?: Permission }
 
 export type NavItem = {
   href: string
   label: string
   icon: LucideIcon
+  /** Hidden when the member does not hold this. The server still guards each page. */
+  permission?: Permission
   /** Sub-pages shown beneath the item while its section is active. */
   children?: NavChild[]
 }
@@ -37,18 +40,28 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/orders',
         label: 'Orders',
         icon: ShoppingBag,
+        permission: permissions.ORDERS_READ,
         children: [
-          { href: '/orders/drafts', label: 'Drafts' },
-          { href: '/orders/abandoned-checkouts', label: 'Abandoned checkouts' },
+          { href: '/orders/drafts', label: 'Drafts', permission: permissions.DRAFTS_READ },
+          {
+            href: '/orders/abandoned-checkouts',
+            label: 'Abandoned checkouts',
+            permission: permissions.ORDERS_READ,
+          },
         ],
       },
       {
         href: '/products',
         label: 'Products',
         icon: Package,
+        permission: permissions.PRODUCTS_READ,
         children: [
           { href: '/products/collections', label: 'Collections' },
-          { href: '/products/inventory', label: 'Inventory' },
+          {
+            href: '/products/inventory',
+            label: 'Inventory',
+            permission: permissions.INVENTORY_READ,
+          },
           { href: '/products/purchase-orders', label: 'Purchase orders' },
           { href: '/products/transfers', label: 'Transfers' },
           { href: '/products/gift-cards', label: 'Gift cards' },
@@ -58,12 +71,14 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/customers',
         label: 'Customers',
         icon: Users,
+        permission: permissions.CUSTOMERS_READ,
         children: [{ href: '/customers/segments', label: 'Segments' }],
       },
       {
         href: '/content',
         label: 'Content',
         icon: FolderOpen,
+        permission: permissions.CONTENT_READ,
         children: [
           { href: '/content/files', label: 'Files' },
           { href: '/content/metaobjects', label: 'Metaobjects' },
@@ -73,6 +88,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/analytics',
         label: 'Analytics',
         icon: BarChart3,
+        permission: permissions.ANALYTICS_READ,
         children: [
           { href: '/analytics/reports', label: 'Reports' },
           { href: '/analytics/live', label: 'Live view' },
@@ -87,7 +103,12 @@ export const NAV_GROUPS: NavGroup[] = [
           { href: '/marketing/automations', label: 'Automations' },
         ],
       },
-      { href: '/discounts', label: 'Discounts', icon: BadgePercent },
+      {
+        href: '/discounts',
+        label: 'Discounts',
+        icon: BadgePercent,
+        permission: permissions.DISCOUNTS_READ,
+      },
     ],
   },
   {
@@ -97,6 +118,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/online-store',
         label: 'Online Store',
         icon: Store,
+        permission: permissions.ONLINE_STORE_READ,
         children: [
           { href: '/online-store/themes', label: 'Themes' },
           { href: '/online-store/pages', label: 'Pages' },
@@ -109,12 +131,17 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Apps',
-    items: [{ href: '/apps', label: 'Apps', icon: Blocks }],
+    items: [{ href: '/apps', label: 'Apps', icon: Blocks, permission: permissions.SETTINGS_READ }],
   },
 ]
 
 /** Pinned to the bottom of the rail, like Shopify. */
-export const SETTINGS_NAV: NavItem = { href: '/settings', label: 'Settings', icon: Settings }
+export const SETTINGS_NAV: NavItem = {
+  href: '/settings',
+  label: 'Settings',
+  icon: Settings,
+  permission: permissions.SETTINGS_READ,
+}
 
 export const navigationContent = {
   pickStore: 'Pick a store',
