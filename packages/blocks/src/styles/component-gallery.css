@@ -869,3 +869,14 @@ html:not(.has-cursor-fill) .product-gallery__lightbox-nav:hover::before {
 .product-gallery__rail-btn:disabled::before {
   clip-path: circle(0% at 50% 50%);
 }
+
+/* Uploaded mp4 clips sit in the same frame as images: fill it, keep the
+   aspect, never overflow the stage. */
+.product-gallery__slide video,
+.product-gallery__thumb video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--color-surface);
+}

@@ -10,7 +10,7 @@ export type CardProduct = {
   pricePaise: number
   mrpPaise: number | null
   available: number
-  images: { url: string; alt: string | null }[]
+  images: { url: string; alt: string | null; contentType?: string | null | undefined }[]
 }
 
 export type ProductDetail = {
@@ -21,7 +21,7 @@ export type ProductDetail = {
   description: RichTextValue | string | null
   vendor: string | null
   productType: string | null
-  images: { url: string; alt: string | null }[]
+  images: { url: string; alt: string | null; contentType?: string | null | undefined }[]
   options: { id: string; name: string; values: { id: string; value: string }[] }[]
   variants: {
     id: string
