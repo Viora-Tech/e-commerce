@@ -6,6 +6,7 @@ import ProviderSettingsForm, {
 } from '@/components/settings/provider-settings-form'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
+import { settingsContent } from '@/data/settings'
 import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 
@@ -23,10 +24,15 @@ function courierHint(m: ProviderDef) {
 
 function footer(extra: Extra, setExtra: (next: Extra) => void) {
   if (!extra.policy) return null
+  const [, policy, tryPin] = settingsContent.sections.shipping
   return (
     <>
-      <ShippingPolicyFields value={extra.policy} onChange={(policy) => setExtra({ policy })} />
-      <ShippingTryPin />
+      <section id={policy?.id} className="scroll-mt-20">
+        <ShippingPolicyFields value={extra.policy} onChange={(policy) => setExtra({ policy })} />
+      </section>
+      <section id={tryPin?.id} className="scroll-mt-20">
+        <ShippingTryPin />
+      </section>
     </>
   )
 }
@@ -42,6 +48,7 @@ export default function ShippingSettings() {
       renderHint={courierHint}
       renderFooter={footer}
       noConfigText={copy.hints.fake}
+      sections={settingsContent.sections.shipping}
     />
   )
 }

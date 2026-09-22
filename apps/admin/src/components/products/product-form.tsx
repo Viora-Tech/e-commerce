@@ -133,16 +133,15 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
 
   return (
     <PageBody width="narrow" className="kit-form">
-      {dirty ? (
-        <SaveBar
-          message={copy.saveBar.message}
-          saveLabel={copy.saveBar.save}
-          discardLabel={copy.saveBar.discard}
-          onSave={handleSave}
-          onDiscard={handleDiscard}
-          saving={busy}
-        />
-      ) : null}
+      <SaveBar
+        open={dirty}
+        message={copy.saveBar.message}
+        saveLabel={copy.saveBar.save}
+        discardLabel={copy.saveBar.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
+      />
       <PageHeader
         title={product ? product.title : copy.newTitle}
         breadcrumbs={[

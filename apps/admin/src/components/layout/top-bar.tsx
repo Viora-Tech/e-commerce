@@ -24,6 +24,8 @@ type TopBarProps = {
   /** False on detail pages, which render their own h1 through PageHeader. */
   heading: boolean
   user: { name: string; email: string }
+  /** True once the page content has scrolled; the bar gains a hairline and a soft shadow. */
+  scrolled?: boolean
 }
 
 function initials(name: string): string {
@@ -38,7 +40,7 @@ function initials(name: string): string {
 }
 
 /** Kit top bar: page title left; search pill, bell, theme switch and avatar right. */
-export default function TopBar({ title, heading, user }: TopBarProps) {
+export default function TopBar({ title, heading, user, scrolled = false }: TopBarProps) {
   // Hooks
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
@@ -66,7 +68,12 @@ export default function TopBar({ title, heading, user }: TopBarProps) {
 
   return (
     /* 5:1347: 96px tall white bar; title 22/700 at x 24; controls 32px apart, 44px from the right edge. */
-    <header className="flex h-14 shrink-0 items-center gap-6 bg-card pl-5 pr-6">
+    <header
+      className={cn(
+        'relative z-10 flex h-14 shrink-0 items-center gap-6 bg-card pl-5 pr-6 transition-shadow duration-200 ease-out motion-reduce:transition-none',
+        scrolled && 'shadow-bar',
+      )}
+    >
       <SidebarTrigger className="-ml-2 md:hidden" />
       {heading ? (
         <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong">{title}</h1>
@@ -123,7 +130,7 @@ export default function TopBar({ title, heading, user }: TopBarProps) {
         >
           <span
             className={cn(
-              'flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform',
+              'flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform duration-200 ease-out motion-reduce:transition-none',
               dark && 'translate-x-5',
             )}
           >

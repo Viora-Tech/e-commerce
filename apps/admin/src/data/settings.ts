@@ -8,7 +8,7 @@ export type SettingsSection = {
   icon: LucideIcon
 }
 
-/** Settings index grid, in Shopify's order. */
+/** Settings tabs in the left rail, in Shopify's order. */
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     href: '/settings/general',
@@ -61,6 +61,25 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
 ]
 
 export const settingsContent = {
+  nav: {
+    label: 'Settings sections',
+    onThisPage: 'On this page',
+  },
+  sections: {
+    shipping: [
+      { id: 'section-couriers', label: 'Couriers' },
+      { id: 'section-policy', label: 'Dispatch policy' },
+      { id: 'section-try-pin', label: 'Try a PIN code' },
+    ],
+    payments: [
+      { id: 'section-methods', label: 'Payment methods' },
+      { id: 'section-fees', label: 'Fees and discounts' },
+    ],
+    files: [
+      { id: 'section-providers', label: 'Storage' },
+      { id: 'section-verify', label: 'Connection' },
+    ],
+  },
   general: {
     title: 'General',
     intro: 'What shoppers see in emails and invoices, and where your store operates.',

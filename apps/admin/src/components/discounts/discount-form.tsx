@@ -119,16 +119,15 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
 
   return (
     <PageBody width="narrow">
-      {dirty ? (
-        <SaveBar
-          message={copy.saveBar.message}
-          saveLabel={copy.saveBar.save}
-          discardLabel={copy.saveBar.discard}
-          onSave={handleSave}
-          onDiscard={handleDiscard}
-          saving={busy}
-        />
-      ) : null}
+      <SaveBar
+        open={dirty}
+        message={copy.saveBar.message}
+        saveLabel={copy.saveBar.save}
+        discardLabel={copy.saveBar.discard}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+        saving={busy}
+      />
       <PageHeader
         title={title}
         breadcrumbs={[{ label: discountsContent.title, href: '/discounts' }, { label: title }]}

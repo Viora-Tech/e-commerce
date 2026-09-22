@@ -40,7 +40,7 @@ export default function TopProductsCard({ products }: { products: TopProduct[] }
             <li key={p.productId}>
               <Link
                 href={`/products/${p.productId}`}
-                className="flex h-[4.125rem] items-center gap-3 transition-colors hover:bg-background"
+                className="flex h-[4.125rem] items-center gap-3 rounded-md transition-[background-color,transform] duration-150 ease-out hover:bg-background hover:-translate-y-px motion-reduce:transition-none motion-reduce:hover:translate-y-0"
               >
                 <HomeProductThumb url={p.imageUrl} title={p.title} />
                 <span className="min-w-0 flex-1">
