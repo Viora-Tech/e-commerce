@@ -20,6 +20,15 @@ export type LiveVisitors = {
   perMinute: number[]
 }
 
+export type DailyVisitors = {
+  /** Unique visitors per requested day, oldest first. */
+  perDay: number[]
+  /** Unique visitors across the whole span, de-duplicated. */
+  total: number
+}
+
 export type VisitorSource = {
   live(storeId: string): Promise<LiveVisitors>
+  /** Sessions per IST day for the analytics section; absent in tests, which then read zero. */
+  daily?(storeId: string, days: string[]): Promise<DailyVisitors>
 }

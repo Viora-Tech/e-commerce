@@ -1,10 +1,16 @@
-import { BarChart3 } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { analyticsContent } from '@/data/analytics'
+import AnalyticsOverviewPage from '@/components/analytics/analytics-overview'
+import { parseRange } from '@/lib/analytics-range'
+import { appRouter, call, serverContext } from '@/lib/api'
+import type { SearchParams } from '@/lib/list-query'
 
 export const metadata: Metadata = { title: 'Analytics' }
 
-export default function Page() {
-  return <SectionEmpty {...analyticsContent.index} icon={BarChart3} />
+type Props = { searchParams: Promise<SearchParams> }
+
+export default async function Page({ searchParams }: Props) {
+  const range = parseRange(await searchParams)
+  const context = await serverContext()
+  const overview = await call(appRouter.analytics.overview, { range }, { context })
+  return <AnalyticsOverviewPage initialRange={range} initial={overview} />
 }

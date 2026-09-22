@@ -1,10 +1,11 @@
-import { Radio } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { analyticsContent } from '@/data/analytics'
+import LiveView from '@/components/analytics/live-view'
+import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Live view' }
 
-export default function Page() {
-  return <SectionEmpty {...analyticsContent.live} icon={Radio} />
+export default async function Page() {
+  const context = await serverContext()
+  const live = await call(appRouter.analytics.live, undefined, { context })
+  return <LiveView initial={live} />
 }
