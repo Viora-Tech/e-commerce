@@ -1,19 +1,66 @@
 export const CUSTOMER_SEGMENTS = ['new', 'returning', 'subscribed'] as const
 export type CustomerSegment = (typeof CUSTOMER_SEGMENTS)[number]
 
+/** Lifetime spend at or above this reads as VIP until the store can configure it. */
+export const VIP_SPEND_PAISE = 2_000_000
+/** Someone who ordered inside this window counts as active (status cell, frame 5:3148). */
+export const ACTIVE_WINDOW_DAYS = 90
+
+export type CustomerActivity = 'active' | 'inactive' | 'vip'
+
+/** Where a customer stands today: VIP wins, then recent activity. */
+export function customerActivity(
+  customer: { spentPaise: number; lastOrderAt: Date | string | null },
+  now = new Date(),
+): CustomerActivity {
+  if (customer.spentPaise >= VIP_SPEND_PAISE) return 'vip'
+  if (!customer.lastOrderAt) return 'inactive'
+  const cutoff = now.getTime() - ACTIVE_WINDOW_DAYS * 86_400_000
+  return new Date(customer.lastOrderAt).getTime() >= cutoff ? 'active' : 'inactive'
+}
+
+/**
+ * Short readable code for the frame's "#CUST001" column. There is no customer
+ * number in the schema, so the tail of the record id stands in: stable, unique
+ * and short enough to read out on a call.
+ */
+export function customerCode(id: string): string {
+  return `#${id.replaceAll('-', '').slice(-6).toUpperCase()}`
+}
+
 /** Copy for the Customers section. */
 export const customersContent = {
   title: 'Customers',
-  /* Same shape as the order list (frame 5:2353): heading, four tiles, tab group, table. */
+  /* Frame 5:2879: three stacked tiles beside the overview chart, then the table. */
   heading: 'Customer list',
   resource: { singular: 'customer', plural: 'customers' },
   tiles: {
     total: 'Total customers',
+    newCustomers: 'New customers',
+    visitors: 'Visitor',
     newThisMonth: 'New customers',
     returning: 'Returning',
     average: 'Average lifetime value',
     period: 'Last 30 days',
+    week: 'Last 7 days',
     allTime: 'All time',
+  },
+  overview: {
+    title: 'Customer overview',
+    thisWeek: 'This week',
+    lastWeek: 'Last week',
+    tabs: {
+      activeCustomers: 'Active customers',
+      repeatCustomers: 'Repeat customers',
+      shopVisitors: 'Shop visitors',
+      conversionRate: 'Conversion rate',
+    },
+    series: {
+      activeCustomers: 'Active customers',
+      repeatCustomers: 'Repeat customers',
+      shopVisitors: 'Shop visitors',
+      conversionRate: 'Conversion rate',
+    },
   },
   tabs: {
     all: 'All customers',
@@ -22,13 +69,33 @@ export const customersContent = {
     subscribed: 'Subscribed',
   } satisfies { all: string } & Record<CustomerSegment, string>,
   columns: {
-    name: 'Customer',
+    code: 'Customer id',
+    name: 'Name',
+    phone: 'Phone',
+    orderCount: 'Order count',
+    totalSpend: 'Total spend',
+    status: 'Status',
+    action: 'Action',
     email: 'Email',
     location: 'Location',
     orders: 'Orders',
     spent: 'Spent',
     lastOrder: 'Last order',
     tags: 'Tags',
+  },
+  rowActions: {
+    message: (name: string) => `Email ${name}`,
+    noEmail: 'No email on file',
+    delete: (name: string) => `Delete ${name}`,
+    deleteHeading: 'Delete this customer?',
+    deleteBody: 'The record and its notes go away. This cannot be undone.',
+    deleteBlocked: (n: number) =>
+      n === 1
+        ? 'This customer has an order, so the record stays with the order history.'
+        : `This customer has ${n} orders, so the record stays with the order history.`,
+    deleted: 'Customer deleted',
+    cancel: 'Cancel',
+    confirm: 'Delete',
   },
   filters: {
     heading: 'Filter customers',

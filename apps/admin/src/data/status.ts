@@ -140,9 +140,12 @@ export const STATUS = {
     invited: entry(staffContent.status.invited, 'pending'),
   },
   /** Badges on the customer detail header. */
+  /** Badges on the customer detail header and the list's status column (5:3148). */
   customer: {
     returning: entry(customerDetailContent.badges.returning, 'info'),
-    vip: entry(customerDetailContent.badges.vip, 'accent'),
+    vip: entry(customerDetailContent.badges.vip, 'pending'),
+    active: entry('Active', 'success'),
+    inactive: entry('Inactive', 'error'),
   },
 } as const
 

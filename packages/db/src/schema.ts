@@ -68,6 +68,13 @@ export const product = pgTable('product', {
   status: text('status', { enum: ['draft', 'active', 'archived'] })
     .notNull()
     .default('draft'),
+  /** Prices already carry tax; the GST split is extracted rather than added at checkout. */
+  taxIncluded: boolean('tax_included').notNull().default(true),
+  /** Shown in the storefront's featured section. */
+  featured: boolean('featured').notNull().default(false),
+  /** Optional window for the compare-at price; outside it the storefront shows the plain price. */
+  saleStartsAt: timestamp('sale_starts_at', { withTimezone: true }),
+  saleEndsAt: timestamp('sale_ends_at', { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -130,6 +137,74 @@ export const productMedia = pgTable('product_media', {
     .references(() => media.id),
   position: integer('position').notNull().default(0),
 })
+
+/** Rule fields an automatic collection can match on; the evaluator lives in @commerce/core/collections. */
+export type CollectionField = 'title' | 'type' | 'vendor' | 'tag' | 'price'
+export type CollectionOp = 'eq' | 'neq' | 'contains' | 'starts_with' | 'gt' | 'lt'
+export type CollectionCondition = { field: CollectionField; op: CollectionOp; value: string }
+export type CollectionRules = { match: 'all' | 'any'; conditions: CollectionCondition[] }
+export type CollectionSort =
+  | 'manual'
+  | 'title_asc'
+  | 'title_desc'
+  | 'price_asc'
+  | 'price_desc'
+  | 'created_desc'
+
+/**
+ * A group of products. `manual` collections list their members in
+ * `collection_product`; `automatic` ones recompute that table from `rules`
+ * whenever a product changes.
+ */
+export const collection = pgTable(
+  'collection',
+  {
+    id: id(),
+    storeId: storeId(),
+    handle: text('handle').notNull(),
+    title: text('title').notNull(),
+    /** Lexical JSON, like product.description. */
+    description: jsonb('description'),
+    imageMediaId: uuid('image_media_id').references(() => media.id),
+    kind: text('kind', { enum: ['manual', 'automatic'] })
+      .notNull()
+      .default('manual'),
+    rules: jsonb('rules').$type<CollectionRules>().notNull().default({
+      match: 'all',
+      conditions: [],
+    }),
+    sortOrder: text('sort_order', {
+      enum: ['manual', 'title_asc', 'title_desc', 'price_asc', 'price_desc', 'created_desc'],
+    })
+      .notNull()
+      .default('manual'),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    status: text('status', { enum: ['draft', 'active'] })
+      .notNull()
+      .default('active'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('collection_store_handle').on(t.storeId, t.handle)],
+)
+
+/** Membership. Automatic collections rewrite these rows; manual ones own `position`. */
+export const collectionProduct = pgTable(
+  'collection_product',
+  {
+    id: id(),
+    storeId: storeId(),
+    collectionId: uuid('collection_id')
+      .notNull()
+      .references(() => collection.id),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => product.id),
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [uniqueIndex('collection_product_unique').on(t.collectionId, t.productId)],
+)
 
 export const variant = pgTable('variant', {
   id: id(),

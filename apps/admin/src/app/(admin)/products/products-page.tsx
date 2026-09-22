@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
+import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import ConfirmBulkDelete from '@/components/products/confirm-bulk-delete'
@@ -191,16 +191,15 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   ].filter(Boolean) as AppliedFilter[]
 
   return (
-    <PageBody className="gap-6">
-      {/* 5:2375 + 5:2503: heading left, actions right. */}
-      <div className="flex h-9 items-center justify-between gap-3">
-        <h1 className="text-page-title">{copy.heading}</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport} disabled={busy}>
+    <KitListPage
+      title={copy.heading}
+      actions={
+        <>
+          <Button variant="outline" size="lg" onClick={handleExport} disabled={busy}>
             <Download strokeWidth={1.6} />
             {copy.export}
           </Button>
-          <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
+          <Button variant="outline" size="lg" onClick={() => setImporting(true)} disabled={busy}>
             <Upload strokeWidth={1.6} />
             {copy.import}
           </Button>
@@ -208,12 +207,12 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             <SquarePlus strokeWidth={1.6} />
             {copy.add}
           </Button>
-        </div>
-      </div>
-
-      <ProductTiles stats={initial.stats} />
-
+        </>
+      }
+      strip={<ProductTiles stats={initial.stats} />}
+    >
       <ResourceTable
+        size="frame"
         resourceName={copy.resource}
         columns={productColumns}
         items={items}
@@ -293,7 +292,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={handleConfirmDelete}
       />
-    </PageBody>
+    </KitListPage>
   )
 }
 

@@ -1,6 +1,7 @@
 import { protectedProcedure } from '../procedures'
 import { analyticsRouter } from './analytics'
 import { appsRouter } from './apps'
+import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
@@ -15,6 +16,7 @@ export const appRouter = {
   me: protectedProcedure.handler(({ context }) => context.session),
   store: storeRouter,
   products: productsRouter,
+  collections: collectionsRouter,
   pages: pagesRouter,
   orders: ordersRouter,
   customers: customersRouter,

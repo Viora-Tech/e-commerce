@@ -17,7 +17,11 @@ import CustomerFilters, {
   type CustomerFilterState,
   EMPTY_CUSTOMER_FILTERS,
 } from '@/components/customers/customer-filters'
-import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
+import CustomerOverviewCard from '@/components/customers/customer-overview-card'
+import CustomerTiles, {
+  type CustomerOverview,
+  type CustomerStats,
+} from '@/components/customers/customer-tiles'
 import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
@@ -36,11 +40,12 @@ import {
 
 type ListResult = Awaited<ReturnType<typeof api.customers.list>>
 
-/** First page, tiles and the all-customers count rendered on the server so nothing paints empty. */
+/** First page, tiles, overview and the all-customers count from the server so nothing paints empty. */
 export type CustomersInitial = {
   query: ListQuery<CustomerSegment>
   result: ListResult
   stats: CustomerStats
+  overview: CustomerOverview
   allCount: number
   tags: string[]
 }
@@ -145,16 +150,20 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     setTagAction(action)
   }
 
+  const handleReload = () => setReloadKey((k) => k + 1)
+
   // Render logic
+  const columns = customerColumns(handleReload)
   const applied = appliedCustomerFilters(filters, clearFilter) satisfies AppliedFilter[]
   const segmentHref = `/customers/segments/new?rules=${encodeURIComponent(
     JSON.stringify(segmentRulesFromFilters(filters, status)),
   )}`
 
   return (
-    <PageBody className="gap-6">
-      <div className="flex h-9 items-center justify-between gap-3">
-        <h1 className="text-page-title">{copy.heading}</h1>
+    <PageBody width="frame" className="gap-5">
+      {/* 5:2900 + actions: 22px heading on the left, the filter shortcuts on the right. */}
+      <div className="flex h-12 items-center justify-between gap-3">
+        <h1 className="text-kit-heading text-ink-strong">{copy.heading}</h1>
         <div className="flex items-center gap-2">
           {applied.length > 0 ? (
             <Button variant="outline" size="sm" render={<Link href={segmentHref} />}>
@@ -166,11 +175,17 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           </Button>
         </div>
       </div>
-      <CustomerTiles stats={initial.stats} />
-      <div className="-mt-1">
+      {/* 5:3026 + 5:3062: three stacked tiles (270) beside the overview chart (826), 20px apart. */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,270fr)_minmax(0,826fr)]">
+        <CustomerTiles stats={initial.stats} visitors={initial.overview.visitors} />
+        <CustomerOverviewCard overview={initial.overview} />
+      </div>
+      {/* 5:3118: the table card sits 20px under the overview row. */}
+      <div>
         <ResourceTable
+          size="frame"
           resourceName={copy.resource}
-          columns={customerColumns}
+          columns={columns}
           items={items}
           getId={(c) => c.id}
           href={(c) => `/customers/${c.id}`}
@@ -182,6 +197,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           applied={applied}
           tabs={
             <PillTabs
+              size="frame"
               value={status}
               onChange={(s) => setQ({ status: s, page: 1 })}
               tabs={[
@@ -225,7 +241,7 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
         ids={tagIds}
         action={tagAction}
         onClose={() => setTagAction(null)}
-        onDone={() => setReloadKey((k) => k + 1)}
+        onDone={handleReload}
       />
     </PageBody>
   )

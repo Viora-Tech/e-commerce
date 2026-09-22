@@ -2,6 +2,7 @@ import { permissions } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
 import {
+  customerOverview,
   customerStats,
   customerTags,
   deleteCustomer,
@@ -54,6 +55,14 @@ export const customersRouter = {
     .handler(({ context, input }) => listCustomers(context.tx, input)),
 
   stats: can(permissions.CUSTOMERS_READ).handler(({ context }) => customerStats(context.tx)),
+
+  /** Headline figures and the weekly series behind the Customer Overview card. */
+  overview: can(permissions.CUSTOMERS_READ).handler(({ context }) =>
+    customerOverview(context.tx, {
+      storeId: context.scope.storeId,
+      visitors: context.visitors,
+    }),
+  ),
 
   tags: can(permissions.CUSTOMERS_READ).handler(({ context }) => customerTags(context.tx)),
 
