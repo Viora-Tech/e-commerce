@@ -42,7 +42,7 @@ export default function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
   }
 
   return (
-    <DataCard title={copy.tags.heading} className="print:hidden">
+    <DataCard size="kit" title={copy.tags.heading} className="print:hidden">
       <div className="flex flex-col gap-3">
         {tags.length > 0 ? (
           <ul className="flex flex-wrap gap-2">

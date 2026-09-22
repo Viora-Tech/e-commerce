@@ -23,8 +23,8 @@ const STATUS_CELL: Record<OrderStatus, { icon: LucideIcon; className: string }> 
 export default function OrderStatusCell({ status }: { status: OrderStatus }) {
   const { icon: Icon, className } = STATUS_CELL[status]
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-body', className)}>
-      <Icon className="size-4" strokeWidth={1.5} />
+    <span className={cn('inline-flex items-center gap-2 text-kit-cell', className)}>
+      <Icon className="size-6" strokeWidth={1.5} />
       {ordersContent.status[status]}
     </span>
   )

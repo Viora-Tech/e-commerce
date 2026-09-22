@@ -28,6 +28,7 @@ import { fast, instant } from '@/lib/motion'
 import { type CellAlign, defineColumns, type ResourceColumnSpec, selectionColumn } from './columns'
 import { resourceTableFeatures } from './features'
 import ResourceTablePagination from './pagination'
+import { RESOURCE_TABLE_METRICS, type ResourceTableSize } from './sizes'
 import ResourceTableToolbar, { type AppliedFilter } from './toolbar'
 
 export type { AppliedFilter, ResourceColumnSpec }
@@ -58,6 +59,8 @@ export type ResourceTableProps<T extends RowData> = {
   /** Rendered in the selection bar; call `clear` after a bulk action. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
   empty?: { heading: string; body?: string; action?: ReactNode }
+  /** `frame` draws Dealport 5:2560 at its own px; `compact` (default) is the density scale. */
+  size?: ResourceTableSize
 }
 
 const SKELETON_ROWS = 6
@@ -107,9 +110,10 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const rows = table.getRowModel().rows
   const visibleCount = table.getVisibleLeafColumns().length
   const isEmpty = !props.loading && props.items.length === 0
+  const m = RESOURCE_TABLE_METRICS[props.size ?? 'compact']
 
   return (
-    <Card className="gap-0 p-5">
+    <Card className={cn('gap-0', m.card)}>
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
@@ -120,6 +124,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         applied={props.applied}
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
+        size={props.size ?? 'compact'}
       />
       <AnimatePresence initial={false}>
         {selectedIds.length > 0 && props.bulkActions ? (
@@ -131,7 +136,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
             transition={reduced ? instant : fast}
             className="overflow-hidden"
           >
-            <div className="mt-4 flex items-center gap-3 rounded-lg bg-primary-soft px-4 py-2 text-body">
+            <div className={cn('flex items-center gap-3 rounded-lg bg-primary-soft', m.bulkBar)}>
               <span className="font-medium">
                 {tableContent.selected(
                   selectedIds.length,
@@ -148,7 +153,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         ) : null}
       </AnimatePresence>
       {/* 5:2590: table starts 40px under the toolbar. */}
-      <div className="mt-5 overflow-x-auto">
+      <div className={cn('overflow-x-auto', m.gapAfterToolbar)}>
         <Table className="w-full table-fixed border-separate border-spacing-0">
           {/* 5:2591: header band, 8px inset, 6px radius, 40px cells. */}
           <TableHeader className="[&_tr]:border-0">
@@ -160,7 +165,9 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'h-10 bg-primary-soft px-2.5 py-1 text-table-head text-ink-strong first:rounded-l-[0.375rem] first:pl-4 last:rounded-r-[0.375rem] last:pr-4',
+                        'bg-primary-soft text-ink-strong',
+                        m.head,
+                        m.headText,
                         ALIGN[meta?.align ?? 'center'],
                         meta?.className,
                       )}
@@ -179,7 +186,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                     {Array.from({ length: visibleCount }, (_, j) => (
                       <TableCell
                         key={`skeleton-${i.toString()}-${j.toString()}`}
-                        className="h-12 border-b border-line px-2.5"
+                        className={cn('border-b border-line', m.skeletonCell)}
                       >
                         <Skeleton className="mx-auto h-4 w-full max-w-32" />
                       </TableCell>
@@ -205,7 +212,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                           <TableCell
                             key={cell.id}
                             className={cn(
-                              'h-12 border-b border-line px-2.5 py-2 text-body text-foreground first:pl-4 last:pr-4',
+                              'border-b border-line text-foreground',
+                              m.cell,
                               ALIGN[meta?.align ?? 'center'],
                               meta?.className,
                             )}
@@ -232,6 +240,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         perPage={props.perPage}
         total={props.total}
         onPageChange={props.onPageChange}
+        size={props.size ?? 'compact'}
       />
     </Card>
   )

@@ -102,9 +102,10 @@ export default function OrderView({ order }: OrderViewProps) {
   const shipmentId = order.shipment?.id
 
   return (
-    <PageBody>
+    <PageBody width="frame">
       <div className="print:hidden">
         <PageHeader
+          size="frame"
           title={copy.title(order.number)}
           subtitle={copy.placed(when(order.placedAt))}
           breadcrumbs={[{ label: copy.back, href: '/orders' }, { label: `#${order.number}` }]}
@@ -120,12 +121,16 @@ export default function OrderView({ order }: OrderViewProps) {
         />
         <div className="mt-3 flex flex-wrap items-center gap-4">
           {order.status === 'cancelled' ? (
-            <StatusPill tone={ORDER_STATUS_TONE.cancelled}>
+            <StatusPill tone={ORDER_STATUS_TONE.cancelled} className="text-kit-cell">
               {ordersContent.status.cancelled}
             </StatusPill>
           ) : null}
-          <StatusPill tone={pay.tone}>{pay.label}</StatusPill>
-          <StatusPill tone={ful.tone}>{ful.label}</StatusPill>
+          <StatusPill tone={pay.tone} className="text-kit-cell">
+            {pay.label}
+          </StatusPill>
+          <StatusPill tone={ful.tone} className="text-kit-cell">
+            {ful.label}
+          </StatusPill>
         </div>
       </div>
 
