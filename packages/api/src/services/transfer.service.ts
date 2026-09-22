@@ -1,6 +1,6 @@
 import type { StoreTx } from '@commerce/db'
 import { location, transfer, transferLine } from '@commerce/db'
-import { aliasedTable, asc, count, desc, eq, sql } from 'drizzle-orm'
+import { aliasedTable, and, asc, count, desc, eq, ilike, or, sql } from 'drizzle-orm'
 import { lineDetails } from './purchase-order.service'
 
 // Services are the only code that runs queries. They receive a store-scoped tx.
@@ -9,13 +9,24 @@ export async function listTransfers(
   tx: StoreTx,
   q: {
     status?: 'all' | 'draft' | 'in_transit' | 'received' | undefined
+    search?: string | undefined
     page: number
     perPage: number
   },
 ) {
   const from = aliasedTable(location, 'from_location')
   const to = aliasedTable(location, 'to_location')
-  const where = q.status && q.status !== 'all' ? eq(transfer.status, q.status) : undefined
+  const term = q.search?.trim()
+  const where = and(
+    q.status && q.status !== 'all' ? eq(transfer.status, q.status) : undefined,
+    term
+      ? or(
+          ilike(from.name, `%${term}%`),
+          ilike(to.name, `%${term}%`),
+          sql`${transfer.number}::text = ${term.replace(/^#?T?/i, '')}`,
+        )
+      : undefined,
+  )
   const rows = await tx
     .select({
       id: transfer.id,
@@ -38,7 +49,12 @@ export async function listTransfers(
     .orderBy(desc(transfer.number))
     .limit(q.perPage)
     .offset((q.page - 1) * q.perPage)
-  const [total] = await tx.select({ n: count() }).from(transfer).where(where)
+  const [total] = await tx
+    .select({ n: count() })
+    .from(transfer)
+    .innerJoin(from, eq(from.id, transfer.fromLocationId))
+    .innerJoin(to, eq(to.id, transfer.toLocationId))
+    .where(where)
   return { rows, total: Number(total?.n ?? 0) }
 }
 

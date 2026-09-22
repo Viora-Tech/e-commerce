@@ -202,6 +202,7 @@ export const transfersRouter = {
     .input(
       z.object({
         status: z.enum(['all', 'draft', 'in_transit', 'received']).optional(),
+        search: z.string().trim().max(200).optional(),
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(100).default(25),
       }),

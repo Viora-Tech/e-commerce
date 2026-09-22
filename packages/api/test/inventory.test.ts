@@ -42,16 +42,14 @@ async function seedVariant(storeId: string, onHand: number) {
     .insert(product)
     .values({ id: productId, storeId, title: 'Glasspad', handle: `pad-${productId}` })
   const variantId = newId()
-  await owner
-    .insert(variant)
-    .values({
-      id: variantId,
-      storeId,
-      productId,
-      title: 'Default',
-      pricePaise: 250000,
-      sku: 'GP-1',
-    })
+  await owner.insert(variant).values({
+    id: variantId,
+    storeId,
+    productId,
+    title: 'Default',
+    pricePaise: 250000,
+    sku: 'GP-1',
+  })
   await owner.insert(inventoryLevel).values({ storeId, variantId, onHand })
   return variantId
 }
@@ -140,5 +138,7 @@ describe('inventory router', () => {
     await call(appRouter.inventory.createLocation, { name: 'Warehouse' }, { context: a.ctx })
     const seen = await call(appRouter.inventory.locations, undefined, { context: b.ctx })
     expect(seen.map((l) => l.name)).toEqual(['Default location'])
+    const none = await call(appRouter.transfers.list, { search: 'Warehouse' }, { context: a.ctx })
+    expect(none.total).toBe(0)
   })
 })
