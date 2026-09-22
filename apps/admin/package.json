@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "class-variance-authority": "^0.7.1",
     "@commerce/api": "workspace:*",
     "@commerce/auth": "workspace:*",
     "@commerce/blocks": "workspace:*",
