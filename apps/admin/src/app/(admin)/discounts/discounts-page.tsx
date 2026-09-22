@@ -1,8 +1,8 @@
 'use client'
 
 import { describeDiscountValue } from '@commerce/core/discounts'
+import { SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { SquarePlus } from 'lucide-react'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'

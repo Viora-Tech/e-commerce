@@ -1,5 +1,6 @@
 'use client'
 
+import { CircleAlert, Puzzle } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -13,7 +14,6 @@ import {
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { CircleAlert, Puzzle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'

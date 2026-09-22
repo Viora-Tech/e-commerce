@@ -1,4 +1,4 @@
-import { UserCog } from 'lucide-react'
+import { UserCog } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SettingsEmpty from '@/components/settings/settings-empty'
 import { settingsContent } from '@/data/settings'

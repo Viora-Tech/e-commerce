@@ -1,4 +1,4 @@
-import { ListTree } from 'lucide-react'
+import { ListTree } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { onlineStoreContent } from '@/data/online-store'

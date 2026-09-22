@@ -1,7 +1,7 @@
 'use client'
 
+import { ImagePlus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { ImagePlus } from 'lucide-react'
 import { type DragEvent, useRef, useState } from 'react'
 import { mediaContent } from '@/data/media'
 

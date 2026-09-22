@@ -1,5 +1,5 @@
+import { ImageIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { ImageIcon } from 'lucide-react'
 
 type ProductThumbProps = { url: string | null; alt?: string; className?: string }
 

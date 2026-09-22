@@ -1,9 +1,9 @@
 'use client'
 
 import type { Tracking } from '@commerce/core'
+import { Bell, CreditCard, MessageSquare, RotateCcw, ShoppingBag, Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { Bell, CreditCard, MessageSquare, RotateCcw, ShoppingBag, Truck } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'

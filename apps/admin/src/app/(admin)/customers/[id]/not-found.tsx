@@ -1,4 +1,4 @@
-import { UserRound } from 'lucide-react'
+import { UserRound } from '@commerce/ui/icons'
 import SectionEmpty from '@/components/layout/section-empty'
 import { customersContent } from '@/data/customers'
 

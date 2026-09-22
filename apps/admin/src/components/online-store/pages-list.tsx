@@ -1,7 +1,7 @@
 'use client'
 
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import PageBody from '@/components/layout/page-body'
 import StatusPill from '@/components/layout/status-pill'

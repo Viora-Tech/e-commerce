@@ -1,8 +1,8 @@
 'use client'
 
-import { MoonIcon, SunIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect } from 'react'
+import { MoonIcon, SunIcon } from '../../../icons'
 import { Button } from '../../shadcn/button'
 
 export default function ModeToggle() {

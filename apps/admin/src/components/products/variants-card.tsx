@@ -1,10 +1,10 @@
 'use client'
 
+import { Plus, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { productFormContent } from '@/data/products'
 import { MAX_OPTIONS, type OptionRow, type VariantRow } from './form-state'

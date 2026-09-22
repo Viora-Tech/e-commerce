@@ -1,8 +1,8 @@
 'use client'
 
+import { ArrowRight, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { ArrowRight, Store } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'

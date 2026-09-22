@@ -1,4 +1,4 @@
-import { Send } from 'lucide-react'
+import { Send } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { marketingContent } from '@/data/marketing'

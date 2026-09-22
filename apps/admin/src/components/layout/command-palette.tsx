@@ -1,5 +1,6 @@
 'use client'
 
+import { Package, ShoppingBag } from '@commerce/ui/icons'
 import {
   Command,
   CommandDialog,
@@ -9,7 +10,6 @@ import {
   CommandItem,
   CommandList,
 } from '@commerce/ui/shadcn/command'
-import { Package, ShoppingBag } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { navigationContent } from '@/data/navigation'

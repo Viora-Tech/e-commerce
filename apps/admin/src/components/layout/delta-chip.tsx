@@ -1,5 +1,5 @@
+import { ArrowDown, ArrowUp } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { ArrowDown, ArrowUp } from 'lucide-react'
 import { layoutContent } from '@/data/layout'
 
 /** Percent change between two window values; null when there is nothing to compare against. */

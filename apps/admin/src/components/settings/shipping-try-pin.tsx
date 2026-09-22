@@ -1,12 +1,12 @@
 'use client'
 
+import { CircleAlert, CircleCheck, TriangleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { CircleAlert, CircleCheck, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'

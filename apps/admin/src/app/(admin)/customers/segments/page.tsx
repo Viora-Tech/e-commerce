@@ -1,4 +1,4 @@
-import { Filter } from 'lucide-react'
+import { Filter } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
 import SectionEmpty from '@/components/layout/section-empty'
 import { customersContent } from '@/data/customers'
