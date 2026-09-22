@@ -1,0 +1,133 @@
+/**
+ * Customer segments: saved filters over the customer list.
+ *
+ * The rule shape mirrors the discount conditions idea (a match mode plus a list
+ * of field/op/value rows) so the admin can reuse one condition builder, but the
+ * fields are customer facts rather than cart facts.
+ */
+
+export const SEGMENT_FIELDS = [
+  'spend',
+  'orders',
+  'state',
+  'tag',
+  'last_order_days',
+  'marketing',
+] as const
+export type SegmentField = (typeof SEGMENT_FIELDS)[number]
+
+export const SEGMENT_OPS = ['gte', 'lte', 'eq', 'neq', 'contains'] as const
+export type SegmentOp = (typeof SEGMENT_OPS)[number]
+
+export type SegmentMatch = 'all' | 'any'
+
+export type SegmentCondition = {
+  field: SegmentField
+  op: SegmentOp
+  /** Paise for spend, a count for orders, days for last_order_days, text otherwise. */
+  value: string
+}
+
+export type SegmentRules = {
+  match: SegmentMatch
+  conditions: SegmentCondition[]
+}
+
+/** The customer facts a rule can read; the list query supplies them per row. */
+export type SegmentCustomer = {
+  spentPaise: number
+  orderCount: number
+  stateCode: string | null
+  tags: string[]
+  lastOrderAt: Date | string | null
+  acceptsMarketing: boolean
+}
+
+/** Which operators make sense per field, so the builder never offers a nonsense pair. */
+export const OPS_BY_FIELD: Record<SegmentField, readonly SegmentOp[]> = {
+  spend: ['gte', 'lte'],
+  orders: ['gte', 'lte', 'eq'],
+  state: ['eq', 'neq'],
+  tag: ['contains', 'eq', 'neq'],
+  last_order_days: ['lte', 'gte'],
+  marketing: ['eq'],
+}
+
+const DAY_MS = 86_400_000
+
+function toNumber(value: string): number {
+  const n = Number.parseFloat(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function daysSince(when: Date | string | null, now: Date): number | null {
+  if (!when) return null
+  const then = when instanceof Date ? when : new Date(when)
+  if (Number.isNaN(then.getTime())) return null
+  return (now.getTime() - then.getTime()) / DAY_MS
+}
+
+function compareNumber(actual: number, op: SegmentOp, expected: number): boolean {
+  if (op === 'gte') return actual >= expected
+  if (op === 'lte') return actual <= expected
+  if (op === 'eq') return actual === expected
+  if (op === 'neq') return actual !== expected
+  return false
+}
+
+function compareText(actual: string | null, op: SegmentOp, expected: string): boolean {
+  const a = (actual ?? '').trim().toLowerCase()
+  const b = expected.trim().toLowerCase()
+  if (op === 'eq') return a === b
+  if (op === 'neq') return a !== b
+  if (op === 'contains') return a.includes(b)
+  return false
+}
+
+function compareTags(tags: string[], op: SegmentOp, expected: string): boolean {
+  const wanted = expected.trim().toLowerCase()
+  if (!wanted) return op === 'neq'
+  const has = tags.some((t) => t.trim().toLowerCase() === wanted)
+  if (op === 'neq') return !has
+  return has
+}
+
+/** True when a single condition holds. Unknown or unusable values never match. */
+export function matchesCondition(
+  customer: SegmentCustomer,
+  condition: SegmentCondition,
+  now: Date,
+): boolean {
+  const { field, op, value } = condition
+  if (field === 'spend') return compareNumber(customer.spentPaise, op, toNumber(value))
+  if (field === 'orders') return compareNumber(customer.orderCount, op, toNumber(value))
+  if (field === 'state') return compareText(customer.stateCode, op, value)
+  if (field === 'tag') return compareTags(customer.tags, op, value)
+  if (field === 'marketing') {
+    const wants = value === 'true'
+    return op === 'eq' ? customer.acceptsMarketing === wants : customer.acceptsMarketing !== wants
+  }
+  const days = daysSince(customer.lastOrderAt, now)
+  if (days === null) return false
+  return compareNumber(days, op, toNumber(value))
+}
+
+/**
+ * True when the customer belongs to the segment. An empty rule set matches
+ * everyone, which is what an unsaved builder should preview.
+ */
+export function evaluateSegment(
+  customer: SegmentCustomer,
+  rules: SegmentRules,
+  now: Date = new Date(),
+): boolean {
+  const conditions = rules.conditions ?? []
+  if (conditions.length === 0) return true
+  if (rules.match === 'any') return conditions.some((c) => matchesCondition(customer, c, now))
+  return conditions.every((c) => matchesCondition(customer, c, now))
+}
+
+/** Default row for a freshly added condition, so the builder always has a valid op. */
+export function defaultCondition(field: SegmentField = 'spend'): SegmentCondition {
+  return { field, op: OPS_BY_FIELD[field][0] ?? 'eq', value: field === 'marketing' ? 'true' : '' }
+}

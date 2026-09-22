@@ -3,7 +3,7 @@
 import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { orderDetailContent as copy } from '@/data/orders'
+import { copyButtonContent as copy } from '@/data/common'
 
 type CopyButtonProps = {
   value: string
@@ -21,10 +21,10 @@ export default function CopyButton({ value, what }: CopyButtonProps) {
     try {
       await navigator.clipboard.writeText(value)
       setDone(true)
-      toast.success(copy.customer.copied(what))
+      toast.success(copy.copied(what))
       setTimeout(() => setDone(false), 1500)
     } catch {
-      toast.error(copy.customer.copy(what.toLowerCase()))
+      toast.error(copy.copy(what.toLowerCase()))
     }
   }
 
@@ -35,7 +35,7 @@ export default function CopyButton({ value, what }: CopyButtonProps) {
     <button
       type="button"
       onClick={handleCopy}
-      aria-label={copy.customer.copy(what.toLowerCase())}
+      aria-label={copy.copy(what.toLowerCase())}
       className="shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover/row:opacity-100"
     >
       <Icon className="size-3.5" />

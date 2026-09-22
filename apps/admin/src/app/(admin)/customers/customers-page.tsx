@@ -1,19 +1,40 @@
 'use client'
 
+import { ChevronDown } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
+import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import CustomerAvatar from '@/components/customers/customer-avatar'
+import { toast } from 'sonner'
+import { type CustomerRow, customerColumns } from '@/components/customers/customer-columns'
+import CustomerFilters, {
+  type CustomerFilterState,
+  EMPTY_CUSTOMER_FILTERS,
+} from '@/components/customers/customer-filters'
 import CustomerTiles, { type CustomerStats } from '@/components/customers/customer-tiles'
+import TagCustomersDialog from '@/components/customers/tag-customers-dialog'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
-import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
 import { CUSTOMER_SEGMENTS, type CustomerSegment, customersContent } from '@/data/customers'
 import { api } from '@/lib/api-client'
+import { downloadCsv, toCsv } from '@/lib/csv'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import {
+  appliedCustomerFilters,
+  customerFilterInput,
+  hasCustomerFilters,
+  segmentRulesFromFilters,
+} from './customer-filter-state'
 
 type ListResult = Awaited<ReturnType<typeof api.customers.list>>
-type Item = ListResult['items'][number]
 
 /** First page, tiles and the all-customers count rendered on the server so nothing paints empty. */
 export type CustomersInitial = {
@@ -21,117 +42,29 @@ export type CustomersInitial = {
   result: ListResult
   stats: CustomerStats
   allCount: number
+  tags: string[]
 }
 
 const PER_PAGE = LIST_PER_PAGE
+const copy = customersContent
 
-/* Frame 5:2617 writes dates as 01-01-2025. */
-const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const formatDate = (d: Date) => date.format(d).replaceAll('/', '-')
-
-type Query = ListQuery<CustomerSegment>
-
-function fetchCustomers(q: Query) {
-  return api.customers.list({
-    page: q.page,
-    perPage: PER_PAGE,
-    search: q.query || undefined,
-    segment: q.status ?? undefined,
-  })
-}
-
-/* Product-cell pattern from 5:2612: 32px picture slot, name beside it. */
-function NameCell({ item }: { item: Item }) {
-  return (
-    <span className="flex items-center gap-3 text-left">
-      <CustomerAvatar name={item.name} email={item.email} />
-      <span className="line-clamp-2 text-body-strong">{item.name ?? customersContent.unnamed}</span>
-    </span>
+function exportRows(rows: CustomerRow[]): void {
+  const csv = toCsv(
+    ['Name', 'Email', 'Phone', 'City', 'State', 'Orders', 'Spent', 'Tags', 'Marketing'],
+    rows.map((r) => [
+      r.name ?? '',
+      r.email ?? '',
+      r.phone ?? '',
+      r.city ?? '',
+      r.stateCode ?? '',
+      r.orderCount,
+      formatPaise(r.spentPaise),
+      r.tags.join(' '),
+      r.acceptsMarketing ? 'yes' : 'no',
+    ]),
   )
-}
-
-function TagsCell({ tags }: { tags: string[] }) {
-  if (tags.length === 0) return <span className="text-muted-foreground-soft">-</span>
-  return (
-    <span className="flex flex-wrap justify-center gap-1">
-      {tags.map((t) => (
-        <span key={t} className="rounded-full bg-primary-soft px-2 py-0.5 text-xs text-foreground">
-          {t}
-        </span>
-      ))}
-    </span>
-  )
-}
-
-const columns: ResourceColumnSpec<Item>[] = [
-  {
-    id: 'name',
-    title: customersContent.columns.name,
-    sortValue: (c) => c.name ?? c.email ?? '',
-    hideable: false,
-    align: 'start',
-    className: 'w-56 px-3 whitespace-normal',
-    render: (c) => <NameCell item={c} />,
-  },
-  {
-    id: 'email',
-    title: customersContent.columns.email,
-    sortValue: (c) => c.email ?? '',
-    render: (c) => c.email ?? '-',
-  },
-  {
-    id: 'phone',
-    title: customersContent.columns.phone,
-    render: (c) => <span className="tabular-nums">{c.phone ?? '-'}</span>,
-  },
-  {
-    id: 'orders',
-    title: customersContent.columns.orders,
-    sortValue: (c) => c.orderCount,
-    render: (c) => <span className="tabular-nums">{c.orderCount}</span>,
-  },
-  {
-    id: 'spent',
-    title: customersContent.columns.spent,
-    sortValue: (c) => c.spentPaise,
-    render: (c) => <span className="tabular-nums">{formatPaise(c.spentPaise)}</span>,
-  },
-  {
-    id: 'lastOrder',
-    title: customersContent.columns.lastOrder,
-    sortValue: (c) => (c.lastOrderAt ? new Date(c.lastOrderAt).getTime() : 0),
-    render: (c) =>
-      c.lastOrderAt ? (
-        <span className="tabular-nums">{formatDate(new Date(c.lastOrderAt))}</span>
-      ) : (
-        <span className="text-muted-foreground">{customersContent.never}</span>
-      ),
-  },
-  {
-    id: 'tags',
-    title: customersContent.columns.tags,
-    className: 'whitespace-normal',
-    render: (c) => <TagsCell tags={c.tags} />,
-  },
-]
-
-type TabsProps = {
-  value: CustomerSegment | null
-  allCount: number
-  onChange: (s: CustomerSegment | null) => void
-}
-
-function SegmentTabs({ value, allCount, onChange }: TabsProps) {
-  return (
-    <PillTabs
-      value={value}
-      onChange={onChange}
-      tabs={[
-        { value: null, label: customersContent.tabs.all, count: allCount },
-        ...CUSTOMER_SEGMENTS.map((s) => ({ value: s, label: customersContent.tabs[s] })),
-      ]}
-    />
-  )
+  downloadCsv(`customers-${new Date().toISOString().slice(0, 10)}.csv`, csv)
+  toast.success(copy.exported(rows.length))
 }
 
 function CustomersContent({ initial }: { initial: CustomersInitial }) {
@@ -144,15 +77,29 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     },
     { shallow: true },
   )
-
-  const [items, setItems] = useState<Item[]>(initial.result.items)
+  const [filters, setFilters] = useState<CustomerFilterState>(EMPTY_CUSTOMER_FILTERS)
+  const [items, setItems] = useState<CustomerRow[]>(initial.result.items)
   const [total, setTotal] = useState(initial.result.total)
   const [loading, setLoading] = useState(false)
+  const [tagAction, setTagAction] = useState<'add' | 'remove' | null>(null)
+  const [tagIds, setTagIds] = useState<string[]>([])
+  const [reloadKey, setReloadKey] = useState(0)
   useEffect(() => {
-    if (sameListQuery({ page, query, status }, initial.query)) return
+    const untouched =
+      sameListQuery({ page, query, status }, initial.query) &&
+      !hasCustomerFilters(filters) &&
+      reloadKey === 0
+    if (untouched) return
     let cancelled = false
     setLoading(true)
-    fetchCustomers({ page, query, status })
+    api.customers
+      .list({
+        page,
+        perPage: PER_PAGE,
+        search: query || undefined,
+        segment: status ?? undefined,
+        ...customerFilterInput(filters),
+      })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -162,40 +109,124 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, query, status, initial.query])
+  }, [page, query, status, filters, initial.query, reloadKey])
+
+  // Helpers
+  const patchFilters = (patch: Partial<CustomerFilterState>) => {
+    setFilters((f) => ({ ...f, ...patch }))
+    setQ({ page: 1 })
+  }
+
+  const clearFilter = (key: keyof CustomerFilterState) => {
+    patchFilters({ [key]: '' } as Partial<CustomerFilterState>)
+  }
+
+  // Event handlers
+  const handleClearAll = () => {
+    setFilters(EMPTY_CUSTOMER_FILTERS)
+    setQ({ query: '', status: null, page: 1 })
+  }
+
+  const handleExportAll = async () => {
+    try {
+      const rows = await api.customers.export({
+        search: query || undefined,
+        segment: status ?? undefined,
+        ...customerFilterInput(filters),
+      })
+      exportRows(rows)
+    } catch {
+      toast.error(copy.exportFailed)
+    }
+  }
+
+  const handleBulkTag = (ids: string[], action: 'add' | 'remove') => {
+    setTagIds(ids)
+    setTagAction(action)
+  }
+
+  // Render logic
+  const applied = appliedCustomerFilters(filters, clearFilter) satisfies AppliedFilter[]
+  const segmentHref = `/customers/segments/new?rules=${encodeURIComponent(
+    JSON.stringify(segmentRulesFromFilters(filters, status)),
+  )}`
 
   return (
     <PageBody className="gap-6">
-      <div className="flex h-9 items-center justify-between">
-        <h1 className="text-page-title">{customersContent.heading}</h1>
+      <div className="flex h-9 items-center justify-between gap-3">
+        <h1 className="text-page-title">{copy.heading}</h1>
+        <div className="flex items-center gap-2">
+          {applied.length > 0 ? (
+            <Button variant="outline" size="sm" render={<Link href={segmentHref} />}>
+              {copy.saveSegment}
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={handleExportAll}>
+            {copy.exportAll}
+          </Button>
+        </div>
       </div>
       <CustomerTiles stats={initial.stats} />
       <div className="-mt-1">
         <ResourceTable
-          resourceName={customersContent.resource}
-          columns={columns}
+          resourceName={copy.resource}
+          columns={customerColumns}
           items={items}
           getId={(c) => c.id}
           href={(c) => `/customers/${c.id}`}
           loading={loading}
           query={query}
-          onQueryChange={(query) => setQ({ query, page: 1 })}
-          onClearAll={() => setQ({ query: '', status: null, page: 1 })}
+          onQueryChange={(q) => setQ({ query: q, page: 1 })}
+          onClearAll={handleClearAll}
+          filters={<CustomerFilters value={filters} tags={initial.tags} onChange={patchFilters} />}
+          applied={applied}
           tabs={
-            <SegmentTabs
+            <PillTabs
               value={status}
-              allCount={initial.allCount}
               onChange={(s) => setQ({ status: s, page: 1 })}
+              tabs={[
+                { value: null, label: copy.tabs.all, count: initial.allCount },
+                ...CUSTOMER_SEGMENTS.map((s) => ({ value: s, label: copy.tabs[s] })),
+              ]}
             />
           }
           page={page}
           perPage={PER_PAGE}
           total={total}
-          onPageChange={(page) => setQ({ page })}
-          selectable={false}
-          empty={customersContent.empty}
+          onPageChange={(p) => setQ({ page: p })}
+          bulkActions={(ids, clear) => (
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                {copy.bulk.addTag}
+                <ChevronDown />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleBulkTag(ids, 'add')}>
+                  {copy.bulk.addTag}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkTag(ids, 'remove')}>
+                  {copy.bulk.removeTag}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportRows(items.filter((i) => ids.includes(i.id)))
+                    clear()
+                  }}
+                >
+                  {copy.bulk.export}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          empty={copy.empty}
         />
       </div>
+      <TagCustomersDialog
+        ids={tagIds}
+        action={tagAction}
+        onClose={() => setTagAction(null)}
+        onDone={() => setReloadKey((k) => k + 1)}
+      />
     </PageBody>
   )
 }

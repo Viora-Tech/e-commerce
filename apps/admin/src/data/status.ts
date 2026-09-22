@@ -133,6 +133,11 @@ export const STATUS = {
     enabled: entry('Active', 'success'),
     disabled: entry('Off', 'neutral'),
   },
+  /** Badges on the customer detail header. */
+  customer: {
+    returning: entry(customerDetailContent.badges.returning, 'info'),
+    vip: entry(customerDetailContent.badges.vip, 'accent'),
+  },
 } as const
 
 export type StatusKind = keyof typeof STATUS

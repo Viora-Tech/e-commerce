@@ -220,10 +220,10 @@
       "breakpoints": true
     },
     {
-      "idx": 32,
+      "idx": 31,
       "version": "7",
-      "when": 1790080982151,
-      "tag": "0032_variant_customs",
+      "when": 1790078771160,
+      "tag": "0031_customer_segments",
       "breakpoints": true
     }
   ]

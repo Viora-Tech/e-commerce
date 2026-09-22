@@ -1,5 +1,5 @@
 {
-  "id": "62dcd8c2-9848-4f40-add9-98f833a59e76",
+  "id": "5ea0f103-fdf2-4518-b849-297fca951e6a",
   "prevId": "36c1d42a-3d95-4e97-a8b1-40f033acbcbf",
   "version": "7",
   "dialect": "postgresql",
@@ -392,6 +392,94 @@
         "customer_store_id_store_id_fk": {
           "name": "customer_store_id_store_id_fk",
           "tableFrom": "customer",
+          "tableTo": "store",
+          "columnsFrom": [
+            "store_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customer_segment": {
+      "name": "customer_segment",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "store_id": {
+          "name": "store_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rules": {
+          "name": "rules",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"match\":\"all\",\"conditions\":[]}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "customer_segment_store_name": {
+          "name": "customer_segment_store_name",
+          "columns": [
+            {
+              "expression": "store_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "customer_segment_store_id_store_id_fk": {
+          "name": "customer_segment_store_id_store_id_fk",
+          "tableFrom": "customer_segment",
           "tableTo": "store",
           "columnsFrom": [
             "store_id"
@@ -2684,18 +2772,6 @@
         "weight_grams": {
           "name": "weight_grams",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hs_code": {
-          "name": "hs_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "country_of_origin": {
-          "name": "country_of_origin",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

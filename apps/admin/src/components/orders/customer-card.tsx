@@ -1,7 +1,7 @@
 import Link from 'next/link'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import { orderDetailContent as copy } from '@/data/orders'
-import CopyButton from './copy-button'
 import type { OrderDetail } from './order-detail-types'
 
 type CustomerCardProps = {
