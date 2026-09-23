@@ -1,12 +1,18 @@
+import type { ThemeMode } from '../types'
+import ThemeToggle from './theme-toggle'
+
 // Port of sections/footer.liquid.
 export default function Footer({
   storeName,
   tagline,
   columns,
+  themeToggle = null,
 }: {
   storeName: string
   tagline: string
   columns: { id: string; heading: string; links: { id: string; label: string; href: string }[] }[]
+  /** The visitor's mode when the theme puts the light / dark toggle in the footer. */
+  themeToggle?: ThemeMode | null
 }) {
   return (
     <footer className="footer color-scheme-3">
@@ -53,6 +59,13 @@ export default function Footer({
             </a>
           </li>
         </ul>
+        {themeToggle ? (
+          <ThemeToggle
+            initial={themeToggle}
+            withLabel
+            className="footer__theme-toggle text-caption"
+          />
+        ) : null}
         <p className="footer__copyright text-caption">
           © {new Date().getFullYear()} {storeName}
         </p>

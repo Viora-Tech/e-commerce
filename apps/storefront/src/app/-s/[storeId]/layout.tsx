@@ -15,7 +15,7 @@ import {
 } from '@commerce/core'
 import { navigationMenu, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -28,7 +28,7 @@ import { themeFontVariables } from '@/lib/fonts'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
 import { renderTemplate } from '@/lib/template-render'
-import { htmlThemeAttr, parseThemeMode, THEME_COOKIE } from '@/lib/theme-mode'
+import { htmlThemeAttr, resolveThemeMode, THEME_COOKIE, themeViewport } from '@/lib/theme-mode'
 
 type Props = { children: ReactNode; params: Promise<{ storeId: string }> }
 
@@ -48,6 +48,14 @@ function menuLinks(
   const picked = typeof handle === 'string' && handle ? handle : fallback
   const menu = picked === null ? undefined : menus.get(picked)
   return toNavLinks(menu?.items ?? [])
+}
+
+/** Browser chrome and colour-scheme hint in the mode this request renders. */
+export async function generateViewport({ params }: Pick<Props, 'params'>): Promise<Viewport> {
+  const { storeId } = await params
+  const theme = await inStore(storeId, (tx) => liveThemeSettings(tx, storeId))
+  const mode = resolveThemeMode((await cookies()).get(THEME_COOKIE)?.value, theme.darkMode)
+  return themeViewport(theme, mode)
 }
 
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
@@ -95,7 +103,7 @@ export default async function StoreLayout({ children, params }: Props) {
     ? await inStore(storeId, async (tx) => (await getCart({ storeId, tx }, cartId))?.itemCount ?? 0)
     : 0
   const jar = await cookies()
-  const mode = parseThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode.default)
+  const mode = resolveThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode)
   const prefs = parsePreferences(current.preferences)
   const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
 
@@ -137,6 +145,9 @@ export default async function StoreLayout({ children, params }: Props) {
             storeName={current.name}
             tagline={typeof s.tagline === 'string' ? s.tagline : ''}
             columns={footerColumns}
+            themeToggle={
+              theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
+            }
           />
         ),
       },

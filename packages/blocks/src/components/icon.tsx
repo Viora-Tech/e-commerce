@@ -3,6 +3,7 @@ type Name =
   | 'search'
   | 'sun'
   | 'moon'
+  | 'contrast'
   | 'cart'
   | 'user'
   | 'heart'
@@ -25,6 +26,10 @@ const paths: Record<Name, { viewBox: string; body: string }> = {
   moon: {
     viewBox: '0 0 24 24',
     body: '<path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.6 8.6 0 1 0 10.8 10.8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  },
+  contrast: {
+    viewBox: '0 0 24 24',
+    body: '<circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="1.6"/><path d="M12 3.6a8.4 8.4 0 0 1 0 16.8Z" fill="currentColor"/>',
   },
   cart: {
     viewBox: '0 0 32 32',

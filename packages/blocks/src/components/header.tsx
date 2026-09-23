@@ -50,7 +50,9 @@ export default function Header({
             <HeaderNav links={links} />
           </div>
           <div className="header__icons">
-            {showThemeToggle ? <ThemeToggle initial={themeMode} /> : null}
+            {showThemeToggle ? (
+              <ThemeToggle initial={themeMode} className="header__icon-btn" />
+            ) : null}
             <a href="/search" className="header__icon-btn" aria-label={copy.search}>
               <Icon name="search" size={24} />
             </a>

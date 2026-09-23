@@ -1671,68 +1671,60 @@ main#MainContent {
   padding-block: var(--section-padding-top, 40px) var(--section-padding-bottom, 40px);
 }
 
-/* ── Light / dark toggle ─────────────────────────────────────────────────
-   Shared by the header and the footer instances. The icon swap lives here
-   rather than in either section's stylesheet because both render the same
-   snippet, and a copy in each would drift the moment one was touched. */
+/* ── Light / dark / device toggle ────────────────────────────────────────
+   Shared by the header and the footer instances. Three stacked glyphs, one
+   per mode (sun = light, moon = dark, half disc = follow the device); the
+   button's data-mode picks which one shows. Glide's two-state toggle showed
+   the mode you would GET; with a third state that stops being readable, so
+   the glyph names the mode in use and the label says what a click does. */
 .theme-toggle {
   display: inline-grid;
   grid-auto-flow: column;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0;
   background: none;
   border: 0;
   cursor: pointer;
   color: inherit;
+  font: inherit;
+}
+
+/* The header instance also wears .header__icon-btn for its box, whose flex
+   would lay the three glyphs side by side instead of stacking them. */
+.theme-toggle.header__icon-btn {
+  display: inline-grid;
+  place-items: center;
 }
 
 .theme-toggle__icon {
   display: grid;
   grid-area: 1 / 1;
   place-items: center;
+  opacity: 0;
+  rotate: -90deg;
   transition:
     opacity 0.2s ease,
     rotate 0.2s ease;
 }
 
-/* Light shows the MOON: the icon offers what you will GET, not what you
-   already have. A sun on a light page reads as a status light, and visitors
-   click it expecting more brightness. */
-.theme-toggle__icon--sun {
-  opacity: 0;
-  rotate: -90deg;
-}
-.theme-toggle__icon--moon {
+.theme-toggle__icon[data-active] {
   opacity: 1;
   rotate: 0deg;
 }
 
-:root[data-theme="dark"] .theme-toggle__icon--sun {
-  opacity: 1;
-  rotate: 0deg;
-}
-:root[data-theme="dark"] .theme-toggle__icon--moon {
-  opacity: 0;
-  rotate: 90deg;
+.theme-toggle__label {
+  grid-row: 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme-toggle__icon--sun {
-    opacity: 1;
-    rotate: 0deg;
-  }
-  :root:not([data-theme="light"]) .theme-toggle__icon--moon {
-    opacity: 0;
-    rotate: 90deg;
-  }
+.theme-toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 999px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle__icon {
     transition: none;
   }
-}
-
-/* The button does nothing without JS, so it is not offered. */
-html:not(.js) .theme-toggle {
-  display: none;
 }
