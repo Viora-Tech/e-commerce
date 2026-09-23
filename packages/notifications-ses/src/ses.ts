@@ -1,5 +1,6 @@
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2'
 import {
+  type MarketingSend,
   type Message,
   type NotificationChannel,
   type NotificationChannelFactory,
@@ -72,6 +73,38 @@ export class SesChannel implements NotificationChannel {
                       ContentDisposition: 'ATTACHMENT' as const,
                     })),
                   }
+                : {}),
+            },
+          },
+        }),
+      )
+      return r.MessageId
+        ? { ok: true, providerRef: r.MessageId }
+        : { ok: false, error: 'SES returned no MessageId' }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  }
+
+  /** Campaign and automation email, already rendered by the platform, with its unsubscribe headers. */
+  async sendMarketing(message: MarketingSend): Promise<SendResult> {
+    if (message.kind !== 'email') return { ok: false, error: 'SES only sends email' }
+    const to = message.to.email
+    if (!to) return { ok: false, error: 'recipient has no email' }
+    try {
+      const r = await this.client.send(
+        new SendEmailCommand({
+          FromEmailAddress: formatFrom(this.config),
+          Destination: { ToAddresses: [to] },
+          Content: {
+            Simple: {
+              Subject: { Data: message.subject, Charset: 'UTF-8' },
+              Body: {
+                Text: { Data: message.text, Charset: 'UTF-8' },
+                Html: { Data: message.html, Charset: 'UTF-8' },
+              },
+              ...(message.headers?.length
+                ? { Headers: message.headers.map((h) => ({ Name: h.name, Value: h.value })) }
                 : {}),
             },
           },

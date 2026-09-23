@@ -20,6 +20,7 @@ import {
   type TransferStatus,
   transfersContent,
 } from '@/data/inventory'
+import { campaignsContent } from '@/data/marketing-campaigns'
 import { onlineStoreContent } from '@/data/online-store'
 import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
@@ -171,6 +172,15 @@ export const STATUS = {
     vip: entry(customerDetailContent.badges.vip, 'pending'),
     active: entry('Active', 'success'),
     inactive: entry('Inactive', 'error'),
+  },
+  /** Marketing campaigns. */
+  campaign: {
+    draft: entry(campaignsContent.status.draft, 'info'),
+    scheduled: entry(campaignsContent.status.scheduled, 'accent'),
+    sending: entry(campaignsContent.status.sending, 'pending'),
+    sent: entry(campaignsContent.status.sent, 'success'),
+    cancelled: entry(campaignsContent.status.cancelled, 'neutral'),
+    failed: entry(campaignsContent.status.failed, 'error'),
   },
 } as const
 

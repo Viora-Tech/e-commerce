@@ -1,4 +1,5 @@
 import type {
+  MarketingSend,
   Message,
   NotificationChannel,
   NotificationChannelFactory,
@@ -26,6 +27,13 @@ export class LogNotificationChannel implements NotificationChannel {
     const providerRef = `log_${message.data.orderNumber}_${message.template}`
     this.write(`[notification] to=${message.to.email} subject=${body.subject}\n${body.text}`)
     return { ok: true, providerRef }
+  }
+
+  async sendMarketing(message: MarketingSend): Promise<SendResult> {
+    if (message.kind !== 'email') return { ok: false, error: 'the log channel prints email only' }
+    if (!message.to.email) return { ok: false, error: 'recipient has no email' }
+    this.write(`[marketing] to=${message.to.email} subject=${message.subject}\n${message.text}`)
+    return { ok: true, providerRef: `log_marketing_${Date.now()}` }
   }
 }
 

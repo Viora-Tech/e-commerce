@@ -1,4 +1,6 @@
 import {
+  type ChannelTemplate,
+  type MarketingSend,
   type Message,
   type NotificationChannel,
   type NotificationChannelFactory,
@@ -18,6 +20,8 @@ export type WhatsappConfig = {
    * customer-service window or with test numbers; for development.
    */
   useTextMessages: boolean
+  /** WhatsApp Business Account id; needed to list approved templates for campaigns. */
+  businessAccountId?: string | undefined
 }
 
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>
@@ -79,6 +83,68 @@ export function buildPayload(config: WhatsappConfig, message: Message, to: strin
   }
 }
 
+/** Payload for a marketing send: a named approved template with its body variables. */
+export function buildTemplatePayload(
+  config: WhatsappConfig,
+  template: { name: string; language: string; variables: string[] },
+  to: string,
+) {
+  if (config.useTextMessages) {
+    return {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: { body: template.variables.map(clean).filter(Boolean).join(' ') || template.name },
+    }
+  }
+  return {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'template',
+    template: {
+      name: template.name,
+      language: { code: template.language || config.templateLanguage },
+      components: template.variables.length
+        ? [
+            {
+              type: 'body',
+              parameters: template.variables.map((text) => ({
+                type: 'text',
+                text: clean(text) || '-',
+              })),
+            },
+          ]
+        : [],
+    },
+  }
+}
+
+type GraphTemplate = {
+  name?: string
+  language?: string
+  status?: string
+  category?: string
+  components?: { type?: string; text?: string }[]
+}
+
+/** Approved templates only: pending or rejected ones cannot be sent. */
+export function approvedTemplates(data: GraphTemplate[]): ChannelTemplate[] {
+  return data
+    .filter((t) => t.status === 'APPROVED' && t.name && t.language)
+    .map((t) => {
+      const body = t.components?.find((c) => c.type === 'BODY')?.text ?? ''
+      const placeholders = new Set(body.match(/\{\{\d+\}\}/g) ?? [])
+      return {
+        name: t.name as string,
+        language: t.language as string,
+        category: t.category ?? '',
+        status: 'APPROVED',
+        body,
+        variableCount: placeholders.size,
+      }
+    })
+}
+
 /** Meta WhatsApp Cloud API. One HTTP call per message; nothing else. */
 export class WhatsappChannel implements NotificationChannel {
   readonly id = 'whatsapp'
@@ -96,6 +162,36 @@ export class WhatsappChannel implements NotificationChannel {
   async send(message: Message): Promise<SendResult> {
     const to = message.to.phone?.replace(/\D/g, '')
     if (!to) return { ok: false, error: 'recipient has no phone' }
+    return this.post(buildPayload(this.config, message, to))
+  }
+
+  /** Broadcasts and automation steps: an approved template by name. */
+  async sendMarketing(message: MarketingSend): Promise<SendResult> {
+    if (message.kind !== 'whatsapp_template') {
+      return { ok: false, error: 'WhatsApp sends approved templates only' }
+    }
+    const to = message.to.phone?.replace(/\D/g, '')
+    if (!to) return { ok: false, error: 'recipient has no phone' }
+    return this.post(buildTemplatePayload(this.config, message.template, to))
+  }
+
+  /** Approved templates on the business account, for the campaign picker. */
+  async listTemplates(): Promise<ChannelTemplate[]> {
+    if (!this.config.businessAccountId) return []
+    const url = `${GRAPH_API}/${this.config.businessAccountId}/message_templates?limit=200&fields=name,language,status,category,components`
+    const res = await this.fetchImpl(url, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${this.config.accessToken}` },
+    })
+    const json = (await res.json().catch(() => ({}))) as {
+      data?: GraphTemplate[]
+      error?: { message?: string }
+    }
+    if (!res.ok) throw new Error(json.error?.message ?? `HTTP ${res.status}`)
+    return approvedTemplates(json.data ?? [])
+  }
+
+  private async post(payload: unknown): Promise<SendResult> {
     try {
       const res = await this.fetchImpl(`${GRAPH_API}/${this.config.phoneNumberId}/messages`, {
         method: 'POST',
@@ -103,7 +199,7 @@ export class WhatsappChannel implements NotificationChannel {
           authorization: `Bearer ${this.config.accessToken}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify(buildPayload(this.config, message, to)),
+        body: JSON.stringify(payload),
       })
       const json = (await res.json().catch(() => ({}))) as {
         messages?: { id: string }[]
@@ -135,6 +231,11 @@ export const whatsappFactory: NotificationChannelFactory<WhatsappConfig> = {
       help: 'Language code of your approved templates. Defaults to en.',
     },
     {
+      key: 'businessAccountId',
+      label: 'WhatsApp Business Account ID',
+      help: 'Needed for Marketing: lists your approved templates for broadcasts and automations.',
+    },
+    {
       key: 'useTextMessages',
       label: 'Send plain text instead of templates (test mode)',
       type: 'boolean',
@@ -156,6 +257,7 @@ export const whatsappFactory: NotificationChannelFactory<WhatsappConfig> = {
         accessToken: r.accessToken as string,
         templateLanguage: r.templateLanguage?.trim() || 'en',
         useTextMessages: r.useTextMessages === 'true',
+        businessAccountId: r.businessAccountId?.trim() || undefined,
       },
     }
   },

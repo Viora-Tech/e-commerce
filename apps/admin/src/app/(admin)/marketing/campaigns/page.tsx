@@ -1,10 +1,11 @@
-import { Send } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { marketingContent } from '@/data/marketing'
+import CampaignsPage from '@/components/marketing/campaigns/campaigns-page'
+import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Campaigns' }
 
-export default function Page() {
-  return <SectionEmpty {...marketingContent.campaigns} icon={Send} />
+export default async function Page() {
+  const context = await serverContext()
+  const campaigns = await call(appRouter.marketing.campaigns.list, {}, { context })
+  return <CampaignsPage campaigns={campaigns} />
 }

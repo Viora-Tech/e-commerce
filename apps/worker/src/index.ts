@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { createAbandonedSweeper, SWEEP_EVERY_MS } from './abandoned'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
+import { createMarketingWorker, MARKETING_TICK_MS } from './marketing'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
@@ -41,6 +42,11 @@ const abandoned = createAbandonedSweeper(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 
+const marketing = createMarketingWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
+
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
   'track-open-shipments',
@@ -51,6 +57,12 @@ await abandoned.queue.upsertJobScheduler(
   'sweep-abandoned-carts',
   { every: SWEEP_EVERY_MS },
   { name: 'sweep' },
+)
+
+await marketing.tickQueue.upsertJobScheduler(
+  'marketing-tick',
+  { every: MARKETING_TICK_MS },
+  { name: 'tick' },
 )
 
 const app = new Hono()
@@ -80,6 +92,10 @@ const shutdown = async () => {
   await tracker.queue.close()
   await abandoned.worker.close()
   await abandoned.queue.close()
+  await marketing.tick.close()
+  await marketing.send.close()
+  await marketing.tickQueue.close()
+  await marketing.sendQueue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()
