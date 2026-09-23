@@ -304,6 +304,12 @@ export async function convertDraft(
   if (lines.length === 0) throw new DraftEmpty(id, ctx.storeId)
 
   for (const line of lines) {
+    /* Untracked variants are never held, as in placeOrder, so release has nothing to undo. */
+    const [v] = await ctx.tx
+      .select({ trackInventory: variant.trackInventory })
+      .from(variant)
+      .where(eq(variant.id, line.variantId))
+    if (v && !v.trackInventory) continue
     const held = await ctx.tx
       .update(inventoryLevel)
       .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
