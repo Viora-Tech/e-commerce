@@ -51,7 +51,7 @@ export function defineColumns<T extends RowData>(
 ): ResourceColumn<T>[] {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return specs.map((spec) => {
-    const align = spec.align ?? 'center'
+    const align = spec.align ?? 'start'
     const meta = { align, className: spec.className }
     if (!spec.sortValue) {
       return helper.display({
