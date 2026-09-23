@@ -1,5 +1,15 @@
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Bell, Braces, CreditCard, Globe, Images, Store, Truck, UserCog } from '@commerce/ui/icons'
+import {
+  Bell,
+  Braces,
+  CreditCard,
+  Globe,
+  Images,
+  Palette,
+  Store,
+  Truck,
+  UserCog,
+} from '@commerce/ui/icons'
 
 export type SettingsSection = {
   href: string
@@ -57,6 +67,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Domains',
     body: 'The addresses your storefront answers on.',
     icon: Globe,
+  },
+  {
+    href: '/settings/appearance',
+    title: 'Appearance',
+    body: 'Admin accent colour and light or dark mode.',
+    icon: Palette,
   },
 ]
 

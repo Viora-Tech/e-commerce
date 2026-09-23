@@ -1,6 +1,7 @@
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
+import AccentStyle from '@/components/layout/accent-style'
 import { getSession } from '@/lib/auth'
 
 /**
@@ -10,9 +11,12 @@ import { getSession } from '@/lib/auth'
 export default async function EditorLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  const activeOrganizationId =
+    (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
 
   return (
     <>
+      <AccentStyle organizationId={activeOrganizationId} />
       {children}
       <Toaster />
     </>

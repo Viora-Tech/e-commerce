@@ -1,5 +1,6 @@
 import { protectedProcedure } from '../procedures'
 import { analyticsRouter } from './analytics'
+import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { blogRouter } from './blog'
 import { collectionsRouter } from './collections'
@@ -27,6 +28,7 @@ import { themesRouter } from './themes'
 export const appRouter = {
   me: protectedProcedure.handler(({ context }) => context.session),
   store: storeRouter,
+  appearance: appearanceRouter,
   themes: themesRouter,
   products: productsRouter,
   collections: collectionsRouter,
