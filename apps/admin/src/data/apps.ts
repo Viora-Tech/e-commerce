@@ -10,6 +10,8 @@ export const appsContent = {
   installed: 'Installed',
   builtIn: 'Built in',
   version: (v: string) => `v${v}`,
+  builtWith: 'Built with',
+  creditLabel: (name: string, license: string) => `${name} (${license})`,
   empty: 'No plugins are listed in commerce.config.ts.',
   loadFailed: 'Could not load apps',
   actionFailed: 'Could not update app',

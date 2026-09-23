@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Puzzle } from '@commerce/ui/icons'
+import { ArrowRight, ExternalLink, Puzzle } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -17,6 +17,8 @@ export type AppSummary = {
   builtIn: boolean
   installed: boolean
   provides: Record<AppKind, { id: string; label: string }[]>
+  /** Open-source projects the app is built on, credited on the card. */
+  credits: { name: string; url: string; license: string; note?: string | undefined }[]
 }
 
 type AppCardProps = {
@@ -72,6 +74,24 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
       <CardContent className="flex flex-1 flex-col gap-4">
         {app.description ? (
           <p className="text-body text-muted-foreground">{app.description}</p>
+        ) : null}
+        {app.credits.length > 0 ? (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
+            <span>{copy.builtWith}</span>
+            {app.credits.map((c) => (
+              <a
+                key={c.url}
+                href={c.url}
+                target="_blank"
+                rel="noreferrer"
+                title={c.note}
+                className="inline-flex items-center gap-1 font-medium text-ink-strong underline-offset-4 hover:text-primary hover:underline"
+              >
+                {copy.creditLabel(c.name, c.license)}
+                <ExternalLink className="size-3" />
+              </a>
+            ))}
+          </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
           {kinds.map((k) => (

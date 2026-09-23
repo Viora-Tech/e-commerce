@@ -40,6 +40,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     orderLinks: input.orderLinks,
     productFields: input.productFields,
     admin: input.admin,
+    credits: input.credits,
     jobs: input.jobs,
     emailAttachments: input.emailAttachments,
     provides: {
