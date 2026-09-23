@@ -39,6 +39,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/settings/notifications', 'Notifications'],
   ['/settings/files', 'Files'],
   ['/settings/staff', 'Staff'],
+  ['/settings/custom-data', 'Custom data'],
   ['/settings/domains', 'Domains'],
   ['/settings/invoices', 'Invoices'],
   ['/dev', 'Developer'],
@@ -53,7 +54,7 @@ export function pageTitleFor(pathname: string): string {
 }
 
 /** List pages drawn to frame 5:2353 carry their own "Order List" style heading under the bar. */
-const HEADED_LISTS = ['/orders', '/products', '/content/blog-posts']
+const HEADED_LISTS = ['/orders', '/products', '/content/blog-posts', '/content/metaobjects']
 
 /**
  * The top bar shows the section name. Pages with a heading of their own (a
