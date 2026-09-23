@@ -11,6 +11,7 @@ const config: NextConfig = {
     '@commerce/payments-razorpay',
     '@commerce/invoices',
     '@commerce/plugin-gst-invoices',
+    '@commerce/plugin-shopify-import',
   ],
   // react-pdf and pdf-lib load fonts and wasm at runtime; keep them out of the bundle.
   serverExternalPackages: ['postgres', '@react-pdf/renderer', 'pdf-lib'],

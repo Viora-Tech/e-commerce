@@ -24,6 +24,7 @@ import { onlineStoreContent } from '@/data/online-store'
 import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
 import { shipmentPanelContent } from '@/data/shipping'
+import { shopifyImportContent } from '@/data/shopify-import'
 import { staffContent } from '@/data/staff'
 
 /*
@@ -143,6 +144,14 @@ export const STATUS = {
   app: {
     installed: entry(appsContent.installed, 'success'),
     builtIn: entry(appsContent.builtIn, 'neutral'),
+  },
+  /** Shopify import runs; a finished dry run reads "Preview ready". */
+  importRun: {
+    queued: entry(shopifyImportContent.status.queued, 'neutral'),
+    running: entry(shopifyImportContent.status.running, 'pending'),
+    completed: entry(shopifyImportContent.status.completed, 'success'),
+    failed: entry(shopifyImportContent.status.failed, 'error'),
+    preview: entry(shopifyImportContent.previewReady, 'info'),
   },
   /** Draft orders: open until an invoice goes out. */
   draft: {

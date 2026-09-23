@@ -1,0 +1,404 @@
+import { findRedirect } from '@commerce/core'
+import {
+  article,
+  blog,
+  collection,
+  collectionProduct,
+  customer,
+  media,
+  navigationMenu,
+  order,
+  orderLine,
+  page,
+  product,
+  variant,
+  withStore,
+} from '@commerce/db'
+import { resetDb } from '@commerce/db/test'
+import { asc, eq } from 'drizzle-orm'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { connect, disconnect, getConnection } from '../src/connection'
+import { htmlToRichText } from '../src/html'
+import { executeRun } from '../src/run'
+import { importRun, shopifyConnection } from '../src/schema'
+import { createApiRun, startRun } from '../src/service'
+import { normaliseShopDomain, ShopifyClient, ShopifyError } from '../src/shopify-client'
+import {
+  ARTICLES,
+  COLLECTIONS,
+  CUSTOMERS,
+  MENUS,
+  ORDERS,
+  PAGES,
+  PRODUCT_PAGES,
+  REDIRECTS,
+  VARIANT_PAGES,
+} from './fixtures/graphql'
+import {
+  app,
+  deps,
+  type FetchLog,
+  fakeFetch,
+  json,
+  MemoryStorageProvider,
+  owner,
+  SECRET,
+  seedStore,
+} from './helpers'
+
+beforeEach(async () => {
+  await resetDb(owner)
+})
+afterAll(async () => {
+  await owner.$client.end()
+  await app.$client.end()
+})
+
+const TOKEN = 'shpat_0123456789abcdef0123456789abcdef'
+const cost = {
+  requestedQueryCost: 50,
+  throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 1900, restoreRate: 100 },
+}
+
+/** The fake Admin API: answers each operation from the fixtures, by cursor. */
+function shopify(query: string, variables: Record<string, unknown>): Response {
+  const cursor = (variables.cursor as string | null) ?? 'first'
+  const op = /query (\w+)/.exec(query)?.[1] ?? 'Shop'
+  const data: Record<string, unknown> = {
+    Shop: { shop: { name: 'Waimers', myshopifyDomain: 'waimers.myshopify.com' } },
+    Products: PRODUCT_PAGES[cursor],
+    Variants: VARIANT_PAGES[cursor],
+    Collections: COLLECTIONS,
+    Customers: CUSTOMERS,
+    Orders: ORDERS,
+    Pages: PAGES,
+    Articles: ARTICLES,
+    Menus: MENUS,
+    Redirects: REDIRECTS,
+  }
+  return json({ data: data[op], extensions: { cost } })
+}
+
+async function connected(fetchImpl: typeof fetch) {
+  const storeId = await seedStore()
+  await withStore(app, storeId, (tx) =>
+    connect(
+      tx,
+      storeId,
+      { shopDomain: 'https://waimers.myshopify.com/admin', accessToken: TOKEN },
+      SECRET,
+      fetchImpl,
+    ),
+  )
+  return storeId
+}
+
+describe('Shopify connection', () => {
+  it('normalises the shop domain', () => {
+    expect(normaliseShopDomain('waimers')).toBe('waimers.myshopify.com')
+    expect(normaliseShopDomain('https://Waimers.myshopify.com/admin/products')).toBe(
+      'waimers.myshopify.com',
+    )
+    expect(normaliseShopDomain('https://admin.shopify.com/store/waimers/orders')).toBe(
+      'waimers.myshopify.com',
+    )
+    expect(normaliseShopDomain('waimers.com')).toBeNull()
+  })
+
+  it('verifies the token, stores it encrypted and shows only a hint', async () => {
+    const log: FetchLog = []
+    const storeId = await connected(fakeFetch(shopify, log))
+    expect(log[0]?.url).toBe('https://waimers.myshopify.com/admin/api/2025-07/graphql.json')
+    const [row] = await owner.select().from(shopifyConnection)
+    expect(row?.accessToken).not.toContain('shpat_')
+    expect(row?.accessToken.startsWith('v1.')).toBe(true)
+    const view = await withStore(app, storeId, (tx) => getConnection(tx, SECRET))
+    expect(view).toMatchObject({
+      shopDomain: 'waimers.myshopify.com',
+      shopName: 'Waimers',
+      tokenHint: 'shpat_••••cdef',
+    })
+    await withStore(app, storeId, (tx) => disconnect(tx))
+    expect(await withStore(app, storeId, (tx) => getConnection(tx, SECRET))).toBeNull()
+  })
+
+  it('refuses a bad token with a readable message', async () => {
+    const storeId = await seedStore()
+    const denied = fakeFetch(() => new Response('', { status: 401 }))
+    await expect(
+      withStore(app, storeId, (tx) =>
+        connect(tx, storeId, { shopDomain: 'waimers', accessToken: TOKEN }, SECRET, denied),
+      ),
+    ).rejects.toThrow(/rejected the access token/)
+    await expect(
+      withStore(app, storeId, (tx) =>
+        connect(tx, storeId, { shopDomain: 'waimers', accessToken: 'hello' }, SECRET, denied),
+      ),
+    ).rejects.toThrow(/shpat_/)
+  })
+})
+
+describe('ShopifyClient rate limits', () => {
+  it('waits out THROTTLED and 429 responses, then succeeds', async () => {
+    const slept: number[] = []
+    let calls = 0
+    const client = new ShopifyClient({
+      shopDomain: 'waimers.myshopify.com',
+      accessToken: TOKEN,
+      sleep: async (ms) => {
+        slept.push(ms)
+      },
+      fetch: fakeFetch(() => {
+        calls++
+        if (calls === 1) return new Response('', { status: 429, headers: { 'retry-after': '2' } })
+        if (calls === 2)
+          return json({
+            errors: [{ message: 'Throttled', extensions: { code: 'THROTTLED' } }],
+            extensions: {
+              cost: {
+                throttleStatus: { maximumAvailable: 1000, currentlyAvailable: 10, restoreRate: 50 },
+              },
+            },
+          })
+        return json({ data: { shop: { name: 'Waimers' } }, extensions: { cost } })
+      }),
+    })
+    const data = await client.query<{ shop: { name: string } }>('{ shop { name } }', {}, 110)
+    expect(data.shop.name).toBe('Waimers')
+    expect(slept).toEqual([2000, 2000])
+  })
+
+  it('pauses before an expensive query when the bucket is low', async () => {
+    const slept: number[] = []
+    const client = new ShopifyClient({
+      shopDomain: 'waimers.myshopify.com',
+      accessToken: TOKEN,
+      sleep: async (ms) => {
+        slept.push(ms)
+      },
+      fetch: fakeFetch(() =>
+        json({
+          data: { ok: true },
+          extensions: {
+            cost: {
+              throttleStatus: { maximumAvailable: 1000, currentlyAvailable: 100, restoreRate: 50 },
+            },
+          },
+        }),
+      ),
+    })
+    await client.query('{ a }', {}, 10)
+    await client.query('{ a }', {}, 600)
+    expect(slept).toEqual([10_000])
+  })
+
+  it('gives up with a typed error on repeated 5xx', async () => {
+    const client = new ShopifyClient({
+      shopDomain: 'waimers.myshopify.com',
+      accessToken: TOKEN,
+      maxAttempts: 2,
+      sleep: async () => {},
+      fetch: fakeFetch(() => new Response('', { status: 502 })),
+    })
+    await expect(client.query('{ a }')).rejects.toBeInstanceOf(ShopifyError)
+  })
+})
+
+describe('HTML to rich text', () => {
+  it('keeps structure and formatting, drops scripts, and lists images', () => {
+    const { doc, images } = htmlToRichText(
+      '<h2>Title</h2><p>Hello <strong>bold</strong> &amp; <a href="/x">link</a><br>line</p><script>x()</script><ul><li>One</li><li>Two</li></ul><img src="https://cdn/i.png" alt="I">',
+    )
+    const root = doc?.root as unknown as {
+      children: { type: string; tag?: string; children?: unknown[] }[]
+    }
+    expect(root.children.map((c) => c.type)).toEqual(['heading', 'paragraph', 'list', 'paragraph'])
+    expect(root.children[0]?.tag).toBe('h2')
+    expect(JSON.stringify(root)).not.toContain('x()')
+    expect(JSON.stringify(root.children[1])).toContain('"format":1')
+    expect(JSON.stringify(root.children[1])).toContain('"type":"link"')
+    expect(images).toEqual([{ src: 'https://cdn/i.png', alt: 'I' }])
+    expect(htmlToRichText('  ').doc).toBeNull()
+  })
+})
+
+describe('API import run', () => {
+  it('previews counts, then imports every resource with pagination, rules, menus and redirects', async () => {
+    const log: FetchLog = []
+    const fetchImpl = fakeFetch(shopify, log)
+    const storeId = await connected(fetchImpl)
+    const storage = new MemoryStorageProvider()
+    const d = deps(storeId, storage, { fetch: fetchImpl, sleep: async () => {} })
+    const run = await withStore(app, storeId, (tx) =>
+      createApiRun(tx, storeId, {
+        resources: [
+          'products',
+          'collections',
+          'customers',
+          'orders',
+          'pages',
+          'articles',
+          'menus',
+          'redirects',
+        ],
+        createdBy: null,
+      }),
+    )
+
+    await executeRun(d, run.id)
+    const [preview] = await owner.select().from(importRun).where(eq(importRun.id, run.id))
+    expect(preview?.status).toBe('completed')
+    expect(preview?.progress).toMatchObject({
+      products: { total: 2, created: 2 },
+      collections: { total: 3, created: 3 },
+      customers: { total: 1, created: 1 },
+      orders: { total: 1, created: 1 },
+      pages: { total: 1 },
+      articles: { total: 1 },
+      menus: { total: 1 },
+      redirects: { total: 1 },
+    })
+    expect(await owner.select().from(product)).toHaveLength(0)
+    expect(log.some((l) => l.url.includes('cdn.shopify.com'))).toBe(false)
+
+    await withStore(app, storeId, (tx) => startRun(tx, run.id))
+    await executeRun(d, run.id)
+    const [done] = await owner.select().from(importRun).where(eq(importRun.id, run.id))
+    expect(done?.status).toBe('completed')
+    expect(done?.error).toBeNull()
+
+    // Products, including the variant that arrived on the nested second page.
+    const variants = await owner.select().from(variant).orderBy(asc(variant.sku))
+    expect(variants.map((v) => [v.sku, v.weightGrams, v.hsCode])).toEqual([
+      ['ARIA-BLK', 250, '851830'],
+      ['KEY-BLU', 250, '8473'],
+      ['KEY-RED', 250, '851830'],
+    ])
+    const [aria] = await owner.select().from(product).where(eq(product.handle, 'aria-headset'))
+    expect(JSON.stringify(aria?.description)).toContain('https://media.test/stores/')
+
+    // Smart rules we can express stay automatic; the rest fall back to manual membership.
+    const cols = await owner.select().from(collection).orderBy(asc(collection.handle))
+    expect(cols.map((c) => [c.handle, c.kind, c.sortOrder])).toEqual([
+      ['audio', 'automatic', 'price_asc'],
+      ['in-stock', 'manual', 'manual'],
+      ['staff-picks', 'manual', 'manual'],
+    ])
+    expect(cols[0]?.rules).toEqual({
+      match: 'all',
+      conditions: [
+        { field: 'type', op: 'eq', value: 'Audio' },
+        { field: 'price', op: 'gt', value: '1000' },
+      ],
+    })
+    const inStock = await owner
+      .select()
+      .from(collectionProduct)
+      .where(eq(collectionProduct.collectionId, cols[1]?.id as string))
+    expect(inStock).toHaveLength(2)
+    const audio = await owner
+      .select()
+      .from(collectionProduct)
+      .where(eq(collectionProduct.collectionId, cols[0]?.id as string))
+    expect(audio.map((m) => m.productId)).toEqual([aria?.id])
+    expect(cols[2]?.imageMediaId).not.toBeNull()
+
+    const [meera] = await owner.select().from(customer)
+    expect(meera).toMatchObject({ email: 'meera@example.com', acceptsMarketing: true })
+    expect(meera?.defaultAddress?.stateCode).toBe('TN')
+
+    const [o] = await owner.select().from(order)
+    expect(o).toMatchObject({
+      number: 2001,
+      status: 'paid',
+      importedFrom: 'shopify',
+      customerId: meera?.id,
+    })
+    const [line] = await owner.select().from(orderLine)
+    expect(line?.variantId).toBe(variants.find((v) => v.sku === 'KEY-BLU')?.id)
+
+    const [p] = await owner.select().from(page)
+    expect(p).toMatchObject({ handle: 'shipping-policy', seoTitle: 'Shipping' })
+    expect(p?.publishedAt).not.toBeNull()
+
+    const [journal] = await owner.select().from(blog).where(eq(blog.handle, 'journal'))
+    const [post] = await owner.select().from(article)
+    expect(post).toMatchObject({
+      blogId: journal?.id,
+      handle: 'launch-day',
+      status: 'published',
+      author: 'Kuldeep',
+      excerpt: 'Live now.',
+    })
+    expect(post?.imageMediaId).not.toBeNull()
+
+    const [menu] = await owner
+      .select()
+      .from(navigationMenu)
+      .where(eq(navigationMenu.handle, 'main-menu'))
+    expect(menu?.items).toEqual([
+      { id: 'i1', title: 'Home', type: 'home' },
+      {
+        id: 'i2',
+        title: 'Shop',
+        type: 'collection',
+        value: 'audio',
+        children: [
+          { id: 'i3', title: 'Aria', type: 'product', value: 'aria-headset' },
+          { id: 'i4', title: 'Shipping', type: 'page', value: 'shipping-policy' },
+        ],
+      },
+      { id: 'i5', title: 'Discord', type: 'url', value: 'https://discord.gg/waimers' },
+    ])
+
+    const redirects = await withStore(app, storeId, async (tx) => ({
+      custom: await findRedirect(tx, '/old-sale'),
+      article: await findRedirect(tx, '/blogs/journal/launch_day'),
+    }))
+    expect(redirects).toEqual({
+      custom: '/collections/audio',
+      article: '/blogs/journal/launch-day',
+    })
+
+    // A second full run changes nothing but timestamps.
+    const counts = async () =>
+      Promise.all(
+        [product, variant, collection, customer, order, page, article, navigationMenu, media].map(
+          async (t) => (await owner.select().from(t)).length,
+        ),
+      )
+    const before = await counts()
+    const again = await withStore(app, storeId, (tx) =>
+      createApiRun(tx, storeId, {
+        resources: [
+          'products',
+          'collections',
+          'customers',
+          'orders',
+          'pages',
+          'articles',
+          'menus',
+          'redirects',
+        ],
+        createdBy: null,
+      }),
+    )
+    await executeRun(d, again.id)
+    await withStore(app, storeId, (tx) => startRun(tx, again.id))
+    await executeRun(d, again.id)
+    expect(await counts()).toEqual(before)
+    const [second] = await owner.select().from(importRun).where(eq(importRun.id, again.id))
+    expect(second?.progress.products).toMatchObject({ created: 0, updated: 2 })
+    expect(second?.progress.redirects).toMatchObject({ skipped: 1 })
+  })
+
+  it('fails the run clearly when there is no connection', async () => {
+    const storeId = await seedStore()
+    const run = await withStore(app, storeId, (tx) =>
+      createApiRun(tx, storeId, { resources: ['products'], createdBy: null }),
+    )
+    await executeRun(deps(storeId, new MemoryStorageProvider()), run.id)
+    const [row] = await owner.select().from(importRun).where(eq(importRun.id, run.id))
+    expect(row).toMatchObject({ status: 'failed', error: 'Connect your Shopify store first' })
+  })
+})

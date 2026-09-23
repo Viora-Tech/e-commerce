@@ -15,6 +15,7 @@ import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
+import { shopifyImportRouter } from './shopify-import'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
 import { themesRouter } from './themes'
@@ -37,6 +38,7 @@ export const appRouter = {
   discounts: discountsRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
+  shopifyImport: shopifyImportRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   media: mediaRouter,
