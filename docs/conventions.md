@@ -123,3 +123,10 @@ code, import types from the barrels (`import type { X }` or `import { type X }`)
 from the pure subpaths that exist for this: `@commerce/core/catalog`, `/permissions`,
 `/segments`, `/navigation`, `/adjustments`, `/emi` and so on. If the value you need has no pure
 subpath yet, move it into one rather than importing the barrel.
+
+## Code from other projects
+
+Adapting open-source code is fine when its licence allows it and we keep its notice. Follow the
+checklist in [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md): permissive licences only (MIT,
+BSD, Apache 2.0), the full licence text beside the code, a comment on each adapted file, and a row
+in the root index. GPL, AGPL and source-available licences are ideas only, never copied code.

@@ -7,3 +7,6 @@
 - Architecture: `docs/architecture.md`. Plugins: `docs/plugins.md`. Admin design frames:
   `docs/design/admin-frames.md`.
 - Starting fresh with no conversation history? Read `docs/handoff.md` first.
+- New feature? First ask: build from scratch, or adopt from open source? Check
+  `docs/open-source-radar.md`, verify the licence, and report candidates plus a recommendation
+  before building. Credit anything adapted per `THIRD_PARTY_NOTICES.md`.
