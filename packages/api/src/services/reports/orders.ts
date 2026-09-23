@@ -40,8 +40,8 @@ export const orderBuilders: Record<string, ReportBuilder> = {
     const fees = sumOf(orders, (o) => o.adjustmentPaise)
     const lines: [string, number][] = [
       ['grossSales', gross],
-      ['discounts', -discounts],
-      ['returns', -returns],
+      ['discounts', 0 - discounts || 0],
+      ['returns', 0 - returns || 0],
       ['netSales', netSales],
       ['shipping', shipping],
       ['paymentFees', fees],

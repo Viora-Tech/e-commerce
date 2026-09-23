@@ -76,7 +76,7 @@ export default function ReportChart({ report, data }: ReportChartProps) {
     <YAxis
       tickLine={false}
       axisLine={false}
-      width={56}
+      width={72}
       tick={AXIS_TICK}
       tickFormatter={(v: number) => formatAxis(metric.kind, v)}
     />
@@ -119,9 +119,21 @@ export default function ReportChart({ report, data }: ReportChartProps) {
               {yAxis}
               <ChartTooltip cursor={{ fill: 'var(--muted)' }} content={tooltip} />
               {hasPrevious ? (
-                <Bar dataKey="previous" fill="var(--chart-5)" fillOpacity={0.35} radius={4} />
+                <Bar
+                  dataKey="previous"
+                  fill="var(--chart-5)"
+                  fillOpacity={0.35}
+                  radius={4}
+                  maxBarSize={48}
+                />
               ) : null}
-              <Bar dataKey="value" fill="var(--chart-1)" radius={4} isAnimationActive={false} />
+              <Bar
+                dataKey="value"
+                fill="var(--chart-1)"
+                radius={4}
+                maxBarSize={48}
+                isAnimationActive={false}
+              />
             </BarChart>
           ) : (
             <ComposedChart data={points} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
