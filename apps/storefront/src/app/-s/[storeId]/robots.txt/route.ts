@@ -1,0 +1,17 @@
+import { requestOrigin } from '@/lib/seo'
+import { robotsTxt } from '@/lib/seo-files'
+import { storefrontLock } from '@/lib/storefront-gate'
+
+type Params = { params: Promise<{ storeId: string }> }
+
+/** Per-host robots.txt: the store's own sitemap, private paths out, everything off while locked. */
+export async function GET(_req: Request, { params }: Params) {
+  const { storeId } = await params
+  const lock = await storefrontLock(storeId)
+  return new Response(robotsTxt(await requestOrigin(), lock.enabled), {
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      'cache-control': 'public, max-age=3600',
+    },
+  })
+}

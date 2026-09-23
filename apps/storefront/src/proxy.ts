@@ -1,6 +1,7 @@
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { resolveStore } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
+import { SEO_FILES } from './data/seo'
 import { db } from './lib/db'
 import { DERIVED_HEADERS, PASSWORD_PREFIX, routeForStore } from './lib/routing'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
@@ -64,8 +65,12 @@ export async function proxy(request: NextRequest) {
   // Password page: while it is on, every page renders it unless the visitor has the
   // signed pass or a valid preview token.
   const lock = await storefrontLock(storeId)
+  // robots.txt, sitemap.xml and llms.txt always reach their handlers, which answer
+  // "stay out" themselves while the store is locked rather than serving the password page.
+  const seoFile = (SEO_FILES as readonly string[]).includes(request.nextUrl.pathname)
   const locked =
     lock.enabled &&
+    !seoFile &&
     !preview &&
     !hasAccess(storeId, lock.password, request.cookies.get(ACCESS_COOKIE)?.value)
 
