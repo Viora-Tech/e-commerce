@@ -12,7 +12,7 @@ import { notFound } from 'next/navigation'
 import ArticleNeighbours from '@/components/blog/article-neighbours'
 import ShareLinks from '@/components/blog/share-links'
 import { blogContent as copy } from '@/data/blog'
-import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/blog'
+import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 

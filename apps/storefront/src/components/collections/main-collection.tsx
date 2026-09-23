@@ -2,11 +2,14 @@ import { parseRichText, RichTextRenderer } from '@commerce/richtext'
 import Link from 'next/link'
 import { COLLECTION_PER_PAGE, collectionsContent as copy } from '@/data/collections'
 import type { CollectionDetail, CollectionProducts } from '@/lib/collections'
+import { collectionGraph, jsonLd } from '@/lib/seo'
 import CollectionGrid from './collection-grid'
 import CollectionSort from './collection-sort'
 
 type MainCollectionProps = {
   handle: string
+  /** The shopper-facing origin, for absolute URLs in the structured data. */
+  origin: string
   collection: CollectionDetail
   products: CollectionProducts
   sort: string
@@ -18,6 +21,7 @@ type MainCollectionProps = {
 /** The collection template's main section: banner, sort, product grid and pagination. */
 export default function MainCollection({
   handle,
+  origin,
   collection,
   products,
   sort,
@@ -26,29 +30,24 @@ export default function MainCollection({
 }: MainCollectionProps) {
   // Render logic
   const pages = Math.max(1, Math.ceil(products.total / COLLECTION_PER_PAGE))
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: collection.title,
-    description: collection.seoDescription ?? undefined,
-    mainEntity: {
-      '@type': 'ItemList',
-      numberOfItems: products.total,
-      itemListElement: products.items.map((p, i) => ({
-        '@type': 'ListItem',
-        position: (page - 1) * COLLECTION_PER_PAGE + i + 1,
-        url: `/products/${p.handle}`,
-        name: p.title,
-      })),
+  const schema = collectionGraph(
+    {
+      handle,
+      title: collection.title,
+      description: collection.seoDescription ?? undefined,
     },
-  }
+    products.items,
+    (page - 1) * COLLECTION_PER_PAGE + 1,
+    products.total,
+    origin,
+  )
 
   return (
     <section className="section-collection page-width">
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; JSON.stringify escapes it.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\u003c') }}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it.
+        dangerouslySetInnerHTML={jsonLd(schema)}
       />
       <header className="collection__header">
         <h1 className="collection__title h2">{collection.title}</h1>

@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import BlogPagination from '@/components/blog/blog-pagination'
 import TagFilter from '@/components/blog/tag-filter'
 import { BLOG_PER_PAGE, blogContent as copy } from '@/data/blog'
-import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/blog'
+import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 

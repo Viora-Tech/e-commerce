@@ -1,8 +1,10 @@
 import { page } from '@commerce/db'
+import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import MainPage from '@/components/pages/main-page'
+import { metaDescription, NO_INDEX } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { isThemePreview, renderTemplate } from '@/lib/template-render'
 
@@ -22,7 +24,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { storeId, handle } = await params
   const found = await findPage(storeId, handle)
   if (!found) return {}
-  return { title: found.seoTitle || found.title, description: found.seoDescription || undefined }
+  const title = found.seoTitle || found.title
+  const description = metaDescription(
+    found.seoDescription || richTextToPlainText(parseRichText(found.body)),
+  )
+  const url = `/pages/${found.handle}`
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    // An unpublished page only renders in a theme preview.
+    ...(found.publishedAt ? {} : { robots: NO_INDEX }),
+    openGraph: { type: 'website', url, title, description },
+  }
 }
 
 export default async function StorePage({ params, searchParams }: Params) {

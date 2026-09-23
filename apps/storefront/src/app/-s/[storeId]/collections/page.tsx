@@ -7,7 +7,10 @@ import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string }> }
 
-export const metadata: Metadata = { title: copy.indexTitle }
+export const metadata: Metadata = {
+  title: copy.indexTitle,
+  alternates: { canonical: '/collections' },
+}
 
 export default async function CollectionsIndex({ params }: Params) {
   const { storeId } = await params

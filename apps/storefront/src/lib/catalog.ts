@@ -181,6 +181,18 @@ export async function getProductByHandle(
   }
 }
 
+/** The merchant's search listing overrides for a product; blank means "use the product's own". */
+export async function getProductSeo(
+  tx: StoreTx,
+  productId: string,
+): Promise<{ seoTitle: string | null; seoDescription: string | null } | null> {
+  const [row] = await tx
+    .select({ seoTitle: product.seoTitle, seoDescription: product.seoDescription })
+    .from(product)
+    .where(eq(product.id, productId))
+  return row ?? null
+}
+
 /** Storefront search: active products whose title, type or vendor contains the query. */
 export async function searchCardProducts(
   tx: StoreTx,

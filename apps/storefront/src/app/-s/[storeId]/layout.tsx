@@ -25,6 +25,7 @@ import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { readCartId } from '@/lib/cart-cookie'
 import { themeFontVariables } from '@/lib/fonts'
+import { requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
 import { renderTemplate } from '@/lib/template-render'
@@ -72,6 +73,8 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
   const description = seo.description || undefined
   const images = seo.image ? [{ url: seo.image.url, alt: seo.imageAlt || title }] : undefined
   return {
+    // Canonical and Open Graph URLs are paths; they resolve against the host being served.
+    metadataBase: new URL(await requestOrigin()),
     title: { default: title, template: `%s | ${s.name}` },
     description,
     openGraph: { type: 'website', siteName: s.name, title, description, images },
