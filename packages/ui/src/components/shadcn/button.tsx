@@ -7,7 +7,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        default: 'bg-action text-action-foreground hover:bg-action/85',
         /* White on the field hairline; the hairline darkens on hover (Saleor secondary button). */
         outline:
           'border-input bg-card text-foreground hover:border-border-strong hover:bg-muted/60 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',

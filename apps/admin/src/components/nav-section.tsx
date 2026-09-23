@@ -24,13 +24,13 @@ const FOCUS =
 
 /* Saleor-style rail: 32px rows, dark neutral text, icon left and chevron right;
    children hang off a 1px guide line. The active row is a neutral pill (a shared
-   layout element, so it slides) with the icon in the accent colour. */
+   layout element, so it slides) in ink, like Saleor's pressed list item. */
 const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2 rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0 ${FOCUS}`
 const ROW_ACTIVE =
-  'font-semibold text-sidebar-accent-foreground hover:bg-transparent hover:text-sidebar-accent-foreground [&_svg]:text-primary'
+  'text-sidebar-accent-foreground hover:bg-transparent hover:text-sidebar-accent-foreground'
 const ROW_OPEN = 'font-medium text-ink-strong'
 const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground ${FOCUS}`
-const CHILD_ACTIVE = 'font-semibold text-sidebar-accent-foreground hover:bg-transparent'
+const CHILD_ACTIVE = 'text-sidebar-accent-foreground hover:bg-transparent'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
 export default function NavSection({ item, pathname }: NavSectionProps) {

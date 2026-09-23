@@ -20,7 +20,7 @@ type PillTabsProps<T extends string | null> = {
   className?: string
   /**
    * `underline` (default): list-view tabs on the filter bar's top edge, the active one
-   * marked by a 2px accent rule. `segmented`: a compact neutral switch for ranges.
+   * marked by a 2px ink rule. `segmented`: a compact neutral switch for ranges.
    */
   variant?: 'underline' | 'segmented'
   /** Kept for older call sites; both sizes draw the same tabs. */
@@ -34,7 +34,7 @@ const STYLES = {
     track: 'flex items-center gap-5',
     tab: `relative flex h-11 items-center gap-1.5 whitespace-nowrap text-body font-medium text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
     active: 'text-ink-strong',
-    marker: 'absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-primary',
+    marker: 'absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-foreground',
   },
   segmented: {
     track: 'inline-flex items-center rounded-md border border-border bg-muted p-0.5',
