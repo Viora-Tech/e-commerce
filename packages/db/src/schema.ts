@@ -694,48 +694,62 @@ export const cartLine = pgTable('cart_line', {
   unitPricePaise: integer('unit_price_paise').notNull(),
 })
 
-export const order = pgTable('order', {
-  id: id(),
-  storeId: storeId(),
-  number: integer('number').notNull(),
-  customerId: uuid('customer_id').references(() => customer.id),
-  email: text('email'),
-  phone: text('phone'),
-  shippingAddressId: uuid('shipping_address_id').references(() => address.id),
-  paymentMethod: text('payment_method'),
-  /** `draft` is a merchant-built order that has not been placed: no stock held, no revenue. */
-  status: text('status', {
-    enum: ['draft', 'placed', 'paid', 'fulfilled', 'delivered', 'cancelled'],
-  })
-    .notNull()
-    .default('placed'),
-  subtotalPaise: integer('subtotal_paise').notNull(),
-  shippingPaise: integer('shipping_paise').notNull().default(0),
-  /** Fee (+) or discount (−) for the chosen payment method, already inside total_paise. */
-  paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
-  paymentAdjustmentLabel: text('payment_adjustment_label'),
-  /** Code or automatic discount taken off the subtotal, already inside total_paise. */
-  discountId: uuid('discount_id'),
-  discountCode: text('discount_code'),
-  discountLabel: text('discount_label'),
-  discountPaise: integer('discount_paise').notNull().default(0),
-  totalPaise: integer('total_paise').notNull(),
-  /** GST already contained in total_paise (Indian prices are tax inclusive). */
-  taxPaise: integer('tax_paise').notNull().default(0),
-  /** GstBreakdown snapshot: rate, CGST/SGST or IGST, as charged. */
-  taxBreakdown: jsonb('tax_breakdown'),
-  tags: text('tags').array().notNull().default([]),
-  /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
-  attribution: jsonb('attribution').$type<MarketingAttribution>(),
-  placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
-  /**
-   * Set on historical orders brought over from another platform (`shopify`). Such
-   * orders are read-only: they never reserve stock, notify, or run app hooks.
-   */
-  importedFrom: text('imported_from'),
-  /** What the source platform said: its order name, financial and fulfilment status. */
-  importMeta: jsonb('import_meta').$type<OrderImportMeta>(),
-})
+export const order = pgTable(
+  'order',
+  {
+    id: id(),
+    storeId: storeId(),
+    number: integer('number').notNull(),
+    customerId: uuid('customer_id').references(() => customer.id),
+    email: text('email'),
+    phone: text('phone'),
+    shippingAddressId: uuid('shipping_address_id').references(() => address.id),
+    paymentMethod: text('payment_method'),
+    /** `draft` is a merchant-built order that has not been placed: no stock held, no revenue. */
+    status: text('status', {
+      enum: ['draft', 'placed', 'paid', 'fulfilled', 'delivered', 'cancelled'],
+    })
+      .notNull()
+      .default('placed'),
+    subtotalPaise: integer('subtotal_paise').notNull(),
+    shippingPaise: integer('shipping_paise').notNull().default(0),
+    /** Fee (+) or discount (−) for the chosen payment method, already inside total_paise. */
+    paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
+    paymentAdjustmentLabel: text('payment_adjustment_label'),
+    /** Code or automatic discount taken off the subtotal, already inside total_paise. */
+    discountId: uuid('discount_id'),
+    discountCode: text('discount_code'),
+    discountLabel: text('discount_label'),
+    discountPaise: integer('discount_paise').notNull().default(0),
+    totalPaise: integer('total_paise').notNull(),
+    /** GST already contained in total_paise (Indian prices are tax inclusive). */
+    taxPaise: integer('tax_paise').notNull().default(0),
+    /** GstBreakdown snapshot: rate, CGST/SGST or IGST, as charged. */
+    taxBreakdown: jsonb('tax_breakdown'),
+    tags: text('tags').array().notNull().default([]),
+    /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
+    attribution: jsonb('attribution').$type<MarketingAttribution>(),
+    placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Set on historical orders brought over from another platform (`shopify`). Such
+     * orders are read-only: they never reserve stock, notify, or run app hooks.
+     */
+    importedFrom: text('imported_from'),
+    /** What the source platform said: its order name, financial and fulfilment status. */
+    importMeta: jsonb('import_meta').$type<OrderImportMeta>(),
+    /**
+     * The cart this order was placed from. Unique per store, so a second submit of
+     * the same cart finds this order instead of creating another. Null on drafts
+     * and imported orders. No foreign key: carts are pruned, orders are kept.
+     */
+    cartId: uuid('cart_id'),
+  },
+  (t) => [
+    uniqueIndex('order_store_cart_unique')
+      .on(t.storeId, t.cartId)
+      .where(sql`${t.cartId} is not null`),
+  ],
+)
 
 export type OrderImportMeta = {
   /** The source's order name, e.g. `#1001`. */

@@ -539,3 +539,56 @@ describe('placeOrder discount limits under concurrency', () => {
     }
   })
 })
+
+describe('placeOrder lock and replay', () => {
+  it('two concurrent submits of one cart create exactly one order', async () => {
+    const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 2 })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    const submit = () =>
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
+      )
+
+    const [a, b] = await Promise.all([submit(), submit()])
+
+    expect(a.orderId).toBe(b.orderId)
+    expect(a.orderNumber).toBe(b.orderNumber)
+    expect([a.replayed, b.replayed].sort()).toEqual([false, true])
+    expect(await owner.select().from(order)).toHaveLength(1)
+    expect(provider.calls).toHaveLength(1)
+    const [inv] = await owner
+      .select()
+      .from(inventoryLevel)
+      .where(eq(inventoryLevel.variantId, variantId))
+    expect(inv?.reserved).toBe(2)
+  })
+
+  it('a retry after the order is placed returns the same order and session', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const provider = new FakePaymentProvider()
+    const submit = () =>
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
+      )
+
+    const first = await submit()
+    const retry = await submit()
+
+    expect(retry).toEqual({ ...first, replayed: true })
+    const [o] = await owner.select().from(order).where(eq(order.id, first.orderId))
+    expect(o?.cartId).toBe(cartId)
+    const [s] = await owner.select().from(store).where(eq(store.id, storeId))
+    expect(s?.nextOrderNumber).toBe(2)
+  })
+
+  it('the database refuses a second order for the same cart', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    if (!o) throw new Error('seed')
+    const { id: _id, ...copy } = o
+    await expect(owner.insert(order).values({ ...copy, number: 99 })).rejects.toThrow()
+  })
+})

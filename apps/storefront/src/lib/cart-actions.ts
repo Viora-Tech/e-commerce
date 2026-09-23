@@ -10,6 +10,7 @@ import {
   GiftCardError,
   getCart,
   onOrderPlaced,
+  type PlaceOrderResult,
   placeOrder,
   rememberCheckoutAddress,
   setCartAttribution,
@@ -168,6 +169,8 @@ export async function checkoutAction(
   if ('error' in placed) return { error: placed.error }
   const result = placed
   await clearCartId()
+  // A second submit of the same cart got the first order back: it was already announced.
+  if (result.replayed) return redirectAfterCheckout(result)
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
     await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
@@ -183,6 +186,11 @@ export async function checkoutAction(
   if (result.paymentStatus === 'captured') {
     await notify({ storeId, orderId: result.orderId, template: 'payment_received' })
   }
+  redirectAfterCheckout(result)
+}
+
+/** Open the gateway, or go straight to the thank-you page. */
+function redirectAfterCheckout(result: PlaceOrderResult): never {
   if (result.session.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
   if (result.session.kind === 'redirect') redirect(result.session.url)
   redirect(`/checkout/thank-you/${result.orderNumber}`)
