@@ -44,6 +44,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, d.totalLabel, d.actionUrl ?? '-']
     case 'document_copy':
       return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
+    case 'gift_card_issued':
+      return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
   }
 }
 

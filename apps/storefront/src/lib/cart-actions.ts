@@ -5,6 +5,8 @@ import {
   captureCartContact,
   confirmClientPayment,
   createCart,
+  findRedeemableGiftCard,
+  GiftCardError,
   getCart,
   placeOrder,
   setLineQuantity,
@@ -55,6 +57,8 @@ export type CheckoutForm = {
   stateCode: string
   pincode: string
   payment: string
+  /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
+  giftCards?: string[]
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -91,24 +95,35 @@ export async function checkoutAction(storeId: string, form: CheckoutForm): Promi
     }),
   )
 
-  // The courier's word on the destination, never the client's. A cached answer makes this cheap.
-  const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
-  if (!delivery.ok) return { error: delivery.error }
-  if (!delivery.serviceable)
-    return { error: checkoutContent.errors.unserviceable(delivery.pincode) }
-  if (form.payment === 'cod' && !delivery.codAvailable) {
-    return { error: checkoutContent.errors.codUnavailable }
+  // Gift cards are emailed, so a basket of only gift cards has nothing to ship.
+  const current = await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId))
+  const digitalOnly = !!current?.lines.length && current.lines.every((l) => l.giftCard)
+
+  if (!digitalOnly) {
+    // The courier's word on the destination, never the client's. A cached answer makes this cheap.
+    const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
+    if (!delivery.ok) return { error: delivery.error }
+    if (!delivery.serviceable)
+      return { error: checkoutContent.errors.unserviceable(delivery.pincode) }
+    if (form.payment === 'cod' && !delivery.codAvailable) {
+      return { error: checkoutContent.errors.codUnavailable }
+    }
   }
 
-  const result = await inStore(storeId, async (tx) => {
+  const placed = await inStore(storeId, async (tx) => {
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === form.payment)
     if (!provider) throw new Error(`payment method ${form.payment} is not enabled`)
+    const giftCardIds: string[] = []
+    for (const code of form.giftCards ?? []) {
+      giftCardIds.push((await findRedeemableGiftCard({ storeId, tx }, code)).id)
+    }
     return placeOrder(
       { storeId, tx },
       {
         cartId,
         paymentProvider: provider,
+        giftCardIds,
         checkout: {
           name: form.name,
           email: form.email,
@@ -123,9 +138,19 @@ export async function checkoutAction(storeId: string, form: CheckoutForm): Promi
         },
       },
     )
+  }).catch((err: unknown) => {
+    // Gift card rules (spent elsewhere, COD for the rest, a card in a mixed basket) are the shopper's to fix.
+    if (err instanceof GiftCardError) return { error: err.message }
+    throw err
   })
+  if ('error' in placed) return { error: placed.error }
+  const result = placed
   await clearCartId()
   await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
+  // Paid in full at checkout (gift cards): the paid path issues cards and sends the receipt.
+  if (result.paymentStatus === 'captured') {
+    await notify({ storeId, orderId: result.orderId, template: 'payment_received' })
+  }
   if (result.session.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
   if (result.session.kind === 'redirect') redirect(result.session.url)
   redirect(`/checkout/thank-you/${result.orderNumber}`)

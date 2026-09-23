@@ -213,6 +213,17 @@ describe('invoice queue', () => {
     expect(doc.totals.totalPaise).toBe(205_000)
   })
 
+  it('never invoices an order that only sold gift cards (a voucher is taxed at redemption)', async () => {
+    const { storeId, variantId } = await seedStore()
+    const orderId = await seedOrder(storeId, variantId, 1)
+    await owner.update(orderLine).set({ giftCard: true }).where(eq(orderLine.orderId, orderId))
+    expect(await inStore(storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'paid'))).toBeNull()
+    await expect(
+      inStore(storeId, (tx) => enqueueOrder(tx, storeId, orderId, 'manual')),
+    ).rejects.toThrow(/gift cards/)
+    expect(await owner.select().from(invoice)).toHaveLength(0)
+  })
+
   it('a pre-order waits for dispatch and takes the next number in the dispatch month', async () => {
     const { storeId, variantId } = await seedStore()
     const pre = await seedOrder(storeId, variantId, 1, { tags: ['pre-order'] })
