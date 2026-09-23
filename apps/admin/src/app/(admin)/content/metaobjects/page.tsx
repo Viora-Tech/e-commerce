@@ -1,10 +1,12 @@
-import { Braces } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { contentContent } from '@/data/content'
+import DefinitionsPage from '@/components/metaobjects/definitions-page'
+import { metaobjectListContent } from '@/data/metaobjects'
+import { appRouter, call, serverContext } from '@/lib/api'
 
-export const metadata: Metadata = { title: 'Metaobjects' }
+export const metadata: Metadata = { title: metaobjectListContent.heading }
 
-export default function Page() {
-  return <SectionEmpty {...contentContent.metaobjects} icon={Braces} />
+export default async function Page() {
+  const context = await serverContext()
+  const definitions = await call(appRouter.metaobjects.definitions, undefined, { context })
+  return <DefinitionsPage definitions={definitions} />
 }

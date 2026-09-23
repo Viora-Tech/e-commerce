@@ -12,6 +12,7 @@ import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
 import { mediaRouter } from './media'
+import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
@@ -31,6 +32,7 @@ export const appRouter = {
   transfers: transfersRouter,
   pages: pagesRouter,
   blog: blogRouter,
+  metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
   orders: ordersRouter,
   customers: customersRouter,

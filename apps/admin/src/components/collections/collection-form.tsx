@@ -19,6 +19,7 @@ import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { collectionFormContent as copy } from '@/data/collections'
 import { api } from '@/lib/api-client'
@@ -159,6 +160,7 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
               onRules={(rules) => patch({ rules })}
               onProducts={(products) => patch({ products })}
             />
+            <MetafieldsCard ownerType="collection" ownerId={collection?.id ?? null} />
           </>
         }
         side={
