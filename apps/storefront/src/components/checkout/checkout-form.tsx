@@ -1,12 +1,13 @@
 'use client'
 
 import { formatPaise } from '@commerce/blocks'
-import type { CartView, DeliveryEstimate } from '@commerce/core'
+import type { CartView, DeliveryEstimate, SavedAddress, SignedInCustomer } from '@commerce/core'
 import { applyPaymentAdjustment, formatPaymentAdjustment } from '@commerce/core/adjustments'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import CheckoutField from '@/components/checkout/checkout-field'
 import GiftCardField from '@/components/checkout/gift-card-field'
+import { accountContent } from '@/data/account'
 import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
 import { captureContactAction, checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
 import type { CartDiscountView } from '@/lib/discount-actions'
@@ -20,6 +21,10 @@ type CheckoutFormProps = {
   methods: CheckoutMethod[]
   /** Discount in force for this cart, resolved on the server. */
   discount: CartDiscountView | null
+  /** The signed-in shopper, or null for guest checkout. */
+  customer?: SignedInCustomer | null
+  /** Their saved addresses, default first. */
+  addresses?: SavedAddress[]
 }
 
 type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
@@ -40,6 +45,34 @@ const formatSigned = (paise: number): string =>
   `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
 
 const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(v)
+
+/** Contact and address fields from the account, so a returning shopper types nothing. */
+function prefill(
+  customer: SignedInCustomer | null,
+  address: SavedAddress | undefined,
+): Omit<Form, 'payment'> {
+  return {
+    ...EMPTY_FORM,
+    name: address?.name ?? customer?.name ?? '',
+    email: customer?.email ?? '',
+    phone: address?.phone ?? customer?.phone ?? '',
+    ...(address
+      ? {
+          line1: address.line1,
+          line2: address.line2 ?? '',
+          city: address.city,
+          stateCode: address.stateCode,
+          pincode: address.pincode,
+        }
+      : {}),
+  }
+}
+
+const NEW_ADDRESS = 'new'
+
+const accountCopy = accountContent.checkout
+
+const savedLabel = (a: SavedAddress) => `${a.name}, ${a.line1}, ${a.city} ${a.pincode}`
 
 /** How much each applied card covers, in order, and what is left to pay. Preview only. */
 function spendCards(cards: AppliedGiftCard[], totalPaise: number) {
@@ -68,17 +101,30 @@ function deliveryLine(d: DeliveryEstimate | null, checking: boolean): string | n
   return content.delivery.estimate(d.dateRange)
 }
 
-export default function CheckoutForm({ storeId, cart, methods, discount }: CheckoutFormProps) {
+export default function CheckoutForm({
+  storeId,
+  cart,
+  methods,
+  discount,
+  customer = null,
+  addresses = [],
+}: CheckoutFormProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [checking, startCheck] = useTransition()
   const [form, setForm] = useState<Form>(() => ({
-    ...EMPTY_FORM,
+    ...prefill(customer, addresses[0]),
     payment: offeredMethods(cart, methods)[0]?.id ?? 'cod',
   }))
+  const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
   const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [giftCards, setGiftCards] = useState<AppliedGiftCard[]>([])
+  // A prefilled PIN code gets the same courier check a typed one does.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, for the address the page opened with.
+  useEffect(() => {
+    if (isFullPincode(form.pincode)) checkPincode(form.pincode)
+  }, [])
 
   // Helpers
   const set =
@@ -86,9 +132,7 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
     (e) =>
       setForm((prev) => ({ ...prev, [k]: e.target.value }))
   /** Ask the courier as soon as six digits are in; the server re-checks on submit regardless. */
-  const setPincode: ChangeHandler = (e) => {
-    const pincode = e.target.value
-    setForm((prev) => ({ ...prev, pincode }))
+  const checkPincode = (pincode: string) => {
     setDelivery(null)
     if (isDigitalOnly(cart) || !isFullPincode(pincode)) return
     startCheck(async () => {
@@ -103,8 +147,24 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
       }
     })
   }
+  const setPincode: ChangeHandler = (e) => {
+    const pincode = e.target.value
+    setForm((prev) => ({ ...prev, pincode }))
+    checkPincode(pincode)
+  }
 
   // Event handlers
+  const handlePickAddress = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = e.target.value
+    setSavedId(id)
+    const picked = addresses.find((a) => a.id === id)
+    const next = picked
+      ? prefill(customer, picked)
+      : { ...prefill(customer, undefined), name: form.name, phone: form.phone }
+    setForm((prev) => ({ ...prev, ...next }))
+    checkPincode(next.pincode)
+  }
+
   /* Save the contact as soon as it is typed, so a basket left here can be recovered. */
   const handleContactBlur = () => {
     if (!form.email.includes('@')) return
@@ -164,6 +224,16 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
         <div className="cart-layout__lines">
           <fieldset className="checkout__group">
             <legend className="h4">{content.contact}</legend>
+            {customer ? (
+              <p className="text-small text-muted">{accountCopy.signedInAs(customer.email)}</p>
+            ) : (
+              <a
+                href="/account/login?return_to=%2Fcheckout"
+                className="text-small underline underline-offset-4"
+              >
+                {accountCopy.signIn}
+              </a>
+            )}
             <CheckoutField
               label={f.name}
               required
@@ -179,6 +249,7 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
               value={form.email}
               onChange={set('email')}
               onBlur={handleContactBlur}
+              readOnly={customer !== null}
             />
             <CheckoutField
               label={f.phone}
@@ -195,6 +266,19 @@ export default function CheckoutForm({ storeId, cart, methods, discount }: Check
             <legend className="h4">
               {digitalOnly ? content.giftCardAddress : content.address}
             </legend>
+            {!digitalOnly && addresses.length > 0 ? (
+              <label className="field">
+                <span className="field__label text-small">{accountCopy.savedAddresses}</span>
+                <select className="field__input" value={savedId} onChange={handlePickAddress}>
+                  {addresses.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {savedLabel(a)}
+                    </option>
+                  ))}
+                  <option value={NEW_ADDRESS}>{accountCopy.newAddress}</option>
+                </select>
+              </label>
+            ) : null}
             {digitalOnly ? (
               <p className="checkout__delivery text-small">{content.giftCardDelivery}</p>
             ) : null}

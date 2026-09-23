@@ -23,8 +23,10 @@
     "./theme": "./src/theme/client.ts",
     "./preferences": "./src/online-store/preferences.ts",
     "./blog": "./src/blog/client.ts",
+    "./accounts": "./src/accounts/schemas.ts",
     "./gift-cards": "./src/gift-cards/client.ts",
-    "./domains": "./src/domains/client.ts"
+    "./domains": "./src/domains/client.ts",
+    "./metaobjects": "./src/metaobjects/client.ts"
   },
   "scripts": {
     "test": "vitest run",

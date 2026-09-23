@@ -9,6 +9,7 @@ import {
   GiftCardError,
   getCart,
   placeOrder,
+  rememberCheckoutAddress,
   setLineQuantity,
 } from '@commerce/core'
 import { payment } from '@commerce/db'
@@ -18,6 +19,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
+import { currentCustomer } from './customer-session'
 import { notify } from './notifications'
 import { storePaymentProviders } from './payments'
 import { estimateForPincode } from './shipping'
@@ -82,9 +84,15 @@ export async function captureContactAction(
  * unserviceable PIN code, COD where the courier will not collect); throws
  * for everything else; redirects on success.
  */
-export async function checkoutAction(storeId: string, form: CheckoutForm): Promise<CheckoutResult> {
+export async function checkoutAction(
+  storeId: string,
+  submitted: CheckoutForm,
+): Promise<CheckoutResult> {
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
+  // Signed in: the order belongs to the session's customer, whatever email the form carried.
+  const me = await currentCustomer(storeId)
+  const form = me ? { ...submitted, email: me.email } : submitted
 
   /* Contact first: if anything below fails the cart is still recoverable. */
   await inStore(storeId, (tx) =>
@@ -146,6 +154,12 @@ export async function checkoutAction(storeId: string, form: CheckoutForm): Promi
   if ('error' in placed) return { error: placed.error }
   const result = placed
   await clearCartId()
+  if (me) {
+    // Convenience only: never let the address book block an order that is already placed.
+    await inStore(storeId, (tx) => rememberCheckoutAddress({ storeId, tx }, me.id, form)).catch(
+      (err) => console.error('[checkout] could not save address', err),
+    )
+  }
   await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
   // Paid in full at checkout (gift cards): the paid path issues cards and sends the receipt.
   if (result.paymentStatus === 'captured') {

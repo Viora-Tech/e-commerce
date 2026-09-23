@@ -565,6 +565,73 @@ export const address = pgTable('address', {
   phone: text('phone').notNull(),
 })
 
+/**
+ * A shopper's saved address book (storefront account). Separate from `address`,
+ * which holds immutable order snapshots. At most one default per customer.
+ */
+export const customerAddress = pgTable(
+  'customer_address',
+  {
+    id: id(),
+    storeId: storeId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id),
+    name: text('name').notNull(),
+    line1: text('line1').notNull(),
+    line2: text('line2'),
+    city: text('city').notNull(),
+    stateCode: text('state_code').notNull(),
+    pincode: text('pincode').notNull(),
+    country: text('country').notNull().default('IN'),
+    phone: text('phone').notNull(),
+    isDefault: boolean('is_default').notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('customer_address_customer').on(t.customerId),
+    uniqueIndex('customer_address_one_default').on(t.customerId).where(sql`is_default`),
+  ],
+)
+
+/**
+ * Pending storefront sign-in code, one per email per store. Only a SHA-256 hash is
+ * kept; `attempts` caps guessing. Separate from Better Auth's merchant tables.
+ */
+export const customerLoginCode = pgTable(
+  'customer_login_code',
+  {
+    id: id(),
+    storeId: storeId(),
+    email: text('email').notNull(),
+    codeHash: text('code_hash').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('customer_login_code_store_email').on(t.storeId, t.email)],
+)
+
+/** A signed-in storefront shopper. The cookie holds the token; only its hash is stored. */
+export const customerSession = pgTable(
+  'customer_session',
+  {
+    id: id(),
+    storeId: storeId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('customer_session_token').on(t.tokenHash),
+    index('customer_session_customer').on(t.customerId),
+  ],
+)
+
 export const cart = pgTable('cart', {
   id: id(),
   storeId: storeId(),

@@ -7,6 +7,7 @@ type CheckoutFieldProps = {
   required?: boolean
   pattern?: string
   autoComplete?: string
+  readOnly?: boolean
 }
 
 /** Label plus input in the Glide field markup; the state select uses the same classes inline. */
@@ -19,6 +20,7 @@ export default function CheckoutField({
   value,
   onChange,
   onBlur,
+  readOnly,
 }: CheckoutFieldProps) {
   return (
     <label className="field">
@@ -32,6 +34,7 @@ export default function CheckoutField({
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        readOnly={readOnly}
       />
     </label>
   )
