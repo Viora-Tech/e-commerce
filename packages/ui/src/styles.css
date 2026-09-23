@@ -132,8 +132,9 @@
   --shadow-dialog: var(--shadow-kit-6);
   --shadow-bar: 0 1px 0 0 var(--border);
 
-  /* Canvas and surfaces: a near-white canvas, white cards, one grey step for the rail. */
-  --background: #f9fafa;
+  /* Surfaces (Saleor Dashboard): a light grey shell (rail, top bar, grouped sub-sections)
+     around a white content panel; cards and panels are white. */
+  --background: #f7f7f7;
   --foreground: #252929;
   --ink-strong: #141717; /* page titles, primary cell text, figures */
   --brand-secondary: #121f30; /* the dark neutral action (Saleor's default primary button) */
@@ -155,7 +156,7 @@
   --primary-foreground: #ffffff;
   --primary-soft: #eaf8e7; /* selected rows, bulk bar, subtle accent fills */
   --primary-tint: #c1e6ba;
-  --link: #3b5bdb;
+  --link: #1f2323; /* links are ink and underlined, like Saleor's body links */
   --link-soft: #eef2ff;
   --secondary: #eef0f2;
   --secondary-foreground: #252929;
@@ -191,12 +192,12 @@
   --chart-4: #ef4343;
   --chart-5: #8b909a;
 
-  /* Sidebar: one grey step under the canvas, split from it by a hairline */
-  --sidebar: #f4f5f6;
-  --sidebar-foreground: #3d4242;
+  /* Sidebar: the grey shell; the active row is a slightly darker grey pill */
+  --sidebar: #f7f7f7;
+  --sidebar-foreground: #2b2f2f;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #e8eaec;
+  --sidebar-accent: #eaebeb;
   --sidebar-accent-foreground: #141717;
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
@@ -215,7 +216,7 @@
   --shadow-dialog: var(--shadow-kit-6);
   --shadow-bar: 0 1px 0 0 var(--border);
 
-  --background: #121416;
+  --background: #141618;
   --foreground: #e3e6e8;
   --ink-strong: #f5f6f7;
   --brand-secondary: #eef1f4;
@@ -233,7 +234,7 @@
   --primary-foreground: #0b1a11;
   --primary-soft: rgb(78 166 116 / 0.16);
   --primary-tint: #2f5a3d;
-  --link: #8ea2ff;
+  --link: #eceef0;
   --link-soft: rgb(99 125 255 / 0.16);
   --secondary: #262a2e;
   --secondary-foreground: #e3e6e8;
@@ -266,7 +267,7 @@
   --chart-4: #f87272;
   --chart-5: #7d8491;
 
-  --sidebar: #15171a;
+  --sidebar: #141618;
   --sidebar-foreground: #b4b9be;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
@@ -312,16 +313,16 @@
  * weight and tracking. Colour, case and numerals stay at the usage site.
  */
 @theme {
-  /* Saleor-style scale (after Macaw UI font sizes 12/13/15/20): 1.25rem/600 page title, 0.9375rem/600 card title,
-     0.8125rem body and cells, 0.75rem/500 captions and table heads, 1.25rem/600 stats, 0.8125rem/500 nav. Rem only, never px. */
-  --text-page-title: 1.25rem;
-  --text-page-title--line-height: 1.75rem;
-  --text-page-title--font-weight: 600;
+  /* Saleor Dashboard scale: large, regular-weight headings (1.75rem page title, 1.25rem section
+     title), 0.8125rem body and cells, 0.75rem captions and table heads, 0.8125rem/500 nav. Rem only. */
+  --text-page-title: 1.75rem;
+  --text-page-title--line-height: 2.25rem;
+  --text-page-title--font-weight: 400;
   --text-page-title--letter-spacing: -0.01em;
 
-  --text-card-title: 0.9375rem;
-  --text-card-title--line-height: 1.375rem;
-  --text-card-title--font-weight: 500;
+  --text-card-title: 1.25rem;
+  --text-card-title--line-height: 1.75rem;
+  --text-card-title--font-weight: 400;
 
   --text-stat: 1.25rem;
   --text-stat--line-height: 1.5rem;

@@ -20,7 +20,7 @@ type AdminFrameProps = {
   apps: { id: string; name: string; icon: string | null }[]
 }
 
-const SIDEBAR_WIDTH = '15rem'
+const SIDEBAR_WIDTH = '16rem'
 
 /** Shell = kit sidebar + top bar + scrolling page content. */
 export default function AdminFrame({
@@ -46,9 +46,14 @@ export default function AdminFrame({
         storefrontUrl={storefrontUrl}
         apps={apps}
       />
-      <SidebarInset className="min-h-0 overflow-hidden">
+      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
         <TopBar title={pageTitleFor(pathname)} heading={!hasOwnHeading(pathname)} user={user} />
-        <main id="main" className="min-h-0 flex-1 overflow-y-auto">
+        {/* The white content panel on the grey shell (Saleor Dashboard): hairline and a rounded
+            top-left corner where it meets the rail and the top bar. */}
+        <main
+          id="main"
+          className="min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-tl-xl md:border-t md:border-l"
+        >
           {children}
         </main>
         <Toaster />

@@ -11,8 +11,10 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        /* White surface on a 1px hairline (--shadow-card), 8px radius, 20px padding. */
-        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-lg bg-card py-(--card-spacing) text-body text-card-foreground shadow-card [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 data-[size=form]:[--card-spacing:--spacing(5)] *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg',
+        /* White surface on a 1px hairline (--shadow-card), 8px radius, 20px padding. Inside a
+         [data-layout=sections] panel (detail and list pages) it becomes a flat section:
+         no radius or ring, 24px inset, a hairline under it (Saleor Dashboard layout). */
+        'group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-lg bg-card py-(--card-spacing) text-body text-card-foreground shadow-card [--card-spacing:--spacing(5)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 data-[size=form]:[--card-spacing:--spacing(5)] *:[img:first-child]:rounded-t-lg *:[img:last-child]:rounded-b-lg in-data-[layout=sections]:rounded-none in-data-[layout=sections]:border-b in-data-[layout=sections]:border-border in-data-[layout=sections]:shadow-none in-data-[layout=sections]:[--card-spacing:--spacing(6)]',
         className,
       )}
       {...props}

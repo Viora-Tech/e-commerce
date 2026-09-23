@@ -75,8 +75,8 @@ export default function TopBar({ title, heading, user }: TopBarProps) {
   const dark = hydrated && resolvedTheme === 'dark'
 
   return (
-    /* White bar on a hairline (Saleor top nav): the section name, search, then the account controls. */
-    <header className="relative z-10 flex h-14 shrink-0 items-center gap-4 bg-card px-4 shadow-bar md:px-6">
+    /* Part of the grey shell: the section name, the palette field, then the account controls. */
+    <header className="relative z-10 flex h-14 shrink-0 items-center gap-4 bg-sidebar px-4 md:pr-5 md:pl-2">
       <SidebarTrigger className="-ml-2 md:hidden" />
       {heading ? (
         <h1 className="min-w-0 flex-1 truncate text-page-title text-ink-strong">{title}</h1>
@@ -88,7 +88,7 @@ export default function TopBar({ title, heading, user }: TopBarProps) {
       <button
         type="button"
         onClick={() => setPaletteOpen(true)}
-        className="hidden h-8 w-80 items-center gap-2 rounded-md border border-input bg-background px-2.5 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
+        className="hidden h-8 w-80 items-center gap-2 rounded-md border border-input bg-card px-2.5 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
       >
         <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
         <span className="flex-1 truncate text-body text-muted-foreground">

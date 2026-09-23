@@ -29,7 +29,7 @@ export default function ResourceTablePagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex min-h-13 items-center justify-between gap-3 px-4 py-2.5 text-body text-muted-foreground"
+      className="flex min-h-13 items-center justify-between gap-3 px-4 py-2.5 text-body md:px-6 text-muted-foreground"
     >
       <span className="tabular-nums">{tableContent.range(from, to, total)}</span>
       <div className="flex items-center gap-3">

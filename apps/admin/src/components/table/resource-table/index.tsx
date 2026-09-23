@@ -82,11 +82,12 @@ const ALIGN: Record<CellAlign, string> = {
   end: 'text-right',
 }
 
-/* After the Saleor Dashboard datagrid (BSD-3): a white 40px header on a hairline with
-   12px/500 muted labels, 48px rows on lighter hairlines, 16px outer cell inset. */
+/* After the Saleor Dashboard datagrid (BSD-3): a white 40px header on a hairline with small
+   regular labels in ink, 44px rows on thin dividers, cells inset to the page gutter. */
 const HEAD =
-  'h-10 border-b border-border bg-card px-3 py-0 text-table-head text-muted-foreground first:pl-4 last:pr-4'
-const CELL = 'h-12 border-b border-line px-3 py-2 text-body first:pl-4 last:pr-4'
+  'h-10 border-b border-border bg-card px-3 py-0 text-caption font-normal text-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+const CELL =
+  'h-11 border-b border-line px-3 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.
@@ -166,7 +167,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
             transition={reduced ? instant : fast}
             className="overflow-hidden"
           >
-            <div className="flex min-h-11 flex-wrap items-center gap-3 border-b border-border bg-primary-soft/60 px-4 py-1.5 text-body">
+            <div className="flex min-h-11 flex-wrap items-center gap-3 border-b border-border bg-primary-soft/60 px-4 py-1.5 text-body md:px-6">
               <span className="font-medium text-ink-strong">
                 {tableContent.selected(
                   selectedIds.length,

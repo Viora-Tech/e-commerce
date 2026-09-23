@@ -4,7 +4,7 @@ import { type StatusKind, type StatusTone, type StatusValue, statusEntry } from 
 type StatusLabelProps<K extends StatusKind> = {
   kind: K
   value: StatusValue<K> | (string & {})
-  /** `dot`: 8px dot + label (payment cell 5:2620). `glyph`: 24px glyph + coloured label (status cell 5:2624). `pill`: neutral chip with a status dot (Saleor pill). */
+  /** `dot`: 8px dot + label (payment cell 5:2620). `glyph`: 24px glyph + coloured label (status cell 5:2624). `pill`: tinted chip with a thin tone border (Saleor pill). */
   variant?: 'dot' | 'glyph' | 'pill'
   size?: 'sm' | 'md'
   /** Overrides the mapped label (e.g. raw gateway text). */
@@ -30,8 +30,16 @@ const DOT: Record<StatusTone, string> = {
   neutral: 'bg-muted-foreground-soft',
 }
 
-/* Saleor-style pill: a neutral chip on the hairline; only the 6px dot carries the tone. */
-const PILL = 'border border-border bg-card text-foreground'
+/* Saleor pill (the mint "Fulfilled" chip): a faint tint of the tone, a thin border in the
+   same tone, ink text. The only colour most pages carry. */
+const PILL: Record<StatusTone, string> = {
+  success: 'border-success/35 bg-success/10',
+  pending: 'border-warning/50 bg-warning/15',
+  error: 'border-destructive/35 bg-destructive/10',
+  info: 'border-border bg-muted',
+  accent: 'border-info/35 bg-info/10',
+  neutral: 'border-border bg-muted',
+}
 
 const SIZE = { sm: 'text-caption', md: 'text-body' } as const
 
@@ -53,13 +61,12 @@ export default function StatusLabel<K extends StatusKind>({
     return (
       <span
         className={cn(
-          'inline-flex h-6 items-center gap-1.5 rounded-md pr-2 pl-1.5 font-medium whitespace-nowrap',
+          'inline-flex h-6 items-center rounded-md border px-2 font-medium whitespace-nowrap text-foreground',
           SIZE[size],
-          PILL,
+          PILL[entry.tone],
           className,
         )}
       >
-        <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT[entry.tone])} />
         {text}
       </span>
     )
