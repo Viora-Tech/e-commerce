@@ -6,15 +6,15 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import ChartCard from '@/components/layout/chart-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { analyticsContent as copy } from '@/data/analytics'
-import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
+import { type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { downloadCsv, toCsv } from '@/lib/csv'
-import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { csvCell } from '@/lib/report-format'
 import RangePicker from './range-picker'
+import ReportChart from './report-chart'
 import ReportTable from './report-table'
 
 type ReportViewProps = {
@@ -23,7 +23,31 @@ type ReportViewProps = {
   initial: ReportResult
 }
 
-/** A single report: range picker, revenue curve, the table and a CSV export. */
+/** Header, CSV rows and totals row for the export; the metric's previous value rides along. */
+function csvOf(report: ReportDefinition, data: ReportResult): string {
+  const c = copy.reports
+  const metric = report.columns.find((col) => col.id === report.metric)
+  const compare = data.previousTotals !== null && metric !== undefined
+  const headers = [
+    ...report.columns.map((col) => c.columns[col.id] ?? col.id),
+    ...(compare ? [`${c.columns[metric.id] ?? metric.id} (${c.previous})`] : []),
+  ]
+  const rows = data.rows.map((row) => [
+    ...report.columns.map((col) => csvCell(col.kind, row.values[col.id])),
+    ...(compare ? [csvCell(metric.kind, row.previous)] : []),
+  ])
+  if (Object.keys(data.totals).length > 0) {
+    rows.push([
+      ...report.columns.map((col, i) =>
+        i === 0 ? c.totals : csvCell(col.kind, data.totals[col.id]),
+      ),
+      ...(compare ? [csvCell(metric.kind, data.previousTotals?.[metric.id])] : []),
+    ])
+  }
+  return toCsv(headers, rows)
+}
+
+/** A single report: range picker, chart with the previous period, the table and a CSV export. */
 export default function ReportView({ report, initialRange, initial }: ReportViewProps) {
   // Hooks
   const [range, setRange] = useState(initialRange)
@@ -50,22 +74,9 @@ export default function ReportView({ report, initialRange, initial }: ReportView
   }
 
   const handleExport = () => {
-    const c = copy.reports.columns
-    const headers = report.columns.map((id) => c[id])
-    const rows = data.rows.map((row) =>
-      report.columns.map((id) => {
-        if (id === 'label') return row.label
-        if (id === 'detail') return row.detail ?? ''
-        if (id === 'orders') return row.orders
-        if (id === 'units') return row.units ?? ''
-        return (row.revenuePaise / 100).toFixed(2)
-      }),
-    )
-    downloadCsv(`${report.slug}-${data.range.from}-to-${data.range.to}.csv`, toCsv(headers, rows))
+    const span = report.ranged ? `${data.range.from}-to-${data.range.to}` : data.range.to
+    downloadCsv(`${report.slug}-${span}.csv`, csvOf(report, data))
   }
-
-  // Render logic
-  const points = data.chart.map((p) => ({ ...p, label: formatDay(p.label) }))
 
   return (
     <PageBody width="frame" className="gap-5">
@@ -74,7 +85,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         subtitle={report.description}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <RangePicker value={range} onChange={handleRange} />
+            {report.ranged ? <RangePicker value={range} onChange={handleRange} /> : null}
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="size-4" />
               {copy.reports.export}
@@ -89,22 +100,11 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         <ArrowLeft className="size-4" />
         {copy.reports.back}
       </Link>
-      <ChartCard
-        title={copy.salesOverTime.title}
-        periods={[{ id: 'day', label: copy.salesOverTime.day, data: points }]}
-        seriesKey={`${report.slug}-${range.key}`}
-        seriesLabel={copy.salesOverTime.series}
-        formatValue={formatPaiseCompact}
-      />
+      <ReportChart report={report} data={data} />
       <Card className="gap-0 p-5">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-kit-title text-foreground">{report.title}</p>
-          <p className="text-kit-body text-muted-foreground tabular-nums">
-            {copy.reports.totals}: {data.totals.orders} / {formatPaise(data.totals.revenuePaise)}
-          </p>
-        </div>
+        <p className="text-kit-title text-foreground">{report.title}</p>
         <div className="mt-5">
-          <ReportTable report={report} rows={data.rows} />
+          <ReportTable report={report} data={data} />
         </div>
       </Card>
     </PageBody>

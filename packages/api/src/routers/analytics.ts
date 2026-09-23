@@ -1,7 +1,8 @@
 import { permissions } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
-import { analyticsLive, analyticsOverview, analyticsReport } from '../services/analytics.service'
+import { analyticsLive, analyticsOverview } from '../services/analytics.service'
+import { analyticsReport } from '../services/analytics-report.service'
 import { REPORTS } from '../services/analytics-reports'
 
 const rangeInput = z.object({

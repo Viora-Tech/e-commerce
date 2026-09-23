@@ -5,14 +5,20 @@ export type {
   AnalyticsKpi,
   AnalyticsLive,
   AnalyticsOverview,
+} from './services/analytics.service'
+export type {
+  ReportChartPoint,
   ReportResult,
   ReportRow,
-} from './services/analytics.service'
+  ReportValue,
+} from './services/analytics-report.service'
 export {
   findReport,
   REPORT_CATEGORIES,
   REPORTS,
   type ReportCategory,
+  type ReportColumn,
+  type ReportColumnKind,
   type ReportDefinition,
 } from './services/analytics-reports'
 export {
