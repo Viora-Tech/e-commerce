@@ -5,6 +5,7 @@ import {
   createCollection,
   deleteCollection,
   InvalidCollection,
+  permissions,
   previewRules,
   reorderCollection,
   setProductCollections,
@@ -12,7 +13,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { storeProcedure } from '../procedures'
+import { can } from '../procedures'
 import {
   collectionStats,
   getCollection,
@@ -33,17 +34,17 @@ async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 export const collectionsRouter = {
-  list: storeProcedure.handler(({ context }) => listCollections(context.tx)),
+  list: can(permissions.PRODUCTS_READ).handler(({ context }) => listCollections(context.tx)),
 
   /** Tiles above the category cards. */
-  stats: storeProcedure.handler(({ context }) => collectionStats(context.tx)),
+  stats: can(permissions.PRODUCTS_READ).handler(({ context }) => collectionStats(context.tx)),
 
-  get: storeProcedure
+  get: can(permissions.PRODUCTS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(({ context, input }) => getCollection(context.tx, input.id)),
 
   /** The frame's table: every product, or only those in one collection. */
-  products: storeProcedure
+  products: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
         collectionId: z.uuid().optional(),
@@ -56,7 +57,7 @@ export const collectionsRouter = {
     .handler(({ context, input }) => listCollectionProducts(context.tx, input)),
 
   /** Product picker inside a manual collection. */
-  searchProducts: storeProcedure
+  searchProducts: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
         search: z.string().trim().max(200).default(''),
@@ -66,17 +67,19 @@ export const collectionsRouter = {
     .handler(({ context, input }) => searchProducts(context.tx, input.search, input.limit)),
 
   /** Live "matches N products" while the merchant writes rules. */
-  preview: storeProcedure
+  preview: can(permissions.PRODUCTS_READ)
     .input(z.object({ rules: CollectionRulesSchema }))
     .handler(({ context, input }) => previewRules(context.tx, input.rules)),
 
-  create: storeProcedure.input(CollectionWriteSchema).handler(({ context, input }) =>
-    invalidToBadRequest(async () => ({
-      id: await createCollection(context.tx, context.scope.storeId, input),
-    })),
-  ),
+  create: can(permissions.PRODUCTS_WRITE)
+    .input(CollectionWriteSchema)
+    .handler(({ context, input }) =>
+      invalidToBadRequest(async () => ({
+        id: await createCollection(context.tx, context.scope.storeId, input),
+      })),
+    ),
 
-  update: storeProcedure
+  update: can(permissions.PRODUCTS_WRITE)
     .input(z.object({ id: z.uuid(), write: CollectionWriteSchema }))
     .handler(({ context, input }) =>
       invalidToBadRequest(async () => {
@@ -85,7 +88,7 @@ export const collectionsRouter = {
       }),
     ),
 
-  reorder: storeProcedure
+  reorder: can(permissions.PRODUCTS_WRITE)
     .input(z.object({ id: z.uuid(), productIds: z.array(z.uuid()).max(500) }))
     .handler(async ({ context, input }) => {
       await reorderCollection(context.tx, input.id, input.productIds)
@@ -93,14 +96,14 @@ export const collectionsRouter = {
     }),
 
   /** Manual collections a product sits in, for the product form's organisation card. */
-  forProduct: storeProcedure
+  forProduct: can(permissions.PRODUCTS_READ)
     .input(z.object({ productId: z.uuid() }))
     .handler(async ({ context, input }) => {
       const map = await collectionsForProducts(context.tx, [input.productId])
       return map.get(input.productId) ?? []
     }),
 
-  setForProduct: storeProcedure
+  setForProduct: can(permissions.PRODUCTS_WRITE)
     .input(z.object({ productId: z.uuid(), collectionIds: z.array(z.uuid()).max(100) }))
     .handler(async ({ context, input }) => {
       await setProductCollections(
@@ -112,8 +115,10 @@ export const collectionsRouter = {
       return { ok: true as const }
     }),
 
-  delete: storeProcedure.input(z.object({ id: z.uuid() })).handler(async ({ context, input }) => {
-    await deleteCollection(context.tx, input.id)
-    return { ok: true as const }
-  }),
+  delete: can(permissions.PRODUCTS_DELETE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await deleteCollection(context.tx, input.id)
+      return { ok: true as const }
+    }),
 }

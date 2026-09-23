@@ -209,4 +209,64 @@ describe('store permissions', () => {
       ),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
+
+  it('guards collections with the product grants', async () => {
+    const boss = await merchant('boss3@example.com', 'perm-d')
+    const [s] = await owner
+      .insert(store)
+      .values({ slug: 'perm-d', name: 'D', organizationId: boss.organizationId })
+      .returning()
+    if (!s) throw new Error('seed')
+    await call(appRouter.staff.me, {}, { context: ctx(boss.headers) })
+    const made = await call(
+      appRouter.collections.create,
+      { title: 'Mice', kind: 'manual' },
+      { context: ctx(boss.headers) },
+    )
+
+    const helperHeaders = await signIn('helper3@example.com')
+    const helperId = (await auth.api.getSession({ headers: helperHeaders }))?.user.id as string
+    await auth.api.addMember({
+      body: { userId: helperId, role: 'member', organizationId: boss.organizationId },
+    })
+    await auth.api.setActiveOrganization({
+      headers: helperHeaders,
+      body: { organizationId: boss.organizationId },
+    })
+    const as = { context: ctx(helperHeaders) }
+
+    // Staff hold products.read only: they can look but not change anything.
+    await setRole(s.id, helperId, 'staff')
+    expect(await call(appRouter.collections.list, undefined, as)).toHaveLength(1)
+    await expect(
+      call(appRouter.collections.create, { title: 'Pads', kind: 'manual' }, as),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      call(
+        appRouter.collections.update,
+        { id: made.id, write: { title: 'Renamed', kind: 'manual' } },
+        as,
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      call(appRouter.collections.reorder, { id: made.id, productIds: [] }, as),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(call(appRouter.collections.delete, { id: made.id }, as)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+
+    // A role with no grants cannot even read them.
+    const [bare] = await owner
+      .insert(role)
+      .values({ storeId: s.id, name: 'Bare', slug: 'bare' })
+      .returning()
+    if (!bare) throw new Error('seed role')
+    await setRole(s.id, helperId, 'bare')
+    await expect(call(appRouter.collections.list, undefined, as)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    await expect(call(appRouter.collections.get, { id: made.id }, as)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+  })
 })
