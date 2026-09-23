@@ -76,38 +76,36 @@ export function defineColumns<T extends RowData>(
   })
 }
 
-/** Frame 5:2607: the "No." column is a 20px checkbox and the row number, 44px wide. */
-export function selectionColumn<T extends RowData>(offset: number): ResourceColumn<T> {
+/** The leading checkbox column, after the Saleor Dashboard datagrid (BSD-3): a 16px checkbox in a 40px cell. */
+export function selectionColumn<T extends RowData>(): ResourceColumn<T> {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return helper.display({
     id: '__select',
     header: ({ table }) => (
-      <span className="flex items-center gap-2">
+      <span className="flex items-center">
         <Checkbox
-          className="size-4 border-primary-soft bg-card"
+          className="size-4"
           checked={table.getIsAllPageRowsSelected()}
           indeterminate={table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label={tableContent.selectAll}
         />
-        {tableContent.number}
       </span>
     ),
     cell: ({ row }) => (
-      <span className="flex items-center gap-2">
+      <span className="flex items-center">
         <Checkbox
-          className="size-4 border-primary-soft bg-card"
+          className="size-4"
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
           onClick={(e) => e.stopPropagation()}
           aria-label={tableContent.selectRow}
         />
-        <span className="tabular-nums">{offset + row.index + 1}</span>
       </span>
     ),
     enableSorting: false,
     enableHiding: false,
-    meta: { align: 'start', className: 'w-14' },
+    meta: { align: 'start', className: 'w-10' },
   })
 }
 
@@ -140,12 +138,14 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 gap-1 px-1 font-[number:inherit] text-[length:inherit] text-ink-strong leading-[inherit] hover:bg-transparent hover:text-primary data-open:bg-transparent"
+              className="-mx-1 h-6 gap-1 px-1 font-[number:inherit] text-[length:inherit] text-inherit leading-[inherit] hover:bg-muted hover:text-foreground data-open:bg-muted"
             />
           }
         >
           {title}
-          <Icon className={cn('size-3.5 text-muted-foreground', sorted && 'text-primary')} />
+          <Icon
+            className={cn('size-3.5 text-muted-foreground-soft', sorted && 'text-foreground')}
+          />
         </DropdownMenuTrigger>
         <DropdownMenuContent align={align === 'end' ? 'end' : 'start'}>
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>

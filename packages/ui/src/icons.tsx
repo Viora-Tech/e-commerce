@@ -49,6 +49,7 @@ import {
   InformationCircleIcon,
   Layers01Icon,
   LayoutBottomIcon,
+  LayoutThreeColumnIcon,
   LayoutTopIcon,
   LeftToRightListBulletIcon,
   Link01Icon,
@@ -197,6 +198,7 @@ export const MoreHorizontalIcon = MoreHorizontal
 export const MoreVertical = defineIcon(MoreVerticalGlyph, 'MoreVertical')
 export const Filter = defineIcon(FilterHorizontalIcon, 'Filter')
 export const SlidersHorizontal = Filter
+export const Columns = defineIcon(LayoutThreeColumnIcon, 'Columns')
 export const Pencil = defineIcon(Edit02Icon, 'Pencil')
 export const Trash2 = defineIcon(Delete02Icon, 'Trash2')
 export const ImagePlus = defineIcon(ImageAdd01Icon, 'ImagePlus')

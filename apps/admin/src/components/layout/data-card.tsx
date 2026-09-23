@@ -8,23 +8,22 @@ type DataCardProps = {
   title: string
   /** Right side of the 32px header row: filter button, link, tabs. */
   action?: ReactNode
-  /** Links behind the 20px kebab (5:1499); omitted means no kebab. */
+  /** Links behind the kebab; omitted means no kebab. */
   menu?: readonly MenuLink[]
-  /** Outlined "Details" pill pinned to the bottom-right 20px corner. */
+  /** Outlined "Details" pill pinned to the bottom-right corner. */
   detailsHref?: string
   children: ReactNode
   className?: string
-  /** Let tables run edge to edge (they carry their own 24px cell inset). */
+  /** Let tables and lists run edge to edge (they carry their own cell inset). */
   flush?: boolean
-  /** `kit` = dashboard frame sizes (18/26 title, 16/22 table title via `titleSize`). */
+  /** Kept for older call sites; every card now uses the one card-title size. */
   size?: 'default' | 'kit'
-  /** Dashboard tables use the 16/22 title (5:2034); cards use 18/26 (5:1668). */
   titleSize?: 'card' | 'table'
 }
 
 /**
- * Frame 5:2032 / 5:2138: 20px padding, a 32px header row with an 18px title,
- * body 20px below, and the Details pill 20px from the bottom-right corner.
+ * The card every section sits in, after the Saleor Dashboard card (BSD-3): white on
+ * a hairline, 20px inset, a 32px header row with a 15px/600 title, body 16px below.
  */
 export default function DataCard({
   title,
@@ -34,27 +33,19 @@ export default function DataCard({
   children,
   className,
   flush,
-  size = 'default',
-  titleSize = 'card',
 }: DataCardProps) {
-  const titleClass =
-    size === 'kit'
-      ? titleSize === 'table'
-        ? 'text-kit-table-title'
-        : 'text-kit-title'
-      : 'text-card-title'
   return (
     <Card className={cn('relative h-full gap-0 p-5', detailsHref && 'pb-16', className)}>
-      <div className="flex h-8 items-center justify-between gap-3">
-        <p className={cn(titleClass, 'text-foreground')}>{title}</p>
-        <div className="flex items-center gap-3">
+      <div className="flex min-h-8 items-center justify-between gap-3">
+        <h2 className="text-card-title text-ink-strong">{title}</h2>
+        <div className="flex items-center gap-2">
           {action}
           {menu ? <CardMenu items={menu} /> : null}
         </div>
       </div>
-      <div className={cn('mt-5', flush && '-mx-5')}>{children}</div>
+      <div className={cn('mt-4', flush && '-mx-5')}>{children}</div>
       {detailsHref ? (
-        <div className="absolute bottom-5 right-5">
+        <div className="absolute right-5 bottom-5">
           <DetailsLink href={detailsHref} />
         </div>
       ) : null}

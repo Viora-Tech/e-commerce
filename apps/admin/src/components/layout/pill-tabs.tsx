@@ -9,7 +9,7 @@ import { instant, pill } from '@/lib/motion'
 type PillTab<T extends string | null> = {
   value: T
   label: ReactNode
-  /** Muted count after the label, e.g. "(240)" on the All tab. */
+  /** Muted count after the label, e.g. "240" on the All tab. */
   count?: number
 }
 
@@ -18,32 +18,39 @@ type PillTabsProps<T extends string | null> = {
   value: T
   onChange: (value: T) => void
   className?: string
-  /** `frame`: Dealport 5:2561 sizes (40px track, 32px tabs, kit text). Default is the compact list size. */
+  /**
+   * `underline` (default): list-view tabs on the filter bar's top edge, the active one
+   * marked by a 2px accent rule. `segmented`: a compact neutral switch for ranges.
+   */
+  variant?: 'underline' | 'segmented'
+  /** Kept for older call sites; both sizes draw the same tabs. */
   size?: 'default' | 'frame'
 }
 
-/* Sheet 14:977: Aqua Spring track with 4px inset and radius 8; the active tab is a white
-   radius-6 pill (15/500 black, 14/700 green count) that slides between tabs. */
-const TAB =
-  'relative isolate flex items-center gap-1 rounded-[0.375rem] font-medium text-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-const TAB_SIZE = {
-  default: 'h-7 px-2.5 text-xs leading-4',
-  frame: 'h-8 px-3 text-kit-cell font-medium text-muted-foreground',
-} as const
-const COUNT_SIZE = {
-  default: 'text-xs font-semibold',
-  frame: 'text-kit-body font-bold',
-} as const
-const TRACK_SIZE = { default: '', frame: 'h-10' } as const
-const TAB_ACTIVE = 'text-foreground'
+const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-/** Status filter tabs for list pages; the active pill slides to the picked tab. */
+const STYLES = {
+  underline: {
+    track: 'flex items-center gap-5',
+    tab: `relative flex h-11 items-center gap-1.5 whitespace-nowrap text-body font-medium text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
+    active: 'text-ink-strong',
+    marker: 'absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-primary',
+  },
+  segmented: {
+    track: 'inline-flex items-center rounded-md border border-border bg-muted p-0.5',
+    tab: `relative isolate flex h-7 items-center gap-1 rounded-[0.3125rem] px-2.5 text-body font-medium text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
+    active: 'text-ink-strong',
+    marker: 'absolute inset-0 -z-10 rounded-[0.3125rem] bg-card shadow-lift ring-1 ring-border',
+  },
+} as const
+
+/** Status tabs for list pages (and a segmented switch); the marker slides to the picked tab. */
 export default function PillTabs<T extends string | null>({
   tabs,
   value,
   onChange,
   className,
-  size = 'default',
+  variant = 'underline',
 }: PillTabsProps<T>) {
   // Hooks
   const reduced = useReducedMotion()
@@ -51,16 +58,10 @@ export default function PillTabs<T extends string | null>({
 
   // Render logic
   const slide = reduced ? instant : pill
+  const s = STYLES[variant]
 
   return (
-    <div
-      role="tablist"
-      className={cn(
-        'flex items-center rounded-lg bg-primary-soft p-1',
-        TRACK_SIZE[size],
-        className,
-      )}
-    >
+    <div role="tablist" className={cn(s.track, className)}>
       {tabs.map((tab) => {
         const active = tab.value === value
         return (
@@ -70,20 +71,25 @@ export default function PillTabs<T extends string | null>({
             role="tab"
             aria-selected={active}
             onClick={() => onChange(tab.value)}
-            className={cn(TAB, TAB_SIZE[size], active && TAB_ACTIVE)}
+            className={cn(s.tab, active && s.active)}
           >
             {active ? (
               <motion.span
-                layoutId={`${group}-pill`}
+                layoutId={`${group}-marker`}
                 transition={slide}
-                className="absolute inset-0 -z-10 rounded-[0.375rem] bg-card shadow-lift"
+                className={s.marker}
                 aria-hidden
               />
             ) : null}
             {tab.label}
             {tab.count != null ? (
-              <span className={cn(COUNT_SIZE[size], 'text-primary tabular-nums')}>
-                ({tab.count})
+              <span
+                className={cn(
+                  'rounded-sm px-1 text-caption tabular-nums',
+                  active ? 'bg-secondary text-foreground' : 'text-muted-foreground',
+                )}
+              >
+                {tab.count}
               </span>
             ) : null}
           </button>

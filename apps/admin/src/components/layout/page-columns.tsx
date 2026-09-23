@@ -5,10 +5,14 @@ type PageColumnsProps = {
   side?: ReactNode
 }
 
-/** Two-column layout: main content plus a narrower side rail (status, organisation…). */
+/**
+ * Detail-page layout after the Saleor Dashboard (BSD-3): a fluid main column and a
+ * fixed side column of summary cards (status, organisation, customer), 20px apart.
+ * Stacks main then side below 64rem.
+ */
 export default function PageColumns({ main, side }: PageColumnsProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="flex min-w-0 flex-col gap-5">{main}</div>
       {side ? <div className="flex min-w-0 flex-col gap-5">{side}</div> : null}
     </div>

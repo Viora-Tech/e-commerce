@@ -22,15 +22,15 @@ type OpenOverride = { pathname: string; open: boolean }
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
 
-/* Cloudflare rail: parent rows 32px with the icon left and a chevron right;
-   children hang off a 1px guide line, indented under the icon column. The
-   active pill is a shared layout element so it slides between rows. */
+/* Saleor-style rail: 32px rows, dark neutral text, icon left and chevron right;
+   children hang off a 1px guide line. The active row is a neutral pill (a shared
+   layout element, so it slides) with the icon in the accent colour. */
 const ROW = `group/row relative isolate flex h-8 w-full min-w-0 items-center gap-2 rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0 ${FOCUS}`
 const ROW_ACTIVE =
-  'font-semibold text-primary-foreground hover:bg-transparent hover:text-primary-foreground'
+  'font-semibold text-sidebar-accent-foreground hover:bg-transparent hover:text-sidebar-accent-foreground [&_svg]:text-primary'
 const ROW_OPEN = 'font-medium text-ink-strong'
 const CHILD = `relative isolate flex h-8 w-full min-w-0 items-center rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground ${FOCUS}`
-const CHILD_ACTIVE = 'font-medium text-ink-strong hover:bg-transparent'
+const CHILD_ACTIVE = 'font-semibold text-sidebar-accent-foreground hover:bg-transparent'
 
 /** One rail entry: the section link, a chevron toggle when it has sub-pages, and the guided child list. */
 export default function NavSection({ item, pathname }: NavSectionProps) {
@@ -72,7 +72,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             <motion.span
               layoutId="nav-active-pill"
               transition={slide}
-              className="absolute inset-0 -z-10 rounded-[0.375rem] bg-primary"
+              className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
               aria-hidden
             />
           ) : null}
@@ -89,7 +89,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
             onClick={handleToggle}
             className={cn(
               'absolute top-1/2 right-1.5 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground group-data-[collapsible=icon]:hidden',
-              linkActive && 'text-primary-foreground/80 hover:text-primary-foreground',
+              linkActive && '[&_svg]:text-muted-foreground',
               FOCUS,
             )}
           >
@@ -126,7 +126,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
                       <motion.span
                         layoutId="nav-child-active-pill"
                         transition={slide}
-                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-primary-soft"
+                        className="absolute inset-0 -z-10 rounded-[0.375rem] bg-sidebar-accent"
                         aria-hidden
                       />
                     ) : null}

@@ -16,7 +16,9 @@ export const tableContent = {
   selected: (n: number, singular: string, plural: string) =>
     `${n} ${n === 1 ? singular : plural} selected`,
   clearSelection: 'Clear',
+  removeFilter: (label: string) => `Remove ${label}`,
   range: (from: number, to: number, total: number) => `${from}-${to} of ${total}`,
+  pageOf: (page: number, pages: number) => `Page ${page} of ${pages}`,
   previousLabel: 'Previous',
   nextLabel: 'Next',
   ellipsis: '.....',

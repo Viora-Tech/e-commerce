@@ -36,6 +36,32 @@ are in `admin-tokens.md`.
 | Stat tile | `5:2512` | 135px, 16px inset, 18/700 title, 32/700 figure with 16px arrow + 14/500 delta, 14px period line at 100px |
 | Field | `5:5493`, `5:5495` | label 15/400 `#023337`, 12px gap, input 48px |
 
+## Saleor look (September 2026)
+
+The admin's look now follows the Saleor Dashboard (BSD-3) and its Macaw UI tokens
+(CC BY 4.0), re-implemented on our shadcn/Base UI; routes and IA stay Shopify-shaped and the
+Dealport layouts stay. Credits: `apps/admin/THIRD_PARTY_LICENSES.md`.
+
+- Tokens (`packages/ui/src/styles.css`): near-white canvas `#f9fafa`, white cards drawn by a
+  1px hairline (`--shadow-card` is a ring, not a blur), `--border` / `--border-strong` for
+  fields, neutral menu hover (`--accent`), dark mode as layered neutral surfaces. Type:
+  20/600 page title, 15/600 card title, 13px body and cells, 12/500 captions and table heads.
+- Accent: only `--primary*`, `--ring`, `--chart-1` carry the merchant's colour: primary
+  buttons, the active nav icon, the active tab rule, selected rows, focus rings, chart line.
+- Shell: grey rail on a hairline, neutral active pill; white top bar on a hairline with the
+  palette as a quiet field.
+- `PageHeader`: back button to the parent, linked trail as an eyebrow, title, badges,
+  actions (wrap under the title on phones). `KitListPage` uses it.
+- `ResourceTable`: one density for every list (the `size` prop is ignored): tabs as
+  underline tabs on the card's top edge, then search, Filter (with count) and sort/columns,
+  removable chips, a white 40px header, 48px rows, range + arrow pager.
+- `PageColumns`: fluid main column plus a fixed 20rem (22rem at xl) side column.
+- `DataCard`, `StatCard size="sm"`, `EmptyState`, skeletons and the field/button
+  primitives (6px radius, hairline that darkens on hover) follow the same tokens.
+
+The sections below record the earlier Dealport measurements; where they conflict, this
+section wins.
+
 ## Global deviation: Shopify type scale and density
 
 Layout, colour, card treatment, tab pill group, status icon + label, paging

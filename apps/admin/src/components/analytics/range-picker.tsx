@@ -34,6 +34,7 @@ export default function RangePicker({ value, onChange }: RangePickerProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <PillTabs
+        variant="segmented"
         tabs={tabs}
         value={value.key === 'custom' ? null : value.key}
         onChange={(key) => onChange({ key: (key ?? '30d') as RangeState['key'] })}

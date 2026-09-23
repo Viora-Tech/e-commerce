@@ -16,18 +16,18 @@ type EmptyStateProps = {
   action?: ReactNode
 }
 
-/** Centered empty state: 40px icon in a soft circle, card-title heading, one action. */
+/** Centered empty state: 40px icon on a neutral tile, card-title heading, one action. */
 export default function EmptyState({ heading, body, icon: Icon = Inbox, action }: EmptyStateProps) {
   return (
-    <Empty className="gap-4 py-10">
+    <Empty className="gap-4 py-12">
       <EmptyHeader className="gap-2">
         <EmptyMedia
           variant="icon"
-          className="mb-2 size-10 rounded-full bg-primary-soft text-primary [&_svg]:size-5"
+          className="mb-2 size-10 rounded-lg border border-border bg-muted text-muted-foreground [&_svg]:size-5"
         >
           <Icon strokeWidth={1.8} />
         </EmptyMedia>
-        <EmptyTitle className="text-card-title">{heading}</EmptyTitle>
+        <EmptyTitle className="text-card-title text-ink-strong">{heading}</EmptyTitle>
         {body ? (
           <EmptyDescription className="max-w-md text-body text-muted-foreground">
             {body}

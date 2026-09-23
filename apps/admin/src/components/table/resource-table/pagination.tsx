@@ -1,101 +1,62 @@
 'use client'
 
-import { ArrowLeft, ArrowRight } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { tableContent } from '@/data/table'
-import { RESOURCE_TABLE_METRICS, type ResourceTableSize } from './sizes'
 
 type PaginationProps = {
   page: number
   perPage: number
   total: number
   onPageChange: (page: number) => void
-  size?: ResourceTableSize
 }
 
-const EDGE_PAGES = 5
-
-/* 5:2856: 42px edge buttons with a 24px arrow; 5:2865: 36px squares, 4px radius. */
-const EDGE =
-  'flex items-center gap-1 border border-line bg-card font-medium text-ink-strong transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40'
-const SQUARE = 'flex items-center justify-center text-ink-strong transition-colors'
-
-type Slot = number | 'gap'
-
-/** First five pages, a gap, then the last page; the kit shows "1 2 3 4 5 ..... 24". */
-function pageSlots(current: number, totalPages: number): Slot[] {
-  if (totalPages <= EDGE_PAGES + 2) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1)
-  }
-
-  const start = Math.max(1, Math.min(current - 2, totalPages - EDGE_PAGES))
-  const head = Array.from({ length: EDGE_PAGES }, (_, i) => start + i)
-  const tail: Slot[] = head[head.length - 1] === totalPages ? [] : ['gap', totalPages]
-  const lead: Slot[] = start > 1 ? [1, 'gap'] : []
-  return [...lead, ...head, ...tail]
-}
+/* Pager after the Saleor Dashboard datagrid footer (BSD-3): the visible range on the
+   left, page position and two 32px arrow buttons on the right. */
+const ARROW =
+  'flex size-8 items-center justify-center rounded-md border border-input bg-card text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
 
 export default function ResourceTablePagination({
   page,
   perPage,
   total,
   onPageChange,
-  size = 'compact',
 }: PaginationProps) {
-  const m = RESOURCE_TABLE_METRICS[size]
-  const edge = cn(EDGE, m.pageEdge)
-  const square = cn(SQUARE, m.pageSquare)
+  // Render logic
   const totalPages = Math.max(1, Math.ceil(total / perPage))
-  const slots = pageSlots(page, totalPages)
+  const from = total === 0 ? 0 : (page - 1) * perPage + 1
+  const to = Math.min(total, page * perPage)
 
   return (
     <nav
       aria-label="Pagination"
-      className={cn('flex items-center justify-between', m.paginationGap)}
+      className="flex min-h-13 items-center justify-between gap-3 px-4 py-2.5 text-body text-muted-foreground"
     >
-      <button
-        type="button"
-        className={cn(edge, 'pr-3')}
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-      >
-        <ArrowLeft strokeWidth={1.6} />
-        {tableContent.previousLabel}
-      </button>
-      <ol className="flex items-center gap-2">
-        {slots.map((slot, i) =>
-          slot === 'gap' ? (
-            <li key={`gap-${i.toString()}`} className={cn(square, 'border border-line font-bold')}>
-              {tableContent.ellipsis}
-            </li>
-          ) : (
-            <li key={slot}>
-              <button
-                type="button"
-                aria-current={slot === page ? 'page' : undefined}
-                onClick={() => onPageChange(slot)}
-                className={cn(
-                  square,
-                  slot === page
-                    ? 'bg-primary-tint font-bold'
-                    : 'border border-line font-medium hover:bg-muted',
-                )}
-              >
-                {slot}
-              </button>
-            </li>
-          ),
-        )}
-      </ol>
-      <button
-        type="button"
-        className={cn(edge, 'pl-4')}
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-      >
-        {tableContent.nextLabel}
-        <ArrowRight strokeWidth={1.6} />
-      </button>
+      <span className="tabular-nums">{tableContent.range(from, to, total)}</span>
+      <div className="flex items-center gap-3">
+        <span className="hidden tabular-nums sm:inline">
+          {tableContent.pageOf(page, totalPages)}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className={ARROW}
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            aria-label={tableContent.previous}
+          >
+            <ChevronLeftIcon />
+          </button>
+          <button
+            type="button"
+            className={ARROW}
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            aria-label={tableContent.next}
+          >
+            <ChevronRightIcon />
+          </button>
+        </div>
+      </div>
     </nav>
   )
 }

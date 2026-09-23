@@ -13,13 +13,9 @@ export default function PageBody({ children, width = 'wide', className }: PageBo
   return (
     <div
       className={cn(
-        /* Frame 5:1346: content starts 20px in from the rail and 20px under the bar, 44px from the right edge. */
-        'mx-auto flex w-full flex-col gap-4 p-4 md:py-4 md:pl-5 md:pr-6',
-        width === 'wide'
-          ? 'max-w-[90rem]'
-          : width === 'frame'
-            ? 'max-w-none md:mx-0 md:pl-5 md:pr-5'
-            : 'max-w-5xl',
+        /* Saleor rhythm: 24px page inset (16px on phones), 20px between header and cards. */
+        'mx-auto flex w-full flex-col gap-5 px-4 py-5 md:px-6 md:py-6',
+        width === 'wide' ? 'max-w-[90rem]' : width === 'frame' ? 'max-w-none md:mx-0' : 'max-w-5xl',
         className,
       )}
     >
