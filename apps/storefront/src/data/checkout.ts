@@ -93,6 +93,8 @@ export const checkoutContent = {
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
     codUnavailable:
       'Cash on delivery is not available for this PIN code. Pick another payment method.',
+    discountUnavailable:
+      'That discount has just run out, so your order was not placed. Check the new total and place it again.',
   },
 } as const
 

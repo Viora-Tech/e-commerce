@@ -5,6 +5,7 @@ import {
   captureCartContact,
   confirmClientPayment,
   createCart,
+  DiscountUnavailable,
   findRedeemableGiftCard,
   GiftCardError,
   getCart,
@@ -159,6 +160,9 @@ export async function checkoutAction(
   }).catch((err: unknown) => {
     // Gift card rules (spent elsewhere, COD for the rest, a card in a mixed basket) are the shopper's to fix.
     if (err instanceof GiftCardError) return { error: err.message }
+    // Another checkout took the last use of the code; the next submit prices without it.
+    if (err instanceof DiscountUnavailable)
+      return { error: checkoutContent.errors.discountUnavailable }
     throw err
   })
   if ('error' in placed) return { error: placed.error }
