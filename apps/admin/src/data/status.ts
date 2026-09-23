@@ -132,7 +132,7 @@ export const STATUS = {
   page: {
     published: entry(onlineStoreContent.pages.status.published, 'success'),
     draft: entry(onlineStoreContent.pages.status.draft, 'info'),
-    unsaved: entry(onlineStoreContent.editor.unsaved, 'pending'),
+    unsaved: entry(onlineStoreContent.form.unsaved, 'pending'),
   },
   /** Blog posts: a scheduled post that is due reads as published. */
   article: {

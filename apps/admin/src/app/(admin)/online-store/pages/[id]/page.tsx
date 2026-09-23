@@ -1,23 +1,28 @@
 import { loadEnv } from '@commerce/config'
-import { parseTheme, themeToCss } from '@commerce/core'
 import { notFound, redirect } from 'next/navigation'
-import PageEditor from '@/components/online-store/page-editor'
+import PageForm from '@/components/online-store/page-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { customizeHref } from '@/lib/customize-href'
 
-export default async function PageEditorRoute({ params }: { params: Promise<{ id: string }> }) {
+export default async function PageRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const context = await serverContext()
-  const [page, store] = await Promise.all([
+  const [page, themes] = await Promise.all([
     call(appRouter.pages.get, { id }, { context }).catch(() => undefined),
-    call(appRouter.store.current, undefined, { context }).catch(() => null),
+    call(appRouter.themes.list, undefined, { context }).catch(() => []),
   ])
 
-  if (page === undefined || !store) redirect('/select-store')
+  if (page === undefined) redirect('/select-store')
   if (!page) notFound()
+  const live = themes.find((t) => t.role === 'main')
+  const templates = live
+    ? await call(appRouter.themes.templates.list, { themeId: live.id }, { context }).catch(() => [])
+    : []
   return (
-    <PageEditor
+    <PageForm
       page={page}
-      themeCss={themeToCss(parseTheme(store.theme))}
+      suffixes={templates.filter((t) => t.template === 'page' && t.suffix).map((t) => t.suffix)}
+      contentHref={customizeHref(live?.id ?? null, page)}
       storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
     />
   )

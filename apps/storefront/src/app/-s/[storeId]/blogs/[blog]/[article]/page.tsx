@@ -14,6 +14,7 @@ import ShareLinks from '@/components/blog/share-links'
 import { blogContent as copy } from '@/data/blog'
 import { breadcrumbList, jsonLd, requestOrigin } from '@/lib/blog'
 import { inStore } from '@/lib/store-context'
+import { renderTemplate } from '@/lib/template-render'
 
 type Params = { params: Promise<{ storeId: string; blog: string; article: string }> }
 
@@ -87,7 +88,7 @@ export default async function ArticlePage({ params }: Params) {
     ],
   }
 
-  return (
+  const main = (
     <div className="page-width">
       <article className="mx-auto flex w-full max-w-3xl flex-col gap-8 py-12">
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data, `<` escaped. */}
@@ -148,5 +149,8 @@ export default async function ArticlePage({ params }: Params) {
         </Link>
       </article>
     </div>
+  )
+  return inStore(storeId, (tx) =>
+    renderTemplate(tx, storeId, 'article', { renderers: { MainArticle: () => main } }),
   )
 }

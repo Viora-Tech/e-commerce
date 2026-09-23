@@ -8,9 +8,26 @@ import TabbedProducts from './components/product-grid'
 import RichTextBlock from './components/rich-text'
 import SectionFrame from './components/section-frame'
 import SectionHeading from './components/section-heading'
+import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
+import {
+  type CollectionLoader,
+  type LibraryProps,
+  librarySections,
+  type SingleProductLoader,
+} from './sections/library'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
+export type { NewsletterAction, NewsletterState } from './components/sections/newsletter'
+export {
+  DYNAMIC_SECTIONS,
+  type DynamicSection,
+  type SectionMetadata,
+  type SectionRenderer,
+  type SectionSettings,
+} from './sections/dynamic'
+export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
+export type { CardCollection, CardProduct } from './types'
 
 /**
  * How a block gets product data. The storefront supplies a database-backed
@@ -93,6 +110,10 @@ export type BlocksConfigOptions = {
   RichTextEditor?: RichTextFieldEditor | undefined
   /** Posts for the "Blog posts" block; without it the block renders nothing. */
   loadArticles?: ArticleLoader | undefined
+  /** Collections for the collection list section. */
+  loadCollections?: CollectionLoader | undefined
+  /** One product for the featured product section. */
+  loadProduct?: SingleProductLoader | undefined
 }
 
 export type BlockProps = {
@@ -102,7 +123,37 @@ export type BlockProps = {
   CollectionGrid: CollectionGridProps
   RichText: RichTextProps
   BlogPosts: BlogPostsProps
-}
+} & LibraryProps &
+  Record<DynamicSection, SectionSettings>
+
+/**
+ * The add-section menu, in Shopify's order. Main sections and the header and
+ * footer are placed by their template or group, never added from here.
+ */
+export const SECTION_CATEGORIES = {
+  banners: {
+    title: 'Banners',
+    components: ['Hero', 'ImageBanner', 'ImageWithText', 'AnnouncementBar'],
+  },
+  text: {
+    title: 'Text',
+    components: ['RichText', 'Multicolumn', 'Testimonials', 'Faq', 'LogoList'],
+  },
+  products: {
+    title: 'Products',
+    components: [
+      'ProductGrid',
+      'FeaturedProducts',
+      'CollectionGrid',
+      'FeaturedProduct',
+      'CollectionList',
+      'RelatedProducts',
+      'RecentlyViewed',
+    ],
+  },
+  media: { title: 'Media', components: ['Video'] },
+  more: { title: 'More', components: ['BlogPosts', 'Newsletter'] },
+} as const
 
 export type PageData = Data<BlockProps>
 
@@ -132,13 +183,25 @@ export function createBlocksConfig(
 ): Config<BlockProps> {
   return {
     categories: {
-      layout: { title: 'Layout', components: ['Hero', 'RichText', 'BlogPosts'] },
-      products: {
-        title: 'Products',
-        components: ['ProductGrid', 'FeaturedProducts', 'CollectionGrid'],
+      banners: {
+        ...SECTION_CATEGORIES.banners,
+        components: [...SECTION_CATEGORIES.banners.components],
       },
+      text: { ...SECTION_CATEGORIES.text, components: [...SECTION_CATEGORIES.text.components] },
+      products: {
+        ...SECTION_CATEGORIES.products,
+        components: [...SECTION_CATEGORIES.products.components],
+      },
+      media: { ...SECTION_CATEGORIES.media, components: [...SECTION_CATEGORIES.media.components] },
+      more: { ...SECTION_CATEGORIES.more, components: [...SECTION_CATEGORIES.more.components] },
     },
     components: {
+      // Library and dynamic sections type their props loosely; their renderers own the shapes.
+      ...(librarySections({
+        loadCollections: options.loadCollections,
+        loadProduct: options.loadProduct,
+      }) as unknown as Pick<Config<BlockProps>['components'], keyof LibraryProps>),
+      ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
       Hero: {
         label: 'Hero carousel',
         fields: {

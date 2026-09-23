@@ -8,6 +8,7 @@ export async function listPages(tx: StoreTx) {
       id: page.id,
       handle: page.handle,
       title: page.title,
+      templateSuffix: page.templateSuffix,
       publishedAt: page.publishedAt,
       updatedAt: page.updatedAt,
     })
@@ -28,42 +29,56 @@ export async function getPublishedPageByHandle(tx: StoreTx, handle: string) {
   return p?.publishedData ? { id: p.id, title: p.title, data: p.publishedData } : null
 }
 
+const EMPTY_LAYOUT = { root: { props: {} }, content: [], zones: {} }
+
 export async function createPage(
   tx: StoreTx,
   storeId: string,
-  input: { handle: string; title: string; data: unknown },
+  input: { handle: string; title: string; templateSuffix?: string | null | undefined },
 ) {
   const [p] = await tx
     .insert(page)
-    .values({ storeId, handle: input.handle, title: input.title, data: input.data })
+    .values({
+      storeId,
+      handle: input.handle,
+      title: input.title,
+      templateSuffix: input.templateSuffix || null,
+      data: EMPTY_LAYOUT,
+    })
     .returning()
   return p ?? null
 }
 
-export async function saveDraft(
-  tx: StoreTx,
-  id: string,
-  input: { title?: string | undefined; data: unknown },
-) {
-  const set: { data: unknown; updatedAt: Date; title?: string } = {
-    data: input.data,
+export type PageUpdate = {
+  title?: string | undefined
+  handle?: string | undefined
+  body?: unknown
+  seoTitle?: string | null | undefined
+  seoDescription?: string | null | undefined
+  templateSuffix?: string | null | undefined
+  visible?: boolean | undefined
+}
+
+/**
+ * Page details: title, handle, content, SEO, visibility and its theme template.
+ * The layout lives in the theme template (Customize), not on the page.
+ */
+export async function updatePage(tx: StoreTx, id: string, input: PageUpdate) {
+  const [current] = await tx
+    .select({ publishedAt: page.publishedAt })
+    .from(page)
+    .where(eq(page.id, id))
+  if (!current) return null
+  const { visible, templateSuffix, ...rest } = input
+  const defined = Object.entries(rest).filter(([, v]) => v !== undefined)
+  const set: Partial<typeof page.$inferInsert> = {
+    ...(Object.fromEntries(defined) as Partial<typeof page.$inferInsert>),
     updatedAt: new Date(),
   }
-  if (input.title !== undefined) set.title = input.title
+  if (templateSuffix !== undefined) set.templateSuffix = templateSuffix || null
+  if (visible !== undefined) set.publishedAt = visible ? (current.publishedAt ?? new Date()) : null
   const [p] = await tx.update(page).set(set).where(eq(page.id, id)).returning()
   return p ?? null
-}
-
-/** Copies the draft to publishedData. The storefront renders publishedData only. */
-export async function publishPage(tx: StoreTx, id: string) {
-  const [p] = await tx.select().from(page).where(eq(page.id, id))
-  if (!p) return null
-  const [updated] = await tx
-    .update(page)
-    .set({ publishedData: p.data, publishedAt: new Date(), updatedAt: new Date() })
-    .where(eq(page.id, id))
-    .returning()
-  return updated ?? null
 }
 
 export async function deletePage(tx: StoreTx, id: string) {

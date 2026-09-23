@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import {
@@ -257,6 +258,11 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             facets={facets}
             onChange={(status) => patch({ status })}
             onVendor={(vendor) => patch({ vendor })}
+          />
+          <TemplateSelectCard
+            kind="product"
+            value={form.templateSuffix}
+            onChange={(templateSuffix) => patch({ templateSuffix })}
           />
           {product ? (
             <ProductFormActions

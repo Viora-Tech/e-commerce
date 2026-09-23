@@ -186,6 +186,52 @@ describe('theme library', () => {
   })
 })
 
+describe('theme templates', () => {
+  it('saves drafts, commits them, creates alternates, and keeps another store out', async () => {
+    const m = await merchantWithStore('tpl@example.com', 'theme-tpl')
+    const c = { context: ctx(m.headers) }
+    const [live] = await call(appRouter.themes.list, undefined, c)
+    const themeId = live?.id as string
+    const data = {
+      root: { props: {} },
+      content: [{ type: 'Faq', props: { id: 'faq-1', heading: 'Questions' } }],
+    }
+    await call(appRouter.themes.templates.saveDraft, { themeId, template: 'home', data }, c)
+    const draft = await call(appRouter.themes.templates.get, { themeId, template: 'home' }, c)
+    expect(draft).toMatchObject({ draft: true, data: { content: [{ type: 'Faq' }] } })
+    expect(await call(appRouter.themes.templates.commit, { themeId }, c)).toEqual({ saved: 1 })
+
+    const alt = await call(
+      appRouter.themes.templates.create,
+      { themeId, template: 'page', suffix: 'contact' },
+      c,
+    )
+    expect(alt.data.content.map((s) => s.type)).toEqual(['MainPage'])
+    const listed = await call(appRouter.themes.templates.list, { themeId }, c)
+    expect(listed.map((t) => `${t.template}.${t.suffix}`)).toEqual(['home.', 'page.contact'])
+
+    await expect(
+      call(
+        appRouter.themes.templates.saveDraft,
+        {
+          themeId,
+          template: 'home',
+          data: { root: {}, content: [{ type: 'X', props: {} as { id: string } }] },
+        },
+        c,
+      ),
+    ).rejects.toThrow()
+
+    const other = await merchantWithStore('tpl-b@example.com', 'theme-tpl-b')
+    const seen = await call(
+      appRouter.themes.templates.list,
+      { themeId },
+      { context: ctx(other.headers) },
+    )
+    expect(seen).toEqual([])
+  })
+})
+
 describe('store preferences', () => {
   it('defaults, saves, and validates tracking ids and the password', async () => {
     const m = await merchantWithStore('prefs@example.com', 'prefs-a')

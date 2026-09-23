@@ -23,6 +23,7 @@ export type CollectionDetail = {
   seoTitle: string | null
   seoDescription: string | null
   sortOrder: CollectionSort
+  templateSuffix: string | null
 }
 
 export type CollectionCard = {
@@ -94,6 +95,7 @@ export async function getCollectionByHandle(
     seoTitle: row.seoTitle,
     seoDescription: row.seoDescription,
     sortOrder: row.sortOrder,
+    templateSuffix: row.templateSuffix,
   }
 }
 

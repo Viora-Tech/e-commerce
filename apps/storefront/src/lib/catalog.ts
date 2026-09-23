@@ -12,7 +12,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
 
 export type { CardProduct, ProductDetail }
 
@@ -31,18 +31,23 @@ export async function listCardProducts(
   tx: StoreTx,
   limit = 48,
   productType?: string,
+  /** Only these products, in this order (featured product, recently viewed). */
+  handles?: string[],
 ): Promise<CardProduct[]> {
-  const products = await tx
+  if (handles?.length === 0) return []
+  const found = await tx
     .select()
     .from(product)
     .where(
       and(
         eq(product.status, 'active'),
         productType ? eq(product.productType, productType) : undefined,
+        handles ? inArray(product.handle, handles) : undefined,
       ),
     )
     .orderBy(asc(product.title))
     .limit(limit)
+  const products = handles ? handles.flatMap((h) => found.filter((p) => p.handle === h)) : found
   if (products.length === 0) return []
   const ids = products.map((p) => p.id)
 
@@ -157,6 +162,7 @@ export async function getProductByHandle(
     vendor: p.vendor,
     productType: p.productType,
     images,
+    templateSuffix: p.templateSuffix,
     options: options.map((o) => ({
       id: o.id,
       name: o.name,
@@ -173,4 +179,36 @@ export async function getProductByHandle(
       imageUrl: v.imageUrl,
     })),
   }
+}
+
+/** Storefront search: active products whose title, type or vendor contains the query. */
+export async function searchCardProducts(
+  tx: StoreTx,
+  query: string,
+  limit = 24,
+): Promise<CardProduct[]> {
+  const q = query.trim().slice(0, 100)
+  if (!q) return []
+  const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
+  const rows = await tx
+    .select({ handle: product.handle })
+    .from(product)
+    .where(
+      and(
+        eq(product.status, 'active'),
+        or(
+          ilike(product.title, pattern),
+          ilike(product.productType, pattern),
+          ilike(product.vendor, pattern),
+        ),
+      ),
+    )
+    .orderBy(asc(product.title))
+    .limit(limit)
+  return listCardProducts(
+    tx,
+    limit,
+    undefined,
+    rows.map((r) => r.handle),
+  )
 }

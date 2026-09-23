@@ -63,6 +63,9 @@ function productRow(fields: ProductFields) {
     tags: dedupe(fields.tags ?? []),
     seoTitle: fields.seoTitle || null,
     seoDescription: fields.seoDescription || null,
+    ...(fields.templateSuffix === undefined
+      ? {}
+      : { templateSuffix: fields.templateSuffix || null }),
     status: fields.status ?? 'draft',
     taxIncluded: fields.taxIncluded ?? true,
     featured: fields.featured ?? false,

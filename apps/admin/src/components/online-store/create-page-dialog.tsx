@@ -50,7 +50,6 @@ export default function CreatePageDialog({ open, onOpenChange }: CreatePageDialo
       const p = await api.pages.create({
         title,
         handle: handle || slugify(title),
-        data: { root: { props: { title } }, content: [], zones: {} },
       })
       if (!p) throw new Error(copy.failed)
       onOpenChange(false)
