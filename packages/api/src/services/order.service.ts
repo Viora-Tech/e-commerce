@@ -1,4 +1,5 @@
 import {
+  changeOrderStatus,
   type PaymentProvider,
   parsePaymentSettings,
   refundPayment,
@@ -251,8 +252,13 @@ export async function refundOrderPayment(
  * delivery, a bank transfer they matched by hand), so pending payments are
  * captured too; otherwise the order and payment rows would disagree.
  */
-export async function setOrderStatus(tx: StoreTx, id: string, status: OrderStatus) {
-  const [o] = await tx.update(order).set({ status }).where(eq(order.id, id)).returning()
+export async function setOrderStatus(
+  tx: StoreTx,
+  storeId: string,
+  id: string,
+  status: OrderStatus,
+) {
+  const o = await changeOrderStatus({ tx, storeId }, id, status)
   if (o && status === 'paid') {
     await tx
       .update(payment)

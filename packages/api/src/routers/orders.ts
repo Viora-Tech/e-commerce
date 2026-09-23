@@ -196,7 +196,17 @@ export const ordersRouter = {
           data: { required: permissions.ORDERS_CANCEL, role: context.scope.roleSlug },
         })
       }
-      const o = await setOrderStatus(context.tx, input.id, input.status)
+      const o = await setOrderStatus(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+        input.status,
+      ).catch((err) => {
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      })
       const template = STATUS_TEMPLATE[input.status]
       if (o && template) {
         await enqueueNotification(context.notifications, {

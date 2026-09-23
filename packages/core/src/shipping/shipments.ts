@@ -2,6 +2,7 @@ import { address, order, orderLine, shipment, store } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { fulfilRemainingLines } from '../order/fulfil'
 import { parseShippingSettings } from './settings'
 
 export type ShipmentRow = typeof shipment.$inferSelect
@@ -88,6 +89,8 @@ export async function createShipmentForOrder(
     })
     .returning()
   if (!row) throw new Error('could not record shipment')
+  // The label exists, so the parcel ships: every line is packed and leaves stock.
+  await fulfilRemainingLines(ctx, o.id)
   if (o.status === 'placed' || o.status === 'paid') {
     await ctx.tx.update(order).set({ status: 'fulfilled' }).where(eq(order.id, o.id))
   }

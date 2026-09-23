@@ -2,6 +2,7 @@ import { order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { shipCommittedStock } from './committed-stock'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
 
@@ -34,7 +35,56 @@ export class FulfilTooMany extends CommerceError {
   }
 }
 
+export class OrderNotFulfillable extends CommerceError {
+  constructor(orderId: string, status: string, storeId?: string) {
+    super('ORDER_NOT_FULFILLABLE', `Order ${orderId} is ${status} and cannot be packed`, {
+      storeId,
+    })
+  }
+}
+
 const MANUAL_PROVIDER = 'manual'
+
+/** Drafts hold no stock and cancelled orders gave theirs back: neither can ship. */
+const UNFULFILLABLE = new Set(['draft', 'cancelled'])
+
+/**
+ * Lock the order and its lines for the rest of the transaction, so a second
+ * pack or a cancel running at the same time waits and then sees this one's
+ * result instead of moving the same stock twice.
+ */
+async function lockOrder(ctx: StoreContext, orderId: string) {
+  const [o] = await ctx.tx
+    .select({ id: order.id, status: order.status })
+    .from(order)
+    .where(eq(order.id, orderId))
+    .for('update')
+  const lines = await ctx.tx
+    .select()
+    .from(orderLine)
+    .where(eq(orderLine.orderId, orderId))
+    .for('update')
+  return { o, lines }
+}
+
+/**
+ * Mark every unpacked unit of an order as packed and take it out of stock.
+ * Used when the whole order ships at once (a courier booking, or the merchant
+ * setting the status to fulfilled). Running it again moves nothing.
+ */
+export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): Promise<void> {
+  const { o, lines } = await lockOrder(ctx, orderId)
+  if (!o || UNFULFILLABLE.has(o.status)) return
+  for (const line of lines) {
+    const remaining = line.quantity - line.fulfilledQuantity
+    if (remaining <= 0) continue
+    await ctx.tx
+      .update(orderLine)
+      .set({ fulfilledQuantity: line.quantity })
+      .where(eq(orderLine.id, line.id))
+    await shipCommittedStock(ctx, { variantId: line.variantId, quantity: remaining })
+  }
+}
 
 /**
  * Pack some or all of an order by hand: the merchant picks lines and
@@ -49,18 +99,25 @@ export async function fulfilOrderLines(
   ctx: StoreContext,
   input: FulfilOrderInput,
 ): Promise<FulfilOrderResult> {
-  const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, input.orderId))
+  const { o, lines } = await lockOrder(ctx, input.orderId)
+  if (o && UNFULFILLABLE.has(o.status)) {
+    throw new OrderNotFulfillable(input.orderId, o.status, ctx.storeId)
+  }
   const byId = new Map(lines.map((l) => [l.id, l]))
 
   const wanted = input.lines.filter((l) => l.quantity > 0)
   if (wanted.length === 0) throw new NothingToFulfil(input.orderId, ctx.storeId)
 
+  /* Summed per line, so the same line listed twice cannot pack past its quantity. */
+  const packing = new Map<string, number>()
   for (const pick of wanted) {
     const line = byId.get(pick.lineId)
     if (!line) throw new FulfilTooMany(pick.lineId, ctx.storeId)
-    if (line.fulfilledQuantity + pick.quantity > line.quantity) {
+    const total = (packing.get(pick.lineId) ?? 0) + pick.quantity
+    if (line.fulfilledQuantity + total > line.quantity) {
       throw new FulfilTooMany(pick.lineId, ctx.storeId)
     }
+    packing.set(pick.lineId, total)
   }
 
   for (const pick of wanted) {
@@ -68,6 +125,8 @@ export async function fulfilOrderLines(
       .update(orderLine)
       .set({ fulfilledQuantity: sql`${orderLine.fulfilledQuantity} + ${pick.quantity}` })
       .where(and(eq(orderLine.id, pick.lineId), eq(orderLine.orderId, input.orderId)))
+    const line = byId.get(pick.lineId)
+    if (line) await shipCommittedStock(ctx, { variantId: line.variantId, quantity: pick.quantity })
   }
 
   const after = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, input.orderId))
