@@ -1,0 +1,218 @@
+/**
+ * Storefront filter and sort parameters, in Shopify's URL shape so links and
+ * habits carry over: `filter.v.availability=1`, `filter.v.price.gte=500` (rupees),
+ * `filter.p.product_type=Mouse`, `filter.p.vendor=…`, `filter.p.tag=…`,
+ * `filter.v.option.size=M`, `sort_by=price-ascending`, `page=2`. Pure, so the
+ * filter drawer can build the same URLs in the browser (`@commerce/core/browse`).
+ */
+
+export type BrowseSort =
+  | 'manual'
+  | 'relevance'
+  | 'best-selling'
+  | 'title-ascending'
+  | 'title-descending'
+  | 'price-ascending'
+  | 'price-descending'
+  | 'created-descending'
+
+export const BROWSE_SORTS: readonly BrowseSort[] = [
+  'manual',
+  'relevance',
+  'best-selling',
+  'title-ascending',
+  'title-descending',
+  'price-ascending',
+  'price-descending',
+  'created-descending',
+]
+
+export type BrowseFilters = {
+  /** true: only in stock, false: only sold out, null: both. */
+  available: boolean | null
+  /** Paise, inclusive, against the product's lowest variant price. */
+  priceMin: number | null
+  priceMax: number | null
+  productTypes: string[]
+  vendors: string[]
+  tags: string[]
+  /** Lower-cased option name ("size", "colour") to the values picked. */
+  options: Record<string, string[]>
+}
+
+export const EMPTY_FILTERS: BrowseFilters = {
+  available: null,
+  priceMin: null,
+  priceMax: null,
+  productTypes: [],
+  vendors: [],
+  tags: [],
+  options: {},
+}
+
+export type SearchParamsInput = Record<string, string | string[] | undefined>
+
+export const FILTER_PARAM = {
+  available: 'filter.v.availability',
+  priceMin: 'filter.v.price.gte',
+  priceMax: 'filter.v.price.lte',
+  productType: 'filter.p.product_type',
+  vendor: 'filter.p.vendor',
+  tag: 'filter.p.tag',
+  optionPrefix: 'filter.v.option.',
+} as const
+
+const MAX_VALUES = 20
+
+const list = (v: string | string[] | undefined): string[] => {
+  const all = Array.isArray(v) ? v : v === undefined ? [] : [v]
+  return [
+    ...new Set(all.map((s) => s.trim()).filter((s) => s.length > 0 && s.length <= 100)),
+  ].slice(0, MAX_VALUES)
+}
+
+const rupees = (v: string | string[] | undefined): number | null => {
+  const raw = list(v)[0]
+  if (raw === undefined) return null
+  const n = Number(raw.replace(/[,₹\s]/g, ''))
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null
+}
+
+/** Filters from a request's search params; anything malformed is ignored. */
+export function parseBrowseFilters(params: SearchParamsInput): BrowseFilters {
+  const avail = list(params[FILTER_PARAM.available])
+  const options: Record<string, string[]> = {}
+  for (const [key, value] of Object.entries(params)) {
+    if (!key.startsWith(FILTER_PARAM.optionPrefix)) continue
+    const name = key.slice(FILTER_PARAM.optionPrefix.length).trim().toLowerCase()
+    const values = list(value)
+    if (name && values.length > 0) options[name] = values
+  }
+  // Both availability boxes ticked means no availability filter at all.
+  const available =
+    avail.includes('1') && !avail.includes('0')
+      ? true
+      : avail.includes('0') && !avail.includes('1')
+        ? false
+        : null
+  let priceMin = rupees(params[FILTER_PARAM.priceMin])
+  let priceMax = rupees(params[FILTER_PARAM.priceMax])
+  if (priceMin !== null && priceMax !== null && priceMin > priceMax) {
+    ;[priceMin, priceMax] = [priceMax, priceMin]
+  }
+  return {
+    available,
+    priceMin,
+    priceMax,
+    productTypes: list(params[FILTER_PARAM.productType]),
+    vendors: list(params[FILTER_PARAM.vendor]),
+    tags: list(params[FILTER_PARAM.tag]),
+    options,
+  }
+}
+
+export function parseBrowseSort(
+  raw: unknown,
+  allowed: readonly BrowseSort[],
+  fallback: BrowseSort,
+): BrowseSort {
+  return typeof raw === 'string' && (allowed as readonly string[]).includes(raw)
+    ? (raw as BrowseSort)
+    : fallback
+}
+
+export function parsePage(raw: unknown): number {
+  const n = typeof raw === 'string' ? Number.parseInt(raw, 10) : Number.NaN
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 1000) : 1
+}
+
+export const hasActiveFilters = (f: BrowseFilters): boolean =>
+  f.available !== null ||
+  f.priceMin !== null ||
+  f.priceMax !== null ||
+  f.productTypes.length > 0 ||
+  f.vendors.length > 0 ||
+  f.tags.length > 0 ||
+  Object.keys(f.options).length > 0
+
+/** The query-string pairs for a set of filters, in a stable order. */
+export function filterEntries(f: BrowseFilters): [string, string][] {
+  const out: [string, string][] = []
+  if (f.available !== null) out.push([FILTER_PARAM.available, f.available ? '1' : '0'])
+  if (f.priceMin !== null) out.push([FILTER_PARAM.priceMin, String(f.priceMin / 100)])
+  if (f.priceMax !== null) out.push([FILTER_PARAM.priceMax, String(f.priceMax / 100)])
+  for (const v of f.productTypes) out.push([FILTER_PARAM.productType, v])
+  for (const v of f.vendors) out.push([FILTER_PARAM.vendor, v])
+  for (const v of f.tags) out.push([FILTER_PARAM.tag, v])
+  for (const [name, values] of Object.entries(f.options)) {
+    for (const v of values) out.push([`${FILTER_PARAM.optionPrefix}${name}`, v])
+  }
+  return out
+}
+
+/** Build `?…` for a browse page from its parts; empty parts are left out. */
+export function browseHref(
+  path: string,
+  parts: { q?: string | undefined; filters?: BrowseFilters; sort?: string | null; page?: number },
+): string {
+  const params = new URLSearchParams()
+  if (parts.q) params.set('q', parts.q)
+  for (const [k, v] of filterEntries(parts.filters ?? EMPTY_FILTERS)) params.append(k, v)
+  if (parts.sort) params.set('sort_by', parts.sort)
+  if (parts.page && parts.page > 1) params.set('page', String(parts.page))
+  const qs = params.toString()
+  return qs ? `${path}?${qs}` : path
+}
+
+/** One active filter as a removable chip: what it says and the filters without it. */
+export type ActiveFilter = { key: string; kind: string; value: string; without: BrowseFilters }
+
+export function activeFilters(f: BrowseFilters): ActiveFilter[] {
+  const out: ActiveFilter[] = []
+  if (f.available !== null) {
+    out.push({
+      key: 'available',
+      kind: 'available',
+      value: String(f.available),
+      without: { ...f, available: null },
+    })
+  }
+  if (f.priceMin !== null || f.priceMax !== null) {
+    out.push({
+      key: 'price',
+      kind: 'price',
+      value: `${f.priceMin ?? ''}-${f.priceMax ?? ''}`,
+      without: { ...f, priceMin: null, priceMax: null },
+    })
+  }
+  const lists = [
+    ['productTypes', 'productType'],
+    ['vendors', 'vendor'],
+    ['tags', 'tag'],
+  ] as const
+  for (const [field, kind] of lists) {
+    for (const v of f[field]) {
+      out.push({
+        key: `${kind}:${v}`,
+        kind,
+        value: v,
+        without: { ...f, [field]: f[field].filter((x) => x !== v) },
+      })
+    }
+  }
+  for (const [name, values] of Object.entries(f.options)) {
+    for (const v of values) {
+      const rest = values.filter((x) => x !== v)
+      const options = { ...f.options }
+      if (rest.length > 0) options[name] = rest
+      else delete options[name]
+      out.push({
+        key: `option:${name}:${v}`,
+        kind: `option:${name}`,
+        value: v,
+        without: { ...f, options },
+      })
+    }
+  }
+  return out
+}

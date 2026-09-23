@@ -1,26 +1,65 @@
+import { browseProducts } from '@commerce/core'
+import {
+  parseBrowseFilters,
+  parseBrowseSort,
+  parsePage,
+  type SearchParamsInput,
+} from '@commerce/core/browse'
 import type { Metadata } from 'next'
 import MainSearch from '@/components/search/main-search'
-import { searchContent } from '@/data/search'
-import { searchCardProducts } from '@/lib/catalog'
+import { SEARCH_SORTS } from '@/data/browse'
+import { SEARCH_PER_PAGE, searchContent } from '@/data/search'
+import { listCardProducts } from '@/lib/catalog'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
 type Params = {
   params: Promise<{ storeId: string }>
-  searchParams: Promise<{ q?: string; view?: string }>
+  searchParams: Promise<SearchParamsInput>
 }
 
-export const metadata: Metadata = { title: searchContent.title, robots: { index: false } }
+const text = (v: string | string[] | undefined) => (typeof v === 'string' ? v : (v?.[0] ?? ''))
+
+export async function generateMetadata({
+  searchParams,
+}: Pick<Params, 'searchParams'>): Promise<Metadata> {
+  const q = text((await searchParams).q).trim()
+  // Result pages are thin and endless; Shopify keeps them out of the index too.
+  return {
+    title: q ? searchContent.titleFor(q) : searchContent.title,
+    robots: { index: false, follow: true },
+  }
+}
 
 export default async function SearchPage({ params, searchParams }: Params) {
   const { storeId } = await params
-  const { q, view } = await searchParams
-  const query = typeof q === 'string' ? q.trim().slice(0, 100) : ''
+  const query = await searchParams
+  const q = text(query.q).trim().slice(0, 100)
+  const filters = parseBrowseFilters(query)
+  const sort = parseBrowseSort(query.sort_by, SEARCH_SORTS, 'relevance')
+  const page = parsePage(query.page)
   return inStore(storeId, async (tx) => {
-    const products = await searchCardProducts(tx, query)
+    const result = q
+      ? await browseProducts(tx, { query: q, filters, sort, page, perPage: SEARCH_PER_PAGE })
+      : null
+    const products = result
+      ? await listCardProducts(tx, SEARCH_PER_PAGE, undefined, result.handles)
+      : []
     return renderTemplate(tx, storeId, 'search', {
-      view,
-      renderers: { MainSearch: () => <MainSearch query={query} products={products} /> },
+      view: text(query.view) || undefined,
+      renderers: {
+        MainSearch: (settings) => (
+          <MainSearch
+            query={q}
+            products={products}
+            result={result}
+            filters={filters}
+            sort={sort}
+            page={page}
+            settings={settings}
+          />
+        ),
+      },
     })
   })
 }
