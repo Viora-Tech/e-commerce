@@ -1,4 +1,5 @@
 export * from './audience'
+export * from './automations'
 export * from './campaign-input'
 export * from './campaigns'
 export * from './client'

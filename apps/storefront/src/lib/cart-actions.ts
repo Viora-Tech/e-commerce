@@ -8,6 +8,7 @@ import {
   findRedeemableGiftCard,
   GiftCardError,
   getCart,
+  onOrderPlaced,
   placeOrder,
   rememberCheckoutAddress,
   setCartAttribution,
@@ -169,6 +170,10 @@ export async function checkoutAction(
       (err) => console.error('[checkout] could not save address', err),
     )
   }
+  // Marketing: end the sequences this order converts and start the order automations.
+  await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
+    console.error('[checkout] could not update marketing automations', err),
+  )
   await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
   // Paid in full at checkout (gift cards): the paid path issues cards and sends the receipt.
   if (result.paymentStatus === 'captured') {

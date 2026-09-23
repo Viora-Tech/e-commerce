@@ -1,10 +1,11 @@
-import { Workflow } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SectionEmpty from '@/components/layout/section-empty'
-import { marketingContent } from '@/data/marketing'
+import AutomationsPage from '@/components/marketing/automations/automations-page'
+import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Automations' }
 
-export default function Page() {
-  return <SectionEmpty {...marketingContent.automations} icon={Workflow} />
+export default async function Page() {
+  const context = await serverContext()
+  const automations = await call(appRouter.marketing.automations.list, undefined, { context })
+  return <AutomationsPage automations={automations} />
 }

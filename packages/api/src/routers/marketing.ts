@@ -1,17 +1,27 @@
 import { loadEnv } from '@commerce/config'
 import {
+  AutomationInputSchema,
+  type AutomationStats,
+  automationStats,
   CampaignInputSchema,
   CampaignLocked,
   CampaignNotReady,
   cancelCampaign,
+  createAutomationFromTemplate,
   createCampaign,
+  deleteAutomation,
   deleteCampaign,
   duplicateCampaign,
   EmailBlocksSchema,
+  getAutomation,
+  listAutomations,
   listCampaigns,
   permissions,
+  recentRuns,
   scheduleCampaign,
+  setAutomationStatus,
   testSendCampaignEmail,
+  updateAutomation,
   updateCampaign,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
@@ -50,7 +60,51 @@ function surface<T>(work: () => Promise<T>): Promise<T> {
 
 const id = z.object({ id: z.uuid() })
 
+const automationsRouter = {
+  list: can(permissions.MARKETING_READ).handler(({ context }) => listAutomations(context.tx)),
+
+  /** One automation with its stats and the latest runs. */
+  get: can(permissions.MARKETING_READ)
+    .input(id)
+    .handler(async ({ context, input }) => {
+      const a = await getAutomation(context.tx, input.id)
+      if (!a) return null
+      const [stats, runs] = await Promise.all([
+        automationStats(context.tx, [a.id]),
+        recentRuns(context.tx, a.id),
+      ])
+      return { ...a, stats: stats.get(a.id) as AutomationStats, runs }
+    }),
+
+  create: can(permissions.MARKETING_WRITE)
+    .input(z.object({ template: z.string().trim().min(1).max(40) }))
+    .handler(async ({ context, input }) => {
+      const row = await createAutomationFromTemplate(
+        context.tx,
+        context.scope.storeId,
+        input.template,
+      )
+      if (!row) throw new ORPCError('NOT_FOUND', { message: 'Unknown automation template' })
+      return row
+    }),
+
+  update: can(permissions.MARKETING_WRITE)
+    .input(z.object({ id: z.uuid(), data: AutomationInputSchema }))
+    .handler(({ context, input }) => updateAutomation(context.tx, input.id, input.data)),
+
+  /** Turning an automation on starts enrolling at the next worker tick. */
+  setStatus: can(permissions.MARKETING_SEND)
+    .input(z.object({ id: z.uuid(), status: z.enum(['active', 'paused']) }))
+    .handler(({ context, input }) => setAutomationStatus(context.tx, input.id, input.status)),
+
+  delete: can(permissions.MARKETING_WRITE)
+    .input(id)
+    .handler(({ context, input }) => deleteAutomation(context.tx, input.id)),
+}
+
 export const marketingRouter = {
+  automations: automationsRouter,
+
   /** Sessions, attributed sales, channels and top campaigns for one range. */
   overview: can(permissions.MARKETING_READ)
     .input(z.object({ range: rangeInput.default({ key: '30d' }) }))

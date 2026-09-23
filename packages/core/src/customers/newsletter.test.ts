@@ -43,4 +43,23 @@ describe('newsletter signup', () => {
       ['new@example.com', null, true, ['newsletter']],
     ])
   })
+
+  it('records when and where consent was given, and a new signup clears an unsubscribe', async () => {
+    const [s] = await owner.insert(store).values({ slug: 'nl2', name: 'NL' }).returning()
+    const storeId = s?.id as string
+    await owner.insert(customer).values({
+      storeId,
+      email: 'gone@example.com',
+      acceptsMarketing: false,
+      unsubscribedAt: new Date('2026-01-01'),
+    })
+    await inStore(storeId, (tx) => subscribeToNewsletter(tx, storeId, 'gone@example.com'))
+    const [c] = await owner.select().from(customer)
+    expect(c).toMatchObject({
+      acceptsMarketing: true,
+      marketingConsentSource: 'newsletter',
+      unsubscribedAt: null,
+    })
+    expect(c?.marketingConsentAt).toBeInstanceOf(Date)
+  })
 })
