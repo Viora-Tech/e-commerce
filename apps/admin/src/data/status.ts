@@ -13,6 +13,7 @@ import { blogListContent } from '@/data/blog'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
+import { type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { homeContent } from '@/data/home'
 import {
   type PurchaseOrderStatus,
@@ -24,6 +25,7 @@ import { onlineStoreContent } from '@/data/online-store'
 import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
 import { shipmentPanelContent } from '@/data/shipping'
+import { shopifyImportContent } from '@/data/shopify-import'
 import { staffContent } from '@/data/staff'
 
 /*
@@ -103,6 +105,12 @@ export const STATUS = {
     expired: entry(discountsContent.lifecycle.expired, 'neutral'),
     disabled: entry(discountsContent.lifecycle.disabled, 'error'),
   } satisfies Record<DiscountLifecycle, StatusEntry>,
+  giftCard: {
+    active: entry(giftCardsContent.state.active, 'success'),
+    disabled: entry(giftCardsContent.state.disabled, 'error'),
+    expired: entry(giftCardsContent.state.expired, 'neutral'),
+    empty: entry(giftCardsContent.state.empty, 'info'),
+  } satisfies Record<GiftCardStateFilter, StatusEntry>,
   product: {
     active: entry(productsListContent.status.active, 'success'),
     draft: entry(productsListContent.status.draft, 'info'),
@@ -143,6 +151,14 @@ export const STATUS = {
   app: {
     installed: entry(appsContent.installed, 'success'),
     builtIn: entry(appsContent.builtIn, 'neutral'),
+  },
+  /** Shopify import runs; a finished dry run reads "Preview ready". */
+  importRun: {
+    queued: entry(shopifyImportContent.status.queued, 'neutral'),
+    running: entry(shopifyImportContent.status.running, 'pending'),
+    completed: entry(shopifyImportContent.status.completed, 'success'),
+    failed: entry(shopifyImportContent.status.failed, 'error'),
+    preview: entry(shopifyImportContent.previewReady, 'info'),
   },
   /** Draft orders: open until an invoice goes out. */
   draft: {

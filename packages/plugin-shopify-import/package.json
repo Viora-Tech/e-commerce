@@ -1,0 +1,32 @@
+{
+  "name": "@commerce/plugin-shopify-import",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shopify importer: products, customers and orders from CSV, or the whole store over the Admin API.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/core": "workspace:*",
+    "@commerce/db": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "@commerce/storage": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "dotenv": "^18.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

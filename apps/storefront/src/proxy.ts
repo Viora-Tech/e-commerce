@@ -1,9 +1,11 @@
+import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
-import { resolveStore } from '@commerce/db'
+import { type HostRoute, resolveHost } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
 import { db } from './lib/db'
-import { DERIVED_HEADERS, PASSWORD_PREFIX, routeForStore } from './lib/routing'
+import { redirectFor } from './lib/redirects'
+import { DERIVED_HEADERS, PASSWORD_PREFIX, primaryRedirect, routeForStore } from './lib/routing'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
   ACCESS_COOKIE,
@@ -15,7 +17,9 @@ import {
 } from './lib/storefront-gate'
 import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from './lib/visitor-cookie'
 
-const resolve = createStoreResolver({ lookup: (hostname) => resolveStore(db(), hostname) })
+const resolve = createStoreResolver<HostRoute>({
+  lookup: (hostname) => resolveHost(db(), hostname),
+})
 
 /** Cloudflare's edge country, forwarded for region defaults. Absent when not behind Cloudflare. */
 function visitorCountry(request: NextRequest): string | null {
@@ -24,14 +28,31 @@ function visitorCountry(request: NextRequest): string | null {
 }
 
 export async function proxy(request: NextRequest) {
-  const hostname = hostnameFromHeader(request.headers.get('host'))
-  const storeId = hostname ? await resolve(hostname) : null
-  if (!storeId) {
+  const host = request.headers.get('host')
+  const hostname = hostnameFromHeader(host)
+  const hostRoute = hostname ? await resolve(hostname) : null
+  if (!hostname || !hostRoute) {
     return new NextResponse(`No store is configured for ${hostname ?? 'this host'}.`, {
       status: 404,
       headers: { 'content-type': 'text/plain' },
     })
   }
+  const { storeId } = hostRoute
+
+  // Old domains and the www/apex twin send shoppers to the primary domain.
+  const target = primaryRedirect({
+    hostname,
+    port: host?.split(':')[1] ?? '',
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    protocol: request.nextUrl.protocol,
+    primaryHostname: hostRoute.primaryHostname,
+    redirect: hostRoute.redirect,
+    inFrame: request.headers.get('sec-fetch-dest') === 'iframe',
+    previewing: request.nextUrl.searchParams.has(THEME_PREVIEW_PARAM),
+    dev: process.env.NODE_ENV !== 'production',
+  })
+  if (target) return NextResponse.redirect(target, 301)
 
   const route = routeForStore(storeId, request.nextUrl.pathname)
   if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
@@ -44,6 +65,16 @@ export async function proxy(request: NextRequest) {
   if (country) headers.set('x-visitor-country', country)
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+
+  // URL redirects (Content → Menus → URL redirects, imported Shopify paths) answer
+  // before anything renders, so an old link never shows the password page first.
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const target = await redirectFor(storeId, request.nextUrl.pathname)
+    if (target) {
+      const to = new URL(withQuery(target, request.nextUrl.search), request.nextUrl)
+      return NextResponse.redirect(to, 301)
+    }
+  }
 
   // Theme preview: `?theme-preview=<token>` from the admin renders that theme. A top-level
   // visit keeps it in a cookie so links keep previewing; frames (the admin thumbnail and

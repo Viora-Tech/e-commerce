@@ -19,6 +19,7 @@
     "@commerce/editor": "workspace:*",
     "@commerce/invoices": "workspace:*",
     "@commerce/payments": "workspace:*",
+    "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@commerce/storage": "workspace:*",

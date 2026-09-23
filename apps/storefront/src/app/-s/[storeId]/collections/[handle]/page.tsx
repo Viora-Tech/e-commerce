@@ -1,75 +1,105 @@
+import { browseProducts } from '@commerce/core'
+import {
+  type BrowseSort,
+  hasActiveFilters,
+  parseBrowseFilters,
+  parseBrowseSort,
+  parsePage,
+  type SearchParamsInput,
+} from '@commerce/core/browse'
+import type { CollectionSort } from '@commerce/core/collections'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import MainCollection from '@/components/collections/main-collection'
-import { COLLECTION_PER_PAGE, SORT_OPTIONS } from '@/data/collections'
-import { getCollectionByHandle, listCollectionProducts } from '@/lib/collections'
+import { COLLECTION_SORTS } from '@/data/browse'
+import { COLLECTION_PER_PAGE } from '@/data/collections'
+import { listCardProducts } from '@/lib/catalog'
+import { getCollectionByHandle } from '@/lib/collections'
 import { canonicalPath, metaDescription, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
 
 type Params = {
   params: Promise<{ storeId: string; handle: string }>
-  searchParams: Promise<{ sort?: string; page?: string; view?: string }>
+  searchParams: Promise<SearchParamsInput>
 }
 
-function parseSort(value: string | undefined, fallback: string): string {
-  return SORT_OPTIONS.some((o) => o.value === value) ? (value as string) : fallback
+/** The merchant's saved collection order, in the storefront's `sort_by` vocabulary. */
+const DEFAULT_SORT: Record<CollectionSort, BrowseSort> = {
+  manual: 'manual',
+  title_asc: 'title-ascending',
+  title_desc: 'title-descending',
+  price_asc: 'price-ascending',
+  price_desc: 'price-descending',
+  created_desc: 'created-descending',
 }
 
 export async function generateMetadata({ params, searchParams }: Params): Promise<Metadata> {
   const { storeId, handle } = await params
-  const { page } = await searchParams
   const found = await inStore(storeId, (tx) => getCollectionByHandle(tx, handle))
   if (!found) return {}
+  const query = await searchParams
   const title = found.seoTitle || found.title
   const description = metaDescription(
     found.seoDescription || richTextToPlainText(parseRichText(found.description)),
   )
-  const url = canonicalPath(`/collections/${found.handle}`, Number.parseInt(page ?? '1', 10) || 1)
+  // Filtered and re-sorted views are the same collection: they point at the plain
+  // page and stay out of the index, as Shopify's do.
+  const url = canonicalPath(`/collections/${found.handle}`, parsePage(query.page))
+  const variant = hasActiveFilters(parseBrowseFilters(query)) || query.sort_by !== undefined
   const image = found.imageUrl ? [{ url: found.imageUrl, alt: found.title }] : undefined
   return {
     title,
     description,
-    // A sort is the same products reordered, so it points at the unsorted page.
     alternates: { canonical: url },
     openGraph: { type: 'website', url, title, description, images: image },
     twitter: { card: image ? 'summary_large_image' : 'summary', title, description },
+    ...(variant ? { robots: { index: false, follow: true } } : {}),
   }
 }
 
 export default async function CollectionPage({ params, searchParams }: Params) {
   const { storeId, handle } = await params
   const query = await searchParams
-  const page = Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1)
+  const page = parsePage(query.page)
+  const filters = parseBrowseFilters(query)
 
   const data = await inStore(storeId, async (tx) => {
     const found = await getCollectionByHandle(tx, handle)
     if (!found) return null
-    const sort = parseSort(query.sort, found.sortOrder)
-    const products = await listCollectionProducts(tx, found.id, {
-      sort: sort as typeof found.sortOrder,
+    const defaultSort = DEFAULT_SORT[found.sortOrder]
+    // `sort` is the old parameter; links shared before sort_by keep working.
+    const legacy =
+      typeof query.sort === 'string' ? DEFAULT_SORT[query.sort as CollectionSort] : undefined
+    const sort = parseBrowseSort(query.sort_by ?? legacy, COLLECTION_SORTS, defaultSort)
+    const result = await browseProducts(tx, {
+      collectionId: found.id,
+      filters,
+      sort,
       page,
       perPage: COLLECTION_PER_PAGE,
     })
-    return { collection: found, products, sort }
+    const products = await listCardProducts(tx, COLLECTION_PER_PAGE, undefined, result.handles)
+    return { collection: found, result, products, sort, defaultSort }
   })
 
   if (!data) notFound()
-  const { collection, products, sort } = data
   const origin = await requestOrigin()
   return inStore(storeId, (tx) =>
     renderTemplate(tx, storeId, 'collection', {
-      suffix: collection.templateSuffix,
-      view: query.view,
+      suffix: data.collection.templateSuffix,
+      view: typeof query.view === 'string' ? query.view : undefined,
       renderers: {
         MainCollection: (settings) => (
           <MainCollection
-            handle={handle}
             origin={origin}
-            collection={collection}
-            products={products}
-            sort={sort}
+            collection={data.collection}
+            products={data.products}
+            result={data.result}
+            filters={filters}
+            sort={data.sort}
+            defaultSort={data.defaultSort}
             page={page}
             settings={settings}
           />

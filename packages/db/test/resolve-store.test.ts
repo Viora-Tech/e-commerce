@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDb } from '../src/client'
-import { resolveStore } from '../src/resolve-store'
+import { resolveHost, resolveStore, storesWithPendingDomains } from '../src/resolve-store'
 import { store, storeDomain } from '../src/schema'
 import { withStore } from '../src/with-store'
 import { resetDb } from './reset'
@@ -57,5 +57,77 @@ describe('resolveStore', () => {
     const rows = await withStore(app, a.id, (tx) => tx.select().from(storeDomain))
     expect(rows.map((r) => r.hostname).sort()).toEqual(['a.example.com', 'localhost'])
     expect(await app.select().from(storeDomain)).toEqual([])
+  })
+
+  it('does not resolve a custom domain until it is verified', async () => {
+    const { a } = await seed()
+    await owner.insert(storeDomain).values([
+      { storeId: a.id, hostname: 'pending.test', kind: 'custom', status: 'pending' },
+      { storeId: a.id, hostname: 'failed.test', kind: 'custom', status: 'failed' },
+    ])
+    expect(await resolveStore(app, 'pending.test')).toBeNull()
+    expect(await resolveStore(app, 'failed.test')).toBeNull()
+    expect(await resolveHost(app, 'pending.test')).toBeNull()
+  })
+})
+
+describe('resolveHost', () => {
+  it('returns the store, its primary hostname and whether this host redirects', async () => {
+    const { a } = await seed()
+    await owner
+      .insert(storeDomain)
+      .values([{ storeId: a.id, hostname: 'www.a.test', kind: 'custom', redirectToPrimary: true }])
+    expect(await resolveHost(app, 'WWW.A.TEST')).toEqual({
+      storeId: a.id,
+      primaryHostname: 'a.example.com',
+      redirect: true,
+    })
+    expect(await resolveHost(app, 'localhost')).toEqual({
+      storeId: a.id,
+      primaryHostname: 'a.example.com',
+      redirect: false,
+    })
+  })
+
+  it('never redirects the primary itself, even with the flag set', async () => {
+    const { a } = await seed()
+    await owner.update(storeDomain).set({ redirectToPrimary: true })
+    expect(await resolveHost(app, 'a.example.com')).toEqual({
+      storeId: a.id,
+      primaryHostname: 'a.example.com',
+      redirect: false,
+    })
+  })
+
+  it('reports no primary when the store has none live', async () => {
+    const { b } = await seed()
+    await owner.update(storeDomain).set({ isPrimary: false })
+    expect(await resolveHost(app, 'b.example.com')).toEqual({
+      storeId: b.id,
+      primaryHostname: null,
+      redirect: false,
+    })
+    expect(await resolveHost(app, 'nobody.test')).toBeNull()
+  })
+})
+
+describe('storesWithPendingDomains', () => {
+  it('lists stores with custom domains awaiting DNS or a certificate, once each', async () => {
+    const { a, b } = await seed()
+    await owner.insert(storeDomain).values([
+      { storeId: a.id, hostname: 'one.test', kind: 'custom', status: 'pending' },
+      { storeId: a.id, hostname: 'two.test', kind: 'custom', status: 'pending' },
+      { storeId: b.id, hostname: 'ssl.test', kind: 'custom', sslStatus: 'issuing' },
+    ])
+    expect((await storesWithPendingDomains(app)).sort()).toEqual([a.id, b.id].sort())
+  })
+
+  it('ignores platform domains, failed ones and live ones with certificates', async () => {
+    const { a } = await seed()
+    await owner.insert(storeDomain).values([
+      { storeId: a.id, hostname: 'failed.test', kind: 'custom', status: 'failed' },
+      { storeId: a.id, hostname: 'live.test', kind: 'custom' },
+    ])
+    expect(await storesWithPendingDomains(app)).toEqual([])
   })
 })

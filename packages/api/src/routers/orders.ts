@@ -25,6 +25,7 @@ import {
 import {
   addOrderNote,
   getOrder,
+  importedSource,
   listOrders,
   orderStats,
   refundOrderPayment,
@@ -55,6 +56,19 @@ const status = z.enum(['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'])
 const STATUS_TEMPLATE: Partial<Record<z.infer<typeof status>, TemplateId>> = {
   paid: 'payment_received',
   fulfilled: 'order_shipped',
+}
+
+/** Imported historical orders are read-only; every state-changing route refuses them. */
+async function assertNotImported(
+  tx: Parameters<typeof importedSource>[0],
+  ref: Parameters<typeof importedSource>[1],
+) {
+  const source = await importedSource(tx, ref)
+  if (source) {
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'This order was imported and is read-only. Notes and tags can still be changed.',
+    })
+  }
 }
 
 export const ordersRouter = {
@@ -102,6 +116,7 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
       try {
         const result = await fulfilOrder(context.tx, context.scope.storeId, input)
         if (result.complete) {
@@ -129,6 +144,7 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
       const o = await collectOrderPayment(context.tx, context.scope.storeId, input)
       if (o) {
         await enqueueNotification(context.notifications, {
@@ -144,6 +160,7 @@ export const ordersRouter = {
   createShipment: can(permissions.ORDERS_FULFIL)
     .input(z.object({ orderId: z.uuid() }))
     .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const row = await bookShipment(
         context.tx,
@@ -196,6 +213,7 @@ export const ordersRouter = {
           data: { required: permissions.ORDERS_CANCEL, role: context.scope.roleSlug },
         })
       }
+      await assertNotImported(context.tx, { orderId: input.id })
       const o = await setOrderStatus(
         context.tx,
         context.scope.storeId,
@@ -228,6 +246,7 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { paymentId: input.paymentId })
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
       try {
         const r = await refundOrderPayment(

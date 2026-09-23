@@ -1,0 +1,260 @@
+'use client'
+
+import {
+  type FieldType,
+  type FieldValidations,
+  KEY_PATTERN,
+  keyFromName,
+  type MetafieldOwnerType,
+  NO_LIST_TYPES,
+  ruleProblems,
+} from '@commerce/core/metaobjects'
+import { Button } from '@commerce/ui/shadcn/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import { customDataContent, fieldDialogContent } from '@/data/metaobjects'
+import { api } from '@/lib/api-client'
+import FieldRules from './field-rules'
+import FieldTypeSelect from './field-type-select'
+import ToggleField from './toggle-field'
+
+export type MetafieldDefinitionRow = Awaited<
+  ReturnType<typeof api.metaobjects.metafieldDefinitions>
+>[number]
+
+type MetafieldDefinitionDialogProps = {
+  open: boolean
+  ownerType: MetafieldOwnerType
+  /** `null` adds a new definition. */
+  definition: MetafieldDefinitionRow | null
+  targets: { id: string; name: string }[]
+  onClose: () => void
+  onSaved: () => void
+}
+
+type Draft = {
+  name: string
+  namespace: string
+  key: string
+  keyTouched: boolean
+  description: string
+  type: FieldType | null
+  list: boolean
+  validations: FieldValidations
+  storefrontAccess: boolean
+}
+
+const copy = customDataContent.dialog
+
+function toDraft(d: MetafieldDefinitionRow | null): Draft {
+  return {
+    name: d?.name ?? '',
+    namespace: d?.namespace ?? 'custom',
+    key: d?.key ?? '',
+    keyTouched: Boolean(d),
+    description: d?.description ?? '',
+    type: d?.type ?? null,
+    list: d?.list ?? false,
+    validations: (d?.validations as FieldValidations | undefined) ?? {},
+    storefrontAccess: d?.storefrontAccess ?? true,
+  }
+}
+
+/** Add or edit a product or collection metafield definition. */
+export default function MetafieldDefinitionDialog({
+  open,
+  ownerType,
+  definition,
+  targets,
+  onClose,
+  onSaved,
+}: MetafieldDefinitionDialogProps) {
+  // Hooks
+  const [draft, setDraft] = useState<Draft>(() => toDraft(definition))
+  const [busy, setBusy] = useState(false)
+  const [attempted, setAttempted] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setDraft(toDraft(definition))
+    setAttempted(false)
+  }, [open, definition])
+
+  // Helpers
+  const patch = (next: Partial<Draft>) => setDraft((d) => ({ ...d, ...next }))
+
+  // Event handlers
+  const handleName = (name: string) =>
+    patch(draft.keyTouched ? { name } : { name, key: keyFromName(name) })
+
+  const handleSave = async () => {
+    setAttempted(true)
+    if (problems.length > 0 || !draft.type) return
+    const write = {
+      ownerType,
+      name: draft.name.trim(),
+      namespace: draft.namespace,
+      key: draft.key,
+      description: draft.description.trim() || null,
+      type: draft.type,
+      list: draft.list,
+      validations: draft.validations,
+      storefrontAccess: draft.storefrontAccess,
+    }
+    setBusy(true)
+    try {
+      if (definition) await api.metaobjects.updateMetafieldDefinition({ id: definition.id, write })
+      else await api.metaobjects.createMetafieldDefinition(write)
+      toast.success(copy.saved)
+      onSaved()
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Render logic
+  const owner = customDataContent.owners[ownerType]
+  const locked = definition !== null
+  const keyValid = KEY_PATTERN.test(draft.key) && KEY_PATTERN.test(draft.namespace)
+  const problems = [
+    ...(draft.name.trim() ? [] : [fieldDialogContent.nameRequired]),
+    ...(keyValid ? [] : [fieldDialogContent.keyHelp]),
+    ...(draft.type
+      ? ruleProblems(draft.name, draft.type, draft.validations)
+      : [fieldDialogContent.typeRequired]),
+  ]
+  const listable = draft.type !== null && !NO_LIST_TYPES.includes(draft.type)
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{definition ? copy.editTitle : copy.addTitle(owner)}</DialogTitle>
+        </DialogHeader>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="metafield-name">{copy.name}</FieldLabel>
+            <Input
+              id="metafield-name"
+              size="lg"
+              value={draft.name}
+              placeholder={copy.namePlaceholder}
+              autoFocus
+              onChange={(e) => handleName(e.target.value)}
+            />
+          </Field>
+          <Field data-invalid={attempted && !keyValid}>
+            <FieldLabel htmlFor="metafield-key">{copy.namespaceKey}</FieldLabel>
+            <div className="flex items-center gap-2">
+              <Input
+                size="lg"
+                aria-label={copy.namespaceKey}
+                className="w-32 font-mono"
+                value={draft.namespace}
+                disabled={locked}
+                onChange={(e) => patch({ namespace: e.target.value })}
+              />
+              <span className="text-muted-foreground">.</span>
+              <Input
+                id="metafield-key"
+                size="lg"
+                className="font-mono"
+                value={draft.key}
+                disabled={locked}
+                autoComplete="off"
+                onChange={(e) => patch({ key: e.target.value, keyTouched: true })}
+              />
+            </div>
+            <FieldDescription>{copy.namespaceKeyHelp}</FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="metafield-type">{fieldDialogContent.type}</FieldLabel>
+            <FieldTypeSelect
+              id="metafield-type"
+              value={draft.type}
+              disabled={locked}
+              onChange={(type) =>
+                patch({
+                  type,
+                  validations: {},
+                  list: NO_LIST_TYPES.includes(type) ? false : draft.list,
+                })
+              }
+            />
+            {locked ? <FieldDescription>{copy.fixed}</FieldDescription> : null}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="metafield-description">{copy.description}</FieldLabel>
+            <Input
+              id="metafield-description"
+              size="lg"
+              value={draft.description}
+              maxLength={300}
+              onChange={(e) => patch({ description: e.target.value })}
+            />
+          </Field>
+          {listable ? (
+            <ToggleField
+              id="metafield-list"
+              label={fieldDialogContent.list}
+              help={fieldDialogContent.listHelp}
+              checked={draft.list}
+              disabled={locked}
+              onChange={(list) => patch({ list })}
+            />
+          ) : null}
+          <ToggleField
+            id="metafield-storefront"
+            label={copy.storefront}
+            help={copy.storefrontHelp}
+            checked={draft.storefrontAccess}
+            onChange={(storefrontAccess) => patch({ storefrontAccess })}
+          />
+          {draft.type ? (
+            <>
+              <FieldSeparator />
+              <FieldDescription className="text-body-strong text-foreground">
+                {fieldDialogContent.rules}
+              </FieldDescription>
+              <FieldRules
+                type={draft.type}
+                list={draft.list}
+                validations={draft.validations}
+                targets={targets}
+                onChange={(validations) => patch({ validations })}
+              />
+            </>
+          ) : null}
+          {attempted && problems.length > 0 ? <FieldError>{problems.join('. ')}</FieldError> : null}
+        </FieldGroup>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            {copy.cancel}
+          </Button>
+          <Button onClick={handleSave} disabled={busy}>
+            {busy ? copy.saving : copy.save}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

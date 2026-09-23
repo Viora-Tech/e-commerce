@@ -88,6 +88,14 @@ Apps, Settings (general, payments, shipping, notifications, files, staff), Pages
 builder. Roles and permissions: 31 typed permissions, `role`/`role_permission`/`store_member`,
 `can()` on all 92 procedures, Staff settings page.
 
+**Store migration.** Shopify importer app (`packages/plugin-shopify-import`, Apps → Shopify
+importer): Shopify product, customer and order CSVs, or a custom-app Admin API token for
+products, collections, customers, orders, pages, blog posts, menus and URL redirects. Runs are
+BullMQ app jobs with a dry-run preview, per-row issues and an id mapping table, so re-running
+updates instead of duplicating. Images are re-hosted in the store's storage provider. Imported
+orders carry `order.imported_from` and are read-only (no stock, messages, invoices or hooks).
+URL redirects (Content → Menus → URL redirects) are served by the storefront proxy.
+
 **Storefront.** Host-based routing via `proxy.ts`, Glide-derived theme, home and pages from
 Puck, product page with delivery estimate and EMI hint, cart, checkout (payment methods,
 discount codes, pincode serviceability), thank-you with manual payment instructions,
