@@ -27,7 +27,8 @@
     "./accounts": "./src/accounts/schemas.ts",
     "./gift-cards": "./src/gift-cards/client.ts",
     "./domains": "./src/domains/client.ts",
-    "./metaobjects": "./src/metaobjects/client.ts"
+    "./metaobjects": "./src/metaobjects/client.ts",
+    "./redirects": "./src/redirects/paths.ts"
   },
   "scripts": {
     "test": "vitest run",

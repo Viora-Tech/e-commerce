@@ -19,6 +19,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/content/files', 'Files'],
   ['/content/metaobjects', 'Metaobjects'],
   ['/content/menus', 'Menus'],
+  ['/content/menus/redirects', 'URL redirects'],
   ['/content/blog-posts', 'Blog posts'],
   ['/analytics', 'Analytics'],
   ['/analytics/reports', 'Reports'],

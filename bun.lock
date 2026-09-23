@@ -382,6 +382,19 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/plugin-shopify-import": {
+      "name": "@commerce/plugin-shopify-import",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/db": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+      },
+    },
     "packages/plugins": {
       "name": "@commerce/plugins",
       "version": "0.0.0",
@@ -695,6 +708,8 @@
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
 
     "@commerce/plugin-gst-invoices": ["@commerce/plugin-gst-invoices@workspace:packages/plugin-gst-invoices"],
+
+    "@commerce/plugin-shopify-import": ["@commerce/plugin-shopify-import@workspace:packages/plugin-shopify-import"],
 
     "@commerce/plugins": ["@commerce/plugins@workspace:packages/plugins"],
 

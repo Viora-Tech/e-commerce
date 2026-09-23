@@ -103,6 +103,8 @@ export {
 export { LogNotificationChannel, logChannelFactory } from './providers/log-channel'
 export { ManualPaymentProvider, manualFactory, upiDeepLink } from './providers/manual'
 export * from './providers/payment'
+export * from './redirects/paths'
+export * from './redirects/service'
 export { decryptSecret, encryptSecret, isEncrypted as isEncryptedSecret } from './secrets'
 export * from './settings/general'
 export * from './settings/secrets'

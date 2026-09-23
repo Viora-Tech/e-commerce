@@ -17,6 +17,7 @@ import { navigationRouter } from './navigation'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { productsRouter } from './products'
+import { redirectsRouter } from './redirects'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
 import { themesRouter } from './themes'
@@ -34,6 +35,7 @@ export const appRouter = {
   blog: blogRouter,
   metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
+  redirects: redirectsRouter,
   orders: ordersRouter,
   customers: customersRouter,
   discounts: discountsRouter,

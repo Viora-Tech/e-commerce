@@ -1,0 +1,23 @@
+{
+  "name": "@commerce/plugin-shopify-import",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shopify importer app. This part holds its tables and shared constants; the importer itself follows.",
+  "exports": {
+    "./schema": "./src/schema.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/db": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3"
+  }
+}
