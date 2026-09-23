@@ -24,7 +24,7 @@
     "./preferences": "./src/online-store/preferences.ts",
     "./blog": "./src/blog/client.ts",
     "./gift-cards": "./src/gift-cards/client.ts",
-    "./metaobjects": "./src/metaobjects/client.ts"
+    "./domains": "./src/domains/client.ts"
   },
   "scripts": {
     "test": "vitest run",
