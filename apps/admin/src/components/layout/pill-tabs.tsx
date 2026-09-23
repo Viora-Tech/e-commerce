@@ -19,10 +19,11 @@ type PillTabsProps<T extends string | null> = {
   onChange: (value: T) => void
   className?: string
   /**
-   * `underline` (default): list-view tabs on the filter bar's top edge, the active one
-   * marked by a 2px ink rule. `segmented`: a compact neutral switch for ranges.
+   * `pill` (default, the user's pick): the tinted track with a white pill that slides to
+   * the active tab. `underline`: tabs marked by a 2px ink rule. `segmented`: a compact
+   * neutral switch for ranges.
    */
-  variant?: 'underline' | 'segmented'
+  variant?: 'pill' | 'underline' | 'segmented'
   /** Kept for older call sites; both sizes draw the same tabs. */
   size?: 'default' | 'frame'
 }
@@ -30,6 +31,12 @@ type PillTabsProps<T extends string | null> = {
 const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 const STYLES = {
+  pill: {
+    track: 'inline-flex items-center rounded-lg bg-primary-soft p-1',
+    tab: `relative isolate flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-body font-medium whitespace-nowrap text-foreground/80 transition-colors hover:text-foreground ${FOCUS}`,
+    active: 'text-foreground',
+    marker: 'absolute inset-0 -z-10 rounded-[0.375rem] bg-card shadow-lift',
+  },
   underline: {
     track: 'flex items-center gap-5',
     tab: `relative flex h-11 items-center gap-1.5 whitespace-nowrap text-body font-medium text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
@@ -44,13 +51,13 @@ const STYLES = {
   },
 } as const
 
-/** Status tabs for list pages (and a segmented switch); the marker slides to the picked tab. */
+/** Status tabs for list pages (and a segmented switch); the marker slides to the picked tab (Motion). */
 export default function PillTabs<T extends string | null>({
   tabs,
   value,
   onChange,
   className,
-  variant = 'underline',
+  variant = 'pill',
 }: PillTabsProps<T>) {
   // Hooks
   const reduced = useReducedMotion()
@@ -83,14 +90,20 @@ export default function PillTabs<T extends string | null>({
             ) : null}
             {tab.label}
             {tab.count != null ? (
-              <span
-                className={cn(
-                  'rounded-sm px-1 text-caption tabular-nums',
-                  active ? 'bg-secondary text-foreground' : 'text-muted-foreground',
-                )}
-              >
-                {tab.count}
-              </span>
+              variant === 'pill' ? (
+                <span className="text-caption font-semibold text-primary tabular-nums">
+                  ({tab.count})
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    'rounded-sm px-1 text-caption tabular-nums',
+                    active ? 'bg-secondary text-foreground' : 'text-muted-foreground',
+                  )}
+                >
+                  {tab.count}
+                </span>
+              )
             ) : null}
           </button>
         )

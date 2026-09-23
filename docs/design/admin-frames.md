@@ -40,7 +40,7 @@ are in `admin-tokens.md`.
 
 The admin now follows the Saleor Dashboard (BSD-3) and its Macaw UI tokens (CC BY 4.0),
 re-implemented on our shadcn/Base UI. The target is the user's reference screenshot of
-Saleor's order detail (`C:UserskuldeDownloads(2626864-c9705611-2729-4e65-ae35-22081f03c569.png`).
+Saleor's order detail (`C:/Users/kulde/Downloads/502626864-c9705611-2729-4e65-ae35-22081f03c569.png`).
 Routes and IA stay Shopify-shaped. Credits: `apps/admin/THIRD_PARTY_LICENSES.md`.
 
 - Shell: a light grey frame (rail) around a white content panel (hairline, rounded corners).

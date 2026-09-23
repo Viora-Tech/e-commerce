@@ -57,11 +57,7 @@ export default function ResourceTableToolbar<T extends RowData>({
 
   return (
     <div className="flex flex-col">
-      {tabs ? (
-        <div className="no-scrollbar overflow-x-auto overflow-y-hidden border-b border-border px-4 md:px-6">
-          {tabs}
-        </div>
-      ) : null}
+      {tabs ? <div className="no-scrollbar overflow-x-auto px-4 pt-4 md:px-6">{tabs}</div> : null}
       <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
         <label className="flex h-8 w-full min-w-0 items-center gap-2 rounded-md border border-input bg-card px-2.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 hover:border-border-strong sm:w-72 lg:w-80">
           <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
