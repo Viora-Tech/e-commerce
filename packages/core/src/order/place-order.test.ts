@@ -17,7 +17,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
+import { CartEmpty, CartNotOpen, DiscountUnavailable, OutOfStock, PaymentFailed } from '../errors'
 import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
 import { placeOrder } from './place-order'
@@ -433,6 +433,110 @@ describe('placeOrder', () => {
     ).rejects.toThrow()
     expect(refunds).toEqual(['pay_broken:499900'])
     expect(await owner.select().from(order)).toEqual([])
+  })
+})
+
+describe('placeOrder discount limits under concurrency', () => {
+  const checkout = {
+    email: 'Shopper@Example.com',
+    phone: '9876543210',
+    name: 'Shopper',
+    address: { line1: '1 MG Road', city: 'Bengaluru', stateCode: 'KA', pincode: '560001' },
+  }
+
+  async function cartsWithCode(first: Seed, code: string, n: number): Promise<string[]> {
+    const ids: string[] = []
+    for (let i = 0; i < n; i++) {
+      const [c] = await owner
+        .insert(cart)
+        .values({ storeId: first.storeId, discountCode: code })
+        .returning()
+      if (!c) throw new Error('seed')
+      await owner.insert(cartLine).values({
+        storeId: first.storeId,
+        cartId: c.id,
+        variantId: first.variantId,
+        quantity: 1,
+        unitPricePaise: 499900,
+      })
+      ids.push(c.id)
+    }
+    return ids
+  }
+
+  async function checkoutAll(first: Seed, cartIds: string[], withDetails: boolean) {
+    return Promise.allSettled(
+      cartIds.map((cartId) =>
+        withStore(app, first.storeId, (tx) =>
+          placeOrder(
+            { storeId: first.storeId, tx },
+            {
+              cartId,
+              paymentProvider: new FakePaymentProvider({ mode: 'capture' }),
+              ...(withDetails ? { checkout } : {}),
+            },
+          ),
+        ),
+      ),
+    )
+  }
+
+  it('8 parallel checkouts on a code with limit 5 redeem it exactly 5 times', async () => {
+    const first = await seed({ onHand: 100, quantity: 1 })
+    const [d] = await owner
+      .insert(discount)
+      .values({
+        storeId: first.storeId,
+        title: 'Drop 10%',
+        kind: 'code',
+        code: 'DROP10',
+        method: 'percent',
+        value: 1000,
+        usageLimit: 5,
+      })
+      .returning()
+    if (!d) throw new Error('seed')
+    await owner.update(cart).set({ discountCode: 'DROP10' }).where(eq(cart.id, first.cartId))
+    const cartIds = await cartsWithCode(first, 'DROP10', 7)
+
+    const results = await checkoutAll(first, [first.cartId, ...cartIds], false)
+
+    const [row] = await owner.select().from(discount).where(eq(discount.id, d.id))
+    expect(row?.usedCount).toBe(5)
+    expect(await owner.select().from(discountUsage)).toHaveLength(5)
+    const orders = await owner.select().from(order)
+    expect(orders.filter((o) => o.discountCode === 'DROP10')).toHaveLength(5)
+    // Every other checkout either failed cleanly or (if it priced after the limit was hit) paid full price.
+    for (const r of results) {
+      if (r.status === 'rejected') expect(r.reason).toBeInstanceOf(DiscountUnavailable)
+    }
+    expect(orders.filter((o) => o.discountCode === null).every((o) => o.discountPaise === 0)).toBe(
+      true,
+    )
+    expect(orders.length + results.filter((r) => r.status === 'rejected').length).toBe(8)
+  })
+
+  it('a per-customer cap of 1 holds across parallel checkouts by the same shopper', async () => {
+    const first = await seed({ onHand: 100, quantity: 1 })
+    await owner.insert(discount).values({
+      storeId: first.storeId,
+      title: 'First order',
+      kind: 'code',
+      code: 'FIRST',
+      method: 'fixed',
+      value: 10000,
+      usagePerCustomer: 1,
+    })
+    const cartIds = await cartsWithCode(first, 'FIRST', 3)
+
+    const results = await checkoutAll(first, cartIds, true)
+
+    const usage = await owner.select().from(discountUsage)
+    expect(usage).toHaveLength(1)
+    expect(usage[0]?.email).toBe('shopper@example.com')
+    for (const r of results) {
+      if (r.status === 'rejected') expect(r.reason).toBeInstanceOf(DiscountUnavailable)
+    }
   })
 })
 

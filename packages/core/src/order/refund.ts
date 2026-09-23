@@ -46,7 +46,15 @@ export async function refundPayment(
   if (!Number.isInteger(input.amountPaise) || input.amountPaise <= 0) {
     throw new RefundNotAllowed('Refund amount must be a positive whole number of paise')
   }
-  const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, input.paymentId))
+  /* Lock the payment until the transaction ends, so two refunds of one payment
+     run one after the other and the second sees the first in its total. Without
+     it both read the same refunded sum and together return more than was
+     captured. Pattern from Medusa's lock-then-recheck (MIT). */
+  const [p] = await ctx.tx
+    .select()
+    .from(payment)
+    .where(eq(payment.id, input.paymentId))
+    .for('update')
   if (!p) throw new RefundNotAllowed('Payment not found')
   if (p.status !== 'captured' && p.status !== 'refunded') {
     throw new RefundNotAllowed('Only captured payments can be refunded')

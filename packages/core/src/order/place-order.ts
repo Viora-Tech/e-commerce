@@ -21,11 +21,15 @@ import type {
   PaymentShipping,
   PaymentStatus,
 } from '@commerce/payments'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'
-import { type ResolvedDiscount, resolveCartDiscount } from '../discounts/resolve'
-import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
+import {
+  customerUsageCount,
+  type ResolvedDiscount,
+  resolveCartDiscount,
+} from '../discounts/resolve'
+import { CartEmpty, CartNotOpen, DiscountUnavailable, OutOfStock, PaymentFailed } from '../errors'
 import {
   GIFT_CARD_PROVIDER,
   GiftCardError,
@@ -341,20 +345,16 @@ const createOrder: WorkflowStep<State> = {
       })),
     )
     if (applied) {
-      // Usage is counted in the same transaction as the order, so a limit of
-      // 100 means 100 orders even under concurrent checkouts.
+      const email = input.checkout?.email.trim().toLowerCase() ?? null
+      await claimDiscountUse(ctx, applied.discount.id, email)
       await ctx.tx.insert(discountUsage).values({
         storeId: ctx.storeId,
         discountId: applied.discount.id,
         orderId: o.id,
         customerId,
-        email: input.checkout?.email.trim().toLowerCase() ?? null,
+        email,
         amountPaise: discountPaise,
       })
-      await ctx.tx
-        .update(discount)
-        .set({ usedCount: sql`${discount.usedCount} + 1` })
-        .where(eq(discount.id, applied.discount.id))
     }
     return { orderId: o.id, orderNumber, totalPaise }
   },
@@ -370,6 +370,45 @@ const createOrder: WorkflowStep<State> = {
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
+}
+
+/**
+ * Count one use of a discount, or throw `DiscountUnavailable` when it has run
+ * out. `resolveDiscount` checked the limits from a snapshot, and a concurrent
+ * checkout may have used the last redemption since. So the discount row is
+ * locked for the rest of the transaction, the shopper's cap is re-counted under
+ * that lock, and the increment only happens while `used_count` is under the
+ * limit: a limit of 100 means 100 orders however many checkouts race.
+ *
+ * Pattern from Medusa's promotion `registerUsage` (MIT): lock the promotion
+ * row, then re-check the limits under the lock.
+ */
+async function claimDiscountUse(
+  ctx: StoreContext,
+  discountId: string,
+  email: string | null,
+): Promise<void> {
+  const [d] = await ctx.tx
+    .select({ usagePerCustomer: discount.usagePerCustomer })
+    .from(discount)
+    .where(eq(discount.id, discountId))
+    .for('update')
+  if (!d) throw new DiscountUnavailable(discountId, ctx.storeId)
+  if (d.usagePerCustomer !== null) {
+    const uses = await customerUsageCount(ctx, discountId, email)
+    if (uses >= d.usagePerCustomer) throw new DiscountUnavailable(discountId, ctx.storeId)
+  }
+  const claimed = await ctx.tx
+    .update(discount)
+    .set({ usedCount: sql`${discount.usedCount} + 1` })
+    .where(
+      and(
+        eq(discount.id, discountId),
+        or(isNull(discount.usageLimit), lt(discount.usedCount, discount.usageLimit)),
+      ),
+    )
+    .returning({ id: discount.id })
+  if (claimed.length === 0) throw new DiscountUnavailable(discountId, ctx.storeId)
 }
 
 /** GST at the line's rate; a gift card sale is a voucher, taxed only when it is redeemed. */

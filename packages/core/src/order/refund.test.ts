@@ -17,6 +17,14 @@ beforeEach(async () => {
   await resetDb(owner)
 })
 
+/** A gateway slow enough that two unguarded refunds would both pass the remaining check. */
+class SlowGateway extends FakePaymentProvider {
+  override async refund(...args: Parameters<FakePaymentProvider['refund']>) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    return super.refund(...args)
+  }
+}
+
 async function seed(provider: string, status: 'captured' | 'pending' = 'captured') {
   const [s] = await owner.insert(store).values({ slug: 'waimers', name: 'Waimers' }).returning()
   if (!s) throw new Error('seed')
@@ -109,5 +117,23 @@ describe('refundPayment', () => {
         refundPayment({ tx, storeId }, gateway, { paymentId, amountPaise: 0 }),
       ),
     ).rejects.toBeInstanceOf(RefundNotAllowed)
+  })
+
+  it('two parallel refunds cannot return more than the capture', async () => {
+    const { storeId, paymentId } = await seed('fake')
+    const gateway = new SlowGateway()
+    const refundOnce = () =>
+      withStore(app, storeId, (tx) =>
+        refundPayment({ tx, storeId }, gateway, { paymentId, amountPaise: 70000 }),
+      )
+
+    const results = await Promise.allSettled([refundOnce(), refundOnce()])
+
+    expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected'])
+    const failed = results.find((r) => r.status === 'rejected')
+    expect(failed?.reason).toBeInstanceOf(RefundNotAllowed)
+    expect(gateway.calls).toEqual(['refund:pay_1:70000'])
+    const rows = await owner.select().from(refund).where(eq(refund.paymentId, paymentId))
+    expect(rows.reduce((sum, r) => sum + r.amountPaise, 0)).toBe(70000)
   })
 })

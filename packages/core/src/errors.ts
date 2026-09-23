@@ -34,6 +34,19 @@ export class CartEmpty extends CommerceError {
   }
 }
 
+/**
+ * The discount ran out between the preview and the order: its usage limit, or
+ * this shopper's cap, was reached by a checkout that committed first. The order
+ * is not placed; submitting again prices the cart without it.
+ */
+export class DiscountUnavailable extends CommerceError {
+  constructor(discountId: string, storeId?: string) {
+    super('DISCOUNT_UNAVAILABLE', `Discount ${discountId} has reached its usage limit`, {
+      storeId,
+    })
+  }
+}
+
 export class PaymentFailed extends CommerceError {
   constructor(provider: string, cause?: unknown, storeId?: string) {
     super('PAYMENT_FAILED', `Payment via ${provider} failed`, { storeId, cause })
