@@ -1,5 +1,5 @@
-import { cart, cartLine, discount, discountUsage, variant } from '@commerce/db'
-import { and, count, eq } from 'drizzle-orm'
+import { cart, cartLine, collectionProduct, discount, discountUsage, variant } from '@commerce/db'
+import { and, count, eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import {
   bestAutomaticDiscount,
@@ -20,7 +20,14 @@ export type CodeCheck =
   | { ok: true; outcome: ResolvedDiscount }
   | { ok: false; reason: CodeRejection }
 
-/** Cart lines in the shape the evaluator wants. */
+/**
+ * Cart lines in the shape the evaluator wants, each with the collections its
+ * product belongs to, so a discount scoped to collections can find its lines.
+ * Membership is read from `collection_product`, the same rows the storefront
+ * lists collections from: manual picks, and automatic collections' rule matches
+ * as `syncAutomaticCollection` materialised them. Draft collections count too,
+ * so a hidden collection can target a discount.
+ */
 export async function loadDiscountCart(ctx: StoreContext, cartId: string): Promise<DiscountCart> {
   const rows = await ctx.tx
     .select({
@@ -31,7 +38,34 @@ export async function loadDiscountCart(ctx: StoreContext, cartId: string): Promi
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .where(eq(cartLine.cartId, cartId))
-  return { lines: rows, shippingPaise: 0 }
+  const collectionsByProduct = await productCollections(ctx, [
+    ...new Set(rows.map((r) => r.productId)),
+  ])
+  const lines = rows.map((r) => ({
+    ...r,
+    collectionIds: collectionsByProduct.get(r.productId) ?? [],
+  }))
+  return { lines, shippingPaise: 0 }
+}
+
+/** Collection ids per product, for the products given. */
+async function productCollections(
+  ctx: StoreContext,
+  productIds: string[],
+): Promise<Map<string, string[]>> {
+  const byProduct = new Map<string, string[]>()
+  if (productIds.length === 0) return byProduct
+  const rows = await ctx.tx
+    .select({
+      productId: collectionProduct.productId,
+      collectionId: collectionProduct.collectionId,
+    })
+    .from(collectionProduct)
+    .where(inArray(collectionProduct.productId, productIds))
+  for (const r of rows) {
+    byProduct.set(r.productId, [...(byProduct.get(r.productId) ?? []), r.collectionId])
+  }
+  return byProduct
 }
 
 export async function findDiscountByCode(
