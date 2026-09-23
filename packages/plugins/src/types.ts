@@ -123,6 +123,22 @@ export type AppAdmin = {
   orderDetailCard?: boolean | undefined
 }
 
+/**
+ * Open-source work an app is built on, shown on its Apps card so merchants see
+ * where it comes from. Every app that adapts outside code must list it here
+ * (and keep the full licence per THIRD_PARTY_NOTICES.md).
+ */
+export type AppCredit = {
+  /** Project name, e.g. `invoicely`. */
+  name: string
+  /** Project home or repository. */
+  url: string
+  /** SPDX id, e.g. `MIT`. */
+  license: string
+  /** What we took, e.g. `PDF invoice templates`. */
+  note?: string | undefined
+}
+
 export type PluginManifest = {
   /** Stable lowercase id, e.g. `razorpay`, `delhivery`, `fedex`. Unique per deployment. */
   id: string
@@ -137,6 +153,8 @@ export type PluginManifest = {
   orderLinks?: ((ctx: OrderLinkContext, orderId: string) => Promise<OrderLink[]>) | undefined
   productFields?: ProductField[] | undefined
   admin?: AppAdmin | undefined
+  /** Open-source projects this app is built on. */
+  credits?: AppCredit[] | undefined
   /** Named background jobs, queued with `enqueueAppJob`. */
   jobs?: Record<string, AppJob> | undefined
   emailAttachments?: EmailAttachments | undefined
@@ -161,4 +179,5 @@ export type PluginSummary = {
   hooks: AppEvent[]
   productFields: ProductField[]
   admin: { icon: string | null; pages: AppPage[]; orderDetailCard: boolean }
+  credits: AppCredit[]
 }

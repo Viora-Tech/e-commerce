@@ -123,6 +123,22 @@ describe('loadPlugins', () => {
     expect(JSON.parse(JSON.stringify(r))).toEqual(r)
   })
 
+  it('summaries carry app credits, and none when an app lists none', () => {
+    const credited = definePlugin({
+      id: 'credited',
+      name: 'Credited',
+      version: '1.0.0',
+      credits: [{ name: 'invoicely', url: 'https://github.com/x/y', license: 'MIT' }],
+      provides: {},
+    })
+    const [c, r, x] = loadPlugins([core, razorpay, credited]).summaries()
+    expect(c?.credits).toEqual([])
+    expect(r?.credits).toEqual([])
+    expect(x?.credits).toEqual([
+      { name: 'invoicely', url: 'https://github.com/x/y', license: 'MIT' },
+    ])
+  })
+
   it('providerIds lists what a plugin contributes, for uninstall clean-up', () => {
     const loaded = loadPlugins([core, razorpay, fedex])
     expect(loaded.providerIds('fedex')).toEqual({

@@ -144,6 +144,14 @@ export const gstInvoicesPlugin = definePlugin({
   category: 'invoicing',
   description:
     'GST tax invoices, credit notes and packing slips with your logo, emailed and downloadable, plus GSTR-1 export.',
+  credits: [
+    {
+      name: 'invoicely',
+      url: 'https://github.com/legions-developer/invoicely',
+      license: 'MIT',
+      note: 'Invoice templates and the live preview editor',
+    },
+  ],
   provides: {},
   hooks: {
     'order.paid': (ctx, p) => onOrderEvent(ctx, p.orderId, 'paid'),

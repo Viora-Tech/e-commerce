@@ -141,6 +141,17 @@ A plugin may provide several kinds at once (`payments`, `shipping`,
 `notifications`, `storage`) — an aggregator like Shiprocket would list couriers
 under `shipping` and its COD remittance under `payments`.
 
+If the app adapts code from an open-source project, credit it in the manifest. The Apps card
+shows "Built with <project> (<licence>)" linking to the source, so merchants see it when they
+install. Keep the full licence text too, per `THIRD_PARTY_NOTICES.md`.
+
+```ts
+credits: [
+  { name: 'invoicely', url: 'https://github.com/legions-developer/invoicely', license: 'MIT',
+    note: 'Invoice templates and the live preview editor' },
+],
+```
+
 ### Storage providers
 
 `@commerce/storage` is the contract for where uploads live. The browser asks
