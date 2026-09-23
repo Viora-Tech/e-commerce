@@ -1,0 +1,219 @@
+import type { StoreTx } from '@commerce/db'
+import { type SQL, sql } from 'drizzle-orm'
+import { type BrowseFilters, type BrowseSort, EMPTY_FILTERS } from './browse-params'
+
+/**
+ * Collection and search listings with Shopify-style filters, facets and sorts,
+ * in SQL so a large catalogue pages in the database rather than in memory.
+ * Runs under the caller's RLS scope; nothing here names a store.
+ */
+
+export type FacetValue = { value: string; count: number }
+
+export type BrowseFacets = {
+  inStock: number
+  outOfStock: number
+  /** Lowest and highest product price in the listing, paise; null when empty. */
+  priceMin: number | null
+  priceMax: number | null
+  productTypes: FacetValue[]
+  vendors: FacetValue[]
+  tags: FacetValue[]
+  /** Options such as Size and Colour, with the values any product offers. */
+  options: { key: string; name: string; values: FacetValue[] }[]
+}
+
+export type BrowseResult = {
+  /** Product handles for this page, in order; cards are loaded by the caller. */
+  handles: string[]
+  total: number
+  facets: BrowseFacets
+}
+
+export type BrowseInput = {
+  /** Limit to one collection's members (and allow its manual order). */
+  collectionId?: string | undefined
+  /** Free-text search over title, type, vendor, tags and SKU. */
+  query?: string | undefined
+  filters: BrowseFilters
+  sort: BrowseSort
+  page: number
+  perPage: number
+}
+
+const escapeLike = (q: string) => q.replace(/[\\%_]/g, (c) => `\\${c}`)
+
+const inList = (values: string[]): SQL =>
+  sql`(${sql.join(
+    values.map((v) => sql`${v}`),
+    sql`, `,
+  )})`
+
+/** Every active product in scope with the fields filters and sorts need. */
+function baseQuery(input: BrowseInput): SQL {
+  const q = input.query?.trim().slice(0, 100) ?? ''
+  const pattern = `%${escapeLike(q)}%`
+  const prefix = `${escapeLike(q)}%`
+  const join = input.collectionId
+    ? sql`join collection_product cp on cp.product_id = p.id and cp.collection_id = ${input.collectionId}`
+    : sql``
+  const match = q
+    ? sql`and (
+        p.title ilike ${pattern} or p.product_type ilike ${pattern} or p.vendor ilike ${pattern}
+        or exists (select 1 from unnest(p.tags) t where t ilike ${pattern})
+        or exists (select 1 from variant sv where sv.product_id = p.id and sv.archived_at is null and sv.sku ilike ${pattern})
+      )`
+    : sql``
+  const relevance = q
+    ? sql`case when p.title ilike ${prefix} then 0 when p.title ilike ${pattern} then 1 else 2 end`
+    : sql`0`
+  return sql`
+    select p.id, p.handle, p.title, p.created_at, p.product_type, p.vendor, p.tags,
+      ${input.collectionId ? sql`cp.position` : sql`0`} as position,
+      ${relevance} as relevance,
+      (select min(v.price_paise) from variant v where v.product_id = p.id and v.archived_at is null) as min_price,
+      exists (
+        select 1 from variant v
+        left join inventory_level il on il.variant_id = v.id and il.fulfils_online
+        where v.product_id = p.id and v.archived_at is null
+          and (not v.track_inventory or coalesce(il.on_hand, 0) - coalesce(il.reserved, 0) > 0)
+      ) as in_stock
+    from product p ${join}
+    where p.status = 'active' ${match}`
+}
+
+function filterWhere(f: BrowseFilters): SQL {
+  const parts: SQL[] = [sql`true`]
+  if (f.available !== null) parts.push(f.available ? sql`b.in_stock` : sql`not b.in_stock`)
+  if (f.priceMin !== null) parts.push(sql`b.min_price >= ${f.priceMin}`)
+  if (f.priceMax !== null) parts.push(sql`b.min_price <= ${f.priceMax}`)
+  if (f.productTypes.length) parts.push(sql`b.product_type in ${inList(f.productTypes)}`)
+  if (f.vendors.length) parts.push(sql`b.vendor in ${inList(f.vendors)}`)
+  if (f.tags.length) {
+    parts.push(sql`exists (select 1 from unnest(b.tags) t where t in ${inList(f.tags)})`)
+  }
+  for (const [name, values] of Object.entries(f.options)) {
+    parts.push(sql`exists (
+      select 1 from variant v
+      join variant_option_value vov on vov.variant_id = v.id
+      join product_option_value pov on pov.id = vov.option_value_id
+      join product_option po on po.id = pov.option_id
+      where v.product_id = b.id and v.archived_at is null
+        and lower(po.name) = ${name} and pov.value in ${inList(values)}
+    )`)
+  }
+  return sql.join(parts, sql` and `)
+}
+
+function orderBy(sort: BrowseSort): SQL {
+  switch (sort) {
+    case 'relevance':
+      return sql`b.relevance, b.title, b.id`
+    case 'best-selling':
+      return sql`(
+        select coalesce(sum(ol.quantity), 0) from order_line ol
+        join variant v on v.id = ol.variant_id
+        join "order" o on o.id = ol.order_id
+        where v.product_id = b.id and o.status not in ('draft', 'cancelled')
+      ) desc, b.title, b.id`
+    case 'title-ascending':
+      return sql`b.title, b.id`
+    case 'title-descending':
+      return sql`b.title desc, b.id`
+    case 'price-ascending':
+      return sql`b.min_price nulls last, b.title, b.id`
+    case 'price-descending':
+      return sql`b.min_price desc nulls last, b.title, b.id`
+    case 'created-descending':
+      return sql`b.created_at desc, b.id`
+    default:
+      return sql`b.position, b.title, b.id`
+  }
+}
+
+type Row = Record<string, unknown>
+const num = (v: unknown): number => Number(v ?? 0)
+
+export async function browseProducts(tx: StoreTx, input: BrowseInput): Promise<BrowseResult> {
+  const base = baseQuery(input)
+  const where = filterWhere(input.filters)
+  const offset = (Math.max(1, input.page) - 1) * input.perPage
+
+  const page = await tx.execute<Row>(sql`
+    with b as (${base})
+    select b.handle, count(*) over () as total from b where ${where}
+    order by ${orderBy(input.sort)} limit ${input.perPage} offset ${offset}`)
+  let total = num(page[0]?.total)
+  if (page.length === 0 && offset > 0) {
+    const [c] = await tx.execute<Row>(
+      sql`with b as (${base}) select count(*) as n from b where ${where}`,
+    )
+    total = num(c?.n)
+  }
+
+  const [stats] = await tx.execute<Row>(sql`
+    with b as (${base})
+    select count(*) filter (where in_stock) as in_stock, count(*) filter (where not in_stock) as out_stock,
+      min(min_price) as price_min, max(min_price) as price_max from b`)
+  const facetRows = await tx.execute<Row>(sql`
+    with b as (${base})
+    select 'type' as kind, null as name, product_type as value, count(*) as n from b
+      where coalesce(product_type, '') <> '' group by product_type
+    union all
+    select 'vendor', null, vendor, count(*) from b where coalesce(vendor, '') <> '' group by vendor
+    union all
+    select 'tag', null, t, count(*) from b, unnest(b.tags) t where t <> '' group by t`)
+  const optionRows = await tx.execute<Row>(sql`
+    with b as (${base})
+    select lower(po.name) as key, min(po.name) as name, pov.value, count(distinct b.id) as n,
+      min(po.position) as opos, min(pov.position) as vpos
+    from b
+    join variant v on v.product_id = b.id and v.archived_at is null
+    join variant_option_value vov on vov.variant_id = v.id
+    join product_option_value pov on pov.id = vov.option_value_id
+    join product_option po on po.id = pov.option_id
+    where lower(po.name) <> 'title'
+    group by lower(po.name), pov.value
+    order by opos, key, vpos, pov.value`)
+
+  const values = (kind: string): FacetValue[] =>
+    facetRows
+      .filter((r) => r.kind === kind)
+      .map((r) => ({ value: String(r.value), count: num(r.n) }))
+      .sort((a, b) => a.value.localeCompare(b.value))
+  const options: BrowseFacets['options'] = []
+  for (const r of optionRows) {
+    const key = String(r.key)
+    let o = options.find((x) => x.key === key)
+    if (!o) {
+      o = { key, name: String(r.name), values: [] }
+      options.push(o)
+    }
+    o.values.push({ value: String(r.value), count: num(r.n) })
+  }
+
+  return {
+    handles: page.map((r) => String(r.handle)),
+    total,
+    facets: {
+      inStock: num(stats?.in_stock),
+      outOfStock: num(stats?.out_stock),
+      priceMin: stats?.price_min == null ? null : num(stats.price_min),
+      priceMax: stats?.price_max == null ? null : num(stats.price_max),
+      productTypes: values('type'),
+      vendors: values('vendor'),
+      tags: values('tag'),
+      options,
+    },
+  }
+}
+
+/** Quick matches for the header's predictive search: a few product handles, best first. */
+export async function suggestProducts(tx: StoreTx, query: string, limit = 6): Promise<string[]> {
+  const q = query.trim().slice(0, 100)
+  if (q.length < 2) return []
+  const rows = await tx.execute<Row>(sql`
+    with b as (${baseQuery({ query: q, filters: EMPTY_FILTERS, sort: 'relevance', page: 1, perPage: limit })})
+    select b.handle from b order by b.relevance, b.in_stock desc, b.title limit ${limit}`)
+  return rows.map((r) => String(r.handle))
+}

@@ -1,4 +1,4 @@
-import { collection, collectionProduct, newId, product, type StoreTx, variant } from '@commerce/db'
+import { collection, collectionProduct, newId, product, type StoreTx } from '@commerce/db'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/products'
 import { type CollectionRules, type RuleProduct, selectMembers } from './rules'
@@ -35,9 +35,12 @@ export async function ruleProducts(
       vendor: product.vendor,
       tags: product.tags,
       createdAt: product.createdAt,
+      /* Drizzle renders columns unqualified inside a single-table select, which made this
+         correlated subquery compare variant.product_id with variant.id (always null).
+         Spell the aliases out, as media's usedBy does. */
       pricePaise: sql<
         number | null
-      >`(select min(${variant.pricePaise}) from ${variant} where ${variant.productId} = ${product.id} and ${variant.archivedAt} is null)`,
+      >`(select min(v.price_paise) from variant v where v.product_id = product.id and v.archived_at is null)`,
     })
     .from(product)
     .where(eq(product.status, 'active'))

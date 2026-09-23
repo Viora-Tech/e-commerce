@@ -6,10 +6,13 @@ import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
+import { domainsRouter } from './domains'
+import { giftCardsRouter } from './gift-cards'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
 import { mediaRouter } from './media'
+import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
@@ -30,17 +33,20 @@ export const appRouter = {
   transfers: transfersRouter,
   pages: pagesRouter,
   blog: blogRouter,
+  metaobjects: metaobjectsRouter,
   navigation: navigationRouter,
   redirects: redirectsRouter,
   orders: ordersRouter,
   customers: customersRouter,
   discounts: discountsRouter,
+  giftCards: giftCardsRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   media: mediaRouter,
   staff: staffRouter,
+  domains: domainsRouter,
   invitations: invitationsRouter,
 }
 

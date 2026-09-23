@@ -71,9 +71,10 @@ const DEFS: Record<DynamicSection, Def> = {
     fields: {
       showImage: yesNo('Collection image'),
       showDescription: yesNo('Collection description'),
+      showFilters: yesNo('Filtering'),
       showSort: yesNo('Sorting'),
     },
-    defaultProps: { showImage: false, showDescription: true, showSort: true },
+    defaultProps: { showImage: false, showDescription: true, showFilters: true, showSort: true },
   },
   MainPage: {
     label: 'Page',
@@ -83,7 +84,11 @@ const DEFS: Record<DynamicSection, Def> = {
   MainBlog: { label: 'Blog posts', fields: {}, defaultProps: {} },
   MainArticle: { label: 'Blog post', fields: {}, defaultProps: {} },
   MainCart: { label: 'Cart items', fields: {}, defaultProps: {} },
-  MainSearch: { label: 'Search results', fields: {}, defaultProps: {} },
+  MainSearch: {
+    label: 'Search results',
+    fields: { showFilters: yesNo('Filtering'), showSort: yesNo('Sorting') },
+    defaultProps: { showFilters: true, showSort: true },
+  },
   MainNotFound: { label: 'Page not found', fields: {}, defaultProps: {} },
   RelatedProducts: {
     label: 'Related products',
