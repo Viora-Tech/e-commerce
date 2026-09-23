@@ -23,9 +23,13 @@ type WhatsappTemplateCardProps = {
   value: WhatsappTemplateRef | null
   templates: TemplatesResult | null
   onChange: (value: WhatsappTemplateRef | null) => void
+  /** Drop the card frame when nested in another card. */
+  bare?: boolean | undefined
 }
 
 const copy = campaignEditorContent.whatsapp
+/* Inside an automation step the list sits in the step's own card, so it drops its frame. */
+const BARE_CARD = 'gap-3 rounded-none border-0 bg-transparent py-0 shadow-none ring-0'
 const keyOf = (t: { name: string; language: string }) => `${t.name}|${t.language}`
 
 function problemText(t: Exclude<TemplatesResult, { ok: true }>): string {
@@ -39,6 +43,7 @@ export default function WhatsappTemplateCard({
   value,
   templates,
   onChange,
+  bare,
 }: WhatsappTemplateCardProps) {
   // Event handlers
   const handlePick = (key: string) => {
@@ -63,11 +68,13 @@ export default function WhatsappTemplateCard({
   const items = Object.fromEntries(list.map((t) => [keyOf(t), `${t.name} (${t.language})`]))
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{copy.title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Card className={bare ? BARE_CARD : undefined}>
+      {bare ? null : (
+        <CardHeader>
+          <CardTitle>{copy.title}</CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={bare ? 'px-0' : undefined}>
         <FieldGroup>
           {templates && !templates.ok ? (
             <Alert>

@@ -4,10 +4,9 @@ import { createDb } from '@commerce/db'
 import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
-import { createAbandonedSweeper, SWEEP_EVERY_MS } from './abandoned'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
-import { createMarketingWorker, MARKETING_TICK_MS } from './marketing'
+import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
@@ -38,11 +37,6 @@ const appJobWorker = createAppJobWorker(redis, db, {
 })
 
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
-const abandoned = createAbandonedSweeper(redis, db, {
-  settingsSecret: env.SETTINGS_SECRET,
-  storefrontUrl: env.STOREFRONT_URL,
-})
-
 const domains = createDomainPoller(redis, db, {
   provider: env.DOMAIN_PROVIDER,
   targets: { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET },
@@ -58,11 +52,8 @@ await tracker.queue.upsertJobScheduler(
   { every: TRACK_EVERY_MS },
   { name: 'track' },
 )
-await abandoned.queue.upsertJobScheduler(
-  'sweep-abandoned-carts',
-  { every: SWEEP_EVERY_MS },
-  { name: 'sweep' },
-)
+// Abandoned-cart recovery now runs as a Marketing automation; drop the old sweep's schedule.
+await retireAbandonedSweep(redis)
 
 await domains.queue.upsertJobScheduler(
   'verify-pending-domains',
@@ -100,8 +91,6 @@ const shutdown = async () => {
   await appJobWorker.close()
   await tracker.worker.close()
   await tracker.queue.close()
-  await abandoned.worker.close()
-  await abandoned.queue.close()
   await domains.worker.close()
   await domains.queue.close()
   await marketing.tick.close()

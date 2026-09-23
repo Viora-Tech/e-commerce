@@ -20,15 +20,24 @@ export async function subscribeToNewsletter(
 ): Promise<boolean> {
   const parsed = Email.safeParse(rawEmail)
   if (!parsed.success) return false
+  const now = new Date()
+  // Consent is recorded with its time and source; signing up again after an
+  // unsubscribe is a fresh opt-in, so the unsubscribe is cleared.
+  const consent = {
+    acceptsMarketing: true,
+    marketingConsentAt: now,
+    marketingConsentSource: NEWSLETTER_TAG,
+    unsubscribedAt: null,
+  }
   await tx
     .insert(customer)
-    .values({ storeId, email: parsed.data, acceptsMarketing: true, tags: [NEWSLETTER_TAG] })
+    .values({ storeId, email: parsed.data, tags: [NEWSLETTER_TAG], ...consent })
     .onConflictDoUpdate({
       target: [customer.storeId, customer.email],
       set: {
-        acceptsMarketing: true,
+        ...consent,
         tags: sql`case when ${NEWSLETTER_TAG} = any(${customer.tags}) then ${customer.tags} else array_append(${customer.tags}, ${NEWSLETTER_TAG}) end`,
-        updatedAt: new Date(),
+        updatedAt: now,
       },
     })
   return true

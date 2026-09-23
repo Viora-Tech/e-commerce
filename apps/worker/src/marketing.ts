@@ -1,7 +1,14 @@
-import { type MarketingDeps, sendCampaignBatch, startDueCampaigns } from '@commerce/core'
+import {
+  enrolDue,
+  type MarketingDeps,
+  processDueRuns,
+  sendCampaignBatch,
+  startDueCampaigns,
+} from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, type StoreTx, storesWithMarketingWork, withStore } from '@commerce/db'
 import {
+  ABANDONED_SWEEP_QUEUE,
   type IORedis,
   MARKETING_SEND_QUEUE,
   MARKETING_TICK_QUEUE,
@@ -27,11 +34,27 @@ async function depsFor(tx: StoreTx, storeId: string, opts: Opts): Promise<Market
 }
 
 /**
+ * The hourly abandoned-cart sweep is replaced by the abandoned-checkout
+ * automation (migration 0051 moved opted-in stores across). Its repeat
+ * schedule lives in Redis, so it is removed explicitly once.
+ */
+export async function retireAbandonedSweep(connection: IORedis): Promise<void> {
+  const queue = new Queue(ABANDONED_SWEEP_QUEUE, { connection })
+  try {
+    await queue.removeJobScheduler('sweep-abandoned-carts')
+  } finally {
+    await queue.close()
+  }
+}
+
+/**
  * Marketing runs on two queues. A repeat tick finds stores with work (via a
- * SECURITY DEFINER lookup that returns ids only), starts campaigns whose time
- * has come and queues one send job per sending campaign. Send jobs work
- * through recipients in batches, each in its own store-scoped transaction,
- * so a crash loses at most one batch and SKIP LOCKED keeps two workers apart.
+ * SECURITY DEFINER lookup that returns ids only), then per store: starts
+ * campaigns whose time has come, enrols shoppers into automations (quiet
+ * baskets, lapsed customers) and advances due automation runs. Campaign
+ * recipients are sent by `{marketing}-send` jobs in batches, each in its own
+ * store-scoped transaction, so a crash loses at most one batch and SKIP
+ * LOCKED keeps two workers apart.
  */
 export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
   const tickQueue = new Queue(MARKETING_TICK_QUEUE, { connection })
@@ -42,6 +65,8 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
     async () => {
       const storeIds = await storesWithMarketingWork(db)
       let queued = 0
+      let enrolled = 0
+      let steps = 0
       for (const storeId of storeIds) {
         try {
           const sending = await withStore(db, storeId, (tx) => startDueCampaigns(tx, storeId))
@@ -53,11 +78,16 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
             )
             queued += 1
           }
+          enrolled += await withStore(db, storeId, (tx) => enrolDue(tx, storeId))
+          const r = await withStore(db, storeId, async (tx) =>
+            processDueRuns(tx, storeId, await depsFor(tx, storeId, opts)),
+          )
+          steps += r.processed
         } catch (err) {
           console.warn(`[marketing] tick for store ${storeId} failed:`, err)
         }
       }
-      return { stores: storeIds.length, queued }
+      return { stores: storeIds.length, queued, enrolled, steps }
     },
     { connection },
   )

@@ -26,9 +26,13 @@ type EmailContentCardProps = {
   onChange: (blocks: EmailBlock[]) => void
   /** Cart contents only make sense in cart and checkout automations. */
   allowCart?: boolean | undefined
+  /** Drop the card frame when nested in another card. */
+  bare?: boolean | undefined
 }
 
 const copy = campaignEditorContent
+/* Inside an automation step the list sits in the step's own card, so it drops its frame. */
+const BARE_CARD = 'gap-3 rounded-none border-0 bg-transparent py-0 shadow-none ring-0'
 
 /** One line summary so a collapsed block still says what it holds. */
 function summary(block: EmailBlock): string {
@@ -49,7 +53,12 @@ function summary(block: EmailBlock): string {
 }
 
 /** The block list: add, edit in place, reorder and remove. */
-export default function EmailContentCard({ blocks, onChange, allowCart }: EmailContentCardProps) {
+export default function EmailContentCard({
+  blocks,
+  onChange,
+  allowCart,
+  bare,
+}: EmailContentCardProps) {
   // Hooks
   const [open, setOpen] = useState<string | null>(blocks[1]?.id ?? blocks[0]?.id ?? null)
 
@@ -69,8 +78,8 @@ export default function EmailContentCard({ blocks, onChange, allowCart }: EmailC
   const types = EMAIL_BLOCK_TYPES.filter((t) => allowCart || t !== 'cart')
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className={bare ? BARE_CARD : undefined}>
+      <CardHeader className={cn('flex flex-row items-center justify-between', bare && 'px-0')}>
         <CardTitle>{copy.content.title}</CardTitle>
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
@@ -91,7 +100,7 @@ export default function EmailContentCard({ blocks, onChange, allowCart }: EmailC
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2">
+      <CardContent className={cn('flex flex-col gap-2', bare && 'px-0')}>
         {blocks.length === 0 ? (
           <p className="text-body text-muted-foreground">{copy.content.empty}</p>
         ) : null}
