@@ -67,6 +67,14 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `${d.storeName}: your ${d.documentLabel ?? 'invoice'} for order #${d.orderNumber}.${d.links?.[0] ? ` Download: ${d.links[0].url}` : ''}`,
   },
+  login_code: {
+    subject: (d) => `${d.code} is your ${d.storeName} sign-in code`,
+    heading: () => 'Your sign-in code',
+    intro: (d) => `Enter ${d.code} to sign in to your ${d.storeName} account.`,
+    outro: () =>
+      'The code works once and expires in 10 minutes. If you did not ask for it, ignore this email.',
+    whatsapp: (d) => `${d.code} is your ${d.storeName} sign-in code. It expires in 10 minutes.`,
+  },
 }
 
 export const sharedContent = {

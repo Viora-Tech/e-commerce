@@ -22,7 +22,8 @@
     "./navigation-tree": "./src/navigation/tree.ts",
     "./theme": "./src/theme/client.ts",
     "./preferences": "./src/online-store/preferences.ts",
-    "./blog": "./src/blog/client.ts"
+    "./blog": "./src/blog/client.ts",
+    "./accounts": "./src/accounts/schemas.ts"
   },
   "scripts": {
     "test": "vitest run",

@@ -316,6 +316,13 @@
       "when": 1790113284882,
       "tag": "0044_theme_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790260000000,
+      "tag": "0049_customer_accounts",
+      "breakpoints": true
     }
   ]
 }
