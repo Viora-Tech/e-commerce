@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/pop
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { navigationContent } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
 import CommandPalette from './command-palette'
@@ -28,6 +28,9 @@ type TopBarProps = {
   /** True once the page content has scrolled; the bar gains a hairline and a soft shadow. */
   scrolled?: boolean
 }
+
+/* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
+const noSubscription = () => () => {}
 
 function initials(name: string): string {
   return (
@@ -46,6 +49,13 @@ export default function TopBar({ title, heading, user, scrolled = false }: TopBa
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const [paletteOpen, setPaletteOpen] = useState(false)
+  /* The theme lives in localStorage, so the server cannot know it. False while
+     hydrating (matching the server HTML), true straight after, without an effect. */
+  const hydrated = useSyncExternalStore(
+    noSubscription,
+    () => true,
+    () => false,
+  )
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -65,7 +75,7 @@ export default function TopBar({ title, heading, user, scrolled = false }: TopBa
   }
 
   // Render logic
-  const dark = resolvedTheme === 'dark'
+  const dark = hydrated && resolvedTheme === 'dark'
 
   return (
     /* 5:1347: 96px tall white bar; title 22/700 at x 24; controls 32px apart, 44px from the right edge. */
@@ -129,13 +139,11 @@ export default function TopBar({ title, heading, user, scrolled = false }: TopBa
           onClick={() => setTheme(dark ? 'light' : 'dark')}
           className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 transition-colors"
         >
-          <span
-            className={cn(
-              'flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform duration-200 ease-out motion-reduce:transition-none',
-              dark && 'translate-x-5',
-            )}
-          >
-            {dark ? <Moon className="size-3" /> : <Sun className="size-3" />}
+          {/* Knob and icon follow the `dark` class next-themes sets before paint, so
+              the markup is the same on the server and the client and never flashes. */}
+          <span className="flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform duration-200 ease-out motion-reduce:transition-none dark:translate-x-5">
+            <Sun className="size-3 dark:hidden" />
+            <Moon className="hidden size-3 dark:block" />
           </span>
         </button>
 

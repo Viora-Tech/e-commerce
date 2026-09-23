@@ -23,7 +23,13 @@ const sans = localFont({
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={sans.variable} suppressHydrationWarning>
-      <body className="min-h-svh bg-background font-sans text-body text-foreground antialiased">
+      {/* Extensions such as Grammarly write attributes onto <body> before React hydrates
+          (data-gr-ext-installed, an inline margin). This only silences <body>'s own
+          attributes; everything inside it is still checked. */}
+      <body
+        className="min-h-svh bg-background font-sans text-body text-foreground antialiased"
+        suppressHydrationWarning
+      >
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-card focus:outline-none focus:ring-2 focus:ring-ring"
