@@ -1,9 +1,9 @@
 'use client'
 
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
 import KitField from '@/components/kit/kit-field'
+import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
 import type { Facets } from './form-state'
 
@@ -58,9 +58,8 @@ export default function ProductCategoriesCard({
 }: ProductCategoriesCardProps) {
   // Render logic
   return (
-    <Card size="form" className="gap-6 p-6">
-      <CardContent className="flex flex-col gap-6 p-0">
-        <h2 className="text-kit-heading text-foreground">{copy.heading}</h2>
+    <DataCard title={copy.heading}>
+      <div className="flex flex-col gap-4">
         <KitField label={copy.type} htmlFor="product-type">
           <SuggestInput
             id="product-type"
@@ -82,7 +81,7 @@ export default function ProductCategoriesCard({
         </KitField>
         {colours.length ? (
           <KitField label={copy.colour} help={copy.colourHelp}>
-            <ul className="flex flex-wrap gap-3">
+            <ul className="flex flex-wrap gap-2">
               {colours.map((colour) => {
                 const swatch = swatchFor(colour)
                 return (
@@ -91,12 +90,12 @@ export default function ProductCategoriesCard({
                       <span
                         title={colour}
                         style={{ backgroundColor: swatch }}
-                        className="block size-12 rounded-lg shadow-card"
+                        className="block size-8 rounded-md ring-1 ring-border ring-inset"
                       >
                         <span className="sr-only">{colour}</span>
                       </span>
                     ) : (
-                      <span className="flex h-12 items-center rounded-lg border border-secondary px-3 text-kit-body text-muted-foreground">
+                      <span className="flex h-8 items-center rounded-md border border-border px-2.5 text-caption text-muted-foreground">
                         {colour}
                       </span>
                     )}
@@ -106,7 +105,7 @@ export default function ProductCategoriesCard({
             </ul>
           </KitField>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </DataCard>
   )
 }

@@ -212,7 +212,6 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       strip={<ProductTiles stats={initial.stats} />}
     >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
         columns={productColumns}
         items={items}

@@ -52,38 +52,38 @@ export default function ProductPricingSection({
     variant.mrp.trim() !== ''
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <KitField label={copy.price} htmlFor="variant-price" required>
-        <div className="flex h-12 items-center gap-2 rounded-lg border border-secondary bg-background pr-3 focus-within:bg-card">
+        <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-card pr-3 transition-colors hover:border-border-strong focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
           <MoneyInput
             size="kit"
             id="variant-price"
             value={variant.price}
             onChange={(price) => onVariant({ price })}
-            className="flex-1 border-0 bg-transparent"
+            className="h-full flex-1 border-0 bg-transparent hover:border-0 focus-visible:ring-0"
           />
-          <span className="shrink-0 border-secondary border-l pl-3 text-kit-body text-muted-foreground">
+          <span className="shrink-0 border-border border-l pl-3 text-caption text-muted-foreground">
             {copy.currency}
           </span>
         </div>
       </KitField>
 
-      <div className="flex flex-col gap-6 md:flex-row md:gap-5">
+      <div className="flex flex-col gap-4 md:flex-row md:gap-4">
         <KitField
           label={copy.mrp}
           htmlFor="variant-mrp"
           help={mrpBelow ? copy.mrpBelowPrice : undefined}
         >
-          <div className="flex h-12 items-center gap-2 rounded-lg border border-secondary bg-background pr-3 focus-within:bg-card">
+          <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-card pr-3 transition-colors hover:border-border-strong focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
             <MoneyInput
               size="kit"
               id="variant-mrp"
               value={variant.mrp}
               onChange={(mrp) => onVariant({ mrp })}
-              className="flex-1 border-0 bg-transparent"
+              className="h-full flex-1 border-0 bg-transparent hover:border-0 focus-visible:ring-0"
             />
             {saving ? (
-              <span className="shrink-0 whitespace-nowrap text-kit-body text-primary">
+              <span className="shrink-0 whitespace-nowrap text-caption text-muted-foreground">
                 {copy.saving(formatPaise(saving))}
               </span>
             ) : null}
@@ -94,17 +94,17 @@ export default function ProductPricingSection({
           <RadioGroup
             value={taxIncluded ? 'yes' : 'no'}
             onValueChange={(value) => onTaxIncluded(value === 'yes')}
-            className="flex h-12 flex-col justify-center gap-2"
+            className="flex h-9 flex-col justify-center gap-1.5"
           >
             <div className="flex items-center gap-2">
               <RadioGroupItem id="tax-included-yes" value="yes" />
-              <label htmlFor="tax-included-yes" className="text-kit-field text-ink-strong">
+              <label htmlFor="tax-included-yes" className="text-body text-foreground">
                 {copy.taxIncludedYes}
               </label>
             </div>
             <div className="flex items-center gap-2">
               <RadioGroupItem id="tax-included-no" value="no" />
-              <label htmlFor="tax-included-no" className="text-kit-field text-muted-foreground">
+              <label htmlFor="tax-included-no" className="text-body text-muted-foreground">
                 {copy.taxIncludedNo}
               </label>
             </div>
@@ -113,7 +113,7 @@ export default function ProductPricingSection({
       </div>
 
       <KitField label={copy.expiration} help={copy.expirationHelp}>
-        <div className="flex flex-col gap-5 md:flex-row">
+        <div className="flex flex-col gap-4 md:flex-row">
           <Input
             size="kit"
             type="date"

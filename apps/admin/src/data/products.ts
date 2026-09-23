@@ -141,7 +141,7 @@ export const productFormContent = {
     descriptionPlaceholder: 'Tell shoppers what makes it worth buying.',
   },
   media: {
-    heading: 'Upload product image',
+    heading: 'Media',
     label: 'Product image',
     browse: 'Browse',
     replace: 'Replace',
@@ -151,7 +151,7 @@ export const productFormContent = {
     empty: 'Drop an image here or browse for one.',
   },
   categories: {
-    heading: 'Categories',
+    heading: 'Organisation',
     type: 'Product categories',
     typePlaceholder: 'Select a category',
     tag: 'Product tag',

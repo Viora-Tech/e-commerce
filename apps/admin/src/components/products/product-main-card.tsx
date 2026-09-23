@@ -2,9 +2,8 @@
 
 import type { InventoryReason } from '@commerce/core/catalog'
 import type { RichTextValue } from '@commerce/richtext'
-import { Save } from '@commerce/ui/icons'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import KitButton from '@/components/kit/kit-button'
+import type { ReactNode } from 'react'
+import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
 import type { ProductFormState, VariantRow } from './form-state'
 import ProductBasicsSection from './product-basics-section'
@@ -18,88 +17,73 @@ type ProductMainCardProps = {
   singleVariant: boolean
   titleError?: string | undefined
   quantityChanged: boolean
-  busy: boolean
   onPatch: (patch: Partial<ProductFormState>) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onReason: (reason: InventoryReason) => void
-  onPublish: () => void
-  onSaveDraft: () => void
+  /** The media card, drawn right under general information (Saleor product page order). */
+  media?: ReactNode
 }
 
 const copy = productFormContent
 
-/** Frame 5:5114: one card holding basic details, pricing and inventory, with the two save buttons at its foot. */
+/**
+ * The product page main column head, after the Saleor Dashboard product page (BSD-3):
+ * general information, media, then pricing and inventory as their own cards.
+ */
 export default function ProductMainCard({
   form,
   variant,
   singleVariant,
   titleError,
   quantityChanged,
-  busy,
   onPatch,
   onVariant,
   onReason,
-  onPublish,
-  onSaveDraft,
+  media,
 }: ProductMainCardProps) {
   // Event handlers
   const handleDescription = (description: RichTextValue) => onPatch({ description })
 
   // Render logic
   return (
-    <Card size="form" className="gap-8 p-6">
-      <CardContent className="flex flex-col gap-8 p-0">
-        <section className="flex flex-col gap-6">
-          <h2 className="text-kit-heading text-foreground">{copy.basics}</h2>
-          <ProductBasicsSection
-            title={form.title}
-            description={form.description}
-            titleError={titleError}
-            onTitle={(title) => onPatch({ title })}
-            onDescription={handleDescription}
-          />
-        </section>
-
-        {singleVariant ? (
-          <>
-            <section className="flex flex-col gap-6">
-              <h2 className="text-kit-heading text-foreground">{copy.pricing.heading}</h2>
-              <ProductPricingSection
-                variant={variant}
-                taxIncluded={form.taxIncluded}
-                saleStartsAt={form.saleStartsAt}
-                saleEndsAt={form.saleEndsAt}
-                onVariant={onVariant}
-                onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
-                onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}
-                onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
-              />
-            </section>
-            <section className="flex flex-col gap-6">
-              <h2 className="text-kit-heading text-foreground">{copy.inventory.heading}</h2>
-              <ProductStockSection
-                variant={variant}
-                featured={form.featured}
-                quantityChanged={quantityChanged}
-                reason={form.inventoryReason}
-                onVariant={onVariant}
-                onFeatured={(featured) => onPatch({ featured })}
-                onReason={onReason}
-              />
-            </section>
-          </>
-        ) : null}
-
-        <div className="flex flex-wrap justify-end gap-3">
-          <KitButton variant="secondary" onClick={onSaveDraft} disabled={busy}>
-            <Save className="size-4" aria-hidden="true" />
-            {copy.saveDraft}
-          </KitButton>
-          <KitButton variant="primary" onClick={onPublish} disabled={busy}>
-            {copy.publish}
-          </KitButton>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <DataCard title={copy.basics}>
+        <ProductBasicsSection
+          title={form.title}
+          description={form.description}
+          titleError={titleError}
+          onTitle={(title) => onPatch({ title })}
+          onDescription={handleDescription}
+        />
+      </DataCard>
+      {media}
+      {singleVariant ? (
+        <>
+          <DataCard title={copy.pricing.heading}>
+            <ProductPricingSection
+              variant={variant}
+              taxIncluded={form.taxIncluded}
+              saleStartsAt={form.saleStartsAt}
+              saleEndsAt={form.saleEndsAt}
+              onVariant={onVariant}
+              onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
+              onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}
+              onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
+            />
+          </DataCard>
+          <DataCard title={copy.inventory.heading}>
+            <ProductStockSection
+              variant={variant}
+              featured={form.featured}
+              quantityChanged={quantityChanged}
+              reason={form.inventoryReason}
+              onVariant={onVariant}
+              onFeatured={(featured) => onPatch({ featured })}
+              onReason={onReason}
+            />
+          </DataCard>
+        </>
+      ) : null}
+    </>
   )
 }

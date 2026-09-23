@@ -15,7 +15,7 @@ function priceRange(row: ProductRow): string {
   return `${formatPaise(row.minPricePaise)} to ${formatPaise(row.maxPricePaise)}`
 }
 
-/** Columns of the product list, in frame order (5:2591). */
+/** Columns of the product list: text left, figures right (Saleor datagrid). */
 export const productColumns: ResourceColumnSpec<ProductRow>[] = [
   {
     id: 'product',
@@ -23,11 +23,11 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     sortValue: (p) => p.title,
     hideable: false,
     align: 'start',
-    className: 'w-80 px-3 whitespace-normal',
+    className: 'w-[40%] whitespace-normal',
     render: (p) => (
       <span className="flex items-center gap-3 text-left">
         <ProductThumb url={p.imageUrl} />
-        <span className="line-clamp-2 text-body-strong">{p.title}</span>
+        <span className="line-clamp-2 text-body-strong text-ink-strong">{p.title}</span>
       </span>
     ),
   },
@@ -42,7 +42,7 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     title: copy.columns.inventory,
     sortValue: (p) => p.available,
     render: (p) => (
-      <span className={p.available === 0 ? 'text-destructive' : undefined}>
+      <span className={p.available === 0 ? 'text-destructive' : 'text-muted-foreground'}>
         {copy.inventory(p.available, p.variantCount)}
       </span>
     ),
@@ -63,6 +63,7 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     id: 'price',
     title: copy.columns.price,
     sortValue: (p) => p.minPricePaise ?? 0,
+    align: 'end',
     render: (p) => <span className="tabular-nums">{priceRange(p)}</span>,
   },
 ]

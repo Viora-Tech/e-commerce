@@ -26,7 +26,7 @@ export default function ProductBasicsSection({
 }: ProductBasicsSectionProps) {
   // Render logic
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <KitField
         label={copy.title}
         htmlFor="product-title"

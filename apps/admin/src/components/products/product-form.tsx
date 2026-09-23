@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert } from '@commerce/ui/icons'
+import { CircleAlert, Save } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -16,10 +16,12 @@ import {
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
+import KitButton from '@/components/kit/kit-button'
+import DetailLayout from '@/components/layout/detail-layout'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
+import StatusLabel from '@/components/status/status-label'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
@@ -170,52 +172,62 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   const working = busy || uploading
 
   return (
-    <PageBody>
-      <SaveBar
-        open={Boolean(product) && isDirty}
-        message={copy.saveBar.message}
-        saveLabel={copy.saveBar.save}
-        discardLabel={copy.saveBar.discard}
-        onSave={() => void handleSave()}
-        onDiscard={handleDiscard}
-        saving={busy}
-      />
-      <PageHeader
-        title={product ? product.title : copy.newTitle}
-        breadcrumbs={[
-          { label: productsListContent.title, href: '/products' },
-          { label: product ? product.title : copy.newTitle },
-        ]}
-        actions={
-          <ProductPageActions
-            busy={working}
-            onPublish={() => void handleSave('active')}
-            onSaveDraft={() => void handleSave('draft')}
+    <DetailLayout
+      header={
+        <>
+          <SaveBar
+            open={Boolean(product) && isDirty}
+            message={copy.saveBar.message}
+            saveLabel={copy.saveBar.save}
+            discardLabel={copy.saveBar.discard}
+            onSave={() => void handleSave()}
+            onDiscard={handleDiscard}
+            saving={busy}
           />
-        }
-      />
-      {serverError ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>{copy.toasts.failed}</AlertTitle>
-          <AlertDescription>{serverError}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,611fr)_minmax(0,485fr)]">
-        <div className="flex min-w-0 flex-col gap-5">
+          <PageHeader
+            title={product ? product.title : copy.newTitle}
+            badges={
+              product ? <StatusLabel kind="product" value={form.status} variant="pill" /> : null
+            }
+            breadcrumbs={[
+              { label: productsListContent.title, href: '/products' },
+              { label: product ? product.title : copy.newTitle },
+            ]}
+            actions={
+              <ProductPageActions
+                busy={working}
+                onPublish={() => void handleSave('active')}
+                onSaveDraft={() => void handleSave('draft')}
+              />
+            }
+          />
+          {serverError ? (
+            <Alert variant="destructive">
+              <CircleAlert />
+              <AlertTitle>{copy.toasts.failed}</AlertTitle>
+              <AlertDescription>{serverError}</AlertDescription>
+            </Alert>
+          ) : null}
+        </>
+      }
+      main={
+        <>
           <ProductMainCard
             form={form}
             variant={first}
             singleVariant={single}
             titleError={showErrors ? errors.title : undefined}
             quantityChanged={quantityChanged}
-            busy={working}
             onPatch={patch}
             onVariant={(vp) => patchVariant(0, vp)}
             onReason={(inventoryReason) => patch({ inventoryReason })}
-            onPublish={() => void handleSave('active')}
-            onSaveDraft={() => void handleSave('draft')}
+            media={
+              <ProductImageCard
+                items={form.media}
+                onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
+                onUploading={setUploading}
+              />
+            }
           />
           <VariantsCard
             options={form.options}
@@ -239,12 +251,33 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             onHandle={(handle) => patch({ handle })}
           />
           <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
-        </div>
-        <div className="flex min-w-0 flex-col gap-5">
-          <ProductImageCard
-            items={form.media}
-            onChange={(update) => setForm((f) => ({ ...f, media: update(f.media) }))}
-            onUploading={setUploading}
+          <div className="flex flex-wrap justify-end gap-2 px-4 py-6 md:px-6">
+            <KitButton
+              variant="secondary"
+              onClick={() => void handleSave('draft')}
+              disabled={working}
+            >
+              <Save className="size-4" aria-hidden="true" />
+              {copy.saveDraft}
+            </KitButton>
+            <KitButton
+              variant="primary"
+              onClick={() => void handleSave('active')}
+              disabled={working}
+            >
+              {copy.publish}
+            </KitButton>
+          </div>
+        </>
+      }
+      side={
+        <>
+          <StatusCard
+            status={form.status}
+            vendor={form.vendor}
+            facets={facets}
+            onChange={(status) => patch({ status })}
+            onVendor={(vendor) => patch({ vendor })}
           />
           <ProductCategoriesCard
             productType={form.productType}
@@ -253,13 +286,6 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             facets={facets}
             onProductType={(productType) => patch({ productType })}
             onTags={(tags) => patch({ tags })}
-          />
-          <StatusCard
-            status={form.status}
-            vendor={form.vendor}
-            facets={facets}
-            onChange={(status) => patch({ status })}
-            onVendor={(vendor) => patch({ vendor })}
           />
           <TemplateSelectCard
             kind="product"
@@ -275,9 +301,9 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
               onDelete={() => setConfirmDelete(true)}
             />
           ) : null}
-        </div>
-      </div>
-
+        </>
+      }
+    >
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -297,6 +323,6 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageBody>
+    </DetailLayout>
   )
 }
