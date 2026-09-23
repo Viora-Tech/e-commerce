@@ -26,6 +26,13 @@ import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'
 import { type ResolvedDiscount, resolveCartDiscount } from '../discounts/resolve'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
+import {
+  GIFT_CARD_PROVIDER,
+  GiftCardError,
+  type GiftCardRedemption,
+  redeemGiftCards,
+  reverseGiftCardRedemptions,
+} from '../gift-cards/service'
 import { applyPaymentAdjustment } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
 import { StoreAddressSchema } from '../settings/general'
@@ -46,6 +53,8 @@ export type PlaceOrderInput = {
   checkout?: CheckoutDetails
   /** Overrides the code saved on the cart; re-validated here regardless of what the client showed. */
   discountCode?: string | null
+  /** Cards the shopper applied (ids from `findRedeemableGiftCard`), spent before the provider is charged. */
+  giftCardIds?: readonly string[]
 }
 export type PlaceOrderResult = {
   orderId: string
@@ -65,6 +74,8 @@ type Line = {
   gstRatePercent: number | null
   taxable: boolean
   hsCode: string | null
+  /** Sold as a gift card: no tax, no stock, issued on payment. */
+  giftCard: boolean
 }
 
 type State = {
@@ -78,8 +89,11 @@ type State = {
   reserved: Line[]
   orderId: string | null
   orderNumber: number | null
-  /** Subtotal plus the payment-method fee or discount; what the provider is asked to charge. */
+  /** Order total: subtotal less discount, plus the payment-method fee or discount and shipping. */
   totalPaise: number
+  /** Part of the total paid from gift cards; the provider is asked for the rest. */
+  giftCardPaise: number
+  redemptions: GiftCardRedemption[]
   providerRef: string | null
   paymentStatus: PaymentStatus | null
   session: CheckoutSession | null
@@ -103,14 +117,47 @@ const loadCart: WorkflowStep<State> = {
         gstRatePercent: variant.gstRatePercent,
         taxable: variant.taxable,
         hsCode: variant.hsCode,
+        giftCard: product.isGiftCard,
       })
       .from(cartLine)
       .innerJoin(variant, eq(variant.id, cartLine.variantId))
       .innerJoin(product, eq(product.id, variant.productId))
       .where(eq(cartLine.cartId, input.cartId))
     if (lines.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
+    checkGiftCardRules(lines, input, ctx.storeId)
     return { lines, cartDiscountCode: c.discountCode, cartAttribution: c.attribution ?? null }
   },
+}
+
+/**
+ * Gift cards are vouchers, not goods: a card is checked out on its own, paid
+ * online (no COD, and not with another gift card), and takes no discount, so
+ * a code can never turn store credit into cash at a discount.
+ */
+export function checkGiftCardRules(
+  lines: readonly Pick<Line, 'giftCard'>[],
+  input: Pick<PlaceOrderInput, 'paymentProvider' | 'giftCardIds'>,
+  storeId?: string,
+): void {
+  const buyingCards = lines.some((l) => l.giftCard)
+  if (!buyingCards) return
+  if (lines.some((l) => !l.giftCard)) {
+    throw new GiftCardError(
+      'not_allowed',
+      'Gift cards are checked out on their own. Remove the other items or the gift card.',
+      storeId,
+    )
+  }
+  if (input.giftCardIds?.length) {
+    throw new GiftCardError(
+      'not_allowed',
+      'Gift cards cannot be paid for with a gift card',
+      storeId,
+    )
+  }
+  if (input.paymentProvider.id === 'cod') {
+    throw new GiftCardError('not_allowed', 'Gift cards need to be paid online', storeId)
+  }
 }
 
 /**
@@ -120,7 +167,8 @@ const loadCart: WorkflowStep<State> = {
  */
 const resolveDiscount: WorkflowStep<State> = {
   name: 'resolveDiscount',
-  async run({ ctx, input, cartDiscountCode }) {
+  async run({ ctx, input, cartDiscountCode, lines }) {
+    if (lines.some((l) => l.giftCard)) return { discount: null }
     const code = input.discountCode === undefined ? cartDiscountCode : input.discountCode
     const { outcome } = await resolveCartDiscount(ctx, input.cartId, code, {
       email: input.checkout?.email,
@@ -135,6 +183,7 @@ const reserveStock: WorkflowStep<State> = {
     const reserved: Line[] = []
     for (const line of lines) {
       // Untracked variants (made-to-order, digital) never run out: nothing to reserve.
+      if (line.giftCard) continue
       const [v] = await ctx.tx
         .select({ trackInventory: variant.trackInventory })
         .from(variant)
@@ -241,7 +290,7 @@ const createOrder: WorkflowStep<State> = {
     const tax = computeOrderGst({
       lines: lines.map((l) => ({
         grossPaise: l.quantity * l.unitPricePaise,
-        ratePercent: l.taxable ? (l.gstRatePercent ?? s.gstRatePercent) : 0,
+        ratePercent: lineGstRate(l, s.gstRatePercent),
       })),
       totalPaise,
       reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
@@ -283,8 +332,9 @@ const createOrder: WorkflowStep<State> = {
         variantTitle: l.variantTitle,
         quantity: l.quantity,
         unitPricePaise: l.unitPricePaise,
-        gstRatePercent: l.taxable ? (l.gstRatePercent ?? s.gstRatePercent) : 0,
-        hsCode: l.hsCode,
+        gstRatePercent: lineGstRate(l, s.gstRatePercent),
+        hsCode: l.giftCard ? null : l.hsCode,
+        giftCard: l.giftCard,
       })),
     )
     if (applied) {
@@ -319,6 +369,45 @@ const createOrder: WorkflowStep<State> = {
   },
 }
 
+/** GST at the line's rate; a gift card sale is a voucher, taxed only when it is redeemed. */
+const lineGstRate = (l: Line, storeRate: number): number =>
+  l.giftCard || !l.taxable ? 0 : (l.gstRatePercent ?? storeRate)
+
+/**
+ * Spend the applied gift cards against the total. Runs after the order exists
+ * (payments reference it) and before the provider is charged, so the provider
+ * only ever sees the remainder. COD cannot collect a remainder: a card spent on
+ * a parcel that is then refused would sit locked until someone refunded it.
+ */
+const redeemCards: WorkflowStep<State> = {
+  name: 'redeemGiftCards',
+  async run({ ctx, input, orderId, totalPaise }) {
+    const ids = input.giftCardIds ?? []
+    if (!orderId || ids.length === 0) return {}
+    const { redeemedPaise, redemptions } = await redeemGiftCards(ctx, {
+      orderId,
+      giftCardIds: ids,
+      amountDuePaise: totalPaise,
+    })
+    if (redeemedPaise < totalPaise && input.paymentProvider.id === 'cod') {
+      await reverseGiftCardRedemptions(ctx, redemptions)
+      throw new GiftCardError(
+        'not_allowed',
+        'Cash on delivery cannot be used with a gift card. Pay the rest online.',
+        ctx.storeId,
+      )
+    }
+    return { giftCardPaise: redeemedPaise, redemptions }
+  },
+  async compensate({ ctx, redemptions }) {
+    await reverseGiftCardRedemptions(ctx, redemptions)
+  },
+}
+
+/** True when gift cards paid the whole order and no provider is involved. */
+const paidByCards = (s: Pick<State, 'giftCardPaise' | 'totalPaise'>): boolean =>
+  s.giftCardPaise > 0 && s.giftCardPaise >= s.totalPaise
+
 function toPaymentShipping(co: CheckoutDetails): PaymentShipping {
   return {
     name: co.name,
@@ -334,13 +423,22 @@ function toPaymentShipping(co: CheckoutDetails): PaymentShipping {
 /** External side effect only. Kept separate so a later DB failure still triggers the refund. */
 const chargePayment: WorkflowStep<State> = {
   name: 'chargePayment',
-  async run({ ctx, input, lines, orderId, orderNumber, totalPaise }) {
+  async run({ ctx, input, lines, orderId, orderNumber, totalPaise, giftCardPaise }) {
     if (!orderId) throw new Error('chargePayment before createOrder')
+    if (paidByCards({ giftCardPaise, totalPaise })) {
+      // Gift cards covered everything: nothing to ask the provider for.
+      const providerRef = `gift_card_${orderId}`
+      return {
+        providerRef,
+        paymentStatus: 'captured' as const,
+        session: { kind: 'none' as const, provider: GIFT_CARD_PROVIDER, providerRef },
+      }
+    }
     try {
       const result = await input.paymentProvider.createPayment({
         orderId,
         orderNumber: orderNumber ?? undefined,
-        amountPaise: totalPaise,
+        amountPaise: totalPaise - giftCardPaise,
         currency: 'INR',
         customer: {
           email: input.checkout?.email,
@@ -366,19 +464,36 @@ const chargePayment: WorkflowStep<State> = {
       throw new PaymentFailed(input.paymentProvider.id, cause, ctx.storeId)
     }
   },
-  async compensate({ input, totalPaise, providerRef, paymentStatus }) {
+  async compensate({ input, totalPaise, giftCardPaise, providerRef, paymentStatus }) {
     // Only money actually taken needs returning. providerRef doubles as the
     // payment id for providers that capture at creation.
+    if (paidByCards({ giftCardPaise, totalPaise })) return
     if (providerRef && paymentStatus !== 'pending' && paymentStatus !== 'failed') {
-      await input.paymentProvider.refund(providerRef, totalPaise)
+      await input.paymentProvider.refund(providerRef, totalPaise - giftCardPaise)
     }
   },
 }
 
 const recordPayment: WorkflowStep<State> = {
   name: 'recordPayment',
-  async run({ ctx, input, totalPaise, orderId, providerRef, paymentStatus, session }) {
+  async run({
+    ctx,
+    input,
+    totalPaise,
+    giftCardPaise,
+    orderId,
+    providerRef,
+    paymentStatus,
+    session,
+  }) {
     if (!orderId || !paymentStatus) throw new Error('recordPayment before chargePayment')
+    if (paidByCards({ giftCardPaise, totalPaise })) {
+      await ctx.tx
+        .update(order)
+        .set({ status: 'paid', paymentMethod: GIFT_CARD_PROVIDER })
+        .where(eq(order.id, orderId))
+      return {}
+    }
     await ctx.tx.insert(payment).values({
       storeId: ctx.storeId,
       orderId,
@@ -387,7 +502,7 @@ const recordPayment: WorkflowStep<State> = {
       providerPaymentId: paymentStatus === 'captured' ? providerRef : null,
       checkoutSession: session,
       status: paymentStatus === 'authorized' ? 'pending' : paymentStatus,
-      amountPaise: totalPaise,
+      amountPaise: totalPaise - giftCardPaise,
     })
     if (paymentStatus === 'captured') {
       await ctx.tx.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
@@ -427,6 +542,8 @@ export async function placeOrder(
       orderId: null,
       orderNumber: null,
       totalPaise: 0,
+      giftCardPaise: 0,
+      redemptions: [],
       providerRef: null,
       paymentStatus: null,
       session: null,
@@ -436,6 +553,7 @@ export async function placeOrder(
       resolveDiscount,
       reserveStock,
       createOrder,
+      redeemCards,
       chargePayment,
       recordPayment,
       markCartConverted,

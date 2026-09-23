@@ -1,0 +1,4 @@
+Customer ID,First Name,Last Name,Email,Accepts Email Marketing,Default Address Company,Default Address Address1,Default Address Address2,Default Address City,Default Address Province Code,Default Address Country Code,Default Address Zip,Default Address Phone,Phone,Accepts SMS Marketing,Total Spent,Total Orders,Note,Tax Exempt,Tags
+'7001,Asha,Rao,Asha@Example.com,yes,,12 MG Road,Indiranagar,Bengaluru,KA,IN,'560038,+919800000001,+919800000001,no,9998.00,2,Prefers courier,no,"vip, repeat"
+'7002,Ravi,Kumar,ravi@example.com,no,Kumar Traders,4 Station Rd,,Raipur,CT,IN,492001,,,no,0.00,0,,no,
+'7003,No,Contact,,no,,,,,,,,,,no,0.00,0,,no,

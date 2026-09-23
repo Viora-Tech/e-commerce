@@ -1,44 +1,54 @@
+import type { CardProduct } from '@commerce/blocks'
+import type { BrowseResult } from '@commerce/core'
+import type { BrowseFilters, BrowseSort } from '@commerce/core/browse'
 import { parseRichText, RichTextRenderer } from '@commerce/richtext'
-import Link from 'next/link'
-import { COLLECTION_PER_PAGE, collectionsContent as copy } from '@/data/collections'
-import type { CollectionDetail, CollectionProducts } from '@/lib/collections'
+import BrowseResults from '@/components/browse/browse-results'
+import { COLLECTION_SORTS } from '@/data/browse'
+import { COLLECTION_PER_PAGE } from '@/data/collections'
+import type { CollectionDetail } from '@/lib/collections'
 import { collectionGraph, jsonLd } from '@/lib/seo'
-import CollectionGrid from './collection-grid'
-import CollectionSort from './collection-sort'
 
 type MainCollectionProps = {
-  handle: string
   /** The shopper-facing origin, for absolute URLs in the structured data. */
   origin: string
   collection: CollectionDetail
-  products: CollectionProducts
-  sort: string
+  products: CardProduct[]
+  result: BrowseResult
+  filters: BrowseFilters
+  sort: BrowseSort
+  defaultSort: BrowseSort
   page: number
   /** The section's settings from the collection template. */
-  settings: { showDescription?: unknown; showSort?: unknown; showImage?: unknown }
+  settings: {
+    showDescription?: unknown
+    showSort?: unknown
+    showImage?: unknown
+    showFilters?: unknown
+  }
 }
 
-/** The collection template's main section: banner, sort, product grid and pagination. */
+/** The collection template's main section: banner, filters, sort, product grid and pagination. */
 export default function MainCollection({
-  handle,
   origin,
   collection,
   products,
+  result,
+  filters,
   sort,
+  defaultSort,
   page,
   settings,
 }: MainCollectionProps) {
   // Render logic
-  const pages = Math.max(1, Math.ceil(products.total / COLLECTION_PER_PAGE))
   const schema = collectionGraph(
     {
-      handle,
+      handle: collection.handle,
       title: collection.title,
       description: collection.seoDescription ?? undefined,
     },
-    products.items,
+    products,
     (page - 1) * COLLECTION_PER_PAGE + 1,
-    products.total,
+    result.total,
     origin,
   )
 
@@ -65,35 +75,22 @@ export default function MainCollection({
             className="collection__description rte"
           />
         ) : null}
-        <div className="collection__toolbar">
-          <span className="text-caption">{copy.productCount(products.total)}</span>
-          {settings.showSort === false ? null : <CollectionSort value={sort} />}
-        </div>
       </header>
 
-      <CollectionGrid products={products.items} />
-
-      {pages > 1 ? (
-        <nav className="collection__pagination" aria-label={copy.pageOf(page, pages)}>
-          {page > 1 ? (
-            <Link
-              className="btn btn--secondary btn--pill"
-              href={`/collections/${handle}?sort=${sort}&page=${page - 1}`}
-            >
-              {copy.previous}
-            </Link>
-          ) : null}
-          <span className="text-caption">{copy.pageOf(page, pages)}</span>
-          {page < pages ? (
-            <Link
-              className="btn btn--secondary btn--pill"
-              href={`/collections/${handle}?sort=${sort}&page=${page + 1}`}
-            >
-              {copy.next}
-            </Link>
-          ) : null}
-        </nav>
-      ) : null}
+      <BrowseResults
+        path={`/collections/${collection.handle}`}
+        products={products}
+        total={result.total}
+        facets={result.facets}
+        filters={filters}
+        sort={sort}
+        defaultSort={defaultSort}
+        sorts={COLLECTION_SORTS}
+        page={page}
+        perPage={COLLECTION_PER_PAGE}
+        showFilters={settings.showFilters !== false}
+        showSort={settings.showSort !== false}
+      />
     </section>
   )
 }

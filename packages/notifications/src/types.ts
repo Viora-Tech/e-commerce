@@ -12,6 +12,10 @@ export type TemplateId =
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */
   | 'document_copy'
+  /** Storefront account sign-in code. Sent straight away, never queued: it lives ten minutes. */
+  | 'login_code'
+  /** A gift card was issued (bought or sent by the merchant); carries the code. Email only. */
+  | 'gift_card_issued'
 
 export type Recipient = {
   email?: string | undefined
@@ -41,6 +45,17 @@ export type TemplateData = {
   documentLabel?: string | undefined
   /** Extra links installed apps add, e.g. "Download invoice". */
   links?: { label: string; url: string }[] | undefined
+  /** For login_code: the one-time code. */
+  code?: string | undefined
+  /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */
+  giftCard?:
+    | {
+        code: string
+        balanceLabel: string
+        expiresLabel?: string | undefined
+        message?: string | undefined
+      }
+    | undefined
 }
 
 /** A file sent with an email. Channels that cannot carry files ignore it. */

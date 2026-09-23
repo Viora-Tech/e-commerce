@@ -3,6 +3,7 @@
 import type { NavigationSettings } from '@commerce/core/navigation'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import PageBody from '@/components/layout/page-body'
@@ -70,7 +71,14 @@ export default function NavigationList({ initialMenus, initialSettings }: Naviga
         settings={initialSettings}
         onSaved={() => router.refresh()}
       />
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/content/menus/redirects" />}
+        >
+          {copy.redirects}
+        </Button>
         <Button type="button" onClick={() => setCreating(true)}>
           <Plus />
           {copy.add}

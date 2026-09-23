@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
@@ -237,6 +238,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             onSeoDescription={(seoDescription) => patch({ seoDescription })}
             onHandle={(handle) => patch({ handle })}
           />
+          <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
         </div>
         <div className="flex min-w-0 flex-col gap-5">
           <ProductImageCard

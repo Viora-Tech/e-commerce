@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { navigationContent } from '../data/navigation'
 import type { NavLink, ThemeMode } from '../types'
 import HeaderDrawer from './header-drawer'
@@ -18,6 +19,7 @@ export default function Header({
   showThemeToggle,
   cartCount = 0,
   logo = null,
+  search = null,
 }: {
   storeName: string
   /** The merchant's logo from the theme; the store name as text when unset. */
@@ -26,6 +28,8 @@ export default function Header({
   themeMode: ThemeMode
   showThemeToggle: boolean
   cartCount?: number | undefined
+  /** The app's search control (predictive search); a plain link to /search when absent. */
+  search?: ReactNode
 }) {
   return (
     <div className="header-wrapper" data-sticky-type="on-scroll-up">
@@ -53,9 +57,11 @@ export default function Header({
             {showThemeToggle ? (
               <ThemeToggle initial={themeMode} className="header__icon-btn" />
             ) : null}
-            <a href="/search" className="header__icon-btn" aria-label={copy.search}>
-              <Icon name="search" size={24} />
-            </a>
+            {search ?? (
+              <a href="/search" className="header__icon-btn" aria-label={copy.search}>
+                <Icon name="search" size={24} />
+              </a>
+            )}
             <a href="/account" className="header__icon-btn" aria-label={copy.account}>
               <Icon name="user" size={24} />
             </a>

@@ -7,7 +7,10 @@ import ManualPaymentInstructions from './manual-payment-instructions'
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
   lines: (typeof orderLine.$inferSelect)[]
+  /** The gateway, COD or transfer payment; undefined when gift cards paid everything. */
   payment: typeof payment.$inferSelect | undefined
+  /** Gift cards spent on the order. */
+  giftCards?: { id: string; last: string; amountPaise: number }[]
   /** Links from installed apps, e.g. a signed invoice download. */
   links?: { label: string; url: string }[]
 }
@@ -22,6 +25,7 @@ function statusLine(
   manual: boolean,
   total: string,
 ): string {
+  if (method === 'gift_card') return content.status.giftCard
   if (manual) return content.status.manual
   if (method === 'cod') return content.status.cod(total)
   if (awaiting) return content.status.awaiting(total)
@@ -32,22 +36,27 @@ export default function ThankYouTemplate({
   order: o,
   lines,
   payment: pay,
+  giftCards = [],
   links = [],
 }: ThankYouTemplateProps) {
   const awaiting = o.paymentMethod !== 'cod' && pay?.status === 'pending'
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
   const total = formatPaise(o.totalPaise)
-  const status = statusLine(o.paymentMethod, awaiting, manual !== null, total)
+  // What the shopper still pays after gift cards: the amount COD, transfer and gateway lines quote.
+  const due = formatPaise(pay?.amountPaise ?? o.totalPaise)
+  const status = statusLine(o.paymentMethod, awaiting, manual !== null, due)
+  const boughtCards = lines.length > 0 && lines.every((l) => l.giftCard)
 
   return (
     <section className="section-cart page-width">
       <div className="cart-empty">
         <h1 className="cart-empty__heading h2">{content.heading(o.number)}</h1>
         <p className="cart-empty__text text-body">
-          {status} {content.confirmation(o.email)}
+          {status}{' '}
+          {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
         </p>
-        {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={total} /> : null}
+        {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={due} /> : null}
         <ul className="cart-items__list thank-you__lines">
           {lines.map((l) => (
             <li key={l.id} className="cart-summary__row">
@@ -75,6 +84,12 @@ export default function ThankYouTemplate({
             <span>{content.total}</span>
             <span>{total}</span>
           </li>
+          {giftCards.map((g) => (
+            <li key={g.id} className="cart-summary__row cart-summary__row--discount">
+              <span>{content.giftCardPaid(g.last)}</span>
+              <span>−{formatPaise(g.amountPaise)}</span>
+            </li>
+          ))}
         </ul>
         {links.map((l) => (
           <a key={l.url} href={l.url} className="btn btn--secondary">

@@ -21,8 +21,10 @@ import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import VisitBeacon from '@/components/analytics/visit-beacon'
 import ConsentManager from '@/components/privacy/consent-manager'
+import PredictiveSearch from '@/components/search/predictive-search'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
+import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
 import { themeFontVariables } from '@/lib/fonts'
 import { requestOrigin } from '@/lib/seo'
@@ -132,6 +134,7 @@ export default async function StoreLayout({ children, params }: Props) {
             themeMode={mode}
             showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
             cartCount={cartCount}
+            search={<PredictiveSearch label={searchContent.title} />}
             logo={
               theme.brand.logo ? { url: theme.brand.logo.url, width: theme.brand.logoWidth } : null
             }

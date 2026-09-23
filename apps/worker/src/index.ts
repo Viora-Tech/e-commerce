@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { createAbandonedSweeper, SWEEP_EVERY_MS } from './abandoned'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
+import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createMarketingWorker, MARKETING_TICK_MS } from './marketing'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
@@ -42,6 +43,10 @@ const abandoned = createAbandonedSweeper(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 
+const domains = createDomainPoller(redis, db, {
+  provider: env.DOMAIN_PROVIDER,
+  targets: { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET },
+})
 const marketing = createMarketingWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
@@ -59,6 +64,11 @@ await abandoned.queue.upsertJobScheduler(
   { name: 'sweep' },
 )
 
+await domains.queue.upsertJobScheduler(
+  'verify-pending-domains',
+  { every: VERIFY_EVERY_MS },
+  { name: 'verify' },
+)
 await marketing.tickQueue.upsertJobScheduler(
   'marketing-tick',
   { every: MARKETING_TICK_MS },
@@ -92,6 +102,8 @@ const shutdown = async () => {
   await tracker.queue.close()
   await abandoned.worker.close()
   await abandoned.queue.close()
+  await domains.worker.close()
+  await domains.queue.close()
   await marketing.tick.close()
   await marketing.send.close()
   await marketing.tickQueue.close()

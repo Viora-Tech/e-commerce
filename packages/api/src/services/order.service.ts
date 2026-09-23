@@ -267,3 +267,26 @@ export async function setOrderStatus(
   }
   return o ?? null
 }
+
+/**
+ * Historical orders brought over by an import are a record, not work to do:
+ * no fulfilment, payment, status change or refund may touch them. Returns the
+ * source platform when the order (or the payment's order) was imported.
+ */
+export async function importedSource(
+  tx: StoreTx,
+  ref: { orderId: string } | { paymentId: string },
+): Promise<string | null> {
+  const [row] =
+    'orderId' in ref
+      ? await tx
+          .select({ importedFrom: order.importedFrom })
+          .from(order)
+          .where(eq(order.id, ref.orderId))
+      : await tx
+          .select({ importedFrom: order.importedFrom })
+          .from(payment)
+          .innerJoin(order, eq(order.id, payment.orderId))
+          .where(eq(payment.id, ref.paymentId))
+  return row?.importedFrom ?? null
+}

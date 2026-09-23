@@ -3,6 +3,7 @@ import {
   appEventForTemplate,
   deliverNotification,
   enqueueAppEvent,
+  fulfilGiftCardsForOrder,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
 } from '@commerce/core'
@@ -35,6 +36,23 @@ export function createNotificationWorker(
       // event's own job id makes the repeat a no-op.
       if (event && opts.appEvents) {
         await enqueueAppEvent(opts.appEvents, { storeId, event, orderId })
+      }
+      // A paid order that bought gift cards issues them and emails the codes. Idempotent,
+      // so a retry of this job only sends codes that have not gone out yet.
+      if (template === 'payment_received') {
+        const cards = await withStore(db, storeId, async (tx) =>
+          fulfilGiftCardsForOrder({ storeId, tx }, orderId, {
+            registry: (await registriesForStore(tx, storeId)).notifications,
+            secret: opts.settingsSecret,
+          }),
+        )
+        for (const d of cards.deliveries) {
+          console.log(
+            `[gift-card] order=${orderId} ${d.channel}→${d.to} ${d.ok ? 'sent' : `failed: ${d.error}`}`,
+          )
+        }
+        // A failed gift card email never blocks the order emails; the merchant can resend
+        // it from the gift card page, and the next payment_received retry tries again.
       }
       const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(

@@ -12,7 +12,8 @@
       "!packages/blocks/src/styles",
       "!packages/ui/src/styles.css",
       "!apps/admin/src/app/globals.css",
-      "!**/next-env.d.ts"
+      "!**/next-env.d.ts",
+      "!.claude"
     ]
   },
   "formatter": {

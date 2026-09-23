@@ -1,0 +1,176 @@
+'use client'
+
+import {
+  IMPORT_RESOURCES,
+  type ImportResource,
+  REQUIRED_SCOPES,
+} from '@commerce/plugin-shopify-import/client'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+import PageHeader from '@/components/layout/page-header'
+import { shopifyImportContent } from '@/data/shopify-import'
+import { api } from '@/lib/api-client'
+import ConnectForm from './connect-form'
+
+type Connection = Awaited<ReturnType<typeof api.shopifyImport.connection>>
+
+const copy = shopifyImportContent.connect
+const base = shopifyImportContent.base
+
+/** Connect with a custom-app token, then choose what to bring over. */
+export default function ConnectPage() {
+  // Hooks
+  const router = useRouter()
+  const [connection, setConnection] = useState<Connection | undefined>(undefined)
+  const [chosen, setChosen] = useState<ImportResource[]>([...IMPORT_RESOURCES])
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    api.shopifyImport
+      .connection()
+      .then(setConnection)
+      .catch(() => setConnection(null))
+  }, [])
+
+  // Event handlers
+  const handleToggle = (resource: ImportResource, on: boolean) =>
+    setChosen((current) =>
+      on
+        ? IMPORT_RESOURCES.filter((r) => r === resource || current.includes(r))
+        : current.filter((r) => r !== resource),
+    )
+
+  const handleDisconnect = async () => {
+    setBusy(true)
+    try {
+      await api.shopifyImport.disconnect()
+      setConnection(null)
+      toast.success(copy.disconnected)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handlePreview = async () => {
+    setBusy(true)
+    try {
+      const run = await api.shopifyImport.createApiRun({ resources: chosen })
+      router.push(`${base}/runs/${run.id}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.previewFailed)
+      setBusy(false)
+    }
+  }
+
+  // Early returns
+  if (connection === undefined) {
+    return (
+      <div className="flex max-w-3xl flex-col gap-4">
+        <PageHeader title={copy.title} subtitle={copy.subtitle} />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    )
+  }
+  if (connection === null) {
+    return (
+      <div className="flex max-w-3xl flex-col gap-4">
+        <PageHeader title={copy.title} subtitle={copy.subtitle} />
+        <ConnectForm onConnected={setConnection} />
+      </div>
+    )
+  }
+
+  // Render logic
+  const facts: [string, string][] = [
+    [
+      copy.shop,
+      connection.shopName
+        ? `${connection.shopName}, ${connection.shopDomain}`
+        : connection.shopDomain,
+    ],
+    [copy.tokenLabel, connection.tokenHint],
+    ...(connection.verifiedAt
+      ? [
+          [
+            copy.verified,
+            new Date(connection.verifiedAt).toLocaleString('en-IN', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }),
+          ] as [string, string],
+        ]
+      : []),
+  ]
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-4">
+      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{copy.connection}</CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleDisconnect}
+            disabled={busy}
+          >
+            {copy.disconnect}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-body">
+            {facts.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="text-ink-strong">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{copy.chooseHeading}</CardTitle>
+          <p className="text-body text-muted-foreground">{copy.chooseHelp}</p>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          {IMPORT_RESOURCES.map((resource) => (
+            <label
+              key={resource}
+              htmlFor={`resource-${resource}`}
+              className="flex items-start gap-3"
+            >
+              <Checkbox
+                id={`resource-${resource}`}
+                className="mt-0.5"
+                checked={chosen.includes(resource)}
+                onCheckedChange={(v) => handleToggle(resource, Boolean(v))}
+              />
+              <span className="flex flex-col">
+                <span className="font-medium text-ink-strong">
+                  {shopifyImportContent.resources[resource]}
+                </span>
+                <span className="text-caption text-muted-foreground">
+                  {copy.scope(REQUIRED_SCOPES[resource])}
+                </span>
+              </span>
+            </label>
+          ))}
+        </CardContent>
+      </Card>
+      <div className="flex justify-end">
+        <Button type="button" onClick={handlePreview} disabled={busy || chosen.length === 0}>
+          {busy ? <Spinner /> : null}
+          {copy.preview}
+        </Button>
+      </div>
+    </div>
+  )
+}

@@ -1,4 +1,4 @@
-import { order, type StoreTx } from '@commerce/db'
+import { order, orderLine, type StoreTx } from '@commerce/db'
 import {
   type DocumentSnapshot,
   DocumentSnapshotSchema,
@@ -32,6 +32,19 @@ import { invoice, invoiceSequence } from './schema'
 
 export type QueueReason = 'paid' | 'fulfilled' | 'manual'
 
+/**
+ * Gift card sales are vouchers under GST: no supply of goods at issue, tax is
+ * due on redemption (on the order that spends the card). Checkout keeps gift
+ * cards in orders of their own, so such an order is never invoiced.
+ */
+export async function soldOnlyGiftCards(tx: StoreTx, orderId: string): Promise<boolean> {
+  const lines = await tx
+    .select({ giftCard: orderLine.giftCard })
+    .from(orderLine)
+    .where(eq(orderLine.orderId, orderId))
+  return lines.length > 0 && lines.every((l) => l.giftCard)
+}
+
 /** Orders tagged as pre-orders (tag set in settings) are invoiced at dispatch. */
 export async function isPreorder(tx: StoreTx, orderId: string, tag: string): Promise<boolean> {
   const [o] = await tx.select({ tags: order.tags }).from(order).where(eq(order.id, orderId))
@@ -52,6 +65,15 @@ export async function enqueueOrder(
   at: Date = new Date(),
 ): Promise<{ row: InvoiceRow; created: boolean } | null> {
   const settings = await loadSettings(tx, storeId)
+  if (await soldOnlyGiftCards(tx, orderId)) {
+    if (reason === 'manual') {
+      throw new InvoiceError(
+        'invalid',
+        'This order only sold gift cards. A gift card is a voucher: GST is charged when it is redeemed, so there is no tax invoice at sale.',
+      )
+    }
+    return null
+  }
   const prior = await existing(tx, orderId, 'tax_invoice')
   if (prior) {
     if (reason === 'fulfilled' && prior.status === 'draft' && !prior.dispatchedAt) {

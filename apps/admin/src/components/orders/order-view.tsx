@@ -12,6 +12,7 @@ import { api } from '@/lib/api-client'
 import CollectPaymentDialog from './collect-payment-dialog'
 import CustomerCard from './customer-card'
 import FulfilDialog from './fulfil-dialog'
+import ImportedOrderCard from './imported-order-card'
 import LineItemsCard from './line-items-card'
 import OrderActionBar from './order-action-bar'
 import OrderActions from './order-actions'
@@ -108,11 +109,15 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   const remaining = refunding
     ? refunding.amountPaise - refundedTotal(order.refunds, refunding.id)
     : 0
-  const canRefund = order.payments.some(
-    (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
-  )
+  // Imported history is a record: nothing on it can be collected, packed or refunded.
+  const readOnly = Boolean(order.importedFrom)
+  const canRefund =
+    !readOnly &&
+    order.payments.some(
+      (p) => p.status === 'captured' && refundedTotal(order.refunds, p.id) < p.amountPaise,
+    )
   const shipmentId = order.shipment?.id
-  const live = order.status !== 'cancelled'
+  const live = order.status !== 'cancelled' && !readOnly
   const owed = order.balance.balancePaise
   const canCollect = live && owed > 0
   const canFulfil = live && unfulfilledLines(order).length > 0
@@ -132,13 +137,15 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         payment={pay}
         fulfilment={ful}
         actions={
-          <OrderActions
-            status={order.status}
-            canRefund={canRefund}
-            busy={busy}
-            onMove={handleMove}
-            onRefund={openRefund}
-          />
+          readOnly ? null : (
+            <OrderActions
+              status={order.status}
+              canRefund={canRefund}
+              busy={busy}
+              onMove={handleMove}
+              onRefund={openRefund}
+            />
+          )
         }
       />
 
@@ -146,21 +153,26 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         <PageColumns
           main={
             <>
-              <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />
+              <ImportedOrderCard order={order} />
+              {readOnly ? null : (
+                <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />
+              )}
               <LineItemsCard order={order} />
               <PaymentCard
                 order={order}
                 onRefund={canRefund ? setRefunding : undefined}
                 onCollect={canCollect ? () => setCollecting(true) : undefined}
               />
-              <ShipmentPanel
-                orderStatus={order.status}
-                shipment={order.shipment}
-                busy={busy}
-                onBook={handleBook}
-                onRefresh={handleRefreshTracking}
-                onCancel={handleCancelShipment}
-              />
+              {readOnly ? null : (
+                <ShipmentPanel
+                  orderStatus={order.status}
+                  shipment={order.shipment}
+                  busy={busy}
+                  onBook={handleBook}
+                  onRefresh={handleRefreshTracking}
+                  onCancel={handleCancelShipment}
+                />
+              )}
               <TimelineCard order={order} onChanged={refresh} />
             </>
           }

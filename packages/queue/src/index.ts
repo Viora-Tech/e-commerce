@@ -17,6 +17,8 @@ export const HEARTBEAT_QUEUE = '{system}-heartbeat'
 export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
 /** Repeat job that nudges shoppers who left a basket behind. */
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
+/** Repeat job that checks custom domains still waiting on DNS or a certificate. */
+export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
 /** Repeat tick that starts scheduled campaigns and runs due automation steps. */
 export const MARKETING_TICK_QUEUE = '{marketing}-tick'
 /** One job per sending campaign; works through recipients in batches. */
