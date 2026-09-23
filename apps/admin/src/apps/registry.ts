@@ -1,11 +1,14 @@
 import {
   Blocks,
+  Download,
   FileBarChart,
   FileText,
   Inbox,
   type LucideIcon,
   Puzzle,
   Settings,
+  Store,
+  Upload,
 } from '@commerce/ui/icons'
 import type { ComponentType } from 'react'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
@@ -14,6 +17,10 @@ import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import ConnectPage from '@/components/apps/shopify-import/connect-page'
+import CsvPage from '@/components/apps/shopify-import/csv-page'
+import ImportsPage from '@/components/apps/shopify-import/imports-page'
+import RunPage from '@/components/apps/shopify-import/run-page'
 
 /** What a page of an app receives: the dynamic segments of its path, e.g. `{ id }`. */
 export type AppPageProps = { params: Record<string, string> }
@@ -42,16 +49,27 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     },
     OrderCard: GstOrderCard,
   },
+  'shopify-import': {
+    pages: {
+      '': ImportsPage,
+      csv: CsvPage,
+      connect: ConnectPage,
+      'runs/[id]': RunPage,
+    },
+  },
 }
 
 /** Icon names a manifest may use, mapped to the admin icon set. */
 const ICONS: Record<string, LucideIcon> = {
   Blocks,
+  Download,
   FileBarChart,
   FileText,
   Inbox,
   Puzzle,
   Settings,
+  Store,
+  Upload,
 }
 
 export const appIcon = (name: string | null | undefined): LucideIcon =>

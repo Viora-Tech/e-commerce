@@ -20,6 +20,7 @@
     "@commerce/notifications": "workspace:*",
     "@commerce/payments": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
+    "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping": "workspace:*",
     "@commerce/storage": "workspace:*",
