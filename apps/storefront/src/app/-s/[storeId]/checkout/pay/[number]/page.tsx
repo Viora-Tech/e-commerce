@@ -1,6 +1,6 @@
 import { order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
 import { inStore } from '@/lib/store-context'
 import PayClient from './pay-client'
@@ -15,7 +15,11 @@ export default async function PayPage({ params }: Params) {
       .from(order)
       .where(eq(order.number, Number(number)))
     if (!o) return null
-    const [p] = await tx.select().from(payment).where(eq(payment.orderId, o.id))
+    // The gateway payment; gift card payments on the same order are already captured.
+    const [p] = await tx
+      .select()
+      .from(payment)
+      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
     return p ? { order: o, payment: p } : null
   })
 

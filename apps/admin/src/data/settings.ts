@@ -1,5 +1,5 @@
 import type { LucideIcon } from '@commerce/ui/icons'
-import { Bell, CreditCard, Globe, Images, Store, Truck, UserCog } from '@commerce/ui/icons'
+import { Bell, Braces, CreditCard, Globe, Images, Store, Truck, UserCog } from '@commerce/ui/icons'
 
 export type SettingsSection = {
   href: string
@@ -45,6 +45,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Staff',
     body: 'Who can sign in to this store and what they can do.',
     icon: UserCog,
+  },
+  {
+    href: '/settings/custom-data',
+    title: 'Custom data',
+    body: 'Metafields on products and collections, and metaobject definitions.',
+    icon: Braces,
   },
   {
     href: '/settings/domains',
@@ -117,9 +123,5 @@ export const settingsContent = {
   staff: {
     heading: 'Only you, for now',
     body: 'Invite teammates and set what each person can see and change in this store.',
-  },
-  domains: {
-    heading: 'Domains',
-    body: 'Connect your own domain and manage which hostnames route to this storefront.',
   },
 } as const
