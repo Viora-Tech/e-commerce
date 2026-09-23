@@ -21,3 +21,5 @@ Before copying or closely adapting code from another project:
 3. **Mark the files.** A short comment at the top of each adapted file: what it came from and
    the licence, e.g. `Adapted from invoicely's formatCurrencyText (MIT).`
 4. **Add a row above.**
+
+Candidate projects, with verified licences and what to take from each: [`docs/open-source-radar.md`](docs/open-source-radar.md).
