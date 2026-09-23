@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import type { CSSProperties, ReactNode } from 'react'
 import { hasOwnHeading, pageTitleFor } from '@/data/layout'
 import AdminSidebar from './admin-sidebar'
+import PaletteHost from './layout/palette-host'
 import TopBar from './layout/top-bar'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -22,7 +23,7 @@ type AdminFrameProps = {
 
 const SIDEBAR_WIDTH = '16rem'
 
-/** Shell = kit sidebar + top bar + scrolling page content. */
+/** Shell = grey rail + (phones only) a slim top bar + the white scrolling content panel. */
 export default function AdminFrame({
   children,
   user,
@@ -33,6 +34,10 @@ export default function AdminFrame({
 }: AdminFrameProps) {
   // Hooks
   const pathname = usePathname()
+
+  // Render logic
+  const title = pageTitleFor(pathname)
+  const ownHeading = hasOwnHeading(pathname)
 
   return (
     <SidebarProvider
@@ -46,17 +51,23 @@ export default function AdminFrame({
         storefrontUrl={storefrontUrl}
         apps={apps}
       />
-      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
-        <TopBar title={pageTitleFor(pathname)} heading={!hasOwnHeading(pathname)} user={user} />
-        {/* The white content panel on the grey shell (Saleor Dashboard): hairline and a rounded
-            top-left corner where it meets the rail and the top bar. */}
+      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar md:py-2 md:pr-2">
+        <TopBar title={title} />
+        {/* The white content panel inset in the grey shell (Saleor Dashboard): hairline border,
+            rounded corners, no top bar above it on desktop. */}
         <main
           id="main"
-          className="min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-tl-xl md:border-t md:border-l"
+          className="min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-xl md:border"
         >
+          {ownHeading ? null : (
+            <div className="border-border border-b px-4 py-5 md:px-6">
+              <h1 className="text-page-title text-ink-strong">{title}</h1>
+            </div>
+          )}
           {children}
         </main>
         <Toaster />
+        <PaletteHost />
       </SidebarInset>
     </SidebarProvider>
   )
