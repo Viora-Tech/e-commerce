@@ -23,7 +23,7 @@ type AdminFrameProps = {
 
 const SIDEBAR_WIDTH = '16rem'
 
-/** Shell = grey rail + (phones only) a slim top bar + the white scrolling content panel. */
+/** Shell = grey rail + the white scrolling content panel with its slim header. */
 export default function AdminFrame({
   children,
   user,
@@ -52,13 +52,13 @@ export default function AdminFrame({
         apps={apps}
       />
       <SidebarInset className="min-h-0 overflow-hidden bg-sidebar md:py-2 md:pr-2">
-        <TopBar title={title} />
         {/* The white content panel inset in the grey shell (Saleor Dashboard): hairline border,
-            rounded corners, no top bar above it on desktop. */}
+            rounded corners, a slim header at its top. */}
         <main
           id="main"
           className="min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-xl md:border"
         >
+          <TopBar title={title} user={user} />
           {ownHeading ? null : (
             <div className="border-border border-b px-4 py-5 md:px-6">
               <h1 className="text-page-title text-ink-strong">{title}</h1>

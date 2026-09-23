@@ -180,7 +180,6 @@ export const navigationContent = {
   searchItem: 'Search',
   searchKey: '/',
   commandMenu: 'Command menu',
-  darkMode: 'Dark mode',
   openMenu: 'Open menu',
   notifications: { label: 'Notifications', empty: 'Nothing to catch up on.' },
 } as const

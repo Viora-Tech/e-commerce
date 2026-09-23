@@ -173,7 +173,7 @@ export default function AdminSidebar({
         />
       </SidebarContent>
 
-      {/* Bottom rows (command menu, notifications, dark mode), a rule, the member and the store link. */}
+      {/* Bottom rows: the command menu, a rule, the member and the store link. */}
       <SidebarFooter className="gap-3 p-0 pt-4 pb-4">
         <SidebarUtilities />
         <div className="mx-3 border-border border-t" />
