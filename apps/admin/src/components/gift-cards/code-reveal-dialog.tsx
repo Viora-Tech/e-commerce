@@ -48,7 +48,7 @@ export default function CodeRevealDialog({ issued, onDone }: CodeRevealDialogPro
           <DialogDescription>{copy.body}</DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
-          <span className="font-mono text-lg tracking-[0.15em] text-ink-strong">
+          <span className="whitespace-nowrap font-mono text-base tracking-widest text-ink-strong">
             {issued ? formatGiftCardCode(issued.code) : ''}
           </span>
           <Button variant="outline" size="sm" onClick={handleCopy}>

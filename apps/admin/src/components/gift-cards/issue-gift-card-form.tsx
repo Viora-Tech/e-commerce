@@ -124,7 +124,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
                 value={code}
                 maxLength={24}
                 placeholder={copy.codePlaceholder}
-                className="font-mono uppercase"
+                className="font-mono uppercase placeholder:font-sans placeholder:normal-case"
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 autoComplete="off"
               />

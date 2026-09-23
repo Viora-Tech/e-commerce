@@ -20,6 +20,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { placeOrder } from '../order/place-order'
 import { refundPayment } from '../order/refund'
+import { cancelOrder } from '../order/status'
 import { CodPaymentProvider } from '../providers/cod'
 import { FakePaymentProvider } from '../providers/payment'
 import { addMonths, giftCardState, normaliseGiftCardCode } from './client'
@@ -296,6 +297,23 @@ describe('checkout', () => {
     )
     expect(refund?.status).toBe('processed')
     expect(await balanceOf(card.id)).toBe(2000)
+  })
+
+  it('cancelling an order returns what it took from the gift card, once', async () => {
+    const storeId = await makeStore()
+    const v = await makeVariant(storeId, { pricePaise: 20000 })
+    const cartId = await makeCart(storeId, [{ variantId: v, quantity: 1, pricePaise: 20000 }])
+    const { card } = await issue(storeId, 8000)
+    const r = await withStore(app, storeId, (tx) =>
+      placeOrder(
+        { storeId, tx },
+        { cartId, paymentProvider: new FakePaymentProvider(), giftCardIds: [card.id] },
+      ),
+    )
+    expect(await balanceOf(card.id)).toBe(0)
+    await withStore(app, storeId, (tx) => cancelOrder({ storeId, tx }, r.orderId))
+    await withStore(app, storeId, (tx) => cancelOrder({ storeId, tx }, r.orderId))
+    expect(await balanceOf(card.id)).toBe(8000)
   })
 
   it('refuses COD for a balance left after the gift card and leaves the card untouched', async () => {
