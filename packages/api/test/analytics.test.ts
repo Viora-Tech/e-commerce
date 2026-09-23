@@ -406,8 +406,9 @@ describe('analytics.report', () => {
 
     const unknown = await report(a, 'not-a-report')
     expect(unknown.slug).toBe('sales-over-time')
-    const notBuilt = await report(a, 'sales-by-channel')
-    expect(notBuilt.slug).toBe('sales-over-time')
+    const byChannel = await report(a, 'sales-by-channel')
+    expect(byChannel.slug).toBe('sales-by-channel')
+    expect(byChannel.rows[0]?.values).toMatchObject({ channel: 'Not tracked', orders: 2 })
   })
 
   it('reports products, variants, vendors and stock', async () => {

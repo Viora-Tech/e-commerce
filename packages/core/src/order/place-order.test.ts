@@ -18,6 +18,7 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { CartEmpty, CartNotOpen, OutOfStock, PaymentFailed } from '../errors'
+import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
 import { placeOrder } from './place-order'
 
@@ -59,6 +60,24 @@ async function seed(opts: { onHand: number; quantity: number }): Promise<Seed> {
 
 beforeEach(async () => {
   await resetDb(owner)
+})
+
+describe('placeOrder attribution', () => {
+  it('copies the cart marketing touch onto the order', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const touch = {
+      channel: 'email' as const,
+      source: 'newsletter',
+      campaignId: '0199a000-0000-7000-8000-000000000001',
+      at: new Date().toISOString(),
+    }
+    const result = await withStore(app, storeId, async (tx) => {
+      await setCartAttribution(tx, cartId, touch)
+      return placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() })
+    })
+    const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
+    expect(o?.attribution).toEqual(touch)
+  })
 })
 
 describe('placeOrder', () => {

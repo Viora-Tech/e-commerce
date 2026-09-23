@@ -11,6 +11,7 @@ import { giftCardsRouter } from './gift-cards'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
+import { marketingRouter } from './marketing'
 import { mediaRouter } from './media'
 import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
@@ -40,6 +41,7 @@ export const appRouter = {
   orders: ordersRouter,
   customers: customersRouter,
   discounts: discountsRouter,
+  marketing: marketingRouter,
   giftCards: giftCardsRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,

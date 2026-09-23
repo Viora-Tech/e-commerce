@@ -28,7 +28,8 @@
     "./gift-cards": "./src/gift-cards/client.ts",
     "./domains": "./src/domains/client.ts",
     "./metaobjects": "./src/metaobjects/client.ts",
-    "./redirects": "./src/redirects/paths.ts"
+    "./redirects": "./src/redirects/paths.ts",
+    "./marketing": "./src/marketing/client.ts"
   },
   "scripts": {
     "test": "vitest run",

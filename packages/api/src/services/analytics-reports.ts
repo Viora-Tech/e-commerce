@@ -184,11 +184,18 @@ const ENTRIES: Entry[] = [
   {
     slug: 'sales-by-channel',
     title: 'Sales by channel and UTM',
-    description: 'Orders by sales channel and campaign source.',
+    description:
+      'Orders by marketing channel and UTM source, medium and campaign. Tracked from the storefront visit that led to the order.',
     category: 'marketing',
-    available: false,
-    missing: 'Orders do not record a sales channel or UTM source yet.',
-    columns: [c('channel', 'text'), ORDERS, TOTAL],
+    columns: [
+      c('channel', 'text'),
+      c('source', 'text'),
+      c('campaign', 'text'),
+      ORDERS,
+      TOTAL,
+      AOV,
+      SHARE,
+    ],
     metric: 'totalSales',
     chart: 'bars',
   },

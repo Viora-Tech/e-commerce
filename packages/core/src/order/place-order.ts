@@ -6,6 +6,7 @@ import {
   discount,
   discountUsage,
   inventoryLevel,
+  type MarketingAttribution,
   order,
   orderLine,
   payment,
@@ -82,6 +83,8 @@ type State = {
   input: PlaceOrderInput
   lines: Line[]
   cartDiscountCode: string | null
+  /** The cart's marketing touch, copied onto the order for attribution. */
+  cartAttribution: MarketingAttribution | null
   discount: ResolvedDiscount | null
   reserved: Line[]
   orderId: string | null
@@ -122,7 +125,7 @@ const loadCart: WorkflowStep<State> = {
       .where(eq(cartLine.cartId, input.cartId))
     if (lines.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
     checkGiftCardRules(lines, input, ctx.storeId)
-    return { lines, cartDiscountCode: c.discountCode }
+    return { lines, cartDiscountCode: c.discountCode, cartAttribution: c.attribution ?? null }
   },
 }
 
@@ -214,7 +217,7 @@ const reserveStock: WorkflowStep<State> = {
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input, discount: applied }) {
+  async run({ ctx, lines, input, discount: applied, cartAttribution }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -316,6 +319,7 @@ const createOrder: WorkflowStep<State> = {
         email: input.checkout?.email ?? null,
         phone: input.checkout?.phone ?? null,
         paymentMethod: input.paymentProvider.id,
+        attribution: cartAttribution,
       })
       .returning({ id: order.id })
     if (!o) throw new Error('order insert returned nothing')
@@ -532,6 +536,7 @@ export async function placeOrder(
       input,
       lines: [],
       cartDiscountCode: null,
+      cartAttribution: null,
       discount: null,
       reserved: [],
       orderId: null,

@@ -25,3 +25,10 @@ export {
   DASHBOARD_LOW_STOCK_THRESHOLD,
   type DashboardSummary,
 } from './services/dashboard.service'
+export type {
+  CampaignRow,
+  ChannelRow,
+  MarketingKpi,
+  MarketingOverview,
+  OverviewChannel,
+} from './services/marketing-overview.service'
