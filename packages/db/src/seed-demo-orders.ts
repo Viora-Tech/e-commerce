@@ -84,7 +84,12 @@ function placedAt(dayOffset: number, r: () => number): Date {
   const d = new Date()
   d.setDate(d.getDate() - dayOffset)
   d.setHours(9 + Math.floor(r() * 13), Math.floor(r() * 60), Math.floor(r() * 60), 0)
-  return d
+  // Today's evening slot may not have happened yet: never seed an order in the future,
+  // or it sits above real orders on the newest-first list. Folding the overshoot back
+  // keeps the random sequence (and so the rest of the seed) unchanged.
+  const now = Date.now()
+  const ahead = d.getTime() - now
+  return ahead > 0 ? new Date(now - (ahead % (3 * 60 * 60_000)) - 60_000) : d
 }
 
 export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean } = {}) {
