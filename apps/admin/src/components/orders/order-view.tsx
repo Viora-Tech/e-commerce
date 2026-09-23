@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
+import DetailLayout from '@/components/layout/detail-layout'
 import { orderDetailContent as copy, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
@@ -131,64 +130,60 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       : null
 
   return (
-    <PageBody width="frame">
-      <OrderHeader
-        order={order}
-        payment={pay}
-        fulfilment={ful}
-        actions={
-          readOnly ? null : (
-            <OrderActions
-              status={order.status}
-              canRefund={canRefund}
-              busy={busy}
-              onMove={handleMove}
-              onRefund={openRefund}
-            />
-          )
-        }
-      />
-
-      <div className="print:hidden">
-        <PageColumns
-          main={
-            <>
-              <ImportedOrderCard order={order} />
-              {readOnly ? null : (
-                <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />
-              )}
-              <LineItemsCard order={order} />
-              <PaymentCard
-                order={order}
-                onRefund={canRefund ? setRefunding : undefined}
-                onCollect={canCollect ? () => setCollecting(true) : undefined}
+    <DetailLayout
+      className="print:hidden"
+      header={
+        <OrderHeader
+          order={order}
+          payment={pay}
+          fulfilment={ful}
+          actions={
+            readOnly ? null : (
+              <OrderActions
+                status={order.status}
+                canRefund={canRefund}
+                busy={busy}
+                onMove={handleMove}
+                onRefund={openRefund}
               />
-              {readOnly ? null : (
-                <ShipmentPanel
-                  orderStatus={order.status}
-                  shipment={order.shipment}
-                  busy={busy}
-                  onBook={handleBook}
-                  onRefresh={handleRefreshTracking}
-                  onCancel={handleCancelShipment}
-                />
-              )}
-              <TimelineCard order={order} onChanged={refresh} />
-            </>
-          }
-          side={
-            <>
-              <CustomerCard order={order} />
-              {appCards.map((id) => {
-                const Card = ADMIN_APPS[id]?.OrderCard
-                return Card ? <Card key={id} orderId={order.id} /> : null
-              })}
-              <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
-            </>
+            )
           }
         />
-      </div>
-
+      }
+      main={
+        <>
+          <ImportedOrderCard order={order} />
+          {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
+          <LineItemsCard order={order} />
+          <PaymentCard
+            order={order}
+            onRefund={canRefund ? setRefunding : undefined}
+            onCollect={canCollect ? () => setCollecting(true) : undefined}
+          />
+          {readOnly ? null : (
+            <ShipmentPanel
+              orderStatus={order.status}
+              shipment={order.shipment}
+              busy={busy}
+              onBook={handleBook}
+              onRefresh={handleRefreshTracking}
+              onCancel={handleCancelShipment}
+            />
+          )}
+          <TimelineCard order={order} onChanged={refresh} />
+        </>
+      }
+      side={
+        <>
+          <CustomerCard order={order} />
+          {appCards.map((id) => {
+            const Card = ADMIN_APPS[id]?.OrderCard
+            return Card ? <Card key={id} orderId={order.id} /> : null
+          })}
+          <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
+        </>
+      }
+    >
       <OrderActionBar action={nextAction} orderNumber={order.number} busy={busy} />
 
       <PackingSlip order={order} />
@@ -211,6 +206,6 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         onClose={() => setCollecting(false)}
         onDone={closeAndRefresh(() => setCollecting(false))}
       />
-    </PageBody>
+    </DetailLayout>
   )
 }

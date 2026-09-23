@@ -39,8 +39,8 @@ const NEXT: Partial<Record<OrderStatus, { label: string; to: OrderStatus }>> = {
 }
 
 /** Header buttons: primary status move, refund, and the rest behind a menu. */
-/* Kit action row (5:2502 language at detail scale): 40px buttons, 14px labels, 8px radius. */
-const ACTION = 'h-10 rounded-lg px-4 text-kit-cell font-medium'
+/* 36px header buttons (Button lg), 13/500 labels. */
+const ACTION = 'h-9 px-3.5 text-body font-medium'
 
 export default function OrderActions({
   status,

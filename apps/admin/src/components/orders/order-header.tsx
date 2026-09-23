@@ -62,9 +62,17 @@ export default function OrderHeader({ order, payment, fulfilment, actions }: Ord
   return (
     <div className="print:hidden">
       <PageHeader
-        size="frame"
         title={copy.title(order.number)}
         subtitle={copy.placed(formatWhen(order.placedAt))}
+        badges={
+          <>
+            {order.status === cancelled ? (
+              <StatusLabel kind="order" value="cancelled" variant="pill" />
+            ) : null}
+            <StatusLabel kind="payment" value={payment} variant="pill" />
+            <StatusLabel kind="fulfilment" value={fulfilment} variant="pill" />
+          </>
+        }
         breadcrumbs={[{ label: copy.back, href: '/orders' }, { label: `#${order.number}` }]}
         actions={
           <div className="flex items-center gap-2">
@@ -84,13 +92,6 @@ export default function OrderHeader({ order, payment, fulfilment, actions }: Ord
           </div>
         }
       />
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {order.status === cancelled ? (
-          <StatusLabel kind="order" value="cancelled" variant="pill" />
-        ) : null}
-        <StatusLabel kind="payment" value={payment} variant="pill" />
-        <StatusLabel kind="fulfilment" value={fulfilment} variant="pill" />
-      </div>
     </div>
   )
 }

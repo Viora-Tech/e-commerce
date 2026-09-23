@@ -14,7 +14,7 @@ function ContactRow({ value, what, href }: { value: string; what: string; href: 
     <div className="group/row flex items-center gap-1">
       <a
         href={href}
-        className="min-w-0 truncate text-ink-strong underline-offset-4 hover:text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+        className="min-w-0 truncate text-link underline underline-offset-2 hover:text-foreground focus-visible:underline focus-visible:outline-none"
       >
         {value}
       </a>
@@ -34,27 +34,33 @@ export default function CustomerCard({ order }: CustomerCardProps) {
     : ''
 
   return (
-    <DataCard size="kit" title={copy.customer.heading}>
-      <div className="flex flex-col gap-4 text-kit-cell">
+    <DataCard
+      title={copy.customer.heading}
+      action={
+        order.customer ? (
+          <Link
+            href={`/customers/${order.customer.id}`}
+            className="text-caption text-link underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {copy.customer.view}
+          </Link>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-5 text-body">
         <div>
-          <p className="font-medium">{order.customer?.name ?? copy.customer.guest}</p>
+          <p className="font-medium text-ink-strong">
+            {order.customer?.name ?? copy.customer.guest}
+          </p>
           {order.customerOrderNumber > 0 ? (
-            <p className="text-kit-body text-muted-foreground">
+            <p className="text-caption font-normal text-muted-foreground">
               {copy.customer.orderCount(order.customerOrderNumber)}
             </p>
           ) : null}
-          {order.customer ? (
-            <Link
-              href={`/customers/${order.customer.id}`}
-              className="mt-1 inline-block text-kit-body text-ink-strong underline-offset-4 hover:text-primary hover:underline focus-visible:underline focus-visible:outline-none"
-            >
-              {copy.customer.view}
-            </Link>
-          ) : null}
         </div>
 
-        <div className="border-t border-border pt-4">
-          <p className="mb-1 text-kit-body text-muted-foreground-soft">{copy.customer.contact}</p>
+        <div>
+          <p className="mb-1 text-caption text-muted-foreground">{copy.customer.contact}</p>
           {order.email ? (
             <ContactRow
               value={order.email}
@@ -71,9 +77,9 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           ) : null}
         </div>
 
-        <div className="border-t border-border pt-4">
+        <div>
           <div className="group/row mb-1 flex items-center gap-1">
-            <p className="text-kit-body text-muted-foreground-soft">{copy.customer.address}</p>
+            <p className="text-caption text-muted-foreground">{copy.customer.address}</p>
             {addressText ? (
               <CopyButton value={addressText} what={copy.customer.addressLabel} />
             ) : null}
@@ -91,9 +97,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           ) : (
             <p className="text-muted-foreground">{copy.customer.noAddress}</p>
           )}
-          <p className="mt-2 text-kit-body text-muted-foreground-soft">
-            {copy.customer.billingSame}
-          </p>
+          <p className="mt-2 text-caption text-muted-foreground">{copy.customer.billingSame}</p>
         </div>
       </div>
     </DataCard>

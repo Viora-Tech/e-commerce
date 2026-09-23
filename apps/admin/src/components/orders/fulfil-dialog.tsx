@@ -92,7 +92,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
           </DialogHeader>
 
           {rows.length === 0 ? (
-            <p className="text-kit-cell text-muted-foreground">{copy.fulfilDialog.nothing}</p>
+            <p className="text-body text-muted-foreground">{copy.fulfilDialog.nothing}</p>
           ) : (
             <ul className="flex flex-col divide-y divide-border">
               {rows.map(({ line, remaining }) => (
@@ -100,7 +100,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
                   <ProductThumb url={line.imageUrl} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{line.title}</p>
-                    <p className="text-kit-body">
+                    <p className="text-caption font-normal">
                       {copy.unfulfilled.ofQuantity(line.fulfilledQuantity, line.quantity)}
                     </p>
                   </div>

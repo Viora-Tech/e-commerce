@@ -3,7 +3,7 @@ import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
 import type { OrderDetail } from './order-detail-types'
-import OrderLineRow from './order-line-row'
+import OrderLinesTable from './order-lines-table'
 import { totalRows } from './order-totals'
 
 type LineItemsCardProps = {
@@ -20,7 +20,6 @@ export default function LineItemsCard({ order }: LineItemsCardProps) {
 
   return (
     <DataCard
-      size="kit"
       title={copy.items.heading}
       action={
         packed ? (
@@ -33,12 +32,9 @@ export default function LineItemsCard({ order }: LineItemsCardProps) {
         ) : undefined
       }
     >
-      <ul className="divide-y divide-border">
-        {order.lines.map((l) => (
-          <OrderLineRow key={l.id} line={l} />
-        ))}
-      </ul>
-      <dl className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+      <OrderLinesTable rows={order.lines.map((line) => ({ line, quantity: line.quantity }))} />
+      {/* Order summary: the totals under the grid, right-aligned like Saleor's summary. */}
+      <dl className="-mx-4 flex flex-col gap-2 border-border border-t px-4 pt-4 text-body md:-mx-6 md:px-6 lg:pl-[50%]">
         {rows.map((r, i) => (
           <div
             key={r.label}

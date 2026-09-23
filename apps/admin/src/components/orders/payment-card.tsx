@@ -1,3 +1,4 @@
+import { CircleCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
@@ -22,7 +23,7 @@ type PaymentCardProps = {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 text-kit-cell">
+    <div className="flex justify-between gap-4 text-body">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="truncate text-right font-medium">{value}</dd>
     </div>
@@ -37,11 +38,11 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
 
   return (
     <DataCard
-      size="kit"
       title={copy.payment.heading}
       action={
         onCollect ? (
-          <Button size="sm" onClick={onCollect}>
+          <Button variant="outline" onClick={onCollect}>
+            <CircleCheck aria-hidden="true" />
             {copy.actions.collect}
           </Button>
         ) : undefined
@@ -84,15 +85,15 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
 
         {order.refunds.length > 0 ? (
           <section className="border-t border-border pt-4">
-            <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.payment.refunds}</p>
+            <p className="text-caption text-muted-foreground mb-2">{copy.payment.refunds}</p>
             <ul className="flex flex-col gap-2">
               {order.refunds.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-3 text-kit-cell">
+                <li key={r.id} className="flex items-center justify-between gap-3 text-body">
                   <span className="min-w-0">
                     <span className="block font-medium tabular-nums">
                       {formatPaise(r.amountPaise)}
                     </span>
-                    <span className="block truncate text-kit-body">
+                    <span className="block truncate text-caption font-normal">
                       {[formatWhen(r.createdAt), r.reason].filter(Boolean).join(', ')}
                     </span>
                   </span>
@@ -116,16 +117,18 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
               />
             ) : null}
           </dl>
-          <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.payment.events}</p>
+          <p className="text-caption text-muted-foreground mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
-            <p className="text-kit-cell text-muted-foreground">{copy.payment.noEvents}</p>
+            <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {events.map((e) => (
-                <li key={e.id} className="flex items-center justify-between gap-3 text-kit-cell">
+                <li key={e.id} className="flex items-center justify-between gap-3 text-body">
                   <span className="min-w-0">
                     <code className="block text-xs">{e.type}</code>
-                    <span className="block truncate text-kit-body">{formatWhen(e.receivedAt)}</span>
+                    <span className="block truncate text-caption font-normal">
+                      {formatWhen(e.receivedAt)}
+                    </span>
                     {e.error ? (
                       <span className="block truncate text-xs text-destructive">{e.error}</span>
                     ) : null}

@@ -152,6 +152,16 @@ export const orderDetailContent = {
   items: {
     heading: 'Items',
     sku: 'SKU',
+    columns: {
+      product: 'Product',
+      sku: 'SKU',
+      variant: 'Variant',
+      quantity: 'Quantity',
+      price: 'Price',
+      total: 'Total',
+    },
+    summary: 'Order summary',
+    groups: (n: number) => `${n} fulfilment ${n === 1 ? 'group' : 'groups'}`,
     subtotal: 'Subtotal',
     tax: 'Tax',
     cgst: (rate: number) => `CGST ${rate / 2}%`,

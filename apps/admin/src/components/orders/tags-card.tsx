@@ -42,21 +42,21 @@ export default function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
   }
 
   return (
-    <DataCard size="kit" title={copy.tags.heading} className="print:hidden">
+    <DataCard title={copy.tags.heading} className="print:hidden">
       <div className="flex flex-col gap-3">
         {tags.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {tags.map((t) => (
               <li
                 key={t}
-                className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-xs text-foreground"
+                className="inline-flex h-6 items-center gap-1 rounded-sm border border-border bg-muted pr-0.5 pl-2 text-caption text-foreground"
               >
                 {t}
                 <button
                   type="button"
                   onClick={() => handleSave(tags.filter((x) => x !== t))}
                   disabled={saving}
-                  className="rounded-full p-0.5 hover:bg-primary/20"
+                  className="flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
                   aria-label={`Remove ${t}`}
                 >
                   <X className="size-3" />
