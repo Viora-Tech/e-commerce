@@ -19,6 +19,10 @@ export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */
 export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
+/** Repeat tick that starts scheduled campaigns and runs due automation steps. */
+export const MARKETING_TICK_QUEUE = '{marketing}-tick'
+/** One job per sending campaign; works through recipients in batches. */
+export const MARKETING_SEND_QUEUE = '{marketing}-send'
 
 export function createConnection(redisUrl: string): IORedis {
   return new IORedis(redisUrl, { maxRetriesPerRequest: null })

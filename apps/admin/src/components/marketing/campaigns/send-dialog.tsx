@@ -1,0 +1,93 @@
+'use client'
+
+import { Button } from '@commerce/ui/shadcn/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@commerce/ui/shadcn/dialog'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
+import { useState } from 'react'
+import { campaignEditorContent } from '@/data/marketing-campaigns'
+
+type SendDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  reach: number | null
+  busy: boolean
+  error: string | null
+  onConfirm: (at: Date | null) => void
+}
+
+const copy = campaignEditorContent.schedule
+
+/** `datetime-local` wants local wall time without seconds. */
+function localInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Send now or pick a time; the worker starts sending within a minute of it. */
+export default function SendDialog({
+  open,
+  onOpenChange,
+  reach,
+  busy,
+  error,
+  onConfirm,
+}: SendDialogProps) {
+  // Hooks
+  const [mode, setMode] = useState<'now' | 'later'>('now')
+  const [at, setAt] = useState(() => localInput(new Date(Date.now() + 3_600_000)))
+
+  // Event handlers
+  const handleConfirm = () => onConfirm(mode === 'now' ? null : new Date(at))
+
+  // Render logic
+  const invalid = mode === 'later' && !(new Date(at).getTime() > Date.now())
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{copy.title}</DialogTitle>
+        </DialogHeader>
+        <RadioGroup value={mode} onValueChange={(v) => setMode(v as 'now' | 'later')}>
+          <label className="flex items-center gap-2 text-body" htmlFor="send-now">
+            <RadioGroupItem id="send-now" value="now" />
+            {copy.now}
+          </label>
+          <label className="flex items-center gap-2 text-body" htmlFor="send-later">
+            <RadioGroupItem id="send-later" value="later" />
+            {copy.later}
+          </label>
+        </RadioGroup>
+        {mode === 'later' ? (
+          <Field>
+            <FieldLabel htmlFor="send-at">{copy.at}</FieldLabel>
+            <Input
+              id="send-at"
+              type="datetime-local"
+              value={at}
+              onChange={(e) => setAt(e.target.value)}
+            />
+            <FieldDescription>{copy.atHelp}</FieldDescription>
+          </Field>
+        ) : null}
+        {error ? <FieldError>{error}</FieldError> : null}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {copy.cancel}
+          </Button>
+          <Button onClick={handleConfirm} disabled={busy || invalid}>
+            {mode === 'now' ? copy.confirmNow(reach ?? 0) : copy.confirmLater}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

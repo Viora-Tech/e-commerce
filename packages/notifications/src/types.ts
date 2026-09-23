@@ -74,6 +74,39 @@ export type Message = {
 
 export type SendResult = { ok: true; providerRef: string } | { ok: false; error: string }
 
+/**
+ * A marketing send: an email the platform already rendered (campaigns,
+ * automations), or an approved WhatsApp template by name. Unlike `Message`
+ * the channel does no templating of its own.
+ */
+export type MarketingSend =
+  | {
+      kind: 'email'
+      to: Recipient
+      subject: string
+      html: string
+      text: string
+      /** Extra headers, e.g. List-Unsubscribe and List-Unsubscribe-Post. */
+      headers?: { name: string; value: string }[] | undefined
+    }
+  | {
+      kind: 'whatsapp_template'
+      to: Recipient
+      template: { name: string; language: string; variables: string[] }
+    }
+
+/** An approved message template, as the provider reports it (WhatsApp). */
+export type ChannelTemplate = {
+  name: string
+  language: string
+  /** MARKETING, UTILITY or AUTHENTICATION on WhatsApp. */
+  category: string
+  status: string
+  /** Body text with {{1}}-style placeholders, for the picker's preview. */
+  body: string
+  variableCount: number
+}
+
 export type NotificationChannel = {
   /** Stable id used in store settings and the notification table. Lowercase, no spaces. */
   readonly id: string
@@ -82,6 +115,10 @@ export type NotificationChannel = {
   readonly requires: 'email' | 'phone'
   /** Never throws: transport errors come back as `{ ok: false }` so the worker can retry. */
   send(message: Message): Promise<SendResult>
+  /** Marketing sends; channels without it cannot carry campaigns or automations. Never throws. */
+  sendMarketing?(message: MarketingSend): Promise<SendResult>
+  /** Approved templates the channel may send (WhatsApp). Throws on transport errors. */
+  listTemplates?(): Promise<ChannelTemplate[]>
 }
 
 /** Same shape as the payments ProviderField; copied so this package stays dependency-free. */
