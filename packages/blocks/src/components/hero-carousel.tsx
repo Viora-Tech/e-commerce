@@ -1,6 +1,9 @@
 'use client'
 
+import { animate, stagger } from 'motion'
+import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { HERO, remToPx } from '../data/motion'
 import Icon from './icon'
 
 export type HeroSlide = {
@@ -14,6 +17,9 @@ export type HeroSlide = {
 
 // Port of sections/hero-carousel.liquid + hero-carousel.js: a CSS scroll-snap
 // track, dots that reflect the snapped slide, prev/next, optional autoplay.
+// Motion plays the slide entrance (copy rising in sequence) each time a slide
+// becomes active, and a slow Ken Burns on its image. The first slide's copy is
+// never hidden: it is the LCP element and paints with the server HTML.
 export default function HeroCarousel({
   slides,
   autoplaySeconds = 5,
@@ -24,8 +30,10 @@ export default function HeroCarousel({
   heightVh?: number
 }) {
   // Hooks
-  const track = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion()
   const [active, setActive] = useState(0)
+  const track = useRef<HTMLDivElement>(null)
+  const entered = useRef(false)
   useEffect(() => {
     const el = track.current
     if (!el) return
@@ -33,6 +41,28 @@ export default function HeroCarousel({
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
   }, [])
+  useEffect(() => {
+    const slide = track.current?.children[active]
+    if (!slide || reduce) return
+    const image = slide.querySelector('.hero-carousel__image')
+    const zoom = image
+      ? animate(
+          image,
+          { scale: [1, HERO.zoomScale] },
+          { duration: HERO.zoomSeconds, ease: 'easeOut' },
+        )
+      : null
+    // The copy already on screen at first paint stays put; later slides make an entrance.
+    if (entered.current) {
+      animate(
+        slide.querySelectorAll('.hero-carousel__content > *'),
+        { opacity: [0, 1], y: [remToPx(HERO.riseRem), 0] },
+        { ...HERO.enter, delay: stagger(HERO.step) },
+      )
+    }
+    entered.current = true
+    return () => zoom?.stop()
+  }, [active, reduce])
   useEffect(() => {
     if (!autoplaySeconds || slides.length < 2) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return

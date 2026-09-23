@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@commerce/richtext": "workspace:*",
-    "@measured/puck": "^0.20.2"
+    "@measured/puck": "^0.20.2",
+    "motion": "^13.4.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",

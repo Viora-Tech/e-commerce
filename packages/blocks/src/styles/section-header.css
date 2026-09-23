@@ -1718,14 +1718,6 @@ html:not(.has-cursor-fill) .search-overlay__pill:hover {
   visibility: hidden;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .header-drawer__scrim {
-    transition:
-      opacity var(--motion-scrim) ease,
-      visibility var(--motion-scrim) ease;
-  }
-}
-
 .header-drawer[open] .header-drawer__scrim {
   opacity: 1;
   visibility: visible;
@@ -1751,26 +1743,13 @@ html:not(.has-cursor-fill) .search-overlay__pill:hover {
   transform: translateX(0);
 }
 
-/* Panel was 0.25s ease and the scrim 0.4s ease - the drawer's own two
-   halves disagreed with each other before they disagreed with anything
-   else. Both now on the shared overlay tokens, and both gated on
-   prefers-reduced-motion (the panel's transition previously was not).
-   .is-closing gives the drawer a real exit; see the search overlay above
-   for why a <details> needs it. */
-@media (prefers-reduced-motion: no-preference) {
-  .header-drawer__panel {
-    transition: transform var(--motion-overlay) var(--motion-overlay-ease);
-  }
-
-  .header-drawer[open].is-closing .header-drawer__panel {
-    transform: translateX(-100%);
-  }
-
-  .header-drawer[open].is-closing .header-drawer__scrim {
-    opacity: 0;
-    visibility: hidden;
-  }
-}
+/* Entrance and exit are Motion's (header-drawer.tsx): the panel slides on
+   the overlay curve, the scrim fades, the rows follow in sequence, and the
+   close waits for the slide before the <details> actually shuts. A CSS
+   transition cannot do the entrance here - the panel goes from display:none
+   to open in one frame, so there is no "from" to transition out of - and a
+   second copy of the timing in CSS would only fight the inline animation.
+   Without JS, or with reduced motion, the drawer simply appears. */
 
 .header-drawer__head {
   display: flex;
