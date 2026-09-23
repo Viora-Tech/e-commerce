@@ -9,6 +9,7 @@ import { discountsRouter } from './discounts'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
 import { invitationsRouter } from './invitations'
+import { marketingRouter } from './marketing'
 import { mediaRouter } from './media'
 import { navigationRouter } from './navigation'
 import { ordersRouter } from './orders'
@@ -33,6 +34,7 @@ export const appRouter = {
   orders: ordersRouter,
   customers: customersRouter,
   discounts: discountsRouter,
+  marketing: marketingRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
   dashboard: dashboardRouter,

@@ -505,6 +505,13 @@ export const customer = pgTable(
     tags: text('tags').array().notNull().default([]),
     note: text('note'),
     acceptsMarketing: boolean('accepts_marketing').notNull().default(false),
+    /** Opted in to WhatsApp marketing (broadcasts and promotional automations). */
+    acceptsWhatsapp: boolean('accepts_whatsapp').notNull().default(false),
+    /** When and where the latest email consent was given, e.g. `newsletter`, `checkout`, `admin`. */
+    marketingConsentAt: timestamp('marketing_consent_at', { withTimezone: true }),
+    marketingConsentSource: text('marketing_consent_source'),
+    /** Set by the unsubscribe link; no marketing email or automation reaches the customer after it. */
+    unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -546,6 +553,27 @@ export const customerSegment = pgTable(
   (t) => [uniqueIndex('customer_segment_store_name').on(t.storeId, t.name)],
 )
 
+/**
+ * Where a visit came from. Captured by the storefront beacon at the start of a
+ * session, kept last-non-direct in a cookie, stamped on carts and orders.
+ */
+export type MarketingAttribution = {
+  channel: string
+  source?: string | undefined
+  medium?: string | undefined
+  campaign?: string | undefined
+  content?: string | undefined
+  term?: string | undefined
+  referrer?: string | undefined
+  landing?: string | undefined
+  /** Set when the visit came from one of our own marketing messages. */
+  messageId?: string | undefined
+  campaignId?: string | undefined
+  automationId?: string | undefined
+  /** ISO time of the touch. */
+  at: string
+}
+
 /** One address table, reused by customers and orders. state_code drives CGST/SGST vs IGST. */
 export const address = pgTable('address', {
   id: id(),
@@ -573,6 +601,8 @@ export const cart = pgTable('cart', {
   email: text('email'),
   phone: text('phone'),
   customerName: text('customer_name'),
+  /** Where the shopper came from (UTM, referrer, marketing click); copied onto the order. */
+  attribution: jsonb('attribution').$type<MarketingAttribution>(),
   createdAt: createdAt(),
   /** Touched on every line or contact change; the abandoned window is measured from here. */
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -623,6 +653,8 @@ export const order = pgTable('order', {
   /** GstBreakdown snapshot: rate, CGST/SGST or IGST, as charged. */
   taxBreakdown: jsonb('tax_breakdown'),
   tags: text('tags').array().notNull().default([]),
+  /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
+  attribution: jsonb('attribution').$type<MarketingAttribution>(),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

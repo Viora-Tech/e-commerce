@@ -88,6 +88,8 @@ export const analyticsContent = {
       discount: 'Discount',
       code: 'Code',
       channel: 'Channel',
+      source: 'Source / medium',
+      campaign: 'Campaign',
       abcClass: 'Class',
       orders: 'Orders',
       units: 'Units',

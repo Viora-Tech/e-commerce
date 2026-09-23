@@ -24,6 +24,11 @@ export type OrderFact = {
   stateCode: string | null
   pincode: string | null
   city: string | null
+  /** Marketing channel and UTM tags from the order's attribution; null before tracking. */
+  channel: string | null
+  utmSource: string | null
+  utmMedium: string | null
+  utmCampaign: string | null
 }
 
 const taxPart = (key: string) =>
@@ -51,6 +56,10 @@ export async function orderFacts(tx: StoreTx, span: ReportSpan): Promise<OrderFa
       stateCode: address.stateCode,
       pincode: address.pincode,
       city: address.city,
+      channel: sql<string | null>`${order.attribution} ->> 'channel'`,
+      utmSource: sql<string | null>`${order.attribution} ->> 'source'`,
+      utmMedium: sql<string | null>`${order.attribution} ->> 'medium'`,
+      utmCampaign: sql<string | null>`${order.attribution} ->> 'campaign'`,
     })
     .from(order)
     .leftJoin(address, eq(address.id, order.shippingAddressId))

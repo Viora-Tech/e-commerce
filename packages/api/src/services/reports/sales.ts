@@ -132,6 +132,23 @@ function orderGroups(
 
 const live = (orders: OrderFact[]) => orders.filter((o) => !o.cancelled)
 
+/** Report rows are plain text, so channel ids are named here; orders before tracking read "Not tracked". */
+const CHANNEL_NAMES: Record<string, string> = {
+  direct: 'Direct',
+  organic_search: 'Organic search',
+  paid_search: 'Paid search',
+  social: 'Social',
+  paid_social: 'Paid social',
+  email: 'Email',
+  whatsapp: 'WhatsApp',
+  sms: 'SMS',
+  ai_assistant: 'AI assistants',
+  referral: 'Referral',
+  affiliate: 'Affiliates',
+  other_paid: 'Other paid',
+}
+const channelLabel = (id: string | null) => (id ? (CHANNEL_NAMES[id] ?? id) : 'Not tracked')
+
 export const salesBuilders: Record<string, ReportBuilder> = {
   'sales-over-time': async (tx, span) => {
     const orders = live(await orderFacts(tx, span))
@@ -229,6 +246,23 @@ export const salesBuilders: Record<string, ReportBuilder> = {
         orders,
         (o) => o.paymentMethod ?? '',
         (o) => ({ method: o.paymentMethod, paymentType: paymentType(o.paymentMethod) }),
+      ),
+      totals: orderTotals(orders),
+    }
+  },
+
+  'sales-by-channel': async (tx, span) => {
+    const orders = live(await orderFacts(tx, span))
+    return {
+      rows: orderGroups(
+        orders,
+        (o) =>
+          [o.channel ?? '', o.utmSource ?? '', o.utmMedium ?? '', o.utmCampaign ?? ''].join('|'),
+        (o) => ({
+          channel: channelLabel(o.channel),
+          source: [o.utmSource, o.utmMedium].filter(Boolean).join(' / ') || null,
+          campaign: o.utmCampaign,
+        }),
       ),
       totals: orderTotals(orders),
     }

@@ -7,6 +7,7 @@ import {
   createCart,
   getCart,
   placeOrder,
+  setCartAttribution,
   setLineQuantity,
 } from '@commerce/core'
 import { payment } from '@commerce/db'
@@ -15,6 +16,7 @@ import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
+import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { notify } from './notifications'
 import { storePaymentProviders } from './payments'
@@ -25,11 +27,15 @@ import { inStore } from './store-context'
 
 export async function addLineAction(storeId: string, variantId: string, quantity: number) {
   const existing = await readCartId()
+  const attribution = await readAttribution()
   const cartId = await inStore(storeId, async (tx) => {
     const ctx = { storeId, tx }
     let id = existing
     const current = id ? await getCart(ctx, id) : null
-    if (current?.status !== 'open') id = await createCart(ctx)
+    if (current?.status !== 'open') {
+      id = await createCart(ctx)
+      await setCartAttribution(tx, id, attribution)
+    }
     await addToCart(ctx, id as string, variantId, Math.max(1, quantity))
     return id as string
   })
@@ -82,14 +88,17 @@ export async function checkoutAction(storeId: string, form: CheckoutForm): Promi
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
 
-  /* Contact first: if anything below fails the cart is still recoverable. */
-  await inStore(storeId, (tx) =>
-    captureCartContact({ storeId, tx }, cartId, {
+  /* Contact first: if anything below fails the cart is still recoverable. The latest
+     marketing touch rides along so the order credits the email or ad that closed it. */
+  const attribution = await readAttribution()
+  await inStore(storeId, async (tx) => {
+    await captureCartContact({ storeId, tx }, cartId, {
       email: form.email,
       phone: form.phone,
       name: form.name,
-    }),
-  )
+    })
+    await setCartAttribution(tx, cartId, attribution)
+  })
 
   // The courier's word on the destination, never the client's. A cached answer makes this cheap.
   const delivery = await inStore(storeId, (tx) => estimateForPincode(tx, storeId, form.pincode))
