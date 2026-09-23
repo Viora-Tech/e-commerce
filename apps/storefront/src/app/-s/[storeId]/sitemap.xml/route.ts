@@ -5,6 +5,9 @@ import { storefrontLock } from '@/lib/storefront-gate'
 
 type Params = { params: Promise<{ storeId: string }> }
 
+// Per host and per request: never prerendered at build time.
+export const dynamic = 'force-dynamic'
+
 /** Per-host sitemap from the database: active products and collections, published pages and posts. */
 export async function GET(_req: Request, { params }: Params) {
   const { storeId } = await params
