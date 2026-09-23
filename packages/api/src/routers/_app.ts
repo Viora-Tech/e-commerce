@@ -6,6 +6,7 @@ import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
+import { domainsRouter } from './domains'
 import { giftCardsRouter } from './gift-cards'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
@@ -41,6 +42,7 @@ export const appRouter = {
   analytics: analyticsRouter,
   media: mediaRouter,
   staff: staffRouter,
+  domains: domainsRouter,
   invitations: invitationsRouter,
 }
 

@@ -118,8 +118,4 @@ export const settingsContent = {
     heading: 'Only you, for now',
     body: 'Invite teammates and set what each person can see and change in this store.',
   },
-  domains: {
-    heading: 'Domains',
-    body: 'Connect your own domain and manage which hostnames route to this storefront.',
-  },
 } as const

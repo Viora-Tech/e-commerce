@@ -1,10 +1,11 @@
-import { Globe } from '@commerce/ui/icons'
 import type { Metadata } from 'next'
-import SettingsEmpty from '@/components/settings/settings-empty'
-import { settingsContent } from '@/data/settings'
+import DomainsSettings from '@/components/domains/domains-settings'
+import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Domains' }
 
-export default function Page() {
-  return <SettingsEmpty {...settingsContent.domains} icon={Globe} />
+export default async function Page() {
+  const context = await serverContext()
+  const domains = await call(appRouter.domains.list, undefined, { context })
+  return <DomainsSettings domains={domains} />
 }
