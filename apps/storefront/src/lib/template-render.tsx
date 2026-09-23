@@ -1,3 +1,4 @@
+import { Reveal } from '@commerce/blocks'
 import {
   type BlockProps,
   createBlocksConfig,
@@ -100,10 +101,13 @@ export async function renderTemplate(
   const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)
   const components = config.components as unknown as Record<string, ComponentConfig | undefined>
   const puck = { metadata, isEditing: false, renderDropZone: () => null, dragRef: null }
+  // Sections below the first rise in on scroll. Not the header and footer groups, and
+  // not in a theme preview, where the merchant is looking at sections, not arriving.
+  const reveals = !preview && key !== 'header' && key !== 'footer'
 
   return (
     <>
-      {resolved.content.map((item) => {
+      {resolved.content.map((item, index) => {
         const section = components[item.type]
         if (!section?.render) return null
         const Section = section.render as (props: Record<string, unknown>) => React.ReactNode
@@ -114,7 +118,13 @@ export async function renderTemplate(
         } as BlockProps[keyof BlockProps]
         return (
           <Fragment key={item.props.id}>
-            <Section {...(props as Record<string, unknown>)} />
+            {reveals && index > 0 ? (
+              <Reveal>
+                <Section {...(props as Record<string, unknown>)} />
+              </Reveal>
+            ) : (
+              <Section {...(props as Record<string, unknown>)} />
+            )}
           </Fragment>
         )
       })}

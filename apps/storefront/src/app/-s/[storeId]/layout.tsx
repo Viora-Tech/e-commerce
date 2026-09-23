@@ -1,4 +1,4 @@
-import { Footer, Header } from '@commerce/blocks'
+import { CursorFill, Footer, Header } from '@commerce/blocks'
 import { loadEnv } from '@commerce/config'
 import {
   CONSENT_COOKIE,
@@ -171,6 +171,7 @@ export default async function StoreLayout({ children, params }: Props) {
         {header}
         <main id="MainContent">{children}</main>
         <VisitBeacon />
+        <CursorFill />
         <ThemePreviewBridge storeId={storeId} adminOrigin={adminOrigin} />
         {preview ? null : (
           <ConsentManager
