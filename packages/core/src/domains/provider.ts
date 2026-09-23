@@ -1,0 +1,34 @@
+import type { DnsRecord } from './records'
+
+export type DnsState = 'pending' | 'verified' | 'misconfigured'
+export type SslState = 'pending' | 'issuing' | 'active' | 'failed'
+
+export type DomainCheckInput = {
+  hostname: string
+  verificationToken: string | null
+  /** Records the merchant was asked to add. */
+  expected: DnsRecord[]
+  /** When DNS was first seen correct; providers use it to age certificate issuance. */
+  verifiedAt: Date | null
+  now: Date
+}
+
+export type DomainCheck = {
+  dns: DnsState
+  ssl: SslState
+  /** What the provider actually found, shown beside the expected records. */
+  observed: Omit<DnsRecord, 'purpose'>[]
+  /** Something the merchant can act on, or null. */
+  error: string | null
+}
+
+/**
+ * Checks that a hostname points at the platform and that a certificate exists
+ * for it. The production adapter would sit on the edge provider's custom
+ * hostname API; the dev one decides from the hostname alone and never touches
+ * the network. Must not throw for DNS problems: those come back as state.
+ */
+export type DomainProvider = {
+  readonly id: string
+  check(input: DomainCheckInput): Promise<DomainCheck>
+}

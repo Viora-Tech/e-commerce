@@ -12,7 +12,7 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import type { RichTextValue } from '@commerce/richtext'
-import { and, asc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 export type { CardProduct, ProductDetail }
 
@@ -191,36 +191,4 @@ export async function getProductSeo(
     .from(product)
     .where(eq(product.id, productId))
   return row ?? null
-}
-
-/** Storefront search: active products whose title, type or vendor contains the query. */
-export async function searchCardProducts(
-  tx: StoreTx,
-  query: string,
-  limit = 24,
-): Promise<CardProduct[]> {
-  const q = query.trim().slice(0, 100)
-  if (!q) return []
-  const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
-  const rows = await tx
-    .select({ handle: product.handle })
-    .from(product)
-    .where(
-      and(
-        eq(product.status, 'active'),
-        or(
-          ilike(product.title, pattern),
-          ilike(product.productType, pattern),
-          ilike(product.vendor, pattern),
-        ),
-      ),
-    )
-    .orderBy(asc(product.title))
-    .limit(limit)
-  return listCardProducts(
-    tx,
-    limit,
-    undefined,
-    rows.map((r) => r.handle),
-  )
 }

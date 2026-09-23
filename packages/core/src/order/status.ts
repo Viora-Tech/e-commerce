@@ -1,9 +1,39 @@
-import { order, orderLine } from '@commerce/db'
+import { order, orderLine, payment } from '@commerce/db'
 import { and, eq, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { releaseCommittedStock } from './committed-stock'
 import { fulfilRemainingLines } from './fulfil'
+import { refundedPaise, refundPayment } from './refund'
+
+/**
+ * A cancelled order gives back whatever it took from gift cards, straight onto
+ * the same cards. Gateway money is still refunded by the merchant; gift card
+ * balances are returned here because nothing else would ever release them.
+ */
+async function returnGiftCardPayments(ctx: StoreContext, orderId: string) {
+  const rows = await ctx.tx
+    .select()
+    .from(payment)
+    .where(
+      and(
+        eq(payment.orderId, orderId),
+        eq(payment.provider, GIFT_CARD_PROVIDER),
+        eq(payment.status, 'captured'),
+      ),
+    )
+  for (const p of rows) {
+    const left = p.amountPaise - (await refundedPaise(ctx, p.id))
+    if (left > 0) {
+      await refundPayment(ctx, null, {
+        paymentId: p.id,
+        amountPaise: left,
+        reason: 'Order cancelled',
+      })
+    }
+  }
+}
 
 export type OrderStatusChange = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
 
@@ -42,11 +72,14 @@ export async function cancelOrder(ctx: StoreContext, orderId: string) {
     .where(eq(orderLine.orderId, orderId))
     .for('update')
   for (const line of lines) {
+    // Gift card lines hold no stock.
+    if (line.giftCard) continue
     await releaseCommittedStock(ctx, {
       variantId: line.variantId,
       quantity: line.quantity - line.fulfilledQuantity,
     })
   }
+  await returnGiftCardPayments(ctx, orderId)
   return cancelled
 }
 

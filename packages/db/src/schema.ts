@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -62,6 +63,8 @@ export const store = pgTable('store', {
   timezone: text('timezone').notNull().default('Asia/Kolkata'),
   /** Variants at or below this available count show as low stock. */
   lowStockThreshold: integer('low_stock_threshold').notNull().default(5),
+  /** Gift card settings (default expiry for sold cards). Validated by @commerce/core GiftCardSettingsSchema. */
+  giftCards: jsonb('gift_cards'),
   createdAt: createdAt(),
 })
 
@@ -86,6 +89,8 @@ export const product = pgTable('product', {
   taxIncluded: boolean('tax_included').notNull().default(true),
   /** Shown in the storefront's featured section. */
   featured: boolean('featured').notNull().default(false),
+  /** Sold as a gift card: digital, never shipped or taxed at sale; paid lines issue a card by email. */
+  isGiftCard: boolean('is_gift_card').notNull().default(false),
   /** Optional window for the compare-at price; outside it the storefront shows the plain price. */
   saleStartsAt: timestamp('sale_starts_at', { withTimezone: true }),
   saleEndsAt: timestamp('sale_ends_at', { withTimezone: true }),
@@ -560,6 +565,73 @@ export const address = pgTable('address', {
   phone: text('phone').notNull(),
 })
 
+/**
+ * A shopper's saved address book (storefront account). Separate from `address`,
+ * which holds immutable order snapshots. At most one default per customer.
+ */
+export const customerAddress = pgTable(
+  'customer_address',
+  {
+    id: id(),
+    storeId: storeId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id),
+    name: text('name').notNull(),
+    line1: text('line1').notNull(),
+    line2: text('line2'),
+    city: text('city').notNull(),
+    stateCode: text('state_code').notNull(),
+    pincode: text('pincode').notNull(),
+    country: text('country').notNull().default('IN'),
+    phone: text('phone').notNull(),
+    isDefault: boolean('is_default').notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('customer_address_customer').on(t.customerId),
+    uniqueIndex('customer_address_one_default').on(t.customerId).where(sql`is_default`),
+  ],
+)
+
+/**
+ * Pending storefront sign-in code, one per email per store. Only a SHA-256 hash is
+ * kept; `attempts` caps guessing. Separate from Better Auth's merchant tables.
+ */
+export const customerLoginCode = pgTable(
+  'customer_login_code',
+  {
+    id: id(),
+    storeId: storeId(),
+    email: text('email').notNull(),
+    codeHash: text('code_hash').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('customer_login_code_store_email').on(t.storeId, t.email)],
+)
+
+/** A signed-in storefront shopper. The cookie holds the token; only its hash is stored. */
+export const customerSession = pgTable(
+  'customer_session',
+  {
+    id: id(),
+    storeId: storeId(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customer.id),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('customer_session_token').on(t.tokenHash),
+    index('customer_session_customer').on(t.customerId),
+  ],
+)
+
 export const cart = pgTable('cart', {
   id: id(),
   storeId: storeId(),
@@ -664,6 +736,8 @@ export const orderLine = pgTable('order_line', {
   gstRatePercent: integer('gst_rate_percent'),
   /** HSN code as it stood when the order was placed. */
   hsCode: text('hs_code'),
+  /** A gift card sold on this line: a voucher, so it stays out of tax invoices and shipping. */
+  giftCard: boolean('gift_card').notNull().default(false),
 })
 
 export const payment = pgTable(
@@ -859,12 +933,250 @@ export const discountUsage = pgTable('discount_usage', {
   createdAt: createdAt(),
 })
 
-export const storeDomain = pgTable('store_domain', {
-  id: id(),
-  storeId: storeId(),
-  hostname: text('hostname').notNull().unique(),
-  isPrimary: boolean('is_primary').notNull().default(false),
-})
+export type DomainKind = 'platform' | 'custom'
+export type DomainStatus = 'pending' | 'active' | 'failed'
+export type DomainSslStatus = 'pending' | 'issuing' | 'active' | 'failed'
+
+/**
+ * Hostnames that serve a store. `platform` domains come with the store and
+ * cannot be removed (the defaults describe them); `custom` ones are inserted
+ * pending by the domains service, verified over DNS by the domain provider, and
+ * only resolve once `status` is `active`.
+ * A non-primary domain with `redirect_to_primary` answers with a 301 to the
+ * primary one (www to apex, old domains).
+ */
+export const storeDomain = pgTable(
+  'store_domain',
+  {
+    id: id(),
+    storeId: storeId(),
+    hostname: text('hostname').notNull().unique(),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    kind: text('kind').$type<DomainKind>().notNull().default('platform'),
+    status: text('status').$type<DomainStatus>().notNull().default('active'),
+    sslStatus: text('ssl_status').$type<DomainSslStatus>().notNull().default('active'),
+    redirectToPrimary: boolean('redirect_to_primary').notNull().default(false),
+    /** TXT value proving ownership, published at `_waimers-verify.<hostname>`. */
+    verificationToken: text('verification_token'),
+    /** Last provider error, in words the merchant can act on. */
+    error: text('error'),
+    lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('store_domain_one_primary').on(t.storeId).where(sql`is_primary`),
+    check('store_domain_kind', sql`${t.kind} in ('platform', 'custom')`),
+    check('store_domain_status', sql`${t.status} in ('pending', 'active', 'failed')`),
+    check(
+      'store_domain_ssl_status',
+      sql`${t.sslStatus} in ('pending', 'issuing', 'active', 'failed')`,
+    ),
+  ],
+)
+
+export type GiftCardSource = 'manual' | 'purchase'
+export type GiftCardTransactionKind = 'issue' | 'debit' | 'refund' | 'adjustment'
+
+/**
+ * A prepaid voucher. The code is never stored in the clear: `code_hash` is an
+ * HMAC for lookup and `code_cipher` an AES-GCM copy used only to (re)send it to
+ * the recipient; admin sees `last_characters`. `balance_paise` only moves with a
+ * `gift_card_transaction` row written in the same transaction.
+ */
+export const giftCard = pgTable(
+  'gift_card',
+  {
+    id: id(),
+    storeId: storeId(),
+    codeHash: text('code_hash').notNull(),
+    codeCipher: text('code_cipher'),
+    lastCharacters: text('last_characters').notNull(),
+    initialValuePaise: integer('initial_value_paise').notNull(),
+    balancePaise: integer('balance_paise').notNull(),
+    currency: text('currency').notNull().default('INR'),
+    /** Last day the card can be used, in the store's time zone. Null never expires. */
+    expiresOn: date('expires_on', { mode: 'string' }),
+    disabledAt: timestamp('disabled_at', { withTimezone: true }),
+    customerId: uuid('customer_id').references(() => customer.id),
+    recipientEmail: text('recipient_email'),
+    recipientName: text('recipient_name'),
+    /** Message from the buyer, printed in the email. */
+    message: text('message'),
+    /** Staff-only note. */
+    note: text('note'),
+    source: text('source').$type<GiftCardSource>().notNull().default('manual'),
+    /** The order and line that sold it; with `line_index` this makes issuing on payment idempotent. */
+    orderId: uuid('order_id').references(() => order.id),
+    orderLineId: uuid('order_line_id').references(() => orderLine.id),
+    lineIndex: integer('line_index'),
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    createdBy: text('created_by'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('gift_card_store_code').on(t.storeId, t.codeHash),
+    uniqueIndex('gift_card_order_line')
+      .on(t.orderLineId, t.lineIndex)
+      .where(sql`order_line_id is not null`),
+    index('gift_card_customer').on(t.customerId),
+    check('gift_card_balance', sql`${t.balancePaise} >= 0`),
+    check('gift_card_initial', sql`${t.initialValuePaise} > 0`),
+    check('gift_card_source', sql`${t.source} in ('manual', 'purchase')`),
+  ],
+)
+
+/** Every balance movement, signed: issue and refund add, debit subtracts. */
+export const giftCardTransaction = pgTable(
+  'gift_card_transaction',
+  {
+    id: id(),
+    storeId: storeId(),
+    giftCardId: uuid('gift_card_id')
+      .notNull()
+      .references(() => giftCard.id),
+    kind: text('kind').$type<GiftCardTransactionKind>().notNull(),
+    amountPaise: integer('amount_paise').notNull(),
+    balanceAfterPaise: integer('balance_after_paise').notNull(),
+    orderId: uuid('order_id').references(() => order.id),
+    paymentId: uuid('payment_id').references(() => payment.id),
+    note: text('note'),
+    author: text('author'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('gift_card_transaction_card').on(t.giftCardId),
+    check(
+      'gift_card_transaction_kind',
+      sql`${t.kind} in ('issue', 'debit', 'refund', 'adjustment')`,
+    ),
+  ],
+)
+
+/** Value types shared by metaobject fields and product/collection metafields. */
+export const METAFIELD_TYPES = [
+  'single_line_text',
+  'multi_line_text',
+  'rich_text',
+  'number_integer',
+  'number_decimal',
+  'boolean',
+  'date',
+  'url',
+  'file',
+  'product_reference',
+  'collection_reference',
+  'metaobject_reference',
+] as const
+export type MetafieldType = (typeof METAFIELD_TYPES)[number]
+
+/** One field of a metaobject definition. Validated by @commerce/core metaobject schemas. */
+export type MetaobjectFieldDefinition = {
+  key: string
+  name: string
+  type: MetafieldType
+  list: boolean
+  required: boolean
+  description?: string | undefined
+  /** Type-specific rules: min/max, choices, max length, referenced definition id. */
+  validations?: Record<string, unknown> | undefined
+}
+
+/** A custom content type (Shopify's metaobject definition); `type` is its handle. */
+export const metaobjectDefinition = pgTable(
+  'metaobject_definition',
+  {
+    id: id(),
+    storeId: storeId(),
+    type: text('type').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    /** Field key whose value names an entry in lists and pickers. */
+    displayNameKey: text('display_name_key'),
+    fields: jsonb('fields').$type<MetaobjectFieldDefinition[]>().notNull().default([]),
+    /** Readable by the storefront data layer. */
+    storefrontAccess: boolean('storefront_access').notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('metaobject_definition_store_type').on(t.storeId, t.type),
+    check('metaobject_definition_type', sql`${t.type} ~ '^[a-z][a-z0-9_]{0,63}$'`),
+  ],
+)
+
+/** One entry of a metaobject definition; `fields` maps field key to its typed value. */
+export const metaobject = pgTable(
+  'metaobject',
+  {
+    id: id(),
+    storeId: storeId(),
+    definitionId: uuid('definition_id')
+      .notNull()
+      .references(() => metaobjectDefinition.id, { onDelete: 'cascade' }),
+    handle: text('handle').notNull(),
+    fields: jsonb('fields').$type<Record<string, unknown>>().notNull().default({}),
+    status: text('status', { enum: ['draft', 'active'] })
+      .notNull()
+      .default('active'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('metaobject_definition_handle').on(t.definitionId, t.handle),
+    index('metaobject_store').on(t.storeId),
+  ],
+)
+
+export type MetafieldOwnerType = 'product' | 'collection'
+
+/** A typed custom field on products or collections (`namespace.key`). */
+export const metafieldDefinition = pgTable(
+  'metafield_definition',
+  {
+    id: id(),
+    storeId: storeId(),
+    ownerType: text('owner_type').$type<MetafieldOwnerType>().notNull(),
+    namespace: text('namespace').notNull().default('custom'),
+    key: text('key').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    type: text('type').$type<MetafieldType>().notNull(),
+    list: boolean('list').notNull().default(false),
+    validations: jsonb('validations').$type<Record<string, unknown>>().notNull().default({}),
+    storefrontAccess: boolean('storefront_access').notNull().default(true),
+    position: integer('position').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('metafield_definition_owner_key').on(t.storeId, t.ownerType, t.namespace, t.key),
+    check('metafield_definition_owner', sql`${t.ownerType} in ('product', 'collection')`),
+    check('metafield_definition_key', sql`${t.key} ~ '^[a-z][a-z0-9_]{0,63}$'`),
+    check('metafield_definition_namespace', sql`${t.namespace} ~ '^[a-z][a-z0-9_]{0,63}$'`),
+  ],
+)
+
+/** The value of one definition on one product or collection. */
+export const metafield = pgTable(
+  'metafield',
+  {
+    id: id(),
+    storeId: storeId(),
+    definitionId: uuid('definition_id')
+      .notNull()
+      .references(() => metafieldDefinition.id, { onDelete: 'cascade' }),
+    ownerType: text('owner_type').$type<MetafieldOwnerType>().notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    value: jsonb('value').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('metafield_definition_owner').on(t.definitionId, t.ownerId),
+    index('metafield_owner').on(t.ownerType, t.ownerId),
+  ],
+)
 
 /**
  * A 301 from an old storefront path to a new destination, Shopify style. `path`

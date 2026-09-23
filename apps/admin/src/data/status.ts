@@ -13,6 +13,7 @@ import { blogListContent } from '@/data/blog'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
+import { type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { homeContent } from '@/data/home'
 import {
   type PurchaseOrderStatus,
@@ -104,6 +105,12 @@ export const STATUS = {
     expired: entry(discountsContent.lifecycle.expired, 'neutral'),
     disabled: entry(discountsContent.lifecycle.disabled, 'error'),
   } satisfies Record<DiscountLifecycle, StatusEntry>,
+  giftCard: {
+    active: entry(giftCardsContent.state.active, 'success'),
+    disabled: entry(giftCardsContent.state.disabled, 'error'),
+    expired: entry(giftCardsContent.state.expired, 'neutral'),
+    empty: entry(giftCardsContent.state.empty, 'info'),
+  } satisfies Record<GiftCardStateFilter, StatusEntry>,
   product: {
     active: entry(productsListContent.status.active, 'success'),
     draft: entry(productsListContent.status.draft, 'info'),

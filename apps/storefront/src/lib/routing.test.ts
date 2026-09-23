@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { INTERNAL_PREFIX, PASSWORD_PREFIX, routeForStore } from './routing'
+import { INTERNAL_PREFIX, PASSWORD_PREFIX, primaryRedirect, routeForStore } from './routing'
 
 describe('routeForStore', () => {
   it('rewrites a public path onto the internal store segment', () => {
@@ -21,5 +21,57 @@ describe('routeForStore', () => {
   it('leaves Next internals and API routes alone', () => {
     expect(routeForStore('store-a', '/_next/static/x.js')).toEqual({ kind: 'passthrough' })
     expect(routeForStore('store-a', '/api/health')).toEqual({ kind: 'passthrough' })
+  })
+})
+
+describe('primaryRedirect', () => {
+  const base = {
+    hostname: 'www.brand.in',
+    port: '',
+    pathname: '/products/glasspad',
+    search: '?variant=2',
+    protocol: 'https:',
+    primaryHostname: 'brand.in',
+    redirect: true,
+    inFrame: false,
+    previewing: false,
+    dev: false,
+  }
+
+  it('sends a redirecting domain to the primary, keeping path and query', () => {
+    expect(primaryRedirect(base)).toBe('https://brand.in/products/glasspad?variant=2')
+  })
+
+  it('forces https in production even when the edge forwarded plain http', () => {
+    expect(primaryRedirect({ ...base, protocol: 'http:', port: '8080' })).toBe(
+      'https://brand.in/products/glasspad?variant=2',
+    )
+  })
+
+  it('keeps the scheme and port in development', () => {
+    expect(
+      primaryRedirect({
+        ...base,
+        dev: true,
+        protocol: 'http:',
+        port: '3100',
+        hostname: 'old.test',
+      }),
+    ).toBe('http://brand.in:3100/products/glasspad?variant=2')
+  })
+
+  it('serves the page when the domain does not redirect, is the primary, or there is none', () => {
+    expect(primaryRedirect({ ...base, redirect: false })).toBeNull()
+    expect(primaryRedirect({ ...base, hostname: 'brand.in' })).toBeNull()
+    expect(primaryRedirect({ ...base, primaryHostname: null })).toBeNull()
+  })
+
+  it('never redirects frames, theme previews, APIs or webhooks', () => {
+    expect(primaryRedirect({ ...base, inFrame: true })).toBeNull()
+    expect(primaryRedirect({ ...base, previewing: true })).toBeNull()
+    expect(primaryRedirect({ ...base, pathname: '/api/cart' })).toBeNull()
+    expect(primaryRedirect({ ...base, pathname: '/_next/static/x.js' })).toBeNull()
+    expect(primaryRedirect({ ...base, pathname: '/webhooks/razorpay' })).toBeNull()
+    expect(primaryRedirect({ ...base, pathname: `${INTERNAL_PREFIX}/x` })).toBeNull()
   })
 })

@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { createAbandonedSweeper, SWEEP_EVERY_MS } from './abandoned'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
+import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
 import { createConnection, createHeartbeat } from './queues'
@@ -41,6 +42,11 @@ const abandoned = createAbandonedSweeper(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 
+const domains = createDomainPoller(redis, db, {
+  provider: env.DOMAIN_PROVIDER,
+  targets: { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET },
+})
+
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
   'track-open-shipments',
@@ -51,6 +57,12 @@ await abandoned.queue.upsertJobScheduler(
   'sweep-abandoned-carts',
   { every: SWEEP_EVERY_MS },
   { name: 'sweep' },
+)
+
+await domains.queue.upsertJobScheduler(
+  'verify-pending-domains',
+  { every: VERIFY_EVERY_MS },
+  { name: 'verify' },
 )
 
 const app = new Hono()
@@ -80,6 +92,8 @@ const shutdown = async () => {
   await tracker.queue.close()
   await abandoned.worker.close()
   await abandoned.queue.close()
+  await domains.worker.close()
+  await domains.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

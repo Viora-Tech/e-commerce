@@ -9,3 +9,6 @@ coverage
 # Development storage provider writes here; production uses a bucket.
 apps/admin/public/uploads
 !.env.example
+
+# Local Claude Code agent worktrees
+.claude/worktrees/
