@@ -21,7 +21,7 @@ export type DiscountRule = {
 
 export type DiscountCartLine = {
   productId: string
-  /** Collections the product belongs to, when known; empty until collections exist. */
+  /** Collections the product belongs to (`collection_product`); `loadDiscountCart` fills it. */
   collectionIds?: string[]
   quantity: number
   unitPricePaise: number
