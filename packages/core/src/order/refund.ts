@@ -3,6 +3,7 @@ import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, ne, sum } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
+import { changeGiftCardBalance, GIFT_CARD_PROVIDER } from '../gift-cards/service'
 
 export type RefundInput = {
   paymentId: string
@@ -57,9 +58,15 @@ export async function refundPayment(
   }
 
   const offline = OFFLINE_PROVIDERS.has(p.provider)
+  const toGiftCard = p.provider === GIFT_CARD_PROVIDER
   let status: 'pending' | 'processed' | 'manual' = 'manual'
   let providerRefundId: string | null = null
-  if (!offline) {
+  if (toGiftCard) {
+    // Money paid from a gift card goes back onto the same card.
+    if (!p.providerPaymentId) throw new RefundNotAllowed('Gift card payment has no card')
+    status = 'processed'
+    providerRefundId = p.providerPaymentId
+  } else if (!offline) {
     if (!provider) throw new RefundNotAllowed(`Payment provider ${p.provider} is not installed`)
     if (!p.providerPaymentId) {
       throw new RefundNotAllowed('Gateway has not reported a payment id for this payment yet')
@@ -81,6 +88,16 @@ export async function refundPayment(
       providerRefundId,
     })
     .returning()
+  if (toGiftCard && row && p.providerPaymentId) {
+    await changeGiftCardBalance(ctx, {
+      giftCardId: p.providerPaymentId,
+      amountPaise: input.amountPaise,
+      kind: 'refund',
+      orderId: p.orderId,
+      paymentId: p.id,
+      note: input.reason,
+    })
+  }
   if (already + input.amountPaise >= p.amountPaise) {
     await ctx.tx.update(payment).set({ status: 'refunded' }).where(eq(payment.id, p.id))
   }

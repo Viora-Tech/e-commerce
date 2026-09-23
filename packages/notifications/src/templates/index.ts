@@ -16,14 +16,23 @@ const squash = (lines: string[]): string =>
 export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
   const c = templateContent[template]
   const lines = d.lines.map(shared.lineText)
+  const gc = d.giftCard
   const text = squash([
     c.heading(d),
     '',
     c.intro(d),
     '',
-    `${shared.itemsHeading}:`,
-    ...lines.map((l) => `- ${l}`),
-    `${shared.totalLabel}: ${d.totalLabel}`,
+    ...(gc
+      ? [
+          `${shared.giftCardCode}: ${gc.code}`,
+          `${shared.giftCardBalance}: ${gc.balanceLabel}`,
+          gc.message ? `${shared.giftCardMessage}: ${gc.message}` : '',
+        ]
+      : [
+          `${shared.itemsHeading}:`,
+          ...lines.map((l) => `- ${l}`),
+          `${shared.totalLabel}: ${d.totalLabel}`,
+        ]),
     '',
     c.outro(d),
     d.orderUrl ? `${shared.viewOrder}: ${d.orderUrl}` : '',
@@ -36,9 +45,20 @@ export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
     '<!doctype html><html><body style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">',
     `<h1 style="font-size:20px">${escapeHtml(c.heading(d))}</h1>`,
     `<p>${escapeHtml(c.intro(d))}</p>`,
-    `<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:#666">${shared.itemsHeading}</h2>`,
-    `<ul style="padding-left:18px">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`,
-    `<p><strong>${shared.totalLabel}: ${escapeHtml(d.totalLabel)}</strong></p>`,
+    ...(gc
+      ? [
+          `<p style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#666;margin-bottom:4px">${shared.giftCardCode}</p>`,
+          `<p style="font-family:ui-monospace,monospace;font-size:22px;letter-spacing:.12em;margin-top:0"><strong>${escapeHtml(gc.code)}</strong></p>`,
+          `<p>${shared.giftCardBalance}: <strong>${escapeHtml(gc.balanceLabel)}</strong></p>`,
+          gc.message
+            ? `<p style="border-left:3px solid #ddd;padding-left:12px;color:#333">${escapeHtml(gc.message)}</p>`
+            : '',
+        ]
+      : [
+          `<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:#666">${shared.itemsHeading}</h2>`,
+          `<ul style="padding-left:18px">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`,
+          `<p><strong>${shared.totalLabel}: ${escapeHtml(d.totalLabel)}</strong></p>`,
+        ]),
     `<p>${escapeHtml(c.outro(d))}</p>`,
     d.orderUrl ? `<p><a href="${escapeHtml(d.orderUrl)}">${shared.viewOrder}</a></p>` : '',
     ...(d.links ?? []).map(

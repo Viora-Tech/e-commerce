@@ -22,6 +22,8 @@ export type CartLineView = {
   linePaise: number
   available: number
   imageUrl: string | null
+  /** A gift card product: digital, checked out on its own. */
+  giftCard: boolean
 }
 
 export type CartView = {
@@ -56,6 +58,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       reserved: inventoryLevel.reserved,
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
+      giftCard: product.isGiftCard,
     })
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
@@ -72,8 +75,10 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     quantity: r.quantity,
     unitPricePaise: r.unitPricePaise,
     linePaise: r.quantity * r.unitPricePaise,
-    available: r.trackInventory ? Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0)) : 999,
+    available:
+      r.trackInventory && !r.giftCard ? Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0)) : 999,
     imageUrl: r.imageUrl,
+    giftCard: r.giftCard,
   }))
   return {
     id: c.id,

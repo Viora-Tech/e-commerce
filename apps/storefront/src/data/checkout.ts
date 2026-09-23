@@ -11,7 +11,13 @@ export const thankYouContent = {
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
     manual: 'Your order is reserved until we receive your transfer.',
     paid: (total: string) => `Payment of ${total} received.`,
+    giftCard: 'Paid in full with your gift card.',
+    giftCardEmail: (email: string | null) =>
+      email
+        ? `Your gift card is on its way to ${email}. It usually arrives within a few minutes.`
+        : 'Your gift card will arrive by email within a few minutes.',
   },
+  giftCardPaid: (last: string) => `Gift card •••• ${last}`,
   payNow: 'Pay now',
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',
@@ -78,6 +84,11 @@ export const checkoutContent = {
     codUnavailable: 'Cash on delivery is not available for this PIN code.',
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet.`,
   },
+  giftCardAddress: 'Billing address',
+  giftCardDelivery: 'Gift cards are delivered by email as soon as the payment is confirmed.',
+  paidByGiftCard: 'Paid by gift card',
+  totalDue: 'To pay',
+  codWithGiftCard: 'Not available with a gift card',
   errors: {
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
     codUnavailable:
@@ -120,3 +131,20 @@ export const INDIAN_STATES: readonly [string, string][] = [
   ['UK', 'Uttarakhand'],
   ['WB', 'West Bengal'],
 ]
+
+export const giftCardFieldContent = {
+  label: 'Gift card',
+  placeholder: 'Gift card code',
+  apply: 'Apply',
+  remove: 'Remove',
+  applied: (last: string) => `Gift card •••• ${last}`,
+  balance: (amount: string) => `Balance ${amount}`,
+  duplicate: 'That gift card is already applied.',
+  errors: {
+    not_found: 'Enter a valid gift card code.',
+    disabled: 'This gift card has been disabled.',
+    expired: 'This gift card has expired.',
+    empty: 'This gift card has no balance left.',
+    not_allowed: 'Gift cards cannot be used on this order.',
+  } as Record<string, string>,
+} as const
