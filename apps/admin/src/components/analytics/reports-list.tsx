@@ -50,6 +50,11 @@ export default function ReportsList({ reports }: ReportsListProps) {
                       </span>
                     </div>
                     <p className="text-kit-mini text-muted-foreground">{report.description}</p>
+                    {report.missing ? (
+                      <p className="mt-1 text-kit-mini text-muted-foreground-soft">
+                        {report.missing}
+                      </p>
+                    ) : null}
                   </Card>
                 ),
               )}

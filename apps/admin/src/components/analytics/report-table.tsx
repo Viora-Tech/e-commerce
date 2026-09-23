@@ -1,72 +1,105 @@
-import type { ReportDefinition, ReportRow } from '@commerce/api'
+import type { ReportColumn, ReportDefinition, ReportResult } from '@commerce/api'
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
+import DeltaChip from '@/components/layout/delta-chip'
 import { analyticsContent as copy } from '@/data/analytics'
-import { formatDay } from '@/lib/analytics-range'
-import { formatPaise } from '@/lib/money'
+import { change, formatCell, isNumericKind, LOWER_IS_BETTER } from '@/lib/report-format'
 
 type ReportTableProps = {
   report: ReportDefinition
-  rows: ReportRow[]
+  data: ReportResult
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-const NUMERIC = new Set(['orders', 'units', 'revenue'])
+const alignOf = (column: ReportColumn) =>
+  isNumericKind(column.kind) ? 'text-right tabular-nums' : undefined
 
-/** Day rows read as dates; everything else is already a name. */
-function labelOf(row: ReportRow): string {
-  return ISO_DATE.test(row.label) ? formatDay(row.label) : row.label
-}
-
-function cellOf(row: ReportRow, column: ReportDefinition['columns'][number]): string {
-  if (column === 'label') return labelOf(row)
-  if (column === 'detail') return row.detail ?? '-'
-  if (column === 'orders') return String(row.orders)
-  if (column === 'units') return row.units === null ? '-' : String(row.units)
-  return formatPaise(row.revenuePaise)
-}
-
-/** The rows behind a report, in the columns that report declares. */
-export default function ReportTable({ report, rows }: ReportTableProps) {
+/** The rows behind a report in the columns it declares, the metric compared with the period before. */
+export default function ReportTable({ report, data }: ReportTableProps) {
   // Early returns
-  if (rows.length === 0) {
+  if (data.rows.length === 0) {
     return <p className="text-kit-body text-muted-foreground">{copy.reports.empty}</p>
   }
 
   // Render logic
-  const c = copy.reports.columns
+  const c = copy.reports
+  const compare = data.previousTotals !== null
+  const metric = report.columns.find((col) => col.id === report.metric)
+  const invert = LOWER_IS_BETTER.has(report.metric)
+  const hasTotals = Object.keys(data.totals).length > 0
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
           {report.columns.map((column) => (
-            <TableHead key={column} className={NUMERIC.has(column) ? 'text-right' : undefined}>
-              {c[column]}
+            <TableHead key={column.id} className={alignOf(column)}>
+              {c.columns[column.id] ?? column.id}
             </TableHead>
           ))}
+          {compare && metric ? (
+            <>
+              <TableHead className="text-right">{c.previous}</TableHead>
+              <TableHead className="text-right">{c.change}</TableHead>
+            </>
+          ) : null}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.map((row) => (
+        {data.rows.map((row) => (
           <TableRow key={row.key}>
             {report.columns.map((column) => (
-              <TableCell
-                key={column}
-                className={NUMERIC.has(column) ? 'text-right tabular-nums' : undefined}
-              >
-                {cellOf(row, column)}
+              <TableCell key={column.id} className={alignOf(column)}>
+                {formatCell(column.kind, row.values[column.id])}
               </TableCell>
             ))}
+            {compare && metric ? (
+              <>
+                <TableCell className="text-right text-muted-foreground tabular-nums">
+                  {formatCell(metric.kind, row.previous)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DeltaChip delta={change(row.values[metric.id], row.previous)} invert={invert} />
+                </TableCell>
+              </>
+            ) : null}
           </TableRow>
         ))}
       </TableBody>
+      {hasTotals ? (
+        <TableFooter>
+          <TableRow>
+            {report.columns.map((column, i) => (
+              <TableCell key={column.id} className={alignOf(column)}>
+                {i === 0
+                  ? c.totals
+                  : column.id in data.totals
+                    ? formatCell(column.kind, data.totals[column.id])
+                    : ''}
+              </TableCell>
+            ))}
+            {compare && metric ? (
+              <>
+                <TableCell className="text-right text-muted-foreground tabular-nums">
+                  {formatCell(metric.kind, data.previousTotals?.[metric.id])}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DeltaChip
+                    delta={change(data.totals[metric.id], data.previousTotals?.[metric.id])}
+                    invert={invert}
+                  />
+                </TableCell>
+              </>
+            ) : null}
+          </TableRow>
+        </TableFooter>
+      ) : null}
     </Table>
   )
 }
