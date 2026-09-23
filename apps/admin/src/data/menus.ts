@@ -60,6 +60,7 @@ export const storefrontContent = {
 export const menusContent = {
   title: 'Menus',
   add: 'Add menu',
+  redirects: 'URL redirects',
   columns: { title: 'Menu', handle: 'Handle', items: 'Items', updated: 'Updated' },
   empty: {
     heading: 'No menus yet',

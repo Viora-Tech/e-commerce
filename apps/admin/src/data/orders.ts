@@ -237,6 +237,39 @@ export const orderDetailContent = {
 } as const
 
 /** Sub-sections under Orders that have no records yet. */
+const IMPORTED_STATUS: Record<string, string> = {
+  paid: 'Paid',
+  pending: 'Payment pending',
+  authorized: 'Authorized',
+  partially_paid: 'Partially paid',
+  partially_refunded: 'Partially refunded',
+  refunded: 'Refunded',
+  voided: 'Voided',
+  expired: 'Expired',
+  fulfilled: 'Fulfilled',
+  unfulfilled: 'Unfulfilled',
+  partial: 'Partially fulfilled',
+  partially_fulfilled: 'Partially fulfilled',
+  restocked: 'Restocked',
+  on_hold: 'On hold',
+  scheduled: 'Scheduled',
+}
+
+const PLATFORMS: Record<string, string> = { shopify: 'Shopify' }
+
+/** The card on an order brought over from another platform. */
+export const importedOrderContent = {
+  title: (platform: string) => `Imported from ${PLATFORMS[platform] ?? platform}`,
+  body: 'A historical order kept as a record. It did not change stock, send messages or create invoices, and it cannot be fulfilled or refunded here.',
+  name: 'Original order',
+  financial: 'Payment status',
+  fulfillment: 'Fulfilment status',
+  payment: 'Payment method',
+  cancelled: 'Cancelled',
+  status: (value: string | null | undefined) =>
+    value ? (IMPORTED_STATUS[value.toLowerCase()] ?? value) : 'Not recorded',
+}
+
 export const ordersSectionsContent = {
   drafts: {
     heading: 'No draft orders',

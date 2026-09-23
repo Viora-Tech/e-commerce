@@ -624,7 +624,25 @@ export const order = pgTable('order', {
   taxBreakdown: jsonb('tax_breakdown'),
   tags: text('tags').array().notNull().default([]),
   placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
+  /**
+   * Set on historical orders brought over from another platform (`shopify`). Such
+   * orders are read-only: they never reserve stock, notify, or run app hooks.
+   */
+  importedFrom: text('imported_from'),
+  /** What the source platform said: its order name, financial and fulfilment status. */
+  importMeta: jsonb('import_meta').$type<OrderImportMeta>(),
 })
+
+export type OrderImportMeta = {
+  /** The source's order name, e.g. `#1001`. */
+  name: string
+  sourceId?: string | null
+  financialStatus?: string | null
+  fulfillmentStatus?: string | null
+  paymentMethod?: string | null
+  cancelledAt?: string | null
+  refundedPaise?: number | null
+}
 
 export const orderLine = pgTable('order_line', {
   id: id(),
@@ -847,6 +865,28 @@ export const storeDomain = pgTable('store_domain', {
   hostname: text('hostname').notNull().unique(),
   isPrimary: boolean('is_primary').notNull().default(false),
 })
+
+/**
+ * A 301 from an old storefront path to a new destination, Shopify style. `path`
+ * is normalised (lowercase, leading slash, no trailing slash, no query) so the
+ * storefront can look it up by equality; `target` is a path or an absolute URL.
+ */
+export const urlRedirect = pgTable(
+  'url_redirect',
+  {
+    id: id(),
+    storeId: storeId(),
+    path: text('path').notNull(),
+    target: text('target').notNull(),
+    /** `import` rows came from a store migration; the merchant can edit either. */
+    source: text('source', { enum: ['manual', 'import'] })
+      .notNull()
+      .default('manual'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('url_redirect_store_path').on(t.storeId, t.path)],
+)
 
 /** Builder pages. `data` is the draft (Puck JSON); `publishedData` is what the storefront renders. */
 export const page = pgTable(

@@ -1,8 +1,10 @@
+import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { resolveStore } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
 import { db } from './lib/db'
+import { redirectFor } from './lib/redirects'
 import { DERIVED_HEADERS, PASSWORD_PREFIX, routeForStore } from './lib/routing'
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
@@ -44,6 +46,16 @@ export async function proxy(request: NextRequest) {
   if (country) headers.set('x-visitor-country', country)
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+
+  // URL redirects (Content → Menus → URL redirects, imported Shopify paths) answer
+  // before anything renders, so an old link never shows the password page first.
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const target = await redirectFor(storeId, request.nextUrl.pathname)
+    if (target) {
+      const to = new URL(withQuery(target, request.nextUrl.search), request.nextUrl)
+      return NextResponse.redirect(to, 301)
+    }
+  }
 
   // Theme preview: `?theme-preview=<token>` from the admin renders that theme. A top-level
   // visit keeps it in a cookie so links keep previewing; frames (the admin thumbnail and
