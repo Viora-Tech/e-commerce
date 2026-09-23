@@ -29,7 +29,8 @@
     "./domains": "./src/domains/client.ts",
     "./metaobjects": "./src/metaobjects/client.ts",
     "./redirects": "./src/redirects/paths.ts",
-    "./marketing": "./src/marketing/client.ts"
+    "./marketing": "./src/marketing/client.ts",
+    "./admin-accent": "./src/admin-accent/accent.ts"
   },
   "scripts": {
     "test": "vitest run",

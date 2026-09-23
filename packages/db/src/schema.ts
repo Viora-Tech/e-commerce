@@ -65,6 +65,8 @@ export const store = pgTable('store', {
   lowStockThreshold: integer('low_stock_threshold').notNull().default(5),
   /** Gift card settings (default expiry for sold cards). Validated by @commerce/core GiftCardSettingsSchema. */
   giftCards: jsonb('gift_cards'),
+  /** Admin accent colour (#rrggbb) the owner set as the default for every member; null is Ocean Green. */
+  adminAccent: text('admin_accent'),
   createdAt: createdAt(),
 })
 
@@ -1428,6 +1430,8 @@ export const storeMember = pgTable(
       .references(() => role.id),
     status: text('status').notNull().default('active'),
     invitedBy: text('invited_by'),
+    /** This member's own admin accent (#rrggbb); null falls back to the store's `admin_accent`. */
+    adminAccent: text('admin_accent'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

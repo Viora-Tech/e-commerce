@@ -351,6 +351,13 @@
       "when": 1790290000000,
       "tag": "0052_order_cart_id",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790300000000,
+      "tag": "0053_admin_accent",
+      "breakpoints": true
     }
   ]
 }
