@@ -58,7 +58,7 @@ export default function AdminFrame({
           id="main"
           className="min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-xl md:border"
         >
-          <TopBar title={title} user={user} />
+          <TopBar user={user} />
           {ownHeading ? null : (
             <div className="border-border border-b px-4 py-5 md:px-6">
               <h1 className="text-page-title text-ink-strong">{title}</h1>

@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  ChevronDown,
-  ExternalLink,
-  LogOut,
-  PanelLeftClose,
-  Search,
-  Store,
-} from '@commerce/ui/icons'
+import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
-import { Kbd } from '@commerce/ui/shadcn/kbd'
 import {
   Sidebar,
   SidebarContent,
@@ -35,9 +27,7 @@ import {
   SETTINGS_NAV,
 } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
-import { openPalette } from '@/lib/palette-events'
 import NavGroupBlock from './nav-group-block'
-import SidebarUtilities from './sidebar-utilities'
 
 type StoreOption = { id: string; name: string; slug: string }
 
@@ -141,23 +131,8 @@ export default function AdminSidebar({
         </button>
       </SidebarHeader>
 
-      {/* Saleor order: Search first (opens the palette, also on "/"), then the section groups. */}
+      {/* Group rhythm: first label 8px under the header, groups 20px apart. */}
       <SidebarContent className="no-scrollbar gap-5 pt-1">
-        <div className="px-3">
-          <button
-            type="button"
-            onClick={openPalette}
-            className="flex h-9 w-full min-w-0 items-center gap-2 rounded-[0.375rem] px-3 text-nav text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          >
-            <Search className="size-4 shrink-0" strokeWidth={1.8} />
-            <span className="min-w-0 flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
-              {navigationContent.searchItem}
-            </span>
-            <Kbd className="group-data-[collapsible=icon]:hidden">
-              {navigationContent.searchKey}
-            </Kbd>
-          </button>
-        </div>
         {NAV_GROUPS.map((group, gi) => (
           <NavGroupBlock
             key={group.label ?? gi}
@@ -173,9 +148,8 @@ export default function AdminSidebar({
         />
       </SidebarContent>
 
-      {/* Bottom rows: the command menu, a rule, the member and the store link. */}
+      {/* A rule, then the member and the store link. */}
       <SidebarFooter className="gap-3 p-0 pt-4 pb-4">
-        <SidebarUtilities />
         <div className="mx-3 border-border border-t" />
         <div className="flex items-center gap-3 px-6 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground ring-1 ring-border">

@@ -10,18 +10,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useSyncExternalStore } from 'react'
+import { commandContent } from '@/data/command-palette'
 import { navigationContent } from '@/data/navigation'
 import { authClient } from '@/lib/auth-client'
 import { openPalette } from '@/lib/palette-events'
 
 type TopBarProps = {
-  /** The section name, a quiet label on the left. */
-  title: string
   user: { name: string; email: string }
 }
 
@@ -41,10 +41,10 @@ function initials(name: string): string {
 
 /**
  * A slim, quiet header at the top of the white content panel (Saleor keeps chrome light):
- * the section name on the left; notifications, the light/dark switch and the account menu
- * on the right. On phones it also opens the rail and the command palette.
+ * the search field on the left (opens the command palette, as does ⌘K); notifications,
+ * the light/dark switch and the account menu on the right. On phones it also opens the rail.
  */
-export default function TopBar({ title, user }: TopBarProps) {
+export default function TopBar({ user }: TopBarProps) {
   // Hooks
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
@@ -69,15 +69,21 @@ export default function TopBar({ title, user }: TopBarProps) {
   return (
     <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-3 border-border border-b bg-card px-4 md:px-6">
       <SidebarTrigger className="-ml-1 md:hidden" aria-label={navigationContent.openMenu} />
-      <p className="min-w-0 flex-1 truncate text-body text-muted-foreground">{title}</p>
-      <button
-        type="button"
-        onClick={openPalette}
-        aria-label={navigationContent.search.placeholder}
-        className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
-      >
-        <Search className="size-4" />
-      </button>
+      {/* The one search: a quiet field that opens the palette (records, actions, pages); ⌘K too. */}
+      <div className="flex min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={openPalette}
+          aria-label={commandContent.field}
+          className="flex h-8 w-full max-w-md min-w-0 items-center gap-2 rounded-md border border-input bg-card px-2.5 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
+          <span className="min-w-0 flex-1 truncate text-body text-muted-foreground">
+            {commandContent.field}
+          </span>
+          <Kbd className="hidden sm:inline-flex">{navigationContent.search.shortcut}</Kbd>
+        </button>
+      </div>
 
       <div className="flex items-center gap-3">
         <Popover>

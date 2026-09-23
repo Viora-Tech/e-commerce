@@ -177,9 +177,6 @@ export const navigationContent = {
   },
   account: 'Account',
   toggleTheme: 'Toggle theme',
-  searchItem: 'Search',
-  searchKey: '/',
-  commandMenu: 'Command menu',
   openMenu: 'Open menu',
   notifications: { label: 'Notifications', empty: 'Nothing to catch up on.' },
 } as const
