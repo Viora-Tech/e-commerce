@@ -318,7 +318,14 @@
       "breakpoints": true
     },
     {
-      "idx": 49,
+      "idx": 45,
+      "version": "7",
+      "when": 1790250000000,
+      "tag": "0048_gift_cards_metaobjects_domains",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
       "version": "7",
       "when": 1790260000000,
       "tag": "0049_customer_accounts",

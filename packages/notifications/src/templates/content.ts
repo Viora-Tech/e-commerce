@@ -75,12 +75,27 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
       'The code works once and expires in 10 minutes. If you did not ask for it, ignore this email.',
     whatsapp: (d) => `${d.code} is your ${d.storeName} sign-in code. It expires in 10 minutes.`,
   },
+  gift_card_issued: {
+    subject: (d) => `${d.storeName}: your ${d.giftCard?.balanceLabel ?? ''} gift card`,
+    heading: (d) => `Hi ${d.customerName}, here is your gift card`,
+    intro: (d) =>
+      `Use this code at checkout on ${d.storeName}. Any balance left stays on the card for next time.`,
+    outro: (d) =>
+      d.giftCard?.expiresLabel
+        ? `Valid until ${d.giftCard.expiresLabel}.`
+        : 'This gift card does not expire.',
+    whatsapp: (d) =>
+      `${d.storeName} gift card for ${d.giftCard?.balanceLabel ?? ''}: ${d.giftCard?.code ?? ''}. Use it at checkout.`,
+  },
 }
 
 export const sharedContent = {
   itemsHeading: 'Items',
   totalLabel: 'Total',
   viewOrder: 'View your order',
+  giftCardCode: 'Gift card code',
+  giftCardBalance: 'Balance',
+  giftCardMessage: 'Message',
   lineText: (l: TemplateData['lines'][number]) => `${l.title} x${l.quantity}, ${l.priceLabel}`,
   footer: (d: TemplateData) =>
     `Sent by ${d.storeName}. Reply to this email if anything looks wrong.`,

@@ -18,18 +18,25 @@ export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
   const lines = d.lines.map(shared.lineText)
   // Messages about no order (a sign-in code) carry no items or total.
   const hasItems = lines.length > 0
+  const gc = d.giftCard
   const text = squash([
     c.heading(d),
     '',
     c.intro(d),
     '',
-    ...(hasItems
+    ...(gc
       ? [
-          `${shared.itemsHeading}:`,
-          ...lines.map((l) => `- ${l}`),
-          `${shared.totalLabel}: ${d.totalLabel}`,
+          `${shared.giftCardCode}: ${gc.code}`,
+          `${shared.giftCardBalance}: ${gc.balanceLabel}`,
+          gc.message ? `${shared.giftCardMessage}: ${gc.message}` : '',
         ]
-      : []),
+      : hasItems
+        ? [
+            `${shared.itemsHeading}:`,
+            ...lines.map((l) => `- ${l}`),
+            `${shared.totalLabel}: ${d.totalLabel}`,
+          ]
+        : []),
     '',
     c.outro(d),
     d.orderUrl ? `${shared.viewOrder}: ${d.orderUrl}` : '',
@@ -42,13 +49,22 @@ export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
     '<!doctype html><html><body style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">',
     `<h1 style="font-size:20px">${escapeHtml(c.heading(d))}</h1>`,
     `<p>${escapeHtml(c.intro(d))}</p>`,
-    hasItems
-      ? `<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:#666">${shared.itemsHeading}</h2>`
-      : '',
-    hasItems
-      ? `<ul style="padding-left:18px">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`
-      : '',
-    hasItems ? `<p><strong>${shared.totalLabel}: ${escapeHtml(d.totalLabel)}</strong></p>` : '',
+    ...(gc
+      ? [
+          `<p style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#666;margin-bottom:4px">${shared.giftCardCode}</p>`,
+          `<p style="font-family:ui-monospace,monospace;font-size:22px;letter-spacing:.12em;margin-top:0"><strong>${escapeHtml(gc.code)}</strong></p>`,
+          `<p>${shared.giftCardBalance}: <strong>${escapeHtml(gc.balanceLabel)}</strong></p>`,
+          gc.message
+            ? `<p style="border-left:3px solid #ddd;padding-left:12px;color:#333">${escapeHtml(gc.message)}</p>`
+            : '',
+        ]
+      : hasItems
+        ? [
+            `<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:#666">${shared.itemsHeading}</h2>`,
+            `<ul style="padding-left:18px">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`,
+            `<p><strong>${shared.totalLabel}: ${escapeHtml(d.totalLabel)}</strong></p>`,
+          ]
+        : []),
     `<p>${escapeHtml(c.outro(d))}</p>`,
     d.orderUrl ? `<p><a href="${escapeHtml(d.orderUrl)}">${shared.viewOrder}</a></p>` : '',
     ...(d.links ?? []).map(

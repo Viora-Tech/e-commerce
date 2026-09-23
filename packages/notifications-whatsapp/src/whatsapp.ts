@@ -46,6 +46,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
     case 'login_code':
       return [d.code ?? '-', d.storeName]
+    case 'gift_card_issued':
+      return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
   }
 }
 
