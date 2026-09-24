@@ -49,7 +49,6 @@ async function merchant(email: string, slug: string) {
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000)
-const hoursAgo = (n: number) => new Date(Date.now() - n * 3_600_000)
 
 beforeEach(async () => {
   await resetDb(owner)
@@ -106,7 +105,9 @@ describe('dashboard.summary', () => {
           totalPaise: 100000,
           status: 'open',
           paymentStatus: 'paid',
-          placedAt: hoursAgo(2),
+          // `new Date()`, not `hoursAgo(2)`: guaranteed to land in "today" (IST) regardless of
+          // when this test happens to run relative to the IST midnight boundary.
+          placedAt: new Date(),
           shippingAddressId: addr?.id,
         },
         { ...base, number: 2, totalPaise: 50000, status: 'open', placedAt: daysAgo(2) },
@@ -200,6 +201,26 @@ describe('dashboard.summary', () => {
     expect(s.latestProducts).toEqual([
       expect.objectContaining({ title: 'Mouse', pricePaise: 100000, imageUrl: null }),
     ])
+
+    // Needs you: o1 (today) and o4 (9 days ago) are paid but unfulfilled; o2 is unpaid so it
+    // does not count; o3 is cancelled. Today's briefing only counts o1.
+    expect(s.today.ordersCount).toBe(1)
+    expect(s.today.salesPaise).toBe(100000)
+    expect(s.today.toShipCount).toBe(1)
+    expect(s.needsYou.ordersToShip.count).toBe(2)
+    expect(s.needsYou.ordersToShip.href).toBe('/orders?status=unfulfilled')
+    expect(s.needsYou.upiToVerify.count).toBe(0)
+    expect(s.needsYou.gstQueued).toBeNull()
+    expect(s.needsYou.lowStock.count).toBe(1)
+    expect(s.needsYou.preorderBalanceDue.count).toBe(0)
+    expect(s.needsYou.failedDeliveries).toBeNull()
+
+    // Insight: sales this window (150000) vs the window before (20000).
+    expect(s.insight.salesChange).toBeCloseTo((150000 - 20000) / 20000)
+    expect(s.insight.bestSeller).toEqual({ title: 'Mouse', units: 4 })
+
+    // Map: only o1 carries a shipping address.
+    expect(s.mapOrders).toEqual([expect.objectContaining({ number: 1, stateCode: 'KA' })])
   })
 
   it('buckets the report series by IST day and rebuilds stock from the adjustment log', async () => {
@@ -291,5 +312,16 @@ describe('dashboard.summary', () => {
     expect(s.salesByState).toEqual([])
     expect(s.categories).toEqual([])
     expect(s.latestProducts).toEqual([])
+    expect(s.today).toEqual({ ordersCount: 0, salesPaise: 0, toShipCount: 0 })
+    expect(s.needsYou).toEqual({
+      ordersToShip: { count: 0, href: '/orders?status=unfulfilled' },
+      upiToVerify: { count: 0, href: '/orders?status=pending_upi' },
+      gstQueued: null,
+      lowStock: { count: 0, href: '/products/inventory' },
+      preorderBalanceDue: { count: 0, href: '/orders' },
+      failedDeliveries: null,
+    })
+    expect(s.insight).toEqual({ salesChange: null, bestSeller: null })
+    expect(s.mapOrders).toEqual([])
   })
 })
