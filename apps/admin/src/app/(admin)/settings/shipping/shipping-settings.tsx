@@ -16,7 +16,18 @@ import { api } from '@/lib/api-client'
 /** The policy arrives with the settings; until then there is nothing to render below the couriers. */
 type Extra = { policy?: ShippingPolicySettings | undefined }
 
-const load = () => api.store.getShipping()
+/**
+ * Couriers with their own admin app (their own connect/credentials screen
+ * and workspace) are dropped from the picker here; Settings → Shipping keeps
+ * zones, rates and the store-wide dispatch policy only. Delhivery moved to
+ * Apps → Delhivery.
+ */
+const OWN_APP_COURIERS = new Set(['delhivery'])
+
+const load = async () => {
+  const r = await api.store.getShipping()
+  return { ...r, available: r.available.filter((p) => !OWN_APP_COURIERS.has(p.id)) }
+}
 const save = (next: Parameters<typeof api.store.updateShipping>[0]) =>
   api.store.updateShipping(next)
 

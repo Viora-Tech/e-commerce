@@ -10,6 +10,7 @@ import {
   Puzzle,
   Settings,
   Store,
+  Truck,
   Upload,
   Users,
 } from '@commerce/ui/icons'
@@ -17,6 +18,8 @@ import type { ComponentType } from 'react'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
+import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
+import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -52,6 +55,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: SettingsEditorBackInStock,
     },
   },
+  delhivery: {
+    pages: {
+      '': DelhiveryOverviewPage,
+      connect: DelhiveryConnectPage,
+    },
+  },
   'gst-invoices': {
     pages: {
       '': QueuePage,
@@ -84,6 +93,7 @@ const ICONS: Record<string, LucideIcon> = {
   Puzzle,
   Settings,
   Store,
+  Truck,
   Upload,
   Users,
 }

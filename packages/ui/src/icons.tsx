@@ -242,6 +242,7 @@ export const Undo = defineIcon(ArrowUUpLeft, 'Undo')
 export const Redo = defineIcon(ArrowUUpRight, 'Redo')
 export const PanelTop = defineIcon(Layout, 'PanelTop')
 export const PanelBottom = defineIcon(Rows, 'PanelBottom')
+export const ListView = defineIcon(Rows, 'ListView')
 export const X_ = defineIcon(X, 'X')
 export { X_ as X }
 export const XIcon = X_

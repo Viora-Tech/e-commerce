@@ -1,13 +1,9 @@
 'use client'
 
-import { ImageIcon } from '@commerce/ui/icons'
+import { ImageIcon, XIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
+import { useState } from 'react'
+import MediaPickDialog, { type MediaItem as PickerItem } from '@/components/media/media-pick-dialog'
 import { productFormContent } from '@/data/products'
 import type { MediaItem } from './form-state'
 
@@ -20,13 +16,33 @@ type VariantImagePickerProps = {
 
 const copy = productFormContent.variantBulk
 
-/** Pick which gallery image represents this variant. */
+function toPickerItems(media: MediaItem[]): PickerItem[] {
+  return media.map((m) => ({
+    id: m.id,
+    url: m.url,
+    alt: m.alt,
+    key: null,
+    contentType: m.contentType,
+    size: null,
+  }))
+}
+
+/** Pick which gallery image represents this variant, from the product's own media. */
 export default function VariantImagePicker({
   media,
   mediaId,
   label,
   onChange,
 }: VariantImagePickerProps) {
+  // Hooks
+  const [picking, setPicking] = useState(false)
+
+  // Event handlers
+  const handlePick = (picked: { id: string; url: string } | null) => {
+    setPicking(false)
+    onChange(picked?.id ?? null)
+  }
+
   // Early returns
   if (media.length === 0) {
     return <span className="text-caption text-muted-foreground">{copy.noImage}</span>
@@ -36,33 +52,43 @@ export default function VariantImagePicker({
   const current = media.find((m) => m.id === mediaId)
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={`${copy.image} ${label}`}
-        className={cn(
-          'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted',
-          'transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        )}
-      >
+    <>
+      <span className="relative inline-flex shrink-0">
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          aria-label={`${copy.image} ${label}`}
+          className={cn(
+            'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted',
+            'transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          )}
+        >
+          {current ? (
+            // biome-ignore lint/performance/noImgElement: gallery thumbnails are already sized by the uploader.
+            <img src={current.url} alt="" className="size-full object-cover" />
+          ) : (
+            <ImageIcon className="size-4 text-muted-foreground" />
+          )}
+        </button>
         {current ? (
-          // biome-ignore lint/performance/noImgElement: gallery thumbnails are already sized by the uploader.
-          <img src={current.url} alt="" className="size-full object-cover" />
-        ) : (
-          <ImageIcon className="size-4 text-muted-foreground" />
-        )}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem onClick={() => onChange(null)}>{copy.noImage}</DropdownMenuItem>
-        {media.map((item) => (
-          <DropdownMenuItem key={item.id} onClick={() => onChange(item.id)}>
-            <span className="flex items-center gap-2">
-              {/* biome-ignore lint/performance/noImgElement: same reason as the trigger. */}
-              <img src={item.url} alt="" className="size-6 rounded object-cover" />
-              <span className="truncate">{item.alt ?? copy.chooseImage}</span>
-            </span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            aria-label={copy.noImage}
+            title={copy.noImage}
+            className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-card hover:text-foreground"
+          >
+            <XIcon className="size-2.5" aria-hidden />
+          </button>
+        ) : null}
+      </span>
+      <MediaPickDialog
+        open={picking}
+        title={`${copy.image}: ${label}`}
+        items={toPickerItems(media)}
+        onClose={() => setPicking(false)}
+        onPick={handlePick}
+      />
+    </>
   )
 }

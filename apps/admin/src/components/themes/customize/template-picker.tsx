@@ -1,79 +1,128 @@
 'use client'
 
-import { TEMPLATE_KINDS, type TemplateKind, templateName } from '@commerce/core/theme'
-import { ChevronDown, Plus } from '@commerce/ui/icons'
+import {
+  ALTERNATE_KINDS,
+  TEMPLATE_KINDS,
+  type TemplateKind,
+  templateName,
+} from '@commerce/core/theme'
+import { ChevronDown, Loader2Icon, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@commerce/ui/shadcn/dropdown-menu'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@commerce/ui/shadcn/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
+import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
 
 export type TemplateRef = { key: TemplateKind; suffix: string }
+type AlternateKind = (typeof ALTERNATE_KINDS)[number]
 
 type TemplatePickerProps = {
   value: TemplateRef
   /** Stored alternates of this theme, by kind. */
   alternates: { template: string; suffix: string }[]
+  /** A template switch is in flight; the trigger shows a spinner instead of blocking. */
+  loading?: boolean
   onChange: (ref: TemplateRef) => void
-  onCreate: () => void
+  /** Kind is the group "Create template" was clicked in, when it supports alternates. */
+  onCreate: (kind: AlternateKind) => void
 }
 
 const copy = customizeContent.templates
 
+const isAlternateKind = (key: TemplateKind): key is AlternateKind =>
+  (ALTERNATE_KINDS as readonly string[]).includes(key)
+
 export const templateLabel = (ref: TemplateRef) =>
   ref.suffix ? copy.alternate(copy.names[ref.key], ref.suffix) : copy.names[ref.key]
 
-/** Shopify's template dropdown in the top bar: every template kind, its alternates, and Create. */
+/** Shopify's template switcher: search, every template kind grouped with its alternates, and Create. */
 export default function TemplatePicker({
   value,
   alternates,
+  loading,
   onChange,
   onCreate,
 }: TemplatePickerProps) {
+  // Hooks
+  const [open, setOpen] = useState(false)
+
+  // Event handlers
+  const handlePick = (ref: TemplateRef) => {
+    onChange(ref)
+    setOpen(false)
+  }
+  const handleCreate = (kind: AlternateKind) => {
+    onCreate(kind)
+    setOpen(false)
+  }
+
   // Render logic
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
         render={
           <Button variant="outline" className="min-w-52 justify-between" aria-label={copy.label}>
-            <span className="truncate">{templateLabel(value)}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              {loading ? (
+                <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
+              ) : null}
+              <span className="truncate">{templateLabel(value)}</span>
+            </span>
             <ChevronDown aria-hidden />
           </Button>
         }
       />
-      <DropdownMenuContent align="center" className="w-64">
-        {TEMPLATE_KINDS.map((key) => {
-          const own = alternates.filter((a) => a.template === key && a.suffix)
-          return (
-            <DropdownMenuGroup key={key}>
-              {own.length > 0 ? <DropdownMenuLabel>{copy.names[key]}</DropdownMenuLabel> : null}
-              <DropdownMenuItem onClick={() => onChange({ key, suffix: '' })}>
-                {own.length > 0 ? copy.default : copy.names[key]}
-              </DropdownMenuItem>
-              {own.map((a) => (
-                <DropdownMenuItem
-                  key={templateName(key, a.suffix)}
-                  className="pl-5"
-                  onClick={() => onChange({ key, suffix: a.suffix })}
-                >
-                  {a.suffix}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-          )
-        })}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onCreate}>
-          <Plus aria-hidden />
-          {copy.create}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      <PopoverContent align="center" className="w-72 gap-0 p-0">
+        <Command>
+          <CommandInput placeholder={copy.search} aria-label={copy.search} />
+          <CommandList>
+            <CommandEmpty>{copy.empty}</CommandEmpty>
+            {TEMPLATE_KINDS.map((key) => {
+              const own = alternates.filter((a) => a.template === key && a.suffix)
+              const currentIsDefault = value.key === key && value.suffix === ''
+              return (
+                <CommandGroup key={key} heading={copy.names[key]}>
+                  <CommandItem
+                    value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
+                    data-checked={currentIsDefault ? 'true' : undefined}
+                    onSelect={() => handlePick({ key, suffix: '' })}
+                  >
+                    {own.length > 0 ? copy.default : copy.names[key]}
+                  </CommandItem>
+                  {own.map((a) => (
+                    <CommandItem
+                      key={templateName(key, a.suffix)}
+                      value={`${copy.names[key]} ${a.suffix}`}
+                      data-checked={
+                        value.key === key && value.suffix === a.suffix ? 'true' : undefined
+                      }
+                      onSelect={() => handlePick({ key, suffix: a.suffix })}
+                    >
+                      {a.suffix}
+                    </CommandItem>
+                  ))}
+                  {isAlternateKind(key) ? (
+                    <CommandItem
+                      value={`${copy.names[key]} ${copy.create}`}
+                      onSelect={() => handleCreate(key)}
+                    >
+                      <Plus aria-hidden />
+                      {copy.create}
+                    </CommandItem>
+                  ) : null}
+                </CommandGroup>
+              )
+            })}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

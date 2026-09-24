@@ -13,13 +13,14 @@ import { api } from '@/lib/api-client'
 import { createCustomizeConfig } from '@/lib/customize-config'
 import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
 import { previewMetadata } from '@/lib/customize-preview'
+import { ThemePreviewContext } from '@/lib/customize-theme-context'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
 import ThemeSettings from '../theme-settings'
 import type { ThemeItem } from '../theme-types'
-import CreateTemplateDialog from './create-template-dialog'
+import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import ImageField from './image-field'
@@ -56,11 +57,13 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   const [settings, setSettings] = useState(theme.settings)
   const [ref, setRef] = useState<TemplateRef>({ key: initial.template, suffix: initial.suffix })
   const [loaded, setLoaded] = useState<Loaded | null>(null)
+  const [switching, setSwitching] = useState(false)
   const [alternates, setAlternates] = useState<{ template: string; suffix: string }[]>([])
   const [templatesDirty, setTemplatesDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [creating, setCreating] = useState<'closed' | 'open' | 'busy'>('closed')
+  const [creatingKind, setCreatingKind] = useState<AlternateKind | null>(null)
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [modePick, setModePick] = useState<'light' | 'dark'>('light')
   const [nonce, setNonce] = useState(0)
@@ -83,8 +86,12 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
         drafts.prime(partsOf(ref, doc))
         setTemplatesDirty(header.draft || main.draft || footer.draft)
         setLoaded({ ref, doc, nonce })
+        setSwitching(false)
       },
-      () => toast.error(themesContent.failed),
+      () => {
+        toast.error(themesContent.failed)
+        setSwitching(false)
+      },
     )
     api.themes.templates.list({ themeId: record.id }).then((rows) => active && setAlternates(rows))
     return () => {
@@ -115,8 +122,8 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
 
   const handleTemplate = async (next: TemplateRef) => {
     if (sameRef(next, ref)) return
+    setSwitching(true)
     await drafts.flush()
-    setLoaded(null)
     setRef(next)
   }
 
@@ -140,11 +147,11 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   }
 
   const handleDiscard = async () => {
+    setSwitching(true)
     await drafts.flush()
     await api.themes.templates.discard({ themeId: record.id })
     setSettings(record.settings)
     setTemplatesDirty(false)
-    setLoaded(null)
     setNonce((n) => n + 1)
     toast.success(copy.discarded)
   }
@@ -168,7 +175,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       await api.themes.templates.create({ themeId: record.id, template: kind, suffix, basedOn })
       toast.success(customizeContent.createDialog.created)
       setCreating('closed')
-      setLoaded(null)
+      setSwitching(true)
       setRef({ key: kind, suffix })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : customizeContent.createDialog.failed)
@@ -183,7 +190,9 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     ? { url: settings.brand.logo.url, width: settings.brand.logoWidth }
     : null
   const metadata = previewMetadata({ ...preview, logo })
-  const doc = loaded && sameRef(loaded.ref, ref) ? loaded.doc : null
+  // Keep showing the previously loaded template (dimmed via `switching`) while the
+  // next one fetches, instead of unmounting the whole editor to a blank "Connecting" screen.
+  const doc = loaded?.doc ?? null
 
   const topBar = (
     <CustomizeTopBar
@@ -206,8 +215,12 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           <TemplatePicker
             value={ref}
             alternates={alternates}
+            loading={switching}
             onChange={handleTemplate}
-            onCreate={() => setCreating('open')}
+            onCreate={(kind) => {
+              setCreatingKind(kind)
+              setCreating('open')
+            }}
           />
           {preview.kind ? (
             <ResourcePicker
@@ -236,7 +249,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       <link rel="stylesheet" href={FONT_SAMPLES} precedence="default" />
       {doc ? (
         <Puck
-          key={`${ref.key}.${ref.suffix}.${loaded?.nonce}`}
+          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}`}
           config={config}
           data={doc as unknown as Data}
           metadata={metadata}
@@ -258,12 +271,14 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
             },
           }}
         >
-          <CustomizeLayout
-            topBar={topBar}
-            settings={settingsPanel}
-            device={device}
-            loading={false}
-          />
+          <ThemePreviewContext.Provider value={settings}>
+            <CustomizeLayout
+              topBar={topBar}
+              settings={settingsPanel}
+              device={device}
+              loading={switching}
+            />
+          </ThemePreviewContext.Provider>
         </Puck>
       ) : (
         <div className="flex h-svh items-center justify-center bg-background text-body text-muted-foreground">
@@ -273,8 +288,12 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       {creating === 'closed' ? null : (
         <CreateTemplateDialog
           current={ref}
+          initialKind={creatingKind}
           busy={creating === 'busy'}
-          onCancel={() => setCreating('closed')}
+          onCancel={() => {
+            setCreating('closed')
+            setCreatingKind(null)
+          }}
           onCreate={handleCreate}
         />
       )}

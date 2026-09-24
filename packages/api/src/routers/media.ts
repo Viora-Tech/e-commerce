@@ -55,6 +55,10 @@ export const mediaRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(100).default(40),
         search: z.string().trim().max(200).optional(),
+        sort: z.enum(['newest', 'oldest', 'name', 'size']).optional(),
+        fileType: z.enum(['image', 'video']).optional(),
+        size: z.enum(['small', 'medium', 'large']).optional(),
+        used: z.enum(['used', 'unused']).optional(),
       }),
     )
     .handler(({ context, input }) => listMedia(context.tx, input)),
