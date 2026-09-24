@@ -29,7 +29,15 @@ import {
   type ResolvedDiscount,
   resolveCartDiscount,
 } from '../discounts/resolve'
-import { CartEmpty, CartNotOpen, DiscountUnavailable, OutOfStock, PaymentFailed } from '../errors'
+import {
+  CartEmpty,
+  CartNotOpen,
+  DiscountUnavailable,
+  OutOfStock,
+  PaymentFailed,
+  ShippingRateUnavailable,
+  ShippingUnavailable,
+} from '../errors'
 import {
   GIFT_CARD_PROVIDER,
   GiftCardError,
@@ -37,9 +45,11 @@ import {
   redeemGiftCards,
   reverseGiftCardRedemptions,
 } from '../gift-cards/service'
-import { applyPaymentAdjustment } from '../payments/adjustments'
+import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adjustments'
 import { parsePaymentSettings } from '../payments/settings'
 import { StoreAddressSchema } from '../settings/general'
+import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
+import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 
@@ -59,6 +69,11 @@ export type PlaceOrderInput = {
   discountCode?: string | null
   /** Cards the shopper applied (ids from `findRedeemableGiftCard`), spent before the provider is charged. */
   giftCardIds?: readonly string[]
+  /**
+   * The shipping rate the shopper picked. Re-priced here; a rate that no longer
+   * applies throws `ShippingRateUnavailable`. Omitted: the cheapest that applies.
+   */
+  shippingRateId?: string | null | undefined
 }
 export type PlaceOrderResult = {
   orderId: string
@@ -82,6 +97,8 @@ type Line = {
   hsCode: string | null
   /** Sold as a gift card: no tax, no stock, issued on payment. */
   giftCard: boolean
+  /** Variant weight; null counts as 0 for weight-based rates. */
+  weightGrams: number | null
 }
 
 type State = {
@@ -92,6 +109,8 @@ type State = {
   /** The cart's marketing touch, copied onto the order for attribution. */
   cartAttribution: MarketingAttribution | null
   discount: ResolvedDiscount | null
+  /** The rate charged; null when nothing ships or the store has no rates. */
+  shipping: ShippingRateOption | null
   reserved: Line[]
   orderId: string | null
   orderNumber: number | null
@@ -124,6 +143,7 @@ const loadCart: WorkflowStep<State> = {
         taxable: variant.taxable,
         hsCode: variant.hsCode,
         giftCard: product.isGiftCard,
+        weightGrams: variant.weightGrams,
       })
       .from(cartLine)
       .innerJoin(variant, eq(variant.id, cartLine.variantId))
@@ -183,6 +203,53 @@ const resolveDiscount: WorkflowStep<State> = {
   },
 }
 
+/**
+ * Price shipping from the store's zones and rates, never from the client.
+ * Bands and thresholds read the subtotal after the discount, the same number
+ * the checkout preview used. A store with no zones ships free, as before
+ * rates existed; a store with zones refuses an address none of them covers.
+ */
+const resolveShipping: WorkflowStep<State> = {
+  name: 'resolveShipping',
+  async run({ ctx, input, lines, discount: applied }) {
+    const to = input.checkout?.address
+    if (!to || lines.every((l) => l.giftCard)) return { shipping: null }
+    const { discountedSubtotalPaise } = applyDiscount(sumPaise(lines), 0, applied)
+    const quote = quoteShipping(
+      await loadRateZones(ctx.tx),
+      { stateCode: to.stateCode, pincode: to.pincode },
+      {
+        valuePaise: discountedSubtotalPaise,
+        weightGrams: lines.reduce((sum, l) => sum + l.quantity * (l.weightGrams ?? 0), 0),
+      },
+    )
+    if (quote.kind === 'not_configured') return { shipping: null }
+    if (quote.kind === 'no_rates') throw new ShippingUnavailable(to.pincode, ctx.storeId)
+    const wanted = input.shippingRateId
+    const picked = wanted ? quote.options.find((o) => o.rateId === wanted) : quote.options[0]
+    if (!picked) throw new ShippingRateUnavailable(wanted ?? 'none', ctx.storeId)
+    return { shipping: picked }
+  },
+}
+
+/**
+ * The payment fee for this order. Cash on delivery takes the rate's own COD
+ * fee when the rate sets one, instead of the store's (Settings → Payments),
+ * never both; a rate without one leaves the store's fee in place.
+ */
+function paymentAdjustmentFor(
+  providerId: string,
+  storeAdjustment: PaymentAdjustment | undefined,
+  shipping: ShippingRateOption | null,
+): PaymentAdjustment | undefined {
+  if (providerId !== 'cod' || shipping?.codSurchargePaise == null) return storeAdjustment
+  return {
+    type: 'fixed',
+    value: shipping.codSurchargePaise,
+    label: storeAdjustment?.label || 'Cash on delivery fee',
+  }
+}
+
 const reserveStock: WorkflowStep<State> = {
   name: 'reserveStock',
   async run({ ctx, lines }) {
@@ -223,7 +290,7 @@ const reserveStock: WorkflowStep<State> = {
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input, discount: applied, cartAttribution }) {
+  async run({ ctx, lines, input, discount: applied, cartAttribution, shipping }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
@@ -279,19 +346,27 @@ const createOrder: WorkflowStep<State> = {
     const subtotalPaise = sumPaise(lines)
     // Discount first, then the payment-method fee or discount on what is left.
     // Both are applied server-side here; the checkout preview is only a hint.
+    // A free-shipping discount zeroes the rate here (applyDiscount).
     const { discountPaise, shippingPaise, discountedSubtotalPaise } = applyDiscount(
       subtotalPaise,
-      0,
+      shipping?.pricePaise ?? 0,
       applied,
     )
-    const adjustment = parsePaymentSettings(s.payments).adjustments[input.paymentProvider.id]
+    const adjustment = paymentAdjustmentFor(
+      input.paymentProvider.id,
+      parsePaymentSettings(s.payments).adjustments[input.paymentProvider.id],
+      shipping,
+    )
     const { adjustmentPaise, totalPaise: afterAdjustment } = applyPaymentAdjustment(
       discountedSubtotalPaise,
       adjustment,
     )
     const totalPaise = afterAdjustment + shippingPaise
     /* Listed prices include GST, so the tax is split out of the total rather
-       than added to it; the shopper pays the same either way. */
+       than added to it; the shopper pays the same either way. Shipping is
+       charged GST-inclusive too and is not a reduction: it lands in the
+       "charges" part of the total, which follows the principal supply's rate
+       (a composite supply), exactly like the COD fee. */
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
     const tax = computeOrderGst({
       lines: lines.map((l) => ({
@@ -313,6 +388,21 @@ const createOrder: WorkflowStep<State> = {
         taxPaise: tax.taxPaise,
         taxBreakdown: tax,
         shippingPaise,
+        shippingRateId: shipping?.rateId ?? null,
+        shippingRateName: shipping?.name ?? null,
+        shipping: shipping
+          ? {
+              rateId: shipping.rateId,
+              rateName: shipping.name,
+              zoneId: shipping.zoneId,
+              zoneName: shipping.zoneName,
+              listPricePaise: shipping.listPricePaise,
+              pricePaise: shippingPaise,
+              codSurchargePaise: shipping.codSurchargePaise,
+              minTransitDays: shipping.minTransitDays,
+              maxTransitDays: shipping.maxTransitDays,
+            }
+          : null,
         paymentAdjustmentPaise: adjustmentPaise,
         paymentAdjustmentLabel: adjustmentPaise ? (adjustment?.label ?? null) : null,
         discountId: applied?.discount.id ?? null,
@@ -645,6 +735,7 @@ export async function placeOrder(
       cartDiscountCode: null,
       cartAttribution: null,
       discount: null,
+      shipping: null,
       reserved: [],
       orderId: null,
       orderNumber: null,
@@ -658,6 +749,7 @@ export async function placeOrder(
     [
       loadCart,
       resolveDiscount,
+      resolveShipping,
       reserveStock,
       createOrder,
       redeemCards,

@@ -715,6 +715,10 @@ export const order = pgTable(
       .default('placed'),
     subtotalPaise: integer('subtotal_paise').notNull(),
     shippingPaise: integer('shipping_paise').notNull().default(0),
+    /** The shipping rate charged, as it was at checkout. Null before shipping rates existed. */
+    shippingRateId: uuid('shipping_rate_id'),
+    shippingRateName: text('shipping_rate_name'),
+    shipping: jsonb('shipping').$type<OrderShippingSnapshot>(),
     /** Fee (+) or discount (−) for the chosen payment method, already inside total_paise. */
     paymentAdjustmentPaise: integer('payment_adjustment_paise').notNull().default(0),
     paymentAdjustmentLabel: text('payment_adjustment_label'),
@@ -927,6 +931,91 @@ export const shipment = pgTable(
   },
   (t) => [uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill)],
 )
+
+/** One PIN code rule of a shipping zone: `560*` (prefix) or `560001` (exact). */
+export type ShippingPincodeRule = { pattern: string; mode: 'include' | 'exclude' }
+
+/**
+ * Where a set of shipping rates applies: states and/or PIN code rules. A zone
+ * with no states and no include rules covers all of India. When several zones
+ * match an address the most specific one wins (see `pickZone` in core).
+ *
+ * Pattern from Saleor's `ShippingZone` and `ShippingMethodPostalCodeRule`
+ * (BSD-3): postal rules include or exclude, kept beside the zone.
+ */
+export const shippingZone = pgTable(
+  'shipping_zone',
+  {
+    id: id(),
+    storeId: storeId(),
+    name: text('name').notNull(),
+    /** Two-letter state codes (`KA`, `MH`). */
+    stateCodes: text('state_codes').array().notNull().default([]),
+    pincodeRules: jsonb('pincode_rules').$type<ShippingPincodeRule[]>().notNull().default([]),
+    position: integer('position').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('shipping_zone_store').on(t.storeId, t.position)],
+)
+
+export type ShippingRateCondition = 'none' | 'order_value' | 'weight'
+
+/**
+ * A price the shopper can pick at checkout. `condition` bounds it by order
+ * value (paise, after discounts) or cart weight (grams): `min` is included,
+ * `max` is not, so bands 0 to 500 and 500 to 1000 meet without a gap.
+ * `free_above_paise` makes it free from that order value up.
+ *
+ * Pattern from Saleor's `ShippingMethod` (BSD-3, price or weight based with
+ * bounds) and Medusa's shipping options (MIT, flat or calculated per option).
+ */
+export const shippingRate = pgTable(
+  'shipping_rate',
+  {
+    id: id(),
+    storeId: storeId(),
+    zoneId: uuid('zone_id')
+      .notNull()
+      .references(() => shippingZone.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    condition: text('condition', { enum: ['none', 'order_value', 'weight'] })
+      .notNull()
+      .default('none'),
+    minValue: integer('min_value'),
+    maxValue: integer('max_value'),
+    pricePaise: integer('price_paise').notNull().default(0),
+    freeAbovePaise: integer('free_above_paise'),
+    /**
+     * Cash on delivery fee for this rate. Null keeps the store's COD fee
+     * (Settings → Payments); a number replaces it, 0 waives it. Never both.
+     */
+    codSurchargePaise: integer('cod_surcharge_paise'),
+    /** Delivery promise for this rate; null uses the courier's estimate. */
+    minTransitDays: integer('min_transit_days'),
+    maxTransitDays: integer('max_transit_days'),
+    position: integer('position').notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('shipping_rate_zone').on(t.zoneId, t.position)],
+)
+
+/** What the shopper picked at checkout, kept on the order as it was charged. */
+export type OrderShippingSnapshot = {
+  rateId: string
+  rateName: string
+  zoneId: string
+  zoneName: string
+  /** List price before a free-shipping discount or threshold. */
+  listPricePaise: number
+  /** What was charged for shipping; equals `order.shipping_paise`. */
+  pricePaise: number
+  /** COD fee this rate set, or null when the store's COD fee applied. */
+  codSurchargePaise: number | null
+  minTransitDays: number | null
+  maxTransitDays: number | null
+}
 
 export type DiscountKind = 'code' | 'automatic'
 export type DiscountMethod = 'percent' | 'fixed' | 'free_shipping'

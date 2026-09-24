@@ -17,6 +17,7 @@ import {
   variant,
   variantOptionValue,
 } from './schema'
+import { seedWaimersShipping } from './seed-shipping-rates'
 
 type Row = {
   sku: string
@@ -232,6 +233,7 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       publishedData: homeData,
       publishedAt: new Date(),
     })
+    await seedWaimersShipping(db, storeId)
     console.log(`seed: waimers created (${storeId}) with ${count} products and a home page`)
   } finally {
     await db.$client.end()

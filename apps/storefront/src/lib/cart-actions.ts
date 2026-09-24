@@ -13,6 +13,8 @@ import {
   type PlaceOrderResult,
   placeOrder,
   rememberCheckoutAddress,
+  ShippingRateUnavailable,
+  ShippingUnavailable,
   setCartAttribution,
   setLineQuantity,
 } from '@commerce/core'
@@ -70,6 +72,8 @@ export type CheckoutForm = {
   payment: string
   /** Gift card codes applied in the summary; each is re-checked here before it is spent. */
   giftCards?: string[]
+  /** The shipping rate picked in the summary; re-priced on the server. */
+  shippingRate?: string
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -144,6 +148,7 @@ export async function checkoutAction(
         cartId,
         paymentProvider: provider,
         giftCardIds,
+        shippingRateId: form.shippingRate || null,
         checkout: {
           name: form.name,
           email: form.email,
@@ -164,6 +169,10 @@ export async function checkoutAction(
     // Another checkout took the last use of the code; the next submit prices without it.
     if (err instanceof DiscountUnavailable)
       return { error: checkoutContent.errors.discountUnavailable }
+    // Rates are the store's to set; the shopper can only change the address or re-pick.
+    if (err instanceof ShippingUnavailable)
+      return { error: checkoutContent.errors.noShipping(form.pincode) }
+    if (err instanceof ShippingRateUnavailable) return { error: checkoutContent.errors.rateChanged }
     throw err
   })
   if ('error' in placed) return { error: placed.error }

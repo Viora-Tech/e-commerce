@@ -47,7 +47,12 @@ export function totalRows(order: OrderDetail): TotalRow[] {
     })
   }
 
-  rows.push({ label: copy.items.shipping, value: formatPaise(order.shippingPaise) })
+  rows.push({
+    label: order.shippingRateName
+      ? `${copy.items.shipping} (${order.shippingRateName})`
+      : copy.items.shipping,
+    value: formatPaise(order.shippingPaise),
+  })
 
   const adj = order.paymentAdjustmentPaise
   if (adj !== 0) {

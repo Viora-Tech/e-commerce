@@ -1,9 +1,13 @@
 import { loadEnv } from '@commerce/config'
 import {
   type DeliveryEstimate,
+  freeShippingThreshold,
+  loadRateZones,
   parseShippingSettings,
   primaryShippingProvider,
+  quoteCartShipping,
   type Serviceability,
+  type ShippingRateOption,
   type ShippingSettings,
   toShippingPolicy,
 } from '@commerce/core'
@@ -17,7 +21,13 @@ import {
   serviceabilityKey,
   sharedRedis,
 } from '@commerce/queue'
-import { describeCourierFailure, estimateDelivery, parsePincode } from '@commerce/shipping'
+import {
+  computeDeliveryEstimate,
+  describeCourierFailure,
+  estimateDelivery,
+  formatDeliveryRange,
+  parsePincode,
+} from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 
 const env = () => loadEnv(process.env)
@@ -74,4 +84,88 @@ export async function estimateForPincode(
     now: new Date(),
     cached: answer,
   })
+}
+
+/**
+ * What the cart can say about shipping before there is an address: whether
+ * the store charges for it at all, and the order value from which it is free
+ * everywhere (null when there is no such promise).
+ */
+export async function cartShippingHint(
+  tx: StoreTx,
+): Promise<{ charged: boolean; freeAbovePaise: number | null }> {
+  const zones = await loadRateZones(tx)
+  return { charged: zones.length > 0, freeAbovePaise: freeShippingThreshold(zones) }
+}
+
+/** One shipping choice as the checkout shows it. */
+export type CheckoutRate = {
+  id: string
+  name: string
+  pricePaise: number
+  /** "Tue, 18 Aug - Thu, 20 Aug", from the rate's own days or the courier's estimate. */
+  dateRange: string | null
+  /** Replaces the store's COD fee when the shopper pays on delivery; null keeps the store's. */
+  codSurchargePaise: number | null
+}
+
+export type CheckoutShipping = {
+  delivery: DeliveryEstimate
+  /**
+   * `free`: the store has no rates (shipping is free). `none`: nothing covers
+   * this address. `rates`: the options, cheapest first.
+   */
+  rates: { kind: 'free' } | { kind: 'none' } | { kind: 'rates'; options: CheckoutRate[] }
+}
+
+/** A rate's own delivery promise, or the courier's when the rate sets none. */
+function rateRange(
+  option: ShippingRateOption,
+  settings: ShippingSettings,
+  delivery: DeliveryEstimate,
+): string | null {
+  const fallback = delivery.ok && delivery.serviceable ? delivery.dateRange : null
+  if (option.minTransitDays === null || option.maxTransitDays === null) return fallback
+  try {
+    const e = computeDeliveryEstimate({
+      now: new Date(),
+      minTransitDays: option.minTransitDays,
+      maxTransitDays: option.maxTransitDays,
+      policy: toShippingPolicy(settings),
+    })
+    return formatDeliveryRange(e.earliestDate, e.latestDate)
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * The courier's answer for the PIN code plus the store's rates for this cart
+ * and address, priced the way `placeOrder` will price them.
+ */
+export async function checkoutShipping(
+  tx: StoreTx,
+  storeId: string,
+  cartId: string,
+  to: { pincode: string; stateCode: string },
+): Promise<CheckoutShipping> {
+  const delivery = await estimateForPincode(tx, storeId, to.pincode)
+  if (!delivery.ok || !delivery.serviceable) return { delivery, rates: { kind: 'none' } }
+  const quote = await quoteCartShipping({ storeId, tx }, cartId, to)
+  if (quote.kind === 'not_configured') return { delivery, rates: { kind: 'free' } }
+  if (quote.kind === 'no_rates') return { delivery, rates: { kind: 'none' } }
+  const settings = await loadShippingSettings(tx, storeId)
+  return {
+    delivery,
+    rates: {
+      kind: 'rates',
+      options: quote.options.map((o) => ({
+        id: o.rateId,
+        name: o.name,
+        pricePaise: o.pricePaise,
+        dateRange: rateRange(o, settings, delivery),
+        codSurchargePaise: o.codSurchargePaise,
+      })),
+    },
+  }
 }

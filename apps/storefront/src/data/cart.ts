@@ -5,6 +5,12 @@ export const cartContent = {
   subtotal: 'Subtotal',
   shipping: 'Shipping',
   shippingFree: 'Free',
+  shippingAtCheckout: 'Calculated at checkout',
+  freeShipping: {
+    remaining: (amount: string) => `Add ${amount} more for free shipping`,
+    unlocked: 'Your order ships free',
+    label: 'Progress towards free shipping',
+  },
   total: 'Total',
   taxes: 'Inclusive of all taxes.',
   checkout: 'Check out',

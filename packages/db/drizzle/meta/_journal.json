@@ -358,6 +358,13 @@
       "when": 1790300000000,
       "tag": "0053_admin_accent",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1790310000000,
+      "tag": "0054_shipping_rates",
+      "breakpoints": true
     }
   ]
 }

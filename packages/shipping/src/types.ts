@@ -124,10 +124,35 @@ export type CredentialCheck = {
   message: string
 }
 
+export type RateQuery = {
+  originPincode: string
+  destinationPincode: string
+  weightGrams: number
+  /** Goods value after discounts, in paise. */
+  declaredValuePaise: number
+  paymentMode: 'prepaid' | 'cod'
+}
+
+/** A courier's own price for one parcel. Never shown raw; the platform names and rounds it. */
+export type RateQuote = {
+  pricePaise: number
+  minTransitDays: number | null
+  maxTransitDays: number | null
+}
+
 export type ShippingProvider = {
   /** Stable id used in store settings and the shipment table. Lowercase, no spaces. */
   readonly id: string
   readonly label: string
+  /**
+   * Optional: what the courier would charge for this parcel, or null when it
+   * will not quote. Checkout prices shipping from the merchant's zones and
+   * rates (Settings → Shipping → Shipping rates), so a courier without this
+   * method (Delhivery today: it only answers serviceability) loses nothing.
+   * It exists so a carrier-calculated rate type can be added without
+   * changing the contract again.
+   */
+  quoteRate?(query: RateQuery): Promise<RateQuote | null>
   /**
    * Look up serviceability. Throws CourierError on transport or auth failure;
    * returns `serviceable: false` for a successful lookup with a negative
