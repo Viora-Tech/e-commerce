@@ -7,8 +7,10 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import StatusLabel from '@/components/status/status-label'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
@@ -28,7 +30,6 @@ type Shipping = {
 
 const copy = gstInvoicesContent.detail
 const kinds = gstInvoicesContent.kinds
-const statuses = gstInvoicesContent.statuses
 
 const shippingOf = (doc: Doc): Shipping => ({
   portCode: doc.snapshot.exportSupply?.portCode ?? '',
@@ -104,7 +105,6 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     { label: copy.fields.series, value: doc.seriesId ?? '-' },
     { label: copy.fields.date, value: doc.invoiceDate ? formatDay(doc.invoiceDate) : '-' },
     { label: copy.fields.order, value: s.order.name },
-    { label: copy.fields.status, value: statuses[doc.status] },
     { label: copy.fields.total, value: formatPaise(s.totals.totalPaise) },
   ]
 
@@ -112,6 +112,15 @@ export default function InvoiceDetail({ params }: AppPageProps) {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={`${kinds[doc.kind]} ${doc.number ?? ''}`.trim()}
+        badges={<StatusLabel kind="gstDoc" value={doc.status} variant="pill" size="sm" />}
+        subtitle={
+          doc.number ? (
+            <span className="group/row flex items-center gap-1">
+              {doc.number}
+              <CopyButton value={doc.number} what={copy.fields.number} />
+            </span>
+          ) : undefined
+        }
         actions={
           <>
             <Button variant="ghost" render={<Link href="/apps/gst-invoices/invoices" />}>

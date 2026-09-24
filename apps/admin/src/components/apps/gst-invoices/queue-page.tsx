@@ -14,6 +14,7 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import SetupChecklist from '@/components/apps/setup-checklist'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
@@ -46,6 +47,14 @@ export default function QueuePage() {
   const [adding, setAdding] = useState('')
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [gstin, setGstin] = useState<string | null | undefined>(undefined)
+
+  useEffect(() => {
+    api.gstInvoices.settings
+      .get()
+      .then((s) => setGstin(s.settings.seller.gstin || null))
+      .catch(() => setGstin(null))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -116,6 +125,20 @@ export default function QueuePage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      {gstin === null ? (
+        <SetupChecklist
+          heading={copy.setup.heading}
+          body={copy.setup.body}
+          steps={[
+            {
+              label: copy.setup.gstin,
+              done: false,
+              href: '/apps/gst-invoices/settings',
+              action: copy.setup.gstinAction,
+            },
+          ]}
+        />
+      ) : null}
       <DataCard title={copy.title} flush>
         <div className="flex flex-col gap-3 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_10rem_10rem]">

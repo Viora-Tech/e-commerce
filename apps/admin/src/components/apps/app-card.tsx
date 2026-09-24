@@ -1,11 +1,19 @@
 'use client'
 
-import { ArrowRight, ExternalLink, Puzzle } from '@commerce/ui/icons'
+import { ArrowRight, ExternalLink, MoreVertical } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card, CardContent, CardHeader } from '@commerce/ui/shadcn/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
+import { appIcon } from '@/apps/registry'
+import IconBadge from '@/components/layout/icon-badge'
 import StatusLabel from '@/components/status/status-label'
 import { type AppKind, appsContent as copy } from '@/data/apps'
 
@@ -14,9 +22,11 @@ export type AppSummary = {
   name: string
   version: string
   description: string | null
+  category: string | null
   builtIn: boolean
   installed: boolean
   provides: Record<AppKind, { id: string; label: string }[]>
+  admin: { icon: string | null; pages: { path: string; navLabel?: string | undefined }[] }
   /** Open-source projects the app is built on, credited on the card. */
   credits: { name: string; url: string; license: string; note?: string | undefined }[]
 }
@@ -35,41 +45,62 @@ function providedKinds(app: AppSummary): AppKind[] {
   return KINDS.filter((k) => app.provides[k].length > 0)
 }
 
+/** Whether the app has its own admin screens (Open) or is a plain provider (Set up). */
+function hasScreens(app: AppSummary): boolean {
+  return app.admin.pages.length > 0
+}
+
+function categoryLabel(category: string | null): string | null {
+  if (!category) return null
+  return copy.gallery.categories[category] ?? copy.gallery.categoryFallback(category)
+}
+
+/** One app in the gallery grid: icon, name, plain description, category chip, credit line. */
 export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardProps) {
+  const Icon = appIcon(app.admin.icon)
   const kinds = providedKinds(app)
+  const category = categoryLabel(app.category)
+  const openHref = hasScreens(app) ? `/apps/${app.id}` : kinds[0] ? copy.kinds[kinds[0]].href : null
 
   return (
     <Card className="h-full transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-            <Puzzle className="size-5" />
-          </span>
+          <IconBadge icon={Icon} tone={app.installed ? 'success' : 'neutral'} />
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="truncate">{app.name}</CardTitle>
+              <span className="truncate text-card-title text-ink-strong">{app.name}</span>
               <span className="text-caption text-muted-foreground-soft">
                 {copy.version(app.version)}
               </span>
             </div>
-            {app.builtIn ? (
-              <StatusLabel kind="app" value="builtIn" variant="pill" size="sm" />
-            ) : app.installed ? (
-              <StatusLabel kind="app" value="installed" variant="pill" size="sm" />
-            ) : null}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {app.installed ? (
+                <StatusLabel kind="app" value="installed" variant="pill" size="sm" />
+              ) : null}
+              {category ? (
+                <Badge variant="secondary" className="text-caption">
+                  {category}
+                </Badge>
+              ) : null}
+            </div>
           </div>
         </div>
-        {app.builtIn ? null : app.installed ? (
-          <Button type="button" variant="outline" disabled={busy} onClick={() => onUninstall(app)}>
-            {busy ? <Spinner /> : null}
-            {copy.uninstall}
-          </Button>
-        ) : (
-          <Button type="button" disabled={busy} onClick={() => onInstall(app)}>
-            {busy ? <Spinner /> : null}
-            {copy.install}
-          </Button>
-        )}
+        {app.installed ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={copy.gallery.kebabLabel(app.name)}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <MoreVertical className="size-4" aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem variant="destructive" onClick={() => onUninstall(app)}>
+                {copy.uninstall}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         {app.description ? (
@@ -93,27 +124,27 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
             ))}
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          {kinds.map((k) => (
-            <Badge key={k} variant="secondary">
-              {`${copy.kinds[k].label}: ${app.provides[k].map((p) => p.label).join(', ')}`}
-            </Badge>
-          ))}
+        <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+          {app.installed && openHref ? (
+            <Link
+              href={openHref}
+              className="inline-flex items-center gap-1 text-body font-medium text-ink-strong underline-offset-4 hover:text-primary hover:underline"
+            >
+              {hasScreens(app)
+                ? copy.open
+                : copy.configure(copy.kinds[kinds[0] ?? 'payments'].label)}
+              <ArrowRight className="size-3.5" />
+            </Link>
+          ) : (
+            <span />
+          )}
+          {app.installed ? null : (
+            <Button type="button" disabled={busy} onClick={() => onInstall(app)}>
+              {busy ? <Spinner /> : null}
+              {copy.install}
+            </Button>
+          )}
         </div>
-        {app.installed ? (
-          <div className="mt-auto flex flex-wrap gap-4">
-            {kinds.map((k) => (
-              <Link
-                key={k}
-                href={copy.kinds[k].href}
-                className="inline-flex items-center gap-1 text-body font-medium text-ink-strong underline-offset-4 hover:text-primary hover:underline"
-              >
-                {copy.configure(copy.kinds[k].label)}
-                <ArrowRight className="size-3.5" />
-              </Link>
-            ))}
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   )

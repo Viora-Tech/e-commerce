@@ -16,9 +16,11 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
+import StatusLabel from '@/components/status/status-label'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -30,7 +32,6 @@ type Progress = { batchId: string; total: number; sent: number; failed: number }
 
 const copy = gstInvoicesContent.list
 const kindCopy = gstInvoicesContent.kinds
-const statusCopy = gstInvoicesContent.statuses
 const ALL = 'all'
 const KIND_OPTIONS = [
   { value: ALL, label: copy.all },
@@ -250,9 +251,12 @@ export default function InvoicesList() {
                   />
                 </TableCell>
                 <TableCell className="font-medium">
-                  <Link href={`/apps/gst-invoices/invoices/${r.id}`} className="hover:underline">
-                    {r.number ?? '-'}
-                  </Link>
+                  <span className="group/row flex items-center gap-1">
+                    <Link href={`/apps/gst-invoices/invoices/${r.id}`} className="hover:underline">
+                      {r.number ?? '-'}
+                    </Link>
+                    {r.number ? <CopyButton value={r.number} what={copy.columns.number} /> : null}
+                  </span>
                 </TableCell>
                 <TableCell>{kindCopy[r.kind]}</TableCell>
                 <TableCell>
@@ -271,7 +275,9 @@ export default function InvoicesList() {
                 <TableCell>
                   <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
                 </TableCell>
-                <TableCell>{statusCopy[r.status]}</TableCell>
+                <TableCell>
+                  <StatusLabel kind="gstDoc" value={r.status} />
+                </TableCell>
                 <TableCell className="text-right tabular-nums">{formatPaise(r.taxPaise)}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPaise(r.totalPaise)}

@@ -14,11 +14,13 @@ import {
   Truck,
 } from '@commerce/ui/icons'
 import { appsContent } from '@/data/apps'
+import { backInStockContent } from '@/data/back-in-stock'
 import { blogListContent } from '@/data/blog'
 import { customerDetailContent } from '@/data/customers'
 import { type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { abandonedContent, draftsContent } from '@/data/drafts'
 import { type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
+import { gstInvoicesContent } from '@/data/gst-invoices'
 import { homeContent } from '@/data/home'
 import {
   type PurchaseOrderStatus,
@@ -181,6 +183,19 @@ export const STATUS = {
   app: {
     installed: entry(appsContent.installed, 'success'),
     builtIn: entry(appsContent.builtIn, 'neutral'),
+  },
+  /** GST invoice / document status (queue, list, detail). */
+  gstDoc: {
+    draft: entry(gstInvoicesContent.statuses.draft, 'neutral'),
+    issued: entry(gstInvoicesContent.statuses.issued, 'success'),
+    cancelled: entry(gstInvoicesContent.statuses.cancelled, 'error'),
+  },
+  /** Back in stock: where a signup is in the double opt-in flow. */
+  bisSignup: {
+    pending_confirmation: entry(backInStockContent.signups.status.pending_confirmation, 'pending'),
+    confirmed: entry(backInStockContent.signups.status.confirmed, 'info'),
+    notified: entry(backInStockContent.signups.status.notified, 'success'),
+    unsubscribed: entry(backInStockContent.signups.status.unsubscribed, 'neutral'),
   },
   /** Shopify import runs; a finished dry run reads "Preview ready". */
   importRun: {

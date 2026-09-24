@@ -43,6 +43,9 @@ export default async function AppPage({ params }: Params) {
       appId={app.id}
       name={app.name}
       icon={app.admin.icon}
+      description={app.description}
+      credits={app.credits}
+      hasSettings={app.admin.pages.some((p) => p.path === 'settings')}
       tabs={tabs}
       active={match.page.path}
     >

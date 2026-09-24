@@ -1,6 +1,5 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import {
   Table,
   TableBody,
@@ -12,20 +11,14 @@ import {
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import RelativeTime from '@/components/layout/relative-time'
+import StatusLabel from '@/components/status/status-label'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
-import { formatDay } from '@/lib/format-date'
 
 type Row = Awaited<ReturnType<typeof api.backInStock.signups.list>>[number]
 
 const copy = backInStockContent.signups
-
-const tone = (status: Row['status']): 'default' | 'secondary' | 'outline' | 'destructive' => {
-  if (status === 'notified') return 'default'
-  if (status === 'confirmed') return 'secondary'
-  if (status === 'unsubscribed') return 'destructive'
-  return 'outline'
-}
 
 /** Every "notify me" signup: who is waiting, for what, and where they are in the double opt-in flow. */
 export default function SignupsList() {
@@ -71,9 +64,11 @@ export default function SignupsList() {
                 <TableCell className="font-medium">{r.variantLabel}</TableCell>
                 <TableCell>{r.contact}</TableCell>
                 <TableCell>
-                  <Badge variant={tone(r.status)}>{copy.status[r.status]}</Badge>
+                  <StatusLabel kind="bisSignup" value={r.status} />
                 </TableCell>
-                <TableCell className="text-right">{formatDay(r.createdAt)}</TableCell>
+                <TableCell className="text-right">
+                  <RelativeTime value={r.createdAt} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
