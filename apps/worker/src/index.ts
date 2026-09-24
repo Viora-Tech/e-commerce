@@ -17,6 +17,7 @@ import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createConnection, createHeartbeat } from './queues'
+import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 
 /* The local storage provider writes relative to the admin app, which serves
@@ -117,6 +118,7 @@ const rateLimitStore = createRedisRateLimitStore(redis)
 
 const app = new Hono()
 app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
+app.route('/', shipmentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 
 app.get('/health', async (c) => {
   const [dbOk, queueOk] = await Promise.all([

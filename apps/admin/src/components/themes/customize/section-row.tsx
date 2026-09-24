@@ -41,11 +41,13 @@ export default function SectionRow({
   return (
     <div
       className={cn(
-        'group flex h-9 items-center gap-1 rounded-md pr-1 text-body',
+        'group flex h-9 items-center gap-1 rounded-md pr-1 text-body transition-colors',
         selected ? 'bg-accent text-foreground' : 'text-foreground hover:bg-muted',
       )}
     >
-      <span className="opacity-0 group-hover:opacity-100 focus-within:opacity-100">{handle}</span>
+      <span className="opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+        {handle}
+      </span>
       <button
         type="button"
         onClick={onSelect}
@@ -61,7 +63,7 @@ export default function SectionRow({
       </button>
       <div
         className={cn(
-          'flex items-center',
+          'flex items-center transition-opacity duration-150',
           !hidden && 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
         )}
       >

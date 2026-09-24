@@ -1,6 +1,7 @@
 'use client'
 
 import { Puck } from '@measured/puck'
+import { motion, useReducedMotion } from 'motion/react'
 import { customizeContent } from '@/data/customize'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import SectionIcon from './section-icon'
@@ -12,6 +13,7 @@ export default function SectionInspector() {
   // Hooks
   const selected = useCustomizePuck((s) => s.selectedItem)
   const components = useCustomizePuck((s) => s.config.components)
+  const reducedMotion = useReducedMotion()
 
   // Early returns
   if (!selected) {
@@ -23,7 +25,14 @@ export default function SectionInspector() {
   const hasFields = Object.keys(component?.fields ?? {}).length > 0
 
   return (
-    <section className="flex min-h-0 flex-col" aria-label={copy.label}>
+    <motion.section
+      key={selected.props.id}
+      initial={reducedMotion ? false : { opacity: 0, x: 6 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.15 }}
+      className="flex min-h-0 flex-col"
+      aria-label={copy.label}
+    >
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <SectionIcon type={selected.type} className="size-4 text-muted-foreground" />
         <h2 className="truncate text-body font-semibold text-foreground">
@@ -37,6 +46,6 @@ export default function SectionInspector() {
       ) : (
         <p className="p-4 text-body text-muted-foreground">{copy.emptyFields}</p>
       )}
-    </section>
+    </motion.section>
   )
 }

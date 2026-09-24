@@ -140,6 +140,83 @@ export type RateQuote = {
   maxTransitDays: number | null
 }
 
+/**
+ * What an adapter can actually do. Declared on the factory (`capabilities`)
+ * so the admin can grey out "Schedule pickup" for a courier that has no
+ * pickup method rather than let the click 404 or throw. An adapter with a
+ * method present but genuinely unverified against the courier's docs should
+ * still list the capability (so the UI offers it) but the method itself
+ * should say in a comment that it is best-effort/unconfirmed - see
+ * packages/shipping-delhivery for the worked example.
+ */
+export type ShippingCapability =
+  | 'serviceability'
+  | 'rates'
+  | 'create_shipment'
+  | 'label'
+  | 'pickup'
+  | 'manifest'
+  | 'tracking'
+  | 'webhook'
+  | 'cancel'
+  | 'ndr'
+  | 'wallet'
+  | 'insurance'
+
+export type SchedulePickupInput = {
+  pickupLocationName: string
+  /** "YYYY-MM-DD". */
+  date: string
+  /** "HH:mm", 24h, the courier's local time. */
+  timeFrom: string
+  timeTo?: string | undefined
+  expectedPackageCount: number
+}
+
+export type SchedulePickupResult = {
+  /** The courier's own id for this pickup request, shown to the merchant for support calls. */
+  providerPickupId: string
+}
+
+export type NdrAction = 'reattempt' | 'change_address' | 'rto'
+
+export type NdrActionInput = {
+  waybill: string
+  action: NdrAction
+  /** For `change_address`. */
+  name?: string | undefined
+  phone?: string | undefined
+  address?: string | undefined
+  /** For `reattempt` when the courier wants a specific date, "YYYY-MM-DD". */
+  deferredDate?: string | undefined
+  comment?: string | undefined
+}
+
+export type NdrActionResult = {
+  accepted: boolean
+  /** The courier's own reference for this action (Delhivery's UPL id, an async job id, ...). */
+  providerRef?: string | undefined
+}
+
+export type WalletBalance = {
+  balancePaise: number
+  /** ISO instant this figure was fetched at. */
+  asOf: string
+}
+
+/** A raw inbound tracking webhook, headers lower-cased. Provider verifies its own signature. */
+export type WebhookRequest = {
+  rawBody: string
+  headers: Record<string, string | undefined>
+}
+
+/** One shipment a webhook call told us about. The caller re-fetches full tracking by waybill. */
+export type WebhookNotice = {
+  waybill: string
+  /** Stable id for dedupe; falls back to a hash of the body when the courier gives none. */
+  eventId: string
+}
+
 export type ShippingProvider = {
   /** Stable id used in store settings and the shipment table. Lowercase, no spaces. */
   readonly id: string
@@ -165,6 +242,20 @@ export type ShippingProvider = {
   cancel(waybill: string): Promise<void>
   /** Used by the admin settings page to tell the merchant their keys work. */
   verifyCredentials(): Promise<CredentialCheck>
+  /** Present only when `capabilities` includes `pickup`. */
+  schedulePickup?(input: SchedulePickupInput): Promise<SchedulePickupResult>
+  /** Present only when `capabilities` includes `ndr`. */
+  ndrAction?(input: NdrActionInput): Promise<NdrActionResult>
+  /** Present only when `capabilities` includes `wallet`. */
+  getWalletBalance?(): Promise<WalletBalance>
+  /**
+   * Present only when `capabilities` includes `webhook`. Verifies whatever
+   * signature the courier sends and returns the AWBs it mentioned; the
+   * caller re-fetches each one's tracking with `track()` rather than trust
+   * the pushed payload's shape, since couriers change it without notice.
+   * Throw CourierError('auth', ...) for a signature that does not check out.
+   */
+  parseWebhook?(request: WebhookRequest): Promise<WebhookNotice[]>
 }
 
 /** Same shape as the payments ProviderField; copied so this package stays dependency-free. */
@@ -183,8 +274,10 @@ export type ProviderField = {
 export type ShippingProviderFactory<Config> = {
   id: string
   label: string
-  /** What the merchant fills in Settings > Shipping. Drives the form. */
+  /** What the merchant fills in Settings > Shipping (or the app's own connect page). Drives the form. */
   fields: ProviderField[]
+  /** What this adapter can do; the admin uses it to grey out unsupported actions. */
+  capabilities: ShippingCapability[]
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): ShippingProvider
 }

@@ -24,10 +24,19 @@ export const OPEN_SHIPMENT_STATUSES = [
  * fulfilled here because the label exists now; whether the courier has
  * collected it is what tracking is for.
  */
+export type CreateShipmentOptions = {
+  /** Overrides the per-line assumed-weight sum, e.g. from the bulk create dialog. */
+  weightGrams?: number | undefined
+  dimensionsCm?: { length: number; width: number; height: number } | undefined
+  /** Explicit merchant choice; defaults from the store's "insure above ₹X" policy when omitted. */
+  insured?: boolean | undefined
+}
+
 export async function createShipmentForOrder(
   ctx: StoreContext,
   provider: ShippingProvider,
   orderId: string,
+  options: CreateShipmentOptions = {},
 ): Promise<ShipmentRow> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new Error('order not found')
@@ -41,6 +50,12 @@ export async function createShipmentForOrder(
   const settings = parseShippingSettings(s?.shipping)
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
   const w = settings.policy.warehouse
+  const weightGrams =
+    options.weightGrams ||
+    lines.reduce((g, l) => g + l.quantity * ASSUMED_WEIGHT_GRAMS, 0) ||
+    ASSUMED_WEIGHT_GRAMS
+  const threshold = settings.policy.insuranceThresholdPaise
+  const insured = options.insured ?? (threshold > 0 && o.totalPaise >= threshold)
 
   const result = await provider.createShipment({
     orderId: o.id,
@@ -75,8 +90,7 @@ export async function createShipmentForOrder(
     paymentMode: o.paymentMethod === 'cod' ? 'cod' : 'prepaid',
     codAmountPaise: o.paymentMethod === 'cod' ? o.totalPaise : 0,
     valuePaise: o.totalPaise,
-    weightGrams:
-      lines.reduce((g, l) => g + l.quantity * ASSUMED_WEIGHT_GRAMS, 0) || ASSUMED_WEIGHT_GRAMS,
+    weightGrams,
   })
 
   const [row] = await ctx.tx
@@ -87,6 +101,12 @@ export async function createShipmentForOrder(
       provider: provider.id,
       waybill: result.waybill,
       labelUrl: result.labelUrl ?? null,
+      weightGrams,
+      lengthCm: options.dimensionsCm?.length ?? null,
+      widthCm: options.dimensionsCm?.width ?? null,
+      heightCm: options.dimensionsCm?.height ?? null,
+      insured,
+      declaredValuePaise: o.totalPaise,
     })
     .returning()
   if (!row) throw new Error('could not record shipment')
@@ -145,4 +165,35 @@ export async function listOpenShipments(ctx: StoreContext): Promise<ShipmentRow[
     .select()
     .from(shipment)
     .where(inArray(shipment.status, [...OPEN_SHIPMENT_STATUSES]))
+}
+
+export type BulkCreateResult = {
+  orderId: string
+  ok: boolean
+  shipmentId?: string
+  waybill?: string
+  error?: string
+}
+
+/**
+ * Book several orders with one courier in one go (the Shipments workspace's
+ * bulk action). Each order is its own best-effort attempt: one courier
+ * rejection (a bad pincode, a duplicate) never stops the rest from booking.
+ */
+export async function bulkCreateShipments(
+  ctx: StoreContext,
+  provider: ShippingProvider,
+  orderIds: string[],
+  options: CreateShipmentOptions = {},
+): Promise<BulkCreateResult[]> {
+  const results: BulkCreateResult[] = []
+  for (const orderId of orderIds) {
+    try {
+      const row = await createShipmentForOrder(ctx, provider, orderId, options)
+      results.push({ orderId, ok: true, shipmentId: row.id, waybill: row.waybill })
+    } catch (err) {
+      results.push({ orderId, ok: false, error: err instanceof Error ? err.message : String(err) })
+    }
+  }
+  return results
 }

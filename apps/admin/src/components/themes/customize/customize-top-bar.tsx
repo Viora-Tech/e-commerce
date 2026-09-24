@@ -150,7 +150,7 @@ export default function CustomizeTopBar({
             {copy.discard}
           </Button>
         ) : null}
-        <Button variant={live ? 'default' : 'outline'} onClick={onSave} disabled={!dirty || saving}>
+        <Button variant="default" onClick={onSave} disabled={!dirty || saving}>
           {saving ? <Spinner /> : null}
           {copy.save}
         </Button>

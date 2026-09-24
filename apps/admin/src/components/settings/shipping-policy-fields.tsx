@@ -32,6 +32,11 @@ const clampDays = (raw: string, fallback: number) => {
   return Number.isFinite(n) && n >= 1 && n <= 30 ? n : fallback
 }
 
+const clampRupees = (raw: string, fallback: number) => {
+  const n = Number.parseInt(raw, 10)
+  return Number.isFinite(n) && n >= 0 ? n : fallback
+}
+
 type WeekdayPickerProps = {
   name: string
   legend: string
@@ -227,6 +232,24 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
               label={p.phone}
               value={value.warehouse.phone}
               onChange={(v) => setWarehouse('phone', v)}
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <TextField
+              id="policy-insurance"
+              type="number"
+              label={p.insuranceThreshold}
+              value={String(Math.round(value.insuranceThresholdPaise / 100))}
+              onChange={(v) => set('insuranceThresholdPaise', clampRupees(v, 0) * 100)}
+              help={p.insuranceThresholdHelp}
+            />
+            <TextField
+              id="policy-low-wallet"
+              type="number"
+              label={p.lowWalletBalance}
+              value={String(Math.round(value.lowWalletBalancePaise / 100))}
+              onChange={(v) => set('lowWalletBalancePaise', clampRupees(v, 500) * 100)}
+              help={p.lowWalletBalanceHelp}
             />
           </div>
         </FieldGroup>

@@ -1135,10 +1135,127 @@ export const shipment = pgTable(
     trackingUrl: text('tracking_url'),
     /** Last Tracking payload from the provider. */
     tracking: jsonb('tracking'),
+    weightGrams: integer('weight_grams'),
+    lengthCm: integer('length_cm'),
+    widthCm: integer('width_cm'),
+    heightCm: integer('height_cm'),
+    /** Whether this parcel is insured, from the per-shipment toggle (defaults from the store's threshold). */
+    insured: boolean('insured').notNull().default(false),
+    declaredValuePaise: integer('declared_value_paise'),
+    /** `none` until the courier reports an NDR; the courier app's queue works from this. */
+    ndrStatus: text('ndr_status', {
+      enum: ['none', 'pending', 'action_taken', 'resolved'],
+    })
+      .notNull()
+      .default('none'),
+    ndrReason: text('ndr_reason'),
+    ndrRaisedAt: timestamp('ndr_raised_at', { withTimezone: true }),
+    ndrAction: text('ndr_action', { enum: ['reattempt', 'change_address', 'rto'] }),
+    ndrActionAt: timestamp('ndr_action_at', { withTimezone: true }),
+    ndrActionRef: text('ndr_action_ref'),
+    rtoDeliveredAt: timestamp('rto_delivered_at', { withTimezone: true }),
+    pickupId: uuid('pickup_id'),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill)],
+  (t) => [
+    uniqueIndex('shipment_provider_waybill').on(t.provider, t.waybill),
+    index('shipment_store_ndr').on(t.storeId, t.ndrStatus),
+    index('shipment_pickup_id').on(t.pickupId),
+  ],
+)
+
+/**
+ * A pickup request booked with a courier for a batch of shipments (Delhivery:
+ * `schedulePickup`, a Create Pickup API call). `shipment.pickup_id` points
+ * back here; a manifest groups some or all of a pickup's shipments into one
+ * printable batch of labels.
+ */
+export const shipmentPickup = pgTable(
+  'shipment_pickup',
+  {
+    id: id(),
+    storeId: storeId(),
+    provider: text('provider').notNull(),
+    scheduledFor: date('scheduled_for').notNull(),
+    timeFrom: text('time_from').notNull(),
+    timeTo: text('time_to'),
+    expectedPackageCount: integer('expected_package_count').notNull().default(0),
+    status: text('status', {
+      enum: ['requested', 'scheduled', 'completed', 'failed'],
+    })
+      .notNull()
+      .default('requested'),
+    providerRef: text('provider_ref'),
+    error: text('error'),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('shipment_pickup_store').on(t.storeId, t.scheduledFor)],
+)
+
+/** A batch of shipments handed to the courier together, printed as one sheet. Our own record; not every courier has a matching API concept. */
+export const shipmentManifest = pgTable(
+  'shipment_manifest',
+  {
+    id: id(),
+    storeId: storeId(),
+    provider: text('provider').notNull(),
+    pickupId: uuid('pickup_id').references(() => shipmentPickup.id),
+    shipmentIds: uuid('shipment_ids').array().notNull().default([]),
+    providerRef: text('provider_ref'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('shipment_manifest_store').on(t.storeId, t.createdAt)],
+)
+
+/**
+ * Dedupe log for the tracking webhook, the same pattern as `payment_event`:
+ * one row per (store, provider, event id), inserted before the tracking
+ * update is applied so a retried delivery from the courier is a no-op.
+ */
+export const shipmentWebhookEvent = pgTable(
+  'shipment_webhook_event',
+  {
+    id: id(),
+    storeId: storeId(),
+    provider: text('provider').notNull(),
+    eventId: text('event_id').notNull(),
+    waybill: text('waybill').notNull(),
+    payload: jsonb('payload').notNull(),
+    status: text('status', { enum: ['pending', 'processed', 'failed'] })
+      .notNull()
+      .default('pending'),
+    error: text('error'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('shipment_webhook_event_provider_event').on(t.storeId, t.provider, t.eventId),
+  ],
+)
+
+/**
+ * Cached courier wallet balance and the merchant's low-balance threshold, one
+ * row per (store, provider). Delhivery has no confirmed public balance API
+ * (see packages/shipping-delhivery), so `balancePaise` is often set by the
+ * merchant themselves from their courier dashboard rather than fetched; a
+ * provider that does implement `getWalletBalance` overwrites it on refresh.
+ */
+export const courierWalletBalance = pgTable(
+  'courier_wallet_balance',
+  {
+    id: id(),
+    storeId: storeId(),
+    provider: text('provider').notNull(),
+    balancePaise: integer('balance_paise').notNull().default(0),
+    lowBalanceThresholdPaise: integer('low_balance_threshold_paise').notNull().default(50000),
+    source: text('source', { enum: ['api', 'manual'] })
+      .notNull()
+      .default('manual'),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('courier_wallet_balance_store_provider').on(t.storeId, t.provider)],
 )
 
 /** One PIN code rule of a shipping zone: `560*` (prefix) or `560001` (exact). */
