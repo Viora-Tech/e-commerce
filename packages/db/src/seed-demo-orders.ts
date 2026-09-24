@@ -52,8 +52,14 @@ const STREETS = [
   'House 9, Jubilee Hills',
 ] as const
 
-type Status = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
-const STATUS_MIX: Status[] = [
+/**
+ * How far each demo order got. The stage only picks the facts (payment
+ * captured, lines packed, handed over); the stored statuses are then the ones
+ * `recomputeOrderStatuses` would derive from those facts, so demo rows never
+ * claim "fulfilled" with nothing packed.
+ */
+type Stage = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
+const STATUS_MIX: Stage[] = [
   'delivered',
   'delivered',
   'delivered',
@@ -202,7 +208,10 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
       const email = `${handle}@example.in`
       const dayOffset = Math.floor(r() * 14)
       const at = placedAt(dayOffset, r)
-      const status = dayOffset === 0 ? pick(['placed', 'paid'] as const, r) : pick(STATUS_MIX, r)
+      const stage = dayOffset === 0 ? pick(['placed', 'paid'] as const, r) : pick(STATUS_MIX, r)
+      const captured = stage !== 'placed' && stage !== 'cancelled'
+      const packed = stage === 'fulfilled' || stage === 'delivered'
+      const delivered = stage === 'delivered'
       const method = pick(METHOD_MIX, r)
       const lineCount = r() < 0.7 ? 1 : 2
       const lines = Array.from({ length: lineCount }, () => ({
@@ -236,7 +245,11 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
           phone: null,
           shippingAddressId: addr.id,
           paymentMethod: method,
-          status,
+          status: stage === 'cancelled' ? 'cancelled' : delivered ? 'completed' : 'open',
+          paymentStatus: captured ? 'paid' : 'unpaid',
+          fulfillmentStatus: delivered ? 'delivered' : packed ? 'fulfilled' : 'unfulfilled',
+          checkoutPaidAt: captured ? at : null,
+          deliveredAt: delivered ? new Date(at.getTime() + 2 * 86_400_000) : null,
           subtotalPaise: subtotal,
           paymentAdjustmentPaise: adjustment,
           paymentAdjustmentLabel:
@@ -255,16 +268,16 @@ export async function seedDemoOrders(ownerUrl: string, opts: { clean?: boolean }
           title: l.v.productTitle,
           variantTitle: l.v.title,
           quantity: l.qty,
+          fulfilledQuantity: packed ? l.qty : 0,
           unitPricePaise: l.v.pricePaise,
         })),
       )
-      const captured = status !== 'placed' && status !== 'cancelled'
       await db.insert(payment).values({
         storeId,
         orderId: o.id,
         provider: method,
         providerRef: `demo_${o.id}`,
-        status: status === 'cancelled' ? 'failed' : captured ? 'captured' : 'pending',
+        status: stage === 'cancelled' ? 'failed' : captured ? 'captured' : 'pending',
         amountPaise: subtotal + adjustment,
       })
     }

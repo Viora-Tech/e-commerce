@@ -14,8 +14,61 @@ import {
   withShare,
 } from './types'
 
-/** Order statuses in the order an order moves through them. */
-const STATUS_ORDER = ['placed', 'paid', 'fulfilled', 'delivered', 'cancelled']
+/**
+ * Stages in the order an order moves through them: where the goods are for
+ * open orders, then completed and cancelled.
+ */
+const STATUS_ORDER = [
+  'unfulfilled',
+  'partially_fulfilled',
+  'fulfilled',
+  'shipped',
+  'partially_delivered',
+  'delivered',
+  'returned',
+  'completed',
+  'cancelled',
+]
+
+const PAYMENT_ORDER = [
+  'unpaid',
+  'authorized',
+  'partially_paid',
+  'paid',
+  'partially_refunded',
+  'refunded',
+  'refund_needed',
+]
+
+/** Open orders by fulfilment; closed ones by their lifecycle. */
+const stageOf = (o: OrderFact): string =>
+  o.status === 'cancelled' || o.status === 'completed' ? o.status : o.fulfillmentStatus
+
+function groupedByKey(
+  orders: OrderFact[],
+  keyOf: (o: OrderFact) => string,
+  column: string,
+  order: string[],
+) {
+  const rows = [...groupBy(orders, keyOf)].map(([key, group]) => ({
+    key,
+    values: {
+      [column]: key,
+      orders: group.length,
+      totalSales: sumOf(group, (o) => o.totalPaise),
+    },
+  }))
+  return {
+    rows: withShare(rows, 'orders', orders.length).sort(
+      (a, b) => order.indexOf(a.key) - order.indexOf(b.key) || byDesc('orders')(a, b),
+    ),
+    totals: {
+      orders: orders.length,
+      totalSales: sumOf(orders, (o) => o.totalPaise),
+      share: orders.length > 0 ? 1 : null,
+    },
+  }
+}
 
 const perDay = (orders: OrderFact[], days: string[], pick: (o: OrderFact) => number = () => 1) =>
   bucketByDay(
@@ -124,26 +177,14 @@ export const orderBuilders: Record<string, ReportBuilder> = {
     }
   },
 
-  'orders-by-status': async (tx, span) => {
-    const orders = await orderFacts(tx, span)
-    const rows = [...groupBy(orders, (o) => o.status)].map(([status, group]) => ({
-      key: status,
-      values: {
-        status,
-        orders: group.length,
-        totalSales: sumOf(group, (o) => o.totalPaise),
-      },
-    }))
-    return {
-      rows: withShare(rows, 'orders', orders.length).sort(
-        (a, b) =>
-          STATUS_ORDER.indexOf(a.key) - STATUS_ORDER.indexOf(b.key) || byDesc('orders')(a, b),
-      ),
-      totals: {
-        orders: orders.length,
-        totalSales: sumOf(orders, (o) => o.totalPaise),
-        share: orders.length > 0 ? 1 : null,
-      },
-    }
-  },
+  'orders-by-status': async (tx, span) =>
+    groupedByKey(await orderFacts(tx, span), stageOf, 'status', STATUS_ORDER),
+
+  'orders-by-payment-status': async (tx, span) =>
+    groupedByKey(
+      (await orderFacts(tx, span)).filter((o) => !o.cancelled),
+      (o) => o.paymentStatus,
+      'paymentStatus',
+      PAYMENT_ORDER,
+    ),
 }

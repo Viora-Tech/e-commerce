@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
 import DetailLayout from '@/components/layout/detail-layout'
-import { orderDetailContent as copy, ordersContent } from '@/data/orders'
+import { orderDetailContent as copy, type OrderMark, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 import CollectPaymentDialog from './collect-payment-dialog'
@@ -16,11 +16,9 @@ import LineItemsCard from './line-items-card'
 import OrderActionBar from './order-action-bar'
 import OrderActions from './order-actions'
 import {
-  fulfilmentStatus,
   isOfflineMethod,
   type OrderDetail,
   type OrderPayment,
-  type OrderStatus,
   paymentStatus,
   primaryPayment,
   refundedTotal,
@@ -58,11 +56,11 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   }
 
   // Event handlers
-  const handleMove = async (to: OrderStatus) => {
+  const handleMove = async (to: OrderMark) => {
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
-      toast.success(copy.moved(ordersContent.status[to].toLowerCase()))
+      toast.success(copy.moved(ordersContent.marks[to].toLowerCase()))
       refresh()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : ordersContent.bulk.failed)
@@ -128,7 +126,6 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   // Render logic
   const payment = primaryPayment(order.payments)
   const pay = paymentStatus(payment, order.refunds)
-  const ful = fulfilmentStatus(order.status)
   const remaining = refunding
     ? refunding.amountPaise - refundedTotal(order.refunds, refunding.id)
     : 0
@@ -147,11 +144,14 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   const offline = isOfflineMethod(order.paymentMethod)
   // A deposit pre-order past its deposit, balance still owed: the customer can be asked for it.
   const balanceOwed =
-    live && order.status !== 'placed' && !order.balancePaidAt && (order.balanceDuePaise ?? 0) > 0
+    live &&
+    order.checkoutPaidAt !== null &&
+    !order.balancePaidAt &&
+    (order.balanceDuePaise ?? 0) > 0
   const requestBalance = balanceOwed ? handleRequestBalance : undefined
   // A transfer the merchant has not matched yet: the customer can be nudged.
   const sendReminder =
-    live && order.status === 'placed' && order.paymentMethod === 'manual'
+    live && !order.checkoutPaidAt && order.paymentMethod === 'manual'
       ? handleSendReminder
       : undefined
 
@@ -168,11 +168,11 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       header={
         <OrderHeader
           order={order}
-          payment={pay}
-          fulfilment={ful}
           actions={(n) => (
             <OrderActions
               status={order.status}
+              paymentStatus={order.paymentStatus}
+              fulfillmentStatus={order.fulfillmentStatus}
               canRefund={canRefund}
               busy={busy}
               onMove={handleMove}
@@ -204,7 +204,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           />
           {readOnly ? null : (
             <ShipmentPanel
-              orderStatus={order.status}
+              orderStatus={order.status === 'open' ? order.fulfillmentStatus : order.status}
               shipment={order.shipment}
               busy={busy}
               onBook={handleBook}

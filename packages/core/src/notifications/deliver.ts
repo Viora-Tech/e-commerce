@@ -114,12 +114,13 @@ async function merchantNotice(
   const [o] = await ctx.tx
     .select({
       status: order.status,
+      checkoutPaidAt: order.checkoutPaidAt,
       placedAt: order.placedAt,
       noticeAt: order.unpaidCancelNoticeAt,
     })
     .from(order)
     .where(eq(order.id, orderId))
-  if (!s?.email || o?.status !== 'placed') return null
+  if (!s?.email || o?.status !== 'open' || o.checkoutPaidAt) return null
   const at = manualCancelAt(parsePaymentSettings(s.payments).manualCancelAfterHours, {
     placedAt: o.placedAt,
     cancelNoticeAt: o.noticeAt,
@@ -309,10 +310,10 @@ export async function deliverNotification(
   // A reminder to pay is pointless once the order is paid or gone.
   if (input.template === 'payment_reminder') {
     const [o] = await ctx.tx
-      .select({ status: order.status })
+      .select({ status: order.status, checkoutPaidAt: order.checkoutPaidAt })
       .from(order)
       .where(eq(order.id, input.orderId))
-    if (o?.status !== 'placed') return []
+    if (o?.status !== 'open' || o.checkoutPaidAt) return []
   }
   const merchant = MERCHANT_TEMPLATES.has(input.template)
     ? await merchantNotice(ctx, input.orderId)

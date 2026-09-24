@@ -4,6 +4,12 @@
  * no notification or app event is queued (which is also what feeds GST
  * invoicing), and the admin treats the order as read-only.
  */
+
+import {
+  importedOrderStatuses,
+  recomputeOrderStatuses,
+  SETTLED_PAYMENT_STATUSES,
+} from '@commerce/core'
 import {
   address,
   customer,
@@ -28,19 +34,20 @@ const PAID = new Set(['paid', 'partially_refunded', 'refunded', 'partially_paid'
 export const orderSourceId = (o: Pick<NOrder, 'sourceId' | 'name'>) =>
   o.sourceId ?? `name:${o.name}`
 
-type Status = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
-
-/** Our single order status from Shopify's financial and fulfilment pair. */
+/**
+ * Our lifecycle, payment and fulfilment statuses from Shopify's financial and
+ * fulfilment pair (`importedOrderStatuses` in core, shared with the
+ * recompute so both read the source the same way).
+ */
 export function statusFor(
   o: Pick<NOrder, 'cancelledAt' | 'financialStatus' | 'fulfillmentStatus'>,
-): Status {
-  if (o.cancelledAt) return 'cancelled'
-  const fulfilled = o.fulfillmentStatus === 'fulfilled'
-  const paid = PAID.has(o.financialStatus ?? '')
-  if (fulfilled) return 'fulfilled'
-  if (paid) return 'paid'
-  return 'placed'
+): ReturnType<typeof importedOrderStatuses> {
+  return importedOrderStatuses(o)
 }
+
+/** One word for the dry-run preview: cancelled, completed, or where the goods are. */
+const previewStatus = (s: ReturnType<typeof statusFor>): string =>
+  s.status === 'open' ? `${s.fulfillmentStatus}, ${s.paymentStatus}` : s.status
 
 /**
  * An archived product holding lines whose product no longer exists (deleted on
@@ -221,7 +228,7 @@ export async function writeOrder(
         key: o.name,
         title: `${o.name}${o.customerName ? `, ${o.customerName}` : ''}`,
         action: existing ? 'update' : 'create',
-        detail: `${o.lines.length} ${o.lines.length === 1 ? 'line' : 'lines'}, ${statusFor(o)}`,
+        detail: `${o.lines.length} ${o.lines.length === 1 ? 'line' : 'lines'}, ${previewStatus(statusFor(o))}`,
       })
       return existing?.id ?? null
     }
@@ -256,13 +263,16 @@ export async function writeOrder(
         cancelledAt: o.cancelledAt,
         refundedPaise: o.refundedPaise || null,
       }
+      const statuses = statusFor(o)
+      const placedAt = o.createdAt ? new Date(o.createdAt) : new Date()
       const fields = {
         customerId,
         email: o.email,
         phone: o.phone,
         shippingAddressId,
         paymentMethod: null,
-        status: statusFor(o),
+        ...statuses,
+        checkoutPaidAt: SETTLED_PAYMENT_STATUSES.includes(statuses.paymentStatus) ? placedAt : null,
         subtotalPaise: o.subtotalPaise,
         shippingPaise: o.shippingPaise,
         discountCode: o.discountCode,
@@ -271,7 +281,7 @@ export async function writeOrder(
         totalPaise: o.totalPaise,
         taxPaise: o.taxPaise,
         tags: o.tags.slice(0, 20),
-        placedAt: o.createdAt ? new Date(o.createdAt) : new Date(),
+        placedAt,
         importedFrom: 'shopify',
         importMeta: meta,
       }
@@ -312,6 +322,8 @@ export async function writeOrder(
           amountPaise: o.totalPaise,
         })
       }
+      // Same derivation the recompute applies to imported orders; it never writes events for them.
+      await recomputeOrderStatuses({ storeId: ctx.storeId, tx }, orderId)
       await saveMapping(tx, ctx.storeId, 'orders', orderSourceId(o), orderId)
       return orderId
     })

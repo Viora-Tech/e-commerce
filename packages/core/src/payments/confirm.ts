@@ -2,6 +2,7 @@ import { order, payment } from '@commerce/db'
 import type { ClientConfirmation, PaymentProvider, PaymentStatus } from '@commerce/payments'
 import { and, eq, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { nextPaymentStatus } from './transitions'
 
@@ -141,19 +142,11 @@ export async function applyPaymentStatus(
   if (!updated) return null
   if (next === 'captured' && !refundNeeded && p.purpose === 'balance') {
     await settleBalance(ctx, p.orderId)
-  } else if (next === 'captured' && !refundNeeded) {
-    const [movedToPaid] = await ctx.tx
-      .update(order)
-      .set({ status: 'paid' })
-      .where(and(eq(order.id, p.orderId), eq(order.status, 'placed')))
-      .returning({ id: order.id })
-    // Only on the row that actually moved placed -> paid: the single choke
-    // point every capture path (webhook, gateway create-payment, client
-    // confirm) goes through, so this is the one place order.paid is written.
-    if (movedToPaid) {
-      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', { orderId: p.orderId })
-    }
   }
+  // The single choke point every capture path (webhook, gateway
+  // create-payment, client confirm) goes through. The recompute writes
+  // order.paid, once, on the call that sees the checkout amount arrive.
+  await recomputeOrderStatuses(ctx, p.orderId)
   return {
     payment: updated,
     becameCaptured: next === 'captured' && !refundNeeded,

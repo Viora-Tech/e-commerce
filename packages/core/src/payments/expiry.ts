@@ -3,6 +3,7 @@ import type { PaymentProvider } from '@commerce/payments'
 import { and, asc, eq, inArray, isNotNull, isNull, lt, ne, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { recomputeOrderStatuses } from '../order/recompute'
 import { cancelOrder } from '../order/status'
 import { paymentAttempts } from './attempts'
 import { applyPaymentStatus } from './confirm'
@@ -56,7 +57,8 @@ export async function expiredUnpaidOrders(
     .innerJoin(payment, eq(payment.orderId, order.id))
     .where(
       and(
-        eq(order.status, 'placed'),
+        eq(order.status, 'open'),
+        isNull(order.checkoutPaidAt),
         lt(order.placedAt, cutoff),
         isNull(order.importedFrom),
         notInArray(order.paymentMethod, [...EXPIRY_EXEMPT_METHODS]),
@@ -127,13 +129,14 @@ export async function expireUnpaidOrder(
   return withStore(db, storeId, async (tx) => {
     const ctx = { storeId, tx }
     const [o] = await tx
-      .select({ status: order.status })
+      .select({ status: order.status, checkoutPaidAt: order.checkoutPaidAt })
       .from(order)
       .where(eq(order.id, orderId))
       .for('update')
     // Paid, cancelled or moved on since the check: nothing to do.
-    if (o?.status !== 'placed') {
-      return { orderId, result: 'skipped' as const, reason: o?.status ?? 'missing' }
+    if (o?.status !== 'open' || o.checkoutPaidAt) {
+      const reason = o?.checkoutPaidAt ? 'paid' : (o?.status ?? 'missing')
+      return { orderId, result: 'skipped' as const, reason }
     }
     await cancelOrder(ctx, orderId)
     await tx
@@ -146,6 +149,8 @@ export async function expireUnpaidOrder(
           ne(payment.provider, GIFT_CARD_PROVIDER),
         ),
       )
+    // An authorised hold just ended: the payment status follows.
+    await recomputeOrderStatuses(ctx, orderId)
     await tx.insert(orderNote).values({
       storeId,
       orderId,

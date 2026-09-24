@@ -111,7 +111,8 @@ describe('analytics.overview', () => {
         ...base,
         number: 1,
         totalPaise: 100000,
-        status: 'paid',
+        status: 'open',
+        paymentStatus: 'paid',
         paymentMethod: 'razorpay',
         placedAt: hoursAgo(2),
         shippingAddressId: addr?.id,
@@ -120,7 +121,7 @@ describe('analytics.overview', () => {
         ...base,
         number: 2,
         totalPaise: 60000,
-        status: 'placed',
+        status: 'open',
         paymentMethod: 'cod',
         placedAt: daysAgo(2),
         shippingAddressId: addr?.id,
@@ -128,7 +129,14 @@ describe('analytics.overview', () => {
       { ...base, number: 3, totalPaise: 90000, status: 'cancelled', placedAt: daysAgo(3) },
       { ...base, number: 4, totalPaise: 40000, status: 'draft', placedAt: daysAgo(1) },
       // Outside a 7-day range, inside 30.
-      { ...base, number: 5, totalPaise: 25000, status: 'paid', placedAt: daysAgo(12) },
+      {
+        ...base,
+        number: 5,
+        totalPaise: 25000,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(12),
+      },
     ])
     await owner.insert(cart).values([
       { storeId: a.storeId, status: 'open', email: 'someone@example.com' },
@@ -178,7 +186,8 @@ describe('analytics.overview', () => {
       number: 1,
       subtotalPaise: 100000,
       totalPaise: 100000,
-      status: 'paid',
+      status: 'open',
+      paymentStatus: 'paid',
       placedAt: hoursAgo(1),
     })
     const seen = await call(
@@ -300,7 +309,8 @@ describe('analytics.report', () => {
           totalPaise: 51000,
           taxPaise: 7627,
           taxBreakdown: tax,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           paymentMethod: 'cod',
           placedAt: first,
         },
@@ -309,7 +319,8 @@ describe('analytics.report', () => {
           number: 2,
           subtotalPaise: 30000,
           totalPaise: 30000,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           placedAt: second,
         },
         {
@@ -326,7 +337,8 @@ describe('analytics.report', () => {
           number: 4,
           subtotalPaise: 20000,
           totalPaise: 20000,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           placedAt: daysAgo(10),
         },
       ])
@@ -397,7 +409,11 @@ describe('analytics.report', () => {
     expect(aov.totals).toMatchObject({ orders: 2, aov: 40500 })
 
     const status = await report(a, 'orders-by-status')
-    expect(row(status, 'paid')?.orders).toBe(2)
+    // Open orders read by where the goods are; closed ones by their lifecycle.
+    expect(row(status, 'unfulfilled')?.orders).toBe(2)
+    const money = await report(a, 'orders-by-payment-status')
+    expect(row(money, 'paid')?.orders).toBe(2)
+    expect(row(money, 'cancelled')).toBeUndefined()
     expect(row(status, 'cancelled')?.orders).toBe(1)
 
     const reasons = await report(a, 'refunds-by-reason')
@@ -422,7 +438,8 @@ describe('analytics.report', () => {
           number: 1,
           subtotalPaise: 45000,
           totalPaise: 45000,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           placedAt: daysAgo(1),
         },
         {
@@ -430,7 +447,8 @@ describe('analytics.report', () => {
           number: 2,
           subtotalPaise: 20000,
           totalPaise: 20000,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           placedAt: daysAgo(2),
         },
       ])
@@ -529,7 +547,9 @@ describe('analytics.report', () => {
           number: 1,
           subtotalPaise: 10000,
           totalPaise: 10000,
-          status: 'delivered',
+          status: 'completed',
+          paymentStatus: 'paid',
+          fulfillmentStatus: 'delivered',
           paymentMethod: 'cod',
           placedAt: placed,
           shippingAddressId: ka,
@@ -539,7 +559,8 @@ describe('analytics.report', () => {
           number: 2,
           subtotalPaise: 30000,
           totalPaise: 30000,
-          status: 'fulfilled',
+          status: 'open',
+          fulfillmentStatus: 'fulfilled',
           paymentMethod: 'razorpay',
           placedAt: placed,
           shippingAddressId: ka,
@@ -549,7 +570,8 @@ describe('analytics.report', () => {
           number: 3,
           subtotalPaise: 20000,
           totalPaise: 20000,
-          status: 'fulfilled',
+          status: 'open',
+          fulfillmentStatus: 'fulfilled',
           paymentMethod: 'cod',
           placedAt: placed,
           shippingAddressId: mh,
@@ -645,7 +667,7 @@ describe('analytics.report', () => {
         { storeId: a.storeId, name: 'Ravi', email: 'ravi@example.com' },
       ])
       .returning()
-    const base = { storeId: a.storeId, status: 'paid' as const }
+    const base = { storeId: a.storeId, status: 'open' as const, paymentStatus: 'paid' as const }
     await owner.insert(order).values([
       // Asha first ordered long before the range; Ravi's first order is in it.
       {
@@ -746,7 +768,8 @@ describe('analytics.live', () => {
         number: 1,
         subtotalPaise: 20000,
         totalPaise: 20000,
-        status: 'paid',
+        status: 'open',
+        paymentStatus: 'paid',
         placedAt: new Date(Date.now() - 10 * 60_000),
       },
       {
@@ -754,7 +777,8 @@ describe('analytics.live', () => {
         number: 2,
         subtotalPaise: 30000,
         totalPaise: 30000,
-        status: 'paid',
+        status: 'open',
+        paymentStatus: 'paid',
         placedAt: hoursAgo(5),
       },
     ])

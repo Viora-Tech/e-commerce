@@ -266,7 +266,8 @@ export async function retryPayment(
 ): Promise<{ attempt: PaymentAttempt; created: boolean }> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) throw new PaymentNotRetryable(orderId, 'not found', ctx.storeId)
-  if (o.status !== 'placed') throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
+  if (o.status !== 'open') throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
+  if (o.checkoutPaidAt) throw new PaymentNotRetryable(orderId, 'already paid', ctx.storeId)
   // Balance attempts on a pre-order are a separate collection, never retried from here.
   const attempts = (await paymentAttempts(ctx, orderId)).filter((a) => a.purpose === 'order')
   const latest = attempts[0]

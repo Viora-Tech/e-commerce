@@ -1,10 +1,14 @@
 import { order, orderLine, payment } from '@commerce/db'
-import { and, eq, notInArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { applyPaymentStatus } from '../payments/confirm'
+import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
+import { capturedPaise, checkoutDuePaise } from './aggregate-status'
 import { releaseCommittedStock } from './committed-stock'
 import { fulfilRemainingLines } from './fulfil'
+import { recomputeOrderStatuses } from './recompute'
 import { refundedPaise, refundPayment } from './refund'
 
 /**
@@ -35,7 +39,12 @@ async function returnGiftCardPayments(ctx: StoreContext, orderId: string) {
   }
 }
 
-export type OrderStatusChange = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
+/**
+ * What the merchant can mark by hand from the order page. Payment and
+ * fulfilment are otherwise derived; these record the fact behind them (money
+ * collected, parcel packed, parcel handed over) and let the derivation follow.
+ */
+export type OrderStatusChange = 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
 
 export class OrderStatusLocked extends CommerceError {
   constructor(orderId: string, status: string, storeId?: string) {
@@ -52,7 +61,7 @@ export class OrderStatusLocked extends CommerceError {
 /**
  * Cancel an order and give back the stock its unpacked lines hold. Units
  * already packed have left on hand and stay gone. The status flip is the
- * guard: only the call that moves the order out of an open status releases
+ * guard: only the call that moves the order out of a live status releases
  * anything, so a repeated cancel is a no-op.
  */
 export async function cancelOrder(
@@ -87,35 +96,91 @@ export async function cancelOrder(
     })
   }
   if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
-  return cancelled
+  await recomputeOrderStatuses(ctx, orderId)
+  const [after] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
+  return after ?? cancelled
 }
 
 /**
- * The merchant's status menu. Keeps stock in step with the status: fulfilled
- * or delivered packs whatever is left, cancelled releases it. Drafts are
- * converted, not re-statused, and a cancelled order stays cancelled, since
- * reopening it would need its stock held again.
+ * "Mark as paid": the money arrived outside a gateway (cash on delivery, a
+ * transfer matched by hand). The newest open checkout attempt becomes the
+ * capture, through `applyPaymentStatus` like any gateway capture; with none
+ * open, a manual payment for what is still due is recorded, so the payment
+ * rows always explain the derived status.
+ */
+async function markPaid(ctx: StoreContext, o: typeof order.$inferSelect) {
+  const [open] = await ctx.tx
+    .select({ id: payment.id })
+    .from(payment)
+    .where(
+      and(
+        eq(payment.orderId, o.id),
+        eq(payment.purpose, 'order'),
+        inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
+      ),
+    )
+    .orderBy(desc(payment.attempt), desc(payment.id))
+    .limit(1)
+  if (open) {
+    await applyPaymentStatus(ctx, {
+      paymentId: open.id,
+      status: 'captured',
+      providerPaymentId: null,
+    })
+    return
+  }
+  const rows = await ctx.tx
+    .select({
+      status: payment.status,
+      amountPaise: payment.amountPaise,
+      refundNeeded: payment.refundNeeded,
+    })
+    .from(payment)
+    .where(eq(payment.orderId, o.id))
+  const due = checkoutDuePaise(o) - capturedPaise(rows.map((r) => ({ ...r, refundedPaise: 0 })))
+  if (due <= 0) return
+  await ctx.tx.insert(payment).values({
+    storeId: ctx.storeId,
+    orderId: o.id,
+    provider: 'manual',
+    providerRef: `manual_${o.id}_${Date.now()}`,
+    status: 'captured',
+    amountPaise: due,
+  })
+}
+
+/**
+ * The merchant's status menu. Each choice records the underlying fact and
+ * lets `recomputeOrderStatuses` derive the rest: paid captures the money,
+ * fulfilled packs whatever is left, delivered packs and marks the hand-over,
+ * cancelled releases stock. Drafts are converted, not re-statused, and a
+ * cancelled order stays cancelled, since reopening it would need its stock
+ * held again.
  */
 export async function changeOrderStatus(
   ctx: StoreContext,
   orderId: string,
-  status: OrderStatusChange,
+  change: OrderStatusChange,
 ) {
-  const [current] = await ctx.tx
-    .select({ status: order.status })
-    .from(order)
-    .where(eq(order.id, orderId))
-    .for('update')
+  const [current] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!current) return null
-  if (status === 'cancelled') {
+  if (change === 'cancelled') {
     return cancelOrder(ctx, orderId)
   }
   if (current.status === 'draft' || current.status === 'cancelled') {
     throw new OrderStatusLocked(orderId, current.status, ctx.storeId)
   }
-  if (status === 'fulfilled' || status === 'delivered') {
+  if (change === 'paid') await markPaid(ctx, current)
+  if (change === 'fulfilled' || change === 'delivered') {
     await fulfilRemainingLines(ctx, orderId)
   }
-  const [o] = await ctx.tx.update(order).set({ status }).where(eq(order.id, orderId)).returning()
+  if (change === 'delivered') {
+    await ctx.tx
+      .update(order)
+      .set({ deliveredAt: new Date() })
+      .where(and(eq(order.id, orderId), isNull(order.deliveredAt)))
+  }
+  await recomputeOrderStatuses(ctx, orderId)
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   return o ?? null
 }

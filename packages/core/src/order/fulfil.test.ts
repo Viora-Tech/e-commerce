@@ -2,6 +2,8 @@ import {
   createDb,
   order,
   orderLine,
+  outboxEvent,
+  payment,
   product,
   shipment,
   store,
@@ -25,7 +27,13 @@ beforeEach(async () => {
   await resetDb(owner)
 })
 
-async function seed(status: 'placed' | 'paid' = 'paid') {
+async function fulfilledEvents(orderId: string): Promise<number> {
+  const rows = await owner.select().from(outboxEvent).where(eq(outboxEvent.type, 'order.fulfilled'))
+  return rows.filter((r) => (r.payload as { orderId?: string }).orderId === orderId).length
+}
+
+/** An open order for 3 units; `paid` records the capture the way checkout would. */
+async function seed(money: 'unpaid' | 'paid' = 'paid') {
   const [s] = await owner.insert(store).values({ slug: 'waimers', name: 'Waimers' }).returning()
   if (!s) throw new Error('seed')
   const [p] = await owner
@@ -40,9 +48,25 @@ async function seed(status: 'placed' | 'paid' = 'paid') {
   if (!v) throw new Error('seed')
   const [o] = await owner
     .insert(order)
-    .values({ storeId: s.id, number: 1, status, subtotalPaise: 300000, totalPaise: 300000 })
+    .values({
+      storeId: s.id,
+      number: 1,
+      status: 'open',
+      paymentStatus: money,
+      checkoutPaidAt: money === 'paid' ? new Date() : null,
+      subtotalPaise: 300000,
+      totalPaise: 300000,
+    })
     .returning()
   if (!o) throw new Error('seed')
+  await owner.insert(payment).values({
+    storeId: s.id,
+    orderId: o.id,
+    provider: money === 'paid' ? 'razorpay' : 'cod',
+    providerRef: `ref_${o.id}`,
+    status: money === 'paid' ? 'captured' : 'pending',
+    amountPaise: 300000,
+  })
   const lines = await owner
     .insert(orderLine)
     .values([
@@ -82,7 +106,9 @@ describe('fulfilOrderLines', () => {
     const [row] = await owner.select().from(orderLine).where(eq(orderLine.id, first.id))
     expect(row?.fulfilledQuantity).toBe(1)
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
-    expect(o?.status).toBe('paid')
+    expect(o?.status).toBe('open')
+    expect(o?.fulfillmentStatus).toBe('partially_fulfilled')
+    expect(await fulfilledEvents(orderId)).toBe(0)
   })
 
   it('marks a paid order fulfilled and records the tracking number once everything is packed', async () => {
@@ -99,14 +125,17 @@ describe('fulfilOrderLines', () => {
     expect(result.complete).toBe(true)
     expect(result.shipmentId).not.toBeNull()
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
-    expect(o?.status).toBe('fulfilled')
+    expect(o?.status).toBe('open')
+    expect(o?.paymentStatus).toBe('paid')
+    expect(o?.fulfillmentStatus).toBe('fulfilled')
+    expect(await fulfilledEvents(orderId)).toBe(1)
     const [sh] = await owner.select().from(shipment).where(eq(shipment.orderId, orderId))
     expect(sh?.waybill).toBe('AWB123')
     expect(sh?.provider).toBe('Delhivery')
   })
 
-  it('leaves an unpaid order alone so cash on delivery still shows as placed', async () => {
-    const { storeId, orderId, lines } = await seed('placed')
+  it('packs an unpaid (cash on delivery) order without touching its payment status', async () => {
+    const { storeId, orderId, lines } = await seed('unpaid')
     const picks = lines.map((l) => ({ lineId: l.id, quantity: l.quantity }))
 
     const result = await withStore(app, storeId, (tx) =>
@@ -115,7 +144,10 @@ describe('fulfilOrderLines', () => {
 
     expect(result.complete).toBe(true)
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
-    expect(o?.status).toBe('placed')
+    expect(o?.status).toBe('open')
+    expect(o?.paymentStatus).toBe('unpaid')
+    expect(o?.fulfillmentStatus).toBe('fulfilled')
+    expect(await fulfilledEvents(orderId)).toBe(1)
   })
 
   it('refuses more than was ordered, and an empty pick', async () => {

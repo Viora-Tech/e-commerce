@@ -86,7 +86,7 @@ describe('cart', () => {
     })
     expect(result.paymentStatus).toBe('pending')
     const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
-    expect(o?.status).toBe('placed')
+    expect(o?.status).toBe('open')
     expect(o?.paymentMethod).toBe('cod')
     expect(o?.email).toBe('buyer@example.com')
     const [c] = await owner

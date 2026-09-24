@@ -45,7 +45,7 @@ async function placed(
   storeId: string,
   totalPaise: number,
   attribution: Partial<MarketingAttribution> | null,
-  status: 'placed' | 'draft' | 'cancelled' = 'placed',
+  status: 'open' | 'draft' | 'cancelled' = 'open',
 ) {
   await owner.insert(order).values({
     storeId,

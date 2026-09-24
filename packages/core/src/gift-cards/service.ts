@@ -18,6 +18,7 @@ import { and, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzl
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
+import { recomputeOrderStatuses } from '../order/recompute'
 import { decryptSecret, encryptSecret } from '../secrets'
 import {
   addMonths,
@@ -517,14 +518,12 @@ export async function giftCardsForCustomer(ctx: StoreContext, customerId: string
   return rows.map((r) => ({ ...r, state: giftCardState(r, today) }))
 }
 
-const PAID_STATUSES = ['paid', 'fulfilled', 'delivered'] as const
-
 /**
  * Issue the cards a paid order bought: one per unit on every gift card line,
  * to the buyer's email, with the store's default expiry. Idempotent, so every
  * path that marks an order paid can call it. Gift card lines count as
- * fulfilled once issued (they are digital), and an order made only of gift
- * cards moves to fulfilled. Returns the ids issued by this call.
+ * fulfilled once issued (they are digital), so an order made only of gift
+ * cards derives as fulfilled. Returns the ids issued by this call.
  */
 export async function issueGiftCardsForOrder(
   ctx: StoreContext,
@@ -532,7 +531,7 @@ export async function issueGiftCardsForOrder(
   secret: string,
 ): Promise<string[]> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
-  if (!o || !(PAID_STATUSES as readonly string[]).includes(o.status)) return []
+  if (!o?.checkoutPaidAt || o.status === 'cancelled' || o.status === 'draft') return []
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
   const giftLines = lines.filter((l) => l.giftCard)
   if (giftLines.length === 0) return []
@@ -569,9 +568,7 @@ export async function issueGiftCardsForOrder(
         .where(eq(orderLine.id, line.id))
     }
   }
-  if (o.status === 'paid' && lines.every((l) => l.giftCard)) {
-    await ctx.tx.update(order).set({ status: 'fulfilled' }).where(eq(order.id, orderId))
-  }
+  await recomputeOrderStatuses(ctx, orderId)
   return issued
 }
 

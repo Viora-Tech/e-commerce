@@ -24,7 +24,7 @@ export default async function Page({ searchParams }: Props) {
       { context },
     ),
     call(appRouter.orders.list, { page: 1, perPage: 1 }, { context }),
-    call(appRouter.orders.list, { page: 1, perPage: 1, pendingUpi: true }, { context }),
+    call(appRouter.orders.list, { page: 1, perPage: 1, view: 'pending_upi' }, { context }),
   ])
 
   return (

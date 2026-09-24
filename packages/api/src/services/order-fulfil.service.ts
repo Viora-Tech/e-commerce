@@ -1,8 +1,10 @@
 import {
+  applyPaymentStatus,
   balanceOwed,
   type FulfilOrderInput,
   fulfilOrderLines,
   OPEN_ATTEMPT_STATUSES,
+  recomputeOrderStatuses,
   recordBalancePaid,
   refundedPaise,
 } from '@commerce/core'
@@ -110,7 +112,7 @@ export async function collectOrderPayment(
 ) {
   const [current] = await tx.select().from(order).where(eq(order.id, input.orderId))
   // A deposit pre-order whose deposit is in: what is owed is the balance, settled as one.
-  if (current && current.status !== 'placed' && balanceOwed(current) > 0) {
+  if (current?.checkoutPaidAt && balanceOwed(current) > 0) {
     await recordBalancePaid({ storeId, tx }, input.orderId, { method: input.method })
     const [o] = await tx.select().from(order).where(eq(order.id, input.orderId))
     return { order: o ?? null, balance: true }
@@ -127,27 +129,27 @@ export async function collectOrderPayment(
     )
     .orderBy(desc(payment.attempt))
   const first = pending[0]
+  const ctx = { storeId, tx }
   if (first) {
-    await tx.update(payment).set({ status: 'captured' }).where(eq(payment.id, first.id))
+    // Through the one capture path, so a capture on a cancelled order is flagged, not kept.
+    await applyPaymentStatus(ctx, {
+      paymentId: first.id,
+      status: 'captured',
+      providerPaymentId: null,
+    })
   } else {
     await tx.insert(payment).values({
       storeId,
       orderId: input.orderId,
       provider: input.method ?? 'manual',
-      providerRef: `manual_${input.orderId}`,
+      providerRef: `manual_${input.orderId}_${Date.now()}`,
       status: 'captured',
       amountPaise: input.amountPaise,
     })
+    await recomputeOrderStatuses(ctx, input.orderId)
   }
-  const [o] = await tx
-    .update(order)
-    .set({ status: 'paid' })
-    .where(and(eq(order.id, input.orderId), eq(order.status, 'placed')))
-    .returning()
-  return {
-    order: o ?? (await tx.select().from(order).where(eq(order.id, input.orderId)))[0] ?? null,
-    balance: false,
-  }
+  const [o] = await tx.select().from(order).where(eq(order.id, input.orderId))
+  return { order: o ?? null, balance: false }
 }
 
 /** Customer name for the header, without pulling the whole record. */

@@ -167,7 +167,10 @@ describe('merchant payment reminder', () => {
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
     expect(notes.filter((n) => n.author === 'owner@a.test')).toHaveLength(2)
 
-    await owner.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
+    await owner
+      .update(order)
+      .set({ paymentStatus: 'paid', checkoutPaidAt: new Date() })
+      .where(eq(order.id, orderId))
     await expect(send(hoursAfter(20))).rejects.toBeInstanceOf(PaymentNotPending)
   })
 
@@ -191,7 +194,10 @@ describe('merchant payment reminder', () => {
       )
     expect((await run()).map((r) => r.to)).toEqual(['asha@example.com', '919876543210'])
     expect(email.sent[0]?.data.orderUrl).toMatch(/^https:\/\/shop\.test\/checkout\/thank-you\//)
-    await owner.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
+    await owner
+      .update(order)
+      .set({ paymentStatus: 'paid', checkoutPaidAt: new Date() })
+      .where(eq(order.id, orderId))
     await owner.delete(notification)
     expect(await run()).toEqual([])
   })
@@ -202,7 +208,7 @@ describe('opt-in auto-cancel', () => {
     const shop = await seedStore('a')
     const orderId = await transferOrder(shop)
     expect(await runManualFollowUp(app, shop.storeId, hoursAfter(500))).toEqual([])
-    expect((await orderRow(orderId))?.status).toBe('placed')
+    expect((await orderRow(orderId))?.status).toBe('open')
     expect(await events(orderId)).not.toContain('order.unpaid_cancel_notice')
   })
 
@@ -261,7 +267,7 @@ describe('opt-in auto-cancel', () => {
       ),
     )
     expect(await runManualFollowUp(app, shop.storeId, hoursAfter(60))).toEqual([])
-    expect((await orderRow(orderId))?.status).toBe('paid')
+    expect((await orderRow(orderId))?.paymentStatus).toBe('paid')
     expect(await reserved(shop.variantId)).toBe(1)
   })
 
@@ -276,7 +282,7 @@ describe('opt-in auto-cancel', () => {
       { orderId: orderA, result: 'cancelled' },
     ])
     expect(await runManualFollowUp(app, b.storeId, hoursAfter(49))).toEqual([])
-    expect((await orderRow(orderB))?.status).toBe('placed')
+    expect((await orderRow(orderB))?.status).toBe('open')
     expect((await orderRow(orderB))?.unpaidCancelNoticeAt).toBeNull()
     await expect(
       withStore(app, b.storeId, (tx) =>

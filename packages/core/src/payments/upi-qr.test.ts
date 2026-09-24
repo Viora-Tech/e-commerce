@@ -162,8 +162,14 @@ const deliver = (storeId: string, qr: QrDouble, d: Delivery) =>
 const attempts = (orderId: string) =>
   owner.select().from(payment).where(eq(payment.orderId, orderId)).orderBy(asc(payment.attempt))
 
-const orderStatus = async (orderId: string) =>
-  (await owner.select({ status: order.status }).from(order).where(eq(order.id, orderId)))[0]?.status
+/** An open order reads by its payment status; a closed one by its lifecycle. */
+const orderStatus = async (orderId: string) => {
+  const [o] = await owner
+    .select({ status: order.status, paymentStatus: order.paymentStatus })
+    .from(order)
+    .where(eq(order.id, orderId))
+  return o?.status === 'open' ? o.paymentStatus : o?.status
+}
 
 const paidEvents = (orderId: string) =>
   owner
@@ -237,7 +243,7 @@ describe('auto-confirmed UPI QR', () => {
     const r = await placeQrOrder(shop, qr)
     await deliver(shop.storeId, qr, { eventId: 'evt_c', event: 'qr_code.closed', qrId: 'qr_1' })
     expect((await attempts(r.orderId))[0]?.status).toBe('failed')
-    expect(await orderStatus(r.orderId)).toBe('placed')
+    expect(await orderStatus(r.orderId)).toBe('unpaid')
 
     const next = await retryAndStartPayment(app, shop.storeId, r.orderId, qr, NOW)
     expect(next.session).toMatchObject({ kind: 'upi_qr', providerRef: 'qr_2' })
@@ -288,6 +294,6 @@ describe('auto-confirmed UPI QR', () => {
       idempotencyKey: `${orderA.orderId}:1`,
     })
     expect(out).toMatchObject({ ok: true, applied: false })
-    expect(await orderStatus(orderA.orderId)).toBe('placed')
+    expect(await orderStatus(orderA.orderId)).toBe('unpaid')
   })
 })

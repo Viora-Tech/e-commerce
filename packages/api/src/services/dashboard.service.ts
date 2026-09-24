@@ -1,3 +1,8 @@
+import {
+  type OrderFulfillmentStatus,
+  type OrderPaymentStatus,
+  UNPAID_PAYMENT_STATUSES,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -72,6 +77,8 @@ export type DashboardSummary = {
     id: string
     number: number
     status: OrderStatus
+    paymentStatus: OrderPaymentStatus
+    fulfillmentStatus: OrderFulfillmentStatus
     totalPaise: number
     customerName: string | null
     email: string | null
@@ -243,6 +250,7 @@ export async function dashboardSummary(
     .select({
       id: order.id,
       status: order.status,
+      paymentStatus: order.paymentStatus,
       totalPaise: order.totalPaise,
       placedAt: order.placedAt,
     })
@@ -257,6 +265,10 @@ export async function dashboardSummary(
   const sumPaise = (rows: typeof recentRows) => rows.reduce((n, r) => n + r.totalPaise, 0)
   const countStatus = (rows: typeof recentRows, s: string) =>
     rows.filter((r) => r.status === s).length
+  /* Pending: open orders still waiting for their money (COD included). */
+  const countPending = (rows: typeof recentRows) =>
+    rows.filter((r) => r.status === 'open' && UNPAID_PAYMENT_STATUSES.includes(r.paymentStatus))
+      .length
 
   const [customersRow] = await tx.select({ n: count() }).from(customer)
   const [productsRow] = await tx
@@ -320,6 +332,8 @@ export async function dashboardSummary(
       number: order.number,
       /* `notDraft` below guarantees the narrower type the dashboard exposes. */
       status: sql<OrderStatus>`${order.status}`,
+      paymentStatus: order.paymentStatus,
+      fulfillmentStatus: order.fulfillmentStatus,
       totalPaise: order.totalPaise,
       customerName: customer.name,
       email: order.email,
@@ -505,7 +519,7 @@ export async function dashboardSummary(
   return {
     sales: { value: sumPaise(live(cur)), previous: sumPaise(live(prev)) },
     orders: { value: live(cur).length, previous: live(prev).length },
-    pending: { value: countStatus(cur, 'placed'), previous: countStatus(prev, 'placed') },
+    pending: { value: countPending(cur), previous: countPending(prev) },
     cancelled: { value: countStatus(cur, 'cancelled'), previous: countStatus(prev, 'cancelled') },
     report: {
       customers: customersRow?.n ?? 0,

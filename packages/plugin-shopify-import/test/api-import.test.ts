@@ -310,7 +310,8 @@ describe('API import run', () => {
     const [o] = await owner.select().from(order)
     expect(o).toMatchObject({
       number: 2001,
-      status: 'paid',
+      status: 'open',
+      paymentStatus: 'paid',
       importedFrom: 'shopify',
       customerId: meera?.id,
     })

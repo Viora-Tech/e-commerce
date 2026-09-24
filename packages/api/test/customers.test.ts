@@ -73,7 +73,8 @@ describe('customers', () => {
         customerId: asha?.id,
         number: 1,
         totalPaise: 150000,
-        status: 'paid',
+        status: 'open',
+        paymentStatus: 'paid',
         placedAt: daysAgo(20),
       },
       {
@@ -81,7 +82,9 @@ describe('customers', () => {
         customerId: asha?.id,
         number: 2,
         totalPaise: 50000,
-        status: 'delivered',
+        status: 'completed',
+        paymentStatus: 'paid',
+        fulfillmentStatus: 'delivered',
         placedAt: daysAgo(2),
       },
       {
@@ -97,7 +100,7 @@ describe('customers', () => {
         customerId: ravi?.id,
         number: 4,
         totalPaise: 20000,
-        status: 'placed',
+        status: 'open',
         placedAt: daysAgo(1),
       },
     ])
@@ -148,7 +151,8 @@ describe('customers', () => {
           number: 1,
           subtotalPaise: 1,
           totalPaise: 150000,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           placedAt: daysAgo(5),
         },
         {
@@ -224,7 +228,12 @@ describe('customers', () => {
         },
       ])
       .returning()
-    const base = { storeId: a.storeId, subtotalPaise: 1, status: 'paid' as const }
+    const base = {
+      storeId: a.storeId,
+      subtotalPaise: 1,
+      status: 'open' as const,
+      paymentStatus: 'paid' as const,
+    }
     await owner.insert(order).values([
       { ...base, customerId: asha?.id, number: 1, totalPaise: 300000, placedAt: daysAgo(3) },
       { ...base, customerId: asha?.id, number: 2, totalPaise: 100000, placedAt: daysAgo(2) },
@@ -314,7 +323,12 @@ describe('customers', () => {
         { storeId: b.storeId, email: 'other@example.com', tags: ['vip'] },
       ])
       .returning()
-    const base = { storeId: a.storeId, subtotalPaise: 1, status: 'paid' as const }
+    const base = {
+      storeId: a.storeId,
+      subtotalPaise: 1,
+      status: 'open' as const,
+      paymentStatus: 'paid' as const,
+    }
     await owner.insert(order).values([
       { ...base, customerId: asha?.id, number: 1, totalPaise: 300000, placedAt: daysAgo(3) },
       { ...base, customerId: ravi?.id, number: 2, totalPaise: 10000, placedAt: daysAgo(1) },
@@ -369,7 +383,8 @@ describe('customers', () => {
       number: 1,
       subtotalPaise: 1,
       totalPaise: 1000,
-      status: 'paid',
+      status: 'open',
+      paymentStatus: 'paid',
     })
 
     const blocked = await call(
@@ -411,10 +426,31 @@ describe('customers', () => {
     const base = { storeId: a.storeId, subtotalPaise: 1, totalPaise: 1000 }
     await owner.insert(order).values([
       // Asha ordered twice this week, so she is active and a repeat buyer.
-      { ...base, customerId: asha?.id, number: 1, status: 'paid', placedAt: daysAgo(3) },
-      { ...base, customerId: asha?.id, number: 2, status: 'paid', placedAt: daysAgo(1) },
+      {
+        ...base,
+        customerId: asha?.id,
+        number: 1,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(3),
+      },
+      {
+        ...base,
+        customerId: asha?.id,
+        number: 2,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(1),
+      },
       // Ravi bought once, last week only.
-      { ...base, customerId: ravi?.id, number: 3, status: 'paid', placedAt: daysAgo(9) },
+      {
+        ...base,
+        customerId: ravi?.id,
+        number: 3,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(9),
+      },
       // Drafts are not activity.
       { ...base, customerId: ravi?.id, number: 4, status: 'draft', placedAt: daysAgo(1) },
     ])

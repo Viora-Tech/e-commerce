@@ -123,7 +123,7 @@ describe('store permissions', () => {
         storeId: s.id,
         number: 1,
         email: 'shopper@example.com',
-        status: 'placed',
+        status: 'open',
         subtotalPaise: 1000,
         totalPaise: 1000,
       })
@@ -135,7 +135,7 @@ describe('store permissions', () => {
       { id: o.id, status: 'paid' },
       { context: ctx(helperHeaders) },
     )
-    expect(updated?.status).toBe('paid')
+    expect(updated?.paymentStatus).toBe('paid')
   })
 
   it('keeps cancelling behind its own grant', async () => {
@@ -164,7 +164,7 @@ describe('store permissions', () => {
         storeId: s.id,
         number: 2,
         email: 'shopper@example.com',
-        status: 'placed',
+        status: 'open',
         subtotalPaise: 1000,
         totalPaise: 1000,
       })

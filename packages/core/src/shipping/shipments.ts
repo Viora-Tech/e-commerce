@@ -3,6 +3,7 @@ import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@com
 import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
+import { recomputeOrderStatuses } from '../order/recompute'
 import { parseShippingSettings } from './settings'
 
 export type ShipmentRow = typeof shipment.$inferSelect
@@ -89,11 +90,10 @@ export async function createShipmentForOrder(
     })
     .returning()
   if (!row) throw new Error('could not record shipment')
-  // The label exists, so the parcel ships: every line is packed and leaves stock.
+  // The label exists, so the parcel ships: every line is packed and leaves
+  // stock, and the recompute (inside) derives the fulfilment status.
   await fulfilRemainingLines(ctx, o.id)
-  if (o.status === 'placed' || o.status === 'paid') {
-    await ctx.tx.update(order).set({ status: 'fulfilled' }).where(eq(order.id, o.id))
-  }
+  await recomputeOrderStatuses(ctx, o.id)
   return row
 }
 
@@ -117,9 +117,8 @@ export async function applyTracking(
     .returning()
   if (!row) throw new Error('shipment not found')
   const becameDelivered = before.status !== 'delivered' && tracking.status === 'delivered'
-  if (becameDelivered) {
-    await ctx.tx.update(order).set({ status: 'delivered' }).where(eq(order.id, row.orderId))
-  }
+  // Courier events (in transit, delivered, RTO) move the fulfilment status.
+  if (before.status !== row.status) await recomputeOrderStatuses(ctx, row.orderId)
   return { shipment: row, becameDelivered }
 }
 
@@ -136,6 +135,7 @@ export async function cancelShipment(
     .set({ status: 'cancelled', updatedAt: new Date() })
     .where(eq(shipment.id, shipmentId))
     .returning()
+  await recomputeOrderStatuses(ctx, row.orderId)
   return updated ?? row
 }
 

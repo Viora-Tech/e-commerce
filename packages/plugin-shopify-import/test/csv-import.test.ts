@@ -250,9 +250,11 @@ describe('CSV import runs', () => {
     await executeRun(d, runId)
 
     const orders = await owner.select().from(order).orderBy(asc(order.number))
-    expect(orders.map((o) => [o.number, o.status, o.importedFrom])).toEqual([
-      [1001, 'fulfilled', 'shopify'],
-      [1002, 'cancelled', 'shopify'],
+    expect(
+      orders.map((o) => [o.number, o.status, o.paymentStatus, o.fulfillmentStatus, o.importedFrom]),
+    ).toEqual([
+      [1001, 'completed', 'paid', 'fulfilled', 'shopify'],
+      [1002, 'cancelled', 'refunded', 'unfulfilled', 'shopify'],
     ])
     expect(orders[0]?.importMeta).toMatchObject({ name: '#1001', financialStatus: 'paid' })
     expect(orders[0]?.placedAt.toISOString()).toBe('2025-11-02T04:44:00.000Z')
@@ -309,7 +311,7 @@ describe('CSV import runs', () => {
     const storage = new MemoryStorageProvider()
     await owner
       .insert(order)
-      .values({ storeId, number: 1001, subtotalPaise: 100, totalPaise: 100, status: 'paid' })
+      .values({ storeId, number: 1001, subtotalPaise: 100, totalPaise: 100, status: 'open' })
     const runId = await csvRun(storeId, storage, 'orders', 'orders.csv')
     await executeRun(deps(storeId, storage), runId)
     await withStore(app, storeId, (tx) => startRun(tx, runId))

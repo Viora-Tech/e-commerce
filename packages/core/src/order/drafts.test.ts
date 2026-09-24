@@ -114,7 +114,7 @@ describe('draft orders', () => {
       const [pay] = await tx.select().from(payment).where(eq(payment.orderId, created.id))
       return { created, converted, pay }
     })
-    expect(result.converted?.status).toBe('placed')
+    expect(result.converted?.status).toBe('open')
     expect(result.converted?.number).toBe(result.created.number)
     expect(result.pay?.status).toBe('pending')
     expect(result.pay?.provider).toBe('cod')

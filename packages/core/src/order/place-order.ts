@@ -55,6 +55,7 @@ import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
+import { recomputeOrderStatuses } from './recompute'
 
 export type CheckoutDetails = {
   email: string
@@ -484,7 +485,7 @@ const createOrder: WorkflowStep<State> = {
       .values({
         storeId: ctx.storeId,
         number: orderNumber,
-        status: 'placed',
+        status: 'open',
         subtotalPaise,
         taxPaise: tax.taxPaise,
         taxBreakdown: tax,
@@ -676,11 +677,12 @@ const recordPaymentAttempt: WorkflowStep<State> = {
     if (paidByCards({ giftCardPaise, totalPaise, balanceDuePaise })) {
       await ctx.tx
         .update(order)
-        .set({ status: 'paid', paymentMethod: GIFT_CARD_PROVIDER })
+        .set({ paymentMethod: GIFT_CARD_PROVIDER })
         .where(eq(order.id, orderId))
       // Paid entirely by gift cards: this never reaches applyPaymentStatus
-      // (there is no gateway attempt), so the order.paid event is written here.
-      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', { orderId })
+      // (there is no gateway attempt), so the recompute here sees the captured
+      // card payments and writes order.paid.
+      await recomputeOrderStatuses(ctx, orderId)
       return {}
     }
     const attempt = await createPaymentAttempt(ctx, {
@@ -688,6 +690,8 @@ const recordPaymentAttempt: WorkflowStep<State> = {
       provider: input.paymentProvider.id,
       amountPaise: chargeNowPaise({ totalPaise, balanceDuePaise }) - giftCardPaise,
     })
+    // A part paid by gift card shows as partially paid until the gateway captures.
+    await recomputeOrderStatuses(ctx, orderId)
     return { attemptId: attempt.id }
   },
 }

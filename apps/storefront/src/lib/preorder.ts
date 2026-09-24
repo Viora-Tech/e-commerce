@@ -54,7 +54,7 @@ export function balanceView(
   o: typeof order.$inferSelect,
   policy: PreorderStoreSettings,
 ): BalanceView | null {
-  const owed = o.status === 'placed' ? 0 : balanceOwed(o)
+  const owed = o.checkoutPaidAt ? balanceOwed(o) : 0
   if (owed <= 0) return null
   return {
     owedPaise: owed,

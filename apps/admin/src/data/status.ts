@@ -1,4 +1,9 @@
 import type { ProductStatus } from '@commerce/core/catalog'
+import type {
+  OrderFulfillmentStatus,
+  OrderLifecycleStatus,
+  OrderPaymentStatus,
+} from '@commerce/core/order-status'
 import {
   CancelCircle,
   CircleCheck,
@@ -23,7 +28,7 @@ import {
 } from '@/data/inventory'
 import { campaignsContent } from '@/data/marketing-campaigns'
 import { onlineStoreContent } from '@/data/online-store'
-import { type OrderStatus, orderDetailContent, ordersContent } from '@/data/orders'
+import { orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
 import { shipmentPanelContent } from '@/data/shipping'
 import { shopifyImportContent } from '@/data/shopify-import'
@@ -52,18 +57,29 @@ const entry = (label: string, tone: StatusTone, glyph?: IconComponent): StatusEn
 })
 
 export const STATUS = {
+  /** An order's lifecycle; drafts and archived-like states read neutral. */
   order: {
-    placed: entry(ordersContent.status.placed, 'pending', DeliveryDelay),
-    paid: entry(ordersContent.status.paid, 'accent', CircleCheck),
-    fulfilled: entry(ordersContent.status.fulfilled, 'success', Truck),
-    delivered: entry(ordersContent.status.delivered, 'success', PackageCheck),
+    draft: entry(ordersContent.status.draft, 'neutral'),
+    open: entry(ordersContent.status.open, 'accent', DeliveryDelay),
+    completed: entry(ordersContent.status.completed, 'success', CircleCheck),
     cancelled: entry(ordersContent.status.cancelled, 'error', CancelCircle),
-  } satisfies Record<OrderStatus, StatusEntry>,
-  /** Payment column of the order list and the detail header. */
+  } satisfies Record<OrderLifecycleStatus, StatusEntry>,
+  /**
+   * The order's derived payment status: list column and detail header pill.
+   * Paid is success, refunds info, anything still owed warning, a refund
+   * someone has to send red.
+   */
+  orderPayment: {
+    unpaid: entry(ordersContent.paymentStatus.unpaid, 'pending'),
+    authorized: entry(ordersContent.paymentStatus.authorized, 'pending'),
+    partially_paid: entry(ordersContent.paymentStatus.partially_paid, 'pending'),
+    paid: entry(ordersContent.paymentStatus.paid, 'success'),
+    partially_refunded: entry(ordersContent.paymentStatus.partially_refunded, 'info'),
+    refunded: entry(ordersContent.paymentStatus.refunded, 'info'),
+    refund_needed: entry(ordersContent.paymentStatus.refund_needed, 'error'),
+  } satisfies Record<OrderPaymentStatus, StatusEntry>,
+  /** One payment attempt (payment card rows, the summary box). */
   payment: {
-    paid: entry(ordersContent.payment.paid, 'success'),
-    unpaid: entry(ordersContent.payment.codPending, 'error'),
-    cod: entry(ordersContent.payment.cod, 'neutral'),
     created: entry(orderDetailContent.pills.payment.created, 'neutral'),
     pending: entry(orderDetailContent.pills.payment.pending, 'neutral'),
     authorized: entry(orderDetailContent.pills.payment.authorized, 'pending'),
@@ -74,11 +90,20 @@ export const STATUS = {
     partially_refunded: entry(orderDetailContent.pills.partiallyRefunded, 'pending'),
     failed: entry(orderDetailContent.pills.payment.failed, 'error'),
   },
+  /** The order's derived fulfilment status: list column, header pill, Unfulfilled card. */
   fulfilment: {
-    unfulfilled: entry(orderDetailContent.pills.fulfilment.unfulfilled, 'pending', PackageOpen),
-    fulfilled: entry(orderDetailContent.pills.fulfilment.fulfilled, 'success', Truck),
-    delivered: entry(orderDetailContent.pills.fulfilment.delivered, 'success', PackageCheck),
-  },
+    unfulfilled: entry(ordersContent.fulfillmentStatus.unfulfilled, 'pending', PackageOpen),
+    partially_fulfilled: entry(
+      ordersContent.fulfillmentStatus.partially_fulfilled,
+      'pending',
+      PackageOpen,
+    ),
+    fulfilled: entry(ordersContent.fulfillmentStatus.fulfilled, 'success', PackageCheck),
+    shipped: entry(ordersContent.fulfillmentStatus.shipped, 'info', Truck),
+    partially_delivered: entry(ordersContent.fulfillmentStatus.partially_delivered, 'info', Truck),
+    delivered: entry(ordersContent.fulfillmentStatus.delivered, 'success', PackageCheck),
+    returned: entry(ordersContent.fulfillmentStatus.returned, 'error', CancelCircle),
+  } satisfies Record<OrderFulfillmentStatus, StatusEntry>,
   refund: {
     pending: entry(orderDetailContent.payment.refundStatus.pending ?? 'Pending', 'pending'),
     processed: entry(orderDetailContent.payment.refundStatus.processed ?? 'Processed', 'success'),

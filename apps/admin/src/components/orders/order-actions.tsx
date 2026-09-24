@@ -28,14 +28,21 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import Link from 'next/link'
 import { useState } from 'react'
-import { orderDetailContent as copy } from '@/data/orders'
-import type { OrderStatus } from './order-detail-types'
+import {
+  orderDetailContent as copy,
+  type OrderFulfillmentStatus,
+  type OrderMark,
+  type OrderPaymentStatus,
+  type OrderStatus,
+} from '@/data/orders'
 
 type OrderActionsProps = {
   status: OrderStatus
+  paymentStatus: OrderPaymentStatus
+  fulfillmentStatus: OrderFulfillmentStatus
   canRefund: boolean
   busy: boolean
-  onMove: (to: OrderStatus) => void
+  onMove: (to: OrderMark) => void
   onRefund: () => void
   /** Present while a deposit pre-order's balance is owed: "Request balance". */
   onRequestBalance?: (() => void) | undefined
@@ -45,19 +52,41 @@ type OrderActionsProps = {
   nextId?: string | undefined
 }
 
-/** The one forward step from each status; delivered and cancelled are terminal. */
-const NEXT: Partial<Record<OrderStatus, { label: string; to: OrderStatus }>> = {
-  placed: { label: copy.actions.markPaid, to: 'paid' },
-  paid: { label: copy.actions.fulfil, to: 'fulfilled' },
-  fulfilled: { label: copy.actions.deliver, to: 'delivered' },
-}
+type Step = { label: string; to: OrderMark; primary: boolean }
 
-/* Only these moves are the obvious next step and earn the ink button; "paid" is followed by
-   packing, which the Unfulfilled section already offers, so it stays in the menu. */
-const PRIMARY_FROM: ReadonlySet<OrderStatus> = new Set(['placed', 'fulfilled'])
+const OWED: ReadonlySet<OrderPaymentStatus> = new Set(['unpaid', 'authorized', 'partially_paid'])
+const TO_PACK: ReadonlySet<OrderFulfillmentStatus> = new Set(['unfulfilled', 'partially_fulfilled'])
+const ON_ITS_WAY: ReadonlySet<OrderFulfillmentStatus> = new Set([
+  'fulfilled',
+  'shipped',
+  'partially_delivered',
+])
+
+/**
+ * The one forward step for an open order: take the money, then pack, then
+ * hand over. Taking the money and marking delivered earn the ink button;
+ * packing stays in the menu because the Unfulfilled section already offers it.
+ */
+function nextStep(
+  status: OrderStatus,
+  payment: OrderPaymentStatus,
+  fulfilment: OrderFulfillmentStatus,
+): Step | undefined {
+  if (status !== 'open') return undefined
+  if (OWED.has(payment)) return { label: copy.actions.markPaid, to: 'paid', primary: true }
+  if (TO_PACK.has(fulfilment)) {
+    return { label: copy.actions.fulfil, to: 'fulfilled', primary: false }
+  }
+  if (ON_ITS_WAY.has(fulfilment)) {
+    return { label: copy.actions.deliver, to: 'delivered', primary: true }
+  }
+  return undefined
+}
 
 export default function OrderActions({
   status,
+  paymentStatus,
+  fulfillmentStatus,
   canRefund,
   busy,
   onMove,
@@ -71,10 +100,11 @@ export default function OrderActions({
   const [confirmCancel, setConfirmCancel] = useState(false)
 
   // Render logic
-  const next = readOnly ? undefined : NEXT[status]
-  const primary = next && PRIMARY_FROM.has(status) ? next : undefined
+  const next = readOnly ? undefined : nextStep(status, paymentStatus, fulfillmentStatus)
+  const primary = next?.primary ? next : undefined
   const menuMove = next && !primary ? next : undefined
-  const cancellable = !readOnly && status !== 'cancelled' && status !== 'delivered'
+  // Once the parcel is in the shopper's hands, a cancel no longer undoes anything.
+  const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
 
   /* After the Saleor Dashboard order header (BSD-3): small square icon buttons, one menu for

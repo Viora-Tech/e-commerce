@@ -1,10 +1,15 @@
 import {
   changeOrderStatus,
-  OPEN_ATTEMPT_STATUSES,
+  type OrderFulfillmentStatus,
+  type OrderLifecycleStatus,
+  type OrderPaymentStatus,
+  type OrderStatusChange,
   type PaymentProvider,
   parsePaymentSettings,
   refundPayment,
   resolvePaymentProviders,
+  UNFULFILLED_STATUSES,
+  UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -23,12 +28,71 @@ import {
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm'
 
-export type OrderStatus = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
+/** Lifecycle of a placed order; drafts have their own list. */
+export type OrderStatus = Exclude<OrderLifecycleStatus, 'draft'>
+
+/** The tabs above the order list. */
+export const ORDER_VIEWS = [
+  'all',
+  'unpaid',
+  'unfulfilled',
+  'pending_upi',
+  'completed',
+  'cancelled',
+] as const
+export type OrderView = (typeof ORDER_VIEWS)[number]
 
 /** Drafts live in the same table but are not orders yet; every list and tile hides them. */
 const notDraft = ne(order.status, 'draft')
+
+/**
+ * What each tab shows. Unpaid and Unfulfilled are work still to do, so only
+ * open orders count; Pending UPI is a manual transfer whose checkout amount
+ * has not been matched yet.
+ */
+function viewFilter(view: OrderView): SQL | undefined {
+  switch (view) {
+    case 'unpaid':
+      return and(
+        eq(order.status, 'open'),
+        inArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+      )
+    case 'unfulfilled':
+      return and(
+        eq(order.status, 'open'),
+        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+      )
+    case 'pending_upi':
+      return and(
+        eq(order.status, 'open'),
+        isNull(order.checkoutPaidAt),
+        eq(order.paymentMethod, 'manual'),
+        isNull(order.importedFrom),
+      )
+    case 'completed':
+      return eq(order.status, 'completed')
+    case 'cancelled':
+      return eq(order.status, 'cancelled')
+    default:
+      return undefined
+  }
+}
 
 export async function listOrders(
   tx: StoreTx,
@@ -36,24 +100,23 @@ export async function listOrders(
     page: number
     perPage: number
     search?: string | undefined
+    view?: OrderView | undefined
     status?: OrderStatus | undefined
-    /** Placed manual UPI / bank transfer orders still waiting for "Mark as paid". */
-    pendingUpi?: boolean | undefined
+    paymentStatus?: OrderPaymentStatus[] | undefined
+    fulfillmentStatus?: OrderFulfillmentStatus[] | undefined
   },
 ) {
   const where = and(
     notDraft,
-    input.pendingUpi
-      ? and(
-          eq(order.status, 'placed'),
-          eq(order.paymentMethod, 'manual'),
-          isNull(order.importedFrom),
-        )
-      : undefined,
+    input.view ? viewFilter(input.view) : undefined,
     input.search
       ? or(ilike(order.email, `%${input.search}%`), ilike(customer.name, `%${input.search}%`))
       : undefined,
     input.status ? eq(order.status, input.status) : undefined,
+    input.paymentStatus?.length ? inArray(order.paymentStatus, input.paymentStatus) : undefined,
+    input.fulfillmentStatus?.length
+      ? inArray(order.fulfillmentStatus, input.fulfillmentStatus)
+      : undefined,
   )
   const base = tx
     .select({
@@ -61,6 +124,8 @@ export async function listOrders(
       number: order.number,
       /* `notDraft` in the filter guarantees the narrower type callers rely on. */
       status: sql<OrderStatus>`${order.status}`,
+      paymentStatus: order.paymentStatus,
+      fulfillmentStatus: order.fulfillmentStatus,
       paymentMethod: order.paymentMethod,
       totalPaise: order.totalPaise,
       email: order.email,
@@ -99,7 +164,8 @@ export type OrderWindow = { value: number; previous: number }
 
 export type OrderStats = {
   total: OrderWindow
-  placed: OrderWindow
+  /** Open orders still waiting for their money. */
+  unpaid: OrderWindow
   delivered: OrderWindow
   cancelled: OrderWindow
 }
@@ -112,7 +178,12 @@ export async function orderStats(tx: StoreTx, now = new Date()): Promise<OrderSt
   const thisStart = new Date(now.getTime() - STATS_WINDOW_DAYS * DAY_MS)
   const lastStart = new Date(now.getTime() - 2 * STATS_WINDOW_DAYS * DAY_MS)
   const rows = await tx
-    .select({ status: order.status, placedAt: order.placedAt })
+    .select({
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      fulfillmentStatus: order.fulfillmentStatus,
+      placedAt: order.placedAt,
+    })
     .from(order)
     .where(and(notDraft, gte(order.placedAt, lastStart)))
   const cur = rows.filter((r) => r.placedAt >= thisStart)
@@ -123,8 +194,8 @@ export async function orderStats(tx: StoreTx, now = new Date()): Promise<OrderSt
   })
   return {
     total: window(() => true),
-    placed: window((r) => r.status === 'placed'),
-    delivered: window((r) => r.status === 'delivered'),
+    unpaid: window((r) => r.status === 'open' && UNPAID_PAYMENT_STATUSES.includes(r.paymentStatus)),
+    delivered: window((r) => r.status !== 'cancelled' && r.fulfillmentStatus === 'delivered'),
     cancelled: window((r) => r.status === 'cancelled'),
   }
 }
@@ -264,28 +335,18 @@ export async function refundOrderPayment(
 }
 
 /**
- * Merchant-driven status change. "Paid" means the money arrived (cash on
- * delivery, a bank transfer they matched by hand), so pending payments are
- * captured too; otherwise the order and payment rows would disagree.
+ * Merchant-driven "mark as". Paid captures the newest open attempt (or records
+ * a manual payment), fulfilled and delivered pack what is left, cancelled
+ * releases stock; the statuses and events then follow from
+ * `recomputeOrderStatuses`, so the order and payment rows never disagree.
  */
 export async function setOrderStatus(
   tx: StoreTx,
   storeId: string,
   id: string,
-  status: OrderStatus,
+  change: OrderStatusChange,
 ) {
-  const o = await changeOrderStatus({ tx, storeId }, id, status)
-  if (o && status === 'paid') {
-    // Only the newest open attempt becomes the capture; one capture per order.
-    const [open] = await tx
-      .select({ id: payment.id })
-      .from(payment)
-      .where(and(eq(payment.orderId, id), inArray(payment.status, [...OPEN_ATTEMPT_STATUSES])))
-      .orderBy(desc(payment.attempt), desc(payment.id))
-      .limit(1)
-    if (open) await tx.update(payment).set({ status: 'captured' }).where(eq(payment.id, open.id))
-  }
-  return o ?? null
+  return (await changeOrderStatus({ tx, storeId }, id, change)) ?? null
 }
 
 /**

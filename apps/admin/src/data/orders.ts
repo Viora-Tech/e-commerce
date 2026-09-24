@@ -1,10 +1,27 @@
-export const ORDER_STATUSES = ['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'] as const
-export type OrderStatus = (typeof ORDER_STATUSES)[number]
+import type {
+  OrderFulfillmentStatus,
+  OrderLifecycleStatus,
+  OrderPaymentStatus,
+} from '@commerce/core/order-status'
 
-/** Placed orders paid by manual UPI / bank transfer, waiting for the merchant to mark them paid. */
+/** A placed order's lifecycle; payment and fulfilment are separate, derived statuses. */
+export type OrderStatus = Exclude<OrderLifecycleStatus, 'draft'>
+export type { OrderFulfillmentStatus, OrderPaymentStatus }
+
+/** What "Mark as" records, on the detail page and in the list's bulk menu. */
+export const ORDER_MARKS = ['paid', 'fulfilled', 'delivered', 'cancelled'] as const
+export type OrderMark = (typeof ORDER_MARKS)[number]
+
+/** Open manual UPI / bank transfer orders, waiting for the merchant to mark them paid. */
 export const PENDING_UPI = 'pending_upi'
-/** What the Orders list's tab (`?status=`) accepts: a status, or the Pending UPI view. */
-export const ORDER_LIST_FILTERS = [...ORDER_STATUSES, PENDING_UPI] as const
+/** The Orders list's tabs after "All" (`?status=`), in the order a merchant works them. */
+export const ORDER_LIST_FILTERS = [
+  'unpaid',
+  'unfulfilled',
+  PENDING_UPI,
+  'completed',
+  'cancelled',
+] as const
 export type OrderListFilter = (typeof ORDER_LIST_FILTERS)[number]
 
 /** 1st, 2nd, 3rd, 4th — for "3rd order" on the customer card. */
@@ -35,20 +52,43 @@ export const ordersContent = {
   resource: { singular: 'order', plural: 'orders' },
   tabs: {
     all: 'All orders',
-    pendingUpi: 'Pending UPI',
-  },
+    unpaid: 'Unpaid',
+    unfulfilled: 'Unfulfilled',
+    pending_upi: 'Pending UPI',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  } satisfies Record<OrderListFilter | 'all', string>,
   status: {
-    placed: 'Placed',
+    draft: 'Draft',
+    open: 'Open',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  } satisfies Record<OrderLifecycleStatus, string>,
+  paymentStatus: {
+    unpaid: 'Unpaid',
+    authorized: 'Authorised',
+    partially_paid: 'Partially paid',
+    paid: 'Paid',
+    partially_refunded: 'Partially refunded',
+    refunded: 'Refunded',
+    refund_needed: 'Refund needed',
+  } satisfies Record<OrderPaymentStatus, string>,
+  fulfillmentStatus: {
+    unfulfilled: 'Unfulfilled',
+    partially_fulfilled: 'Partially fulfilled',
+    fulfilled: 'Fulfilled',
+    shipped: 'Shipped',
+    partially_delivered: 'Partially delivered',
+    delivered: 'Delivered',
+    returned: 'Returned',
+  } satisfies Record<OrderFulfillmentStatus, string>,
+  /** "Mark as …" choices. */
+  marks: {
     paid: 'Paid',
     fulfilled: 'Fulfilled',
     delivered: 'Delivered',
     cancelled: 'Cancelled',
-  } satisfies Record<OrderStatus, string>,
-  payment: {
-    codPending: 'Unpaid',
-    cod: 'COD',
-    paid: 'Paid',
-  },
+  } satisfies Record<OrderMark, string>,
   guest: 'Guest',
   columns: {
     order: 'Order id',
@@ -57,6 +97,7 @@ export const ordersContent = {
     customer: 'Customer',
     total: 'Price',
     payment: 'Payment',
+    fulfilment: 'Fulfilment',
     status: 'Status',
   },
   moreLines: (n: number) => `+${n} more`,
@@ -123,7 +164,6 @@ export const orderDetailContent = {
       refundNeeded: 'Refund needed',
     },
     partiallyRefunded: 'Partially refunded',
-    fulfilment: { unfulfilled: 'Unfulfilled', fulfilled: 'Fulfilled', delivered: 'Delivered' },
   },
   unfulfilled: {
     heading: 'Unfulfilled',

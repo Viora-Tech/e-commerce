@@ -17,15 +17,15 @@ import { toast } from 'sonner'
 import CustomerAvatar from '@/components/customers/customer-avatar'
 import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
-import { paymentStatusOf } from '@/components/orders/order-payment-state'
+import { orderStage } from '@/components/orders/order-stage'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowIconCells from '@/components/table/row-icon-cells'
 import {
   ORDER_LIST_FILTERS,
-  ORDER_STATUSES,
+  ORDER_MARKS,
   type OrderListFilter,
-  type OrderStatus,
+  type OrderMark,
   ordersContent,
   PENDING_UPI,
 } from '@/data/orders'
@@ -137,18 +137,17 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'payment',
     title: ordersContent.columns.payment,
-    render: (o) => (
-      <StatusLabel
-        kind="payment"
-        value={paymentStatusOf({ status: o.status, paymentMethod: o.paymentMethod })}
-      />
-    ),
+    sortValue: (o) => o.paymentStatus,
+    render: (o) => <StatusLabel kind="orderPayment" value={o.paymentStatus} />,
   },
   {
     id: 'status',
     title: ordersContent.columns.status,
-    sortValue: (o) => o.status,
-    render: (o) => <StatusLabel kind="order" value={o.status} />,
+    sortValue: (o) => `${o.status}:${o.fulfillmentStatus}`,
+    render: (o) => {
+      const stage = orderStage(o)
+      return <StatusLabel kind={stage.kind} value={stage.value} />
+    },
   },
 ]
 
@@ -166,8 +165,11 @@ function StatusTabs({ value, allCount, pendingUpiCount, onChange }: TabsProps) {
       onChange={onChange}
       tabs={[
         { value: null, label: ordersContent.tabs.all, count: allCount },
-        ...ORDER_STATUSES.map((s) => ({ value: s, label: ordersContent.status[s] })),
-        { value: PENDING_UPI, label: ordersContent.tabs.pendingUpi, count: pendingUpiCount },
+        ...ORDER_LIST_FILTERS.map((s) => ({
+          value: s,
+          label: ordersContent.tabs[s],
+          ...(s === PENDING_UPI ? { count: pendingUpiCount } : {}),
+        })),
       ]}
     />
   )
@@ -241,10 +243,10 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }, [page, query, status, initial.query])
 
   // Event handlers
-  const handleBulkSetStatus = async (ids: string[], status: OrderStatus, clear: () => void) => {
+  const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
     try {
-      await Promise.all(ids.map((id) => api.orders.setStatus({ id, status })))
-      toast.success(ordersContent.bulk.updated(ids.length, ordersContent.status[status]))
+      await Promise.all(ids.map((id) => api.orders.setStatus({ id, status: mark })))
+      toast.success(ordersContent.bulk.updated(ids.length, ordersContent.marks[mark]))
       clear()
       const r = await fetchOrders({ page, query, status })
       setItems(r.items)
@@ -311,9 +313,9 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
               <ChevronDown />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {ORDER_STATUSES.map((s) => (
+              {ORDER_MARKS.map((s) => (
                 <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
-                  {ordersContent.status[s]}
+                  {ordersContent.marks[s]}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

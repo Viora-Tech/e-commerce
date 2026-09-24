@@ -94,7 +94,9 @@ async function seedOrder(storeId: string, variantId: string, n: number, opts: Se
     .values({
       storeId,
       number: n,
-      status: 'paid',
+      status: 'open',
+      paymentStatus: 'paid',
+      checkoutPaidAt: new Date(),
       paymentMethod: 'razorpay',
       shippingAddressId: a?.id,
       subtotalPaise: 200_000,

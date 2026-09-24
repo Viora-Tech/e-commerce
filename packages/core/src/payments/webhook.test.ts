@@ -63,7 +63,7 @@ async function seedOrder() {
     .values({
       storeId: s.id,
       number: 1,
-      status: 'placed',
+      status: 'open',
       subtotalPaise: 100,
       totalPaise: 100,
       paymentMethod: 'scripted',
@@ -115,7 +115,7 @@ describe('payment webhooks', () => {
     })
 
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
-    expect(o?.status).toBe('paid')
+    expect(o?.paymentStatus).toBe('paid')
     const [pay] = await owner.select().from(payment).where(eq(payment.providerRef, 'ref_1'))
     expect(pay).toMatchObject({ status: 'captured', providerPaymentId: 'pay_1' })
     const events = await owner.select().from(paymentEvent)

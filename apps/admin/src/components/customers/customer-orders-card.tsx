@@ -3,6 +3,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
+import { orderStage } from '@/components/orders/order-stage'
 import StatusLabel from '@/components/status/status-label'
 import { customerDetailContent as copy } from '@/data/customers'
 import { formatPaise } from '@/lib/money'
@@ -44,7 +45,7 @@ export default function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) 
             >
               <span className="font-medium tabular-nums">#{o.number}</span>
               <RelativeTime value={o.placedAt} />
-              <StatusLabel kind="order" value={o.status} size="sm" />
+              <StatusLabel {...orderStage(o)} size="sm" />
               <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
             </Link>
           ))}
