@@ -7,7 +7,8 @@
     "dev": "bun run --env-file=../../.env next dev --port 3200",
     "build": "next build",
     "start": "bun run --env-file=../../.env next start --port 3200",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@commerce/api": "workspace:*",
@@ -34,6 +35,7 @@
     "@orpc/server": "^1.15.2",
     "@react-pdf/renderer": "^4.9.0",
     "@sentry/nextjs": "^11.0.0",
+    "@svg-maps/india": "2.0.0",
     "better-auth": "^1.7.5",
     "class-variance-authority": "^0.7.1",
     "drizzle-orm": "^0.45.2",
@@ -58,6 +60,7 @@
     "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   }
 }
