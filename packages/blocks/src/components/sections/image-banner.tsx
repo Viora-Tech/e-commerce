@@ -23,7 +23,7 @@ export default function ImageBanner({
   const style = { '--banner-overlay': Math.min(90, Math.max(0, overlay)) / 100 } as CSSProperties
   return (
     <div className={`image-banner image-banner--${height} image-banner--${align}`} style={style}>
-      {image.url ? (
+      {image?.url ? (
         <img className="image-banner__media" src={image.url} alt={image.alt} loading="lazy" />
       ) : (
         <div className="image-banner__media image-banner__media--placeholder" />

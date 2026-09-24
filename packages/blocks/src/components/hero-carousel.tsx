@@ -101,14 +101,16 @@ export default function HeroCarousel({
                 className={`hero-carousel__slide hero-carousel__slide--full_bleed${i === active ? ' is-active' : ''}`}
               >
                 <div className="hero-carousel__media">
-                  <img
-                    className="hero-carousel__image"
-                    src={s.image.url}
-                    alt={s.image.alt}
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    fetchPriority={i === 0 ? 'high' : undefined}
-                    sizes="100vw"
-                  />
+                  {s.image?.url ? (
+                    <img
+                      className="hero-carousel__image"
+                      src={s.image.url}
+                      alt={s.image.alt}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                      fetchPriority={i === 0 ? 'high' : undefined}
+                      sizes="100vw"
+                    />
+                  ) : null}
                   <div className={`hero-carousel__scrim hero-carousel__scrim--${pos}`} />
                 </div>
                 <div className={`hero-carousel__content hero-carousel__content--${pos}`}>

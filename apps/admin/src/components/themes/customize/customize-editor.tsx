@@ -11,7 +11,7 @@ import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { api } from '@/lib/api-client'
 import { createCustomizeConfig } from '@/lib/customize-config'
-import { type CustomizeDoc, composeDoc } from '@/lib/customize-doc'
+import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
 import { previewMetadata } from '@/lib/customize-preview'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
@@ -76,7 +76,10 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     Promise.all([get('header'), get(ref.key, ref.suffix), get('footer')]).then(
       ([header, main, footer]) => {
         if (!active) return
-        const doc = composeDoc({ header: header.data, main: main.data, footer: footer.data })
+        const doc = normalizeDoc(
+          composeDoc({ header: header.data, main: main.data, footer: footer.data }),
+          config,
+        )
         drafts.prime(partsOf(ref, doc))
         setTemplatesDirty(header.draft || main.draft || footer.draft)
         setLoaded({ ref, doc, nonce })
