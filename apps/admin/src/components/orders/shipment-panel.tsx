@@ -5,9 +5,10 @@ import { ExternalLink, PackageCheck, Printer, RefreshCw } from '@commerce/ui/ico
 import { Button } from '@commerce/ui/shadcn/button'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { shipmentPanelContent as copy } from '@/data/shipping'
-import { type OrderShipment, when } from './order-detail-types'
+import type { OrderShipment } from './order-detail-types'
 
 type ShipmentPanelProps = {
   orderStatus: string
@@ -67,7 +68,7 @@ export default function ShipmentPanel({
           </span>
           <span aria-hidden="true">|</span>
           <span>
-            {copy.updated} {when(shipment.updatedAt)}
+            {copy.updated} <RelativeTime value={shipment.updatedAt} />
             {tracking?.expectedDate ? `, ${copy.expected} ${tracking.expectedDate}` : ''}
           </span>
         </span>
@@ -118,7 +119,7 @@ export default function ShipmentPanel({
         </>
       }
     >
-      <p className="mb-3 text-caption text-muted-foreground">{copy.events}</p>
+      <p className="mb-3 text-eyebrow">{copy.events}</p>
       {events.length === 0 ? (
         <p className="text-body text-muted-foreground">{copy.noEvents}</p>
       ) : (
@@ -134,7 +135,7 @@ export default function ShipmentPanel({
                 {e.location ? <span className="text-muted-foreground">, {e.location}</span> : null}
               </p>
               <p className="text-caption font-normal text-muted-foreground">
-                {when(e.at)}
+                <RelativeTime value={e.at} />
                 {e.description ? `: ${e.description}` : ''}
               </p>
             </li>

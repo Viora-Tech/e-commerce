@@ -239,7 +239,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
                       className={cn(
-                        'group/row border-0 transition-colors duration-100 hover:bg-muted/60 data-[state=selected]:bg-primary-soft/50 motion-reduce:transition-none',
+                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-muted/40 data-[state=selected]:bg-primary-soft/50 motion-reduce:transition-none',
                         target && 'cursor-pointer',
                       )}
                       onClick={target ? () => router.push(target) : undefined}

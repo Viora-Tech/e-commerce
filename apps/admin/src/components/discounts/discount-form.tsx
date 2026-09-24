@@ -1,6 +1,6 @@
 'use client'
 
-import { CircleAlert, Trash2 } from '@commerce/ui/icons'
+import { BadgePercent, CircleAlert, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -130,6 +130,8 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
       />
       <PageHeader
         title={title}
+        icon={<BadgePercent aria-hidden="true" />}
+        tone={form.status === 'active' ? 'success' : 'neutral'}
         breadcrumbs={[{ label: discountsContent.title, href: '/discounts' }, { label: title }]}
         actions={
           discount ? (

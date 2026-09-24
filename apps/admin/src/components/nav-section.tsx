@@ -76,7 +76,7 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
               aria-hidden
             />
           ) : null}
-          <item.icon strokeWidth={1.8} />
+          <item.icon weight={linkActive ? 'fill' : undefined} />
           <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {item.label}
           </span>
@@ -98,7 +98,6 @@ export default function NavSection({ item, pathname }: NavSectionProps) {
                 'size-4 transition-transform duration-200 ease-out motion-reduce:transition-none',
                 open && 'rotate-180',
               )}
-              strokeWidth={1.8}
             />
           </button>
         ) : null}

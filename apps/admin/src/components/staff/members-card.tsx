@@ -17,10 +17,10 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { toast } from 'sonner'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { staffContent as copy } from '@/data/staff'
 import { api } from '@/lib/api-client'
-import { formatDay } from '@/lib/format-date'
 
 export type StaffMemberRow = {
   id: string
@@ -133,7 +133,7 @@ export default function MembersCard({
                 </Select>
               )}
               <StatusLabel kind="member" value={m.status} />
-              <span className="text-body text-muted-foreground">{formatDay(m.createdAt)}</span>
+              <RelativeTime value={m.createdAt} className="text-body text-muted-foreground" />
               {m.isOwner || m.userId === currentUserId || !canManage ? (
                 <span />
               ) : (

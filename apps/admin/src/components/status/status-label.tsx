@@ -12,36 +12,38 @@ type StatusLabelProps<K extends StatusKind> = {
   className?: string
 }
 
+/* Meaning carries colour (Saleor reference): done is mint, in transit/refund is blue,
+   waiting is amber, a problem is red. Only the neutral/accent tones stay ink. */
 const TEXT: Record<StatusTone, string> = {
   success: 'text-success',
   pending: 'text-warning-foreground dark:text-warning',
-  error: 'text-destructive',
-  info: 'text-ink-strong dark:text-teal-300',
+  error: 'text-danger',
+  info: 'text-info',
   accent: 'text-link',
   neutral: 'text-muted-foreground',
 }
 
-/* Saleor restraint: dots are neutral; only a problem state (unpaid, failed) is red. */
 const DOT: Record<StatusTone, string> = {
-  success: 'bg-muted-foreground-soft',
-  pending: 'bg-muted-foreground-soft',
-  error: 'bg-destructive',
-  info: 'bg-muted-foreground-soft',
-  accent: 'bg-muted-foreground-soft',
+  success: 'bg-success',
+  pending: 'bg-warning',
+  error: 'bg-danger',
+  info: 'bg-info',
+  accent: 'bg-primary',
   neutral: 'bg-muted-foreground-soft',
 }
 
-/* Saleor pill: a thin border on a very light fill, ink text. Colour only for the key end
-   states: done (fulfilled, delivered) is mint, a problem (cancelled, failed) is soft red. */
-const PILL_NEUTRAL = 'border-border bg-muted/60'
-const PILL_DONE = 'border-success/35 bg-success/10'
-const PILL_PROBLEM = 'border-destructive/30 bg-destructive/8'
-const DONE_VALUES = new Set(['fulfilled', 'delivered'])
+/* Pill: a thin tone border on a soft tone fill, ink text; neutral/accent stay a plain grey chip. */
+const PILL: Record<StatusTone, string> = {
+  success: 'border-success/30 bg-success-soft',
+  pending: 'border-warning/35 bg-warning-soft',
+  error: 'border-danger/30 bg-danger-soft',
+  info: 'border-info/30 bg-info-soft',
+  accent: 'border-border bg-muted/60',
+  neutral: 'border-border bg-muted/60',
+}
 
-function pillClass(tone: StatusTone, value: string): string {
-  if (tone === 'error') return PILL_PROBLEM
-  if (DONE_VALUES.has(value)) return PILL_DONE
-  return PILL_NEUTRAL
+function pillClass(tone: StatusTone): string {
+  return PILL[tone]
 }
 
 const SIZE = { sm: 'text-caption', md: 'text-body' } as const
@@ -66,7 +68,7 @@ export default function StatusLabel<K extends StatusKind>({
         className={cn(
           'inline-flex h-6 items-center rounded-md border px-2 font-medium whitespace-nowrap text-foreground',
           SIZE[size],
-          pillClass(entry.tone, String(value)),
+          pillClass(entry.tone),
           className,
         )}
       >
@@ -85,7 +87,7 @@ export default function StatusLabel<K extends StatusKind>({
       )}
     >
       {Glyph ? (
-        <Glyph className="size-6 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+        <Glyph className="size-6 shrink-0" aria-hidden="true" />
       ) : (
         <span className={cn('size-2 shrink-0 rounded-full', DOT[entry.tone])} aria-hidden="true" />
       )}

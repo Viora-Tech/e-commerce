@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { abandonedContent as copy } from '@/data/drafts'
@@ -18,13 +19,6 @@ type ListResult = Awaited<ReturnType<typeof api.orders.listAbandoned>>
 type Item = ListResult['items'][number]
 
 export type AbandonedInitial = { page: number; result: ListResult; stats: AbandonedStats }
-
-const when = new Intl.DateTimeFormat('en-IN', {
-  day: '2-digit',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-})
 
 const statusOf = (c: Item) => (c.recovered ? 'recovered' : c.recoverySentAt ? 'sent' : 'open')
 
@@ -107,12 +101,12 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
       id: 'activity',
       title: copy.columns.activity,
       sortValue: (c) => new Date(c.updatedAt).getTime(),
-      render: (c) => <span className="tabular-nums">{when.format(new Date(c.updatedAt))}</span>,
+      render: (c) => <RelativeTime value={c.updatedAt} />,
     },
     {
       id: 'status',
       title: copy.columns.status,
-      render: (c) => <StatusLabel kind="abandoned" value={statusOf(c)} variant="pill" />,
+      render: (c) => <StatusLabel kind="abandoned" value={statusOf(c)} />,
     },
     {
       id: 'action',

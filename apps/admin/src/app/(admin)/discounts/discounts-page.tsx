@@ -3,6 +3,8 @@
 import { describeDiscountValue } from '@commerce/core/discounts'
 import { SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -14,6 +16,7 @@ import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resou
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.discounts.list>>
 type Item = ListResult['items'][number]
@@ -98,7 +101,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'status',
     title: discountsContent.columns.status,
-    render: (d) => <StatusLabel kind="discount" value={d.lifecycle} variant="pill" />,
+    render: (d) => <StatusLabel kind="discount" value={d.lifecycle} />,
   },
 ]
 
@@ -123,6 +126,7 @@ function LifecycleTabs({ value, allCount, onChange }: TabsProps) {
 
 function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
   // Hooks
+  usePrimaryAction('/discounts/new')
   const [{ page, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -154,15 +158,24 @@ function DiscountsContent({ initial }: { initial: DiscountsInitial }) {
     <PageBody className="gap-6">
       <div className="flex h-9 items-center justify-between">
         <h1 className="text-page-title">{discountsContent.heading}</h1>
-        <Button
-          size="lg"
-          className="w-40"
-          render={<Link href="/discounts/new" />}
-          nativeButton={false}
-        >
-          <SquarePlus strokeWidth={1.6} />
-          {discountsContent.create}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                size="lg"
+                className="w-40"
+                render={<Link href="/discounts/new" />}
+                nativeButton={false}
+              >
+                <SquarePlus strokeWidth={1.6} />
+                {discountsContent.create}
+              </Button>
+            }
+          />
+          <TooltipContent>
+            {discountsContent.create} <Kbd>N</Kbd>
+          </TooltipContent>
+        </Tooltip>
       </div>
       <DiscountTiles stats={initial.stats} />
       <div className="-mt-1">

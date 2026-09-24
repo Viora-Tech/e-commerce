@@ -1,6 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
+import { UserCog } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,7 +122,7 @@ export default function StaffSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} icon={<UserCog aria-hidden="true" />} />
       <SectionTabs tabs={TABS}>
         <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
           {canInvite ? (

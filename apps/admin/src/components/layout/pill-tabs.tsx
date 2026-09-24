@@ -57,7 +57,7 @@ export default function PillTabs<T extends string | null>({
   value,
   onChange,
   className,
-  variant = 'pill',
+  variant = 'underline',
 }: PillTabsProps<T>) {
   // Hooks
   const reduced = useReducedMotion()

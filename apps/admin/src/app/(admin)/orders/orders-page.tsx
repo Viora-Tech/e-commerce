@@ -8,10 +8,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import CustomerAvatar from '@/components/customers/customer-avatar'
 import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
 import { paymentStatusOf } from '@/components/orders/order-payment-state'
@@ -22,6 +25,7 @@ import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
 type Item = ListResult['items'][number]
@@ -48,6 +52,22 @@ function fetchOrders(q: Query) {
     search: q.query || undefined,
     status: q.status ?? undefined,
   })
+}
+
+/* Avatar + order number, the customer's name muted beneath: one column instead of two. */
+function OrderCell({ item }: { item: Item }) {
+  const who = item.customerName ?? item.email ?? ordersContent.guest
+  return (
+    <span className="flex items-center gap-3 text-left">
+      <CustomerAvatar name={item.customerName} email={item.email} />
+      <span className="min-w-0">
+        <span className="line-clamp-1 font-medium text-ink-strong tabular-nums">
+          #{item.number}
+        </span>
+        <span className="line-clamp-1 text-caption text-muted-foreground">{who}</span>
+      </span>
+    </span>
+  )
 }
 
 /* 32px thumb on a hairline, the first line title and a muted "+n more" under it. */
@@ -81,8 +101,8 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: ordersContent.columns.order,
     sortValue: (o) => o.number,
     hideable: false,
-    className: 'w-24',
-    render: (o) => <span className="font-medium text-ink-strong tabular-nums">#{o.number}</span>,
+    className: 'w-[15%] whitespace-normal',
+    render: (o) => <OrderCell item={o} />,
   },
   {
     id: 'product',
@@ -90,12 +110,6 @@ const columns: ResourceColumnSpec<Item>[] = [
     align: 'start',
     className: 'w-[30%] whitespace-normal',
     render: (o) => <ProductCell item={o} />,
-  },
-  {
-    id: 'customer',
-    title: ordersContent.columns.customer,
-    sortValue: (o) => o.customerName ?? o.email ?? '',
-    render: (o) => o.customerName ?? o.email ?? ordersContent.guest,
   },
   {
     id: 'date',
@@ -124,7 +138,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'status',
     title: ordersContent.columns.status,
     sortValue: (o) => o.status,
-    render: (o) => <StatusLabel kind="order" value={o.status} variant="pill" />,
+    render: (o) => <StatusLabel kind="order" value={o.status} />,
   },
 ]
 
@@ -165,16 +179,26 @@ function HeaderActions() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button size="lg" render={<Link href="/orders/drafts" />} nativeButton={false}>
-        <SquarePlus strokeWidth={1.6} />
-        {ordersContent.addOrder}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button size="lg" render={<Link href="/orders/drafts" />} nativeButton={false}>
+              <SquarePlus strokeWidth={1.6} />
+              {ordersContent.addOrder}
+            </Button>
+          }
+        />
+        <TooltipContent>
+          {ordersContent.addOrder} <Kbd>N</Kbd>
+        </TooltipContent>
+      </Tooltip>
     </div>
   )
 }
 
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
+  usePrimaryAction('/orders/drafts')
   const [{ page, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),

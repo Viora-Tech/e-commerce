@@ -211,12 +211,12 @@ export const customerDetailContent = {
   },
   orders: {
     heading: 'Orders',
-    empty: 'No orders yet',
+    empty: 'No orders from this customer yet. Their first purchase will show up here.',
     columns: { order: 'Order', date: 'Date', status: 'Status', total: 'Total' },
   },
   timeline: {
     heading: 'Messages sent',
-    empty: 'Nothing sent to this customer yet',
+    empty: 'No notifications sent to this customer yet.',
     template: {
       order_placed: 'Order confirmation',
       payment_received: 'Payment received',

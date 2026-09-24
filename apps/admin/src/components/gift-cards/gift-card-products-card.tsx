@@ -46,7 +46,7 @@ export default function GiftCardProductsCard({ products, onAdd }: GiftCardProduc
                     {p.denominationsPaise.map((d) => formatPaise(d)).join(', ')}
                   </span>
                 </span>
-                <StatusLabel kind="product" value={p.status} variant="pill" />
+                <StatusLabel kind="product" value={p.status} />
               </Link>
             </li>
           ))}

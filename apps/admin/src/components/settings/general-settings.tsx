@@ -1,6 +1,7 @@
 'use client'
 
 import { type StoreGeneral, StoreGeneralSchema } from '@commerce/core/store-settings'
+import { Store } from '@commerce/ui/icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import {
   Field,
@@ -155,7 +156,7 @@ export default function GeneralSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Store aria-hidden="true" />} />
       {!form ? (
         <LoadingCards />
       ) : (

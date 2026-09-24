@@ -16,9 +16,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import RelativeTime from '@/components/layout/relative-time'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
-import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import ReviewPanel from './review-panel'
 
@@ -209,8 +209,10 @@ export default function QueuePage() {
                     </span>
                   </span>
                 </TableCell>
-                <TableCell>{r.eligibleAt ? formatDay(r.eligibleAt) : '-'}</TableCell>
-                <TableCell>{r.dispatchedAt ? formatDay(r.dispatchedAt) : '-'}</TableCell>
+                <TableCell>{r.eligibleAt ? <RelativeTime value={r.eligibleAt} /> : '-'}</TableCell>
+                <TableCell>
+                  {r.dispatchedAt ? <RelativeTime value={r.dispatchedAt} /> : '-'}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPaise(r.totalPaise)}
                 </TableCell>

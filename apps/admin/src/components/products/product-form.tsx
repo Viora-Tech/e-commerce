@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert, Save } from '@commerce/ui/icons'
+import { CircleAlert, Package, Save } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -186,6 +186,8 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
           />
           <PageHeader
             title={product ? product.title : copy.newTitle}
+            icon={<Package aria-hidden="true" />}
+            tone={form.status === 'active' ? 'success' : 'neutral'}
             badges={
               product ? <StatusLabel kind="product" value={form.status} variant="pill" /> : null
             }

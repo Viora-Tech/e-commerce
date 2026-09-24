@@ -20,7 +20,7 @@ export default function KitListPage({ title, actions, strip, children }: KitList
   // Render logic
   return (
     <div className="flex min-h-full flex-col">
-      <div className="border-border border-b px-4 py-5 md:px-6">
+      <div className="sticky top-0 z-10 border-border border-b bg-card px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_hsl(211_42%_16%/0.25)] md:px-6">
         <PageHeader title={title} actions={actions} />
       </div>
       {strip ? <div className="border-border border-b px-4 py-5 md:px-6">{strip}</div> : null}

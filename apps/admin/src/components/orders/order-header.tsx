@@ -1,6 +1,6 @@
 'use client'
 
-import { ShoppingBag } from '@commerce/ui/icons'
+import { Clock, ShoppingBag } from '@commerce/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusLabel from '@/components/status/status-label'
@@ -9,6 +9,19 @@ import type { StatusValue } from '@/data/status'
 import { api } from '@/lib/api-client'
 import { formatWhen } from '@/lib/format-date'
 import { methodLabel, type OrderDetail, type OrderStatus } from './order-detail-types'
+
+/** Icon-badge tone for the order glyph square: what the header's own colour vocabulary reads. */
+function headerTone(
+  payment: StatusValue<'payment'>,
+  fulfilment: StatusValue<'fulfilment'>,
+  cancelled: boolean,
+) {
+  if (cancelled) return 'danger' as const
+  if (fulfilment === 'delivered' || fulfilment === 'fulfilled') return 'success' as const
+  if (payment === 'unpaid' || payment === 'refund_needed' || payment === 'failed')
+    return 'danger' as const
+  return 'warning' as const
+}
 
 export type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
 
@@ -41,15 +54,20 @@ export default function OrderHeader({ order, payment, fulfilment, actions }: Ord
 
   // Render logic
   const cancelled: OrderStatus = 'cancelled'
+  const isCancelled = order.status === cancelled
 
   return (
     <div className="print:hidden">
       <PageHeader
         title={copy.title(order.number)}
         icon={<ShoppingBag aria-hidden="true" />}
+        tone={headerTone(payment, fulfilment, isCancelled)}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-2">
-            <span>{copy.placed(formatWhen(order.placedAt))}</span>
+            <span className="flex items-center gap-1">
+              <Clock className="size-3.5 text-muted-foreground" />
+              {copy.placed(formatWhen(order.placedAt))}
+            </span>
             {order.paymentMethod ? (
               <>
                 <span aria-hidden="true">|</span>
@@ -63,7 +81,7 @@ export default function OrderHeader({ order, payment, fulfilment, actions }: Ord
         }
         badges={
           <>
-            {order.status === cancelled ? (
+            {isCancelled ? (
               <StatusLabel kind="order" value="cancelled" variant="pill" size="sm" />
             ) : null}
             <StatusLabel kind="payment" value={payment} variant="pill" size="sm" />

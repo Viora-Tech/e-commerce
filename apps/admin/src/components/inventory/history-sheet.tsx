@@ -9,6 +9,7 @@ import {
 } from '@commerce/ui/shadcn/sheet'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
+import RelativeTime from '@/components/layout/relative-time'
 import { inventoryContent, REASON_LABELS } from '@/data/inventory'
 import { api } from '@/lib/api-client'
 
@@ -24,14 +25,6 @@ type HistorySheetProps = {
 }
 
 const copy = inventoryContent.history
-
-const when = new Intl.DateTimeFormat('en-IN', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-})
 
 /** Every stock change for one SKU at the selected location, newest first. */
 export default function HistorySheet({
@@ -96,9 +89,10 @@ export default function HistorySheet({
                   >
                     {row.delta > 0 ? `+${row.delta}` : row.delta}
                   </span>
-                  <span className="text-caption text-muted-foreground">
-                    {when.format(new Date(row.createdAt))}
-                  </span>
+                  <RelativeTime
+                    value={row.createdAt}
+                    className="text-caption text-muted-foreground"
+                  />
                   {row.note ? (
                     <span className="col-span-2 text-caption text-muted-foreground">
                       {row.note}

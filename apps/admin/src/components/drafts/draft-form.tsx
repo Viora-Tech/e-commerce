@@ -1,5 +1,6 @@
 'use client'
 
+import { FileEdit } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,7 @@ import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { draftEditorContent as copy } from '@/data/drafts'
+import { draftEditorContent as copy, draftsContent } from '@/data/drafts'
 import { api } from '@/lib/api-client'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
@@ -134,7 +135,14 @@ export default function DraftForm({ draft }: DraftFormProps) {
         onDiscard={() => setForm(saved)}
         saving={busy}
       />
-      <PageHeader title={number ? copy.editTitle(number) : copy.newTitle} />
+      <PageHeader
+        title={number ? copy.editTitle(number) : copy.newTitle}
+        icon={<FileEdit aria-hidden="true" />}
+        breadcrumbs={[
+          { label: draftsContent.title, href: '/orders/drafts' },
+          { label: number ? copy.editTitle(number) : copy.newTitle },
+        ]}
+      />
       <PageColumns
         main={
           <>

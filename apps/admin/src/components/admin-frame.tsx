@@ -2,8 +2,9 @@
 
 import { SidebarInset, SidebarProvider } from '@commerce/ui/shadcn/sidebar'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
+import { motion, useReducedMotion } from 'motion/react'
 import { usePathname } from 'next/navigation'
-import type { CSSProperties, ReactNode } from 'react'
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react'
 import { hasOwnHeading, pageTitleFor } from '@/data/layout'
 import AdminSidebar from './admin-sidebar'
 import PaletteHost from './layout/palette-host'
@@ -19,6 +20,8 @@ type AdminFrameProps = {
   storefrontUrl: string
   /** Installed apps with their own pages, listed under Apps in the sidebar. */
   apps: { id: string; name: string; icon: string | null }[]
+  /** The live theme's logo, if the store has uploaded one; else the sidebar shows a monogram. */
+  logoUrl: string | null
 }
 
 const SIDEBAR_WIDTH = '16rem'
@@ -31,9 +34,21 @@ export default function AdminFrame({
   activeStoreId,
   storefrontUrl,
   apps,
+  logoUrl,
 }: AdminFrameProps) {
   // Hooks
   const pathname = usePathname()
+  const reduced = useReducedMotion()
+  const mainRef = useRef<HTMLElement>(null)
+  const [scrolled, setScrolled] = useState(false)
+  // Sticky page headers lift off the page once content scrolls under them.
+  useEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    const onScroll = () => setScrolled(el.scrollTop > 4)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
 
   // Render logic
   const title = pageTitleFor(pathname)
@@ -50,22 +65,35 @@ export default function AdminFrame({
         activeStoreId={activeStoreId}
         storefrontUrl={storefrontUrl}
         apps={apps}
+        logoUrl={logoUrl}
       />
-      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar md:pt-2">
+      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
+        {/* Search, notifications, theme and account sit in the grey band above the page, so the
+            white panel below reads as the page itself. */}
+        <TopBar user={user} storefrontUrl={storefrontUrl} />
         {/* The white content panel in the grey shell (Saleor Dashboard): one curve at its
             top-left where it meets the rail, hairlines on the top and left, and flush with the
             right and bottom edges of the window. */}
         <main
+          ref={mainRef}
           id="main"
-          className="no-scrollbar min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-tl-xl md:border-t md:border-l"
+          data-scrolled={scrolled || undefined}
+          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-tl-xl md:border-t md:border-l"
         >
-          <TopBar user={user} />
           {ownHeading ? null : (
-            <div className="border-border border-b px-4 py-5 md:px-6">
+            <div className="sticky top-0 z-10 border-border border-b bg-card px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_hsl(211_42%_16%/0.25)] md:px-6">
               <h1 className="text-page-title text-ink-strong">{title}</h1>
             </div>
           )}
-          {children}
+          {/* A soft settle on each navigation: the page fades up a few pixels, never slides. */}
+          <motion.div
+            key={pathname}
+            initial={reduced ? false : { opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {children}
+          </motion.div>
         </main>
         <Toaster />
         <PaletteHost />

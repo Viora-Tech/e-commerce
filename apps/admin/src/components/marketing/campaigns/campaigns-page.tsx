@@ -6,6 +6,7 @@ import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { campaignReportContent, campaignsContent as copy } from '@/data/marketing-campaigns'
@@ -21,11 +22,9 @@ type CampaignsPageProps = { campaigns: Item[] }
 
 const PER_PAGE = 25
 const number = new Intl.NumberFormat('en-IN')
-const date = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
-function when(c: Item): string {
-  const at = c.finishedAt ?? c.startedAt ?? c.scheduledAt ?? c.createdAt
-  return date.format(new Date(at))
+function when(c: Item): Date | string {
+  return c.finishedAt ?? c.startedAt ?? c.scheduledAt ?? c.createdAt
 }
 
 const rate = campaignReportContent.rate
@@ -48,7 +47,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'status',
     title: copy.columns.status,
-    render: (c) => <StatusLabel kind="campaign" value={c.status} variant="pill" />,
+    render: (c) => <StatusLabel kind="campaign" value={c.status} />,
   },
   {
     id: 'audience',
@@ -91,7 +90,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'date',
     title: copy.columns.date,
     sortValue: (c) => new Date(c.createdAt).getTime(),
-    render: (c) => <span className="tabular-nums">{when(c)}</span>,
+    render: (c) => <RelativeTime value={when(c)} />,
   },
 ]
 

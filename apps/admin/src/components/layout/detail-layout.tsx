@@ -37,7 +37,7 @@ export default function DetailLayout({
         )}
       >
         <div className="flex min-w-0 flex-col border-border lg:border-r">
-          <div className="flex flex-col gap-4 border-border border-b px-4 py-5 md:px-6">
+          <div className="sticky top-0 z-10 flex flex-col gap-4 border-border border-b bg-card px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_hsl(211_42%_16%/0.25)] md:px-6">
             {header}
           </div>
           <div className="flex flex-col">{main}</div>

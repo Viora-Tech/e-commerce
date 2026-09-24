@@ -7,9 +7,9 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
+import RelativeTime from '@/components/layout/relative-time'
 import { orderDetailContent as copy } from '@/data/orders'
 import { api } from '@/lib/api-client'
-import { formatWhen } from '@/lib/format-date'
 import type { OrderDetail } from './order-detail-types'
 import { buildEntries, type EntryKind, groupByDay } from './timeline-entries'
 
@@ -96,7 +96,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
                     >
                       {e.title}
                     </p>
-                    <p className="text-caption font-normal">{formatWhen(e.at)}</p>
+                    <RelativeTime value={e.at} className="text-caption font-normal" />
                     {e.detail ? <p className="text-caption font-normal">{e.detail}</p> : null}
                   </li>
                 )

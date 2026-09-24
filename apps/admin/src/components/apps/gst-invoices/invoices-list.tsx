@@ -18,9 +18,9 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import RelativeTime from '@/components/layout/relative-time'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
-import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import ChoiceField from './choice-field'
 import { saveFile } from './save-file'
@@ -268,7 +268,9 @@ export default function InvoicesList() {
                     ) : null}
                   </span>
                 </TableCell>
-                <TableCell>{formatDay(r.invoiceDate ?? r.issuedAt)}</TableCell>
+                <TableCell>
+                  <RelativeTime value={r.invoiceDate ?? r.issuedAt} />
+                </TableCell>
                 <TableCell>{statusCopy[r.status]}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatPaise(r.taxPaise)}</TableCell>
                 <TableCell className="text-right tabular-nums">

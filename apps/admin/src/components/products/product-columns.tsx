@@ -53,15 +53,18 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     id: 'status',
     title: copy.columns.status,
     sortValue: (p) => p.status,
-    render: (p) => <StatusLabel kind="product" value={p.status} variant="pill" />,
+    render: (p) => <StatusLabel kind="product" value={p.status} />,
   },
   {
     id: 'inventory',
     title: copy.columns.inventory,
     sortValue: (p) => p.available,
     render: (p) => (
-      <span className={p.available === 0 ? 'text-destructive' : 'text-muted-foreground'}>
-        {copy.inventory(p.available, p.variantCount)}
+      <span className="flex flex-col leading-tight">
+        <span className={p.available === 0 ? 'text-destructive' : 'text-foreground'}>
+          {copy.inStock(p.available)}
+        </span>
+        <span className="text-caption text-muted-foreground">{copy.variants(p.variantCount)}</span>
       </span>
     ),
   },

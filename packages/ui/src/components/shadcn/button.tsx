@@ -7,10 +7,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-action text-action-foreground hover:bg-action/85',
+        /* Solid ink with a soft drop, no light edge: reads as something to press. */
+        default:
+          'border-action bg-action text-action-foreground shadow-[0_1px_2px_rgb(0_0_0/0.18),0_2px_6px_-2px_rgb(0_0_0/0.16)] hover:bg-action/90',
         /* White on the field hairline; the hairline darkens on hover (Saleor secondary button). */
         outline:
-          'border-input bg-card text-foreground hover:border-border-strong hover:bg-muted/60 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',
+          'border-input bg-card text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.05)] hover:border-border-strong hover:bg-muted/60 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
         ghost:
@@ -22,10 +24,10 @@ const buttonVariants = cva(
       size: {
         /* Shopify density: h-8 with text-xs/500 (layout per frame 5:5486). */
         default:
-          'h-8 gap-1.5 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2',
+          'h-8 gap-1.5 rounded-xl px-3.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5',
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs font-medium in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         /* Frame 5:2562 tab/pill: h-7, 0.375rem radius. */
-        sm: "h-7 gap-1 rounded-[0.375rem] px-2.5 in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        sm: "h-7 gap-1 rounded-[0.625rem] px-3 in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
         /* Frame 5:2503 primary action at Shopify density: h-9 with a 1.125rem glyph. */
         lg: "h-9 gap-1.5 pr-3.5 pl-3 text-[0.8125rem] [&_svg:not([class*='size-'])]:size-[1.125rem]",
         /* Frame 5:2576 icon button at Shopify density: size-8, 0.25rem radius, size-4 glyph. */

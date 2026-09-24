@@ -114,7 +114,7 @@ function AddressBlock({ heading, lines, copyText, editHref }: AddressBlockProps)
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-caption text-muted-foreground">{heading}</p>
+        <p className="text-eyebrow">{heading}</p>
         {editHref ? (
           <Button
             variant="outline"

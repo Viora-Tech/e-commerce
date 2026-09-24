@@ -41,7 +41,7 @@ export default function SelectStore({ stores }: { stores: StoreOption[] }) {
             <Card key={s.id}>
               <CardContent className="flex items-center gap-4">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-                  <Store className="size-5" strokeWidth={1.8} />
+                  <Store className="size-5" />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-card-title">{s.name}</span>

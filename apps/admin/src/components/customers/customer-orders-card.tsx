@@ -1,10 +1,12 @@
+import { ShoppingBag } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { customerDetailContent as copy } from '@/data/customers'
 import { formatPaise } from '@/lib/money'
-import { type CustomerOrder, day } from './customer-detail-types'
+import type { CustomerOrder } from './customer-detail-types'
 
 type CustomerOrdersCardProps = {
   orders: CustomerOrder[]
@@ -25,7 +27,10 @@ export default function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) 
         <span className="text-right">{c.columns.total}</span>
       </div>
       {orders.length === 0 ? (
-        <p className="px-6 py-6 text-body text-muted-foreground">{c.empty}</p>
+        <p className="flex items-center gap-2 px-6 py-6 text-body text-muted-foreground">
+          <ShoppingBag className="size-4 shrink-0" />
+          {c.empty}
+        </p>
       ) : (
         <div className="mt-1 flex flex-col gap-1">
           {orders.map((o) => (
@@ -38,7 +43,7 @@ export default function CustomerOrdersCard({ orders }: CustomerOrdersCardProps) 
               )}
             >
               <span className="font-medium tabular-nums">#{o.number}</span>
-              <span>{day(o.placedAt)}</span>
+              <RelativeTime value={o.placedAt} />
               <StatusLabel kind="order" value={o.status} size="sm" />
               <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
             </Link>

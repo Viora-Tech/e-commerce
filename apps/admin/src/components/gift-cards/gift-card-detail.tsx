@@ -1,5 +1,6 @@
 'use client'
 
+import { Gift } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -65,11 +66,21 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
   // Render logic
   const title = copy.title(card.lastCharacters)
   const canResend = card.canResend && Boolean(card.recipientEmail || card.customerEmail)
+  const tone =
+    card.state === 'active'
+      ? ('success' as const)
+      : card.state === 'disabled'
+        ? ('danger' as const)
+        : card.state === 'empty'
+          ? ('info' as const)
+          : ('neutral' as const)
 
   return (
     <PageBody className="gap-6">
       <PageHeader
         title={title}
+        icon={<Gift aria-hidden="true" />}
+        tone={tone}
         breadcrumbs={[{ label: copy.breadcrumb, href: '/products/gift-cards' }, { label: title }]}
         actions={
           <>

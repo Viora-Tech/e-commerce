@@ -150,7 +150,7 @@ export default function ProviderCard({
           <p className="text-body text-muted-foreground">{noConfigText ?? copy.noConfig}</p>
         )}
         {hint && provider.fields.length > 0 ? (
-          <div className="text-caption text-muted-foreground-soft">{hint}</div>
+          <div className="text-caption leading-relaxed text-muted-foreground-soft">{hint}</div>
         ) : null}
         {enabled && extra ? (
           <>

@@ -4,6 +4,25 @@ Written 22 September 2026, after PR #59. Read this first when starting a session
 conversation history. Everything here is checked into the repo, so it survives model or
 machine changes.
 
+## Latest state (24 September 2026)
+
+The sections further down describe an earlier stage and are partly outdated; this list wins.
+
+- **Built since**: GST invoices app (queue, series, credit notes, GSTR-1), shopper accounts,
+  search and collection filters, gift cards, metaobjects, custom domains, Shopify importer and
+  URL redirects, marketing (attribution, campaigns, automations), analytics reports catalogue,
+  shipping zones and rates, payment attempts with idempotent webhooks, unpaid-order expiry,
+  transactional outbox, rate limits, pre-order with deposits and balance collection, launch
+  countdown, back-in-stock alerts app, admin accent colour, and the admin premium UI pass
+  (see `docs/design/admin-frames.md`, "Premium pass").
+- **Working rules**: one build at a time and merge before the next; check open source first
+  (`docs/open-source-radar.md`) and credit per `THIRD_PARTY_NOTICES.md`; UI tweaks are
+  reviewed live on :3200 before a PR.
+- **Queued**: auto-confirm UPI (Razorpay QR) and manual-UPI expiry, light/dark theme presets in
+  Settings → Appearance, order status split, React Email templates, GlitchTip error tracking,
+  Home dashboard redesign (waiting for design references), deployment (Coolify or Dokploy on
+  Lightsail), then the SaaS layer.
+
 ## What this is
 
 Waimers Commerce Platform: an Indian D2C commerce platform (Shopify-shaped, multi-tenant)

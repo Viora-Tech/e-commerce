@@ -51,6 +51,7 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
       <PageHeader
         title={copy.title}
         subtitle={copy.intro}
+        icon={<Globe aria-hidden="true" />}
         actions={
           canManage ? (
             <Button onClick={() => setConnectOpen(true)}>{copy.connect}</Button>

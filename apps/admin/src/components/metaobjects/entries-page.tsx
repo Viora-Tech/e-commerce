@@ -10,10 +10,10 @@ import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import RelativeTime from '@/components/layout/relative-time'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { entryListContent as copy } from '@/data/metaobjects'
 import { api } from '@/lib/api-client'
-import { formatWhen } from '@/lib/format-date'
 import { LIST_PER_PAGE } from '@/lib/list-query'
 import ConfirmDelete from './confirm-delete'
 import { entriesPath, type LoadedDefinition } from './form-state'
@@ -56,7 +56,7 @@ const columns: ResourceColumnSpec<EntryRow>[] = [
     id: 'updated',
     title: copy.columns.updated,
     sortValue: (e) => new Date(e.updatedAt),
-    render: (e) => formatWhen(e.updatedAt),
+    render: (e) => <RelativeTime value={e.updatedAt} />,
   },
 ]
 

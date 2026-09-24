@@ -1,16 +1,17 @@
 import { displayStatus } from '@commerce/core/blog'
+import type { ReactNode } from 'react'
+import RelativeTime from '@/components/layout/relative-time'
 import ProductThumb from '@/components/products/product-thumb'
 import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { blogListContent as copy } from '@/data/blog'
 import type { api } from '@/lib/api-client'
-import { formatDateTime } from '@/lib/format-date'
 
 export type ArticleRow = Awaited<ReturnType<typeof api.blog.list>>['rows'][number]
 
-function publishedCell(row: ArticleRow): string {
+function publishedCell(row: ArticleRow): ReactNode {
   if (!row.publishedAt || row.status === 'draft') return copy.none
-  return formatDateTime(row.publishedAt)
+  return <RelativeTime value={row.publishedAt} />
 }
 
 /** Columns of the blog post list, in Shopify's order. */
@@ -39,9 +40,7 @@ export const articleColumns: ResourceColumnSpec<ArticleRow>[] = [
     id: 'status',
     title: copy.columns.status,
     sortValue: (a) => displayStatus(a.status, a.publishedAt),
-    render: (a) => (
-      <StatusLabel kind="article" value={displayStatus(a.status, a.publishedAt)} variant="pill" />
-    ),
+    render: (a) => <StatusLabel kind="article" value={displayStatus(a.status, a.publishedAt)} />,
   },
   {
     id: 'author',

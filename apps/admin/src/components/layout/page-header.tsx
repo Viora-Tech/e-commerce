@@ -1,4 +1,5 @@
 import { ArrowLeft } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { layoutContent } from '@/data/layout'
@@ -15,12 +16,25 @@ type PageHeaderProps = {
   actions?: ReactNode
   /** Status pills beside the title (order status, product status). */
   badges?: ReactNode
-  /** The record's glyph (an order box) in the square before the title, as in Saleor. The
-   *  square still links back to the parent list; the arrow shows when no glyph is given. */
+  /** The record's glyph (an order box) in the square before the title, as in Saleor. When a
+   *  breadcrumb parent has a link, the square doubles as the back button (the arrow shows when
+   *  no glyph is given); with no parent link it's a plain icon badge, e.g. a settings section. */
   icon?: ReactNode
+  /** Tints the icon square (a soft badge instead of a plain outline) when the record has a
+   *  clear meaning, e.g. `success` for a fulfilled order. Neutral (the default) keeps the
+   *  plain bordered square. */
+  tone?: 'success' | 'warning' | 'info' | 'danger' | 'neutral'
   /** Kept for older call sites; both sizes draw the same header. */
   size?: 'compact' | 'frame'
 }
+
+const TONE = {
+  success: 'border-transparent bg-success-soft text-success',
+  warning: 'border-transparent bg-warning-soft text-warning-foreground dark:text-warning',
+  info: 'border-transparent bg-info-soft text-info',
+  danger: 'border-transparent bg-danger-soft text-danger',
+  neutral: 'border-border bg-card text-foreground hover:border-border-strong hover:bg-muted/60',
+} as const
 
 /** The nearest crumb with a link: where the back button goes. */
 function parentOf(crumbs: Crumb[] | undefined): Crumb | null {
@@ -43,6 +57,7 @@ export default function PageHeader({
   actions,
   badges,
   icon,
+  tone = 'neutral',
 }: PageHeaderProps) {
   // Render logic
   const parent = parentOf(breadcrumbs)
@@ -54,10 +69,23 @@ export default function PageHeader({
           <Link
             href={parent.href}
             aria-label={layoutContent.backTo(parent.label)}
-            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground [&_svg]:size-4 transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(
+              'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border [&_svg]:size-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              TONE[tone],
+            )}
           >
-            {icon ?? <ArrowLeft className="size-4" strokeWidth={1.8} />}
+            {icon ?? <ArrowLeft className="size-4" />}
           </Link>
+        ) : icon ? (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border [&_svg]:size-4',
+              TONE[tone],
+            )}
+          >
+            {icon}
+          </span>
         ) : null}
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">

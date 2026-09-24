@@ -31,7 +31,7 @@ export default function SettingsNav() {
   return (
     <nav
       aria-label={settingsContent.nav.label}
-      className="w-full md:sticky md:top-[4.5rem] md:w-56 md:shrink-0 md:self-start"
+      className="w-full md:sticky md:top-6 md:w-56 md:shrink-0 md:self-start"
     >
       <ul className="flex flex-row gap-1 overflow-x-auto md:flex-col md:overflow-visible">
         {SETTINGS_SECTIONS.map((section) => {
@@ -51,7 +51,7 @@ export default function SettingsNav() {
                     aria-hidden
                   />
                 ) : null}
-                <section.icon strokeWidth={1.8} />
+                <section.icon />
                 <span className="min-w-0 truncate">{section.title}</span>
               </Link>
             </li>

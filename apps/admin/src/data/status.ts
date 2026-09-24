@@ -55,7 +55,7 @@ export const STATUS = {
   order: {
     placed: entry(ordersContent.status.placed, 'pending', DeliveryDelay),
     paid: entry(ordersContent.status.paid, 'accent', CircleCheck),
-    fulfilled: entry(ordersContent.status.fulfilled, 'info', Truck),
+    fulfilled: entry(ordersContent.status.fulfilled, 'success', Truck),
     delivered: entry(ordersContent.status.delivered, 'success', PackageCheck),
     cancelled: entry(ordersContent.status.cancelled, 'error', CancelCircle),
   } satisfies Record<OrderStatus, StatusEntry>,
@@ -70,13 +70,13 @@ export const STATUS = {
     cancelled: entry(orderDetailContent.pills.payment.cancelled, 'neutral'),
     refund_needed: entry(orderDetailContent.pills.payment.refundNeeded, 'error'),
     captured: entry(orderDetailContent.pills.payment.captured, 'success'),
-    refunded: entry(orderDetailContent.pills.payment.refunded, 'neutral'),
+    refunded: entry(orderDetailContent.pills.payment.refunded, 'info'),
     partially_refunded: entry(orderDetailContent.pills.partiallyRefunded, 'pending'),
     failed: entry(orderDetailContent.pills.payment.failed, 'error'),
   },
   fulfilment: {
-    unfulfilled: entry(orderDetailContent.pills.fulfilment.unfulfilled, 'neutral', PackageOpen),
-    fulfilled: entry(orderDetailContent.pills.fulfilment.fulfilled, 'info', Truck),
+    unfulfilled: entry(orderDetailContent.pills.fulfilment.unfulfilled, 'pending', PackageOpen),
+    fulfilled: entry(orderDetailContent.pills.fulfilment.fulfilled, 'success', Truck),
     delivered: entry(orderDetailContent.pills.fulfilment.delivered, 'success', PackageCheck),
   },
   refund: {
@@ -118,18 +118,18 @@ export const STATUS = {
   } satisfies Record<GiftCardStateFilter, StatusEntry>,
   product: {
     active: entry(productsListContent.status.active, 'success'),
-    draft: entry(productsListContent.status.draft, 'info'),
+    draft: entry(productsListContent.status.draft, 'neutral'),
     archived: entry(productsListContent.status.archived, 'neutral'),
   } satisfies Record<ProductStatus, StatusEntry>,
   purchaseOrder: {
-    draft: entry(purchaseOrdersContent.status.draft, 'info'),
+    draft: entry(purchaseOrdersContent.status.draft, 'neutral'),
     ordered: entry(purchaseOrdersContent.status.ordered, 'accent'),
     partially_received: entry(purchaseOrdersContent.status.partially_received, 'pending'),
     received: entry(purchaseOrdersContent.status.received, 'success'),
     closed: entry(purchaseOrdersContent.status.closed, 'neutral'),
   } satisfies Record<PurchaseOrderStatus, StatusEntry>,
   transfer: {
-    draft: entry(transfersContent.status.draft, 'info'),
+    draft: entry(transfersContent.status.draft, 'neutral'),
     in_transit: entry(transfersContent.status.in_transit, 'pending'),
     received: entry(transfersContent.status.received, 'success'),
   } satisfies Record<TransferStatus, StatusEntry>,
@@ -144,14 +144,14 @@ export const STATUS = {
   },
   page: {
     published: entry(onlineStoreContent.pages.status.published, 'success'),
-    draft: entry(onlineStoreContent.pages.status.draft, 'info'),
+    draft: entry(onlineStoreContent.pages.status.draft, 'neutral'),
     unsaved: entry(onlineStoreContent.form.unsaved, 'pending'),
   },
   /** Blog posts: a scheduled post that is due reads as published. */
   article: {
     published: entry(blogListContent.status.published, 'success'),
     scheduled: entry(blogListContent.status.scheduled, 'accent'),
-    draft: entry(blogListContent.status.draft, 'info'),
+    draft: entry(blogListContent.status.draft, 'neutral'),
   },
   app: {
     installed: entry(appsContent.installed, 'success'),
@@ -195,11 +195,11 @@ export const STATUS = {
   },
   /** Marketing campaigns. */
   campaign: {
-    draft: entry(campaignsContent.status.draft, 'info'),
+    draft: entry(campaignsContent.status.draft, 'neutral'),
     scheduled: entry(campaignsContent.status.scheduled, 'accent'),
     sending: entry(campaignsContent.status.sending, 'pending'),
     sent: entry(campaignsContent.status.sent, 'success'),
-    cancelled: entry(campaignsContent.status.cancelled, 'neutral'),
+    cancelled: entry(campaignsContent.status.cancelled, 'error'),
     failed: entry(campaignsContent.status.failed, 'error'),
   },
 } as const

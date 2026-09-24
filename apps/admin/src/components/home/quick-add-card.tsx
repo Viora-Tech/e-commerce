@@ -35,7 +35,7 @@ export default function QuickAddCard({ categories, products }: QuickAddCardProps
   return (
     <Card className="h-full gap-0 p-5">
       <div className="flex items-center justify-between">
-        <p className="text-kit-title font-bold text-foreground">{c.title}</p>
+        <p className="text-kit-title text-foreground">{c.title}</p>
         <KitButton variant="linkSm" href="/products/new">
           {c.addNew}
         </KitButton>

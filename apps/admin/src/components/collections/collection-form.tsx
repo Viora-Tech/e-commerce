@@ -1,6 +1,7 @@
 'use client'
 
 import { emptyCollectionRules } from '@commerce/core/collections'
+import { Blocks } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +22,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import TemplateSelectCard from '@/components/themes/template-select-card'
-import { collectionFormContent as copy } from '@/data/collections'
+import { collectionsListContent, collectionFormContent as copy } from '@/data/collections'
 import { api } from '@/lib/api-client'
 import CollectionDetailsCard from './collection-details-card'
 import CollectionMembersCard from './collection-members-card'
@@ -128,6 +129,12 @@ export default function CollectionForm({ collection }: CollectionFormProps) {
       />
       <PageHeader
         title={collection ? copy.editTitle : copy.newTitle}
+        icon={<Blocks aria-hidden="true" />}
+        tone={form.status === 'active' ? 'success' : 'neutral'}
+        breadcrumbs={[
+          { label: collectionsListContent.title, href: '/products/collections' },
+          { label: collection ? copy.editTitle : copy.newTitle },
+        ]}
         actions={
           collection ? (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>

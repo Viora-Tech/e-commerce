@@ -2,24 +2,26 @@
 
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { draftsContent as copy } from '@/data/drafts'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listDrafts>>
 type Item = ListResult['items'][number]
 
 export type DraftsInitial = { query: ListQuery<never>; result: ListResult }
-
-const date = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
 const columns: ResourceColumnSpec<Item>[] = [
   {
@@ -55,19 +57,18 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'created',
     title: copy.columns.created,
     sortValue: (d) => new Date(d.createdAt).getTime(),
-    render: (d) => <span className="tabular-nums">{date.format(new Date(d.createdAt))}</span>,
+    render: (d) => <RelativeTime value={d.createdAt} />,
   },
   {
     id: 'status',
     title: copy.columns.status,
-    render: (d) => (
-      <StatusLabel kind="draft" value={d.invoiceSentAt ? 'invoiceSent' : 'open'} variant="pill" />
-    ),
+    render: (d) => <StatusLabel kind="draft" value={d.invoiceSentAt ? 'invoiceSent' : 'open'} />,
   },
 ]
 
 function DraftsContent({ initial }: { initial: DraftsInitial }) {
   // Hooks
+  usePrimaryAction('/orders/drafts/new')
   const [{ page, query }, setQ] = useQueryStates(
     { query: parseAsString.withDefault(''), page: parseAsInteger.withDefault(1) },
     { shallow: true },
@@ -100,10 +101,19 @@ function DraftsContent({ initial }: { initial: DraftsInitial }) {
         title={copy.heading}
         subtitle={copy.intro}
         actions={
-          <Button render={<Link href="/orders/drafts/new" />} nativeButton={false}>
-            <Plus />
-            {copy.create}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button render={<Link href="/orders/drafts/new" />} nativeButton={false}>
+                  <Plus />
+                  {copy.create}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {copy.create} <Kbd>N</Kbd>
+            </TooltipContent>
+          </Tooltip>
         }
       />
       <ResourceTable

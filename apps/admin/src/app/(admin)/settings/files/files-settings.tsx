@@ -1,5 +1,6 @@
 'use client'
 
+import { Images } from '@commerce/ui/icons'
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
@@ -33,6 +34,7 @@ export default function FilesSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      icon={<Images aria-hidden="true" />}
       intro={copy.intro}
       load={load}
       save={save}
