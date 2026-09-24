@@ -52,7 +52,10 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
               <td className={CELL}>
                 <span className="flex min-w-0 items-center gap-3">
                   <ProductThumb url={line.imageUrl} />
-                  <span className="block max-w-72 truncate text-ink-strong" title={line.title ?? undefined}>
+                  <span
+                    className="block max-w-72 truncate text-ink-strong"
+                    title={line.title ?? undefined}
+                  >
                     {line.title}
                   </span>
                 </span>
