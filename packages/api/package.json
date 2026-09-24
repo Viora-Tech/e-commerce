@@ -18,6 +18,7 @@
     "@commerce/db": "workspace:*",
     "@commerce/invoices": "workspace:*",
     "@commerce/notifications": "workspace:*",
+    "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",

@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
@@ -31,4 +32,11 @@ const config: NextConfig = {
   },
 }
 
-export default config
+// GlitchTip needs no source-map upload (that's a Sentry SaaS feature requiring an auth
+// token); this only wraps the build to inject release/runtime hooks for instrumentation.ts.
+export default withSentryConfig(config, {
+  silent: true,
+  disableLogger: true,
+  sourcemaps: { disable: true },
+  telemetry: false,
+})

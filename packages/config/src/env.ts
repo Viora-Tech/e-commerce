@@ -31,6 +31,17 @@ const schema = z.object({
     ),
   /** Dev seed: this email becomes owner of the seeded Waimers store. */
   SEED_OWNER_EMAIL: z.string().email().optional(),
+  /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
+  SENTRY_DSN: z.string().url().optional(),
+  /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */
+  SENTRY_ENVIRONMENT: z.string().min(1).optional(),
+  /** Release tag on every event, e.g. a git SHA. Unset means Sentry leaves it out. */
+  SENTRY_RELEASE: z.string().min(1).optional(),
+  /** Cloudflare R2 credentials the backup script uploads to. Independent of a store's own R2 app config. */
+  BACKUP_R2_ACCOUNT_ID: z.string().min(1).optional(),
+  BACKUP_R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  BACKUP_R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  BACKUP_R2_BUCKET: z.string().min(1).optional(),
 })
 
 export type Env = z.infer<typeof schema>

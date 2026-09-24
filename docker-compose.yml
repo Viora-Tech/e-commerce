@@ -22,5 +22,61 @@ services:
       - "6379:6379"
     ulimits:
       memlock: -1
+
+  # GlitchTip: self-hosted, Sentry-protocol-compatible error tracking. Never starts with
+  # `bun run infra:up`; only with `docker compose --profile observability up -d`. Its own
+  # Postgres/Redis, so it never touches the app's `commerce` database.
+  # See docs/ops/error-tracking.md.
+  glitchtip-postgres:
+    image: postgres:17-alpine
+    profiles: ["observability"]
+    environment:
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: glitchtip
+      POSTGRES_DB: glitchtip
+    volumes:
+      - glitchtip_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  glitchtip-redis:
+    image: redis:7-alpine
+    profiles: ["observability"]
+  glitchtip-migrate:
+    image: glitchtip/glitchtip:v4
+    profiles: ["observability"]
+    command: ./manage.py migrate
+    depends_on:
+      glitchtip-postgres:
+        condition: service_healthy
+    environment: &glitchtip-env
+      DATABASE_URL: postgres://glitchtip:glitchtip@glitchtip-postgres:5432/glitchtip
+      REDIS_URL: redis://glitchtip-redis:6379/0
+      SECRET_KEY: dev-only-glitchtip-secret-key-change-me
+      PORT: "8000"
+      GLITCHTIP_DOMAIN: http://localhost:8000
+      DEFAULT_FROM_EMAIL: glitchtip@localhost
+      CELERY_WORKER_AUTOSCALE: "1,1"
+      ENABLE_OPEN_USER_REGISTRATION: "true"
+  glitchtip-web:
+    image: glitchtip/glitchtip:v4
+    profiles: ["observability"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      glitchtip-migrate:
+        condition: service_completed_successfully
+    environment: *glitchtip-env
+  glitchtip-worker:
+    image: glitchtip/glitchtip:v4
+    profiles: ["observability"]
+    command: ./bin/run-celery-with-beat.sh
+    depends_on:
+      glitchtip-migrate:
+        condition: service_completed_successfully
+    environment: *glitchtip-env
 volumes:
   pgdata:
+  glitchtip_pgdata:

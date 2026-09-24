@@ -48,6 +48,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Surveys | [Formbricks](https://github.com/formbricks/formbricks) | AGPL-3.0 (core) | | Ideas only |
 | Booking | [Cal.com](https://github.com/calcom/cal.com) | MIT | Scheduling, for service-selling stores | Later |
 | Ops | [SigNoz](https://github.com/SigNoz/signoz) | MIT outside `ee/` | Logs, traces, metrics | Self-hosted observability |
+| Ops | [GlitchTip](https://gitlab.com/glitchtip/glitchtip) | MIT | Sentry-protocol-compatible error tracking server | Done: run it as a separate service, point the official Sentry SDKs at its DSN |
 | Invoices | [invoicely](https://github.com/legions-developer/invoicely) | MIT, author's permission | PDF templates | Done: GST invoices app |
 
 ## Order of adoption
