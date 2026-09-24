@@ -4,3 +4,17 @@
  * admin already loads Inter through next/font).
  */
 @import "@measured/puck/no-external.css" layer(vendor);
+
+/*
+ * Puck's root DropZone assumes ONE zone filling a scrollable canvas, so its
+ * own CSS stretches it to `height: 100%` of the iframe body. customize-config
+ * splits the root into three sibling zones (header, main, footer) stacked in
+ * normal flow — with the 100% rule each one claimed the full iframe height on
+ * its own box regardless of its content, leaving a viewport-tall empty gap
+ * under the header zone and the footer zone's box starting (and painting
+ * over) partway through the main zone's overflowed content instead of after
+ * it. Left unlayered so it beats the vendor layer regardless of specificity.
+ */
+[data-puck-dropzone] {
+  height: auto;
+}
