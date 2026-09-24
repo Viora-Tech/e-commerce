@@ -1,47 +1,30 @@
 'use client'
 
-import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
-import { Button } from '@commerce/ui/shadcn/button'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { ShoppingBag } from '@commerce/ui/icons'
+import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
 import type { StatusValue } from '@/data/status'
 import { api } from '@/lib/api-client'
 import { formatWhen } from '@/lib/format-date'
-import type { OrderDetail, OrderStatus } from './order-detail-types'
+import { methodLabel, type OrderDetail, type OrderStatus } from './order-detail-types'
+
+export type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
 
 type OrderHeaderProps = {
   order: OrderDetail
   payment: StatusValue<'payment'>
   fulfilment: StatusValue<'fulfilment'>
-  actions: React.ReactNode
+  /** The header actions, given the previous and next orders once they load. */
+  actions: (neighbours: Neighbours | null) => ReactNode
 }
 
-type Neighbours = Awaited<ReturnType<typeof api.orders.neighbours>>
-
-function StepLink({ id, label, icon }: { id?: string; label: string; icon: React.ReactNode }) {
-  if (!id) {
-    return (
-      <Button variant="outline" size="icon" aria-label={label} disabled>
-        {icon}
-      </Button>
-    )
-  }
-  return (
-    <Button
-      variant="outline"
-      size="icon"
-      aria-label={label}
-      render={<Link href={`/orders/${id}`} />}
-    >
-      {icon}
-    </Button>
-  )
-}
-
-/** Title, when it was placed, where it stands, and the way to the next order. */
+/**
+ * After the Saleor Dashboard order header (BSD-3): the order glyph in a bordered square
+ * (a link back to the list), "Order #n" with its pills, a small grey meta line, and the
+ * calm action set on the right.
+ */
 export default function OrderHeader({ order, payment, fulfilment, actions }: OrderHeaderProps) {
   // Hooks
   const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
@@ -63,34 +46,32 @@ export default function OrderHeader({ order, payment, fulfilment, actions }: Ord
     <div className="print:hidden">
       <PageHeader
         title={copy.title(order.number)}
-        subtitle={copy.placed(formatWhen(order.placedAt))}
+        icon={<ShoppingBag aria-hidden="true" />}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-x-2">
+            <span>{copy.placed(formatWhen(order.placedAt))}</span>
+            {order.paymentMethod ? (
+              <>
+                <span aria-hidden="true">|</span>
+                <span>
+                  {copy.paidVia}:{' '}
+                  <span className="text-foreground">{methodLabel(order.paymentMethod)}</span>
+                </span>
+              </>
+            ) : null}
+          </span>
+        }
         badges={
           <>
             {order.status === cancelled ? (
-              <StatusLabel kind="order" value="cancelled" variant="pill" />
+              <StatusLabel kind="order" value="cancelled" variant="pill" size="sm" />
             ) : null}
-            <StatusLabel kind="payment" value={payment} variant="pill" />
-            <StatusLabel kind="fulfilment" value={fulfilment} variant="pill" />
+            <StatusLabel kind="payment" value={payment} variant="pill" size="sm" />
+            <StatusLabel kind="fulfilment" value={fulfilment} variant="pill" size="sm" />
           </>
         }
         breadcrumbs={[{ label: copy.back, href: '/orders' }, { label: `#${order.number}` }]}
-        actions={
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <StepLink
-                id={neighbours?.previous?.id}
-                label={copy.previous}
-                icon={<ChevronLeftIcon className="size-4" />}
-              />
-              <StepLink
-                id={neighbours?.next?.id}
-                label={copy.next}
-                icon={<ChevronRightIcon className="size-4" />}
-              />
-            </div>
-            {actions}
-          </div>
-        }
+        actions={actions(neighbours)}
       />
     </div>
   )

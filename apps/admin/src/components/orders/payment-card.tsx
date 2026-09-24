@@ -34,7 +34,6 @@ function Row({ label, value }: { label: string; value: string }) {
 export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardProps) {
   // Render logic
   const events = order.paymentEvents
-  const balance = order.balance
 
   return (
     <DataCard
@@ -105,18 +104,6 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
         ) : null}
 
         <section className="border-t border-border pt-4">
-          <dl className="mb-4 flex flex-col gap-1.5">
-            <Row label={copy.items.paidByCustomer} value={formatPaise(balance.capturedPaise)} />
-            {balance.pendingPaise > 0 ? (
-              <Row label={copy.payment.awaiting} value={formatPaise(balance.pendingPaise)} />
-            ) : null}
-            {balance.balancePaise !== 0 ? (
-              <Row
-                label={balance.balancePaise > 0 ? copy.items.balanceOwed : copy.items.balance}
-                value={formatPaise(Math.abs(balance.balancePaise))}
-              />
-            ) : null}
-          </dl>
           <p className="text-caption text-muted-foreground mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
             <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>

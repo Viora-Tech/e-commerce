@@ -1,6 +1,12 @@
 'use client'
 
-import { MoreHorizontal, Printer, RotateCcw } from '@commerce/ui/icons'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreHorizontal,
+  Printer,
+  RotateCcw,
+} from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import Link from 'next/link'
 import { useState } from 'react'
 import { orderDetailContent as copy } from '@/data/orders'
 import type { OrderStatus } from './order-detail-types'
@@ -29,6 +36,10 @@ type OrderActionsProps = {
   busy: boolean
   onMove: (to: OrderStatus) => void
   onRefund: () => void
+  /** Imported history: only printing and stepping between orders. */
+  readOnly?: boolean
+  previousId?: string | undefined
+  nextId?: string | undefined
 }
 
 /** The one forward step from each status; delivered and cancelled are terminal. */
@@ -38,9 +49,9 @@ const NEXT: Partial<Record<OrderStatus, { label: string; to: OrderStatus }>> = {
   fulfilled: { label: copy.actions.deliver, to: 'delivered' },
 }
 
-/** Header buttons: primary status move, refund, and the rest behind a menu. */
-/* 36px header buttons (Button lg), 13/500 labels. */
-const ACTION = 'h-9 px-3.5 text-body font-medium'
+/* Only these moves are the obvious next step and earn the ink button; "paid" is followed by
+   packing, which the Unfulfilled section already offers, so it stays in the menu. */
+const PRIMARY_FROM: ReadonlySet<OrderStatus> = new Set(['placed', 'fulfilled'])
 
 export default function OrderActions({
   status,
@@ -48,29 +59,62 @@ export default function OrderActions({
   busy,
   onMove,
   onRefund,
+  readOnly = false,
+  previousId,
+  nextId,
 }: OrderActionsProps) {
   // Hooks
   const [confirmCancel, setConfirmCancel] = useState(false)
 
   // Render logic
-  const next = NEXT[status]
-  const cancellable = status !== 'cancelled' && status !== 'delivered'
+  const next = readOnly ? undefined : NEXT[status]
+  const primary = next && PRIMARY_FROM.has(status) ? next : undefined
+  const menuMove = next && !primary ? next : undefined
+  const cancellable = !readOnly && status !== 'cancelled' && status !== 'delivered'
+  const refundable = !readOnly && canRefund
 
+  /* After the Saleor Dashboard order header (BSD-3): small square icon buttons, one menu for
+     everything secondary, and at most one ink primary action. */
   return (
     <div className="flex items-center gap-2 print:hidden">
-      {canRefund ? (
-        <Button variant="outline" className={ACTION} onClick={onRefund} disabled={busy}>
-          <RotateCcw aria-hidden="true" /> {copy.actions.refund}
-        </Button>
-      ) : null}
+      <Button
+        variant="outline"
+        size="icon"
+        aria-label={copy.actions.print}
+        title={copy.actions.print}
+        onClick={() => window.print()}
+      >
+        <Printer aria-hidden="true" />
+      </Button>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" size="icon" className="size-10" />}>
+        <DropdownMenuTrigger
+          render={<Button variant="outline" size="icon" aria-label={copy.actions.more} />}
+        >
           <MoreHorizontal aria-hidden="true" />
-          <span className="sr-only">{copy.actions.more}</span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-44">
-          <DropdownMenuItem onClick={() => window.print()}>
-            <Printer aria-hidden="true" /> {copy.actions.print}
+        <DropdownMenuContent align="end" className="min-w-48">
+          {menuMove ? (
+            <DropdownMenuItem onClick={() => onMove(menuMove.to)} disabled={busy}>
+              {menuMove.label}
+            </DropdownMenuItem>
+          ) : null}
+          {refundable ? (
+            <DropdownMenuItem onClick={onRefund} disabled={busy}>
+              <RotateCcw aria-hidden="true" /> {copy.actions.refund}
+            </DropdownMenuItem>
+          ) : null}
+          {menuMove || refundable ? <DropdownMenuSeparator /> : null}
+          <DropdownMenuItem
+            disabled={!previousId}
+            render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}
+          >
+            <ChevronLeftIcon aria-hidden="true" /> {copy.previous}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!nextId}
+            render={nextId ? <Link href={`/orders/${nextId}`} /> : undefined}
+          >
+            <ChevronRightIcon aria-hidden="true" /> {copy.next}
           </DropdownMenuItem>
           {cancellable ? (
             <>
@@ -82,9 +126,9 @@ export default function OrderActions({
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
-      {next ? (
-        <Button className={ACTION} onClick={() => onMove(next.to)} disabled={busy}>
-          {next.label}
+      {primary ? (
+        <Button onClick={() => onMove(primary.to)} disabled={busy}>
+          {primary.label}
         </Button>
       ) : null}
 

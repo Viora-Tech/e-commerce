@@ -137,17 +137,18 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           order={order}
           payment={pay}
           fulfilment={ful}
-          actions={
-            readOnly ? null : (
-              <OrderActions
-                status={order.status}
-                canRefund={canRefund}
-                busy={busy}
-                onMove={handleMove}
-                onRefund={openRefund}
-              />
-            )
-          }
+          actions={(n) => (
+            <OrderActions
+              status={order.status}
+              canRefund={canRefund}
+              busy={busy}
+              onMove={handleMove}
+              onRefund={openRefund}
+              readOnly={readOnly}
+              previousId={n?.previous?.id}
+              nextId={n?.next?.id}
+            />
+          )}
         />
       }
       main={
@@ -156,6 +157,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
           <LineItemsCard
             order={order}
+            payment={pay}
             unfulfilledShown={!readOnly && order.status !== 'cancelled'}
           />
           <PaymentCard

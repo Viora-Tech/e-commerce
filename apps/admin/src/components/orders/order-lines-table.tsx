@@ -1,4 +1,6 @@
+import { ExternalLink } from '@commerce/ui/icons'
 import ProductThumb from '@/components/products/product-thumb'
+import RowIconCells from '@/components/table/row-icon-cells'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 import type { OrderLine } from './order-detail-types'
@@ -29,8 +31,8 @@ function variantOf(line: OrderLine): string {
  */
 export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
   return (
-    <div className="-mx-4 overflow-x-auto md:-mx-6">
-      <table className="w-full min-w-[40rem] border-collapse">
+    <div className="no-scrollbar -mx-4 overflow-x-auto md:-mx-6">
+      <table className="w-full min-w-[42rem] border-collapse">
         <thead>
           <tr>
             <th className={HEAD}>{copy.items.columns.product}</th>
@@ -39,6 +41,9 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
             <th className={`${HEAD} text-right`}>{copy.items.columns.quantity}</th>
             <th className={`${HEAD} text-right`}>{copy.items.columns.price}</th>
             <th className={`${HEAD} text-right`}>{copy.items.columns.total}</th>
+            <th className="w-22 p-0">
+              <span className="sr-only">{copy.items.columns.actions}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -47,10 +52,16 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
               <td className={CELL}>
                 <span className="flex min-w-0 items-center gap-3">
                   <ProductThumb url={line.imageUrl} />
-                  <span className="truncate text-ink-strong">{line.title}</span>
+                  <span className="block max-w-72 truncate text-ink-strong" title={line.title ?? undefined}>
+                    {line.title}
+                  </span>
                 </span>
               </td>
-              <td className={`${CELL} text-muted-foreground tabular-nums`}>{line.sku ?? ''}</td>
+              <td className={`${CELL} text-muted-foreground tabular-nums`}>
+                <span className="block max-w-56 truncate" title={line.sku ?? undefined}>
+                  {line.sku ?? ''}
+                </span>
+              </td>
               <td className={`${CELL} text-muted-foreground`}>{variantOf(line)}</td>
               <td className={`${CELL} text-right tabular-nums`}>{quantity}</td>
               <td className={`${CELL} text-right text-muted-foreground tabular-nums`}>
@@ -58,6 +69,31 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
               </td>
               <td className={`${CELL} text-right tabular-nums`}>
                 {formatPaise(line.unitPricePaise * quantity)}
+              </td>
+              <td className="w-22 border-border border-t p-0">
+                {line.productId ? (
+                  <RowIconCells
+                    links={[
+                      {
+                        label: copy.items.openProduct,
+                        icon: ExternalLink,
+                        href: `/products/${line.productId}`,
+                        newTab: true,
+                      },
+                    ]}
+                    menu={[
+                      { label: copy.items.viewProduct, href: `/products/${line.productId}` },
+                      ...(line.sku
+                        ? [
+                            {
+                              label: copy.items.stockForSku,
+                              href: `/products/inventory?query=${encodeURIComponent(line.sku)}`,
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                ) : null}
               </td>
             </tr>
           ))}

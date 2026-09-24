@@ -45,9 +45,18 @@ export function fulfilmentStatus(status: OrderStatus): StatusValue<'fulfilment'>
 }
 
 /** Lines with something still to pack, with how many are left on each. */
+/* A fulfilled or delivered order is packed in full, even when its lines carry no
+   fulfilment rows (demo data and orders moved by status before line tracking existed). */
+const PACKED_STATUSES: ReadonlySet<string> = new Set(['fulfilled', 'delivered'])
+
+/** How many of a line have gone out: the recorded count, or all of it once the order is packed. */
+export function packedQuantity(order: OrderDetail, line: OrderLine): number {
+  return PACKED_STATUSES.has(order.status) ? line.quantity : line.fulfilledQuantity
+}
+
 export function unfulfilledLines(order: OrderDetail): { line: OrderLine; remaining: number }[] {
   return order.lines
-    .map((line) => ({ line, remaining: line.quantity - line.fulfilledQuantity }))
+    .map((line) => ({ line, remaining: line.quantity - packedQuantity(order, line) }))
     .filter((l) => l.remaining > 0)
 }
 
