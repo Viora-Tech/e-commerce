@@ -4,6 +4,7 @@ export {
   renderEmail,
   renderWhatsapp,
   TEMPLATE_IDS,
+  TEMPLATE_NAMES,
   type WhatsappBody,
 } from './templates'
 export { sharedContent, templateContent } from './templates/content'

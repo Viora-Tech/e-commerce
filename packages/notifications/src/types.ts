@@ -47,8 +47,12 @@ export type TemplateData = {
   orderNumber?: number | undefined
   customerName: string
   totalLabel: string
-  lines: { title: string; quantity: number; priceLabel: string }[]
+  lines: { title: string; quantity: number; priceLabel: string; imageUrl?: string | undefined }[]
+  /** GST split shown above the total, e.g. CGST/SGST or IGST rows. Omit to show only the total. */
+  taxBreakdown?: { label: string; amount: string }[] | undefined
   paymentMethodLabel: string
+  /** Printed in the footer under the store name, when the store has set one. */
+  storeAddress?: string | undefined
   /** Set on order_shipped when the carrier gave us one. */
   trackingUrl?: string | undefined
   /** Courier tracking number, printed so the shopper can quote it. */
