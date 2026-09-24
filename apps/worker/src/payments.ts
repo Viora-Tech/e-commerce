@@ -1,9 +1,4 @@
-import {
-  handlePaymentWebhook,
-  insertOutboxEvent,
-  parsePaymentSettings,
-  resolvePaymentProviders,
-} from '@commerce/core'
+import { handlePaymentWebhook, parsePaymentSettings, resolvePaymentProviders } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
@@ -38,13 +33,9 @@ export function paymentWebhooks(db: Db, settingsSecret: string) {
       )
       const provider = providers.find((p) => p.id === providerId)
       if (!provider) return { ok: false as const, reason: 'provider not enabled for store' }
-      const result = await handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
-      // Written in the same transaction as the capture itself, so a webhook
-      // whose apply rolls back never leaves a payment_received event behind.
-      if (result.ok && result.capturedOrderId) {
-        await insertOutboxEvent(tx, storeId, 'order.paid', { orderId: result.capturedOrderId })
-      }
-      return result
+      // handlePaymentWebhook -> applyPaymentStatus already writes the
+      // order.paid outbox row in this same transaction when it captures.
+      return handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
     })
 
     if (!outcome.ok) {

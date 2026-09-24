@@ -8,6 +8,7 @@ import {
   inventoryLevel,
   order,
   orderLine,
+  outboxEvent,
   payment,
   product,
   store,
@@ -569,5 +570,63 @@ describe('placeOrder lock and replay', () => {
     if (!o) throw new Error('seed')
     const { id: _id, ...copy } = o
     await expect(owner.insert(order).values({ ...copy, number: 99 })).rejects.toThrow()
+  })
+})
+
+describe('placeOrder outbox', () => {
+  it('writes exactly one order.placed row, in the same transaction as the order', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const { orderId } = await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+    )
+    const rows = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      type: 'order.placed',
+      payload: { orderId },
+      dispatchedAt: null,
+    })
+  })
+
+  it('a replayed submit of the same cart writes no second row', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const submit = () =>
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+      )
+    const first = await submit()
+    const second = await submit()
+
+    expect(first.replayed).toBe(false)
+    expect(second.replayed).toBe(true)
+    const rows = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(rows).toHaveLength(1)
+  })
+
+  it('a rolled-back placeOrder (OutOfStock) writes no outbox row', async () => {
+    const { storeId, cartId } = await seed({ onHand: 1, quantity: 2 })
+    await expect(
+      withStore(app, storeId, (tx) =>
+        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
+      ),
+    ).rejects.toBeInstanceOf(OutOfStock)
+    const rows = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(rows).toHaveLength(0)
+  })
+
+  it('a gateway capture at checkout writes order.paid, via applyPaymentStatus after commit', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    const { orderId, becameCaptured } = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: provider,
+    })
+    expect(becameCaptured).toBe(true)
+    const rows = await owner
+      .select({ type: outboxEvent.type, payload: outboxEvent.payload })
+      .from(outboxEvent)
+      .where(eq(outboxEvent.storeId, storeId))
+    expect(rows.map((r) => r.type).sort()).toEqual(['order.paid', 'order.placed'])
+    for (const r of rows) expect(r.payload).toEqual({ orderId })
   })
 })

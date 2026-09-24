@@ -6,12 +6,22 @@ import {
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { type Db, storesWithUndispatchedOutboxEvents } from '@commerce/db'
-import { type IORedis, OUTBOX_RELAY_QUEUE, Queue, Worker } from '@commerce/queue'
+import {
+  type IORedis,
+  OUTBOX_RELAY_QUEUE,
+  type OutboxRelayJob,
+  Queue,
+  Worker,
+} from '@commerce/queue'
+
+// The producer side (`OutboxRelayJob`, `nudgeOutboxRelay`) lives in
+// @commerce/queue so any app, not just the worker, can nudge the relay after
+// a commit; re-exported here so existing worker imports keep working.
+export { nudgeOutboxRelay } from '@commerce/queue'
+export type { OutboxRelayJob }
 
 /** How often the sweep looks for undispatched rows across every store. */
 export const RELAY_EVERY_MS = 5_000
-
-export type OutboxRelayJob = { storeId?: string }
 
 /**
  * One repeat job walks every store with undispatched outbox rows and fans
@@ -61,24 +71,4 @@ export function createOutboxRelay(
     { connection },
   )
   return { queue, worker }
-}
-
-/**
- * Best-effort immediate nudge for one store, meant to be called right after
- * a commit that wrote outbox rows. The periodic sweep above is what
- * guarantees delivery; this only shaves the wait from a few seconds down to
- * near-immediate for interactive admin actions. Cheap: one `add` call with a
- * per-second-bucket job id, so a burst of nudges for the same store collapses
- * into at most one extra relay run.
- */
-export async function nudgeOutboxRelay(
-  queue: Queue<OutboxRelayJob>,
-  storeId: string,
-): Promise<void> {
-  const bucket = Math.floor(Date.now() / 1000)
-  await queue.add(
-    'nudge',
-    { storeId },
-    { jobId: `nudge:${storeId}:${bucket}`, removeOnComplete: true, removeOnFail: true },
-  )
 }

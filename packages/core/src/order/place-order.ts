@@ -41,6 +41,7 @@ import {
   redeemGiftCards,
   reverseGiftCardRedemptions,
 } from '../gift-cards/service'
+import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adjustments'
 import { createPaymentAttempt, startPaymentAttempt } from '../payments/attempts'
 import { parsePaymentSettings } from '../payments/settings'
@@ -423,6 +424,10 @@ const createOrder: WorkflowStep<State> = {
       })
       .returning({ id: order.id })
     if (!o) throw new Error('order insert returned nothing')
+    // In the same transaction as the insert: if a later step throws, the
+    // workflow's compensation (below) deletes the order and the whole
+    // transaction rolls back, taking this row with it.
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.placed', { orderId: o.id })
     await ctx.tx.insert(orderLine).values(
       lines.map((l) => ({
         storeId: ctx.storeId,
@@ -560,6 +565,9 @@ const recordPaymentAttempt: WorkflowStep<State> = {
         .update(order)
         .set({ status: 'paid', paymentMethod: GIFT_CARD_PROVIDER })
         .where(eq(order.id, orderId))
+      // Paid entirely by gift cards: this never reaches applyPaymentStatus
+      // (there is no gateway attempt), so the order.paid event is written here.
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', { orderId })
       return {}
     }
     const attempt = await createPaymentAttempt(ctx, {

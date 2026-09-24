@@ -1,4 +1,4 @@
-import { createDb, order, payment, paymentEvent, store, withStore } from '@commerce/db'
+import { createDb, order, outboxEvent, payment, paymentEvent, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import type { PaymentProvider } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
@@ -121,6 +121,12 @@ describe('payment webhooks', () => {
     const events = await owner.select().from(paymentEvent)
     expect(events).toHaveLength(1)
     expect(events[0]?.status).toBe('processed')
+
+    // applyPaymentStatus wrote order.paid once, in the same transaction as the
+    // capture; the duplicate delivery above did not run it again.
+    const outbox = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ type: 'order.paid', payload: { orderId } })
   })
 
   it('acknowledges an event for an unknown reference without applying anything', async () => {

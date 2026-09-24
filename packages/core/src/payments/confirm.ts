@@ -2,6 +2,7 @@ import { order, payment } from '@commerce/db'
 import type { ClientConfirmation, PaymentProvider, PaymentStatus } from '@commerce/payments'
 import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { insertOutboxEvent } from '../outbox/write'
 import { nextPaymentStatus } from './transitions'
 
 export type AppliedPayment = {
@@ -100,10 +101,17 @@ export async function applyPaymentStatus(
     .returning()
   if (!updated) return null
   if (next === 'captured' && !refundNeeded) {
-    await ctx.tx
+    const [movedToPaid] = await ctx.tx
       .update(order)
       .set({ status: 'paid' })
       .where(and(eq(order.id, p.orderId), eq(order.status, 'placed')))
+      .returning({ id: order.id })
+    // Only on the row that actually moved placed -> paid: the single choke
+    // point every capture path (webhook, gateway create-payment, client
+    // confirm) goes through, so this is the one place order.paid is written.
+    if (movedToPaid) {
+      await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.paid', { orderId: p.orderId })
+    }
   }
   return {
     payment: updated,

@@ -59,6 +59,46 @@ export function createAppJobQueue(connection: IORedis): Queue<AppJobData> & AppJ
   return new Queue<AppJobData>(APP_JOBS_QUEUE, { connection })
 }
 
+export type OutboxRelayJob = { storeId?: string }
+
+export function createOutboxRelayQueue(connection: IORedis): Queue<OutboxRelayJob> {
+  return new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })
+}
+
+/** Process-wide outbox relay queue, cached like the others. */
+export function outboxRelayQueue(redisUrl: string): Queue<OutboxRelayJob> {
+  const g = globalThis as { __outboxRelayQueue?: Queue<OutboxRelayJob> }
+  if (!g.__outboxRelayQueue) {
+    g.__outboxRelayQueue = createOutboxRelayQueue(createConnection(redisUrl))
+  }
+  return g.__outboxRelayQueue
+}
+
+/**
+ * Best-effort immediate nudge for one store, meant to be called right after
+ * a commit that wrote outbox rows (checkout, an admin action). The worker's
+ * periodic sweep (every few seconds) is what guarantees delivery; this only
+ * shaves the wait down to near-immediate. Cheap: one `add` call with a
+ * per-second-bucket job id, so a burst of nudges for the same store
+ * collapses into at most one extra relay run. Never throws: a Redis hiccup
+ * must not turn a placed order into an error page.
+ */
+export async function nudgeOutboxRelay(
+  queue: Queue<OutboxRelayJob>,
+  storeId: string,
+): Promise<void> {
+  const bucket = Math.floor(Date.now() / 1000)
+  try {
+    await queue.add(
+      'nudge',
+      { storeId },
+      { jobId: `nudge:${storeId}:${bucket}`, removeOnComplete: true, removeOnFail: true },
+    )
+  } catch (err) {
+    console.error(`[outbox] could not nudge relay for store ${storeId}`, err)
+  }
+}
+
 /** Process-wide app jobs queue. */
 export function appJobQueue(redisUrl: string): AppJobQueue {
   const g = globalThis as { __appJobQueue?: AppJobQueue }

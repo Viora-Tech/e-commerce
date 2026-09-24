@@ -30,7 +30,7 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
-import { notify } from './notifications'
+import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { estimateForPincode } from './shipping'
 import { inStore } from './store-context'
@@ -186,7 +186,10 @@ export async function checkoutAction(
   if ('error' in placed) return { error: placed.error }
   const result = placed
   await clearCartId()
-  // A second submit of the same cart got the first order back: it was already announced.
+  // A second submit of the same cart got the first order back: it was already
+  // announced (the outbox row, if any, was written on the first submit only:
+  // `placeOrder` returns early on replay, before the workflow step that writes
+  // order.placed ever runs).
   if (result.replayed) return redirectAfterCheckout(result)
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
@@ -198,11 +201,11 @@ export async function checkoutAction(
   await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
     console.error('[checkout] could not update marketing automations', err),
   )
-  await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
-  // Paid at checkout (gift cards, capture-at-creation gateways): the paid path issues cards and sends the receipt.
-  if (result.becameCaptured) {
-    await notify({ storeId, orderId: result.orderId, template: 'payment_received' })
-  }
+  // order_placed (and payment_received when paid at checkout: gift cards,
+  // capture-at-creation gateways) were already written to the outbox in the
+  // same transaction as the order/payment change (placeOrder, applyPaymentStatus).
+  // This only wakes the relay so they go out in ~1s instead of up to 5s.
+  await nudgeOutbox(storeId)
   redirectAfterCheckout(result)
 }
 
@@ -240,9 +243,9 @@ export async function retryPaymentAction(storeId: string, orderNumber: number) {
       throw err
     },
   )
-  if (started?.becameCaptured) {
-    await notify({ storeId, orderId: target.orderId, template: 'payment_received' })
-  }
+  // payment_received was already written to the outbox, in the same
+  // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
+  if (started?.becameCaptured) await nudgeOutbox(storeId)
   redirectAfterCheckout({ session: started?.session ?? null, orderNumber })
 }
 
@@ -260,8 +263,8 @@ export async function confirmPaymentAction(
     if (!provider) return null
     return confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
   })
-  if (applied?.becameCaptured) {
-    await notify({ storeId, orderId: applied.payment.orderId, template: 'payment_received' })
-  }
+  // payment_received was already written to the outbox inside `inStore`
+  // above, in the same transaction as the capture (applyPaymentStatus).
+  if (applied?.becameCaptured) await nudgeOutbox(storeId)
   return applied?.payment.status ?? null
 }
