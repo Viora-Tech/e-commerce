@@ -59,14 +59,7 @@ export default function AdminFrame({
       className="h-svh overflow-hidden"
       style={{ '--sidebar-width': SIDEBAR_WIDTH } as CSSProperties}
     >
-      <AdminSidebar
-        user={user}
-        stores={stores}
-        activeStoreId={activeStoreId}
-        storefrontUrl={storefrontUrl}
-        apps={apps}
-        logoUrl={logoUrl}
-      />
+      <AdminSidebar stores={stores} activeStoreId={activeStoreId} apps={apps} logoUrl={logoUrl} />
       <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
         {/* Search, notifications, theme and account sit in the grey band above the page, so the
             white panel below reads as the page itself. */}

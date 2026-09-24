@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, ExternalLink, LogOut, PanelLeftClose, Store } from '@commerce/ui/icons'
+import { ChevronDown, PanelLeftClose, Store } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,23 +33,10 @@ import NavGroupBlock from './nav-group-block'
 type StoreOption = { id: string; name: string; slug: string }
 
 type AdminSidebarProps = {
-  user: { name: string; email: string }
   stores: StoreOption[]
   activeStoreId: string | null
-  storefrontUrl: string
   apps: { id: string; name: string; icon: string | null }[]
   logoUrl: string | null
-}
-
-function initials(name: string): string {
-  return (
-    name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'U'
-  )
 }
 
 /** Installed apps hang under the Apps entry, like Drafts under Orders. */
@@ -60,14 +47,7 @@ function nestApps(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] 
   )
 }
 
-export default function AdminSidebar({
-  user,
-  stores,
-  activeStoreId,
-  storefrontUrl,
-  apps,
-  logoUrl,
-}: AdminSidebarProps) {
+export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: AdminSidebarProps) {
   // Hooks
   const pathname = usePathname()
   const router = useRouter()
@@ -76,12 +56,6 @@ export default function AdminSidebar({
   // Event handlers
   const handleSwitchStore = async (id: string) => {
     await authClient.organization.setActive({ organizationId: id })
-    router.refresh()
-  }
-
-  const handleSignOut = async () => {
-    await authClient.signOut()
-    router.push('/login')
     router.refresh()
   }
 
@@ -158,48 +132,20 @@ export default function AdminSidebar({
             label={group.label}
             items={group.label === APPS_GROUP ? nestApps(group.items, apps) : group.items}
             pathname={pathname}
+            divided={gi > 0}
           />
         ))}
+      </SidebarContent>
+
+      {/* A rule, then the member and the store link. */}
+      {/* Settings pinned to the bottom of the rail, like Shopify; the member menu lives in the header. */}
+      <SidebarFooter className="p-0 pb-4">
         <NavGroupBlock
           label={navigationContent.adminGroup}
           items={[SETTINGS_NAV]}
           pathname={pathname}
+          divided
         />
-      </SidebarContent>
-
-      {/* A rule, then the member and the store link. */}
-      <SidebarFooter className="gap-3 p-0 pt-4 pb-4">
-        <div className="mx-3 border-border border-t" />
-        <div className="flex items-center gap-3 px-6 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground ring-1 ring-border">
-            {initials(user.name)}
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs leading-4 group-data-[collapsible=icon]:hidden">
-            <span className="truncate font-semibold text-foreground">{user.name}</span>
-            <span className="truncate text-muted-foreground">{user.email}</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            aria-label={navigationContent.signOut}
-            title={navigationContent.signOut}
-            className="flex size-5 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden"
-          >
-            <LogOut className="size-4" />
-          </button>
-        </div>
-        <a
-          href={storefrontUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mx-3 flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3 text-nav text-ink-strong transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-        >
-          <Store className="size-4 text-primary" />
-          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
-            {navigationContent.viewStore}
-          </span>
-          <ExternalLink className="size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-        </a>
       </SidebarFooter>
     </Sidebar>
   )
