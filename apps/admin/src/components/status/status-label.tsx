@@ -40,7 +40,7 @@ const DONE_VALUES = new Set(['fulfilled', 'delivered'])
 
 function pillClass(tone: StatusTone, value: string): string {
   if (tone === 'error') return PILL_PROBLEM
-  if (tone === 'success' && DONE_VALUES.has(value)) return PILL_DONE
+  if (DONE_VALUES.has(value)) return PILL_DONE
   return PILL_NEUTRAL
 }
 
