@@ -86,7 +86,7 @@ export default function AdminSidebar({
   const active = stores.find((s) => s.id === activeStoreId) ?? null
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
       {/* Store switcher (Saleor mounting point): 56px row, store mark, name and chevron; collapse glyph right. */}
       <SidebarHeader className="h-14 flex-row items-center justify-between px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
