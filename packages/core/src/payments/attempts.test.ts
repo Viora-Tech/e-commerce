@@ -110,7 +110,7 @@ describe('payment attempts', () => {
       [2, 'pending', `${r.orderId}:2`],
     ])
     expect(gw.created.map((c) => c.idempotencyKey)).toEqual([`${r.orderId}:2`])
-    expect((await orderRow(r.orderId))?.status).toBe('placed')
+    expect((await orderRow(r.orderId))?.paymentStatus).toBe('unpaid')
   })
 
   it('refuses a retry once the order is paid or cancelled', async () => {
@@ -150,7 +150,7 @@ describe('idempotent webhooks', () => {
     expect(ok.filter((o) => o.ok && o.duplicate)).toHaveLength(1)
     expect(ok.filter((o) => o.ok && o.capturedOrderId === r.orderId)).toHaveLength(1)
     expect(await owner.select().from(paymentEvent)).toHaveLength(1)
-    expect((await orderRow(r.orderId))?.status).toBe('paid')
+    expect((await orderRow(r.orderId))?.paymentStatus).toBe('paid')
   })
 
   it('a second captured event is a no-op and a late failure does not undo the capture', async () => {
@@ -175,7 +175,7 @@ describe('idempotent webhooks', () => {
     expect(late.ok && late.duplicate).toBe(false)
     const [a] = await attemptsOf(r.orderId)
     expect(a).toMatchObject({ status: 'captured', providerPaymentId: 'pay_e1' })
-    expect((await orderRow(r.orderId))?.status).toBe('paid')
+    expect((await orderRow(r.orderId))?.paymentStatus).toBe('paid')
   })
 
   it('a capture after a failure on the same gateway order still pays the order', async () => {
@@ -188,7 +188,7 @@ describe('idempotent webhooks', () => {
       providerRef: 'order_1',
     })
     expect(out.ok && out.capturedOrderId).toBe(r.orderId)
-    expect((await orderRow(r.orderId))?.status).toBe('paid')
+    expect((await orderRow(r.orderId))?.paymentStatus).toBe('paid')
   })
 
   it('a capture after the order was cancelled is flagged refund needed, not revived', async () => {
@@ -261,7 +261,7 @@ describe('idempotent webhooks', () => {
       idempotencyKey: `${b.orderId}:1`,
     })
     expect(out.ok && out.applied).toBe(false)
-    expect((await orderRow(b.orderId))?.status).toBe('placed')
+    expect((await orderRow(b.orderId))?.paymentStatus).toBe('unpaid')
     const [pb] = await attemptsOf(b.orderId)
     expect(pb?.status).toBe('pending')
   })

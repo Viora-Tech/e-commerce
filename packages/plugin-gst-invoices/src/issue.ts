@@ -195,7 +195,7 @@ export async function orderSnapshot(
     email: o.email,
     gstin: buyerGstin,
   })
-  const cod = o.paymentMethod === 'cod' && o.status !== 'paid'
+  const cod = o.paymentMethod === 'cod' && !o.checkoutPaidAt
   const country = (ship?.country ?? 'IN').toUpperCase()
   const exportSupply: ExportSupply | null =
     country === 'IN'

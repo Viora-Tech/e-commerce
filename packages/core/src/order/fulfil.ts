@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { BalanceDue, CommerceError } from '../errors'
 import { shipCommittedStock } from './committed-stock'
+import { recomputeOrderStatuses } from './recompute'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
 
@@ -17,7 +18,7 @@ export type FulfilOrderInput = {
 
 export type FulfilOrderResult = {
   orderId: string
-  /** True once every line is packed, which is when the order becomes "fulfilled". */
+  /** True once every line is packed, which is when the fulfilment status becomes "fulfilled". */
   complete: boolean
   fulfilledLines: number
   shipmentId: string | null
@@ -101,6 +102,7 @@ export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): 
       .where(eq(orderLine.id, line.id))
     await shipCommittedStock(ctx, { variantId: line.variantId, quantity: remaining })
   }
+  await recomputeOrderStatuses(ctx, orderId)
 }
 
 /**
@@ -173,14 +175,9 @@ export async function fulfilOrderLines(
     shipmentId = row?.id ?? null
   }
 
-  if (complete) {
-    await ctx.tx
-      .update(order)
-      .set({ status: 'fulfilled' })
-      .where(and(eq(order.id, input.orderId), eq(order.status, 'paid')))
-    /* An unpaid order (cash on delivery) still gets packed; its status stays
-       "placed" until the money is collected. */
-  }
+  /* Packing moves only the fulfilment status; an unpaid (cash on delivery)
+     order stays unpaid until the money is collected. */
+  await recomputeOrderStatuses(ctx, input.orderId)
 
   return {
     orderId: input.orderId,

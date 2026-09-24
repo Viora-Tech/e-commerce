@@ -240,9 +240,20 @@ const ENTRIES: Entry[] = [
   {
     slug: 'orders-by-status',
     title: 'Orders by status',
-    description: 'Where the orders placed in the range stand now, from placed to delivered.',
+    description:
+      'Where the orders placed in the range stand now: open orders by fulfilment, then completed and cancelled.',
     category: 'orders',
     columns: [c('status', 'label'), ORDERS, TOTAL, SHARE],
+    metric: 'orders',
+    chart: 'bars',
+  },
+  {
+    slug: 'orders-by-payment-status',
+    title: 'Orders by payment status',
+    description:
+      'How much of the money is in for the orders placed in the range, cancelled left out.',
+    category: 'orders',
+    columns: [c('paymentStatus', 'label'), ORDERS, TOTAL, SHARE],
     metric: 'orders',
     chart: 'bars',
   },

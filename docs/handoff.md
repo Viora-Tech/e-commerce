@@ -124,8 +124,13 @@ Migrations are at `0035`. Tests: 17 vitest projects, all green; `bun run test` f
 
 ## Open loose ends
 
-1. Order status duplicates payment and shipment state (`paid`, `fulfilled`, `delivered`);
-   worth reducing to `open | cancelled` and deriving the rest. Schema change, own PR.
+1. ~~Order status duplicates payment and shipment state.~~ Done (`feat/order-status-split`,
+   migration 0062): `order.status` is lifecycle only (`draft | open | completed | cancelled`);
+   `payment_status` and `fulfillment_status` are derived from payments, refunds, line
+   quantities and shipments by `recomputeOrderStatuses` (`packages/core/src/order/recompute.ts`),
+   which every mutation path calls in its transaction and which writes `order.paid` /
+   `order.fulfilled` on real transitions only. Rules: `@commerce/core/order-status`.
+   "Checkout paid" (the old `placed` vs `paid`) is `order.checkout_paid_at`.
 2. Parallel worktrees share the dev and test databases, so migration numbers collide and the
    `__drizzle_migrations` log drifts. Per-worktree database names would fix it.
 3. Sections still on empty states: Content (files beyond the media library, metaobjects),

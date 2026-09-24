@@ -1,9 +1,10 @@
-import { payment, refund } from '@commerce/db'
+import { order, payment, refund } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq, ne, sum } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { changeGiftCardBalance, GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { recomputeOrderStatuses } from './recompute'
 
 export type RefundInput = {
   paymentId: string
@@ -50,6 +51,14 @@ export async function refundPayment(
      run one after the other and the second sees the first in its total. Without
      it both read the same refunded sum and together return more than was
      captured. Pattern from Medusa's lock-then-recheck (MIT). */
+  const [head] = await ctx.tx
+    .select({ orderId: payment.orderId })
+    .from(payment)
+    .where(eq(payment.id, input.paymentId))
+  if (!head) throw new RefundNotAllowed('Payment not found')
+  /* Order first, then payment: the same lock order as applyPaymentStatus, so a
+     refund racing a webhook on the same order waits instead of deadlocking. */
+  await ctx.tx.select({ id: order.id }).from(order).where(eq(order.id, head.orderId)).for('update')
   const [p] = await ctx.tx
     .select()
     .from(payment)
@@ -109,5 +118,6 @@ export async function refundPayment(
   if (already + input.amountPaise >= p.amountPaise) {
     await ctx.tx.update(payment).set({ status: 'refunded' }).where(eq(payment.id, p.id))
   }
+  await recomputeOrderStatuses(ctx, p.orderId)
   return row ?? null
 }

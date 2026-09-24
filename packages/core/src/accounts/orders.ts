@@ -6,13 +6,17 @@ import {
   payment,
   product,
   productMedia,
-  refund,
   shipment,
   variant,
 } from '@commerce/db'
 import type { Tracking, TrackingEvent } from '@commerce/shipping'
 import { and, asc, desc, eq, inArray, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import type {
+  OrderFulfillmentStatus,
+  OrderLifecycleStatus,
+  OrderPaymentStatus,
+} from '../order/aggregate-status'
 import { balanceOwed } from '../preorder/balance'
 import type { GstBreakdown } from '../tax/gst'
 
@@ -37,7 +41,10 @@ export type ShopperOrderSummary = {
   id: string
   number: number
   placedAt: Date
-  status: 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
+  /** Lifecycle: drafts are never listed. */
+  status: Exclude<OrderLifecycleStatus, 'draft'>
+  paymentStatus: OrderPaymentStatus
+  fulfillmentStatus: OrderFulfillmentStatus
   totalPaise: number
   itemCount: number
   payment: ShopperPaymentState
@@ -60,8 +67,38 @@ export function paymentState(
   return 'pending'
 }
 
-const shipmentState = (s: { status: string } | undefined): ShopperShipmentState =>
-  (s?.status as ShopperShipmentState | undefined) ?? 'unfulfilled'
+/** Without a courier shipment, the order's own fulfilment status says where the parcel is. */
+const FROM_FULFILLMENT: Record<OrderFulfillmentStatus, ShopperShipmentState> = {
+  unfulfilled: 'unfulfilled',
+  partially_fulfilled: 'unfulfilled',
+  fulfilled: 'created',
+  shipped: 'in_transit',
+  partially_delivered: 'delivered',
+  delivered: 'delivered',
+  returned: 'rto',
+}
+
+const shipmentState = (
+  s: { status: string } | undefined,
+  fulfillment: OrderFulfillmentStatus,
+): ShopperShipmentState => {
+  if (fulfillment === 'delivered') return 'delivered'
+  return (s?.status as ShopperShipmentState | undefined) ?? FROM_FULFILLMENT[fulfillment]
+}
+
+type OrderMoney = Pick<
+  typeof order.$inferSelect,
+  'paymentStatus' | 'paymentMethod' | 'checkoutPaidAt'
+>
+
+/** The stored payment status first; the latest attempt only tells unpaid orders apart. */
+function shopperPayment(o: OrderMoney, latest: PaymentRow | undefined): ShopperPaymentState {
+  if (o.paymentStatus === 'refunded' || o.paymentStatus === 'partially_refunded') return 'refunded'
+  if (o.paymentStatus === 'paid' || o.paymentStatus === 'refund_needed') return 'paid'
+  // A deposit pre-order whose deposit is in reads as paid; the balance has its own panel.
+  if (o.paymentStatus === 'partially_paid' && o.checkoutPaidAt) return 'paid'
+  return paymentState(latest, o.paymentMethod, false)
+}
 
 export async function listCustomerOrders(
   ctx: StoreContext,
@@ -84,7 +121,7 @@ async function summarise(
 ): Promise<ShopperOrderSummary[]> {
   if (rows.length === 0) return []
   const ids = rows.map((r) => r.id)
-  const [lines, pays, ships, refunds] = await Promise.all([
+  const [lines, pays, ships] = await Promise.all([
     ctx.tx
       .select({
         orderId: orderLine.orderId,
@@ -96,7 +133,6 @@ async function summarise(
       .where(inArray(orderLine.orderId, ids)),
     ctx.tx.select().from(payment).where(inArray(payment.orderId, ids)),
     ctx.tx.select().from(shipment).where(inArray(shipment.orderId, ids)),
-    ctx.tx.select({ orderId: refund.orderId }).from(refund).where(inArray(refund.orderId, ids)),
   ])
   const productIds = [...new Set(lines.map((l) => l.productId))]
   const images = productIds.length
@@ -114,14 +150,22 @@ async function summarise(
       number: o.number,
       placedAt: o.placedAt,
       status: o.status as ShopperOrderSummary['status'],
+      paymentStatus: o.paymentStatus,
+      fulfillmentStatus: o.fulfillmentStatus,
       totalPaise: o.totalPaise,
       itemCount: mine.reduce((n, l) => n + l.quantity, 0),
-      payment: paymentState(
-        pays.find((p) => p.orderId === o.id),
-        o.paymentMethod,
-        refunds.some((r) => r.orderId === o.id),
+      payment: shopperPayment(
+        o,
+        pays
+          .filter((p) => p.orderId === o.id && p.provider !== 'gift_card')
+          .sort((a, b) => b.attempt - a.attempt)[0],
       ),
-      shipment: shipmentState(ships.find((s) => s.orderId === o.id)),
+      shipment: shipmentState(
+        ships
+          .filter((s) => s.orderId === o.id)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0],
+        o.fulfillmentStatus,
+      ),
       firstImage: img ? { url: img.url, alt: img.alt } : null,
     }
   })
@@ -242,7 +286,7 @@ export async function getCustomerOrder(
     taxPaise: o.taxPaise,
     gst: isGst(o.taxBreakdown) ? o.taxBreakdown : null,
     paymentMethod: o.paymentMethod,
-    balanceDuePaise: o.status === 'placed' ? 0 : balanceOwed(o),
+    balanceDuePaise: o.checkoutPaidAt ? balanceOwed(o) : 0,
     email: o.email,
     phone: o.phone,
     address: addr

@@ -82,7 +82,8 @@ describe('imported orders', () => {
         number: 1001,
         subtotalPaise: 50000,
         totalPaise: 50000,
-        status: 'paid',
+        status: 'open',
+        paymentStatus: 'paid',
         importedFrom: 'shopify',
         importMeta: { name: '#1001', financialStatus: 'paid', fulfillmentStatus: null },
       })

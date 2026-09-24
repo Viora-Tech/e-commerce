@@ -286,6 +286,8 @@ export async function getCustomer(tx: StoreTx, id: string) {
         id: order.id,
         number: order.number,
         status: order.status,
+        paymentStatus: order.paymentStatus,
+        fulfillmentStatus: order.fulfillmentStatus,
         paymentMethod: order.paymentMethod,
         totalPaise: order.totalPaise,
         placedAt: order.placedAt,

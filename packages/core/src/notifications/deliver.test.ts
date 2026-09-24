@@ -71,7 +71,7 @@ async function seedOrder(opts: { phone?: string } = {}) {
     .values({
       storeId: s.id,
       number: 7,
-      status: 'placed',
+      status: 'open',
       subtotalPaise: 199900,
       totalPaise: 204800,
       paymentMethod: 'cod',

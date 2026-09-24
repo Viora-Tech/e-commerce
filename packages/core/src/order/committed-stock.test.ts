@@ -34,7 +34,7 @@ beforeEach(async () => {
  * store with two locations: the selling one (10 on hand, 3 committed) and a
  * back room (5 on hand) that must never move.
  */
-async function seed(status: 'placed' | 'paid' | 'draft' = 'paid') {
+async function seed(status: 'open' | 'draft' = 'open') {
   const [s] = await owner.insert(store).values({ slug: 'waimers', name: 'Waimers' }).returning()
   if (!s) throw new Error('seed')
   const [shop, backRoom] = await owner
@@ -182,7 +182,8 @@ describe('committed stock on fulfilment', () => {
   it('status fulfilled packs every unpacked unit', async () => {
     const t = await seed()
     const o = await inStore(t, (ctx) => changeOrderStatus(ctx, t.orderId, 'fulfilled'))
-    expect(o?.status).toBe('fulfilled')
+    expect(o?.status).toBe('open')
+    expect(o?.fulfillmentStatus).toBe('fulfilled')
     expect((await levels(t)).shop).toEqual({ onHand: 7, committed: 0 })
   })
 })
@@ -225,7 +226,7 @@ describe('committed stock on cancel', () => {
       ),
     ).rejects.toBeInstanceOf(OrderNotFulfillable)
     await expect(
-      inStore(t, (ctx) => changeOrderStatus(ctx, t.orderId, 'placed')),
+      inStore(t, (ctx) => changeOrderStatus(ctx, t.orderId, 'paid')),
     ).rejects.toBeInstanceOf(OrderStatusLocked)
     await inStore(t, (ctx) => fulfilRemainingLines(ctx, t.orderId))
     expect((await levels(t)).shop).toEqual({ onHand: 10, committed: 0 })

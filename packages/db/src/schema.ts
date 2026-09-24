@@ -762,12 +762,51 @@ export const order = pgTable(
     phone: text('phone'),
     shippingAddressId: uuid('shipping_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
-    /** `draft` is a merchant-built order that has not been placed: no stock held, no revenue. */
-    status: text('status', {
-      enum: ['draft', 'placed', 'paid', 'fulfilled', 'delivered', 'cancelled'],
+    /**
+     * Lifecycle only. `draft` is a merchant-built order that has not been placed
+     * (no stock held, no revenue); `open` is live; `completed` is paid and
+     * delivered (derived); `cancelled` is set by hand or by expiry. Money and
+     * goods have their own columns below. See `@commerce/core/order-status`.
+     */
+    status: text('status', { enum: ['draft', 'open', 'completed', 'cancelled'] })
+      .notNull()
+      .default('open'),
+    /** Derived from payment attempts and refunds by `recomputeOrderStatuses`; stored for filtering. */
+    paymentStatus: text('payment_status', {
+      enum: [
+        'unpaid',
+        'authorized',
+        'partially_paid',
+        'paid',
+        'partially_refunded',
+        'refunded',
+        'refund_needed',
+      ],
     })
       .notNull()
-      .default('placed'),
+      .default('unpaid'),
+    /** Derived from line quantities, shipments and courier events by `recomputeOrderStatuses`. */
+    fulfillmentStatus: text('fulfillment_status', {
+      enum: [
+        'unfulfilled',
+        'partially_fulfilled',
+        'fulfilled',
+        'shipped',
+        'partially_delivered',
+        'delivered',
+        'returned',
+      ],
+    })
+      .notNull()
+      .default('unfulfilled'),
+    /**
+     * When the amount due at checkout (the whole order, or a pre-order's
+     * deposit) was first captured. Set once; the only `order.paid` event is
+     * written by the call that sets it.
+     */
+    checkoutPaidAt: timestamp('checkout_paid_at', { withTimezone: true }),
+    /** When the merchant marked the order delivered by hand; courier deliveries come from `shipment`. */
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
     subtotalPaise: integer('subtotal_paise').notNull(),
     shippingPaise: integer('shipping_paise').notNull().default(0),
     /** The shipping rate charged, as it was at checkout. Null before shipping rates existed. */
@@ -838,8 +877,23 @@ export const order = pgTable(
     uniqueIndex('order_store_cart_unique')
       .on(t.storeId, t.cartId)
       .where(sql`${t.cartId} is not null`),
-    /** The unpaid-order expiry job reads the oldest placed orders per store. */
-    index('order_placed_at_unpaid').on(t.storeId, t.placedAt).where(sql`${t.status} = 'placed'`),
+    /** The unpaid-order expiry job reads the oldest open orders whose checkout is not paid. */
+    index('order_placed_at_unpaid')
+      .on(t.storeId, t.placedAt)
+      .where(sql`${t.status} = 'open' and ${t.checkoutPaidAt} is null`),
+    /** List tabs: Unpaid, Unfulfilled, Completed and Cancelled filter on these, newest first. */
+    index('order_store_payment_status').on(t.storeId, t.paymentStatus, t.placedAt),
+    index('order_store_fulfillment_status').on(t.storeId, t.fulfillmentStatus, t.placedAt),
+    index('order_store_status').on(t.storeId, t.status, t.placedAt),
+    check('order_status_check', sql`${t.status} in ('draft', 'open', 'completed', 'cancelled')`),
+    check(
+      'order_payment_status_check',
+      sql`${t.paymentStatus} in ('unpaid', 'authorized', 'partially_paid', 'paid', 'partially_refunded', 'refunded', 'refund_needed')`,
+    ),
+    check(
+      'order_fulfillment_status_check',
+      sql`${t.fulfillmentStatus} in ('unfulfilled', 'partially_fulfilled', 'fulfilled', 'shipped', 'partially_delivered', 'delivered', 'returned')`,
+    ),
     /** The balance job reads pre-orders with money still owed. */
     index('order_balance_due')
       .on(t.storeId, t.placedAt)

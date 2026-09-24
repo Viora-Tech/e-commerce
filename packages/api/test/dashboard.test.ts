@@ -104,13 +104,21 @@ describe('dashboard.summary', () => {
           ...base,
           number: 1,
           totalPaise: 100000,
-          status: 'paid',
+          status: 'open',
+          paymentStatus: 'paid',
           placedAt: hoursAgo(2),
           shippingAddressId: addr?.id,
         },
-        { ...base, number: 2, totalPaise: 50000, status: 'placed', placedAt: daysAgo(2) },
+        { ...base, number: 2, totalPaise: 50000, status: 'open', placedAt: daysAgo(2) },
         { ...base, number: 3, totalPaise: 70000, status: 'cancelled', placedAt: daysAgo(3) },
-        { ...base, number: 4, totalPaise: 20000, status: 'paid', placedAt: daysAgo(9) },
+        {
+          ...base,
+          number: 4,
+          totalPaise: 20000,
+          status: 'open',
+          paymentStatus: 'paid',
+          placedAt: daysAgo(9),
+        },
       ])
       .returning()
     await owner.insert(orderLine).values([
@@ -149,7 +157,8 @@ describe('dashboard.summary', () => {
       number: 1,
       subtotalPaise: 999,
       totalPaise: 999999,
-      status: 'paid',
+      status: 'open',
+      paymentStatus: 'paid',
       placedAt: daysAgo(1),
     })
 

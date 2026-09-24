@@ -3,7 +3,8 @@ import {
   CommerceError,
   DraftInputSchema,
   insertOutboxEvent,
-  type OutboxEventType,
+  ORDER_FULFILLMENT_STATUSES,
+  ORDER_PAYMENT_STATUSES,
   permissions,
   ReminderTooSoon,
   requestBalance,
@@ -29,6 +30,7 @@ import {
   getOrder,
   importedSource,
   listOrders,
+  ORDER_VIEWS,
   orderStats,
   refundOrderPayment,
   setOrderStatus,
@@ -52,13 +54,8 @@ import {
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 
-const status = z.enum(['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'])
-
-/** Which outbox event a merchant-driven status change writes. */
-const STATUS_EVENT: Partial<Record<z.infer<typeof status>, OutboxEventType>> = {
-  paid: 'order.paid',
-  fulfilled: 'order.fulfilled',
-}
+/** What "Mark as" on the order page records; the statuses are then derived. */
+const change = z.enum(['paid', 'fulfilled', 'delivered', 'cancelled'])
 
 /** Imported historical orders are read-only; every state-changing route refuses them. */
 async function assertNotImported(
@@ -80,8 +77,11 @@ export const ordersRouter = {
         page: z.number().int().min(1).default(1),
         perPage: z.number().int().min(1).max(100).default(25),
         search: z.string().trim().max(200).optional(),
-        status: status.optional(),
-        pendingUpi: z.boolean().optional(),
+        /** The list tab. */
+        view: z.enum(ORDER_VIEWS).optional(),
+        status: z.enum(['open', 'completed', 'cancelled']).optional(),
+        paymentStatus: z.array(z.enum(ORDER_PAYMENT_STATUSES)).max(10).optional(),
+        fulfillmentStatus: z.array(z.enum(ORDER_FULFILLMENT_STATUSES)).max(10).optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
@@ -121,13 +121,8 @@ export const ordersRouter = {
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       try {
-        const result = await fulfilOrder(context.tx, context.scope.storeId, input)
-        if (result.complete) {
-          await insertOutboxEvent(context.tx, context.scope.storeId, 'order.fulfilled', {
-            orderId: input.orderId,
-          })
-        }
-        return result
+        // order.fulfilled is written by the recompute inside, on the last unit packed.
+        return await fulfilOrder(context.tx, context.scope.storeId, input)
       } catch (err) {
         if (err instanceof CommerceError)
           throw new ORPCError('BAD_REQUEST', { message: err.message })
@@ -146,7 +141,9 @@ export const ordersRouter = {
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
-      const { order: o, balance } = await collectOrderPayment(
+      // order.paid (or order.balance_paid for a pre-order balance) is written
+      // inside, by the call that sees the money arrive.
+      const { order: o } = await collectOrderPayment(
         context.tx,
         context.scope.storeId,
         input,
@@ -156,10 +153,6 @@ export const ordersRouter = {
         }
         throw err
       })
-      // A pre-order balance taken by hand writes order.balance_paid itself; the order was already paid.
-      if (o && !balance) {
-        await insertOutboxEvent(context.tx, context.scope.storeId, 'order.paid', { orderId: o.id })
-      }
       return o
     }),
 
@@ -220,17 +213,9 @@ export const ordersRouter = {
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      const row = await bookShipment(
-        context.tx,
-        context.scope.storeId,
-        shipping,
-        secret(),
-        input.orderId,
-      )
-      await insertOutboxEvent(context.tx, context.scope.storeId, 'order.fulfilled', {
-        orderId: input.orderId,
-      })
-      return row
+      // Booking packs what is left; the recompute writes order.fulfilled only
+      // if this is what completed the packing.
+      return bookShipment(context.tx, context.scope.storeId, shipping, secret(), input.orderId)
     }),
 
   refreshTracking: can(permissions.ORDERS_READ)
@@ -259,8 +244,9 @@ export const ordersRouter = {
       )
     }),
 
+  /** "Mark as paid / fulfilled / delivered", or cancel. Events follow the derived transitions. */
   setStatus: can(permissions.ORDERS_WRITE)
-    .input(z.object({ id: z.uuid(), status }))
+    .input(z.object({ id: z.uuid(), status: change }))
     .handler(async ({ context, input }) => {
       // Cancelling is its own grant; everything else on this route is orders.write.
       if (input.status === 'cancelled' && !context.scope.can(permissions.ORDERS_CANCEL)) {
@@ -281,10 +267,6 @@ export const ordersRouter = {
         }
         throw err
       })
-      const event = STATUS_EVENT[input.status]
-      if (o && event) {
-        await insertOutboxEvent(context.tx, context.scope.storeId, event, { orderId: o.id })
-      }
       return o
     }),
 

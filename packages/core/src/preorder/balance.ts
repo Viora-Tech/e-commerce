@@ -72,8 +72,7 @@ async function lockOwingOrder(ctx: StoreContext, orderId: string) {
     throw new BalanceNotPayable(orderId, reason, ctx.storeId)
   }
   // The balance follows the deposit: an order still waiting on its first payment is not asked twice.
-  if (o.status === 'placed')
-    throw new BalanceNotPayable(orderId, 'deposit not paid yet', ctx.storeId)
+  if (!o.checkoutPaidAt) throw new BalanceNotPayable(orderId, 'deposit not paid yet', ctx.storeId)
   return { o, owed }
 }
 

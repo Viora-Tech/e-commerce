@@ -32,7 +32,8 @@
     "./marketing": "./src/marketing/client.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
-    "./preorder": "./src/preorder/client.ts"
+    "./preorder": "./src/preorder/client.ts",
+    "./order-status": "./src/order/aggregate-status.ts"
   },
   "scripts": {
     "test": "vitest run",

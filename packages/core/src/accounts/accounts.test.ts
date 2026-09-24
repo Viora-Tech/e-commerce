@@ -18,6 +18,7 @@ import { resetDb } from '@commerce/db/test'
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { recomputeOrderStatuses } from '../order/recompute'
 import {
   createAddress,
   deleteAddress,
@@ -383,7 +384,7 @@ describe('order history', () => {
     storeId: string,
     customerId: string | null,
     number: number,
-    status = 'placed',
+    status = 'open',
   ) {
     const [p] = await owner
       .insert(product)
@@ -399,7 +400,7 @@ describe('order history', () => {
         storeId,
         number,
         customerId,
-        status: status as 'placed',
+        status: status as 'open',
         subtotalPaise: 199_800,
         totalPaise: 199_800,
         taxPaise: 30_478,
@@ -460,10 +461,17 @@ describe('order history', () => {
       },
     })
 
+    await run(storeId, (ctx) => recomputeOrderStatuses(ctx, one.orderId))
+
     const list = await run(storeId, (ctx) => listCustomerOrders(ctx, asha))
     expect(list.map((o) => [o.number, o.payment, o.shipment, o.itemCount])).toEqual([
       [2, 'cod', 'unfulfilled', 2],
       [1, 'paid', 'in_transit', 2],
+    ])
+    expect(list.map((o) => [o.status, o.paymentStatus, o.fulfillmentStatus])).toEqual([
+      ['open', 'unpaid', 'unfulfilled'],
+      // Lines were never packed in this fixture, so the lines win over the courier.
+      ['open', 'paid', 'unfulfilled'],
     ])
 
     const detail = await run(storeId, (ctx) => getCustomerOrder(ctx, asha, 1))

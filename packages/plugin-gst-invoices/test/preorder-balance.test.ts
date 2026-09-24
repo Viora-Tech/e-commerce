@@ -85,7 +85,9 @@ async function seedDepositPreorder(slug = 'waimers') {
     .values({
       storeId: s.id,
       number: 1,
-      status: 'paid',
+      status: 'open',
+      paymentStatus: 'partially_paid',
+      checkoutPaidAt: new Date(),
       paymentMethod: 'razorpay',
       shippingAddressId: a?.id,
       subtotalPaise: 200_000,

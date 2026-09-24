@@ -1,10 +1,6 @@
-import { type OrderListFilter, type OrderStatus, PENDING_UPI } from '@/data/orders'
+import type { OrderListFilter } from '@/data/orders'
 
-/** The Orders tab as `orders.list` input: a status, or the Pending UPI view. */
-export function orderListFilter(f: OrderListFilter | null): {
-  status?: OrderStatus | undefined
-  pendingUpi?: true | undefined
-} {
-  if (f === PENDING_UPI) return { pendingUpi: true }
-  return f ? { status: f } : {}
+/** The Orders tab as `orders.list` input: every tab is a server-side view; none is All. */
+export function orderListFilter(f: OrderListFilter | null): { view?: OrderListFilter } {
+  return f ? { view: f } : {}
 }

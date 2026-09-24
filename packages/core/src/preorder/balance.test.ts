@@ -117,7 +117,8 @@ describe('balance attempt', () => {
     const storeId = await seedStore()
     const { orderId } = await seedDepositOrder(storeId)
     const before = await orderRow(orderId)
-    expect(before?.status).toBe('paid')
+    expect(before?.paymentStatus).toBe('partially_paid')
+    expect(before?.checkoutPaidAt).not.toBeNull()
     expect(before?.balanceDuePaise).toBe(160_000)
 
     const gw = new FakePaymentProvider({ mode: 'capture', id: 'fake' })
@@ -129,7 +130,7 @@ describe('balance attempt', () => {
     const after = await orderRow(orderId)
     expect(after?.balancePaidAt).not.toBeNull()
     expect(after?.balanceDuePaise).toBe(0)
-    expect(after?.status).toBe('paid')
+    expect(after?.paymentStatus).toBe('paid')
     expect(await outboxOf(storeId, 'order.balance_paid')).toHaveLength(1)
     // Only the deposit moved the order to paid; the balance does not announce it again.
     expect(await outboxOf(storeId, 'order.paid')).toHaveLength(1)
@@ -233,14 +234,21 @@ describe('balance attempt', () => {
     const storeId = await seedStore()
     const [o] = await owner
       .insert(order)
-      .values({ storeId, number: 99, subtotalPaise: 1000, totalPaise: 1000, status: 'paid' })
+      .values({
+        storeId,
+        number: 99,
+        subtotalPaise: 1000,
+        totalPaise: 1000,
+        status: 'open',
+        checkoutPaidAt: new Date(),
+      })
       .returning()
     await expect(
       withStore(app, storeId, (tx) => openBalanceAttempt({ storeId, tx }, o?.id as string, 'fake')),
     ).rejects.toThrow(/none due/)
     await owner
       .update(order)
-      .set({ status: 'placed', balanceDuePaise: 500, depositPaise: 500 })
+      .set({ checkoutPaidAt: null, balanceDuePaise: 500, depositPaise: 500 })
       .where(eq(order.id, o?.id as string))
     await expect(
       withStore(app, storeId, (tx) => requestBalance({ storeId, tx }, o?.id as string)),
@@ -429,7 +437,7 @@ describe('unpaid balance rule', () => {
       new Date(t0.getTime() + 6 * DAY),
     )
     expect(out.map((r) => r.result)).toEqual(['paid'])
-    expect((await orderRow(orderId))?.status).toBe('paid')
+    expect((await orderRow(orderId))?.paymentStatus).toBe('paid')
     expect((await orderRow(orderId))?.balancePaidAt).not.toBeNull()
   })
 
@@ -441,7 +449,7 @@ describe('unpaid balance rule', () => {
     expect(
       await runBalanceSchedule(app, storeId, [deposit], new Date(t0.getTime() + 60 * DAY)),
     ).toEqual([])
-    expect((await orderRow(orderId))?.status).toBe('paid')
+    expect((await orderRow(orderId))?.status).toBe('open')
   })
 })
 
@@ -458,7 +466,7 @@ describe('store isolation', () => {
     expect(
       await runBalanceSchedule(app, storeB, [a.deposit], new Date(t0.getTime() + 2 * DAY)),
     ).toEqual([])
-    expect((await orderRow(a.orderId))?.status).toBe('paid')
+    expect((await orderRow(a.orderId))?.status).toBe('open')
     await expect(
       startBalancePayment(app, storeB, a.orderId, new FakePaymentProvider()),
     ).rejects.toThrow(/not found/)

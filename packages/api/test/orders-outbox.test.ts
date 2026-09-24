@@ -48,7 +48,7 @@ async function seedOrder(storeId: string, opts: { importedFrom?: string } = {}) 
     .values({
       storeId,
       number: 1,
-      status: 'placed',
+      status: 'open',
       paymentMethod: 'cod',
       subtotalPaise: 10_000,
       totalPaise: 10_000,
@@ -84,7 +84,7 @@ describe('orders router writes the outbox instead of enqueueing directly', () =>
       { id: orderId, status: 'paid' },
       { context: m.ctx },
     )
-    expect(result?.status).toBe('paid')
+    expect(result?.paymentStatus).toBe('paid')
 
     const rows = await outboxRows(m.storeId)
     expect(rows).toHaveLength(1)

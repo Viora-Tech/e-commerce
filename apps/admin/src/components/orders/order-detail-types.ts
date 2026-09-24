@@ -41,22 +41,15 @@ export function paymentStatus(
   return payment.status
 }
 
-/** Which `STATUS.fulfilment` value an order status maps to. */
-export function fulfilmentStatus(status: OrderStatus): StatusValue<'fulfilment'> {
-  if (status === 'delivered') return 'delivered'
-  if (status === 'fulfilled') return 'fulfilled'
-  return 'unfulfilled'
+/**
+ * How many of a line have gone out. The line count is the record; the order's
+ * fulfilment status is derived from it, so the two can no longer disagree.
+ */
+export function packedQuantity(_order: OrderDetail, line: OrderLine): number {
+  return Math.min(line.fulfilledQuantity, line.quantity)
 }
 
 /** Lines with something still to pack, with how many are left on each. */
-/* A fulfilled or delivered order is packed in full, even when its lines carry no
-   fulfilment rows (demo data and orders moved by status before line tracking existed). */
-const PACKED_STATUSES: ReadonlySet<string> = new Set(['fulfilled', 'delivered'])
-
-/** How many of a line have gone out: the recorded count, or all of it once the order is packed. */
-export function packedQuantity(order: OrderDetail, line: OrderLine): number {
-  return PACKED_STATUSES.has(order.status) ? line.quantity : line.fulfilledQuantity
-}
 
 export function unfulfilledLines(order: OrderDetail): { line: OrderLine; remaining: number }[] {
   return order.lines

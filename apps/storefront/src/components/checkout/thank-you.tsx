@@ -56,7 +56,10 @@ export default function ThankYouTemplate({
 }: ThankYouTemplateProps) {
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
   // The latest attempt failed on an order that is still open: offer a new attempt.
-  const failed = o.status === 'placed' && (pay?.status === 'failed' || pay?.status === 'cancelled')
+  const failed =
+    o.status === 'open' &&
+    !o.checkoutPaidAt &&
+    (pay?.status === 'failed' || pay?.status === 'cancelled')
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
   const qr = awaiting && session?.kind === 'upi_qr' ? session.qr : null

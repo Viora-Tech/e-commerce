@@ -16,6 +16,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { CommerceError, OutOfStock } from '../errors'
+import { recomputeOrderStatuses } from './recompute'
 
 /**
  * Draft orders: an order a merchant builds by hand (phone order, WhatsApp
@@ -334,7 +335,7 @@ export async function convertDraft(
   const method = opts.paymentMethod ?? o.paymentMethod ?? 'manual'
   const [updated] = await ctx.tx
     .update(order)
-    .set({ status: 'placed', paymentMethod: method, placedAt: new Date() })
+    .set({ status: 'open', paymentMethod: method, placedAt: new Date() })
     .where(eq(order.id, id))
     .returning()
   await ctx.tx.insert(payment).values({
@@ -345,5 +346,6 @@ export async function convertDraft(
     status: 'pending',
     amountPaise: o.totalPaise,
   })
-  return updated ?? null
+  const result = await recomputeOrderStatuses(ctx, id)
+  return updated && result ? { ...updated, ...result.after } : (updated ?? null)
 }

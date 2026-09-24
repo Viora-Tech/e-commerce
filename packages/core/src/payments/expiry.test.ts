@@ -90,7 +90,9 @@ const reserved = async (variantId: string) =>
     ?.reserved
 
 const statusOf = async (orderId: string) =>
-  (await owner.select().from(order).where(eq(order.id, orderId)))[0]?.status
+  ((o) => (o?.status === 'open' ? o.paymentStatus : o?.status))(
+    (await owner.select().from(order).where(eq(order.id, orderId)))[0],
+  )
 
 describe('unpaid order expiry', () => {
   it('cancels an online order past the window, releases its stock and records why', async () => {
@@ -104,7 +106,7 @@ describe('unpaid order expiry', () => {
 
     expect(out).toEqual([{ orderId: old.orderId, result: 'cancelled' }])
     expect(await statusOf(old.orderId)).toBe('cancelled')
-    expect(await statusOf(fresh.orderId)).toBe('placed')
+    expect(await statusOf(fresh.orderId)).toBe('unpaid')
     expect(await reserved(shop.variantId)).toBe(1)
     const [a] = await owner.select().from(payment).where(eq(payment.orderId, old.orderId))
     expect(a?.status).toBe('cancelled')
@@ -134,7 +136,7 @@ describe('unpaid order expiry', () => {
     const [out] = await expireUnpaidOrders(app, shop.storeId, [gw], NOW)
 
     expect(out).toMatchObject({ orderId: r.orderId, result: 'skipped' })
-    expect(await statusOf(r.orderId)).toBe('placed')
+    expect(await statusOf(r.orderId)).toBe('unpaid')
     expect(await reserved(shop.variantId)).toBe(1)
   })
 
@@ -143,7 +145,7 @@ describe('unpaid order expiry', () => {
     const r = await order1(shop, new CodPaymentProvider(), 600)
 
     expect(await expireUnpaidOrders(app, shop.storeId, [], NOW)).toEqual([])
-    expect(await statusOf(r.orderId)).toBe('placed')
+    expect(await statusOf(r.orderId)).toBe('unpaid')
   })
 
   it('expires an order once, however many runs overlap', async () => {
@@ -163,7 +165,7 @@ describe('unpaid order expiry', () => {
     expect(cancelled).toEqual([{ orderId: r.orderId, result: 'cancelled' }])
     // One unit released: the other order still holds its unit.
     expect(await reserved(shop.variantId)).toBe(1)
-    expect(await statusOf(keep.orderId)).toBe('placed')
+    expect(await statusOf(keep.orderId)).toBe('unpaid')
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, r.orderId))
     expect(notes).toHaveLength(1)
   })
@@ -179,7 +181,7 @@ describe('unpaid order expiry', () => {
     expect(outB).toEqual([])
     const outA = await expireUnpaidOrders(app, a.storeId, [gw], NOW)
     expect(outA).toEqual([{ orderId: ra.orderId, result: 'cancelled' }])
-    expect(await statusOf(rb.orderId)).toBe('placed')
+    expect(await statusOf(rb.orderId)).toBe('unpaid')
     expect(await reserved(b.variantId)).toBe(1)
   })
 })

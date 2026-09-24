@@ -7,7 +7,10 @@ import { notDraft, placedIn, type ReportSpan } from './types'
 export type OrderFact = {
   id: string
   placedAt: Date
+  /** Lifecycle: open, completed or cancelled. */
   status: string
+  paymentStatus: string
+  fulfillmentStatus: string
   cancelled: boolean
   customerId: string | null
   email: string | null
@@ -41,6 +44,8 @@ export async function orderFacts(tx: StoreTx, span: ReportSpan): Promise<OrderFa
       id: order.id,
       placedAt: order.placedAt,
       status: order.status,
+      paymentStatus: order.paymentStatus,
+      fulfillmentStatus: order.fulfillmentStatus,
       customerId: order.customerId,
       email: order.email,
       paymentMethod: order.paymentMethod,

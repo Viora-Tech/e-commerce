@@ -1,6 +1,6 @@
 import { type Db, order, orderLine, orderNote, payment, store, withStore } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
-import { and, asc, eq, gt, inArray, isNull, notInArray, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNotNull, isNull, notInArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { RefundNotAllowed, refundedPaise, refundPayment } from '../order/refund'
@@ -80,7 +80,9 @@ export async function balanceCandidates(ctx: StoreContext) {
         gt(order.balanceDuePaise, 0),
         isNull(order.balancePaidAt),
         isNull(order.importedFrom),
-        notInArray(order.status, ['cancelled', 'draft', 'placed']),
+        notInArray(order.status, ['cancelled', 'draft']),
+        // The balance follows the deposit: nothing is asked before it is paid.
+        isNotNull(order.checkoutPaidAt),
       ),
     )
     .orderBy(asc(order.placedAt))

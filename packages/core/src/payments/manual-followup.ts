@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNotNull, isNull, lte, ne, or } from 'drizzle-o
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { recomputeOrderStatuses } from '../order/recompute'
 import { cancelOrder } from '../order/status'
 import { insertOutboxEvent } from '../outbox/write'
 import { parsePaymentSettings } from './settings'
@@ -52,7 +53,8 @@ export class ReminderTooSoon extends CommerceError {
 const stillWaiting = (orderId: string) =>
   and(
     eq(order.id, orderId),
-    eq(order.status, 'placed'),
+    eq(order.status, 'open'),
+    isNull(order.checkoutPaidAt),
     eq(order.paymentMethod, MANUAL_METHOD),
     isNull(order.importedFrom),
   )
@@ -191,6 +193,7 @@ export async function cancelUnpaidManualOrder(
         ne(payment.provider, GIFT_CARD_PROVIDER),
       ),
     )
+  await recomputeOrderStatuses(ctx, orderId)
   await ctx.tx.insert(orderNote).values({
     storeId: ctx.storeId,
     orderId,
@@ -213,7 +216,8 @@ export async function manualFollowUpCandidates(ctx: StoreContext) {
     .from(order)
     .where(
       and(
-        eq(order.status, 'placed'),
+        eq(order.status, 'open'),
+        isNull(order.checkoutPaidAt),
         eq(order.paymentMethod, MANUAL_METHOD),
         isNull(order.importedFrom),
       ),

@@ -2,9 +2,10 @@ import { cn } from '@commerce/ui/lib/utils'
 import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import FilterButton from '@/components/layout/filter-button'
+import { orderStage } from '@/components/orders/order-stage'
 import StatusLabel from '@/components/status/status-label'
 import { homeContent } from '@/data/home'
-import type { OrderStatus } from '@/data/orders'
+import type { OrderFulfillmentStatus, OrderStatus } from '@/data/orders'
 import { formatPaise } from '@/lib/money'
 
 const dateTime = new Intl.DateTimeFormat('en-IN', {
@@ -18,6 +19,7 @@ type RecentOrder = {
   id: string
   number: number
   status: OrderStatus
+  fulfillmentStatus: OrderFulfillmentStatus
   totalPaise: number
   customerName: string | null
   email: string | null
@@ -62,7 +64,7 @@ export default function RecentOrdersCard({ orders }: { orders: RecentOrder[] }) 
               <span>{i + 1}.</span>
               <span className="truncate">#{o.number}</span>
               <span>{dateTime.format(new Date(o.placedAt))}</span>
-              <StatusLabel kind="order" value={o.status} size="sm" />
+              <StatusLabel {...orderStage(o)} size="sm" />
               <span className="text-right tabular-nums">{formatPaise(o.totalPaise)}</span>
             </Link>
           ))}

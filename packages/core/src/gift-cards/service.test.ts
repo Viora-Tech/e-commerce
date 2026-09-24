@@ -268,7 +268,12 @@ describe('checkout', () => {
     expect(provider.calls).toEqual([])
     expect(r.paymentStatus).toBe('captured')
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
-    expect(o).toMatchObject({ status: 'paid', paymentMethod: 'gift_card', totalPaise: 20000 })
+    expect(o).toMatchObject({
+      status: 'open',
+      paymentStatus: 'paid',
+      paymentMethod: 'gift_card',
+      totalPaise: 20000,
+    })
     expect(await balanceOf(card.id)).toBe(30000)
   })
 
@@ -356,7 +361,7 @@ describe('checkout', () => {
       paymentProvider: new FakePaymentProvider(),
     })
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
-    expect(o).toMatchObject({ taxPaise: 0, totalPaise: 200000, status: 'paid' })
+    expect(o).toMatchObject({ taxPaise: 0, totalPaise: 200000, paymentStatus: 'paid' })
     const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, r.orderId))
     expect(line).toMatchObject({ giftCard: true, gstRatePercent: 0 })
     const [inv] = await owner.select().from(inventoryLevel).where(eq(inventoryLevel.variantId, gc))
@@ -398,7 +403,8 @@ describe('issuing sold cards', () => {
     ])
     expect(cards[0]?.expiresOn).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
-    expect(o?.status).toBe('fulfilled')
+    // Gift cards only: paid and issued, so nothing is left to do.
+    expect(o).toMatchObject({ status: 'completed', fulfillmentStatus: 'fulfilled' })
 
     const email = new FakeEmail()
     const first0 = cards[0]

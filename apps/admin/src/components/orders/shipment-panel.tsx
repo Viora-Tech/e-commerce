@@ -11,6 +11,7 @@ import { shipmentPanelContent as copy } from '@/data/shipping'
 import type { OrderShipment } from './order-detail-types'
 
 type ShipmentPanelProps = {
+  /** The order's fulfilment status while open, else its lifecycle (completed, cancelled). */
   orderStatus: string
   shipment: OrderShipment
   busy: boolean
@@ -18,6 +19,9 @@ type ShipmentPanelProps = {
   onRefresh: () => void
   onCancel: () => void
 }
+
+/* Nothing to book once the order is closed or the parcel has arrived. */
+const CLOSED: ReadonlySet<string> = new Set(['cancelled', 'completed', 'delivered', 'returned'])
 
 /** Book, refresh or cancel the consignment for an order, and show the courier's scans. */
 export default function ShipmentPanel({
@@ -30,7 +34,7 @@ export default function ShipmentPanel({
 }: ShipmentPanelProps) {
   // Early returns
   const canBook = !shipment || shipment.status === 'cancelled'
-  const bookable = canBook && orderStatus !== 'cancelled' && orderStatus !== 'delivered'
+  const bookable = canBook && !CLOSED.has(orderStatus)
   if (!shipment || canBook) {
     return (
       <DataCard title={copy.heading}>

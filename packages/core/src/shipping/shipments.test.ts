@@ -42,7 +42,7 @@ afterAll(async () => {
   await app.$client.end()
 })
 
-async function seedOrder(status: 'placed' | 'paid' = 'paid') {
+async function seedOrder() {
   const [s] = await owner
     .insert(store)
     .values({
@@ -81,7 +81,7 @@ async function seedOrder(status: 'placed' | 'paid' = 'paid') {
     .values({
       storeId: s.id,
       number: 7,
-      status,
+      status: 'open',
       subtotalPaise: 199900,
       totalPaise: 199900,
       paymentMethod: 'cod',
@@ -170,7 +170,7 @@ describe('shipments', () => {
       lines: [{ title: 'Pad', quantity: 2 }],
     })
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
-    expect(o?.status).toBe('fulfilled')
+    expect(o?.fulfillmentStatus).toBe('fulfilled')
 
     // A second call returns the existing consignment instead of booking twice.
     const again = await withStore(app, storeId, (tx) =>
@@ -196,6 +196,8 @@ describe('shipments', () => {
     const transit: Tracking = { waybill: row.waybill, status: 'in_transit', events: [] }
     const a = await withStore(app, storeId, (tx) => applyTracking({ storeId, tx }, row.id, transit))
     expect(a.becameDelivered).toBe(false)
+    const [moving] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(moving?.fulfillmentStatus).toBe('shipped')
 
     const delivered: Tracking = {
       waybill: row.waybill,
@@ -213,7 +215,9 @@ describe('shipments', () => {
     )
     expect(c.becameDelivered).toBe(false)
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
-    expect(o?.status).toBe('delivered')
+    expect(o?.fulfillmentStatus).toBe('delivered')
+    // Cash on delivery not collected yet: delivered, but still open.
+    expect(o?.status).toBe('open')
     expect((await withStore(app, storeId, (tx) => listOpenShipments({ storeId, tx }))).length).toBe(
       0,
     )
@@ -231,6 +235,19 @@ describe('shipments', () => {
     expect(c.status).toBe('cancelled')
     const [s] = await owner.select().from(shipment).where(eq(shipment.id, row.id))
     expect(s?.status).toBe('cancelled')
+  })
+
+  it('reads a courier return (RTO) as returned', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const row = await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, new FakeShippingProvider(), orderId),
+    )
+    await withStore(app, storeId, (tx) =>
+      applyTracking({ storeId, tx }, row.id, { waybill: row.waybill, status: 'rto', events: [] }),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(o?.fulfillmentStatus).toBe('returned')
+    expect(o?.status).toBe('open')
   })
 
   it('refuses an order without an address', async () => {
