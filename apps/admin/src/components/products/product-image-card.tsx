@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { useRef, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import AltTextDialog from '@/components/media/alt-text-dialog'
+import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/products'
@@ -26,7 +27,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
   // Hooks
   const queue = useUploadQueue((done) => onChange((prev) => [...prev, done]))
   const [editing, setEditing] = useState<MediaTileItem | null>(null)
-  const browseRef = useRef<HTMLInputElement>(null)
+  const [picking, setPicking] = useState(false)
   const replaceRef = useRef<HTMLInputElement>(null)
 
   // Event handlers
@@ -44,6 +45,13 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
   const handleAltSaved = (id: string, alt: string | null) =>
     onChange((prev) => prev.map((i) => (i.id === id ? { ...i, alt } : i)))
 
+  /** Appends library picks after what's already here, keeping the order they were picked in. */
+  const handlePickMany = (picked: PickedMedia[]) => {
+    setPicking(false)
+    if (picked.length === 0) return
+    onChange((prev) => [...prev, ...picked])
+  }
+
   // Render logic
   const [cover, ...rest] = items
   const pending = queue.pending
@@ -52,7 +60,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
     <DataCard
       title={copy.heading}
       action={
-        <Button variant="outline" size="sm" onClick={() => browseRef.current?.click()}>
+        <Button variant="outline" size="sm" onClick={() => setPicking(true)}>
           <ImageIcon aria-hidden="true" />
           {copy.browse}
         </Button>
@@ -72,7 +80,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
           ) : (
             <button
               type="button"
-              onClick={() => browseRef.current?.click()}
+              onClick={() => setPicking(true)}
               className="flex size-full flex-col items-center justify-center gap-2 text-body text-muted-foreground transition-colors hover:text-foreground"
             >
               <ImageIcon className="size-6" aria-hidden="true" />
@@ -125,7 +133,7 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
         ))}
         <button
           type="button"
-          onClick={() => browseRef.current?.click()}
+          onClick={() => setPicking(true)}
           className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-border-strong border-dashed text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
         >
           <Plus className="size-5" aria-hidden="true" />
@@ -133,14 +141,6 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
         </button>
       </div>
 
-      <input
-        ref={browseRef}
-        type="file"
-        accept={ACCEPT}
-        multiple
-        className="sr-only"
-        onChange={(e) => handlePicked(e.target.files, false)}
-      />
       <input
         ref={replaceRef}
         type="file"
@@ -153,6 +153,12 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
         item={editing}
         onClose={() => setEditing(null)}
         onSaved={handleAltSaved}
+      />
+      <MediaPickDialog
+        open={picking}
+        multiple
+        onClose={() => setPicking(false)}
+        onPickMany={handlePickMany}
       />
     </DataCard>
   )
