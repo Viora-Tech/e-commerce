@@ -1,5 +1,6 @@
 import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
+import { createRedisRateLimitStore } from '@commerce/core'
 import { createDb } from '@commerce/db'
 import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
@@ -80,8 +81,10 @@ await outboxRelay.queue.upsertJobScheduler(
   { name: 'relay' },
 )
 
+const rateLimitStore = createRedisRateLimitStore(redis)
+
 const app = new Hono()
-app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET))
+app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, rateLimitStore))
 
 app.get('/health', async (c) => {
   const [dbOk, queueOk] = await Promise.all([

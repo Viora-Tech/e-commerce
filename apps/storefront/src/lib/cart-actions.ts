@@ -24,6 +24,7 @@ import { order, payment } from '@commerce/db'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
@@ -32,8 +33,13 @@ import { currentCustomer } from './customer-session'
 import { db } from './db'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
+import { clientIp, rateLimited } from './rate-limit'
 import { estimateForPincode } from './shipping'
 import { inStore } from './store-context'
+
+const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
+const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
+const PAYMENT_RETRY_IP_RULE = { limit: 20, windowMs: 60_000 }
 
 /** Server actions for the cart. The store id comes from the page's route param, never the client. */
 
@@ -106,6 +112,12 @@ export async function checkoutAction(
 ): Promise<CheckoutResult> {
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
+  const ip = clientIp(await headers())
+  const [byCart, byIp] = await Promise.all([
+    rateLimited('checkout-submit:cart', cartId, CHECKOUT_CART_RULE),
+    rateLimited('checkout-submit:ip', ip, CHECKOUT_IP_RULE),
+  ])
+  if (!byCart.ok || !byIp.ok) return { error: checkoutContent.errors.rateLimited }
   // Signed in: the order belongs to the session's customer, whatever email the form carried.
   const me = await currentCustomer(storeId)
   const form = me ? { ...submitted, email: me.email } : submitted
@@ -222,6 +234,14 @@ function redirectAfterCheckout(result: Pick<PlaceOrderResult, 'session' | 'order
  * one attempt; the order and its stock are untouched.
  */
 export async function retryPaymentAction(storeId: string, orderNumber: number) {
+  const ip = clientIp(await headers())
+  const [byIp, byOrder] = await Promise.all([
+    rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', String(orderNumber), PAYMENT_RETRY_IP_RULE),
+  ])
+  // No error slot on this action's return type: over the limit lands back on
+  // the thank-you page, same as a retry that turns out not to be needed.
+  if (!byIp.ok || !byOrder.ok) redirect(`/checkout/thank-you/${orderNumber}`)
   const target = await inStore(storeId, async (tx) => {
     const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
     if (!o) return null

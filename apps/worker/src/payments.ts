@@ -1,18 +1,45 @@
-import { handlePaymentWebhook, parsePaymentSettings, resolvePaymentProviders } from '@commerce/core'
+import {
+  checkRateLimit,
+  clientIp,
+  handlePaymentWebhook,
+  parsePaymentSettings,
+  type RateLimitStore,
+  rateLimitKey,
+  resolvePaymentProviders,
+  retryAfterSeconds,
+} from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 
 /**
+ * Generous and per IP only (not per store): a gateway can legitimately retry
+ * the same event several times, and one busy store's webhooks should not
+ * starve another's on a shared IP allowlist.
+ */
+const WEBHOOK_IP_RULE = { limit: 120, windowMs: 60_000 }
+
+/**
  * POST /webhooks/payments/:provider/:storeId
  * The store id is in the URL because a gateway's dashboard is configured per
  * merchant; the signature check inside the adapter is what authenticates it.
  */
-export function paymentWebhooks(db: Db, settingsSecret: string) {
+export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: RateLimitStore) {
   const app = new Hono()
   app.post('/webhooks/payments/:provider/:storeId', async (c) => {
     const { provider: providerId, storeId } = c.req.param()
+    const ip = clientIp(c.req.raw.headers)
+    const limit = await checkRateLimit(
+      rateLimitStore,
+      rateLimitKey('payment-webhook:ip', ip),
+      WEBHOOK_IP_RULE,
+    )
+    if (!limit.ok) {
+      return c.json({ ok: false, reason: 'rate limited' }, 429, {
+        'retry-after': String(retryAfterSeconds(limit)),
+      })
+    }
     const rawBody = await c.req.text()
     const headers: Record<string, string | undefined> = {}
     c.req.raw.headers.forEach((v, k) => {

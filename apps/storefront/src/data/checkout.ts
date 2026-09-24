@@ -108,6 +108,7 @@ export const checkoutContent = {
       'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:
       'That discount has just run out, so your order was not placed. Check the new total and place it again.',
+    rateLimited: 'Too many attempts. Please wait a minute and try again.',
   },
 } as const
 
