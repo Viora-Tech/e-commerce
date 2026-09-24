@@ -53,6 +53,12 @@ Each kind has a contract and a factory type. The factory is what the registry
 holds: `fields` drive the settings form, `validateConfig` runs on save, and
 `create` builds a provider from one store's decrypted config.
 
+A payment adapter can offer a second method on the same gateway account (Razorpay's
+"UPI (auto-confirmed)" QR method next to Razorpay Checkout): give its factory
+`credentialsFrom: 'razorpay'` to reuse that provider's saved keys, and its provider
+`webhookId = 'razorpay'` so it answers on the gateway's one webhook URL and shares its
+event dedupe.
+
 ```ts
 // src/fedex.ts
 import {

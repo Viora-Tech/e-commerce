@@ -29,12 +29,15 @@ export async function handlePaymentWebhook(
 ): Promise<WebhookOutcome> {
   const parsed = provider.parseWebhook(input)
   if (!parsed.ok) return parsed
+  // Methods sharing one gateway account (Razorpay Checkout, Razorpay UPI QR)
+  // share its webhook, so one event is stored once whichever method parsed it.
+  const dedupeAs = provider.webhookId ?? provider.id
 
   await ctx.tx
     .insert(paymentEvent)
     .values({
       storeId: ctx.storeId,
-      provider: provider.id,
+      provider: dedupeAs,
       eventId: parsed.eventId,
       type: parsed.event.type,
       payload: parsed.event.raw ?? {},
@@ -43,7 +46,7 @@ export async function handlePaymentWebhook(
   const [row] = await ctx.tx
     .select({ id: paymentEvent.id, status: paymentEvent.status })
     .from(paymentEvent)
-    .where(and(eq(paymentEvent.provider, provider.id), eq(paymentEvent.eventId, parsed.eventId)))
+    .where(and(eq(paymentEvent.provider, dedupeAs), eq(paymentEvent.eventId, parsed.eventId)))
     .for('update')
   if (!row) throw new Error('payment_event row missing after insert')
   if (row.status === 'processed') {

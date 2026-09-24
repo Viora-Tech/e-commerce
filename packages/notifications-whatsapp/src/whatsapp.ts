@@ -57,6 +57,12 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.balance?.dueLabel ?? '-', d.actionUrl ?? '-']
     case 'balance_received':
       return [d.storeName, n, d.totalLabel]
+    case 'payment_reminder':
+      return [d.customerName, d.storeName, n, d.totalLabel, d.orderUrl ?? '-']
+    case 'unpaid_cancelled':
+      return [d.customerName, d.storeName, n, d.totalLabel]
+    case 'unpaid_cancel_notice':
+      return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
     case 'back_in_stock_confirm':
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':

@@ -21,6 +21,13 @@ export const PaymentSettingsSchema = z.object({
    * release their stock. 0 turns it off. COD and manual transfers never expire.
    */
   expireUnpaidAfterMinutes: z.number().int().min(0).max(10_080).default(30),
+  /**
+   * Cancel manual UPI / bank transfer orders still unpaid this many hours
+   * after they were placed, releasing their stock. Off (0) by default: the
+   * shopper may have paid and the merchant not matched it yet. When on, the
+   * merchant is told 12 hours before; marking the order paid stops it.
+   */
+  manualCancelAfterHours: z.number().int().min(0).max(720).default(0),
 })
 export type PaymentSettings = z.infer<typeof PaymentSettingsSchema>
 
@@ -29,6 +36,7 @@ export const defaultPaymentSettings: PaymentSettings = {
   providers: {},
   adjustments: {},
   expireUnpaidAfterMinutes: 30,
+  manualCancelAfterHours: 0,
 }
 
 export function parsePaymentSettings(raw: unknown): PaymentSettings {
@@ -63,7 +71,7 @@ export function resolvePaymentProviders(
   const providers: PaymentProvider[] = []
   const errors: string[] = []
   for (const id of decrypted.enabled) {
-    const r = registry.create(id, decrypted.providers[id] ?? {})
+    const r = registry.create(id, registry.configFor(id, decrypted.providers))
     if (r.ok) providers.push(r.provider)
     else errors.push(`${id}: ${r.errors.join(', ')}`)
   }

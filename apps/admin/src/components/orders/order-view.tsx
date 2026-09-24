@@ -82,6 +82,18 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       setBusy(false)
     }
   }
+  const handleSendReminder = async () => {
+    setBusy(true)
+    try {
+      await api.orders.sendPaymentReminder({ orderId: order.id })
+      toast.success(copy.payment.transfer.sentToast)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : ordersContent.bulk.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
   /** Courier calls can fail; the message is the app's wording from the API, shown as a toast. */
   const handleCourier = async <T,>(run: () => Promise<T>, done: (result: T) => string) => {
     setBusy(true)
@@ -137,6 +149,11 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   const balanceOwed =
     live && order.status !== 'placed' && !order.balancePaidAt && (order.balanceDuePaise ?? 0) > 0
   const requestBalance = balanceOwed ? handleRequestBalance : undefined
+  // A transfer the merchant has not matched yet: the customer can be nudged.
+  const sendReminder =
+    live && order.status === 'placed' && order.paymentMethod === 'manual'
+      ? handleSendReminder
+      : undefined
 
   /* One next step, in the order a merchant works: take the money, then pack it. */
   const nextAction = canCollect
@@ -182,6 +199,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
             onRefund={canRefund ? setRefunding : undefined}
             onCollect={canCollect ? () => setCollecting(true) : undefined}
             onRequestBalance={requestBalance}
+            onSendReminder={sendReminder}
             busy={busy}
           />
           {readOnly ? null : (

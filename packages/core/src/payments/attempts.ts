@@ -4,7 +4,7 @@ import { and, desc, eq, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
-import { applyPaymentStatus } from './confirm'
+import { type AppliedPayment, applyPaymentStatus } from './confirm'
 import { OPEN_ATTEMPT_STATUSES, type PaymentRowStatus } from './transitions'
 
 /*
@@ -285,13 +285,56 @@ export async function retryPayment(
   return { attempt, created: true }
 }
 
+/**
+ * The latest attempt is a UPI QR whose close time has passed but whose
+ * `qr_code.closed` webhook has not landed yet: ask the gateway and record the
+ * answer, so "Get a new QR" can open the next attempt straight away. A QR
+ * that was paid is captured instead; one the gateway cannot be asked about is
+ * left open (the retry then hands the same attempt back).
+ */
+export async function settleExpiredQrAttempt(
+  db: Db,
+  storeId: string,
+  orderId: string,
+  provider: PaymentProvider,
+  now: Date = new Date(),
+): Promise<AppliedPayment | null> {
+  const latest = await withStore(db, storeId, async (tx) => {
+    const attempts = await paymentAttempts({ storeId, tx }, orderId)
+    return attempts.find((a) => a.purpose === 'order')
+  })
+  if (!latest || !(OPEN_ATTEMPT_STATUSES as readonly string[]).includes(latest.status)) return null
+  const session = sessionOf(latest)
+  if (session?.kind !== 'upi_qr' || new Date(session.qr.expiresAt) > now) return null
+  let truth: Awaited<ReturnType<PaymentProvider['fetchStatus']>>
+  try {
+    truth = await provider.fetchStatus(latest.providerRef)
+  } catch {
+    return null
+  }
+  if (truth.status === 'authorized') return null
+  return withStore(db, storeId, (tx) =>
+    applyPaymentStatus(
+      { storeId, tx },
+      {
+        paymentId: latest.id,
+        status: truth.status === 'captured' ? 'captured' : 'failed',
+        providerPaymentId: truth.providerPaymentId,
+      },
+    ),
+  )
+}
+
 /** `retryPayment`, committed, then the new attempt started with the gateway. */
 export async function retryAndStartPayment(
   db: Db,
   storeId: string,
   orderId: string,
   provider: PaymentProvider,
+  now: Date = new Date(),
 ): Promise<StartedPayment> {
+  const settled = await settleExpiredQrAttempt(db, storeId, orderId, provider, now)
+  if (settled?.becameCaptured) return { ...attemptSnapshot(settled.payment), becameCaptured: true }
   const { attempt } = await withStore(db, storeId, (tx) => retryPayment({ storeId, tx }, orderId))
   if (attempt.status !== 'created') return attemptSnapshot(attempt)
   return startPaymentAttempt(db, storeId, attempt.id, provider)

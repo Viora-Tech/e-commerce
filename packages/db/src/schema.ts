@@ -809,6 +809,16 @@ export const order = pgTable(
     balanceRequestedAt: timestamp('balance_requested_at', { withTimezone: true }),
     /** Balance reminders sent so far; the reminder job only moves it forward, one step at a time. */
     balanceRemindersSent: integer('balance_reminders_sent').notNull().default(0),
+    /**
+     * When the merchant last sent the shopper a payment reminder for an unpaid
+     * manual UPI / bank transfer order. The 6-hour resend limit counts from here.
+     */
+    paymentReminderSentAt: timestamp('payment_reminder_sent_at', { withTimezone: true }),
+    /**
+     * When the merchant was told this unpaid transfer order will be cancelled
+     * automatically. Set once; the cancel waits at least 12 hours after it.
+     */
+    unpaidCancelNoticeAt: timestamp('unpaid_cancel_notice_at', { withTimezone: true }),
     placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
     /**
      * Set on historical orders brought over from another platform (`shopify`). Such

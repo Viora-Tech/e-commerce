@@ -20,6 +20,8 @@ import type {
 } from '@commerce/notifications'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { manualCancelAt } from '../payments/manual-followup'
+import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl } from '../preorder/balance-link'
 import {
@@ -48,6 +50,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   cod: 'Cash on delivery',
   manual: 'UPI or bank transfer',
   razorpay: 'Razorpay',
+  razorpay_upi: 'UPI',
 }
 
 export type DeliverOptions = {
@@ -92,6 +95,46 @@ function balanceData(
 
 /** Messages asking for the balance: pointless (and confusing) once it is paid or the order is gone. */
 const BALANCE_ASKS: ReadonlySet<TemplateId> = new Set(['balance_request', 'balance_reminder'])
+
+/** Messages for the merchant, not the shopper: sent by email to the store's contact address. */
+const MERCHANT_TEMPLATES: ReadonlySet<TemplateId> = new Set(['unpaid_cancel_notice'])
+
+/**
+ * Where a merchant message goes, and what it adds. Null when there is no
+ * contact email, or the order no longer waits (paid or cancelled meanwhile).
+ */
+async function merchantNotice(
+  ctx: StoreContext,
+  orderId: string,
+): Promise<{ to: Recipient; data: Partial<TemplateData> } | null> {
+  const [s] = await ctx.tx
+    .select({ email: store.contactEmail, payments: store.payments })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  const [o] = await ctx.tx
+    .select({
+      status: order.status,
+      placedAt: order.placedAt,
+      noticeAt: order.unpaidCancelNoticeAt,
+    })
+    .from(order)
+    .where(eq(order.id, orderId))
+  if (!s?.email || o?.status !== 'placed') return null
+  const at = manualCancelAt(parsePaymentSettings(s.payments).manualCancelAfterHours, {
+    placedAt: o.placedAt,
+    cancelNoticeAt: o.noticeAt,
+  })
+  return {
+    to: { email: s.email },
+    data: {
+      deadlineLabel: at.toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Kolkata',
+      }),
+    },
+  }
+}
 
 /** Load everything a template needs from the order. Null when the order is not visible. */
 export async function buildTemplateData(
@@ -263,12 +306,26 @@ export async function deliverNotification(
     if (!o || balanceOwed(o) <= 0) return []
     if (opts.storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, opts.storefrontUrl)
   }
+  // A reminder to pay is pointless once the order is paid or gone.
+  if (input.template === 'payment_reminder') {
+    const [o] = await ctx.tx
+      .select({ status: order.status })
+      .from(order)
+      .where(eq(order.id, input.orderId))
+    if (o?.status !== 'placed') return []
+  }
+  const merchant = MERCHANT_TEMPLATES.has(input.template)
+    ? await merchantNotice(ctx, input.orderId)
+    : null
+  if (MERCHANT_TEMPLATES.has(input.template) && !merchant) return []
+  const recipient = merchant?.to ?? built.to
 
   const channels = await channelsFor(ctx, opts)
   const extras = opts.extras ? await opts.extras(input) : null
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
+    ...merchant?.data,
     ...opts.data,
     ...(extras?.links.length ? { links: extras.links } : {}),
   }
@@ -285,9 +342,11 @@ export async function deliverNotification(
   const results: DeliveryResult[] = []
   for (const channel of channels) {
     if (opts.requires && channel.requires !== opts.requires) continue
-    const to = built.to[channel.requires]
+    // Merchant messages go by email only; there is no approved WhatsApp template for them.
+    if (merchant && channel.requires !== 'email') continue
+    const to = recipient[channel.requires]
     if (!to || sent.has(channel.id)) continue
-    const r = await channel.send({ to: built.to, template: input.template, data, attachments })
+    const r = await channel.send({ to: recipient, template: input.template, data, attachments })
     await ctx.tx
       .insert(notification)
       .values({

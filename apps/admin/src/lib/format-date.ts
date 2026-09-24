@@ -33,6 +33,17 @@ export function formatWhen(value: Date | string, now = new Date()): string {
   return day.format(date)
 }
 
+/** "just now", "5 minutes ago", "3 hours ago", "2 days ago". */
+export function formatAgo(value: Date | string, now = new Date()): string {
+  const minutes = Math.floor((now.getTime() - new Date(value).getTime()) / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
+  const days = Math.floor(hours / 24)
+  return days === 1 ? '1 day ago' : `${days} days ago`
+}
+
 /** Day heading for grouped lists: "Today", "Yesterday", "3 Sept 2026". */
 export function formatDay(value: Date | string, now = new Date()): string {
   const date = new Date(value)

@@ -5,7 +5,9 @@ import {
   insertOutboxEvent,
   type OutboxEventType,
   permissions,
+  ReminderTooSoon,
   requestBalance,
+  sendManualPaymentReminder,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -79,6 +81,7 @@ export const ordersRouter = {
         perPage: z.number().int().min(1).max(100).default(25),
         search: z.string().trim().max(200).optional(),
         status: status.optional(),
+        pendingUpi: z.boolean().optional(),
       }),
     )
     .handler(({ context, input }) => listOrders(context.tx, input)),
@@ -176,6 +179,34 @@ export const ordersRouter = {
           { author: context.session.user.email },
         )
       } catch (err) {
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      }
+    }),
+
+  /**
+   * "Send payment reminder" on an unpaid UPI / bank transfer order: email, and
+   * WhatsApp when set up, with the QR and bank details. At most once every 6 hours.
+   */
+  sendPaymentReminder: can(permissions.ORDERS_WRITE)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
+      try {
+        return await sendManualPaymentReminder(
+          { storeId: context.scope.storeId, tx: context.tx },
+          input.orderId,
+          { author: context.session.user.email },
+        )
+      } catch (err) {
+        if (err instanceof ReminderTooSoon) {
+          throw new ORPCError('TOO_MANY_REQUESTS', {
+            message: err.message,
+            data: { nextAt: err.nextAt.toISOString() },
+          })
+        }
         if (err instanceof CommerceError) {
           throw new ORPCError('BAD_REQUEST', { message: err.message })
         }

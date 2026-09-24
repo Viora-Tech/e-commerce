@@ -22,6 +22,12 @@ export type TemplateId =
   | 'balance_reminder'
   /** The balance was paid; the order will ship. */
   | 'balance_received'
+  /** A manual UPI / bank transfer order is still unpaid; links to the payment details. Sent by the merchant. */
+  | 'payment_reminder'
+  /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
+  | 'unpaid_cancel_notice'
+  /** A manual UPI / bank transfer order was cancelled for non-payment. */
+  | 'unpaid_cancelled'
   /** Confirm a back-in-stock "notify me" signup (double opt-in). */
   | 'back_in_stock_confirm'
   /** The variant the shopper asked about is available again. */
@@ -65,6 +71,8 @@ export type TemplateData = {
         depositNonRefundable?: boolean | undefined
       }
     | undefined
+  /** For unpaid_cancel_notice: when the order will be cancelled. */
+  deadlineLabel?: string | undefined
   /** For login_code: the one-time code. */
   code?: string | undefined
   /** For back_in_stock_confirm/back_in_stock_alert: the product/variant and the links each carries. */

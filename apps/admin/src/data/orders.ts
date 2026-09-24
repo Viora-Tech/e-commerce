@@ -1,6 +1,12 @@
 export const ORDER_STATUSES = ['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
+/** Placed orders paid by manual UPI / bank transfer, waiting for the merchant to mark them paid. */
+export const PENDING_UPI = 'pending_upi'
+/** What the Orders list's tab (`?status=`) accepts: a status, or the Pending UPI view. */
+export const ORDER_LIST_FILTERS = [...ORDER_STATUSES, PENDING_UPI] as const
+export type OrderListFilter = (typeof ORDER_LIST_FILTERS)[number]
+
 /** 1st, 2nd, 3rd, 4th — for "3rd order" on the customer card. */
 function ordinal(n: number): string {
   const rest = n % 100
@@ -29,6 +35,7 @@ export const ordersContent = {
   resource: { singular: 'order', plural: 'orders' },
   tabs: {
     all: 'All orders',
+    pendingUpi: 'Pending UPI',
   },
   status: {
     placed: 'Placed',
@@ -189,7 +196,11 @@ export const orderDetailContent = {
   },
   payment: {
     heading: 'Payment',
-    method: { cod: 'Cash on delivery', manual: 'UPI / bank transfer' } as Record<string, string>,
+    method: {
+      cod: 'Cash on delivery',
+      manual: 'UPI / bank transfer',
+      razorpay_upi: 'UPI (auto-confirmed)',
+    } as Record<string, string>,
     reference: 'Reference',
     gatewayId: 'Gateway payment id',
     captured: 'Captured',
@@ -207,6 +218,14 @@ export const orderDetailContent = {
       request: 'Request balance',
       resend: 'Send balance request again',
       requestedToast: 'Balance request sent to the customer',
+    },
+    transfer: {
+      waiting: 'Waiting for the transfer',
+      reminderSent: (ago: string) => `Reminder sent ${ago}`,
+      noReminder: 'No reminder sent yet',
+      nextAt: (when: string) => `Next one possible ${when.charAt(0).toLowerCase()}${when.slice(1)}`,
+      send: 'Send payment reminder',
+      sentToast: 'Payment reminder sent to the customer',
     },
     refundNeeded:
       'Money was captured after this order was cancelled or already paid. Refund it to the shopper.',

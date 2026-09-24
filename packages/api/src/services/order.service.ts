@@ -23,7 +23,7 @@ import {
   variant,
 } from '@commerce/db'
 import type { PaymentRegistry } from '@commerce/payments'
-import { and, asc, count, desc, eq, gte, ilike, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 
 export type OrderStatus = 'placed' | 'paid' | 'fulfilled' | 'delivered' | 'cancelled'
 
@@ -37,10 +37,19 @@ export async function listOrders(
     perPage: number
     search?: string | undefined
     status?: OrderStatus | undefined
+    /** Placed manual UPI / bank transfer orders still waiting for "Mark as paid". */
+    pendingUpi?: boolean | undefined
   },
 ) {
   const where = and(
     notDraft,
+    input.pendingUpi
+      ? and(
+          eq(order.status, 'placed'),
+          eq(order.paymentMethod, 'manual'),
+          isNull(order.importedFrom),
+        )
+      : undefined,
     input.search
       ? or(ilike(order.email, `%${input.search}%`), ilike(customer.name, `%${input.search}%`))
       : undefined,

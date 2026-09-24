@@ -3,11 +3,23 @@ export const paymentsSettingsContent = {
   title: 'Payments',
   intro:
     'Enable the methods shoppers can pay with and add a fee or discount per method. Gateway keys are stored encrypted.',
-  webhookHint: 'Webhook URL for the Razorpay dashboard:',
+  webhookHint:
+    'Webhook URL for the Razorpay dashboard (tick payment.* and refund.* events, plus qr_code.credited and qr_code.closed for auto-confirmed UPI):',
+  upiQrHint:
+    'Runs on your Razorpay keys: fill them in on the Razorpay card first (Razorpay Checkout itself can stay off). Shoppers get a single-use UPI QR for the exact amount, and the order is marked paid by the Razorpay webhook:',
   unpaid: {
     heading: 'Unpaid orders',
     label: 'Cancel unpaid online orders after (minutes)',
-    help: 'Orders paid online that are still unpaid after this long are cancelled and their stock is released. The gateway is checked first, so a late payment is kept. Cash on delivery and bank transfer orders are never cancelled. 0 turns this off.',
+    help: 'Orders paid online that are still unpaid after this long are cancelled and their stock is released. The gateway is checked first, so a late payment is kept. Cash on delivery is never cancelled; UPI or bank transfer orders follow their own rule below. 0 turns this off.',
+  },
+  transfers: {
+    heading: 'Unpaid UPI or bank transfers',
+    autoCancel: 'Cancel unpaid transfer orders automatically',
+    autoCancelHelp:
+      'Off by default, since a customer may have paid before you matched it. Customers are never reminded automatically; send a reminder from the order instead.',
+    cancelLabel: 'Cancel after (hours from the order)',
+    cancelHelp:
+      'You get an email 12 hours before, and the order waits at least that long after it. Marking the order paid stops the cancellation. The customer is told when it is cancelled.',
   },
   preorder: {
     heading: 'Pre-order balance',
