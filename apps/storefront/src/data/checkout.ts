@@ -24,6 +24,8 @@ export const thankYouContent = {
     cod: (total: string) => `Pay ${total} in cash when it arrives.`,
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
     manual: 'Your order is reserved until we receive your transfer.',
+    upiQr: (total: string) =>
+      `Scan the QR with any UPI app to pay ${total}. This page updates on its own once it is paid.`,
     paid: (total: string) => `Payment of ${total} received.`,
     failed: (total: string) =>
       `Your payment of ${total} did not go through. Your order is saved; try again when ready.`,
@@ -36,6 +38,7 @@ export const thankYouContent = {
   giftCardPaid: (last: string) => `Gift card •••• ${last}`,
   payNow: 'Pay now',
   retryPayment: 'Retry payment',
+  newQr: 'Get a new UPI QR',
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',
   discount: 'Discount',
@@ -68,6 +71,17 @@ export const manualPaymentContent = {
       reference: 'Reference',
     },
   },
+} as const
+
+/** The auto-confirmed Razorpay UPI QR on the thank-you page. */
+export const upiQrContent = {
+  heading: (amount: string) => `Pay ${amount} by UPI`,
+  qrAlt: (amount: string) => `UPI QR code for ${amount}`,
+  closesIn: (clock: string) => `This QR closes in ${clock}.`,
+  help: 'Scan with Google Pay, PhonePe, Paytm or any UPI app. The amount is filled in for you.',
+  open: 'Open in UPI app',
+  expired: 'This QR has closed. Your order is still saved; get a new QR to pay.',
+  renew: 'Get a new QR',
 } as const
 
 /** Pixel size of the rendered UPI QR on the thank-you page. */

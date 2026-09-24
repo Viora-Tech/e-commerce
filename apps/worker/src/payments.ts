@@ -58,7 +58,10 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
         parsePaymentSettings(s.payments),
         settingsSecret,
       )
-      const provider = providers.find((p) => p.id === providerId)
+      // A second method on the same gateway (Razorpay UPI QR) answers on the gateway's URL.
+      const provider =
+        providers.find((p) => p.id === providerId) ??
+        providers.find((p) => p.webhookId === providerId)
       if (!provider) return { ok: false as const, reason: 'provider not enabled for store' }
       // handlePaymentWebhook -> applyPaymentStatus already writes the
       // order.paid outbox row in this same transaction when it captures.

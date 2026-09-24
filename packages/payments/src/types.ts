@@ -73,7 +73,27 @@ export type CheckoutSession =
       providerRef: string
       instructions: ManualInstructions
     }
+  | {
+      /**
+       * A single-use UPI QR for the exact amount, confirmed by the gateway's
+       * webhook (no merchant step). Shown on the thank-you page until it closes.
+       */
+      kind: 'upi_qr'
+      provider: string
+      providerRef: string
+      qr: UpiQr
+    }
   | { kind: 'none'; provider: string; providerRef: string }
+
+export type UpiQr = {
+  /** Hosted QR image from the gateway. */
+  imageUrl: string
+  /** `upi://pay?...` intent to open a UPI app on the same phone, when the gateway returns one. */
+  upiUri?: string | undefined
+  amountPaise: number
+  /** ISO time the QR closes; after it the shopper asks for a new one (a new attempt). */
+  expiresAt: string
+}
 
 export type ManualInstructions = {
   /** Text the shopper must quote so the merchant can match the payment. */
@@ -142,6 +162,12 @@ export interface PaymentProvider {
   readonly id: string
   /** Shown to shoppers at checkout. */
   readonly label: string
+  /**
+   * The id webhooks arrive under (`/webhooks/payments/<webhookId>/...`) when
+   * it differs from `id`: a second method on the same gateway account shares
+   * the gateway's one webhook URL and its event dedupe.
+   */
+  readonly webhookId?: string | undefined
 
   createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult>
 
@@ -190,6 +216,12 @@ export type PaymentProviderFactory<Config> = {
   label: string
   /** What the merchant fills in Settings > Payments. Drives the form; nothing is hard-coded in the admin. */
   fields: ProviderField[]
+  /**
+   * Borrow another factory's saved config (its keys), e.g. a second Razorpay
+   * method. That config sits under this factory's own; enabling this one
+   * needs the other configured, not enabled.
+   */
+  credentialsFrom?: string | undefined
   /** Zod-like validator kept minimal so this package has no runtime deps. */
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): PaymentProvider

@@ -22,6 +22,12 @@ export type TemplateId =
   | 'balance_reminder'
   /** The balance was paid; the order will ship. */
   | 'balance_received'
+  /** A manual UPI / bank transfer order is still unpaid; links to the payment details. Sent by the merchant. */
+  | 'payment_reminder'
+  /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
+  | 'unpaid_cancel_notice'
+  /** A manual UPI / bank transfer order was cancelled for non-payment. */
+  | 'unpaid_cancelled'
 
 export type Recipient = {
   email?: string | undefined
@@ -61,6 +67,8 @@ export type TemplateData = {
         depositNonRefundable?: boolean | undefined
       }
     | undefined
+  /** For unpaid_cancel_notice: when the order will be cancelled. */
+  deadlineLabel?: string | undefined
   /** For login_code: the one-time code. */
   code?: string | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */

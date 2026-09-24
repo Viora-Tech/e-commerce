@@ -1,6 +1,17 @@
-import { expireUnpaidOrders, parsePaymentSettings, resolvePaymentProviders } from '@commerce/core'
+import {
+  expireUnpaidOrders,
+  parsePaymentSettings,
+  resolvePaymentProviders,
+  runManualFollowUp,
+} from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
-import { type Db, store, storesWithUnpaidOnlineOrders, withStore } from '@commerce/db'
+import {
+  type Db,
+  store,
+  storesWithPendingManualOrders,
+  storesWithUnpaidOnlineOrders,
+  withStore,
+} from '@commerce/db'
 import { type IORedis, Queue, UNPAID_EXPIRY_QUEUE, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
@@ -14,6 +25,11 @@ export const EXPIRY_EVERY_MS = 60_000
  * is logged and skipped; the next tick tries again. BullMQ runs one tick at a
  * time per scheduler, and each order is expired under its row lock, so an
  * overlapping run cannot release stock twice.
+ *
+ * The same tick runs the opt-in auto-cancel for manual UPI / bank transfer
+ * orders (Settings › Payments, off by default): the merchant is told 12
+ * hours ahead, then the order is cancelled. Shoppers are never reminded
+ * automatically; the merchant sends that from the order.
  */
 export function createUnpaidOrderExpiry(
   connection: IORedis,
@@ -53,9 +69,31 @@ export function createUnpaidOrderExpiry(
         }
       }
       if (cancelled || paid) console.log(`[expiry] cancelled=${cancelled} paid=${paid}`)
-      return { stores: storeIds.length, cancelled, paid }
+      const transfers = await followUpManualTransfers(db)
+      return { stores: storeIds.length, cancelled, paid, ...transfers }
     },
     { connection },
   )
   return { queue, worker }
+}
+
+/** Merchant notice then cancel for unpaid manual-transfer orders, in stores that opted in. */
+async function followUpManualTransfers(db: Db) {
+  let noticed = 0
+  let transfersCancelled = 0
+  for (const storeId of await storesWithPendingManualOrders(db)) {
+    try {
+      for (const r of await runManualFollowUp(db, storeId)) {
+        if (r.result === 'noticed') noticed += 1
+        if (r.result === 'cancelled') transfersCancelled += 1
+        if (r.reason) console.warn(`[transfers] ${storeId}/${r.orderId} skipped: ${r.reason}`)
+      }
+    } catch (err) {
+      console.warn(`[transfers] store ${storeId} failed:`, err)
+    }
+  }
+  if (noticed || transfersCancelled) {
+    console.log(`[transfers] noticed=${noticed} cancelled=${transfersCancelled}`)
+  }
+  return { noticed, transfersCancelled }
 }

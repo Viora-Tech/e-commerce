@@ -2,6 +2,7 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import { CreditCard } from '@commerce/ui/icons'
+import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import PreorderBalanceSettings from '@/components/settings/preorder-balance-settings'
 import ProviderSettingsForm, {
@@ -17,9 +18,14 @@ type Extra = {
   adjustments: Record<string, PaymentAdjustment>
   /** Minutes before an unpaid online order is cancelled; 0 is never. */
   expireUnpaidAfterMinutes: number
+  /** Hours before an unpaid manual-transfer order is cancelled; 0 (the default) is never. */
+  manualCancelAfterHours: number
 }
 
 const DEFAULT_EXPIRY_MINUTES = 30
+
+/** Methods that confirm through the Razorpay webhook. */
+const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
@@ -28,10 +34,10 @@ const save = (next: Parameters<typeof api.store.updatePayments>[0]) =>
   api.store.updatePayments(next)
 
 function webhookHint(m: ProviderDef) {
-  if (m.id !== 'razorpay') return null
+  if (!RAZORPAY_WEBHOOK_METHODS.has(m.id)) return null
   return (
     <p className="text-caption text-muted-foreground">
-      {copy.webhookHint}{' '}
+      {m.id === 'razorpay_upi' ? copy.upiQrHint : copy.webhookHint}{' '}
       <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
         {`${WORKER_URL}/webhooks/payments/razorpay/<store id>`}
       </code>
@@ -58,10 +64,14 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
   const [, unpaid, preorders] = settingsContent.sections.payments
   return (
     <>
-      <SettingsSection id={unpaid?.id ?? 'section-unpaid'}>
+      <SettingsSection id={unpaid?.id ?? 'section-unpaid'} className="flex flex-col gap-4">
         <UnpaidExpiryField
           value={extra.expireUnpaidAfterMinutes}
           onChange={(expireUnpaidAfterMinutes) => setExtra({ ...extra, expireUnpaidAfterMinutes })}
+        />
+        <ManualTransferFields
+          cancelHours={extra.manualCancelAfterHours}
+          onChange={(manualCancelAfterHours) => setExtra({ ...extra, manualCancelAfterHours })}
         />
       </SettingsSection>
       {/* Saved on its own (store.preorder), not with the payment methods above. */}
@@ -80,7 +90,11 @@ export default function PaymentsSettings() {
       intro={copy.intro}
       load={load}
       save={save}
-      emptyExtra={{ adjustments: {}, expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES }}
+      emptyExtra={{
+        adjustments: {},
+        expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES,
+        manualCancelAfterHours: 0,
+      }}
       renderHint={webhookHint}
       renderExtra={adjustmentFields}
       renderFooter={footer}

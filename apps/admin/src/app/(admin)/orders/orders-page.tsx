@@ -21,10 +21,18 @@ import { paymentStatusOf } from '@/components/orders/order-payment-state'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import RowIconCells from '@/components/table/row-icon-cells'
-import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
+import {
+  ORDER_LIST_FILTERS,
+  ORDER_STATUSES,
+  type OrderListFilter,
+  type OrderStatus,
+  ordersContent,
+  PENDING_UPI,
+} from '@/data/orders'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import { orderListFilter } from '@/lib/order-filter'
 import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.list>>
@@ -32,9 +40,11 @@ type Item = ListResult['items'][number]
 
 /** First page, tiles and the all-orders count rendered on the server so nothing paints empty. */
 export type OrdersInitial = {
-  query: ListQuery<OrderStatus>
+  query: ListQuery<OrderListFilter>
   result: ListResult
   allCount: number
+  /** Manual UPI / bank transfer orders waiting to be marked paid; the Pending UPI tab's badge. */
+  pendingUpiCount: number
 }
 
 const PER_PAGE = LIST_PER_PAGE
@@ -43,14 +53,14 @@ const PER_PAGE = LIST_PER_PAGE
 const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
 const formatDate = (d: Date) => date.format(d).replaceAll('/', '-')
 
-type Query = ListQuery<OrderStatus>
+type Query = ListQuery<OrderListFilter>
 
 function fetchOrders(q: Query) {
   return api.orders.list({
     page: q.page,
     perPage: PER_PAGE,
     search: q.query || undefined,
-    status: q.status ?? undefined,
+    ...orderListFilter(q.status),
   })
 }
 
@@ -143,19 +153,21 @@ const columns: ResourceColumnSpec<Item>[] = [
 ]
 
 type TabsProps = {
-  value: OrderStatus | null
+  value: OrderListFilter | null
   allCount: number
-  onChange: (s: OrderStatus | null) => void
+  pendingUpiCount: number
+  onChange: (s: OrderListFilter | null) => void
 }
 
-function StatusTabs({ value, allCount, onChange }: TabsProps) {
+function StatusTabs({ value, allCount, pendingUpiCount, onChange }: TabsProps) {
   return (
-    <PillTabs
+    <PillTabs<OrderListFilter | null>
       value={value}
       onChange={onChange}
       tabs={[
         { value: null, label: ordersContent.tabs.all, count: allCount },
         ...ORDER_STATUSES.map((s) => ({ value: s, label: ordersContent.status[s] })),
+        { value: PENDING_UPI, label: ordersContent.tabs.pendingUpi, count: pendingUpiCount },
       ]}
     />
   )
@@ -203,7 +215,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
-      status: parseAsStringLiteral(ORDER_STATUSES),
+      status: parseAsStringLiteral(ORDER_LIST_FILTERS),
     },
     { shallow: true },
   )
@@ -284,6 +296,7 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
           <StatusTabs
             value={status}
             allCount={initial.allCount}
+            pendingUpiCount={initial.pendingUpiCount}
             onChange={(s) => setQ({ status: s, page: 1 })}
           />
         }

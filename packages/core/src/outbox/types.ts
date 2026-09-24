@@ -19,6 +19,12 @@ export type OutboxEventType =
   | 'order.balance_reminder'
   /** The balance was captured (or recorded by hand); fulfilment is unblocked. */
   | 'order.balance_paid'
+  /** The merchant sent a payment reminder for a manual UPI / bank transfer order. */
+  | 'order.payment_reminder'
+  /** Tells the merchant an unpaid transfer order will be auto-cancelled in 12 hours. */
+  | 'order.unpaid_cancel_notice'
+  /** A manual-transfer order was cancelled for non-payment (alongside `order.cancelled`). */
+  | 'order.unpaid_cancelled'
 
 export type OutboxPayload = {
   orderId: string
@@ -50,6 +56,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.balance_requested': 'balance_request',
   'order.balance_reminder': 'balance_reminder',
   'order.balance_paid': 'balance_received',
+  'order.payment_reminder': 'payment_reminder',
+  'order.unpaid_cancel_notice': 'unpaid_cancel_notice',
+  'order.unpaid_cancelled': 'unpaid_cancelled',
 }
 
 /**
@@ -60,6 +69,7 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
 export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
   'order.balance_requested',
   'order.balance_reminder',
+  'order.payment_reminder',
 ])
 
 /**
@@ -76,4 +86,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.balance_requested': null,
   'order.balance_reminder': null,
   'order.balance_paid': null,
+  'order.payment_reminder': null,
+  'order.unpaid_cancel_notice': null,
+  'order.unpaid_cancelled': null,
 }

@@ -1,2 +1,2 @@
-export { PaymentRegistry } from './registry'
+export { PaymentRegistry, providerConfig } from './registry'
 export type * from './types'

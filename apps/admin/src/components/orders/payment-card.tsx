@@ -15,6 +15,7 @@ import {
   refundedTotal,
 } from './order-detail-types'
 import PreorderBalanceLine from './preorder-balance-line'
+import TransferReminderLine from './transfer-reminder-line'
 
 type PaymentCardProps = {
   order: OrderDetail
@@ -24,6 +25,8 @@ type PaymentCardProps = {
   onCollect?: (() => void) | undefined
   /** Present while a deposit pre-order's balance is owed: asks the customer for it. */
   onRequestBalance?: (() => void) | undefined
+  /** Present on a placed UPI / bank transfer order: reminds the customer to pay. */
+  onSendReminder?: (() => void) | undefined
   busy?: boolean
 }
 
@@ -52,6 +55,7 @@ export default function PaymentCard({
   onRefund,
   onCollect,
   onRequestBalance,
+  onSendReminder,
   busy = false,
 }: PaymentCardProps) {
   // Render logic
@@ -73,6 +77,9 @@ export default function PaymentCard({
       <div className="flex flex-col gap-5">
         {order.depositPaise !== null ? (
           <PreorderBalanceLine order={order} onRequest={onRequestBalance} busy={busy} />
+        ) : null}
+        {onSendReminder ? (
+          <TransferReminderLine order={order} onSend={onSendReminder} busy={busy} />
         ) : null}
         {order.payments.map((p) => {
           const pill = paymentStatus(p, order.refunds)

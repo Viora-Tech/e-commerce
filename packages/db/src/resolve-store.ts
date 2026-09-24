@@ -38,6 +38,14 @@ export async function storesWithUnpaidOnlineOrders(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with placed manual UPI / bank transfer orders, for the follow-up job. SECURITY DEFINER backed. */
+export async function storesWithPendingManualOrders(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_pending_manual_orders() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with a pre-order balance still owed, for the balance job. SECURITY DEFINER backed. */
 export async function storesWithBalanceDue(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`select stores_with_balance_due() as id`)

@@ -16,18 +16,31 @@ type FactoryLookup = {
     | {
         label: string
         fields: ProviderField[]
+        /** Payments only: the factory whose saved keys this one borrows. */
+        credentialsFrom?: string | undefined
         validateConfig(raw: unknown): { ok: true } | { ok: false; errors: string[] }
       }
     | undefined
 }
 
-export type AvailableProvider = { id: string; label: string; fields: ProviderField[] }
+export type AvailableProvider = {
+  id: string
+  label: string
+  fields: ProviderField[]
+  /** Set when this method runs on another provider's keys (configure that one first). */
+  credentialsFrom?: string | undefined
+}
 
 /** The provider list the admin form renders; nothing about a provider is hard-coded there. */
 export function availableProviders(registry: FactoryLookup): AvailableProvider[] {
   return registry.ids().map((id) => {
     const f = registry.get(id)
-    return { id, label: f?.label ?? id, fields: f?.fields ?? [] }
+    return {
+      id,
+      label: f?.label ?? id,
+      fields: f?.fields ?? [],
+      ...(f?.credentialsFrom ? { credentialsFrom: f.credentialsFrom } : {}),
+    }
   })
 }
 
@@ -61,10 +74,12 @@ export function prepareProviderSettings<S extends ProviderSettings>(
   for (const id of merged.enabled) {
     const f = registry.get(id)
     if (!f) throw new ORPCError('BAD_REQUEST', { message: `Unknown ${kind} ${id}` })
+    // A method on another provider's keys is validated with those keys beneath its own.
+    const borrowed = f.credentialsFrom ? (merged.providers[f.credentialsFrom] ?? {}) : {}
     // Validators see a placeholder for encrypted values; they only check presence and shape.
     const check = f.validateConfig(
       Object.fromEntries(
-        Object.entries(merged.providers[id] ?? {}).map(([k, v]) => [
+        Object.entries({ ...borrowed, ...(merged.providers[id] ?? {}) }).map(([k, v]) => [
           k,
           isEncryptedSecret(v) ? 'x'.repeat(8) : v,
         ]),

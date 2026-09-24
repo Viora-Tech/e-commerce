@@ -400,6 +400,13 @@
       "when": 1790360000000,
       "tag": "0059_preorder_balance",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1790380000000,
+      "tag": "0061_upi_autoconfirm",
+      "breakpoints": true
     }
   ]
 }

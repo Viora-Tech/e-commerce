@@ -21,6 +21,14 @@ export class PaymentRegistry {
     return this.factories.get(id)
   }
 
+  /**
+   * The raw config a factory is built from out of a store's saved provider
+   * configs: its own, over the config it borrows (`credentialsFrom`).
+   */
+  configFor(id: string, saved: Record<string, Record<string, string>>): Record<string, string> {
+    return providerConfig(this.factories.get(id), id, saved)
+  }
+
   /** Build a provider from a store's raw config, or explain why it cannot. */
   create(
     id: string,
@@ -32,4 +40,14 @@ export class PaymentRegistry {
     if (!v.ok) return v
     return { ok: true, provider: f.create(v.config) }
   }
+}
+
+/** `configFor` without a registry, for callers that only hold a factory. */
+export function providerConfig(
+  factory: Pick<PaymentProviderFactory<unknown>, 'credentialsFrom'> | undefined,
+  id: string,
+  saved: Record<string, Record<string, string>>,
+): Record<string, string> {
+  const from = factory?.credentialsFrom
+  return from ? { ...(saved[from] ?? {}), ...(saved[id] ?? {}) } : { ...(saved[id] ?? {}) }
 }

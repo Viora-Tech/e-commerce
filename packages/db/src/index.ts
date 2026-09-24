@@ -11,6 +11,7 @@ export {
   storesWithMarketingWork,
   storesWithOpenShipments,
   storesWithPendingDomains,
+  storesWithPendingManualOrders,
   storesWithUndispatchedOutboxEvents,
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'

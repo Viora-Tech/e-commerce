@@ -50,8 +50,43 @@ export const balanceTemplates = {
   },
 } satisfies Record<'balance_request' | 'balance_reminder' | 'balance_received', TemplateCopy>
 
+export const transferTemplates = {
+  payment_reminder: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} is waiting for payment`,
+    heading: (d) => `Hi ${d.customerName}, your order is on hold`,
+    intro: (d) =>
+      `We have not received the ${d.totalLabel} UPI or bank transfer for order #${d.orderNumber} yet. We are holding your items until then.`,
+    outro: (d) =>
+      d.orderUrl
+        ? `The QR code and payment details are here: ${d.orderUrl}`
+        : 'Reply to this email if you have already paid.',
+    whatsapp: (d) =>
+      `${d.storeName}: order #${d.orderNumber} is waiting for your ${d.totalLabel} payment.${d.orderUrl ? ` Pay: ${d.orderUrl}` : ''}`,
+  },
+  unpaid_cancel_notice: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} will be cancelled for non-payment`,
+    heading: () => 'An unpaid transfer order is about to be cancelled',
+    intro: (d) =>
+      `Order #${d.orderNumber} (${d.totalLabel}, UPI or bank transfer) is still unpaid and will be cancelled automatically${d.deadlineLabel ? ` on ${d.deadlineLabel}` : ''}, releasing its stock.`,
+    outro: () =>
+      'If the money has arrived, mark the order as paid in your admin before then. The customer has not been told.',
+    whatsapp: (d) =>
+      `${d.storeName}: unpaid order #${d.orderNumber} (${d.totalLabel}) will be cancelled${d.deadlineLabel ? ` on ${d.deadlineLabel}` : ''}. Mark it paid if the transfer arrived.`,
+  },
+  unpaid_cancelled: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} was cancelled`,
+    heading: (d) => `Hi ${d.customerName}, we cancelled your order`,
+    intro: (d) =>
+      `We did not receive the ${d.totalLabel} payment for order #${d.orderNumber}, so it has been cancelled and the items released.`,
+    outro: () => 'If you have paid, reply to this email and we will sort it out.',
+    whatsapp: (d) =>
+      `${d.storeName}: order #${d.orderNumber} was cancelled because the ${d.totalLabel} payment did not arrive. Paid already? Just reply.`,
+  },
+} satisfies Record<'payment_reminder' | 'unpaid_cancel_notice' | 'unpaid_cancelled', TemplateCopy>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...balanceTemplates,
+  ...transferTemplates,
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => `Thanks, ${d.customerName}`,

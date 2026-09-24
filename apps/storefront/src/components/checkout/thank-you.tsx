@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { thankYouContent as content } from '@/data/checkout'
 import { retryPaymentAction } from '@/lib/cart-actions'
 import ManualPaymentInstructions from './manual-payment-instructions'
+import UpiQrPayment from './upi-qr-payment'
 
 type ThankYouTemplateProps = {
   storeId: string
@@ -33,10 +34,12 @@ function statusLine(
   manual: boolean,
   total: string,
   failed: boolean,
+  qr: boolean,
 ): string {
   if (method === 'gift_card') return content.status.giftCard
   if (failed) return content.status.failed(total)
   if (manual) return content.status.manual
+  if (qr) return content.status.upiQr(total)
   if (method === 'cod') return content.status.cod(total)
   if (awaiting) return content.status.awaiting(total)
   return content.status.paid(total)
@@ -56,10 +59,11 @@ export default function ThankYouTemplate({
   const failed = o.status === 'placed' && (pay?.status === 'failed' || pay?.status === 'cancelled')
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
+  const qr = awaiting && session?.kind === 'upi_qr' ? session.qr : null
   const total = formatPaise(o.totalPaise)
   // What the shopper still pays after gift cards: the amount COD, transfer and gateway lines quote.
   const due = formatPaise(pay?.amountPaise ?? o.totalPaise)
-  const status = statusLine(o.paymentMethod, awaiting, manual !== null, due, failed)
+  const status = statusLine(o.paymentMethod, awaiting, manual !== null, due, failed, qr !== null)
   const boughtCards = lines.length > 0 && lines.every((l) => l.giftCard)
 
   return (
@@ -71,6 +75,9 @@ export default function ThankYouTemplate({
           {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
         </p>
         {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={due} /> : null}
+        {qr ? (
+          <UpiQrPayment storeId={storeId} orderNumber={o.number} qr={qr} amountLabel={due} />
+        ) : null}
         {balance}
         <ul className="cart-items__list thank-you__lines">
           {lines.map((l) => (
@@ -122,7 +129,7 @@ export default function ThankYouTemplate({
         {failed ? (
           <form action={retryPaymentAction.bind(null, storeId, o.number)}>
             <button type="submit" className="btn btn--primary">
-              {content.retryPayment}
+              {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
             </button>
           </form>
         ) : null}
