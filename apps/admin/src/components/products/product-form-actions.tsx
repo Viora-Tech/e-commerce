@@ -26,8 +26,8 @@ export default function ProductFormActions({
 }: ProductFormActionsProps) {
   // Render logic
   return (
-    <Card size="form" className="p-6">
-      <CardContent className="flex flex-wrap gap-3 p-0">
+    <Card size="form" className="p-4">
+      <CardContent className="flex flex-wrap gap-2 p-0">
         <KitButton
           variant="secondary"
           href={`${storefrontOrigin}/products/${product.handle}`}

@@ -71,7 +71,7 @@ export default function SeoCard({
         {previewTitle ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-muted-foreground">{url}</span>
-            <span className="text-base font-medium text-primary">{previewTitle}</span>
+            <span className="text-base font-medium text-link">{previewTitle}</span>
             <span className="text-body text-muted-foreground">{previewDescription}</span>
           </div>
         ) : (

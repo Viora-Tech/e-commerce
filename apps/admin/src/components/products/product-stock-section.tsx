@@ -58,9 +58,9 @@ export default function ProductStockSection({
   const unlimited = !variant.trackInventory
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-6 md:flex-row md:gap-5">
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <KitField label={copy.stockQuantity} htmlFor="variant-quantity">
             {unlimited ? (
               <Input size="kit" id="variant-quantity" value={copy.unlimitedValue} readOnly />
@@ -80,7 +80,7 @@ export default function ProductStockSection({
               checked={unlimited}
               onCheckedChange={(value) => handleUnlimited(Boolean(value))}
             />
-            <label htmlFor="variant-unlimited" className="text-kit-field text-ink-strong">
+            <label htmlFor="variant-unlimited" className="text-body text-foreground">
               {copy.unlimited}
             </label>
           </div>
@@ -90,7 +90,7 @@ export default function ProductStockSection({
         </KitField>
       </div>
 
-      <div className="flex flex-col gap-6 md:flex-row md:gap-5">
+      <div className="flex flex-col gap-4 md:flex-row md:gap-4">
         <KitField label={copy.sku} htmlFor="variant-sku">
           <Input
             size="kit"
@@ -118,7 +118,7 @@ export default function ProductStockSection({
             value={reason}
             onValueChange={(r) => onReason(r as InventoryReason)}
           >
-            <SelectTrigger size="lg" id="inventory-reason" className="h-12 w-full">
+            <SelectTrigger size="lg" id="inventory-reason" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -138,7 +138,7 @@ export default function ProductStockSection({
           checked={featured}
           onCheckedChange={(value) => onFeatured(Boolean(value))}
         />
-        <label htmlFor="product-featured" className="text-kit-field text-muted-foreground">
+        <label htmlFor="product-featured" className="text-body text-muted-foreground">
           {copy.featured}
         </label>
       </div>
