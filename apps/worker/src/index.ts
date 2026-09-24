@@ -8,6 +8,7 @@ import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createNotificationWorker } from './notifications'
+import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
 import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { createConnection, createHeartbeat } from './queues'
@@ -47,6 +48,7 @@ const marketing = createMarketingWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
+const outboxRelay = createOutboxRelay(redis, db, { notifications, appEvents })
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -72,9 +74,14 @@ await marketing.tickQueue.upsertJobScheduler(
   { every: MARKETING_TICK_MS },
   { name: 'tick' },
 )
+await outboxRelay.queue.upsertJobScheduler(
+  'relay-outbox-events',
+  { every: RELAY_EVERY_MS },
+  { name: 'relay' },
+)
 
 const app = new Hono()
-app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET, notifications))
+app.route('/', paymentWebhooks(db, env.SETTINGS_SECRET))
 
 app.get('/health', async (c) => {
   const [dbOk, queueOk] = await Promise.all([
@@ -106,6 +113,8 @@ const shutdown = async () => {
   await marketing.send.close()
   await marketing.tickQueue.close()
   await marketing.sendQueue.close()
+  await outboxRelay.worker.close()
+  await outboxRelay.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

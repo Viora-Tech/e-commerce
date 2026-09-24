@@ -2,10 +2,9 @@ import { loadEnv } from '@commerce/config'
 import {
   CommerceError,
   DraftInputSchema,
-  enqueueAppEvent,
-  enqueueNotification,
+  insertOutboxEvent,
+  type OutboxEventType,
   permissions,
-  type TemplateId,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -52,10 +51,10 @@ const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 
 const status = z.enum(['placed', 'paid', 'fulfilled', 'delivered', 'cancelled'])
 
-/** Which shopper message a merchant-driven status change triggers. */
-const STATUS_TEMPLATE: Partial<Record<z.infer<typeof status>, TemplateId>> = {
-  paid: 'payment_received',
-  fulfilled: 'order_shipped',
+/** Which outbox event a merchant-driven status change writes. */
+const STATUS_EVENT: Partial<Record<z.infer<typeof status>, OutboxEventType>> = {
+  paid: 'order.paid',
+  fulfilled: 'order.fulfilled',
 }
 
 /** Imported historical orders are read-only; every state-changing route refuses them. */
@@ -120,10 +119,8 @@ export const ordersRouter = {
       try {
         const result = await fulfilOrder(context.tx, context.scope.storeId, input)
         if (result.complete) {
-          await enqueueNotification(context.notifications, {
-            storeId: context.scope.storeId,
+          await insertOutboxEvent(context.tx, context.scope.storeId, 'order.fulfilled', {
             orderId: input.orderId,
-            template: 'order_shipped',
           })
         }
         return result
@@ -147,11 +144,7 @@ export const ordersRouter = {
       await assertNotImported(context.tx, { orderId: input.orderId })
       const o = await collectOrderPayment(context.tx, context.scope.storeId, input)
       if (o) {
-        await enqueueNotification(context.notifications, {
-          storeId: context.scope.storeId,
-          orderId: o.id,
-          template: 'payment_received',
-        })
+        await insertOutboxEvent(context.tx, context.scope.storeId, 'order.paid', { orderId: o.id })
       }
       return o
     }),
@@ -169,10 +162,8 @@ export const ordersRouter = {
         secret(),
         input.orderId,
       )
-      await enqueueNotification(context.notifications, {
-        storeId: context.scope.storeId,
+      await insertOutboxEvent(context.tx, context.scope.storeId, 'order.fulfilled', {
         orderId: input.orderId,
-        template: 'order_shipped',
       })
       return row
     }),
@@ -225,13 +216,9 @@ export const ordersRouter = {
         }
         throw err
       })
-      const template = STATUS_TEMPLATE[input.status]
-      if (o && template) {
-        await enqueueNotification(context.notifications, {
-          storeId: context.scope.storeId,
-          orderId: o.id,
-          template,
-        })
+      const event = STATUS_EVENT[input.status]
+      if (o && event) {
+        await insertOutboxEvent(context.tx, context.scope.storeId, event, { orderId: o.id })
       }
       return o
     }),
@@ -257,10 +244,8 @@ export const ordersRouter = {
           input,
         )
         // Failed gateway refunds returned no money, so there is nothing to credit.
-        if (r && r.status !== 'failed' && context.appEvents) {
-          await enqueueAppEvent(context.appEvents, {
-            storeId: context.scope.storeId,
-            event: 'refund.created',
+        if (r && r.status !== 'failed') {
+          await insertOutboxEvent(context.tx, context.scope.storeId, 'refund.created', {
             orderId: r.orderId,
             refundId: r.id,
           })
@@ -320,10 +305,8 @@ export const ordersRouter = {
         throw new ORPCError('BAD_REQUEST', { message: 'Add an email address first' })
       }
       await recordInvoiceSent(context.tx, context.scope.storeId, input.id, draft.email)
-      await enqueueNotification(context.notifications, {
-        storeId: context.scope.storeId,
+      await insertOutboxEvent(context.tx, context.scope.storeId, 'draft.invoice_sent', {
         orderId: input.id,
-        template: 'draft_invoice',
       })
       return { sentTo: draft.email }
     }),
@@ -332,10 +315,8 @@ export const ordersRouter = {
     .input(z.object({ id: z.uuid(), paymentMethod: z.string().trim().max(60).optional() }))
     .handler(async ({ context, input }) => {
       const row = await convertStoreDraft(context.tx, context.scope.storeId, input)
-      await enqueueNotification(context.notifications, {
-        storeId: context.scope.storeId,
+      await insertOutboxEvent(context.tx, context.scope.storeId, 'order.placed', {
         orderId: input.id,
-        template: 'order_placed',
       })
       return row
     }),

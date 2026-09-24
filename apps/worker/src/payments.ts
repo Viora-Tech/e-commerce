@@ -1,7 +1,6 @@
 import {
-  enqueueNotification,
   handlePaymentWebhook,
-  type NotificationQueue,
+  insertOutboxEvent,
   parsePaymentSettings,
   resolvePaymentProviders,
 } from '@commerce/core'
@@ -15,7 +14,7 @@ import { Hono } from 'hono'
  * The store id is in the URL because a gateway's dashboard is configured per
  * merchant; the signature check inside the adapter is what authenticates it.
  */
-export function paymentWebhooks(db: Db, settingsSecret: string, notifications: NotificationQueue) {
+export function paymentWebhooks(db: Db, settingsSecret: string) {
   const app = new Hono()
   app.post('/webhooks/payments/:provider/:storeId', async (c) => {
     const { provider: providerId, storeId } = c.req.param()
@@ -39,7 +38,13 @@ export function paymentWebhooks(db: Db, settingsSecret: string, notifications: N
       )
       const provider = providers.find((p) => p.id === providerId)
       if (!provider) return { ok: false as const, reason: 'provider not enabled for store' }
-      return handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
+      const result = await handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
+      // Written in the same transaction as the capture itself, so a webhook
+      // whose apply rolls back never leaves a payment_received event behind.
+      if (result.ok && result.capturedOrderId) {
+        await insertOutboxEvent(tx, storeId, 'order.paid', { orderId: result.capturedOrderId })
+      }
+      return result
     })
 
     if (!outcome.ok) {
@@ -49,13 +54,6 @@ export function paymentWebhooks(db: Db, settingsSecret: string, notifications: N
     console.log(
       `[webhook] ${providerId} ${outcome.eventId} applied=${outcome.applied} duplicate=${outcome.duplicate}`,
     )
-    if (outcome.capturedOrderId) {
-      await enqueueNotification(notifications, {
-        storeId,
-        orderId: outcome.capturedOrderId,
-        template: 'payment_received',
-      })
-    }
     return c.json(outcome)
   })
   return app

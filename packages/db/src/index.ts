@@ -10,6 +10,7 @@ export {
   storesWithMarketingWork,
   storesWithOpenShipments,
   storesWithPendingDomains,
+  storesWithUndispatchedOutboxEvents,
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
 export * from './schema'

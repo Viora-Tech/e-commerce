@@ -38,6 +38,14 @@ export async function storesWithUnpaidOnlineOrders(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with undispatched outbox rows, for the outbox relay. SECURITY DEFINER backed. */
+export async function storesWithUndispatchedOutboxEvents(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_undispatched_outbox_events() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /**
  * Store ids with marketing work for the worker's tick: an active automation,
  * a campaign due to send or still sending, or an automation run that is due.

@@ -379,6 +379,13 @@
       "when": 1790330000000,
       "tag": "0056_unpaid_order_expiry",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790340000000,
+      "tag": "0057_event_outbox",
+      "breakpoints": true
     }
   ]
 }
