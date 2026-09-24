@@ -35,7 +35,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     href: '/settings/shipping',
     title: 'Shipping',
-    body: 'Couriers, delivery estimates and dispatch policy.',
+    body: 'Couriers, shipping rates, delivery estimates and dispatch policy.',
     icon: Truck,
   },
   {
@@ -83,6 +83,7 @@ export const settingsContent = {
   sections: {
     shipping: [
       { id: 'section-couriers', label: 'Couriers' },
+      { id: 'section-rates', label: 'Shipping rates' },
       { id: 'section-policy', label: 'Dispatch policy' },
       { id: 'section-try-pin', label: 'Try a PIN code' },
     ],

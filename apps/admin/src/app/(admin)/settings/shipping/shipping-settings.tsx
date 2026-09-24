@@ -7,6 +7,7 @@ import ProviderSettingsForm, {
 import SettingsSection from '@/components/settings/settings-section'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
+import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
 import { settingsContent } from '@/data/settings'
 import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'
@@ -25,9 +26,12 @@ function courierHint(m: ProviderDef) {
 
 function footer(extra: Extra, setExtra: (next: Extra) => void) {
   if (!extra.policy) return null
-  const [, policy, tryPin] = settingsContent.sections.shipping
+  const [, rates, policy, tryPin] = settingsContent.sections.shipping
   return (
     <>
+      <SettingsSection id={rates?.id ?? 'section-rates'}>
+        <ShippingZonesCard />
+      </SettingsSection>
       <SettingsSection id={policy?.id ?? 'section-policy'}>
         <ShippingPolicyFields value={extra.policy} onChange={(policy) => setExtra({ policy })} />
       </SettingsSection>
