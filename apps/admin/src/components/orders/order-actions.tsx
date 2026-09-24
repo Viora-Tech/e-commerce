@@ -6,6 +6,7 @@ import {
   MoreHorizontal,
   Printer,
   RotateCcw,
+  Send,
 } from '@commerce/ui/icons'
 import {
   AlertDialog,
@@ -36,6 +37,8 @@ type OrderActionsProps = {
   busy: boolean
   onMove: (to: OrderStatus) => void
   onRefund: () => void
+  /** Present while a deposit pre-order's balance is owed: "Request balance". */
+  onRequestBalance?: (() => void) | undefined
   /** Imported history: only printing and stepping between orders. */
   readOnly?: boolean
   previousId?: string | undefined
@@ -59,6 +62,7 @@ export default function OrderActions({
   busy,
   onMove,
   onRefund,
+  onRequestBalance,
   readOnly = false,
   previousId,
   nextId,
@@ -103,7 +107,12 @@ export default function OrderActions({
               <RotateCcw aria-hidden="true" /> {copy.actions.refund}
             </DropdownMenuItem>
           ) : null}
-          {menuMove || refundable ? <DropdownMenuSeparator /> : null}
+          {onRequestBalance && !readOnly ? (
+            <DropdownMenuItem onClick={onRequestBalance} disabled={busy}>
+              <Send aria-hidden="true" /> {copy.payment.preorder.request}
+            </DropdownMenuItem>
+          ) : null}
+          {menuMove || refundable || onRequestBalance ? <DropdownMenuSeparator /> : null}
           <DropdownMenuItem
             disabled={!previousId}
             render={previousId ? <Link href={`/orders/${previousId}`} /> : undefined}

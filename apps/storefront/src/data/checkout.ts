@@ -2,6 +2,20 @@
  * Every string the checkout and thank-you screens show. Change copy here,
  * never inside a component.
  */
+/** A deposit pre-order's balance, wherever the shopper sees it (thank-you, account, pay link). */
+export const balanceContent = {
+  heading: 'Balance due',
+  paid: (deposit: string) => `Paid up front: ${deposit}`,
+  due: (balance: string) => `Balance due: ${balance}`,
+  payBy: (date: string) => `Please pay by ${date}.`,
+  nonRefundable: (days: number) =>
+    `The deposit is non-refundable if the balance is not paid within ${days} days of our request.`,
+  pay: (balance: string) => `Pay balance ${balance}`,
+  settled: 'The balance is paid. Thank you.',
+  unavailable: 'This link is no longer valid. Sign in to your account to see the order.',
+  pageTitle: (number: number) => `Pay the balance for order #${number}`,
+} as const
+
 export const thankYouContent = {
   heading: (number: number) => `Thank you, order #${number} is in`,
   confirmation: (email: string | null) =>
@@ -96,6 +110,8 @@ export const checkoutContent = {
   },
   giftCardAddress: 'Billing address',
   giftCardDelivery: 'Gift cards are delivered by email as soon as the payment is confirmed.',
+  depositNonRefundable: (days: number) =>
+    `Pre-order deposits are non-refundable if the balance is not paid within ${days} days of our request.`,
   paidByGiftCard: 'Paid by gift card',
   totalDue: 'To pay',
   codWithGiftCard: 'Not available with a gift card',

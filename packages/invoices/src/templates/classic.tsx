@@ -1,6 +1,15 @@
 import { Document, Image, Page, Text, View } from '@react-pdf/renderer'
 import { formatRupees } from '../money'
-import { Barcode, itemColumns, PartyLines, QrSlot, SumRow, TaxTable, totalsRows } from './parts'
+import {
+  AdvanceRows,
+  Barcode,
+  itemColumns,
+  PartyLines,
+  QrSlot,
+  SumRow,
+  TaxTable,
+  totalsRows,
+} from './parts'
 import { type TemplateProps, templateView } from './view'
 
 /**
@@ -189,6 +198,7 @@ export default function ClassicTemplate(props: TemplateProps & { fontFamily: str
                 <Text style={{ fontSize: 7.5 }}>{doc.amountInWords}</Text>
               </>
             ) : null}
+            <AdvanceRows doc={doc} muted={MUTED} />
             {doc.order.collectPaise > 0 ? (
               <View
                 style={{

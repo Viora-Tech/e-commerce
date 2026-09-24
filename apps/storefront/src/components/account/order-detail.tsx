@@ -1,6 +1,7 @@
 import { formatPaise } from '@commerce/blocks'
 import type { ShopperOrderDetail } from '@commerce/core'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import {
   accountContent,
   formatAccountDate,
@@ -23,6 +24,8 @@ type OrderDetailProps = {
   links: { label: string; url: string }[]
   /** Set after a "Buy again" where nothing could be added. */
   reorderEmpty: boolean
+  /** A deposit pre-order's "Pay balance" block, when a balance is still owed. */
+  balance?: ReactNode
 }
 
 const copy = accountContent.order
@@ -38,6 +41,7 @@ export default function OrderDetail({
   paymentMethodLabel,
   links,
   reorderEmpty,
+  balance = null,
 }: OrderDetailProps) {
   // Render logic
   const canReorder = o.lines.some((l) => l.purchasable)
@@ -131,6 +135,7 @@ export default function OrderDetail({
         </div>
 
         <div className="flex flex-col gap-6">
+          {balance}
           <section className={card} aria-labelledby="order-summary">
             <h3 id="order-summary" className="h4">
               {copy.summary}

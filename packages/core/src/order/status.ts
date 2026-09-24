@@ -55,7 +55,14 @@ export class OrderStatusLocked extends CommerceError {
  * guard: only the call that moves the order out of an open status releases
  * anything, so a repeated cancel is a no-op.
  */
-export async function cancelOrder(ctx: StoreContext, orderId: string) {
+export async function cancelOrder(
+  ctx: StoreContext,
+  orderId: string,
+  opts: {
+    /** False when the store keeps a forfeited pre-order deposit, gift card part included. */
+    returnGiftCards?: boolean | undefined
+  } = {},
+) {
   const [cancelled] = await ctx.tx
     .update(order)
     .set({ status: 'cancelled' })
@@ -79,7 +86,7 @@ export async function cancelOrder(ctx: StoreContext, orderId: string) {
       quantity: line.quantity - line.fulfilledQuantity,
     })
   }
-  await returnGiftCardPayments(ctx, orderId)
+  if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
   return cancelled
 }
 

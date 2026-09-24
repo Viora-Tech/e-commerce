@@ -4,9 +4,11 @@ import {
   liveThemeSettings,
   NotificationSettingsSchema,
   PaymentSettingsSchema,
+  PreorderStoreSettingsSchema,
   parseNotificationSettings,
   parsePaymentSettings,
   parsePreferences,
+  parsePreorderStoreSettings,
   parseShippingSettings,
   permissions,
   presentStoreGeneral,
@@ -42,6 +44,7 @@ import {
   updateStoreNotifications,
   updateStorePayments,
   updateStorePreferences,
+  updateStorePreorder,
 } from '../services/store.service'
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
@@ -136,6 +139,19 @@ export const storeRouter = {
       const next = prepareProviderSettings(input, current, payments, secret(), 'payment provider')
       const saved = await updateStorePayments(context.tx, context.scope.storeId, next)
       return saved ? presentProviderSettings(parsePaymentSettings(saved.payments), secret()) : null
+    }),
+
+  /** Pre-order balance rules: automatic request, reminders, what an unpaid balance does. */
+  getPreorder: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    const s = await getStore(context.tx, context.scope.storeId)
+    return parsePreorderStoreSettings(s?.preorder)
+  }),
+
+  updatePreorder: can(permissions.SETTINGS_MANAGE)
+    .input(PreorderStoreSettingsSchema)
+    .handler(async ({ context, input }) => {
+      const saved = await updateStorePreorder(context.tx, context.scope.storeId, input)
+      return parsePreorderStoreSettings(saved?.preorder)
     }),
 
   /** Notification settings with secrets masked, plus the channels this deployment can offer. */

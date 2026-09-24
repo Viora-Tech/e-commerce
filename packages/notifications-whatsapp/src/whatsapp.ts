@@ -52,6 +52,11 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.code ?? '-', d.storeName]
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
+    case 'balance_request':
+    case 'balance_reminder':
+      return [d.customerName, d.storeName, n, d.balance?.dueLabel ?? '-', d.actionUrl ?? '-']
+    case 'balance_received':
+      return [d.storeName, n, d.totalLabel]
   }
 }
 

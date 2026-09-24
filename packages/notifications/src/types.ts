@@ -16,6 +16,12 @@ export type TemplateId =
   | 'login_code'
   /** A gift card was issued (bought or sent by the merchant); carries the code. Email only. */
   | 'gift_card_issued'
+  /** A deposit pre-order's balance is due; carries the pay-balance link. */
+  | 'balance_request'
+  /** The same, again, while the balance is still unpaid. */
+  | 'balance_reminder'
+  /** The balance was paid; the order will ship. */
+  | 'balance_received'
 
 export type Recipient = {
   email?: string | undefined
@@ -45,6 +51,16 @@ export type TemplateData = {
   documentLabel?: string | undefined
   /** Extra links installed apps add, e.g. "Download invoice". */
   links?: { label: string; url: string }[] | undefined
+  /** For balance messages: what is still owed, what was paid up front, and when it must be paid by. */
+  balance?:
+    | {
+        dueLabel: string
+        depositLabel: string
+        payByLabel?: string | undefined
+        /** Shown when the store keeps the deposit if the balance is never paid. */
+        depositNonRefundable?: boolean | undefined
+      }
+    | undefined
   /** For login_code: the one-time code. */
   code?: string | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */

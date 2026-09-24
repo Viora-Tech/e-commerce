@@ -8,3 +8,12 @@ export {
   resolveShipDate,
   validateDepositAgainstPrice,
 } from './settings'
+export type { PreorderStoreSettings, UnpaidBalanceAction } from './store-settings'
+export {
+  balancePayBy,
+  defaultPreorderStoreSettings,
+  depositIsNonRefundable,
+  PreorderStoreSettingsSchema,
+  parsePreorderStoreSettings,
+  UNPAID_BALANCE_ACTIONS,
+} from './store-settings'

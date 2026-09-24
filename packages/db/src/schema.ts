@@ -67,6 +67,8 @@ export const store = pgTable('store', {
   giftCards: jsonb('gift_cards'),
   /** Admin accent colour (#rrggbb) the owner set as the default for every member; null is Ocean Green. */
   adminAccent: text('admin_accent'),
+  /** Pre-order balance collection: auto-request, reminders, unpaid-balance cancel rule. Validated by @commerce/core PreorderStoreSettingsSchema. */
+  preorder: jsonb('preorder'),
   createdAt: createdAt(),
 })
 
@@ -799,6 +801,14 @@ export const order = pgTable(
     depositPaise: integer('deposit_paise'),
     balanceDuePaise: integer('balance_due_paise'),
     balancePaidAt: timestamp('balance_paid_at', { withTimezone: true }),
+    /**
+     * When the shopper was first asked for the balance (admin "Request balance"
+     * or the store's automatic request). Reminders and the unpaid-balance
+     * cancel rule count from here; a repeat request keeps the first date.
+     */
+    balanceRequestedAt: timestamp('balance_requested_at', { withTimezone: true }),
+    /** Balance reminders sent so far; the reminder job only moves it forward, one step at a time. */
+    balanceRemindersSent: integer('balance_reminders_sent').notNull().default(0),
     placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
     /**
      * Set on historical orders brought over from another platform (`shopify`). Such
@@ -820,6 +830,10 @@ export const order = pgTable(
       .where(sql`${t.cartId} is not null`),
     /** The unpaid-order expiry job reads the oldest placed orders per store. */
     index('order_placed_at_unpaid').on(t.storeId, t.placedAt).where(sql`${t.status} = 'placed'`),
+    /** The balance job reads pre-orders with money still owed. */
+    index('order_balance_due')
+      .on(t.storeId, t.placedAt)
+      .where(sql`${t.balanceDuePaise} > 0 and ${t.balancePaidAt} is null`),
   ],
 )
 
@@ -910,6 +924,15 @@ export const payment = pgTable(
     refundNeeded: boolean('refund_needed').notNull().default(false),
     /** Opt-out of the one-capture-per-order rule, for split payments taken on purpose. */
     multiCapture: boolean('multi_capture').notNull().default(false),
+    /**
+     * `order` pays the checkout amount (the whole order, or a pre-order's
+     * deposit); `balance` collects a deposit pre-order's remaining balance
+     * later. Balance attempts are `multi_capture` so they sit beside the
+     * deposit's capture, and have their own one-open / one-capture guards.
+     */
+    purpose: text('purpose', { enum: ['order', 'balance'] })
+      .notNull()
+      .default('order'),
     createdAt: createdAt(),
   },
   (t) => [
@@ -927,6 +950,15 @@ export const payment = pgTable(
       .where(
         sql`${t.status} = 'captured' and ${t.provider} <> 'gift_card' and not ${t.multiCapture} and not ${t.refundNeeded}`,
       ),
+    check('payment_purpose_check', sql`${t.purpose} in ('order', 'balance')`),
+    /* One balance attempt in flight per order: two "Pay balance" taps get the same one. */
+    uniqueIndex('payment_one_open_balance_attempt')
+      .on(t.storeId, t.orderId)
+      .where(sql`${t.purpose} = 'balance' and ${t.status} in ('created', 'pending', 'authorized')`),
+    /* And at most one balance capture kept per order. */
+    uniqueIndex('payment_one_balance_capture')
+      .on(t.storeId, t.orderId)
+      .where(sql`${t.purpose} = 'balance' and ${t.status} = 'captured' and not ${t.refundNeeded}`),
   ],
 )
 

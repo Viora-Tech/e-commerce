@@ -2,6 +2,7 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
+import PreorderBalanceSettings from '@/components/settings/preorder-balance-settings'
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
@@ -53,14 +54,20 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
 }
 
 function footer(extra: Extra, setExtra: (next: Extra) => void) {
-  const [, unpaid] = settingsContent.sections.payments
+  const [, unpaid, preorders] = settingsContent.sections.payments
   return (
-    <SettingsSection id={unpaid?.id ?? 'section-unpaid'}>
-      <UnpaidExpiryField
-        value={extra.expireUnpaidAfterMinutes}
-        onChange={(expireUnpaidAfterMinutes) => setExtra({ ...extra, expireUnpaidAfterMinutes })}
-      />
-    </SettingsSection>
+    <>
+      <SettingsSection id={unpaid?.id ?? 'section-unpaid'}>
+        <UnpaidExpiryField
+          value={extra.expireUnpaidAfterMinutes}
+          onChange={(expireUnpaidAfterMinutes) => setExtra({ ...extra, expireUnpaidAfterMinutes })}
+        />
+      </SettingsSection>
+      {/* Saved on its own (store.preorder), not with the payment methods above. */}
+      <SettingsSection id={preorders?.id ?? 'section-preorders'}>
+        <PreorderBalanceSettings />
+      </SettingsSection>
+    </>
   )
 }
 

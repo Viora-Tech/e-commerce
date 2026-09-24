@@ -1,6 +1,6 @@
-import { refund, type StoreTx } from '@commerce/db'
+import { payment, refund, type StoreTx } from '@commerce/db'
 import { buildVoucher, DocumentSnapshotSchema } from '@commerce/invoices'
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql, sum } from 'drizzle-orm'
 import {
   existing,
   type InvoiceRow,
@@ -12,6 +12,27 @@ import {
 } from './issue'
 import { assertPeriodOpen } from './periods'
 import { invoice } from './schema'
+
+/**
+ * What the shopper paid up front: the checkout payments that were captured
+ * and kept (gift cards included). For a deposit pre-order this is the
+ * deposit, not the order value; the balance is collected later and the tax
+ * invoice at dispatch covers the whole value, adjusting this advance.
+ */
+async function advanceReceived(tx: StoreTx, orderId: string): Promise<number> {
+  const [row] = await tx
+    .select({ total: sum(payment.amountPaise) })
+    .from(payment)
+    .where(
+      and(
+        eq(payment.orderId, orderId),
+        eq(payment.purpose, 'order'),
+        eq(payment.status, 'captured'),
+        eq(payment.refundNeeded, false),
+      ),
+    )
+  return Number(row?.total ?? 0)
+}
 
 /**
  * Receipt voucher (rule 50) for a paid pre-order: money arrived before the
@@ -38,7 +59,7 @@ export async function issueReceiptVoucher(
     kind: 'receipt_voucher',
     number: n.number,
     issuedAt: at,
-    amountPaise: base.totals.totalPaise,
+    amountPaise: (await advanceReceived(tx, orderId)) || base.totals.totalPaise,
   })
   const row = await insertDocument(tx, storeId, doc, {
     seq: n.seq,

@@ -13,6 +13,12 @@ export type OutboxEventType =
   | 'order.cancelled'
   | 'refund.created'
   | 'draft.invoice_sent'
+  /** A deposit pre-order's balance was asked for (by the merchant or automatically). */
+  | 'order.balance_requested'
+  /** A reminder for a requested balance still unpaid. */
+  | 'order.balance_reminder'
+  /** The balance was captured (or recorded by hand); fulfilment is unblocked. */
+  | 'order.balance_paid'
 
 export type OutboxPayload = {
   orderId: string
@@ -41,7 +47,20 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.cancelled': null,
   'refund.created': null,
   'draft.invoice_sent': 'draft_invoice',
+  'order.balance_requested': 'balance_request',
+  'order.balance_reminder': 'balance_reminder',
+  'order.balance_paid': 'balance_received',
 }
+
+/**
+ * Events that may happen more than once per order (a merchant re-sends the
+ * balance request, a second reminder). Their notification job is keyed by
+ * the outbox row, not just (order, template), so each one is sent.
+ */
+export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
+  'order.balance_requested',
+  'order.balance_reminder',
+])
 
 /**
  * The installed-app lifecycle event this outbox type fans out to, if any.
@@ -54,4 +73,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.cancelled': null,
   'refund.created': 'refund.created',
   'draft.invoice_sent': null,
+  'order.balance_requested': null,
+  'order.balance_reminder': null,
+  'order.balance_paid': null,
 }

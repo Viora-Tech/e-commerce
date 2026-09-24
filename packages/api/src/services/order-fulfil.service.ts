@@ -1,7 +1,9 @@
 import {
+  balanceOwed,
   type FulfilOrderInput,
   fulfilOrderLines,
   OPEN_ATTEMPT_STATUSES,
+  recordBalancePaid,
   refundedPaise,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -106,11 +108,22 @@ export async function collectOrderPayment(
   storeId: string,
   input: { orderId: string; amountPaise: number; method?: string | undefined },
 ) {
+  const [current] = await tx.select().from(order).where(eq(order.id, input.orderId))
+  // A deposit pre-order whose deposit is in: what is owed is the balance, settled as one.
+  if (current && current.status !== 'placed' && balanceOwed(current) > 0) {
+    await recordBalancePaid({ storeId, tx }, input.orderId, { method: input.method })
+    const [o] = await tx.select().from(order).where(eq(order.id, input.orderId))
+    return { order: o ?? null, balance: true }
+  }
   const pending = await tx
     .select()
     .from(payment)
     .where(
-      and(eq(payment.orderId, input.orderId), inArray(payment.status, [...OPEN_ATTEMPT_STATUSES])),
+      and(
+        eq(payment.orderId, input.orderId),
+        eq(payment.purpose, 'order'),
+        inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
+      ),
     )
     .orderBy(desc(payment.attempt))
   const first = pending[0]
@@ -131,7 +144,10 @@ export async function collectOrderPayment(
     .set({ status: 'paid' })
     .where(and(eq(order.id, input.orderId), eq(order.status, 'placed')))
     .returning()
-  return o ?? (await tx.select().from(order).where(eq(order.id, input.orderId)))[0] ?? null
+  return {
+    order: o ?? (await tx.select().from(order).where(eq(order.id, input.orderId)))[0] ?? null,
+    balance: false,
+  }
 }
 
 /** Customer name for the header, without pulling the whole record. */

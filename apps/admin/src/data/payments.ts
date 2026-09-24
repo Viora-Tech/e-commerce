@@ -9,6 +9,29 @@ export const paymentsSettingsContent = {
     label: 'Cancel unpaid online orders after (minutes)',
     help: 'Orders paid online that are still unpaid after this long are cancelled and their stock is released. The gateway is checked first, so a late payment is kept. Cash on delivery and bank transfer orders are never cancelled. 0 turns this off.',
   },
+  preorder: {
+    heading: 'Pre-order balance',
+    intro:
+      'For pre-orders that take a deposit at checkout: when to ask for the rest, how often to remind, and what happens if it is never paid.',
+    autoRequest: 'Request the balance automatically',
+    autoRequestDays: 'Days before the expected ship date',
+    autoRequestHelp:
+      'The customer gets an email (and WhatsApp, when set up) with a link to pay. You can always request it by hand from the order.',
+    reminders: 'Reminders (days after the request)',
+    remindersHelp: 'Up to two, separated by a comma, e.g. 3, 6. Leave empty for none.',
+    unpaid: 'If the balance is not paid',
+    payWithin: 'Within (days of the request)',
+    actions: {
+      none: 'Do nothing, I will follow up myself',
+      cancel_refund: 'Cancel the order and refund the deposit',
+      cancel_keep: 'Cancel the order and keep the deposit',
+    } as Record<string, string>,
+    keepWarning:
+      'Shoppers are told the deposit is non-refundable on the product page and at checkout.',
+    save: 'Save',
+    saved: 'Pre-order settings saved',
+    saveFailed: 'Could not save pre-order settings',
+  },
   adjustment: {
     heading: 'Fee or discount',
     typeLabel: 'Type',

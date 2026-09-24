@@ -1,6 +1,6 @@
 import { Image, Rect, Svg, Text, View } from '@react-pdf/renderer'
 import { code128Widths } from '../barcode'
-import { formatAmount } from '../money'
+import { formatAmount, formatRupees } from '../money'
 import type { DocumentSnapshot, Party } from '../snapshot'
 import type { TemplateView } from './view'
 
@@ -99,6 +99,25 @@ export function SumRow({
         {label}
       </Text>
       <Text style={{ fontSize: size, fontWeight: strong ? 700 : 400 }}>{value}</Text>
+    </View>
+  )
+}
+
+/**
+ * On a pre-order's tax invoice: the advance its receipt voucher (rule 50)
+ * recorded, adjusted against the invoice value, and what was paid on top.
+ */
+export function AdvanceRows({ doc, muted }: { doc: DocumentSnapshot; muted: string }) {
+  if (!doc.advance) return null
+  const rest = Math.max(0, doc.totals.totalPaise - doc.advance.amountPaise)
+  return (
+    <View style={{ marginTop: 4 }}>
+      <SumRow
+        label={`Less advance received (${doc.advance.number})`}
+        value={`-${formatRupees(doc.advance.amountPaise)}`}
+        muted={muted}
+      />
+      <SumRow label="Balance received" value={formatRupees(rest)} muted={muted} />
     </View>
   )
 }

@@ -30,7 +30,7 @@ export function createNotificationWorker(
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     async (job) => {
-      const { storeId, orderId, template } = job.data
+      const { storeId, orderId, template, key } = job.data
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app
       // event's own job id makes the repeat a no-op.
@@ -63,6 +63,9 @@ export function createNotificationWorker(
             settingsSecret: opts.settingsSecret,
             storefrontUrl: opts.storefrontUrl,
             extras: appEmailExtras(db, opts, storeId),
+            // A keyed job is one of several of the same template (a re-sent balance
+            // request, the second reminder): send it even though the template went before.
+            resend: key !== undefined,
           },
         ),
       )

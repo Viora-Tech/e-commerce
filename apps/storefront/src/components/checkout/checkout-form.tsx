@@ -29,6 +29,8 @@ type CheckoutFormProps = {
   customer?: SignedInCustomer | null
   /** Their saved addresses, default first. */
   addresses?: SavedAddress[]
+  /** Set when the cart has a deposit pre-order and the store keeps unpaid deposits. */
+  nonRefundableDepositDays?: number | null
 }
 
 type ChangeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void
@@ -137,6 +139,7 @@ export default function CheckoutForm({
   discount,
   customer = null,
   addresses = [],
+  nonRefundableDepositDays = null,
 }: CheckoutFormProps) {
   // Hooks
   const [pending, start] = useTransition()
@@ -435,6 +438,9 @@ export default function CheckoutForm({
           cardRows={cardRows}
           duePaise={duePaise}
           error={error}
+          notice={
+            nonRefundableDepositDays ? content.depositNonRefundable(nonRefundableDepositDays) : null
+          }
           pending={pending}
           submitDisabled={pending || checking || unserviceable}
           submitLabel={

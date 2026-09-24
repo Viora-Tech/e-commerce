@@ -100,6 +100,10 @@ export * from './permissions/service'
 export * from './permissions/statement'
 export { corePlugin } from './plugins/core-plugin'
 export * from './plugins/events'
+export * from './preorder/balance'
+export * from './preorder/balance-link'
+export * from './preorder/balance-schedule'
+export * from './preorder/store-settings'
 export { CodPaymentProvider, codFactory } from './providers/cod'
 export {
   LOCAL_UPLOAD_DIR,

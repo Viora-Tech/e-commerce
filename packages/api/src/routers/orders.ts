@@ -5,6 +5,7 @@ import {
   insertOutboxEvent,
   type OutboxEventType,
   permissions,
+  requestBalance,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -142,11 +143,44 @@ export const ordersRouter = {
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
-      const o = await collectOrderPayment(context.tx, context.scope.storeId, input)
-      if (o) {
+      const { order: o, balance } = await collectOrderPayment(
+        context.tx,
+        context.scope.storeId,
+        input,
+      ).catch((err) => {
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      })
+      // A pre-order balance taken by hand writes order.balance_paid itself; the order was already paid.
+      if (o && !balance) {
         await insertOutboxEvent(context.tx, context.scope.storeId, 'order.paid', { orderId: o.id })
       }
       return o
+    }),
+
+  /**
+   * Ask the shopper for a deposit pre-order's balance: email and WhatsApp
+   * (when set up) with a signed pay link. Can be sent again; reminders and
+   * the store's unpaid-balance rule count from the first request.
+   */
+  requestBalance: can(permissions.ORDERS_WRITE)
+    .input(z.object({ orderId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
+      try {
+        return await requestBalance(
+          { storeId: context.scope.storeId, tx: context.tx },
+          input.orderId,
+          { author: context.session.user.email },
+        )
+      } catch (err) {
+        if (err instanceof CommerceError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        }
+        throw err
+      }
     }),
 
   /** Book the parcel with the store's courier; the order becomes fulfilled and the shopper is told. */

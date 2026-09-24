@@ -12,7 +12,46 @@ type TemplateCopy = {
   whatsapp: (d: TemplateData) => string
 }
 
+const payBy = (d: TemplateData): string =>
+  d.balance?.payByLabel ? ` Please pay by ${d.balance.payByLabel}.` : ''
+const keepNote = (d: TemplateData): string =>
+  d.balance?.depositNonRefundable
+    ? ' If it is not paid in time the order is cancelled and the deposit is not refunded.'
+    : ''
+
+export const balanceTemplates = {
+  balance_request: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} is almost ready, balance due`,
+    heading: (d) => `Hi ${d.customerName}, your pre-order is nearly here`,
+    intro: (d) =>
+      `You paid ${d.balance?.depositLabel ?? ''} up front for order #${d.orderNumber}. The balance of ${d.balance?.dueLabel ?? ''} is now due.${payBy(d)}${keepNote(d)}`,
+    outro: (d) =>
+      d.actionUrl ? `Pay the balance here: ${d.actionUrl}` : 'Reply to this email to pay.',
+    whatsapp: (d) =>
+      `${d.storeName}: balance of ${d.balance?.dueLabel ?? ''} is due for pre-order #${d.orderNumber}.${payBy(d)}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+  },
+  balance_reminder: {
+    subject: (d) => `${d.storeName}: reminder, balance due for order #${d.orderNumber}`,
+    heading: (d) => `Hi ${d.customerName}, a quick reminder`,
+    intro: (d) =>
+      `The balance of ${d.balance?.dueLabel ?? ''} for pre-order #${d.orderNumber} is still due.${payBy(d)}${keepNote(d)}`,
+    outro: (d) =>
+      d.actionUrl ? `Pay the balance here: ${d.actionUrl}` : 'Reply to this email to pay.',
+    whatsapp: (d) =>
+      `Reminder from ${d.storeName}: ${d.balance?.dueLabel ?? ''} is still due for pre-order #${d.orderNumber}.${payBy(d)}${d.actionUrl ? ` Pay: ${d.actionUrl}` : ''}`,
+  },
+  balance_received: {
+    subject: (d) => `${d.storeName}: balance for order #${d.orderNumber} received`,
+    heading: () => 'Balance received',
+    intro: (d) => `Order #${d.orderNumber} is now paid in full (${d.totalLabel}).`,
+    outro: () => 'We will message you again as soon as it ships.',
+    whatsapp: (d) =>
+      `${d.storeName}: balance received, pre-order #${d.orderNumber} is paid in full. We will update you when it ships.`,
+  },
+} satisfies Record<'balance_request' | 'balance_reminder' | 'balance_received', TemplateCopy>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
+  ...balanceTemplates,
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => `Thanks, ${d.customerName}`,

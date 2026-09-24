@@ -8,6 +8,7 @@ import {
   OUTBOX_NOTIFICATION_TEMPLATE,
   type OutboxEventType,
   type OutboxPayload,
+  REPEATABLE_OUTBOX_EVENTS,
 } from './types'
 
 export type OutboxRelayDeps = {
@@ -46,6 +47,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       storeId: row.storeId,
       orderId: payload.orderId,
       template,
+      key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
     })
   }
   const appEvent = OUTBOX_APP_EVENT[type]
