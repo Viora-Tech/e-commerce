@@ -1,6 +1,7 @@
 'use client'
 
 import type { PaymentAdjustment } from '@commerce/core'
+import { CreditCard } from '@commerce/ui/icons'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import ProviderSettingsForm, {
   type ProviderDef,
@@ -68,6 +69,7 @@ export default function PaymentsSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      icon={<CreditCard aria-hidden="true" />}
       intro={copy.intro}
       load={load}
       save={save}

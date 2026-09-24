@@ -1,7 +1,7 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { Plus } from '@commerce/ui/icons'
+import { Braces, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -70,7 +70,7 @@ export default function CustomDataSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Braces aria-hidden="true" />} />
       <SectionTabs tabs={TABS}>
         <SettingsSection id={copy.tabs.products.id}>
           <MetafieldDefinitionsCard

@@ -1,3 +1,4 @@
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { purchaseOrdersContent as copy } from '@/data/inventory'
@@ -5,8 +6,6 @@ import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
 export type PurchaseOrderRow = Awaited<ReturnType<typeof api.purchaseOrders.list>>['rows'][number]
-
-const day = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
 /** Columns of the purchase order list. */
 export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
@@ -35,7 +34,7 @@ export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
     id: 'status',
     title: copy.columns.status,
     sortValue: (r) => r.status,
-    render: (r) => <StatusLabel kind="purchaseOrder" value={r.status} variant="pill" />,
+    render: (r) => <StatusLabel kind="purchaseOrder" value={r.status} />,
   },
   {
     id: 'received',
@@ -55,6 +54,11 @@ export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
     id: 'expected',
     title: copy.columns.expected,
     sortValue: (r) => (r.expectedAt ? new Date(r.expectedAt) : null),
-    render: (r) => (r.expectedAt ? day.format(new Date(r.expectedAt)) : copy.none),
+    render: (r) =>
+      r.expectedAt ? (
+        <RelativeTime value={r.expectedAt} />
+      ) : (
+        <span className="text-muted-foreground-soft">{copy.none}</span>
+      ),
   },
 ]

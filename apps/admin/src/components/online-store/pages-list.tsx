@@ -4,6 +4,7 @@ import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import PageBody from '@/components/layout/page-body'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { onlineStoreContent } from '@/data/online-store'
@@ -36,9 +37,9 @@ const columns: ResourceColumnSpec<Item>[] = [
     sortValue: (p) => (p.publishedAt ? 1 : 0),
     render: (p) =>
       p.publishedAt ? (
-        <StatusLabel kind="page" value="published" variant="pill" size="sm" />
+        <StatusLabel kind="page" value="published" size="sm" />
       ) : (
-        <StatusLabel kind="page" value="draft" variant="pill" size="sm" />
+        <StatusLabel kind="page" value="draft" size="sm" />
       ),
   },
   {
@@ -46,11 +47,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: copy.columns.updated,
     sortValue: (p) => new Date(p.updatedAt),
     align: 'end',
-    render: (p) => (
-      <span className="text-muted-foreground tabular-nums">
-        {new Date(p.updatedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-      </span>
-    ),
+    render: (p) => <RelativeTime value={p.updatedAt} className="text-muted-foreground" />,
   },
 ]
 

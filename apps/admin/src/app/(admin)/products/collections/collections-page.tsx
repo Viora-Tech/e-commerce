@@ -9,6 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -23,6 +25,7 @@ import PillTabs from '@/components/layout/pill-tabs'
 import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
 import { collectionsListContent as copy } from '@/data/collections'
 import { api } from '@/lib/api-client'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ProductsResult = Awaited<ReturnType<typeof api.collections.products>>
 type Collections = Awaited<ReturnType<typeof api.collections.list>>
@@ -41,6 +44,7 @@ const TABS = ['featured', 'onSale', 'outOfStock'] as const
 
 function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
   // Hooks
+  usePrimaryAction('/products/collections/new')
   const [q, setQ] = useQueryStates(
     {
       collection: parseAsString,
@@ -120,10 +124,6 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
       title={copy.heading}
       actions={
         <>
-          <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
-            <SquarePlus strokeWidth={1.6} />
-            {copy.add}
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -134,14 +134,29 @@ function CollectionsContent({ initial }: { initial: CollectionsInitial }) {
               }
             />
             <DropdownMenuContent align="end">
-              <DropdownMenuItem render={<Link href="/products/collections/new" />}>
-                {copy.newCollection}
-              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/products/new" />}>{copy.add}</DropdownMenuItem>
               <DropdownMenuItem render={<Link href="/products" />}>
                 {copy.allProducts}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="lg"
+                  render={<Link href="/products/collections/new" />}
+                  nativeButton={false}
+                >
+                  <SquarePlus strokeWidth={1.6} />
+                  {copy.newCollection}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {copy.newCollection} <Kbd>N</Kbd>
+            </TooltipContent>
+          </Tooltip>
         </>
       }
       strip={

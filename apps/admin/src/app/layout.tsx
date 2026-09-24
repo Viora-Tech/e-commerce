@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import localFont from 'next/font/local'
+import { Geist } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
@@ -8,16 +8,12 @@ import { layoutContent } from '@/data/layout'
 
 export const metadata: Metadata = { title: 'Admin' }
 
-/* Satoshi (Fontshare, ITF FFL) self-hosted from public/fonts/satoshi; weight axis 300 to 900. */
-const sans = localFont({
-  src: [
-    { path: '../../public/fonts/satoshi/Satoshi-Variable.woff2', style: 'normal' },
-    { path: '../../public/fonts/satoshi/Satoshi-VariableItalic.woff2', style: 'italic' },
-  ],
-  weight: '300 900',
+/* Geist (SIL OFL 1.1), Vercel's UI face; variable weights. */
+const sans = Geist({
+  subsets: ['latin'],
   variable: '--font-primary',
   display: 'swap',
-  fallback: ['Inter', 'system-ui', 'sans-serif'],
+  fallback: ['system-ui', 'sans-serif'],
 })
 
 export default function RootLayout({ children }: { children: ReactNode }) {

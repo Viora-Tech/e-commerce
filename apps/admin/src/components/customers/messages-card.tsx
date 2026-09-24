@@ -1,8 +1,9 @@
 import { Bell } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { customerDetailContent as copy } from '@/data/customers'
-import { type CustomerMessage, when } from './customer-detail-types'
+import type { CustomerMessage } from './customer-detail-types'
 
 type MessagesCardProps = {
   messages: CustomerMessage[]
@@ -27,10 +28,10 @@ export default function MessagesCard({ messages }: MessagesCardProps) {
               </span>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-body font-medium">{c.template[m.template] ?? m.template}</p>
-                <StatusLabel kind="message" value={m.status} variant="pill" size="sm" />
+                <StatusLabel kind="message" value={m.status} size="sm" />
               </div>
               <p className="text-caption">
-                {when(m.createdAt)} {c.via(m.channel)}
+                <RelativeTime value={m.createdAt} /> {c.via(m.channel)}
               </p>
             </li>
           ))}

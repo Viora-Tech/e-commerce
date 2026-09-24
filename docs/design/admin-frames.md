@@ -36,6 +36,36 @@ are in `admin-tokens.md`.
 | Stat tile | `5:2512` | 135px, 16px inset, 18/700 title, 32/700 figure with 16px arrow + 14/500 delta, 14px period line at 100px |
 | Field | `5:5493`, `5:5495` | label 15/400 `#023337`, 12px gap, input 48px |
 
+## Premium pass (24 September 2026)
+
+Refines the Saleor look below; where they conflict, this section wins.
+
+- Shell: warm neutral rail `--sidebar #f2f2f2`, ink `#141414`. The search field, View store and
+  the notifications / theme / account group sit in the grey band ABOVE the white panel. The
+  panel curves only at its top-left (hairline top and left) and runs flush to the window's
+  right and bottom; the rail has no right border. List and detail headers are sticky and gain
+  a faint shadow once `#main` scrolls (`data-scrolled`).
+- Font: Geist (`next/font/google`). Icons: Phosphor via `@commerce/ui/icons` (import from
+  `@phosphor-icons/react/ssr` so server components work); duotone in nav and section titles,
+  `fill` on the active nav item, 16px inline / 18px nav.
+- Buttons: `rounded-xl` (sm 0.625rem); ink primary is solid with a soft drop shadow and a
+  border matching its fill (no light edge); outline buttons are white with a soft shadow.
+- Cards: standalone `DataCard`s and summary boxes are `rounded-2xl` with `--shadow-card`
+  (hairline plus a soft lift); inside `[data-layout=sections]` they stay flush.
+- Labels: `.text-eyebrow` (11px, 500, uppercase, 0.06em) for field and section meta labels.
+- Semantic tones (`--success|info|warning|danger` + `-soft`): mint for fulfilled, delivered,
+  paid, active; blue for refunded and info; amber for placed, pending, unfulfilled; red for
+  cancelled, failed, unpaid; drafts neutral. Used on status dots (tables), header pills,
+  `IconBadge` squares and `LiveChip`s only, never as decoration.
+- Tables: status as dot + text, relative dates via `<RelativeTime>` (full date on hover),
+  tabular numbers, first column stacks name and sub-line with an avatar.
+- Primitives: `IconBadge`, `CopyButton`, `LiveChip`, `RelativeTime`, keyboard shortcuts
+  (`/` or ⌘K search, `N` new, `G` then O/P/C, `?` sheet) via `usePrimaryAction`.
+- Dark mode is iOS-style: black shell and canvas, `#1c1c1e` cards, `#38383a` separators,
+  `#8e8e93` secondary text, Apple dark system colours (green `#30d158`, orange `#ff9f0a`,
+  blue `#0a84ff`, red `#ff453a`) on solid deep tints; primary buttons are light with black text.
+- Avoid: gradients, glows, beams, sparkles, gradient text, heavy KPI card rows.
+
 ## Saleor look (September 2026)
 
 The admin now follows the Saleor Dashboard (BSD-3) and its Macaw UI tokens (CC BY 4.0),

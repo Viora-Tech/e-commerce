@@ -16,15 +16,21 @@ function daysApart(value: Date, now: Date): number {
   return Math.round((startOfDay(now) - startOfDay(value)) / DAY_MS)
 }
 
-/** "Today at 9:27 pm", "Yesterday at 8:15 am", "3 Sept at 2:03 pm", older adds the year. */
+const DAYS_AGO_LIMIT = 6
+
+/**
+ * "Today, 9:15 pm", "Yesterday, 4:02 pm", "3 days ago", then "12 Sept" (the year joins once
+ * it is not this year). Pair with `formatDateTime` as a title/tooltip for the exact moment.
+ */
 export function formatWhen(value: Date | string, now = new Date()): string {
   const date = new Date(value)
   const days = daysApart(date, now)
   const at = time.format(date).toLowerCase()
-  if (days === 0) return `Today at ${at}`
-  if (days === 1) return `Yesterday at ${at}`
+  if (days === 0) return `Today, ${at}`
+  if (days === 1) return `Yesterday, ${at}`
+  if (days > 1 && days <= DAYS_AGO_LIMIT) return `${days} days ago`
   const day = date.getFullYear() === now.getFullYear() ? dayMonth : dayMonthYear
-  return `${day.format(date)} at ${at}`
+  return day.format(date)
 }
 
 /** Day heading for grouped lists: "Today", "Yesterday", "3 Sept 2026". */

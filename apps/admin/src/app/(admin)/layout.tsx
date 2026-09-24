@@ -23,6 +23,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     .filter((a) => a.installed && a.admin.pages.length > 0)
     .map((a) => ({ id: a.id, name: a.name, icon: a.admin.icon }))
 
+  // The sidebar's brand mark reuses the storefront theme's logo when the store has set one.
+  const themes = active
+    ? await call(appRouter.themes.list, undefined, { context: await serverContext() }).catch(
+        () => [],
+      )
+    : []
+  const liveTheme = themes.find((t) => t.role === 'main')
+  const logoUrl = liveTheme?.settings.brand.logo?.url ?? null
+
   return (
     <>
       <AccentStyle organizationId={active?.id ?? null} />
@@ -32,6 +41,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         activeStoreId={active?.id ?? null}
         storefrontUrl={loadEnv(process.env).STOREFRONT_URL}
         apps={appLinks}
+        logoUrl={logoUrl}
       >
         {children}
       </AdminFrame>

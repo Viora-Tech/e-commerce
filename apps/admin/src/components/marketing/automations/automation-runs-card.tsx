@@ -1,5 +1,6 @@
 import type { MarketingRunStatus } from '@commerce/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import RelativeTime from '@/components/layout/relative-time'
 import { automationEditorContent } from '@/data/marketing-automations'
 import type { api } from '@/lib/api-client'
 
@@ -8,7 +9,6 @@ type Run = NonNullable<Awaited<ReturnType<typeof api.marketing.automations.get>>
 type AutomationRunsCardProps = { runs: Run[]; stepCount: number }
 
 const copy = automationEditorContent.runs
-const date = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 
 function statusLine(r: Run, steps: number): string {
   const s = copy.status[r.status as MarketingRunStatus] ?? r.status
@@ -37,9 +37,10 @@ export default function AutomationRunsCard({ runs, stepCount }: AutomationRunsCa
                 <span className="text-caption text-muted-foreground">
                   {statusLine(r, stepCount)}
                 </span>
-                <span className="text-caption text-muted-foreground-soft">
-                  {date.format(new Date(r.startedAt))}
-                </span>
+                <RelativeTime
+                  value={r.startedAt}
+                  className="text-caption text-muted-foreground-soft"
+                />
               </li>
             ))}
           </ul>

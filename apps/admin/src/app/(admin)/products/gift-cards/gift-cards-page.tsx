@@ -4,6 +4,8 @@ import { maskedGiftCardCode } from '@commerce/core/gift-cards'
 import { Gift, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -14,12 +16,14 @@ import GiftCardTiles from '@/components/gift-cards/gift-card-tiles'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import PillTabs from '@/components/layout/pill-tabs'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { GIFT_CARD_STATES, type GiftCardStateFilter, giftCardsContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.giftCards.list>>
 type Item = ListResult['rows'][number]
@@ -38,9 +42,9 @@ export type GiftCardsInitial = {
 const copy = giftCardsContent
 const PER_PAGE = LIST_PER_PAGE
 
-const day = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-const formatDay = (d: Date | string) =>
-  day.format(typeof d === 'string' && d.length === 10 ? new Date(`${d}T00:00:00`) : new Date(d))
+/** `expiresOn` is a bare `YYYY-MM-DD`: read as local midnight so the day never shifts. */
+const asDate = (d: Date | string) =>
+  typeof d === 'string' && d.length === 10 ? new Date(`${d}T00:00:00`) : new Date(d)
 
 function fetchCards(q: Query) {
   return api.giftCards.list({
@@ -93,15 +97,18 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'issued',
     title: copy.columns.issued,
     sortValue: (g) => new Date(g.createdAt).getTime(),
-    render: (g) => <span className="tabular-nums">{formatDay(g.createdAt)}</span>,
+    render: (g) => <RelativeTime value={g.createdAt} />,
   },
   {
     id: 'expires',
     title: copy.columns.expires,
     sortValue: (g) => g.expiresOn ?? '9999',
-    render: (g) => (
-      <span className="tabular-nums">{g.expiresOn ? formatDay(g.expiresOn) : copy.never}</span>
-    ),
+    render: (g) =>
+      g.expiresOn ? (
+        <RelativeTime value={asDate(g.expiresOn)} />
+      ) : (
+        <span className="text-muted-foreground-soft">{copy.never}</span>
+      ),
   },
   {
     id: 'balance',
@@ -116,7 +123,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   {
     id: 'status',
     title: copy.columns.status,
-    render: (g) => <StatusLabel kind="giftCard" value={g.state} variant="pill" />,
+    render: (g) => <StatusLabel kind="giftCard" value={g.state} />,
   },
 ]
 
@@ -141,6 +148,7 @@ function StateTabs({ value, allCount, onChange }: TabsProps) {
 
 function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   // Hooks
+  usePrimaryAction('/products/gift-cards/new')
   const [{ page, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -177,10 +185,23 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
       <Button variant="outline" size="lg" onClick={() => setProductOpen(true)}>
         {copy.addProduct}
       </Button>
-      <Button size="lg" render={<Link href="/products/gift-cards/new" />} nativeButton={false}>
-        <SquarePlus strokeWidth={1.6} />
-        {copy.create}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              size="lg"
+              render={<Link href="/products/gift-cards/new" />}
+              nativeButton={false}
+            >
+              <SquarePlus strokeWidth={1.6} />
+              {copy.create}
+            </Button>
+          }
+        />
+        <TooltipContent>
+          {copy.create} <Kbd>N</Kbd>
+        </TooltipContent>
+      </Tooltip>
     </div>
   )
 

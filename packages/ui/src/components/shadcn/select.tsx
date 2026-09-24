@@ -5,7 +5,42 @@ import * as React from 'react'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from '../../icons'
 import { cn } from '../../lib/utils'
 
-const Select = SelectPrimitive.Root
+/**
+ * Walks `<SelectItem value>label</SelectItem>` out of whatever's nested under `children`
+ * (through `SelectContent`, `SelectGroup`, fragments, `.map()` arrays) into a value→label
+ * map, so `<Select.Value>` can show the picked option's label instead of its raw value
+ * without every call site building that map by hand.
+ */
+function itemsFromChildren(children: React.ReactNode): Record<string, React.ReactNode> {
+  const found: Record<string, React.ReactNode> = {}
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+    const props = child.props as { value?: unknown; children?: React.ReactNode }
+    if (child.type === SelectItem && props.value !== undefined) {
+      found[String(props.value)] = props.children
+      return
+    }
+    if (props.children !== undefined) {
+      Object.assign(found, itemsFromChildren(props.children))
+    }
+  })
+  return found
+}
+
+function Select<Value, Multiple extends boolean | undefined = false>({
+  items,
+  children,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  // Render logic: an explicit `items` map wins; otherwise derive one from the SelectItems
+  // already in `children` so SelectValue always has a label to show.
+  const resolvedItems = items ?? itemsFromChildren(children)
+  return (
+    <SelectPrimitive.Root items={resolvedItems} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (

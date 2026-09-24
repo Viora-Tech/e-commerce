@@ -40,7 +40,7 @@ export default function ThemeModeField() {
     >
       {MODES.map((m) => (
         <ToggleGroupItem key={m.id} value={m.id} className="gap-1.5 px-3">
-          <m.icon strokeWidth={1.8} />
+          <m.icon />
           {m.label}
         </ToggleGroupItem>
       ))}

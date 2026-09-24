@@ -100,7 +100,10 @@ export default function OrderCard({ orderId }: OrderCardProps) {
     >
       <div className="flex flex-col gap-3">
         {issued.length === 0 && !invoice ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
+          <p className="flex items-start gap-2 text-body text-muted-foreground">
+            <FileText className="mt-0.5 size-4 shrink-0" strokeWidth={1.6} />
+            {copy.empty}
+          </p>
         ) : null}
         {invoice?.status === 'draft' ? (
           <div className="flex items-center justify-between gap-3 rounded-[0.5rem] bg-secondary p-2.5">

@@ -3,6 +3,8 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { Download, ExternalLink, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -21,6 +23,7 @@ import RowIconCells from '@/components/table/row-icon-cells'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.products.list>>
 type Facets = Awaited<ReturnType<typeof api.products.facets>>
@@ -66,6 +69,7 @@ function hasFilters(q: Query) {
 
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
+  usePrimaryAction('/products/new')
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -202,10 +206,19 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
             <Upload strokeWidth={1.6} />
             {copy.import}
           </Button>
-          <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
-            <SquarePlus strokeWidth={1.6} />
-            {copy.add}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
+                  <SquarePlus strokeWidth={1.6} />
+                  {copy.add}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {copy.add} <Kbd>N</Kbd>
+            </TooltipContent>
+          </Tooltip>
         </>
       }
     >

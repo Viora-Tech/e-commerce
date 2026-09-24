@@ -2,6 +2,8 @@
 
 import { Newspaper, Plus, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -16,6 +18,7 @@ import ResourceTable, { type AppliedFilter } from '@/components/table/resource-t
 import { ARTICLE_TABS, type ArticleTab, blogListContent as copy } from '@/data/blog'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.blog.list>>
 type Counts = Awaited<ReturnType<typeof api.blog.counts>>
@@ -55,6 +58,7 @@ function listInput(q: Query) {
 
 function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
   // Hooks
+  usePrimaryAction('/content/blog-posts/new')
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -154,10 +158,23 @@ function BlogPostsContent({ initial }: { initial: BlogPostsInitial }) {
             <Newspaper strokeWidth={1.6} />
             {copy.manageBlogs}
           </Button>
-          <Button size="lg" render={<Link href="/content/blog-posts/new" />} nativeButton={false}>
-            <SquarePlus strokeWidth={1.6} />
-            {copy.add}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="lg"
+                  render={<Link href="/content/blog-posts/new" />}
+                  nativeButton={false}
+                >
+                  <SquarePlus strokeWidth={1.6} />
+                  {copy.add}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {copy.add} <Kbd>N</Kbd>
+            </TooltipContent>
+          </Tooltip>
         </>
       }
     >

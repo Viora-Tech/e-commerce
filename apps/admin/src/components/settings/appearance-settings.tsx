@@ -1,6 +1,7 @@
 'use client'
 
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '@commerce/core/admin-accent'
+import { Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -87,7 +88,11 @@ export default function AppearanceSettings() {
   if (!loaded) {
     return (
       <div className="flex max-w-3xl flex-col gap-4">
-        <PageHeader title={copy.title} subtitle={copy.intro} />
+        <PageHeader
+          title={copy.title}
+          subtitle={copy.intro}
+          icon={<Palette aria-hidden="true" />}
+        />
         <Card className="gap-4 p-6">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-9 w-full" />
@@ -103,7 +108,7 @@ export default function AppearanceSettings() {
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} />
+      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Palette aria-hidden="true" />} />
       <Card size="form">
         <CardHeader>
           <CardTitle>{copy.accent.heading}</CardTitle>

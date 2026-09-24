@@ -1,6 +1,8 @@
 import { CircleCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
 import { formatWhen } from '@/lib/format-date'
@@ -21,11 +23,14 @@ type PaymentCardProps = {
   onCollect?: (() => void) | undefined
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
   return (
-    <div className="flex justify-between gap-4 text-body">
+    <div className="group/row flex justify-between gap-4 text-body">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="truncate text-right font-medium">{value}</dd>
+      <dd className="flex items-center gap-1 truncate text-right font-medium">
+        <span className="truncate">{value}</span>
+        {copyable ? <CopyButton value={value} what={label} /> : null}
+      </dd>
     </div>
   )
 }
@@ -73,7 +78,7 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
                   ) : null}
                 </p>
                 <div className="flex items-center gap-3">
-                  <StatusLabel kind="payment" value={pill} variant="pill" />
+                  <StatusLabel kind="payment" value={pill} />
                   {refundable && onRefund ? (
                     <Button size="sm" variant="outline" onClick={() => onRefund(p)}>
                       {copy.actions.refund}
@@ -85,9 +90,9 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
                 <p className="text-body text-destructive">{copy.payment.refundNeeded}</p>
               ) : null}
               <dl className="flex flex-col gap-1.5">
-                <Row label={copy.payment.reference} value={p.providerRef} />
+                <Row label={copy.payment.reference} value={p.providerRef} copyable />
                 {p.providerPaymentId ? (
-                  <Row label={copy.payment.gatewayId} value={p.providerPaymentId} />
+                  <Row label={copy.payment.gatewayId} value={p.providerPaymentId} copyable />
                 ) : null}
                 <Row label={amountLabel(p.status)} value={formatPaise(p.amountPaise)} />
                 {back > 0 ? (
@@ -100,7 +105,7 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
 
         {order.refunds.length > 0 ? (
           <section className="border-t border-border pt-4">
-            <p className="text-caption text-muted-foreground mb-2">{copy.payment.refunds}</p>
+            <p className="text-eyebrow mb-2">{copy.payment.refunds}</p>
             <ul className="flex flex-col gap-2">
               {order.refunds.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 text-body">
@@ -112,7 +117,7 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
                       {[formatWhen(r.createdAt), r.reason].filter(Boolean).join(', ')}
                     </span>
                   </span>
-                  <StatusLabel kind="refund" value={r.status} variant="pill" size="sm" />
+                  <StatusLabel kind="refund" value={r.status} size="sm" />
                 </li>
               ))}
             </ul>
@@ -120,7 +125,7 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
         ) : null}
 
         <section className="border-t border-border pt-4">
-          <p className="text-caption text-muted-foreground mb-2">{copy.payment.events}</p>
+          <p className="text-eyebrow mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
             <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>
           ) : (
@@ -129,14 +134,15 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
                 <li key={e.id} className="flex items-center justify-between gap-3 text-body">
                   <span className="min-w-0">
                     <code className="block text-xs">{e.type}</code>
-                    <span className="block truncate text-caption font-normal">
-                      {formatWhen(e.receivedAt)}
-                    </span>
+                    <RelativeTime
+                      value={e.receivedAt}
+                      className="block truncate text-caption font-normal"
+                    />
                     {e.error ? (
                       <span className="block truncate text-xs text-destructive">{e.error}</span>
                     ) : null}
                   </span>
-                  <StatusLabel kind="event" value={e.status} variant="pill" size="sm" />
+                  <StatusLabel kind="event" value={e.status} size="sm" />
                 </li>
               ))}
             </ul>

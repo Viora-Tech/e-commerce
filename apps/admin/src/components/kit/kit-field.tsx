@@ -36,7 +36,7 @@ export default function KitField({
       {error ? (
         <p className="text-caption font-normal text-destructive">{error}</p>
       ) : help ? (
-        <p className="text-caption font-normal text-muted-foreground">{help}</p>
+        <p className="text-caption font-normal leading-relaxed text-muted-foreground">{help}</p>
       ) : null}
     </div>
   )

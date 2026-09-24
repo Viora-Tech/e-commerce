@@ -69,10 +69,10 @@ type SummaryBoxProps = {
 
 function SummaryBox({ rows, heading, pill }: SummaryBoxProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">
+    <div className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-card">
       {heading ? (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-body-strong text-ink-strong">{heading}</p>
+          <p className="text-eyebrow">{heading}</p>
           {pill ? <StatusLabel kind="payment" value={pill} variant="pill" size="sm" /> : null}
         </div>
       ) : null}

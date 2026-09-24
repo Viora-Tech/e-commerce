@@ -1,6 +1,7 @@
 'use client'
 
 import type { ShippingPolicySettings } from '@commerce/core'
+import { Truck } from '@commerce/ui/icons'
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
@@ -46,6 +47,7 @@ export default function ShippingSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      icon={<Truck aria-hidden="true" />}
       intro={copy.intro}
       load={load}
       save={save}

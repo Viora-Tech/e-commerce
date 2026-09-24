@@ -23,7 +23,7 @@ function ContactRow({ label, value, what, href }: ContactRowProps) {
   return (
     <div className="group/row flex items-center justify-between gap-2 py-1.5">
       <div className="min-w-0">
-        <p className="text-caption text-muted-foreground-soft">{label}</p>
+        <p className="text-eyebrow">{label}</p>
         {href ? (
           <a href={href} className="block truncate text-body underline-offset-4 hover:underline">
             {value}
@@ -84,7 +84,7 @@ export default function ProfileCard({ customer, onChanged }: ProfileCardProps) {
       <div className="mt-4 border-t border-border pt-4">
         <div className="group/row flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-caption text-muted-foreground-soft">{copy.profile.address}</p>
+            <p className="text-eyebrow">{copy.profile.address}</p>
             {a ? (
               <address className="mt-1 text-body not-italic">
                 <p>{a.name}</p>
@@ -113,7 +113,7 @@ export default function ProfileCard({ customer, onChanged }: ProfileCardProps) {
           onCheckedChange={handleMarketing}
         />
       </div>
-      <p className="mt-4 text-caption text-muted-foreground-soft">
+      <p className="mt-4 text-caption text-muted-foreground">
         {copy.profile.created} {day(customer.createdAt)}
       </p>
     </DataCard>

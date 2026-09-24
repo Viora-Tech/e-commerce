@@ -3,6 +3,7 @@ import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { customerActivity, customerCode, customersContent } from '@/data/customers'
 import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import CustomerAvatar from './customer-avatar'
 import CustomerRowActions from './customer-row-actions'
 
 export type CustomerRow = Awaited<ReturnType<typeof api.customers.list>>['items'][number]
@@ -11,6 +12,21 @@ const copy = customersContent
 
 function displayName(item: CustomerRow): string {
   return item.name ?? item.email ?? copy.unnamed
+}
+
+/* Avatar + name, the email muted beneath: the row's one point of contact. */
+function NameCell({ item }: { item: CustomerRow }) {
+  return (
+    <span className="flex items-center gap-3 text-left">
+      <CustomerAvatar name={item.name} email={item.email} />
+      <span className="min-w-0">
+        <span className="line-clamp-1 text-body text-foreground">{displayName(item)}</span>
+        {item.email && item.email !== displayName(item) ? (
+          <span className="line-clamp-1 text-caption text-muted-foreground">{item.email}</span>
+        ) : null}
+      </span>
+    </span>
+  )
 }
 
 /**
@@ -32,7 +48,7 @@ export function customerColumns(onChanged: () => void): ResourceColumnSpec<Custo
       sortValue: (c) => c.name ?? c.email ?? '',
       hideable: false,
       className: 'whitespace-normal',
-      render: (c) => <span className="line-clamp-2">{displayName(c)}</span>,
+      render: (c) => <NameCell item={c} />,
     },
     {
       id: 'phone',

@@ -1,5 +1,6 @@
 'use client'
 
+import { Bell } from '@commerce/ui/icons'
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
@@ -21,6 +22,7 @@ export default function NotificationsSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      icon={<Bell aria-hidden="true" />}
       intro={copy.intro}
       load={load}
       save={save}

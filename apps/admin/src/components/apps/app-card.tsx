@@ -43,7 +43,7 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-            <Puzzle className="size-5" strokeWidth={1.8} />
+            <Puzzle className="size-5" />
           </span>
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">

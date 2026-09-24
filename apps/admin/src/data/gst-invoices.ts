@@ -247,7 +247,7 @@ export const gstInvoicesContent = {
   },
   orderCard: {
     title: 'GST documents',
-    empty: 'No invoice yet.',
+    empty: 'No invoice for this order yet. Add it to the queue below to generate one.',
     queue: 'Add to invoice queue',
     openQueue: 'Open queue',
     issueSlip: 'Packing slip',

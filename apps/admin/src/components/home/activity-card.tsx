@@ -56,7 +56,7 @@ export default function ActivityCard({ liveVisitors, salesByState }: ActivityCar
       <p className="mt-5 text-kit-link font-medium text-muted-foreground">{c.perMinute}</p>
       <MiniBars data={bars} className="mt-3" />
 
-      <div className="mt-6 flex items-center justify-between text-kit-title font-semibold text-foreground">
+      <div className="mt-6 flex items-center justify-between text-kit-title text-foreground">
         <p>{c.byState}</p>
         <p>{c.sales}</p>
       </div>

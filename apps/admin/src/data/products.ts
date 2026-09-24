@@ -45,6 +45,8 @@ export const productsListContent = {
   },
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
+  inStock: (available: number) => `${available} in stock`,
+  variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
   none: '',
   preorderPill: 'Pre-order',
   launching: (date: Date) =>

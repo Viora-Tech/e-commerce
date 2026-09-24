@@ -28,6 +28,8 @@ type Loaded<Extra> = { settings: ProviderState & Extra; available: ProviderDef[]
 type ProviderSettingsFormProps<Extra> = {
   title: string
   intro?: string | undefined
+  /** The settings section's glyph, shown in the header's icon badge. */
+  icon?: ReactNode
   /** Fetch `{ settings, available }`; `extra` is whatever else the blob carries (e.g. adjustments). */
   load: () => Promise<Loaded<Extra>>
   /** Persist; returns the saved blob or null. */
@@ -79,6 +81,7 @@ function LoadingCards() {
 export default function ProviderSettingsForm<Extra extends object>({
   title,
   intro,
+  icon,
   load,
   save,
   emptyExtra,
@@ -159,7 +162,7 @@ export default function ProviderSettingsForm<Extra extends object>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={title} subtitle={intro} />
+      <PageHeader title={title} subtitle={intro} icon={icon} />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />

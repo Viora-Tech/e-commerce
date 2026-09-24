@@ -2,6 +2,8 @@
 
 import { Plus, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
@@ -19,6 +21,7 @@ import {
 } from '@/data/inventory'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.purchaseOrders.list>>
 
@@ -39,6 +42,7 @@ function allCount(c: PurchaseOrderCounts): number {
 
 function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) {
   // Hooks
+  usePrimaryAction(NEW_HREF)
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -78,10 +82,19 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     <KitListPage
       title={copy.heading}
       actions={
-        <Button size="lg" render={<Link href={NEW_HREF} />} nativeButton={false}>
-          <SquarePlus strokeWidth={1.6} />
-          {copy.create}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button size="lg" render={<Link href={NEW_HREF} />} nativeButton={false}>
+                <SquarePlus strokeWidth={1.6} />
+                {copy.create}
+              </Button>
+            }
+          />
+          <TooltipContent>
+            {copy.create} <Kbd>N</Kbd>
+          </TooltipContent>
+        </Tooltip>
       }
       strip={<PurchaseOrderTiles counts={initial.counts} />}
     >

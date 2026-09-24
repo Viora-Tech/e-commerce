@@ -3,9 +3,9 @@
 import { Pencil, Trash2 } from '@commerce/ui/icons'
 import Link from 'next/link'
 import KitThumb from '@/components/kit/kit-thumb'
+import RelativeTime from '@/components/layout/relative-time'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { collectionsListContent as copy } from '@/data/collections'
-import { formatDay } from '@/lib/format-date'
 
 /** The row shape the table needs; the service returns a superset. */
 export type CollectionProductRow = {
@@ -42,7 +42,7 @@ export function collectionProductColumns<T extends CollectionProductRow>(
       id: 'created',
       title: copy.columns.created,
       sortValue: (p) => new Date(p.createdAt).getTime(),
-      render: (p) => <span className="tabular-nums">{formatDay(p.createdAt)}</span>,
+      render: (p) => <RelativeTime value={p.createdAt} />,
     },
     {
       id: 'stock',

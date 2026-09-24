@@ -3,6 +3,8 @@
 import { permissions } from '@commerce/core/permissions'
 import { Plus, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import { Kbd } from '@commerce/ui/shadcn/kbd'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -18,6 +20,7 @@ import { TRANSFER_STATUSES, type TransferStatus, transfersContent } from '@/data
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { usePrimaryAction } from '@/lib/primary-action'
 
 type ListResult = Awaited<ReturnType<typeof api.transfers.list>>
 
@@ -35,6 +38,7 @@ const copy = transfersContent
 
 function TransfersContent({ initial }: { initial: TransfersInitial }) {
   // Hooks
+  usePrimaryAction(NEW_HREF)
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const [q, setQ] = useQueryStates(
@@ -76,10 +80,19 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
   const canWrite = hasPermission(permissions.INVENTORY_WRITE)
   const single = initial.locations.length < 2
   const create = (
-    <Button size="lg" render={<Link href={NEW_HREF} />} nativeButton={false}>
-      <SquarePlus strokeWidth={1.6} />
-      {copy.create}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button size="lg" render={<Link href={NEW_HREF} />} nativeButton={false}>
+            <SquarePlus strokeWidth={1.6} />
+            {copy.create}
+          </Button>
+        }
+      />
+      <TooltipContent>
+        {copy.create} <Kbd>N</Kbd>
+      </TooltipContent>
+    </Tooltip>
   )
 
   return (

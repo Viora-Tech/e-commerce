@@ -17,6 +17,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from '@commerce/ui/shadcn/sidebar'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -37,6 +38,7 @@ type AdminSidebarProps = {
   activeStoreId: string | null
   storefrontUrl: string
   apps: { id: string; name: string; icon: string | null }[]
+  logoUrl: string | null
 }
 
 function initials(name: string): string {
@@ -64,6 +66,7 @@ export default function AdminSidebar({
   activeStoreId,
   storefrontUrl,
   apps,
+  logoUrl,
 }: AdminSidebarProps) {
   // Hooks
   const pathname = usePathname()
@@ -91,13 +94,29 @@ export default function AdminSidebar({
       <SidebarHeader className="h-14 flex-row items-center justify-between px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
           <DropdownMenuTrigger className="-mx-1.5 flex h-8 min-w-0 items-center gap-2 rounded-md px-1.5 text-left transition-colors hover:bg-sidebar-accent">
-            {/* Wordmark: initial on the brand colour until a logo upload exists. */}
-            <span
-              aria-hidden="true"
-              className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[0.75rem] font-bold text-primary-foreground"
-            >
-              {(active?.name ?? navigationContent.pickStore).charAt(0).toUpperCase()}
-            </span>
+            {/* Brand mark: the storefront theme's logo when the store has one, else a
+                refined monogram (accent-neutral, not a hardcoded initial style). */}
+            {logoUrl ? (
+              <span
+                aria-hidden="true"
+                className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card"
+              >
+                <Image
+                  src={logoUrl}
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="size-full object-contain"
+                />
+              </span>
+            ) : (
+              <span
+                aria-hidden="true"
+                className="flex size-6 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-[0.75rem] font-semibold text-muted-foreground"
+              >
+                {(active?.name ?? navigationContent.pickStore).charAt(0).toUpperCase()}
+              </span>
+            )}
             <span className="truncate text-body-strong font-semibold text-ink-strong group-data-[collapsible=icon]:hidden">
               {active?.name ?? navigationContent.pickStore}
             </span>
@@ -175,7 +194,7 @@ export default function AdminSidebar({
           rel="noreferrer"
           className="mx-3 flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3 text-nav text-ink-strong transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
-          <Store className="size-4 text-primary" strokeWidth={1.8} />
+          <Store className="size-4 text-primary" />
           <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {navigationContent.viewStore}
           </span>

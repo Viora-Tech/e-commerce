@@ -19,6 +19,41 @@ export const commandContent = {
   settings: 'Settings',
 } as const
 
+/** `G` then a second key jumps straight to a section, Gmail-style. */
+export const GO_TO_ROUTES: Record<string, string> = {
+  o: '/orders',
+  p: '/products',
+  c: '/customers',
+}
+
+export const shortcutsContent = {
+  title: 'Keyboard shortcuts',
+  description: 'Work faster without leaving the keyboard.',
+  groups: [
+    {
+      label: 'Everywhere',
+      items: [
+        { keys: ['⌘', 'K'], label: 'Open search' },
+        { keys: ['/'], label: 'Open search' },
+        { keys: ['?'], label: 'Show this list' },
+        { keys: ['Esc'], label: 'Close a dialog or panel' },
+      ],
+    },
+    {
+      label: 'Go to',
+      items: [
+        { keys: ['G', 'O'], label: 'Orders' },
+        { keys: ['G', 'P'], label: 'Products' },
+        { keys: ['G', 'C'], label: 'Customers' },
+      ],
+    },
+    {
+      label: 'On a list page',
+      items: [{ keys: ['N'], label: 'Add new' }],
+    },
+  ],
+} as const
+
 /** Create shortcuts, the palette's "Actions" group. */
 export const CREATE_LINKS: PaletteLink[] = [
   { label: 'Create product', href: '/products/new', icon: Plus },

@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, LogOut, Moon, Search, Sun } from '@commerce/ui/icons'
+import { Bell, ExternalLink, LogOut, Moon, Search, Sun } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,8 @@ import { openPalette } from '@/lib/palette-events'
 
 type TopBarProps = {
   user: { name: string; email: string }
+  /** Opens the live storefront in a new tab. */
+  storefrontUrl: string
 }
 
 /* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
@@ -44,7 +46,7 @@ function initials(name: string): string {
  * the search field on the left (opens the command palette, as does ⌘K); notifications,
  * the light/dark switch and the account menu on the right. On phones it also opens the rail.
  */
-export default function TopBar({ user }: TopBarProps) {
+export default function TopBar({ user, storefrontUrl }: TopBarProps) {
   // Hooks
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
@@ -67,7 +69,7 @@ export default function TopBar({ user }: TopBarProps) {
   const dark = hydrated && resolvedTheme === 'dark'
 
   return (
-    <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-3 border-border border-b bg-card px-4 md:px-6">
+    <header className="flex h-14 shrink-0 items-center gap-3 bg-sidebar px-4 md:pr-6 md:pl-0">
       <SidebarTrigger className="-ml-1 md:hidden" aria-label={navigationContent.openMenu} />
       {/* The one search: a quiet field that opens the palette (records, actions, pages); ⌘K too. */}
       <div className="flex min-w-0 flex-1">
@@ -75,7 +77,7 @@ export default function TopBar({ user }: TopBarProps) {
           type="button"
           onClick={openPalette}
           aria-label={commandContent.field}
-          className="flex h-8 w-full max-w-md min-w-0 items-center gap-2 rounded-md border border-input bg-card px-2.5 text-left transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-9 w-full max-w-md min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3.5 text-left shadow-xs transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
           <span className="min-w-0 flex-1 truncate text-body text-muted-foreground">
@@ -85,11 +87,20 @@ export default function TopBar({ user }: TopBarProps) {
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <a
+        href={storefrontUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="hidden h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-body font-medium text-ink-strong shadow-xs transition-colors hover:border-border-strong md:inline-flex"
+      >
+        {navigationContent.viewStore}
+        <ExternalLink className="size-3.5 text-muted-foreground" />
+      </a>
+      <div className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card py-1 pr-1 pl-1.5 shadow-xs">
         <Popover>
           <PopoverTrigger
             aria-label={navigationContent.notifications.label}
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <Bell className="size-[1.125rem]" strokeWidth={1.6} />
           </PopoverTrigger>
@@ -120,7 +131,7 @@ export default function TopBar({ user }: TopBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={navigationContent.account}
-            className="flex size-8 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground ring-1 ring-border transition-shadow hover:ring-border-strong"
+            className="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground ring-1 ring-border transition-shadow hover:ring-border-strong"
           >
             {initials(user.name)}
           </DropdownMenuTrigger>
