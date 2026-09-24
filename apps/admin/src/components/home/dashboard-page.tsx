@@ -1,44 +1,46 @@
-import { DASHBOARD_LOW_STOCK_THRESHOLD, type DashboardSummary } from '@commerce/api'
+import type { DashboardSummary } from '@commerce/api'
 import PageBody from '@/components/layout/page-body'
-import ActivityCard from './activity-card'
-import BestSellingCard from './best-selling-card'
-import DashboardStats from './dashboard-stats'
-import LowStockCard from './low-stock-card'
-import QuickAddCard from './quick-add-card'
-import RecentOrdersCard from './recent-orders-card'
-import TopProductsCard from './top-products-card'
-import WeeklyReport from './weekly-report'
+import IndiaOrderMap from './india-order-map'
+import InsightsList from './insights-list'
+import LiveOrderStream from './live-order-stream'
+import NeedsYouList from './needs-you-list'
+import SalesGoalRing from './sales-goal-ring'
+import TodayBriefing from './today-briefing'
+
+type DashboardPageProps = {
+  summary: DashboardSummary
+  firstName: string
+}
 
 /**
- * Frame 5:1346 rows, top to bottom: three 222px stat cards 16px apart; the
- * report + activity pair; transactions + top products; best-selling + the
- * "Add new product" quick list. Every row shares the 739 / 361 split so the
- * right rail aligns (the frame mixes 808 / 292 on one row). Low stock is ours,
- * in a fifth row. All gaps are 20px.
+ * The home page: a plain-language briefing, the "Needs you" inbox and a few
+ * insights first (what the owner actually opens this page to see), then a
+ * mini order map with a live stream and the monthly goal ring. No KPI grid.
  */
-export default function DashboardPage({ summary }: { summary: DashboardSummary }) {
+export default function DashboardPage({ summary, firstName }: DashboardPageProps) {
   return (
-    <PageBody width="frame" className="gap-5">
-      <DashboardStats
-        sales={summary.sales}
-        orders={summary.orders}
-        pending={summary.pending}
-        cancelled={summary.cancelled}
+    <PageBody width="frame" className="gap-6">
+      <TodayBriefing
+        firstName={firstName}
+        ordersToday={summary.today.ordersCount}
+        salesTodayPaise={summary.today.salesPaise}
+        toShip={summary.today.toShipCount}
+        now={new Date()}
       />
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <WeeklyReport {...summary.report} />
-        <ActivityCard liveVisitors={summary.liveVisitors} salesByState={summary.salesByState} />
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
+        <NeedsYouList needsYou={summary.needsYou} />
+        <InsightsList
+          insight={summary.insight}
+          needsYou={summary.needsYou}
+          streakDays={summary.month.streakDays}
+        />
       </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <RecentOrdersCard orders={summary.recentOrders} />
-        <TopProductsCard products={summary.topProducts} />
-      </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <BestSellingCard products={summary.topProducts} />
-        <QuickAddCard categories={summary.categories} products={summary.latestProducts} />
-      </div>
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <LowStockCard rows={summary.lowStock} threshold={DASHBOARD_LOW_STOCK_THRESHOLD} />
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
+        <div className="flex flex-col gap-5">
+          <IndiaOrderMap orders={summary.mapOrders} />
+          <LiveOrderStream orders={summary.recentOrders} />
+        </div>
+        <SalesGoalRing month={summary.month} />
       </div>
     </PageBody>
   )

@@ -1,6 +1,8 @@
 import {
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
+  parseAppsSettings,
+  UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -15,9 +17,26 @@ import {
   product,
   productMedia,
   sellableLevel,
+  store,
   variant,
 } from '@commerce/db'
-import { and, asc, count, desc, eq, gte, inArray, lt, ne, sql, sum } from 'drizzle-orm'
+import { GST_INVOICES_ID, invoice } from '@commerce/plugin-gst-invoices/server'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  notInArray,
+  sql,
+  sum,
+} from 'drizzle-orm'
 import type { LiveVisitors, VisitorSource } from '../context'
 import type { OrderStatus } from './order.service'
 
@@ -35,6 +54,8 @@ const STATE_ROWS = 3
 const LIVE_MINUTES = 30
 const CATEGORY_ROWS = 3
 const LATEST_PRODUCTS = 3
+/** How many recent orders the mini India map plots as dots. */
+const MAP_ORDERS = 24
 
 export type DashboardWindow = {
   /** Current window value. */
@@ -129,6 +150,53 @@ export type DashboardSummary = {
     revenuePaise: number
     orders: number
     share: number
+  }[]
+  /** Today, in IST: for the "Good evening" briefing sentence. */
+  today: {
+    ordersCount: number
+    salesPaise: number
+    /** Today's orders that are paid but not yet fulfilled. */
+    toShipCount: number
+  }
+  /**
+   * The "Needs you" inbox: one row per actionable queue, each with a count and
+   * a deep link. `null` means the queue has no data source yet (a hook, not
+   * a zero) or the app it belongs to is not installed.
+   */
+  needsYou: {
+    ordersToShip: { count: number; href: string }
+    upiToVerify: { count: number; href: string }
+    gstQueued: { count: number; href: string } | null
+    lowStock: { count: number; href: string }
+    preorderBalanceDue: { count: number; href: string }
+    failedDeliveries: { count: number; href: string } | null
+  }
+  /** Plain-language insight ingredients; the component turns these into sentences. */
+  insight: {
+    /** Change in this window's sales vs the window before, as a fraction (0.18 = +18%). Null when the prior window sold nothing. */
+    salesChange: number | null
+    bestSeller: { title: string; units: number } | null
+  }
+  /** This month, in IST: for the sales-goal ring. */
+  month: {
+    toDatePaise: number
+    dayOfMonth: number
+    daysInMonth: number
+    /** Straight-line projection: `toDatePaise / dayOfMonth * daysInMonth`. */
+    projectedPaise: number
+    /** Best single calendar day of revenue in the last 90 days. */
+    bestDayPaise: number
+    bestDay: string | null
+    /** Consecutive days up to today (IST) with at least one paid order, capped at 14 (the lookback window). */
+    streakDays: number
+  }
+  /** Last orders with a shipping state, newest first, for the mini map's pulsing dots. */
+  mapOrders: {
+    id: string
+    number: number
+    stateCode: string
+    totalPaise: number
+    placedAt: Date
   }[]
 }
 
@@ -516,6 +584,138 @@ export async function dashboardSummary(
       ? await opts.visitors.live(opts.storeId)
       : { last30: 0, perMinute: Array.from({ length: LIVE_MINUTES }, () => 0) }
 
+  /* Today, in IST: the briefing sentence and its "N need shipping" count. */
+  const todayStart = startOfDay(now, 0)
+  const todayRows = live(recentRows).filter((r) => r.placedAt >= todayStart)
+  const [toShipTodayRow] = await tx
+    .select({ n: count() })
+    .from(order)
+    .where(
+      and(
+        eq(order.status, 'open'),
+        notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+        gte(order.placedAt, todayStart),
+      ),
+    )
+
+  /* Needs you: one count per queue, each with its deep link. */
+  const [ordersToShipRow] = await tx
+    .select({ n: count() })
+    .from(order)
+    .where(
+      and(
+        eq(order.status, 'open'),
+        notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+        inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+      ),
+    )
+  const [upiToVerifyRow] = await tx
+    .select({ n: count() })
+    .from(order)
+    .where(
+      and(
+        eq(order.status, 'open'),
+        isNull(order.checkoutPaidAt),
+        eq(order.paymentMethod, 'manual'),
+        isNull(order.importedFrom),
+      ),
+    )
+  const [lowStockCountRow] = await tx
+    .select({ n: count() })
+    .from(inventoryLevel)
+    .innerJoin(variant, and(eq(variant.id, inventoryLevel.variantId), sellableLevel))
+    .innerJoin(product, eq(product.id, variant.productId))
+    .where(
+      and(
+        eq(variant.trackInventory, true),
+        ne(product.status, 'archived'),
+        lt(sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`, LOW_STOCK_THRESHOLD + 1),
+      ),
+    )
+  const [preorderBalanceDueRow] = await tx
+    .select({ n: count() })
+    .from(order)
+    .where(
+      and(
+        gt(order.balanceDuePaise, 0),
+        isNull(order.balancePaidAt),
+        isNull(order.importedFrom),
+        ne(order.status, 'cancelled'),
+        ne(order.status, 'draft'),
+      ),
+    )
+  let gstQueued: { count: number; href: string } | null = null
+  if (opts.storeId) {
+    const [storeRow] = await tx
+      .select({ apps: store.apps })
+      .from(store)
+      .where(eq(store.id, opts.storeId))
+    if (parseAppsSettings(storeRow?.apps).installed.includes(GST_INVOICES_ID)) {
+      const [queuedRow] = await tx
+        .select({ n: count() })
+        .from(invoice)
+        .where(and(eq(invoice.kind, 'tax_invoice'), eq(invoice.status, 'draft')))
+      gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
+    }
+  }
+
+  /* Plain-language insight ingredients: the 7-day sales trend and this week's best seller. */
+  const prevSalesPaise = sumPaise(live(prev))
+  const salesChange =
+    prevSalesPaise > 0 ? (sumPaise(live(cur)) - prevSalesPaise) / prevSalesPaise : null
+  const bestSeller = topRows[0] ? { title: topRows[0].title, units: topRows[0].units } : null
+
+  /* This month, in IST: sales-goal ring and a streak line. */
+  const shifted = new Date(now.getTime() + IST_OFFSET_MS)
+  const dayOfMonth = shifted.getUTCDate()
+  const daysInMonth = new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 0),
+  ).getUTCDate()
+  const monthStart = new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) - IST_OFFSET_MS,
+  )
+  const monthToDatePaise = sumPaise(live(recentRows.filter((r) => r.placedAt >= monthStart)))
+  const projectedPaise =
+    dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
+  const ninetyDaysAgo = startOfDay(now, 89)
+  const revenueRows = await tx
+    .select({ placedAt: order.placedAt, totalPaise: order.totalPaise })
+    .from(order)
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, ninetyDaysAgo)))
+  const byDay = new Map<string, number>()
+  for (const r of revenueRows)
+    byDay.set(isoDate(r.placedAt), (byDay.get(isoDate(r.placedAt)) ?? 0) + r.totalPaise)
+  let bestDayPaise = 0
+  let bestDay: string | null = null
+  for (const [day, paise] of byDay) {
+    if (paise > bestDayPaise) {
+      bestDayPaise = paise
+      bestDay = day
+    }
+  }
+  let streakDays = 0
+  for (let i = 0; i < WINDOW_DAYS * 2; i++) {
+    const day = isoDate(new Date(todayStart.getTime() - i * DAY_MS))
+    if ((byDay.get(day) ?? 0) > 0) streakDays++
+    else break
+  }
+
+  /* Last orders with a shipping state, for the mini map's pulsing dots. */
+  const mapOrderRows = await tx
+    .select({
+      id: order.id,
+      number: order.number,
+      stateCode: address.stateCode,
+      totalPaise: order.totalPaise,
+      placedAt: order.placedAt,
+    })
+    .from(order)
+    .innerJoin(address, eq(address.id, order.shippingAddressId))
+    .where(and(notDraft, ne(order.status, 'cancelled')))
+    .orderBy(desc(order.placedAt))
+    .limit(MAP_ORDERS)
+
   return {
     sales: { value: sumPaise(live(cur)), previous: sumPaise(live(prev)) },
     orders: { value: live(cur).length, previous: live(prev).length },
@@ -551,6 +751,30 @@ export async function dashboardSummary(
       imageUrl: firstImage.get(r.productId) ?? null,
     })),
     salesByState,
+    today: {
+      ordersCount: todayRows.length,
+      salesPaise: sumPaise(todayRows),
+      toShipCount: toShipTodayRow?.n ?? 0,
+    },
+    needsYou: {
+      ordersToShip: { count: ordersToShipRow?.n ?? 0, href: '/orders?status=unfulfilled' },
+      upiToVerify: { count: upiToVerifyRow?.n ?? 0, href: '/orders?status=pending_upi' },
+      gstQueued,
+      lowStock: { count: lowStockCountRow?.n ?? 0, href: '/products/inventory' },
+      preorderBalanceDue: { count: preorderBalanceDueRow?.n ?? 0, href: '/orders' },
+      failedDeliveries: null,
+    },
+    insight: { salesChange, bestSeller },
+    month: {
+      toDatePaise: monthToDatePaise,
+      dayOfMonth,
+      daysInMonth,
+      projectedPaise,
+      bestDayPaise,
+      bestDay,
+      streakDays,
+    },
+    mapOrders: mapOrderRows,
   }
 }
 

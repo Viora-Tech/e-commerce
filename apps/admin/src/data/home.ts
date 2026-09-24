@@ -1,101 +1,122 @@
-/** Copy for the admin home (dashboard). */
+/** Copy for the admin home. Plain words for a shop owner who is not technical. */
+
+/** "Good morning" / "Good afternoon" / "Good evening", by the hour in the store's clock (IST). */
+export function greetingWord(hour: number): string {
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+/** The one-line briefing at the top: "Good evening, Kuldeep. 14 orders today worth ₹23,400, 3 need shipping." */
+export function briefingSentence(input: {
+  greeting: string
+  firstName: string
+  ordersToday: number
+  salesToday: string
+  toShip: number
+}): string {
+  const { greeting, firstName, ordersToday, salesToday, toShip } = input
+  if (ordersToday === 0) {
+    return `${greeting}, ${firstName}. No orders yet today.`
+  }
+  const orderWord = ordersToday === 1 ? 'order' : 'orders'
+  const base = `${greeting}, ${firstName}. ${ordersToday} ${orderWord} today worth ${salesToday}`
+  if (toShip === 0) return `${base}.`
+  const shipWord = toShip === 1 ? 'needs' : 'need'
+  return `${base}, ${toShip} ${shipWord} shipping.`
+}
+
 export const homeContent = {
-  period: 'Last 7 days',
-  previous: 'Previous 7 days',
-  stats: {
-    sales: { title: 'Total sales', unit: 'Sales' },
-    orders: { title: 'Total orders', unit: 'Orders' },
-    pendingCancelled: { title: 'Pending & cancelled', pending: 'Pending', cancelled: 'Cancelled' },
-  },
-  report: {
-    title: 'Report for this week',
-    thisWeek: 'This week',
-    lastWeek: 'Last week',
-    tabs: {
-      customers: 'Customers',
-      products: 'Total products',
-      inStock: 'In stock',
-      outOfStock: 'Out of stock',
-      revenue: 'Revenue',
-    },
-    /** Tooltip names for the plotted daily series, keyed by metric. */
-    series: {
-      customers: 'New customers',
-      products: 'Products added',
-      inStock: 'Variants in stock',
-      outOfStock: 'Variants out of stock',
-      revenuePaise: 'Revenue',
-    },
-  },
-  recentOrders: {
-    title: 'Recent orders',
-    columns: {
-      no: 'No',
-      order: 'Order',
-      date: 'Order date',
-      status: 'Status',
-      amount: 'Amount',
-    },
-    empty: 'Orders appear here as soon as a customer checks out.',
-    filters: [
-      { label: 'All orders', href: '/orders' },
-      { label: 'Placed', href: '/orders?status=placed' },
-      { label: 'Paid', href: '/orders?status=paid' },
-      { label: 'Fulfilled', href: '/orders?status=fulfilled' },
-      { label: 'Cancelled', href: '/orders?status=cancelled' },
-    ],
-  },
-  topProducts: {
-    title: 'Top products',
-    all: 'All products',
-    search: 'Search',
-    units: (n: number) => `${n} sold in 30 days`,
-    empty: 'Sales in the last 30 days will rank products here.',
-  },
-  activity: {
-    title: 'Users in last 30 minutes',
-    perMinute: 'Users per minute',
-    byState: 'Sales by state',
-    sales: 'Sales',
-    ordersCount: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
-    empty: 'Shipping addresses from the last 30 days rank states here.',
-    insight: 'View insight',
-  },
-  lowStock: {
-    title: 'Low stock',
-    viewAll: 'View inventory',
-    subtitle: (threshold: number) => `Variants at or below ${threshold} units`,
-    left: (n: number) => (n <= 0 ? 'Out of stock' : `${n} left`),
-    empty: 'Every tracked variant has stock.',
-    restock: 'Restock',
-  },
-  quickAdd: {
-    title: 'Add new product',
-    addNew: 'Add new',
-    categories: 'Categories',
-    products: 'Product',
-    seeMore: 'See more',
-    edit: 'Edit',
-    count: (n: number) => (n === 1 ? '1 product' : `${n} products`),
-    emptyCategories: 'Set a product type on your products to group them here.',
-    emptyProducts: 'Products you add appear here.',
-  },
+  /** Shared with `data/status.ts`'s generic stock badge (used outside the home page too). */
   bestSelling: {
-    title: 'Best selling products',
-    columns: { product: 'Product', totalOrder: 'Total order', status: 'Status', price: 'Price' },
     inStock: 'Stock',
     outOfStock: 'Stock out',
-    empty: 'Sales in the last 30 days will rank products here.',
-    filters: [
-      { label: 'All products', href: '/products' },
-      { label: 'Active', href: '/products?status=active' },
-      { label: 'Draft', href: '/products?status=draft' },
-    ],
   },
-  menu: {
-    viewOrders: 'View orders',
-    viewProducts: 'View products',
-    viewInventory: 'View inventory',
-    viewAnalytics: 'View analytics',
+  needsYou: {
+    title: 'Needs you',
+    subtitle: 'The things only you can do next',
+    allClearHeading: "You're all caught up",
+    allClearBody: 'Nothing needs your attention right now. Nice work.',
+    rows: {
+      ordersToShip: {
+        label: (n: number) =>
+          n === 1 ? '1 order is ready to ship' : `${n} orders are ready to ship`,
+        help: 'Paid, packed and waiting on a courier.',
+        cta: 'Ship orders',
+      },
+      upiToVerify: {
+        label: (n: number) =>
+          n === 1 ? '1 UPI payment needs checking' : `${n} UPI payments need checking`,
+        help: 'Match the transfer to the order, then mark it paid.',
+        cta: 'Check payments',
+      },
+      gstQueued: {
+        label: (n: number) =>
+          n === 1 ? '1 GST invoice is queued' : `${n} GST invoices are queued`,
+        help: 'Waiting for you to issue them.',
+        cta: 'Issue invoices',
+      },
+      lowStock: {
+        label: (n: number) =>
+          n === 1 ? '1 product is running low' : `${n} products are running low`,
+        help: 'Running out soon at the current pace.',
+        cta: 'Restock',
+      },
+      preorderBalanceDue: {
+        label: (n: number) =>
+          n === 1
+            ? '1 pre-order is waiting on its balance'
+            : `${n} pre-orders are waiting on their balance`,
+        help: 'The deposit is in; the rest is not.',
+        cta: 'View pre-orders',
+      },
+      failedDeliveries: {
+        label: (n: number) => (n === 1 ? '1 delivery failed' : `${n} deliveries failed`),
+        help: 'The courier could not deliver and needs a decision.',
+        cta: 'View deliveries',
+        comingSoon: 'Turns on once a courier reports failed deliveries.',
+      },
+    },
+  },
+  insights: {
+    title: 'What is happening',
+    salesUp: (pct: string, comparedTo: string) => `Sales are up ${pct} vs ${comparedTo}.`,
+    salesDown: (pct: string, comparedTo: string) => `Sales are down ${pct} vs ${comparedTo}.`,
+    salesFlat: 'Sales are about the same as last week.',
+    comparedToLastWeek: 'the same period last week',
+    bestSeller: (title: string, units: number) =>
+      `Your best seller this week is ${title}, with ${units} sold.`,
+    lowStockNudge: (n: number) =>
+      n === 1
+        ? '1 product will run out soon at this pace.'
+        : `${n} products will run out soon at this pace.`,
+    streak: (n: number) =>
+      n <= 1 ? 'Today is your streak day one.' : `You have sold something ${n} days in a row.`,
+    noData: 'Insights show up here once you have a week of orders.',
+  },
+  map: {
+    title: 'Orders across India',
+    subtitle: (n: number) => `Last ${n} orders`,
+    empty: 'Orders will appear here as pulsing dots once you have shipping addresses.',
+  },
+  liveStream: {
+    title: 'Latest orders',
+    empty: 'New orders will show up here the moment they come in.',
+    viewAll: 'View all orders',
+  },
+  goal: {
+    title: 'Monthly sales goal',
+    edit: 'Edit goal',
+    save: 'Save goal',
+    cancel: 'Cancel',
+    setGoal: 'Set a goal',
+    inputLabel: 'This month’s sales goal',
+    inputHelp: 'Kept on this device for now.',
+    percentDone: (pct: number) => `${pct}% of the way there`,
+    daysLeft: (n: number) => (n === 1 ? '1 day left' : `${n} days left`),
+    projected: (amount: string) => `On this pace, you will finish around ${amount}.`,
+    noGoal: 'Set a goal to track this month against it.',
+    record: (amount: string, when: string) => `Best day so far: ${amount} on ${when}.`,
+    noRecord: 'Your best day will show up here once you have sales to compare.',
   },
 } as const

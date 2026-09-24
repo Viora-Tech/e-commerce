@@ -42,6 +42,7 @@ import {
   Eye,
   EyeClosed,
   FileText,
+  Fire,
   Flag,
   FlowArrow,
   FolderOpen,
@@ -58,6 +59,7 @@ import {
   LinkSimple,
   MagnifyingGlass,
   MagnifyingGlassMinus,
+  MapPinLine,
   Megaphone,
   Minus,
   Moon,
@@ -75,7 +77,9 @@ import {
   Plus,
   Printer,
   PuzzlePiece,
+  QrCode,
   Radio,
+  Receipt,
   Rows,
   SealPercent,
   SignOut,
@@ -84,6 +88,7 @@ import {
   SquaresFour,
   Storefront,
   Sun,
+  Target,
   TerminalWindow,
   Trash,
   Tray,
@@ -259,6 +264,12 @@ export const PackageX = defineIcon(XCircle, 'PackageX')
 export const Clock = defineIcon(PhClock, 'Clock')
 export const DeliveryDelay = defineIcon(Warning, 'DeliveryDelay') // kit status: Pending
 export const CancelCircle = defineIcon(WarningOctagon, 'CancelCircle') // kit status: Cancelled
+export const QrCodeIcon = defineIcon(QrCode, 'QrCodeIcon')
+export const ReceiptIcon = defineIcon(Receipt, 'ReceiptIcon')
+export const TargetIcon = defineIcon(Target, 'TargetIcon')
+export const FireIcon = defineIcon(Fire, 'FireIcon')
+export const MapPinLineIcon = defineIcon(MapPinLine, 'MapPinLineIcon')
+export const WarningIcon = defineIcon(Warning, 'WarningIcon')
 
 /** Semantic map for new code. */
 export const icons = {
