@@ -1,8 +1,9 @@
 'use client'
 
 import { ImageIcon, Plus, RefreshCw, X } from '@commerce/ui/icons'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Button } from '@commerce/ui/shadcn/button'
 import { useRef, useState } from 'react'
+import DataCard from '@/components/layout/data-card'
 import AltTextDialog from '@/components/media/alt-text-dialog'
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
@@ -48,116 +49,111 @@ export default function ProductImageCard({ items, onChange, onUploading }: Produ
   const pending = queue.pending
 
   return (
-    <Card size="form" className="gap-6 p-6">
-      <CardContent className="flex flex-col gap-6 p-0">
-        <h2 className="text-kit-heading text-foreground">{copy.heading}</h2>
-
-        <div className="flex flex-col gap-3">
-          <p className="text-kit-field text-ink-strong">{copy.label}</p>
-          <div className="relative h-[16.625rem] overflow-hidden rounded-lg border border-secondary bg-card">
-            {cover ? (
-              // biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts.
-              <img
-                src={cover.url}
-                alt={cover.alt ?? copy.coverAlt}
-                className="size-full object-contain"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => browseRef.current?.click()}
-                className="flex size-full flex-col items-center justify-center gap-2 text-kit-body text-muted-foreground"
-              >
-                <ImageIcon className="size-6" aria-hidden="true" />
-                {copy.empty}
-              </button>
-            )}
+    <DataCard
+      title={copy.heading}
+      action={
+        <Button variant="outline" size="sm" onClick={() => browseRef.current?.click()}>
+          <ImageIcon aria-hidden="true" />
+          {copy.browse}
+        </Button>
+      }
+    >
+      {/* Media grid after the Saleor Dashboard product media card (BSD-3): the cover spans
+          two by two, the rest are square tiles, the last tile adds more. */}
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 xl:grid-cols-5">
+        <div className="group/cover relative col-span-2 row-span-2 aspect-square overflow-hidden rounded-lg border border-border bg-muted/40">
+          {cover ? (
+            // biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts.
+            <img
+              src={cover.url}
+              alt={cover.alt ?? copy.coverAlt}
+              className="size-full object-contain"
+            />
+          ) : (
             <button
               type="button"
               onClick={() => browseRef.current?.click()}
-              className="absolute bottom-3 left-3 flex h-9 items-center gap-1 rounded-lg border border-secondary bg-card px-3 text-kit-body text-muted-foreground hover:bg-background"
+              className="flex size-full flex-col items-center justify-center gap-2 text-body text-muted-foreground transition-colors hover:text-foreground"
             >
-              <ImageIcon className="size-5" aria-hidden="true" />
-              {copy.browse}
+              <ImageIcon className="size-6" aria-hidden="true" />
+              {copy.empty}
             </button>
-            {cover ? (
-              <button
-                type="button"
-                onClick={() => replaceRef.current?.click()}
-                className="absolute right-3 bottom-3 flex h-9 items-center gap-2 rounded-lg bg-card p-2 text-kit-body text-foreground shadow-lift hover:bg-background"
-              >
-                <RefreshCw className="size-4" aria-hidden="true" />
-                {copy.replace}
-              </button>
-            ) : null}
-          </div>
+          )}
+          {cover ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => replaceRef.current?.click()}
+              className="absolute right-2 bottom-2"
+            >
+              <RefreshCw aria-hidden="true" />
+              {copy.replace}
+            </Button>
+          ) : null}
         </div>
-
-        <div className="flex flex-wrap gap-4">
-          {rest.map((item) => (
-            <div
-              key={item.id}
-              className="relative size-[6.125rem] overflow-hidden rounded-lg border border-secondary"
-            >
-              <button
-                type="button"
-                onClick={() => setEditing(item)}
-                className="size-full"
-                aria-label={item.alt ?? item.url}
-              >
-                {/* biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts. */}
-                <img src={item.url} alt={item.alt ?? ''} className="size-full object-cover" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRemove(item)}
-                aria-label={copy.remove(item.alt ?? item.url)}
-                className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-card text-muted-foreground shadow-lift hover:text-foreground"
-              >
-                <X className="size-3" aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-          {pending.map((p) => (
-            <div
-              key={p.key}
-              className="flex size-[6.125rem] items-center justify-center rounded-lg border border-secondary bg-muted text-kit-body text-muted-foreground"
-            >
-              {p.error ? p.error : `${p.progress}%`}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => browseRef.current?.click()}
-            className="flex h-[6.125rem] min-w-[12.5rem] flex-1 flex-col items-center justify-center gap-1 rounded-lg border border-muted-foreground-soft border-dashed text-primary hover:bg-background"
+        {rest.map((item) => (
+          <div
+            key={item.id}
+            className="relative aspect-square overflow-hidden rounded-lg border border-border bg-muted/40"
           >
-            <Plus className="size-6" aria-hidden="true" />
-            <span className="text-kit-field">{copy.add}</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setEditing(item)}
+              className="size-full"
+              aria-label={item.alt ?? item.url}
+            >
+              {/* biome-ignore lint/performance/noImgElement: media comes from arbitrary storage hosts. */}
+              <img src={item.url} alt={item.alt ?? ''} className="size-full object-cover" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRemove(item)}
+              aria-label={copy.remove(item.alt ?? item.url)}
+              className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="size-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+        {pending.map((p) => (
+          <div
+            key={p.key}
+            className="flex aspect-square items-center justify-center rounded-lg border border-border bg-muted p-2 text-center text-caption text-muted-foreground"
+          >
+            {p.error ? p.error : `${p.progress}%`}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => browseRef.current?.click()}
+          className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-border-strong border-dashed text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+        >
+          <Plus className="size-5" aria-hidden="true" />
+          <span className="text-caption">{copy.add}</span>
+        </button>
+      </div>
 
-        <input
-          ref={browseRef}
-          type="file"
-          accept={ACCEPT}
-          multiple
-          className="sr-only"
-          onChange={(e) => handlePicked(e.target.files, false)}
-        />
-        <input
-          ref={replaceRef}
-          type="file"
-          accept={ACCEPT}
-          className="sr-only"
-          onChange={(e) => handlePicked(e.target.files, true)}
-        />
-        <AltTextDialog
-          key={editing?.id ?? 'none'}
-          item={editing}
-          onClose={() => setEditing(null)}
-          onSaved={handleAltSaved}
-        />
-      </CardContent>
-    </Card>
+      <input
+        ref={browseRef}
+        type="file"
+        accept={ACCEPT}
+        multiple
+        className="sr-only"
+        onChange={(e) => handlePicked(e.target.files, false)}
+      />
+      <input
+        ref={replaceRef}
+        type="file"
+        accept={ACCEPT}
+        className="sr-only"
+        onChange={(e) => handlePicked(e.target.files, true)}
+      />
+      <AltTextDialog
+        key={editing?.id ?? 'none'}
+        item={editing}
+        onClose={() => setEditing(null)}
+        onSaved={handleAltSaved}
+      />
+    </DataCard>
   )
 }

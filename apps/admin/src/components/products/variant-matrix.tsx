@@ -28,10 +28,10 @@ type VariantMatrixProps = {
 const copy = productFormContent.variants.columns
 const bulkCopy = productFormContent.variantBulk
 
-/** Kit table: tinted rounded header band, hairline rows (same as ResourceTable). */
+/** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
 const HEAD =
-  'h-12 bg-primary-soft px-4 text-table-head uppercase text-muted-foreground first:rounded-l-lg last:rounded-r-lg'
-const CELL = 'border-b border-border-soft px-4 py-2 text-body'
+  'h-10 border-b border-border px-3 text-table-head text-muted-foreground first:pl-5 last:pr-5'
+const CELL = 'border-b border-line px-3 py-2 text-body first:pl-5 last:pr-5'
 
 const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)
 
@@ -56,7 +56,7 @@ export default function VariantMatrix({
   const allSelected = variants.length > 0 && selected.length === variants.length
 
   return (
-    <div className="px-5 pb-5">
+    <div className="overflow-x-auto">
       <Table className="border-separate border-spacing-0">
         <TableHeader className="[&_tr]:border-0">
           <TableRow className="hover:bg-transparent">
@@ -95,7 +95,7 @@ export default function VariantMatrix({
                     onChange={(mediaId) => onVariant(i, { mediaId })}
                   />
                 </TableCell>
-                <TableCell className={cn(CELL, 'font-bold text-ink-strong')}>{title}</TableCell>
+                <TableCell className={cn(CELL, 'font-medium text-ink-strong')}>{title}</TableCell>
                 <TableCell className={CELL}>
                   <MoneyInput
                     aria-label={`${copy.price} ${title}`}

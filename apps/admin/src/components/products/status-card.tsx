@@ -1,7 +1,6 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import {
   Select,
   SelectContent,
@@ -11,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import SuggestInput from '@/components/fields/suggest-input'
 import KitField from '@/components/kit/kit-field'
+import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
 import type { Facets } from './form-state'
 
@@ -39,9 +39,8 @@ export default function StatusCard({
 }: StatusCardProps) {
   // Render logic
   return (
-    <Card size="form" className="gap-6 p-6">
-      <CardContent className="flex flex-col gap-6 p-0">
-        <h2 className="text-kit-heading text-foreground">{copy.status.heading}</h2>
+    <DataCard title={copy.status.heading}>
+      <div className="flex flex-col gap-4">
         <KitField
           label={copy.status.label}
           htmlFor="product-status"
@@ -52,7 +51,7 @@ export default function StatusCard({
             value={status}
             onValueChange={(s) => onChange(s as ProductStatus)}
           >
-            <SelectTrigger size="lg" id="product-status" className="h-12 w-full">
+            <SelectTrigger size="lg" id="product-status" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -73,7 +72,7 @@ export default function StatusCard({
             onChange={onVendor}
           />
         </KitField>
-      </CardContent>
-    </Card>
+      </div>
+    </DataCard>
   )
 }

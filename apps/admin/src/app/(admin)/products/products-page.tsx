@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Download, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
+import { Download, ExternalLink, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
@@ -16,8 +16,8 @@ import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
 import ProductFilters, { type StockFilter } from '@/components/products/product-filters'
-import ProductTiles, { type ProductStats } from '@/components/products/product-tiles'
 import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
+import RowIconCells from '@/components/table/row-icon-cells'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -32,7 +32,6 @@ export type ProductsInitial = {
   query: ListQuery<ProductStatus>
   result: ListResult
   allCount: number
-  stats: ProductStats
   facets: Facets
 }
 
@@ -209,15 +208,35 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
           </Button>
         </>
       }
-      strip={<ProductTiles stats={initial.stats} />}
     >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
         columns={productColumns}
         items={items}
         getId={(p) => p.id}
         href={(p) => `/products/${p.id}`}
+        rowIconCells={{
+          count: 2,
+          render: (p) => (
+            <RowIconCells
+              links={[
+                {
+                  label: copy.row.openNewTab,
+                  icon: ExternalLink,
+                  href: `/products/${p.id}`,
+                  newTab: true,
+                },
+              ]}
+              menu={[
+                { label: copy.row.edit, href: `/products/${p.id}` },
+                {
+                  label: copy.row.inventory,
+                  href: `/products/inventory?query=${encodeURIComponent(p.title)}`,
+                },
+              ]}
+            />
+          ),
+        }}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}

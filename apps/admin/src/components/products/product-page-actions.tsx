@@ -34,8 +34,12 @@ export default function ProductPageActions({
 
   // Render logic
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <form onSubmit={handleSearch} className="relative w-full min-w-0 sm:w-72">
+    <div className="flex flex-wrap items-center gap-2">
+      <form onSubmit={handleSearch} className="relative w-full min-w-0 sm:w-60">
+        <Search
+          className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground"
+          aria-hidden="true"
+        />
         <Input
           size="kit"
           type="search"
@@ -43,27 +47,23 @@ export default function ProductPageActions({
           onChange={(e) => setSearch(e.target.value)}
           placeholder={copy.searchPlaceholder}
           aria-label={copy.searchPlaceholder}
-          className="pr-10"
-        />
-        <Search
-          className="pointer-events-none absolute top-3.5 right-3 size-5 text-muted-foreground"
-          aria-hidden="true"
+          className="pl-8"
         />
       </form>
-      <KitButton variant="primary" onClick={onPublish} disabled={busy}>
-        {copy.publish}
+      <KitButton
+        variant="secondary"
+        href="/products/new"
+        aria-label={copy.addAnother}
+        className="size-9 min-w-0 px-0"
+      >
+        <Plus className="size-4" aria-hidden="true" />
       </KitButton>
       <KitButton variant="secondary" onClick={onSaveDraft} disabled={busy}>
         <Save className="size-4" aria-hidden="true" />
         {copy.saveDraft}
       </KitButton>
-      <KitButton
-        variant="secondary"
-        href="/products/new"
-        aria-label={copy.addAnother}
-        className="size-12 min-w-0 px-0"
-      >
-        <Plus className="size-6" aria-hidden="true" />
+      <KitButton variant="primary" onClick={onPublish} disabled={busy}>
+        {copy.publish}
       </KitButton>
     </div>
   )
