@@ -9,8 +9,9 @@ import {
 import { and, asc, eq, sql } from 'drizzle-orm'
 import type { InventoryReason } from '../catalog/schemas'
 import { CommerceError } from '../errors'
+import { insertOutboxEvent } from '../outbox/write'
 import type { LocationInput } from './schemas'
-import { NegativeStockError, nextOnHand } from './stock'
+import { availableOf, NegativeStockError, nextOnHand } from './stock'
 
 export class InventoryError extends CommerceError {}
 
@@ -122,6 +123,18 @@ export async function adjustStock(tx: StoreTx, input: AdjustStockInput): Promise
     reason: input.reason,
     note: input.note ?? null,
   })
+  // Available (on-hand minus reserved) crossed from nothing to something: this
+  // is the moment a sold-out variant becomes buyable again. Written in the
+  // same transaction as the stock change, so a rollback rolls the event back
+  // with it (the outbox pattern) — the back-in-stock app picks it up from here.
+  const wasAvailable = availableOf({ onHand: level.onHand, reserved: level.reserved })
+  const isAvailable = availableOf({ onHand: next, reserved: level.reserved })
+  if (wasAvailable <= 0 && isAvailable > 0) {
+    await insertOutboxEvent(tx, input.storeId, 'inventory.restocked', {
+      variantId: input.variantId,
+      locationId,
+    })
+  }
   return next
 }
 

@@ -38,6 +38,7 @@
     "@commerce/notifications-whatsapp": "workspace:*",
     "@commerce/storage-r2": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
-    "@commerce/plugin-shopify-import": "workspace:*"
+    "@commerce/plugin-shopify-import": "workspace:*",
+    "@commerce/plugin-back-in-stock": "workspace:*"
   }
 }

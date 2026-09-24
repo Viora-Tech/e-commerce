@@ -8,6 +8,7 @@
         "@commerce/notifications-ses": "workspace:*",
         "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
+        "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -81,6 +82,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/invoices": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
@@ -116,6 +118,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/shipping": "workspace:*",
         "bullmq": "^5.81.5",
@@ -139,6 +142,7 @@
         "@commerce/invoices": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -356,6 +360,25 @@
         "@commerce/payments": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "razorpay": "^2.9.8",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/plugin-back-in-stock": {
+      "name": "@commerce/plugin-back-in-stock",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/notifications": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.6.5",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
@@ -716,6 +739,8 @@
     "@commerce/payments": ["@commerce/payments@workspace:packages/payments"],
 
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
+
+    "@commerce/plugin-back-in-stock": ["@commerce/plugin-back-in-stock@workspace:packages/plugin-back-in-stock"],
 
     "@commerce/plugin-gst-invoices": ["@commerce/plugin-gst-invoices@workspace:packages/plugin-gst-invoices"],
 

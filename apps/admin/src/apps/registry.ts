@@ -1,4 +1,6 @@
 import {
+  BarChart3,
+  Bell,
   Blocks,
   Download,
   FileBarChart,
@@ -9,8 +11,12 @@ import {
   Settings,
   Store,
   Upload,
+  Users,
 } from '@commerce/ui/icons'
 import type { ComponentType } from 'react'
+import OverviewPage from '@/components/apps/back-in-stock/overview-page'
+import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
+import SignupsList from '@/components/apps/back-in-stock/signups-list'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -39,6 +45,13 @@ export type AdminApp = {
 }
 
 export const ADMIN_APPS: Record<string, AdminApp> = {
+  'back-in-stock': {
+    pages: {
+      '': OverviewPage,
+      signups: SignupsList,
+      settings: SettingsEditorBackInStock,
+    },
+  },
   'gst-invoices': {
     pages: {
       '': QueuePage,
@@ -61,6 +74,8 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
 
 /** Icon names a manifest may use, mapped to the admin icon set. */
 const ICONS: Record<string, LucideIcon> = {
+  BarChart3,
+  Bell,
   Blocks,
   Download,
   FileBarChart,
@@ -70,6 +85,7 @@ const ICONS: Record<string, LucideIcon> = {
   Settings,
   Store,
   Upload,
+  Users,
 }
 
 export const appIcon = (name: string | null | undefined): LucideIcon =>

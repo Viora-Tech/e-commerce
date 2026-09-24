@@ -1,6 +1,7 @@
 import { sesPlugin } from '@commerce/notifications-ses'
 import { whatsappPlugin } from '@commerce/notifications-whatsapp'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
+import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { defineConfig } from '@commerce/plugins'
@@ -22,5 +23,6 @@ export default defineConfig({
     r2Plugin,
     gstInvoicesPlugin,
     shopifyImportPlugin,
+    backInStockPlugin,
   ],
 })
