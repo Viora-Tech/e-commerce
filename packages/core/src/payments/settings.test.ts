@@ -64,7 +64,13 @@ describe('payment settings', () => {
       providers: {},
       adjustments: {},
       expireUnpaidAfterMinutes: 30,
+      manualCancelAfterHours: 0,
     })
+  })
+
+  it('leaves auto-cancel of unpaid transfer orders off unless the store turns it on', () => {
+    expect(parsePaymentSettings({ enabled: ['manual'] }).manualCancelAfterHours).toBe(0)
+    expect(parsePaymentSettings({ manualCancelAfterHours: 48 }).manualCancelAfterHours).toBe(48)
   })
 
   it('expires unpaid online orders after 30 minutes unless the store says otherwise', () => {
