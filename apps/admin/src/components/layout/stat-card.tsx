@@ -26,7 +26,7 @@ type StatCardProps = {
   menu?: MenuLink[]
   /** Replaces the number block (the Pending & cancelled tile, 5:1528). */
   children?: ReactNode
-  /** `sm` = sheet 14:847 (270 x 135, 16px inset, figure 32/34 with the delta beside it, period last). */
+  /** `sm`: the list-page KPI tile (Saleor KPI card): 12px muted title, 20px/600 figure with the delta, period last. */
   size?: 'lg' | 'sm'
   className?: string
 }
@@ -58,18 +58,18 @@ export default function StatCard({
     (detailsHref ? [{ label: detailsLabel ?? layoutContent.details, href: detailsHref }] : [])
   if (size === 'sm') {
     return (
-      <Card className={cn('h-[8.4375rem] gap-0 p-4', className)}>
-        <div className="flex h-[1.625rem] items-center gap-0.5">
-          <p className="min-w-0 flex-1 text-kit-title text-foreground">{title}</p>
+      <Card className={cn('gap-0 p-4', className)}>
+        <div className="flex h-5 items-center gap-0.5">
+          <p className="min-w-0 flex-1 truncate text-caption text-muted-foreground">{title}</p>
           {items.length > 0 ? <CardMenu items={items} /> : null}
         </div>
-        <div className="mt-4 flex items-end gap-2">
-          <p className="text-kit-stat leading-[2.125rem] text-ink-strong tabular-nums">
+        <div className="mt-2 flex items-baseline gap-2">
+          <p className="text-stat text-ink-strong tabular-nums">
             <CountUp value={value} />
           </p>
-          <DeltaChip delta={delta} invert={invert} size="kit" className="leading-5" />
+          <DeltaChip delta={delta} invert={invert} />
         </div>
-        <p className="mt-2 text-kit-body text-muted-foreground">{period}</p>
+        <p className="mt-1 text-caption font-normal text-muted-foreground">{period}</p>
       </Card>
     )
   }

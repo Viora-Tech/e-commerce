@@ -3,10 +3,10 @@
 import { SidebarInset, SidebarProvider } from '@commerce/ui/shadcn/sidebar'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { usePathname } from 'next/navigation'
-import type React from 'react'
-import { type CSSProperties, type ReactNode, useState } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { hasOwnHeading, pageTitleFor } from '@/data/layout'
 import AdminSidebar from './admin-sidebar'
+import PaletteHost from './layout/palette-host'
 import TopBar from './layout/top-bar'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -21,9 +21,9 @@ type AdminFrameProps = {
   apps: { id: string; name: string; icon: string | null }[]
 }
 
-const SIDEBAR_WIDTH = '15rem'
+const SIDEBAR_WIDTH = '16rem'
 
-/** Shell = kit sidebar + top bar + scrolling page content. */
+/** Shell = grey rail + the white scrolling content panel with its slim header. */
 export default function AdminFrame({
   children,
   user,
@@ -34,13 +34,10 @@ export default function AdminFrame({
 }: AdminFrameProps) {
   // Hooks
   const pathname = usePathname()
-  const [scrolled, setScrolled] = useState(false)
 
-  // Event handlers
-  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-    const next = e.currentTarget.scrollTop > 4
-    if (next !== scrolled) setScrolled(next)
-  }
+  // Render logic
+  const title = pageTitleFor(pathname)
+  const ownHeading = hasOwnHeading(pathname)
 
   return (
     <SidebarProvider
@@ -54,17 +51,20 @@ export default function AdminFrame({
         storefrontUrl={storefrontUrl}
         apps={apps}
       />
-      <SidebarInset className="min-h-0 overflow-hidden">
-        <TopBar
-          title={pageTitleFor(pathname)}
-          heading={!hasOwnHeading(pathname)}
-          user={user}
-          scrolled={scrolled}
-        />
-        <main id="main" className="min-h-0 flex-1 overflow-y-auto" onScroll={handleScroll}>
+      <SidebarInset className="min-h-0 overflow-hidden bg-card">
+        {/* The flat white content area (Saleor Dashboard): it meets the grey rail at the
+            rail's 1px border, with the slim header at its top. */}
+        <main id="main" className="no-scrollbar min-h-0 flex-1 overflow-y-auto bg-card">
+          <TopBar user={user} />
+          {ownHeading ? null : (
+            <div className="border-border border-b px-4 py-5 md:px-6">
+              <h1 className="text-page-title text-ink-strong">{title}</h1>
+            </div>
+          )}
           {children}
         </main>
         <Toaster />
+        <PaletteHost />
       </SidebarInset>
     </SidebarProvider>
   )

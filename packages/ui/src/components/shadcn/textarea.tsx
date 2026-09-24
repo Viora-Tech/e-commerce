@@ -3,15 +3,15 @@ import * as React from 'react'
 import { cn } from '../../lib/utils'
 
 const textareaVariants = cva(
-  'flex field-sizing-content min-h-16 w-full rounded-lg border border-input transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',
+  'flex field-sizing-content min-h-16 w-full rounded-md border border-input transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',
   {
     variants: {
       size: {
         default: 'bg-transparent px-2.5 py-2 text-base md:text-sm dark:bg-input/30',
         /** Frame 5:5556: Neutal/50 fill, Neutal/200 hairline, 15/24 text, 12px inset. */
-        lg: 'min-h-24 border-secondary bg-background p-3 text-[0.8125rem] leading-5 text-ink-strong focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
+        lg: 'min-h-24 bg-card hover:border-border-strong px-3 py-2 text-body text-foreground focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
         /** Kit sheet 14:1699 biography box: 117 tall, Neutal/50 fill, 15/24 text, 12px inset. */
-        kit: 'min-h-[7.3125rem] border-secondary bg-background p-3 text-kit-field leading-6 text-ink-strong focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
+        kit: 'min-h-24 bg-card hover:border-border-strong px-3 py-2 text-body text-foreground focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
       },
     },
     defaultVariants: { size: 'default' },

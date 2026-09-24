@@ -54,18 +54,16 @@ export function pageTitleFor(pathname: string): string {
   return hit?.[1] ?? layoutContent.dashboard
 }
 
-/** List pages drawn to frame 5:2353 carry their own "Order List" style heading under the bar. */
-const HEADED_LISTS = ['/orders', '/products', '/content/blog-posts', '/content/metaobjects']
-
 /**
- * The top bar shows the section name. Pages with a heading of their own (a
- * list from the kit, an order, a product, the editor) render it as the h1
- * and the bar drops to plain text so the page has a single h1.
+ * Section pages that render no header of their own; the frame draws their title row.
+ * Every other page (lists, details, settings sections) renders its own PageHeader, so the
+ * frame adds nothing and the title appears once.
  */
+const UNHEADED = ['/content', '/content/menus', '/content/menus/redirects', '/online-store/pages']
+
+/** True when the page draws its own h1 (PageHeader, KitListPage or the dashboard). */
 export function hasOwnHeading(pathname: string): boolean {
-  if (pathname === '/') return false
-  if (HEADED_LISTS.includes(pathname)) return true
-  return !PAGE_TITLES.some(([p]) => p === pathname)
+  return !UNHEADED.includes(pathname)
 }
 
 export const layoutContent = {
@@ -75,6 +73,8 @@ export const layoutContent = {
   moreActions: 'More actions',
   filter: 'Filter',
   skipToContent: 'Skip to content',
+  breadcrumb: 'Breadcrumb',
+  backTo: (label: string) => `Back to ${label}`,
   notFound: {
     heading: 'Page not found',
     body: 'The link may be out of date, or the item was removed.',

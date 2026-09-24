@@ -4,7 +4,7 @@ import { type StatusKind, type StatusTone, type StatusValue, statusEntry } from 
 type StatusLabelProps<K extends StatusKind> = {
   kind: K
   value: StatusValue<K> | (string & {})
-  /** `dot`: 8px dot + label (payment cell 5:2620). `glyph`: 24px glyph + coloured label (status cell 5:2624). `pill`: soft tinted badge. */
+  /** `dot`: 8px dot + label (payment cell 5:2620). `glyph`: 24px glyph + coloured label (status cell 5:2624). `pill`: tinted chip with a thin tone border (Saleor pill). */
   variant?: 'dot' | 'glyph' | 'pill'
   size?: 'sm' | 'md'
   /** Overrides the mapped label (e.g. raw gateway text). */
@@ -21,25 +21,30 @@ const TEXT: Record<StatusTone, string> = {
   neutral: 'text-muted-foreground',
 }
 
+/* Saleor restraint: dots are neutral; only a problem state (unpaid, failed) is red. */
 const DOT: Record<StatusTone, string> = {
-  success: 'bg-success',
-  pending: 'bg-warning',
+  success: 'bg-muted-foreground-soft',
+  pending: 'bg-muted-foreground-soft',
   error: 'bg-destructive',
-  info: 'bg-ink-strong dark:bg-teal-300',
-  accent: 'bg-link',
+  info: 'bg-muted-foreground-soft',
+  accent: 'bg-muted-foreground-soft',
   neutral: 'bg-muted-foreground-soft',
 }
 
-const PILL: Record<StatusTone, string> = {
-  success: 'bg-success/10 text-success',
-  pending: 'bg-warning/15 text-warning-foreground dark:text-warning',
-  error: 'bg-destructive/10 text-destructive',
-  info: 'bg-primary-soft text-ink-strong dark:bg-teal-400/15 dark:text-teal-300',
-  accent: 'bg-link-soft text-link',
-  neutral: 'bg-muted text-muted-foreground',
+/* Saleor pill: a thin border on a very light fill, ink text. Colour only for the key end
+   states: done (fulfilled, delivered) is mint, a problem (cancelled, failed) is soft red. */
+const PILL_NEUTRAL = 'border-border bg-muted/60'
+const PILL_DONE = 'border-success/35 bg-success/10'
+const PILL_PROBLEM = 'border-destructive/30 bg-destructive/8'
+const DONE_VALUES = new Set(['fulfilled', 'delivered'])
+
+function pillClass(tone: StatusTone, value: string): string {
+  if (tone === 'error') return PILL_PROBLEM
+  if (DONE_VALUES.has(value)) return PILL_DONE
+  return PILL_NEUTRAL
 }
 
-const SIZE = { sm: 'text-body', md: 'text-kit-cell' } as const
+const SIZE = { sm: 'text-caption', md: 'text-body' } as const
 
 /** The one status renderer: every order, payment, shipment, product, discount, page and app state goes through here. */
 export default function StatusLabel<K extends StatusKind>({
@@ -59,9 +64,9 @@ export default function StatusLabel<K extends StatusKind>({
     return (
       <span
         className={cn(
-          'inline-flex h-6 items-center rounded-md px-2 font-medium',
+          'inline-flex h-6 items-center rounded-md border px-2 font-medium whitespace-nowrap text-foreground',
           SIZE[size],
-          PILL[entry.tone],
+          pillClass(entry.tone, String(value)),
           className,
         )}
       >

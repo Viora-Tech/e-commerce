@@ -45,7 +45,7 @@ export default function SaveBar({
           animate={{ opacity: 1, y: 0, height: 'auto' }}
           exit={{ opacity: 0, y: -8, height: 0 }}
           transition={slide}
-          className="sticky top-2 z-20"
+          className="sticky top-14 z-10"
         >
           <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-popover md:px-5">
             <Pencil className="size-4 shrink-0 text-muted-foreground" aria-hidden />

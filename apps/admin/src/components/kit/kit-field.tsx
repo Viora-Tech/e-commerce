@@ -13,9 +13,8 @@ type KitFieldProps = {
 }
 
 /**
- * Sheet 14:1636 field: 15/400 Cyprus label, 12px gap, then the 48px control
- * (`<Input size="kit" />` / `<Textarea size="kit" />`). Rows of fields sit 20px
- * apart horizontally and 24px apart vertically (14:1633).
+ * Form field (Saleor rhythm): 13/500 label, 6px gap, the 36px control
+ * (`<Input size="kit" />` / `<Textarea size="kit" />`), then a 12px help or error line.
  */
 export default function KitField({
   label,
@@ -28,16 +27,16 @@ export default function KitField({
 }: KitFieldProps) {
   // Render logic
   return (
-    <div className={cn('flex min-w-0 flex-1 flex-col gap-3', className)}>
-      <label htmlFor={htmlFor} className="text-kit-field text-ink-strong">
+    <div className={cn('flex min-w-0 flex-1 flex-col gap-1.5', className)}>
+      <label htmlFor={htmlFor} className="text-body-strong text-foreground">
         {label}
         {required ? <span className="ml-1 text-destructive">*</span> : null}
       </label>
       {children}
       {error ? (
-        <p className="text-kit-body text-destructive">{error}</p>
+        <p className="text-caption font-normal text-destructive">{error}</p>
       ) : help ? (
-        <p className="text-kit-body text-muted-foreground">{help}</p>
+        <p className="text-caption font-normal text-muted-foreground">{help}</p>
       ) : null}
     </div>
   )

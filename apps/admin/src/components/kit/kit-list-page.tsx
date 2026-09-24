@@ -1,34 +1,30 @@
 import type { ReactNode } from 'react'
-import PageBody from '@/components/layout/page-body'
+import PageHeader from '@/components/layout/page-header'
 
 type KitListPageProps = {
   title: string
-  /** Primary green button plus any outline secondaries, right of the heading. */
+  /** Secondary buttons, then the ink primary action last. */
   actions?: ReactNode
-  /**
-   * The band between the heading and the table card: stat tiles on orders and
-   * products, category cards on collections.
-   */
+  /** The band between the header and the list: a stat strip or category cards. */
   strip?: ReactNode
-  /** The list card itself, always a `ResourceTable`. */
+  /** The list itself, always a `ResourceTable`. */
   children: ReactNode
 }
 
 /**
- * The list-page shell every index screen shares, drawn to frame 5:2353 and
- * 5:3936: a 48px heading row with its actions, an optional strip, then the
- * table card 20px below it.
+ * The list-page shell every index screen shares, after the Saleor Dashboard list layout
+ * (BSD-3): the header on a hairline, an optional strip, then the list edge to edge on the
+ * white panel. The strip keeps its cards; `[data-layout=sections]` flattens the table card.
  */
 export default function KitListPage({ title, actions, strip, children }: KitListPageProps) {
   // Render logic
   return (
-    <PageBody width="frame" className="gap-6">
-      <div className="flex h-12 items-center justify-between gap-3">
-        <h1 className="text-kit-heading text-ink-strong">{title}</h1>
-        {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
+    <div className="flex min-h-full flex-col">
+      <div className="border-border border-b px-4 py-5 md:px-6">
+        <PageHeader title={title} actions={actions} />
       </div>
-      {strip}
-      <div className={strip ? '-mt-1' : undefined}>{children}</div>
-    </PageBody>
+      {strip ? <div className="border-border border-b px-4 py-5 md:px-6">{strip}</div> : null}
+      <div data-layout="sections">{children}</div>
+    </div>
   )
 }

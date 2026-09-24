@@ -36,6 +36,38 @@ are in `admin-tokens.md`.
 | Stat tile | `5:2512` | 135px, 16px inset, 18/700 title, 32/700 figure with 16px arrow + 14/500 delta, 14px period line at 100px |
 | Field | `5:5493`, `5:5495` | label 15/400 `#023337`, 12px gap, input 48px |
 
+## Saleor look (September 2026)
+
+The admin now follows the Saleor Dashboard (BSD-3) and its Macaw UI tokens (CC BY 4.0),
+re-implemented on our shadcn/Base UI. The target is the user's reference screenshot of
+Saleor's order detail (`C:/Users/kulde/Downloads/502626864-c9705611-2729-4e65-ae35-22081f03c569.png`).
+Routes and IA stay Shopify-shaped. Credits: `apps/admin/THIRD_PARTY_LICENSES.md`.
+
+- Shell: a light grey frame (rail) around a white content panel (hairline, rounded corners).
+  A slim 48px header at the top of the panel holds the one search field (opens the command
+  palette: records, actions, pages; also ⌘K and "/"), notifications, the switch-style theme
+  toggle and the account menu. The rail: store switcher, groups with 36px rows, sub-items
+  indented without a guide line, a light grey active pill, member row and View store.
+- Colour: near-monochrome. Primary buttons and active states are ink (`--action`, Macaw
+  buttonDefaultPrimary). The merchant accent (`--primary*`, `--ring`, `--chart-1`) is only
+  for focus rings, checkboxes and selection, charts and small highlights. Links are ink and
+  underlined. Status pills are a faint tint with a thin tone border.
+- Type: large regular-weight headings (page title 1.75rem/400, section title 1.25rem/400),
+  13px body and cells, 12px captions and table heads.
+- `DetailLayout`: full-height main column plus a fixed right column divided by a 1px rule.
+  Inside `[data-layout=sections]` the Card primitive is a flat, edge-to-edge section with a
+  hairline under it, so `DataCard` and shadcn cards become titled sections. `DataCard` adds
+  a grey meta line, a title glyph and `tone="muted"` for grouped sub-sections.
+- `PageHeader`: square outlined back button, title with pills, grey meta line, actions
+  (icon buttons first, the ink primary last).
+- `KitListPage`: header on a hairline, an optional strip (`StatStrip` for summaries), the
+  `ResourceTable` edge to edge: underline status tabs, search + Filter (count) + sort and
+  columns, removable chips, a small ink header row, 44px rows, range and arrow pager.
+- Fields: 36px controls, 6px radius, white on the `--input` hairline that darkens on hover.
+
+The sections below record the earlier Dealport measurements; where they conflict, this
+section wins.
+
 ## Global deviation: Shopify type scale and density
 
 Layout, colour, card treatment, tab pill group, status icon + label, paging

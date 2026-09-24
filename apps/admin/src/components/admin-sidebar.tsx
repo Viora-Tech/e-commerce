@@ -86,19 +86,19 @@ export default function AdminSidebar({
   const active = stores.find((s) => s.id === activeStoreId) ?? null
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0 shadow-rail">
-      {/* 5:1369: 64px tall, 20px padding, wordmark left and collapse glyph right. */}
+    <Sidebar collapsible="icon" className="border-sidebar-border border-r">
+      {/* Store switcher (Saleor mounting point): 56px row, store mark, name and chevron; collapse glyph right. */}
       <SidebarHeader className="h-14 flex-row items-center justify-between px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex h-8 min-w-0 items-center gap-2 text-left">
+          <DropdownMenuTrigger className="-mx-1.5 flex h-8 min-w-0 items-center gap-2 rounded-md px-1.5 text-left transition-colors hover:bg-sidebar-accent">
             {/* Wordmark: initial on the brand colour until a logo upload exists. */}
             <span
               aria-hidden="true"
-              className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[0.75rem] font-bold text-primary-foreground shadow-lift"
+              className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[0.75rem] font-bold text-primary-foreground"
             >
               {(active?.name ?? navigationContent.pickStore).charAt(0).toUpperCase()}
             </span>
-            <span className="truncate text-card-title font-bold tracking-tight text-ink-strong group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-body-strong font-semibold text-ink-strong group-data-[collapsible=icon]:hidden">
               {active?.name ?? navigationContent.pickStore}
             </span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -131,8 +131,8 @@ export default function AdminSidebar({
         </button>
       </SidebarHeader>
 
-      {/* Group rhythm from the frame: first label 8px under the header, groups 24px apart. */}
-      <SidebarContent className="no-scrollbar gap-5 pt-1">
+      {/* Group rhythm: first label 8px under the header, groups 20px apart. */}
+      <SidebarContent className="no-scrollbar gap-4 pt-2">
         {NAV_GROUPS.map((group, gi) => (
           <NavGroupBlock
             key={group.label ?? gi}
@@ -148,10 +148,11 @@ export default function AdminSidebar({
         />
       </SidebarContent>
 
-      {/* 5:1477: user card (20/12 padding, 40px avatar) then the shop card, 12px apart. */}
-      <SidebarFooter className="gap-2 p-0 pb-4 pt-6">
-        <div className="flex items-center gap-3 px-4 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary ring-1 ring-primary/20">
+      {/* A rule, then the member and the store link. */}
+      <SidebarFooter className="gap-3 p-0 pt-4 pb-4">
+        <div className="mx-3 border-border border-t" />
+        <div className="flex items-center gap-3 px-6 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground ring-1 ring-border">
             {initials(user.name)}
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs leading-4 group-data-[collapsible=icon]:hidden">
@@ -172,7 +173,7 @@ export default function AdminSidebar({
           href={storefrontUrl}
           target="_blank"
           rel="noreferrer"
-          className="mx-2 flex h-9 items-center gap-2 rounded-[0.375rem] bg-card px-4 text-nav text-ink-strong shadow-lift transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="mx-3 flex h-8 items-center gap-2 rounded-md border border-border bg-card px-3 text-nav text-ink-strong transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
         >
           <Store className="size-4 text-primary" strokeWidth={1.8} />
           <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">

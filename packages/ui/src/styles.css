@@ -3,9 +3,10 @@
  * Import after Tailwind, tw-animate-css and shadcn/tailwind.css:
  *   @import "@commerce/ui/styles.css";
  *
- * Palette: the "E-commerce Dashboard" Figma kit (docs/design/admin-tokens.md):
- * #f9fafb canvas, white cards, green primary, indigo links, Inter. Components
- * reference only the semantic names below; never a raw colour.
+ * Look: calm neutral surfaces with hairline borders, after the Saleor Dashboard
+ * (BSD-3) and its Macaw UI tokens (CC BY 4.0). Layout still follows the Dealport
+ * kit (docs/design/admin-frames.md). Components reference only the semantic
+ * names below, never a raw colour.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -24,6 +25,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-action: var(--action);
+  --color-action-foreground: var(--action-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -40,6 +43,7 @@
   --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-border-soft: var(--border-soft);
+  --color-border-strong: var(--border-strong);
   --color-line: var(--line);
   --color-primary-tint: var(--primary-tint);
   --color-link: var(--link);
@@ -105,139 +109,156 @@
   }
 }
 
+/*
+ * Neutral surfaces, hairlines and overlay shadows after Macaw UI (CC BY 4.0,
+ * Saleor Commerce; see apps/admin/THIRD_PARTY_LICENSES.md): text default1/default2,
+ * border default1/default2, overlay and modal shadows. Values are adapted, not
+ * copied 1:1. The accent (--primary*, --ring, --chart-1) is the merchant's pick
+ * (@commerce/core/admin-accent) and is overridden per member at runtime; actions
+ * (primary buttons, active tabs and nav) stay ink via --action.
+ */
 :root {
-  --radius: 0.5rem; /* 8px cards, kit 5:1494 */
-  /* Kit effects 5:6061: 1 Ambient (cards), 3 Ambient (hover, popovers), 6 Ambient (dialogs). */
-  --shadow-kit-1: 0 1px 3px 0 rgb(0 0 0 / 0.2);
-  --shadow-kit-3: 0 1px 8px 0 rgb(0 0 0 / 0.2);
-  --shadow-kit-6: 0 3px 5px 0 rgb(0 0 0 / 0.2);
-  /* Cards sit on the kit's 3 Ambient tier at rest (Kuldeep wants visible depth), lift to a soft 6 on hover. */
-  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1);
-  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16);
-  --shadow-rail: 1px 0 0 0 var(--border), 4px 0 16px -6px rgb(16 24 40 / 0.08); /* sidebar edge */
-  --shadow-lift: 0 1px 1.5px 0 rgb(0 0 0 / 0.2); /* kit 14:917 category rows, user card */
-  --shadow-toggle: 0 2px 2px 0 rgb(0 0 0 / 0.14);
+  --radius: 0.5rem; /* 8px cards and tables; controls use radius-md (6px), chips radius-sm (4px) */
+  /* Depth is a hairline, not a blur: cards and tables are drawn by a 1px ring. */
+  --shadow-kit-1: 0 0 0 1px var(--border);
+  --shadow-kit-3: 0 0 0 1px var(--border), 0 3px 8px 0 hsl(211 42% 16% / 0.08);
+  --shadow-kit-6: 0 0 0 1px var(--border), 0 8px 16px 0 hsl(211 42% 16% / 0.08);
+  --shadow-card: 0 0 0 1px var(--border);
+  --shadow-card-hover: 0 0 0 1px var(--border-strong), 0 2px 3px 0 hsl(211 42% 16% / 0.1);
+  --shadow-rail: 1px 0 0 0 var(--border);
+  --shadow-lift: 0 1px 1px 0 hsl(212 44% 13% / 0.08);
+  --shadow-toggle: 0 1px 2px 0 hsl(212 44% 13% / 0.16);
   --shadow-popover: var(--shadow-kit-3);
   --shadow-dialog: var(--shadow-kit-6);
-  --shadow-bar: 0 1px 0 0 var(--border), 0 4px 12px -6px rgb(2 51 55 / 0.16); /* top bar once the page has scrolled */
+  --shadow-bar: 0 1px 0 0 var(--border);
 
-  /* Canvas and surfaces */
-  --background: #f9fafb; /* Neutal/50 */
-  --foreground: #23272e;
-  --ink-strong: #023337; /* Cyprus: secondary brand, page title, stat numbers, product names */
-  --brand-secondary: #023337; /* Cyprus 8:33 */
+  /* Surfaces (Saleor Dashboard): a light grey shell (rail, top bar, grouped sub-sections)
+     around a white content panel; cards and panels are white. */
+  --background: #f7f7f7;
+  --foreground: #252929;
+  --ink-strong: #141717; /* page titles, primary cell text, figures */
+  --brand-secondary: #121f30; /* the dark neutral action (Saleor's default primary button) */
   --brand-secondary-foreground: #ffffff;
-  --helper: #7c7c7c; /* Grey 8:33: helper and de-emphasised text */
+  --helper: #7b7e7e;
   --card: #ffffff;
   --card-foreground: var(--foreground);
   --popover: #ffffff;
   --popover-foreground: var(--foreground);
 
-  /* Brand */
-  --primary: #4ea674; /* active pill, filter button, tab underline */
+  /* Action: the ink fill of primary buttons and active states (Macaw buttonDefaultPrimary,
+     hsl(211 45% 13%)). Saleor keeps actions near-black and uses its accent sparingly. */
+  --action: #121f30;
+  --action-foreground: #ffffff;
+
+  /* Accent (the merchant pick; default Ocean Green): links, focus rings, selection,
+     charts and small highlights only. */
+  --primary: #4ea674;
   --primary-foreground: #ffffff;
-  --primary-soft: #eaf8e7; /* Aqua Spring 8:33: table header band, toggle track, subtle backgrounds */
-  --primary-tint: #c1e6ba; /* Surf Crest 8:33: hairlines, active page number */
-  --link: #6467f2; /* Primary/500: outline CTAs, inline links */
-  --link-soft: #f0f3ff;
-  --secondary: #e5e7eb; /* Neutal/200 */
-  --secondary-foreground: #23272e;
-  --muted: #f3f4f6;
-  --muted-foreground: #6a717f; /* Neutal/500 */
-  --muted-foreground-soft: #8b909a;
-  --accent: #f0f3ff;
-  --accent-foreground: #4b4ed6;
+  --primary-soft: #eaf8e7; /* selected rows, bulk bar, subtle accent fills */
+  --primary-tint: #c1e6ba;
+  --link: #1f2323; /* links are ink and underlined, like Saleor's body links */
+  --link-soft: #eef2ff;
+  --secondary: #eef0f2;
+  --secondary-foreground: #252929;
+  --muted: #f3f4f5;
+  --muted-foreground: #676c6c;
+  --muted-foreground-soft: #8b8f8f;
+  --accent: #f1f2f3; /* menu item hover and focus: neutral, never tinted */
+  --accent-foreground: #141717;
 
   /* Status */
-  --destructive: #ef4343; /* Error/500 */
+  --destructive: #dc3a26;
   --destructive-foreground: #ffffff;
-  --success: #21c45d; /* Success/500 */
+  --success: #1f9d61;
   --success-foreground: #ffffff;
-  --warning: #f0d411; /* Pending 8:33 */
-  --warning-foreground: #3d3400;
-  --info: #6467f2;
+  --warning: #e8b320;
+  --warning-foreground: #3d2c00;
+  --info: #3b5bdb;
   --info-foreground: #ffffff;
 
   /* Lines and focus */
-  --border: #e6e8ec; /* Divider, lightened so the shadow defines card edges */
-  --border-soft: #e9e7fd;
-  --line: #d1d5db; /* Neutal/300: table rows, icon buttons, paging 14:1022 */
-  --line-list: #d1d1d1; /* list row dividers 14:873 */
-  --input: #dbdade;
+  --border: #dde1e5; /* card, table and field hairline */
+  --border-strong: #a5adb6; /* hovered field, emphasised divider */
+  --border-soft: #eceef0;
+  --line: #e7eaed; /* table row dividers */
+  --line-list: #e7eaed;
+  --input: #d9dee3;
   --ring: #4ea674;
 
-  /* Charts: green, indigo, amber, red, grey */
+  /* Charts: accent, indigo, amber, red, grey */
   --chart-1: #4ea674;
   --chart-2: #6467f2;
   --chart-3: #f5b400;
   --chart-4: #ef4343;
   --chart-5: #8b909a;
 
-  /* Sidebar: white rail on the light canvas */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #6a717f;
+  /* Sidebar: the grey shell; the active row is a slightly darker grey pill */
+  --sidebar: #f7f7f7;
+  --sidebar-foreground: #2b2f2f;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #f3f4f6;
-  --sidebar-accent-foreground: #23272e;
-  --sidebar-border: #eceef1;
+  --sidebar-accent: #eaebeb;
+  --sidebar-accent-foreground: #141717;
+  --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
 
 .dark {
-  /* Dark: depth comes from surface layering (card one step above canvas), shadows fall to near zero. */
-  --shadow-kit-1: 0 0 0 1px rgb(255 255 255 / 0.04);
-  --shadow-kit-3: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.5);
-  --shadow-kit-6: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 64px -12px rgb(0 0 0 / 0.7);
-  /* Cards sit on the kit's 3 Ambient tier at rest (Kuldeep wants visible depth), lift to a soft 6 on hover. */
-  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.05), 0 6px 16px -4px rgb(16 24 40 / 0.1);
-  --shadow-card-hover: 0 2px 4px 0 rgb(16 24 40 / 0.06), 0 12px 28px -6px rgb(16 24 40 / 0.16);
-  --shadow-rail: 0 0 0 1px rgb(255 255 255 / 0.04);
-  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.05);
+  --shadow-kit-1: 0 0 0 1px var(--border);
+  --shadow-kit-3: 0 0 0 1px var(--border), 0 8px 24px -4px rgb(0 0 0 / 0.5);
+  --shadow-kit-6: 0 0 0 1px var(--border), 0 24px 64px -12px rgb(0 0 0 / 0.7);
+  --shadow-card: 0 0 0 1px var(--border);
+  --shadow-card-hover: 0 0 0 1px var(--border-strong);
+  --shadow-rail: 1px 0 0 0 var(--border);
+  --shadow-lift: 0 1px 1px 0 rgb(0 0 0 / 0.4);
   --shadow-toggle: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-  --shadow-popover: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.5);
-  --shadow-dialog: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 64px -12px rgb(0 0 0 / 0.7);
-  --shadow-bar: 0 1px 0 0 rgb(255 255 255 / 0.06);
+  --shadow-popover: var(--shadow-kit-3);
+  --shadow-dialog: var(--shadow-kit-6);
+  --shadow-bar: 0 1px 0 0 var(--border);
 
-  --background: #111318;
-  --foreground: #e8eaee;
-  --ink-strong: #f4f6f8;
-  --brand-secondary: #e6f1f1;
-  --brand-secondary-foreground: #0b1a1b;
-  --helper: #8a919c;
-  --card: #1a1d24;
+  --background: #141618;
+  --foreground: #e3e6e8;
+  --ink-strong: #f5f6f7;
+  --brand-secondary: #eef1f4;
+  --brand-secondary-foreground: #121416;
+  --helper: #8d9399;
+  --card: #1a1d20;
   --card-foreground: var(--foreground);
-  --popover: #1a1d24;
+  --popover: #1d2024;
   --popover-foreground: var(--foreground);
+
+  --action: #f1f3f5; /* Macaw dark buttonDefaultPrimary: white-ish fill, dark ink */
+  --action-foreground: #121416;
 
   --primary: #5fbf87;
   --primary-foreground: #0b1a11;
   --primary-soft: rgb(78 166 116 / 0.16);
-  --link: #8b8dff;
-  --link-soft: rgb(100 103 242 / 0.16);
-  --secondary: #2a2e37;
-  --secondary-foreground: #e8eaee;
-  --muted: #23272f;
-  --muted-foreground: #9aa1ad;
-  --muted-foreground-soft: #7d8491;
-  --accent: rgb(100 103 242 / 0.16);
-  --accent-foreground: #b3b5ff;
+  --primary-tint: #2f5a3d;
+  --link: #eceef0;
+  --link-soft: rgb(99 125 255 / 0.16);
+  --secondary: #262a2e;
+  --secondary-foreground: #e3e6e8;
+  --muted: #212428;
+  --muted-foreground: #9aa0a6;
+  --muted-foreground-soft: #7c8288;
+  --accent: #26292d;
+  --accent-foreground: #f5f6f7;
 
-  --destructive: #f87272; /* Error/300 reads better on dark */
+  --destructive: #f2705f;
   --destructive-foreground: #1a0a0a;
-  --success: #34d374;
+  --success: #3ccf86;
   --success-foreground: #05200f;
-  --warning: #f7c440;
+  --warning: #f2c14e;
   --warning-foreground: #2b2000;
-  --info: #8b8dff;
+  --info: #8ea2ff;
   --info-foreground: #0d0e2b;
 
-  --border: rgb(255 255 255 / 0.08);
-  --border-soft: rgb(255 255 255 / 0.06);
-  --line: #2c313a;
-  --line-list: #2c313a;
-  --primary-tint: #2f5a3d;
-  --input: rgb(255 255 255 / 0.12);
+  --border: #2c3136;
+  --border-strong: #4b535c;
+  --border-soft: #24282c;
+  --line: #25292d;
+  --line-list: #25292d;
+  --input: #343a40;
   --ring: #5fbf87;
 
   --chart-1: #5fbf87;
@@ -246,13 +267,13 @@
   --chart-4: #f87272;
   --chart-5: #7d8491;
 
-  --sidebar: #151820;
-  --sidebar-foreground: #9aa1ad;
+  --sidebar: #141618;
+  --sidebar-foreground: #b4b9be;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: #23272f;
-  --sidebar-accent-foreground: #e8eaee;
-  --sidebar-border: rgb(255 255 255 / 0.06);
+  --sidebar-accent: #24272b;
+  --sidebar-accent-foreground: #f5f6f7;
+  --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
 
@@ -292,16 +313,16 @@
  * weight and tracking. Colour, case and numerals stay at the usage site.
  */
 @theme {
-  /* Shopify-admin density on the Dealport layout (docs/design/admin-frames.md, global deviation):
-     1rem/600 page title, 0.875rem/600 card title, 0.75rem body, 0.8125rem primary cell text, 0.75rem/500 captions, 1.25rem/600 stats, 0.8125rem/500 nav. Rem only, never px. */
-  --text-page-title: 1rem;
-  --text-page-title--line-height: 1.25rem;
-  --text-page-title--font-weight: 600;
+  /* Saleor Dashboard scale: large, regular-weight headings (1.75rem page title, 1.25rem section
+     title), 0.8125rem body and cells, 0.75rem captions and table heads, 0.8125rem/500 nav. Rem only. */
+  --text-page-title: 1.75rem;
+  --text-page-title--line-height: 2.25rem;
+  --text-page-title--font-weight: 400;
   --text-page-title--letter-spacing: -0.01em;
 
-  --text-card-title: 0.875rem;
-  --text-card-title--line-height: 1.25rem;
-  --text-card-title--font-weight: 600;
+  --text-card-title: 1.25rem;
+  --text-card-title--line-height: 1.75rem;
+  --text-card-title--font-weight: 400;
 
   --text-stat: 1.25rem;
   --text-stat--line-height: 1.5rem;
@@ -313,11 +334,11 @@
   --text-stat-sm--font-weight: 600;
   --text-stat-sm--letter-spacing: -0.01em;
 
-  --text-body: 0.75rem;
-  --text-body--line-height: 1rem;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.25rem;
 
   --text-body-strong: 0.8125rem;
-  --text-body-strong--line-height: 1rem;
+  --text-body-strong--line-height: 1.25rem;
   --text-body-strong--font-weight: 500;
 
   --text-caption: 0.75rem;
@@ -329,7 +350,7 @@
   --text-table-head--font-weight: 500;
 
   --text-nav: 0.8125rem;
-  --text-nav--line-height: 1.125rem;
+  --text-nav--line-height: 1.25rem;
   --text-nav--font-weight: 500;
 
   --text-period: 0.75rem;
