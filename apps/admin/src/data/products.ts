@@ -4,6 +4,11 @@ export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
 
 /** Every string the products list shows. */
 export const productsListContent = {
+  row: {
+    openNewTab: 'Open in a new tab',
+    edit: 'Edit product',
+    inventory: 'Adjust inventory',
+  },
   title: 'Products',
   /* Same frame family as the order list (5:2353): heading, primary action, tab group. */
   heading: 'Product list',
@@ -12,13 +17,6 @@ export const productsListContent = {
   export: 'Export',
   import: 'Import',
   tabs: { all: 'All products' },
-  tiles: {
-    total: 'Total products',
-    active: 'Active',
-    outOfStock: 'Out of stock',
-    stockValue: 'Stock at cost',
-    period: 'Across the catalogue',
-  },
   filters: {
     label: 'Filters',
     vendor: 'Vendor',
