@@ -1,24 +1,116 @@
+import { render } from '@react-email/render'
+import { createElement } from 'react'
+import { TransactionalEmail } from '../emails/transactional-email'
 import type { TemplateData, TemplateId } from '../types'
 import { sharedContent as shared, templateContent } from './content'
 
 export type EmailBody = { subject: string; text: string; html: string }
 export type WhatsappBody = { text: string }
 
-export const TEMPLATE_IDS: TemplateId[] = ['order_placed', 'payment_received', 'order_shipped']
+export const TEMPLATE_IDS: TemplateId[] = [
+  'order_placed',
+  'payment_received',
+  'order_shipped',
+  'draft_invoice',
+  'checkout_recovery',
+  'document_copy',
+  'login_code',
+  'gift_card_issued',
+  'balance_request',
+  'balance_reminder',
+  'balance_received',
+  'payment_reminder',
+  'unpaid_cancel_notice',
+  'unpaid_cancelled',
+  'back_in_stock_confirm',
+  'back_in_stock_alert',
+]
 
-const escapeHtml = (s: string): string =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+/** Human names for the dev preview list and the admin's document-template picker. */
+export const TEMPLATE_NAMES: Record<TemplateId, string> = {
+  order_placed: 'Order placed',
+  payment_received: 'Payment received',
+  order_shipped: 'Order shipped',
+  draft_invoice: 'Draft invoice',
+  checkout_recovery: 'Checkout recovery',
+  document_copy: 'Document copy',
+  login_code: 'Sign-in code',
+  gift_card_issued: 'Gift card issued',
+  balance_request: 'Balance due',
+  balance_reminder: 'Balance reminder',
+  balance_received: 'Balance received',
+  payment_reminder: 'Payment reminder',
+  unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
+  unpaid_cancelled: 'Unpaid order cancelled',
+  back_in_stock_confirm: 'Back in stock: confirm alert',
+  back_in_stock_alert: 'Back in stock: alert',
+}
 
 /** Drop runs of blank lines left by optional sections. */
 const squash = (lines: string[]): string =>
   lines.filter((l, i) => !(l === '' && lines[i - 1] === '')).join('\n')
 
-export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
+function eyebrowFor(template: TemplateId, d: TemplateData): string {
+  switch (template) {
+    case 'login_code':
+      return 'Sign-in code'
+    case 'gift_card_issued':
+      return 'Gift card'
+    case 'checkout_recovery':
+      return 'Your basket'
+    case 'back_in_stock_confirm':
+    case 'back_in_stock_alert':
+      return 'Back in stock'
+    default:
+      return d.orderNumber ? `Order #${d.orderNumber}` : d.storeName
+  }
+}
+
+function primaryActionFor(
+  template: TemplateId,
+  d: TemplateData,
+): { label: string; url: string } | undefined {
+  switch (template) {
+    case 'order_placed':
+    case 'payment_received':
+      return d.orderUrl ? { label: shared.viewOrder, url: d.orderUrl } : undefined
+    case 'order_shipped':
+      return d.trackingUrl
+        ? { label: 'Track your order', url: d.trackingUrl }
+        : d.orderUrl
+          ? { label: shared.viewOrder, url: d.orderUrl }
+          : undefined
+    case 'draft_invoice':
+      return d.actionUrl ? { label: 'Pay securely', url: d.actionUrl } : undefined
+    case 'checkout_recovery':
+      return d.actionUrl ? { label: 'Finish checkout', url: d.actionUrl } : undefined
+    case 'document_copy':
+      return d.links?.[0] ? { label: d.links[0].label, url: d.links[0].url } : undefined
+    case 'balance_request':
+    case 'balance_reminder':
+      return d.actionUrl ? { label: 'Pay the balance', url: d.actionUrl } : undefined
+    case 'payment_reminder':
+      return d.orderUrl ? { label: 'View payment details', url: d.orderUrl } : undefined
+    case 'back_in_stock_confirm':
+      return d.backInStock?.confirmUrl
+        ? { label: 'Confirm alert', url: d.backInStock.confirmUrl }
+        : undefined
+    case 'back_in_stock_alert':
+      return d.backInStock?.productUrl
+        ? { label: 'Shop now', url: d.backInStock.productUrl }
+        : undefined
+    default:
+      return d.orderUrl ? { label: shared.viewOrder, url: d.orderUrl } : undefined
+  }
+}
+
+export async function renderEmail(template: TemplateId, d: TemplateData): Promise<EmailBody> {
   const c = templateContent[template]
   const lines = d.lines.map(shared.lineText)
   // Messages about no order (a sign-in code) carry no items or total.
-  const hasItems = lines.length > 0
+  const hasItems = d.lines.length > 0
   const gc = d.giftCard
+
   const text = squash([
     c.heading(d),
     '',
@@ -45,36 +137,33 @@ export function renderEmail(template: TemplateId, d: TemplateData): EmailBody {
     shared.footer(d),
   ])
 
-  const html = [
-    '<!doctype html><html><body style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111">',
-    `<h1 style="font-size:20px">${escapeHtml(c.heading(d))}</h1>`,
-    `<p>${escapeHtml(c.intro(d))}</p>`,
-    ...(gc
-      ? [
-          `<p style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#666;margin-bottom:4px">${shared.giftCardCode}</p>`,
-          `<p style="font-family:ui-monospace,monospace;font-size:22px;letter-spacing:.12em;margin-top:0"><strong>${escapeHtml(gc.code)}</strong></p>`,
-          `<p>${shared.giftCardBalance}: <strong>${escapeHtml(gc.balanceLabel)}</strong></p>`,
-          gc.message
-            ? `<p style="border-left:3px solid #ddd;padding-left:12px;color:#333">${escapeHtml(gc.message)}</p>`
-            : '',
-        ]
-      : hasItems
-        ? [
-            `<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:#666">${shared.itemsHeading}</h2>`,
-            `<ul style="padding-left:18px">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`,
-            `<p><strong>${shared.totalLabel}: ${escapeHtml(d.totalLabel)}</strong></p>`,
-          ]
-        : []),
-    `<p>${escapeHtml(c.outro(d))}</p>`,
-    d.orderUrl ? `<p><a href="${escapeHtml(d.orderUrl)}">${shared.viewOrder}</a></p>` : '',
-    ...(d.links ?? []).map(
-      (l) => `<p><a href="${escapeHtml(l.url)}">${escapeHtml(l.label)}</a></p>`,
-    ),
-    `<p style="font-size:12px;color:#666">${escapeHtml(shared.footer(d))}</p>`,
-    '</body></html>',
-  ].join('\n')
+  const subject = c.subject(d)
+  // Extra links go under the body as text lines (document links, installed-app links);
+  // the primary action already carries the main call to action as a button.
+  const primaryAction = primaryActionFor(template, d)
+  const extraLinks = (d.links ?? []).filter((l) => l.url !== primaryAction?.url)
 
-  return { subject: c.subject(d), text, html }
+  const html = await render(
+    createElement(TransactionalEmail, {
+      storeName: d.storeName,
+      storeAddress: d.storeAddress,
+      previewText: subject,
+      eyebrow: eyebrowFor(template, d),
+      heading: c.heading(d),
+      intro: c.intro(d),
+      outro: c.outro(d),
+      lines: gc ? [] : d.lines,
+      totalLabel: gc ? undefined : d.totalLabel,
+      taxBreakdown: gc ? undefined : d.taxBreakdown,
+      giftCard: gc,
+      code: d.code,
+      primaryAction,
+      extraLinks,
+      footerNote: shared.footer(d),
+    }),
+  )
+
+  return { subject, text, html }
 }
 
 export function renderWhatsapp(template: TemplateId, d: TemplateData): WhatsappBody {

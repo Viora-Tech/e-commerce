@@ -23,7 +23,7 @@ export class LogNotificationChannel implements NotificationChannel {
 
   async send(message: Message): Promise<SendResult> {
     if (!message.to.email) return { ok: false, error: 'recipient has no email' }
-    const body = renderEmail(message.template, message.data)
+    const body = await renderEmail(message.template, message.data)
     const providerRef = `log_${message.data.orderNumber}_${message.template}`
     this.write(`[notification] to=${message.to.email} subject=${body.subject}\n${body.text}`)
     return { ok: true, providerRef }

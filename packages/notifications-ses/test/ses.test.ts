@@ -40,7 +40,7 @@ describe('ses specifics', () => {
     expect(input?.FromEmailAddress).toBe('Waimers <orders@example.com>')
     expect(input?.Destination?.ToAddresses).toEqual(['asha@example.com'])
     expect(input?.Content?.Simple?.Subject?.Data).toContain('#42')
-    expect(input?.Content?.Simple?.Body?.Html?.Data).toContain('<li>')
+    expect(input?.Content?.Simple?.Body?.Html?.Data).toContain('Maboroshi mousepad')
   })
 
   it('attaches files and prints app links', async () => {

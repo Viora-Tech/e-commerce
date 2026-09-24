@@ -96,7 +96,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
         {navigationContent.viewStore}
         <ExternalLink className="size-3.5 text-muted-foreground" />
       </a>
-      <div className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card py-1 pr-1 pl-1.5 shadow-xs">
+      <div className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card py-1 pr-1 pl-1.5 shadow-xs dark:bg-secondary">
         <Popover>
           <PopoverTrigger
             aria-label={navigationContent.notifications.label}
@@ -118,7 +118,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
           aria-checked={dark}
           aria-label={navigationContent.toggleTheme}
           onClick={() => setTheme(dark ? 'light' : 'dark')}
-          className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 transition-colors"
+          className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 ring-1 ring-border transition-colors dark:bg-muted"
         >
           {/* Knob and icon follow the `dark` class next-themes sets before paint, so
               the markup is the same on the server and the client and never flashes. */}
@@ -131,7 +131,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={navigationContent.account}
-            className="flex size-7 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground ring-1 ring-border transition-shadow hover:ring-border-strong"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[0.625rem] dark:bg-input font-semibold tracking-tight text-foreground ring-1 ring-border transition-shadow hover:ring-border-strong"
           >
             {initials(user.name)}
           </DropdownMenuTrigger>
