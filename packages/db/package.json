@@ -16,6 +16,7 @@
     "seed:demo:collections": "bun run --env-file=../../.env src/seed-demo-collections.ts",
     "seed:navigation": "bun run --env-file=../../.env src/seed-navigation.ts",
     "seed:shipping": "bun run --env-file=../../.env src/seed-shipping-rates.ts",
+    "seed:back-in-stock": "bun run --env-file=../../.env src/seed-back-in-stock.ts",
     "seed:demo:drafts": "bun run --env-file=../../.env src/seed-demo-drafts.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

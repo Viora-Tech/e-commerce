@@ -25,10 +25,21 @@ export type OutboxEventType =
   | 'order.unpaid_cancel_notice'
   /** A manual-transfer order was cancelled for non-payment (alongside `order.cancelled`). */
   | 'order.unpaid_cancelled'
+  /** A variant's available stock (on-hand minus reserved) went from 0 to positive. */
+  | 'inventory.restocked'
 
+/**
+ * `orderId` is required for every order-lifecycle type; `variantId` (and
+ * optionally `locationId`) is required for `inventory.restocked`, which has
+ * no order. Left as one loose shape (rather than a discriminated union) so
+ * existing callers are untouched; each type's writer sets only the fields
+ * that apply to it.
+ */
 export type OutboxPayload = {
-  orderId: string
+  orderId?: string | undefined
   refundId?: string | undefined
+  variantId?: string | undefined
+  locationId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -59,6 +70,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.payment_reminder': 'payment_reminder',
   'order.unpaid_cancel_notice': 'unpaid_cancel_notice',
   'order.unpaid_cancelled': 'unpaid_cancelled',
+  // Handled by the back-in-stock plugin's own dispatch path, not the generic
+  // per-order notification/app-hook fan-out (there is no order to attach it to).
+  'inventory.restocked': null,
 }
 
 /**
@@ -89,4 +103,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.payment_reminder': null,
   'order.unpaid_cancel_notice': null,
   'order.unpaid_cancelled': null,
+  'inventory.restocked': null,
 }

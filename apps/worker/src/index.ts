@@ -6,6 +6,7 @@ import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
+import { createBackInStockWorker } from './back-in-stock'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createNotificationWorker } from './notifications'
@@ -51,7 +52,15 @@ const marketing = createMarketingWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
-const outboxRelay = createOutboxRelay(redis, db, { notifications, appEvents })
+const backInStock = createBackInStockWorker(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+  storefrontUrl: env.STOREFRONT_URL,
+})
+const outboxRelay = createOutboxRelay(redis, db, {
+  notifications,
+  appEvents,
+  inventoryRestock: backInStock.queue,
+})
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -127,6 +136,8 @@ const shutdown = async () => {
   await marketing.sendQueue.close()
   await outboxRelay.worker.close()
   await outboxRelay.queue.close()
+  await backInStock.worker.close()
+  await backInStock.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

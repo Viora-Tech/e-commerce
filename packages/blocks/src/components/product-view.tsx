@@ -55,6 +55,8 @@ export default function ProductView({
   onAddToCart,
   UnderPrice,
   belowBuy,
+  NotifyMe,
+  notifyMeProps,
 }: {
   product: ProductDetail
   onAddToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined
@@ -62,6 +64,17 @@ export default function ProductView({
   UnderPrice?: ComponentType<{ pricePaise: number }> | undefined
   /** Rendered under the buy buttons (delivery estimate). */
   belowBuy?: ReactNode
+  /**
+   * The back-in-stock "notify me" form, shown only for the selected variant
+   * while it is sold out and not on pre-order; omitted when the app is not
+   * installed for this store. Follows variant switching (keyed by variant id,
+   * so its own state resets when the shopper picks a different one).
+   */
+  NotifyMe?:
+    | ComponentType<{ variantId: string; storeId: string; whatsappEnabled: boolean }>
+    | undefined
+  /** Server-resolved data `NotifyMe` needs beyond the selected variant id. */
+  notifyMeProps?: { storeId: string; whatsappEnabled: boolean } | undefined
 }) {
   // Hooks
   const [pending, startTransition] = useTransition()
@@ -283,8 +296,18 @@ export default function ProductView({
                     ? 'In stock, ships today if ordered before 12 pm'
                     : variant.available > 0
                       ? `Only ${variant.available} left`
-                      : 'Notify me when back'}
+                      : NotifyMe && notifyMeProps
+                        ? ''
+                        : 'Notify me when back'}
               </p>
+            ) : null}
+            {!launching &&
+            !isPreorder &&
+            variant &&
+            variant.available <= 0 &&
+            NotifyMe &&
+            notifyMeProps ? (
+              <NotifyMe key={variant.id} variantId={variant.id} {...notifyMeProps} />
             ) : null}
             {belowBuy}
           </div>

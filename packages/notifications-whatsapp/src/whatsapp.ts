@@ -63,6 +63,10 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel]
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
+    case 'back_in_stock_confirm':
+      return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
+    case 'back_in_stock_alert':
+      return [d.backInStock?.productTitle ?? '-', d.storeName, d.backInStock?.productUrl ?? '-']
   }
 }
 

@@ -84,9 +84,46 @@ export const transferTemplates = {
   },
 } satisfies Record<'payment_reminder' | 'unpaid_cancel_notice' | 'unpaid_cancelled', TemplateCopy>
 
+export const backInStockTemplates = {
+  back_in_stock_confirm: {
+    subject: (d) => `Confirm: notify me when ${d.backInStock?.productTitle ?? 'this item'} is back`,
+    heading: () => 'Confirm your alert',
+    intro: (d) =>
+      `Almost done — confirm you want an email when ${[
+        d.backInStock?.productTitle,
+        d.backInStock?.variantTitle,
+      ]
+        .filter(Boolean)
+        .join(' / ')} is back in stock.`,
+    outro: (d) =>
+      d.backInStock?.confirmUrl
+        ? `Confirm here: ${d.backInStock.confirmUrl}`
+        : 'Confirm from your inbox.',
+    whatsapp: (d) =>
+      `Confirm your back-in-stock alert for ${d.backInStock?.productTitle ?? 'this item'}.${
+        d.backInStock?.confirmUrl ? ` Confirm: ${d.backInStock.confirmUrl}` : ''
+      }`,
+  },
+  back_in_stock_alert: {
+    subject: (d) => `${d.backInStock?.productTitle ?? 'Good news'} is back in stock`,
+    heading: () => "It's back!",
+    intro: (d) =>
+      `${[d.backInStock?.productTitle, d.backInStock?.variantTitle].filter(Boolean).join(' / ')} is available again at ${d.storeName}.`,
+    outro: (d) =>
+      d.backInStock?.productUrl
+        ? `Get it before it sells out: ${d.backInStock.productUrl}`
+        : 'Get it before it sells out.',
+    whatsapp: (d) =>
+      `${d.backInStock?.productTitle ?? 'Good news'} is back in stock at ${d.storeName}.${
+        d.backInStock?.productUrl ? ` Shop: ${d.backInStock.productUrl}` : ''
+      }`,
+  },
+} satisfies Record<'back_in_stock_confirm' | 'back_in_stock_alert', TemplateCopy>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...balanceTemplates,
   ...transferTemplates,
+  ...backInStockTemplates,
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => `Thanks, ${d.customerName}`,

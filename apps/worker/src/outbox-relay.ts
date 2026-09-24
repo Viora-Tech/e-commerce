@@ -1,5 +1,6 @@
 import {
   type AppEventQueue,
+  type InventoryRestockQueue,
   type NotificationQueue,
   type OutboxRelayDeps,
   relayStoreOutbox,
@@ -38,13 +39,18 @@ export const RELAY_EVERY_MS = 5_000
 export function createOutboxRelay(
   connection: IORedis,
   db: Db,
-  opts: { notifications: NotificationQueue; appEvents?: AppEventQueue | undefined },
+  opts: {
+    notifications: NotificationQueue
+    appEvents?: AppEventQueue | undefined
+    inventoryRestock?: InventoryRestockQueue | undefined
+  },
 ) {
   const deps: OutboxRelayDeps = {
     db,
     plugins: getRegistries(),
     notifications: opts.notifications,
     appEvents: opts.appEvents,
+    inventoryRestock: opts.inventoryRestock,
     log: (message) => console.log(`[outbox] ${message}`),
   }
   const queue = new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })

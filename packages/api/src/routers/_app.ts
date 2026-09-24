@@ -2,6 +2,7 @@ import { protectedProcedure } from '../procedures'
 import { analyticsRouter } from './analytics'
 import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
+import { backInStockRouter } from './back-in-stock'
 import { blogRouter } from './blog'
 import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
@@ -50,6 +51,7 @@ export const appRouter = {
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
   shopifyImport: shopifyImportRouter,
+  backInStock: backInStockRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   media: mediaRouter,

@@ -9,6 +9,7 @@ export default defineConfig({
     // Installable apps that own tables. Their migrations join the one chain here.
     '../plugin-gst-invoices/src/schema.ts',
     '../plugin-shopify-import/src/schema.ts',
+    '../plugin-back-in-stock/src/schema.ts',
   ],
   out: './drizzle',
   casing: 'snake_case',

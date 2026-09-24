@@ -12,9 +12,11 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import DeliveryEstimateWidget from '@/components/product/delivery-estimate'
 import EmiHint from '@/components/product/emi-hint'
+import NotifyMeForm from '@/components/product/notify-me-form'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
+import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeOffersEmi } from '@/lib/payments'
@@ -89,6 +91,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   if (!found) notFound()
   const { product } = found
   const emi = await inStore(storeId, (tx) => storeOffersEmi(tx, storeId))
+  const bis = await inStore(storeId, (tx) => backInStockContext(tx, storeId))
   const add = addLineAction.bind(null, storeId)
   const schema = productGraph(
     {
@@ -115,6 +118,10 @@ export default async function ProductPage({ params, searchParams }: Params) {
                 s.showDeliveryEstimate === false ? undefined : (
                   <DeliveryEstimateWidget storeId={storeId} />
                 )
+              }
+              NotifyMe={bis.installed ? NotifyMeForm : undefined}
+              notifyMeProps={
+                bis.installed ? { storeId, whatsappEnabled: bis.whatsappEnabled } : undefined
               }
             />
             <RecordView handle={product.handle} />

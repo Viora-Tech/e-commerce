@@ -28,6 +28,10 @@ export type TemplateId =
   | 'unpaid_cancel_notice'
   /** A manual UPI / bank transfer order was cancelled for non-payment. */
   | 'unpaid_cancelled'
+  /** Confirm a back-in-stock "notify me" signup (double opt-in). */
+  | 'back_in_stock_confirm'
+  /** The variant the shopper asked about is available again. */
+  | 'back_in_stock_alert'
 
 export type Recipient = {
   email?: string | undefined
@@ -71,6 +75,19 @@ export type TemplateData = {
   deadlineLabel?: string | undefined
   /** For login_code: the one-time code. */
   code?: string | undefined
+  /** For back_in_stock_confirm/back_in_stock_alert: the product/variant and the links each carries. */
+  backInStock?:
+    | {
+        productTitle: string
+        variantTitle?: string | undefined
+        /** Confirm-signup link (back_in_stock_confirm only). */
+        confirmUrl?: string | undefined
+        /** Where to buy it now (back_in_stock_alert). */
+        productUrl?: string | undefined
+        /** Stop future alerts for this signup; carried on every message. */
+        unsubscribeUrl: string
+      }
+    | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */
   giftCard?:
     | {
