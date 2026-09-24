@@ -22,6 +22,7 @@
     "db:seed:demo:collections": "bun run --cwd packages/db seed:demo:collections",
     "db:seed:navigation": "bun run --cwd packages/db seed:navigation",
     "db:seed:shipping": "bun run --cwd packages/db seed:shipping",
+    "db:seed:back-in-stock": "bun run --cwd packages/db seed:back-in-stock",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down"
   },
