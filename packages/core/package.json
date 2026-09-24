@@ -30,7 +30,8 @@
     "./metaobjects": "./src/metaobjects/client.ts",
     "./redirects": "./src/redirects/paths.ts",
     "./marketing": "./src/marketing/client.ts",
-    "./admin-accent": "./src/admin-accent/accent.ts"
+    "./admin-accent": "./src/admin-accent/accent.ts",
+    "./shipping-rates": "./src/shipping/rates.ts"
   },
   "scripts": {
     "test": "vitest run",

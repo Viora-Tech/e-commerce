@@ -1,13 +1,20 @@
 import { formatPaise } from '@commerce/blocks'
 import { getCart } from '@commerce/core'
 import DiscountCodeField from '@/components/cart/discount-code-field'
+import FreeShippingProgress from '@/components/cart/free-shipping-progress'
 import { cartContent as content } from '@/data/cart'
 import { readCartId } from '@/lib/cart-cookie'
 import { cartDiscountView } from '@/lib/discount-actions'
+import { cartShippingHint } from '@/lib/shipping'
 import { inStore } from '@/lib/store-context'
 import CartLines from './cart-lines'
 
 type CartContentsProps = { storeId: string }
+
+/** The shipping row before there is an address: free, free from here, or worked out at checkout. */
+function shippingLabel(charged: boolean, freeNow: boolean): string {
+  return !charged || freeNow ? content.shippingFree : content.shippingAtCheckout
+}
 
 /** The cart template's main section: lines, discount code and summary. */
 export default async function CartContents({ storeId }: CartContentsProps) {
@@ -35,6 +42,9 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   const discount = await cartDiscountView(storeId, cart.id, cart.discountCode)
   const discountPaise = discount?.amountPaise ?? 0
   const total = Math.max(0, cart.subtotalPaise - discountPaise)
+  const hint = await inStore(storeId, (tx) => cartShippingHint(tx))
+  const threshold = discount?.freeShipping ? null : hint.freeAbovePaise
+  const freeNow = discount?.freeShipping === true || (threshold !== null && total >= threshold)
 
   return (
     <section className="section-cart page-width">
@@ -59,8 +69,11 @@ export default async function CartContents({ storeId }: CartContentsProps) {
             ) : null}
             <div className="cart-summary__row">
               <span>{content.shipping}</span>
-              <span>{content.shippingFree}</span>
+              <span>{shippingLabel(hint.charged, freeNow)}</span>
             </div>
+            {hint.charged && threshold !== null ? (
+              <FreeShippingProgress thresholdPaise={threshold} totalPaise={total} />
+            ) : null}
             <div className="cart-summary__row cart-summary__row--total">
               <span>{content.total}</span>
               <span>{formatPaise(total)}</span>

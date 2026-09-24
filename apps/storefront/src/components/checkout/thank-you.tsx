@@ -72,6 +72,14 @@ export default function ThankYouTemplate({
               <span>−{formatPaise(o.discountPaise)}</span>
             </li>
           ) : null}
+          {o.shippingPaise > 0 || o.shippingRateName ? (
+            <li className="cart-summary__row">
+              <span>{content.shippingRow(o.shippingRateName)}</span>
+              <span>
+                {o.shippingPaise > 0 ? formatPaise(o.shippingPaise) : content.shippingFree}
+              </span>
+            </li>
+          ) : null}
           {o.paymentAdjustmentPaise !== 0 ? (
             <li className="cart-summary__row">
               <span>

@@ -23,6 +23,8 @@ export const thankYouContent = {
   subtotal: 'Subtotal',
   discount: 'Discount',
   shipping: 'Shipping',
+  shippingRow: (rate: string | null) => (rate ? `Shipping (${rate})` : 'Shipping'),
+  shippingFree: 'Free',
   total: 'Total',
   /** Fallback label for a fee/discount row when the merchant left the label blank. */
   adjustmentFallback: (paise: number) => (paise < 0 ? 'Payment discount' : 'Payment fee'),
@@ -64,6 +66,10 @@ export const checkoutContent = {
   discount: 'Discount',
   shipping: 'Shipping',
   shippingFree: 'Free',
+  /** Summary row before an address has been checked. */
+  shippingPending: 'Enter your PIN code',
+  shippingMethod: 'Shipping method',
+  rateDelivery: (range: string) => `Delivery by ${range}`,
   total: 'Total',
   placeOrder: 'Place order',
   continueToPayment: 'Continue to payment',
@@ -83,6 +89,7 @@ export const checkoutContent = {
     estimate: (range: string) => `Delivery by ${range}`,
     codUnavailable: 'Cash on delivery is not available for this PIN code.',
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet.`,
+    noRates: (pincode: string) => `We do not ship to ${pincode} yet.`,
   },
   giftCardAddress: 'Billing address',
   giftCardDelivery: 'Gift cards are delivered by email as soon as the payment is confirmed.',
@@ -93,6 +100,9 @@ export const checkoutContent = {
     unserviceable: (pincode: string) => `We cannot deliver to ${pincode} yet. Try another address.`,
     codUnavailable:
       'Cash on delivery is not available for this PIN code. Pick another payment method.',
+    noShipping: (pincode: string) => `We do not ship to ${pincode} yet. Try another address.`,
+    rateChanged:
+      'The shipping options for your order changed, so it was not placed. Pick a shipping method and place it again.',
     discountUnavailable:
       'That discount has just run out, so your order was not placed. Check the new total and place it again.',
   },

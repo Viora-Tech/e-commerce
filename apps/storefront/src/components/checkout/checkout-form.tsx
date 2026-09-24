@@ -1,19 +1,23 @@
 'use client'
 
-import { formatPaise } from '@commerce/blocks'
-import type { CartView, DeliveryEstimate, SavedAddress, SignedInCustomer } from '@commerce/core'
-import { applyPaymentAdjustment, formatPaymentAdjustment } from '@commerce/core/adjustments'
+import type { CartView, SavedAddress, SignedInCustomer } from '@commerce/core'
+import {
+  applyPaymentAdjustment,
+  formatPaymentAdjustment,
+  type PaymentAdjustment,
+} from '@commerce/core/adjustments'
 import { useEffect, useState, useTransition } from 'react'
-import DiscountCodeField from '@/components/cart/discount-code-field'
 import CheckoutField from '@/components/checkout/checkout-field'
-import GiftCardField from '@/components/checkout/gift-card-field'
+import CheckoutSummary, { type ShippingRow } from '@/components/checkout/checkout-summary'
+import ShippingRateOptions from '@/components/checkout/shipping-rate-options'
 import { accountContent } from '@/data/account'
 import { checkoutContent as content, INDIAN_STATES } from '@/data/checkout'
 import { captureContactAction, checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
 import type { CartDiscountView } from '@/lib/discount-actions'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
-import { estimateDeliveryAction } from '@/lib/shipping-actions'
+import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
+import { checkoutShippingAction } from '@/lib/shipping-actions'
 
 type CheckoutFormProps = {
   storeId: string
@@ -39,10 +43,6 @@ const EMPTY_FORM: Omit<Form, 'payment'> = {
   stateCode: 'HR',
   pincode: '',
 }
-
-/** "+₹49.00" / "−₹99.98" for the summary row; the option row uses the compact "+₹49" / "−2%". */
-const formatSigned = (paise: number): string =>
-  `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
 
 const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(v)
 
@@ -94,11 +94,40 @@ const offeredMethods = (cart: CartView, methods: CheckoutMethod[]): CheckoutMeth
   isDigitalOnly(cart) ? methods.filter((m) => m.id !== 'cod') : methods
 
 /** One line under the PIN code field: the promise, or why the address will not work. */
-function deliveryLine(d: DeliveryEstimate | null, checking: boolean): string | null {
+function deliveryLine(s: CheckoutShipping | null, checking: boolean): string | null {
   if (checking) return content.delivery.checking
+  const d = s?.delivery
   if (!d?.ok) return null
   if (!d.serviceable) return content.delivery.unserviceable(d.pincode)
-  return content.delivery.estimate(d.dateRange)
+  if (s?.rates.kind === 'none') return content.delivery.noRates(d.pincode)
+  // Several rates carry their own dates on the options below.
+  if (s?.rates.kind === 'rates' && s.rates.options.length > 1) return null
+  const own = s?.rates.kind === 'rates' ? s.rates.options[0]?.dateRange : null
+  return content.delivery.estimate(own ?? d.dateRange)
+}
+
+/**
+ * The payment fee the order will carry: a rate's own COD fee replaces the
+ * store's, as `placeOrder` does. Preview only; the server decides.
+ */
+function previewAdjustment(
+  method: CheckoutMethod | undefined,
+  rate: CheckoutRate | undefined,
+): PaymentAdjustment | undefined {
+  if (method?.id !== 'cod' || rate?.codSurchargePaise == null) return method?.adjustment
+  return { type: 'fixed', value: rate.codSurchargePaise, label: method.adjustment?.label }
+}
+
+/** The summary's shipping row: nothing to ship, not checked yet, or the picked rate. */
+function shippingRow(
+  digitalOnly: boolean,
+  s: CheckoutShipping | null,
+  rate: CheckoutRate | undefined,
+): ShippingRow | null {
+  if (digitalOnly) return null
+  if (s?.rates.kind === 'free') return { kind: 'price', paise: 0, name: null }
+  if (!rate) return { kind: 'pending' }
+  return { kind: 'price', paise: rate.pricePaise, name: rate.name }
 }
 
 export default function CheckoutForm({
@@ -117,7 +146,8 @@ export default function CheckoutForm({
     payment: offeredMethods(cart, methods)[0]?.id ?? 'cod',
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
-  const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null)
+  const [shipping, setShipping] = useState<CheckoutShipping | null>(null)
+  const [rateId, setRateId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [giftCards, setGiftCards] = useState<AppliedGiftCard[]>([])
   // A prefilled PIN code gets the same courier check a typed one does.
@@ -125,6 +155,11 @@ export default function CheckoutForm({
   useEffect(() => {
     if (isFullPincode(form.pincode)) checkPincode(form.pincode)
   }, [])
+  // A code applied in the summary can move the cart across a band or make shipping free.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-quote only when the discount changes.
+  useEffect(() => {
+    if (isFullPincode(form.pincode)) checkPincode(form.pincode)
+  }, [discount?.amountPaise, discount?.freeShipping])
 
   // Helpers
   const set =
@@ -132,13 +167,17 @@ export default function CheckoutForm({
     (e) =>
       setForm((prev) => ({ ...prev, [k]: e.target.value }))
   /** Ask the courier as soon as six digits are in; the server re-checks on submit regardless. */
-  const checkPincode = (pincode: string) => {
-    setDelivery(null)
+  const checkPincode = (pincode: string, stateCode: string = form.stateCode) => {
+    setShipping(null)
     if (isDigitalOnly(cart) || !isFullPincode(pincode)) return
     startCheck(async () => {
-      const r = await estimateDeliveryAction(storeId, pincode)
-      setDelivery(r)
-      if (r.ok && r.serviceable && !r.codAvailable) {
+      const next = await checkoutShippingAction(storeId, { pincode, stateCode })
+      setShipping(next)
+      // Keep the shopper's pick when it is still offered, else the cheapest.
+      const options = next?.rates.kind === 'rates' ? next.rates.options : []
+      setRateId((prev) => (options.some((o) => o.id === prev) ? prev : (options[0]?.id ?? null)))
+      const r = next?.delivery
+      if (r?.ok && r.serviceable && !r.codAvailable) {
         setForm((prev) =>
           prev.payment === 'cod'
             ? { ...prev, payment: methods.find((m) => m.id !== 'cod')?.id ?? prev.payment }
@@ -152,6 +191,12 @@ export default function CheckoutForm({
     setForm((prev) => ({ ...prev, pincode }))
     checkPincode(pincode)
   }
+  /** Zones can be drawn by state, so a new state re-prices shipping. */
+  const setStateCode: ChangeHandler = (e) => {
+    const stateCode = e.target.value
+    setForm((prev) => ({ ...prev, stateCode }))
+    checkPincode(form.pincode, stateCode)
+  }
 
   // Event handlers
   const handlePickAddress = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -162,7 +207,7 @@ export default function CheckoutForm({
       ? prefill(customer, picked)
       : { ...prefill(customer, undefined), name: form.name, phone: form.phone }
     setForm((prev) => ({ ...prev, ...next }))
-    checkPincode(next.pincode)
+    checkPincode(next.pincode, next.stateCode)
   }
 
   /* Save the contact as soon as it is typed, so a basket left here can be recovered. */
@@ -179,7 +224,11 @@ export default function CheckoutForm({
     e.preventDefault()
     setError(null)
     start(async () => {
-      const r = await checkoutAction(storeId, { ...form, giftCards: giftCards.map((c) => c.code) })
+      const r = await checkoutAction(storeId, {
+        ...form,
+        giftCards: giftCards.map((c) => c.code),
+        ...(rateId ? { shippingRate: rateId } : {}),
+      })
       if (r?.error) setError(r.error)
     })
   }
@@ -205,17 +254,24 @@ export default function CheckoutForm({
   const selected = methods.find((m) => m.id === form.payment)
   const discountPaise = discount?.amountPaise ?? 0
   const discounted = Math.max(0, cart.subtotalPaise - discountPaise)
-  const { adjustmentPaise, totalPaise } = applyPaymentAdjustment(discounted, selected?.adjustment)
+  const rates = shipping?.rates.kind === 'rates' ? shipping.rates.options : []
+  const rate = rates.find((r) => r.id === rateId)
+  const adjustment = previewAdjustment(selected, rate)
+  const { adjustmentPaise, totalPaise: goodsPaise } = applyPaymentAdjustment(discounted, adjustment)
+  const totalPaise = goodsPaise + (digitalOnly ? 0 : (rate?.pricePaise ?? 0))
+  const shippingSummary = shippingRow(digitalOnly, shipping, rate)
 
   const { rows: cardRows, duePaise } = spendCards(giftCards, totalPaise)
   const coveredByCards = giftCards.length > 0 && duePaise === 0
 
   const f = content.fields
+  const delivery = shipping?.delivery
   const codBlocked =
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
     (giftCards.length > 0 && !coveredByCards)
-  const unserviceable = delivery?.ok === true && !delivery.serviceable
-  const deliveryText = deliveryLine(delivery, checking)
+  const unserviceable =
+    (delivery?.ok === true && !delivery.serviceable) || shipping?.rates.kind === 'none'
+  const deliveryText = deliveryLine(shipping, checking)
 
   return (
     <section className="section-cart page-width">
@@ -305,7 +361,7 @@ export default function CheckoutForm({
               />
               <label className="field">
                 <span className="field__label text-small">{f.state}</span>
-                <select className="field__input" value={form.stateCode} onChange={set('stateCode')}>
+                <select className="field__input" value={form.stateCode} onChange={setStateCode}>
                   {INDIAN_STATES.map(([code, name]) => (
                     <option key={code} value={code}>
                       {name}
@@ -328,6 +384,10 @@ export default function CheckoutForm({
               </p>
             ) : null}
           </fieldset>
+
+          {rates.length > 1 ? (
+            <ShippingRateOptions options={rates} selectedId={rateId} onSelect={setRateId} />
+          ) : null}
 
           <fieldset className="checkout__group">
             <legend className="h4">{content.payment}</legend>
@@ -360,80 +420,29 @@ export default function CheckoutForm({
           </fieldset>
         </div>
 
-        <aside className="cart-layout__summary">
-          <div className="cart-summary">
-            <h2 className="cart-summary__heading h4">{content.summary}</h2>
-            {cart.lines.map((l) => (
-              <div key={l.id} className="cart-summary__row">
-                <span>
-                  {l.productTitle} x {l.quantity}
-                </span>
-                <span>{formatPaise(l.linePaise)}</span>
-              </div>
-            ))}
-            {digitalOnly ? null : <DiscountCodeField storeId={storeId} discount={discount} />}
-            {digitalOnly ? null : (
-              <GiftCardField
-                storeId={storeId}
-                applied={giftCards}
-                onApply={handleGiftCardApply}
-                onRemove={handleGiftCardRemove}
-              />
-            )}
-            {adjustmentPaise !== 0 || discountPaise > 0 ? (
-              <div className="cart-summary__row">
-                <span>{content.subtotal}</span>
-                <span>{formatPaise(cart.subtotalPaise)}</span>
-              </div>
-            ) : null}
-            {discount?.label && discountPaise > 0 ? (
-              <div className="cart-summary__row cart-summary__row--discount">
-                <span>{discount.label}</span>
-                <span>−{formatPaise(discountPaise)}</span>
-              </div>
-            ) : null}
-            {adjustmentPaise !== 0 ? (
-              <div className="cart-summary__row">
-                <span>
-                  {selected?.adjustment?.label || content.adjustmentFallback(adjustmentPaise)}
-                </span>
-                <span>{formatSigned(adjustmentPaise)}</span>
-              </div>
-            ) : null}
-            <div className="cart-summary__row cart-summary__row--total">
-              <span>{content.total}</span>
-              <span>{formatPaise(totalPaise)}</span>
-            </div>
-            {cardRows.map((c) => (
-              <div key={c.code} className="cart-summary__row cart-summary__row--discount">
-                <span>{content.paidByGiftCard}</span>
-                <span>−{formatPaise(c.amountPaise)}</span>
-              </div>
-            ))}
-            {giftCards.length > 0 ? (
-              <div className="cart-summary__row cart-summary__row--total">
-                <span>{content.totalDue}</span>
-                <span>{formatPaise(duePaise)}</span>
-              </div>
-            ) : null}
-            {error ? (
-              <p className="checkout__error text-small" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              className={`btn btn--primary cart-summary__checkout${pending ? ' is-loading' : ''}`}
-              disabled={pending || checking || unserviceable}
-            >
-              <span className="btn__label">
-                {form.payment === 'cod' || coveredByCards
-                  ? content.placeOrder
-                  : content.continueToPayment}
-              </span>
-            </button>
-          </div>
-        </aside>
+        <CheckoutSummary
+          storeId={storeId}
+          cart={cart}
+          discount={discount}
+          digitalOnly={digitalOnly}
+          giftCards={giftCards}
+          onGiftCardApply={handleGiftCardApply}
+          onGiftCardRemove={handleGiftCardRemove}
+          adjustmentPaise={adjustmentPaise}
+          adjustmentLabel={adjustment?.label || content.adjustmentFallback(adjustmentPaise)}
+          shipping={shippingSummary}
+          totalPaise={totalPaise}
+          cardRows={cardRows}
+          duePaise={duePaise}
+          error={error}
+          pending={pending}
+          submitDisabled={pending || checking || unserviceable}
+          submitLabel={
+            form.payment === 'cod' || coveredByCards
+              ? content.placeOrder
+              : content.continueToPayment
+          }
+        />
       </form>
     </section>
   )

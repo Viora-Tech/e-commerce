@@ -80,6 +80,10 @@ export class FedexProvider implements ShippingProvider {
   async track(waybill) { /* map FedEx scan codes to the normalised status */ }
   async cancel(waybill) { /* ... */ }
   async verifyCredentials() { /* one cheap authenticated call */ }
+  // Optional. Checkout prices shipping from the merchant's zones and rates
+  // (Settings → Shipping → Shipping rates, `@commerce/core/shipping-rates`), so a
+  // courier that only answers serviceability (Delhivery) leaves this out.
+  async quoteRate(q) { /* { pricePaise, minTransitDays, maxTransitDays } or null */ }
 }
 
 export const fedexFactory: ShippingProviderFactory<FedexConfig> = {

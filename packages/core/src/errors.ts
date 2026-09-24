@@ -52,3 +52,19 @@ export class PaymentFailed extends CommerceError {
     super('PAYMENT_FAILED', `Payment via ${provider} failed`, { storeId, cause })
   }
 }
+
+/** The store has shipping zones but none covers this address, or no rate fits the cart. */
+export class ShippingUnavailable extends CommerceError {
+  constructor(pincode: string, storeId?: string) {
+    super('SHIPPING_UNAVAILABLE', `No shipping rate covers ${pincode}`, { storeId })
+  }
+}
+
+/** The rate the shopper picked no longer applies (the cart or the rates changed). */
+export class ShippingRateUnavailable extends CommerceError {
+  constructor(rateId: string, storeId?: string) {
+    super('SHIPPING_RATE_UNAVAILABLE', `Shipping rate ${rateId} does not apply to this order`, {
+      storeId,
+    })
+  }
+}

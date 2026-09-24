@@ -20,6 +20,7 @@ import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
+import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
@@ -41,6 +42,7 @@ export const appRouter = {
   navigation: navigationRouter,
   redirects: redirectsRouter,
   orders: ordersRouter,
+  shipping: shippingRouter,
   customers: customersRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,
