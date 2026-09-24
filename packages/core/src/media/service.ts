@@ -91,20 +91,51 @@ export async function confirmUpload(
   return row
 }
 
+export type MediaSort = 'newest' | 'oldest' | 'name' | 'size'
+export type MediaFileType = 'image' | 'video'
+export type MediaSizeBucket = 'small' | 'medium' | 'large'
+export type MediaUsedFilter = 'used' | 'unused'
+
 export type MediaListInput = {
   page: number
   perPage: number
   search?: string | undefined
+  sort?: MediaSort | undefined
+  fileType?: MediaFileType | undefined
+  size?: MediaSizeBucket | undefined
+  used?: MediaUsedFilter | undefined
 }
+
+const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
+  small: [0, 200_000],
+  medium: [200_000, 2_000_000],
+  large: [2_000_000, null],
+}
+
+const usedSubquery = sql`(select count(*)::int from product_media pm where pm.media_id = media.id)`
 
 /** Library listing: ready items newest first, with how many products use each. */
 export async function listMedia(tx: StoreTx, input: MediaListInput) {
+  const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
   const where = and(
     eq(media.status, 'ready'),
     input.search
       ? or(ilike(media.alt, `%${input.search}%`), ilike(media.key, `%${input.search}%`))
       : undefined,
+    input.fileType ? ilike(media.contentType, `${input.fileType}/%`) : undefined,
+    sizeMin !== null ? sql`${media.size} >= ${sizeMin}` : undefined,
+    sizeMax !== null ? sql`${media.size} < ${sizeMax}` : undefined,
+    input.used === 'used' ? sql`${usedSubquery} > 0` : undefined,
+    input.used === 'unused' ? sql`${usedSubquery} = 0` : undefined,
   )
+  const orderBy =
+    input.sort === 'oldest'
+      ? [asc(media.createdAt), asc(media.id)]
+      : input.sort === 'name'
+        ? [asc(media.key), asc(media.id)]
+        : input.sort === 'size'
+          ? [desc(media.size), desc(media.id)]
+          : [desc(media.createdAt), desc(media.id)]
   const [countRow] = await tx.select({ n: sql<number>`count(*)::int` }).from(media).where(where)
   const rows = await tx
     .select({
@@ -122,7 +153,7 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
     })
     .from(media)
     .where(where)
-    .orderBy(desc(media.createdAt), desc(media.id))
+    .orderBy(...orderBy)
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
   return { items: rows, total: countRow?.n ?? 0 }

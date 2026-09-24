@@ -70,7 +70,7 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
   const items: Item[] = sections.map((section) => ({ id: section.props.id, section }))
   return (
     <section className="flex flex-col gap-0.5 border-b border-border px-2 py-3">
-      <h2 className="px-2 pb-1 text-caption font-medium text-muted-foreground">{title}</h2>
+      <h2 className="text-eyebrow px-2 pb-1">{title}</h2>
       <SortableList
         items={items}
         onReorder={handleReorder}

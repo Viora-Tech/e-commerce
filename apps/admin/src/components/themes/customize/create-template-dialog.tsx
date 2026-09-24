@@ -24,11 +24,13 @@ import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import type { TemplateRef } from './template-picker'
 
-type AlternateKind = (typeof ALTERNATE_KINDS)[number]
+export type AlternateKind = (typeof ALTERNATE_KINDS)[number]
 
 type CreateTemplateDialogProps = {
   /** The template on screen; its kind is preselected and it is the copy source. */
   current: TemplateRef
+  /** Preselects a kind, e.g. when "Create template" was clicked inside a specific group. */
+  initialKind?: AlternateKind | null
   busy: boolean
   onCancel: () => void
   onCreate: (kind: AlternateKind, suffix: string, basedOn: string) => void
@@ -43,13 +45,14 @@ const isAlternateKind = (key: string): key is AlternateKind =>
 /** Creates an alternate template (`product.preorder`) as a copy of an existing one. */
 export default function CreateTemplateDialog({
   current,
+  initialKind,
   busy,
   onCancel,
   onCreate,
 }: CreateTemplateDialogProps) {
   // Hooks
   const [kind, setKind] = useState<AlternateKind>(
-    isAlternateKind(current.key) ? current.key : 'product',
+    initialKind ?? (isAlternateKind(current.key) ? current.key : 'product'),
   )
   const [name, setName] = useState('')
 
