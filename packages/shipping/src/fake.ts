@@ -153,6 +153,7 @@ export const fakeShippingFactory: ShippingProviderFactory<FakeShippingConfig> = 
   id: 'fake',
   label: 'Demo courier (no account needed)',
   fields: [],
+  capabilities: ['serviceability', 'create_shipment', 'tracking', 'cancel'],
   validateConfig: () => ({ ok: true, config: {} }),
   create: () => new FakeShippingProvider(),
 }

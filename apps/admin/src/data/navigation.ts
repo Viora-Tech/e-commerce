@@ -51,6 +51,7 @@ export const NAV_GROUPS: NavGroup[] = [
             label: 'Abandoned checkouts',
             permission: permissions.ORDERS_READ,
           },
+          { href: '/orders/shipments', label: 'Shipments', permission: permissions.ORDERS_READ },
         ],
       },
       {
