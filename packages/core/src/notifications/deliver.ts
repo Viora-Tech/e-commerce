@@ -20,6 +20,14 @@ import type {
 } from '@commerce/notifications'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { balanceOwed } from '../preorder/balance'
+import { balanceUrl } from '../preorder/balance-link'
+import {
+  balancePayBy,
+  depositIsNonRefundable,
+  type PreorderStoreSettings,
+  parsePreorderStoreSettings,
+} from '../preorder/store-settings'
 import { parseNotificationSettings, resolveNotificationChannels } from './settings'
 
 export type DeliveryResult = {
@@ -64,6 +72,27 @@ export type DeliverOptions = {
     | undefined
 }
 
+/** What a deposit pre-order still owes, for the balance messages; undefined on other orders. */
+function balanceData(
+  o: typeof order.$inferSelect,
+  settings: PreorderStoreSettings,
+): TemplateData['balance'] {
+  if (o.depositPaise === null) return undefined
+  const owed = balanceOwed(o)
+  const payBy = balancePayBy(settings, o.balanceRequestedAt)
+  return {
+    dueLabel: inr.format(owed / 100),
+    depositLabel: inr.format((o.totalPaise - owed) / 100),
+    payByLabel: payBy
+      ? payBy.toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' })
+      : undefined,
+    depositNonRefundable: depositIsNonRefundable(settings),
+  }
+}
+
+/** Messages asking for the balance: pointless (and confusing) once it is paid or the order is gone. */
+const BALANCE_ASKS: ReadonlySet<TemplateId> = new Set(['balance_request', 'balance_reminder'])
+
 /** Load everything a template needs from the order. Null when the order is not visible. */
 export async function buildTemplateData(
   ctx: StoreContext,
@@ -72,7 +101,10 @@ export async function buildTemplateData(
 ): Promise<{ data: TemplateData; to: Recipient } | null> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) return null
-  const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
+  const [s] = await ctx.tx
+    .select({ name: store.name, preorder: store.preorder })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
   const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
   const [cu] = o.customerId
     ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
@@ -99,6 +131,7 @@ export async function buildTemplateData(
       orderUrl: storefrontUrl ? `${storefrontUrl}/checkout/thank-you/${o.number}` : undefined,
       waybill: ship?.waybill ?? undefined,
       trackingUrl: ship?.trackingUrl ?? undefined,
+      balance: balanceData(o, parsePreorderStoreSettings(s?.preorder)),
     },
     to: { email: o.email ?? undefined, phone: o.phone ?? undefined },
   }
@@ -224,11 +257,18 @@ export async function deliverNotification(
 ): Promise<DeliveryResult[]> {
   const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl)
   if (!built) return []
+  let actionUrl: string | undefined
+  if (BALANCE_ASKS.has(input.template)) {
+    const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))
+    if (!o || balanceOwed(o) <= 0) return []
+    if (opts.storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, opts.storefrontUrl)
+  }
 
   const channels = await channelsFor(ctx, opts)
   const extras = opts.extras ? await opts.extras(input) : null
   const data = {
     ...built.data,
+    ...(actionUrl ? { actionUrl } : {}),
     ...opts.data,
     ...(extras?.links.length ? { links: extras.links } : {}),
   }

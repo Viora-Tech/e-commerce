@@ -393,6 +393,13 @@
       "when": 1790350000000,
       "tag": "0058_preorder_launch",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1790360000000,
+      "tag": "0059_preorder_balance",
+      "breakpoints": true
     }
   ]
 }

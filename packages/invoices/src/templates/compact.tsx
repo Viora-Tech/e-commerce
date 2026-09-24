@@ -1,6 +1,6 @@
 import { Document, Image, Page, Text, View } from '@react-pdf/renderer'
 import { formatAmount, formatRupees } from '../money'
-import { Barcode, PartyLines, QrSlot, SumRow, TaxTable, totalsRows } from './parts'
+import { AdvanceRows, Barcode, PartyLines, QrSlot, SumRow, TaxTable, totalsRows } from './parts'
 import { type TemplateProps, templateView } from './view'
 
 /**
@@ -141,6 +141,7 @@ export default function CompactTemplate(props: TemplateProps & { fontFamily: str
             <Text style={{ marginTop: 2 }}>{doc.amountInWords}</Text>
           </View>
         ) : null}
+        <AdvanceRows doc={doc} muted={MUTED} />
         {doc.order.collectPaise > 0 ? (
           <View style={{ marginTop: 5, padding: 5, borderWidth: 1.2, borderColor: RULE }}>
             <SumRow

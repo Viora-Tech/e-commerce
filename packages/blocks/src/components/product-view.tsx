@@ -245,6 +245,14 @@ export default function ProductView({
                 {(product.preorder.depositPreview.payLaterPaise / 100).toFixed(2)} later
               </p>
             ) : null}
+            {isPreorder &&
+            product.preorder?.depositPreview &&
+            product.preorder.nonRefundableDepositDays ? (
+              <p className="product-info__preorder-deposit text-small">
+                The deposit is non-refundable if the balance is not paid within{' '}
+                {product.preorder.nonRefundableDepositDays} days of our request.
+              </p>
+            ) : null}
             <div className="buy-buttons__row">
               <button
                 type="button"

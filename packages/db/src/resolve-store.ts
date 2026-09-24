@@ -38,6 +38,12 @@ export async function storesWithUnpaidOnlineOrders(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with a pre-order balance still owed, for the balance job. SECURITY DEFINER backed. */
+export async function storesWithBalanceDue(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(sql`select stores_with_balance_due() as id`)
+  return rows.map((r) => r.id)
+}
+
 /** Store ids with undispatched outbox rows, for the outbox relay. SECURITY DEFINER backed. */
 export async function storesWithUndispatchedOutboxEvents(db: Db): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(

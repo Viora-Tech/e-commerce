@@ -1,6 +1,6 @@
 import { order, payment } from '@commerce/db'
 import type { ClientConfirmation, PaymentProvider, PaymentStatus } from '@commerce/payments'
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
 import { nextPaymentStatus } from './transitions'
@@ -11,6 +11,43 @@ export type AppliedPayment = {
   becameCaptured: boolean
   /** True when money was captured that the order cannot keep (cancelled order, already paid). */
   refundNeeded: boolean
+}
+
+/** A second balance capture, or one after the balance was recorded by hand, is money to send back. */
+async function balanceAlreadySettled(
+  ctx: StoreContext,
+  p: typeof payment.$inferSelect,
+  o: { balancePaidAt: Date | null },
+): Promise<boolean> {
+  if (o.balancePaidAt) return true
+  const [other] = await ctx.tx
+    .select({ id: payment.id })
+    .from(payment)
+    .where(
+      and(
+        eq(payment.orderId, p.orderId),
+        ne(payment.id, p.id),
+        eq(payment.purpose, 'balance'),
+        eq(payment.status, 'captured'),
+        eq(payment.refundNeeded, false),
+      ),
+    )
+    .limit(1)
+  return !!other
+}
+
+/**
+ * The balance arrived: nothing is owed and fulfilment unblocks. Only the call
+ * that sets `balance_paid_at` writes `order.balance_paid`, so a duplicate
+ * webhook or a racing browser confirmation never announces it twice.
+ */
+async function settleBalance(ctx: StoreContext, orderId: string): Promise<void> {
+  const [settled] = await ctx.tx
+    .update(order)
+    .set({ balancePaidAt: new Date(), balanceDuePaise: 0 })
+    .where(and(eq(order.id, orderId), isNull(order.balancePaidAt)))
+    .returning({ id: order.id })
+  if (settled) await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.balance_paid', { orderId })
 }
 
 type PaymentRef =
@@ -57,7 +94,7 @@ export async function applyPaymentStatus(
     .where(eq(payment.id, id))
   if (!head) return null
   const [o] = await ctx.tx
-    .select({ id: order.id, status: order.status })
+    .select({ id: order.id, status: order.status, balancePaidAt: order.balancePaidAt })
     .from(order)
     .where(eq(order.id, head.orderId))
     .for('update')
@@ -71,7 +108,9 @@ export async function applyPaymentStatus(
   }
 
   let refundNeeded = p.refundNeeded
-  if (next === 'captured') {
+  if (next === 'captured' && p.purpose === 'balance') {
+    refundNeeded = o.status === 'cancelled' || (await balanceAlreadySettled(ctx, p, o))
+  } else if (next === 'captured') {
     const [other] = await ctx.tx
       .select({ id: payment.id })
       .from(payment)
@@ -100,7 +139,9 @@ export async function applyPaymentStatus(
     .where(eq(payment.id, p.id))
     .returning()
   if (!updated) return null
-  if (next === 'captured' && !refundNeeded) {
+  if (next === 'captured' && !refundNeeded && p.purpose === 'balance') {
+    await settleBalance(ctx, p.orderId)
+  } else if (next === 'captured' && !refundNeeded) {
     const [movedToPaid] = await ctx.tx
       .update(order)
       .set({ status: 'paid' })

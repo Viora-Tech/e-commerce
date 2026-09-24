@@ -55,7 +55,13 @@ export async function paymentAttempts(ctx: StoreContext, orderId: string) {
 /** Record a new attempt as `created`. The caller starts it with `startPaymentAttempt` after commit. */
 export async function createPaymentAttempt(
   ctx: StoreContext,
-  input: { orderId: string; provider: string; amountPaise: number },
+  input: {
+    orderId: string
+    provider: string
+    amountPaise: number
+    /** `balance` collects a deposit pre-order's balance; it sits beside the deposit's capture. */
+    purpose?: 'order' | 'balance' | undefined
+  },
 ): Promise<PaymentAttempt> {
   const [latest] = await paymentAttempts(ctx, input.orderId)
   const attempt = (latest?.attempt ?? 0) + 1
@@ -71,6 +77,8 @@ export async function createPaymentAttempt(
       amountPaise: input.amountPaise,
       attempt,
       idempotencyKey: key,
+      purpose: input.purpose ?? 'order',
+      multiCapture: input.purpose === 'balance',
     })
     .returning()
   if (!row) throw new Error('payment attempt insert returned nothing')
@@ -137,7 +145,8 @@ async function claimAttempt(ctx: StoreContext, attemptId: string) {
 const sessionOf = (p: PaymentAttempt): CheckoutSession | null =>
   (p.checkoutSession as CheckoutSession | null) ?? null
 
-function snapshot(p: PaymentAttempt): StartedPayment {
+/** What is recorded for an attempt, without asking the gateway. */
+export function attemptSnapshot(p: PaymentAttempt): StartedPayment {
   return {
     attemptId: p.id,
     status: p.status,
@@ -185,7 +194,7 @@ export async function startPaymentAttempt(
       async (tx) => (await tx.select().from(payment).where(eq(payment.id, attemptId)))[0],
     )
     if (!current) throw new Error(`payment attempt ${attemptId} not found`)
-    return snapshot(current)
+    return attemptSnapshot(current)
   }
 
   let result: Awaited<ReturnType<PaymentProvider['createPayment']>>
@@ -258,7 +267,8 @@ export async function retryPayment(
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId)).for('update')
   if (!o) throw new PaymentNotRetryable(orderId, 'not found', ctx.storeId)
   if (o.status !== 'placed') throw new PaymentNotRetryable(orderId, o.status, ctx.storeId)
-  const attempts = await paymentAttempts(ctx, orderId)
+  // Balance attempts on a pre-order are a separate collection, never retried from here.
+  const attempts = (await paymentAttempts(ctx, orderId)).filter((a) => a.purpose === 'order')
   const latest = attempts[0]
   if (!latest) throw new PaymentNotRetryable(orderId, 'no payment to retry', ctx.storeId)
   if (attempts.some((a) => a.status === 'captured' && !a.refundNeeded)) {
@@ -283,6 +293,6 @@ export async function retryAndStartPayment(
   provider: PaymentProvider,
 ): Promise<StartedPayment> {
   const { attempt } = await withStore(db, storeId, (tx) => retryPayment({ storeId, tx }, orderId))
-  if (attempt.status !== 'created') return snapshot(attempt)
+  if (attempt.status !== 'created') return attemptSnapshot(attempt)
   return startPaymentAttempt(db, storeId, attempt.id, provider)
 }

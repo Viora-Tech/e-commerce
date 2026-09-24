@@ -7,6 +7,12 @@ export type NotificationJob = {
   storeId: string
   orderId: string
   template: TemplateId
+  /**
+   * Set for messages an order may get more than once (balance request,
+   * reminders): the outbox row id. Makes each one its own job, and the
+   * worker sends it even when the same template went out before.
+   */
+  key?: string | undefined
 }
 
 /**
@@ -26,7 +32,7 @@ export type NotificationQueue = {
 }
 
 export const notificationJobId = (job: NotificationJob): string =>
-  `${job.storeId}:${job.orderId}:${job.template}`
+  `${job.storeId}:${job.orderId}:${job.template}${job.key ? `:${job.key}` : ''}`
 
 /**
  * Queue one order event. The job id makes a repeat call for the same order and

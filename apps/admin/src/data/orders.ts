@@ -195,7 +195,19 @@ export const orderDetailContent = {
     captured: 'Captured',
     authorised: 'Authorised, not yet captured',
     attempt: (n: number) => `Attempt ${n}`,
+    balanceAttempt: 'Balance',
     amount: 'Amount',
+    preorder: {
+      depositPaid: (amount: string) => `Deposit paid ${amount}`,
+      balanceDue: (amount: string) => `Balance due ${amount}`,
+      balancePaid: (when: string) => `Balance paid ${when}`,
+      requested: (when: string, reminders: number) =>
+        `requested ${when}, ${reminders === 1 ? '1 reminder' : `${reminders} reminders`} sent`,
+      notRequested: 'not requested yet',
+      request: 'Request balance',
+      resend: 'Send balance request again',
+      requestedToast: 'Balance request sent to the customer',
+    },
     refundNeeded:
       'Money was captured after this order was cancelled or already paid. Refund it to the shopper.',
     awaiting: 'Awaiting collection',

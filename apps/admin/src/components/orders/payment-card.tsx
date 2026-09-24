@@ -12,6 +12,7 @@ import {
   paymentStatus,
   refundedTotal,
 } from './order-detail-types'
+import PreorderBalanceLine from './preorder-balance-line'
 
 type PaymentCardProps = {
   order: OrderDetail
@@ -19,6 +20,9 @@ type PaymentCardProps = {
   onRefund?: (payment: OrderPayment) => void
   /** Present when money is still owed and can be recorded by hand. */
   onCollect?: (() => void) | undefined
+  /** Present while a deposit pre-order's balance is owed: asks the customer for it. */
+  onRequestBalance?: (() => void) | undefined
+  busy?: boolean
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -38,7 +42,13 @@ function amountLabel(status: OrderPayment['status']): string {
 }
 
 /** Gateway, references, what was captured and what went back. */
-export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardProps) {
+export default function PaymentCard({
+  order,
+  onRefund,
+  onCollect,
+  onRequestBalance,
+  busy = false,
+}: PaymentCardProps) {
   // Render logic
   const events = order.paymentEvents
   const multipleAttempts = order.payments.filter((p) => p.provider !== 'gift_card').length > 1
@@ -56,6 +66,9 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
       }
     >
       <div className="flex flex-col gap-5">
+        {order.depositPaise !== null ? (
+          <PreorderBalanceLine order={order} onRequest={onRequestBalance} busy={busy} />
+        ) : null}
         {order.payments.map((p) => {
           const pill = paymentStatus(p, order.refunds)
           const back = refundedTotal(order.refunds, p.id)
@@ -69,6 +82,7 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
                     <span className="text-muted-foreground font-normal">
                       {' '}
                       {copy.payment.attempt(p.attempt)}
+                      {p.purpose === 'balance' ? ` · ${copy.payment.balanceAttempt}` : null}
                     </span>
                   ) : null}
                 </p>

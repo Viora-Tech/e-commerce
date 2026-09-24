@@ -39,6 +39,11 @@ export async function updateStorePayments(tx: StoreTx, storeId: string, payments
   return s ?? null
 }
 
+export async function updateStorePreorder(tx: StoreTx, storeId: string, preorder: unknown) {
+  const [s] = await tx.update(store).set({ preorder }).where(eq(store.id, storeId)).returning()
+  return s ?? null
+}
+
 export async function updateStoreNotifications(
   tx: StoreTx,
   storeId: string,

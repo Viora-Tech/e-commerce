@@ -29,6 +29,8 @@ type CheckoutSummaryProps = {
   cardRows: (AppliedGiftCard & { amountPaise: number })[]
   duePaise: number
   error: string | null
+  /** Terms the shopper must see before paying, e.g. a non-refundable pre-order deposit. */
+  notice?: string | null | undefined
   pending: boolean
   submitDisabled: boolean
   submitLabel: string
@@ -59,6 +61,7 @@ export default function CheckoutSummary({
   cardRows,
   duePaise,
   error,
+  notice = null,
   pending,
   submitDisabled,
   submitLabel,
@@ -132,6 +135,7 @@ export default function CheckoutSummary({
             <span>{formatPaise(duePaise)}</span>
           </div>
         ) : null}
+        {notice ? <p className="text-small">{notice}</p> : null}
         {error ? (
           <p className="checkout__error text-small" role="alert">
             {error}

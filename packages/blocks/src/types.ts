@@ -47,6 +47,11 @@ export type ProductDetail = {
         shipDate: string | null
         /** "Pay ₹X now, ₹Y later" preview at the selected variant's price; null in `full` mode. */
         depositPreview: { payNowPaise: number; payLaterPaise: number } | null
+        /**
+         * Set when the store keeps the deposit if the balance is not paid within
+         * this many days of being requested; the product page says so up front.
+         */
+        nonRefundableDepositDays?: number | null | undefined
       }
     | null
     | undefined

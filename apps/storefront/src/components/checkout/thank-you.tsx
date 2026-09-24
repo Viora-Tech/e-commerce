@@ -1,6 +1,7 @@
 import { formatPaise } from '@commerce/blocks'
 import type { order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
+import type { ReactNode } from 'react'
 import { thankYouContent as content } from '@/data/checkout'
 import { retryPaymentAction } from '@/lib/cart-actions'
 import ManualPaymentInstructions from './manual-payment-instructions'
@@ -15,6 +16,8 @@ type ThankYouTemplateProps = {
   giftCards?: { id: string; last: string; amountPaise: number }[]
   /** Links from installed apps, e.g. a signed invoice download. */
   links?: { label: string; url: string }[]
+  /** A deposit pre-order's balance block, when a balance is still owed. */
+  balance?: ReactNode
 }
 
 /** "+₹49.00" / "−₹99.98" for the fee or discount row. */
@@ -46,6 +49,7 @@ export default function ThankYouTemplate({
   payment: pay,
   giftCards = [],
   links = [],
+  balance = null,
 }: ThankYouTemplateProps) {
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
   // The latest attempt failed on an order that is still open: offer a new attempt.
@@ -67,6 +71,7 @@ export default function ThankYouTemplate({
           {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
         </p>
         {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={due} /> : null}
+        {balance}
         <ul className="cart-items__list thank-you__lines">
           {lines.map((l) => (
             <li key={l.id} className="cart-summary__row">

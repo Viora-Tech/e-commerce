@@ -150,6 +150,14 @@ export const DocumentSnapshotSchema = z.object({
     /** Cash on delivery still to collect; 0 when prepaid. */
     collectPaise: paise,
   }),
+  /**
+   * A pre-order's tax invoice: the receipt voucher (rule 50) its advance was
+   * recorded on, adjusted against the invoice value. Absent on older snapshots.
+   */
+  advance: z
+    .object({ number: z.string(), issuedAt: z.string(), amountPaise: paise })
+    .nullable()
+    .default(null),
   /** Rule 53(1A)(d): the invoice a credit note is against. */
   original: z.object({ number: z.string(), issuedAt: z.string() }).nullable(),
   reason: z.string().nullable(),

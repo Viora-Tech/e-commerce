@@ -90,6 +90,7 @@ export const settingsContent = {
     payments: [
       { id: 'section-methods', label: 'Payment methods' },
       { id: 'section-unpaid', label: 'Unpaid orders' },
+      { id: 'section-preorders', label: 'Pre-orders' },
     ],
     files: [
       { id: 'section-providers', label: 'Storage' },

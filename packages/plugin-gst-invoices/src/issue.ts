@@ -212,7 +212,7 @@ export async function orderSnapshot(
           currency: prior?.currency ?? null,
           exchangeRate: prior?.exchangeRate ?? null,
         }
-  return buildDocument({
+  const doc = buildDocument({
     exportSupply,
     kind,
     number,
@@ -249,6 +249,17 @@ export async function orderSnapshot(
     hsnDigits: settings.hsnDigits,
     fallbackRatePercent: s?.gstRatePercent ?? 18,
   })
+  return kind === 'tax_invoice' ? { ...doc, advance: await advanceOf(tx, orderId) } : doc
+}
+
+/**
+ * A pre-order's advance: the issued receipt voucher (rule 50), which the tax
+ * invoice at dispatch adjusts against its full value. Null on other orders.
+ */
+async function advanceOf(tx: StoreTx, orderId: string): Promise<DocumentSnapshot['advance']> {
+  const rv = await existing(tx, orderId, 'receipt_voucher')
+  if (rv?.status !== 'issued' || !rv.number) return null
+  return { number: rv.number, issuedAt: rv.issuedAt.toISOString(), amountPaise: rv.totalPaise }
 }
 
 const countryName = (code: string) => {

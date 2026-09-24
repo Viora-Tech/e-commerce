@@ -13,6 +13,7 @@ import {
 import type { Tracking, TrackingEvent } from '@commerce/shipping'
 import { and, asc, desc, eq, inArray, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { balanceOwed } from '../preorder/balance'
 import type { GstBreakdown } from '../tax/gst'
 
 /**
@@ -150,6 +151,8 @@ export type ShopperOrderDetail = ShopperOrderSummary & {
   taxPaise: number
   gst: GstBreakdown | null
   paymentMethod: string | null
+  /** A deposit pre-order's balance still owed (0 once paid, or on other orders). */
+  balanceDuePaise: number
   email: string | null
   phone: string | null
   address: {
@@ -239,6 +242,7 @@ export async function getCustomerOrder(
     taxPaise: o.taxPaise,
     gst: isGst(o.taxBreakdown) ? o.taxBreakdown : null,
     paymentMethod: o.paymentMethod,
+    balanceDuePaise: o.status === 'placed' ? 0 : balanceOwed(o),
     email: o.email,
     phone: o.phone,
     address: addr

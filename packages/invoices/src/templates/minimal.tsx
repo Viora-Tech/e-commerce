@@ -1,6 +1,15 @@
 import { Document, Image, Page, Text, View } from '@react-pdf/renderer'
 import { formatRupees } from '../money'
-import { Barcode, itemColumns, PartyLines, QrSlot, SumRow, TaxTable, totalsRows } from './parts'
+import {
+  AdvanceRows,
+  Barcode,
+  itemColumns,
+  PartyLines,
+  QrSlot,
+  SumRow,
+  TaxTable,
+  totalsRows,
+} from './parts'
 import { type TemplateProps, templateView } from './view'
 
 /**
@@ -233,6 +242,7 @@ export default function MinimalTemplate(props: TemplateProps & { fontFamily: str
                 </View>
               </>
             ) : null}
+            <AdvanceRows doc={doc} muted={MUTED} />
             {doc.order.collectPaise > 0 ? (
               <View style={{ ...cellPad, borderTopWidth: 0.5, borderColor: RULE }}>
                 <SumRow

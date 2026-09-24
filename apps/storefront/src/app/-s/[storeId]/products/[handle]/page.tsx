@@ -1,4 +1,9 @@
 import { ProductView } from '@commerce/blocks'
+import {
+  depositIsNonRefundable,
+  type PreorderStoreSettings,
+  parsePreorderStoreSettings,
+} from '@commerce/core/preorder'
 import { store } from '@commerce/db'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
@@ -11,7 +16,7 @@ import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
 import { addLineAction } from '@/lib/cart-actions'
-import { getProductByHandle, getProductSeo } from '@/lib/catalog'
+import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeOffersEmi } from '@/lib/payments'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
@@ -25,18 +30,28 @@ type Params = {
 const limitOf = (value: unknown) => (typeof value === 'number' ? value : 4)
 const headingOf = (value: unknown) => (typeof value === 'string' ? value : '')
 
+/** A deposit the store keeps when the balance goes unpaid is said so next to "Pay X now". */
+function withDepositPolicy(product: ProductDetail, policy: PreorderStoreSettings): ProductDetail {
+  if (!product.preorder?.depositPreview || !depositIsNonRefundable(policy)) return product
+  return {
+    ...product,
+    preorder: { ...product.preorder, nonRefundableDepositDays: policy.payWithinDays },
+  }
+}
+
 /** One load per request, shared by the metadata and the page. */
 const loadProduct = cache((storeId: string, handle: string) =>
   inStore(storeId, async (tx) => {
-    const product = await getProductByHandle(tx, handle)
-    if (!product) return null
+    const found = await getProductByHandle(tx, handle)
+    if (!found) return null
     const [seo, [s]] = await Promise.all([
-      getProductSeo(tx, product.id),
+      getProductSeo(tx, found.id),
       tx
-        .select({ name: store.name, currency: store.currency })
+        .select({ name: store.name, currency: store.currency, preorder: store.preorder })
         .from(store)
         .where(eq(store.id, storeId)),
     ])
+    const product = withDepositPolicy(found, parsePreorderStoreSettings(s?.preorder))
     const text = richTextToPlainText(parseRichText(product.description))
     return {
       product,
