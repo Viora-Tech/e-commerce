@@ -32,9 +32,24 @@ export type ProductDetail = {
     pricePaise: number
     mrpPaise: number | null
     available: number
+    /** Can be added to cart right now: normal stock, or pre-order room beyond it. `available` alone undercounts a pre-order. */
+    purchasable: boolean
     optionValueIds: string[]
     imageUrl: string | null
   }[]
+  /** Store-timezone instant the product goes on sale; null = already on sale. */
+  launchAt?: string | null | undefined
+  preorder?:
+    | {
+        enabled: boolean
+        buttonLabel: string
+        /** ISO date; null when neither an absolute date nor "ships in N days" is set. */
+        shipDate: string | null
+        /** "Pay ₹X now, ₹Y later" preview at the selected variant's price; null in `full` mode. */
+        depositPreview: { payNowPaise: number; payLaterPaise: number } | null
+      }
+    | null
+    | undefined
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system'

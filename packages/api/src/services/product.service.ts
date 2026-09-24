@@ -26,6 +26,8 @@ export type ProductListItem = {
   productType: string | null
   imageUrl: string | null
   tags: string[]
+  preorderEnabled: boolean
+  launchAt: Date | null
   variantCount: number
   minPricePaise: number | null
   maxPricePaise: number | null
@@ -139,6 +141,8 @@ export async function listProducts(
         productType: r.productType,
         imageUrl: images.find((i) => i.productId === r.id)?.url ?? null,
         tags: r.tags,
+        preorderEnabled: r.preorderEnabled,
+        launchAt: r.launchAt,
         variantCount: vs.length,
         minPricePaise: vs.length ? Math.min(...vs.map((v) => v.pricePaise)) : null,
         maxPricePaise: vs.length ? Math.max(...vs.map((v) => v.pricePaise)) : null,

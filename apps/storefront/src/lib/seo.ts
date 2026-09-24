@@ -111,7 +111,9 @@ type ProductForLd = {
     sku: string | null
     pricePaise: number
     available: number
+    purchasable?: boolean | undefined
   }[]
+  preorder?: { enabled: boolean } | null | undefined
 }
 
 /** Product with one Offer per variant (INR, stock), and its breadcrumb trail. */
@@ -124,7 +126,12 @@ export function productGraph(p: ProductForLd, origin: string, currency: string, 
     ...(v.sku ? { sku: v.sku } : {}),
     price: paiseToAmount(v.pricePaise),
     priceCurrency: currency,
-    availability: v.available > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    availability:
+      v.available > 0
+        ? 'https://schema.org/InStock'
+        : p.preorder?.enabled && v.purchasable
+          ? 'https://schema.org/PreOrder'
+          : 'https://schema.org/OutOfStock',
     itemCondition: 'https://schema.org/NewCondition',
     seller: { '@id': `${origin}/#organization` },
   }))

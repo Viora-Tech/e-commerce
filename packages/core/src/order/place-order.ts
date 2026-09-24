@@ -30,6 +30,7 @@ import {
   CartEmpty,
   CartNotOpen,
   DiscountUnavailable,
+  NotLaunchedYet,
   OutOfStock,
   ShippingRateUnavailable,
   ShippingUnavailable,
@@ -46,6 +47,9 @@ import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adju
 import { createPaymentAttempt, startPaymentAttempt } from '../payments/attempts'
 import { parsePaymentSettings } from '../payments/settings'
 import type { PaymentRowStatus } from '../payments/transitions'
+import { computeDepositFromSettings } from '../preorder/deposit'
+import { isLaunched } from '../preorder/launch'
+import { resolvePreorderSettings, resolveShipDate } from '../preorder/settings'
 import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
@@ -89,6 +93,10 @@ export type PlaceOrderResult = {
   session: CheckoutSession | null
   /** True when the cart was already converted and this is the order from that earlier submit. */
   replayed: boolean
+  /** Charged at checkout for the order's pre-order lines; 0 when none are in deposit mode. */
+  depositPaise: number
+  /** Deferred to later; fulfilment is blocked while this is greater than zero. */
+  balanceDuePaise: number
 }
 
 type Line = {
@@ -105,6 +113,10 @@ type Line = {
   giftCard: boolean
   /** Variant weight; null counts as 0 for weight-based rates. */
   weightGrams: number | null
+  /** Store-timezone instant the product goes on sale; null = always on sale. */
+  launchAt: Date | null
+  /** Resolved pre-order settings (product merged with the variant's override, if any). */
+  preorder: ReturnType<typeof resolvePreorderSettings>
 }
 
 type State = {
@@ -126,6 +138,9 @@ type State = {
   giftCardPaise: number
   redemptions: GiftCardRedemption[]
   attemptId: string | null
+  /** Deposit charged now and balance deferred, from the order's pre-order lines. Both 0 when none. */
+  depositPaise: number
+  balanceDuePaise: number
 }
 
 const sumPaise = (lines: Line[]): number =>
@@ -136,7 +151,7 @@ const loadCart: WorkflowStep<State> = {
   async run({ ctx, input }) {
     const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, input.cartId))
     if (c?.status !== 'open') throw new CartNotOpen(input.cartId, ctx.storeId)
-    const lines = await ctx.tx
+    const rows = await ctx.tx
       .select({
         variantId: cartLine.variantId,
         quantity: cartLine.quantity,
@@ -148,14 +163,51 @@ const loadCart: WorkflowStep<State> = {
         hsCode: variant.hsCode,
         giftCard: product.isGiftCard,
         weightGrams: variant.weightGrams,
+        launchAt: product.launchAt,
+        preorderOverride: variant.preorderOverride,
+        preorderEnabled: product.preorderEnabled,
+        preorderShipDate: product.preorderShipDate,
+        preorderShipsInDays: product.preorderShipsInDays,
+        preorderLimit: product.preorderLimit,
+        preorderButtonLabel: product.preorderButtonLabel,
+        preorderPaymentMode: product.preorderPaymentMode,
+        preorderDepositPaise: product.preorderDepositPaise,
+        preorderDepositPercent: product.preorderDepositPercent,
       })
       .from(cartLine)
       .innerJoin(variant, eq(variant.id, cartLine.variantId))
       .innerJoin(product, eq(product.id, variant.productId))
       .where(eq(cartLine.cartId, input.cartId))
-    if (lines.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
+    if (rows.length === 0) throw new CartEmpty(input.cartId, ctx.storeId)
+    const lines: Line[] = rows.map((r) => ({
+      variantId: r.variantId,
+      quantity: r.quantity,
+      unitPricePaise: r.unitPricePaise,
+      title: r.title,
+      variantTitle: r.variantTitle,
+      gstRatePercent: r.gstRatePercent,
+      taxable: r.taxable,
+      hsCode: r.hsCode,
+      giftCard: r.giftCard,
+      weightGrams: r.weightGrams,
+      launchAt: r.launchAt,
+      preorder: resolvePreorderSettings(r, r.preorderOverride),
+    }))
     checkGiftCardRules(lines, input, ctx.storeId)
     return { lines, cartDiscountCode: c.discountCode, cartAttribution: c.attribution ?? null }
+  },
+}
+
+/** Nothing before `launchAt` can be added to a cart or ordered; server-enforced regardless of the client. */
+const enforceLaunch: WorkflowStep<State> = {
+  name: 'enforceLaunch',
+  async run({ ctx, lines }) {
+    const now = new Date()
+    for (const line of lines) {
+      if (!isLaunched(line.launchAt, now))
+        throw new NotLaunchedYet(line.variantId, line.launchAt as Date, ctx.storeId)
+    }
+    return {}
   },
 }
 
@@ -266,6 +318,16 @@ const reserveStock: WorkflowStep<State> = {
         .from(variant)
         .where(eq(variant.id, line.variantId))
       if (v && !v.trackInventory) continue
+      /*
+       * Normal stock covers the line, OR pre-order is on and the shortfall
+       * this reservation would create (reserved - on_hand, after adding this
+       * line's quantity) stays within the pre-order limit (unlimited when the
+       * limit is null). `reserved - on_hand` is only ever positive because of
+       * a pre-order oversell, so it doubles as "pre-order units already
+       * committed" without a separate counter, and the whole check runs in
+       * one atomic UPDATE so concurrent checkouts can't both slip under the
+       * limit.
+       */
       const rows = await ctx.tx
         .update(inventoryLevel)
         .set({ reserved: sql`${inventoryLevel.reserved} + ${line.quantity}` })
@@ -273,7 +335,14 @@ const reserveStock: WorkflowStep<State> = {
           and(
             eq(inventoryLevel.variantId, line.variantId),
             sellableLevel,
-            sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
+            or(
+              sql`${inventoryLevel.onHand} - ${inventoryLevel.reserved} >= ${line.quantity}`,
+              line.preorder.enabled
+                ? line.preorder.limit == null
+                  ? sql`true`
+                  : sql`(${inventoryLevel.reserved} - ${inventoryLevel.onHand} + ${line.quantity}) <= ${line.preorder.limit}`
+                : sql`false`,
+            ),
           ),
         )
         .returning({ id: inventoryLevel.id })
@@ -371,6 +440,34 @@ const createOrder: WorkflowStep<State> = {
        charged GST-inclusive too and is not a reduction: it lands in the
        "charges" part of the total, which follows the principal supply's rate
        (a composite supply), exactly like the COD fee. */
+    /*
+     * Each pre-order line's own deposit rule decides what is charged now vs.
+     * later; everything else (shipping, non-pre-order items, tax) is charged
+     * in full today. `full` mode pre-order lines defer nothing. Deposits are
+     * computed against the line's list price (unit price * quantity),
+     * ignoring the order-level discount split: PR2 (balance collection) can
+     * refine this once it has to reconcile a partial refund against a
+     * discounted deposit; for now the deposit is always a fraction of the
+     * undiscounted line, which only ever *overstates* what is charged now.
+     */
+    const preorderLines = lines.filter((l) => l.preorder.enabled && !l.giftCard)
+    const balanceDuePaise = preorderLines.reduce((sum, l) => {
+      const { balancePaise } = computeDepositFromSettings(
+        l.quantity * l.unitPricePaise,
+        l.preorder,
+        l.quantity,
+      )
+      return sum + balancePaise
+    }, 0)
+    const depositPaise = preorderLines.reduce((sum, l) => {
+      const { depositPaise: dep } = computeDepositFromSettings(
+        l.quantity * l.unitPricePaise,
+        l.preorder,
+        l.quantity,
+      )
+      return sum + dep
+    }, 0)
+    const tags = preorderLines.length > 0 ? ['pre-order'] : []
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
     const tax = computeOrderGst({
       lines: lines.map((l) => ({
@@ -421,6 +518,9 @@ const createOrder: WorkflowStep<State> = {
         paymentMethod: input.paymentProvider.id,
         attribution: cartAttribution,
         cartId: input.cartId,
+        tags,
+        depositPaise: preorderLines.length > 0 ? depositPaise : null,
+        balanceDuePaise: preorderLines.length > 0 ? balanceDuePaise : null,
       })
       .returning({ id: order.id })
     if (!o) throw new Error('order insert returned nothing')
@@ -440,6 +540,9 @@ const createOrder: WorkflowStep<State> = {
         gstRatePercent: lineGstRate(l, s.gstRatePercent),
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
+        preorder: l.preorder.enabled && !l.giftCard,
+        preorderShipDate:
+          l.preorder.enabled && !l.giftCard ? resolveShipDate(l.preorder, new Date()) : null,
       })),
     )
     if (applied) {
@@ -454,7 +557,7 @@ const createOrder: WorkflowStep<State> = {
         amountPaise: discountPaise,
       })
     }
-    return { orderId: o.id, orderNumber, totalPaise }
+    return { orderId: o.id, orderNumber, totalPaise, balanceDuePaise, depositPaise }
   },
   async compensate({ ctx, orderId, discount: applied }) {
     if (!orderId) return
@@ -545,8 +648,12 @@ const redeemCards: WorkflowStep<State> = {
 }
 
 /** True when gift cards paid the whole order and no provider is involved. */
-const paidByCards = (s: Pick<State, 'giftCardPaise' | 'totalPaise'>): boolean =>
-  s.giftCardPaise > 0 && s.giftCardPaise >= s.totalPaise
+/** What must be collected today: the order total less whatever a deposit-mode pre-order defers. */
+const chargeNowPaise = (s: Pick<State, 'totalPaise' | 'balanceDuePaise'>): number =>
+  s.totalPaise - s.balanceDuePaise
+
+const paidByCards = (s: Pick<State, 'giftCardPaise' | 'totalPaise' | 'balanceDuePaise'>): boolean =>
+  s.giftCardPaise > 0 && s.giftCardPaise >= chargeNowPaise(s)
 
 /**
  * Record the payment attempt, or settle the order when gift cards paid it all.
@@ -555,12 +662,18 @@ const paidByCards = (s: Pick<State, 'giftCardPaise' | 'totalPaise'>): boolean =>
  * (`startPaymentAttempt`). Medusa orders its checkout steps the same way
  * (order first, payment last), and Saleor splits pre- and post-payment parts
  * of `complete_checkout` (patterns only: Medusa MIT, Saleor BSD-3).
+ *
+ * A deposit-mode pre-order only charges the deposit here (`chargeNowPaise`);
+ * `order.balance_due_paise` carries what is left, and fulfilment refuses to
+ * run while it is still owed (see `@commerce/core/order/fulfil`). Collecting
+ * that balance is a later PR — this just charges the deposit and marks the
+ * order paid-with-a-balance-due once the gateway captures it.
  */
 const recordPaymentAttempt: WorkflowStep<State> = {
   name: 'recordPaymentAttempt',
-  async run({ ctx, input, totalPaise, giftCardPaise, orderId }) {
+  async run({ ctx, input, totalPaise, balanceDuePaise, giftCardPaise, orderId }) {
     if (!orderId) throw new Error('recordPaymentAttempt before createOrder')
-    if (paidByCards({ giftCardPaise, totalPaise })) {
+    if (paidByCards({ giftCardPaise, totalPaise, balanceDuePaise })) {
       await ctx.tx
         .update(order)
         .set({ status: 'paid', paymentMethod: GIFT_CARD_PROVIDER })
@@ -573,7 +686,7 @@ const recordPaymentAttempt: WorkflowStep<State> = {
     const attempt = await createPaymentAttempt(ctx, {
       orderId,
       provider: input.paymentProvider.id,
-      amountPaise: totalPaise - giftCardPaise,
+      amountPaise: chargeNowPaise({ totalPaise, balanceDuePaise }) - giftCardPaise,
     })
     return { attemptId: attempt.id }
   },
@@ -608,7 +721,13 @@ async function lockCartOrReplay(
     .for('update')
   if (c?.status !== 'converted') return null
   const [o] = await ctx.tx
-    .select({ id: order.id, number: order.number, paymentMethod: order.paymentMethod })
+    .select({
+      id: order.id,
+      number: order.number,
+      paymentMethod: order.paymentMethod,
+      depositPaise: order.depositPaise,
+      balanceDuePaise: order.balanceDuePaise,
+    })
     .from(order)
     .where(eq(order.cartId, cartId))
   // Converted before orders recorded their cart: nothing to replay.
@@ -633,6 +752,8 @@ async function lockCartOrReplay(
       paymentStatus: 'captured',
       session: { kind: 'none', provider: o.paymentMethod ?? GIFT_CARD_PROVIDER, providerRef },
       replayed: true,
+      depositPaise: o.depositPaise ?? 0,
+      balanceDuePaise: o.balanceDuePaise ?? 0,
     }
   }
   // Still `created` when the first submit died before reaching the gateway: the
@@ -642,6 +763,8 @@ async function lockCartOrReplay(
     orderNumber: o.number,
     attemptId: p.id,
     paymentStatus: p.status,
+    depositPaise: o.depositPaise ?? 0,
+    balanceDuePaise: o.balanceDuePaise ?? 0,
     session: (p.checkoutSession as CheckoutSession | null) ?? null,
     replayed: true,
   }
@@ -677,9 +800,12 @@ export async function placeOrder(
       giftCardPaise: 0,
       redemptions: [],
       attemptId: null,
+      depositPaise: 0,
+      balanceDuePaise: 0,
     },
     [
       loadCart,
+      enforceLaunch,
       resolveDiscount,
       resolveShipping,
       reserveStock,
@@ -703,6 +829,8 @@ export async function placeOrder(
       ? { kind: 'none', provider: GIFT_CARD_PROVIDER, providerRef: `gift_card_${state.orderId}` }
       : null,
     replayed: false,
+    depositPaise: state.depositPaise,
+    balanceDuePaise: state.balanceDuePaise,
   }
 }
 

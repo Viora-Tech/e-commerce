@@ -70,35 +70,84 @@ export const store = pgTable('store', {
   createdAt: createdAt(),
 })
 
-export const product = pgTable('product', {
-  id: id(),
-  storeId: storeId(),
-  handle: text('handle').notNull(),
-  title: text('title').notNull(),
-  /** Alternate product template (`product.<suffix>`); null uses the default. */
-  templateSuffix: text('template_suffix'),
-  /** Lexical JSON (see @commerce/richtext). Legacy rows hold a plain string; parseRichText copes. */
-  description: jsonb('description'),
-  vendor: text('vendor'),
-  productType: text('product_type'),
-  tags: text('tags').array().notNull().default([]),
-  seoTitle: text('seo_title'),
-  seoDescription: text('seo_description'),
-  status: text('status', { enum: ['draft', 'active', 'archived'] })
-    .notNull()
-    .default('draft'),
-  /** Prices already carry tax; the GST split is extracted rather than added at checkout. */
-  taxIncluded: boolean('tax_included').notNull().default(true),
-  /** Shown in the storefront's featured section. */
-  featured: boolean('featured').notNull().default(false),
-  /** Sold as a gift card: digital, never shipped or taxed at sale; paid lines issue a card by email. */
-  isGiftCard: boolean('is_gift_card').notNull().default(false),
-  /** Optional window for the compare-at price; outside it the storefront shows the plain price. */
-  saleStartsAt: timestamp('sale_starts_at', { withTimezone: true }),
-  saleEndsAt: timestamp('sale_ends_at', { withTimezone: true }),
-  createdAt: createdAt(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-})
+export const product = pgTable(
+  'product',
+  {
+    id: id(),
+    storeId: storeId(),
+    handle: text('handle').notNull(),
+    title: text('title').notNull(),
+    /** Alternate product template (`product.<suffix>`); null uses the default. */
+    templateSuffix: text('template_suffix'),
+    /** Lexical JSON (see @commerce/richtext). Legacy rows hold a plain string; parseRichText copes. */
+    description: jsonb('description'),
+    vendor: text('vendor'),
+    productType: text('product_type'),
+    tags: text('tags').array().notNull().default([]),
+    seoTitle: text('seo_title'),
+    seoDescription: text('seo_description'),
+    status: text('status', { enum: ['draft', 'active', 'archived'] })
+      .notNull()
+      .default('draft'),
+    /** Prices already carry tax; the GST split is extracted rather than added at checkout. */
+    taxIncluded: boolean('tax_included').notNull().default(true),
+    /** Shown in the storefront's featured section. */
+    featured: boolean('featured').notNull().default(false),
+    /** Sold as a gift card: digital, never shipped or taxed at sale; paid lines issue a card by email. */
+    isGiftCard: boolean('is_gift_card').notNull().default(false),
+    /** Optional window for the compare-at price; outside it the storefront shows the plain price. */
+    saleStartsAt: timestamp('sale_starts_at', { withTimezone: true }),
+    saleEndsAt: timestamp('sale_ends_at', { withTimezone: true }),
+    /** Purchasable beyond stock, up to `preorderLimit`, while true. Variant rows can override via `variant.preorderOverride`. */
+    preorderEnabled: boolean('preorder_enabled').notNull().default(false),
+    /** Absolute expected ship date; mutually exclusive with `preorderShipsInDays` in the admin UI (the resolver prefers this one when both are set). */
+    preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
+    /** "Ships in N days" from the order date; used when `preorderShipDate` is not set. */
+    preorderShipsInDays: integer('preorder_ships_in_days'),
+    /** Null = unlimited pre-order units beyond stock. */
+    preorderLimit: integer('preorder_limit'),
+    preorderButtonLabel: text('preorder_button_label').notNull().default('Pre-order'),
+    preorderPaymentMode: text('preorder_payment_mode', { enum: ['full', 'fixed', 'percentage'] })
+      .notNull()
+      .default('full'),
+    /** Deposit amount when `preorderPaymentMode` is `fixed`; must be less than the variant's price. */
+    preorderDepositPaise: integer('preorder_deposit_paise'),
+    /** Deposit percent (1-99) when `preorderPaymentMode` is `percentage`. */
+    preorderDepositPercent: integer('preorder_deposit_percent'),
+    /** Launch-gated products are hidden from collection/browse listings until `launchAt`, if set. */
+    preorderHideFromCollectionsUntilLaunch: boolean('preorder_hide_until_launch')
+      .notNull()
+      .default(false),
+    /** Store-timezone (Asia/Kolkata) instant the product goes on sale. Null = always on sale. */
+    launchAt: timestamp('launch_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'product_preorder_deposit_percent',
+      sql`${t.preorderDepositPercent} is null or (${t.preorderDepositPercent} between 1 and 99)`,
+    ),
+  ],
+)
+
+/**
+ * Optional per-variant override of the product's pre-order settings; any key
+ * left out inherits the product's value. See `@commerce/core/preorder` for
+ * the merge (`resolvePreorderSettings`). Not yet exposed in the admin UI
+ * (product-level settings only in this PR); the column exists so a later PR
+ * can add per-variant editing without another migration.
+ */
+export type VariantPreorderOverride = {
+  enabled?: boolean
+  shipDate?: string | null
+  shipsInDays?: number | null
+  limit?: number | null
+  buttonLabel?: string
+  paymentMode?: 'full' | 'fixed' | 'percentage'
+  depositPaise?: number | null
+  depositPercent?: number | null
+}
 
 /** Structured options: Colour / Size. A variant is one combination of values. */
 export const productOption = pgTable('product_option', {
@@ -313,6 +362,8 @@ export const variant = pgTable('variant', {
    * the matrix archives it so old orders keep their titles and prices.
    */
   archivedAt: timestamp('archived_at', { withTimezone: true }),
+  /** Partial override of the product's pre-order settings; null inherits every field. */
+  preorderOverride: jsonb('preorder_override').$type<VariantPreorderOverride>(),
 })
 
 export const variantOptionValue = pgTable('variant_option_value', {
@@ -694,6 +745,8 @@ export const cartLine = pgTable('cart_line', {
     .references(() => variant.id),
   quantity: integer('quantity').notNull(),
   unitPricePaise: integer('unit_price_paise').notNull(),
+  /** Snapshot of the variant's pre-order state when the line was added; re-checked at checkout. */
+  preorder: boolean('preorder').notNull().default(false),
 })
 
 export const order = pgTable(
@@ -735,6 +788,17 @@ export const order = pgTable(
     tags: text('tags').array().notNull().default([]),
     /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
     attribution: jsonb('attribution').$type<MarketingAttribution>(),
+    /**
+     * Pre-order deposit bookkeeping. `depositPaise` is null on an order with no
+     * deposit-mode pre-order lines (paid in full as normal); `balanceDuePaise`
+     * is the part still owed and blocks fulfilment (see
+     * `@commerce/core/order/fulfil`) until `balancePaidAt` is set. Collecting the
+     * balance itself (a payment link, reminders) is a later PR: this PR only
+     * charges the deposit at checkout and keeps the ledger ready.
+     */
+    depositPaise: integer('deposit_paise'),
+    balanceDuePaise: integer('balance_due_paise'),
+    balancePaidAt: timestamp('balance_paid_at', { withTimezone: true }),
     placedAt: timestamp('placed_at', { withTimezone: true }).notNull().defaultNow(),
     /**
      * Set on historical orders brought over from another platform (`shopify`). Such
@@ -792,6 +856,10 @@ export const orderLine = pgTable('order_line', {
   hsCode: text('hs_code'),
   /** A gift card sold on this line: a voucher, so it stays out of tax invoices and shipping. */
   giftCard: boolean('gift_card').notNull().default(false),
+  /** Sold under pre-order rules (the product/variant had pre-order on at order time). */
+  preorder: boolean('preorder').notNull().default(false),
+  /** Expected ship date shown on the order/email; resolved from the product's settings at order time. */
+  preorderShipDate: timestamp('preorder_ship_date', { withTimezone: true }),
 })
 
 export const PAYMENT_STATUSES = [
