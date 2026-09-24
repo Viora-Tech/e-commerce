@@ -132,7 +132,7 @@ export default function AdminSidebar({
       </SidebarHeader>
 
       {/* Group rhythm: first label 8px under the header, groups 20px apart. */}
-      <SidebarContent className="no-scrollbar gap-5 pt-1">
+      <SidebarContent className="no-scrollbar gap-4 pt-2">
         {NAV_GROUPS.map((group, gi) => (
           <NavGroupBlock
             key={group.label ?? gi}

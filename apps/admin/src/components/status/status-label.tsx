@@ -21,24 +21,27 @@ const TEXT: Record<StatusTone, string> = {
   neutral: 'text-muted-foreground',
 }
 
+/* Saleor restraint: dots are neutral; only a problem state (unpaid, failed) is red. */
 const DOT: Record<StatusTone, string> = {
-  success: 'bg-success',
-  pending: 'bg-warning',
+  success: 'bg-muted-foreground-soft',
+  pending: 'bg-muted-foreground-soft',
   error: 'bg-destructive',
-  info: 'bg-ink-strong dark:bg-teal-300',
-  accent: 'bg-link',
+  info: 'bg-muted-foreground-soft',
+  accent: 'bg-muted-foreground-soft',
   neutral: 'bg-muted-foreground-soft',
 }
 
-/* Saleor pill (the mint "Fulfilled" chip): a faint tint of the tone, a thin border in the
-   same tone, ink text. The only colour most pages carry. */
-const PILL: Record<StatusTone, string> = {
-  success: 'border-success/35 bg-success/10',
-  pending: 'border-warning/50 bg-warning/15',
-  error: 'border-destructive/35 bg-destructive/10',
-  info: 'border-border bg-muted',
-  accent: 'border-info/35 bg-info/10',
-  neutral: 'border-border bg-muted',
+/* Saleor pill: a thin border on a very light fill, ink text. Colour only for the key end
+   states: done (fulfilled, delivered) is mint, a problem (cancelled, failed) is soft red. */
+const PILL_NEUTRAL = 'border-border bg-muted/60'
+const PILL_DONE = 'border-success/35 bg-success/10'
+const PILL_PROBLEM = 'border-destructive/30 bg-destructive/8'
+const DONE_VALUES = new Set(['fulfilled', 'delivered'])
+
+function pillClass(tone: StatusTone, value: string): string {
+  if (tone === 'error') return PILL_PROBLEM
+  if (tone === 'success' && DONE_VALUES.has(value)) return PILL_DONE
+  return PILL_NEUTRAL
 }
 
 const SIZE = { sm: 'text-caption', md: 'text-body' } as const
@@ -63,7 +66,7 @@ export default function StatusLabel<K extends StatusKind>({
         className={cn(
           'inline-flex h-6 items-center rounded-md border px-2 font-medium whitespace-nowrap text-foreground',
           SIZE[size],
-          PILL[entry.tone],
+          pillClass(entry.tone, String(value)),
           className,
         )}
       >

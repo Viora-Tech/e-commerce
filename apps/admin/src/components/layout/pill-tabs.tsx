@@ -19,8 +19,8 @@ type PillTabsProps<T extends string | null> = {
   onChange: (value: T) => void
   className?: string
   /**
-   * `pill` (default, the user's pick): the tinted track with a white pill that slides to
-   * the active tab. `underline`: tabs marked by a 2px ink rule. `segmented`: a compact
+   * `pill` (default): plain text tabs; the active one sits on a light grey pill that
+   * slides between tabs. `underline`: tabs marked by a 2px ink rule. `segmented`: a compact
    * neutral switch for ranges.
    */
   variant?: 'pill' | 'underline' | 'segmented'
@@ -32,10 +32,10 @@ const FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:rin
 
 const STYLES = {
   pill: {
-    track: 'inline-flex items-center rounded-lg bg-primary-soft p-1',
-    tab: `relative isolate flex h-7 items-center gap-1 rounded-[0.375rem] px-2.5 text-body font-medium whitespace-nowrap text-foreground/80 transition-colors hover:text-foreground ${FOCUS}`,
-    active: 'text-foreground',
-    marker: 'absolute inset-0 -z-10 rounded-[0.375rem] bg-card shadow-lift',
+    track: 'inline-flex items-center gap-0.5',
+    tab: `relative isolate flex h-8 items-center gap-1.5 rounded-md px-3 text-body whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
+    active: 'text-ink-strong',
+    marker: 'absolute inset-0 -z-10 rounded-md bg-secondary',
   },
   underline: {
     track: 'flex items-center gap-5',
@@ -91,9 +91,7 @@ export default function PillTabs<T extends string | null>({
             {tab.label}
             {tab.count != null ? (
               variant === 'pill' ? (
-                <span className="text-caption font-semibold text-primary tabular-nums">
-                  ({tab.count})
-                </span>
+                <span className="text-caption text-muted-foreground tabular-nums">{tab.count}</span>
               ) : (
                 <span
                   className={cn(

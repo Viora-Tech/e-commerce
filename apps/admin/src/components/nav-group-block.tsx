@@ -1,30 +1,23 @@
 'use client'
 
-import { ChevronDown } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
-import { type NavItem, navigationContent } from '@/data/navigation'
+import type { NavItem } from '@/data/navigation'
 import { usePermissions } from '@/hooks/use-permissions'
-import { base, instant } from '@/lib/motion'
 import NavSection from './nav-section'
 
-type NavGroupBlockProps = { label?: string | undefined; items: NavItem[]; pathname: string }
+type NavGroupBlockProps = {
+  /** The group's name, for screen readers only: the rail shows items, not group labels. */
+  label?: string | undefined
+  items: NavItem[]
+  pathname: string
+}
 
-const FOCUS =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar'
-
-/** A labelled, collapsible group of rail entries (Cloudflare's "Observe" / "Build" blocks). */
+/**
+ * One logical group of rail entries. Like the Saleor Dashboard sidebar it draws no label:
+ * groups are told apart by the gap between them, and each item expands to its sub-pages.
+ */
 export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockProps) {
   // Hooks
-  const reduced = useReducedMotion()
   const { loading, hasPermission } = usePermissions()
-  const [collapsed, setCollapsed] = useState(false)
-
-  // Event handlers
-  const handleToggle = () => {
-    setCollapsed((c) => !c)
-  }
 
   // Early returns
   /* Hiding is a convenience: every page and procedure checks on the server too.
@@ -39,53 +32,13 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
         }))
   if (visible.length === 0) return null
 
-  // Render logic
-  const toggleLabel = label
-    ? collapsed
-      ? navigationContent.expandGroup(label)
-      : navigationContent.collapseGroup(label)
-    : undefined
-  const reveal = reduced ? instant : base
-
   return (
-    <div className="flex flex-col">
-      {label ? (
-        <button
-          type="button"
-          aria-expanded={!collapsed}
-          aria-label={toggleLabel}
-          onClick={handleToggle}
-          className={cn(
-            'group/label mb-1 flex h-6 w-full items-center gap-1 rounded px-5 text-left text-caption text-muted-foreground transition-colors hover:text-foreground group-data-[collapsible=icon]:hidden',
-            FOCUS,
-          )}
-        >
-          <span className="truncate">{label}</span>
-          <ChevronDown
-            className={cn(
-              'size-3 shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none',
-              collapsed && '-rotate-90',
-            )}
-            strokeWidth={1.8}
-          />
-        </button>
-      ) : null}
-      <AnimatePresence initial={false}>
-        {!collapsed ? (
-          <motion.ul
-            key="items"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={reveal}
-            className="flex flex-col gap-0.5 overflow-hidden px-3 group-data-[collapsible=icon]:px-2"
-          >
-            {visible.map((item) => (
-              <NavSection key={item.href} item={item} pathname={pathname} />
-            ))}
-          </motion.ul>
-        ) : null}
-      </AnimatePresence>
-    </div>
+    <nav aria-label={label}>
+      <ul className="flex flex-col gap-0.5 px-3 group-data-[collapsible=icon]:px-2">
+        {visible.map((item) => (
+          <NavSection key={item.href} item={item} pathname={pathname} />
+        ))}
+      </ul>
+    </nav>
   )
 }
