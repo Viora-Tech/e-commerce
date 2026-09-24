@@ -54,7 +54,7 @@ export default function AdminFrame({
       <SidebarInset className="min-h-0 overflow-hidden bg-card">
         {/* The flat white content area (Saleor Dashboard): it meets the grey rail at the
             rail's 1px border, with the slim header at its top. */}
-        <main id="main" className="min-h-0 flex-1 overflow-y-auto bg-card">
+        <main id="main" className="no-scrollbar min-h-0 flex-1 overflow-y-auto bg-card">
           <TopBar user={user} />
           {ownHeading ? null : (
             <div className="border-border border-b px-4 py-5 md:px-6">

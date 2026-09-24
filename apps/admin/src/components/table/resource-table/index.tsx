@@ -202,7 +202,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           </motion.div>
         ) : null}
       </AnimatePresence>
-      <div className="overflow-x-auto">
+      <div className="no-scrollbar overflow-x-auto">
         <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
           <TableHeader className="[&_tr]:border-0">
             {table.getHeaderGroups().map((hg) => (
