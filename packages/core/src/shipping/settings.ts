@@ -37,6 +37,14 @@ export const ShippingPolicySchema = z.object({
   defaultMinTransitDays: z.number().int().min(1).max(30).default(3),
   defaultMaxTransitDays: z.number().int().min(1).max(30).default(6),
   codAllowed: z.boolean().default(true),
+  /**
+   * "Insure above ₹X": shipments with a declared value at or above this
+   * amount are insured by default when booked (a per-shipment toggle can
+   * still override it). 0 means never insure automatically.
+   */
+  insuranceThresholdPaise: z.number().int().min(0).default(0),
+  /** Balance below which the wallet card in the Shipments workspace warns the merchant. */
+  lowWalletBalancePaise: z.number().int().min(0).default(50000),
   /** Return address printed on labels; falls back to the pickup location. */
   warehouse: z
     .object({

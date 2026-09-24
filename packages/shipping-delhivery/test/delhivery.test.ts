@@ -187,6 +187,104 @@ describe('DelhiveryProvider', () => {
   })
 })
 
+describe('DelhiveryProvider pickup, NDR and webhook', () => {
+  it('schedules a pickup and returns the provider pickup id', async () => {
+    const f = fakeFetch({ '/fm/request/new/': () => json({ pickup_id: 4455 }) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.schedulePickup({
+      pickupLocationName: 'Waimers Sonipat',
+      date: '2026-09-26',
+      timeFrom: '14:00',
+      expectedPackageCount: 3,
+    })
+    expect(r.providerPickupId).toBe('4455')
+    expect(f.calls[0]?.init?.headers).toMatchObject({ 'Content-Type': 'application/json' })
+    const body = JSON.parse(f.calls[0]?.init?.body as string)
+    expect(body).toMatchObject({
+      pickup_location: 'Waimers Sonipat',
+      pickup_date: '2026-09-26',
+      expected_package_count: 3,
+    })
+  })
+
+  it('rejects a pickup response with no pickup_id and no pr_exist', async () => {
+    const f = fakeFetch({ '/fm/request/new/': () => json({}) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await expect(
+      p.schedulePickup({
+        pickupLocationName: 'Waimers Sonipat',
+        date: '2026-09-26',
+        timeFrom: '14:00',
+        expectedPackageCount: 1,
+      }),
+    ).rejects.toMatchObject({ kind: 'rejected' })
+  })
+
+  it('sends a reattempt NDR action', async () => {
+    const f = fakeFetch({ '/api/p/update': () => json({ success: true, upl: 'UPL1' }) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.ndrAction({ waybill: 'WB123', action: 'reattempt' })
+    expect(r).toEqual({ accepted: true, providerRef: 'UPL1' })
+    const body = JSON.parse(f.calls[0]?.init?.body as string)
+    expect(body.data[0]).toMatchObject({ waybill: 'WB123', act: 'RE-ATTEMPT' })
+  })
+
+  it('sends a change-of-address NDR action', async () => {
+    const f = fakeFetch({ '/api/p/update': () => json({ success: true }) })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await p.ndrAction({
+      waybill: 'WB123',
+      action: 'change_address',
+      name: 'Asha',
+      phone: '9999999999',
+      address: '12 MG Road',
+    })
+    const body = JSON.parse(f.calls[0]?.init?.body as string)
+    expect(body.data[0]).toMatchObject({
+      act: 'EDIT_DETAILS',
+      action_data: { name: 'Asha', phone: '9999999999', add: '12 MG Road' },
+    })
+  })
+
+  it('rejects an NDR action Delhivery refuses', async () => {
+    const f = fakeFetch({
+      '/api/p/update': () => json({ success: false, error: 'not in NDR' }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.ndrAction({ waybill: 'WB123', action: 'reattempt' })).rejects.toMatchObject({
+      kind: 'rejected',
+      message: 'not in NDR',
+    })
+  })
+
+  it('parses a webhook body into notices keyed by waybill', async () => {
+    const p = new DelhiveryProvider(config)
+    const notices = await p.parseWebhook({
+      rawBody: JSON.stringify({
+        Shipment: { AWB: 'WB123', StatusDateTime: '2026-09-25T00:00:00' },
+      }),
+      headers: {},
+    })
+    expect(notices).toEqual([{ waybill: 'WB123', eventId: 'WB123:2026-09-25T00:00:00' }])
+  })
+
+  it('rejects a webhook call with the wrong shared secret', async () => {
+    const p = new DelhiveryProvider({ ...config, webhookSecret: 'shh' })
+    await expect(
+      p.parseWebhook({ rawBody: '{}', headers: { 'x-webhook-token': 'nope' } }),
+    ).rejects.toMatchObject({ kind: 'auth' })
+  })
+
+  it('accepts a webhook call with the matching shared secret', async () => {
+    const p = new DelhiveryProvider({ ...config, webhookSecret: 'shh' })
+    const notices = await p.parseWebhook({
+      rawBody: JSON.stringify({ waybill: 'WB9', StatusDateTime: '2026-09-25T01:00:00' }),
+      headers: { 'x-webhook-token': 'shh' },
+    })
+    expect(notices).toEqual([{ waybill: 'WB9', eventId: 'WB9:2026-09-25T01:00:00' }])
+  })
+})
+
 describe('delhiveryFactory', () => {
   it('requires token, names and a valid origin pincode', () => {
     expect(delhiveryFactory.validateConfig({})).toMatchObject({ ok: false })

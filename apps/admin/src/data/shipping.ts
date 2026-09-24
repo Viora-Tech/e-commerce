@@ -32,6 +32,12 @@ export const shippingSettingsContent = {
     city: 'City',
     state: 'State code',
     phone: 'Phone',
+    insuranceThreshold: 'Insure shipments worth over (₹)',
+    insuranceThresholdHelp:
+      'Orders at or above this value are insured by default when you book the shipment. Set to 0 to never insure automatically; you can still switch it on for one shipment.',
+    lowWalletBalance: 'Low courier wallet balance alert (₹)',
+    lowWalletBalanceHelp:
+      'The wallet card in Shipments warns you once your balance drops below this.',
   },
   weekdays: [
     { value: 1, label: 'Mon' },
