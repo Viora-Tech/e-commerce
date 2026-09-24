@@ -1,7 +1,6 @@
 'use client'
 
-import { ChevronDown, MoreVertical, SquarePlus } from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
+import { ChevronDown, ExternalLink, MoreVertical, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -16,9 +15,9 @@ import { toast } from 'sonner'
 import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
 import { paymentStatusOf } from '@/components/orders/order-payment-state'
-import OrderTiles, { type OrderStats } from '@/components/orders/order-tiles'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import RowIconCells from '@/components/table/row-icon-cells'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -31,7 +30,6 @@ type Item = ListResult['items'][number]
 export type OrdersInitial = {
   query: ListQuery<OrderStatus>
   result: ListResult
-  stats: OrderStats
   allCount: number
 }
 
@@ -52,23 +50,23 @@ function fetchOrders(q: Query) {
   })
 }
 
-/* Frame 5:2612: 40px bordered thumb with a 30px picture inset, 14px two-line title 12px beside it. */
+/* 32px thumb on a hairline, the first line title and a muted "+n more" under it. */
 function ProductCell({ item }: { item: Item }) {
   const extra = item.lineCount - 1
   return (
     <span className="flex items-center gap-3 text-left">
-      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[0.25rem] border border-secondary bg-card">
+      <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card">
         {item.firstLineImage ? (
           // biome-ignore lint/performance/noImgElement: remote store media, sized by the frame.
-          <img src={item.firstLineImage} alt="" className="size-[1.875rem] object-contain" />
+          <img src={item.firstLineImage} alt="" className="size-7 object-contain" />
         ) : null}
       </span>
       <span className="min-w-0">
-        <span className="line-clamp-2 text-kit-cell text-foreground">
+        <span className="line-clamp-1 text-body text-foreground">
           {item.firstLineTitle ?? ordersContent.guest}
         </span>
         {extra > 0 ? (
-          <span className="block text-kit-body text-muted-foreground">
+          <span className="block text-caption font-normal text-muted-foreground">
             {ordersContent.moreLines(extra)}
           </span>
         ) : null}
@@ -83,14 +81,14 @@ const columns: ResourceColumnSpec<Item>[] = [
     title: ordersContent.columns.order,
     sortValue: (o) => o.number,
     hideable: false,
-    className: 'w-32',
-    render: (o) => <span className="tabular-nums">#{o.number}</span>,
+    className: 'w-24',
+    render: (o) => <span className="font-medium text-ink-strong tabular-nums">#{o.number}</span>,
   },
   {
     id: 'product',
     title: ordersContent.columns.product,
     align: 'start',
-    className: 'w-[13.75rem] whitespace-normal',
+    className: 'w-[30%] whitespace-normal',
     render: (o) => <ProductCell item={o} />,
   },
   {
@@ -109,6 +107,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'total',
     title: ordersContent.columns.total,
     sortValue: (o) => o.totalPaise,
+    align: 'end',
     render: (o) => <span className="tabular-nums">{formatPaise(o.totalPaise)}</span>,
   },
   {
@@ -125,7 +124,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'status',
     title: ordersContent.columns.status,
     sortValue: (o) => o.status,
-    render: (o) => <StatusLabel kind="order" value={o.status} variant="glyph" />,
+    render: (o) => <StatusLabel kind="order" value={o.status} variant="pill" />,
   },
 ]
 
@@ -138,7 +137,6 @@ type TabsProps = {
 function StatusTabs({ value, allCount, onChange }: TabsProps) {
   return (
     <PillTabs
-      size="frame"
       value={value}
       onChange={onChange}
       tabs={[
@@ -149,27 +147,12 @@ function StatusTabs({ value, allCount, onChange }: TabsProps) {
   )
 }
 
-/* Frame 5:2502: 142 x 48 green primary with a 24px glyph, 142 x 48 outlined secondary, 12px apart. */
-const ACTION = 'h-12 w-[8.875rem] rounded-lg text-kit-cell font-medium [&_svg]:size-6'
-
+/* Secondary menu first, the ink primary action last (PageHeader order). */
 function HeaderActions() {
   return (
-    <div className="flex items-center gap-3">
-      <Button
-        size="lg"
-        className={ACTION}
-        render={<Link href="/orders/drafts" />}
-        nativeButton={false}
-      >
-        <SquarePlus strokeWidth={1.6} />
-        {ordersContent.addOrder}
-      </Button>
+    <div className="flex items-center gap-2">
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="outline" size="lg" className={cn(ACTION, 'pr-2 text-ink-strong')} />
-          }
-        >
+        <DropdownMenuTrigger render={<Button variant="outline" size="lg" className="pr-2" />}>
           {ordersContent.moreActions}
           <MoreVertical className="size-4" />
         </DropdownMenuTrigger>
@@ -182,6 +165,10 @@ function HeaderActions() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <Button size="lg" render={<Link href="/orders/drafts" />} nativeButton={false}>
+        <SquarePlus strokeWidth={1.6} />
+        {ordersContent.addOrder}
+      </Button>
     </div>
   )
 }
@@ -232,18 +219,39 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   return (
-    <KitListPage
-      title={ordersContent.heading}
-      actions={<HeaderActions />}
-      strip={<OrderTiles stats={initial.stats} />}
-    >
+    <KitListPage title={ordersContent.heading} actions={<HeaderActions />}>
       <ResourceTable
-        size="frame"
         resourceName={ordersContent.resource}
         columns={columns}
         items={items}
         getId={(o) => o.id}
         href={(o) => `/orders/${o.id}`}
+        rowIconCells={{
+          count: 2,
+          render: (o) => (
+            <RowIconCells
+              links={[
+                {
+                  label: ordersContent.row.openNewTab,
+                  icon: ExternalLink,
+                  href: `/orders/${o.id}`,
+                  newTab: true,
+                },
+              ]}
+              menu={[
+                { label: ordersContent.row.open, href: `/orders/${o.id}` },
+                ...(o.email
+                  ? [
+                      {
+                        label: ordersContent.row.sameCustomer,
+                        href: `/orders?query=${encodeURIComponent(o.email)}`,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          ),
+        }}
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}

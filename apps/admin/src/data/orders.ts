@@ -14,6 +14,11 @@ function ordinal(n: number): string {
 
 /** Copy for the orders list and shared order labels. */
 export const ordersContent = {
+  row: {
+    openNewTab: 'Open in a new tab',
+    open: 'Open order',
+    sameCustomer: 'Orders from this customer',
+  },
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
   heading: 'Order list',
@@ -22,13 +27,6 @@ export const ordersContent = {
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
-  tiles: {
-    total: 'Total orders',
-    placed: 'New orders',
-    delivered: 'Completed orders',
-    cancelled: 'Cancelled orders',
-    period: 'Last 7 days',
-  },
   tabs: {
     all: 'All orders',
   },
@@ -71,6 +69,7 @@ export const orderDetailContent = {
   back: 'Orders',
   title: (n: number) => `Order #${n}`,
   placed: (when: string) => `Placed ${when}`,
+  paidVia: 'Payment',
   previous: 'Previous order',
   next: 'Next order',
   actions: {
@@ -152,6 +151,21 @@ export const orderDetailContent = {
   items: {
     heading: 'Items',
     sku: 'SKU',
+    columns: {
+      product: 'Product',
+      sku: 'SKU',
+      variant: 'Variant',
+      quantity: 'Quantity',
+      price: 'Price',
+      total: 'Total',
+      actions: 'Actions',
+    },
+    summary: 'Order summary',
+    openProduct: 'Open product in a new tab',
+    viewProduct: 'View product',
+    stockForSku: 'Stock for this SKU',
+    paymentSummary: 'Payment summary',
+    groups: (n: number) => `${n} fulfilment ${n === 1 ? 'group' : 'groups'}`,
     subtotal: 'Subtotal',
     tax: 'Tax',
     cgst: (rate: number) => `CGST ${rate / 2}%`,
@@ -223,6 +237,12 @@ export const orderDetailContent = {
     noAddress: 'No address on file',
     billingSame: 'Billing address is the same as shipping',
     view: 'View customer',
+    heading2: 'Customer details',
+    viewOrders: 'View orders',
+    viewProfile: 'View profile',
+    edit: 'Edit',
+    editHint: 'Edit the address in the customer profile',
+    billing: 'Billing address',
   },
   tags: {
     heading: 'Tags',

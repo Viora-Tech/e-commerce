@@ -1,52 +1,89 @@
+import { PackageCheck } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent as copy } from '@/data/orders'
-import type { OrderDetail } from './order-detail-types'
-import OrderLineRow from './order-line-row'
-import { totalRows } from './order-totals'
+import type { StatusValue } from '@/data/status'
+import { type OrderDetail, packedQuantity, unfulfilledLines } from './order-detail-types'
+import OrderLinesTable from './order-lines-table'
+import { type TotalRow, totalRows } from './order-totals'
 
 type LineItemsCardProps = {
   order: OrderDetail
+  /** The payment pill for the summary's payment box. */
+  payment: StatusValue<'payment'>
+  /** False when the Unfulfilled section is not drawn (cancelled or imported orders), so
+   *  the lines still waiting show here instead; each line is shown exactly once. */
+  unfulfilledShown: boolean
 }
 
-/** What was bought, at the prices captured when the order was placed. */
-export default function LineItemsCard({ order }: LineItemsCardProps) {
+/**
+ * The rest of the order under the Unfulfilled section, after the Saleor order page: packed
+ * lines as a grey "Fulfilled" group, lines not shown elsewhere, then the order summary
+ * (totals, the GST split and what was settled).
+ */
+export default function LineItemsCard({ order, payment, unfulfilledShown }: LineItemsCardProps) {
   // Render logic
   const rows = totalRows(order)
-  const packed = order.lines.some((l) => l.fulfilledQuantity > 0)
-  const allPacked = order.lines.every((l) => l.fulfilledQuantity >= l.quantity)
-  const firstSettlement = rows.findIndex((r) => r.settlement)
+  const charges = rows.filter((r) => !r.settlement)
+  const settled = rows.filter((r) => r.settlement)
+  const packed = order.lines
+    .map((line) => ({ line, quantity: packedQuantity(order, line) }))
+    .filter((l) => l.quantity > 0)
+  const waiting = unfulfilledShown
+    ? []
+    : unfulfilledLines(order).map(({ line, remaining }) => ({ line, quantity: remaining }))
 
   return (
-    <DataCard
-      size="kit"
-      title={copy.items.heading}
-      action={
-        packed ? (
-          <StatusLabel
-            kind="fulfilment"
-            value={allPacked ? 'fulfilled' : 'unfulfilled'}
-            variant="pill"
-            size="sm"
-          />
-        ) : undefined
-      }
-    >
-      <ul className="divide-y divide-border">
-        {order.lines.map((l) => (
-          <OrderLineRow key={l.id} line={l} />
-        ))}
-      </ul>
-      <dl className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-        {rows.map((r, i) => (
+    <>
+      {packed.length > 0 ? (
+        <DataCard
+          tone="muted"
+          title={copy.unfulfilled.fulfilled}
+          icon={<PackageCheck aria-hidden="true" />}
+        >
+          <OrderLinesTable rows={packed} />
+        </DataCard>
+      ) : null}
+      {waiting.length > 0 ? (
+        <DataCard title={copy.items.heading}>
+          <OrderLinesTable rows={waiting} />
+        </DataCard>
+      ) : null}
+      <DataCard title={copy.items.summary}>
+        {/* Saleor's bottom row: what the order costs on the left, what was paid on the right. */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <SummaryBox rows={charges} />
+          <SummaryBox rows={settled} heading={copy.items.paymentSummary} pill={payment} />
+        </div>
+      </DataCard>
+    </>
+  )
+}
+
+type SummaryBoxProps = {
+  rows: TotalRow[]
+  heading?: string
+  pill?: StatusValue<'payment'>
+}
+
+function SummaryBox({ rows, heading, pill }: SummaryBoxProps) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">
+      {heading ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-body-strong text-ink-strong">{heading}</p>
+          {pill ? <StatusLabel kind="payment" value={pill} variant="pill" size="sm" /> : null}
+        </div>
+      ) : null}
+      <dl className="flex flex-col gap-2 text-body">
+        {rows.map((r) => (
           <div
             key={r.label}
             className={cn(
-              'flex justify-between',
-              r.strong && 'font-semibold',
+              'flex justify-between gap-4',
+              r.strong && 'font-semibold text-ink-strong',
               r.muted && 'text-muted-foreground',
-              i === firstSettlement && firstSettlement > 0 && 'mt-2 border-t border-border pt-4',
             )}
           >
             <dt>{r.label}</dt>
@@ -54,6 +91,6 @@ export default function LineItemsCard({ order }: LineItemsCardProps) {
           </div>
         ))}
       </dl>
-    </DataCard>
+    </div>
   )
 }

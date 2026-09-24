@@ -1,8 +1,9 @@
 'use client'
 
 import type { Tracking } from '@commerce/core'
-import { ExternalLink, Printer, RefreshCw } from '@commerce/ui/icons'
+import { ExternalLink, PackageCheck, Printer, RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
 import { shipmentPanelContent as copy } from '@/data/shipping'
@@ -31,9 +32,9 @@ export default function ShipmentPanel({
   const bookable = canBook && orderStatus !== 'cancelled' && orderStatus !== 'delivered'
   if (!shipment || canBook) {
     return (
-      <DataCard size="kit" title={copy.heading}>
+      <DataCard title={copy.heading}>
         <div className="flex items-center justify-between gap-4">
-          <p className="text-kit-cell text-muted-foreground">{copy.none}</p>
+          <p className="text-body text-muted-foreground">{copy.none}</p>
           {bookable ? (
             <Button onClick={onBook} disabled={busy}>
               {busy ? copy.booking : copy.book}
@@ -51,102 +52,95 @@ export default function ShipmentPanel({
 
   return (
     <DataCard
-      size="kit"
+      tone="muted"
       title={copy.heading}
-      action={<StatusLabel kind="shipment" value={shipment.status} variant="glyph" />}
-    >
-      <div className="flex flex-col gap-4">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-kit-cell sm:grid-cols-3">
-          <div>
-            <dt className="text-kit-body text-muted-foreground-soft">{copy.courier}</dt>
-            <dd className="font-medium">{shipment.provider}</dd>
-          </div>
-          <div>
-            <dt className="text-kit-body text-muted-foreground-soft">{copy.waybill}</dt>
-            <dd className="font-medium">
-              <code>{shipment.waybill}</code>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-kit-body text-muted-foreground-soft">{copy.updated}</dt>
-            <dd className="font-medium">
-              {when(shipment.updatedAt)}
-              {tracking?.expectedDate ? (
-                <span className="block text-kit-body">
-                  {copy.expected} {tracking.expectedDate}
-                </span>
-              ) : null}
-            </dd>
-          </div>
-        </dl>
-
-        <div className="flex flex-wrap items-center gap-2">
+      icon={<PackageCheck aria-hidden="true" />}
+      meta={
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>
+            {copy.courier}: <span className="text-foreground">{shipment.provider}</span>
+          </span>
+          <span aria-hidden="true">|</span>
+          <span className="inline-flex items-center gap-1">
+            {copy.waybill}: <code className="text-foreground">{shipment.waybill}</code>
+            {shipment.waybill ? <CopyButton value={shipment.waybill} what={copy.waybill} /> : null}
+          </span>
+          <span aria-hidden="true">|</span>
+          <span>
+            {copy.updated} {when(shipment.updatedAt)}
+            {tracking?.expectedDate ? `, ${copy.expected} ${tracking.expectedDate}` : ''}
+          </span>
+        </span>
+      }
+      action={
+        <>
+          <StatusLabel kind="shipment" value={shipment.status} variant="pill" size="sm" />
           {shipment.labelUrl ? (
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              aria-label={copy.label}
+              title={copy.label}
               render={<a href={shipment.labelUrl} target="_blank" rel="noreferrer" />}
               nativeButton={false}
             >
-              <Printer aria-hidden="true" /> {copy.label}
+              <Printer aria-hidden="true" />
             </Button>
           ) : null}
           {shipment.trackingUrl ? (
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              aria-label={copy.track}
+              title={copy.track}
               render={<a href={shipment.trackingUrl} target="_blank" rel="noreferrer" />}
               nativeButton={false}
             >
-              <ExternalLink aria-hidden="true" /> {copy.track}
+              <ExternalLink aria-hidden="true" />
             </Button>
           ) : null}
           {open ? (
             <>
-              <Button variant="outline" size="sm" onClick={onRefresh} disabled={busy}>
-                <RefreshCw aria-hidden="true" /> {copy.refresh}
-              </Button>
               <Button
-                variant="destructive"
-                size="sm"
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+                variant="outline"
                 onClick={onCancel}
                 disabled={busy}
+                className="text-destructive hover:text-destructive"
               >
                 {copy.cancel}
               </Button>
+              <Button onClick={onRefresh} disabled={busy}>
+                <RefreshCw aria-hidden="true" />
+                {copy.refresh}
+              </Button>
             </>
           ) : null}
-        </div>
-
-        <section className="border-t border-border pt-4">
-          <p className="text-kit-body text-muted-foreground-soft mb-2">{copy.events}</p>
-          {events.length === 0 ? (
-            <p className="text-kit-cell text-muted-foreground">{copy.noEvents}</p>
-          ) : (
-            <ol className="relative flex flex-col gap-3 border-l border-border pl-4">
-              {events.map((e) => (
-                <li key={`${e.at}-${e.description}`} className="relative text-kit-cell">
-                  <span
-                    className="absolute top-1.5 -left-5 size-2.5 rounded-full bg-primary"
-                    aria-hidden="true"
-                  />
-                  <p className="font-medium">
-                    {copy.status[e.status] ?? e.status}
-                    {e.location ? (
-                      <span className="text-muted-foreground">, {e.location}</span>
-                    ) : null}
-                  </p>
-                  <p className="text-kit-body text-muted-foreground-soft">
-                    {when(e.at)}
-                    {e.description ? `: ${e.description}` : ''}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-      </div>
+        </>
+      }
+    >
+      <p className="mb-3 text-caption text-muted-foreground">{copy.events}</p>
+      {events.length === 0 ? (
+        <p className="text-body text-muted-foreground">{copy.noEvents}</p>
+      ) : (
+        <ol className="relative flex flex-col gap-3 border-border border-l pl-4">
+          {events.map((e) => (
+            <li key={`${e.at}-${e.description}`} className="relative text-body">
+              <span
+                className="absolute top-1.5 -left-5 size-2.5 rounded-full border-2 border-background bg-border-strong"
+                aria-hidden="true"
+              />
+              <p className="text-ink-strong">
+                {copy.status[e.status] ?? e.status}
+                {e.location ? <span className="text-muted-foreground">, {e.location}</span> : null}
+              </p>
+              <p className="text-caption font-normal text-muted-foreground">
+                {when(e.at)}
+                {e.description ? `: ${e.description}` : ''}
+              </p>
+            </li>
+          ))}
+        </ol>
+      )}
     </DataCard>
   )
 }

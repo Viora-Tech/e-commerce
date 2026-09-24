@@ -165,6 +165,7 @@ async function withThumbnails(tx: StoreTx, lines: Line[]) {
   const rows = await tx
     .select({
       variantId: variant.id,
+      productId: variant.productId,
       sku: variant.sku,
       variantImage: media.url,
       productImage: sql<string | null>`(
@@ -177,7 +178,12 @@ async function withThumbnails(tx: StoreTx, lines: Line[]) {
   const byId = new Map(rows.map((r) => [r.variantId, r]))
   return lines.map((l) => {
     const v = byId.get(l.variantId)
-    return { ...l, sku: v?.sku ?? null, imageUrl: v?.variantImage ?? v?.productImage ?? null }
+    return {
+      ...l,
+      productId: v?.productId ?? null,
+      sku: v?.sku ?? null,
+      imageUrl: v?.variantImage ?? v?.productImage ?? null,
+    }
   })
 }
 

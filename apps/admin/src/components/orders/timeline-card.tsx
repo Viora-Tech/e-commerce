@@ -53,7 +53,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   const days = groupByDay(buildEntries(order))
 
   return (
-    <DataCard size="kit" title={copy.timeline.heading} className="print:hidden">
+    <DataCard title={copy.timeline.heading} className="print:hidden">
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <Textarea
           value={note}
@@ -71,7 +71,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
       <div className="mt-4 flex flex-col gap-5">
         {days.map((day) => (
           <section key={day.key}>
-            <p className="sticky top-14 z-10 -mx-5 bg-card px-5 py-1 text-kit-body font-medium text-muted-foreground">
+            <p className="sticky top-14 z-10 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
               {day.label}
             </p>
             <ol className="relative mt-2 flex flex-col gap-4 border-l border-border pl-6">
@@ -90,14 +90,14 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
                     </span>
                     <p
                       className={cn(
-                        'text-kit-cell',
+                        'text-body',
                         e.kind === 'note' ? 'whitespace-pre-wrap' : 'font-medium',
                       )}
                     >
                       {e.title}
                     </p>
-                    <p className="text-kit-body">{formatWhen(e.at)}</p>
-                    {e.detail ? <p className="text-kit-body">{e.detail}</p> : null}
+                    <p className="text-caption font-normal">{formatWhen(e.at)}</p>
+                    {e.detail ? <p className="text-caption font-normal">{e.detail}</p> : null}
                   </li>
                 )
               })}

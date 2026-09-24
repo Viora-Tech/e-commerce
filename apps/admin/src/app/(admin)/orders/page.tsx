@@ -11,7 +11,7 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(await searchParams, ORDER_STATUSES)
   const context = await serverContext()
-  const [result, stats, all] = await Promise.all([
+  const [result, all] = await Promise.all([
     call(
       appRouter.orders.list,
       {
@@ -22,9 +22,8 @@ export default async function Page({ searchParams }: Props) {
       },
       { context },
     ),
-    call(appRouter.orders.stats, undefined, { context }),
     call(appRouter.orders.list, { page: 1, perPage: 1 }, { context }),
   ])
 
-  return <OrdersPage initial={{ query, result, stats, allCount: all.total }} />
+  return <OrdersPage initial={{ query, result, allCount: all.total }} />
 }
