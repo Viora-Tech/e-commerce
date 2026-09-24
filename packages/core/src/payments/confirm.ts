@@ -1,37 +1,115 @@
 import { order, payment } from '@commerce/db'
 import type { ClientConfirmation, PaymentProvider, PaymentStatus } from '@commerce/payments'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { nextPaymentStatus } from './transitions'
 
 export type AppliedPayment = {
   payment: typeof payment.$inferSelect
-  /** True only on the call that moved the payment into `captured`; drives the payment_received notification. */
+  /** True only on the call that moved the payment into `captured` for a live order; drives the payment_received notification. */
   becameCaptured: boolean
+  /** True when money was captured that the order cannot keep (cancelled order, already paid). */
+  refundNeeded: boolean
 }
 
-/** Apply a gateway status to our payment and order rows. Idempotent. */
+type PaymentRef =
+  | { providerRef: string; idempotencyKey?: string | null | undefined }
+  | { paymentId: string }
+
+async function findPaymentId(ctx: StoreContext, ref: PaymentRef): Promise<string | null> {
+  if ('paymentId' in ref) return ref.paymentId
+  const [byRef] = await ctx.tx
+    .select({ id: payment.id })
+    .from(payment)
+    .where(eq(payment.providerRef, ref.providerRef))
+  if (byRef) return byRef.id
+  // The gateway call succeeded but recording its reference did not: the key the
+  // adapter stored on the gateway object still finds the attempt.
+  if (!ref.idempotencyKey) return null
+  const [byKey] = await ctx.tx
+    .select({ id: payment.id })
+    .from(payment)
+    .where(eq(payment.idempotencyKey, ref.idempotencyKey))
+  return byKey?.id ?? null
+}
+
+/**
+ * Apply a gateway status to one payment attempt and its order. Idempotent and
+ * forward-only (`nextPaymentStatus`): a duplicate capture is a no-op and a late
+ * failure after a capture is ignored.
+ *
+ * Locks the order, then the payment, in that order everywhere, so concurrent
+ * webhooks, the browser confirmation and a cancel serialise instead of
+ * deadlocking. A capture on an order that was cancelled, or that another
+ * attempt already paid, is kept as `captured` but flagged `refund_needed`
+ * instead of reviving the order.
+ */
 export async function applyPaymentStatus(
   ctx: StoreContext,
-  input: { providerRef: string; status: PaymentStatus; providerPaymentId: string | null },
+  input: PaymentRef & { status: PaymentStatus; providerPaymentId: string | null },
 ): Promise<AppliedPayment | null> {
-  const [p] = await ctx.tx.select().from(payment).where(eq(payment.providerRef, input.providerRef))
-  if (!p) return null
-  const status = input.status === 'authorized' ? 'pending' : input.status
-  // never downgrade a capture
-  if (p.status === 'captured' && status !== 'refunded') return { payment: p, becameCaptured: false }
+  const id = await findPaymentId(ctx, input)
+  if (!id) return null
+  const [head] = await ctx.tx
+    .select({ orderId: payment.orderId })
+    .from(payment)
+    .where(eq(payment.id, id))
+  if (!head) return null
+  const [o] = await ctx.tx
+    .select({ id: order.id, status: order.status })
+    .from(order)
+    .where(eq(order.id, head.orderId))
+    .for('update')
+  const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, id)).for('update')
+  if (!p || !o) return null
+
+  const next = nextPaymentStatus(p.status, input.status)
+  const providerRef = 'providerRef' in input ? input.providerRef : p.providerRef
+  if (!next) {
+    return { payment: p, becameCaptured: false, refundNeeded: p.refundNeeded }
+  }
+
+  let refundNeeded = p.refundNeeded
+  if (next === 'captured') {
+    const [other] = await ctx.tx
+      .select({ id: payment.id })
+      .from(payment)
+      .where(
+        and(
+          eq(payment.orderId, p.orderId),
+          ne(payment.id, p.id),
+          eq(payment.status, 'captured'),
+          ne(payment.provider, 'gift_card'),
+          eq(payment.multiCapture, false),
+          eq(payment.refundNeeded, false),
+        ),
+      )
+      .limit(1)
+    refundNeeded = o.status === 'cancelled' || !!other
+  }
+
   const [updated] = await ctx.tx
     .update(payment)
-    .set({ status, providerPaymentId: input.providerPaymentId ?? p.providerPaymentId })
+    .set({
+      status: next,
+      providerRef,
+      providerPaymentId: input.providerPaymentId ?? p.providerPaymentId,
+      refundNeeded,
+    })
     .where(eq(payment.id, p.id))
     .returning()
-  if (status === 'captured') {
+  if (!updated) return null
+  if (next === 'captured' && !refundNeeded) {
     await ctx.tx
       .update(order)
       .set({ status: 'paid' })
       .where(and(eq(order.id, p.orderId), eq(order.status, 'placed')))
   }
-  if (!updated) return null
-  return { payment: updated, becameCaptured: status === 'captured' && p.status !== 'captured' }
+  return {
+    payment: updated,
+    becameCaptured: next === 'captured' && !refundNeeded,
+    refundNeeded,
+  }
 }
 
 /** Browser came back from a client-side checkout: verify with the adapter, then record. */

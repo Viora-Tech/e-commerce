@@ -15,12 +15,13 @@ import {
   withStore,
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
+import type { CheckoutSession } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { CartEmpty, CartNotOpen, DiscountUnavailable, OutOfStock, PaymentFailed } from '../errors'
+import { CartEmpty, CartNotOpen, DiscountUnavailable, OutOfStock } from '../errors'
 import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
-import { placeOrder } from './place-order'
+import { placeOrder, placeOrderAndPay } from './place-order'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -85,9 +86,7 @@ describe('placeOrder', () => {
     const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 2 })
     const provider = new FakePaymentProvider({ mode: 'capture' })
 
-    const result = await withStore(app, storeId, (tx) =>
-      placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
-    )
+    const result = await placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider })
 
     expect(result.orderNumber).toBe(1)
     expect(result.paymentStatus).toBe('captured')
@@ -132,12 +131,11 @@ describe('placeOrder', () => {
     const cod = new FakePaymentProvider({ mode: 'capture', id: 'cod' })
     const upi = new FakePaymentProvider({ mode: 'capture', id: 'upi' })
 
-    const r1 = await withStore(app, first.storeId, (tx) =>
-      placeOrder({ storeId: first.storeId, tx }, { cartId: first.cartId, paymentProvider: cod }),
-    )
-    const r2 = await withStore(app, first.storeId, (tx) =>
-      placeOrder({ storeId: first.storeId, tx }, { cartId: c2.id, paymentProvider: upi }),
-    )
+    const r1 = await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: cod,
+    })
+    const r2 = await placeOrderAndPay(app, first.storeId, { cartId: c2.id, paymentProvider: upi })
 
     const [o1] = await owner.select().from(order).where(eq(order.id, r1.orderId))
     expect(o1).toMatchObject({
@@ -176,12 +174,10 @@ describe('placeOrder', () => {
     await owner.update(cart).set({ discountCode: 'launch10' }).where(eq(cart.id, first.cartId))
     const provider = new FakePaymentProvider({ mode: 'capture' })
 
-    const r1 = await withStore(app, first.storeId, (tx) =>
-      placeOrder(
-        { storeId: first.storeId, tx },
-        { cartId: first.cartId, paymentProvider: provider },
-      ),
-    )
+    const r1 = await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: provider,
+    })
     const [o1] = await owner.select().from(order).where(eq(order.id, r1.orderId))
     expect(o1).toMatchObject({
       subtotalPaise: 499900,
@@ -212,14 +208,15 @@ describe('placeOrder', () => {
       quantity: 1,
       unitPricePaise: 499900,
     })
-    const r2 = await withStore(app, first.storeId, (tx) =>
-      placeOrder({ storeId: first.storeId, tx }, { cartId: c2.id, paymentProvider: provider }),
-    )
+    const r2 = await placeOrderAndPay(app, first.storeId, {
+      cartId: c2.id,
+      paymentProvider: provider,
+    })
     const [o2] = await owner.select().from(order).where(eq(order.id, r2.orderId))
     expect(o2).toMatchObject({ discountCode: null, discountPaise: 0, totalPaise: 499900 })
   })
 
-  it('applies the best automatic discount without a code and undoes usage on failure', async () => {
+  it('applies the best automatic discount without a code', async () => {
     const first = await seed({ onHand: 10, quantity: 2 })
     await owner.insert(discount).values([
       {
@@ -239,22 +236,11 @@ describe('placeOrder', () => {
       },
     ])
 
-    const declined = new FakePaymentProvider({ mode: 'fail' })
-    await expect(
-      withStore(app, first.storeId, (tx) =>
-        placeOrder(
-          { storeId: first.storeId, tx },
-          { cartId: first.cartId, paymentProvider: declined },
-        ),
-      ),
-    ).rejects.toBeInstanceOf(PaymentFailed)
-    const rows = await owner.select().from(discount)
-    expect(rows.every((r) => r.usedCount === 0)).toBe(true)
-
     const ok = new FakePaymentProvider({ mode: 'capture' })
-    const r = await withStore(app, first.storeId, (tx) =>
-      placeOrder({ storeId: first.storeId, tx }, { cartId: first.cartId, paymentProvider: ok }),
-    )
+    const r = await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: ok,
+    })
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
     // 5% of 999800 = 49990 beats the flat 200.
     expect(o).toMatchObject({
@@ -283,26 +269,16 @@ describe('placeOrder', () => {
     })
     const provider = new FakePaymentProvider({ mode: 'capture' })
 
-    const r1 = await withStore(app, first.storeId, (tx) =>
-      placeOrder(
-        { storeId: first.storeId, tx },
-        {
-          cartId: first.cartId,
-          paymentProvider: provider,
-          checkout: checkout('Asha Menon', 'Asha@Example.com', 'Bengaluru'),
-        },
-      ),
-    )
-    const r2 = await withStore(app, first.storeId, (tx) =>
-      placeOrder(
-        { storeId: first.storeId, tx },
-        {
-          cartId: c2.id,
-          paymentProvider: provider,
-          checkout: checkout('Asha M.', 'asha@example.com ', 'Mysuru'),
-        },
-      ),
-    )
+    const r1 = await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: provider,
+      checkout: checkout('Asha Menon', 'Asha@Example.com', 'Bengaluru'),
+    })
+    const r2 = await placeOrderAndPay(app, first.storeId, {
+      cartId: c2.id,
+      paymentProvider: provider,
+      checkout: checkout('Asha M.', 'asha@example.com ', 'Mysuru'),
+    })
 
     const rows = await owner.select().from(customer).where(eq(customer.storeId, first.storeId))
     expect(rows).toHaveLength(1)
@@ -319,9 +295,7 @@ describe('placeOrder', () => {
     const provider = new FakePaymentProvider({ mode: 'capture' })
 
     await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
-      ),
+      placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider }),
     ).rejects.toBeInstanceOf(OutOfStock)
 
     expect(await owner.select().from(order)).toEqual([])
@@ -333,33 +307,45 @@ describe('placeOrder', () => {
     expect(provider.calls).toEqual([])
   })
 
-  it('throws PaymentFailed, releases stock and keeps the cart open when the gateway declines', async () => {
+  it('keeps the order and its stock, and fails only the attempt, when the gateway errors after commit', async () => {
     const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 2 })
     const provider = new FakePaymentProvider({ mode: 'fail' })
 
-    await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
-      ),
-    ).rejects.toBeInstanceOf(PaymentFailed)
+    const r = await placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider })
 
-    expect(await owner.select().from(order)).toEqual([])
+    expect(r).toMatchObject({ paymentStatus: 'failed', session: null, becameCaptured: false })
+    expect(r.paymentError).toContain('declined')
+    const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
+    expect(o?.status).toBe('placed')
+    const [pay] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
+    expect(pay).toMatchObject({ status: 'failed', attempt: 1, idempotencyKey: `${r.orderId}:1` })
+    expect(pay?.error).toContain('declined')
     const [inv] = await owner
       .select()
       .from(inventoryLevel)
       .where(eq(inventoryLevel.variantId, variantId))
-    expect(inv?.reserved).toBe(0)
+    expect(inv?.reserved).toBe(2)
     const [c] = await owner.select().from(cart).where(eq(cart.id, cartId))
-    expect(c?.status).toBe('open')
+    expect(c?.status).toBe('converted')
+  })
+
+  it('never calls the gateway inside the stock transaction', async () => {
+    const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    const r = await withStore(app, storeId, (tx) =>
+      placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
+    )
+    expect(provider.calls).toEqual([])
+    expect(r).toMatchObject({ paymentStatus: 'created', session: null })
+    const [pay] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
+    expect(pay).toMatchObject({ status: 'created', gatewayRequestedAt: null })
   })
 
   it('rejects a cart that is not open', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
     await owner.update(cart).set({ status: 'converted' }).where(eq(cart.id, cartId))
     await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
-      ),
+      placeOrderAndPay(app, storeId, { cartId, paymentProvider: new FakePaymentProvider() }),
     ).rejects.toBeInstanceOf(CartNotOpen)
   })
 
@@ -375,15 +361,14 @@ describe('placeOrder', () => {
       unitPricePaise: 499900,
     })
     const provider = new FakePaymentProvider()
-    const r1 = await withStore(app, first.storeId, (tx) =>
-      placeOrder(
-        { storeId: first.storeId, tx },
-        { cartId: first.cartId, paymentProvider: provider },
-      ),
-    )
-    const r2 = await withStore(app, first.storeId, (tx) =>
-      placeOrder({ storeId: first.storeId, tx }, { cartId: c2.id, paymentProvider: provider }),
-    )
+    const r1 = await placeOrderAndPay(app, first.storeId, {
+      cartId: first.cartId,
+      paymentProvider: provider,
+    })
+    const r2 = await placeOrderAndPay(app, first.storeId, {
+      cartId: c2.id,
+      paymentProvider: provider,
+    })
     expect([r1.orderNumber, r2.orderNumber]).toEqual([1, 2])
   })
 
@@ -391,24 +376,28 @@ describe('placeOrder', () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
     await owner.delete(cartLine).where(eq(cartLine.cartId, cartId))
     await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
-      ),
+      placeOrderAndPay(app, storeId, { cartId, paymentProvider: new FakePaymentProvider() }),
     ).rejects.toBeInstanceOf(CartEmpty)
   })
 
   it('refunds a captured payment when the database fails afterwards', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
     const refunds: string[] = []
-    // Captures money, then reports a status the payment table's check constraint rejects.
+    // Captures money at creation, then hands back a session the database cannot store.
     const brokenRef: PaymentProvider = {
       id: 'broken',
       label: 'Broken',
       async createPayment() {
         return {
           providerRef: 'pay_broken',
-          status: 'captured-but-weird' as unknown as 'captured',
-          session: { kind: 'none', provider: 'broken', providerRef: 'pay_broken' },
+          status: 'captured',
+          // A BigInt cannot be serialised into jsonb, so recording the answer fails.
+          session: {
+            kind: 'none',
+            provider: 'broken',
+            providerRef: 'pay_broken',
+            extra: BigInt(1),
+          } as unknown as CheckoutSession,
         }
       },
       async confirm() {
@@ -425,14 +414,13 @@ describe('placeOrder', () => {
         return { ok: false, reason: 'none' }
       },
     }
-    const silent = { error: () => {} }
-    await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: brokenRef }, silent),
-      ),
-    ).rejects.toThrow()
+    const r = await placeOrderAndPay(app, storeId, { cartId, paymentProvider: brokenRef })
     expect(refunds).toEqual(['pay_broken:499900'])
-    expect(await owner.select().from(order)).toEqual([])
+    expect(r.paymentStatus).toBe('failed')
+    const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
+    expect(o?.status).toBe('placed')
+    const [pay] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
+    expect(pay?.status).toBe('failed')
   })
 })
 
@@ -467,16 +455,11 @@ describe('placeOrder discount limits under concurrency', () => {
   async function checkoutAll(first: Seed, cartIds: string[], withDetails: boolean) {
     return Promise.allSettled(
       cartIds.map((cartId) =>
-        withStore(app, first.storeId, (tx) =>
-          placeOrder(
-            { storeId: first.storeId, tx },
-            {
-              cartId,
-              paymentProvider: new FakePaymentProvider({ mode: 'capture' }),
-              ...(withDetails ? { checkout } : {}),
-            },
-          ),
-        ),
+        placeOrderAndPay(app, first.storeId, {
+          cartId,
+          paymentProvider: new FakePaymentProvider({ mode: 'capture' }),
+          ...(withDetails ? { checkout } : {}),
+        }),
       ),
     )
   }
@@ -544,10 +527,7 @@ describe('placeOrder lock and replay', () => {
   it('two concurrent submits of one cart create exactly one order', async () => {
     const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 2 })
     const provider = new FakePaymentProvider({ mode: 'capture' })
-    const submit = () =>
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
-      )
+    const submit = () => placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider })
 
     const [a, b] = await Promise.all([submit(), submit()])
 
@@ -566,15 +546,13 @@ describe('placeOrder lock and replay', () => {
   it('a retry after the order is placed returns the same order and session', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
     const provider = new FakePaymentProvider()
-    const submit = () =>
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId, paymentProvider: provider }),
-      )
+    const submit = () => placeOrderAndPay(app, storeId, { cartId, paymentProvider: provider })
 
     const first = await submit()
     const retry = await submit()
 
-    expect(retry).toEqual({ ...first, replayed: true })
+    expect(retry).toEqual({ ...first, replayed: true, becameCaptured: false })
+    expect(provider.calls).toHaveLength(1)
     const [o] = await owner.select().from(order).where(eq(order.id, first.orderId))
     expect(o?.cartId).toBe(cartId)
     const [s] = await owner.select().from(store).where(eq(store.id, storeId))
@@ -583,9 +561,10 @@ describe('placeOrder lock and replay', () => {
 
   it('the database refuses a second order for the same cart', async () => {
     const { storeId, cartId } = await seed({ onHand: 5, quantity: 1 })
-    const { orderId } = await withStore(app, storeId, (tx) =>
-      placeOrder({ storeId, tx }, { cartId, paymentProvider: new FakePaymentProvider() }),
-    )
+    const { orderId } = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: new FakePaymentProvider(),
+    })
     const [o] = await owner.select().from(order).where(eq(order.id, orderId))
     if (!o) throw new Error('seed')
     const { id: _id, ...copy } = o

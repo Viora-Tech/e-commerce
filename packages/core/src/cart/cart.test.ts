@@ -13,7 +13,7 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { placeOrder } from '../order/place-order'
+import { placeOrderAndPay } from '../order/place-order'
 import { CodPaymentProvider } from '../providers/cod'
 import { addToCart, createCart, getCart, setLineQuantity } from './cart'
 
@@ -68,20 +68,21 @@ describe('cart', () => {
 
   it('checks out with cash on delivery: customer, address, snapshots, pending payment', async () => {
     const { storeId, variantId } = await seed()
-    const result = await withStore(app, storeId, async (tx) => {
+    const cartId = await withStore(app, storeId, async (tx) => {
       const ctx = { storeId, tx }
-      const cartId = await createCart(ctx)
-      await addToCart(ctx, cartId, variantId, 2)
-      return placeOrder(ctx, {
-        cartId,
-        paymentProvider: new CodPaymentProvider(),
-        checkout: {
-          email: 'buyer@example.com',
-          phone: '9999999999',
-          name: 'A Buyer',
-          address: { line1: '1 Street', city: 'Sonipat', stateCode: 'HR', pincode: '131001' },
-        },
-      })
+      const id = await createCart(ctx)
+      await addToCart(ctx, id, variantId, 2)
+      return id
+    })
+    const result = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: new CodPaymentProvider(),
+      checkout: {
+        email: 'buyer@example.com',
+        phone: '9999999999',
+        name: 'A Buyer',
+        address: { line1: '1 Street', city: 'Sonipat', stateCode: 'HR', pincode: '131001' },
+      },
     })
     expect(result.paymentStatus).toBe('pending')
     const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))

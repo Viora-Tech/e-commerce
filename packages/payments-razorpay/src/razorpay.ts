@@ -45,6 +45,9 @@ export function buildOrderNotes(input: CreatePaymentInput): Record<string, strin
   const candidates: Record<string, string | undefined> = {
     orderId: input.orderId,
     orderNumber: input.orderNumber != null ? String(input.orderNumber) : undefined,
+    // Echoed back on every payment webhook, so an attempt can be matched even if
+    // recording the Razorpay order id failed after the API call.
+    idempotencyKey: input.idempotencyKey,
     shipping_name: s?.name,
     shipping_line1: s?.line1,
     shipping_line2: s?.line2,
@@ -61,6 +64,21 @@ export function buildOrderNotes(input: CreatePaymentInput): Record<string, strin
     if (Object.keys(notes).length === NOTES_MAX_KEYS) break
   }
   return notes
+}
+
+/** Razorpay caps `receipt` at 40 characters. */
+const RECEIPT_MAX_LEN = 40
+
+/**
+ * The receipt merchants see in the Razorpay dashboard: `order-1042`, and
+ * `order-1042-2` for the second attempt. Razorpay has no idempotency header for
+ * orders, so our own dedupe (one gateway call per attempt row) does that job.
+ */
+export function buildReceipt(input: CreatePaymentInput): string {
+  const attempt = input.idempotencyKey?.split(':').at(-1)
+  const base = input.orderNumber != null ? `order-${input.orderNumber}` : input.orderId
+  const receipt = attempt && attempt !== '1' ? `${base}-${attempt}` : base
+  return receipt.slice(0, RECEIPT_MAX_LEN)
 }
 
 /**
@@ -132,7 +150,7 @@ export class RazorpayProvider implements PaymentProvider {
     const order = await this.client.orders.create({
       amount: input.amountPaise,
       currency: input.currency,
-      receipt: input.orderNumber != null ? `order-${input.orderNumber}` : input.orderId,
+      receipt: buildReceipt(input),
       payment_capture: true,
       notes: buildOrderNotes(input),
     })
@@ -234,6 +252,7 @@ export class RazorpayProvider implements PaymentProvider {
   }): WebhookEvent {
     const pay = body.payload?.payment?.entity
     const orderId = pay?.notes?.orderId ?? null
+    const idempotencyKey = pay?.notes?.idempotencyKey ?? null
     switch (body.event) {
       case 'payment.captured':
         if (!pay) break
@@ -241,6 +260,7 @@ export class RazorpayProvider implements PaymentProvider {
           type: 'payment.captured',
           providerRef: pay.order_id ?? '',
           providerPaymentId: pay.id,
+          idempotencyKey,
           amountPaise: Number(pay.amount),
           orderId,
           raw: body,
@@ -251,6 +271,7 @@ export class RazorpayProvider implements PaymentProvider {
           type: 'payment.authorized',
           providerRef: pay.order_id ?? '',
           providerPaymentId: pay.id,
+          idempotencyKey,
           amountPaise: Number(pay.amount),
           orderId,
           raw: body,
@@ -261,6 +282,7 @@ export class RazorpayProvider implements PaymentProvider {
           type: 'payment.failed',
           providerRef: pay.order_id ?? '',
           providerPaymentId: pay.id,
+          idempotencyKey,
           reason: pay.error_description ?? 'failed',
           orderId,
           raw: body,

@@ -792,6 +792,17 @@ export const orderLine = pgTable('order_line', {
   giftCard: boolean('gift_card').notNull().default(false),
 })
 
+export const PAYMENT_STATUSES = [
+  'created',
+  'pending',
+  'authorized',
+  'captured',
+  'failed',
+  'cancelled',
+  'refunded',
+] as const
+export type PaymentRowStatus = (typeof PAYMENT_STATUSES)[number]
+
 export const payment = pgTable(
   'payment',
   {
@@ -806,14 +817,46 @@ export const payment = pgTable(
     providerPaymentId: text('provider_payment_id'),
     /** CheckoutSession from the adapter, so the pay page can open the gateway after a redirect. */
     checkoutSession: jsonb('checkout_session'),
-    status: text('status', { enum: ['pending', 'captured', 'refunded', 'failed'] }).notNull(),
+    /**
+     * One row per attempt. `created`: recorded, gateway not asked yet. Moves only
+     * forward (see core `nextPaymentStatus`); `failed` and `cancelled` attempts
+     * stay as history and a retry adds a new row.
+     */
+    status: text('status', { enum: PAYMENT_STATUSES }).notNull(),
     amountPaise: integer('amount_paise').notNull(),
+    /** 1 for the first attempt on an order, then 2, 3… for each retry. */
+    attempt: integer('attempt').notNull().default(1),
+    /** `<orderId>:<attempt>`; sent to the gateway so one attempt is never charged twice. */
+    idempotencyKey: text('idempotency_key'),
+    /** Set by the one caller that asks the gateway for this attempt; a second caller backs off. */
+    gatewayRequestedAt: timestamp('gateway_requested_at', { withTimezone: true }),
+    /** Why the attempt failed (gateway error, decline reason). */
+    error: text('error'),
+    /**
+     * Money was captured but the order cannot keep it: the order was cancelled
+     * or expired first, or another attempt had already paid it. Shown on the
+     * admin order page until someone refunds it.
+     */
+    refundNeeded: boolean('refund_needed').notNull().default(false),
+    /** Opt-out of the one-capture-per-order rule, for split payments taken on purpose. */
+    multiCapture: boolean('multi_capture').notNull().default(false),
+    createdAt: createdAt(),
   },
   (t) => [
     check(
       'payment_status_check',
-      sql`${t.status} in ('pending', 'captured', 'refunded', 'failed')`,
+      sql`${t.status} in ('created', 'pending', 'authorized', 'captured', 'failed', 'cancelled', 'refunded')`,
     ),
+    uniqueIndex('payment_store_idempotency_key')
+      .on(t.storeId, t.idempotencyKey)
+      .where(sql`${t.idempotencyKey} is not null`),
+    /* At most one gateway capture per order. Gift cards are split tender by
+       design; a capture flagged refund-needed is money on its way back. */
+    uniqueIndex('payment_one_capture_per_order')
+      .on(t.storeId, t.orderId)
+      .where(
+        sql`${t.status} = 'captured' and ${t.provider} <> 'gift_card' and not ${t.multiCapture} and not ${t.refundNeeded}`,
+      ),
   ],
 )
 

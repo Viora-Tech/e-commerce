@@ -365,6 +365,13 @@
       "when": 1790310000000,
       "tag": "0054_shipping_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1790320000000,
+      "tag": "0055_payment_attempts",
+      "breakpoints": true
     }
   ]
 }

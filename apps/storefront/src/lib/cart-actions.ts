@@ -10,23 +10,26 @@ import {
   GiftCardError,
   getCart,
   onOrderPlaced,
+  PaymentNotRetryable,
   type PlaceOrderResult,
-  placeOrder,
+  placeOrderAndPay,
   rememberCheckoutAddress,
+  retryAndStartPayment,
   ShippingRateUnavailable,
   ShippingUnavailable,
   setCartAttribution,
   setLineQuantity,
 } from '@commerce/core'
-import { payment } from '@commerce/db'
+import { order, payment } from '@commerce/db'
 import type { ClientConfirmation } from '@commerce/payments'
-import { eq } from 'drizzle-orm'
+import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
+import { db } from './db'
 import { notify } from './notifications'
 import { storePaymentProviders } from './payments'
 import { estimateForPincode } from './shipping'
@@ -134,6 +137,9 @@ export async function checkoutAction(
     }
   }
 
+  /* The order and its stock are committed first; the gateway is asked after
+     that, so a slow gateway never holds stock locks. A gateway failure leaves
+     the order placed and the shopper retries from the thank-you page. */
   const placed = await inStore(storeId, async (tx) => {
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === form.payment)
@@ -142,9 +148,10 @@ export async function checkoutAction(
     for (const code of form.giftCards ?? []) {
       giftCardIds.push((await findRedeemableGiftCard({ storeId, tx }, code)).id)
     }
-    return placeOrder(
-      { storeId, tx },
-      {
+    return { provider, giftCardIds }
+  })
+    .then(({ provider, giftCardIds }) =>
+      placeOrderAndPay(db(), storeId, {
         cartId,
         paymentProvider: provider,
         giftCardIds,
@@ -161,20 +168,21 @@ export async function checkoutAction(
             pincode: form.pincode,
           },
         },
-      },
+      }),
     )
-  }).catch((err: unknown) => {
-    // Gift card rules (spent elsewhere, COD for the rest, a card in a mixed basket) are the shopper's to fix.
-    if (err instanceof GiftCardError) return { error: err.message }
-    // Another checkout took the last use of the code; the next submit prices without it.
-    if (err instanceof DiscountUnavailable)
-      return { error: checkoutContent.errors.discountUnavailable }
-    // Rates are the store's to set; the shopper can only change the address or re-pick.
-    if (err instanceof ShippingUnavailable)
-      return { error: checkoutContent.errors.noShipping(form.pincode) }
-    if (err instanceof ShippingRateUnavailable) return { error: checkoutContent.errors.rateChanged }
-    throw err
-  })
+    .catch((err: unknown) => {
+      // Gift card rules (spent elsewhere, COD for the rest, a card in a mixed basket) are the shopper's to fix.
+      if (err instanceof GiftCardError) return { error: err.message }
+      // Another checkout took the last use of the code; the next submit prices without it.
+      if (err instanceof DiscountUnavailable)
+        return { error: checkoutContent.errors.discountUnavailable }
+      // Rates are the store's to set; the shopper can only change the address or re-pick.
+      if (err instanceof ShippingUnavailable)
+        return { error: checkoutContent.errors.noShipping(form.pincode) }
+      if (err instanceof ShippingRateUnavailable)
+        return { error: checkoutContent.errors.rateChanged }
+      throw err
+    })
   if ('error' in placed) return { error: placed.error }
   const result = placed
   await clearCartId()
@@ -191,18 +199,51 @@ export async function checkoutAction(
     console.error('[checkout] could not update marketing automations', err),
   )
   await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
-  // Paid in full at checkout (gift cards): the paid path issues cards and sends the receipt.
-  if (result.paymentStatus === 'captured') {
+  // Paid at checkout (gift cards, capture-at-creation gateways): the paid path issues cards and sends the receipt.
+  if (result.becameCaptured) {
     await notify({ storeId, orderId: result.orderId, template: 'payment_received' })
   }
   redirectAfterCheckout(result)
 }
 
-/** Open the gateway, or go straight to the thank-you page. */
-function redirectAfterCheckout(result: PlaceOrderResult): never {
-  if (result.session.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
-  if (result.session.kind === 'redirect') redirect(result.session.url)
+/** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */
+function redirectAfterCheckout(result: Pick<PlaceOrderResult, 'session' | 'orderNumber'>): never {
+  if (result.session?.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
+  if (result.session?.kind === 'redirect') redirect(result.session.url)
   redirect(`/checkout/thank-you/${result.orderNumber}`)
+}
+
+/**
+ * "Retry payment" after a failed attempt: a new attempt on the same order,
+ * with the same amount and gateway, then back to the gateway. Two taps make
+ * one attempt; the order and its stock are untouched.
+ */
+export async function retryPaymentAction(storeId: string, orderNumber: number) {
+  const target = await inStore(storeId, async (tx) => {
+    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
+    if (!o) return null
+    const [latest] = await tx
+      .select({ provider: payment.provider })
+      .from(payment)
+      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
+      .orderBy(desc(payment.attempt), desc(payment.id))
+      .limit(1)
+    const providers = await storePaymentProviders(tx, storeId)
+    const provider = providers.find((p) => p.id === latest?.provider)
+    return provider ? { orderId: o.id, provider } : null
+  })
+  if (!target) redirect(`/checkout/thank-you/${orderNumber}`)
+  const started = await retryAndStartPayment(db(), storeId, target.orderId, target.provider).catch(
+    (err: unknown) => {
+      // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
+      if (err instanceof PaymentNotRetryable) return null
+      throw err
+    },
+  )
+  if (started?.becameCaptured) {
+    await notify({ storeId, orderId: target.orderId, template: 'payment_received' })
+  }
+  redirectAfterCheckout({ session: started?.session ?? null, orderNumber })
 }
 
 /** Browser posts the gateway's confirmation after a client-side checkout. */

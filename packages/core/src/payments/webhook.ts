@@ -18,7 +18,9 @@ export type WebhookOutcome =
 /**
  * Verify, store, then process a gateway webhook. Storing first with a unique
  * (store, provider, eventId) makes retries from the gateway harmless: a
- * duplicate is acknowledged without being applied twice.
+ * duplicate is acknowledged without being applied twice. Two deliveries of one
+ * event racing each other meet on that unique index: the second insert waits
+ * for the first transaction, then finds the event processed.
  */
 export async function handlePaymentWebhook(
   ctx: StoreContext,
@@ -28,11 +30,23 @@ export async function handlePaymentWebhook(
   const parsed = provider.parseWebhook(input)
   if (!parsed.ok) return parsed
 
-  const [existing] = await ctx.tx
+  await ctx.tx
+    .insert(paymentEvent)
+    .values({
+      storeId: ctx.storeId,
+      provider: provider.id,
+      eventId: parsed.eventId,
+      type: parsed.event.type,
+      payload: parsed.event.raw ?? {},
+    })
+    .onConflictDoNothing()
+  const [row] = await ctx.tx
     .select({ id: paymentEvent.id, status: paymentEvent.status })
     .from(paymentEvent)
     .where(and(eq(paymentEvent.provider, provider.id), eq(paymentEvent.eventId, parsed.eventId)))
-  if (existing?.status === 'processed') {
+    .for('update')
+  if (!row) throw new Error('payment_event row missing after insert')
+  if (row.status === 'processed') {
     return {
       ok: true,
       eventId: parsed.eventId,
@@ -42,20 +56,6 @@ export async function handlePaymentWebhook(
     }
   }
 
-  const [row] = existing
-    ? [existing]
-    : await ctx.tx
-        .insert(paymentEvent)
-        .values({
-          storeId: ctx.storeId,
-          provider: provider.id,
-          eventId: parsed.eventId,
-          type: parsed.event.type,
-          payload: parsed.event.raw ?? {},
-        })
-        .returning({ id: paymentEvent.id, status: paymentEvent.status })
-  if (!row) throw new Error('payment_event insert returned nothing')
-
   let applied = false
   let capturedOrderId: string | null = null
   try {
@@ -63,6 +63,7 @@ export async function handlePaymentWebhook(
     if (e.type === 'payment.captured' || e.type === 'payment.authorized') {
       const r = await applyPaymentStatus(ctx, {
         providerRef: e.providerRef,
+        idempotencyKey: e.idempotencyKey,
         status: e.type === 'payment.captured' ? 'captured' : 'authorized',
         providerPaymentId: e.providerPaymentId,
       })
@@ -72,6 +73,7 @@ export async function handlePaymentWebhook(
       applied =
         (await applyPaymentStatus(ctx, {
           providerRef: e.providerRef,
+          idempotencyKey: e.idempotencyKey,
           status: 'failed',
           providerPaymentId: e.providerPaymentId,
         })) !== null

@@ -1,7 +1,12 @@
-import { type FulfilOrderInput, fulfilOrderLines, refundedPaise } from '@commerce/core'
+import {
+  type FulfilOrderInput,
+  fulfilOrderLines,
+  OPEN_ATTEMPT_STATUSES,
+  refundedPaise,
+} from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { customer, order, payment } from '@commerce/db'
-import { and, asc, count, desc, eq, gt, lt, lte, ne } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne } from 'drizzle-orm'
 
 /** The orders either side of this one by number, for the header's arrows. */
 export async function orderNeighbours(tx: StoreTx, id: string) {
@@ -104,7 +109,10 @@ export async function collectOrderPayment(
   const pending = await tx
     .select()
     .from(payment)
-    .where(and(eq(payment.orderId, input.orderId), eq(payment.status, 'pending')))
+    .where(
+      and(eq(payment.orderId, input.orderId), inArray(payment.status, [...OPEN_ATTEMPT_STATUSES])),
+    )
+    .orderBy(desc(payment.attempt))
   const first = pending[0]
   if (first) {
     await tx.update(payment).set({ status: 'captured' }).where(eq(payment.id, first.id))

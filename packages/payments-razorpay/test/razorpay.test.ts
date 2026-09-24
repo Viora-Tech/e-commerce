@@ -1,9 +1,10 @@
 import { createHmac } from 'node:crypto'
 import { describePaymentProvider } from '@commerce/payments/testing'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   buildDisplayConfig,
   buildOrderNotes,
+  buildReceipt,
   RazorpayProvider,
   razorpayFactory,
 } from '../src/razorpay'
@@ -152,5 +153,52 @@ describe('display config', () => {
       method: 'cardless_emi',
       providers: ['snapmint'],
     })
+  })
+})
+
+describe('payment attempts', () => {
+  const base = { orderId: 'o1', amountPaise: 100, currency: 'INR' as const, customer: {} }
+
+  it('puts the attempt number in the receipt, capped at 40 characters', () => {
+    expect(buildReceipt({ ...base, orderNumber: 42, idempotencyKey: 'o1:1' })).toBe('order-42')
+    expect(buildReceipt({ ...base, orderNumber: 42, idempotencyKey: 'o1:3' })).toBe('order-42-3')
+    expect(buildReceipt({ ...base, orderId: 'x'.repeat(60) })).toHaveLength(40)
+  })
+
+  it('sends the key in notes and receipt without calling the real API', async () => {
+    const p = new RazorpayProvider(config)
+    const create = vi.fn(async (body: Record<string, unknown>) => ({ id: 'order_m1', ...body }))
+    // Mock the HTTP client: nothing leaves the machine.
+    const client = (p as unknown as { client: { orders: { create: typeof create } } }).client
+    client.orders.create = create
+    const r = await p.createPayment({ ...base, orderNumber: 9, idempotencyKey: 'o1:2' })
+    expect(r.providerRef).toBe('order_m1')
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      receipt: 'order-9-2',
+      notes: { orderId: 'o1', idempotencyKey: 'o1:2' },
+    })
+  })
+
+  it('echoes the key from payment notes on webhooks', () => {
+    const body = JSON.stringify({
+      event: 'payment.failed',
+      payload: {
+        payment: {
+          entity: {
+            id: 'pay_9',
+            order_id: 'order_m1',
+            amount: 100,
+            status: 'failed',
+            notes: { orderId: 'o1', idempotencyKey: 'o1:2' },
+          },
+        },
+      },
+    })
+    const r = new RazorpayProvider(config).parseWebhook({
+      rawBody: body,
+      headers: { 'x-razorpay-signature': sign(body), 'x-razorpay-event-id': 'evt_9' },
+    })
+    expect(r.ok && r.event).toMatchObject({ type: 'payment.failed', idempotencyKey: 'o1:2' })
   })
 })

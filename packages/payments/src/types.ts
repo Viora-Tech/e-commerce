@@ -25,6 +25,13 @@ export type CreatePaymentInput = {
   shipping?: PaymentShipping | undefined
   /** Basket summary; gateways forward it to lenders and show it on their pages. */
   lines?: PaymentLine[] | undefined
+  /**
+   * One key per payment attempt (`<orderId>:<attempt>`). Adapters pass it to the
+   * gateway's idempotency header where one exists, and otherwise store it on the
+   * gateway object (receipt, notes) so webhooks can find the attempt by it.
+   * Pattern from Medusa's payment provider `idempotency_key` (MIT).
+   */
+  idempotencyKey?: string | undefined
 }
 
 export type PaymentShipping = {
@@ -89,6 +96,8 @@ export type WebhookEvent =
   | {
       type: 'payment.captured'
       providerRef: string
+      /** The attempt's idempotency key, when the gateway echoes it back (notes). */
+      idempotencyKey?: string | null | undefined
       providerPaymentId: string
       amountPaise: number
       orderId: string | null
@@ -97,6 +106,8 @@ export type WebhookEvent =
   | {
       type: 'payment.authorized'
       providerRef: string
+      /** The attempt's idempotency key, when the gateway echoes it back (notes). */
+      idempotencyKey?: string | null | undefined
       providerPaymentId: string
       amountPaise: number
       orderId: string | null
@@ -105,6 +116,8 @@ export type WebhookEvent =
   | {
       type: 'payment.failed'
       providerRef: string
+      /** The attempt's idempotency key, when the gateway echoes it back (notes). */
+      idempotencyKey?: string | null | undefined
       providerPaymentId: string | null
       reason: string
       orderId: string | null
