@@ -9,6 +9,7 @@ import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createNotificationWorker } from './notifications'
 import { paymentWebhooks } from './payments'
+import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { createConnection, createHeartbeat } from './queues'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 
@@ -36,6 +37,7 @@ const appJobWorker = createAppJobWorker(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 
+const unpaidExpiry = createUnpaidOrderExpiry(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const domains = createDomainPoller(redis, db, {
   provider: env.DOMAIN_PROVIDER,
@@ -51,6 +53,11 @@ await tracker.queue.upsertJobScheduler(
   'track-open-shipments',
   { every: TRACK_EVERY_MS },
   { name: 'track' },
+)
+await unpaidExpiry.queue.upsertJobScheduler(
+  'expire-unpaid-orders',
+  { every: EXPIRY_EVERY_MS },
+  { name: 'expire' },
 )
 // Abandoned-cart recovery now runs as a Marketing automation; drop the old sweep's schedule.
 await retireAbandonedSweep(redis)
@@ -91,6 +98,8 @@ const shutdown = async () => {
   await appJobWorker.close()
   await tracker.worker.close()
   await tracker.queue.close()
+  await unpaidExpiry.worker.close()
+  await unpaidExpiry.queue.close()
   await domains.worker.close()
   await domains.queue.close()
   await marketing.tick.close()

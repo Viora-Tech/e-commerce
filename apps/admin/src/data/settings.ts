@@ -87,7 +87,10 @@ export const settingsContent = {
       { id: 'section-policy', label: 'Dispatch policy' },
       { id: 'section-try-pin', label: 'Try a PIN code' },
     ],
-    payments: [{ id: 'section-methods', label: 'Payment methods' }],
+    payments: [
+      { id: 'section-methods', label: 'Payment methods' },
+      { id: 'section-unpaid', label: 'Unpaid orders' },
+    ],
     files: [
       { id: 'section-providers', label: 'Storage' },
       { id: 'section-verify', label: 'Connection' },

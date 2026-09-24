@@ -5,11 +5,19 @@ import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fi
 import ProviderSettingsForm, {
   type ProviderDef,
 } from '@/components/settings/provider-settings-form'
+import SettingsSection from '@/components/settings/settings-section'
+import UnpaidExpiryField from '@/components/settings/unpaid-expiry-field'
 import { paymentsSettingsContent as copy } from '@/data/payments'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 
-type Extra = { adjustments: Record<string, PaymentAdjustment> }
+type Extra = {
+  adjustments: Record<string, PaymentAdjustment>
+  /** Minutes before an unpaid online order is cancelled; 0 is never. */
+  expireUnpaidAfterMinutes: number
+}
+
+const DEFAULT_EXPIRY_MINUTES = 30
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
@@ -32,7 +40,7 @@ function webhookHint(m: ProviderDef) {
 function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) => void) {
   const setAdjustment = (adj: PaymentAdjustment | undefined) => {
     const { [m.id]: _drop, ...rest } = extra.adjustments
-    setExtra({ adjustments: adj ? { ...rest, [m.id]: adj } : rest })
+    setExtra({ ...extra, adjustments: adj ? { ...rest, [m.id]: adj } : rest })
   }
 
   return (
@@ -44,6 +52,18 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
   )
 }
 
+function footer(extra: Extra, setExtra: (next: Extra) => void) {
+  const [, unpaid] = settingsContent.sections.payments
+  return (
+    <SettingsSection id={unpaid?.id ?? 'section-unpaid'}>
+      <UnpaidExpiryField
+        value={extra.expireUnpaidAfterMinutes}
+        onChange={(expireUnpaidAfterMinutes) => setExtra({ ...extra, expireUnpaidAfterMinutes })}
+      />
+    </SettingsSection>
+  )
+}
+
 export default function PaymentsSettings() {
   return (
     <ProviderSettingsForm<Extra>
@@ -51,9 +71,10 @@ export default function PaymentsSettings() {
       intro={copy.intro}
       load={load}
       save={save}
-      emptyExtra={{ adjustments: {} }}
+      emptyExtra={{ adjustments: {}, expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES }}
       renderHint={webhookHint}
       renderExtra={adjustmentFields}
+      renderFooter={footer}
       sections={settingsContent.sections.payments}
     />
   )
