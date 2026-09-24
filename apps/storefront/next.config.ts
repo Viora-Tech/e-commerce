@@ -1,4 +1,4 @@
-import { withSentryConfig } from '@sentry/nextjs'
+import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 
 const config: NextConfig = {
@@ -33,9 +33,12 @@ const config: NextConfig = {
 
 // GlitchTip needs no source-map upload (that's a Sentry SaaS feature requiring an auth
 // token); this only wraps the build to inject release/runtime hooks for instrumentation.ts.
-export default withSentryConfig(config, {
-  silent: true,
-  disableLogger: true,
-  sourcemaps: { disable: true },
-  telemetry: false,
-})
+// Dev skips the wrapper: under Turbopack dev it made the first compile run away on memory.
+export default process.env.NODE_ENV === 'production'
+  ? withSentryConfig(config, {
+      silent: true,
+      disableLogger: true,
+      sourcemaps: { disable: true },
+      telemetry: false,
+    })
+  : config
