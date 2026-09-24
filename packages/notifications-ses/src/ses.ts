@@ -50,7 +50,7 @@ export class SesChannel implements NotificationChannel {
   async send(message: Message): Promise<SendResult> {
     const to = message.to.email
     if (!to) return { ok: false, error: 'recipient has no email' }
-    const body = renderEmail(message.template, message.data)
+    const body = await renderEmail(message.template, message.data)
     try {
       const r = await this.client.send(
         new SendEmailCommand({
