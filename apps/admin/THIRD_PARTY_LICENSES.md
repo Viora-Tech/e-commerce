@@ -49,6 +49,25 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
+## @svg-maps/india (Creative Commons Attribution 4.0 International)
+
+Source: https://github.com/VictorCazanave/svg-maps/tree/master/packages/india (npm:
+`@svg-maps/india`, v2.0.0). Copyright (c) Victor Cazanave.
+
+What we adapted: the state/UT path data (`INDIA_MAP_LOCATIONS` in
+`src/data/india-map.ts`), read from the installed package at build time and rendered as
+inline `<path>` elements in `src/components/home/india-order-map.tsx` (not the package's
+own `<SVGMap>` component). Not modified. The licence URI is
+https://creativecommons.org/licenses/by/4.0/; its full text is above, under Macaw UI.
+A small "Map: @svg-maps/india (CC BY 4.0)" credit shows under the map itself.
+
+Known limitation, called out in `src/data/india-map.ts`: this data predates the August
+2019 reorganisation, so it has one path for the whole former state of Jammu & Kashmir and
+no separate Ladakh outline (Dadra & Nagar Haveli and Daman & Diu are likewise still two
+territories, merged into one UT since 2020). Ladakh's orders are folded into the J&K path
+and labelled "Jammu & Kashmir and Ladakh" in the tooltip and legend until a source with the
+current boundary is available; every path still renders as Indian territory either way.
+
 ## Macaw UI (Creative Commons Attribution 4.0 International)
 
 Source: https://github.com/saleor/macaw-ui. MacawUI (c) 2021-2025 by Saleor Commerce.

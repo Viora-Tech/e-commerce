@@ -221,6 +221,26 @@ describe('dashboard.summary', () => {
 
     // Map: only o1 carries a shipping address.
     expect(s.mapOrders).toEqual([expect.objectContaining({ number: 1, stateCode: 'KA' })])
+
+    // Payment mix, status mix and the hours heatmap read the last 30 days, cancelled orders
+    // dropped from the mix (o3) but kept in the status mix's "cancelled" bucket.
+    expect(s.paymentMix).toEqual([{ label: 'Other', count: 3 }])
+    expect(s.statusMix).toEqual([
+      { status: 'to_ship', count: 3 },
+      { status: 'shipped', count: 0 },
+      { status: 'delivered', count: 0 },
+      { status: 'cancelled', count: 1 },
+    ])
+    expect(s.hoursHeatmap).toHaveLength(7)
+    for (const row of s.hoursHeatmap) expect(row).toHaveLength(24)
+    const heatmapTotal = s.hoursHeatmap.reduce((n, row) => n + row.reduce((m, v) => m + v, 0), 0)
+    expect(heatmapTotal).toBe(3)
+
+    // Today's sparkline: o1 placed just now is in one hourly bucket; yesterday has none.
+    expect(s.today.hourly).toHaveLength(24)
+    expect(s.today.hourly.reduce((n, v) => n + v, 0)).toBe(1)
+    expect(s.yesterday.hourly).toHaveLength(24)
+    expect(s.yesterday.hourly.reduce((n, v) => n + v, 0)).toBe(0)
   })
 
   it('buckets the report series by IST day and rebuilds stock from the adjustment log', async () => {
@@ -312,7 +332,12 @@ describe('dashboard.summary', () => {
     expect(s.salesByState).toEqual([])
     expect(s.categories).toEqual([])
     expect(s.latestProducts).toEqual([])
-    expect(s.today).toEqual({ ordersCount: 0, salesPaise: 0, toShipCount: 0 })
+    expect(s.today).toEqual({
+      ordersCount: 0,
+      salesPaise: 0,
+      toShipCount: 0,
+      hourly: Array.from({ length: 24 }, () => 0),
+    })
     expect(s.needsYou).toEqual({
       ordersToShip: { count: 0, href: '/orders?status=unfulfilled' },
       upiToVerify: { count: 0, href: '/orders?status=pending_upi' },
@@ -323,5 +348,89 @@ describe('dashboard.summary', () => {
     })
     expect(s.insight).toEqual({ salesChange: null, bestSeller: null })
     expect(s.mapOrders).toEqual([])
+    expect(s.paymentMix).toEqual([])
+    expect(s.statusMix).toEqual([
+      { status: 'to_ship', count: 0 },
+      { status: 'shipped', count: 0 },
+      { status: 'delivered', count: 0 },
+      { status: 'cancelled', count: 0 },
+    ])
+    expect(s.hoursHeatmap).toEqual(
+      Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0)),
+    )
+    expect(s.today.hourly).toEqual(Array.from({ length: 24 }, () => 0))
+    expect(s.yesterday.hourly).toEqual(Array.from({ length: 24 }, () => 0))
+  })
+})
+
+describe('dashboard.charts', () => {
+  it('buckets sales and order counts for the range against the same span before it, and lists top products by revenue', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [p1, p2] = await owner
+      .insert(product)
+      .values([
+        { storeId: a.storeId, handle: 'mouse', title: 'Mouse', status: 'active' },
+        { storeId: a.storeId, handle: 'pad', title: 'Pad', status: 'active' },
+      ])
+      .returning()
+    const [v1, v2] = await owner
+      .insert(variant)
+      .values([
+        { storeId: a.storeId, productId: p1?.id as string, title: 'Default', pricePaise: 100000 },
+        { storeId: a.storeId, productId: p2?.id as string, title: 'Default', pricePaise: 20000 },
+      ])
+      .returning()
+    const base = { storeId: a.storeId, subtotalPaise: 0 }
+    const [inRange, , inPrevious] = await owner
+      .insert(order)
+      .values([
+        { ...base, number: 1, totalPaise: 100000, status: 'open', placedAt: daysAgo(2) },
+        { ...base, number: 2, totalPaise: 999999, status: 'open', placedAt: daysAgo(20) },
+        { ...base, number: 3, totalPaise: 40000, status: 'open', placedAt: daysAgo(9) },
+      ])
+      .returning()
+    await owner.insert(orderLine).values([
+      {
+        storeId: a.storeId,
+        orderId: inRange?.id as string,
+        variantId: v1?.id as string,
+        quantity: 1,
+        unitPricePaise: 100000,
+      },
+      {
+        storeId: a.storeId,
+        orderId: inPrevious?.id as string,
+        variantId: v2?.id as string,
+        quantity: 2,
+        unitPricePaise: 20000,
+      },
+    ])
+
+    const charts = await call(appRouter.dashboard.charts, { range: 7 }, { context: a.ctx })
+
+    expect(charts.range).toBe(7)
+    expect(charts.days).toHaveLength(7)
+    expect(charts.salesPaise.reduce((n, v) => n + v, 0)).toBe(100000)
+    expect(charts.orders.reduce((n, v) => n + v, 0)).toBe(1)
+    // The order from 9 days ago falls in the previous 7-day span, not the current one.
+    expect(charts.previousSalesPaise).not.toBeNull()
+    expect(charts.previousSalesPaise?.reduce((n, v) => n + v, 0)).toBe(40000)
+    // The order from 20 days ago is outside both spans.
+    expect(
+      (charts.salesPaise.reduce((n, v) => n + v, 0) as number) +
+        (charts.previousSalesPaise?.reduce((n, v) => n + v, 0) ?? 0),
+    ).toBe(140000)
+    expect(charts.topProducts).toEqual([
+      expect.objectContaining({ title: 'Mouse', units: 1, revenuePaise: 100000 }),
+    ])
+  })
+
+  it('is all zeros with no previous-period data for a fresh store', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const charts = await call(appRouter.dashboard.charts, { range: 30 }, { context: a.ctx })
+    expect(charts.salesPaise.every((v) => v === 0)).toBe(true)
+    expect(charts.orders.every((v) => v === 0)).toBe(true)
+    expect(charts.previousSalesPaise).toBeNull()
+    expect(charts.topProducts).toEqual([])
   })
 })

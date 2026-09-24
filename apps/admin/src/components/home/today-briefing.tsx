@@ -1,5 +1,6 @@
-import { briefingSentence, greetingWord } from '@/data/home'
+import { briefingSentence, greetingWord, homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
+import TodaySparkline from './today-sparkline'
 
 type TodayBriefingProps = {
   firstName: string
@@ -7,6 +8,8 @@ type TodayBriefingProps = {
   salesTodayPaise: number
   toShip: number
   now: Date
+  todayHourly: number[]
+  yesterdayHourly: number[]
 }
 
 /** The hour of the day in the store's clock (India runs one timezone: IST). */
@@ -29,6 +32,8 @@ export default function TodayBriefing({
   salesTodayPaise,
   toShip,
   now,
+  todayHourly,
+  yesterdayHourly,
 }: TodayBriefingProps) {
   const sentence = briefingSentence({
     greeting: greetingWord(istHour(now)),
@@ -37,6 +42,19 @@ export default function TodayBriefing({
     salesToday: formatPaise(salesTodayPaise),
     toShip,
   })
+  const hasHistory = todayHourly.some((v) => v > 0) || yesterdayHourly.some((v) => v > 0)
 
-  return <p className="text-balance text-page-title text-ink-strong">{sentence}</p>
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <p className="text-balance text-page-title text-ink-strong">{sentence}</p>
+      {hasHistory ? (
+        <div className="flex items-center gap-2">
+          <TodaySparkline today={todayHourly} yesterday={yesterdayHourly} />
+          <span className="text-caption text-muted-foreground">
+            {homeContent.charts.todayVsYesterday}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  )
 }

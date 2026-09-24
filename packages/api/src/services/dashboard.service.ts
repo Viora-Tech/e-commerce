@@ -50,7 +50,9 @@ const TOP_PRODUCTS = 5
 const LOW_STOCK_THRESHOLD = 5
 const LOW_STOCK_ROWS = 6
 const HOURS = 24
-const STATE_ROWS = 3
+const STATE_ROWS = 5
+/** How many days of order history the payment mix, status mix and hours heatmap read. */
+const MIX_WINDOW_DAYS = 30
 const LIVE_MINUTES = 30
 const CATEGORY_ROWS = 3
 const LATEST_PRODUCTS = 3
@@ -151,12 +153,18 @@ export type DashboardSummary = {
     orders: number
     share: number
   }[]
-  /** Today, in IST: for the "Good evening" briefing sentence. */
+  /** Today, in IST: for the "Good evening" briefing sentence and its sparkline. */
   today: {
     ordersCount: number
     salesPaise: number
     /** Today's orders that are paid but not yet fulfilled. */
     toShipCount: number
+    /** Orders per hour so far today, IST, midnight first, one entry per hour up to and including now. */
+    hourly: number[]
+  }
+  /** Yesterday's full 24 hours, IST, same shape as `today.hourly`, for the briefing sparkline's comparison line. */
+  yesterday: {
+    hourly: number[]
   }
   /**
    * The "Needs you" inbox: one row per actionable queue, each with a count and
@@ -198,6 +206,31 @@ export type DashboardSummary = {
     totalPaise: number
     placedAt: Date
   }[]
+  /** How the last 30 days of orders were paid for, by plain-language method label, busiest first. */
+  paymentMix: { label: string; count: number }[]
+  /** Where the last 30 days of orders sit right now, in a fixed owner-facing order. */
+  statusMix: { status: 'to_ship' | 'shipped' | 'delivered' | 'cancelled'; count: number }[]
+  /** Orders by weekday (0 = Sunday, IST) x hour (0-23, IST) over the last 30 days, for the "when do people buy" heatmap. */
+  hoursHeatmap: number[][]
+}
+
+export type DashboardChartRange = 7 | 30 | 90
+
+export type DashboardChartsData = {
+  range: DashboardChartRange
+  /** ISO dates (YYYY-MM-DD) in IST, oldest first, one entry per day of `range`. */
+  days: string[]
+  salesPaise: number[]
+  orders: number[]
+  /** Same shape as `salesPaise`, for the range immediately before; `null` when there is no order history that far back. */
+  previousSalesPaise: number[] | null
+  topProducts: {
+    productId: string
+    title: string
+    imageUrl: string | null
+    units: number
+    revenuePaise: number
+  }[]
 }
 
 const IST_OFFSET_MS = 5.5 * 3_600_000
@@ -226,6 +259,57 @@ function dayIndex(at: Date, from: Date, days: number): number {
 
 function zeros(n: number): number[] {
   return Array.from({ length: n }, () => 0)
+}
+
+/** Hour of the day (0-23) that `at` falls in, read in IST. */
+function istHour(at: Date): number {
+  return new Date(at.getTime() + IST_OFFSET_MS).getUTCHours()
+}
+
+/** Day of the week (0 = Sunday) that `at` falls on, read in IST. */
+function istWeekday(at: Date): number {
+  return new Date(at.getTime() + IST_OFFSET_MS).getUTCDay()
+}
+
+/** Order counts per hour (0-23, IST) for rows placed in `[from, to)`. */
+function hourlyCounts(rows: { placedAt: Date }[], from: Date, to: Date): number[] {
+  const out = zeros(24)
+  for (const r of rows) {
+    if (r.placedAt < from || r.placedAt >= to) continue
+    const h = istHour(r.placedAt)
+    out[h] = (out[h] ?? 0) + 1
+  }
+  return out
+}
+
+/** Free-text `order.paymentMethod` values, in plain words for the payment-mix donut. */
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cod: 'Cash on delivery',
+  manual: 'UPI or bank transfer',
+  razorpay: 'Card, UPI or netbanking',
+  razorpay_upi: 'UPI',
+  gift_card: 'Gift card',
+}
+
+function paymentMethodLabel(method: string | null): string {
+  if (!method) return 'Other'
+  return PAYMENT_METHOD_LABELS[method] ?? method
+}
+
+/** Where an order sits for the owner: shipped/delivered take priority over a stale "to ship". */
+function statusBucket(r: {
+  status: string
+  fulfillmentStatus: string
+}): 'to_ship' | 'shipped' | 'delivered' | 'cancelled' | null {
+  if (r.status === 'cancelled') return 'cancelled'
+  if (r.fulfillmentStatus === 'delivered' || r.fulfillmentStatus === 'returned') return 'delivered'
+  if (r.fulfillmentStatus === 'shipped' || r.fulfillmentStatus === 'partially_delivered') {
+    return 'shipped'
+  }
+  if (r.fulfillmentStatus === 'unfulfilled' || r.fulfillmentStatus === 'partially_fulfilled') {
+    return 'to_ship'
+  }
+  return null
 }
 
 /** Count `rows` into one bucket per day between `from` (inclusive) and `from + days`. */
@@ -716,6 +800,50 @@ export async function dashboardSummary(
     .orderBy(desc(order.placedAt))
     .limit(MAP_ORDERS)
 
+  /* Payment mix, status mix and the hours heatmap: one extra 30-day query, reused for all three. */
+  const mixRows = await tx
+    .select({
+      status: order.status,
+      fulfillmentStatus: order.fulfillmentStatus,
+      paymentMethod: order.paymentMethod,
+      placedAt: order.placedAt,
+    })
+    .from(order)
+    .where(and(notDraft, gte(order.placedAt, startOfDay(now, MIX_WINDOW_DAYS - 1))))
+  const liveMixRows = mixRows.filter((r) => r.status !== 'cancelled')
+
+  const paymentCounts = new Map<string, number>()
+  for (const r of liveMixRows) {
+    const label = paymentMethodLabel(r.paymentMethod)
+    paymentCounts.set(label, (paymentCounts.get(label) ?? 0) + 1)
+  }
+  const paymentMix = [...paymentCounts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  const statusCounts = new Map<string, number>()
+  for (const r of mixRows) {
+    const bucket = statusBucket(r)
+    if (bucket) statusCounts.set(bucket, (statusCounts.get(bucket) ?? 0) + 1)
+  }
+  const statusMix = (['to_ship', 'shipped', 'delivered', 'cancelled'] as const).map((status) => ({
+    status,
+    count: statusCounts.get(status) ?? 0,
+  }))
+
+  const hoursHeatmap: number[][] = Array.from({ length: 7 }, () => zeros(HOURS))
+  for (const r of liveMixRows) {
+    const row = hoursHeatmap[istWeekday(r.placedAt)]
+    if (!row) continue
+    const h = istHour(r.placedAt)
+    row[h] = (row[h] ?? 0) + 1
+  }
+
+  /* Today vs yesterday, hour by hour (IST), for the briefing sparkline. */
+  const yesterdayStart = startOfDay(now, 1)
+  const todayHourly = hourlyCounts(live(recentRows), todayStart, now)
+  const yesterdayHourly = hourlyCounts(live(recentRows), yesterdayStart, todayStart)
+
   return {
     sales: { value: sumPaise(live(cur)), previous: sumPaise(live(prev)) },
     orders: { value: live(cur).length, previous: live(prev).length },
@@ -755,7 +883,9 @@ export async function dashboardSummary(
       ordersCount: todayRows.length,
       salesPaise: sumPaise(todayRows),
       toShipCount: toShipTodayRow?.n ?? 0,
+      hourly: todayHourly,
     },
+    yesterday: { hourly: yesterdayHourly },
     needsYou: {
       ordersToShip: { count: ordersToShipRow?.n ?? 0, href: '/orders?status=unfulfilled' },
       upiToVerify: { count: upiToVerifyRow?.n ?? 0, href: '/orders?status=pending_upi' },
@@ -775,6 +905,93 @@ export async function dashboardSummary(
       streakDays,
     },
     mapOrders: mapOrderRows,
+    paymentMix,
+    statusMix,
+    hoursHeatmap,
+  }
+}
+
+/**
+ * The range-switch chart data for the home page: sales and order counts for `range`
+ * days against the same span before it, plus the top 5 products by revenue in that
+ * range. Separate from `dashboardSummary` so switching the range only refetches this.
+ */
+export async function dashboardCharts(
+  tx: StoreTx,
+  opts: { storeId?: string; now?: Date; range?: DashboardChartRange } = {},
+): Promise<DashboardChartsData> {
+  const now = opts.now ?? new Date()
+  const range = opts.range ?? 30
+  const from = startOfDay(now, range - 1)
+  const prevFrom = startOfDay(now, range * 2 - 1)
+
+  const rows = await tx
+    .select({ status: order.status, totalPaise: order.totalPaise, placedAt: order.placedAt })
+    .from(order)
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, prevFrom)))
+
+  const days = Array.from({ length: range }, (_, i) =>
+    isoDate(new Date(from.getTime() + i * DAY_MS)),
+  )
+  const salesPaise = zeros(range)
+  const orders = zeros(range)
+  const previousSalesPaise = zeros(range)
+  let hasPrevious = false
+  for (const r of rows) {
+    const curIdx = dayIndex(r.placedAt, from, range)
+    if (curIdx >= 0) {
+      salesPaise[curIdx] = (salesPaise[curIdx] ?? 0) + r.totalPaise
+      orders[curIdx] = (orders[curIdx] ?? 0) + 1
+      continue
+    }
+    const prevIdx = dayIndex(r.placedAt, prevFrom, range)
+    if (prevIdx >= 0) {
+      hasPrevious = true
+      previousSalesPaise[prevIdx] = (previousSalesPaise[prevIdx] ?? 0) + r.totalPaise
+    }
+  }
+
+  const revenueExpr = sql<number>`sum(${orderLine.quantity} * ${orderLine.unitPricePaise})`
+  const topRows = await tx
+    .select({
+      productId: variant.productId,
+      title: product.title,
+      units: sum(orderLine.quantity).mapWith(Number),
+      revenuePaise: revenueExpr.mapWith(Number),
+    })
+    .from(orderLine)
+    .innerJoin(order, eq(order.id, orderLine.orderId))
+    .innerJoin(variant, eq(variant.id, orderLine.variantId))
+    .innerJoin(product, eq(product.id, variant.productId))
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, from)))
+    .groupBy(variant.productId, product.title)
+    .orderBy(desc(revenueExpr))
+    .limit(TOP_PRODUCTS)
+
+  const topIds = topRows.map((r) => r.productId)
+  const images = topIds.length
+    ? await tx
+        .select({
+          productId: productMedia.productId,
+          url: media.url,
+          position: productMedia.position,
+        })
+        .from(productMedia)
+        .innerJoin(media, eq(media.id, productMedia.mediaId))
+        .where(inArray(productMedia.productId, topIds))
+        .orderBy(asc(productMedia.position))
+    : []
+  const firstImage = new Map<string, string>()
+  for (const img of images)
+    if (!firstImage.has(img.productId)) firstImage.set(img.productId, img.url)
+
+  return {
+    range,
+    days,
+    salesPaise,
+    orders,
+    previousSalesPaise: hasPrevious ? previousSalesPaise : null,
+    topProducts: topRows.map((r) => ({ ...r, imageUrl: firstImage.get(r.productId) ?? null })),
   }
 }
 

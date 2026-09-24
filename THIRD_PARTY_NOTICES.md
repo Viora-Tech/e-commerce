@@ -9,6 +9,7 @@ that adapts outside work keeps the full licence text next to it; this file is th
 | [Saleor Dashboard](https://github.com/saleor/saleor-dashboard) | BSD 3-Clause | Admin layout patterns (top nav, list filter bar, datagrid density and pager, card anatomy, detail main + side layout), re-implemented on our shadcn/Base UI | `apps/admin/src/components/layout`, `apps/admin/src/components/table` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 | [Macaw UI](https://github.com/saleor/macaw-ui) | CC BY 4.0 | Theme token values (neutral palette, borders, overlay shadows, type steps), modified | `packages/ui/src/styles.css` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 | Inter, Geist, Noto Sans (+ Devanagari, SC) | SIL Open Font License 1.1 | Fonts embedded in invoice PDFs | `packages/invoices/fonts` | `OFL.txt` beside each family |
+| [@svg-maps/india](https://github.com/VictorCazanave/svg-maps/tree/master/packages/india) | CC BY 4.0 | State/UT path data for the admin home page's real India order map, rendered as inline SVG | `apps/admin/src/data/india-map.ts`, `apps/admin/src/components/home/india-order-map.tsx` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 
 Paid UI kits: Aceternity UI Pro may be used in builder blocks under the owner's written permission, see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md).
 

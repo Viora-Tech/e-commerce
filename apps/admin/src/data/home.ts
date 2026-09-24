@@ -97,7 +97,13 @@ export const homeContent = {
   map: {
     title: 'Orders across India',
     subtitle: (n: number) => `Last ${n} orders`,
-    empty: 'Orders will appear here as pulsing dots once you have shipping addresses.',
+    empty: 'States will shade in here once you have shipping addresses.',
+    legendLow: 'Fewer orders',
+    legendHigh: 'More orders',
+    tooltipOrders: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
+    /** Jammu & Kashmir's path also carries Ladakh's orders; see `data/india-map.ts`. */
+    jkLaName: 'Jammu & Kashmir and Ladakh',
+    credit: 'Map: @svg-maps/india (CC BY 4.0)',
   },
   liveStream: {
     title: 'Latest orders',
@@ -118,5 +124,50 @@ export const homeContent = {
     noGoal: 'Set a goal to track this month against it.',
     record: (amount: string, when: string) => `Best day so far: ${amount} on ${when}.`,
     noRecord: 'Your best day will show up here once you have sales to compare.',
+  },
+  charts: {
+    sectionTitle: "How you're doing",
+    sectionSubtitle: 'A closer look at sales, products and payments',
+    range7: '7 days',
+    range30: '30 days',
+    range90: '90 days',
+    salesTitle: 'Sales over time',
+    salesLine: (pct: string, up: boolean) =>
+      up
+        ? `Sales are up ${pct} compared with the period before.`
+        : `Sales are down ${pct} compared with the period before.`,
+    salesFlat: 'Sales are about the same as the period before.',
+    salesNoPrevious: 'Not enough history yet to compare with the period before.',
+    salesEmpty: 'A sales line will appear here once you have paid orders.',
+    ordersToggle: 'Orders',
+    salesToggle: 'Sales',
+    previous: 'Previous period',
+    topProductsTitle: 'Top products',
+    topProductsLine: (title: string) => `${title} is your top earner in this range.`,
+    topProductsEmpty: 'Your best sellers for this range will show up here.',
+    stateTitle: 'Sales by state',
+    stateLine: (name: string, pct: string) =>
+      `${pct} of the last 30 days' sales came from ${name}.`,
+    stateEmpty: 'A state breakdown will show up here once orders have shipping addresses.',
+    paymentTitle: 'How customers pay',
+    paymentLine: (label: string, pct: string) => `${pct} of orders paid by ${label}.`,
+    paymentEmpty: 'A payment breakdown will show up here once you have orders.',
+    statusTitle: 'Orders by status',
+    statusLine: (label: string, pct: string) => `${pct} of the last 30 days' orders are ${label}.`,
+    statusEmpty: 'A status breakdown will show up here once you have orders.',
+    statusLabels: {
+      to_ship: 'to ship',
+      shipped: 'shipped',
+      delivered: 'delivered',
+      cancelled: 'cancelled',
+    },
+    heatmapTitle: 'When people buy',
+    heatmapLine: (day: string, from: string, to: string) =>
+      `Most orders come in on ${day}s, between ${from} and ${to}.`,
+    heatmapEmpty: 'A pattern will show up here once you have a few weeks of orders.',
+    heatmapLegendLow: 'Fewer',
+    heatmapLegendHigh: 'More',
+    days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    todayVsYesterday: 'Today vs yesterday',
   },
 } as const

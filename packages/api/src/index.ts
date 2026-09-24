@@ -23,6 +23,8 @@ export {
 } from './services/analytics-reports'
 export {
   DASHBOARD_LOW_STOCK_THRESHOLD,
+  type DashboardChartRange,
+  type DashboardChartsData,
   type DashboardSummary,
 } from './services/dashboard.service'
 export type {
