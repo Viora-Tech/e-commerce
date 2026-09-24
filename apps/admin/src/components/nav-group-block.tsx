@@ -56,15 +56,15 @@ export default function NavGroupBlock({ label, items, pathname }: NavGroupBlockP
           aria-label={toggleLabel}
           onClick={handleToggle}
           className={cn(
-            'group/label mb-1 flex h-6 w-full items-center justify-between rounded px-5 text-left text-caption text-muted-foreground-soft transition-colors hover:text-foreground group-data-[collapsible=icon]:hidden',
+            'group/label mb-1 flex h-6 w-full items-center gap-1 rounded px-5 text-left text-caption text-muted-foreground transition-colors hover:text-foreground group-data-[collapsible=icon]:hidden',
             FOCUS,
           )}
         >
           <span className="truncate">{label}</span>
           <ChevronDown
             className={cn(
-              'size-3.5 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover/label:opacity-100 motion-reduce:transition-none',
-              collapsed && '-rotate-90 opacity-100',
+              'size-3 shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none',
+              collapsed && '-rotate-90',
             )}
             strokeWidth={1.8}
           />

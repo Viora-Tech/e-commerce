@@ -51,13 +51,10 @@ export default function AdminFrame({
         storefrontUrl={storefrontUrl}
         apps={apps}
       />
-      <SidebarInset className="min-h-0 overflow-hidden bg-sidebar md:py-2 md:pr-2">
-        {/* The white content panel inset in the grey shell (Saleor Dashboard): hairline border,
-            rounded corners, a slim header at its top. */}
-        <main
-          id="main"
-          className="min-h-0 flex-1 overflow-y-auto border-border bg-card md:rounded-xl md:border"
-        >
+      <SidebarInset className="min-h-0 overflow-hidden bg-card">
+        {/* The flat white content area (Saleor Dashboard): it meets the grey rail at the
+            rail's 1px border, with the slim header at its top. */}
+        <main id="main" className="min-h-0 flex-1 overflow-y-auto bg-card">
           <TopBar user={user} />
           {ownHeading ? null : (
             <div className="border-border border-b px-4 py-5 md:px-6">

@@ -70,11 +70,24 @@ export type ResourceTableProps<T extends RowData> = {
    * propagation: a table with `href` navigates from a click anywhere in the row.
    */
   rowActions?: (item: T) => ReactNode
+  /**
+   * Row-end icon cells (Saleor datagrid): square icon buttons flush to the row edge, split by
+   * vertical dividers. Use `RowIconCells` for the content; the value is how many cells it draws.
+   */
+  rowIconCells?: { count: 1 | 2 | 3; render: (item: T) => ReactNode }
   /** Kept for older call sites; every table now uses the one Saleor-style density. */
   size?: 'compact' | 'frame'
 }
 
 const SKELETON_ROWS = 6
+
+/* Icon cells are 44px squares (the row height); the column drops its padding so the
+   dividers run the full row height. */
+const ICON_CELL_WIDTH = {
+  1: 'w-11 p-0 last:pr-0 md:last:pr-0',
+  2: 'w-22 p-0 last:pr-0 md:last:pr-0',
+  3: 'w-33 p-0 last:pr-0 md:last:pr-0',
+} as const
 
 const ALIGN: Record<CellAlign, string> = {
   start: 'text-left',
@@ -99,11 +112,17 @@ function tableColumns<T extends RowData>(props: ResourceTableProps<T>) {
     ...(selectable ? [selectionColumn<T>()] : []),
     ...defineColumns(props.columns),
     ...(props.rowActions ? [actionsColumn<T>(props.rowActions)] : []),
+    ...(props.rowIconCells
+      ? [actionsColumn<T>(props.rowIconCells.render, ICON_CELL_WIDTH[props.rowIconCells.count])]
+      : []),
   ]
 }
 
 /** The trailing actions column: unnamed, unsortable and never hidden by the View menu. */
-function actionsColumn<T extends RowData>(render: (item: T) => ReactNode): ResourceColumn<T> {
+function actionsColumn<T extends RowData>(
+  render: (item: T) => ReactNode,
+  className = 'w-16',
+): ResourceColumn<T> {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return helper.display({
     id: '__actions',
@@ -111,7 +130,7 @@ function actionsColumn<T extends RowData>(render: (item: T) => ReactNode): Resou
     cell: ({ row }) => render(row.original),
     enableSorting: false,
     enableHiding: false,
-    meta: { align: 'end', className: 'w-16' },
+    meta: { align: 'end', className },
   })
 }
 
