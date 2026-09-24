@@ -11,12 +11,27 @@ import {
   REPEATABLE_OUTBOX_EVENTS,
 } from './types'
 
+/** What a restock row hands to whichever app wants to react (e.g. back-in-stock alerts). */
+export type InventoryRestockQueue = {
+  add(
+    name: string,
+    data: { storeId: string; variantId: string; locationId?: string | undefined },
+    opts?: {
+      jobId?: string
+      attempts?: number
+      backoff?: { type: 'exponential' | 'fixed'; delay: number }
+    },
+  ): Promise<unknown>
+}
+
 export type OutboxRelayDeps = {
   db: Db
   plugins: LoadedPlugins
   notifications: NotificationQueue
   /** Absent only in tests that do not exercise the app-hook fan-out. */
   appEvents?: AppEventQueue | undefined
+  /** Absent only in tests that do not exercise `inventory.restocked`; that row is then just marked dispatched. */
+  inventoryRestock?: InventoryRestockQueue | undefined
   log?: ((message: string) => void) | undefined
 }
 
@@ -45,7 +60,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
   if (template) {
     await enqueueNotification(deps.notifications, {
       storeId: row.storeId,
-      orderId: payload.orderId,
+      orderId: payload.orderId as string,
       template,
       key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
     })
@@ -60,11 +75,22 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       await enqueueAppEvent(deps.appEvents, {
         storeId: row.storeId,
         event: appEvent,
-        orderId: payload.orderId,
+        orderId: payload.orderId as string,
         refundId: payload.refundId,
         pluginId,
       })
     }
+  }
+  if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
+    await deps.inventoryRestock.add(
+      'restocked',
+      { storeId: row.storeId, variantId: payload.variantId, locationId: payload.locationId },
+      {
+        jobId: `${row.storeId}:${row.id}`,
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 10_000 },
+      },
+    )
   }
 }
 

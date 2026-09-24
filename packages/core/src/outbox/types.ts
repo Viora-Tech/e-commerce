@@ -19,10 +19,21 @@ export type OutboxEventType =
   | 'order.balance_reminder'
   /** The balance was captured (or recorded by hand); fulfilment is unblocked. */
   | 'order.balance_paid'
+  /** A variant's available stock (on-hand minus reserved) went from 0 to positive. */
+  | 'inventory.restocked'
 
+/**
+ * `orderId` is required for every order-lifecycle type; `variantId` (and
+ * optionally `locationId`) is required for `inventory.restocked`, which has
+ * no order. Left as one loose shape (rather than a discriminated union) so
+ * existing callers are untouched; each type's writer sets only the fields
+ * that apply to it.
+ */
 export type OutboxPayload = {
-  orderId: string
+  orderId?: string | undefined
   refundId?: string | undefined
+  variantId?: string | undefined
+  locationId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -50,6 +61,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.balance_requested': 'balance_request',
   'order.balance_reminder': 'balance_reminder',
   'order.balance_paid': 'balance_received',
+  // Handled by the back-in-stock plugin's own dispatch path, not the generic
+  // per-order notification/app-hook fan-out (there is no order to attach it to).
+  'inventory.restocked': null,
 }
 
 /**
@@ -76,4 +90,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.balance_requested': null,
   'order.balance_reminder': null,
   'order.balance_paid': null,
+  'inventory.restocked': null,
 }

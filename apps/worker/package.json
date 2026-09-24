@@ -18,6 +18,7 @@
     "ioredis": "^5.10.1",
     "@commerce/payments": "workspace:*",
     "@commerce/notifications": "workspace:*",
+    "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/shipping": "workspace:*"
   },
