@@ -106,10 +106,14 @@ export const orderDetailContent = {
   },
   pills: {
     payment: {
+      created: 'Payment pending',
       pending: 'Payment pending',
+      authorized: 'Authorised',
       captured: 'Paid',
       refunded: 'Refunded',
       failed: 'Payment failed',
+      cancelled: 'Payment cancelled',
+      refundNeeded: 'Refund needed',
     },
     partiallyRefunded: 'Partially refunded',
     fulfilment: { unfulfilled: 'Unfulfilled', fulfilled: 'Fulfilled', delivered: 'Delivered' },
@@ -190,6 +194,10 @@ export const orderDetailContent = {
     gatewayId: 'Gateway payment id',
     captured: 'Captured',
     authorised: 'Authorised, not yet captured',
+    attempt: (n: number) => `Attempt ${n}`,
+    amount: 'Amount',
+    refundNeeded:
+      'Money was captured after this order was cancelled or already paid. Refund it to the shopper.',
     awaiting: 'Awaiting collection',
     refundedTotal: 'Refunded',
     events: 'Gateway events',

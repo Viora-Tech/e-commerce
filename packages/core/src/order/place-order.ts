@@ -3,6 +3,7 @@ import {
   cart,
   cartLine,
   customer,
+  type Db,
   discount,
   discountUsage,
   inventoryLevel,
@@ -14,14 +15,10 @@ import {
   sellableLevel,
   store,
   variant,
+  withStore,
 } from '@commerce/db'
-import type {
-  CheckoutSession,
-  PaymentProvider,
-  PaymentShipping,
-  PaymentStatus,
-} from '@commerce/payments'
-import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm'
+import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
+import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { applyDiscount } from '../discounts/evaluate'
 import {
@@ -34,7 +31,6 @@ import {
   CartNotOpen,
   DiscountUnavailable,
   OutOfStock,
-  PaymentFailed,
   ShippingRateUnavailable,
   ShippingUnavailable,
 } from '../errors'
@@ -46,7 +42,9 @@ import {
   reverseGiftCardRedemptions,
 } from '../gift-cards/service'
 import { applyPaymentAdjustment, type PaymentAdjustment } from '../payments/adjustments'
+import { createPaymentAttempt, startPaymentAttempt } from '../payments/attempts'
 import { parsePaymentSettings } from '../payments/settings'
+import type { PaymentRowStatus } from '../payments/transitions'
 import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
@@ -78,9 +76,16 @@ export type PlaceOrderInput = {
 export type PlaceOrderResult = {
   orderId: string
   orderNumber: number
-  paymentStatus: PaymentStatus
-  /** How the storefront should continue: open a gateway checkout, redirect, or nothing. */
-  session: CheckoutSession
+  /**
+   * The payment attempt recorded with the order. `placeOrder` never calls the
+   * gateway: after its transaction commits, start this attempt with
+   * `startPaymentAttempt` (or use `placeOrderAndPay`). Null when gift cards
+   * paid the whole order.
+   */
+  attemptId: string | null
+  paymentStatus: PaymentRowStatus
+  /** How the storefront should continue; null until the attempt has been started. */
+  session: CheckoutSession | null
   /** True when the cart was already converted and this is the order from that earlier submit. */
   replayed: boolean
 }
@@ -119,9 +124,7 @@ type State = {
   /** Part of the total paid from gift cards; the provider is asked for the rest. */
   giftCardPaise: number
   redemptions: GiftCardRedemption[]
-  providerRef: string | null
-  paymentStatus: PaymentStatus | null
-  session: CheckoutSession | null
+  attemptId: string | null
 }
 
 const sumPaise = (lines: Line[]): number =>
@@ -540,85 +543,18 @@ const redeemCards: WorkflowStep<State> = {
 const paidByCards = (s: Pick<State, 'giftCardPaise' | 'totalPaise'>): boolean =>
   s.giftCardPaise > 0 && s.giftCardPaise >= s.totalPaise
 
-function toPaymentShipping(co: CheckoutDetails): PaymentShipping {
-  return {
-    name: co.name,
-    line1: co.address.line1,
-    line2: co.address.line2,
-    city: co.address.city,
-    state: co.address.stateCode,
-    postalCode: co.address.pincode,
-    country: 'IN',
-  }
-}
-
-/** External side effect only. Kept separate so a later DB failure still triggers the refund. */
-const chargePayment: WorkflowStep<State> = {
-  name: 'chargePayment',
-  async run({ ctx, input, lines, orderId, orderNumber, totalPaise, giftCardPaise }) {
-    if (!orderId) throw new Error('chargePayment before createOrder')
-    if (paidByCards({ giftCardPaise, totalPaise })) {
-      // Gift cards covered everything: nothing to ask the provider for.
-      const providerRef = `gift_card_${orderId}`
-      return {
-        providerRef,
-        paymentStatus: 'captured' as const,
-        session: { kind: 'none' as const, provider: GIFT_CARD_PROVIDER, providerRef },
-      }
-    }
-    try {
-      const result = await input.paymentProvider.createPayment({
-        orderId,
-        orderNumber: orderNumber ?? undefined,
-        amountPaise: totalPaise - giftCardPaise,
-        currency: 'INR',
-        customer: {
-          email: input.checkout?.email,
-          phone: input.checkout?.phone,
-          name: input.checkout?.name,
-        },
-        shipping: input.checkout ? toPaymentShipping(input.checkout) : undefined,
-        lines: lines.map((l) => ({
-          title:
-            l.variantTitle && l.variantTitle !== 'Default'
-              ? `${l.title} / ${l.variantTitle}`
-              : l.title,
-          quantity: l.quantity,
-          unitPricePaise: l.unitPricePaise,
-        })),
-      })
-      return {
-        providerRef: result.providerRef,
-        paymentStatus: result.status,
-        session: result.session,
-      }
-    } catch (cause) {
-      throw new PaymentFailed(input.paymentProvider.id, cause, ctx.storeId)
-    }
-  },
-  async compensate({ input, totalPaise, giftCardPaise, providerRef, paymentStatus }) {
-    // Only money actually taken needs returning. providerRef doubles as the
-    // payment id for providers that capture at creation.
-    if (paidByCards({ giftCardPaise, totalPaise })) return
-    if (providerRef && paymentStatus !== 'pending' && paymentStatus !== 'failed') {
-      await input.paymentProvider.refund(providerRef, totalPaise - giftCardPaise)
-    }
-  },
-}
-
-const recordPayment: WorkflowStep<State> = {
-  name: 'recordPayment',
-  async run({
-    ctx,
-    input,
-    totalPaise,
-    giftCardPaise,
-    orderId,
-    providerRef,
-    paymentStatus,
-    session,
-  }) {
-    if (!orderId || !paymentStatus) throw new Error('recordPayment before chargePayment')
+/**
+ * Record the payment attempt, or settle the order when gift cards paid it all.
+ * The gateway is not called here: this runs inside the transaction that holds
+ * the stock reservations, so the call happens after commit
+ * (`startPaymentAttempt`). Medusa orders its checkout steps the same way
+ * (order first, payment last), and Saleor splits pre- and post-payment parts
+ * of `complete_checkout` (patterns only: Medusa MIT, Saleor BSD-3).
+ */
+const recordPaymentAttempt: WorkflowStep<State> = {
+  name: 'recordPaymentAttempt',
+  async run({ ctx, input, totalPaise, giftCardPaise, orderId }) {
+    if (!orderId) throw new Error('recordPaymentAttempt before createOrder')
     if (paidByCards({ giftCardPaise, totalPaise })) {
       await ctx.tx
         .update(order)
@@ -626,20 +562,12 @@ const recordPayment: WorkflowStep<State> = {
         .where(eq(order.id, orderId))
       return {}
     }
-    await ctx.tx.insert(payment).values({
-      storeId: ctx.storeId,
+    const attempt = await createPaymentAttempt(ctx, {
       orderId,
       provider: input.paymentProvider.id,
-      providerRef: providerRef as string,
-      providerPaymentId: paymentStatus === 'captured' ? providerRef : null,
-      checkoutSession: session,
-      status: paymentStatus === 'authorized' ? 'pending' : paymentStatus,
       amountPaise: totalPaise - giftCardPaise,
     })
-    if (paymentStatus === 'captured') {
-      await ctx.tx.update(order).set({ status: 'paid' }).where(eq(order.id, orderId))
-    }
-    return {}
+    return { attemptId: attempt.id }
   },
 }
 
@@ -679,15 +607,13 @@ async function lockCartOrReplay(
   if (!o) return null
   const [p] = await ctx.tx
     .select({
-      provider: payment.provider,
-      providerRef: payment.providerRef,
+      id: payment.id,
       status: payment.status,
       checkoutSession: payment.checkoutSession,
     })
     .from(payment)
-    .where(eq(payment.orderId, o.id))
-    // Ids are uuidv7, so the newest payment sorts first.
-    .orderBy(desc(payment.id))
+    .where(and(eq(payment.orderId, o.id), ne(payment.provider, GIFT_CARD_PROVIDER)))
+    .orderBy(desc(payment.attempt), desc(payment.id))
     .limit(1)
   if (!p) {
     // Paid in full by gift cards: no provider payment was ever created.
@@ -695,30 +621,30 @@ async function lockCartOrReplay(
     return {
       orderId: o.id,
       orderNumber: o.number,
+      attemptId: null,
       paymentStatus: 'captured',
       session: { kind: 'none', provider: o.paymentMethod ?? GIFT_CARD_PROVIDER, providerRef },
       replayed: true,
     }
   }
-  const session = (p.checkoutSession as CheckoutSession | null) ?? {
-    kind: 'none',
-    provider: p.provider,
-    providerRef: p.providerRef,
-  }
+  // Still `created` when the first submit died before reaching the gateway: the
+  // caller starts it, and the attempt's claim keeps that to one gateway call.
   return {
     orderId: o.id,
     orderNumber: o.number,
+    attemptId: p.id,
     paymentStatus: p.status,
-    session,
+    session: (p.checkoutSession as CheckoutSession | null) ?? null,
     replayed: true,
   }
 }
 
 /**
  * Place an order from an open cart. Must run inside `withStore`; the caller's
- * transaction rolls back on throw, and compensations additionally undo the
- * one side effect outside the database (a captured payment). `chargePayment`
- * and `recordPayment` are separate steps for exactly that reason.
+ * transaction rolls back on throw. Reserves stock, creates the order and
+ * records a `created` payment attempt, and never calls the gateway: start the
+ * attempt after this transaction commits (`startPaymentAttempt`), or use
+ * `placeOrderAndPay`, which does both.
  */
 export async function placeOrder(
   ctx: StoreContext,
@@ -742,9 +668,7 @@ export async function placeOrder(
       totalPaise: 0,
       giftCardPaise: 0,
       redemptions: [],
-      providerRef: null,
-      paymentStatus: null,
-      session: null,
+      attemptId: null,
     },
     [
       loadCart,
@@ -753,20 +677,56 @@ export async function placeOrder(
       reserveStock,
       createOrder,
       redeemCards,
-      chargePayment,
-      recordPayment,
+      recordPaymentAttempt,
       markCartConverted,
     ],
     log,
   )
-  if (!state.orderId || state.orderNumber === null || !state.paymentStatus || !state.session) {
+  if (!state.orderId || state.orderNumber === null) {
     throw new Error('placeOrder finished without an order')
   }
+  const byCards = !state.attemptId
   return {
     orderId: state.orderId,
     orderNumber: state.orderNumber,
-    paymentStatus: state.paymentStatus,
-    session: state.session,
+    attemptId: state.attemptId,
+    paymentStatus: byCards ? 'captured' : 'created',
+    session: byCards
+      ? { kind: 'none', provider: GIFT_CARD_PROVIDER, providerRef: `gift_card_${state.orderId}` }
+      : null,
     replayed: false,
+  }
+}
+
+export type PlacedAndPaid = PlaceOrderResult & {
+  /** True when this call captured the money; drives the payment_received notification. */
+  becameCaptured: boolean
+  /** The gateway's error when the attempt could not be started; the order stays placed. */
+  paymentError: string | null
+}
+
+/**
+ * `placeOrder` in its own transaction, then the payment attempt started with
+ * the gateway after commit. A gateway failure leaves the order placed with its
+ * stock held and the attempt `failed`, ready for "Retry payment".
+ */
+export async function placeOrderAndPay(
+  db: Db,
+  storeId: string,
+  input: PlaceOrderInput,
+  log?: WorkflowLog,
+): Promise<PlacedAndPaid> {
+  const placed = await withStore(db, storeId, (tx) => placeOrder({ storeId, tx }, input, log))
+  if (!placed.attemptId || placed.paymentStatus !== 'created') {
+    const byCards = !placed.replayed && placed.paymentStatus === 'captured'
+    return { ...placed, becameCaptured: byCards, paymentError: null }
+  }
+  const started = await startPaymentAttempt(db, storeId, placed.attemptId, input.paymentProvider)
+  return {
+    ...placed,
+    paymentStatus: started.status,
+    session: started.session ?? placed.session,
+    becameCaptured: started.becameCaptured,
+    paymentError: started.error,
   }
 }

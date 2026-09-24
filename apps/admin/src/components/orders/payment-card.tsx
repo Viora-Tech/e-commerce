@@ -30,10 +30,18 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
+/** What the amount row means for an attempt in this status. */
+function amountLabel(status: OrderPayment['status']): string {
+  if (status === 'captured' || status === 'refunded') return copy.payment.captured
+  if (status === 'pending' || status === 'authorized') return copy.payment.authorised
+  return copy.payment.amount
+}
+
 /** Gateway, references, what was captured and what went back. */
 export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardProps) {
   // Render logic
   const events = order.paymentEvents
+  const multipleAttempts = order.payments.filter((p) => p.provider !== 'gift_card').length > 1
 
   return (
     <DataCard
@@ -55,7 +63,15 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
           return (
             <div key={p.id} className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium">{methodLabel(p.provider)}</p>
+                <p className="font-medium">
+                  {methodLabel(p.provider)}
+                  {multipleAttempts ? (
+                    <span className="text-muted-foreground font-normal">
+                      {' '}
+                      {copy.payment.attempt(p.attempt)}
+                    </span>
+                  ) : null}
+                </p>
                 <div className="flex items-center gap-3">
                   <StatusLabel kind="payment" value={pill} variant="pill" />
                   {refundable && onRefund ? (
@@ -65,15 +81,15 @@ export default function PaymentCard({ order, onRefund, onCollect }: PaymentCardP
                   ) : null}
                 </div>
               </div>
+              {pill === 'refund_needed' ? (
+                <p className="text-body text-destructive">{copy.payment.refundNeeded}</p>
+              ) : null}
               <dl className="flex flex-col gap-1.5">
                 <Row label={copy.payment.reference} value={p.providerRef} />
                 {p.providerPaymentId ? (
                   <Row label={copy.payment.gatewayId} value={p.providerPaymentId} />
                 ) : null}
-                <Row
-                  label={p.status === 'pending' ? copy.payment.authorised : copy.payment.captured}
-                  value={formatPaise(p.amountPaise)}
-                />
+                <Row label={amountLabel(p.status)} value={formatPaise(p.amountPaise)} />
                 {back > 0 ? (
                   <Row label={copy.payment.refundedTotal} value={`−${formatPaise(back)}`} />
                 ) : null}

@@ -18,7 +18,7 @@ import { resetDb } from '@commerce/db/test'
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { placeOrder } from '../order/place-order'
+import { placeOrderAndPay } from '../order/place-order'
 import { refundPayment } from '../order/refund'
 import { cancelOrder } from '../order/status'
 import { CodPaymentProvider } from '../providers/cod'
@@ -260,9 +260,11 @@ describe('checkout', () => {
     const cartId = await makeCart(storeId, [{ variantId: v, quantity: 1, pricePaise: 20000 }])
     const { card } = await issue(storeId, 50000)
     const provider = new FakePaymentProvider()
-    const r = await withStore(app, storeId, (tx) =>
-      placeOrder({ storeId, tx }, { cartId, paymentProvider: provider, giftCardIds: [card.id] }),
-    )
+    const r = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: provider,
+      giftCardIds: [card.id],
+    })
     expect(provider.calls).toEqual([])
     expect(r.paymentStatus).toBe('captured')
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
@@ -276,9 +278,11 @@ describe('checkout', () => {
     const cartId = await makeCart(storeId, [{ variantId: v, quantity: 1, pricePaise: 20000 }])
     const { card } = await issue(storeId, 5000)
     const provider = new FakePaymentProvider()
-    const r = await withStore(app, storeId, (tx) =>
-      placeOrder({ storeId, tx }, { cartId, paymentProvider: provider, giftCardIds: [card.id] }),
-    )
+    const r = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: provider,
+      giftCardIds: [card.id],
+    })
     expect(provider.calls[0]).toBe(`createPayment:${r.orderId}:15000`)
     const pays = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
     expect(pays.map((p) => [p.provider, p.amountPaise]).sort()).toEqual([
@@ -304,12 +308,11 @@ describe('checkout', () => {
     const v = await makeVariant(storeId, { pricePaise: 20000 })
     const cartId = await makeCart(storeId, [{ variantId: v, quantity: 1, pricePaise: 20000 }])
     const { card } = await issue(storeId, 8000)
-    const r = await withStore(app, storeId, (tx) =>
-      placeOrder(
-        { storeId, tx },
-        { cartId, paymentProvider: new FakePaymentProvider(), giftCardIds: [card.id] },
-      ),
-    )
+    const r = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: new FakePaymentProvider(),
+      giftCardIds: [card.id],
+    })
     expect(await balanceOf(card.id)).toBe(0)
     await withStore(app, storeId, (tx) => cancelOrder({ storeId, tx }, r.orderId))
     await withStore(app, storeId, (tx) => cancelOrder({ storeId, tx }, r.orderId))
@@ -322,12 +325,11 @@ describe('checkout', () => {
     const cartId = await makeCart(storeId, [{ variantId: v, quantity: 1, pricePaise: 20000 }])
     const { card } = await issue(storeId, 5000)
     await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder(
-          { storeId, tx },
-          { cartId, paymentProvider: new CodPaymentProvider(), giftCardIds: [card.id] },
-        ),
-      ),
+      placeOrderAndPay(app, storeId, {
+        cartId,
+        paymentProvider: new CodPaymentProvider(),
+        giftCardIds: [card.id],
+      }),
     ).rejects.toMatchObject({ reason: 'not_allowed' })
     expect(await balanceOf(card.id)).toBe(5000)
     expect(await owner.select().from(order)).toEqual([])
@@ -342,20 +344,17 @@ describe('checkout', () => {
       { variantId: mouse, quantity: 1, pricePaise: 20000 },
     ])
     await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId: mixed, paymentProvider: new FakePaymentProvider() }),
-      ),
+      placeOrderAndPay(app, storeId, { cartId: mixed, paymentProvider: new FakePaymentProvider() }),
     ).rejects.toMatchObject({ reason: 'not_allowed' })
     const only = await makeCart(storeId, [{ variantId: gc, quantity: 2, pricePaise: 100000 }])
     await expect(
-      withStore(app, storeId, (tx) =>
-        placeOrder({ storeId, tx }, { cartId: only, paymentProvider: new CodPaymentProvider() }),
-      ),
+      placeOrderAndPay(app, storeId, { cartId: only, paymentProvider: new CodPaymentProvider() }),
     ).rejects.toMatchObject({ reason: 'not_allowed' })
 
-    const r = await withStore(app, storeId, (tx) =>
-      placeOrder({ storeId, tx }, { cartId: only, paymentProvider: new FakePaymentProvider() }),
-    )
+    const r = await placeOrderAndPay(app, storeId, {
+      cartId: only,
+      paymentProvider: new FakePaymentProvider(),
+    })
     const [o] = await owner.select().from(order).where(eq(order.id, r.orderId))
     expect(o).toMatchObject({ taxPaise: 0, totalPaise: 200000, status: 'paid' })
     const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, r.orderId))
@@ -374,21 +373,16 @@ describe('issuing sold cards', () => {
       .where(eq(store.id, storeId))
     const gc = await makeVariant(storeId, { pricePaise: 100000, giftCard: true })
     const cartId = await makeCart(storeId, [{ variantId: gc, quantity: 2, pricePaise: 100000 }])
-    const r = await withStore(app, storeId, (tx) =>
-      placeOrder(
-        { storeId, tx },
-        {
-          cartId,
-          paymentProvider: new FakePaymentProvider(),
-          checkout: {
-            email: 'Buyer@Example.com',
-            phone: '9876543210',
-            name: 'Asha',
-            address: { line1: 'x', city: 'Pune', stateCode: 'MH', pincode: '411001' },
-          },
-        },
-      ),
-    )
+    const r = await placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: new FakePaymentProvider(),
+      checkout: {
+        email: 'Buyer@Example.com',
+        phone: '9876543210',
+        name: 'Asha',
+        address: { line1: 'x', city: 'Pune', stateCode: 'MH', pincode: '411001' },
+      },
+    })
     const first = await withStore(app, storeId, (tx) =>
       issueGiftCardsForOrder({ storeId, tx }, r.orderId, SECRET),
     )

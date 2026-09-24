@@ -1,5 +1,6 @@
 import {
   changeOrderStatus,
+  OPEN_ATTEMPT_STATUSES,
   type PaymentProvider,
   parsePaymentSettings,
   refundPayment,
@@ -266,10 +267,14 @@ export async function setOrderStatus(
 ) {
   const o = await changeOrderStatus({ tx, storeId }, id, status)
   if (o && status === 'paid') {
-    await tx
-      .update(payment)
-      .set({ status: 'captured' })
-      .where(and(eq(payment.orderId, id), eq(payment.status, 'pending')))
+    // Only the newest open attempt becomes the capture; one capture per order.
+    const [open] = await tx
+      .select({ id: payment.id })
+      .from(payment)
+      .where(and(eq(payment.orderId, id), inArray(payment.status, [...OPEN_ATTEMPT_STATUSES])))
+      .orderBy(desc(payment.attempt), desc(payment.id))
+      .limit(1)
+    if (open) await tx.update(payment).set({ status: 'captured' }).where(eq(payment.id, open.id))
   }
   return o ?? null
 }

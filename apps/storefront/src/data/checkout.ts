@@ -11,6 +11,8 @@ export const thankYouContent = {
     awaiting: (total: string) => `We are confirming your payment of ${total}.`,
     manual: 'Your order is reserved until we receive your transfer.',
     paid: (total: string) => `Payment of ${total} received.`,
+    failed: (total: string) =>
+      `Your payment of ${total} did not go through. Your order is saved; try again when ready.`,
     giftCard: 'Paid in full with your gift card.',
     giftCardEmail: (email: string | null) =>
       email
@@ -19,6 +21,7 @@ export const thankYouContent = {
   },
   giftCardPaid: (last: string) => `Gift card •••• ${last}`,
   payNow: 'Pay now',
+  retryPayment: 'Retry payment',
   continueShopping: 'Continue shopping',
   subtotal: 'Subtotal',
   discount: 'Discount',

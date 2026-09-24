@@ -33,7 +33,10 @@ export default async function ThankYouPage({ params }: Params) {
       last: cards.find((c) => c.id === p.providerPaymentId)?.last ?? '',
       amountPaise: p.amountPaise,
     }))
-    const pay = pays.find((p) => p.provider !== GIFT_CARD_PROVIDER)
+    // The latest attempt: a failed one offers "Retry payment".
+    const pay = pays
+      .filter((p) => p.provider !== GIFT_CARD_PROVIDER)
+      .sort((a, b) => b.attempt - a.attempt || (b.id > a.id ? 1 : -1))[0]
     return { order: o, lines, pay, giftCards }
   })
 
@@ -53,6 +56,7 @@ export default async function ThankYouPage({ params }: Params) {
   )
   return (
     <ThankYouTemplate
+      storeId={storeId}
       order={data.order}
       lines={data.lines}
       payment={data.pay}
