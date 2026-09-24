@@ -168,9 +168,15 @@ export const gstInvoicesContent = {
     },
   },
   queue: {
-    title: 'Invoice queue',
+    title: 'Invoices waiting to be issued',
     subtitle:
       'Orders waiting for a tax invoice. Numbers are given only when you issue, in invoice date order.',
+    setup: {
+      heading: 'Finish setting up GST invoices',
+      body: 'Add your business GSTIN so invoices are correct before you issue the first one.',
+      gstin: 'Add your GSTIN',
+      gstinAction: 'Go to settings',
+    },
     from: 'From',
     to: 'To',
     empty: 'Nothing waiting to be invoiced.',

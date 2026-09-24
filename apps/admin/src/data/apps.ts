@@ -2,10 +2,11 @@
 export const appsContent = {
   title: 'Apps',
   intro:
-    'Payment gateways, couriers, messaging channels and apps ship as plugins. Install one to use it in this store; apps with their own screens appear under Apps in the sidebar.',
+    'Add tools to your store, like invoicing, importers and marketing apps. Each one is a plugin you can turn on or off any time.',
   installFirst: 'Install this app from Apps to use it in this store.',
   openApps: 'Open Apps',
   install: 'Install',
+  open: 'Open',
   uninstall: 'Uninstall',
   installed: 'Installed',
   builtIn: 'Built in',
@@ -32,6 +33,23 @@ export const appsContent = {
   },
   configure: (kind: string) => `Set up in ${kind}`,
   docs: 'Want FedEx, DHL, S3 or a new gateway? Write a plugin: docs/plugins.md',
+  gallery: {
+    searchPlaceholder: 'Search apps',
+    filters: { all: 'All', installed: 'Installed' },
+    /** Category slugs from a manifest's `category`, in plain words. */
+    categories: {
+      invoicing: 'Invoicing',
+      migration: 'Data import',
+      marketing: 'Marketing',
+    } as Record<string, string>,
+    categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
+    noResultsHeading: 'No apps match',
+    noResultsBody: 'Try a different search or filter.',
+    builtInTitle: 'Built in',
+    builtInIntro:
+      'These come with your store already. Turn one on to use it for payments, shipping or notifications.',
+    kebabLabel: (name: string) => `More actions for ${name}`,
+  },
 } as const
 
 export type AppKind = keyof typeof appsContent.kinds
