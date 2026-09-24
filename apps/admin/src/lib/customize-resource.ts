@@ -41,19 +41,29 @@ function toProductDetail(p: AdminProduct): ProductDetail {
     productType: p.productType,
     images: p.images.map((i) => ({ url: i.url, alt: i.alt, contentType: i.contentType })),
     options: p.options,
-    variants: p.variants.map((v) => ({
-      id: v.id,
-      title: v.title,
-      sku: v.sku,
-      pricePaise: v.pricePaise,
-      mrpPaise: v.mrpPaise,
-      available: v.trackInventory ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999,
-      optionValueIds: p.options.flatMap((o, i) => {
-        const id = valueIds.get(`${o.name}:${v.optionValues[i]}`)
-        return id ? [id] : []
-      }),
-      imageUrl: p.images.find((i) => i.id === v.mediaId)?.url ?? null,
-    })),
+    variants: p.variants.map((v) => {
+      const available = v.trackInventory ? Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)) : 999
+      return {
+        id: v.id,
+        title: v.title,
+        sku: v.sku,
+        pricePaise: v.pricePaise,
+        mrpPaise: v.mrpPaise,
+        available,
+        // Preview only: a real oversell-beyond-stock check needs the reserved/on_hand
+        // pair from inventory_level, which this admin preview doesn't track separately.
+        purchasable: available > 0 || p.preorderEnabled,
+        optionValueIds: p.options.flatMap((o, i) => {
+          const id = valueIds.get(`${o.name}:${v.optionValues[i]}`)
+          return id ? [id] : []
+        }),
+        imageUrl: p.images.find((i) => i.id === v.mediaId)?.url ?? null,
+      }
+    }),
+    launchAt: p.launchAt ? new Date(p.launchAt).toISOString() : null,
+    preorder: p.preorderEnabled
+      ? { enabled: true, buttonLabel: p.preorderButtonLabel, shipDate: null, depositPreview: null }
+      : null,
   }
 }
 

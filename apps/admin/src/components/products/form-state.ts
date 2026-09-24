@@ -55,6 +55,19 @@ export type ProductFormState = {
   /** `yyyy-mm-dd` bounds for the compare-at price; empty means no bound. */
   saleStartsAt: string
   saleEndsAt: string
+  preorderEnabled: boolean
+  /** `yyyy-mm-dd`; blank means "ships in N days" (or nothing) drives the ship date instead. */
+  preorderShipDate: string
+  /** Blank text field; parsed to an int or null. */
+  preorderShipsInDays: string
+  preorderLimit: string
+  preorderButtonLabel: string
+  preorderPaymentMode: 'full' | 'fixed' | 'percentage'
+  preorderDeposit: string
+  preorderDepositPercent: string
+  preorderHideFromCollectionsUntilLaunch: boolean
+  /** `yyyy-mm-ddThh:mm`, Asia/Kolkata as typed; blank means always on sale. */
+  launchAt: string
   options: OptionRow[]
   variants: VariantRow[]
   /** Gallery in display order; the first item is the cover. */
@@ -100,6 +113,16 @@ export function emptyForm(): ProductFormState {
     featured: false,
     saleStartsAt: '',
     saleEndsAt: '',
+    preorderEnabled: false,
+    preorderShipDate: '',
+    preorderShipsInDays: '',
+    preorderLimit: '',
+    preorderButtonLabel: 'Pre-order',
+    preorderPaymentMode: 'full',
+    preorderDeposit: '',
+    preorderDepositPercent: '',
+    preorderHideFromCollectionsUntilLaunch: false,
+    launchAt: '',
     options: [],
     variants: [emptyVariant([])],
     media: [],
@@ -123,6 +146,17 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     featured: p.featured,
     saleStartsAt: toDateField(p.saleStartsAt),
     saleEndsAt: toDateField(p.saleEndsAt),
+    preorderEnabled: p.preorderEnabled,
+    preorderShipDate: toDateField(p.preorderShipDate),
+    preorderShipsInDays: p.preorderShipsInDays == null ? '' : String(p.preorderShipsInDays),
+    preorderLimit: p.preorderLimit == null ? '' : String(p.preorderLimit),
+    preorderButtonLabel: p.preorderButtonLabel || 'Pre-order',
+    preorderPaymentMode: p.preorderPaymentMode,
+    preorderDeposit: rupees.toField(p.preorderDepositPaise),
+    preorderDepositPercent:
+      p.preorderDepositPercent == null ? '' : String(p.preorderDepositPercent),
+    preorderHideFromCollectionsUntilLaunch: p.preorderHideFromCollectionsUntilLaunch,
+    launchAt: toDateTimeField(p.launchAt),
     options: p.options.map((o) => ({
       id: o.id,
       name: o.name,
@@ -190,6 +224,21 @@ function fromDateField(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
+/** `yyyy-mm-ddThh:mm` for a `datetime-local` input, in the browser's zone (the admin runs in IST). */
+function toDateTimeField(value: Date | string | null): string {
+  if (!value) return ''
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function fromDateTimeField(value: string): Date | null {
+  if (!value.trim()) return null
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 const intOrNull = (text: string): number | null => {
   const n = Number(text)
   return text.trim() === '' || !Number.isInteger(n) ? null : n
@@ -211,6 +260,16 @@ export function toWrite(form: ProductFormState): ProductWrite {
     featured: form.featured,
     saleStartsAt: fromDateField(form.saleStartsAt),
     saleEndsAt: fromDateField(form.saleEndsAt),
+    preorderEnabled: form.preorderEnabled,
+    preorderShipDate: fromDateField(form.preorderShipDate),
+    preorderShipsInDays: intOrNull(form.preorderShipsInDays),
+    preorderLimit: intOrNull(form.preorderLimit),
+    preorderButtonLabel: form.preorderButtonLabel.trim() || 'Pre-order',
+    preorderPaymentMode: form.preorderPaymentMode,
+    preorderDepositPaise: rupees.toPaise(form.preorderDeposit),
+    preorderDepositPercent: intOrNull(form.preorderDepositPercent),
+    preorderHideFromCollectionsUntilLaunch: form.preorderHideFromCollectionsUntilLaunch,
+    launchAt: fromDateTimeField(form.launchAt),
     inventoryReason: form.inventoryReason,
     mediaIds: form.media.map((m) => m.id),
     options: form.options.map((o) => ({
@@ -239,11 +298,33 @@ export function toWrite(form: ProductFormState): ProductWrite {
 }
 
 /** Client-side checks that give an inline message before the round trip. */
-export function formErrors(form: ProductFormState): { title?: string; variants?: string } {
-  const errors: { title?: string; variants?: string } = {}
+export function formErrors(form: ProductFormState): {
+  title?: string
+  variants?: string
+  preorderDeposit?: string
+} {
+  const errors: { title?: string; variants?: string; preorderDeposit?: string } = {}
   if (!form.title.trim()) errors.title = 'required'
   const bad = form.variants.find((v) => rupees.toPaise(v.price) == null)
   if (bad) errors.variants = `Price is missing for ${variantTitle(bad.optionValues)}`
+  if (form.preorderEnabled) {
+    if (form.preorderPaymentMode === 'fixed') {
+      const deposit = rupees.toPaise(form.preorderDeposit)
+      const lowestPrice = Math.min(
+        ...form.variants.map((v) => rupees.toPaise(v.price) ?? Number.POSITIVE_INFINITY),
+      )
+      if (deposit == null) errors.preorderDeposit = 'Enter a deposit amount'
+      else if (Number.isFinite(lowestPrice) && deposit >= lowestPrice) {
+        errors.preorderDeposit = 'The deposit must be less than the price'
+      }
+    }
+    if (form.preorderPaymentMode === 'percentage') {
+      const pct = Number(form.preorderDepositPercent)
+      if (!Number.isInteger(pct) || pct < 1 || pct > 99) {
+        errors.preorderDeposit = 'Enter a percentage between 1 and 99'
+      }
+    }
+  }
   return errors
 }
 

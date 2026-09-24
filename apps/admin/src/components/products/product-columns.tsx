@@ -7,6 +7,14 @@ import { formatPaise } from '@/lib/money'
 
 export type ProductRow = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
+/** Small status pill for the list; a product past its launch date is on sale, not "Launching". */
+function preorderPill(row: ProductRow): string | null {
+  if (row.launchAt && new Date(row.launchAt).getTime() > Date.now()) {
+    return copy.launching(new Date(row.launchAt))
+  }
+  return row.preorderEnabled ? copy.preorderPill : null
+}
+
 function priceRange(row: ProductRow): string {
   if (row.minPricePaise == null) return copy.none
   if (row.maxPricePaise == null || row.maxPricePaise === row.minPricePaise) {
@@ -24,12 +32,22 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     hideable: false,
     align: 'start',
     className: 'w-[40%] whitespace-normal',
-    render: (p) => (
-      <span className="flex items-center gap-3 text-left">
-        <ProductThumb url={p.imageUrl} />
-        <span className="line-clamp-2 text-body-strong text-ink-strong">{p.title}</span>
-      </span>
-    ),
+    render: (p) => {
+      const pill = preorderPill(p)
+      return (
+        <span className="flex items-center gap-3 text-left">
+          <ProductThumb url={p.imageUrl} />
+          <span className="flex min-w-0 flex-col gap-1">
+            <span className="line-clamp-2 text-body-strong text-ink-strong">{p.title}</span>
+            {pill ? (
+              <span className="w-fit rounded-full bg-accent px-2 py-0.5 text-caption text-accent-foreground">
+                {pill}
+              </span>
+            ) : null}
+          </span>
+        </span>
+      )
+    },
   },
   {
     id: 'status',

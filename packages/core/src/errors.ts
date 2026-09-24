@@ -68,3 +68,32 @@ export class ShippingRateUnavailable extends CommerceError {
     })
   }
 }
+
+/** A product's `launchAt` has not passed: nothing can be added to cart or ordered yet. */
+export class NotLaunchedYet extends CommerceError {
+  constructor(variantId: string, launchAt: Date, storeId?: string) {
+    super('NOT_LAUNCHED_YET', `Variant ${variantId} launches at ${launchAt.toISOString()}`, {
+      storeId,
+    })
+  }
+}
+
+/** Pre-order is off (or stock plus the pre-order limit is exhausted) and the variant is out of stock. */
+export class PreorderLimitReached extends CommerceError {
+  constructor(variantId: string, storeId?: string) {
+    super('PREORDER_LIMIT_REACHED', `Variant ${variantId} has reached its pre-order limit`, {
+      storeId,
+    })
+  }
+}
+
+/** Fulfilment is blocked while a deposit-mode pre-order still has a balance due. */
+export class BalanceDue extends CommerceError {
+  constructor(orderId: string, balancePaise: number, storeId?: string) {
+    super(
+      'BALANCE_DUE',
+      `Order ${orderId} cannot be fulfilled until its ₹${(balancePaise / 100).toFixed(2)} balance is paid`,
+      { storeId },
+    )
+  }
+}

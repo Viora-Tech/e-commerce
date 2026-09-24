@@ -9,7 +9,9 @@ import {
 } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CartNotOpen } from '../errors'
+import { CartNotOpen, NotLaunchedYet } from '../errors'
+import { isLaunched } from '../preorder/launch'
+import { resolvePreorderSettings } from '../preorder/settings'
 
 export type CartLineView = {
   id: string
@@ -24,6 +26,8 @@ export type CartLineView = {
   imageUrl: string | null
   /** A gift card product: digital, checked out on its own. */
   giftCard: boolean
+  /** Sold under pre-order rules; the storefront shows the ship date and badge for this line. */
+  preorder: boolean
 }
 
 export type CartView = {
@@ -34,6 +38,38 @@ export type CartView = {
   subtotalPaise: number
   /** Code the shopper applied; the amount is only ever computed by the discount resolver. */
   discountCode: string | null
+}
+
+type AvailabilityRow = {
+  trackInventory: boolean
+  giftCard: boolean
+  onHand: number | null
+  reserved: number | null
+  preorderOverride: Parameters<typeof resolvePreorderSettings>[1]
+  preorderEnabled: boolean
+  preorderShipDate: Date | null
+  preorderShipsInDays: number | null
+  preorderLimit: number | null
+  preorderButtonLabel: string
+  preorderPaymentMode: 'full' | 'fixed' | 'percentage'
+  preorderDepositPaise: number | null
+  preorderDepositPercent: number | null
+}
+
+/**
+ * How many more of this line the shopper can add: real stock, plus pre-order
+ * room beyond it (unlimited when the product's `preorderLimit` is null). A
+ * hint for the quantity stepper; `placeOrder`'s `reserveStock` is the actual
+ * server-side check.
+ */
+function lineAvailable(r: AvailabilityRow): number {
+  if (!r.trackInventory || r.giftCard) return 999
+  const stock = Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0))
+  const settings = resolvePreorderSettings(r, r.preorderOverride)
+  if (!settings.enabled) return stock
+  if (settings.limit == null) return 999
+  const committed = Math.max(0, (r.reserved ?? 0) - (r.onHand ?? 0))
+  return stock + Math.max(0, settings.limit - committed)
 }
 
 export async function createCart(ctx: StoreContext): Promise<string> {
@@ -51,6 +87,7 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       variantId: cartLine.variantId,
       quantity: cartLine.quantity,
       unitPricePaise: cartLine.unitPricePaise,
+      preorder: cartLine.preorder,
       productHandle: product.handle,
       productTitle: product.title,
       variantTitle: variant.title,
@@ -59,6 +96,15 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
       giftCard: product.isGiftCard,
+      preorderOverride: variant.preorderOverride,
+      preorderEnabled: product.preorderEnabled,
+      preorderShipDate: product.preorderShipDate,
+      preorderShipsInDays: product.preorderShipsInDays,
+      preorderLimit: product.preorderLimit,
+      preorderButtonLabel: product.preorderButtonLabel,
+      preorderPaymentMode: product.preorderPaymentMode,
+      preorderDepositPaise: product.preorderDepositPaise,
+      preorderDepositPercent: product.preorderDepositPercent,
     })
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
@@ -75,10 +121,10 @@ export async function getCart(ctx: StoreContext, cartId: string): Promise<CartVi
     quantity: r.quantity,
     unitPricePaise: r.unitPricePaise,
     linePaise: r.quantity * r.unitPricePaise,
-    available:
-      r.trackInventory && !r.giftCard ? Math.max(0, (r.onHand ?? 0) - (r.reserved ?? 0)) : 999,
+    available: lineAvailable(r),
     imageUrl: r.imageUrl,
     giftCard: r.giftCard,
+    preorder: r.preorder,
   }))
   return {
     id: c.id,
@@ -99,8 +145,15 @@ export async function addToCart(
 ): Promise<void> {
   const [c] = await ctx.tx.select().from(cart).where(eq(cart.id, cartId))
   if (c?.status !== 'open') throw new CartNotOpen(cartId, ctx.storeId)
-  const [v] = await ctx.tx.select().from(variant).where(eq(variant.id, variantId))
-  if (!v) throw new Error(`variant ${variantId} not found`)
+  const [row] = await ctx.tx
+    .select({ variant, product })
+    .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
+    .where(eq(variant.id, variantId))
+  if (!row) throw new Error(`variant ${variantId} not found`)
+  const { variant: v, product: p } = row
+  if (!isLaunched(p.launchAt)) throw new NotLaunchedYet(variantId, p.launchAt as Date, ctx.storeId)
+  const preorder = resolvePreorderSettings(p, v.preorderOverride).enabled
   const [existing] = await ctx.tx
     .select()
     .from(cartLine)
@@ -108,7 +161,7 @@ export async function addToCart(
   if (existing) {
     await ctx.tx
       .update(cartLine)
-      .set({ quantity: existing.quantity + quantity, unitPricePaise: v.pricePaise })
+      .set({ quantity: existing.quantity + quantity, unitPricePaise: v.pricePaise, preorder })
       .where(eq(cartLine.id, existing.id))
   } else {
     await ctx.tx.insert(cartLine).values({
@@ -117,6 +170,7 @@ export async function addToCart(
       variantId,
       quantity,
       unitPricePaise: v.pricePaise,
+      preorder,
     })
   }
 }

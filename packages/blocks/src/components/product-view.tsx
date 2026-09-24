@@ -6,7 +6,8 @@ import {
   RichTextRenderer,
   richTextToPlainText,
 } from '@commerce/richtext'
-import { type ComponentType, type ReactNode, useState, useTransition } from 'react'
+import { useReducedMotion } from 'motion/react'
+import { type ComponentType, type ReactNode, useEffect, useState, useTransition } from 'react'
 import type { ProductDetail } from '../types'
 import Price from './price'
 
@@ -21,7 +22,23 @@ const isVideo = (img: { contentType?: string | null | undefined }) =>
   img.contentType?.startsWith('video/') ?? false
 
 function defaultVariant(product: ProductDetail) {
-  return product.variants.find((v) => v.available > 0) ?? product.variants[0]
+  return product.variants.find((v) => v.purchasable) ?? product.variants[0]
+}
+
+/** Milliseconds until `launchAt`, clamped to zero; used for the "Launching in…" label and countdown. */
+function msUntilLaunch(launchAt: string | null | undefined): number {
+  if (!launchAt) return 0
+  return Math.max(0, new Date(launchAt).getTime() - Date.now())
+}
+
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000)
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  if (days > 0) return `${days}d ${hours}h`
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
 }
 
 function slideFor(product: ProductDetail, variant: ProductDetail['variants'][number] | undefined) {
@@ -52,6 +69,17 @@ export default function ProductView({
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
   const [slide, setSlide] = useState(() => slideFor(product, defaultVariant(product)))
   const [expanded, setExpanded] = useState(false)
+  const [countdown, setCountdown] = useState(() => msUntilLaunch(product.launchAt))
+  const reduceMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (countdown <= 0) return
+    // A minute-granularity label doesn't need a per-second tick; this also
+    // keeps the interval trivial to skip under reduced motion (it still
+    // needs to run so the button unlocks at launch, just with no animation).
+    const id = setInterval(() => setCountdown(msUntilLaunch(product.launchAt)), 30_000)
+    return () => clearInterval(id)
+  }, [countdown, product.launchAt])
 
   // Event handlers
   const handlePick = (id: string) => {
@@ -68,6 +96,17 @@ export default function ProductView({
   const description = descriptionDoc(product.description)
   const longDescription = description ? richTextToPlainText(description).length > 280 : false
   const clamped = longDescription && !expanded
+  const launching = countdown > 0
+  const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
+  const buyLabel = launching
+    ? `Launching in ${formatCountdown(countdown)}`
+    : !variant?.purchasable
+      ? 'Sold out'
+      : added
+        ? 'Added'
+        : isPreorder
+          ? (product.preorder?.buttonLabel ?? 'Pre-order')
+          : 'Add to cart'
 
   return (
     <section className="section-product page-width">
@@ -131,7 +170,12 @@ export default function ProductView({
 
         <div className="product-layout__info">
           {product.vendor ? <p className="text-caption">{product.vendor}</p> : null}
-          <h1 className="product-info__title h2">{product.title}</h1>
+          <h1 className="product-info__title h2">
+            {product.title}
+            {product.preorder?.enabled ? (
+              <span className="product-info__preorder-badge">Pre-order</span>
+            ) : null}
+          </h1>
           {variant ? (
             <div className="product-info__price product-info__price--large">
               <Price pricePaise={variant.pricePaise} mrpPaise={variant.mrpPaise} />
@@ -151,7 +195,7 @@ export default function ProductView({
               <div className="variant-picker__values">
                 {o.values.map((val) => {
                   const target = product.variants.find((v) => v.optionValueIds.includes(val.id))
-                  const unavailable = !target || target.available <= 0
+                  const unavailable = !target?.purchasable
                   return (
                     <label
                       key={val.id}
@@ -174,11 +218,38 @@ export default function ProductView({
           ))}
 
           <div className="product-info__buy">
+            {launching ? (
+              <p
+                className={`product-info__launch text-small${reduceMotion ? '' : ' product-info__launch--animate'}`}
+                aria-live="polite"
+              >
+                Launches{' '}
+                {new Date(product.launchAt as string).toLocaleString('en-IN', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                  timeZone: 'Asia/Kolkata',
+                })}
+              </p>
+            ) : null}
+            {isPreorder && product.preorder?.shipDate ? (
+              <p className="product-info__preorder-ship text-small">
+                Expected to ship{' '}
+                {new Date(product.preorder.shipDate).toLocaleDateString('en-IN', {
+                  dateStyle: 'medium',
+                })}
+              </p>
+            ) : null}
+            {isPreorder && product.preorder?.depositPreview ? (
+              <p className="product-info__preorder-deposit text-small">
+                Pay ₹{(product.preorder.depositPreview.payNowPaise / 100).toFixed(2)} now, ₹
+                {(product.preorder.depositPreview.payLaterPaise / 100).toFixed(2)} later
+              </p>
+            ) : null}
             <div className="buy-buttons__row">
               <button
                 type="button"
-                className={`btn btn--primary buy-buttons__submit${pending ? ' is-loading' : ''}`}
-                disabled={!variant || variant.available <= 0 || pending || !onAddToCart}
+                className={`btn btn--primary buy-buttons__submit${pending ? ' is-loading' : ''}${isPreorder ? ' buy-buttons__submit--preorder' : ''}`}
+                disabled={!variant?.purchasable || launching || pending || !onAddToCart}
                 onClick={() => {
                   if (!variant || !onAddToCart) return
                   startTransition(async () => {
@@ -188,13 +259,7 @@ export default function ProductView({
                   })
                 }}
               >
-                <span className="btn__label">
-                  {!variant || variant.available <= 0
-                    ? 'Sold out'
-                    : added
-                      ? 'Added'
-                      : 'Add to cart'}
-                </span>
+                <span className="btn__label">{buyLabel}</span>
               </button>
               {added ? (
                 <a href="/cart" className="btn btn--secondary">
@@ -202,13 +267,15 @@ export default function ProductView({
                 </a>
               ) : null}
             </div>
-            {variant ? (
+            {!launching && variant ? (
               <p className="buy-buttons__availability text-small">
-                {variant.available > 5
-                  ? 'In stock, ships today if ordered before 12 pm'
-                  : variant.available > 0
-                    ? `Only ${variant.available} left`
-                    : 'Notify me when back'}
+                {isPreorder
+                  ? 'Available for pre-order'
+                  : variant.available > 5
+                    ? 'In stock, ships today if ordered before 12 pm'
+                    : variant.available > 0
+                      ? `Only ${variant.available} left`
+                      : 'Notify me when back'}
               </p>
             ) : null}
             {belowBuy}

@@ -218,6 +218,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             singleVariant={single}
             titleError={showErrors ? errors.title : undefined}
             quantityChanged={quantityChanged}
+            preorderDepositError={showErrors ? errors.preorderDeposit : undefined}
             onPatch={patch}
             onVariant={(vp) => patchVariant(0, vp)}
             onReason={(inventoryReason) => patch({ inventoryReason })}

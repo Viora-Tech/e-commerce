@@ -31,6 +31,7 @@ export default function CartLines({ storeId, lines }: { storeId: string; lines: 
             {l.variantTitle !== 'Default' ? (
               <p className="cart-line__variant text-small">{l.variantTitle}</p>
             ) : null}
+            {l.preorder ? <span className="cart-line__preorder-badge">Pre-order</span> : null}
             <p className="cart-line__unit-price text-small">{formatPaise(l.unitPricePaise)} each</p>
             <button
               type="button"

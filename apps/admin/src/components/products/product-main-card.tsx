@@ -7,6 +7,7 @@ import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
 import type { ProductFormState, VariantRow } from './form-state'
 import ProductBasicsSection from './product-basics-section'
+import ProductPreorderSection from './product-preorder-section'
 import ProductPricingSection from './product-pricing-section'
 import ProductStockSection from './product-stock-section'
 
@@ -17,6 +18,7 @@ type ProductMainCardProps = {
   singleVariant: boolean
   titleError?: string | undefined
   quantityChanged: boolean
+  preorderDepositError?: string | undefined
   onPatch: (patch: Partial<ProductFormState>) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onReason: (reason: InventoryReason) => void
@@ -36,6 +38,7 @@ export default function ProductMainCard({
   singleVariant,
   titleError,
   quantityChanged,
+  preorderDepositError,
   onPatch,
   onVariant,
   onReason,
@@ -84,6 +87,9 @@ export default function ProductMainCard({
           </DataCard>
         </>
       ) : null}
+      <DataCard title={copy.preorder.heading}>
+        <ProductPreorderSection form={form} depositError={preorderDepositError} onPatch={onPatch} />
+      </DataCard>
     </>
   )
 }

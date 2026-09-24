@@ -46,6 +46,9 @@ export const productsListContent = {
   inventory: (available: number, variants: number) =>
     `${available} in stock for ${variants} variant${variants === 1 ? '' : 's'}`,
   none: '',
+  preorderPill: 'Pre-order',
+  launching: (date: Date) =>
+    `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
   bulk: {
     setActive: 'Set as active',
     setDraft: 'Set as draft',
@@ -259,6 +262,27 @@ export const productFormContent = {
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
+  },
+  preorder: {
+    heading: 'Pre-order & launch',
+    enable: 'Allow pre-orders on this product',
+    enableHelp: 'Purchasable beyond stock, up to the limit below, while pre-order is on.',
+    shipDate: 'Expected ship date',
+    shipsInDays: 'Or, ships in (days)',
+    shipsInDaysHelp: 'Used when no expected ship date is set.',
+    limit: 'Pre-order quantity limit',
+    limitHelp: 'Leave blank for no limit.',
+    buttonLabel: 'Pre-order button label',
+    paymentMode: 'Payment',
+    paymentModeFull: 'Charge in full',
+    paymentModeFixed: 'Fixed deposit (₹)',
+    paymentModePercentage: 'Percentage deposit (%)',
+    depositAmount: 'Deposit amount',
+    depositPercent: 'Deposit percent',
+    hideUntilLaunch: 'Hide from collections until launch',
+    launchHeading: 'Launch countdown',
+    launchAt: 'Launches at',
+    launchAtHelp: 'Store time (Asia/Kolkata). Leave blank to sell right away.',
   },
   history: {
     heading: 'Stock history',

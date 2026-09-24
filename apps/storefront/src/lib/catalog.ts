@@ -1,4 +1,11 @@
 import type { CardProduct, ProductDetail } from '@commerce/blocks'
+import {
+  computeDepositFromSettings,
+  depositPreview,
+  isLaunched,
+  resolvePreorderSettings,
+  resolveShipDate,
+} from '@commerce/core/preorder'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryLevel,
@@ -105,6 +112,7 @@ export async function getProductByHandle(
     .from(product)
     .where(and(eq(product.handle, handle), eq(product.status, 'active')))
   if (!p) return null
+  const launched = isLaunched(p.launchAt)
 
   const images = await tx
     .select({ url: media.url, alt: media.alt, contentType: media.contentType })
@@ -139,6 +147,7 @@ export async function getProductByHandle(
       reserved: inventoryLevel.reserved,
       trackInventory: variant.trackInventory,
       imageUrl: media.url,
+      preorderOverride: variant.preorderOverride,
     })
     .from(variant)
     .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
@@ -154,6 +163,27 @@ export async function getProductByHandle(
           .where(inArray(variantOptionValue.variantId, vids))
       : []
 
+  // A variant is purchasable "beyond stock" while pre-order is on and its
+  // already-committed pre-order units (reserved beyond on_hand) haven't hit
+  // the limit; see reserveStock in @commerce/core/order/place-order for the
+  // matching server-side check this only previews.
+  const purchasableFor = (v: (typeof vs)[number]): boolean => {
+    if (!launched) return false
+    const stockAvailable = availableFor(v)
+    if (stockAvailable > 0) return true
+    const settings = resolvePreorderSettings(p, v.preorderOverride)
+    if (!settings.enabled) return false
+    if (settings.limit == null) return true
+    const committed = Math.max(0, (v.reserved ?? 0) - (v.onHand ?? 0))
+    return committed < settings.limit
+  }
+
+  const firstVariant = vs.find((v) => purchasableFor(v)) ?? vs[0]
+  const preorderSettings = firstVariant
+    ? resolvePreorderSettings(p, firstVariant.preorderOverride)
+    : resolvePreorderSettings(p)
+  const shipDate = preorderSettings.enabled ? resolveShipDate(preorderSettings) : null
+
   return {
     id: p.id,
     handle: p.handle,
@@ -163,6 +193,20 @@ export async function getProductByHandle(
     productType: p.productType,
     images,
     templateSuffix: p.templateSuffix,
+    launchAt: p.launchAt ? p.launchAt.toISOString() : null,
+    preorder: preorderSettings.enabled
+      ? {
+          enabled: true,
+          buttonLabel: preorderSettings.buttonLabel,
+          shipDate: shipDate ? shipDate.toISOString() : null,
+          depositPreview:
+            firstVariant && preorderSettings.paymentMode !== 'full'
+              ? depositPreview(
+                  computeDepositFromSettings(firstVariant.pricePaise, preorderSettings),
+                )
+              : null,
+        }
+      : null,
     options: options.map((o) => ({
       id: o.id,
       name: o.name,
@@ -175,6 +219,7 @@ export async function getProductByHandle(
       pricePaise: v.pricePaise,
       mrpPaise: v.mrpPaise,
       available: availableFor(v),
+      purchasable: purchasableFor(v),
       optionValueIds: links.filter((l) => l.variantId === v.id).map((l) => l.optionValueId),
       imageUrl: v.imageUrl,
     })),

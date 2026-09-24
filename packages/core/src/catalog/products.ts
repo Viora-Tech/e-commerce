@@ -16,6 +16,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
+import { validateDepositAgainstPrice } from '../preorder/settings'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
 import {
@@ -71,6 +72,16 @@ function productRow(fields: ProductFields) {
     featured: fields.featured ?? false,
     saleStartsAt: fields.saleStartsAt ?? null,
     saleEndsAt: fields.saleEndsAt ?? null,
+    preorderEnabled: fields.preorderEnabled ?? false,
+    preorderShipDate: fields.preorderShipDate ?? null,
+    preorderShipsInDays: fields.preorderShipsInDays ?? null,
+    preorderLimit: fields.preorderLimit ?? null,
+    preorderButtonLabel: fields.preorderButtonLabel || 'Pre-order',
+    preorderPaymentMode: fields.preorderPaymentMode ?? 'full',
+    preorderDepositPaise: fields.preorderDepositPaise ?? null,
+    preorderDepositPercent: fields.preorderDepositPercent ?? null,
+    preorderHideFromCollectionsUntilLaunch: fields.preorderHideFromCollectionsUntilLaunch ?? false,
+    launchAt: fields.launchAt ?? null,
     updatedAt: new Date(),
   }
 }
@@ -106,8 +117,18 @@ function variantRow(input: VariantInput) {
   }
 }
 
+/** A fixed deposit must be less than every variant's price, so there is always a balance to defer. */
+function preorderErrors(write: ProductWrite): string[] {
+  if (!write.preorderEnabled || write.preorderPaymentMode !== 'fixed') return []
+  return write.variants
+    .map((v) =>
+      validateDepositAgainstPrice('fixed', write.preorderDepositPaise ?? null, v.pricePaise),
+    )
+    .filter((e): e is string => e !== null)
+}
+
 export async function createProduct(tx: StoreTx, storeId: string, write: ProductWrite) {
-  const errors = variantErrors(write.options, write.variants)
+  const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
   const id = newId()
   const handle = await uniqueHandle(tx, write.handle ?? write.title)
@@ -118,7 +139,7 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
 }
 
 export async function updateProduct(tx: StoreTx, storeId: string, id: string, write: ProductWrite) {
-  const errors = variantErrors(write.options, write.variants)
+  const errors = [...variantErrors(write.options, write.variants), ...preorderErrors(write)]
   if (errors.length) throw new InvalidProduct(errors)
   const [existing] = await tx.select({ id: product.id }).from(product).where(eq(product.id, id))
   if (!existing) throw new CommerceError('NOT_FOUND', `Product ${id} not found`, { storeId })

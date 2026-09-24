@@ -1,7 +1,7 @@
 import { order, orderLine, shipment } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { CommerceError } from '../errors'
+import { BalanceDue, CommerceError } from '../errors'
 import { shipCommittedStock } from './committed-stock'
 
 export type FulfilLineInput = { lineId: string; quantity: number }
@@ -55,7 +55,12 @@ const UNFULFILLABLE = new Set(['draft', 'cancelled'])
  */
 async function lockOrder(ctx: StoreContext, orderId: string) {
   const [o] = await ctx.tx
-    .select({ id: order.id, status: order.status })
+    .select({
+      id: order.id,
+      status: order.status,
+      balanceDuePaise: order.balanceDuePaise,
+      balancePaidAt: order.balancePaidAt,
+    })
     .from(order)
     .where(eq(order.id, orderId))
     .for('update')
@@ -67,6 +72,17 @@ async function lockOrder(ctx: StoreContext, orderId: string) {
   return { o, lines }
 }
 
+/** A deposit-mode pre-order with money still owed blocks fulfilment until the balance is paid. */
+function assertNoBalanceDue(
+  ctx: StoreContext,
+  orderId: string,
+  o: { balanceDuePaise: number | null; balancePaidAt: Date | null } | undefined,
+): void {
+  if (o && (o.balanceDuePaise ?? 0) > 0 && !o.balancePaidAt) {
+    throw new BalanceDue(orderId, o.balanceDuePaise ?? 0, ctx.storeId)
+  }
+}
+
 /**
  * Mark every unpacked unit of an order as packed and take it out of stock.
  * Used when the whole order ships at once (a courier booking, or the merchant
@@ -75,6 +91,7 @@ async function lockOrder(ctx: StoreContext, orderId: string) {
 export async function fulfilRemainingLines(ctx: StoreContext, orderId: string): Promise<void> {
   const { o, lines } = await lockOrder(ctx, orderId)
   if (!o || UNFULFILLABLE.has(o.status)) return
+  assertNoBalanceDue(ctx, orderId, o)
   for (const line of lines) {
     const remaining = line.quantity - line.fulfilledQuantity
     if (remaining <= 0) continue
@@ -103,6 +120,7 @@ export async function fulfilOrderLines(
   if (o && UNFULFILLABLE.has(o.status)) {
     throw new OrderNotFulfillable(input.orderId, o.status, ctx.storeId)
   }
+  assertNoBalanceDue(ctx, input.orderId, o)
   const byId = new Map(lines.map((l) => [l.id, l]))
 
   const wanted = input.lines.filter((l) => l.quantity > 0)
