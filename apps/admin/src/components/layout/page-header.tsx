@@ -15,6 +15,9 @@ type PageHeaderProps = {
   actions?: ReactNode
   /** Status pills beside the title (order status, product status). */
   badges?: ReactNode
+  /** The record's glyph (an order box) in the square before the title, as in Saleor. The
+   *  square still links back to the parent list; the arrow shows when no glyph is given. */
+  icon?: ReactNode
   /** Kept for older call sites; both sizes draw the same header. */
   size?: 'compact' | 'frame'
 }
@@ -39,6 +42,7 @@ export default function PageHeader({
   breadcrumbs,
   actions,
   badges,
+  icon,
 }: PageHeaderProps) {
   // Render logic
   const parent = parentOf(breadcrumbs)
@@ -50,9 +54,9 @@ export default function PageHeader({
           <Link
             href={parent.href}
             aria-label={layoutContent.backTo(parent.label)}
-            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground [&_svg]:size-4 transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <ArrowLeft className="size-4" strokeWidth={1.8} />
+            {icon ?? <ArrowLeft className="size-4" strokeWidth={1.8} />}
           </Link>
         ) : null}
         <div className="flex min-w-0 flex-col gap-1">
