@@ -13,6 +13,13 @@ export type AppEventJob = {
   event: AppEvent
   orderId: string
   refundId?: string | undefined
+  /**
+   * One job per installed app's hook, set by the outbox relay so a failing
+   * app retries on its own without re-running any other app's hook or the
+   * notification for the same event. Absent only for legacy callers, which
+   * still run every hook for the event in one job.
+   */
+  pluginId?: string | undefined
 }
 
 /** The slice of a BullMQ Queue core needs, as with notifications. */
@@ -28,9 +35,9 @@ export type AppEventQueue = {
   ): Promise<unknown>
 }
 
-/** One job per order event (or per refund); a repeat enqueue is a no-op. */
+/** One job per order event (or per refund) per app; a repeat enqueue is a no-op. */
 export const appEventJobId = (job: AppEventJob): string =>
-  `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}`
+  `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}${job.pluginId ? `:${job.pluginId}` : ''}`
 
 export async function enqueueAppEvent(queue: AppEventQueue, job: AppEventJob): Promise<void> {
   await queue.add(job.event, job, {
@@ -98,12 +105,19 @@ export function appContext(deps: DispatchDeps, storeId: string, tag: string): Ap
   }
 }
 
+/**
+ * Run every installed app's hook for one event, or (when the outbox relay set
+ * `job.pluginId`) just that one app's. Scoping to one app per job means a hook
+ * that throws only fails and retries its own job; every other app's hook, run
+ * as its own job, already succeeded and is untouched by that retry.
+ */
 export async function dispatchAppEvent(
   deps: DispatchDeps,
   job: AppEventJob,
 ): Promise<{ ran: string[] }> {
   const installed = await installedApps(deps.db, job.storeId)
-  const hooks = deps.plugins.hooksFor(job.event, installed)
+  const allHooks = deps.plugins.hooksFor(job.event, installed)
+  const hooks = job.pluginId ? allHooks.filter((h) => h.pluginId === job.pluginId) : allHooks
   const log = deps.log ?? (() => {})
   const ctx = appContext(deps, job.storeId, job.event)
   for (const { pluginId, hook } of hooks) {

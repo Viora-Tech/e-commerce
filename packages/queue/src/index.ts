@@ -21,6 +21,8 @@ export const UNPAID_EXPIRY_QUEUE = '{payments}-unpaid-expiry'
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */
 export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
+/** Repeat job that claims undispatched outbox rows and fans them out. */
+export const OUTBOX_RELAY_QUEUE = '{outbox}-relay'
 /** Repeat tick that starts scheduled campaigns and runs due automation steps. */
 export const MARKETING_TICK_QUEUE = '{marketing}-tick'
 /** One job per sending campaign; works through recipients in batches. */
@@ -55,6 +57,46 @@ export function createAppEventQueue(connection: IORedis): Queue<AppEventJob> & A
 
 export function createAppJobQueue(connection: IORedis): Queue<AppJobData> & AppJobQueue {
   return new Queue<AppJobData>(APP_JOBS_QUEUE, { connection })
+}
+
+export type OutboxRelayJob = { storeId?: string }
+
+export function createOutboxRelayQueue(connection: IORedis): Queue<OutboxRelayJob> {
+  return new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })
+}
+
+/** Process-wide outbox relay queue, cached like the others. */
+export function outboxRelayQueue(redisUrl: string): Queue<OutboxRelayJob> {
+  const g = globalThis as { __outboxRelayQueue?: Queue<OutboxRelayJob> }
+  if (!g.__outboxRelayQueue) {
+    g.__outboxRelayQueue = createOutboxRelayQueue(createConnection(redisUrl))
+  }
+  return g.__outboxRelayQueue
+}
+
+/**
+ * Best-effort immediate nudge for one store, meant to be called right after
+ * a commit that wrote outbox rows (checkout, an admin action). The worker's
+ * periodic sweep (every few seconds) is what guarantees delivery; this only
+ * shaves the wait down to near-immediate. Cheap: one `add` call with a
+ * per-second-bucket job id, so a burst of nudges for the same store
+ * collapses into at most one extra relay run. Never throws: a Redis hiccup
+ * must not turn a placed order into an error page.
+ */
+export async function nudgeOutboxRelay(
+  queue: Queue<OutboxRelayJob>,
+  storeId: string,
+): Promise<void> {
+  const bucket = Math.floor(Date.now() / 1000)
+  try {
+    await queue.add(
+      'nudge',
+      { storeId },
+      { jobId: `nudge:${storeId}:${bucket}`, removeOnComplete: true, removeOnFail: true },
+    )
+  } catch (err) {
+    console.error(`[outbox] could not nudge relay for store ${storeId}`, err)
+  }
 }
 
 /** Process-wide app jobs queue. */

@@ -1601,3 +1601,36 @@ export const storeInvitation = pgTable(
     index('store_invitation_store_email').on(t.storeId, t.email),
   ],
 )
+
+/**
+ * Transactional outbox: every place that today enqueues a notification, an
+ * app hook or a marketing trigger directly instead writes one row here, in
+ * the same transaction as the state change. A worker relay reads
+ * undispatched rows and fans them out to consumers, so a commit can never
+ * leave an event unsent and a crash can never send one that never happened.
+ *
+ * Pattern from Trigger.dev's task-run event log (Apache-2.0) and Temporal's
+ * event-sourced workflow history (MIT): durable append log first, delivery
+ * as a separate, retryable concern. Ours is plain Postgres plus BullMQ, not
+ * their engines.
+ */
+export const outboxEvent = pgTable(
+  'outbox_event',
+  {
+    id: id(),
+    storeId: storeId(),
+    /** Reuses existing event names ('order.placed', 'refund.created', ...). */
+    type: text('type').notNull(),
+    payload: jsonb('payload').notNull(),
+    createdAt: createdAt(),
+    /** Set once the relay has enqueued a job for every consumer of this row. */
+    dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+    attempts: integer('attempts').notNull().default(0),
+    lastError: text('last_error'),
+  },
+  (t) => [
+    index('outbox_event_undispatched')
+      .on(t.storeId, t.createdAt)
+      .where(sql`${t.dispatchedAt} is null`),
+  ],
+)

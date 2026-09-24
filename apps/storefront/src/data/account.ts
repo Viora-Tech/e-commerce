@@ -30,6 +30,7 @@ export const accountContent = {
       invalid: 'That code is not right. Check the email and try again.',
       expired: 'That code has expired. Ask for a new one.',
       locked: 'Too many attempts. Ask for a new code.',
+      rateLimited: 'Too many attempts. Please wait a minute and try again.',
     },
   },
   orders: {

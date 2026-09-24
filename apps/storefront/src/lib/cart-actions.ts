@@ -24,16 +24,22 @@ import { order, payment } from '@commerce/db'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { checkoutContent } from '@/data/checkout'
 import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
-import { notify } from './notifications'
+import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
+import { clientIp, rateLimited } from './rate-limit'
 import { estimateForPincode } from './shipping'
 import { inStore } from './store-context'
+
+const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
+const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
+const PAYMENT_RETRY_IP_RULE = { limit: 20, windowMs: 60_000 }
 
 /** Server actions for the cart. The store id comes from the page's route param, never the client. */
 
@@ -106,6 +112,12 @@ export async function checkoutAction(
 ): Promise<CheckoutResult> {
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
+  const ip = clientIp(await headers())
+  const [byCart, byIp] = await Promise.all([
+    rateLimited('checkout-submit:cart', cartId, CHECKOUT_CART_RULE),
+    rateLimited('checkout-submit:ip', ip, CHECKOUT_IP_RULE),
+  ])
+  if (!byCart.ok || !byIp.ok) return { error: checkoutContent.errors.rateLimited }
   // Signed in: the order belongs to the session's customer, whatever email the form carried.
   const me = await currentCustomer(storeId)
   const form = me ? { ...submitted, email: me.email } : submitted
@@ -186,7 +198,10 @@ export async function checkoutAction(
   if ('error' in placed) return { error: placed.error }
   const result = placed
   await clearCartId()
-  // A second submit of the same cart got the first order back: it was already announced.
+  // A second submit of the same cart got the first order back: it was already
+  // announced (the outbox row, if any, was written on the first submit only:
+  // `placeOrder` returns early on replay, before the workflow step that writes
+  // order.placed ever runs).
   if (result.replayed) return redirectAfterCheckout(result)
   if (me) {
     // Convenience only: never let the address book block an order that is already placed.
@@ -198,11 +213,11 @@ export async function checkoutAction(
   await inStore(storeId, (tx) => onOrderPlaced(tx, storeId, result.orderId)).catch((err) =>
     console.error('[checkout] could not update marketing automations', err),
   )
-  await notify({ storeId, orderId: result.orderId, template: 'order_placed' })
-  // Paid at checkout (gift cards, capture-at-creation gateways): the paid path issues cards and sends the receipt.
-  if (result.becameCaptured) {
-    await notify({ storeId, orderId: result.orderId, template: 'payment_received' })
-  }
+  // order_placed (and payment_received when paid at checkout: gift cards,
+  // capture-at-creation gateways) were already written to the outbox in the
+  // same transaction as the order/payment change (placeOrder, applyPaymentStatus).
+  // This only wakes the relay so they go out in ~1s instead of up to 5s.
+  await nudgeOutbox(storeId)
   redirectAfterCheckout(result)
 }
 
@@ -219,6 +234,14 @@ function redirectAfterCheckout(result: Pick<PlaceOrderResult, 'session' | 'order
  * one attempt; the order and its stock are untouched.
  */
 export async function retryPaymentAction(storeId: string, orderNumber: number) {
+  const ip = clientIp(await headers())
+  const [byIp, byOrder] = await Promise.all([
+    rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', String(orderNumber), PAYMENT_RETRY_IP_RULE),
+  ])
+  // No error slot on this action's return type: over the limit lands back on
+  // the thank-you page, same as a retry that turns out not to be needed.
+  if (!byIp.ok || !byOrder.ok) redirect(`/checkout/thank-you/${orderNumber}`)
   const target = await inStore(storeId, async (tx) => {
     const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
     if (!o) return null
@@ -240,9 +263,9 @@ export async function retryPaymentAction(storeId: string, orderNumber: number) {
       throw err
     },
   )
-  if (started?.becameCaptured) {
-    await notify({ storeId, orderId: target.orderId, template: 'payment_received' })
-  }
+  // payment_received was already written to the outbox, in the same
+  // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
+  if (started?.becameCaptured) await nudgeOutbox(storeId)
   redirectAfterCheckout({ session: started?.session ?? null, orderNumber })
 }
 
@@ -260,8 +283,8 @@ export async function confirmPaymentAction(
     if (!provider) return null
     return confirmClientPayment({ storeId, tx }, provider, providerRef, confirmation)
   })
-  if (applied?.becameCaptured) {
-    await notify({ storeId, orderId: applied.payment.orderId, template: 'payment_received' })
-  }
+  // payment_received was already written to the outbox inside `inStore`
+  // above, in the same transaction as the capture (applyPaymentStatus).
+  if (applied?.becameCaptured) await nudgeOutbox(storeId)
   return applied?.payment.status ?? null
 }
