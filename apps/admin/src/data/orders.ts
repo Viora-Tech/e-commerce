@@ -14,6 +14,11 @@ function ordinal(n: number): string {
 
 /** Copy for the orders list and shared order labels. */
 export const ordersContent = {
+  row: {
+    openNewTab: 'Open in a new tab',
+    open: 'Open order',
+    sameCustomer: 'Orders from this customer',
+  },
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
   heading: 'Order list',
@@ -22,13 +27,6 @@ export const ordersContent = {
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
-  tiles: {
-    total: 'Total orders',
-    placed: 'New orders',
-    delivered: 'Completed orders',
-    cancelled: 'Cancelled orders',
-    period: 'Last 7 days',
-  },
   tabs: {
     all: 'All orders',
   },

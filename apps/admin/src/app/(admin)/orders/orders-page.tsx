@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, MoreVertical, SquarePlus } from '@commerce/ui/icons'
+import { ChevronDown, ExternalLink, MoreVertical, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   DropdownMenu,
@@ -15,9 +15,9 @@ import { toast } from 'sonner'
 import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
 import { paymentStatusOf } from '@/components/orders/order-payment-state'
-import OrderTiles, { type OrderStats } from '@/components/orders/order-tiles'
 import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
+import RowIconCells from '@/components/table/row-icon-cells'
 import { ORDER_STATUSES, type OrderStatus, ordersContent } from '@/data/orders'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
@@ -30,7 +30,6 @@ type Item = ListResult['items'][number]
 export type OrdersInitial = {
   query: ListQuery<OrderStatus>
   result: ListResult
-  stats: OrderStats
   allCount: number
 }
 
@@ -220,17 +219,39 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   }
 
   return (
-    <KitListPage
-      title={ordersContent.heading}
-      actions={<HeaderActions />}
-      strip={<OrderTiles stats={initial.stats} />}
-    >
+    <KitListPage title={ordersContent.heading} actions={<HeaderActions />}>
       <ResourceTable
         resourceName={ordersContent.resource}
         columns={columns}
         items={items}
         getId={(o) => o.id}
         href={(o) => `/orders/${o.id}`}
+        rowIconCells={{
+          count: 2,
+          render: (o) => (
+            <RowIconCells
+              links={[
+                {
+                  label: ordersContent.row.openNewTab,
+                  icon: ExternalLink,
+                  href: `/orders/${o.id}`,
+                  newTab: true,
+                },
+              ]}
+              menu={[
+                { label: ordersContent.row.open, href: `/orders/${o.id}` },
+                ...(o.email
+                  ? [
+                      {
+                        label: ordersContent.row.sameCustomer,
+                        href: `/orders?query=${encodeURIComponent(o.email)}`,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          ),
+        }}
         loading={loading}
         query={query}
         onQueryChange={(query) => setQ({ query, page: 1 })}

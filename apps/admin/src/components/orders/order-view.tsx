@@ -154,7 +154,10 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
         <>
           <ImportedOrderCard order={order} />
           {readOnly ? null : <UnfulfilledCard order={order} onFulfil={() => setFulfilling(true)} />}
-          <LineItemsCard order={order} />
+          <LineItemsCard
+            order={order}
+            unfulfilledShown={!readOnly && order.status !== 'cancelled'}
+          />
           <PaymentCard
             order={order}
             onRefund={canRefund ? setRefunding : undefined}
