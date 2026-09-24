@@ -30,6 +30,14 @@ export async function storesWithOpenShipments(db: Db): Promise<string[]> {
   return rows.map((r) => r.id)
 }
 
+/** Store ids with placed online-payment orders, for the unpaid-order expiry job. SECURITY DEFINER backed. */
+export async function storesWithUnpaidOnlineOrders(db: Db): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_unpaid_online_orders() as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /**
  * Store ids with marketing work for the worker's tick: an active automation,
  * a campaign due to send or still sending, or an automation run that is due.

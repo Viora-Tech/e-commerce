@@ -59,6 +59,17 @@ describe('payment settings', () => {
   })
 
   it('falls back to COD only when settings are missing', () => {
-    expect(parsePaymentSettings(null)).toEqual({ enabled: ['cod'], providers: {}, adjustments: {} })
+    expect(parsePaymentSettings(null)).toEqual({
+      enabled: ['cod'],
+      providers: {},
+      adjustments: {},
+      expireUnpaidAfterMinutes: 30,
+    })
+  })
+
+  it('expires unpaid online orders after 30 minutes unless the store says otherwise', () => {
+    expect(parsePaymentSettings({ enabled: ['cod'] }).expireUnpaidAfterMinutes).toBe(30)
+    expect(parsePaymentSettings({ expireUnpaidAfterMinutes: 0 }).expireUnpaidAfterMinutes).toBe(0)
+    expect(parsePaymentSettings({ expireUnpaidAfterMinutes: -5 }).expireUnpaidAfterMinutes).toBe(30)
   })
 })

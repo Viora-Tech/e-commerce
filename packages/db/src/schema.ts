@@ -754,6 +754,8 @@ export const order = pgTable(
     uniqueIndex('order_store_cart_unique')
       .on(t.storeId, t.cartId)
       .where(sql`${t.cartId} is not null`),
+    /** The unpaid-order expiry job reads the oldest placed orders per store. */
+    index('order_placed_at_unpaid').on(t.storeId, t.placedAt).where(sql`${t.status} = 'placed'`),
   ],
 )
 

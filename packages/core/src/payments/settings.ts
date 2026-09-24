@@ -16,6 +16,11 @@ export const PaymentSettingsSchema = z.object({
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
   /** Optional fee or discount per method id, applied to the order total at checkout. */
   adjustments: z.record(z.string(), PaymentAdjustmentSchema).default({}),
+  /**
+   * Cancel online-payment orders still unpaid after this many minutes and
+   * release their stock. 0 turns it off. COD and manual transfers never expire.
+   */
+  expireUnpaidAfterMinutes: z.number().int().min(0).max(10_080).default(30),
 })
 export type PaymentSettings = z.infer<typeof PaymentSettingsSchema>
 
@@ -23,6 +28,7 @@ export const defaultPaymentSettings: PaymentSettings = {
   enabled: ['cod'],
   providers: {},
   adjustments: {},
+  expireUnpaidAfterMinutes: 30,
 }
 
 export function parsePaymentSettings(raw: unknown): PaymentSettings {

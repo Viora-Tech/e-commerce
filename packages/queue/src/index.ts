@@ -15,6 +15,8 @@ import IORedis from 'ioredis'
 export const HEARTBEAT_QUEUE = '{system}-heartbeat'
 /** Repeat job that polls open shipments. Braces keep every key on one slot. */
 export const SHIPPING_TRACK_QUEUE = '{shipping}-track'
+/** Repeat job that cancels online-payment orders left unpaid past the store's window. */
+export const UNPAID_EXPIRY_QUEUE = '{payments}-unpaid-expiry'
 /** Repeat job that nudges shoppers who left a basket behind. */
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */
