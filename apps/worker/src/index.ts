@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
 import { createRedisRateLimitStore } from '@commerce/core'
 import { createDb } from '@commerce/db'
+import { reportWorkerFailures } from '@commerce/observability'
 import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
@@ -10,6 +11,7 @@ import { createBackInStockWorker } from './back-in-stock'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createNotificationWorker } from './notifications'
+import { initSentry, reportError } from './observability'
 import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
 import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
@@ -22,6 +24,7 @@ import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 process.env.LOCAL_UPLOAD_ROOT ??= resolve(import.meta.dir, '../../admin')
 
 const env = loadEnv(process.env)
+initSentry(env)
 const db = createDb(env.DATABASE_URL)
 const redis = createConnection(env.REDIS_URL)
 const { queue, worker } = createHeartbeat(redis)
@@ -61,6 +64,19 @@ const outboxRelay = createOutboxRelay(redis, db, {
   appEvents,
   inventoryRestock: backInStock.queue,
 })
+
+reportWorkerFailures(worker, 'heartbeat', reportError)
+reportWorkerFailures(notificationWorker, 'notifications', reportError)
+reportWorkerFailures(appEventWorker, 'app-events', reportError)
+reportWorkerFailures(appJobWorker, 'app-jobs', reportError)
+reportWorkerFailures(tracker.worker, 'shipping-tracker', reportError)
+reportWorkerFailures(unpaidExpiry.worker, 'unpaid-order-expiry', reportError)
+reportWorkerFailures(preorderBalance.worker, 'preorder-balance', reportError)
+reportWorkerFailures(domains.worker, 'domain-verify', reportError)
+reportWorkerFailures(marketing.tick, 'marketing-tick', reportError)
+reportWorkerFailures(marketing.send, 'marketing-send', reportError)
+reportWorkerFailures(outboxRelay.worker, 'outbox-relay', reportError)
+reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(

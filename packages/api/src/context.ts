@@ -1,6 +1,7 @@
 import type { MerchantAuth } from '@commerce/auth'
 import type { AppEventQueue, AppJobQueue, NotificationQueue } from '@commerce/core'
 import type { Db } from '@commerce/db'
+import type { ErrorReporter } from '@commerce/observability'
 
 /** What the host (admin app) provides per request. */
 export type ApiContext = {
@@ -15,6 +16,8 @@ export type ApiContext = {
   appJobs?: AppJobQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
+  /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */
+  reportError?: ErrorReporter | undefined
 }
 
 export type LiveVisitors = {

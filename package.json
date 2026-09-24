@@ -27,19 +27,22 @@
     "infra:down": "docker compose down"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "3.1137.0",
     "@biomejs/biome": "2.5.14",
     "turbo": "^2.11.2",
     "typescript": "~5.9.3"
   },
   "dependencies": {
-    "@commerce/plugins": "workspace:*",
-    "@commerce/payments-razorpay": "workspace:*",
-    "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/backup": "workspace:*",
+    "@commerce/config": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/notifications-whatsapp": "workspace:*",
-    "@commerce/storage-r2": "workspace:*",
+    "@commerce/payments-razorpay": "workspace:*",
+    "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",
-    "@commerce/plugin-back-in-stock": "workspace:*"
+    "@commerce/plugins": "workspace:*",
+    "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/storage-r2": "workspace:*"
   }
 }

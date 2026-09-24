@@ -12,6 +12,7 @@ import { call } from '@orpc/server'
 import { headers } from 'next/headers'
 import { auth } from './auth'
 import { db } from './db'
+import { reportError } from './sentry-report'
 
 /** Everything the router needs from this host, minus the request headers. */
 export function apiHost() {
@@ -26,6 +27,7 @@ export function apiHost() {
       daily: (storeId: string, days: string[]) =>
         dailyVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId, days),
     },
+    reportError,
   }
 }
 

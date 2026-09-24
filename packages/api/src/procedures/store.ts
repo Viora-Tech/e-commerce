@@ -134,7 +134,14 @@ function storeProcedureWith(required?: Permission) {
         ...access,
         can: holds,
       }
-      return await next({ context: { scope, tx } })
+      try {
+        return await next({ context: { scope, tx } })
+      } catch (error) {
+        // ORPCError is a deliberate, client-facing response (unauthorized, validation, not
+        // found); only unexpected exceptions are worth an error-tracking event.
+        if (!(error instanceof ORPCError)) context.reportError?.(error, { storeId })
+        throw error
+      }
     })
   })
 }

@@ -1,0 +1,20 @@
+{
+  "name": "@commerce/backup",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure key-naming and retention logic for scripts/backup-db.ts and scripts/restore-db.ts. No AWS SDK or child_process here, so it's unit-testable without Postgres, R2 or Docker.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
