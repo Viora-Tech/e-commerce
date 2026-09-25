@@ -2,6 +2,8 @@
 title: GST invoices
 ---
 
+import { Callout, Steps } from 'nextra/components'
+
 # GST invoices
 
 Install the **GST invoices** app from Apps to issue tax invoices, credit notes, packing
@@ -9,14 +11,30 @@ slips, order confirmations, receipt vouchers and refund vouchers straight from y
 
 ## Setting it up
 
-Under the app's **Settings**, fill in:
+<Steps>
 
-- **Business details** — your legal name (as registered for GST), GSTIN (checked against its
-  check digit as you type), address, and logo/signature for the PDF. Printed as the supplier
-  on every document, per CGST rule 46.
-- **Numbering series** — how invoice numbers are generated.
-- **Template and style** — how the PDF looks; the preview updates as you type.
-- **Queue and delivery** — how and when documents go out.
+### Business details
+
+Your legal name (as registered for GST), GSTIN (checked against its check digit as you
+type), address, and logo/signature for the PDF.
+
+<Callout type="info">
+  Printed as the supplier on every document, per CGST rule 46.
+</Callout>
+
+### Numbering series
+
+How invoice numbers are generated.
+
+### Template and style
+
+How the PDF looks; the preview updates as you type.
+
+### Queue and delivery
+
+How and when documents go out.
+
+</Steps>
 
 Documents sit **In queue** until they're **Issued**; a document can also be **Cancelled**.
 

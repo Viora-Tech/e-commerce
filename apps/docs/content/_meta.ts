@@ -1,5 +1,13 @@
 export default {
-  index: 'Home',
-  'merchant-guide': 'Merchant guide',
-  'developer-docs': 'Developer docs',
+  index: {
+    display: 'hidden',
+  },
+  'merchant-guide': {
+    type: 'page',
+    title: 'Merchant guide',
+  },
+  'developer-docs': {
+    type: 'page',
+    title: 'Developers',
+  },
 }
