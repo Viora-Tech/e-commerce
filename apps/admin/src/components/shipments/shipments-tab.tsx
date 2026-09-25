@@ -25,7 +25,6 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
-import BookShipmentsPanel from './book-shipments-panel'
 
 type ListResult = Awaited<ReturnType<typeof api.shipments.list>>
 type Courier = { id: string; label: string }
@@ -43,7 +42,6 @@ export default function ShipmentsTab() {
   const [search, setSearch] = useState('')
   const [courier, setCourier] = useState('')
   const [page, setPage] = useState(1)
-  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     api.store.getShipping().then((r) => {
@@ -53,9 +51,6 @@ export default function ShipmentsTab() {
   }, [])
 
   useEffect(() => {
-    // reloadKey has no bearing on the query itself; bumping it just re-runs this effect
-    // after a bulk booking, the same way customers-page.tsx re-runs its list on demand.
-    if (reloadKey < 0) return
     let cancelled = false
     api.shipments
       .list({
@@ -70,10 +65,9 @@ export default function ShipmentsTab() {
     return () => {
       cancelled = true
     }
-  }, [page, search, courier, reloadKey])
+  }, [page, search, courier])
 
   // Event handlers
-  const handleBooked = () => setReloadKey((k) => k + 1)
   const handleCourierChange = (value: string) => {
     setPage(1)
     setCourier(value === ANY_COURIER ? '' : value)
@@ -85,7 +79,6 @@ export default function ShipmentsTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      <BookShipmentsPanel onBooked={handleBooked} />
       <DataCard
         title={copy.heading}
         flush

@@ -6,6 +6,7 @@ import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { auth, getSession } from '@/lib/auth'
+import SelectStore from './select-store/select-store'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
@@ -31,19 +32,22 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     : []
   const liveTheme = themes.find((t) => t.role === 'main')
   const logoUrl = liveTheme?.settings.brand.logo?.url ?? null
+  const storeOptions = orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))
 
   return (
     <>
       <AccentStyle organizationId={active?.id ?? null} />
       <AdminFrame
         user={{ name: session.user.name, email: session.user.email }}
-        stores={orgs.map((o) => ({ id: o.id, name: o.name, slug: o.slug }))}
+        stores={storeOptions}
         activeStoreId={active?.id ?? null}
         storefrontUrl={loadEnv(process.env).STOREFRONT_URL}
         apps={appLinks}
         logoUrl={logoUrl}
       >
-        {children}
+        {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
+            show the picker instead of letting every page below throw "Pick a store first". */}
+        {active ? children : <SelectStore stores={storeOptions} autoSelect />}
       </AdminFrame>
     </>
   )

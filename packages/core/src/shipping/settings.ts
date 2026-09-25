@@ -95,6 +95,18 @@ export const CourierRuleSchema = z.discriminatedUnion('mode', [
 export type CourierRuleSettings = z.infer<typeof CourierRuleSchema>
 export const defaultCourierRule: CourierRuleSettings = { mode: 'cheapest' }
 
+/** A named box the merchant packs into, for pre-filling the booking dimensions/weight. */
+export const BoxPresetSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(60),
+  lengthCm: z.number().min(1).max(200),
+  widthCm: z.number().min(1).max(200),
+  heightCm: z.number().min(1).max(200),
+  weightGrams: z.number().int().min(1).max(50000),
+  isDefault: z.boolean().default(false),
+})
+export type BoxPreset = z.infer<typeof BoxPresetSchema>
+
 /** Stored on store.shipping. Secret fields are encrypted before they reach the row. */
 export const ShippingSettingsSchema = z.object({
   /** Couriers in preference order; the first is asked for estimates and, absent a booking rule
@@ -103,9 +115,17 @@ export const ShippingSettingsSchema = z.object({
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
   policy: ShippingPolicySchema.default(ShippingPolicySchema.parse({})),
   courierRule: CourierRuleSchema.default(defaultCourierRule),
+  /** Named boxes for the booking flow; one may be marked default. No migration - lives in the
+   *  same JSON column as everything else here. */
+  boxPresets: z.array(BoxPresetSchema).max(20).default([]),
 })
 export type ShippingSettings = z.infer<typeof ShippingSettingsSchema>
 export type ShippingPolicySettings = z.infer<typeof ShippingPolicySchema>
+
+/** The store's default box, if it has one - the booking flow pre-fills from it. */
+export function defaultBoxPreset(settings: ShippingSettings): BoxPreset | null {
+  return settings.boxPresets.find((b) => b.isDefault) ?? settings.boxPresets[0] ?? null
+}
 
 export const defaultShippingSettings: ShippingSettings = ShippingSettingsSchema.parse({})
 

@@ -5,7 +5,7 @@ import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { shipmentsContent } from '@/data/shipments'
@@ -46,6 +46,17 @@ export default function BookShipmentsPanel({ onBooked }: BookShipmentsPanelProps
   const [result, setResult] = useState<Awaited<ReturnType<typeof api.shipments.bulkBook>> | null>(
     null,
   )
+  // Default box preset pre-fills weight/dimensions; the merchant can still edit them.
+  useEffect(() => {
+    api.store.getShipping().then((r) => {
+      const box = r.settings.boxPresets?.find((b) => b.isDefault) ?? r.settings.boxPresets?.[0]
+      if (!box) return
+      setWeightGrams(String(box.weightGrams))
+      setLength(String(box.lengthCm))
+      setWidth(String(box.widthCm))
+      setHeight(String(box.heightCm))
+    })
+  }, [])
 
   // Helpers
   const book = async (orderIds: string[], courierOverrides: Record<string, string>) => {

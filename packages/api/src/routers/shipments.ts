@@ -11,6 +11,7 @@ import {
   listManifestsForStore,
   listNdrForStore,
   listPickupsForStore,
+  listReadyToShip,
   listShipments,
   listUnpickedForStore,
   listWalletCards,
@@ -43,6 +44,17 @@ export const shipmentsRouter = {
       }),
     )
     .handler(({ context, input }) => listShipments(context.tx, input)),
+
+  /** Ready to ship tab: paid, unfulfilled orders - the main Shopify-style booking flow. */
+  readyToShip: can(permissions.ORDERS_READ)
+    .input(
+      z.object({
+        page: z.number().int().min(1).default(1),
+        perPage: z.number().int().min(1).max(100).default(25),
+        search: z.string().trim().max(200).optional(),
+      }),
+    )
+    .handler(({ context, input }) => listReadyToShip(context.tx, input)),
 
   resolveOrderNumbers: can(permissions.ORDERS_READ)
     .input(z.object({ numbers: z.array(z.number().int()).min(1).max(200) }))

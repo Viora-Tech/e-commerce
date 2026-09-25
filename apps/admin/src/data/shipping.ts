@@ -34,6 +34,22 @@ export const shippingSettingsContent = {
     zoneCourier: 'Courier',
     fallbackLabel: 'For every other state',
   },
+  boxPresets: {
+    heading: 'Box presets',
+    intro:
+      'Named boxes you pack into. The default box pre-fills weight and dimensions when booking; per order weight is the sum of product weights when your products have them, else the box weight.',
+    empty: 'No boxes yet. Add one so booking has a starting point.',
+    name: 'Name',
+    namePlaceholder: 'Small box',
+    length: 'Length (cm)',
+    width: 'Width (cm)',
+    height: 'Height (cm)',
+    weight: 'Box weight (g)',
+    default: 'Default',
+    makeDefault: 'Make default',
+    remove: 'Remove',
+    add: 'Add a box',
+  },
   policy: {
     heading: 'Dispatch policy',
     originPincode: 'Warehouse PIN code',

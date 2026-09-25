@@ -463,6 +463,7 @@ const ALLOWLIST: AllowEntry[] = [
     names: [
       'ShippingPolicySchema',
       'CourierRuleSchema',
+      'BoxPresetSchema',
       'defaultCourierRule',
       'defaultShippingSettings',
       'encryptShippingSettings',
