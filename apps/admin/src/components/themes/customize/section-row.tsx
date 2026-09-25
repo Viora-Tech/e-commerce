@@ -5,6 +5,7 @@ import { Copy, Eye, EyeOff, Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
+import { useRef } from 'react'
 import { customizeContent } from '@/data/customize'
 import SectionIcon from './section-icon'
 
@@ -18,7 +19,8 @@ type SectionRowProps = {
   onSelect: () => void
   onToggleHidden: () => void
   onDuplicate: () => void
-  onRemove: () => void
+  /** Passed this row's own element, so the caller can collapse it before dispatching. */
+  onRemove: (el: HTMLElement | null) => void
 }
 
 const copy = customizeContent.tree
@@ -35,11 +37,15 @@ export default function SectionRow({
   onDuplicate,
   onRemove,
 }: SectionRowProps) {
+  // Hooks
+  const rowRef = useRef<HTMLDivElement>(null)
+
   // Render logic
   const hidden = section.props._hidden === true
 
   return (
     <div
+      ref={rowRef}
       className={cn(
         'group flex h-9 items-center gap-1 rounded-md pr-1 text-body transition-colors',
         selected ? 'bg-accent text-foreground' : 'text-foreground hover:bg-muted',
@@ -90,7 +96,7 @@ export default function SectionRow({
             <Button
               variant="ghost"
               size="icon-sm"
-              onClick={onRemove}
+              onClick={() => onRemove(rowRef.current)}
               aria-label={copy.remove(label)}
               title={copy.remove(label)}
             >

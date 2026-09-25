@@ -155,6 +155,19 @@ export const SECTION_CATEGORIES = {
   more: { title: 'More', components: ['BlogPosts', 'Newsletter'] },
 } as const
 
+/**
+ * App blocks (Shopify's "app blocks"): sections a future plugin SDK registers
+ * for merchants to add from installed apps, kept in their own Puck category so
+ * the Add panel can show them on a separate "Apps" tab. An app registering a
+ * block pushes its component type into `apps.components` below (on the live
+ * Puck config, via `createBlocksConfig`'s `categories.apps`) and adds one entry
+ * to `APP_BLOCK_OWNERS`, keyed by that same type, so the Add panel can group
+ * its cards by app and show the app's icon. Empty until that SDK exists.
+ */
+export const APPS_CATEGORY = 'apps'
+export type AppBlockOwner = { appName: string; appIcon: string }
+export const APP_BLOCK_OWNERS: Record<string, AppBlockOwner> = {}
+
 export type PageData = Data<BlockProps>
 
 function richTextField(
@@ -194,6 +207,8 @@ export function createBlocksConfig(
       },
       media: { ...SECTION_CATEGORIES.media, components: [...SECTION_CATEGORIES.media.components] },
       more: { ...SECTION_CATEGORIES.more, components: [...SECTION_CATEGORIES.more.components] },
+      // Empty until the plugin SDK registers app blocks into it; see APP_BLOCK_OWNERS above.
+      [APPS_CATEGORY]: { title: 'Apps', components: [] },
     },
     components: {
       // Library and dynamic sections type their props loosely; their renderers own the shapes.

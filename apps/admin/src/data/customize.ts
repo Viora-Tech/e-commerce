@@ -4,6 +4,7 @@ import type { SortableListLabels } from '@commerce/ui/sortable'
 /** Copy for Online Store › Themes › Customize: templates, the sections tree and the inspector. */
 export const customizeContent = {
   tabs: { sections: 'Sections', settings: 'Theme settings' },
+  rail: { sections: 'Sections', add: 'Add', theme: 'Theme' },
   templates: {
     label: 'Template',
     default: 'Default',
@@ -85,6 +86,12 @@ export const customizeContent = {
       BlogPosts: 'Your latest blog posts in a grid',
       Newsletter: 'An email signup form',
     } as Record<string, string>,
+    tabs: { sections: 'Sections', apps: 'Apps' },
+    appsEmpty: {
+      title: 'No app blocks yet',
+      body: "Apps you install can add things like a 'Notify me' button or delivery-date checker here.",
+      link: 'Browse apps',
+    },
   },
   inspector: {
     empty: 'Select a section to edit its settings.',
@@ -102,6 +109,7 @@ export const customizeContent = {
     draftFailed: 'Could not keep your draft. Check your connection.',
     discard: 'Discard',
     discarded: 'Changes discarded',
+    more: 'More actions',
   },
   image: { choose: 'Choose image', change: 'Change', remove: 'Remove', dialog: 'Choose an image' },
   assign: {

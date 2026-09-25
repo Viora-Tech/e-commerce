@@ -122,13 +122,22 @@ export function isTemplateKey(value: string): value is TemplateKey {
   )
 }
 
-/** Drops what blocks resolve at render time (`resolved` product lists): it is not content. */
+/**
+ * Drops what blocks resolve at render time: `resolved` product lists inside
+ * `props`, and the sibling `readOnly` key Puck's own `resolveData` runtime
+ * attaches to the section once those props resolve (not part of our
+ * `TemplateSection` type, so `content.map` carries it through unless it's
+ * stripped explicitly here). Both come back the moment Puck resolves the
+ * section again, so leaving either in would make freshly loaded, unedited
+ * data compare unequal to itself — "Unsaved changes" lighting up on load.
+ */
 export function stripResolved(data: TemplateData): TemplateData {
   return {
     ...data,
     content: data.content.map((s) => {
       const { resolved: _resolved, ...props } = s.props
-      return { ...s, props: props as TemplateSection['props'] }
+      const { readOnly: _readOnly, ...section } = s as TemplateSection & { readOnly?: unknown }
+      return { ...section, props: props as TemplateSection['props'] }
     }),
   }
 }

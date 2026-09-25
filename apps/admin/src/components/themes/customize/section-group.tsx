@@ -6,7 +6,9 @@ import {
   type TemplateSection,
 } from '@commerce/core/theme'
 import { SortableList } from '@commerce/ui/sortable'
+import { useReducedMotion } from 'motion/react'
 import { sectionSortLabels } from '@/data/customize'
+import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AddSectionPopover from './add-section-popover'
 import SectionRow from './section-row'
@@ -38,6 +40,7 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const selector = useCustomizePuck((s) => s.appState.ui.itemSelector)
   const components = useCustomizePuck((s) => s.config.components)
+  const reducedMotion = useReducedMotion()
 
   // Helpers
   const labelOf = (type: string) => components[type]?.label ?? type
@@ -90,7 +93,9 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
               onDuplicate={() =>
                 dispatch({ type: 'duplicate', sourceIndex: index, sourceZone: zone })
               }
-              onRemove={() => dispatch({ type: 'remove', index, zone })}
+              onRemove={(el) =>
+                deleteWithCollapse(dispatch, { index, zone }, el, reducedMotion === true)
+              }
             />
           )
         }}
