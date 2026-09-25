@@ -25,6 +25,7 @@ import {
 import {
   type BackupObject,
   backupKey,
+  encryptBackup,
   kindsForDate,
   parseBackupKey,
   selectKeysToDelete,
@@ -150,20 +151,39 @@ async function tarUploadsDir(dir: string): Promise<Buffer | null> {
   return result.stdout
 }
 
+/**
+ * Encrypts an archive under BACKUP_ENCRYPTION_KEY when set. Production refuses to run
+ * without it (a backup is as sensitive as the database it dumps); dev without a key
+ * warns once and writes the archive unencrypted, so a fresh local checkout still works.
+ */
+function maybeEncrypt(archive: Buffer, env: ReturnType<typeof loadEnv>, label: string): Buffer {
+  if (env.BACKUP_ENCRYPTION_KEY) return encryptBackup(archive, env.BACKUP_ENCRYPTION_KEY)
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'backup-db: BACKUP_ENCRYPTION_KEY is not set. Production backups must be encrypted — see docs/security/data-protection.md.',
+    )
+  }
+  console.warn(
+    `backup-db: BACKUP_ENCRYPTION_KEY is not set — writing the ${label} archive UNENCRYPTED (dev only).`,
+  )
+  return archive
+}
+
 async function main() {
   const env = loadEnv(process.env)
   const target = buildTarget(env)
 
   console.log('backup-db: dumping database…')
-  const dump = dumpAndGzip(env.DATABASE_URL_OWNER)
-  console.log(`backup-db: dump is ${(dump.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped`)
+  const dump = maybeEncrypt(dumpAndGzip(env.DATABASE_URL_OWNER), env, 'database')
+  console.log(`backup-db: dump is ${(dump.byteLength / 1024 / 1024).toFixed(1)} MiB`)
 
   const uploadsDir = localStorageDir()
   console.log(`backup-db: checking for a local uploads folder at ${uploadsDir}…`)
-  const uploadsArchive = await tarUploadsDir(uploadsDir)
+  const rawUploadsArchive = await tarUploadsDir(uploadsDir)
+  const uploadsArchive = rawUploadsArchive ? maybeEncrypt(rawUploadsArchive, env, 'uploads') : null
   if (uploadsArchive) {
     console.log(
-      `backup-db: uploads archive is ${(uploadsArchive.byteLength / 1024 / 1024).toFixed(1)} MiB gzipped`,
+      `backup-db: uploads archive is ${(uploadsArchive.byteLength / 1024 / 1024).toFixed(1)} MiB`,
     )
   } else {
     console.log('backup-db: no local uploads folder (not using local storage, or nothing in it)')
@@ -172,11 +192,11 @@ async function main() {
   const now = new Date()
   for (const kind of kindsForDate(now)) {
     const key = backupKey(now, kind, 'postgres')
-    await target.put(key, dump, 'application/gzip')
+    await target.put(key, dump, 'application/octet-stream')
     console.log(`backup-db: wrote ${key} to ${target.describe()}`)
     if (uploadsArchive) {
       const uploadsKey = backupKey(now, kind, 'uploads')
-      await target.put(uploadsKey, uploadsArchive, 'application/gzip')
+      await target.put(uploadsKey, uploadsArchive, 'application/octet-stream')
       console.log(`backup-db: wrote ${uploadsKey} to ${target.describe()}`)
     }
   }
