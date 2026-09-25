@@ -1,8 +1,7 @@
-import { formatNumber } from '@commerce/money'
-
-;('use client')
+'use client'
 
 import { parseEmailBlocks } from '@commerce/core/marketing'
+import { formatNumber } from '@commerce/money'
 import { Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'

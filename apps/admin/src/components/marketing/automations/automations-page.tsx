@@ -1,8 +1,7 @@
-import { formatNumber } from '@commerce/money'
-
-;('use client')
+'use client'
 
 import { AUTOMATION_TEMPLATES, type AutomationTemplateId } from '@commerce/core/marketing'
+import { formatNumber } from '@commerce/money'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'

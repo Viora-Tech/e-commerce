@@ -9,6 +9,7 @@
         "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
         "@commerce/notifications-ses": "workspace:*",
         "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
@@ -19,6 +20,7 @@
         "@commerce/shipping-delhivery": "workspace:*",
         "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
+        "drizzle-orm": "^0.45.2",
       },
       "devDependencies": {
         "@aws-sdk/client-s3": "3.1137.0",

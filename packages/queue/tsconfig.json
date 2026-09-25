@@ -1,1 +1,7 @@
-{ "extends": "@commerce/config/tsconfig.base.json", "include": ["src"] }
+{
+  "extends": "@commerce/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src"]
+}

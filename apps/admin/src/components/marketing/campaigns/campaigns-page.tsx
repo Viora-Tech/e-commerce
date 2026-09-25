@@ -1,7 +1,6 @@
+'use client'
+
 import { formatNumber } from '@commerce/money'
-
-;('use client')
-
 import { Send } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'

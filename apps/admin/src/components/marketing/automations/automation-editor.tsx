@@ -1,6 +1,4 @@
-import { formatNumber } from '@commerce/money'
-
-;('use client')
+'use client'
 
 import {
   type AutomationSettings,
@@ -12,6 +10,7 @@ import {
   parseAutomationSteps,
   TRIGGER_HAS_CART,
 } from '@commerce/core/marketing'
+import { formatNumber } from '@commerce/money'
 import { CircleAlert, Plus, Trash2 } from '@commerce/ui/icons'
 import { Alert, AlertDescription } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
