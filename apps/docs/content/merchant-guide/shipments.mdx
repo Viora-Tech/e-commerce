@@ -2,6 +2,9 @@
 title: Shipments
 ---
 
+import { Callout, Cards, Steps } from 'nextra/components'
+import Screenshot from '../../components/screenshot'
+
 # Shipments
 
 **Orders → Shipments** is where every parcel across every courier gets booked, tracked,
@@ -14,13 +17,29 @@ Delhivery or Shiprocket so orders can get rates, labels and tracking."
 
 From **Apps**, install Delhivery, then follow the three steps (about a minute):
 
-1. **Open Delhivery One** — sign in to your Delhivery account in a new tab.
-2. **Copy your API token** — go to **Settings › API Setup** and copy the token shown there.
-   It's shown only once and stays visible for about 5 minutes, so copy it straight away. If
-   it disappears, click "Request Live API Token" to get a new one — the old one stops working
-   the moment you do.
-3. **Paste it in and pick your pickup location** — fill in the fields, then use **Test
-   connection** before saving.
+<Steps>
+
+### Open Delhivery One
+
+Sign in to your Delhivery account in a new tab.
+
+### Copy your API token
+
+Go to **Settings › API Setup** and copy the token shown there.
+
+<Callout type="warning">
+  The token is shown only once and stays visible for about 5 minutes, so copy it straight
+  away. If it disappears, select **Request Live API Token** to get a new one — the old one
+  stops working the moment you do.
+</Callout>
+
+### Paste it in and pick your pickup location
+
+Fill in the fields, then use **Test connection** before saving.
+
+<Screenshot name="Delhivery connection form — token, pickup location, mode" />
+
+</Steps>
 
 You'll need:
 
@@ -36,11 +55,22 @@ There's also a **Mode** switch: **Test** (staging, needs a separate staging toke
 
 ## Connecting Shiprocket
 
-1. **Create an API user** — in Shiprocket, go to **Settings › API › Configure**, and add a
-   new API user. This is a separate login from the one you use to sign in — it only needs an
-   email and password, and it's what we connect with, never your own dashboard password.
-2. **Note the API user email and password** — Shiprocket does not show these again later, so
-   save them somewhere safe (a password manager) the moment you create them.
+<Steps>
+
+### Create an API user
+
+In Shiprocket, go to **Settings › API › Configure**, and add a new API user. This is a
+separate login from the one you use to sign in — it only needs an email and password, and
+it's what we connect with, never your own dashboard password.
+
+### Note the API user email and password
+
+<Callout type="warning">
+  Shiprocket does not show these again later, so save them somewhere safe (a password
+  manager) the moment you create them.
+</Callout>
+
+</Steps>
 
 We check the connection by logging in with your API user credentials — nothing is booked.
 This can't confirm your pickup location nickname; Shiprocket only checks that when you book a
@@ -56,9 +86,17 @@ your products' weights when they have them, otherwise the box weight.
 
 Paid orders waiting on a label show up in **Ready to ship**. Select the ones you want, then:
 
-- **Compare rates** — compare couriers before booking.
-- **Print labels**.
-- **Schedule pickup**.
+<Steps>
+
+### Compare rates
+
+Compare couriers before booking.
+
+### Print labels
+
+### Schedule pickup
+
+</Steps>
 
 There's also an advanced option to book by order number directly.
 
@@ -81,3 +119,11 @@ reason the courier gave. For each one, choose:
 
 Delhivery and Shiprocket don't share wallet balance over the API yet, so you enter it by hand
 after checking the courier's own dashboard, with a low-balance alert threshold you set.
+
+## Next steps
+
+<Cards>
+  <Cards.Card title="Online store" href="/merchant-guide/online-store" />
+  <Cards.Card title="GST invoices" href="/merchant-guide/gst-invoices" />
+  <Cards.Card title="Apps" href="/merchant-guide/apps" />
+</Cards>

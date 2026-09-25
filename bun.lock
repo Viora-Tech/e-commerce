@@ -95,6 +95,7 @@
       "name": "@commerce/docs",
       "version": "0.0.0",
       "dependencies": {
+        "@phosphor-icons/react": "^2.1.10",
         "next": "16.3.5",
         "nextra": "4.6.0",
         "nextra-theme-docs": "4.6.0",
@@ -102,11 +103,13 @@
         "react-dom": "^19.2.0",
       },
       "devDependencies": {
+        "@tailwindcss/postcss": "^4.3.3",
         "@types/mdx": "^2.0.14",
         "@types/node": "^24.10.1",
         "@types/react": "^19.2.8",
         "@types/react-dom": "^19.2.3",
         "pagefind": "^1.4.0",
+        "tailwindcss": "^4.3.3",
         "typescript": "~5.9.3",
       },
     },

@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
 import { Head, Search } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
 import { Footer, Layout, Navbar } from 'nextra-theme-docs'
 import type { ReactNode } from 'react'
+import LogoMark from '../components/logo-mark'
+import './globals.css'
 import 'nextra-theme-docs/style.css'
 
 export const metadata: Metadata = {
@@ -13,25 +16,25 @@ export const metadata: Metadata = {
   description: 'Merchant guide and developer docs for the Waimers Commerce Platform.',
 }
 
+/* Geist (SIL OFL 1.1), same face as apps/admin. */
+const sans = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist-sans',
+  display: 'swap',
+  fallback: ['system-ui', 'sans-serif'],
+})
+const mono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
+  display: 'swap',
+  fallback: ['ui-monospace', 'monospace'],
+})
+
 const GITHUB_URL = 'https://github.com/Viora-Tech/e-commerce'
 
-const logo = (
-  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect width="24" height="24" rx="6" fill="#4EA674" />
-      <path
-        d="M6 12.5 10 16.5 18 8"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-    Waimers Commerce Docs
-  </span>
+const navbar = (
+  <Navbar logo={<LogoMark size={22} withWordmark />} projectLink={GITHUB_URL} align="right" />
 )
-
-const navbar = <Navbar logo={logo} projectLink={GITHUB_URL} />
 
 const footer = (
   <Footer>
@@ -46,7 +49,12 @@ type RootLayoutProps = {
 export default async function RootLayout({ children }: RootLayoutProps) {
   const pageMap = await getPageMap()
   return (
-    <html lang="en" dir="ltr" suppressHydrationWarning>
+    <html
+      lang="en"
+      dir="ltr"
+      className={`${sans.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
       <Head />
       <body>
         <Layout
