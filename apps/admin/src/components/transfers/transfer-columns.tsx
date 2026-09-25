@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
@@ -5,8 +6,6 @@ import { transfersContent as copy } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 
 export type TransferRow = Awaited<ReturnType<typeof api.transfers.list>>['rows'][number]
-
-const number = new Intl.NumberFormat('en-IN')
 
 /** Columns of the transfer list. */
 export const transferColumns: ResourceColumnSpec<TransferRow>[] = [
@@ -39,7 +38,7 @@ export const transferColumns: ResourceColumnSpec<TransferRow>[] = [
     id: 'units',
     title: copy.columns.units,
     sortValue: (r) => r.units,
-    render: (r) => <span className="tabular-nums">{number.format(r.units)}</span>,
+    render: (r) => <span className="tabular-nums">{formatNumber(r.units)}</span>,
   },
   {
     id: 'created',

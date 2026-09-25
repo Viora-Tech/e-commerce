@@ -1,4 +1,6 @@
-'use client'
+import { formatNumber } from '@commerce/money'
+
+;('use client')
 
 import {
   type AutomationSettings,
@@ -51,7 +53,6 @@ type AutomationEditorProps = {
 type Form = { name: string; steps: AutomationStep[]; settings: AutomationSettings }
 
 const STEP_TYPES: AutomationStepType[] = ['wait', 'email', 'whatsapp', 'condition']
-const number = new Intl.NumberFormat('en-IN')
 
 function newStep(type: AutomationStepType): AutomationStep {
   const id = blockId()
@@ -158,11 +159,11 @@ export default function AutomationEditor({
   const triggerDelay = TRIGGER_HAS_CART[trigger] ? (form.settings.afterMinutes ?? 60) : 0
   const s = automation.stats
   const tiles = [
-    { label: copy.tiles.runs, value: number.format(s.runs) },
-    { label: copy.tiles.active, value: number.format(s.active) },
-    { label: copy.tiles.sent, value: number.format(s.sent) },
+    { label: copy.tiles.runs, value: formatNumber(s.runs) },
+    { label: copy.tiles.active, value: formatNumber(s.active) },
+    { label: copy.tiles.sent, value: formatNumber(s.sent) },
     { label: copy.tiles.clicked, value: campaignReportContent.rate(s.clicked, s.sent) },
-    { label: copy.tiles.converted, value: number.format(s.converted) },
+    { label: copy.tiles.converted, value: formatNumber(s.converted) },
     { label: copy.tiles.sales, value: formatPaise(s.revenuePaise) },
   ]
 

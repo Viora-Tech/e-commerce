@@ -1,30 +1,15 @@
-const inr = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-})
+import { formatMoney, formatNumber } from '@commerce/money'
 
+/** ₹1,234 (no decimals for whole amounts, kept for fractional ones). */
 export function formatPaise(paise: number): string {
-  return inr.format(paise / 100)
+  return formatMoney(paise, 'INR')
 }
-
-const inrCompact = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
 
 /** ₹1.2L / ₹35K — for stat tiles and chart axes. */
 export function formatPaiseCompact(paise: number): string {
-  return inrCompact.format(paise / 100)
+  return formatMoney(paise, 'INR', { compact: true })
 }
 
-const numberCompact = new Intl.NumberFormat('en-IN', {
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-
 export function formatCompact(n: number): string {
-  return numberCompact.format(n)
+  return formatNumber(n, { compact: true })
 }

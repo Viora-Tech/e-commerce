@@ -17,6 +17,14 @@
 export const ORDER_LIFECYCLE_STATUSES = ['draft', 'open', 'completed', 'cancelled'] as const
 export type OrderLifecycleStatus = (typeof ORDER_LIFECYCLE_STATUSES)[number]
 
+/**
+ * A placed order's lifecycle status (drafts have their own list/type and are
+ * excluded here). The single source of truth — import this everywhere an
+ * order's status is typed, instead of re-deriving `Exclude<OrderLifecycleStatus,
+ * 'draft'>` locally.
+ */
+export type OrderStatus = Exclude<OrderLifecycleStatus, 'draft'>
+
 export const ORDER_PAYMENT_STATUSES = [
   'unpaid',
   'authorized',

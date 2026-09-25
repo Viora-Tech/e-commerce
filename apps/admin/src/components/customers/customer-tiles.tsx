@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import { percentDelta } from '@/components/layout/delta-chip'
 import StatCard from '@/components/layout/stat-card'
 import { customersContent } from '@/data/customers'
@@ -10,8 +11,6 @@ type CustomerTilesProps = {
   stats: CustomerStats
   visitors: CustomerOverview['visitors']
 }
-
-const number = new Intl.NumberFormat('en-IN')
 
 /**
  * Frames 5:3026 / 5:3038 / 5:3050: three 270 x 135 tiles stacked 20px apart down
@@ -26,21 +25,21 @@ export default function CustomerTiles({ stats, visitors }: CustomerTilesProps) {
       <StatCard
         size="sm"
         title={t.total}
-        value={number.format(stats.total)}
+        value={formatNumber(stats.total)}
         delta={percentDelta(stats.total, stats.totalPrevious)}
         period={t.week}
       />
       <StatCard
         size="sm"
         title={t.newCustomers}
-        value={number.format(stats.newLast7)}
+        value={formatNumber(stats.newLast7)}
         delta={percentDelta(stats.newLast7, stats.newPrevious7)}
         period={t.week}
       />
       <StatCard
         size="sm"
         title={t.visitors}
-        value={number.format(visitors.value)}
+        value={formatNumber(visitors.value)}
         delta={percentDelta(visitors.value, visitors.previous)}
         period={t.week}
       />

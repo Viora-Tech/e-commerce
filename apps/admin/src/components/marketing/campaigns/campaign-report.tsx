@@ -1,4 +1,6 @@
-'use client'
+import { formatNumber } from '@commerce/money'
+
+;('use client')
 
 import { parseEmailBlocks } from '@commerce/core/marketing'
 import { Copy } from '@commerce/ui/icons'
@@ -25,7 +27,6 @@ type CampaignReportProps = {
 
 type StatProps = { label: string; value: string; detail?: string | undefined }
 
-const number = new Intl.NumberFormat('en-IN')
 const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 const POLL_MS = 5000
 
@@ -123,19 +124,19 @@ export default function CampaignReport({
         }
       />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <Stat label={t.recipients} value={number.format(s.recipients)} />
-        <Stat label={t.delivered} value={number.format(s.sent)} detail={copy.deliveredHelp} />
+        <Stat label={t.recipients} value={formatNumber(s.recipients)} />
+        <Stat label={t.delivered} value={formatNumber(s.sent)} detail={copy.deliveredHelp} />
         <Stat
           label={t.opened}
           value={email ? copy.rate(s.opened, s.sent) : '-'}
-          detail={email ? number.format(s.opened) : undefined}
+          detail={email ? formatNumber(s.opened) : undefined}
         />
         <Stat
           label={t.clicked}
           value={copy.rate(s.clicked, s.sent)}
-          detail={number.format(s.clicked)}
+          detail={formatNumber(s.clicked)}
         />
-        <Stat label={t.orders} value={number.format(s.orders)} />
+        <Stat label={t.orders} value={formatNumber(s.orders)} />
         <Stat label={t.sales} value={formatPaise(s.revenuePaise)} />
       </div>
       <p className="text-caption text-muted-foreground">

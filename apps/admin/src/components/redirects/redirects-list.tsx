@@ -8,6 +8,7 @@ import PageBody from '@/components/layout/page-body'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { type RedirectListItem, redirectsContent } from '@/data/redirects'
 import { api } from '@/lib/api-client'
+import { formatDate } from '@/lib/format-date'
 import DeleteRedirectsDialog from './delete-redirects-dialog'
 import RedirectActions from './redirect-actions'
 import RedirectDialog from './redirect-dialog'
@@ -46,9 +47,7 @@ const columns: ResourceColumnSpec<RedirectListItem>[] = [
     title: copy.columns.updated,
     align: 'end',
     render: (r) => (
-      <span className="text-muted-foreground tabular-nums">
-        {new Date(r.updatedAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
-      </span>
+      <span className="text-muted-foreground tabular-nums">{formatDate(r.updatedAt)}</span>
     ),
   },
 ]

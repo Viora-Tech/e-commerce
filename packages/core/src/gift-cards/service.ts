@@ -9,6 +9,7 @@ import {
   payment,
   store,
 } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import type {
   NotificationChannel,
   NotificationRegistry,
@@ -598,12 +599,6 @@ export async function giftCardChannels(
   ).channels.filter((c) => c.requires === 'email')
 }
 
-const inr = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 0,
-})
 const longDate = (ymd: string) =>
   new Intl.DateTimeFormat('en-IN', {
     day: 'numeric',
@@ -642,12 +637,12 @@ export async function deliverGiftCard(
   const data: TemplateData = {
     storeName: s?.name ?? '',
     customerName: card.recipientName || cu?.name || 'there',
-    totalLabel: inr.format(card.balancePaise / 100),
+    totalLabel: formatMoney(card.balancePaise, 'INR'),
     lines: [],
     paymentMethodLabel: '',
     giftCard: {
       code: formatGiftCardCode(code),
-      balanceLabel: inr.format(card.balancePaise / 100),
+      balanceLabel: formatMoney(card.balancePaise, 'INR'),
       expiresLabel: card.expiresOn ? longDate(card.expiresOn) : undefined,
       message: card.message ?? undefined,
     },

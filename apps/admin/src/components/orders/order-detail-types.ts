@@ -1,6 +1,7 @@
 import { orderDetailContent as copy } from '@/data/orders'
 import type { StatusValue } from '@/data/status'
 import type { api } from '@/lib/api-client'
+import { formatDateTime } from '@/lib/format-date'
 
 export type OrderDetail = NonNullable<Awaited<ReturnType<typeof api.orders.get>>>
 export type OrderStatus = OrderDetail['status']
@@ -9,8 +10,7 @@ export type OrderRefund = OrderDetail['refunds'][number]
 export type OrderShipment = OrderDetail['shipment']
 export type OrderLine = OrderDetail['lines'][number]
 
-export const when = (iso: string | Date) =>
-  new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+export const when = formatDateTime
 
 export const cap = (s: string) => (s[0]?.toUpperCase() ?? '') + s.slice(1)
 

@@ -1,4 +1,6 @@
-'use client'
+import { formatNumber } from '@commerce/money'
+
+;('use client')
 
 import { Send } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
@@ -21,7 +23,6 @@ type Kind = 'email' | 'whatsapp'
 type CampaignsPageProps = { campaigns: Item[] }
 
 const PER_PAGE = 25
-const number = new Intl.NumberFormat('en-IN')
 
 function when(c: Item): Date | string {
   return c.finishedAt ?? c.startedAt ?? c.scheduledAt ?? c.createdAt
@@ -58,7 +59,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'sent',
     title: copy.columns.sent,
     sortValue: (c) => c.stats.sent,
-    render: (c) => <span className="tabular-nums">{number.format(c.stats.sent)}</span>,
+    render: (c) => <span className="tabular-nums">{formatNumber(c.stats.sent)}</span>,
   },
   {
     id: 'open',
@@ -78,7 +79,7 @@ const columns: ResourceColumnSpec<Item>[] = [
     id: 'orders',
     title: copy.columns.orders,
     sortValue: (c) => c.stats.orders,
-    render: (c) => <span className="tabular-nums">{number.format(c.stats.orders)}</span>,
+    render: (c) => <span className="tabular-nums">{formatNumber(c.stats.orders)}</span>,
   },
   {
     id: 'sales',

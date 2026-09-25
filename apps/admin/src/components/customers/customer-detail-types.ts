@@ -1,14 +1,13 @@
 import type { api } from '@/lib/api-client'
+import { formatDate, formatDateTime } from '@/lib/format-date'
 
 export type CustomerDetail = NonNullable<Awaited<ReturnType<typeof api.customers.get>>>
 export type CustomerOrder = CustomerDetail['orders'][number]
 export type CustomerMessage = CustomerDetail['notifications'][number]
 
-export const when = (iso: string | Date) =>
-  new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+export const when = formatDateTime
 
-export const day = (iso: string | Date) =>
-  new Date(iso).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+export const day = formatDate
 
 /** Mean of non-cancelled orders; zero when there is nothing to average. */
 export function averageOrderPaise(orders: CustomerOrder[]): number {

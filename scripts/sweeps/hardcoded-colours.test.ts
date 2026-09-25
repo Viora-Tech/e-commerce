@@ -30,7 +30,8 @@ type AllowEntry = { file: string; reason: string }
 const ALLOWLIST: AllowEntry[] = [
   {
     file: 'apps/admin/src/components/apps/gst-invoices/look-group.tsx',
-    reason: 'GST invoice look/colour presets shown as literal swatches — move to theme tokens',
+    reason:
+      'accent-colour presets are stored as invoice.accentColor and passed straight into the react-pdf templates (packages/invoices/src/templates), which render outside the DOM and cannot resolve CSS custom properties — swapping these for var(--chart-N) would store an unusable value and break the PDF',
   },
   {
     file: 'apps/admin/src/components/marketing/campaigns/email-preview.tsx',
@@ -38,7 +39,8 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'apps/admin/src/components/products/product-categories-card.tsx',
-    reason: 'category colour swatch presets shown as literal swatches — move to theme tokens',
+    reason:
+      'approximate swatches for arbitrary merchant-typed colour option values (e.g. "Red", "Charcoal") — a lookup of real-world colour names, not the app theme palette, so the existing accent/chart tokens are not a semantic match; kept as a swatch picker per the sweep exception',
   },
   {
     file: 'apps/admin/src/components/themes/theme-swatch.tsx',

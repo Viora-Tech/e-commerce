@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
 import CountUp from '@/components/layout/count-up'
 import { collectionsListContent } from '@/data/collections'
@@ -9,7 +10,6 @@ type CollectionTilesProps = { stats: CollectionStats }
 
 type TileProps = { title: string; value: string }
 
-const number = new Intl.NumberFormat('en-IN')
 const copy = collectionsListContent.tiles
 
 /* Same 135px tile as the product and order lists (5:2512). */
@@ -32,10 +32,10 @@ export default function CollectionTiles({ stats }: CollectionTilesProps) {
   // Render logic
   return (
     <div className="grid grid-cols-2 gap-[0.9375rem] xl:grid-cols-4">
-      <Tile title={copy.total} value={number.format(stats.total)} />
-      <Tile title={copy.automatic} value={number.format(stats.automatic)} />
-      <Tile title={copy.manual} value={number.format(stats.manual)} />
-      <Tile title={copy.empty} value={number.format(stats.empty)} />
+      <Tile title={copy.total} value={formatNumber(stats.total)} />
+      <Tile title={copy.automatic} value={formatNumber(stats.automatic)} />
+      <Tile title={copy.manual} value={formatNumber(stats.manual)} />
+      <Tile title={copy.empty} value={formatNumber(stats.empty)} />
     </div>
   )
 }

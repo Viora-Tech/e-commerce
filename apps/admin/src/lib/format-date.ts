@@ -8,6 +8,7 @@ const dayMonthYear = new Intl.DateTimeFormat('en-IN', {
   year: 'numeric',
 })
 const full = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+const medium = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium' })
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 
@@ -56,6 +57,11 @@ export function formatDay(value: Date | string, now = new Date()): string {
 /** Date and time in one line, for tables and print. */
 export function formatDateTime(value: Date | string): string {
   return full.format(new Date(value))
+}
+
+/** Date only, no time: "12 Sept 2026". */
+export function formatDate(value: Date | string): string {
+  return medium.format(new Date(value))
 }
 
 /** Sort key that groups everything placed on the same calendar day. */
