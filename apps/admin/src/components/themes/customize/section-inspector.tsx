@@ -1,6 +1,6 @@
 'use client'
 
-import { Puck } from '@measured/puck'
+import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import { customizeContent } from '@/data/customize'
 import { useCustomizePuck } from '@/lib/customize-puck'

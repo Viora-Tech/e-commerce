@@ -15,8 +15,8 @@ import {
   toCardArticle,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import type { ComponentConfig } from '@measured/puck'
-import { resolveAllData } from '@measured/puck'
+import type { ComponentConfig } from '@puckeditor/core'
+import { resolveAllData } from '@puckeditor/core'
 import { headers } from 'next/headers'
 import { Fragment } from 'react'
 import RecentlyViewed from '@/components/product/recently-viewed'

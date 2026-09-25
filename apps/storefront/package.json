@@ -24,7 +24,7 @@
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@commerce/shipping": "workspace:*",
-    "@measured/puck": "^0.20.2",
+    "@puckeditor/core": "^0.23.0",
     "@react-pdf/renderer": "^4.9.0",
     "@sentry/nextjs": "^11.0.0",
     "drizzle-orm": "^0.45.2",

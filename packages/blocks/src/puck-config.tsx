@@ -1,5 +1,5 @@
 import type { RichTextValue } from '@commerce/richtext'
-import type { Config, CustomField, Data } from '@measured/puck'
+import type { Config, CustomField, Data } from '@puckeditor/core'
 import type { ComponentType } from 'react'
 import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
 import HeroCarousel, { type HeroSlide } from './components/hero-carousel'
