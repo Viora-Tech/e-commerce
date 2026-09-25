@@ -39,7 +39,8 @@ export default function SectionTabs({ tabs, children }: SectionTabsProps) {
 
   // Render logic
   const fallback = tabs[0]?.id ?? ''
-  const active = tabs.some((t) => t.id === tab) ? tab : fallback
+  // No tabs (e.g. an app's Connect page): null tells every section to render.
+  const active = tabs.length === 0 ? null : tabs.some((t) => t.id === tab) ? tab : fallback
   const showStrip = tabs.length > 1
 
   return (
