@@ -17,6 +17,33 @@ export function devOtpEnabled(): boolean {
   return process.env.NODE_ENV !== 'production' && process.env.DEV_LOGIN_OTP === '1'
 }
 
+/**
+ * The env flags alone are not enough: they can leak into a shared or
+ * publicly-reachable deployment of a dev build, and this route hands out
+ * working login codes. So the route also refuses any request whose `Host`
+ * header is not localhost, unless the deployer explicitly widens that with
+ * `DEV_OTP_ALLOWED_HOSTS` (comma-separated hostnames, no port, no scheme —
+ * e.g. `DEV_OTP_ALLOWED_HOSTS=admin.dev.internal`).
+ */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
+
+/** Strips a trailing `:port`, respecting IPv6's `[::1]:3200` bracket form. */
+function hostnameOf(host: string): string {
+  if (host.startsWith('[')) return host.slice(1, host.indexOf(']')).toLowerCase()
+  return (host.split(':')[0] ?? '').toLowerCase()
+}
+
+export function devOtpHostAllowed(host: string | null | undefined): boolean {
+  const hostname = host?.trim() ? hostnameOf(host.trim()) : ''
+  if (!hostname) return false
+  if (LOCAL_HOSTS.has(hostname)) return true
+  const allowed = (process.env.DEV_OTP_ALLOWED_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean)
+  return allowed.includes(hostname)
+}
+
 /** Remembers the newest code handed to an email. No-op unless the handoff is on. */
 export function rememberDevOtp(email: string, otp: string): void {
   if (!devOtpEnabled()) return

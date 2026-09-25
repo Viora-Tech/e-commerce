@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { balanceToken, balanceUrl, verifyBalanceToken } from './balance-link'
+import {
+  balanceToken,
+  balanceUrl,
+  orderViewToken,
+  payPath,
+  thankYouPath,
+  thankYouUrl,
+  verifyBalanceToken,
+  verifyOrderViewToken,
+} from './balance-link'
 import { nextBalanceStep } from './balance-schedule'
 import { balancePayBy, depositIsNonRefundable, parsePreorderStoreSettings } from './store-settings'
 
@@ -67,6 +76,43 @@ describe('pay-balance link', () => {
     expect(verifyBalanceToken('nope', secret)).toEqual({ ok: false, reason: 'malformed' })
     expect(balanceUrl('order-1', secret, 'https://shop.test/', t0)).toBe(
       `https://shop.test/checkout/balance/${token}`,
+    )
+  })
+})
+
+describe('order-view link (thank-you / pay IDOR guard)', () => {
+  const secret = 'shh'
+
+  it('round-trips for the order it was minted for, and refuses everything else', () => {
+    const token = orderViewToken('order-1', secret, t0)
+    // Right token, right order: ok.
+    expect(verifyOrderViewToken(token, secret, at(1))).toEqual({ ok: true, orderId: 'order-1' })
+    // Right token, checked against a different order id: the caller must
+    // reject (this is the "another order's token" check the page does).
+    const other = orderViewToken('order-2', secret, t0)
+    expect(verifyOrderViewToken(other, secret, at(1))).not.toEqual(
+      verifyOrderViewToken(token, secret, at(1)),
+    )
+    // Tampered order id in the token body: signature fails.
+    expect(verifyOrderViewToken(token.replace('order-1', 'order-2'), secret, at(1)).ok).toBe(false)
+    // Wrong secret: signature fails.
+    expect(verifyOrderViewToken(token, 'other', at(1))).toEqual({ ok: false, reason: 'signature' })
+    // Missing / malformed token: never confused with "valid".
+    expect(verifyOrderViewToken('', secret)).toEqual({ ok: false, reason: 'malformed' })
+    expect(verifyOrderViewToken('nope', secret)).toEqual({ ok: false, reason: 'malformed' })
+    // A balance token must never work as an order-view token, and vice versa
+    // (distinct purpose prefixes on the same HMAC helper).
+    const balance = balanceToken('order-1', secret, t0)
+    expect(verifyOrderViewToken(balance, secret, at(1)).ok).toBe(false)
+    expect(verifyBalanceToken(token, secret, at(1)).ok).toBe(false)
+  })
+
+  it('builds the thank-you and pay paths/URLs with the token attached', () => {
+    const token = orderViewToken('order-1', secret, t0)
+    expect(thankYouPath(7, token)).toBe(`/checkout/thank-you/7?t=${token}`)
+    expect(payPath(7, token)).toBe(`/checkout/pay/7?t=${token}`)
+    expect(thankYouUrl('order-1', 7, secret, 'https://shop.test/', t0)).toBe(
+      `https://shop.test/checkout/thank-you/7?t=${token}`,
     )
   })
 })

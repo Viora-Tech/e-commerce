@@ -37,6 +37,11 @@ describe('media keys', () => {
     expect(MAX_UPLOAD_BYTES).toBe(25 * 1024 * 1024)
   })
 
+  it('refuses SVG (XML that can carry <script>, so never on the upload allow-list)', () => {
+    expect(isAllowedContentType('image/svg+xml')).toBe(false)
+    expect(isAllowedContentType('IMAGE/SVG+XML')).toBe(false)
+  })
+
   it('refuses keys from another store or with traversal', () => {
     expect(keyBelongsToStore('stores/a/media/x.png', 'a')).toBe(true)
     expect(keyBelongsToStore('stores/b/media/x.png', 'a')).toBe(false)

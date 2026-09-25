@@ -1,8 +1,36 @@
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 
+/**
+ * Baseline security headers, same set on both apps (see storefront's
+ * `next.config.ts`). No script CSP yet — the block list of inline
+ * scripts/styles both apps would need is real work; tracked as a follow-up,
+ * not silently skipped.
+ */
+const SECURITY_HEADERS = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  ...(process.env.NODE_ENV === 'production'
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]
+    : []),
+]
+
 const config: NextConfig = {
   reactCompiler: true,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          ...SECURITY_HEADERS,
+          // Legacy fallback for browsers that ignore frame-ancestors; SAMEORIGIN
+          // matches the CSP's 'self' below (DENY would be stricter and wrong).
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        ],
+      },
+    ]
+  },
   transpilePackages: [
     '@commerce/db',
     '@commerce/core',

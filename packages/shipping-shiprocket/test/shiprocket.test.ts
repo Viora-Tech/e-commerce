@@ -325,13 +325,38 @@ describe('ShiprocketProvider NDR, wallet and webhook', () => {
     expect(w.balancePaise).toBe(123450)
   })
 
-  it('parses a webhook body into notices keyed by AWB', async () => {
-    const p = new ShiprocketProvider(config)
+  it('parses a webhook body into notices keyed by AWB, status and scan timestamp', async () => {
+    const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
     const notices = await p.parseWebhook({
-      rawBody: JSON.stringify({ awb: 'SR999', current_timestamp: '2026-09-25T00:00:00' }),
-      headers: {},
+      rawBody: JSON.stringify({
+        awb: 'SR999',
+        current_status: 'Delivered',
+        current_timestamp: '2026-09-25T00:00:00',
+      }),
+      headers: { 'x-webhook-token': 'shh' },
     })
-    expect(notices).toEqual([{ waybill: 'SR999', eventId: 'SR999:2026-09-25T00:00:00' }])
+    expect(notices).toEqual([{ waybill: 'SR999', eventId: 'SR999:Delivered:2026-09-25T00:00:00' }])
+  })
+
+  it('never derives eventId from the server clock: a scan with no timestamp field is still stable', async () => {
+    const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
+    const payload = { awb: 'SR1', current_status: 'In Transit' }
+    const a = await p.parseWebhook({
+      rawBody: JSON.stringify(payload),
+      headers: { 'x-webhook-token': 'shh' },
+    })
+    const b = await p.parseWebhook({
+      rawBody: JSON.stringify(payload),
+      headers: { 'x-webhook-token': 'shh' },
+    })
+    expect(a).toEqual(b)
+  })
+
+  it('fails closed: refuses any webhook call when no secret is configured', async () => {
+    const p = new ShiprocketProvider(config)
+    await expect(p.parseWebhook({ rawBody: '{}', headers: {} })).rejects.toMatchObject({
+      kind: 'auth',
+    })
   })
 
   it('rejects a webhook call with the wrong shared secret', async () => {

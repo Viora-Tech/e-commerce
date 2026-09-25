@@ -52,6 +52,7 @@ import {
   type ShippingProviderFactory,
   type Tracking,
   type TrackingEvent,
+  timingSafeEqualString,
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
@@ -80,8 +81,10 @@ export type DelhiveryConfig = {
    * the scan data such as authorization header" without naming a fixed
    * signature scheme, so this is the one thing our side can actually check:
    * we send this value back to Delhivery as the header they attach, and
-   * `parseWebhook` rejects a call that does not carry it. Leave blank to
-   * accept unauthenticated calls (not recommended once this URL is public).
+   * `parseWebhook` rejects a call that does not carry it — matched with a
+   * timing-safe comparison. Required: leaving it blank does not disable the
+   * check, it fails every webhook call closed (see `parseWebhook`), because
+   * accepting unauthenticated pushes once this URL is public is not safe.
    */
   webhookSecret?: string | undefined
   /** Injected for tests; defaults to global fetch. */
@@ -472,11 +475,16 @@ export class DelhiveryProvider implements ShippingProvider {
    * from what `track()` already returns correctly.
    */
   async parseWebhook(request: WebhookRequest): Promise<WebhookNotice[]> {
-    if (this.config.webhookSecret) {
-      const got = request.headers['x-webhook-token'] ?? request.headers.authorization
-      if (got !== this.config.webhookSecret) {
-        throw new CourierError('auth', this.id, 'Delhivery webhook token did not match.')
-      }
+    // Fail closed: no configured secret means we cannot tell a genuine call
+    // from a stray one, so every webhook is refused until one is set (the
+    // Connect page marks it required for automatic tracking).
+    if (!this.config.webhookSecret) {
+      console.error('[delhivery] webhook received with no webhookSecret configured; refusing')
+      throw new CourierError('auth', this.id, 'Delhivery webhook secret is not configured.')
+    }
+    const got = request.headers['x-webhook-token'] ?? request.headers.authorization ?? ''
+    if (!timingSafeEqualString(got, this.config.webhookSecret)) {
+      throw new CourierError('auth', this.id, 'Delhivery webhook token did not match.')
     }
     let body: unknown
     try {
@@ -564,7 +572,8 @@ const fields: ProviderField[] = [
     label: 'Webhook shared secret',
     secret: true,
     help:
-      'Optional. Paste the same value into the extra header field when you register the tracking ' +
+      'Required for automatic tracking updates via webhook (a webhook call without it is refused). ' +
+      'Paste the same value into the extra header field when you register the tracking ' +
       'webhook in the Delhivery Merchant Portal (API → Webhooks), so we can tell a genuine call from a stray one.',
   },
 ]

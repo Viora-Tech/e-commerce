@@ -1,5 +1,6 @@
 'use server'
 
+import { loadEnv } from '@commerce/config'
 import {
   addToCart,
   captureCartContact,
@@ -10,8 +11,10 @@ import {
   GiftCardError,
   getCart,
   onOrderPlaced,
+  orderViewToken,
   PaymentNotRetryable,
   type PlaceOrderResult,
+  payPath,
   placeOrderAndPay,
   rememberCheckoutAddress,
   retryAndStartPayment,
@@ -19,6 +22,7 @@ import {
   ShippingUnavailable,
   setCartAttribution,
   setLineQuantity,
+  thankYouPath,
 } from '@commerce/core'
 import { order, payment } from '@commerce/db'
 import type { ClientConfirmation } from '@commerce/payments'
@@ -222,10 +226,13 @@ export async function checkoutAction(
 }
 
 /** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */
-function redirectAfterCheckout(result: Pick<PlaceOrderResult, 'session' | 'orderNumber'>): never {
-  if (result.session?.kind === 'client') redirect(`/checkout/pay/${result.orderNumber}`)
+function redirectAfterCheckout(
+  result: Pick<PlaceOrderResult, 'session' | 'orderNumber' | 'orderId'>,
+): never {
+  const token = orderViewToken(result.orderId, loadEnv(process.env).SETTINGS_SECRET)
+  if (result.session?.kind === 'client') redirect(payPath(result.orderNumber, token))
   if (result.session?.kind === 'redirect') redirect(result.session.url)
-  redirect(`/checkout/thank-you/${result.orderNumber}`)
+  redirect(thankYouPath(result.orderNumber, token))
 }
 
 /**
@@ -234,6 +241,18 @@ function redirectAfterCheckout(result: Pick<PlaceOrderResult, 'session' | 'order
  * one attempt; the order and its stock are untouched.
  */
 export async function retryPaymentAction(storeId: string, orderNumber: number) {
+  // Looked up before the rate-limit check too, so every exit (including a
+  // rate-limited one) can still land on a validly-tokened thank-you link.
+  const orderId = await inStore(storeId, async (tx) => {
+    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
+    return o?.id ?? null
+  })
+  // No order: nothing to tell apart from a stray order number, so the
+  // fallback (untokened) link is fine — the page 404s on it either way.
+  if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
+  const oid: string = orderId
+  const backToThankYou = (): never =>
+    redirect(thankYouPath(orderNumber, orderViewToken(oid, loadEnv(process.env).SETTINGS_SECRET)))
   const ip = clientIp(await headers())
   const [byIp, byOrder] = await Promise.all([
     rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
@@ -241,32 +260,30 @@ export async function retryPaymentAction(storeId: string, orderNumber: number) {
   ])
   // No error slot on this action's return type: over the limit lands back on
   // the thank-you page, same as a retry that turns out not to be needed.
-  if (!byIp.ok || !byOrder.ok) redirect(`/checkout/thank-you/${orderNumber}`)
+  if (!byIp.ok || !byOrder.ok) backToThankYou()
   const target = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    if (!o) return null
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)
-      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
+      .where(and(eq(payment.orderId, oid), ne(payment.provider, 'gift_card')))
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
     const providers = await storePaymentProviders(tx, storeId)
     const provider = providers.find((p) => p.id === latest?.provider)
-    return provider ? { orderId: o.id, provider } : null
+    return provider ?? null
   })
-  if (!target) redirect(`/checkout/thank-you/${orderNumber}`)
-  const started = await retryAndStartPayment(db(), storeId, target.orderId, target.provider).catch(
-    (err: unknown) => {
-      // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
-      if (err instanceof PaymentNotRetryable) return null
-      throw err
-    },
-  )
+  if (!target) {
+    redirect(thankYouPath(orderNumber, orderViewToken(oid, loadEnv(process.env).SETTINGS_SECRET)))
+  }
+  const started = await retryAndStartPayment(db(), storeId, oid, target).catch((err: unknown) => {
+    // Paid or cancelled meanwhile: the thank-you page shows where the order stands.
+    if (err instanceof PaymentNotRetryable) return null
+    throw err
+  })
   // payment_received was already written to the outbox, in the same
   // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
   if (started?.becameCaptured) await nudgeOutbox(storeId)
-  redirectAfterCheckout({ session: started?.session ?? null, orderNumber })
+  redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
 }
 
 /** Browser posts the gateway's confirmation after a client-side checkout. */
