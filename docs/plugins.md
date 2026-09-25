@@ -142,10 +142,36 @@ export const fedexPlugin = definePlugin({
   id: 'fedex',
   name: 'FedEx',
   version: '0.1.0',
+  kind: 'connection',
+  category: 'shipping',
+  company: 'FedEx',
   description: 'Rates, labels and tracking on your FedEx account.',
   provides: { shipping: [fedexFactory] },
 })
 ```
+
+### `kind`, required on every manifest
+
+The Apps gallery (Admin → Apps) is split into two sections, and every plugin
+must say which one it belongs in:
+
+- **`'builtin'`** — a feature we designed that runs inside the platform with no
+  outside account: back-in-stock, GST invoices, Shopify import, the core
+  plugin (COD, demo courier, log channel, local file storage). Merchants
+  "install" it, no company to sign up with.
+- **`'connection'`** — links the store to another company's service and needs
+  that company's account: a storage bucket (R2, S3), a payment gateway
+  (Razorpay), a courier (Delhivery), a message channel (SES, WhatsApp). A
+  `connection` plugin should also set `company` (e.g. `'Cloudflare'`,
+  `'Razorpay'`, `'Meta'`) — the Apps card shows "by \<company\>" — and a
+  `category` from the standard set used for the Connections filter chips:
+  `storage | payments | shipping | messages | analytics | marketing`.
+
+`builtin` plugins keep freeform categories (`invoicing`, `migration`,
+`marketing`, ...) since they aren't filtered by the standard set.
+
+There is no default: `definePlugin` throws if `kind` is missing or not one of
+the two values, so a new plugin cannot land in the wrong section by omission.
 
 A plugin may provide several kinds at once (`payments`, `shipping`,
 `notifications`, `storage`) — an aggregator like Shiprocket would list couriers
@@ -167,10 +193,18 @@ credits: [
 `@commerce/storage` is the contract for where uploads live. The browser asks
 the API for a presigned request, PUTs the bytes straight to the store, then
 confirms; a provider only signs (`presignUpload`), names (`publicUrl`) and
-deletes. See `packages/storage-r2` for the S3-compatible reference (Cloudflare
-R2) and `packages/core/src/providers/local-storage.ts` for the development
-folder. An S3, GCS or Bunny adapter is the same ~150 lines with a different
-client.
+deletes. `packages/core/src/providers/local-storage.ts` is the built-in local
+disk provider (part of the `core` plugin, `kind: 'builtin'`) — every
+deployment has it and it is the default when a store has no storage
+Connection installed, writing under `LOCAL_STORAGE_DIR` (default
+`./.data/uploads`, gitignored) and serving through the admin's `/uploads/*`
+route. See `packages/storage-r2` for the S3-compatible reference (Cloudflare
+R2), a `kind: 'connection'` plugin a merchant installs and connects when they
+want files on their own bucket. An S3, GCS or Bunny adapter is the same ~150
+lines with a different client. When a store switches its storage Connection,
+Admin → Apps → \<connection\> offers "Move existing files to \<connection\>",
+a resumable worker job (`packages/core/src/media/migrate.ts`) that copies each
+file, verifies the copy, then only deletes the original once verified.
 
 Storage providers also implement `put({ key, body, contentType })` and
 `get(key)` for files the server generates (invoice PDFs). Keys under

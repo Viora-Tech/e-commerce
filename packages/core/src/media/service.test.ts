@@ -148,9 +148,17 @@ describe('setProductMedia / deleteMedia', () => {
 describe('storage settings', () => {
   it('falls back to the local folder when nothing is enabled or the enabled one is invalid', () => {
     const registry = builtInStorageRegistry()
-    const none = resolveStorageProvider(registry, { enabled: [], providers: {} }, 's')
+    const none = resolveStorageProvider(
+      registry,
+      { enabled: [], providers: {}, migration: null },
+      's',
+    )
     expect(none.provider.id).toBe('local')
-    const bad = resolveStorageProvider(registry, { enabled: ['r2'], providers: {} }, 's')
+    const bad = resolveStorageProvider(
+      registry,
+      { enabled: ['r2'], providers: {}, migration: null },
+      's',
+    )
     expect(bad.provider.id).toBe('local')
     expect(bad.errors[0]).toContain('r2')
   })

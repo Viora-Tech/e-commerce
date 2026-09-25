@@ -24,7 +24,13 @@ export type AppSummary = {
   description: string | null
   category: string | null
   builtIn: boolean
+  /** `builtin`: made by us, no outside account. `connection`: links to another company's service. */
+  kind: 'builtin' | 'connection'
+  /** The outside company behind a `connection` plugin, e.g. `Cloudflare`. Null for `builtin`. */
+  company: string | null
   installed: boolean
+  /** For a `connection`: installed AND the merchant has saved working credentials for it. */
+  connected: boolean
   provides: Record<AppKind, { id: string; label: string }[]>
   admin: { icon: string | null; pages: { path: string; navLabel?: string | undefined }[] }
   /** Open-source projects the app is built on, credited on the card. */
@@ -60,13 +66,21 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
   const Icon = appIcon(app.admin.icon)
   const kinds = providedKinds(app)
   const category = categoryLabel(app.category)
+  const isConnection = app.kind === 'connection'
   const openHref = hasScreens(app) ? `/apps/${app.id}` : kinds[0] ? copy.kinds[kinds[0]].href : null
+  const statusTone = isConnection
+    ? app.connected
+      ? 'success'
+      : 'neutral'
+    : app.installed
+      ? 'success'
+      : 'neutral'
 
   return (
     <Card className="h-full transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <IconBadge icon={Icon} tone={app.installed ? 'success' : 'neutral'} />
+          <IconBadge icon={Icon} tone={statusTone} />
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="truncate text-card-title text-ink-strong">{app.name}</span>
@@ -75,7 +89,14 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              {app.installed ? (
+              {isConnection ? (
+                <StatusLabel
+                  kind="app"
+                  value={app.connected ? 'connected' : 'notConnected'}
+                  variant="pill"
+                  size="sm"
+                />
+              ) : app.installed ? (
                 <StatusLabel kind="app" value="installed" variant="pill" size="sm" />
               ) : null}
               {category ? (
@@ -84,6 +105,9 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
                 </Badge>
               ) : null}
             </div>
+            <span className="text-caption text-muted-foreground-soft">
+              {isConnection && app.company ? copy.byCompany(app.company) : copy.builtByPlatform}
+            </span>
           </div>
         </div>
         {app.installed ? (

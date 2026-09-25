@@ -183,6 +183,8 @@ export const STATUS = {
   app: {
     installed: entry(appsContent.installed, 'success'),
     builtIn: entry(appsContent.builtIn, 'neutral'),
+    connected: entry(appsContent.connection.connected, 'success'),
+    notConnected: entry(appsContent.connection.notConnected, 'neutral'),
   },
   /** GST invoice / document status (queue, list, detail). */
   gstDoc: {

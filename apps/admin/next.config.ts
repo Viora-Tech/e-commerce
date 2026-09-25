@@ -28,6 +28,19 @@ const config: NextConfig = {
             },
           ]
         : []),
+      // Local storage provider (the built-in default): `publicUrl` is a fully-qualified
+      // URL back to this same app's `/uploads/[...key]` route, so next/image still needs it listed.
+      ...(process.env.ADMIN_URL
+        ? [
+            {
+              protocol: new URL(process.env.ADMIN_URL).protocol.replace(':', '') as
+                | 'http'
+                | 'https',
+              hostname: new URL(process.env.ADMIN_URL).hostname,
+              port: new URL(process.env.ADMIN_URL).port || undefined,
+            },
+          ]
+        : [{ protocol: 'http' as const, hostname: 'localhost', port: '3200' }]),
     ],
   },
 }

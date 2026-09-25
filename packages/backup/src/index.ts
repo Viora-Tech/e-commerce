@@ -1,4 +1,5 @@
 export {
+  type BackupDataset,
   type BackupKind,
   type BackupObject,
   backupKey,

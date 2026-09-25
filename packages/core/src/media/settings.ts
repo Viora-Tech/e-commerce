@@ -9,11 +9,26 @@ import {
   maskProviderSettings,
 } from '../settings/secrets'
 
+/** Progress of "Move existing files to <connection>", polled by the admin while it runs. */
+export const StorageMigrationSchema = z.object({
+  targetProviderId: z.string().min(1),
+  status: z.enum(['running', 'done', 'failed']),
+  total: z.number().int().min(0),
+  done: z.number().int().min(0),
+  failed: z.number().int().min(0),
+  startedAt: z.string(),
+  updatedAt: z.string(),
+  error: z.string().optional(),
+})
+export type StorageMigration = z.infer<typeof StorageMigrationSchema>
+
 /** Stored on store.storage. Secret fields are encrypted before they reach the row. */
 export const StorageSettingsSchema = z.object({
   /** At most one provider matters; the first enabled and valid one receives uploads. */
   enabled: z.array(z.string().min(1)).default([]),
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
+  /** Set while "Move existing files to <connection>" runs; cleared is null. */
+  migration: StorageMigrationSchema.nullable().default(null),
 })
 export type StorageSettings = z.infer<typeof StorageSettingsSchema>
 
@@ -70,10 +85,23 @@ export function storageDefaultsFromEnv(env: Record<string, string | undefined>):
     publicBaseUrl: env.R2_PUBLIC_BASE_URL ?? '',
   }
   const complete = Object.values(r2).every((v) => v.length > 0)
-  return complete ? { enabled: ['r2'], providers: { r2 } } : defaultStorageSettings
+  return complete ? { enabled: ['r2'], providers: { r2 }, migration: null } : defaultStorageSettings
 }
 
 export { StorageRegistry }
+
+/** Merges a migration progress patch into the store's saved storage settings. */
+export async function updateStorageMigration(
+  tx: StoreTx,
+  storeId: string,
+  migration: StorageMigration | null,
+): Promise<void> {
+  const current = await loadStoreStorageSettings(tx, storeId)
+  await tx
+    .update(store)
+    .set({ storage: { ...current, migration } })
+    .where(eq(store.id, storeId))
+}
 
 /**
  * Stored storage settings for a store, or the env-seeded defaults when the

@@ -7,6 +7,7 @@
       "dependencies": {
         "@commerce/backup": "workspace:*",
         "@commerce/config": "workspace:*",
+        "@commerce/core": "workspace:*",
         "@commerce/notifications-ses": "workspace:*",
         "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",

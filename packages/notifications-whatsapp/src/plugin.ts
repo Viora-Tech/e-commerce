@@ -6,6 +6,9 @@ export const whatsappPlugin = definePlugin({
   id: 'whatsapp',
   name: 'WhatsApp',
   version: '0.1.0',
+  kind: 'connection',
+  category: 'messages',
+  company: 'Meta',
   description: 'Order updates on WhatsApp through the Meta Cloud API.',
   provides: { notifications: [whatsappFactory] },
 })

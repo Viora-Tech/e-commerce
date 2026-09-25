@@ -36,6 +36,7 @@ const core = definePlugin({
   id: 'core',
   name: 'Core',
   version: '1.0.0',
+  kind: 'builtin',
   provides: {
     payments: [payment('cod')],
     shipping: [courier('demo')],
@@ -46,6 +47,7 @@ const razorpay = definePlugin({
   id: 'razorpay',
   name: 'Razorpay',
   version: '1.2.0',
+  kind: 'connection',
   description: 'Cards, UPI, netbanking',
   provides: { payments: [payment('razorpay')] },
 })
@@ -53,14 +55,15 @@ const fedex = definePlugin({
   id: 'fedex',
   name: 'FedEx',
   version: '0.1.0',
+  kind: 'connection',
   provides: { shipping: [courier('fedex')] },
 })
 
 describe('definePlugin', () => {
   it('rejects ids that are not lowercase slugs', () => {
-    expect(() => definePlugin({ id: 'Razor Pay', name: 'x', version: '1', provides: {} })).toThrow(
-      /lowercase/,
-    )
+    expect(() =>
+      definePlugin({ id: 'Razor Pay', name: 'x', version: '1', kind: 'builtin', provides: {} }),
+    ).toThrow(/lowercase/)
   })
 
   it('fills missing kinds with empty arrays', () => {
@@ -84,6 +87,7 @@ describe('loadPlugins', () => {
       id: 'razorpay',
       name: 'Razorpay fork',
       version: '2',
+      kind: 'connection',
       provides: {},
     })
     expect(() => loadPlugins([core, razorpay, again])).toThrow(
@@ -96,6 +100,7 @@ describe('loadPlugins', () => {
       id: 'other-fedex',
       name: 'Other',
       version: '1',
+      kind: 'connection',
       provides: { shipping: [courier('fedex')] },
     })
     expect(() => loadPlugins([core, fedex, clash])).toThrow(
@@ -128,6 +133,7 @@ describe('loadPlugins', () => {
       id: 'credited',
       name: 'Credited',
       version: '1.0.0',
+      kind: 'builtin',
       credits: [{ name: 'invoicely', url: 'https://github.com/x/y', license: 'MIT' }],
       provides: {},
     })
@@ -161,6 +167,7 @@ describe('loadPlugins', () => {
       id: 'gst-invoices',
       name: 'GST invoices',
       version: '1',
+      kind: 'builtin',
       category: 'invoicing',
       provides: {},
       hooks: { 'order.paid': async (_ctx, p) => void calls.push(`paid:${p.orderId}`) },
