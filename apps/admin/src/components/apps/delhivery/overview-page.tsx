@@ -13,16 +13,30 @@ import { api } from '@/lib/api-client'
 
 const copy = appCopy.overview
 
+const TESTED_FLAG_KEY = 'delhivery-connect-tested'
+
+/** Set by the Connect page after a successful "Test connection"; cosmetic only, so a blocked
+ *  or private-browsing localStorage just means the badge doesn't show. */
+function readTestedFlag(): boolean {
+  try {
+    return localStorage.getItem(TESTED_FLAG_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
 /** Status, what the connector can do today, and a way into the shared Shipments workspace. */
 export default function OverviewPage() {
   // Hooks
   const [enabled, setEnabled] = useState<boolean | null>(null)
+  const [tested, setTested] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     api.store.getShipping().then((r) => {
       if (!cancelled) setEnabled(r.settings.enabled.includes('delhivery'))
     })
+    setTested(readTestedFlag())
     return () => {
       cancelled = true
     }
@@ -37,7 +51,7 @@ export default function OverviewPage() {
           <div className="flex flex-col gap-3">
             <Badge variant="outline" className="w-fit gap-1 text-success">
               <CircleCheck aria-hidden="true" className="size-3.5" />
-              {copy.connected}
+              {tested ? copy.connectedAndTested : copy.connected}
             </Badge>
             <p className="text-body text-muted-foreground">{copy.goToShipmentsHelp}</p>
             <Button
