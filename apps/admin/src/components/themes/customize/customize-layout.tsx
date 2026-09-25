@@ -64,7 +64,15 @@ export default function CustomizeLayout({
               animate={{ opacity: 1 }}
               exit={reducedMotion ? undefined : { opacity: 0 }}
               transition={{ duration: reducedMotion ? 0 : 0.16, ease: 'easeOut' }}
-              className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+              className={cn(
+                'flex min-h-0 flex-1 flex-col',
+                // The Add panel (AddSectionBrowser, `fill`) owns its own internal
+                // scroll below a sticky search box and tabs — scrolling here too
+                // would carry that header away with the list. Every other panel
+                // (Sections tree, Theme settings) has no such header and still
+                // wants this level to scroll.
+                panel === 'add' ? 'overflow-hidden' : 'overflow-y-auto',
+              )}
             >
               {panelContent}
             </motion.div>

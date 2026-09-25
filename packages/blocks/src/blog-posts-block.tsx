@@ -2,6 +2,7 @@ import type { ComponentConfig } from '@puckeditor/core'
 import BlogPosts from './components/blog-posts'
 import SectionFrame from './components/section-frame'
 import type { Frame, frameFields } from './puck-config'
+import { defaultSectionSettings, migrateSectionSettings } from './section-settings'
 import type { CardArticle } from './types'
 
 /** How the "Blog posts" block gets its posts; blank handle means every blog. */
@@ -44,9 +45,7 @@ export function blogPostsBlock(
       blogHandle: '',
       limit: 3,
       layout: 'grid',
-      scheme: 'scheme-1',
-      padTop: 48,
-      padBottom: 48,
+      settings: defaultSectionSettings({ padTop: 48, padBottom: 48 }),
     },
     resolveData: async ({ props }) => ({
       props: {
@@ -59,8 +58,8 @@ export function blogPostsBlock(
       },
       readOnly: { resolved: true },
     }),
-    render: ({ heading, blogHandle, layout, resolved, scheme, padTop, padBottom }) => (
-      <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
+    render: ({ heading, blogHandle, layout, resolved, ...props }) => (
+      <SectionFrame settings={migrateSectionSettings(props)}>
         <BlogPosts
           heading={heading}
           layout={layout}

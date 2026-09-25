@@ -12,24 +12,55 @@ spacing.
 
 ## The editor
 
-Open a page (or the theme) in the editor and you'll see a rail down the side with two tabs:
+Open a page (or the theme) in the editor and you'll see a narrow icon rail down the left side
+with three panels:
 
-- **Sections** — the page's building blocks, top to bottom. Select **Add section** to add a
-  new one anywhere in the order.
-- **Theme** (or **Theme settings**) — colours, fonts and other store-wide look and feel.
+- **Sections** — the page's building blocks, top to bottom, with reorder, duplicate and
+  remove on each row.
+- **Add** — search and browse sections to add, in two tabs (**Sections** and **Apps**, below).
+  It fills the whole panel, with its own list scrolling inside.
+- **Theme** — colours, fonts and other store-wide look and feel.
+
+The canvas in the middle shows the page itself. A floating dock under the canvas switches the
+preview between **Desktop**, **Tablet** and **Mobile** widths, toggles **Light**/**Dark**
+preview (when your theme has a dark mode), and holds **Undo**/**Redo**.
+
+### Selecting and editing a section
+
+Hover a section on the canvas to see its name; select it to open a small floating toolbar
+above it with **Move up**, **Move down**, **Duplicate** and **Remove**, plus its settings in
+the panel on the right.
+
+### Section settings
+
+Every section's settings panel is grouped into four collapsible sections:
+
+- **Layout** — content width (narrow, normal, wide or full), alignment and the gap between
+  items inside it.
+- **Spacing** — padding above and below, with separate sliders for mobile, tablet and desktop,
+  so a section can be tighter on a phone than on a wide screen.
+- **Style** — colour scheme, an optional background colour or image (with an overlay), corner
+  rounding, a border toggle and a shadow.
+- **Advanced** — show or hide the section on mobile or desktop, an entrance animation
+  (fade, slide up or zoom in as it scrolls into view) and an anchor ID for linking straight to
+  it.
+
+Older sections you edited before this panel existed keep looking exactly the same — their old
+colour scheme and padding are carried over into these groups automatically the first time you
+open them.
 
 ### Apps tab and app blocks
 
-When you're adding a section, there's also an **Apps** tab — sections that installed apps add
-for you, for example:
+The **Add** panel's **Apps** tab lists sections that installed apps add for you. The core
+plugin always contributes at least one ("Pre-order countdown," a launch countdown for a
+pre-order product); installed apps add more, for example:
 
 - **Notify me** — a "back in stock" button shoppers can click on a sold-out product.
-- **Pre-order countdown** — a launch countdown for a pre-order product.
 - **Delivery checker** — lets a shopper type their PIN code and see an estimated delivery
   date, powered by whichever courier you've connected.
 
-If you haven't installed any apps yet, this tab explains: "Apps you install can add things
-like a 'Notify me' button or delivery-date checker here," with a link to browse apps.
+If none of the apps that add blocks are installed yet, this tab explains which ones do
+(Back in stock, Delhivery, Shiprocket), with a link to browse and install them.
 
 ## Saving and discarding
 

@@ -31,7 +31,8 @@ const MODES = [
 
 const DOCK_BUTTON =
   'flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
-const DOCK_ACTIVE = 'bg-foreground text-background hover:bg-foreground hover:text-background'
+const DOCK_ACTIVE =
+  'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
 
 const DIVIDER_CLASS = 'mx-1 h-5 w-px bg-border'
 

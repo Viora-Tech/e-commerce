@@ -1,0 +1,120 @@
+---
+title: Section settings and SectionFrame
+---
+
+# Section settings and SectionFrame
+
+Every section a merchant can add — the library sections in
+`packages/blocks/src/sections/library.tsx`, and the frame-wrapped blocks in
+`packages/blocks/src/puck-config.tsx` (`ProductGrid`, `FeaturedProducts`,
+`CollectionGrid`, `RichText`, `BlogPosts`) — carries one `settings` field:
+layout, spacing, style and advanced options, defined once in
+`packages/blocks/src/section-settings.ts` and rendered by a shared
+`SectionFrame` wrapper (`packages/blocks/src/components/section-frame.tsx`).
+
+## The schema (`section-settings.ts`)
+
+`SectionSettingsValue` has four groups:
+
+```ts
+type SectionSettingsValue = {
+  layout: { contentWidth: 'narrow' | 'normal' | 'wide' | 'full'; alignment: 'left' | 'center' | 'right'; gap: number }
+  spacing: {
+    paddingTop: { mobile: number; tablet: number; desktop: number }
+    paddingBottom: { mobile: number; tablet: number; desktop: number }
+  }
+  style: {
+    colorScheme: string
+    backgroundColor: string
+    backgroundImage: { url: string; alt: string }
+    overlayOpacity: number
+    cornerRadius: 'none' | 'sm' | 'md' | 'lg'
+    border: boolean
+    shadow: 'none' | 'sm' | 'md'
+  }
+  advanced: {
+    showOnMobile: boolean
+    showOnDesktop: boolean
+    entranceAnimation: 'none' | 'fade' | 'slide-up' | 'zoom'
+    anchorId: string
+  }
+}
+```
+
+`sectionSettingsField(schemeOptions)` returns the Puck `Fields` entry for it — one `object`
+field per group, which `apps/admin/src/components/themes/customize/customize-object-field.tsx`
+renders as its own collapsible section in the Field panel (that's existing behaviour for any
+`object` field; this schema just uses it four times).
+
+A section wires it in by adding `settings: sectionSettingsField(SCHEMES)` to its `fields`, and
+`settings: defaultSectionSettings(...)` to its `defaultProps` — see `library.tsx`'s shared
+`frame` object and `frameDefaults` for the pattern every section reuses.
+
+## Backward compatibility: `migrateSectionSettings`
+
+Sections used to carry three flat props — `scheme`, `padTop`, `padBottom` — instead of a
+`settings` object. `migrateSectionSettings(props)` is the one pure function that bridges old
+and new:
+
+- Given legacy flat props and no `settings`, it builds a full `SectionSettingsValue` from them:
+  `scheme` → `style.colorScheme`, `padTop`/`padBottom` → every breakpoint of
+  `spacing.paddingTop`/`paddingBottom` (the same value at mobile, tablet and desktop — old
+  sections had no responsive padding, so migrating never invents a difference between
+  breakpoints that didn't exist before). Everything else gets `defaultSectionSettings()`'s
+  neutral defaults (`contentWidth: 'normal'`, no background, no animation, and so on) so the
+  section renders exactly as it did before.
+- Given a `settings` object already (a section saved after this schema shipped), it deep-merges
+  that onto the defaults — filling in any group a future field might add, without touching what
+  is already set.
+- Never throws. Malformed or missing input always falls back to `defaultSectionSettings()`.
+
+It's called in two places, both load-bearing:
+
+1. **`apps/admin/src/lib/customize-doc.ts`'s `normalizeDoc`** — migrates each section's *raw
+   stored* props (before Puck's own `defaultProps` merge) so the Field panel edits real
+   migrated values, not blanks. Raw stored props matter here: running migration on the
+   post-merge object risks reading `defaultProps.settings` (the fresh default) instead of a
+   doc's real old scheme/padding.
+2. **Inside every section's own `render()`** — `library.tsx`'s `framed()` helper and each
+   `puck-config.tsx` block call `migrateSectionSettings(props)` right before rendering
+   `<SectionFrame settings={...}>`. This is what makes the storefront correct too:
+   `apps/storefront/src/lib/template-render.tsx` calls a section's `render()` directly
+   (`{...defaultProps, ...item.props}`), the same shape Puck itself builds internally — it
+   never goes through `normalizeDoc`, which is admin-only. Migrating at render time means both
+   paths — the admin's live Puck instance and the storefront's direct call — see the same
+   correct settings regardless of whether the stored doc has been through `normalizeDoc` yet.
+
+## `SectionFrame`
+
+`SectionFrame` (`packages/blocks/src/components/section-frame.tsx`) still accepts its original
+`scheme`/`padTop`/`padBottom` props for callers that never adopted the schema (a few
+`puck-config.tsx` blocks, the storefront preview's placeholder sections in
+`apps/admin/src/lib/customize-preview.tsx`) — that legacy path is unchanged.
+
+Passing `settings` instead turns on the full schema:
+
+- **Layout** — `full` width renders children with no `.page-width` wrapper; narrow/normal/wide
+  set a max-width on it. `alignment` sets text/flex alignment; `gap` (0–16, quarter-rem steps)
+  becomes the content wrapper's flex `gap`.
+- **Spacing** — writes `--section-pt-mobile/tablet/desktop` and `--section-pb-*` custom
+  properties; `packages/blocks/src/styles/base.css` has the three breakpoint rules that read
+  them, each falling back to the previous breakpoint so a section with only a mobile value set
+  still gets sane tablet/desktop padding.
+- **Style** — colour scheme class, an optional inline background colour, a background image
+  layer with a black overlay at `overlayOpacity`, corner radius and shadow as Tailwind classes,
+  border as a token-based `border-border`.
+- **Advanced** — `showOnMobile`/`showOnDesktop` become `max-md:hidden`/`md:hidden` (pure CSS,
+  no client JS, no layout shift since the hidden class applies at first paint). `anchorId`
+  becomes the section's `id`. `entranceAnimation` renders through `SectionReveal`
+  (`packages/blocks/src/components/section-reveal.tsx`), a small client component using
+  Motion's `whileInView` — it reads `useReducedMotion()` and renders a plain, already-visible
+  `<div>` (no animation, no client-only opacity-0 flash) whenever the visitor has asked for
+  reduced motion.
+
+## Testing
+
+`packages/blocks/test/section-settings.test.ts` covers: defaults reproducing today's output,
+the legacy-props migration (including that it never invents a responsive difference), a
+partial/future settings object getting filled in, malformed input never throwing, the
+hidden-on-mobile/desktop class names and that reduced motion always disables the entrance
+animation regardless of which one is set.
