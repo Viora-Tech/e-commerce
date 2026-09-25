@@ -2,11 +2,10 @@ import type {
   OrderFulfillmentStatus,
   OrderLifecycleStatus,
   OrderPaymentStatus,
+  OrderStatus,
 } from '@commerce/core/order-status'
 
-/** A placed order's lifecycle; payment and fulfilment are separate, derived statuses. */
-export type OrderStatus = Exclude<OrderLifecycleStatus, 'draft'>
-export type { OrderFulfillmentStatus, OrderPaymentStatus }
+export type { OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus }
 
 /** What "Mark as" records, on the detail page and in the list's bulk menu. */
 export const ORDER_MARKS = ['paid', 'fulfilled', 'delivered', 'cancelled'] as const

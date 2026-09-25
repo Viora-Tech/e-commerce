@@ -156,6 +156,30 @@ Proof this doesn't break anything: `apps/worker/src/index.ts` still bundles clea
 `bun build --target=bun` (`bun apps/worker/src/index.ts --help` also runs), and
 `bun run test:sweeps` / `bun run typecheck` pass across all 30 packages.
 
+## Router idiom: `can()` vs bare `storeProcedure`
+
+Every `packages/api/src/routers/*.ts` handler that changes or reads store-wide data is
+gated with `can(permission)` (`../procedures`), which requires the caller's role to hold
+that grant. Two routers also use the bare `storeProcedure` (no permission) for specific
+handlers, deliberately:
+
+- `appearance.get` / `appearance.setMine` — every store member may read and set their
+  *own* accent colour pick; there is no permission to check because the data is
+  self-scoped (keyed on `scope.userId`), not store-wide.
+- `staff.me` — every member may read their own resolved role/permissions; same reasoning,
+  it drives which controls the admin renders for the caller and touches no one else's data.
+
+`appearance.setStoreDefault` is the one store-wide mutation in that router; it stays on
+bare `storeProcedure` with an explicit `if (!context.scope.isOwner) throw ...` check rather
+than `can()`, because "set the organisation's default accent" is owner-only by definition,
+not a granular permission grain in the roles model (`packages/core/src/permissions`).
+
+Rule: a handler may use bare `storeProcedure` only when it reads or writes data scoped to
+the calling member themselves (`scope.userId`) and never another member's or the store's
+shared data. Anything else — including an owner-only action — should either call
+`can(permission)` or, if it truly has no corresponding permission grain, gate explicitly
+on `scope.isOwner` the way `appearance.setStoreDefault` does, with a comment saying why.
+
 ## Running the sweeps
 
 ```sh

@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
 import { campaignReportContent, campaignsContent } from '@/data/marketing-campaigns'
 import type { api } from '@/lib/api-client'
@@ -9,7 +10,6 @@ type CampaignTilesProps = { campaigns: Item[] }
 
 type TileProps = { title: string; value: string; period: string }
 
-const number = new Intl.NumberFormat('en-IN')
 const t = campaignsContent.tiles
 
 function Tile({ title, value, period }: TileProps) {
@@ -34,7 +34,7 @@ export default function CampaignTiles({ campaigns }: CampaignTilesProps) {
 
   return (
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-      <Tile title={t.sent} value={number.format(sent)} period={t.period} />
+      <Tile title={t.sent} value={formatNumber(sent)} period={t.period} />
       <Tile
         title={t.openRate}
         value={campaignReportContent.rate(opened, emailSent)}

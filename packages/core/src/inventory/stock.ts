@@ -38,7 +38,15 @@ export function deltaToReach(current: number, target: number): number {
 
 export type PurchaseOrderLineStock = { quantity: number; received: number; unitCostPaise: number }
 
-export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partially_received' | 'received' | 'closed'
+/** The single source of truth for a purchase order's status — import this everywhere. */
+export const PURCHASE_ORDER_STATUSES = [
+  'draft',
+  'ordered',
+  'partially_received',
+  'received',
+  'closed',
+] as const
+export type PurchaseOrderStatus = (typeof PURCHASE_ORDER_STATUSES)[number]
 
 /** Units still to arrive on a line. */
 export function remainingOf(line: Pick<PurchaseOrderLineStock, 'quantity' | 'received'>): number {

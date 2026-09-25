@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import KitThumb from '@/components/kit/kit-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import { inventoryContent as copy } from '@/data/inventory'
@@ -11,8 +12,6 @@ type ColumnOptions = {
   onCommit: (row: InventoryRow, delta: number) => Promise<boolean>
   onHistory: (row: InventoryRow) => void
 }
-
-const number = new Intl.NumberFormat('en-IN')
 
 export function rowName(row: InventoryRow): string {
   return row.variantTitle && row.variantTitle !== 'Default'
@@ -83,7 +82,7 @@ export function inventoryColumns({
       id: 'committed',
       title: copy.columns.committed,
       sortValue: (r) => r.committed,
-      render: (r) => <span className="tabular-nums">{number.format(r.committed)}</span>,
+      render: (r) => <span className="tabular-nums">{formatNumber(r.committed)}</span>,
     },
     {
       id: 'incoming',
@@ -91,7 +90,7 @@ export function inventoryColumns({
       sortValue: (r) => r.incoming,
       render: (r) => (
         <span className={r.incoming > 0 ? 'text-link tabular-nums' : 'tabular-nums'}>
-          {number.format(r.incoming)}
+          {formatNumber(r.incoming)}
         </span>
       ),
     },
@@ -99,7 +98,7 @@ export function inventoryColumns({
       id: 'onHand',
       title: copy.columns.onHand,
       sortValue: (r) => r.onHand,
-      render: (r) => <span className="tabular-nums">{number.format(r.onHand)}</span>,
+      render: (r) => <span className="tabular-nums">{formatNumber(r.onHand)}</span>,
     },
   ]
 }

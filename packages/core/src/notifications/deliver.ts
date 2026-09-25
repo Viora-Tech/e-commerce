@@ -10,6 +10,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import type {
   Attachment,
   NotificationChannel,
@@ -39,11 +40,7 @@ export type DeliveryResult = {
   error?: string | undefined
 }
 
-const inr = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-})
+const inr = (paise: number) => formatMoney(paise, 'INR')
 
 /** Human label for the order's payment_method id; adapters own the real label, this is the fallback. */
 const PAYMENT_LABELS: Record<string, string> = {
@@ -84,8 +81,8 @@ function balanceData(
   const owed = balanceOwed(o)
   const payBy = balancePayBy(settings, o.balanceRequestedAt)
   return {
-    dueLabel: inr.format(owed / 100),
-    depositLabel: inr.format((o.totalPaise - owed) / 100),
+    dueLabel: inr(owed),
+    depositLabel: inr(o.totalPaise - owed),
     payByLabel: payBy
       ? payBy.toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' })
       : undefined,
@@ -164,13 +161,13 @@ export async function buildTemplateData(
       storeName: s?.name ?? '',
       orderNumber: o.number,
       customerName: cu?.name || 'there',
-      totalLabel: inr.format(o.totalPaise / 100),
+      totalLabel: inr(o.totalPaise),
       lines: lines.map((l) => ({
         title: [l.title, l.variantTitle !== 'Default' ? l.variantTitle : null]
           .filter(Boolean)
           .join(' / '),
         quantity: l.quantity,
-        priceLabel: inr.format((l.quantity * l.unitPricePaise) / 100),
+        priceLabel: inr(l.quantity * l.unitPricePaise),
       })),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
       orderUrl:
@@ -228,13 +225,13 @@ export async function buildCartTemplateData(
     data: {
       storeName: s?.name ?? '',
       customerName: c.customerName || 'there',
-      totalLabel: inr.format(subtotal / 100),
+      totalLabel: inr(subtotal),
       lines: lines.map((l) => ({
         title: [l.productTitle, l.variantTitle !== 'Default' ? l.variantTitle : null]
           .filter(Boolean)
           .join(' / '),
         quantity: l.quantity,
-        priceLabel: inr.format((l.quantity * l.unitPricePaise) / 100),
+        priceLabel: inr(l.quantity * l.unitPricePaise),
       })),
       paymentMethodLabel: '',
       actionUrl,

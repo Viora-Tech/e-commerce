@@ -1,4 +1,6 @@
-'use client'
+import { formatNumber } from '@commerce/money'
+
+;('use client')
 
 import { AUTOMATION_TEMPLATES, type AutomationTemplateId } from '@commerce/core/marketing'
 import { Badge } from '@commerce/ui/shadcn/badge'
@@ -26,8 +28,6 @@ import { formatPaise } from '@/lib/money'
 type Item = Awaited<ReturnType<typeof api.marketing.automations.list>>[number]
 
 type AutomationsPageProps = { automations: Item[] }
-
-const number = new Intl.NumberFormat('en-IN')
 
 /** Marketing > Automations: the store's automations with results, then the template gallery. */
 export default function AutomationsPage({ automations }: AutomationsPageProps) {
@@ -91,16 +91,16 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {number.format(a.stats.runs)}
+                    {formatNumber(a.stats.runs)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {number.format(a.stats.sent)}
+                    {formatNumber(a.stats.sent)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {campaignReportContent.rate(a.stats.clicked, a.stats.sent)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {number.format(a.stats.orders)}
+                    {formatNumber(a.stats.orders)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatPaise(a.stats.revenuePaise)}

@@ -1,4 +1,5 @@
 import type { ChannelRow } from '@commerce/api'
+import { formatNumber } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
 import {
   Table,
@@ -15,7 +16,6 @@ import { formatPaise } from '@/lib/money'
 type ChannelTableCardProps = { rows: ChannelRow[] }
 
 const copy = marketingOverviewContent.channels
-const number = new Intl.NumberFormat('en-IN')
 
 /** Sessions, orders, sales and conversion per channel for the selected range. */
 export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
@@ -43,10 +43,10 @@ export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
               <TableRow key={row.channel}>
                 <TableCell className="font-medium">{CHANNEL_LABELS[row.channel]}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {number.format(row.sessions)}
+                  {formatNumber(row.sessions)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {number.format(row.orders)}
+                  {formatNumber(row.orders)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPaise(row.salesPaise)}

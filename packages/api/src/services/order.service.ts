@@ -1,8 +1,8 @@
 import {
   changeOrderStatus,
   type OrderFulfillmentStatus,
-  type OrderLifecycleStatus,
   type OrderPaymentStatus,
+  type OrderStatus,
   type OrderStatusChange,
   type PaymentProvider,
   parsePaymentSettings,
@@ -44,8 +44,7 @@ import {
   sql,
 } from 'drizzle-orm'
 
-/** Lifecycle of a placed order; drafts have their own list. */
-export type OrderStatus = Exclude<OrderLifecycleStatus, 'draft'>
+export type { OrderStatus }
 
 /** The tabs above the order list. */
 export const ORDER_VIEWS = [

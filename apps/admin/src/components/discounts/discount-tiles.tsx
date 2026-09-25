@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
 import { discountsContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
@@ -10,15 +11,13 @@ type TileProps = {
   period: string
 }
 
-const number = new Intl.NumberFormat('en-IN')
-
 /* Same tile as the order list (frame 5:2512): title, figure, period line. */
 function Tile({ title, value, period }: TileProps) {
   return (
     <Card className="h-[6.5rem] gap-0 rounded-lg p-4">
       <p className="text-card-title">{title}</p>
       <div className="mt-3 flex items-end gap-2">
-        <span className="text-stat text-ink-strong tabular-nums">{number.format(value)}</span>
+        <span className="text-stat text-ink-strong tabular-nums">{formatNumber(value)}</span>
       </div>
       <p className="mt-1.5 text-period text-muted-foreground">{period}</p>
     </Card>

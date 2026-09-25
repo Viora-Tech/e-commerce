@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/money": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@puckeditor/core": "^0.23.0",
     "motion": "^13.4.1"

@@ -1,4 +1,8 @@
 /** Copy for Products > Inventory, Purchase orders and Transfers. */
+import { PURCHASE_ORDER_STATUSES, type PurchaseOrderStatus } from '@commerce/core/inventory'
+
+export type { PurchaseOrderStatus }
+export { PURCHASE_ORDER_STATUSES }
 
 export const STOCK_STATES = ['in', 'low', 'out'] as const
 export type StockState = (typeof STOCK_STATES)[number]
@@ -134,15 +138,6 @@ export const locationsContent = {
   failed: 'Could not add location',
   invalidPincode: 'PIN code has six digits',
 } as const
-
-export const PURCHASE_ORDER_STATUSES = [
-  'draft',
-  'ordered',
-  'partially_received',
-  'received',
-  'closed',
-] as const
-export type PurchaseOrderStatus = (typeof PURCHASE_ORDER_STATUSES)[number]
 
 export const purchaseOrdersContent = {
   heading: 'Purchase orders',

@@ -537,7 +537,7 @@ async function cartFacts(tx: StoreTx, cartId: string) {
       .filter(Boolean)
       .join(' / '),
     quantity: l.quantity,
-    priceLabel: inr.format((l.quantity * l.unit_price_paise) / 100),
+    priceLabel: inr(l.quantity * l.unit_price_paise),
     imageUrl: l.image_url,
   }))
   return { status: c?.status ?? null, totalPaise: total, lines: emailLines }
@@ -645,11 +645,7 @@ export async function processDueRuns(
       checkout_url: run.cartId
         ? recoveryUrl(run.cartId, deps.settingsSecret, deps.storefrontUrl)
         : deps.storefrontUrl,
-      cart_total: cartInfo
-        ? inr.format(cartInfo.totalPaise / 100)
-        : o
-          ? inr.format(o.totalPaise / 100)
-          : '',
+      cart_total: cartInfo ? inr(cartInfo.totalPaise) : o ? inr(o.totalPaise) : '',
       order_number: o ? `#${o.number}` : '',
     }
 
@@ -697,7 +693,7 @@ export async function processDueRuns(
               blocks: step.blocks,
               merge: stepMerge,
               cart: cartInfo
-                ? { lines: cartInfo.lines, totalLabel: inr.format(cartInfo.totalPaise / 100) }
+                ? { lines: cartInfo.lines, totalLabel: inr(cartInfo.totalPaise) }
                 : undefined,
               utmCampaign: `automation-${ctx.automation.template}`,
             })

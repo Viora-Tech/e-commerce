@@ -1,4 +1,5 @@
 import type { CampaignRow } from '@commerce/api'
+import { formatNumber } from '@commerce/money'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card } from '@commerce/ui/shadcn/card'
 import {
@@ -16,7 +17,6 @@ import { formatPaise } from '@/lib/money'
 type TopCampaignsCardProps = { rows: CampaignRow[] }
 
 const copy = marketingOverviewContent.campaigns
-const number = new Intl.NumberFormat('en-IN')
 
 function sourceLabel(row: CampaignRow): string {
   if (row.kind !== 'utm') return copy.kinds[row.kind]
@@ -64,10 +64,10 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {number.format(row.sessions)}
+                  {formatNumber(row.sessions)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {number.format(row.orders)}
+                  {formatNumber(row.orders)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPaise(row.salesPaise)}

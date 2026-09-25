@@ -39,6 +39,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/editor": "workspace:*",
         "@commerce/invoices": "workspace:*",
+        "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
@@ -95,6 +96,7 @@
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/invoices": "workspace:*",
+        "@commerce/money": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
@@ -211,6 +213,7 @@
       "name": "@commerce/blocks",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/money": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@puckeditor/core": "^0.23.0",
         "motion": "^13.4.1",
@@ -246,6 +249,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/db": "workspace:*",
+        "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -318,6 +322,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/core": "workspace:*",
+        "@commerce/money": "workspace:*",
         "@react-pdf/renderer": "^4.9.0",
         "fflate": "^0.8.3",
         "pdf-lib": "^1.17.1",
@@ -328,6 +333,16 @@
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
         "@types/react": "^19.2.8",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/money": {
+      "name": "@commerce/money",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
       },
@@ -791,6 +806,8 @@
     "@commerce/editor": ["@commerce/editor@workspace:packages/editor"],
 
     "@commerce/invoices": ["@commerce/invoices@workspace:packages/invoices"],
+
+    "@commerce/money": ["@commerce/money@workspace:packages/money"],
 
     "@commerce/notifications": ["@commerce/notifications@workspace:packages/notifications"],
 

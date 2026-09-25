@@ -1,4 +1,5 @@
 import { type Db, order, orderNote, payment, withStore } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, desc, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
@@ -76,8 +77,7 @@ async function lockOwingOrder(ctx: StoreContext, orderId: string) {
   return { o, owed }
 }
 
-const inr = (paise: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(paise / 100)
+const inr = (paise: number) => formatMoney(paise, 'INR', { showZeroDecimals: true })
 
 export const BALANCE_REQUESTED_NOTE = (owedPaise: number, automatic: boolean) =>
   `${automatic ? 'Balance requested automatically' : 'Balance requested'}: ${inr(owedPaise)} due.`

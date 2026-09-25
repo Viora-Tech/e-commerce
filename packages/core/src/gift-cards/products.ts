@@ -6,6 +6,7 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { GIFT_CARD_MAX_VALUE_PAISE, type GiftCardSettings, GiftCardSettingsSchema } from './client'
@@ -18,8 +19,7 @@ const slug = (s: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 60) || 'gift-card'
 
-const rupees = (paise: number) =>
-  `₹${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(paise / 100)}`
+const rupees = (paise: number) => formatMoney(paise, 'INR')
 
 /**
  * Create a gift card product the way Shopify does: one "Denomination" option

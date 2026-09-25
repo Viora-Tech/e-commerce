@@ -1,3 +1,4 @@
+import { formatNumber } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
 import { giftCardsContent } from '@/data/gift-cards'
 import { formatPaise } from '@/lib/money'
@@ -9,8 +10,6 @@ type GiftCardTilesProps = {
 }
 
 type TileProps = { title: string; value: string; period: string }
-
-const number = new Intl.NumberFormat('en-IN')
 
 /* Same tile as the order and discount lists (frame 5:2512): title, figure, period line. */
 function Tile({ title, value, period }: TileProps) {
@@ -37,9 +36,9 @@ export default function GiftCardTiles({
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <Tile title={t.active} value={number.format(activeCount)} period={t.now} />
+      <Tile title={t.active} value={formatNumber(activeCount)} period={t.now} />
       <Tile title={t.outstanding} value={formatPaise(outstandingPaise)} period={t.liability} />
-      <Tile title={t.products} value={number.format(products.length)} period={t.onSale(onSale)} />
+      <Tile title={t.products} value={formatNumber(products.length)} period={t.onSale(onSale)} />
     </div>
   )
 }

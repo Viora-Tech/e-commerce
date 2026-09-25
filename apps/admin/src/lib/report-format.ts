@@ -4,6 +4,7 @@
  * numbers can be formatted, compared and exported.
  */
 import type { ReportColumnKind, ReportValue } from '@commerce/api'
+import { formatNumber } from '@commerce/money'
 import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
@@ -15,8 +16,8 @@ const STATE_NAMES = new Map(INDIAN_STATES.map((s) => [s.code, s.name]))
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 const ISO_MONTH = /^\d{4}-\d{2}$/
 
-const count = new Intl.NumberFormat('en-IN')
-const decimal = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 })
+const count = (value: number) => formatNumber(value)
+const decimal = (value: number) => formatNumber(value, { maximumFractionDigits: 1 })
 const monthName = new Intl.DateTimeFormat('en-IN', { month: 'short', year: 'numeric' })
 
 export const NUMERIC_KINDS: ReadonlySet<ReportColumnKind> = new Set([
@@ -52,17 +53,17 @@ export function formatCell(kind: ReportColumnKind, value: ReportValue | undefine
   if (typeof value === 'string') return formatWord(kind, value)
   if (kind === 'money') return formatPaise(value)
   if (kind === 'percent') return formatRate(value)
-  if (kind === 'decimal') return decimal.format(value)
-  if (kind === 'hours') return copy.hours(decimal.format(value))
-  if (kind === 'days') return copy.days(decimal.format(value))
-  return count.format(value)
+  if (kind === 'decimal') return decimal(value)
+  if (kind === 'hours') return copy.hours(decimal(value))
+  if (kind === 'days') return copy.days(decimal(value))
+  return count(value)
 }
 
 /** Short form for chart axes. */
 export function formatAxis(kind: ReportColumnKind, value: number): string {
   if (kind === 'money') return formatPaiseCompact(value)
   if (kind === 'percent') return formatRate(value)
-  return decimal.format(value)
+  return decimal(value)
 }
 
 /** A CSV cell: rupees with paise, percentages as numbers, words as shown on screen. */
