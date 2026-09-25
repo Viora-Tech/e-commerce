@@ -121,10 +121,26 @@ export const customizeContent = {
     mainPlaceholder: (name: string) => `${name} appear here`,
     pickResource: 'Choose what to preview from the bar above.',
   },
+  array: {
+    addItem: 'Add item',
+    duplicate: (name: string) => `Duplicate ${name}`,
+    remove: (name: string) => `Remove ${name}`,
+    more: (name: string) => `More actions for ${name}`,
+    itemFallback: (index: number) => `Item ${index + 1}`,
+  },
 } as const
 
 export const sectionSortLabels: SortableListLabels = {
   instructions: 'Press space to pick up a section, arrow keys to move it, space again to drop it.',
+  handle: (title) => `Move ${title}`,
+  picked: (title) => `Picked up ${title}`,
+  moved: (title, position, total) => `${title} moved to position ${position} of ${total}`,
+  dropped: (title, position, total) => `${title} dropped at position ${position} of ${total}`,
+  cancelled: (title) => `Move of ${title} cancelled`,
+}
+
+export const arrayItemSortLabels: SortableListLabels = {
+  instructions: 'Press space to pick up an item, arrow keys to move it, space again to drop it.',
   handle: (title) => `Move ${title}`,
   picked: (title) => `Picked up ${title}`,
   moved: (title, position, total) => `${title} moved to position ${position} of ${total}`,

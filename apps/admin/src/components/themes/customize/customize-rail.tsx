@@ -23,7 +23,7 @@ const ITEMS: { panel: RailPanel; icon: typeof ListTree; label: string }[] = [
 export default function CustomizeRail({ active, onChange }: CustomizeRailProps) {
   // Render logic
   return (
-    <nav className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-border bg-card py-2">
+    <nav className="flex w-14 shrink-0 flex-col items-center gap-1 py-1">
       {ITEMS.map(({ panel, icon: Icon, label }) => (
         <button
           key={panel}
@@ -33,13 +33,13 @@ export default function CustomizeRail({ active, onChange }: CustomizeRailProps) 
           aria-current={active === panel ? 'true' : undefined}
           title={label}
           className={cn(
-            'flex w-11 flex-col items-center gap-1 rounded-md py-2 text-[0.6875rem] transition-colors',
+            'flex w-12 flex-col items-center gap-1 rounded-xl py-2 text-[0.6875rem] transition-colors',
             active === panel
-              ? 'bg-primary-soft text-primary'
-              : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              ? 'bg-card text-foreground shadow-card ring-1 ring-border'
+              : 'text-muted-foreground hover:bg-card/60 hover:text-foreground',
           )}
         >
-          <Icon aria-hidden className="size-4.5" />
+          <Icon aria-hidden weight={active === panel ? 'regular' : 'light'} className="size-5" />
           {label}
         </button>
       ))}

@@ -6,11 +6,12 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { customizeContent } from '@/data/customize'
+import { type FieldLike, isImageField } from '@/lib/customize-field-shape'
 
 type ImageValue = { url?: string; alt?: string } | undefined
 
 type ImageFieldProps = {
-  field: { type: string; objectFields?: Record<string, unknown> }
+  field: FieldLike
   value: unknown
   onChange: (value: unknown) => void
   /** Puck's own rendering of the object's sub-fields. */
@@ -18,12 +19,6 @@ type ImageFieldProps = {
 }
 
 const copy = customizeContent.image
-
-/** `{ url, alt }` objects are section images: pick them from the media library. */
-const isImageField = (field: ImageFieldProps['field']) =>
-  field.type === 'object' &&
-  'url' in (field.objectFields ?? {}) &&
-  'alt' in (field.objectFields ?? {})
 
 /**
  * Puck's object field, with a media library picker above it for image objects.

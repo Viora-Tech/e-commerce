@@ -2,6 +2,7 @@
 
 import { SINGLE_SECTIONS } from '@commerce/core/theme'
 import { ArrowDown, ArrowUp, Copy, Trash2 } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
 import type { MouseEvent, ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
@@ -19,6 +20,9 @@ type SectionOverlayProps = {
 }
 
 const copy = customizeContent
+
+const TOOL =
+  'flex size-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:pointer-events-none disabled:opacity-30'
 
 /**
  * Puck's `componentOverlay` override: the accent outline itself is themed by
@@ -78,72 +82,78 @@ export default function SectionOverlay({
   return (
     <>
       {/* Puck's own overlay content stays out: the accent outline is drawn by its parent
-          wrapper (themed via CSS tokens), so this replaces only the action chrome. One
-          dark pill regardless of admin theme — it sits on top of arbitrary storefront
-          colours, so it stays legible in both light and dark preview content. */}
+          wrapper (themed via CSS tokens), so this replaces only the action chrome. This
+          renders inside the preview iframe, where the storefront theme redefines the
+          admin's token names, so the chrome uses the fixed neutral palette to stay
+          legible over any storefront colours in light and dark previews. */}
       <motion.div
         key={isSelected ? 'selected' : 'hover'}
-        initial={
-          reducedMotion ? false : isSelected ? { opacity: 0, scale: 0.9 } : { opacity: 0, y: -4 }
-        }
-        animate={{ opacity: 1, scale: 1, y: 0 }}
+        initial={reducedMotion ? false : { opacity: 0, y: -4, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{
-          duration: reducedMotion ? 0 : 0.26,
+          duration: reducedMotion ? 0 : 0.22,
           ease: isSelected ? [0.34, 1.56, 0.64, 1] : 'easeOut',
         }}
-        className="pointer-events-none absolute top-0 left-0 z-10 w-full p-1.5"
+        className="pointer-events-none absolute top-0 left-0 z-10 flex w-full items-start justify-between gap-2 p-2"
       >
-        <span className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-neutral-900/95 py-1 pr-1 pl-2.5 text-caption font-medium text-white shadow-lg shadow-black/25 backdrop-blur-sm dark:bg-neutral-800/95">
-          <SectionIcon type={componentType} className="size-3.5 shrink-0 text-white/80" />
+        <span
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption font-medium shadow-md',
+            isSelected
+              ? 'bg-neutral-900 text-white'
+              : 'bg-white/95 text-neutral-700 ring-1 ring-neutral-200',
+          )}
+        >
+          <SectionIcon type={componentType} className="size-3.5 shrink-0 opacity-80" />
           <span className="truncate">{label}</span>
-          {isSelected ? (
-            <>
-              <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-white/20" />
-              <button
-                type="button"
-                onClick={() => handleMove(index - 1)}
-                disabled={index === 0}
-                aria-label={copy.overlay.moveUp(label)}
-                title={copy.overlay.moveUp(label)}
-                className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
-              >
-                <ArrowUp aria-hidden className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMove(index + 1)}
-                disabled={index === count - 1}
-                aria-label={copy.overlay.moveDown(label)}
-                title={copy.overlay.moveDown(label)}
-                className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-30"
-              >
-                <ArrowDown aria-hidden className="size-3.5" />
-              </button>
-              {locked ? null : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleDuplicate}
-                    aria-label={copy.tree.duplicate(label)}
-                    title={copy.tree.duplicate(label)}
-                    className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/15 hover:text-white"
-                  >
-                    <Copy aria-hidden className="size-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRemove}
-                    aria-label={copy.tree.remove(label)}
-                    title={copy.tree.remove(label)}
-                    className="flex size-6 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-destructive/80 hover:text-white"
-                  >
-                    <Trash2 aria-hidden className="size-3.5" />
-                  </button>
-                </>
-              )}
-            </>
-          ) : null}
         </span>
+        {isSelected ? (
+          <span className="pointer-events-auto inline-flex items-center gap-0.5 rounded-full bg-white/95 p-1 text-neutral-600 shadow-lg shadow-black/15 ring-1 ring-neutral-200 backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => handleMove(index - 1)}
+              disabled={index === 0}
+              aria-label={copy.overlay.moveUp(label)}
+              title={copy.overlay.moveUp(label)}
+              className={TOOL}
+            >
+              <ArrowUp aria-hidden weight="light" className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMove(index + 1)}
+              disabled={index === count - 1}
+              aria-label={copy.overlay.moveDown(label)}
+              title={copy.overlay.moveDown(label)}
+              className={TOOL}
+            >
+              <ArrowDown aria-hidden weight="light" className="size-4" />
+            </button>
+            {locked ? null : (
+              <>
+                <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-neutral-200" />
+                <button
+                  type="button"
+                  onClick={handleDuplicate}
+                  aria-label={copy.tree.duplicate(label)}
+                  title={copy.tree.duplicate(label)}
+                  className={TOOL}
+                >
+                  <Copy aria-hidden weight="light" className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemove}
+                  aria-label={copy.tree.remove(label)}
+                  title={copy.tree.remove(label)}
+                  className={cn(TOOL, 'hover:bg-red-50 hover:text-red-600')}
+                >
+                  <Trash2 aria-hidden weight="light" className="size-4" />
+                </button>
+              </>
+            )}
+          </span>
+        ) : null}
       </motion.div>
     </>
   )

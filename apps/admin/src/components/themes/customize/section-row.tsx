@@ -47,8 +47,10 @@ export default function SectionRow({
     <div
       ref={rowRef}
       className={cn(
-        'group flex h-9 items-center gap-1 rounded-md pr-1 text-body transition-colors',
-        selected ? 'bg-accent text-foreground' : 'text-foreground hover:bg-muted',
+        'group relative flex h-8 items-center gap-1 rounded-lg pr-1 text-[0.8125rem] transition-colors duration-150',
+        selected
+          ? 'bg-primary-soft font-medium text-foreground'
+          : 'text-foreground/85 hover:bg-muted hover:text-foreground',
       )}
     >
       <span className="opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
@@ -64,13 +66,23 @@ export default function SectionRow({
           hidden && 'text-muted-foreground',
         )}
       >
-        <SectionIcon type={section.type} className="size-4 shrink-0 text-muted-foreground" />
+        <span
+          className={cn(
+            'flex size-5 shrink-0 items-center justify-center rounded-md transition-colors',
+            selected ? 'bg-card text-primary' : 'bg-muted text-muted-foreground',
+          )}
+        >
+          <SectionIcon type={section.type} className="size-3.5" />
+        </span>
         <span className="truncate">{label}</span>
       </button>
       <div
         className={cn(
-          'flex items-center transition-opacity duration-150',
-          !hidden && 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
+          // Overlays the end of the row instead of squeezing the name; the fade
+          // matches the row's own background so the name slides under it.
+          'absolute inset-y-0 right-1 items-center bg-linear-to-l via-70% to-transparent pl-6',
+          selected ? 'from-primary-soft via-primary-soft' : 'from-muted via-muted',
+          hidden ? 'flex' : 'hidden group-hover:flex group-focus-within:flex',
         )}
       >
         <Button
