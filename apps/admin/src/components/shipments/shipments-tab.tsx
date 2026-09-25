@@ -4,6 +4,13 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,33 +28,56 @@ import { api } from '@/lib/api-client'
 import BookShipmentsPanel from './book-shipments-panel'
 
 type ListResult = Awaited<ReturnType<typeof api.shipments.list>>
+type Courier = { id: string; label: string }
 
 const copy = shipmentsContent.list
+const ANY_COURIER = '__any'
 const PER_PAGE = 25
 
-/** Every shipment, searchable, with a link back to its order and a print/track shortcut. */
+/** Every shipment, searchable and filterable by courier, with a link back to its order and a
+ *  print/track shortcut. */
 export default function ShipmentsTab() {
   // Hooks
   const [result, setResult] = useState<ListResult | null>(null)
+  const [couriers, setCouriers] = useState<Courier[]>([])
   const [search, setSearch] = useState('')
+  const [courier, setCourier] = useState('')
   const [page, setPage] = useState(1)
   const [reloadKey, setReloadKey] = useState(0)
+
+  useEffect(() => {
+    api.store.getShipping().then((r) => {
+      const byId = new Map(r.available.map((p) => [p.id, p.label]))
+      setCouriers(r.settings.enabled.map((id) => ({ id, label: byId.get(id) ?? id })))
+    })
+  }, [])
 
   useEffect(() => {
     // reloadKey has no bearing on the query itself; bumping it just re-runs this effect
     // after a bulk booking, the same way customers-page.tsx re-runs its list on demand.
     if (reloadKey < 0) return
     let cancelled = false
-    api.shipments.list({ page, perPage: PER_PAGE, search: search || undefined }).then((r) => {
-      if (!cancelled) setResult(r)
-    })
+    api.shipments
+      .list({
+        page,
+        perPage: PER_PAGE,
+        search: search || undefined,
+        provider: courier || undefined,
+      })
+      .then((r) => {
+        if (!cancelled) setResult(r)
+      })
     return () => {
       cancelled = true
     }
-  }, [page, search, reloadKey])
+  }, [page, search, courier, reloadKey])
 
   // Event handlers
   const handleBooked = () => setReloadKey((k) => k + 1)
+  const handleCourierChange = (value: string) => {
+    setPage(1)
+    setCourier(value === ANY_COURIER ? '' : value)
+  }
 
   // Render logic
   const rows = result?.items ?? []
@@ -60,15 +90,35 @@ export default function ShipmentsTab() {
         title={copy.heading}
         flush
         action={
-          <Input
-            placeholder={copy.search}
-            value={search}
-            onChange={(e) => {
-              setPage(1)
-              setSearch(e.target.value)
-            }}
-            className="w-56"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {couriers.length > 1 ? (
+              <Select
+                value={courier || ANY_COURIER}
+                onValueChange={(v) => handleCourierChange(String(v))}
+              >
+                <SelectTrigger aria-label={copy.filters.courier} className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY_COURIER}>{copy.filters.allCouriers}</SelectItem>
+                  {couriers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+            <Input
+              placeholder={copy.search}
+              value={search}
+              onChange={(e) => {
+                setPage(1)
+                setSearch(e.target.value)
+              }}
+              className="w-56"
+            />
+          </div>
         }
       >
         <Table>

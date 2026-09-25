@@ -6,10 +6,34 @@ export const shippingSettingsContent = {
   hints: {
     delhivery:
       'API token, client name and pickup location are on the Delhivery One dashboard under Settings › API. Use the staging URL with a staging token while testing.',
+    shiprocket:
+      'API user email and password are created in Shiprocket under Settings › API. Use a dedicated API user, not your own login.',
     fake: 'Deterministic pretend courier so the store works end to end without an account. Not real data.',
   } as Record<string, string>,
   verify: 'Test connection',
   verifying: 'Testing…',
+  courierRule: {
+    heading: 'Default courier',
+    intro:
+      'With more than one courier connected, this decides which one books an order automatically. You can still pick a different courier for any single order or bulk batch.',
+    oneCourier: 'Only one courier is connected, so it books every shipment.',
+    noCourier: 'Connect a courier first.',
+    mode: {
+      label: 'Rule',
+      cheapest: 'Cheapest',
+      fastest: 'Fastest',
+      preferred: 'Always use one courier',
+      per_zone: 'By state',
+    },
+    preferredLabel: 'Courier',
+    zonesHeading: 'Rules by state',
+    zonesHelp: 'The first matching row wins. A state left out uses the fallback below.',
+    addZone: 'Add a rule',
+    removeZone: 'Remove',
+    zoneStates: 'States (2-letter codes, comma separated)',
+    zoneCourier: 'Courier',
+    fallbackLabel: 'For every other state',
+  },
   policy: {
     heading: 'Dispatch policy',
     originPincode: 'Warehouse PIN code',

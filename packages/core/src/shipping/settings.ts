@@ -58,12 +58,51 @@ export const ShippingPolicySchema = z.object({
     .default({ name: '', line1: '', line2: '', city: '', state: '', phone: '' }),
 })
 
+/**
+ * Which connected courier books an order when more than one is enabled.
+ * `cheapest`/`fastest` read the live rate comparison (`compareCourierRates`);
+ * `preferred` always books the same courier; `per_zone` routes by the
+ * shipping address's state, falling back to `cheapest`/`fastest` outside its
+ * zones. A single-courier store never sees this - `cheapest` with one
+ * connected courier always resolves to that courier.
+ */
+export const CourierRuleSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('cheapest') }),
+  z.object({ mode: z.literal('fastest') }),
+  z.object({ mode: z.literal('preferred'), providerId: z.string().min(1) }),
+  z.object({
+    mode: z.literal('per_zone'),
+    zones: z
+      .array(
+        z.object({
+          stateCodes: z
+            .array(
+              z
+                .string()
+                .trim()
+                .toUpperCase()
+                .regex(/^[A-Z]{2}$/),
+            )
+            .min(1),
+          providerId: z.string().min(1),
+        }),
+      )
+      .max(40)
+      .default([]),
+    fallback: z.enum(['cheapest', 'fastest']).default('cheapest'),
+  }),
+])
+export type CourierRuleSettings = z.infer<typeof CourierRuleSchema>
+export const defaultCourierRule: CourierRuleSettings = { mode: 'cheapest' }
+
 /** Stored on store.shipping. Secret fields are encrypted before they reach the row. */
 export const ShippingSettingsSchema = z.object({
-  /** Couriers in preference order; the first is asked for estimates and used for shipments. */
+  /** Couriers in preference order; the first is asked for estimates and, absent a booking rule
+   *  that resolves to someone else, used for shipments. */
   enabled: z.array(z.string().min(1)).default([]),
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
   policy: ShippingPolicySchema.default(ShippingPolicySchema.parse({})),
+  courierRule: CourierRuleSchema.default(defaultCourierRule),
 })
 export type ShippingSettings = z.infer<typeof ShippingSettingsSchema>
 export type ShippingPolicySettings = z.infer<typeof ShippingPolicySchema>
@@ -122,13 +161,34 @@ export function resolveShippingProviders(
   return { providers, errors }
 }
 
-/** The one courier estimates and shipments go through: the first enabled and valid one. */
+/** The one courier estimates default to: the first enabled and valid one. */
 export function primaryShippingProvider(
   registry: ShippingRegistry,
   settings: ShippingSettings,
   secret: string,
 ): ShippingProvider | null {
   return resolveShippingProviders(registry, settings, secret).providers[0] ?? null
+}
+
+/**
+ * The connected courier a specific shipment was (or should be) booked with,
+ * by provider id rather than always the primary. A multi-courier store books
+ * different orders with different couriers (the default rule, or a per-row
+ * override), so actions on an existing shipment - cancel, NDR, a tracking
+ * refresh - must reach the courier that actually holds the waybill, not
+ * whichever courier happens to be first in the enabled list.
+ */
+export function shippingProviderById(
+  registry: ShippingRegistry,
+  settings: ShippingSettings,
+  secret: string,
+  providerId: string,
+): ShippingProvider | null {
+  return (
+    resolveShippingProviders(registry, settings, secret).providers.find(
+      (p) => p.id === providerId,
+    ) ?? null
+  )
 }
 
 /** Estimate for a store, wiring settings + primary courier into the pure composer. */

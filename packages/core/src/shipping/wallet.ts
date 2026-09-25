@@ -23,9 +23,10 @@ export async function getWalletBalance(
 
 /**
  * Ask the courier for a fresh figure when it implements `getWalletBalance`
- * (no courier does yet - see packages/shipping-delhivery); otherwise this
- * just upserts the threshold, leaving the balance as whatever the merchant
- * last entered by hand.
+ * (Shiprocket does - see packages/shipping-shiprocket; Delhivery has no
+ * confirmed public balance API, see packages/shipping-delhivery); otherwise
+ * this just upserts the threshold, leaving the balance as whatever the
+ * merchant last entered by hand.
  */
 export async function refreshWalletBalance(
   ctx: StoreContext,

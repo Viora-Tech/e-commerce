@@ -44,6 +44,7 @@
     "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/shipping-shiprocket": "workspace:*",
     "@commerce/storage-r2": "workspace:*"
   }
 }

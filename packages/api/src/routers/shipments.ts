@@ -6,13 +6,14 @@ import { storeRegistries } from '../services/apps.service'
 import {
   actOnNdr,
   bulkBookShipments,
+  compareRatesForOrders,
   createManifestForStore,
-  getWalletCard,
   listManifestsForStore,
   listNdrForStore,
   listPickupsForStore,
   listShipments,
   listUnpickedForStore,
+  listWalletCards,
   recordWallet,
   refreshWallet,
   resolveOrderNumbers,
@@ -60,11 +61,34 @@ export const shipmentsRouter = {
           })
           .optional(),
         insured: z.boolean().optional(),
+        /** orderId -> providerId. Orders left out book with the store's default courier rule. */
+        courierOverrides: z.record(z.uuid(), z.string().min(1)).optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       return bulkBookShipments(context.tx, context.scope.storeId, shipping, secret(), input)
+    }),
+
+  /** The bulk-book panel's rate comparison table: every connected courier's price and ETA
+   *  to each order's own address, for showing Cheapest / Fastest / Recommended before booking. */
+  compareRates: can(permissions.ORDERS_READ)
+    .input(
+      z.object({
+        orderIds: z.array(z.uuid()).min(1).max(100),
+        weightGrams: z.number().int().min(1).optional(),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return compareRatesForOrders(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        secret(),
+        input.orderIds,
+        input.weightGrams,
+      )
     }),
 
   schedulePickup: can(permissions.ORDERS_FULFIL)
@@ -125,13 +149,19 @@ export const shipmentsRouter = {
       return actOnNdr(context.tx, context.scope.storeId, shipping, secret(), input)
     }),
 
-  wallet: can(permissions.ORDERS_READ).handler(async ({ context }) => {
+  /** One card per connected courier - each has its own account and balance. */
+  wallets: can(permissions.ORDERS_READ).handler(async ({ context }) => {
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-    return getWalletCard(context.tx, context.scope.storeId, shipping, secret())
+    return listWalletCards(context.tx, context.scope.storeId, shipping, secret())
   }),
 
   refreshWallet: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ lowBalanceThresholdPaise: z.number().int().min(0).optional() }))
+    .input(
+      z.object({
+        providerId: z.string().min(1),
+        lowBalanceThresholdPaise: z.number().int().min(0).optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       return refreshWallet(
@@ -139,14 +169,22 @@ export const shipmentsRouter = {
         context.scope.storeId,
         shipping,
         secret(),
+        input.providerId,
         input.lowBalanceThresholdPaise,
       )
     }),
 
   recordWalletBalance: can(permissions.ORDERS_FULFIL)
-    .input(z.object({ balancePaise: z.number().int().min(0) }))
+    .input(z.object({ providerId: z.string().min(1), balancePaise: z.number().int().min(0) }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return recordWallet(context.tx, context.scope.storeId, shipping, secret(), input.balancePaise)
+      return recordWallet(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        secret(),
+        input.providerId,
+        input.balancePaise,
+      )
     }),
 }

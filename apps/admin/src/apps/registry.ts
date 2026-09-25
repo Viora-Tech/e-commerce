@@ -26,6 +26,8 @@ import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
+import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectPage from '@/components/apps/shopify-import/connect-page'
 import CsvPage from '@/components/apps/shopify-import/csv-page'
 import ImportsPage from '@/components/apps/shopify-import/imports-page'
@@ -70,6 +72,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: GstSettingsEditor,
     },
     OrderCard: GstOrderCard,
+  },
+  shiprocket: {
+    pages: {
+      '': ShiprocketOverviewPage,
+      connect: ShiprocketConnectPage,
+    },
   },
   'shopify-import': {
     pages: {

@@ -50,11 +50,14 @@ describe('testShippingConnection', () => {
     const storeId = await makeStore('test-connect-ok')
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({ delivery_codes: [{ postal_code: { pin: 110001, cod: 'Y', pre_paid: 'Y' } }] }),
-          { status: 200 },
-        ),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              delivery_codes: [{ postal_code: { pin: 110001, cod: 'Y', pre_paid: 'Y' } }],
+            }),
+            { status: 200 },
+          ),
       ),
     )
     const result = await withStore(app, storeId, (tx) =>
@@ -65,7 +68,10 @@ describe('testShippingConnection', () => {
 
   it('gives a precise message when Delhivery rejects the token', async () => {
     const storeId = await makeStore('test-connect-auth')
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 401 })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 401 })),
+    )
     const result = await withStore(app, storeId, (tx) =>
       testShippingConnection(tx, storeId, registry, secret, 'delhivery', validFields),
     )
@@ -107,18 +113,23 @@ describe('testShippingConnection', () => {
       .set({
         shipping: {
           enabled: ['delhivery'],
-          providers: { delhivery: { ...validFields, apiToken: encryptSecret('live-token', secret) } },
+          providers: {
+            delhivery: { ...validFields, apiToken: encryptSecret('live-token', secret) },
+          },
           policy: {},
         },
       })
       .where(eq(store.id, storeId))
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({ delivery_codes: [{ postal_code: { pin: 110001, cod: 'Y', pre_paid: 'Y' } }] }),
-          { status: 200 },
-        ),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              delivery_codes: [{ postal_code: { pin: 110001, cod: 'Y', pre_paid: 'Y' } }],
+            }),
+            { status: 200 },
+          ),
       ),
     )
     const result = await withStore(app, storeId, (tx) =>
