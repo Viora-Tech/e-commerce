@@ -5,6 +5,7 @@ import { getPageMap } from 'nextra/page-map'
 import { Footer, Layout, Navbar } from 'nextra-theme-docs'
 import type { ReactNode } from 'react'
 import LogoMark from '../components/logo-mark'
+import SiteFooter from '../components/site-footer'
 import './globals.css'
 import 'nextra-theme-docs/style.css'
 
@@ -32,13 +33,21 @@ const mono = Geist_Mono({
 
 const GITHUB_URL = 'https://github.com/Viora-Tech/e-commerce'
 
+/* Next.js-docs palette: blue links (#0070f3 light, #52a8ff dark) on pure white / pure black. */
+const primaryColor = {
+  hue: 212,
+  saturation: 100,
+  lightness: { light: 45, dark: 66 },
+}
+const backgroundColor = { light: '#ffffff', dark: '#000000' }
+
 const navbar = (
-  <Navbar logo={<LogoMark size={22} withWordmark />} projectLink={GITHUB_URL} align="right" />
+  <Navbar logo={<LogoMark size={20} withWordmark />} projectLink={GITHUB_URL} align="right" />
 )
 
 const footer = (
   <Footer>
-    <span>MIT {new Date().getFullYear()} © Waimers Commerce Docs. Built with Nextra.</span>
+    <SiteFooter />
   </Footer>
 )
 
@@ -55,7 +64,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       className={`${sans.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
-      <Head />
+      <Head color={primaryColor} backgroundColor={backgroundColor} />
       <body>
         <Layout
           navbar={navbar}
@@ -64,6 +73,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           footer={footer}
           search={<Search />}
           sidebar={{ defaultMenuCollapseLevel: 1 }}
+          toc={{ title: 'On this page', backToTop: 'Scroll to top' }}
+          editLink="Edit this page on GitHub"
+          feedback={{ content: null }}
         >
           {children}
         </Layout>

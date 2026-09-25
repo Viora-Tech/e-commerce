@@ -8,7 +8,7 @@ export default function NotFound() {
         <h1 className="text-3xl font-semibold">Page not found</h1>
         <p className="max-w-md opacity-70">
           We couldn&apos;t find that page. Try the{' '}
-          <Link href="/" style={{ color: 'var(--brand)' }}>
+          <Link href="/" style={{ color: 'var(--docs-link)' }}>
             homepage
           </Link>{' '}
           or search from the top bar.

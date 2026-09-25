@@ -1,13 +1,14 @@
+/* biome-ignore-all lint/style/noDescendingSpecificity: these rules override nextra-theme-docs selectors, so they are grouped by page area, not by specificity. */
 /*
- * Waimers Commerce Docs — brand theme on top of nextra-theme-docs.
+ * Waimers Commerce Docs — Next.js-docs-style monochrome theme on top of nextra-theme-docs.
  *
  * Tailwind is imported without `preflight` (its CSS reset) on purpose: the docs
  * theme ships its own base styles (`nextra-theme-docs/style.css`, imported first
  * in app/layout.tsx) and a second reset would fight it. Tailwind's utility
- * classes are only used to build the new home-page / _meta components below;
- * MDX content styling goes through the `article.nextra-body-typesetting-article`
- * overrides further down, which is Nextra's own documented hook for this
- * (https://nextra.site/docs/docs-theme/theme-configuration — "Customize CSS").
+ * classes are only used to build the home-page components; MDX content styling
+ * goes through the `article > main` overrides further down (Nextra renders each
+ * page's content there) and the `.nextra-*` hooks, per
+ * https://nextra.site/docs/docs-theme/theme-configuration — "Customize CSS".
  *
  * The bare `@layer` statement below pins the full, canonical layer order up
  * front. Without it, this file's own `layer(theme)`/`layer(utilities)`
@@ -28,44 +29,43 @@
 @source "../node_modules/nextra-theme-docs/dist/**/*.{js,mjs}";
 
 /* ---------------------------------------------------------------------------
- * Brand tokens — Ocean Green, same accent as apps/admin (packages/ui/src/styles.css).
+ * Tokens — near-monochrome, in the style of the Next.js docs: black/white
+ * surfaces, grey text and hairlines, blue only for links. The primary hue
+ * (links, TOC, focus rings) and the page background come from
+ * <Head color backgroundColor> in app/layout.tsx.
  * ------------------------------------------------------------------------- */
 :root {
-  --brand: #4ea674;
-  --brand-foreground: #ffffff;
-  --brand-soft: #e6f3ec;
-  --brand-ring: #4ea67466;
-  --surface: #ffffff;
-  --surface-muted: #f7f7f7;
-  --surface-border: #dde1e5;
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.12);
-
-  /* Retint nextra-theme-docs' generated colour scale (links, active nav,
-     Steps numerals, focus rings, ...) to the brand accent. Nextra derives a
-     full tint/shade ramp from these three HSL components — see
-     nextra-theme-docs/dist/style.css. #4ea674 ≈ hsl(146deg 36% 48%). */
-  --nextra-primary-hue: 146deg;
-  --nextra-primary-saturation: 36%;
-  --nextra-primary-lightness: 48%;
+  --docs-fg: #171717;
+  --docs-muted: #666666;
+  --docs-subtle: #8f8f8f;
+  --docs-border: #ebebeb;
+  --docs-border-strong: #d6d6d6;
+  --docs-surface: #fafafa;
+  --docs-link: #0068d6;
 }
 
 :root.dark {
-  --brand: #30d158;
-  --brand-foreground: #08150c;
-  --brand-soft: #10241a;
-  --brand-ring: #30d15866;
-  --surface: #0a0a0a;
-  --surface-muted: #141414;
-  --surface-border: #38383a;
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --docs-fg: #ededed;
+  --docs-muted: #a1a1a1;
+  --docs-subtle: #707070;
+  --docs-border: #1f1f1f;
+  --docs-border-strong: #2e2e2e;
+  --docs-surface: #0a0a0a;
+  --docs-link: #52a8ff;
 }
 
 /* ---------------------------------------------------------------------------
- * Global type + surface
+ * Global type + hairlines
  * ------------------------------------------------------------------------- */
 html {
   font-family:
     var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: var(--docs-fg);
 }
 
 code,
@@ -75,91 +75,364 @@ samp {
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.nextra-border,
+.nextra-border:where(.dark *) {
+  border-color: var(--docs-border);
+}
+
 /* ---------------------------------------------------------------------------
- * MDX content typography — larger, calmer body copy + brand links.
+ * Header — solid background, hairline bottom border, bordered search box.
  * ------------------------------------------------------------------------- */
-article.nextra-body-typesetting-article {
+.nextra-navbar-blur {
+  border-color: var(--docs-border);
+  backdrop-filter: none;
+  background: rgb(var(--nextra-bg));
+}
+
+.nextra-navbar nav > a,
+.nextra-navbar nav > div > a {
+  font-size: 0.875rem;
+  color: var(--docs-muted);
+}
+
+.nextra-navbar nav > a:hover,
+.nextra-navbar nav > div > a:hover,
+.nextra-navbar nav a[aria-current="page"] {
+  color: var(--docs-fg);
+}
+
+.nextra-search input {
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  background: var(--docs-surface);
+}
+
+.nextra-search input:focus {
+  border-color: var(--docs-border-strong);
+}
+
+.nextra-search kbd {
+  border-color: var(--docs-border);
+  background: rgb(var(--nextra-bg));
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar — grey links; the active page is blue text, no coloured pill.
+ * ------------------------------------------------------------------------- */
+:is(.nextra-sidebar, .nextra-mobile-nav) li > a,
+:is(.nextra-sidebar, .nextra-mobile-nav) li > button {
+  padding-block: 0.3125rem;
+  color: var(--docs-muted);
+  background: transparent;
+}
+
+:is(.nextra-sidebar, .nextra-mobile-nav) li > a:hover,
+:is(.nextra-sidebar, .nextra-mobile-nav) li > button:hover {
+  color: var(--docs-fg);
+  background: transparent;
+}
+
+:is(.nextra-sidebar, .nextra-mobile-nav) li > a[class*="x:bg-primary-100"] {
+  color: var(--docs-link);
+  font-weight: 500;
+  background: transparent;
+}
+
+/* Separators: small section headings. */
+:is(.nextra-sidebar, .nextra-mobile-nav) li[class*="x:font-semibold"] {
+  margin-bottom: 0.25rem;
+  color: var(--docs-fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.nextra-sidebar-footer {
+  border-color: var(--docs-border);
+}
+
+/* ---------------------------------------------------------------------------
+ * "On this page" — small grey list, active entry in the text colour.
+ * ------------------------------------------------------------------------- */
+.nextra-toc > div > p {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--docs-fg);
+}
+
+.nextra-toc ul a {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--docs-muted);
+}
+
+.nextra-toc ul a:hover {
+  color: var(--docs-fg);
+}
+
+.nextra-toc ul a[class*="x:text-primary-600"] {
+  color: var(--docs-fg);
+  font-weight: 500;
+}
+
+.nextra-toc ul li {
+  margin-block: 0.375rem;
+}
+
+.nextra-toc a:not(ul a),
+.nextra-toc button {
+  font-size: 0.8125rem;
+  color: var(--docs-muted);
+}
+
+/* ---------------------------------------------------------------------------
+ * MDX content typography
+ * ------------------------------------------------------------------------- */
+article > main {
   font-size: 1rem;
+  color: var(--docs-fg);
 
   p,
   li {
     line-height: 1.7;
   }
 
-  h1 {
-    text-align: left;
-    font-size: 2.25rem;
-    letter-spacing: -0.02em;
+  strong {
+    color: var(--docs-fg);
+    font-weight: 600;
   }
 
+  h1 {
+    margin-top: 0.5rem;
+    color: var(--docs-fg);
+    text-align: left;
+    font-size: 2.25rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+  }
+
+  /* The first paragraph under the h1 reads as the page subtitle. */
+  h1 + p {
+    margin-top: 0.75rem;
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+
+  /* Every h2 opens a new section under a hairline, like the Next.js docs. */
   h2 {
-    margin-top: 2.5rem;
+    margin-top: 3rem;
     margin-bottom: 1rem;
+    padding-top: 2.5rem;
+    padding-bottom: 0;
+    border-top: 1px solid var(--docs-border);
+    color: var(--docs-fg);
     font-size: 1.5rem;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    letter-spacing: -0.03em;
     border-bottom: none;
   }
 
   h3 {
-    margin-top: 2rem;
-    font-size: 1.15rem;
+    margin-top: 2.25rem;
+    color: var(--docs-fg);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 
-  a {
-    color: var(--brand);
+  h4 {
+    color: var(--docs-fg);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  :is(p, li, td) a {
+    color: var(--docs-link);
+    font-weight: 400;
     text-decoration-line: none;
     text-underline-offset: 0.2em;
   }
 
-  a:hover {
+  :is(p, li, td) a:hover {
     text-decoration-line: underline;
   }
 
-  code {
+  :not(pre) > code.nextra-code:not([class*="twoslash-"]) {
+    padding: 0.125rem 0.3rem;
+    border: 1px solid var(--docs-border);
     border-radius: 0.375rem;
+    background: var(--docs-surface);
+    color: var(--docs-fg);
+    font-size: 0.875em;
   }
 
+  hr {
+    border-color: var(--docs-border);
+  }
+
+  kbd {
+    padding: 0.0625rem 0.375rem;
+    border: 1px solid var(--docs-border-strong);
+    border-radius: 0.25rem;
+    background: var(--docs-surface);
+    color: var(--docs-fg);
+    font-size: 0.8125em;
+  }
+
+  /* Tables — hairline rows, no zebra stripes, no filled header. Nextra's
+     block + overflow-x scroll stays on narrow screens; full width from lg up. */
   table {
-    display: table;
-    width: 100%;
-    border-radius: 0.75rem;
-    overflow: hidden;
+    font-size: 0.875rem;
+    border-collapse: collapse;
+
+    @media (min-width: 64rem) {
+      display: table;
+      width: 100%;
+    }
+  }
+
+  tr,
+  tr:nth-child(even) {
+    background: transparent;
+    border-color: var(--docs-border);
+  }
+
+  th,
+  td {
+    padding: 0.625rem 0.75rem;
+    border-width: 0 0 1px;
+    border-color: var(--docs-border);
+    text-align: left;
   }
 
   th {
-    background: var(--surface-muted);
+    background: transparent;
+    color: var(--docs-fg);
+    font-weight: 500;
+  }
+
+  /* Steps — hairline rail, neutral numerals. */
+  .nextra-steps {
+    border-color: var(--docs-border);
+  }
+
+  .nextra-steps h3::before {
+    border: 1px solid var(--docs-border);
+    background: rgb(var(--nextra-bg));
+    color: var(--docs-fg);
+    font-weight: 500;
   }
 }
 
-.nextra-callout {
-  border-radius: 0.75rem;
-  box-shadow: var(--shadow-soft);
+/* ---------------------------------------------------------------------------
+ * Code blocks — hairline frame, filename header, copy button.
+ * ------------------------------------------------------------------------- */
+div.nextra-code {
+  border: 1px solid var(--docs-border-strong);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--docs-surface);
 }
 
-.nextra-cards,
-.nextra-card {
-  border-radius: 1rem;
+div.nextra-code > div:first-child {
+  height: 2.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--docs-border-strong);
+  border-radius: 0;
+  background: rgb(var(--nextra-bg));
+  color: var(--docs-muted);
+  font-size: 0.8125rem;
+}
+
+div.nextra-code pre {
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--docs-surface);
+  font-size: 0.8125rem;
+  line-height: 1.7;
 }
 
 /* ---------------------------------------------------------------------------
- * Sidebar — icons live inline on each page's _meta.tsx title, this just
- * aligns them and styles the "odd gap" separators with an intentional label.
+ * Callouts — neutral hairline box; colour stays in the icon only.
  * ------------------------------------------------------------------------- */
-.docs-nav-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+.nextra-callout {
+  border-color: var(--docs-border);
+  border-radius: 0.5rem;
+  background: var(--docs-surface);
+  color: var(--docs-fg);
+  padding-block: 0.75rem;
+  font-size: 0.9375rem;
 }
 
-.docs-nav-item svg {
-  flex: none;
-  opacity: 0.75;
+.nextra-callout :is(p, li) {
+  color: var(--docs-fg);
 }
 
-.docs-nav-separator {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.55;
+/* ---------------------------------------------------------------------------
+ * Nextra <Cards>
+ * ------------------------------------------------------------------------- */
+.nextra-card {
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  box-shadow: none;
+  background: transparent;
+}
+
+.nextra-card:hover {
+  border-color: var(--docs-border-strong);
+  background: var(--docs-surface);
+}
+
+/* ---------------------------------------------------------------------------
+ * Footer — page background under a hairline, no grey band.
+ * ------------------------------------------------------------------------- */
+div:has(> footer) {
+  background: rgb(var(--nextra-bg));
+}
+
+div:has(> footer) > hr {
+  border-color: var(--docs-border);
+}
+
+/* ---------------------------------------------------------------------------
+ * Previous / next — small grey label above a medium-weight title, chevrons,
+ * no box.
+ * ------------------------------------------------------------------------- */
+div:has(> a[title][class*="x:max-w-[50%]"]) {
+  border-top: 0;
+}
+
+a[title][class*="x:max-w-[50%]"] {
+  position: relative;
+  padding-top: 1.75rem;
+  color: var(--docs-fg);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+a[title][class*="x:max-w-[50%]"]:hover {
+  color: var(--docs-muted);
+}
+
+a[title][class*="x:max-w-[50%]"]::before {
+  position: absolute;
+  top: 0.75rem;
+  color: var(--docs-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+a[title][class*="x:max-w-[50%]"][class*="x:pe-4"]::before {
+  content: "Previous";
+  inset-inline-start: 1.25rem;
+}
+
+a[title][class*="x:max-w-[50%]"][class*="x:ps-4"]::before {
+  content: "Next";
+  inset-inline-end: 1.25rem;
+}
+
+a[title][class*="x:max-w-[50%]"] svg {
+  height: 1rem;
+  color: var(--docs-muted);
 }

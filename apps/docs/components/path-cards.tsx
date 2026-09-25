@@ -1,42 +1,33 @@
-import { Code, Storefront } from '@phosphor-icons/react/ssr'
+import { ArrowRight } from '@phosphor-icons/react/ssr'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
 import { pathCards } from '../data/home'
-
-const icons: Record<(typeof pathCards)[number]['icon'], ReactNode> = {
-  storefront: <Storefront size={26} weight="light" />,
-  code: <Code size={26} weight="light" />,
-}
 
 export default function PathCards() {
   return (
-    <div className="not-prose grid gap-4 sm:grid-cols-2">
+    <div className="not-prose mt-6 grid gap-4 sm:grid-cols-2">
       {pathCards.map((card) => (
         <Link
           key={card.href}
           href={card.href}
-          className="group flex flex-col gap-3 rounded-2xl border p-6 no-underline transition-shadow hover:shadow-lg"
-          style={{ borderColor: 'var(--surface-border)', boxShadow: 'var(--shadow-soft)' }}
+          className="group flex flex-col gap-2 rounded-lg border p-5 no-underline transition-colors hover:border-(--docs-border-strong) hover:bg-(--docs-surface)"
+          style={{ borderColor: 'var(--docs-border)' }}
         >
-          <span
-            className="flex size-11 items-center justify-center rounded-xl"
-            style={{ background: 'var(--brand-soft)', color: 'var(--brand)' }}
-          >
-            {icons[card.icon]}
-          </span>
-          <p
-            className="text-xs font-semibold tracking-wide uppercase opacity-60"
-            style={{ color: 'var(--brand)' }}
-          >
+          <span className="text-[0.8125rem]" style={{ color: 'var(--docs-muted)' }}>
             {card.eyebrow}
-          </p>
-          <h3 className="text-xl font-semibold">{card.title}</h3>
-          <p className="text-sm opacity-75">{card.description}</p>
+          </span>
           <span
-            className="mt-1 text-sm font-medium group-hover:underline"
-            style={{ color: 'var(--brand)' }}
+            className="flex items-center justify-between gap-2 text-base font-semibold tracking-tight"
+            style={{ color: 'var(--docs-fg)' }}
           >
-            {card.cta} →
+            {card.title}
+            <ArrowRight
+              size={16}
+              className="transition-transform group-hover:translate-x-0.5"
+              style={{ color: 'var(--docs-muted)' }}
+            />
+          </span>
+          <span className="text-sm leading-relaxed" style={{ color: 'var(--docs-muted)' }}>
+            {card.description}
           </span>
         </Link>
       ))}

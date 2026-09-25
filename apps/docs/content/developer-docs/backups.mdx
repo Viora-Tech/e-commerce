@@ -55,7 +55,7 @@ is ever invoked by CI or by this codebase's own test suite.
 
 ## Running a backup
 
-```sh
+```sh filename="Terminal"
 bun scripts/backup-db.ts
 ```
 
@@ -100,7 +100,7 @@ Run it once a day, off-peak. Two common setups:
 
 ## Restoring
 
-```sh
+```sh filename="Terminal"
 bun scripts/restore-db.ts --list                                          # see what's in R2
 bun scripts/restore-db.ts                                                  # restores the newest backup, into DATABASE_URL_OWNER
 bun scripts/restore-db.ts --key postgres/daily/2026-09-24T03-00-00Z.dump.gz

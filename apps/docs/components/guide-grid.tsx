@@ -1,43 +1,21 @@
-import {
-  CreditCard,
-  Package,
-  Palette,
-  Receipt,
-  SquaresFour,
-  Truck,
-} from '@phosphor-icons/react/ssr'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
 import { popularGuides } from '../data/home'
-
-const icons: Record<(typeof popularGuides)[number]['icon'], ReactNode> = {
-  truck: <Truck size={20} weight="light" />,
-  package: <Package size={20} weight="light" />,
-  palette: <Palette size={20} weight="light" />,
-  receipt: <Receipt size={20} weight="light" />,
-  card: <CreditCard size={20} weight="light" />,
-  apps: <SquaresFour size={20} weight="light" />,
-}
 
 export default function GuideGrid() {
   return (
-    <div className="not-prose grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="not-prose mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {popularGuides.map((guide) => (
         <Link
           key={guide.href}
           href={guide.href}
-          className="flex items-start gap-3 rounded-xl border p-4 no-underline transition-colors hover:border-current"
-          style={{ borderColor: 'var(--surface-border)' }}
+          className="flex flex-col gap-1.5 rounded-lg border p-4 no-underline transition-colors hover:border-(--docs-border-strong) hover:bg-(--docs-surface)"
+          style={{ borderColor: 'var(--docs-border)' }}
         >
-          <span
-            className="flex size-9 flex-none items-center justify-center rounded-lg"
-            style={{ background: 'var(--surface-muted)', color: 'var(--brand)' }}
-          >
-            {icons[guide.icon]}
+          <span className="text-sm font-semibold" style={{ color: 'var(--docs-fg)' }}>
+            {guide.title}
           </span>
-          <span>
-            <span className="block text-sm font-medium">{guide.title}</span>
-            <span className="block text-sm opacity-65">{guide.description}</span>
+          <span className="text-sm leading-relaxed" style={{ color: 'var(--docs-muted)' }}>
+            {guide.description}
           </span>
         </Link>
       ))}

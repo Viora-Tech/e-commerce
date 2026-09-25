@@ -4,7 +4,7 @@ title: Testing
 
 # Testing
 
-```sh
+```sh filename="Terminal"
 bun run test              # all packages, via turbo
 bun run test:coverage
 bun run test:sweeps       # guardrail sweeps — see /developer-docs/guardrails
@@ -32,7 +32,7 @@ test runs would both reset `commerce_test_<suffix>` and stomp on each other mid-
 every package then uses `commerce_test_<namespace>_<suffix>` instead — created on first use by
 the global test setup.
 
-```sh
+```sh filename="Terminal"
 TEST_DB_NAMESPACE=agent7 bun run test
 ```
 

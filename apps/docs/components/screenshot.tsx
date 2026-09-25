@@ -18,16 +18,16 @@ export default function Screenshot({ name, aspect = 'wide' }: ScreenshotProps) {
         aspect === 'wide' ? 'aspect-video' : 'aspect-square max-w-xs'
       }`}
       style={{
-        borderColor: 'var(--surface-border)',
-        background: 'var(--surface-muted)',
-        color: 'var(--brand)',
+        borderColor: 'var(--docs-border-strong)',
+        background: 'var(--docs-surface)',
+        color: 'var(--docs-muted)',
       }}
     >
       <ImageSquare size={28} weight="light" />
       <span className="text-sm font-medium" style={{ color: 'inherit' }}>
         Screenshot: {name}
       </span>
-      <span className="text-xs opacity-60" style={{ color: 'var(--surface-border)' }}>
+      <span className="text-xs opacity-60" style={{ color: 'var(--docs-subtle)' }}>
         Placeholder — not a real screenshot yet
       </span>
     </span>
