@@ -23,6 +23,26 @@ packages/storage            StorageProvider contract (presigned uploads) + confo
 packages/*-razorpay etc.    reference adapters, one package each
 ```
 
+New to the SDK? [Build your first app in 15 minutes](/developer-docs/building/first-app) walks
+through a manifest, settings page, hook and app block end to end. This page is the reference.
+
+## How a plugin plugs in
+
+```mermaid
+flowchart TD
+  manifest["Plugin manifest<br/>definePlugin({ id, kind, provides, hooks, jobs, admin, storefront })"] --> config["commerce.config.ts<br/>defineConfig({ plugins })"]
+  core["corePlugin (implicit)<br/>COD · manual UPI · demo courier · log · local disk"] --> load
+  config --> load["loadPlugins()<br/>throws on duplicate plugin or provider ids"]
+  load --> registries["Registries<br/>payments · shipping · notifications · storage"]
+  installed[("store.apps.installed<br/>Admin → Apps → Install")] --> perstore["registriesForStore(tx, storeId)<br/>forStore(core + installed)"]
+  registries --> perstore
+  perstore --> settings["Settings → Payments / Shipping / Notifications<br/>forms generated from factory.fields"]
+  perstore --> runtime["Checkout · webhooks · worker jobs"]
+  load --> hooks["hooksFor(event) · jobFor(name)<br/>{apps}-events · {apps}-jobs"]
+  manifest -->|"admin.pages · orderDetailCard"| adminreg["apps/admin/src/apps/registry.ts<br/>ADMIN_APPS → /apps/pluginId/…"]
+  manifest -->|storefront.blocks| appblocks["App blocks<br/>template-render (storefront) ·<br/>commerce.blocks.config.ts (editor)"]
+```
+
 ## 1. Package layout
 
 A plugin is an npm package (workspace or published) that exports a manifest.

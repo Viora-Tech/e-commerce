@@ -71,7 +71,7 @@ sequenceDiagram
   participant R as Route /-s/[storeId]
   participant DB as Postgres (role app)
   B->>P: GET https://waimers.in/products/x
-  P->>DB: select resolve_store('waimers.in')  (SECURITY DEFINER)
+  P->>DB: select * from resolve_host('waimers.in')  (SECURITY DEFINER)
   DB-->>P: storeId
   P->>R: rewrite /-s/<storeId>/products/x (client routing headers stripped, cf-ipcountry forwarded)
   R->>DB: BEGIN#59; set_config('app.store_id', storeId, true)
@@ -83,6 +83,8 @@ Every tenant query runs inside `withStore(db, storeId, fn)`; the policy
 `store_isolation` on every tenant table is what enforces isolation, not the
 `where` clauses. Admin follows the same path after the membership check in
 `storeProcedure` (session → organisation → `resolve_store_for_organization`).
+[Request flow](/developer-docs/building/request-flow) walks through this, the admin path and
+checkout-to-webhook step by step.
 
 ### 2.3 Order workflow
 
@@ -129,7 +131,7 @@ AES-256-GCM encrypted at rest under `SETTINGS_SECRET` and masked in the API.
   in each migration that adds tables) enables **and forces** RLS with policy
   `store_isolation` using `current_setting('app.store_id', true)`.
 - Runtime role `app` is `NOBYPASSRLS`. Cross-tenant lookups go through
-  SECURITY DEFINER functions that return only ids: `resolve_store(hostname)`,
+  SECURITY DEFINER functions that return only ids: `resolve_host(hostname)`,
   `resolve_store_for_organization(org)`, `stores_with_open_shipments()`.
 - `packages/db` has an RLS coverage test: any new table without the policy
   fails CI.

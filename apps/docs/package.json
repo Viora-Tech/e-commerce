@@ -13,6 +13,7 @@
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@theguild/remark-mermaid": "^0.3.0",
+    "mermaid": "^11.17.2",
     "next": "16.3.5",
     "nextra": "4.6.0",
     "nextra-theme-docs": "4.6.0",

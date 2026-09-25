@@ -1,9 +1,9 @@
 import {
   Code,
   CreditCard,
+  ListChecks,
   PaintBrush,
   Plugs,
-  PuzzlePiece,
   Receipt,
   Storefront,
   Truck,
@@ -23,7 +23,7 @@ const icons = {
   paintbrush: PaintBrush,
   receipt: Receipt,
   creditCard: CreditCard,
-  puzzle: PuzzlePiece,
+  checklist: ListChecks,
 } satisfies Record<HomeCardIcon, unknown>
 
 /** Home-page card grid: icon, title and one line per card. */

@@ -1,93 +1,200 @@
 ---
 title: Online store
+description: Pick a theme, edit your pages in the editor, add app blocks, then save and publish.
 ---
-
-import { Cards, Steps } from 'nextra/components'
-import Callout from '../../../components/callout'
-import Screenshot from '../../../components/screenshot'
 
 # Online store
 
-## Themes
+Your online store is the website shoppers see. You choose how it looks with a **theme**, and
+you change what is on each page in the **editor**, section by section, without writing code.
 
-**Online Store → Themes** shows the look of your storefront. One theme is live at a time;
-you can keep others ready to publish, and pick from presets or customise colours, fonts and
-spacing.
+## What this is for
 
-<Screenshot name="Themes list — live theme and presets" />
+- Changing your home page banner before a Diwali sale.
+- Adding a "Notify me" button to sold-out products, or a PIN code delivery checker.
+- Trying a new look on a copy of your theme, then switching to it in one click.
+- Adding simple pages such as "About us", "Shipping policy" or "Bulk orders".
 
-## The editor
+## How it works
 
-Open a page (or the theme) in the editor and you'll see a narrow icon rail down the left side
-with three panels:
+Every store has one **Live** theme (what shoppers see) and can keep others in the theme
+library, marked **Unpublished**. Inside a theme, each page type (home, product, collection,
+cart and so on) has a template made of **sections**. Your edits are kept as a draft while you
+work, and only reach shoppers when you **Save** a Live theme, or **Publish** another one.
 
-- **Sections** — the page's building blocks, top to bottom, with reorder, duplicate and
-  remove on each row.
-- **Add** — search and browse sections to add, in two tabs (**Sections** and **Apps**, below).
-  It fills the whole panel, with its own list scrolling inside.
-- **Theme** — colours, fonts and other store-wide look and feel.
+```mermaid
+flowchart TD
+  edit["You edit a section<br/>in the editor"] -->|kept automatically<br/>as you work| draft[("Draft<br/>only you see it")]
+  draft --> preview["Editor preview<br/>shows the draft"]
+  draft -->|Save| saved["Saved version<br/>draft cleared"]
+  draft -->|Discard| back["Draft thrown away<br/>back to your last save"]
+  saved --> live{"Is this theme<br/>Live?"}
+  live -->|Yes| shoppers(["Shoppers see it<br/>on their next page load"])
+  live -->|"No, it's Unpublished"| publish["Publish<br/>from More actions"] --> shoppers
+```
 
-The canvas in the middle shows the page itself. A floating dock under the canvas switches the
-preview between **Desktop**, **Tablet** and **Mobile** widths, toggles **Light**/**Dark**
-preview (when your theme has a dark mode), and holds **Undo**/**Redo**.
+The toolbar tells you where you are: **Unsaved changes** while there is a draft, **All
+changes saved** once you save. Nothing you do in the editor is visible to shoppers until you
+save.
 
-### Selecting and editing a section
+<Screenshot
+  name="Themes library"
+  caption="Online Store → Themes with the Current theme card marked Live at the top, and one Unpublished theme (Minimal preset) in the Theme library below it."
+/>
 
-Hover a section on the canvas to see its name; select it to open a small floating toolbar
-above it with **Move up**, **Move down**, **Duplicate** and **Remove**, plus its settings in
-the panel on the right.
+## Edit your store step by step
 
-### Section settings
+<Steps>
 
-Every section's settings panel is grouped into four collapsible sections:
+### Open the editor
 
-- **Layout** — content width (narrow, normal, wide or full), alignment and the gap between
+Go to **Online Store → Themes**. On your **Current theme** card, select **Customize**. To try
+changes without touching the live store, first open the theme's menu, select **Duplicate**,
+then **Customize** the copy.
+
+### Pick the page to edit
+
+Use the page switcher at the top to choose a template: Home, Product, Collection, Cart and so
+on. The left rail groups the page into **Header**, **Template** and **Footer**.
+
+### Add a section
+
+Open the **Add** panel. The **Sections** tab has the library (banners, product grids, rich
+text, testimonials and more); the **Apps** tab has blocks from apps you installed. Select one
+to drop it onto the page.
+
+<Screenshot
+  name="Editor, Add panel on the Apps tab"
+  caption="Theme editor with the Add panel open on the Apps tab, showing Pre-order countdown and, with Back in stock installed, the Notify me block."
+/>
+
+### Change its settings
+
+Select the section on the canvas. A small toolbar appears above it (**Move up**, **Move
+down**, **Duplicate**, **Remove**) and its settings open on the right in four groups:
+**Layout**, **Spacing**, **Style** and **Advanced** (details below).
+
+### Check it on a phone
+
+Use the dock under the canvas to switch between **Desktop**, **Tablet** and **Mobile**, and
+between **Light** and **Dark** if your theme has a dark mode. **Undo** and **Redo** are there
+too.
+
+### Save
+
+Select **Save**. The status changes to **All changes saved**. If this is your Live theme,
+shoppers now see the change. If it is an Unpublished theme, open **More actions** and select
+**Publish** when you are ready.
+
+</Steps>
+
+<VideoTip
+  title="Change your home page banner in 30 seconds"
+  caption="Open Customize, select the banner, swap the image and heading, switch to Mobile to check it, Save."
+/>
+
+## Section settings
+
+Every section's settings panel has the same four groups:
+
+- **Layout**: content width (narrow, normal, wide or full), alignment and the gap between
   items inside it.
-- **Spacing** — padding above and below, with separate sliders for mobile, tablet and desktop,
+- **Spacing**: padding above and below, with separate sliders for mobile, tablet and desktop,
   so a section can be tighter on a phone than on a wide screen.
-- **Style** — colour scheme, an optional background colour or image (with an overlay), corner
+- **Style**: colour scheme, an optional background colour or image (with an overlay), corner
   rounding, a border toggle and a shadow.
-- **Advanced** — show or hide the section on mobile or desktop, an entrance animation
-  (fade, slide up or zoom in as it scrolls into view) and an anchor ID for linking straight to
-  it.
+- **Advanced**: show or hide the section on mobile or desktop, an entrance animation (fade,
+  slide up or zoom in as it scrolls into view) and an anchor ID for linking straight to it.
 
-Older sections you edited before this panel existed keep looking exactly the same — their old
-colour scheme and padding are carried over into these groups automatically the first time you
-open them.
+Sections you edited before this panel existed keep looking exactly the same. Their old colour
+scheme and padding are carried into these groups the first time you open them.
 
-### Apps tab and app blocks
+<Screenshot
+  name="Section settings panel"
+  caption="A banner section selected on the canvas, with the right panel showing the Layout, Spacing, Style and Advanced groups and Spacing expanded to the mobile, tablet and desktop sliders."
+/>
 
-The **Add** panel's **Apps** tab lists sections that installed apps add for you. The core
-plugin always contributes at least one ("Pre-order countdown," a launch countdown for a
-pre-order product); installed apps add more, for example:
+## App blocks
 
-- **Notify me** — a "back in stock" button shoppers can click on a sold-out product.
-- **Delivery checker** — lets a shopper type their PIN code and see an estimated delivery
-  date, powered by whichever courier you've connected.
+The **Add** panel's **Apps** tab lists sections that installed apps give you. The core
+platform always adds **Pre-order countdown** (a launch countdown for a pre-order product).
+Installed apps add more:
 
-If none of the apps that add blocks are installed yet, this tab explains which ones do
-(Back in stock, Delhivery, Shiprocket), with a link to browse and install them.
+| Block | Comes from | What it does |
+| --- | --- | --- |
+| Pre-order countdown | Built in | Counts down to a pre-order product's launch time. |
+| Notify me | Back in stock app | A "tell me when it's back" button on sold-out products. |
+| Delivery checker | Delhivery or Shiprocket app | Shopper types a PIN code (say `560034`) and sees an estimated delivery date. |
 
-<Screenshot name="Editor — sections rail, Apps tab" />
-
-## Saving and discarding
-
-<Callout type="info">
-  Changes in the editor aren't live until you save. The toolbar shows **Unsaved changes**
-  while you're editing, and **All changes saved** once you save. If you want to throw away
-  your edits, select **Discard**.
-</Callout>
+If no app that adds blocks is installed yet, the tab says which ones do, with a link to
+install them. Uninstalling an app never breaks a page: its block stays in place but shows
+nothing to shoppers until you reinstall the app.
 
 ## Pages
 
-**Online Store → Pages** lists every page built with the editor — title, URL, status and when
-it was last updated. Select **Add page** to start a new one; each page also has its own
-**Search engine listing** (title and description) and **Visibility**.
+**Online Store → Pages** lists every page built with the editor, with its title, URL, status
+(**Published** or **Draft**) and when it was last updated. Select **Add page** to start one.
+Each page has its own **Search engine listing** (title and description), **Visibility**
+(Visible or Hidden) and a **Theme template**; **Edit content** opens it in the editor.
 
-## Next steps
+Your header and footer menus are under **Content → Menus**, not Online Store.
 
-<Cards>
-  <Cards.Card title="Apps" href="/merchant-guide/selling/apps" />
-  <Cards.Card title="Products and collections" href="/merchant-guide/catalog/products-collections" />
-  <Cards.Card title="Getting started" href="/merchant-guide" />
-</Cards>
+## Preferences
+
+**Online Store → Preferences** holds the store-wide settings for your site: the home page
+title and meta description, a social sharing image, **Password protection** (useful before
+launch), the cookie banner and your Google Analytics 4, Google Tag Manager and Meta pixel IDs.
+
+<Callout type="info">
+  **Tip.** Before a big sale, **Duplicate** your Live theme, make the sale changes on the copy,
+  and **Publish** it on the morning of the sale. After the sale, publish your old theme again.
+  Nothing is lost, because Unpublished themes stay in the library.
+</Callout>
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| **Publish** is greyed out | You have unsaved changes. | Select **Save** first, then **Publish**. |
+| My change isn't on the store | You edited an Unpublished theme, or didn't save. | Check the badge says **Live** and the status says **All changes saved**. |
+| "Could not keep your draft. Check your connection." | Your internet dropped while editing. | Wait for the connection to return and keep editing; select **Save** once the warning goes. |
+| A section shows on desktop but not on phones | **Advanced → show on mobile** is off. | Turn it back on in the section's **Advanced** group. |
+| The Apps tab is empty | No app that adds blocks is installed. | Install Back in stock, Delhivery or Shiprocket from **Apps**. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="Can shoppers see my changes while I'm still editing?">
+
+No. Edits are a draft that only the editor preview shows. Shoppers see them after you select
+**Save** on your Live theme.
+
+</FaqItem>
+
+<FaqItem question="What does Discard do?">
+
+**Discard** (under **More actions**) throws away everything since your last save and reloads
+the editor at that saved version. It cannot be undone.
+
+</FaqItem>
+
+<FaqItem question="Can I have a different layout for one product?">
+
+Yes. Use **Create template** in the editor to make an alternate product template, then pick it
+under **Theme template** on that product's page in Products.
+
+</FaqItem>
+
+<FaqItem question="Who can publish a theme?">
+
+Anyone whose role includes the Online store publish permission. Owners always can. Staff
+without it can edit and save an Unpublished theme, but can't make it Live.
+
+</FaqItem>
+
+</Faq>
+
+## Related guides
+
+<RelatedGuides ids={['apps', 'products', 'going-live', 'glossary']} />

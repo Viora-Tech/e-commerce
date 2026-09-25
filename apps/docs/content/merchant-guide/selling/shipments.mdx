@@ -1,22 +1,57 @@
 ---
 title: Shipments
+description: Connect Delhivery or Shiprocket, compare rates, book, print labels, schedule pickups and handle delivery problems.
 ---
-
-import { Cards, Steps } from 'nextra/components'
-import Callout from '../../../components/callout'
-import Screenshot from '../../../components/screenshot'
 
 # Shipments
 
 **Orders → Shipments** is where every parcel across every courier gets booked, tracked,
-labelled and handled: **Ready to ship**, **Shipments**, **Pickups**, **Delivery problems**.
+labelled and handled. It has four tabs: **Ready to ship**, **Shipments**, **Pickups** and
+**Delivery problems**.
 
-If no courier is connected yet you'll see: "Connect a courier to start shipping — bring in
-Delhivery or Shiprocket so orders can get rates, labels and tracking."
+## What this is for
 
-## Connecting Delhivery
+- Booking 20 Diwali orders with a courier in one go, instead of typing each address into the
+  courier's website.
+- Comparing Delhivery and Shiprocket prices for a 500 g parcel from Jaipur (`302001`) to
+  Guwahati (`781001`) before you book.
+- Printing all labels as one sheet, and asking the courier to come and collect.
+- Seeing which parcels are stuck, and telling the courier what to do with them.
 
-From **Apps**, install Delhivery, then follow the three steps (about a minute):
+## How it works
+
+You connect a courier account once. After that, each paid order waits in **Ready to ship**.
+When you book, the courier gives back an **AWB** (the waybill number that tracks the parcel)
+and a shipping label. From then on we check the courier's tracking every 30 minutes (and
+instantly, when the courier supports tracking webhooks), and the order's Fulfilment status
+follows along by itself.
+
+```mermaid
+flowchart TD
+  ready["Ready to ship<br/>paid order, no label yet"] -->|Book| booked["Booked<br/>AWB + label from the courier"]
+  booked -->|Schedule pickup| picked["Picked up"]
+  booked -->|Cancel shipment| cancelled["Cancelled"]
+  picked --> transit["In transit"]
+  transit --> ofd["Out for delivery"]
+  ofd --> delivered(["Delivered"])
+  ofd -->|courier couldn't deliver| ndr{"Delivery problem<br/>(NDR)"}
+  ndr -->|Try delivery again| ofd
+  ndr -->|Use a new address| transit
+  ndr -->|"Send it back (RTO)"| rto(["Returning to you<br/>(RTO)"])
+```
+
+When every parcel on an order is **Delivered** (and the order is paid), the order becomes
+**Completed**. If every parcel comes back as **RTO**, the order's Fulfilment shows **Returned**.
+
+## Connect a courier
+
+If no courier is connected yet you'll see "Connect a courier to start shipping", with
+**Connect Delhivery** and **Connect Shiprocket** buttons.
+
+<Tabs items={['Delhivery', 'Shiprocket']}>
+<Tabs.Tab>
+
+From **Apps**, install **Delhivery**, then open its **Connect** page. It takes about a minute.
 
 <Steps>
 
@@ -30,101 +65,196 @@ Go to **Settings › API Setup** and copy the token shown there.
 
 <Callout type="warning">
   The token is shown only once and stays visible for about 5 minutes, so copy it straight
-  away. If it disappears, select **Request Live API Token** to get a new one — the old one
-  stops working the moment you do.
+  away. If it disappears, select **Request Live API Token** to get a new one. The old one stops
+  working the moment you do.
 </Callout>
 
-### Paste it in and pick your pickup location
+### Paste it below and pick your pickup location
 
-Fill in the fields, then use **Test connection** before saving.
+Fill in the fields, then select **Test connection** before saving. A working connection says
+"Connected — Delhivery serves 302001." (with your own PIN code).
 
-<Screenshot name="Delhivery connection form — token, pickup location, mode" />
+<Screenshot
+  name="Delhivery connection form"
+  caption="Apps → Delhivery → Connect, Mode set to Live, API token, Client name, Pickup location name and Origin PIN code filled in, after Test connection shows the green Connected message."
+/>
 
 </Steps>
 
-You'll need:
+| Field | Where to find it |
+| --- | --- |
+| **API token** | Delhivery One → Settings → API Setup. Paste it right after copying. |
+| **Client name** | Usually next to your API token on the same page. |
+| **Pickup location name** | Must match your registered warehouse name in Delhivery **exactly**, spaces and capitals included. |
+| **Origin PIN code** | The 6-digit PIN code your parcels ship from, e.g. `302001`. |
 
-- **API token** — from Delhivery One → Settings → API Setup. Paste it right after copying.
-- **Client name** — usually shown next to your API token on the same page. Ask your Delhivery
-  account manager if you can't find it.
-- **Pickup location name** — must match your registered warehouse name in Delhivery exactly
-  (spacing and capitalisation included). Ask your Delhivery account manager (SPOC) if unsure.
-- **Origin PIN code** — the 6-digit PIN code your parcels ship from.
+The **Mode** switch picks **Test** (Delhivery's staging, needs a separate staging token) or
+**Live** (real shipments, real charges).
 
-There's also a **Mode** switch: **Test** (staging, needs a separate staging token) or **Live**
-(real shipments, real charges).
+</Tabs.Tab>
+<Tabs.Tab>
 
-## Connecting Shiprocket
+From **Apps**, install **Shiprocket**, then open its **Connect** page.
 
 <Steps>
 
 ### Create an API user
 
-In Shiprocket, go to **Settings › API › Configure**, and add a new API user. This is a
-separate login from the one you use to sign in — it only needs an email and password, and
-it's what we connect with, never your own dashboard password.
+In Shiprocket, go to **Settings › API › Configure** and add a new API user. This is a
+separate login from the one you sign in with. It only needs an email and a password, and it's
+what we connect with, never your own dashboard password.
 
 ### Note the API user email and password
 
 <Callout type="warning">
-  Shiprocket does not show these again later, so save them somewhere safe (a password
-  manager) the moment you create them.
+  Shiprocket does not show these again, so save them somewhere safe (a password manager) the
+  moment you create them.
 </Callout>
+
+### Paste them below and pick your pickup location
+
+Enter **API user email**, **API user password**, **Pickup location nickname** and **Origin
+PIN code**, then **Test connection**.
 
 </Steps>
 
-We check the connection by logging in with your API user credentials — nothing is booked.
-This can't confirm your pickup location nickname; Shiprocket only checks that when you book a
-shipment.
+The test logs in with your API user; nothing is booked. It can't confirm your pickup location
+nickname, because Shiprocket only checks that when you book a shipment.
 
-## Box presets
+</Tabs.Tab>
+</Tabs>
 
-Under **Settings → Shipping → Box presets**, set up named boxes you pack into. The default
-box pre-fills weight and dimensions when booking; the weight used per order is the sum of
-your products' weights when they have them, otherwise the box weight.
+<VideoTip
+  title="Connect Delhivery in under a minute"
+  caption="Copy the API token from Delhivery One, paste it into Apps → Delhivery → Connect, Test connection, Save."
+/>
 
-## Ready to ship
-
-Paid orders waiting on a label show up in **Ready to ship**. Select the ones you want, then:
+## Ship orders step by step
 
 <Steps>
 
+### Set up your boxes once
+
+Under **Settings → Shipping → Box presets**, add the boxes you pack into, for example "Small
+mailer, 25 × 20 × 5 cm, 80 g", and **Make default** the one you use most. The default box
+fills in the size when booking. The parcel weight is the sum of your products' weights when
+they have one, otherwise the box weight.
+
+### Pick orders in Ready to ship
+
+Paid orders waiting on a label show up in **Ready to ship**. Tick the ones you want.
+
 ### Compare rates
 
-Compare couriers before booking.
+Select **Compare rates**. For each order you see the couriers side by side, with **Store
+default**, **Cheapest**, **Fastest** and **Recommended** picks. Tick **Insure these
+shipments** for high-value parcels, then **Book** them.
+
+<Screenshot
+  name="Compare couriers"
+  caption="Ready to ship → Compare couriers dialog for 3 selected orders, Delhivery and Shiprocket rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
+/>
 
 ### Print labels
 
+Select **Print labels** to get every label for the batch in one file.
+
 ### Schedule pickup
+
+Select **Schedule pickup**, pick a **Pickup date** and a start time (**From**, 24-hour, e.g.
+`14:00`). The courier gets the request; the pickup shows under **Pickups → Recent pickups**.
 
 </Steps>
 
-There's also an advanced option to book by order number directly.
+There's also **Advanced: book by order number** if you'd rather type order numbers than tick
+them.
 
-## Pickups
+## Pickups and manifests
 
-Pick shipments in the Shipments tab, then come back to **Pickups** to book the courier pickup
-for them. A manifest groups a pickup into one printable label sheet (Delhivery has no
-separate manifest API yet, so this is generated from your saved labels).
+Pick shipments in the **Shipments** tab, then come back to **Pickups** to book the courier
+pickup for them. **Create manifest** groups a pickup's shipments into one printable label
+sheet for the delivery person to sign. Delhivery has no separate manifest API yet, so the
+sheet is made from your saved labels.
 
 ## Delivery problems (NDR)
 
-When a courier can't deliver a parcel, it shows up under **Delivery problems**, with the
-reason the courier gave. For each one, choose:
+When a courier can't deliver a parcel (shopper not home, phone switched off, address
+incomplete) it's called an **NDR**, a non-delivery report. Those parcels show up under
+**Delivery problems**, with what the **Courier said**. For each one choose:
 
-- **Try delivery again**
-- **Use a new address**
-- **Send it back (RTO)**
+- **Try delivery again**: the courier re-attempts.
+- **Use a new address**: fix the address or phone number, and the courier tries there.
+- **Send it back (RTO)**: return to origin. The parcel comes back to your pickup address.
+
+Then select **Send to courier**.
+
+<Callout type="warning">
+  **Coming soon.** Parcels are not yet moved into Delivery problems automatically from the
+  courier's updates. Until they are, check stuck parcels (**Out for delivery** for more than a
+  day) in the **Shipments** tab and act on them from your courier's dashboard. Shiprocket also
+  does not accept **Send it back (RTO)** over its API yet; raise the RTO in Shiprocket itself.
+</Callout>
 
 ## Courier wallet balance
 
-Delhivery and Shiprocket don't share wallet balance over the API yet, so you enter it by hand
-after checking the courier's own dashboard, with a low-balance alert threshold you set.
+Delhivery and Shiprocket are prepaid: shipments are charged from a wallet on their side. They
+don't share the balance over their APIs yet, so you enter it by hand after checking the
+courier's dashboard (**Balance on the courier dashboard (₹)**, then **Save balance**). Set
+**Low courier wallet balance alert (₹)** under **Settings → Shipping → Dispatch policy**, say
+₹2,000, and you'll see "Balance is low. Recharge soon to avoid shipments getting stuck."
 
-## Next steps
+<Callout type="info">
+  **Tip.** Put your real dispatch days, order cutoff (for example `14:00`) and holidays (Diwali,
+  Holi) in **Settings → Shipping → Dispatch policy**. Delivery dates shown to shoppers are worked
+  out from these, so they stay honest during festival weeks.
+</Callout>
 
-<Cards>
-  <Cards.Card title="Online store" href="/merchant-guide/selling/online-store" />
-  <Cards.Card title="GST invoices" href="/merchant-guide/money/gst-invoices" />
-  <Cards.Card title="Apps" href="/merchant-guide/selling/apps" />
-</Cards>
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| **Test connection** fails for Delhivery | Token expired or was regenerated. | Request a new live token in Delhivery One and paste it straight away. |
+| Booking fails with a pickup location error | **Pickup location name** doesn't match Delhivery exactly. | Copy the warehouse name from Delhivery character for character. |
+| Order missing from **Ready to ship** | The list only shows paid (or deposit-paid) orders that aren't packed yet and aren't tagged `hold` or `on-hold`. Unpaid cash on delivery orders aren't listed. | Book COD orders with **Advanced: book by order number**, or from the order page. Remove a `hold` tag when it's ready. |
+| Rates look too high | The parcel weight fell back to the box weight. | Add weights to your products so the real weight is used. |
+| Status stuck on **Booked** | The courier hasn't picked it up yet. | Check **Pickups**; schedule one if you haven't. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="Can I use Delhivery and Shiprocket together?">
+
+Yes. Install both and compare them on every booking. **Settings → Shipping → Default courier**
+decides which one is pre-selected: **Cheapest**, **Fastest**, **Always use one courier** or **By
+state**.
+
+</FaqItem>
+
+<FaqItem question="Does cash on delivery work with couriers?">
+
+Yes, where the courier offers COD for that PIN code. Turn on **Offer cash on delivery where the
+courier supports it** in **Dispatch policy**. The courier collects the cash and pays it to you
+on their own remittance schedule.
+
+</FaqItem>
+
+<FaqItem question="What is an AWB?">
+
+The air waybill number: the courier's tracking number for one parcel. It's printed on the label
+and shown as **Waybill** in the Shipments list. See the [Glossary](/merchant-guide/reference/glossary).
+
+</FaqItem>
+
+<FaqItem question="Can I ship without a courier account?">
+
+Yes. Open the order, select **Fulfil items**, and type the courier name, tracking number and
+tracking link yourself. Tracking won't update automatically for these.
+
+</FaqItem>
+
+</Faq>
+
+## Related guides
+
+<RelatedGuides ids={['orders', 'online-store', 'apps', 'glossary']} />

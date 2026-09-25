@@ -14,6 +14,25 @@ Two developer-docs pages, [Architecture](content/developer-docs/building/archite
 source of truth) — the old paths (`docs/architecture.md`, `docs/plugins.md`,
 `docs/ops/backups.md`) are now short stubs pointing here.
 
+## Writing pages
+
+Registered in `mdx-components.tsx`, so every MDX page can use them without an import:
+
+- **Diagrams**: a ```` ```mermaid ```` block. Nextra turns it into `<Mermaid />`, which
+  `next.config.mjs` aliases to `components/mermaid.tsx`: Mermaid's hand-drawn look
+  (`look: 'handDrawn'`, Mermaid 11+) in our colours, light and dark. The theme lives in one
+  place, `lib/mermaid-config.ts`. Base every diagram on the actual code.
+- **`<Screenshot name="…" caption="…" />`**: placeholder until a real capture exists. The caption
+  says exactly which screen and state to capture.
+- **`<VideoTip title="…" caption="…" />`**: slot for a future 30-second video.
+- **`<Faq>` / `<FaqItem question="…">`**: the FAQ accordion (native `<details>`).
+- **`<RelatedGuides ids={[…]} />`**: cards from the registry in `data/guides.ts`.
+- **`<Steps>`**, **`<Tabs>`**, **`<Callout>`**.
+
+Merchant guides follow one shape: What this is for, How it works (with a diagram), a
+step-by-step `<Steps>`, a tip `<Callout>`, Common problems and fixes, FAQ, Related guides.
+Reading time (Nextra's `readingTime`) shows above every page title.
+
 ## Running locally
 
 ```sh
