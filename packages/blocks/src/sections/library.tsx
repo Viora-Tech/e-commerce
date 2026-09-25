@@ -290,7 +290,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
         resolveData: async ({ props }) => ({
           props: {
             resolved: loaders.loadCollections
-              ? await loaders.loadCollections(props.handles.map((h) => h.handle).filter(Boolean))
+              ? await loaders.loadCollections((props.handles ?? []).map((h) => h.handle).filter(Boolean))
               : [],
           },
           readOnly: { resolved: true },
