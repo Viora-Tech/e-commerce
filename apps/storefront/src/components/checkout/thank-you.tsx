@@ -19,6 +19,8 @@ type ThankYouTemplateProps = {
   links?: { label: string; url: string }[]
   /** A deposit pre-order's balance block, when a balance is still owed. */
   balance?: ReactNode
+  /** The signed `/checkout/pay/...` path for "Pay now", token included. */
+  payPath: string
 }
 
 /** "+₹49.00" / "−₹99.98" for the fee or discount row. */
@@ -53,6 +55,7 @@ export default function ThankYouTemplate({
   giftCards = [],
   links = [],
   balance = null,
+  payPath,
 }: ThankYouTemplateProps) {
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
   // The latest attempt failed on an order that is still open: offer a new attempt.
@@ -137,7 +140,7 @@ export default function ThankYouTemplate({
           </form>
         ) : null}
         {awaiting && session?.kind === 'client' ? (
-          <a href={`/checkout/pay/${o.number}`} className="btn btn--primary">
+          <a href={payPath} className="btn btn--primary">
             {content.payNow}
           </a>
         ) : null}

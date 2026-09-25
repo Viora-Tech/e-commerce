@@ -6,14 +6,19 @@
 /** 25 MB: enough for a product video, small enough that a stray upload cannot fill a bucket. */
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
-/** What the media library accepts. Videos are mp4 only; browsers and CDNs agree on it. */
+/**
+ * What the media library accepts. Videos are mp4 only; browsers and CDNs
+ * agree on it. SVG is deliberately excluded: it is XML that can carry
+ * `<script>` and event handlers, so accepting it means serving stored XSS to
+ * anyone who opens the uploaded file (see `apps/admin/.../uploads/[...key]/route.ts`,
+ * which serves any surviving legacy `.svg` as a download, never inline).
+ */
 export const ALLOWED_CONTENT_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
   'image/avif',
-  'image/svg+xml',
   'video/mp4',
 ])
 
@@ -30,7 +35,6 @@ const EXTENSION_BY_TYPE: Record<string, string> = {
   'image/webp': 'webp',
   'image/gif': 'gif',
   'image/avif': 'avif',
-  'image/svg+xml': 'svg',
   'video/mp4': 'mp4',
 }
 

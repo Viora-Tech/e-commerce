@@ -37,11 +37,14 @@ export default function PayClient({
   orderNumber,
   session,
   amountPaise,
+  thankYouPath,
 }: {
   storeId: string
   orderNumber: number
   session: Extract<CheckoutSession, { kind: 'client' }>
   amountPaise: number
+  /** The signed `/checkout/thank-you/...` path; built server-side, token included. */
+  thankYouPath: string
 }) {
   // Hooks
   const router = useRouter()
@@ -75,7 +78,7 @@ export default function PayClient({
         setState('confirming')
         const status = await confirmPaymentAction(storeId, session.providerRef, response)
         if (status === 'captured' || status === 'pending') {
-          router.push(`/checkout/thank-you/${orderNumber}`)
+          router.push(thankYouPath)
         } else {
           setState('failed')
         }

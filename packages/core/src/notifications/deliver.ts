@@ -23,7 +23,7 @@ import type { StoreContext } from '../context'
 import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
-import { balanceUrl } from '../preorder/balance-link'
+import { balanceUrl, thankYouUrl } from '../preorder/balance-link'
 import {
   balancePayBy,
   depositIsNonRefundable,
@@ -142,6 +142,7 @@ export async function buildTemplateData(
   ctx: StoreContext,
   orderId: string,
   storefrontUrl?: string,
+  settingsSecret?: string,
 ): Promise<{ data: TemplateData; to: Recipient } | null> {
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) return null
@@ -172,7 +173,10 @@ export async function buildTemplateData(
         priceLabel: inr.format((l.quantity * l.unitPricePaise) / 100),
       })),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
-      orderUrl: storefrontUrl ? `${storefrontUrl}/checkout/thank-you/${o.number}` : undefined,
+      orderUrl:
+        storefrontUrl && settingsSecret
+          ? thankYouUrl(o.id, o.number, settingsSecret, storefrontUrl)
+          : undefined,
       waybill: ship?.waybill ?? undefined,
       trackingUrl: ship?.trackingUrl ?? undefined,
       balance: balanceData(o, parsePreorderStoreSettings(s?.preorder)),
@@ -299,7 +303,7 @@ export async function deliverNotification(
   input: { orderId: string; template: TemplateId },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
-  const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl)
+  const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl, opts.settingsSecret)
   if (!built) return []
   let actionUrl: string | undefined
   if (BALANCE_ASKS.has(input.template)) {

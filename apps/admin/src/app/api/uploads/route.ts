@@ -5,6 +5,10 @@ import { resolveStoreForOrganization } from '@commerce/db'
 import { isAllowedContentType, keyBelongsToStore, MAX_UPLOAD_BYTES } from '@commerce/storage'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { rateLimited } from '@/lib/rate-limit'
+
+/** Per organisation: generous enough for a bulk media import, tight enough to stop a runaway script. */
+const UPLOAD_RULE = { limit: 60, windowMs: 5 * 60_000 }
 
 /**
  * The local storage provider's upload target (the built-in default when no
@@ -22,6 +26,9 @@ export async function PUT(request: Request) {
   if (!session || !organizationId) return new Response('Unauthorized', { status: 401 })
   const storeId = await resolveStoreForOrganization(db(), organizationId)
   if (!storeId) return new Response('No store', { status: 403 })
+
+  const limit = await rateLimited('uploads:org', organizationId, UPLOAD_RULE)
+  if (!limit.ok) return new Response('Too many uploads', { status: 429 })
 
   const key = new URL(request.url).searchParams.get('key') ?? ''
   if (!keyBelongsToStore(key, storeId)) return new Response('Forbidden key', { status: 403 })

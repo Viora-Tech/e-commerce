@@ -1,8 +1,47 @@
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 
+/**
+ * Baseline security headers, same set on both apps (see the admin's
+ * `next.config.ts`). No script CSP yet — the block list of inline
+ * scripts/styles both apps would need is real work; tracked as a follow-up,
+ * not silently skipped.
+ */
+const SECURITY_HEADERS = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  ...(process.env.NODE_ENV === 'production'
+    ? [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]
+    : []),
+]
+
+// The theme editor previews the storefront inside an iframe on the admin
+// origin (see `src/components/theme/theme-preview-bridge.tsx`, which only
+// trusts postMessage from this same origin) — frame-ancestors must allow it,
+// or the preview iframe simply refuses to render.
+const adminOrigin = process.env.ADMIN_URL ? new URL(process.env.ADMIN_URL).origin : null
+
 const config: NextConfig = {
   reactCompiler: true,
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          ...SECURITY_HEADERS,
+          // No X-Frame-Options here: it can only express SAMEORIGIN or DENY,
+          // and the admin's theme-preview iframe is a different origin, so
+          // frame-ancestors (which can list it) is the only header that
+          // fits. Browsers that support neither don't get iframe protection,
+          // same as any other cross-origin-embed case.
+          {
+            key: 'Content-Security-Policy',
+            value: `frame-ancestors 'self'${adminOrigin ? ` ${adminOrigin}` : ''}`,
+          },
+        ],
+      },
+    ]
+  },
   transpilePackages: [
     '@commerce/db',
     '@commerce/core',

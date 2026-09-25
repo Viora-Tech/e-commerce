@@ -1,5 +1,5 @@
 import { loadEnv } from '@commerce/config'
-import { verifyBalanceToken } from '@commerce/core'
+import { orderViewToken, thankYouPath, verifyBalanceToken } from '@commerce/core'
 import { order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { and, desc, eq, inArray } from 'drizzle-orm'
@@ -38,13 +38,17 @@ export default async function PayBalancePage({ params }: Params) {
           .limit(1)
         return {
           number: o.number,
+          orderId: o.id,
           balance: balanceView(o, await storePreorderPolicy(tx, storeId)),
           session: (open?.session ?? null) as CheckoutSession | null,
         }
       })
     : null
 
-  if (data && !data.balance) redirect(`/checkout/thank-you/${data.number}`)
+  if (data && !data.balance) {
+    const secret = loadEnv(process.env).SETTINGS_SECRET
+    redirect(thankYouPath(data.number, orderViewToken(data.orderId, secret)))
+  }
 
   return (
     <section className="section-cart page-width">

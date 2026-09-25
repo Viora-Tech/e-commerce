@@ -134,7 +134,7 @@ describe('deliverNotification', () => {
   it('builds template data from the order row', async () => {
     const { storeId, orderId } = await seedOrder()
     const built = await withStore(app, storeId, (tx) =>
-      buildTemplateData({ storeId, tx }, orderId, 'https://shop.test'),
+      buildTemplateData({ storeId, tx }, orderId, 'https://shop.test', secret),
     )
     expect(built?.data).toMatchObject({
       storeName: 'Waimers',
@@ -142,8 +142,9 @@ describe('deliverNotification', () => {
       customerName: 'Asha',
       totalLabel: '₹2,048',
       paymentMethodLabel: 'Cash on delivery',
-      orderUrl: 'https://shop.test/checkout/thank-you/7',
     })
+    // Signed, unguessable order token — never just the sequential number.
+    expect(built?.data.orderUrl).toMatch(/^https:\/\/shop\.test\/checkout\/thank-you\/7\?t=.+/)
     expect(built?.data.lines).toEqual([{ title: 'Pad', quantity: 1, priceLabel: '₹1,999' }])
   })
 

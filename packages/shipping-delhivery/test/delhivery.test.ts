@@ -258,14 +258,21 @@ describe('DelhiveryProvider pickup, NDR and webhook', () => {
   })
 
   it('parses a webhook body into notices keyed by waybill', async () => {
-    const p = new DelhiveryProvider(config)
+    const p = new DelhiveryProvider({ ...config, webhookSecret: 'shh' })
     const notices = await p.parseWebhook({
       rawBody: JSON.stringify({
         Shipment: { AWB: 'WB123', StatusDateTime: '2026-09-25T00:00:00' },
       }),
-      headers: {},
+      headers: { 'x-webhook-token': 'shh' },
     })
     expect(notices).toEqual([{ waybill: 'WB123', eventId: 'WB123:2026-09-25T00:00:00' }])
+  })
+
+  it('fails closed: refuses any webhook call when no secret is configured', async () => {
+    const p = new DelhiveryProvider(config)
+    await expect(p.parseWebhook({ rawBody: '{}', headers: {} })).rejects.toMatchObject({
+      kind: 'auth',
+    })
   })
 
   it('rejects a webhook call with the wrong shared secret', async () => {

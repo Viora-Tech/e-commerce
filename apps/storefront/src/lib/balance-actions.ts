@@ -1,6 +1,14 @@
 'use server'
 
-import { BalanceNotPayable, balanceProvider, startBalancePayment } from '@commerce/core'
+import { loadEnv } from '@commerce/config'
+import {
+  BalanceNotPayable,
+  balanceProvider,
+  orderViewToken,
+  payPath,
+  startBalancePayment,
+  thankYouPath,
+} from '@commerce/core'
 import { order, payment } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import { headers } from 'next/headers'
@@ -25,38 +33,46 @@ export async function payBalanceAction(orderNumber: number): Promise<void> {
   const h = await headers()
   const storeId = h.get('x-store-id')
   if (!storeId) throw new Error('store not resolved')
-  const back = `/checkout/thank-you/${orderNumber}`
+  // Looked up first so every exit below, including a rate-limited one, can
+  // still carry a validly-tokened thank-you link.
+  const orderId = await inStore(storeId, async (tx) => {
+    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
+    return o?.id ?? null
+  })
+  // No order: nothing to tell apart from a stray order number, so the
+  // fallback (untokened) link is fine — the page 404s on it either way.
+  if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
+  const oid: string = orderId
+  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const back = (busy = false): never =>
+    redirect(
+      `${thankYouPath(orderNumber, orderViewToken(oid, secret))}${busy ? '&balance=busy' : ''}`,
+    )
   const [byIp, byOrder] = await Promise.all([
     rateLimited('pay-balance:ip', clientIp(h), PAY_BALANCE_RULE),
     rateLimited('pay-balance:order', `${storeId}:${orderNumber}`, PAY_BALANCE_RULE),
   ])
-  if (!byIp.ok || !byOrder.ok) redirect(`${back}?balance=busy`)
+  if (!byIp.ok || !byOrder.ok) back(true)
 
   const target = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    if (!o) return null
     const [deposit] = await tx
       .select({ provider: payment.provider })
       .from(payment)
-      .where(and(eq(payment.orderId, o.id), eq(payment.purpose, 'order')))
+      .where(and(eq(payment.orderId, oid), eq(payment.purpose, 'order')))
       .limit(1)
-    const provider = balanceProvider(
-      await storePaymentProviders(tx, storeId),
-      deposit?.provider ?? null,
-    )
-    return provider ? { orderId: o.id, provider } : null
+    return balanceProvider(await storePaymentProviders(tx, storeId), deposit?.provider ?? null)
   })
-  if (!target) redirect(back)
+  if (!target) redirect(thankYouPath(orderNumber, orderViewToken(oid, secret)))
 
-  const started = await startBalancePayment(db(), storeId, target.orderId, target.provider).catch(
-    (err: unknown) => {
-      // Paid or cancelled meanwhile: the thank-you page shows where it stands.
-      if (err instanceof BalanceNotPayable) return null
-      throw err
-    },
-  )
+  const started = await startBalancePayment(db(), storeId, oid, target).catch((err: unknown) => {
+    // Paid or cancelled meanwhile: the thank-you page shows where it stands.
+    if (err instanceof BalanceNotPayable) return null
+    throw err
+  })
   if (started?.becameCaptured) await nudgeOutbox(storeId)
-  if (started?.session?.kind === 'client') redirect(`/checkout/pay/${orderNumber}`)
+  if (started?.session?.kind === 'client') {
+    redirect(payPath(orderNumber, orderViewToken(oid, secret)))
+  }
   if (started?.session?.kind === 'redirect') redirect(started.session.url)
-  redirect(back)
+  back()
 }

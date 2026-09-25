@@ -1,24 +1,37 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
 /*
- * The signed "pay your balance" link sent with a balance request or reminder.
- * `<orderId>.<expiresMs>.<mac>`, HMAC-SHA256 over a purpose-prefixed body so
- * a cart recovery token can never be replayed here. Same shape as
- * `cart/abandoned.ts` recovery tokens.
+ * Signed order links: `<orderId>.<expiresMs>.<mac>`, HMAC-SHA256 over a
+ * purpose-prefixed body so a cart recovery token (or a "view this order"
+ * token) can never be replayed as a "pay your balance" token, and vice
+ * versa. Same shape as `cart/abandoned.ts` recovery tokens. `signOrderToken`
+ * / `verifyOrderToken` are the shared helper every purpose-specific token
+ * (balance, order view, ...) is built on, so the HMAC and constant-time
+ * comparison logic lives in exactly one place.
  */
 
 /** Long enough to outlast the reminders and the store's pay-by window. */
 export const BALANCE_LINK_TTL_MS = 60 * 86_400_000
 
-const sign = (body: string, secret: string): string =>
-  createHmac('sha256', secret).update(`balance:${body}`).digest('base64url')
+/** Order confirmation / payment links are effectively permanent (~10 years). */
+export const ORDER_LINK_TTL_MS = 10 * 365 * 86_400_000
 
-export function balanceToken(orderId: string, secret: string, now = new Date()): string {
-  const body = `${orderId}.${now.getTime() + BALANCE_LINK_TTL_MS}`
-  return `${body}.${sign(body, secret)}`
+const sign = (purpose: string, body: string, secret: string): string =>
+  createHmac('sha256', secret).update(`${purpose}:${body}`).digest('base64url')
+
+export function signOrderToken(
+  purpose: string,
+  orderId: string,
+  secret: string,
+  ttlMs: number,
+  now = new Date(),
+): string {
+  const body = `${orderId}.${now.getTime() + ttlMs}`
+  return `${body}.${sign(purpose, body, secret)}`
 }
 
-export function verifyBalanceToken(
+export function verifyOrderToken(
+  purpose: string,
   token: string,
   secret: string,
   now = new Date(),
@@ -29,10 +42,40 @@ export function verifyBalanceToken(
   const expiresAt = Number(expires)
   if (!orderId || !Number.isFinite(expiresAt)) return { ok: false, reason: 'malformed' }
   const a = Buffer.from(mac)
-  const b = Buffer.from(sign(`${orderId}.${expires}`, secret))
+  const b = Buffer.from(sign(purpose, `${orderId}.${expires}`, secret))
   if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, reason: 'signature' }
   if (expiresAt < now.getTime()) return { ok: false, reason: 'expired' }
   return { ok: true, orderId }
+}
+
+export function balanceToken(orderId: string, secret: string, now = new Date()): string {
+  return signOrderToken('balance', orderId, secret, BALANCE_LINK_TTL_MS, now)
+}
+
+export function verifyBalanceToken(
+  token: string,
+  secret: string,
+  now = new Date(),
+): { ok: true; orderId: string } | { ok: false; reason: 'malformed' | 'expired' | 'signature' } {
+  return verifyOrderToken('balance', token, secret, now)
+}
+
+/**
+ * The "view this order" token on thank-you and pay links, so an order
+ * number alone (sequential, enumerable) can never load someone else's
+ * order. Same HMAC/verify helper as the balance link, a different purpose
+ * prefix.
+ */
+export function orderViewToken(orderId: string, secret: string, now = new Date()): string {
+  return signOrderToken('order-view', orderId, secret, ORDER_LINK_TTL_MS, now)
+}
+
+export function verifyOrderViewToken(
+  token: string,
+  secret: string,
+  now = new Date(),
+): { ok: true; orderId: string } | { ok: false; reason: 'malformed' | 'expired' | 'signature' } {
+  return verifyOrderToken('order-view', token, secret, now)
 }
 
 export const balancePath = (token: string): string => `/checkout/balance/${token}`
@@ -44,4 +87,22 @@ export function balanceUrl(
   now = new Date(),
 ): string {
   return `${storefrontUrl.replace(/\/$/, '')}${balancePath(balanceToken(orderId, secret, now))}`
+}
+
+/** `/checkout/thank-you/<number>?t=<token>` — the unguessable, signed order link. */
+export const thankYouPath = (orderNumber: number, token: string): string =>
+  `/checkout/thank-you/${orderNumber}?t=${token}`
+
+/** `/checkout/pay/<number>?t=<token>` — the unguessable, signed payment link. */
+export const payPath = (orderNumber: number, token: string): string =>
+  `/checkout/pay/${orderNumber}?t=${token}`
+
+export function thankYouUrl(
+  orderId: string,
+  orderNumber: number,
+  secret: string,
+  storefrontUrl: string,
+  now = new Date(),
+): string {
+  return `${storefrontUrl.replace(/\/$/, '')}${thankYouPath(orderNumber, orderViewToken(orderId, secret, now))}`
 }

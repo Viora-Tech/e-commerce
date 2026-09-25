@@ -1,5 +1,11 @@
 import { loadEnv } from '@commerce/config'
-import { GIFT_CARD_PROVIDER, installedApps } from '@commerce/core'
+import {
+  payPath as buildPayPath,
+  GIFT_CARD_PROVIDER,
+  installedApps,
+  orderViewToken,
+  verifyOrderViewToken,
+} from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { giftCard, order, orderLine, payment, withStore } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
@@ -7,6 +13,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import BalanceDue from '@/components/checkout/balance-due'
 import ThankYouTemplate from '@/components/checkout/thank-you'
+import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
@@ -14,16 +21,28 @@ import { inStore } from '@/lib/store-context'
 /** Balance attempts still waiting on the shopper or the gateway. */
 const OPEN_STATUSES: ReadonlySet<string> = new Set(['created', 'pending', 'authorized'])
 
-type Params = { params: Promise<{ storeId: string; number: string }> }
+type Params = {
+  params: Promise<{ storeId: string; number: string }>
+  searchParams: Promise<{ t?: string }>
+}
 
-export default async function ThankYouPage({ params }: Params) {
+export default async function ThankYouPage({ params, searchParams }: Params) {
   const { storeId, number } = await params
+  const { t: token } = await searchParams
+  const env = loadEnv(process.env)
+  const me = await currentCustomer(storeId)
   const data = await inStore(storeId, async (tx) => {
     const [o] = await tx
       .select()
       .from(order)
       .where(eq(order.number, Number(number)))
     if (!o) return null
+    // Either a signed-in customer who owns the order, or a valid, unguessable
+    // per-order token — never the sequential order number alone.
+    const ownedBySession = !!me && o.customerId === me.id
+    const verified = token ? verifyOrderViewToken(token, env.SETTINGS_SECRET) : null
+    const validForThisOrder = !!verified?.ok && verified.orderId === o.id
+    if (!ownedBySession && !validForThisOrder) return null
     const lines = await tx.select().from(orderLine).where(eq(orderLine.orderId, o.id))
     const pays = await tx.select().from(payment).where(eq(payment.orderId, o.id))
     const cardPays = pays.filter((p) => p.provider === GIFT_CARD_PROVIDER)
@@ -54,7 +73,6 @@ export default async function ThankYouPage({ params }: Params) {
   })
 
   if (!data) notFound()
-  const env = loadEnv(process.env)
   // Links installed apps add, e.g. a signed "Download invoice".
   const links = await getRegistries().orderLinks(
     await installedApps(db(), storeId),
@@ -67,6 +85,9 @@ export default async function ThankYouPage({ params }: Params) {
     },
     data.order.id,
   )
+  // Reuses the incoming token when there was one, so "Pay now" doesn't mint a
+  // fresh token on every render; a signed-in owner without one gets a new one.
+  const payToken = token ?? orderViewToken(data.order.id, env.SETTINGS_SECRET)
   return (
     <ThankYouTemplate
       storeId={storeId}
@@ -75,6 +96,7 @@ export default async function ThankYouPage({ params }: Params) {
       payment={data.pay}
       giftCards={data.giftCards}
       links={links}
+      payPath={buildPayPath(data.order.number, payToken)}
       balance={
         data.balance ? (
           <BalanceDue

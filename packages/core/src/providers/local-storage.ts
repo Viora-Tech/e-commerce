@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import type {
   CredentialCheck,
   PresignedUpload,
@@ -24,9 +24,32 @@ export type LocalStorageConfig = {
  */
 export const LOCAL_UPLOAD_DIR = './.data/uploads'
 
-/** Traversal guard shared by the provider and the `/uploads/[...key]` route. */
+/**
+ * Cheap, purely-textual rejects: a NUL byte, a backslash (Windows separator —
+ * a key is always `/`-joined, so any `\` is either a Windows traversal
+ * attempt or garbage), or an absolute path. Kept as a fast first pass; the
+ * real guard is the resolved-path containment check in `localStoragePath`
+ * below, which also catches things this can't reliably pattern-match, like
+ * `..` split across `/`-segments in unexpected ways or already-decoded
+ * percent-escapes.
+ */
 export function assertSafeKey(key: string): void {
-  if (key.split('/').includes('..')) throw new Error(`refusing path traversal in key ${key}`)
+  // Callers (the uploads route, `URLSearchParams.get`) already decode
+  // percent-escapes once; this decodes again so a caller that doesn't (or a
+  // double-encoded `%252e%252e`) can't hide `..` or `\` from the checks below.
+  let decoded = key
+  try {
+    decoded = decodeURIComponent(key)
+  } catch {
+    // Malformed escape: fall through and let the raw key fail the checks below.
+  }
+  for (const candidate of [key, decoded]) {
+    if (candidate.includes('\0') || candidate.includes('\\') || isAbsolute(candidate)) {
+      throw new Error(`refusing unsafe key ${key}`)
+    }
+    if (candidate.split('/').includes('..'))
+      throw new Error(`refusing path traversal in key ${key}`)
+  }
 }
 
 /**
@@ -34,11 +57,23 @@ export function assertSafeKey(key: string): void {
  * default). `LOCAL_UPLOAD_ROOT` lets another process (the worker writing
  * invoice PDFs, the storefront streaming them) agree on the same folder when
  * `dir` is relative.
+ *
+ * The real traversal guard: resolve `key` against the root, then require the
+ * result to still be inside the root. This is what actually stops a
+ * traversal — `assertSafeKey`'s textual checks are cheap, early rejects, not
+ * the source of truth, because `path.resolve` collapses `..` regardless of
+ * how it was spelled (`..`, `.` `.` joined oddly, a decoded `%2e%2e`, ...).
  */
 export function localStoragePath(key: string, dir = localStorageDir()): string {
   assertSafeKey(key)
   const root = process.env.LOCAL_UPLOAD_ROOT
-  return join(isAbsolute(dir) || !root ? dir : join(root, dir), key)
+  const base = isAbsolute(dir) || !root ? dir : join(root, dir)
+  const resolvedRoot = resolve(base)
+  const resolvedPath = resolve(resolvedRoot, key)
+  if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(resolvedRoot + sep)) {
+    throw new Error(`refusing path traversal in key ${key}`)
+  }
+  return resolvedPath
 }
 
 /** The folder local storage writes into, honouring `LOCAL_STORAGE_DIR`. */

@@ -1,10 +1,10 @@
 /** Copy for uploads, the product media card and the files library. */
 export const mediaContent = {
-  accept: 'image/jpeg,image/png,image/webp,image/gif,image/avif,image/svg+xml,video/mp4',
+  accept: 'image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4',
   dropzone: {
     idle: 'Drop images or videos here, or click to choose',
     active: 'Release to upload',
-    hint: 'JPG, PNG, WebP, GIF, AVIF, SVG or MP4. Up to 25 MB each.',
+    hint: 'JPG, PNG, WebP, GIF, AVIF or MP4. Up to 25 MB each.',
     button: 'Add files',
   },
   tile: {

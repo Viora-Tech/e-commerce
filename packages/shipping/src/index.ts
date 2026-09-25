@@ -18,3 +18,4 @@ export { type FakeShippingConfig, FakeShippingProvider, fakeShippingFactory } fr
 export * from './pincode'
 export { ShippingRegistry } from './registry'
 export type * from './types'
+export { timingSafeEqualString } from './webhook-auth'

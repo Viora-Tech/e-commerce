@@ -66,7 +66,7 @@ export const delhiveryAppContent = {
       expressHelp: 'Off quotes Surface, the slower and safer promise.',
       webhookSecretLabel: 'Webhook shared secret',
       webhookSecretHelp:
-        'Optional. Paste the same value into the extra header field when you register the tracking webhook in the Delhivery Merchant Portal (API → Webhooks).',
+        'Required for automatic tracking updates. Paste the same value into the extra header field when you register the tracking webhook in the Delhivery Merchant Portal (API → Webhooks); a webhook call without it is refused.',
       webhookUrlLabel: 'Tracking webhook URL',
       webhookNeedsDomain:
         'Webhooks only work once your store is live on a public domain - Delhivery cannot reach localhost or a preview URL.',

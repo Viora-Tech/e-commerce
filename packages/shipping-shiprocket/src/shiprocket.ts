@@ -65,6 +65,7 @@ import {
   type ShippingProviderFactory,
   type Tracking,
   type TrackingEvent,
+  timingSafeEqualString,
   type WalletBalance,
   type WebhookNotice,
   type WebhookRequest,
@@ -86,7 +87,9 @@ export type ShiprocketConfig = {
   originPincode: string
   baseUrl?: string | undefined
   /** Shared secret Shiprocket lets you attach to a webhook's custom header
-   *  (Settings > API > Webhooks); parseWebhook rejects a call missing it when set. */
+   *  (Settings > API > Webhooks), checked with a timing-safe comparison.
+   *  Required: `parseWebhook` fails closed and rejects every call when this
+   *  is not set, rather than accepting unauthenticated pushes. */
   webhookSecret?: string | undefined
   /** Injected for tests; defaults to global fetch. */
   fetchImpl?: typeof fetch | undefined
@@ -518,11 +521,16 @@ export class ShiprocketProvider implements ShippingProvider {
    * anticipate still degrades safely (skipped, not mis-parsed).
    */
   async parseWebhook(request: WebhookRequest): Promise<WebhookNotice[]> {
-    if (this.config.webhookSecret) {
-      const got = request.headers['x-webhook-token'] ?? request.headers.authorization
-      if (got !== this.config.webhookSecret) {
-        throw new CourierError('auth', this.id, 'Shiprocket webhook token did not match.')
-      }
+    // Fail closed: no configured secret means we cannot tell a genuine call
+    // from a stray one, so every webhook is refused until one is set (the
+    // Connect page marks it required for automatic tracking).
+    if (!this.config.webhookSecret) {
+      console.error('[shiprocket] webhook received with no webhookSecret configured; refusing')
+      throw new CourierError('auth', this.id, 'Shiprocket webhook secret is not configured.')
+    }
+    const got = request.headers['x-webhook-token'] ?? request.headers.authorization ?? ''
+    if (!timingSafeEqualString(got, this.config.webhookSecret)) {
+      throw new CourierError('auth', this.id, 'Shiprocket webhook token did not match.')
     }
     let body: unknown
     try {
@@ -539,8 +547,17 @@ export class ShiprocketProvider implements ShippingProvider {
       const r = item as Record<string, unknown>
       const awb = r.awb ?? r.awb_code ?? r.AWB
       if (typeof awb !== 'string' || !awb) continue
-      const stamp = r.current_timestamp ?? r.updated_at ?? Date.now()
-      notices.push({ waybill: awb, eventId: `${awb}:${stamp}` })
+      // eventId is AWB + status + the scan's own timestamp from the payload,
+      // never `Date.now()` (the server's clock, which would mint a fresh id
+      // on every retry of the same scan and defeat de-duplication) and never
+      // the timestamp alone (an unrelated payload field could otherwise be
+      // varied to spam "new" events for the same AWB). This does not
+      // cryptographically authenticate the scan — only the shared secret
+      // above does that — it just keeps a replay of the same scan from
+      // being treated as a new one.
+      const status = r.current_status ?? r.status ?? ''
+      const stamp = r.current_timestamp ?? r.updated_at ?? ''
+      notices.push({ waybill: awb, eventId: `${awb}:${status}:${stamp}` })
     }
     return notices
   }
@@ -592,7 +609,8 @@ const fields: ProviderField[] = [
     label: 'Webhook shared secret',
     secret: true,
     help:
-      'Optional. Paste the same value into the custom header field when registering the tracking ' +
+      'Required for automatic tracking updates via webhook (a webhook call without it is refused). ' +
+      'Paste the same value into the custom header field when registering the tracking ' +
       'webhook in Shiprocket (Settings > API > Webhooks), so we can tell a genuine call from a stray one.',
   },
 ]
