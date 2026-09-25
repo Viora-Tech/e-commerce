@@ -17,5 +17,5 @@ export default function AddSectionPanel() {
   // Render logic
   const count = zoneSections(data, MAIN_ZONE).length
 
-  return <AddSectionBrowser zone={MAIN_ZONE} group={null} count={count} />
+  return <AddSectionBrowser zone={MAIN_ZONE} group={null} count={count} fill />
 }

@@ -1,0 +1,328 @@
+import type { Fields } from '@puckeditor/core'
+
+/** Layout / spacing / style / advanced settings every section can carry. */
+export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full'
+export type Alignment = 'left' | 'center' | 'right'
+export type CornerRadius = 'none' | 'sm' | 'md' | 'lg'
+export type Shadow = 'none' | 'sm' | 'md'
+export type EntranceAnimation = 'none' | 'fade' | 'slide-up' | 'zoom'
+
+export type ResponsivePadding = { mobile: number; tablet: number; desktop: number }
+
+export type SectionSettingsValue = {
+  layout: { contentWidth: ContentWidth; alignment: Alignment; gap: number }
+  spacing: { paddingTop: ResponsivePadding; paddingBottom: ResponsivePadding }
+  style: {
+    colorScheme: string
+    backgroundColor: string
+    backgroundImage: { url: string; alt: string }
+    overlayOpacity: number
+    cornerRadius: CornerRadius
+    border: boolean
+    shadow: Shadow
+  }
+  advanced: {
+    showOnMobile: boolean
+    showOnDesktop: boolean
+    entranceAnimation: EntranceAnimation
+    anchorId: string
+  }
+}
+
+/** Legacy per-section shape (`packages/blocks/src/sections/library.tsx`'s old `Frame`). */
+export type LegacySectionProps = {
+  scheme?: unknown
+  padTop?: unknown
+  padBottom?: unknown
+  settings?: unknown
+}
+
+const responsivePadding = (value: number): ResponsivePadding => ({
+  mobile: value,
+  tablet: value,
+  desktop: value,
+})
+
+/**
+ * Defaults that reproduce today's rendering: a section with no settings looks
+ * exactly like the old `{ scheme, padTop, padBottom }` frame did. Pass the
+ * section's own legacy defaults (or stored legacy values) to seed padding and
+ * colour scheme; everything else — width, alignment, background, animation —
+ * starts at its neutral "off" value.
+ */
+export function defaultSectionSettings(
+  legacy: {
+    scheme?: string | undefined
+    padTop?: number | undefined
+    padBottom?: number | undefined
+  } = {},
+): SectionSettingsValue {
+  const scheme = legacy.scheme ?? 'scheme-1'
+  const padTop = legacy.padTop ?? 48
+  const padBottom = legacy.padBottom ?? 48
+  return {
+    layout: { contentWidth: 'normal', alignment: 'center', gap: 0 },
+    spacing: {
+      paddingTop: responsivePadding(padTop),
+      paddingBottom: responsivePadding(padBottom),
+    },
+    style: {
+      colorScheme: scheme,
+      backgroundColor: '',
+      backgroundImage: { url: '', alt: '' },
+      overlayOpacity: 0,
+      cornerRadius: 'none',
+      border: false,
+      shadow: 'none',
+    },
+    advanced: {
+      showOnMobile: true,
+      showOnDesktop: true,
+      entranceAnimation: 'none',
+      anchorId: '',
+    },
+  }
+}
+
+/** Structural check — good enough to tell "a settings object" from `undefined`/junk. */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isResponsivePadding(value: unknown): value is Partial<ResponsivePadding> {
+  return isPlainObject(value)
+}
+
+/** Deep-merges a possibly-partial/stale stored `settings` object onto fresh defaults. */
+function mergeSettings(
+  base: SectionSettingsValue,
+  stored: Partial<SectionSettingsValue> | Record<string, unknown>,
+): SectionSettingsValue {
+  const s = stored as Partial<SectionSettingsValue>
+  const mergePadding = (
+    fallback: ResponsivePadding,
+    partial: Partial<ResponsivePadding> | undefined,
+  ): ResponsivePadding => ({
+    mobile: typeof partial?.mobile === 'number' ? partial.mobile : fallback.mobile,
+    tablet: typeof partial?.tablet === 'number' ? partial.tablet : fallback.tablet,
+    desktop: typeof partial?.desktop === 'number' ? partial.desktop : fallback.desktop,
+  })
+  return {
+    layout: {
+      contentWidth: s.layout?.contentWidth ?? base.layout.contentWidth,
+      alignment: s.layout?.alignment ?? base.layout.alignment,
+      gap: typeof s.layout?.gap === 'number' ? s.layout.gap : base.layout.gap,
+    },
+    spacing: {
+      paddingTop: mergePadding(
+        base.spacing.paddingTop,
+        isResponsivePadding(s.spacing?.paddingTop) ? s.spacing?.paddingTop : undefined,
+      ),
+      paddingBottom: mergePadding(
+        base.spacing.paddingBottom,
+        isResponsivePadding(s.spacing?.paddingBottom) ? s.spacing?.paddingBottom : undefined,
+      ),
+    },
+    style: {
+      colorScheme: s.style?.colorScheme ?? base.style.colorScheme,
+      backgroundColor: s.style?.backgroundColor ?? base.style.backgroundColor,
+      backgroundImage: {
+        url: s.style?.backgroundImage?.url ?? base.style.backgroundImage.url,
+        alt: s.style?.backgroundImage?.alt ?? base.style.backgroundImage.alt,
+      },
+      overlayOpacity:
+        typeof s.style?.overlayOpacity === 'number'
+          ? s.style.overlayOpacity
+          : base.style.overlayOpacity,
+      cornerRadius: s.style?.cornerRadius ?? base.style.cornerRadius,
+      border: typeof s.style?.border === 'boolean' ? s.style.border : base.style.border,
+      shadow: s.style?.shadow ?? base.style.shadow,
+    },
+    advanced: {
+      showOnMobile:
+        typeof s.advanced?.showOnMobile === 'boolean'
+          ? s.advanced.showOnMobile
+          : base.advanced.showOnMobile,
+      showOnDesktop:
+        typeof s.advanced?.showOnDesktop === 'boolean'
+          ? s.advanced.showOnDesktop
+          : base.advanced.showOnDesktop,
+      entranceAnimation: s.advanced?.entranceAnimation ?? base.advanced.entranceAnimation,
+      anchorId: s.advanced?.anchorId ?? base.advanced.anchorId,
+    },
+  }
+}
+
+/**
+ * Pure migration: turns whatever a section's stored props look like — the old
+ * flat `{ scheme, padTop, padBottom }`, an already-migrated `settings` object
+ * (possibly missing fields a later release added), or nothing at all — into a
+ * complete `SectionSettingsValue`. Never throws; unknown/malformed input just
+ * falls back to defaults. Idempotent: migrating an already-migrated value is a
+ * no-op merge.
+ *
+ * Used by `apps/admin/src/lib/customize-doc.ts`'s `normalizeDoc` (so the Field
+ * panel edits real values, not blanks) and inside every section's own
+ * `render()` (`packages/blocks/src/sections/library.tsx`, `puck-config.tsx`),
+ * so the storefront — which calls `render()` directly, not through
+ * `normalizeDoc` — renders old docs correctly too.
+ */
+export function migrateSectionSettings(props: LegacySectionProps): SectionSettingsValue {
+  const legacyScheme = typeof props.scheme === 'string' ? props.scheme : undefined
+  const legacyPadTop = typeof props.padTop === 'number' ? props.padTop : undefined
+  const legacyPadBottom = typeof props.padBottom === 'number' ? props.padBottom : undefined
+  const base = defaultSectionSettings({
+    scheme: legacyScheme,
+    padTop: legacyPadTop,
+    padBottom: legacyPadBottom,
+  })
+  if (isPlainObject(props.settings)) return mergeSettings(base, props.settings)
+  return base
+}
+
+const YES_NO = (label: string) =>
+  ({
+    type: 'radio',
+    label,
+    options: [
+      { label: 'Show', value: true },
+      { label: 'Hide', value: false },
+    ],
+  }) as const
+
+/**
+ * The grouped Puck fields for `migrateSectionSettings`'s shape. Each top
+ * group (`layout`/`spacing`/`style`/`advanced`) is a nested `object` field,
+ * which `apps/admin/src/components/themes/customize/customize-object-field.tsx`
+ * renders as its own collapsible section — so the Field panel shows four
+ * short groups instead of one long flat list.
+ */
+export function sectionSettingsField(
+  schemeOptions: { label: string; value: string }[],
+): Fields[string] {
+  const paddingFields = {
+    mobile: { type: 'number', label: 'Mobile', min: 0, max: 160 },
+    tablet: { type: 'number', label: 'Tablet', min: 0, max: 160 },
+    desktop: { type: 'number', label: 'Desktop', min: 0, max: 160 },
+  } as const
+
+  return {
+    type: 'object',
+    label: 'Section settings',
+    objectFields: {
+      layout: {
+        type: 'object',
+        label: 'Layout',
+        objectFields: {
+          contentWidth: {
+            type: 'select',
+            label: 'Content width',
+            options: [
+              { label: 'Narrow', value: 'narrow' },
+              { label: 'Normal', value: 'normal' },
+              { label: 'Wide', value: 'wide' },
+              { label: 'Full width', value: 'full' },
+            ],
+          },
+          alignment: {
+            type: 'select',
+            label: 'Alignment',
+            options: [
+              { label: 'Left', value: 'left' },
+              { label: 'Center', value: 'center' },
+              { label: 'Right', value: 'right' },
+            ],
+          },
+          gap: { type: 'number', label: 'Gap', min: 0, max: 16 },
+        },
+      },
+      spacing: {
+        type: 'object',
+        label: 'Spacing',
+        objectFields: {
+          paddingTop: { type: 'object', label: 'Padding top', objectFields: paddingFields },
+          paddingBottom: { type: 'object', label: 'Padding bottom', objectFields: paddingFields },
+        },
+      },
+      style: {
+        type: 'object',
+        label: 'Style',
+        objectFields: {
+          colorScheme: { type: 'select', label: 'Colour scheme', options: schemeOptions },
+          backgroundColor: { type: 'text', label: 'Background colour' },
+          backgroundImage: {
+            type: 'object',
+            label: 'Background image',
+            objectFields: {
+              url: { type: 'text', label: 'Image URL' },
+              alt: { type: 'text', label: 'Alt text' },
+            },
+          },
+          overlayOpacity: { type: 'number', label: 'Overlay opacity (%)', min: 0, max: 90 },
+          cornerRadius: {
+            type: 'select',
+            label: 'Corner radius',
+            options: [
+              { label: 'None', value: 'none' },
+              { label: 'Small', value: 'sm' },
+              { label: 'Medium', value: 'md' },
+              { label: 'Large', value: 'lg' },
+            ],
+          },
+          border: {
+            type: 'radio',
+            label: 'Border',
+            options: [
+              { label: 'On', value: true },
+              { label: 'Off', value: false },
+            ],
+          },
+          shadow: {
+            type: 'select',
+            label: 'Shadow',
+            options: [
+              { label: 'None', value: 'none' },
+              { label: 'Small', value: 'sm' },
+              { label: 'Medium', value: 'md' },
+            ],
+          },
+        },
+      },
+      advanced: {
+        type: 'object',
+        label: 'Advanced',
+        objectFields: {
+          showOnMobile: YES_NO('Show on mobile'),
+          showOnDesktop: YES_NO('Show on desktop'),
+          entranceAnimation: {
+            type: 'select',
+            label: 'Entrance animation',
+            options: [
+              { label: 'None', value: 'none' },
+              { label: 'Fade', value: 'fade' },
+              { label: 'Slide up', value: 'slide-up' },
+              { label: 'Zoom', value: 'zoom' },
+            ],
+          },
+          anchorId: { type: 'text', label: 'Anchor ID' },
+        },
+      },
+    },
+  } as unknown as Fields[string]
+}
+
+/** Tailwind classes that hide the section below/at the `md` breakpoint. No JS, no layout shift. */
+export function sectionVisibilityClassName(advanced: SectionSettingsValue['advanced']): string {
+  const classes: string[] = []
+  if (!advanced.showOnMobile) classes.push('max-md:hidden')
+  if (!advanced.showOnDesktop) classes.push('md:hidden')
+  return classes.join(' ')
+}
+
+/** Whether an entrance animation should actually run (never for reduced motion or "none"). */
+export function shouldAnimateEntrance(
+  animation: EntranceAnimation,
+  reducedMotion: boolean,
+): boolean {
+  return animation !== 'none' && !reducedMotion
+}

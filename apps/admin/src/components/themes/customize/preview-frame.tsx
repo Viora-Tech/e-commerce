@@ -35,6 +35,26 @@ export default function PreviewFrame({ children, document, theme, mode }: Previe
     return () => style.remove()
   }, [document, theme, mode])
 
+  // The storefront theme above redefines --primary/--primary-soft inside this
+  // iframe, so canvas chrome that wants the admin's own accent (the canvas
+  // dock, the selection overlay, canvas-motion's insert ring) can't just read
+  // those names in here. Copy the admin document's *computed* values onto the
+  // iframe root under different names once, so that chrome keeps working
+  // regardless of which storefront theme is being edited.
+  useEffect(() => {
+    if (!document) return
+    const admin = getComputedStyle(window.document.documentElement)
+    const accent = admin.getPropertyValue('--primary').trim()
+    const accentSoft = admin.getPropertyValue('--primary-soft').trim()
+    const root = document.documentElement
+    if (accent) root.style.setProperty('--admin-accent', accent)
+    if (accentSoft) root.style.setProperty('--admin-accent-soft', accentSoft)
+    return () => {
+      root.style.removeProperty('--admin-accent')
+      root.style.removeProperty('--admin-accent-soft')
+    }
+  }, [document])
+
   useEffect(() => {
     if (!document) return
     const style = document.createElement('style')

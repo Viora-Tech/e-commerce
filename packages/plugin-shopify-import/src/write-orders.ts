@@ -6,7 +6,9 @@
  */
 
 import {
+  encryptCustomerPhone,
   importedOrderStatuses,
+  phoneBlindIndex,
   recomputeOrderStatuses,
   SETTLED_PAYMENT_STATUSES,
 } from '@commerce/core'
@@ -137,7 +139,17 @@ async function variantFor(
   return { id, variantTitle: line.variantTitle, hsCode: null }
 }
 
-async function customerFor(tx: StoreTx, storeId: string, o: NOrder): Promise<string | null> {
+/**
+ * `customer.phone` is encrypted, so matching by phone is by blind index
+ * (`customer.phone_index`), same as `write-customers.ts#matchCustomer` — see
+ * `packages/core/src/customers/phone-crypto.ts`.
+ */
+async function customerFor(
+  tx: StoreTx,
+  storeId: string,
+  o: NOrder,
+  secret: string,
+): Promise<string | null> {
   if (!o.email && !o.phone) return null
   if (o.email) {
     const [row] = await tx
@@ -149,7 +161,7 @@ async function customerFor(tx: StoreTx, storeId: string, o: NOrder): Promise<str
     const [row] = await tx
       .select({ id: customer.id })
       .from(customer)
-      .where(eq(customer.phone, o.phone))
+      .where(eq(customer.phoneIndex, phoneBlindIndex(o.phone, secret)))
     if (row) return row.id
   }
   const [created] = await tx
@@ -157,7 +169,9 @@ async function customerFor(tx: StoreTx, storeId: string, o: NOrder): Promise<str
     .values({
       storeId,
       email: o.email,
-      phone: o.phone,
+      // Stored encrypted, the same as the admin and checkout paths (docs/security/data-protection.md).
+      phone: o.phone ? encryptCustomerPhone(o.phone, secret).cipher : o.phone,
+      phoneIndex: o.phone ? phoneBlindIndex(o.phone, secret) : null,
       name: o.customerName,
       ...(o.createdAt ? { createdAt: new Date(o.createdAt) } : {}),
     })
@@ -234,7 +248,7 @@ export async function writeOrder(
     }
 
     const id = await ctx.inStore(async (tx) => {
-      const customerId = await customerFor(tx, ctx.storeId, o)
+      const customerId = await customerFor(tx, ctx.storeId, o, ctx.secret)
       let shippingAddressId: string | null = null
       if (o.shippingAddress) {
         const a = o.shippingAddress

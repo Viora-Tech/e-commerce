@@ -82,18 +82,27 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   const [modePick, setModePick] = useState<'light' | 'dark'>('light')
   const [nonce, setNonce] = useState(0)
   const [config, setConfig] = useState(() => createCustomizeConfig())
+  // Bumped once the real installed-apps set replaces the empty-set config Puck
+  // first mounted with — see the effect below for why this has to force a
+  // Puck remount rather than rely on the `config` prop changing in place.
+  const [appsVersion, setAppsVersion] = useState(0)
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
 
   // Which apps this store has installed, for the Add panel's Apps tab and the
   // storefront-matching "app is off" placeholder for anything already placed
-  // from an app since uninstalled. Rebuilds the config once this resolves;
-  // Puck just re-renders with the new config, same as switching templates.
+  // from an app since uninstalled. `<Puck>` only reads its `config` prop at
+  // mount — a later `setConfig` alone does not make it re-derive
+  // `categories`/`components`, so the Apps tab stayed stuck on the
+  // enabled-nothing config it mounted with even after this resolved. Folding
+  // `appsVersion` into the `key` below forces the one-time remount that
+  // actually picks the new config up.
   useEffect(() => {
     let active = true
     api.apps.list().then((apps) => {
       if (!active) return
       setConfig(createCustomizeConfig(new Set(apps.filter((a) => a.installed).map((a) => a.id))))
+      setAppsVersion((v) => v + 1)
     })
     return () => {
       active = false
@@ -273,7 +282,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       <link rel="stylesheet" href={FONT_SAMPLES} precedence="default" />
       {doc ? (
         <Puck
-          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}`}
+          key={`${loaded?.ref.key}.${loaded?.ref.suffix}.${loaded?.nonce}.${appsVersion}`}
           config={config}
           data={doc as unknown as Data}
           metadata={metadata}

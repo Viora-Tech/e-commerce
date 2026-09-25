@@ -89,7 +89,7 @@ export const customizeContent = {
     tabs: { sections: 'Sections', apps: 'Apps' },
     appsEmpty: {
       title: 'No app blocks yet',
-      body: "Apps you install can add things like a 'Notify me' button or delivery-date checker here.",
+      body: "Install Back in stock, Delhivery or Shiprocket to add blocks like a 'Notify me' button or delivery-date checker here.",
       link: 'Browse apps',
     },
   },

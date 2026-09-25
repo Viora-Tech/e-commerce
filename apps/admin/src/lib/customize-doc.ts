@@ -1,3 +1,4 @@
+import { migrateSectionSettings } from '@commerce/blocks/puck'
 import type { TemplateData, TemplateSection } from '@commerce/core/theme'
 import type { Config } from '@puckeditor/core'
 
@@ -63,7 +64,14 @@ export function locateSection(
 const withDefaults = (sections: TemplateSection[], config: Config): TemplateSection[] =>
   sections.map((s) => {
     const defaults = config.components[s.type]?.defaultProps as Record<string, unknown> | undefined
-    return defaults ? { ...s, props: { ...defaults, ...s.props } } : s
+    if (!defaults) return s
+    const merged = { ...defaults, ...s.props }
+    // Sections that carry the shared `settings` schema (packages/blocks/src/section-settings.ts)
+    // get it migrated from the section's *raw stored* props — never the already-defaulted
+    // `merged` object above, which would mask an old doc's real scheme/padTop/padBottom
+    // under `defaultProps.settings` and make the Field panel show the wrong values.
+    if ('settings' in defaults) merged.settings = migrateSectionSettings(s.props as never)
+    return { ...s, props: merged }
   })
 
 /**
