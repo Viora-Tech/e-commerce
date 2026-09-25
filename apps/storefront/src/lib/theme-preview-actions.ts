@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+
 import { loadEnv } from '@commerce/config'
 import { verifyThemePreviewToken } from '@commerce/core'
 

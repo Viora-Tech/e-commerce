@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+
 import { findRedeemableGiftCard, GiftCardError } from '@commerce/core'
 import { inStore } from './store-context'
 

@@ -1,3 +1,4 @@
+import 'server-only'
 import { loadEnv } from '@commerce/config'
 import { createDb, type Db } from '@commerce/db'
 
