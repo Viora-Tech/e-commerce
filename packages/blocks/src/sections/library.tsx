@@ -13,6 +13,13 @@ import Newsletter from '../components/sections/newsletter'
 import Testimonials from '../components/sections/testimonials'
 import Video from '../components/sections/video'
 import { sectionsContent as copy } from '../data/sections'
+import {
+  defaultSectionSettings,
+  type LegacySectionProps,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionSettingsField,
+} from '../section-settings'
 import type { CardCollection, CardProduct } from '../types'
 import type { SectionMetadata } from './dynamic'
 
@@ -22,7 +29,14 @@ export type CollectionLoader = (handles: string[]) => Promise<CardCollection[]>
 /** One product, by handle, for the featured product section. */
 export type SingleProductLoader = (handle: string) => Promise<CardProduct | null>
 
-type Frame = { scheme: string; padTop: number; padBottom: number }
+/**
+ * Every section carries a `settings` object (layout/spacing/style/advanced —
+ * `../section-settings.ts`), which replaces the old flat `scheme`/`padTop`/
+ * `padBottom` props in the Field panel. `migrateSectionSettings` maps stored
+ * legacy props onto it, so old theme docs keep rendering identically —
+ * `defaultSectionSettings()` alone reproduces today's default look.
+ */
+type Frame = { settings: SectionSettingsValue }
 type Image = { url: string; alt: string }
 type Link = { label: string; href: string }
 
@@ -35,11 +49,9 @@ const SCHEMES = [
 ]
 
 const frame = {
-  scheme: { type: 'select', label: 'Colour scheme', options: SCHEMES },
-  padTop: { type: 'number', label: 'Padding top', min: 0, max: 160 },
-  padBottom: { type: 'number', label: 'Padding bottom', min: 0, max: 160 },
+  settings: sectionSettingsField(SCHEMES),
 } as const
-const frameDefaults: Frame = { scheme: 'scheme-1', padTop: 48, padBottom: 48 }
+const frameDefaults: Frame = { settings: defaultSectionSettings() }
 
 const imageField = (label = 'Image') =>
   ({
@@ -125,8 +137,9 @@ function framed<P extends Frame>(
     defaultProps: extra.defaultProps ?? { ...frameDefaults, ...defaults },
     render: ({ puck, ...props }) => {
       const p = props as unknown as P
+      const settings = migrateSectionSettings(p as unknown as LegacySectionProps)
       return (
-        <SectionFrame scheme={p.scheme} padTop={p.padTop} padBottom={p.padBottom}>
+        <SectionFrame settings={settings}>
           {body(p, (puck?.metadata ?? {}) as SectionMetadata)}
         </SectionFrame>
       )
@@ -205,9 +218,7 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       (p) => <ImageBanner {...p} />,
       {
         defaultProps: {
-          ...frameDefaults,
-          padTop: 0,
-          padBottom: 0,
+          settings: defaultSectionSettings({ padTop: 0, padBottom: 0 }),
           image: noImage,
           heading: copy.imageBanner.heading,
           text: copy.imageBanner.text,

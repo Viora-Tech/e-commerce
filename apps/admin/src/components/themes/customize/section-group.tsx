@@ -79,7 +79,7 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
           {sections.length}
         </span>
       </h2>
-      <div className="ml-3.5 flex flex-col gap-0.5 border-l border-border pl-1.5">
+      <div className="ml-3.5 flex flex-col gap-1 border-l border-border pl-1.5">
         <SortableList
           items={items}
           onReorder={handleReorder}

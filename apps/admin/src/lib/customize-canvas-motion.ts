@@ -19,7 +19,13 @@ const DURATION_ENTER = 300
 const EASE = 'ease-out'
 /** A gentle overshoot for things settling into place — the "spring" feel for inserts. */
 const EASE_BACK = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
-const RING_COLOR = 'var(--puck-color-interactive, #4ea674)'
+// --puck-color-interactive lives in vendor-puck.css, the admin document's own
+// stylesheet, which never reaches this iframe (see this file's own doc comment)
+// — so this reads --admin-accent instead, the value PreviewFrame writes onto
+// the iframe root from the admin's own computed --primary (customize-doc's
+// storefront theme redefines --primary inside here, so the plain token name
+// can't be trusted). #4ea674 only applies before that first write.
+const RING_COLOR = 'var(--admin-accent, #4ea674)'
 
 /** Injected into the iframe's `<head>` — vendor-puck.css and the admin's own stylesheets never reach it. */
 export function canvasMotionCss(reducedMotion: boolean): string {
@@ -206,7 +212,13 @@ export function deleteWithCollapse(
  * the Sections tree (Puck only scrolls for selections made on the canvas).
  */
 export function scrollToSection(id: string, reducedMotion: boolean): void {
-  const frame = document.querySelector<HTMLIFrameElement>('#main iframe')
-  const el = frame?.contentDocument?.querySelector<HTMLElement>(`[data-puck-component="${id}"]`)
-  el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+  // Selecting a row also dispatches Puck's own `setUi`, which re-renders the
+  // canvas's selection chrome (SectionOverlay) a tick later — scrolling in
+  // the same call stack raced that re-render and was silently un-done before
+  // it ever painted. Waiting a frame lets that settle first.
+  requestAnimationFrame(() => {
+    const frame = document.querySelector<HTMLIFrameElement>('#main iframe')
+    const el = frame?.contentDocument?.querySelector<HTMLElement>(`[data-puck-component="${id}"]`)
+    el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+  })
 }

@@ -1,6 +1,7 @@
 import {
   CloudArrowUp,
   Database,
+  Faders,
   ListChecks,
   PuzzlePiece,
   Rocket,
@@ -29,6 +30,7 @@ export default {
   conventions: navItem(<ListChecks {...iconProps} />, 'Conventions'),
   guardrails: navItem(<ShieldWarning {...iconProps} />, 'Guardrails and sweeps'),
   plugins: navItem(<PuzzlePiece {...iconProps} />, 'Plugins SDK and app blocks'),
+  'section-settings': navItem(<Faders {...iconProps} />, 'Section settings and SectionFrame'),
   'data-model': navItem(<Database {...iconProps} />, 'Data model'),
   'sep-run': { type: 'separator', title: 'Working locally' },
   'running-locally': navItem(<Terminal {...iconProps} />, 'Running locally'),

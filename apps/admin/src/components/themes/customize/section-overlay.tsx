@@ -100,7 +100,9 @@ export default function SectionOverlay({
           className={cn(
             'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption font-medium shadow-md',
             isSelected
-              ? 'bg-neutral-900 text-white'
+              ? // The admin's own accent (--admin-accent, written by preview-frame.tsx),
+                // not the storefront theme's --primary, which this iframe redefines.
+                'bg-[var(--admin-accent,black)] text-white'
               : 'bg-white/95 text-neutral-700 ring-1 ring-neutral-200',
           )}
         >

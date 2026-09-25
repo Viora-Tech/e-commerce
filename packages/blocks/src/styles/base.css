@@ -1671,6 +1671,29 @@ main#MainContent {
   padding-block: var(--section-padding-top, 40px) var(--section-padding-bottom, 40px);
 }
 
+/* Per-section settings (packages/blocks/src/section-settings.ts): responsive
+   padding, one custom property per breakpoint (mobile, tablet, desktop),
+   written by SectionFrame from a section's spacing settings. Each breakpoint
+   falls back to the previous one, then to the plain non-responsive padding
+   custom properties above, so a section with only a mobile value still gets
+   sane tablet and desktop padding instead of zero. */
+.section-frame[data-content-width] {
+  padding-top: var(--section-pt-mobile, var(--section-padding-top, 40px));
+  padding-bottom: var(--section-pb-mobile, var(--section-padding-bottom, 40px));
+}
+@media (min-width: 48rem) {
+  .section-frame[data-content-width] {
+    padding-top: var(--section-pt-tablet, var(--section-pt-mobile));
+    padding-bottom: var(--section-pb-tablet, var(--section-pb-mobile));
+  }
+}
+@media (min-width: 64rem) {
+  .section-frame[data-content-width] {
+    padding-top: var(--section-pt-desktop, var(--section-pt-tablet));
+    padding-bottom: var(--section-pb-desktop, var(--section-pb-tablet));
+  }
+}
+
 /* ── Light / dark / device toggle ────────────────────────────────────────
    Shared by the header and the footer instances. Three stacked glyphs, one
    per mode (sun = light, moon = dark, half disc = follow the device); the

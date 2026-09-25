@@ -35,7 +35,7 @@ export default function CustomizeRail({ active, onChange }: CustomizeRailProps) 
           className={cn(
             'flex w-12 flex-col items-center gap-1 rounded-xl py-2 text-[0.6875rem] transition-colors',
             active === panel
-              ? 'bg-card text-foreground shadow-card ring-1 ring-border'
+              ? 'bg-primary-soft text-primary shadow-card ring-1 ring-primary/20'
               : 'text-muted-foreground hover:bg-card/60 hover:text-foreground',
           )}
         >

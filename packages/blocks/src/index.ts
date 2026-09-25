@@ -30,4 +30,11 @@ export { default as SectionFrame } from './components/section-frame'
 export { default as SectionHeading } from './components/section-heading'
 export { default as ThemeToggle } from './components/theme-toggle'
 export { formatPaise } from './money'
+export {
+  defaultSectionSettings,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionVisibilityClassName,
+  shouldAnimateEntrance,
+} from './section-settings'
 export * from './types'

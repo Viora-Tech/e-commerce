@@ -47,8 +47,8 @@ export default function CustomizeTopBar({
 }: CustomizeTopBarProps) {
   // Render logic
   return (
-    <header className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-3">
-      <div className="flex min-w-0 items-center gap-2">
+    <header className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-border bg-card px-4">
+      <div className="flex min-w-0 items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -59,19 +59,22 @@ export default function CustomizeTopBar({
         >
           <ArrowLeft aria-hidden />
         </Button>
-        <h1 className="truncate text-body font-semibold text-foreground">{name}</h1>
-        <Badge variant={live ? 'success' : 'neutral'}>{live ? editor.live : editor.draft}</Badge>
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="truncate text-body font-semibold text-foreground">{name}</h1>
+          <Badge variant={live ? 'success' : 'neutral'}>{live ? editor.live : editor.draft}</Badge>
+        </div>
       </div>
       <div className="flex items-center gap-2">{pickers}</div>
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-3">
         <span
           role="status"
-          className="relative flex size-2 shrink-0"
+          className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground"
           aria-live="polite"
-          aria-label={dirty ? copy.unsaved : copy.upToDate}
-          title={dirty ? copy.unsaved : copy.upToDate}
         >
-          {dirty ? <span className="size-2 rounded-full bg-warning" /> : null}
+          {dirty ? (
+            <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-warning" />
+          ) : null}
+          {dirty ? copy.unsaved : copy.upToDate}
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger

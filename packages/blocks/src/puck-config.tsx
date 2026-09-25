@@ -9,6 +9,12 @@ import TabbedProducts from './components/product-grid'
 import RichTextBlock from './components/rich-text'
 import SectionFrame from './components/section-frame'
 import SectionHeading from './components/section-heading'
+import {
+  defaultSectionSettings,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionSettingsField,
+} from './section-settings'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
 import {
   type CollectionLoader,
@@ -20,6 +26,13 @@ import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
 export type { NewsletterAction, NewsletterState } from './components/sections/newsletter'
+export {
+  defaultSectionSettings,
+  type LegacySectionProps,
+  migrateSectionSettings,
+  type SectionSettingsValue,
+  sectionSettingsField,
+} from './section-settings'
 export {
   DYNAMIC_SECTIONS,
   type DynamicSection,
@@ -50,13 +63,10 @@ const SCHEMES = [
   { label: 'Mist', value: 'scheme-5' },
 ]
 
-export const frameFields = {
-  scheme: { type: 'select', label: 'Colour scheme', options: SCHEMES },
-  padTop: { type: 'number', label: 'Padding top', min: 0, max: 160 },
-  padBottom: { type: 'number', label: 'Padding bottom', min: 0, max: 160 },
-} as const
+/** Same `settings` field every `packages/blocks/src/sections/library.tsx` section carries. */
+export const frameFields = { settings: sectionSettingsField(SCHEMES) } as const
 
-export type Frame = { scheme: string; padTop: number; padBottom: number }
+export type Frame = { settings: SectionSettingsValue }
 
 export type HeroProps = {
   slides: HeroSlide[]
@@ -342,9 +352,7 @@ export function createBlocksConfig(
           heading: 'Shop the range',
           tabs: [{ label: 'All', productType: '', limit: 8 }],
           columns: 4,
-          scheme: 'scheme-5',
-          padTop: 56,
-          padBottom: 56,
+          settings: defaultSectionSettings({ scheme: 'scheme-5', padTop: 56, padBottom: 56 }),
         },
         resolveData: async ({ props }) => {
           const resolved = await Promise.all(
@@ -358,8 +366,8 @@ export function createBlocksConfig(
           )
           return { props: { resolved }, readOnly: { resolved: true } }
         },
-        render: ({ heading, columns, resolved, scheme, padTop, padBottom }) => (
-          <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
+        render: ({ heading, columns, resolved, ...props }) => (
+          <SectionFrame settings={migrateSectionSettings(props)}>
             <TabbedProducts heading={heading} columns={columns} tabs={resolved ?? []} />
           </SectionFrame>
         ),
@@ -379,9 +387,7 @@ export function createBlocksConfig(
           heading: 'Latest drops',
           productType: '',
           limit: 4,
-          scheme: 'scheme-1',
-          padTop: 48,
-          padBottom: 48,
+          settings: defaultSectionSettings({ padTop: 48, padBottom: 48 }),
         },
         resolveData: async ({ props }) => ({
           props: {
@@ -392,8 +398,8 @@ export function createBlocksConfig(
           },
           readOnly: { resolved: true },
         }),
-        render: ({ kicker, heading, resolved, scheme, padTop, padBottom }) => (
-          <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
+        render: ({ kicker, heading, resolved, ...props }) => (
+          <SectionFrame settings={migrateSectionSettings(props)}>
             <div className="page-width">
               <SectionHeading kicker={kicker} heading={heading} />
               <div
@@ -423,9 +429,7 @@ export function createBlocksConfig(
           collectionHandle: '',
           limit: 8,
           columns: 4,
-          scheme: 'scheme-1',
-          padTop: 56,
-          padBottom: 56,
+          settings: defaultSectionSettings({ padTop: 56, padBottom: 56 }),
         },
         resolveData: async ({ props }) => ({
           props: {
@@ -435,8 +439,8 @@ export function createBlocksConfig(
           },
           readOnly: { resolved: true },
         }),
-        render: ({ heading, columns, resolved, scheme, padTop, padBottom }) => (
-          <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
+        render: ({ heading, columns, resolved, ...props }) => (
+          <SectionFrame settings={migrateSectionSettings(props)}>
             <TabbedProducts
               heading={heading}
               columns={columns}
@@ -467,12 +471,10 @@ export function createBlocksConfig(
           heading: '',
           body: '',
           align: 'center',
-          scheme: 'scheme-1',
-          padTop: 48,
-          padBottom: 48,
+          settings: defaultSectionSettings({ padTop: 48, padBottom: 48 }),
         },
-        render: ({ heading, body, align, scheme, padTop, padBottom }) => (
-          <SectionFrame scheme={scheme} padTop={padTop} padBottom={padBottom}>
+        render: ({ heading, body, align, ...props }) => (
+          <SectionFrame settings={migrateSectionSettings(props)}>
             <div className="page-width">
               <RichTextBlock heading={heading} body={body} align={align} />
             </div>

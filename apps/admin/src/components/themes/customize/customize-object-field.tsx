@@ -6,6 +6,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
+import { AutoField, type Field } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import { iconForField } from '@/lib/customize-field-icons'
 import { type FieldLike, isImageField } from '@/lib/customize-field-shape'
@@ -17,8 +18,18 @@ type CustomizeObjectFieldProps = {
   value: unknown
   onChange: (value: unknown) => void
   name: string
-  /** Puck's own rendering of the object's sub-fields (each already goes through our overrides). */
-  children: ReactNode
+  /**
+   * Puck's own rendering of the object's sub-fields — unused. Puck only reads
+   * a field-type override's *own* `field`/`value`/`onChange`, so this always
+   * renders to nothing once every field type (including `object` itself) is
+   * overridden the way `customize-editor.tsx` does: the sub-fields never get
+   * their own store entry to read from. We render them ourselves below,
+   * through Puck's public `AutoField`, the same way `customize-array-item.tsx`
+   * already does for array items — with an explicit `value`/`onChange` per
+   * sub-field, so no store lookup is needed. Kept in the props type only so
+   * callers matching Puck's `fieldTypes.object` signature still type-check.
+   */
+  children?: ReactNode
 }
 
 /**
@@ -32,17 +43,34 @@ export default function CustomizeObjectField({
   value,
   onChange,
   name,
-  children,
 }: CustomizeObjectFieldProps) {
+  // Event handlers
+  const handleSubChange = (key: string) => (subValue: unknown) =>
+    onChange({ ...((value ?? {}) as Record<string, unknown>), [key]: subValue })
+
   // Render logic
+  const objectValue = (value ?? {}) as Record<string, unknown>
+  const objectFields = (field.objectFields ?? {}) as Record<string, Field>
   const label = field.label ?? name
   const Icon = iconForField(field)
+  const subFields = (
+    <>
+      {Object.entries(objectFields).map(([key, subField]) => (
+        <AutoField
+          key={key}
+          field={subField}
+          value={objectValue[key]}
+          onChange={handleSubChange(key)}
+        />
+      ))}
+    </>
+  )
 
   if (isImageField(field)) {
     return (
       <FieldFrame icon={Icon} label={label}>
         <ImageField field={field} value={value} onChange={onChange}>
-          {children}
+          {subFields}
         </ImageField>
       </FieldFrame>
     )
@@ -59,7 +87,7 @@ export default function CustomizeObjectField({
         />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="flex flex-col gap-3 border-t border-border px-3 py-3">{children}</div>
+        <div className="flex flex-col gap-3 border-t border-border px-3 py-3">{subFields}</div>
       </CollapsibleContent>
     </Collapsible>
   )
