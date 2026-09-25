@@ -1,8 +1,11 @@
 export default {
   architecture: 'Architecture',
-  conventions: 'Conventions',
-  guardrails: 'Guardrails and sweeps',
+  'request-flow': 'Request flow',
+  'data-model': 'Data model',
+  'first-app': 'Build your first app',
   plugins: 'Plugins SDK and app blocks',
   'section-settings': 'Section settings and SectionFrame',
-  'data-model': 'Data model',
+  security: 'Security',
+  conventions: 'Conventions',
+  guardrails: 'Guardrails and sweeps',
 }

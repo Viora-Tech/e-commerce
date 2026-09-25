@@ -1,48 +1,206 @@
 ---
 title: Data model overview
+description: The main tables and how they relate, the two database roles, row-level security, and how to add a table.
 ---
 
 # Data model overview
 
 Postgres 17, one database, every tenant table carrying `store_id` and row-level security
-(RLS). Migrations live in `packages/db/drizzle` (SQL, currently at `0063`), generated from
-the Drizzle schema files in `packages/db/src` (`schema.ts` plus feature schemas such as
-`marketing-schema.ts`; auth tables are separate, see below).
+(RLS). Migrations live in `packages/db/drizzle` (SQL, `0064` at the time of writing), generated
+from the Drizzle schema files in `packages/db/src` (`schema.ts` plus feature schemas such as
+`marketing-schema.ts`; auth tables are separate, see below) and each app's own `schema.ts`.
+
+## The main tables
+
+The commerce core, from `packages/db/src/schema.ts`. Money is always integer paise
+(`price_paise`, `total_paise`), ids are UUIDv7 generated in the app, and every table here also
+has `store_id` (left off the diagrams to keep them readable).
+
+<Tabs items={['Orders and money', 'Catalogue', 'Themes']}>
+<Tabs.Tab>
+
+```mermaid
+erDiagram
+  customer ||--o{ cart : "shops with"
+  cart ||--|{ cart_line : "lines"
+  customer ||--o{ order : "places"
+  cart |o--o| order : "converts to"
+  address ||--o{ order : "ships to"
+  order ||--|{ order_line : "lines"
+  order ||--o{ payment : "attempts"
+  payment ||--o{ refund : "refunded by"
+  order ||--o{ shipment : "parcels"
+  shipment_pickup |o--o{ shipment : "collects"
+  order ||--o{ notification : "messages"
+
+  order {
+    uuid id PK
+    int number "per-store counter"
+    text status "draft, open, completed, cancelled"
+    text payment_status "derived"
+    text fulfillment_status "derived"
+    int total_paise
+    int balance_due_paise
+  }
+  payment {
+    uuid id PK
+    uuid order_id FK
+    text provider
+    text status "created to captured, refunded"
+    text idempotency_key "orderId:attempt"
+    bool refund_needed
+  }
+  shipment {
+    uuid id PK
+    uuid order_id FK
+    text waybill "AWB"
+    text status "created to delivered, rto"
+    text ndr_status
+  }
+  refund {
+    uuid id PK
+    uuid payment_id FK
+    int amount_paise
+    text status "pending, processed, failed, manual"
+  }
+```
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+```mermaid
+erDiagram
+  store ||--o{ product : "sells"
+  product ||--|{ variant : "has"
+  product ||--o{ product_option : "options"
+  product ||--o{ product_media : "images"
+  media ||--o{ product_media : "used in"
+  collection ||--o{ collection_product : "lists"
+  product ||--o{ collection_product : "in"
+  variant ||--o{ inventory_level : "stock"
+  location ||--o{ inventory_level : "holds"
+
+  store {
+    uuid id PK
+    text organization_id "1 org = 1 store"
+    jsonb apps "installed plugin ids"
+    text gstin
+  }
+  product {
+    uuid id PK
+    text handle
+    text status "draft, active, archived"
+    bool tax_included
+  }
+  variant {
+    uuid id PK
+    uuid product_id FK
+    text sku
+    int price_paise
+    int mrp_paise
+    text hs_code
+    int gst_rate_percent
+  }
+  collection {
+    uuid id PK
+    text kind "manual, automatic"
+  }
+```
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+```mermaid
+erDiagram
+  store ||--o{ theme : "themes"
+  theme ||--o{ theme_template : "templates"
+
+  theme {
+    uuid id PK
+    text role "main or unpublished, one main per store"
+    jsonb settings "colours, fonts"
+    timestamp published_at
+  }
+  theme_template {
+    uuid id PK
+    uuid theme_id FK
+    text template "home, product, collection, ..."
+    text suffix "alternate templates"
+    jsonb sections "saved, what shoppers see"
+    jsonb draft "unsaved editor changes"
+  }
+```
+
+</Tabs.Tab>
+</Tabs>
+
+Around these sit the side tables the diagrams leave out: `payment_event` (webhook dedupe,
+unique on `store_id, provider, event_id`), `shipment_webhook_event`, `outbox_event` (domain
+events written in the same transaction as the change), `order_note`, `discount` and
+`discount_usage`, `gift_card` and its transactions, `shipping_zone` / `shipping_rate`,
+`purchase_order`, `transfer`, `page`, `navigation_menu`, `store_domain`, metaobjects and
+metafields, `role` / `role_permission` / `store_member` / `store_invitation`, and the marketing
+tables in `marketing-schema.ts`.
+
+### Status columns are text with a CHECK
+
+Status columns are `text` with a fixed value list and a CHECK constraint, not Postgres enums,
+so adding a value is a plain migration. The order's `payment_status` and
+`fulfillment_status` are **derived** by `recomputeOrderStatuses` from payments, refunds and
+shipments, and stored only for filtering. Never write them directly; see
+[Request flow](/developer-docs/building/request-flow#3-a-shopper-checks-out-and-pays).
 
 ## Multi-tenancy
 
 - Almost every table has a `store_id uuid` column.
-- Every tenant migration ends with `SELECT apply_store_rls();`, which enables RLS on that
-  table and adds the standard policy: rows are only visible when
+- Every tenant migration ends with `SELECT apply_store_rls();`, which enables **and forces**
+  RLS on the table and adds the standard `store_isolation` policy: rows are only visible when
   `store_id = current_setting('app.store_id')::uuid`.
-- The app sets that setting per request/transaction with `withStore()`
-  (`packages/db/src/with-store.ts`), so a leaked query without a `WHERE store_id = …` clause
-  still can't cross tenants — the database enforces it, not application code.
-- The database connection itself runs as a restricted `app` role for RLS-covered queries
-  (`DATABASE_URL`); migrations and seeds run as the owner role (`DATABASE_URL_OWNER`), which
-  bypasses RLS to set the schema up in the first place.
+- The app sets that setting per transaction with `withStore()`
+  (`packages/db/src/with-store.ts`), so a query without a `WHERE store_id = …` clause still
+  can't cross tenants. The database enforces it, not application code.
+- The only sanctioned way across stores is a `SECURITY DEFINER` function that returns ids:
+  `resolve_host`, `resolve_store_for_organization`, `stores_with_open_shipments` and the other
+  `stores_with_…` functions the worker uses.
 
 ## Two roles
 
-- **`DATABASE_URL`** — the `app` role, RLS-restricted, used by the apps at runtime.
-- **`DATABASE_URL_OWNER`** — the owner role, full schema access: migrations, seeds, RLS
-  policy creation, and `scripts/backup-db.ts` (an RLS-restricted dump would be incomplete).
+- **`DATABASE_URL`**: the `app` role, `NOBYPASSRLS`, used by the apps at runtime.
+- **`DATABASE_URL_OWNER`**: the owner role, full schema access: migrations, seeds, RLS policy
+  creation, `scripts/backup-db.ts` (an RLS-restricted dump would be incomplete) and the key
+  rotation scripts.
 
 ## Platform-level tables
 
-Auth tables (`packages/db/src/auth-schema.ts`) are platform-level: no `store_id`, no RLS.
-Better Auth owns them exclusively — organisations map to stores (one organisation = one
-store), members map to store staff.
+Auth tables (`packages/db/src/auth-schema.ts`: `user`, `session`, `account`, `verification`,
+`organization`, `member`, `invitation`) are platform-level: no `store_id`, no RLS. Better Auth
+owns them exclusively. Organisations map to stores (one organisation = one store); members map
+to store staff.
 
 ## Adding a table
 
-1. Add the Drizzle schema in `packages/db/src` (or a feature's own `schema.ts` if the
-   feature is a plugin/app — see [Plugins SDK](/developer-docs/building/plugins) for how an app's
-   tables join the one migration chain via `packages/db/drizzle.config.ts`).
-2. `bun run db:generate` to produce the SQL migration.
-3. Every tenant table's migration ends with `SELECT apply_store_rls();` — the RLS coverage
-   test fails a migration that forgets it.
-4. `bun run db:migrate` against the dev database.
+<Steps>
+
+### Write the schema
+
+Add the Drizzle table in `packages/db/src`, or in a plugin's own `schema.ts` listed in
+`packages/db/drizzle.config.ts` (so its migration joins the one chain). Give it
+`storeId: storeId()` and an app-generated `id: id()`.
+
+### Generate the migration
+
+`bun run db:generate` produces the SQL in `packages/db/drizzle`.
+
+### End it with RLS
+
+Every tenant table's migration ends with `SELECT apply_store_rls();`. The RLS coverage test in
+`packages/db` fails CI for a table without the policy.
+
+### Apply it
+
+`bun run db:migrate` against the dev database.
+
+</Steps>
 
 ## Seeding
 
@@ -55,6 +213,8 @@ bun run db:seed:shipping
 bun run db:seed:back-in-stock
 ```
 
-See [Running locally](/developer-docs/operations/running-locally) for the full setup sequence, and
-[Architecture](/developer-docs/building/architecture) for how the three apps and the queue fit around
-this database.
+See [Running locally](/developer-docs/operations/running-locally) for the full setup sequence.
+
+## Related guides
+
+<RelatedGuides ids={['request-flow', 'architecture', 'dev-security', 'first-app']} />

@@ -27,13 +27,13 @@ export const pathCards = [
 
 export const popularGuides = [
   {
-    href: '/merchant-guide/selling/shipments#connecting-delhivery',
+    href: '/merchant-guide/selling/shipments#connect-a-courier',
     icon: 'plugs',
     title: 'Connect Delhivery',
     description: 'Paste your API token and pickup location to get rates and labels.',
   },
   {
-    href: '/merchant-guide/selling/shipments#ready-to-ship',
+    href: '/merchant-guide/selling/shipments#ship-orders-step-by-step',
     icon: 'truck',
     title: 'Book your first shipment',
     description: 'Compare rates, print labels and schedule a pickup.',
@@ -57,10 +57,10 @@ export const popularGuides = [
     description: 'Turn on payment methods and connect Razorpay.',
   },
   {
-    href: '/merchant-guide/selling/apps',
-    icon: 'puzzle',
-    title: 'Apps',
-    description: 'Couriers, gateways, storage and other built-in apps.',
+    href: '/merchant-guide/set-up-your-store',
+    icon: 'checklist',
+    title: 'Set up your store',
+    description: 'The day-one checklist, from GSTIN to your first test order.',
   },
 ] as const
 

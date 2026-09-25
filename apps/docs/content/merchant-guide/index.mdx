@@ -1,39 +1,150 @@
 ---
 title: Getting started
+description: Log in with a one-time code, pick your store, and find your way around the admin.
 ---
 
 # Getting started
 
-A short guide to logging in and finding your way around. No jargon.
+A short guide to logging in and finding your way around your store's admin. No jargon, and no
+passwords to remember.
 
-## Logging in
+## What this is for
 
-You do not need a password. Your store invites you by email, and every time you log in you
-get a fresh one-time code:
+- Your first login, after the store owner invites you.
+- Knowing what the home dashboard is telling you each morning.
+- Finding orders, products, apps and settings quickly.
 
-1. Open the admin site and enter the **email** your store invited.
-2. We send you a one-time code by email.
-3. Type the code in and select **Log in**.
+## How it works
 
-If the code is wrong, just ask for a new one.
+Your store invites you by email. Every time you log in, we email you a fresh one-time code; if
+you work in more than one store, you pick which one to open.
 
-## Picking a store
+```mermaid
+flowchart TD
+  invite["Store owner invites<br/>asha@example.in"] --> email["You get an email<br/>Join Asha Handlooms"]
+  email --> login["Admin: enter your email<br/>Continue with email"]
+  login --> code["Type the 6-digit code<br/>from your inbox"]
+  code --> pick{"More than one store?"}
+  pick -->|Yes| choose["Choose a store"] --> home
+  pick -->|No| home(["Dashboard"])
+```
 
-If you belong to more than one store, you will see **Choose a store** after logging in.
-Select the store you want to work in — you can switch later from the same screen.
+## Log in step by step
 
-If you see **No stores yet**, ask the store owner to invite you.
+<Steps>
+
+### Accept your invitation
+
+Open the invitation email ("Join Asha Handlooms"). It says which role you'll join as. Select
+**Accept invitation**; if you're not logged in yet, select **Sign in and join**.
+
+### Enter your email
+
+On the **Log in** screen, use the email your store invited and select **Continue with email**.
+You'll see "Code sent to" your email address.
+
+### Type the code
+
+Enter the one-time code and select **Log in**. If it says **Wrong code**, check the newest email
+or use **Use a different email** to start again.
+
+### Pick a store
+
+If you belong to more than one store, you'll see **Choose a store**. Select one; you can switch
+any time from the store picker at the top of the sidebar.
+
+</Steps>
+
+<Screenshot
+  name="Log in screen"
+  caption="Admin Log in screen after Continue with email, showing 'Code sent to asha@example.in', the 6-digit code field and the Log in button."
+/>
 
 ## The dashboard
 
-After you log in, you land on the home dashboard. At the top is a one-line summary of your
-day, for example:
+After you log in, you land on **Dashboard**. At the top is a one-line summary of your day, for
+example:
 
 > Good evening, Asha. 14 orders today worth ₹23,400, 3 need shipping.
 
-Below that is **Needs you** — the things only you can do next (orders waiting on payment
-confirmation, shipments waiting on a label, and so on). When there is nothing to do, it says
-"You're all caught up."
+Below it, **Needs you** lists "The things only you can do next":
 
-The sidebar on the left is how you get everywhere else: Orders, Products, Online Store, Apps,
-Settings, and anything else installed for your store.
+| You'll see | Button | What to do |
+| --- | --- | --- |
+| "3 orders are ready to ship" | **Ship orders** | Book labels in Ready to ship. |
+| "2 UPI payments need checking" | **Check payments** | Match transfers in your bank app, then mark them paid. |
+| "5 GST invoices are queued" | **Issue invoices** | Review and issue the queued GST invoices. |
+| "4 products are running low" | **Restock** | Order more or update stock. |
+| "2 pre-orders are waiting on their balance" | **View pre-orders** | Request or chase the balance. |
+
+When there's nothing to do it says "You're all caught up". Further down: **Latest orders**, a
+**Live view** of shoppers on your store right now, and **How you're doing** for the week.
+
+<Screenshot
+  name="Home dashboard"
+  caption="Dashboard in the morning: the greeting line with today's orders and ₹ total, the Needs you card with Ship orders and Check payments rows, and Latest orders below."
+/>
+
+## Finding your way around
+
+The sidebar is how you get everywhere:
+
+| Section | What's inside |
+| --- | --- |
+| **Home** | The dashboard. |
+| **Orders** | Drafts, Abandoned checkouts, Shipments. |
+| **Products** | Collections, Inventory, Purchase orders, Transfers, Gift cards. |
+| **Customers** | Segments. |
+| **Content** | Files, Metaobjects, Menus, Blog posts. |
+| **Analytics** | Reports, Live view. |
+| **Marketing** | Campaigns, Automations. |
+| **Discounts** | Codes and automatic discounts. |
+| **Online Store** | Themes, Pages, Preferences. |
+| **Apps** | Installed apps, each with its own entry. |
+| **Settings** | Pinned at the bottom: General, Payments, Shipping, Notifications, Files, Staff, Custom data, Domains, Appearance. |
+
+<Callout type="info">
+  **Tip.** Press <kbd>Ctrl</kbd> <kbd>K</kbd> (<kbd>⌘</kbd> <kbd>K</kbd> on a Mac) anywhere
+  in the admin to "Search or jump to" an order, product or customer. <kbd>G</kbd> then <kbd>O</kbd>
+  jumps to Orders, <kbd>G</kbd> <kbd>P</kbd> to Products, <kbd>G</kbd> <kbd>C</kbd> to
+  Customers, and <kbd>?</kbd> shows every shortcut.
+</Callout>
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| The code email didn't arrive | Spam folder, or a typo in the email. | Check spam and Promotions; use **Use a different email** to retype it. |
+| **Wrong code** | A mistyped or older code. | Type the code from the newest email, or ask for a new one. |
+| **No stores yet** | You aren't a member of any store. | Ask the owner to invite you. Creating a new store yourself is coming soon. |
+| "Invitation expired" | The link is too old. | Ask the owner to send a new invite. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="Can I set a password instead?">
+
+No, and that's deliberate: one-time codes can't be reused or leaked from another website.
+
+</FaqItem>
+
+<FaqItem question="Can I use the admin on my phone?">
+
+Yes. The admin works in your phone's browser. For day-to-day work (checking payments, booking
+shipments) a phone is enough.
+
+</FaqItem>
+
+<FaqItem question="How do I switch to dark mode?">
+
+**Settings → Appearance → Theme**: Light, Dark or System. You can also pick an **Accent
+colour** there.
+
+</FaqItem>
+
+</Faq>
+
+## Next steps
+
+<RelatedGuides ids={['set-up', 'going-live', 'products', 'orders']} />

@@ -1,5 +1,6 @@
 import { generateStaticParamsFor, importPage } from 'nextra/pages'
 import PageFeedback from '../../components/page-feedback'
+import ReadingTime from '../../components/reading-time'
 import { useMDXComponents as getMDXComponents } from '../../mdx-components'
 
 type PageProps = {
@@ -21,8 +22,10 @@ export default async function Page(props: PageProps) {
   const Wrapper = getMDXComponents().wrapper as NonNullable<
     ReturnType<typeof getMDXComponents>['wrapper']
   >
+  const readingMinutes = (metadata as { readingTime?: { minutes?: number } }).readingTime?.minutes
   return (
     <Wrapper toc={toc} metadata={metadata}>
+      {params.mdxPath && <ReadingTime minutes={readingMinutes} />}
       <MDXContent {...props} params={params} />
       {params.mdxPath && <PageFeedback />}
     </Wrapper>
