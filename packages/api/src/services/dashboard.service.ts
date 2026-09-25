@@ -2,6 +2,7 @@ import {
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   parseAppsSettings,
+  StoreAddressSchema,
   UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
@@ -56,8 +57,8 @@ const MIX_WINDOW_DAYS = 30
 const LIVE_MINUTES = 30
 const CATEGORY_ROWS = 3
 const LATEST_PRODUCTS = 3
-/** How many recent orders the mini India map plots as dots. */
-const MAP_ORDERS = 24
+/** How many of the last 24h's orders the Live view globe plots as markers/arcs. */
+const MAP_ORDERS = 40
 
 export type DashboardWindow = {
   /** Current window value. */
@@ -198,14 +199,17 @@ export type DashboardSummary = {
     /** Consecutive days up to today (IST) with at least one paid order, capped at 14 (the lookback window). */
     streakDays: number
   }
-  /** Last orders with a shipping state, newest first, for the mini map's pulsing dots. */
+  /** Orders from the last 24h with a shipping address, newest first, for the Live view globe. */
   mapOrders: {
     id: string
     number: number
+    city: string
     stateCode: string
     totalPaise: number
     placedAt: Date
   }[]
+  /** The store's dispatch location (Settings > General address), for the globe's arc origin. Null when no address is set. */
+  dispatch: { city: string; state: string } | null
   /** How the last 30 days of orders were paid for, by plain-language method label, busiest first. */
   paymentMix: { label: string; count: number }[]
   /** Where the last 30 days of orders sit right now, in a fixed owner-facing order. */
@@ -730,9 +734,10 @@ export async function dashboardSummary(
       ),
     )
   let gstQueued: { count: number; href: string } | null = null
+  let dispatch: DashboardSummary['dispatch'] = null
   if (opts.storeId) {
     const [storeRow] = await tx
-      .select({ apps: store.apps })
+      .select({ apps: store.apps, address: store.address })
       .from(store)
       .where(eq(store.id, opts.storeId))
     if (parseAppsSettings(storeRow?.apps).installed.includes(GST_INVOICES_ID)) {
@@ -741,6 +746,10 @@ export async function dashboardSummary(
         .from(invoice)
         .where(and(eq(invoice.kind, 'tax_invoice'), eq(invoice.status, 'draft')))
       gstQueued = { count: queuedRow?.n ?? 0, href: '/apps/gst-invoices' }
+    }
+    const storeAddress = StoreAddressSchema.safeParse(storeRow?.address ?? {})
+    if (storeAddress.success && storeAddress.data.city) {
+      dispatch = { city: storeAddress.data.city, state: storeAddress.data.state }
     }
   }
 
@@ -785,18 +794,19 @@ export async function dashboardSummary(
     else break
   }
 
-  /* Last orders with a shipping state, for the mini map's pulsing dots. */
+  /* Orders from the last 24h with a shipping address, for the Live view globe's markers/arcs. */
   const mapOrderRows = await tx
     .select({
       id: order.id,
       number: order.number,
+      city: address.city,
       stateCode: address.stateCode,
       totalPaise: order.totalPaise,
       placedAt: order.placedAt,
     })
     .from(order)
     .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(and(notDraft, ne(order.status, 'cancelled')))
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, dayAgo)))
     .orderBy(desc(order.placedAt))
     .limit(MAP_ORDERS)
 
@@ -905,6 +915,7 @@ export async function dashboardSummary(
       streakDays,
     },
     mapOrders: mapOrderRows,
+    dispatch,
     paymentMix,
     statusMix,
     hoursHeatmap,
