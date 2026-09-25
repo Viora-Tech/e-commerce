@@ -31,6 +31,8 @@ export type ImportContext = {
   media: MediaHost
   report: Reporter
   log: (message: string) => void
+  /** SETTINGS_SECRET — encrypts/decrypts `customer.phone` the same way the admin and checkout paths do. */
+  secret: string
 }
 
 const SAMPLES_PER_RESOURCE = 5

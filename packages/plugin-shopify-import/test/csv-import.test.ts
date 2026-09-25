@@ -1,4 +1,9 @@
-import { findRedirect } from '@commerce/core'
+import {
+  decryptCustomerPhone,
+  encryptCustomerPhone,
+  findRedirect,
+  phoneBlindIndex,
+} from '@commerce/core'
 import {
   customer,
   inventoryLevel,
@@ -31,6 +36,7 @@ import {
   json,
   MemoryStorageProvider,
   owner,
+  SECRET,
   seedStore,
 } from './helpers'
 
@@ -228,6 +234,39 @@ describe('CSV import runs', () => {
     expect(ravi?.defaultAddress?.stateCode).toBe('CG')
     expect(ravi?.tags).toEqual(['wholesale'])
     expect(ravi?.defaultAddress?.line1).toBe('Kumar Traders, 4 Station Rd')
+
+    const [run] = await owner.select().from(importRun).where(eq(importRun.id, runId))
+    expect(run?.progress.customers).toMatchObject({ created: 1, updated: 1 })
+  })
+
+  it('matches an existing customer by phone via the blind index, and keeps the phone encrypted', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const d = deps(storeId, storage)
+    // No email, so matchCustomer falls through to the phone lookup — this must hit
+    // `customer.phone_index`, never `eq(customer.phone, ...)`, since the stored phone is
+    // already ciphertext (as the admin/checkout paths leave it).
+    const { cipher, index } = encryptCustomerPhone('+919800000001', SECRET)
+    const [existing] = await owner
+      .insert(customer)
+      .values({ storeId, phone: cipher, phoneIndex: index, note: 'Called about a return' })
+      .returning()
+    const runId = await csvRun(storeId, storage, 'customers', 'customers.csv')
+    await executeRun(d, runId)
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(d, runId)
+
+    const rows = await owner.select().from(customer)
+    // Matched, not duplicated: still one row for that phone, not two.
+    expect(rows.filter((c) => c.phoneIndex === index)).toHaveLength(1)
+    const asha = rows.find((c) => c.id === existing?.id)
+    expect(asha).toBeDefined()
+    // The import's own values (name, address) landed on the matched row.
+    expect(asha).toMatchObject({ name: 'Asha Rao', note: 'Prefers courier' })
+    // The phone stayed encrypted under the current key, not overwritten with plaintext.
+    expect(asha?.phone?.startsWith('v2.')).toBe(true)
+    expect(decryptCustomerPhone(asha?.phone ?? null, SECRET)).toBe('+919800000001')
+    expect(phoneBlindIndex('+919800000001', SECRET)).toBe(index)
 
     const [run] = await owner.select().from(importRun).where(eq(importRun.id, runId))
     expect(run?.progress.customers).toMatchObject({ created: 1, updated: 1 })
