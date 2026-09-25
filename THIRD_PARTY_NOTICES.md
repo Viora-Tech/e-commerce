@@ -33,3 +33,8 @@ Before copying or closely adapting code from another project:
 4. **Add a row above.**
 
 Candidate projects, with verified licences and what to take from each: [`docs/open-source-radar.md`](docs/open-source-radar.md).
+
+## @theguild/remark-mermaid
+
+- Used in: `apps/docs` (renders Mermaid diagrams in MDX pages)
+- Licence: MIT — https://github.com/dimaMachina/nextra (The Guild)

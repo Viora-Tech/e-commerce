@@ -2,4 +2,301 @@
 title: Architecture
 ---
 
-Test
+
+How the platform is built today, what keeps it multi-tenant, and the order in
+which we grow it toward Shopify/Medusa-class scale. Sections 2–4 describe
+**what exists**; section 5 is the **roadmap**. Nothing in section 5 is built
+unless it says so.
+
+## 1. Goals
+
+- **Indian D2C SaaS.** Many stores per deployment: INR, GST, UPI/COD, Delhivery,
+  WhatsApp. Waimers is store #1, not a special case in code.
+- **Cheapest viable infra.** One Postgres, one Dragonfly, three containers on
+  ECS behind Cloudflare's free tier. Every design choice must still hold when
+  that becomes several Postgres clusters.
+- **Plugin-first.** Gateways, couriers and channels are packages behind a
+  contract, installed per store from Admin → Apps. The platform never imports
+  an adapter directly (`docs/plugins.md`).
+- **Boring correctness.** RLS in the database, workflows with compensation,
+  idempotent webhooks, one test database per package.
+
+## 2. Current architecture
+
+### 2.1 System context
+
+```mermaid
+flowchart LR
+  shopper((Shopper)) --> cf[Cloudflare DNS/CDN/WAF]
+  merchant((Merchant)) --> cf
+  cf --> sf[apps/storefront<br/>Next.js 16]
+  cf --> ad[apps/admin<br/>Next.js 16 + oRPC]
+  cf -->|/webhooks/*| wk[apps/worker<br/>Hono + BullMQ]
+  sf --> pg[(Postgres 17<br/>RLS, role app)]
+  ad --> pg
+  wk --> pg
+  sf --> df[(Dragonfly<br/>queues + cache)]
+  ad --> df
+  wk --> df
+  subgraph plugins [commerce.config.ts]
+    rz[payments-razorpay]
+    dl[shipping-delhivery]
+    ses[notifications-ses]
+    wa[notifications-whatsapp]
+  end
+  sf -.-> plugins
+  ad -.-> plugins
+  wk -.-> plugins
+```
+
+| Piece | Where | Notes |
+|---|---|---|
+| Storefront | `apps/storefront` | Host → store via `proxy.ts` rewrite to `/-s/<storeId>/…`; server actions for cart/checkout; Puck-rendered pages from `@commerce/blocks`. |
+| Admin | `apps/admin` | Better Auth (email OTP + organisations; one org = one store); oRPC router in `packages/api`; Puck editor; Lexical editor. |
+| Worker | `apps/worker` | Payment webhooks, notification delivery, shipment tracking poll, heartbeat. |
+| Data | `packages/db` | Drizzle schema, 23 migrations (`0000`–`0022`), `withStore`, SECURITY DEFINER lookups. |
+| Domain | `packages/core` | Workflows, settings + encrypted secrets, catalog, cart, order, payments/shipping/notifications glue, plugin registries. |
+| Contracts | `packages/{payments,shipping,notifications}` | Provider interfaces, registries, conformance suites. |
+| Plugin host | `packages/plugins` | `definePlugin`, `defineConfig`, `loadPlugins` → registries, duplicate-id checks. |
+| Queue | `packages/queue` | BullMQ/ioredis factories, named queues, Dragonfly cache helpers. |
+| UI | `packages/ui`, `packages/blocks`, `packages/editor`, `packages/richtext` | shadcn shell + admin components; Glide-derived storefront blocks; Lexical editor; server-safe rich-text renderer. |
+
+### 2.2 Request flow (storefront)
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant P as proxy.ts
+  participant R as Route /-s/[storeId]
+  participant DB as Postgres (role app)
+  B->>P: GET https://waimers.in/products/x
+  P->>DB: select resolve_store('waimers.in')  (SECURITY DEFINER)
+  DB-->>P: storeId
+  P->>R: rewrite /-s/<storeId>/products/x (client routing headers stripped, cf-ipcountry forwarded)
+  R->>DB: BEGIN; set_config('app.store_id', storeId, true)
+  DB-->>R: rows where store_id = current_setting('app.store_id')
+  R-->>B: HTML
+```
+
+Every tenant query runs inside `withStore(db, storeId, fn)`; the policy
+`store_isolation` on every tenant table is what enforces isolation, not the
+`where` clauses. Admin follows the same path after the membership check in
+`storeProcedure` (session → organisation → `resolve_store_for_organization`).
+
+### 2.3 Order workflow
+
+`placeOrder` runs as a saga through `runWorkflow` (`packages/core/src/workflow`).
+Steps run in order; on failure, every completed step with a `compensate` is
+undone in reverse. Property-based tests pin that invariant.
+
+```mermaid
+flowchart LR
+  a[loadCart] --> b[reserveStock] --> c[createOrder] --> d[chargePayment<br/>external] --> e[recordPayment] --> f[markCartConverted]
+  d -. failure .-> c2[delete order]
+  c2 -.-> b2[release stock]
+  e -. failure .-> d2[refund via provider]
+```
+
+`chargePayment` and `recordPayment` are separate on purpose: a capture that
+succeeded at the gateway but failed to persist must be refunded, and the split
+makes the compensation for each half unambiguous. Payment-method adjustments
+(COD fee, UPI discount) are recomputed server-side inside `createOrder`; the
+client total is never trusted.
+
+### 2.4 Plugin loading
+
+```mermaid
+flowchart TD
+  cfg[commerce.config.ts<br/>defineConfig plugins] --> load[loadPlugins]
+  core[corePlugin<br/>COD, manual UPI, demo courier, log] --> load
+  load --> reg[Registries<br/>payments · shipping · notifications]
+  reg --> store[registriesForStore tx, storeId]
+  apps[(store.apps.installed)] --> store
+  store --> settings[Settings → Payments/Shipping/Notifications<br/>forms generated from factory.fields]
+  store --> runtime[checkout · webhooks · worker jobs]
+```
+
+A provider only exists for a store once its plugin is installed
+(`store.apps`), then enabled and configured under Settings. Secrets are
+AES-256-GCM encrypted at rest under `SETTINGS_SECRET` and masked in the API.
+
+## 3. Tenancy model
+
+**What exists**
+
+- Every tenant table has `store_id uuid not null`; `apply_store_rls()` (re-run
+  in each migration that adds tables) enables **and forces** RLS with policy
+  `store_isolation` using `current_setting('app.store_id', true)`.
+- Runtime role `app` is `NOBYPASSRLS`. Cross-tenant lookups go through
+  SECURITY DEFINER functions that return only ids: `resolve_store(hostname)`,
+  `resolve_store_for_organization(org)`, `stores_with_open_shipments()`.
+- `packages/db` has an RLS coverage test: any new table without the policy
+  fails CI.
+- Tests: one database per package (`commerce_test_{db,core,auth,api}`) so
+  Turbo can run suites in parallel.
+- Webhooks are deduplicated by `(store_id, provider, event_id)` in
+  `payment_event`.
+
+**Sharding-readiness rules** (keep these true so section 5h stays possible)
+
+1. No query joins across stores. If you need it, it is a SECURITY DEFINER
+   function that returns ids, run outside `withStore`.
+2. Global tables (`user`, `organization`, `session`, `store`) are the only
+   ones without `store_id`. Everything else is per store.
+3. A `storeId` must be known before any tenant query — never derived from a
+   row fetched without one.
+4. Background jobs carry `storeId` in the payload and open their own
+   `withStore` transaction.
+5. IDs are UUIDv7 generated in the app, never database sequences, except
+   per-store counters (`store.next_order_number` → `order.number`) that are explicitly scoped.
+
+## 4. Modules and plugins
+
+Compared with Medusa's [modules](https://docs.medusajs.com/learn/fundamentals/modules):
+a Medusa module owns its tables and service and is isolated from other modules;
+cross-module work happens in workflows and links. We are looser inside the
+monolith (one schema, one `core` package) and stricter at the edge (adapters
+are separate packages behind a contract). The pieces:
+
+| Concept | Ours | Medusa equivalent |
+|---|---|---|
+| Contract | `PaymentProvider`, `ShippingProvider`, `NotificationChannel` | module provider interfaces |
+| Adapter package | `@commerce/payments-razorpay` etc. with `src/plugin.ts` manifest | provider package |
+| Registration | `commerce.config.ts` → `defineConfig({ plugins })` | `medusa-config.ts` modules |
+| Per-store enablement | `store.apps.installed` + Settings | n/a (Medusa is single-tenant) |
+| Conformance | `describePaymentProvider` etc. (offline + live env-gated) | n/a |
+| Multi-step ops | `runWorkflow` with compensation | Workflows SDK |
+
+What is **not** modular yet: catalog, cart, orders and settings live in
+`packages/core` and share tables directly. That is fine for one team; the
+seams to cut later are the service files under `packages/core/src/<domain>`.
+
+## 5. Scale roadmap
+
+Ordered by leverage and dependency. Effort: S ≤ 2 days, M ≤ 1 week, L > 1 week.
+
+### a. Domain events + transactional outbox — **M, first**
+
+- *They do:* Medusa emits events from modules and delivers them through the
+  Event Module to subscribers ([docs](https://docs.medusajs.com/learn/fundamentals/events-and-subscribers)).
+  Shopify delivers webhooks at-least-once with retries and signs them.
+- *We have:* direct enqueues after `placeOrder`, in the webhook path and on
+  admin status changes (`packages/core/src/notifications/enqueue.ts`).
+- *Change:* `domain_event` table (store_id, type, payload, created_at,
+  published_at) written **in the same transaction** as the state change; a
+  worker relay publishes to BullMQ; subscribers (notifications, search
+  indexing, outbound webhooks) consume by type. Removes the "we committed but
+  the enqueue failed" gap and gives every later item one hook.
+
+### b. Read caching with tag invalidation — **S**
+
+- *They do:* Shopify caches storefront reads aggressively at the edge; Medusa
+  ships a Cache Module.
+- *We have:* Dragonfly cache helpers in `@commerce/queue` (serviceability, 24h).
+- *Change:* cache product/collection/page reads per store in Dragonfly keyed
+  `store:<id>:<kind>:<key>` with tags; Next `revalidateTag('store:<id>:product:<handle>')`
+  from admin mutations via the event bus (a). Cloudflare page cache for
+  anonymous HTML with `Cache-Tag` headers once the event bus exists.
+
+### c. Idempotency keys — **S**
+
+- *They do:* Shopify and Stripe accept `Idempotency-Key` on mutating calls.
+- *We have:* webhook dedupe only.
+- *Change:* `idempotency_key` table (store_id, key, request_hash, response);
+  `checkoutAction`/`placeOrder` and admin create/update procedures take a key
+  from the client (generated per form submit) and return the stored response
+  on replay. Prevents double orders on flaky mobile networks.
+
+### d. Rate limiting and per-store quotas — **S**
+
+- *They do:* Shopify's leaky bucket per app/shop ([docs](https://shopify.dev/docs/api/usage/rate-limits)).
+- *We have:* nothing beyond Cloudflare defaults.
+- *Change:* Cloudflare WAF rate rules on `/checkout`, `/api/rpc`, `/webhooks`;
+  in-app token bucket in Dragonfly keyed by store + IP for server actions and
+  oRPC, returning 429 with `Retry-After`. Quotas per plan later.
+
+### e. Search module — **M**
+
+- *We have:* none (product page by handle only).
+- *Change:* Postgres FTS (`tsvector` column on product, GIN index, per-store)
+  behind a `SearchProvider` contract; Meilisearch as a plugin later using the
+  same contract, indexed from events (a). Filters/sort for collections come
+  with it.
+
+### f. Observability — **S**
+
+- *We have:* console logs, `/health` on the worker.
+- *Change:* structured JSON logs with `store_id`, `request_id`, `user_id`
+  bound in `AsyncLocalStorage`; OpenTelemetry traces from Next + Hono to a
+  cheap backend (Grafana Cloud free tier); BullMQ queue depth/failure metrics;
+  error tracking (Sentry). Required before real merchants.
+
+### g. Versioned Storefront API — **M, later**
+
+- *They do:* Shopify's Storefront API is versioned quarterly
+  ([docs](https://shopify.dev/docs/api/usage/versioning)).
+- *We have:* server actions + oRPC used only by our own apps.
+- *Change:* expose a public, read-mostly `/api/storefront/v1` (oRPC with
+  OpenAPI) once third parties (headless themes, mobile apps) need it. Keep
+  contracts additive within a version; date-stamped versions like Shopify.
+
+### h. Database growth path — **L, staged**
+
+- *They do:* Shopify runs **pods** — fully isolated datastores for a set of
+  shops, with shared stateless app servers that talk to one pod per request
+  and a router ("Sorting Hat") that picks the pod
+  ([engineering post](https://shopify.engineering/a-pods-architecture-to-allow-shopify-to-scale)).
+- *We have:* one Postgres; the section 3 rules already make every tenant
+  query pod-shaped.
+- *Stages:*
+  1. Connection pooling (PgBouncer/RDS Proxy) and read replicas for admin
+     reports; `withStore` gains a `readOnly` flag that routes to a replica.
+  2. Partition the hottest tables (`order`, `order_line`, `payment_event`,
+     `notification`) by `store_id` hash — invisible to code.
+  3. **Pods:** `store.pod` column in the global database; `resolve_store`
+     returns `{ id, pod }`; a `dbForPod(pod)` factory replaces the single
+     `db` import; the worker and admin resolve the pod before `withStore`.
+     Moving a store = copy rows by `store_id`, flip `store.pod`, drop old rows.
+- *Must stay true in code:* rules 1–5 in section 3; no cross-store joins; no
+  global sequences; migrations must be runnable per pod.
+
+### i. Media and CDN — **S**
+
+- *We have:* media table with external URLs (imported from Shopify CDN).
+- *Change:* uploads to Cloudflare R2 via presigned URLs from admin; Cloudflare
+  Images (or `next/image` with a custom loader) for resizing; `media.key` +
+  store-prefixed paths so a store's assets can be moved with its pod.
+
+Recommended order: **a → f → c → b → d → i → e → h → g**. Events first because
+caching, search, outbound webhooks and audit all hang off them; observability
+second because every later item needs measuring.
+
+## 6. Non-goals for now
+
+- Microservices. One deployable per app is the plan until a pod split forces
+  otherwise.
+- Kafka or any broker beyond BullMQ on Dragonfly.
+- Multi-region. India first; Cloudflare handles the edge.
+- Runtime plugin installation without a deploy (marketplace). Plugins are
+  npm packages listed in `commerce.config.ts`; per-store install is a flag.
+- Per-tenant databases from day one. RLS in one database until section 5h.
+
+## 7. Glossary
+
+- **Store** — a tenant. One organisation in Better Auth, one `store` row, N
+  hostnames.
+- **RLS** — Postgres row-level security; `store_isolation` policy on every
+  tenant table.
+- **`withStore`** — opens a transaction and sets `app.store_id` for it.
+- **SECURITY DEFINER** — a function that runs as its owner (bypasses RLS) and
+  is the only sanctioned way to look across stores.
+- **Workflow / compensation** — ordered steps with undo actions run in reverse
+  on failure (`runWorkflow`).
+- **Plugin / provider / factory** — plugin = npm package with a manifest;
+  provider = an implementation of a contract; factory = builds a provider from
+  a store's settings and declares its form `fields`.
+- **Registry** — the set of factories for one contract, filtered per store by
+  installed apps.
+- **Outbox** — events written in the same transaction as the change and
+  relayed asynchronously (planned, 5a).
+- **Pod** — a fully isolated datastore for a group of stores (planned, 5h).
