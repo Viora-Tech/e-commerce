@@ -2,15 +2,18 @@ import {
   applyTracking,
   cancelShipment,
   createShipmentForOrder,
+  decryptShippingSettings,
   estimateForStore,
+  isMaskedSecret,
   parseShippingSettings,
   primaryShippingProvider,
+  type RateLimitRule,
   type ShippingRegistry,
   type ShippingSettings,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { shipment, store } from '@commerce/db'
-import { CourierError, describeCourierFailure } from '@commerce/shipping'
+import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
 import { eq } from 'drizzle-orm'
 
@@ -58,6 +61,80 @@ export async function verifyShippingCredentials(
   )
   if (!provider) return { ok: false, message: 'No courier is enabled.' }
   return provider.verifyCredentials()
+}
+
+/** Five attempts every five minutes: generous for a merchant retyping a typo'd token,
+ *  tight enough to stop a credential-guessing loop against a real courier account. */
+export const TEST_CONNECTION_RULE: RateLimitRule = { limit: 5, windowMs: 5 * 60_000 }
+
+/** The app's own words for why a test connection failed. The courier's raw error never reaches the UI. */
+function describeConnectionError(label: string, error: unknown): string {
+  if (error instanceof CourierError) {
+    if (error.kind === 'auth')
+      return `${label} didn't accept this token. Generate a fresh one from ${label} One → Settings → API Setup and paste it in within 5 minutes - it's only shown once.`
+    if (error.kind === 'timeout')
+      return `${label} did not answer in time. Check your internet connection and try again.`
+    if (error.kind === 'rate_limited')
+      return `${label} is rate limiting requests right now. Wait a minute and try again.`
+    if (error.kind === 'unavailable')
+      return `Could not reach ${label} right now. Try again in a moment.`
+    return `${label} sent back something we didn't expect. Try again in a moment.`
+  }
+  return error instanceof Error ? error.message : `Could not test the ${label} connection.`
+}
+
+/**
+ * The Connect page's "Test connection" button. Takes the form's current field
+ * values - a masked secret (••••1234) means "use what's already saved" - so
+ * the merchant can test before saving. Validates them with the courier's own
+ * factory, then makes exactly one harmless read-only call (a serviceability
+ * lookup for the origin PIN, against itself) to prove the token and account
+ * actually work. Never books a shipment, never logs or returns the token.
+ */
+export async function testShippingConnection(
+  tx: StoreTx,
+  storeId: string,
+  registry: ShippingRegistry,
+  secret: string,
+  providerId: string,
+  rawFields: Record<string, string>,
+): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+  const factory = registry.get(providerId)
+  if (!factory) return { ok: false, message: 'This courier is not available.' }
+
+  const stored = decryptShippingSettings(await loadShippingSettings(tx, storeId), secret).providers[
+    providerId
+  ]
+  const merged = Object.fromEntries(
+    Object.entries(rawFields).map(([key, value]) => [
+      key,
+      isMaskedSecret(value) && stored?.[key] ? stored[key] : value,
+    ]),
+  )
+
+  const built = registry.create(providerId, merged)
+  if (!built.ok) return { ok: false, message: built.errors.join(', ') }
+
+  const pincode = merged.originPincode?.trim()
+  if (!pincode || !isValidPincode(pincode)) {
+    return { ok: false, message: 'Enter a valid 6-digit origin PIN code first.' }
+  }
+
+  try {
+    const result = await built.provider.checkServiceability({
+      originPincode: pincode,
+      destinationPincode: pincode,
+    })
+    if (!result.serviceable) {
+      return {
+        ok: false,
+        message: `${factory.label} accepted the token, but does not currently serve PIN ${pincode}. Double check the origin PIN code.`,
+      }
+    }
+    return { ok: true, message: `Connected - ${factory.label} serves ${pincode}.` }
+  } catch (error) {
+    return { ok: false, message: describeConnectionError(factory.label, error) }
+  }
 }
 
 /** Courier failures become BAD_REQUEST with the app's wording; the courier's never reaches the UI raw. */

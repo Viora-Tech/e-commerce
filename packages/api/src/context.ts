@@ -1,5 +1,5 @@
 import type { MerchantAuth } from '@commerce/auth'
-import type { AppEventQueue, AppJobQueue, NotificationQueue } from '@commerce/core'
+import type { AppEventQueue, AppJobQueue, NotificationQueue, RateLimitStore } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import type { ErrorReporter } from '@commerce/observability'
 
@@ -18,6 +18,8 @@ export type ApiContext = {
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */
   reportError?: ErrorReporter | undefined
+  /** Backs per-store rate limits (e.g. the Connect page's "Test connection" button). Falls back to an in-process store when absent, which is fine for tests but not for a multi-instance deployment. */
+  rateLimit?: RateLimitStore | undefined
 }
 
 export type LiveVisitors = {

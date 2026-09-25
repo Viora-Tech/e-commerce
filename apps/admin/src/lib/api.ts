@@ -1,5 +1,6 @@
 import { appRouter } from '@commerce/api'
 import { loadEnv } from '@commerce/config'
+import { createRedisRateLimitStore } from '@commerce/core'
 import {
   appEventQueue,
   appJobQueue,
@@ -27,6 +28,7 @@ export function apiHost() {
       daily: (storeId: string, days: string[]) =>
         dailyVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId, days),
     },
+    rateLimit: createRedisRateLimitStore(sharedRedis(loadEnv(process.env).REDIS_URL)),
     reportError,
   }
 }
