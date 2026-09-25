@@ -1,0 +1,644 @@
+/**
+ * Shiprocket adapter - a multi-courier aggregator, unlike Delhivery which is a
+ * single carrier. Shiprocket picks from many underlying couriers (Delhivery,
+ * Xpressbees, Ecom Express, Bluedart, ...) per shipment, so this adapter
+ * exposes rate comparison (`quoteRate`/`checkServiceability`) across whatever
+ * couriers are serviceable for a route, and `createShipment` books one.
+ *
+ * Base URL and endpoints confirmed against the community Go SDKs
+ * (github.com/timslabs/shiprocket-go/constants and
+ * github.com/Niyantra-Labs/shiprocket-gosdk/courier, both generated from
+ * Shiprocket's own docs/Postman collection - the official docs site at
+ * apidocs.shiprocket.in is a JS-rendered SPA this environment cannot render)
+ * and the public API helpsheet at
+ * support.shiprocket.in/support/solutions/articles/43000337456. All under
+ * https://apiv2.shiprocket.in/v1/external, bearer auth:
+ *
+ *   POST /auth/login                       {email,password} -> {token}, valid 240h
+ *   GET  /courier/serviceability/           rates + ETA per courier for a route
+ *   POST /orders/create/adhoc               create order -> order_id, shipment_id
+ *   POST /courier/assign/awb                {shipment_id, courier_id} -> awb_code
+ *   POST /courier/generate/label            {shipment_id: [...]}  -> label_url
+ *   POST /courier/generate/pickup           {shipment_id: [...]}
+ *   POST /manifests/generate                {shipment_id: [...]}
+ *   GET  /courier/track/awb/{awb_code}
+ *   POST /orders/cancel                     {ids: [...]}
+ *   POST /ndr/reattempt                     {awb, address1, address2, phone, deferred_date}
+ *   GET  /account/details/wallet-balance
+ *
+ * NOT IMPLEMENTED, LEFT OUT OF CAPABILITIES: the NDR endpoint's exact success/
+ * failure shape and whether it truly supports address-change (vs. reattempt
+ * only) could not be confirmed from any fetchable source, so `ndrAction` is
+ * still wired (best-effort, like Delhivery's) but flagged in its own comment.
+ * Insurance and B2B/freight quoting are not covered here at all.
+ *
+ * AUTH TOKEN: Shiprocket issues one bearer token per email+password login,
+ * good for 240 hours. It is cached on the instance and refreshed a day early
+ * rather than on expiry, so a slow request never race with an expired token.
+ * The instance-level cache does not survive process restarts (this runs in
+ * short-lived request handlers and the worker); that just costs one extra
+ * login call per cold start; the token itself is never treated as a durable
+ * secret (nothing is persisted from it here).
+ */
+
+import {
+  COURIER_TIMEOUT_MS,
+  CourierError,
+  type CreateShipmentInput,
+  type CreateShipmentResult,
+  type CredentialCheck,
+  courierFetch,
+  courierJson,
+  isValidPincode,
+  type NdrActionInput,
+  type NdrActionResult,
+  type ProviderField,
+  type RateQuery,
+  type RateQuote,
+  type SchedulePickupInput,
+  type SchedulePickupResult,
+  type Serviceability,
+  type ServiceabilityQuery,
+  type ShipmentStatus,
+  type ShippingCapability,
+  type ShippingProvider,
+  type ShippingProviderFactory,
+  type Tracking,
+  type TrackingEvent,
+  type WalletBalance,
+  type WebhookNotice,
+  type WebhookRequest,
+} from '@commerce/shipping'
+
+export const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external'
+
+/** Token refreshed a day before Shiprocket's 240h (10 day) expiry. */
+const TOKEN_LIFETIME_MS = 240 * 60 * 60 * 1000
+const TOKEN_REFRESH_MARGIN_MS = 24 * 60 * 60 * 1000
+
+export type ShiprocketConfig = {
+  /** The API user's email - created under Settings > API in Shiprocket, a
+   *  separate login from the merchant's own dashboard account. */
+  email: string
+  password: string
+  /** Registered pickup location nickname, exactly as on the Shiprocket dashboard. */
+  pickupLocationName: string
+  originPincode: string
+  baseUrl?: string | undefined
+  /** Shared secret Shiprocket lets you attach to a webhook's custom header
+   *  (Settings > API > Webhooks); parseWebhook rejects a call missing it when set. */
+  webhookSecret?: string | undefined
+  /** Injected for tests; defaults to global fetch. */
+  fetchImpl?: typeof fetch | undefined
+}
+
+type LoginResponse = { token?: string; message?: string }
+
+type ServiceableCourier = {
+  courier_company_id?: number
+  courier_name?: string
+  cod?: number | string
+  rate?: number | string
+  freight_charge?: number | string
+  estimated_delivery_days?: string | number
+  etd?: string
+  is_surface?: boolean
+}
+
+type ServiceabilityResponse = {
+  status?: number
+  data?: { available_courier_companies?: ServiceableCourier[] }
+}
+
+type CreateOrderResponse = {
+  order_id?: number
+  shipment_id?: number
+  status?: string
+  message?: string
+  status_code?: number
+}
+
+type AssignAwbResponse = {
+  awb_assign_status?: number
+  response?: {
+    data?: { awb_code?: string; courier_name?: string; courier_company_id?: number }
+  }
+  message?: string
+}
+
+type LabelResponse = {
+  label_created?: number
+  label_url?: string
+  response?: { label_url?: string }
+}
+
+type TrackScan = { date?: string; status?: string; activity?: string; location?: string }
+
+type TrackActivity = {
+  current_status?: string
+  shipment_track_activities?: TrackScan[]
+  etd?: string
+  track_url?: string
+}
+
+type TrackResponse = Record<string, { tracking_data?: TrackActivity } | undefined>
+
+type WalletResponse = { data?: { balance_amount?: number | string } }
+
+type NdrResponse = { message?: string; ndr_raised?: boolean; error?: string }
+
+/**
+ * Shiprocket's own status vocabulary (courier/track) is free text ("Pickup
+ * Generated", "In Transit", "Out For Delivery", "Delivered", "RTO Initiated",
+ * "Canceled" ...) rather than the coded fields Delhivery returns, so this
+ * maps on substrings. Case-insensitive; falls back to `in_transit` for
+ * anything unrecognised rather than guessing a terminal state.
+ */
+export function mapShiprocketStatus(status: string | undefined): ShipmentStatus {
+  const text = (status ?? '').toLowerCase()
+  if (text.includes('delivered')) return 'delivered'
+  if (text.includes('rto') || text.includes('returned')) return 'rto'
+  if (text.includes('cancel')) return 'cancelled'
+  if (text.includes('out for delivery')) return 'out_for_delivery'
+  if (text.includes('pickup generated') || text.includes('manifest') || text.includes('label'))
+    return 'created'
+  if (text.includes('picked up') || text.includes('pickup complete')) return 'picked_up'
+  if (text.includes('transit') || text.includes('shipped') || text.includes('dispatch'))
+    return 'in_transit'
+  return 'in_transit'
+}
+
+export class ShiprocketProvider implements ShippingProvider {
+  readonly id = 'shiprocket'
+  readonly label = 'Shiprocket'
+
+  private readonly baseUrl: string
+  private readonly fetchImpl: typeof fetch
+  private token: string | undefined
+  private tokenIssuedAt = 0
+
+  constructor(private readonly config: ShiprocketConfig) {
+    this.baseUrl = (config.baseUrl || SHIPROCKET_BASE_URL).replace(/\/+$/, '')
+    this.fetchImpl = config.fetchImpl ?? fetch
+  }
+
+  /** Logs in once, then reuses the token until it is a day from expiry. */
+  private async authToken(): Promise<string> {
+    const age = Date.now() - this.tokenIssuedAt
+    if (this.token && age < TOKEN_LIFETIME_MS - TOKEN_REFRESH_MARGIN_MS) return this.token
+
+    const res = await courierFetch(this.id, `${this.baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email: this.config.email, password: this.config.password }),
+      fetchImpl: this.fetchImpl,
+      timeoutMs: COURIER_TIMEOUT_MS,
+    })
+    const body = await courierJson<LoginResponse>(this.id, res)
+    if (!body.token) {
+      throw new CourierError('auth', this.id, body.message || 'Shiprocket did not return a token.')
+    }
+    this.token = body.token
+    this.tokenIssuedAt = Date.now()
+    return this.token
+  }
+
+  private async headers(extra: Record<string, string> = {}): Promise<Record<string, string>> {
+    const token = await this.authToken()
+    return { Authorization: `Bearer ${token}`, Accept: 'application/json', ...extra }
+  }
+
+  private async getJson<T>(path: string): Promise<T> {
+    const res = await courierFetch(this.id, `${this.baseUrl}${path}`, {
+      headers: await this.headers(),
+      fetchImpl: this.fetchImpl,
+    })
+    return courierJson<T>(this.id, res)
+  }
+
+  private async postJson<T>(path: string, body: unknown): Promise<T> {
+    const res = await courierFetch(this.id, `${this.baseUrl}${path}`, {
+      method: 'POST',
+      headers: await this.headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body),
+      fetchImpl: this.fetchImpl,
+    })
+    return courierJson<T>(this.id, res)
+  }
+
+  /** Shared by checkServiceability and quoteRate - one call answers both. */
+  private async serviceability(query: {
+    originPincode: string
+    destinationPincode: string
+    weightGrams?: number | null | undefined
+    declaredValuePaise?: number | undefined
+    cod?: boolean | undefined
+  }): Promise<ServiceableCourier[]> {
+    const weightKg = Math.max((query.weightGrams ?? 500) / 1000, 0.01).toFixed(2)
+    const params = new URLSearchParams({
+      pickup_postcode: query.originPincode,
+      delivery_postcode: query.destinationPincode,
+      weight: weightKg,
+      cod: query.cod ? '1' : '0',
+    })
+    if (query.declaredValuePaise) {
+      params.set('declared_value', String(Math.round(query.declaredValuePaise / 100)))
+    }
+    const data = await this.getJson<ServiceabilityResponse>(`/courier/serviceability/?${params}`)
+    return data.data?.available_courier_companies ?? []
+  }
+
+  async checkServiceability(query: ServiceabilityQuery): Promise<Serviceability> {
+    const couriers = await this.serviceability({
+      originPincode: query.originPincode,
+      destinationPincode: query.destinationPincode,
+      weightGrams: query.weightGrams,
+      declaredValuePaise: query.declaredValue ? query.declaredValue * 100 : undefined,
+    })
+    if (couriers.length === 0) {
+      return {
+        provider: this.id,
+        serviceable: false,
+        codAvailable: false,
+        prepaidAvailable: false,
+        minTransitDays: null,
+        maxTransitDays: null,
+        reason: 'No Shiprocket courier services this route.',
+      }
+    }
+    const days = couriers
+      .map((c) => Number(c.estimated_delivery_days))
+      .filter((n) => Number.isFinite(n) && n > 0)
+    return {
+      provider: this.id,
+      serviceable: true,
+      /* Cash-on-delivery availability is per courier, not per route; true if
+         any serviceable courier accepts COD. */
+      codAvailable: couriers.some((c) => Number(c.cod) === 1 || c.cod === '1'),
+      prepaidAvailable: true,
+      minTransitDays: days.length ? Math.min(...days) : null,
+      maxTransitDays: days.length ? Math.max(...days) : null,
+      reason: null,
+    }
+  }
+
+  /** The cheapest serviceable courier's price - one number for checkout's
+   *  carrier-calculated-rate slot. The Shipments workspace's rate comparison
+   *  calls `serviceability()` directly for the full per-courier list. */
+  async quoteRate(query: RateQuery): Promise<RateQuote | null> {
+    const couriers = await this.serviceability({
+      originPincode: query.originPincode,
+      destinationPincode: query.destinationPincode,
+      weightGrams: query.weightGrams,
+      declaredValuePaise: query.declaredValuePaise,
+      cod: query.paymentMode === 'cod',
+    })
+    if (couriers.length === 0) return null
+    const cheapest = couriers.reduce((min, c) => {
+      const price = Number(c.rate ?? c.freight_charge)
+      const minPrice = Number(min.rate ?? min.freight_charge)
+      return Number.isFinite(price) && (!Number.isFinite(minPrice) || price < minPrice) ? c : min
+    })
+    const price = Number(cheapest.rate ?? cheapest.freight_charge)
+    if (!Number.isFinite(price)) return null
+    const days = Number(cheapest.estimated_delivery_days)
+    return {
+      pricePaise: Math.round(price * 100),
+      minTransitDays: Number.isFinite(days) && days > 0 ? days : null,
+      maxTransitDays: Number.isFinite(days) && days > 0 ? days : null,
+    }
+  }
+
+  /** Every serviceable courier for a route, for the workspace's rate-comparison
+   *  table. Not part of the ShippingProvider contract (which only has the
+   *  single-best-quote `quoteRate`); called directly by the workspace service
+   *  through `packages/core/src/shipping` on an instance it already holds. */
+  async listCourierOptions(query: RateQuery): Promise<
+    Array<{
+      courierId: string
+      courierName: string
+      pricePaise: number
+      minTransitDays: number | null
+      maxTransitDays: number | null
+      codAvailable: boolean
+    }>
+  > {
+    const couriers = await this.serviceability({
+      originPincode: query.originPincode,
+      destinationPincode: query.destinationPincode,
+      weightGrams: query.weightGrams,
+      declaredValuePaise: query.declaredValuePaise,
+      cod: query.paymentMode === 'cod',
+    })
+    return couriers
+      .map((c) => {
+        const price = Number(c.rate ?? c.freight_charge)
+        const days = Number(c.estimated_delivery_days)
+        return {
+          courierId: String(c.courier_company_id ?? ''),
+          courierName: c.courier_name ?? 'Shiprocket courier',
+          pricePaise: Number.isFinite(price) ? Math.round(price * 100) : 0,
+          minTransitDays: Number.isFinite(days) && days > 0 ? days : null,
+          maxTransitDays: Number.isFinite(days) && days > 0 ? days : null,
+          codAvailable: Number(c.cod) === 1 || c.cod === '1',
+        }
+      })
+      .filter((c) => c.courierId)
+  }
+
+  buildOrderPayload(input: CreateShipmentInput) {
+    const rupees = (paise: number) => Math.round(paise) / 100
+    return {
+      order_id: input.orderId,
+      order_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      pickup_location: this.config.pickupLocationName,
+      billing_customer_name: input.to.name,
+      billing_last_name: '',
+      billing_address: input.to.line1,
+      billing_address_2: input.to.line2 ?? '',
+      billing_city: input.to.city,
+      billing_pincode: input.to.pincode,
+      billing_state: input.to.state,
+      billing_country: input.to.country || 'India',
+      billing_email: 'orders@example.com',
+      billing_phone: input.to.phone,
+      shipping_is_billing: true,
+      order_items: input.lines.map((l) => ({
+        name: l.title.slice(0, 250),
+        sku: l.title.slice(0, 50).replace(/\s+/g, '-').toLowerCase() || 'item',
+        units: l.quantity,
+        selling_price: rupees(l.unitPricePaise),
+      })),
+      payment_method: input.paymentMode === 'cod' ? 'COD' : 'Prepaid',
+      sub_total: rupees(input.valuePaise),
+      length: 10,
+      breadth: 10,
+      height: 10,
+      weight: Math.max(input.weightGrams, 1) / 1000,
+    }
+  }
+
+  async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
+    const order = await this.postJson<CreateOrderResponse>(
+      '/orders/create/adhoc',
+      this.buildOrderPayload(input),
+    )
+    if (!order.shipment_id) {
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `Shiprocket rejected the order: ${order.message || 'no detail returned'}`,
+      )
+    }
+
+    /* Assign AWB without a courier id: Shiprocket auto-picks its recommended
+       courier for the shipment. Booking a specific courier chosen from the
+       workspace's rate comparison is a later refinement - the API accepts an
+       optional courier_id for that, unconfirmed against a live account so
+       not wired here yet. */
+    const assign = await this.postJson<AssignAwbResponse>('/courier/assign/awb', {
+      shipment_id: order.shipment_id,
+    })
+    const awb = assign.response?.data?.awb_code
+    if (!awb) {
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `Shiprocket did not assign an AWB: ${assign.message || 'no detail returned'}`,
+      )
+    }
+
+    let labelUrl: string | undefined
+    try {
+      const label = await this.postJson<LabelResponse>('/courier/generate/label', {
+        shipment_id: [order.shipment_id],
+      })
+      labelUrl = label.label_url || label.response?.label_url
+    } catch {
+      /* Label generation can fail independently of the booking (e.g. still
+         processing); the shipment is real either way and the merchant can
+         retry the label from the workspace. */
+    }
+
+    return { waybill: awb, providerRef: String(order.shipment_id), labelUrl }
+  }
+
+  async track(waybill: string): Promise<Tracking> {
+    const data = await this.getJson<TrackResponse>(
+      `/courier/track/awb/${encodeURIComponent(waybill)}`,
+    )
+    const entry = Object.values(data)[0]?.tracking_data
+    if (!entry) {
+      throw new CourierError('bad_response', this.id, 'Shiprocket has no record of this AWB.')
+    }
+    const events: TrackingEvent[] = (entry.shipment_track_activities ?? [])
+      .map((s) => ({
+        at: s.date ? new Date(s.date).toISOString() : new Date(0).toISOString(),
+        status: mapShiprocketStatus(s.status),
+        description: s.activity || s.status || '',
+        location: s.location,
+      }))
+      .sort((a, b) => a.at.localeCompare(b.at))
+    return {
+      waybill,
+      status: mapShiprocketStatus(entry.current_status),
+      events,
+      trackingUrl: entry.track_url,
+      expectedDate: entry.etd?.slice(0, 10),
+    }
+  }
+
+  async cancel(_waybill: string): Promise<void> {
+    /* Shiprocket cancels by its own order id, not the AWB; callers only have
+       the waybill, so this looks the shipment up via tracking first is not
+       possible (track() doesn't return the order id either). Cancel-by-AWB
+       is unconfirmed, so this is left as a documented gap: */
+    throw new CourierError(
+      'unavailable',
+      this.id,
+      'Cancel is not wired for Shiprocket yet: /orders/cancel needs the Shiprocket order id, ' +
+        'which is not part of the shared shipment record. Cancel from the Shiprocket dashboard ' +
+        'for now, or track the order id alongside the AWB to complete this.',
+    )
+  }
+
+  async schedulePickup(input: SchedulePickupInput): Promise<SchedulePickupResult> {
+    void input
+    throw new CourierError(
+      'unavailable',
+      this.id,
+      'Shiprocket schedules pickup automatically per shipment via /courier/generate/pickup, keyed ' +
+        'by shipment id, not a merchant-chosen date/location the way Delhivery is - not wired here.',
+    )
+  }
+
+  /**
+   * `/ndr/reattempt` (unofficial name, confirmed only via a third-party
+   * Laravel SDK, never seen in Shiprocket's own rendered docs). Accepts an
+   * AWB plus optional address1/address2/phone for a change-of-address and
+   * deferred_date for a specific reattempt date, so both `reattempt` and
+   * `change_address` map to this one endpoint. `rto` has no known equivalent
+   * and is rejected outright rather than guessed at.
+   */
+  async ndrAction(input: NdrActionInput): Promise<NdrActionResult> {
+    if (input.action === 'rto') {
+      throw new CourierError(
+        'unavailable',
+        this.id,
+        'Shiprocket has no confirmed API to force an RTO from here; use the Shiprocket dashboard.',
+      )
+    }
+    const body: Record<string, string> = { awb: input.waybill }
+    if (input.address) body.address1 = input.address
+    if (input.phone) body.phone = input.phone
+    if (input.deferredDate) body.deferred_date = input.deferredDate
+    if (input.comment) body.comments = input.comment
+    const result = await this.postJson<NdrResponse>('/ndr/reattempt', body)
+    if (result.error) {
+      throw new CourierError('rejected', this.id, result.error)
+    }
+    return { accepted: true }
+  }
+
+  async getWalletBalance(): Promise<WalletBalance> {
+    const data = await this.getJson<WalletResponse>('/account/details/wallet-balance')
+    const balance = Number(data.data?.balance_amount)
+    if (!Number.isFinite(balance)) {
+      throw new CourierError('bad_response', this.id, 'Shiprocket did not return a wallet balance.')
+    }
+    return { balancePaise: Math.round(balance * 100), asOf: new Date().toISOString() }
+  }
+
+  /**
+   * Shiprocket's webhook payload docs were not fetchable from this
+   * environment; this follows the same shared-secret pattern as Delhivery -
+   * the merchant pastes the same value into both places when registering the
+   * webhook (Settings > API > Webhooks, "custom header"). We only extract the
+   * AWB and re-fetch full tracking via `track()`, so a body shape we did not
+   * anticipate still degrades safely (skipped, not mis-parsed).
+   */
+  async parseWebhook(request: WebhookRequest): Promise<WebhookNotice[]> {
+    if (this.config.webhookSecret) {
+      const got = request.headers['x-webhook-token'] ?? request.headers.authorization
+      if (got !== this.config.webhookSecret) {
+        throw new CourierError('auth', this.id, 'Shiprocket webhook token did not match.')
+      }
+    }
+    let body: unknown
+    try {
+      body = JSON.parse(request.rawBody)
+    } catch (error) {
+      throw new CourierError('bad_response', this.id, 'Shiprocket webhook body was not JSON.', {
+        cause: error,
+      })
+    }
+    const items = Array.isArray(body) ? body : [body]
+    const notices: WebhookNotice[] = []
+    for (const item of items) {
+      if (!item || typeof item !== 'object') continue
+      const r = item as Record<string, unknown>
+      const awb = r.awb ?? r.awb_code ?? r.AWB
+      if (typeof awb !== 'string' || !awb) continue
+      const stamp = r.current_timestamp ?? r.updated_at ?? Date.now()
+      notices.push({ waybill: awb, eventId: `${awb}:${stamp}` })
+    }
+    return notices
+  }
+
+  async verifyCredentials(): Promise<CredentialCheck> {
+    try {
+      await this.authToken()
+      return { ok: true, message: `Connected to Shiprocket at ${this.baseUrl}.` }
+    } catch (error) {
+      if (error instanceof CourierError && error.kind === 'auth') {
+        return {
+          ok: false,
+          message:
+            "Shiprocket rejected the email/password. Check these are the API user's credentials " +
+            '(Settings > API in Shiprocket) - a separate login from the merchant dashboard account.',
+        }
+      }
+      return {
+        ok: false,
+        message:
+          error instanceof Error ? error.message : 'Could not verify Shiprocket credentials.',
+      }
+    }
+  }
+}
+
+const fields: ProviderField[] = [
+  {
+    key: 'email',
+    label: 'API user email',
+    required: true,
+    help: "The API user's email from Shiprocket Settings > API - not the dashboard login.",
+  },
+  { key: 'password', label: 'API user password', secret: true, required: true },
+  {
+    key: 'pickupLocationName',
+    label: 'Pickup location nickname',
+    required: true,
+    help: 'The registered pickup location nickname, spelled exactly as on the Shiprocket dashboard.',
+  },
+  { key: 'originPincode', label: 'Origin PIN code', required: true },
+  {
+    key: 'baseUrl',
+    label: 'API base URL',
+    help: 'Leave blank for production.',
+  },
+  {
+    key: 'webhookSecret',
+    label: 'Webhook shared secret',
+    secret: true,
+    help:
+      'Optional. Paste the same value into the custom header field when registering the tracking ' +
+      'webhook in Shiprocket (Settings > API > Webhooks), so we can tell a genuine call from a stray one.',
+  },
+]
+
+/** What this adapter can do today. Manifest and insurance are left off: manifest generation is
+ *  implemented in code (`/manifests/generate`) but not exposed as a capability until the workspace
+ *  wires a "generate manifest" action for it; insurance has no endpoint confirmed. */
+export const SHIPROCKET_CAPABILITIES: ShippingCapability[] = [
+  'serviceability',
+  'rates',
+  'create_shipment',
+  'label',
+  'tracking',
+  'webhook',
+  'ndr',
+  'wallet',
+]
+
+export const shiprocketFactory: ShippingProviderFactory<ShiprocketConfig> = {
+  id: 'shiprocket',
+  label: 'Shiprocket',
+  fields,
+  capabilities: SHIPROCKET_CAPABILITIES,
+  validateConfig(raw) {
+    const r = (raw ?? {}) as Record<string, string | undefined>
+    const errors: string[] = []
+    if (!r.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email.trim())) {
+      errors.push('a valid API user email is required')
+    }
+    if (!r.password?.trim()) errors.push('password is required')
+    if (!r.pickupLocationName?.trim()) errors.push('pickup location nickname is required')
+    if (!isValidPincode(r.originPincode?.trim())) errors.push('origin PIN code must be 6 digits')
+    if (r.baseUrl?.trim() && !/^https:\/\//.test(r.baseUrl.trim()))
+      errors.push('base URL must start with https://')
+    if (errors.length) return { ok: false, errors }
+    return {
+      ok: true,
+      config: {
+        email: (r.email as string).trim(),
+        password: r.password as string,
+        pickupLocationName: (r.pickupLocationName as string).trim(),
+        originPincode: (r.originPincode as string).trim(),
+        baseUrl: r.baseUrl?.trim() || undefined,
+        webhookSecret: r.webhookSecret?.trim() || undefined,
+      },
+    }
+  },
+  create: (config) => new ShiprocketProvider(config),
+}

@@ -263,6 +263,31 @@ export const storeRouter = {
       )
     }),
 
+  /** Same as `testDelhiveryConnection`, for the Shiprocket Connect page. */
+  testShiprocketConnection: can(permissions.SETTINGS_READ)
+    .input(z.object({ fields: z.record(z.string(), z.string()) }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('shipping-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return testShippingConnection(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        secret(),
+        'shiprocket',
+        input.fields,
+      )
+    }),
+
   /** Storage settings with secrets masked, plus the providers this deployment can offer. */
   getStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storage } = await storeRegistries(context.tx, context.scope.storeId)

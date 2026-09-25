@@ -26,6 +26,7 @@
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
+    "@commerce/shipping-shiprocket": "workspace:*",
     "@commerce/storage": "workspace:*",
     "@commerce/ui": "workspace:*",
     "@hugeicons/core-free-icons": "4.3.5",

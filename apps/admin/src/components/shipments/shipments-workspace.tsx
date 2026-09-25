@@ -6,7 +6,7 @@ import { shipmentsContent } from '@/data/shipments'
 import NdrTab from './ndr-tab'
 import PickupsTab from './pickups-tab'
 import ShipmentsTab from './shipments-tab'
-import WalletCard from './wallet-card'
+import WalletCards from './wallet-cards'
 
 const copy = shipmentsContent
 
@@ -15,7 +15,7 @@ export default function ShipmentsWorkspace() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <WalletCard />
+      <WalletCards />
       <Tabs defaultValue="shipments">
         <TabsList>
           <TabsTrigger value="shipments">{copy.tabs.shipments}</TabsTrigger>

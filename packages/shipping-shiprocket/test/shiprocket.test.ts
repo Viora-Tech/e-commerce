@@ -1,0 +1,392 @@
+import { CourierError } from '@commerce/shipping'
+import { describeShippingProvider, sampleShipment } from '@commerce/shipping/testing'
+import { describe, expect, it } from 'vitest'
+import { mapShiprocketStatus, ShiprocketProvider, shiprocketFactory } from '../src/shiprocket'
+
+type Route = (url: URL, init?: RequestInit) => Response | Promise<Response>
+
+/** A fetch that records every call and answers from a route table. */
+function fakeFetch(routes: Record<string, Route>) {
+  const calls: { url: URL; init?: RequestInit | undefined }[] = []
+  const impl: typeof fetch = async (input, init) => {
+    const url = new URL(
+      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+    )
+    calls.push({ url, init })
+    const route = Object.entries(routes).find(([path]) => url.pathname.startsWith(path))?.[1]
+    if (!route) return new Response('not found', { status: 404 })
+    return route(url, init)
+  }
+  return { impl, calls }
+}
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+const config = {
+  email: 'api-user@waimers.example',
+  password: 'secret',
+  pickupLocationName: 'Waimers Sonipat',
+  originPincode: '131028',
+}
+
+const withLogin = (routes: Record<string, Route>) => ({
+  '/v1/external/auth/login': () => json({ token: 'tok123' }),
+  ...routes,
+})
+
+describe('ShiprocketProvider auth', () => {
+  it('logs in once and reuses the token across calls', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/serviceability/': () =>
+          json({ data: { available_courier_companies: [] } }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await p.checkServiceability({ originPincode: '131028', destinationPincode: '560001' })
+    await p.checkServiceability({ originPincode: '131028', destinationPincode: '560001' })
+    const logins = f.calls.filter((c) => c.url.pathname.endsWith('/auth/login'))
+    expect(logins).toHaveLength(1)
+  })
+
+  it('maps a failed login to an auth CourierError', async () => {
+    const f = fakeFetch({ '/v1/external/auth/login': () => json({ message: 'bad creds' }, 401) })
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(
+      p.checkServiceability({ originPincode: '131028', destinationPincode: '560001' }),
+    ).rejects.toMatchObject({ kind: 'auth' })
+    expect((await p.verifyCredentials()).ok).toBe(false)
+  })
+})
+
+describe('ShiprocketProvider serviceability and rates', () => {
+  it('reports serviceable with the widest transit range and COD if any courier offers it', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/serviceability/': () =>
+          json({
+            data: {
+              available_courier_companies: [
+                {
+                  courier_company_id: 1,
+                  courier_name: 'A',
+                  cod: 0,
+                  rate: 60,
+                  estimated_delivery_days: '3',
+                },
+                {
+                  courier_company_id: 2,
+                  courier_name: 'B',
+                  cod: 1,
+                  rate: 90,
+                  estimated_delivery_days: '5',
+                },
+              ],
+            },
+          }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.checkServiceability({ originPincode: '131028', destinationPincode: '560001' })
+    expect(r).toMatchObject({
+      serviceable: true,
+      codAvailable: true,
+      minTransitDays: 3,
+      maxTransitDays: 5,
+    })
+  })
+
+  it('is unserviceable, not an error, when no couriers are returned', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/serviceability/': () =>
+          json({ data: { available_courier_companies: [] } }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.checkServiceability({ originPincode: '131028', destinationPincode: '744101' })
+    expect(r.serviceable).toBe(false)
+  })
+
+  it('quoteRate returns the cheapest courier', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/serviceability/': () =>
+          json({
+            data: {
+              available_courier_companies: [
+                { courier_company_id: 1, rate: 90, estimated_delivery_days: '4' },
+                { courier_company_id: 2, rate: 60, estimated_delivery_days: '3' },
+              ],
+            },
+          }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.quoteRate({
+      originPincode: '131028',
+      destinationPincode: '560001',
+      weightGrams: 500,
+      declaredValuePaise: 199900,
+      paymentMode: 'prepaid',
+    })
+    expect(r).toEqual({ pricePaise: 6000, minTransitDays: 3, maxTransitDays: 3 })
+  })
+
+  it('listCourierOptions returns every serviceable courier for the rate comparison table', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/serviceability/': () =>
+          json({
+            data: {
+              available_courier_companies: [
+                {
+                  courier_company_id: 1,
+                  courier_name: 'Delhivery Surface',
+                  rate: 60,
+                  cod: 0,
+                  estimated_delivery_days: '3',
+                },
+                {
+                  courier_company_id: 2,
+                  courier_name: 'Xpressbees',
+                  rate: 90,
+                  cod: 1,
+                  estimated_delivery_days: '2',
+                },
+              ],
+            },
+          }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const options = await p.listCourierOptions({
+      originPincode: '131028',
+      destinationPincode: '560001',
+      weightGrams: 500,
+      declaredValuePaise: 199900,
+      paymentMode: 'prepaid',
+    })
+    expect(options).toHaveLength(2)
+    expect(options[0]).toMatchObject({
+      courierId: '1',
+      courierName: 'Delhivery Surface',
+      pricePaise: 6000,
+    })
+    expect(options[1]).toMatchObject({ courierId: '2', codAvailable: true })
+  })
+})
+
+describe('ShiprocketProvider createShipment', () => {
+  it('creates an order, assigns an AWB and fetches a label', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/orders/create/adhoc': () =>
+          json({ order_id: 555, shipment_id: 777, status: 'NEW' }),
+        '/v1/external/courier/assign/awb': () =>
+          json({
+            awb_assign_status: 1,
+            response: { data: { awb_code: 'SR999', courier_name: 'X' } },
+          }),
+        '/v1/external/courier/generate/label': () => json({ label_url: 'https://labels/777.pdf' }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createShipment({
+      ...sampleShipment,
+      paymentMode: 'prepaid',
+      codAmountPaise: 0,
+    })
+    expect(r).toMatchObject({
+      waybill: 'SR999',
+      providerRef: '777',
+      labelUrl: 'https://labels/777.pdf',
+    })
+
+    const orderCall = f.calls.find((c) => c.url.pathname.endsWith('/orders/create/adhoc'))
+    const body = JSON.parse(orderCall?.init?.body as string)
+    expect(body).toMatchObject({
+      pickup_location: 'Waimers Sonipat',
+      payment_method: 'Prepaid',
+      billing_pincode: '560001',
+    })
+  })
+
+  it('surfaces a rejected order', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/orders/create/adhoc': () => json({ message: 'Invalid pickup location' }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.createShipment(sampleShipment)).rejects.toMatchObject({
+      kind: 'rejected',
+      message: expect.stringContaining('Invalid pickup location'),
+    })
+  })
+
+  it('still returns the shipment when label generation fails', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/orders/create/adhoc': () => json({ order_id: 1, shipment_id: 2 }),
+        '/v1/external/courier/assign/awb': () => json({ response: { data: { awb_code: 'SR1' } } }),
+        '/v1/external/courier/generate/label': () => new Response('', { status: 500 }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createShipment(sampleShipment)
+    expect(r.waybill).toBe('SR1')
+    expect(r.labelUrl).toBeUndefined()
+  })
+})
+
+describe('ShiprocketProvider tracking', () => {
+  it('normalises tracking activities into ordered events and a status', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/courier/track/awb/': () =>
+          json({
+            SR999: {
+              tracking_data: {
+                current_status: 'In Transit',
+                track_url: 'https://track/SR999',
+                etd: '2026-09-28',
+                shipment_track_activities: [
+                  {
+                    date: '2026-09-22 08:00:00',
+                    status: 'In Transit',
+                    activity: 'In Transit',
+                    location: 'Delhi Hub',
+                  },
+                  {
+                    date: '2026-09-21 18:00:00',
+                    status: 'Picked Up',
+                    activity: 'Picked Up',
+                    location: 'Sonipat',
+                  },
+                ],
+              },
+            },
+          }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const t = await p.track('SR999')
+    expect(t.status).toBe('in_transit')
+    expect(t.expectedDate).toBe('2026-09-28')
+    expect(t.events.map((e) => e.status)).toEqual(['picked_up', 'in_transit'])
+    expect(t.trackingUrl).toBe('https://track/SR999')
+  })
+})
+
+describe('ShiprocketProvider NDR, wallet and webhook', () => {
+  it('sends a reattempt NDR action', async () => {
+    const f = fakeFetch(withLogin({ '/v1/external/ndr/reattempt': () => json({ message: 'ok' }) }))
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.ndrAction({
+      waybill: 'SR999',
+      action: 'reattempt',
+      deferredDate: '2026-09-26',
+    })
+    expect(r).toEqual({ accepted: true })
+    const call = f.calls.find((c) => c.url.pathname.endsWith('/ndr/reattempt'))
+    const body = JSON.parse(call?.init?.body as string)
+    expect(body).toMatchObject({ awb: 'SR999', deferred_date: '2026-09-26' })
+  })
+
+  it('rejects an NDR action Shiprocket refuses', async () => {
+    const f = fakeFetch(
+      withLogin({ '/v1/external/ndr/reattempt': () => json({ error: 'AWB not in NDR' }) }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    await expect(p.ndrAction({ waybill: 'SR999', action: 'reattempt' })).rejects.toMatchObject({
+      kind: 'rejected',
+      message: 'AWB not in NDR',
+    })
+  })
+
+  it('rejects an rto NDR action outright since no endpoint is confirmed', async () => {
+    const p = new ShiprocketProvider(config)
+    await expect(p.ndrAction({ waybill: 'SR999', action: 'rto' })).rejects.toMatchObject({
+      kind: 'unavailable',
+    })
+  })
+
+  it('reads the wallet balance', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/account/details/wallet-balance': () =>
+          json({ data: { balance_amount: 1234.5 } }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const w = await p.getWalletBalance()
+    expect(w.balancePaise).toBe(123450)
+  })
+
+  it('parses a webhook body into notices keyed by AWB', async () => {
+    const p = new ShiprocketProvider(config)
+    const notices = await p.parseWebhook({
+      rawBody: JSON.stringify({ awb: 'SR999', current_timestamp: '2026-09-25T00:00:00' }),
+      headers: {},
+    })
+    expect(notices).toEqual([{ waybill: 'SR999', eventId: 'SR999:2026-09-25T00:00:00' }])
+  })
+
+  it('rejects a webhook call with the wrong shared secret', async () => {
+    const p = new ShiprocketProvider({ ...config, webhookSecret: 'shh' })
+    await expect(
+      p.parseWebhook({ rawBody: '{}', headers: { 'x-webhook-token': 'nope' } }),
+    ).rejects.toMatchObject({ kind: 'auth' })
+  })
+})
+
+describe('mapShiprocketStatus', () => {
+  it('maps status vocabulary', () => {
+    expect(mapShiprocketStatus('Delivered')).toBe('delivered')
+    expect(mapShiprocketStatus('RTO Initiated')).toBe('rto')
+    expect(mapShiprocketStatus('Out For Delivery')).toBe('out_for_delivery')
+    expect(mapShiprocketStatus('Pickup Generated')).toBe('created')
+    expect(mapShiprocketStatus('Picked Up')).toBe('picked_up')
+    expect(mapShiprocketStatus('Shipped')).toBe('in_transit')
+    expect(mapShiprocketStatus('Canceled')).toBe('cancelled')
+  })
+})
+
+describe('shiprocketFactory', () => {
+  it('requires a valid email, password and origin pincode', () => {
+    expect(shiprocketFactory.validateConfig({})).toMatchObject({ ok: false })
+    const r = shiprocketFactory.validateConfig({ ...config, baseUrl: ' ' })
+    expect(r).toMatchObject({ ok: true, config: { email: config.email, baseUrl: undefined } })
+  })
+
+  it('rejects a malformed email', () => {
+    const r = shiprocketFactory.validateConfig({ ...config, email: 'not-an-email' })
+    expect(r).toMatchObject({ ok: false })
+  })
+})
+
+describeShippingProvider('shiprocket (offline)', {
+  create: () =>
+    new ShiprocketProvider({
+      ...config,
+      fetchImpl: async () => {
+        throw new CourierError('unavailable', 'shiprocket', 'offline')
+      },
+    }),
+})
+
+const live = process.env.SHIPROCKET_API_EMAIL
+if (live) {
+  describeShippingProvider('shiprocket (live)', {
+    live: true,
+    create: () =>
+      new ShiprocketProvider({
+        email: live,
+        password: process.env.SHIPROCKET_API_PASSWORD ?? '',
+        pickupLocationName: process.env.SHIPROCKET_PICKUP ?? 'Waimers',
+        originPincode: process.env.SHIPROCKET_ORIGIN_PIN ?? '131028',
+      }),
+  })
+}

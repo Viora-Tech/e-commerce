@@ -10,6 +10,7 @@ import {
   type RateLimitRule,
   type ShippingRegistry,
   type ShippingSettings,
+  shippingProviderById,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { shipment, store } from '@commerce/db'
@@ -174,12 +175,13 @@ export async function refreshShipmentTracking(
 ) {
   const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new ORPCError('NOT_FOUND')
-  const provider = primaryShippingProvider(
+  const provider = shippingProviderById(
     registry,
     await loadShippingSettings(tx, storeId),
     secret,
+    row.provider,
   )
-  if (!provider || provider.id !== row.provider) {
+  if (!provider) {
     throw new ORPCError('PRECONDITION_FAILED', {
       message: `Courier ${row.provider} is no longer enabled.`,
     })
@@ -197,12 +199,13 @@ export async function cancelStoreShipment(
 ) {
   const [row] = await tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new ORPCError('NOT_FOUND')
-  const provider = primaryShippingProvider(
+  const provider = shippingProviderById(
     registry,
     await loadShippingSettings(tx, storeId),
     secret,
+    row.provider,
   )
-  if (!provider || provider.id !== row.provider) {
+  if (!provider) {
     throw new ORPCError('PRECONDITION_FAILED', {
       message: `Courier ${row.provider} is no longer enabled.`,
     })

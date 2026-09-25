@@ -4,45 +4,33 @@ import { CreditCard } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
 
-type Wallet = Awaited<ReturnType<typeof api.shipments.wallet>>
+type Wallet = Awaited<ReturnType<typeof api.shipments.wallets>>[number]
+
+type WalletCardProps = { wallet: Wallet; onChanged: () => void }
 
 const copy = shipmentsContent.wallet
 const rupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`
 
-/** Balance card: manual entry for Delhivery (no live API yet), refresh for a courier that has one. */
-export default function WalletCard() {
+/** One courier's balance card: manual entry for a courier with no live balance API (Delhivery),
+ *  refresh for one that has it (Shiprocket). A multi-courier store shows one of these per
+ *  connected courier. */
+export default function WalletCard({ wallet, onChanged }: WalletCardProps) {
   // Hooks
-  const [wallet, setWallet] = useState<Wallet | null>(null)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api.shipments
-      .wallet()
-      .then((r) => {
-        if (!cancelled) setWallet(r)
-      })
-      .catch(() => {
-        if (!cancelled) setWallet(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Event handlers
   const handleRefresh = async () => {
     setBusy(true)
     try {
-      await api.shipments.refreshWallet({})
-      setWallet(await api.shipments.wallet())
+      await api.shipments.refreshWallet({ providerId: wallet.provider })
+      onChanged()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
     } finally {
@@ -55,8 +43,11 @@ export default function WalletCard() {
     if (!Number.isFinite(rupeesValue) || rupeesValue < 0) return
     setBusy(true)
     try {
-      await api.shipments.recordWalletBalance({ balancePaise: Math.round(rupeesValue * 100) })
-      setWallet(await api.shipments.wallet())
+      await api.shipments.recordWalletBalance({
+        providerId: wallet.provider,
+        balancePaise: Math.round(rupeesValue * 100),
+      })
+      onChanged()
       setInput('')
       toast.success(copy.saved)
     } catch (err) {
@@ -66,12 +57,12 @@ export default function WalletCard() {
     }
   }
 
-  // Early returns
-  if (!wallet) return null
+  // Render logic
+  const rechargeUrl = copy.rechargeUrl[wallet.provider]
 
   return (
     <DataCard
-      title={copy.heading}
+      title={copy.heading(wallet.providerLabel)}
       icon={<CreditCard aria-hidden="true" />}
       action={wallet.low ? <Badge variant="destructive">{copy.low}</Badge> : null}
     >
@@ -103,17 +94,21 @@ export default function WalletCard() {
               </Button>
             </>
           )}
-          <Button
-            variant="outline"
-            render={<a href="https://one.delhivery.com/" target="_blank" rel="noreferrer" />}
-            nativeButton={false}
-          >
-            {copy.recharge}
-          </Button>
+          {rechargeUrl ? (
+            <Button
+              variant="outline"
+              render={<a href={rechargeUrl} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              {copy.recharge(wallet.providerLabel)}
+            </Button>
+          ) : null}
         </div>
       </div>
       {!wallet.supportsLiveBalance ? (
-        <p className="mt-2 text-caption text-muted-foreground">{copy.apiNote}</p>
+        <p className="mt-2 text-caption text-muted-foreground">
+          {copy.apiNote(wallet.providerLabel)}
+        </p>
       ) : null}
     </DataCard>
   )

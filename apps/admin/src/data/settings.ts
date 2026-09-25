@@ -84,6 +84,7 @@ export const settingsContent = {
     shipping: [
       { id: 'section-couriers', label: 'Couriers' },
       { id: 'section-rates', label: 'Shipping rates' },
+      { id: 'section-courier-rule', label: 'Default courier' },
       { id: 'section-policy', label: 'Dispatch policy' },
       { id: 'section-try-pin', label: 'Try a PIN code' },
     ],

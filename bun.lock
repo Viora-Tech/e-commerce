@@ -15,6 +15,7 @@
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage-r2": "workspace:*",
       },
       "devDependencies": {
@@ -43,6 +44,7 @@
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
+        "@commerce/shipping-shiprocket": "workspace:*",
         "@commerce/storage": "workspace:*",
         "@commerce/ui": "workspace:*",
         "@hugeicons/core-free-icons": "4.3.5",
@@ -543,6 +545,21 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/shipping-shiprocket": {
+      "name": "@commerce/shipping-shiprocket",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/plugins": "workspace:*",
+        "@commerce/shipping": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "dotenv": "^18.0.1",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/storage": {
       "name": "@commerce/storage",
       "version": "0.0.0",
@@ -798,6 +815,8 @@
     "@commerce/shipping": ["@commerce/shipping@workspace:packages/shipping"],
 
     "@commerce/shipping-delhivery": ["@commerce/shipping-delhivery@workspace:packages/shipping-delhivery"],
+
+    "@commerce/shipping-shiprocket": ["@commerce/shipping-shiprocket@workspace:packages/shipping-shiprocket"],
 
     "@commerce/storage": ["@commerce/storage@workspace:packages/storage"],
 
