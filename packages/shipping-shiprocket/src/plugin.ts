@@ -1,4 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
+import { deliveryCheckerBlocks } from './blocks'
 import { shiprocketFactory } from './shiprocket'
 
 /**
@@ -17,6 +18,7 @@ export const shiprocketPlugin = definePlugin({
   description:
     'Rate comparison across Shiprocket’s courier network, bookings, tracking, NDR and wallet balance.',
   provides: { shipping: [shiprocketFactory] },
+  storefront: { blocks: deliveryCheckerBlocks },
   admin: {
     icon: 'Truck',
     pages: [

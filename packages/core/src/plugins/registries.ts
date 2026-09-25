@@ -1,6 +1,7 @@
+import type { AppBlockSource } from '@commerce/blocks/puck'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
-import { type LoadedPlugins, loadPlugins, type Registries } from '@commerce/plugins'
+import { CORE_PLUGIN_ID, type LoadedPlugins, loadPlugins, type Registries } from '@commerce/plugins'
 import { eq } from 'drizzle-orm'
 import commerceConfig from '../../../../commerce.config'
 import { parseAppsSettings } from '../apps/settings'
@@ -27,4 +28,25 @@ export function getRegistries(): LoadedPlugins {
 export async function registriesForStore(tx: StoreTx, storeId: string): Promise<Registries> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
   return getRegistries().forStore(parseAppsSettings(s?.apps).installed)
+}
+
+/**
+ * Every deployment plugin as an `AppBlockSource` (for `buildAppBlocks`), plus
+ * which of them this store has enabled. Always includes the core plugin — it
+ * cannot be uninstalled. Used to build the storefront's live app-blocks
+ * config; see `apps/storefront/src/lib/template-render.tsx`.
+ */
+export async function appBlockSourcesForStore(
+  tx: StoreTx,
+  storeId: string,
+): Promise<{ allSources: AppBlockSource[]; enabledIds: Set<string> }> {
+  const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const enabledIds = new Set([CORE_PLUGIN_ID, ...parseAppsSettings(s?.apps).installed])
+  const allSources: AppBlockSource[] = getRegistries().plugins.map((p) => ({
+    id: p.id,
+    name: p.name,
+    icon: p.admin?.icon,
+    blocks: p.storefront?.blocks,
+  }))
+  return { allSources, enabledIds }
 }

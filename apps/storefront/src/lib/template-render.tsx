@@ -14,6 +14,8 @@ import {
   type TemplateKey,
   toCardArticle,
 } from '@commerce/core'
+import { preorderBlocks } from '@commerce/core/preorder-block'
+import { appBlockSourcesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import type { ComponentConfig } from '@puckeditor/core'
 import { resolveAllData } from '@puckeditor/core'
@@ -32,6 +34,8 @@ export type TemplateOptions = {
   view?: string | undefined
   /** Renderers for the dynamic sections this route can fill (its main section, header, ...). */
   renderers?: SectionMetadata['renderers']
+  /** Data and bound actions app blocks need beyond their own settings (a product, a subscribe action). */
+  appBlockContext?: SectionMetadata['appBlockContext']
 }
 
 /** Whether this request is a verified theme preview (Customize, or the Preview button). */
@@ -48,7 +52,12 @@ async function requestTheme(tx: StoreTx, storeId: string) {
   }
 }
 
-function blocksConfig(tx: StoreTx) {
+async function blocksConfig(tx: StoreTx, storeId: string) {
+  const { allSources, enabledIds } = await appBlockSourcesForStore(tx, storeId)
+  // The core plugin's manifest leaves its block unattached (see core-plugin.ts) so
+  // @commerce/blocks stays out of every other consumer's compile graph; the storefront
+  // route is where a real React tree is already in play, so it fills the gap here.
+  const sources = allSources.map((s) => (s.id === 'core' ? { ...s, blocks: preorderBlocks } : s))
   return createBlocksConfig(
     ({ productType, collectionHandle, limit }) =>
       collectionHandle
@@ -63,6 +72,8 @@ function blocksConfig(tx: StoreTx) {
       loadProduct: async (handle) =>
         (await listCardProducts(tx, 1, undefined, [handle]))[0] ?? null,
     },
+    sources,
+    enabledIds,
   )
 }
 
@@ -83,7 +94,7 @@ export async function renderTemplate(
     ? (await loadTemplate(tx, themeId, key, suffix, { withDraft: preview })).data
     : defaultTemplate(key)
   const visible = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
-  const config = blocksConfig(tx)
+  const config = await blocksConfig(tx, storeId)
   const metadata: SectionMetadata = {
     renderers: {
       // Any template can show the shopper's history; routes add their own sections.
@@ -96,6 +107,7 @@ export async function renderTemplate(
       ),
       ...options.renderers,
     },
+    appBlockContext: options.appBlockContext,
     newsletterAction: subscribeAction.bind(null, storeId),
   }
   const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)

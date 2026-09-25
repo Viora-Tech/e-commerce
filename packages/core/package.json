@@ -33,6 +33,7 @@
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
     "./preorder": "./src/preorder/client.ts",
+    "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts"
   },
   "scripts": {
@@ -41,6 +42,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/blocks": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/money": "workspace:*",
     "drizzle-orm": "^0.45.2",
@@ -51,12 +53,17 @@
     "@commerce/plugins": "workspace:*",
     "@commerce/storage": "workspace:*"
   },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
   "devDependencies": {
     "@commerce/config": "workspace:*",
     "@types/node": "^22.20.4",
+    "@types/react": "^19.2.8",
     "@vitest/coverage-v8": "4.1.11",
     "dotenv": "^18.0.1",
     "fast-check": "4.10.2",
+    "react": "^19.2.0",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
   }

@@ -6,6 +6,7 @@
       "name": "commerce",
       "dependencies": {
         "@commerce/backup": "workspace:*",
+        "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
         "@commerce/notifications-ses": "workspace:*",
@@ -43,6 +44,7 @@
         "@commerce/notifications": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -214,17 +216,20 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/money": "workspace:*",
+        "@commerce/plugins": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@puckeditor/core": "^0.23.0",
         "motion": "^13.4.1",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
         "@types/react": "^19.2.8",
         "@types/react-dom": "^19.2.3",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
       "peerDependencies": {
         "react": "^19.0.0",
@@ -248,6 +253,7 @@
       "name": "@commerce/core",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/blocks": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
@@ -261,11 +267,16 @@
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
         "@vitest/coverage-v8": "4.1.11",
         "dotenv": "^18.0.1",
         "fast-check": "4.10.2",
+        "react": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
       },
     },
     "packages/db": {
@@ -434,6 +445,7 @@
       "name": "@commerce/plugin-back-in-stock",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/blocks": "workspace:*",
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/notifications": "workspace:*",
@@ -444,9 +456,14 @@
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
         "dotenv": "^18.0.1",
+        "react": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
       },
     },
     "packages/plugin-gst-invoices": {
@@ -553,30 +570,42 @@
       "name": "@commerce/shipping-delhivery",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/blocks": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
         "dotenv": "^18.0.1",
+        "react": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
       },
     },
     "packages/shipping-shiprocket": {
       "name": "@commerce/shipping-shiprocket",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/blocks": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
         "dotenv": "^18.0.1",
+        "react": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
       },
     },
     "packages/storage": {

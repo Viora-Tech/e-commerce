@@ -1,4 +1,5 @@
 @import "./base.css";
+@import "./component-app-blocks.css";
 @import "./component-article-card.css";
 @import "./component-breadcrumbs.css";
 @import "./component-gallery.css";

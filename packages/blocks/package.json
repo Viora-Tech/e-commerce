@@ -9,10 +9,12 @@
     "./styles.css": "./src/styles/index.css"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@commerce/money": "workspace:*",
+    "@commerce/plugins": "workspace:*",
     "@commerce/richtext": "workspace:*",
     "@puckeditor/core": "^0.23.0",
     "motion": "^13.4.1"
@@ -23,10 +25,12 @@
   },
   "devDependencies": {
     "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
   }
 }

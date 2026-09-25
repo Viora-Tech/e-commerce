@@ -1,6 +1,7 @@
 import type { RichTextValue } from '@commerce/richtext'
 import type { Config, CustomField, Data } from '@puckeditor/core'
 import type { ComponentType } from 'react'
+import { type AppBlockOwner, type AppBlockSource, buildAppBlocks } from './app-blocks'
 import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
 import HeroCarousel, { type HeroSlide } from './components/hero-carousel'
 import ProductCard from './components/product-card'
@@ -156,17 +157,18 @@ export const SECTION_CATEGORIES = {
 } as const
 
 /**
- * App blocks (Shopify's "app blocks"): sections a future plugin SDK registers
- * for merchants to add from installed apps, kept in their own Puck category so
- * the Add panel can show them on a separate "Apps" tab. An app registering a
- * block pushes its component type into `apps.components` below (on the live
- * Puck config, via `createBlocksConfig`'s `categories.apps`) and adds one entry
- * to `APP_BLOCK_OWNERS`, keyed by that same type, so the Add panel can group
- * its cards by app and show the app's icon. Empty until that SDK exists.
+ * App blocks (Shopify's "app blocks"): sections the plugin SDK's
+ * `storefront.blocks` registers for merchants to add from installed apps,
+ * kept in their own Puck category so the Add panel can show them on a
+ * separate "Apps" tab. `createBlocksConfig`'s `appBlockSources` builds
+ * `categories.apps` and the returned config's `appBlockOwners` (the Add
+ * panel's per-block "by <app>" grouping) live, from enabled plugins only —
+ * see `buildAppBlocks` in `./app-blocks` for the pure builder and
+ * docs/plugins.md for how a plugin registers one.
  */
 export const APPS_CATEGORY = 'apps'
-export type AppBlockOwner = { appName: string; appIcon: string }
-export const APP_BLOCK_OWNERS: Record<string, AppBlockOwner> = {}
+export type { AppBlockOwner, AppBlockSource } from './app-blocks'
+export { buildAppBlocks } from './app-blocks'
 
 export type PageData = Data<BlockProps>
 
@@ -189,12 +191,29 @@ function richTextField(
   }
 }
 
-/** Build the Puck config. `loadProducts` resolves product blocks (editor + storefront). */
+export type BlocksConfig = Config<BlockProps> & {
+  /** Which app owns each enabled app block, for the Add panel's "by <app>" grouping. */
+  appBlockOwners: Record<string, AppBlockOwner>
+}
+
+/**
+ * Build the Puck config. `loadProducts` resolves product blocks (editor +
+ * storefront). `appBlockSources` is every plugin the deployment ships that
+ * declares `storefront.blocks` (both storefront and the admin editor pass
+ * it — see `apps/storefront/src/lib/template-render.tsx` and
+ * `apps/admin/src/lib/customize-config.tsx`); `enabledAppIds` is which of
+ * those the current store installed. Leave both out for a config with no app
+ * blocks (tests, a template with no store context).
+ */
 export function createBlocksConfig(
   loadProducts: ProductLoader,
   options: BlocksConfigOptions = {},
-): Config<BlockProps> {
+  appBlockSources: AppBlockSource[] = [],
+  enabledAppIds: ReadonlySet<string> = new Set(),
+): BlocksConfig {
+  const appBlocks = buildAppBlocks(appBlockSources, enabledAppIds)
   return {
+    appBlockOwners: appBlocks.owners,
     categories: {
       banners: {
         ...SECTION_CATEGORIES.banners,
@@ -207,10 +226,16 @@ export function createBlocksConfig(
       },
       media: { ...SECTION_CATEGORIES.media, components: [...SECTION_CATEGORIES.media.components] },
       more: { ...SECTION_CATEGORIES.more, components: [...SECTION_CATEGORIES.more.components] },
-      // Empty until the plugin SDK registers app blocks into it; see APP_BLOCK_OWNERS above.
-      [APPS_CATEGORY]: { title: 'Apps', components: [] },
+      // App block types are dynamic (one per installed plugin's block), so the category's
+      // components list is cast the same way `components` below is for library/dynamic sections.
+      [APPS_CATEGORY]: {
+        title: 'Apps',
+        components: appBlocks.categoryComponents as unknown as (keyof BlockProps)[],
+      },
     },
     components: {
+      // App blocks type their props loosely too; each plugin owns its own shape.
+      ...(appBlocks.components as unknown as Pick<Config<BlockProps>['components'], never>),
       // Library and dynamic sections type their props loosely; their renderers own the shapes.
       ...(librarySections({
         loadCollections: options.loadCollections,

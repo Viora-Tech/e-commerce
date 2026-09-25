@@ -1,9 +1,10 @@
-import { type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
+import { type AppBlockOwner, type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
 import { RichTextEditor } from '@commerce/editor'
 import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import { api } from '@/lib/api-client'
+import { APP_BLOCK_SOURCES } from '../../../../commerce.blocks.config'
 
 type ListedProduct = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
@@ -57,8 +58,14 @@ function withHiding(component: ComponentConfig): ComponentConfig {
 /**
  * The Puck config behind Customize. Blocks load their data through the admin API;
  * the root draws the header and footer groups as drop zones around the template.
+ * `enabledAppIds` (from `api.apps.list()`) gates `categories.apps` and the Add
+ * panel's owner grouping the same way the storefront gates them per store; see
+ * `commerce.blocks.config.ts` for why the editor cannot import the real plugin
+ * manifests directly.
  */
-export function createCustomizeConfig(): Config {
+export function createCustomizeConfig(
+  enabledAppIds: ReadonlySet<string> = new Set(),
+): Config & { appBlockOwners: Record<string, AppBlockOwner> } {
   const base = createBlocksConfig(
     async ({ productType, collectionHandle, limit }) => {
       if (collectionHandle) return collectionCards(collectionHandle, limit)
@@ -87,7 +94,9 @@ export function createCustomizeConfig(): Config {
       loadProduct: async (handle) =>
         (await catalogCards()).find((c) => c.handle === handle) ?? null,
     },
-  ) as unknown as Config
+    APP_BLOCK_SOURCES,
+    enabledAppIds,
+  ) as unknown as Config & { appBlockOwners: Record<string, AppBlockOwner> }
 
   const components = Object.fromEntries(
     Object.entries(base.components).map(([type, component]) => {

@@ -148,6 +148,39 @@ export type AppAdmin = {
 }
 
 /**
+ * A storefront section an installed app contributes to the theme editor's
+ * Add panel → Apps tab (Shopify's "app blocks"). `type` must be namespaced
+ * `<pluginId>/<Name>` so two apps can never collide; `fields`/`defaultProps`
+ * drive the Puck editor form and `render` draws it on the storefront.
+ * Kept structurally typed (`unknown`) here so this package stays free of a
+ * Puck/React dependency — `@commerce/blocks`'s builder (`buildAppBlocks`)
+ * casts these back into real Puck `ComponentConfig`s when it assembles the
+ * live config from enabled plugins. See docs/plugins.md.
+ */
+export type AppBlockDefinition = {
+  /** `<pluginId>/<Name>`, e.g. `back-in-stock/NotifyMe`. */
+  type: string
+  label: string
+  description?: string | undefined
+  /** Icon name from the admin icon set, shown next to the block in the Add panel. */
+  icon?: string | undefined
+  /** Puck `Fields` for the block's settings panel. */
+  fields: Record<string, unknown>
+  defaultProps: Record<string, unknown>
+  /** Puck `ComponentConfig['render']`. Client islands are fine; keep it RSC-safe where possible. */
+  // biome-ignore lint/suspicious/noExplicitAny: erased Puck render signature; re-typed by the blocks builder.
+  render: (props: any) => unknown
+  /** Puck `ComponentConfig['resolveData']`, for a block that needs server data before it draws. */
+  // biome-ignore lint/suspicious/noExplicitAny: erased Puck resolveData signature; re-typed by the blocks builder.
+  resolveData?: ((args: any) => Promise<any>) | undefined
+}
+
+/** What a plugin contributes to the storefront beyond providers. */
+export type PluginStorefront = {
+  blocks?: AppBlockDefinition[] | undefined
+}
+
+/**
  * Open-source work an app is built on, shown on its Apps card so merchants see
  * where it comes from. Every app that adapts outside code must list it here
  * (and keep the full licence per THIRD_PARTY_NOTICES.md).
@@ -186,6 +219,8 @@ export type PluginManifest = {
   /** Named background jobs, queued with `enqueueAppJob`. */
   jobs?: Record<string, AppJob> | undefined
   emailAttachments?: EmailAttachments | undefined
+  /** Theme editor app blocks this app contributes (Add panel → Apps tab). */
+  storefront?: PluginStorefront | undefined
 }
 
 /** commerce.config.ts shape. The core plugin is always loaded and never listed here. */

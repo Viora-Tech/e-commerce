@@ -1,4 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
+import { deliveryCheckerBlocks } from './blocks'
 import { delhiveryFactory } from './delhivery'
 
 /**
@@ -18,6 +19,7 @@ export const delhiveryPlugin = definePlugin({
   description:
     'Serviceability, delivery estimates, waybills, pickups, tracking and NDR on your Delhivery account.',
   provides: { shipping: [delhiveryFactory] },
+  storefront: { blocks: deliveryCheckerBlocks },
   admin: {
     icon: 'Truck',
     pages: [
