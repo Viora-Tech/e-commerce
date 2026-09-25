@@ -18,8 +18,9 @@ type SaveBarProps = {
 }
 
 /**
- * Contextual save bar: sticks to the top of the scrolling page while the form
- * has unsaved changes. Render it as the first child of PageBody with `open`.
+ * Contextual save bar: a small floating pill at the bottom centre of the
+ * screen while the form has unsaved changes. Render it anywhere in the page
+ * (e.g. first child of PageBody) with `open`.
  */
 export default function SaveBar({
   open,
@@ -41,30 +42,40 @@ export default function SaveBar({
       {open ? (
         <motion.div
           key="save-bar"
-          initial={{ opacity: 0, y: -8, height: 0 }}
-          animate={{ opacity: 1, y: 0, height: 'auto' }}
-          exit={{ opacity: 0, y: -8, height: 0 }}
+          initial={{ opacity: 0, y: 16, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.96 }}
           transition={slide}
-          className="sticky top-14 z-10"
+          className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4"
         >
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-popover md:px-5">
-            <Pencil className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="text-body font-semibold text-foreground">{message}</span>
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="min-w-24"
-                onClick={onDiscard}
-                disabled={saving}
-              >
-                {discardLabel}
-              </Button>
-              <Button type="button" className="min-w-24" onClick={onSave} disabled={saving}>
-                {saving ? <Spinner /> : null}
-                {saveLabel}
-              </Button>
-            </div>
+          <div
+            role="status"
+            className="pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-popover py-1.5 pr-1.5 pl-3.5 shadow-popover"
+          >
+            <Pencil className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="text-caption font-medium whitespace-nowrap text-foreground">
+              {message}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="ml-1 rounded-full"
+              onClick={onDiscard}
+              disabled={saving}
+            >
+              {discardLabel}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="rounded-full"
+              onClick={onSave}
+              disabled={saving}
+            >
+              {saving ? <Spinner /> : null}
+              {saveLabel}
+            </Button>
           </div>
         </motion.div>
       ) : null}
