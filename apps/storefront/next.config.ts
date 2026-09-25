@@ -27,6 +27,19 @@ const config: NextConfig = {
             },
           ]
         : []),
+      // Local storage provider (the built-in default): images are served from the admin
+      // app's own origin (`/uploads/[...key]`), which may be a different host than the storefront.
+      ...(process.env.ADMIN_URL
+        ? [
+            {
+              protocol: new URL(process.env.ADMIN_URL).protocol.replace(':', '') as
+                | 'http'
+                | 'https',
+              hostname: new URL(process.env.ADMIN_URL).hostname,
+              port: new URL(process.env.ADMIN_URL).port || undefined,
+            },
+          ]
+        : []),
     ],
   },
 }

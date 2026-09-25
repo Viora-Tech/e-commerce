@@ -22,6 +22,16 @@ describe('backupKey / parseBackupKey', () => {
     expect(parseBackupKey('postgres/monthly/2026-09-24T03-15-07Z.dump.gz')).toBeNull()
     expect(parseBackupKey('media/logo.png')).toBeNull()
   })
+
+  it('round-trips the uploads dataset with its own extension', () => {
+    const date = new Date('2026-09-24T03:15:07.123Z')
+    const key = backupKey(date, 'daily', 'uploads')
+    expect(key).toBe('uploads/daily/2026-09-24T03-15-07Z.tar.gz')
+
+    const parsed = parseBackupKey(key)
+    expect(parsed?.dataset).toBe('uploads')
+    expect(parsed?.kind).toBe('daily')
+  })
 })
 
 describe('kindsForDate', () => {
@@ -35,17 +45,23 @@ describe('kindsForDate', () => {
 })
 
 describe('selectKeysToDelete', () => {
-  function dailyObjects(count: number): BackupObject[] {
+  function dailyObjects(
+    count: number,
+    dataset: BackupObject['dataset'] = 'postgres',
+  ): BackupObject[] {
     return Array.from({ length: count }, (_, i) => {
       const date = new Date(Date.UTC(2026, 8, 30 - i))
-      return { key: `postgres/daily/day-${i}`, kind: 'daily' as const, date }
+      return { key: `${dataset}/daily/day-${i}`, dataset, kind: 'daily' as const, date }
     })
   }
 
-  function weeklyObjects(count: number): BackupObject[] {
+  function weeklyObjects(
+    count: number,
+    dataset: BackupObject['dataset'] = 'postgres',
+  ): BackupObject[] {
     return Array.from({ length: count }, (_, i) => {
       const date = new Date(Date.UTC(2026, 8, 30 - i * 7))
-      return { key: `postgres/weekly/week-${i}`, kind: 'weekly' as const, date }
+      return { key: `${dataset}/weekly/week-${i}`, dataset, kind: 'weekly' as const, date }
     })
   }
 
@@ -77,5 +93,15 @@ describe('selectKeysToDelete', () => {
 
   it('is a no-op on an empty bucket', () => {
     expect(selectKeysToDelete([])).toEqual([])
+  })
+
+  it('prunes each dataset independently, so uploads retention never eats into postgres', () => {
+    const objects = [...dailyObjects(10, 'postgres'), ...dailyObjects(3, 'uploads')]
+    const toDelete = selectKeysToDelete(objects)
+    expect(toDelete).toEqual([
+      'postgres/daily/day-7',
+      'postgres/daily/day-8',
+      'postgres/daily/day-9',
+    ])
   })
 })

@@ -16,6 +16,7 @@ export const shopifyImportPlugin = definePlugin({
   id: SHOPIFY_IMPORT_ID,
   name: 'Shopify importer',
   version: '1.0.0',
+  kind: 'builtin',
   category: 'migration',
   description:
     'Bring products, collections, customers, orders, pages, blog posts, menus and redirects over from Shopify.',

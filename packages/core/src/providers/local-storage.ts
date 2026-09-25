@@ -10,24 +10,53 @@ import type {
 } from '@commerce/storage'
 
 export type LocalStorageConfig = {
-  /** Origin of the admin app; its `/api/uploads` route receives the bytes and serves `/uploads/...`. */
+  /** Origin of the admin app; its `/api/uploads` route receives the bytes and `/uploads/[...key]` serves them. */
   baseUrl: string
-  /** Folder the route handler writes into. Defaults to the admin app's `public/uploads`. */
+  /** Folder the route handlers read and write. Defaults to `LOCAL_STORAGE_DIR` or `./.data/uploads`. */
   dir: string
 }
 
-/** Where the admin writes when no folder is configured; served by Next from `public/`. */
-export const LOCAL_UPLOAD_DIR = 'public/uploads'
+/**
+ * Where the admin writes when no folder is configured, relative to the admin
+ * app's directory: gitignored, outside `public/` so nothing is served except
+ * through the `/uploads/[...key]` route (which sets content type and cache
+ * headers itself). Overridden by the `LOCAL_STORAGE_DIR` env var.
+ */
+export const LOCAL_UPLOAD_DIR = './.data/uploads'
+
+/** Traversal guard shared by the provider and the `/uploads/[...key]` route. */
+export function assertSafeKey(key: string): void {
+  if (key.split('/').includes('..')) throw new Error(`refusing path traversal in key ${key}`)
+}
 
 /**
- * Development storage: the browser "uploads" to a route handler in the admin
- * app, which writes the file under `public/uploads` so Next serves it. No
- * account, no CORS, works offline. Files added after a production build are
- * not served, so it is the built-in fallback, never a deployment choice.
+ * Absolute path on disk for `key` under `dir` (default: the env/factory
+ * default). `LOCAL_UPLOAD_ROOT` lets another process (the worker writing
+ * invoice PDFs, the storefront streaming them) agree on the same folder when
+ * `dir` is relative.
+ */
+export function localStoragePath(key: string, dir = localStorageDir()): string {
+  assertSafeKey(key)
+  const root = process.env.LOCAL_UPLOAD_ROOT
+  return join(isAbsolute(dir) || !root ? dir : join(root, dir), key)
+}
+
+/** The folder local storage writes into, honouring `LOCAL_STORAGE_DIR`. */
+export function localStorageDir(): string {
+  return process.env.LOCAL_STORAGE_DIR?.trim() || LOCAL_UPLOAD_DIR
+}
+
+/**
+ * Built-in storage: files are saved on disk under `LOCAL_STORAGE_DIR`
+ * (default `./.data/uploads`, gitignored) and served through the admin's
+ * `/uploads/[...key]` route. No account, no CORS, works offline. It is the
+ * default when a store has no storage Connection installed; installing one
+ * (Cloudflare R2, later S3) and moving files over with "Move existing files
+ * to <connection>" switches new uploads to it.
  */
 export class LocalStorageProvider implements StorageProvider {
   readonly id = 'local'
-  readonly label = 'Local folder (development only)'
+  readonly label = 'Local disk'
   private readonly base: string
 
   constructor(private readonly config: LocalStorageConfig) {
@@ -67,16 +96,8 @@ export class LocalStorageProvider implements StorageProvider {
     await rm(this.pathOf(key), { force: true })
   }
 
-  /**
-   * The folder is relative to the admin app. Other processes (the worker writing
-   * invoice PDFs, the storefront streaming them) set `LOCAL_UPLOAD_ROOT` to the
-   * admin app directory so every process agrees on one folder.
-   */
   private pathOf(key: string): string {
-    if (key.split('/').includes('..')) throw new Error(`refusing path traversal in key ${key}`)
-    const dir = this.config.dir
-    const root = process.env.LOCAL_UPLOAD_ROOT
-    return join(isAbsolute(dir) || !root ? dir : join(root, dir), key)
+    return localStoragePath(key, this.config.dir)
   }
 
   async verifyCredentials(): Promise<CredentialCheck> {
@@ -86,7 +107,7 @@ export class LocalStorageProvider implements StorageProvider {
 
 export const localStorageFactory: StorageProviderFactory<LocalStorageConfig> = {
   id: 'local',
-  label: 'Local folder (development only)',
+  label: 'Local disk',
   fields: [],
   validateConfig(raw) {
     const r = (raw ?? {}) as Partial<LocalStorageConfig>
@@ -94,7 +115,7 @@ export const localStorageFactory: StorageProviderFactory<LocalStorageConfig> = {
       ok: true,
       config: {
         baseUrl: r.baseUrl?.trim() || process.env.ADMIN_URL || 'http://localhost:3200',
-        dir: r.dir?.trim() || LOCAL_UPLOAD_DIR,
+        dir: r.dir?.trim() || localStorageDir(),
       },
     }
   },

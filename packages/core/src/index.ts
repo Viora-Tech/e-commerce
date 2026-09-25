@@ -109,10 +109,13 @@ export * from './preorder/balance-schedule'
 export * from './preorder/store-settings'
 export { CodPaymentProvider, codFactory } from './providers/cod'
 export {
+  assertSafeKey,
   LOCAL_UPLOAD_DIR,
   type LocalStorageConfig,
   LocalStorageProvider,
+  localStorageDir,
   localStorageFactory,
+  localStoragePath,
 } from './providers/local-storage'
 export { LogNotificationChannel, logChannelFactory } from './providers/log-channel'
 export { ManualPaymentProvider, manualFactory, upiDeepLink } from './providers/manual'

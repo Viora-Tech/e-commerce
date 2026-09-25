@@ -141,6 +141,7 @@ export const gstInvoicesPlugin = definePlugin({
   id: GST_INVOICES_ID,
   name: 'GST invoices',
   version: '1.0.0',
+  kind: 'builtin',
   category: 'invoicing',
   description:
     'GST tax invoices, credit notes and packing slips with your logo, emailed and downloadable, plus GSTR-1 export.',

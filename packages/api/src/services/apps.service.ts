@@ -19,6 +19,23 @@ export async function getStoreApps(tx: StoreTx, storeId: string): Promise<AppsSe
   return parseAppsSettings(s?.apps)
 }
 
+/**
+ * Provider ids this store has actually enabled, across every kind. A
+ * Connection app's card shows "connected" only when one of its own provider
+ * ids is in here — installing the app alone is not enough, the merchant must
+ * have filled in and saved the account's credentials.
+ */
+export async function getConnectedProviderIds(tx: StoreTx, storeId: string): Promise<Set<string>> {
+  const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+  if (!s) return new Set()
+  return new Set([
+    ...parsePaymentSettings(s.payments).enabled,
+    ...parseShippingSettings(s.shipping).enabled,
+    ...parseNotificationSettings(s.notifications).enabled,
+    ...parseStorageSettings(s.storage).enabled,
+  ])
+}
+
 /** Registries limited to what this store installed; see registriesForStore. */
 export const storeRegistries = (tx: StoreTx, storeId: string): Promise<Registries> =>
   registriesForStore(tx, storeId)

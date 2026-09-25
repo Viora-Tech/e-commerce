@@ -1,5 +1,6 @@
 import { definePlugin } from '@commerce/plugins'
 import { fakeShippingFactory } from '@commerce/shipping'
+import { migrateStorage } from '../media/migrate'
 import { codFactory } from '../providers/cod'
 import { localStorageFactory } from '../providers/local-storage'
 import { logChannelFactory } from '../providers/log-channel'
@@ -15,6 +16,7 @@ export const corePlugin = definePlugin({
   id: 'core',
   name: 'Built-in',
   version: '0.1.0',
+  kind: 'builtin',
   description:
     'Cash on delivery, UPI or bank transfer, demo courier, development log channel and local file storage.',
   provides: {
@@ -22,5 +24,9 @@ export const corePlugin = definePlugin({
     shipping: [fakeShippingFactory],
     notifications: [logChannelFactory],
     storage: [localStorageFactory],
+  },
+  jobs: {
+    /** "Move existing files to <connection>": see packages/core/src/media/migrate.ts. */
+    migrateStorage,
   },
 })

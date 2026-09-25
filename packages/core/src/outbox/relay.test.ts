@@ -24,6 +24,7 @@ const appA = definePlugin({
   id: 'app-a',
   name: 'App A',
   version: '0.0.1',
+  kind: 'builtin',
   provides: {},
   hooks: { 'order.paid': async () => {} },
 })
@@ -31,6 +32,7 @@ const appB = definePlugin({
   id: 'app-b',
   name: 'App B',
   version: '0.0.1',
+  kind: 'builtin',
   provides: {},
   hooks: { 'order.paid': async () => {} },
 })
