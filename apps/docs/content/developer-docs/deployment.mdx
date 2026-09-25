@@ -1,0 +1,17 @@
+---
+title: Deployment
+---
+
+# Deployment
+
+Placeholder — deployment is not built yet. Coming soon.
+
+What's decided so far (see `docs/handoff.md` for the latest state):
+
+- **GitHub Actions** runs lint/build checks only — it does not deploy.
+- The target is AWS ECS behind Cloudflare, with CodePipeline + CodeBuild doing the actual
+  deploys, or Coolify/Dokploy on Lightsail as a cheaper first step — not yet decided.
+- Lambda@Edge routing code (when it ships) must be zipped as `index.mjs` with handler
+  `index.handler`, never as `routing-code.mjs` directly.
+
+This page will be filled in once the deployment pipeline is built.

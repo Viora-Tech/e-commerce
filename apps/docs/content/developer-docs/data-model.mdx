@@ -1,0 +1,60 @@
+---
+title: Data model overview
+---
+
+# Data model overview
+
+Postgres 17, one database, every tenant table carrying `store_id` and row-level security
+(RLS). Migrations live in `packages/db/drizzle` (SQL, currently at `0063`), generated from
+the Drizzle schema files in `packages/db/src` (`schema.ts` plus feature schemas such as
+`marketing-schema.ts`; auth tables are separate, see below).
+
+## Multi-tenancy
+
+- Almost every table has a `store_id uuid` column.
+- Every tenant migration ends with `SELECT apply_store_rls();`, which enables RLS on that
+  table and adds the standard policy: rows are only visible when
+  `store_id = current_setting('app.store_id')::uuid`.
+- The app sets that setting per request/transaction with `withStore()`
+  (`packages/db/src/with-store.ts`), so a leaked query without a `WHERE store_id = …` clause
+  still can't cross tenants — the database enforces it, not application code.
+- The database connection itself runs as a restricted `app` role for RLS-covered queries
+  (`DATABASE_URL`); migrations and seeds run as the owner role (`DATABASE_URL_OWNER`), which
+  bypasses RLS to set the schema up in the first place.
+
+## Two roles
+
+- **`DATABASE_URL`** — the `app` role, RLS-restricted, used by the apps at runtime.
+- **`DATABASE_URL_OWNER`** — the owner role, full schema access: migrations, seeds, RLS
+  policy creation, and `scripts/backup-db.ts` (an RLS-restricted dump would be incomplete).
+
+## Platform-level tables
+
+Auth tables (`packages/db/src/auth-schema.ts`) are platform-level: no `store_id`, no RLS.
+Better Auth owns them exclusively — organisations map to stores (one organisation = one
+store), members map to store staff.
+
+## Adding a table
+
+1. Add the Drizzle schema in `packages/db/src` (or a feature's own `schema.ts` if the
+   feature is a plugin/app — see [Plugins SDK](/developer-docs/plugins) for how an app's
+   tables join the one migration chain via `packages/db/drizzle.config.ts`).
+2. `bun run db:generate` to produce the SQL migration.
+3. Every tenant table's migration ends with `SELECT apply_store_rls();` — the RLS coverage
+   test fails a migration that forgets it.
+4. `bun run db:migrate` against the dev database.
+
+## Seeding
+
+```sh
+bun run db:seed                   # real Waimers catalogue (72 products)
+bun run db:seed:demo               # 60+ orders, customers, drafts, abandoned carts
+bun run db:seed:demo:collections
+bun run db:seed:navigation
+bun run db:seed:shipping
+bun run db:seed:back-in-stock
+```
+
+See [Running locally](/developer-docs/running-locally) for the full setup sequence, and
+[Architecture](/developer-docs/architecture) for how the three apps and the queue fit around
+this database.

@@ -14,6 +14,11 @@ that adapts outside work keeps the full licence text next to it; this file is th
 Paid UI kits: Aceternity UI Pro may be used in builder blocks under the owner's written permission, see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md).
 
 Libraries installed from npm are not listed here; their licences ship inside `node_modules`.
+Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
+[Nextra](https://github.com/shuding/nextra) (MIT), verified on
+[npm](https://www.npmjs.com/package/nextra) and its
+[GitHub `LICENSE`](https://github.com/shuding/nextra/blob/main/LICENSE); its footer credits
+Nextra too.
 
 ## Adding an entry
 

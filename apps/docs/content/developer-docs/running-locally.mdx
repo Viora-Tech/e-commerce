@@ -1,0 +1,71 @@
+---
+title: Running locally
+---
+
+# Running locally
+
+Turborepo + bun. Apps: `apps/admin` (Next, port **3200**), `apps/storefront` (Next, **3100**),
+`apps/worker` (Bun + BullMQ, **4100**), and this docs site, `apps/docs` (**3500**). Background
+agents should use other ports (3700+) and stop them when done.
+
+## 1. Environment
+
+Copy the root `.env.example` to `.env` and fill in the required keys (`packages/config/src/env.ts`
+is the source of truth for which keys each app needs). At minimum:
+
+```sh
+DATABASE_URL=              # Postgres, `app` role
+DATABASE_URL_OWNER=        # Postgres, owner role — migrations, seeds
+REDIS_URL=                 # BullMQ queues and visitor counters
+AUTH_SECRET=                # Better Auth signing secret, 32+ chars
+```
+
+Every app reads it via `bun run --env-file=../../.env`.
+
+## 2. Infrastructure
+
+```sh
+docker compose up -d --wait     # Postgres 17 + Dragonfly
+```
+
+## 3. Install, migrate, seed
+
+```sh
+bun install
+bun run db:migrate              # dev database
+bun run db:seed                 # real Waimers catalogue (72 products)
+bun run db:seed:demo             # 60+ orders, customers, drafts, abandoned carts
+bun run db:seed:demo:collections
+```
+
+## 4. Run
+
+```sh
+bun run dev                     # admin, storefront, worker
+bun run dev:docs                # this docs site, on :3500
+```
+
+Admin: `http://localhost:3200`. Storefront: `http://localhost:3100`. Worker:
+`http://localhost:4100`. Docs: `http://localhost:3500`.
+
+## The dev OTP route
+
+Sign-in uses email OTP (Better Auth). Instead of reading the `verification` table out of
+Postgres, `GET /api/dev/otp?email=<address>` (both admin and storefront ship this route)
+returns the last code the server generated for that email, as `{ otp: "123456" }`.
+
+It is **localhost only** — it answers 404 unless development mode is explicitly enabled and
+the request arrived on `localhost` (or an allow-listed host via `DEV_OTP_ALLOWED_HOSTS`), and
+the response is never cached. It does not exist in production builds outside that guard.
+
+## Ports
+
+| App | Port |
+| --- | --- |
+| `apps/admin` | 3200 |
+| `apps/storefront` | 3100 |
+| `apps/worker` | 4100 |
+| `apps/docs` | 3500 |
+
+Never use 3100/3200/4100/3300 for anything else while those apps are running — they're how
+work gets reviewed live.

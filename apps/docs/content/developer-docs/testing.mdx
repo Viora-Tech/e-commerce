@@ -1,0 +1,40 @@
+---
+title: Testing
+---
+
+# Testing
+
+```sh
+bun run test              # all packages, via turbo
+bun run test:coverage
+bun run test:sweeps       # guardrail sweeps — see /developer-docs/guardrails
+```
+
+17 vitest projects, one per package/app that has tests.
+
+## Test databases
+
+Tests never run against the dev database. `packages/config/src/test-env.ts` loads `.env.test`
+and points `DATABASE_URL`/`DATABASE_URL_OWNER` at `commerce_test_<suffix>` — a separate
+database per test package, so suites can run in parallel without stepping on each other.
+
+**The test-DB guard.** Before running, `assertTestDatabase` checks the resolved database name
+against `/^commerce_test(_[a-z0-9_]+)?$/` and throws immediately if it doesn't match. This is
+what stops a misconfigured `.env.test` (or an accidentally-loaded `.env`) from a test suite
+truncating the real dev or production database — every test run refuses to start unless its
+target database is unmistakably a test database.
+
+## `TEST_DB_NAMESPACE`
+
+Parallel worktrees share the same Postgres instance, so without namespacing two worktrees'
+test runs would both reset `commerce_test_<suffix>` and stomp on each other mid-run. Set
+`TEST_DB_NAMESPACE` (letters, digits, underscores, 1-32 chars) per checkout/worktree, and
+every package then uses `commerce_test_<namespace>_<suffix>` instead — created on first use by
+the global test setup.
+
+```sh
+TEST_DB_NAMESPACE=agent7 bun run test
+```
+
+This also matters for migrations: parallel worktrees that don't set distinct namespaces can
+see migration numbers collide and the `__drizzle_migrations` log drift between them.

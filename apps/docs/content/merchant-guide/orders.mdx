@@ -1,0 +1,58 @@
+---
+title: Orders
+---
+
+# Orders and order statuses
+
+## Two separate things: payment and fulfilment
+
+An order has two statuses that move independently:
+
+- **Payment** — has the money come in? (Payment pending, Paid, Refunded, Payment failed…)
+- **Fulfilment** — has it shipped? (Unfulfilled, Partially fulfilled, Fulfilled…)
+
+A paid order can still be unfulfilled (you haven't shipped it yet), and a shipped order can
+still show a balance due (a pre-order deposit, for example). The Orders list has tabs —
+**All**, **Unfulfilled**, **Pending UPI**, and more — so you can work through one kind of
+order at a time.
+
+## Working an order
+
+Open an order to see its full detail: items, payment summary and a timeline. The actions
+available depend on where the order is:
+
+- **Collect payment** — record money you received outside the gateway (cash on delivery, or
+  a bank transfer you matched by hand). This does not apply to orders already on a gateway
+  like Razorpay — for those you send the shopper back to the pay page instead.
+- **Fulfil items** — mark items as packed and shipped.
+- **Mark as delivered** / **Cancel order** / **Refund**.
+- **Print packing slip**.
+
+You can also select several orders in the list and **Mark as** paid/fulfilled/delivered/
+cancelled in bulk.
+
+## Pre-orders and balance due
+
+A pre-order product can be sold with a deposit now and the rest collected later. The order
+detail page shows **Balance due** until the rest is collected — use **Collect payment** the
+same way as above once the shopper has paid the remainder.
+
+## UPI verification
+
+Two ways a shopper pays by UPI:
+
+- **UPI (auto-confirmed)** — a single-use QR code for the exact amount; the order is marked
+  paid automatically the moment Razorpay confirms it. Nothing for you to check.
+- **UPI / bank transfer (manual)** — the shopper pays outside the gateway and the order sits
+  in **Pending UPI** until you verify the payment landed (in your bank or UPI app) and use
+  **Collect payment** to mark it paid.
+
+## Payment methods you'll see
+
+- **Cash on delivery**
+- **UPI / bank transfer** (manual)
+- **UPI (auto-confirmed)**
+- Razorpay (cards, netbanking, UPI checkout)
+
+Each payment shows its reference and, for gateway payments, the gateway's own payment id, so
+you can cross-check it on the Razorpay dashboard if needed.

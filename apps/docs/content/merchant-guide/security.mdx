@@ -1,0 +1,25 @@
+---
+title: Security and data protection
+---
+
+# Security and data protection
+
+A quick summary, in plain words. The full technical detail is for developers — see
+[Architecture](/developer-docs/architecture) and [Guardrails and sweeps](/developer-docs/guardrails).
+
+- **Logging in.** No passwords to remember or leak — you log in with a one-time code sent to
+  your email each time, per [Getting started](/merchant-guide).
+- **Your store's data stays your store's.** Every store's data is kept apart at the database
+  level, not just in the screens you see — even a bug elsewhere in the app can't leak another
+  store's orders or customers into yours.
+- **Secrets are encrypted.** Gateway keys, courier API tokens and other credentials you enter
+  under Settings are stored encrypted, and shown back to you masked (like `••••1234`), never
+  in full.
+- **Backups.** Your database and any files kept on local disk storage are backed up daily,
+  with older backups pruned on a schedule (7 daily, 4 weekly kept). See
+  [Backups](/developer-docs/backups) for how this runs.
+- **Roles and permissions.** Staff you invite only get access to what their role allows —
+  set this up under Settings → Staff.
+
+If you have a specific security question about your store, ask whoever manages your
+deployment, or see the developer docs linked above.

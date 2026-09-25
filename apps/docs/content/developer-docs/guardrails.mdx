@@ -1,0 +1,46 @@
+---
+title: Guardrails and sweeps
+---
+
+# Guardrails and sweeps
+
+This page summarises the guardrail sweeps. The source of truth stays at
+[`docs/guardrails.md`](https://github.com/Viora-Tech/e-commerce/blob/main/docs/guardrails.md)
+in the repo, next to the sweep source it documents.
+
+`bun run test:sweeps` runs a set of vitest "sweeps" over the whole repo — static checks
+that catch drift across 1,400+ files, cheaper than a code review. CI runs them after
+`bun run lint` and `bun run typecheck`, before `bun run test`.
+
+## The ratchet pattern
+
+Every sweep (except `dead-code`) is a ratchet: a typed `ALLOWLIST` next to it lists every
+violation that existed the day the sweep was added, each with a one-line reason. The sweep
+fails the moment someone adds a **new** violation that isn't on the list.
+
+- **Fix** a violation by removing its allow-list entry.
+- **Allow-list** a new, deliberate exception only with a real one-line reason — not just to
+  make the sweep pass.
+
+## The sweeps
+
+| Sweep | What it checks |
+| --- | --- |
+| `service-layer` | Direct `@commerce/db` / `drizzle-orm` imports are only allowed in `packages/core`, `packages/db`, `packages/api/src/services`, `scripts/`. |
+| `client-imports-server` | A `'use client'` module must not value-import server-only packages (`@commerce/core`, `@commerce/db`, `@commerce/auth`, storage/payments/shipping connectors, `@commerce/api`). |
+| `no-orphans` | An exported function/const/class in `packages/*/src` with no importer anywhere is an orphan. |
+| `dead-code` | Fixed list of paths/dependencies that were deliberately removed and must never come back — not a ratchet. |
+| `dangerous-html` | Every `dangerouslySetInnerHTML` usage must be on the allow-list, with a reason it's safe. |
+| `money-format` | Every `Intl.NumberFormat(...)` call site outside the canonical money module is on the allow-list. |
+| `hardcoded-colours` | Hex colour literals in UI `.tsx` files outside the allow-list — use CSS variables/tokens instead. |
+| `source-of-truth-header` | New files under `packages/core/src` and `packages/plugins/src` must start with a `SOURCE OF TRUTH` header comment. |
+
+## Running
+
+```sh
+bun run test:sweeps
+bun run test:sweeps -- scripts/sweeps/service-layer.test.ts   # one sweep
+```
+
+For the full write-up of each sweep, the fix/allow-list guidance, and the `server-only`
+package and router idiom notes, read `docs/guardrails.md` in the repo.

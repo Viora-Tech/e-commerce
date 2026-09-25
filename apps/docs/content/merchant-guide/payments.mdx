@@ -1,0 +1,43 @@
+---
+title: Payments
+---
+
+# Payments
+
+**Settings → Payments** is where you turn on the methods shoppers can pay with, and set a
+fee or discount per method. Gateway keys are stored encrypted.
+
+## Razorpay, today
+
+Razorpay is the gateway available now — cards, netbanking, UPI checkout, and a single-use UPI
+QR code option ("UPI (auto-confirmed)") that marks the order paid automatically once Razorpay
+confirms it.
+
+To connect Razorpay, fill in your keys on the Razorpay card, then copy the **webhook URL**
+shown into your Razorpay dashboard, ticking `payment.*` and `refund.*` events (plus
+`qr_code.credited` and `qr_code.closed` if you're using auto-confirmed UPI).
+
+Other ways shoppers can pay, without a gateway:
+
+- **Cash on delivery**
+- **UPI / bank transfer** — the shopper pays you directly and you confirm it by hand (see
+  [Orders](/merchant-guide/orders) for how to verify and mark these paid).
+
+## Unpaid orders
+
+You can set orders paid online to auto-cancel (and release their stock) after a number of
+minutes if payment never lands — the gateway is checked first, so a late payment is kept.
+Cash on delivery is never auto-cancelled. Manual UPI/bank transfer orders have their own
+separate timer, with an email sent 12 hours before cancellation.
+
+## Pre-order balances
+
+For pre-orders that take a deposit at checkout, you can set when to automatically request the
+rest (days before the expected ship date), how many reminders to send, and what happens if it
+is never paid: do nothing, cancel and refund the deposit, or cancel and keep the deposit.
+
+## More gateways: coming soon
+
+Today, adding a gateway other than Razorpay means installing a plugin (see the
+[Plugins SDK](/developer-docs/plugins) for developers). A one-click **Connect** button for
+other payment gateways, directly from Apps, is coming soon.
