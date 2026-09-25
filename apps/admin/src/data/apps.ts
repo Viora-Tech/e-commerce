@@ -33,6 +33,14 @@ export const appsContent = {
   },
   configure: (kind: string) => `Set up in ${kind}`,
   docs: 'Want FedEx, DHL, S3 or a new gateway? Write a plugin: docs/plugins.md',
+  /** Shown on a `kind: 'builtin'` card: made by us, nothing else to sign up for. */
+  builtByPlatform: 'Built by Waimers',
+  /** Shown on a `kind: 'connection'` card: which outside company this links to. */
+  byCompany: (company: string) => `by ${company}`,
+  connection: {
+    connected: 'Connected',
+    notConnected: 'Not connected',
+  },
   gallery: {
     searchPlaceholder: 'Search apps',
     filters: { all: 'All', installed: 'Installed' },
@@ -41,14 +49,44 @@ export const appsContent = {
       invoicing: 'Invoicing',
       migration: 'Data import',
       marketing: 'Marketing',
+      storage: 'Storage',
+      payments: 'Payments',
+      shipping: 'Shipping',
+      messages: 'Messages',
+      analytics: 'Analytics',
     } as Record<string, string>,
     categoryFallback: (slug: string) => slug.charAt(0).toUpperCase() + slug.slice(1),
     noResultsHeading: 'No apps match',
     noResultsBody: 'Try a different search or filter.',
-    builtInTitle: 'Built in',
-    builtInIntro:
-      'These come with your store already. Turn one on to use it for payments, shipping or notifications.',
     kebabLabel: (name: string) => `More actions for ${name}`,
+    /** Section 1: features we designed, no outside account. */
+    builtin: {
+      title: 'Built-in apps',
+      intro: 'Made by us. Turn one on and start using it — no account to set up.',
+    },
+    /** Section 2: links to another company's service. */
+    connections: {
+      title: 'Connections',
+      intro:
+        "Link your store to another company's account for storage, payments, shipping and messages.",
+    },
+  },
+  storage: {
+    migrate: {
+      action: (name: string) => `Move existing files to ${name}`,
+      confirmTitle: (name: string) => `Move existing files to ${name}?`,
+      confirmBody:
+        'Every file already on Local disk is copied over and checked before the original is removed. You can leave this page — it keeps going in the background.',
+      confirm: 'Move files',
+      cancel: 'Cancel',
+      started: 'Moving files in the background',
+      failedToStart: 'Could not start the move',
+      progress: (done: number, total: number) => `Moved ${done} of ${total} files`,
+      progressWithFailed: (done: number, total: number, failed: number) =>
+        `Moved ${done} of ${total} files, ${failed} failed`,
+      done: 'All files moved',
+      failed: 'The move stopped with errors. Files not yet moved are still safe on Local disk.',
+    },
   },
 } as const
 

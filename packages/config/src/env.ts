@@ -42,6 +42,10 @@ const schema = z.object({
   BACKUP_R2_ACCESS_KEY_ID: z.string().min(1).optional(),
   BACKUP_R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   BACKUP_R2_BUCKET: z.string().min(1).optional(),
+  /** Write backups to this local folder instead of R2. Takes priority over BACKUP_R2_* when set. */
+  BACKUP_LOCAL_DIR: z.string().min(1).optional(),
+  /** Folder the built-in local storage provider reads and writes. Default ./.data/uploads. */
+  LOCAL_STORAGE_DIR: z.string().min(1).optional(),
 })
 
 export type Env = z.infer<typeof schema>

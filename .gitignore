@@ -6,8 +6,8 @@ dist
 *.tsbuildinfo
 coverage
 .next
-# Development storage provider writes here; production uses a bucket.
-apps/admin/public/uploads
+# Local storage provider (built-in default) and local backups write here.
+.data/
 !.env.example
 
 # Local Claude Code agent worktrees

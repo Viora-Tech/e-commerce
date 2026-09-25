@@ -6,6 +6,9 @@ export const r2Plugin = definePlugin({
   id: 'r2',
   name: 'Cloudflare R2',
   version: '0.1.0',
+  kind: 'connection',
+  category: 'storage',
+  company: 'Cloudflare',
   description:
     'Product images and files on your own R2 bucket, uploaded straight from the browser.',
   provides: { storage: [r2Factory] },

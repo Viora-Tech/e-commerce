@@ -33,6 +33,7 @@ describe('dispatchAppEvent', () => {
       id: 'app-a',
       name: 'A',
       version: '0.0.1',
+      kind: 'builtin',
       provides: {},
       hooks: {
         'order.paid': async () => {
@@ -45,6 +46,7 @@ describe('dispatchAppEvent', () => {
       id: 'app-b',
       name: 'B',
       version: '0.0.1',
+      kind: 'builtin',
       provides: {},
       hooks: {
         'order.paid': async () => {

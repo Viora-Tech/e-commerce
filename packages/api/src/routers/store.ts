@@ -1,7 +1,9 @@
 import { loadEnv } from '@commerce/config'
 import {
+  enqueueAppJob,
   ensureMainTheme,
   liveThemeSettings,
+  loadStoreStorageSettings,
   NotificationSettingsSchema,
   PaymentSettingsSchema,
   PreorderStoreSettingsSchema,
@@ -20,6 +22,8 @@ import {
   ThemeSchema,
   updateThemeSettings,
 } from '@commerce/core'
+import { CORE_PLUGIN_ID } from '@commerce/plugins'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
@@ -249,5 +253,40 @@ export const storeRouter = {
   verifyStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storage } = await storeRegistries(context.tx, context.scope.storeId)
     return verifyStorageCredentials(context.tx, context.scope.storeId, storage, secret())
+  }),
+
+  /** "Move existing files to <connection>": queues the worker job; see packages/core/src/media/migrate.ts. */
+  migrateStorage: can(permissions.SETTINGS_MANAGE)
+    .input(z.object({ targetProviderId: z.string().min(1) }))
+    .handler(async ({ context, input }) => {
+      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      if (!storage.get(input.targetProviderId)) {
+        throw new ORPCError('BAD_REQUEST', {
+          message: `Unknown storage provider "${input.targetProviderId}"`,
+        })
+      }
+      if (!context.appJobs) {
+        throw new ORPCError('INTERNAL_SERVER_ERROR', {
+          message: 'Background jobs are not available here',
+        })
+      }
+      await enqueueAppJob(
+        context.appJobs,
+        {
+          storeId: context.scope.storeId,
+          pluginId: CORE_PLUGIN_ID,
+          name: 'migrateStorage',
+          data: { targetProviderId: input.targetProviderId },
+        },
+        // One run at a time per target; a second click while it's going is a no-op, not a second job.
+        `migrateStorage:${input.targetProviderId}`,
+      )
+      return { ok: true }
+    }),
+
+  /** Progress the admin polls while "Move existing files to <connection>" runs. */
+  storageMigrationStatus: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
+    const settings = await loadStoreStorageSettings(context.tx, context.scope.storeId)
+    return settings.migration
   }),
 }

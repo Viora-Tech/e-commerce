@@ -30,12 +30,17 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
   }
   if (!input.name.trim()) throw new Error(`plugin "${input.id}" needs a name`)
   if (!input.version.trim()) throw new Error(`plugin "${input.id}" needs a version`)
+  if (input.kind !== 'builtin' && input.kind !== 'connection') {
+    throw new Error(`plugin "${input.id}" needs kind: 'builtin' or 'connection'`)
+  }
   return {
     id: input.id,
     name: input.name,
     version: input.version,
     description: input.description,
+    kind: input.kind,
     category: input.category,
+    company: input.company,
     hooks: input.hooks,
     orderLinks: input.orderLinks,
     productFields: input.productFields,

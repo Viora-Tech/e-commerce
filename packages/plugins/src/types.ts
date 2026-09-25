@@ -8,6 +8,30 @@ import type { StorageProvider, StorageProviderFactory } from '@commerce/storage'
 export type ProviderKind = 'payments' | 'shipping' | 'notifications' | 'storage'
 
 /**
+ * Which Apps section a plugin lists under. `builtin`: a feature we designed
+ * that runs inside the platform with no outside account (back-in-stock, GST
+ * invoices, Shopify import, the core plugin). `connection`: links the store
+ * to another company's service and needs that company's account (a storage
+ * bucket, a payment gateway, a courier, a message channel). Required on every
+ * manifest so a plugin cannot land in the wrong section by omission.
+ */
+export type PluginKind = 'builtin' | 'connection'
+
+/**
+ * Standard categories for a `connection` plugin's `category`, used for the
+ * Connections filter chips. `builtin` plugins keep freeform categories
+ * (`invoicing`, `migration`, `marketing`, ...) since they are not filtered
+ * the same way.
+ */
+export type ConnectionCategory =
+  | 'storage'
+  | 'payments'
+  | 'shipping'
+  | 'messages'
+  | 'analytics'
+  | 'marketing'
+
+/**
  * What a plugin contributes. A plugin is a package that ships one or more
  * provider factories; the platform never imports an adapter directly, it
  * imports plugins listed in commerce.config.ts.
@@ -145,8 +169,12 @@ export type PluginManifest = {
   name: string
   version: string
   description?: string | undefined
-  /** Shown as a badge on the Apps page, e.g. `invoicing`. */
+  /** Built by us and needs no outside account, or a connection to another company's service. */
+  kind: PluginKind
+  /** Shown as a badge on the Apps page. Connections use `ConnectionCategory`; built-ins are freeform. */
   category?: string | undefined
+  /** The outside company behind a `connection` plugin, e.g. `Cloudflare`, `Razorpay`, `Meta`. Shown as "by <company>". */
+  company?: string | undefined
   provides: PluginProvides
   hooks?: Partial<Record<AppEvent, AppHook>> | undefined
   /** Links added to the shopper's order page and order emails. Must be cheap: runs per render. */
@@ -173,7 +201,9 @@ export type PluginSummary = {
   description: string | null
   /** True for the core plugin, which every store has and nobody can uninstall. */
   builtIn: boolean
+  kind: PluginKind
   category: string | null
+  company: string | null
   provides: Record<ProviderKind, { id: string; label: string }[]>
   /** Lifecycle events the app subscribes to. */
   hooks: AppEvent[]
