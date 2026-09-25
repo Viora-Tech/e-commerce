@@ -348,7 +348,7 @@ export function createBlocksConfig(
         },
         resolveData: async ({ props }) => {
           const resolved = await Promise.all(
-            props.tabs.map(async (t) => ({
+            (props.tabs ?? []).map(async (t) => ({
               label: t.label,
               products: await loadProducts({
                 productType: t.productType || undefined,
