@@ -20,5 +20,7 @@ export const authContent = {
       heading: 'No stores yet',
       body: 'Store creation lands with onboarding. Ask an owner to invite you.',
     },
+    switchFailed: 'Could not switch stores. Try again.',
+    opening: 'Opening your store…',
   },
 } as const

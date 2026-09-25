@@ -1,7 +1,8 @@
 'use client'
 
-import type { CourierRuleSettings, ShippingPolicySettings } from '@commerce/core'
+import type { BoxPreset, CourierRuleSettings, ShippingPolicySettings } from '@commerce/core'
 import { Truck } from '@commerce/ui/icons'
+import BoxPresetsFields from '@/components/settings/box-presets-fields'
 import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import ProviderSettingsForm, {
   type ProviderDef,
@@ -19,6 +20,7 @@ import { api } from '@/lib/api-client'
 type Extra = {
   policy?: ShippingPolicySettings | undefined
   courierRule?: CourierRuleSettings | undefined
+  boxPresets?: BoxPreset[] | undefined
 }
 
 /**
@@ -43,7 +45,7 @@ function courierHint(m: ProviderDef) {
 
 function footer(extra: Extra, setExtra: (next: Extra) => void) {
   if (!extra.policy) return null
-  const [, rates, courierRule, policy, tryPin] = settingsContent.sections.shipping
+  const [, rates, courierRule, boxPresets, policy, tryPin] = settingsContent.sections.shipping
   return (
     <>
       <SettingsSection id={rates?.id ?? 'section-rates'}>
@@ -53,6 +55,12 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
         <CourierRuleFields
           value={extra.courierRule}
           onChange={(courierRule) => setExtra({ ...extra, courierRule })}
+        />
+      </SettingsSection>
+      <SettingsSection id={boxPresets?.id ?? 'section-box-presets'}>
+        <BoxPresetsFields
+          value={extra.boxPresets}
+          onChange={(next) => setExtra({ ...extra, boxPresets: next })}
         />
       </SettingsSection>
       <SettingsSection id={policy?.id ?? 'section-policy'}>

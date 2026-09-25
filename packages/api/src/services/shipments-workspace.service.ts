@@ -17,7 +17,16 @@ import {
   shippingProviderById,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
-import { address, order, shipment, shipmentManifest, shipmentPickup, store } from '@commerce/db'
+import {
+  address,
+  customer,
+  order,
+  orderLine,
+  shipment,
+  shipmentManifest,
+  shipmentPickup,
+  store,
+} from '@commerce/db'
 import {
   ASSUMED_WEIGHT_GRAMS,
   CourierError,
@@ -26,7 +35,7 @@ import {
   type RateQuery,
 } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { and, count, desc, eq, ilike, inArray, or } from 'drizzle-orm'
+import { and, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { loadShippingSettings } from './shipping.service'
 
 const courierToRpc = (err: unknown): never => {
@@ -161,6 +170,93 @@ export async function listShipments(tx: StoreTx, input: ShipmentListFilter) {
   return { items, total: countRow?.total ?? 0 }
 }
 
+export type ReadyToShipFilter = { page: number; perPage: number; search?: string | undefined }
+
+export type ReadyToShipRow = {
+  orderId: string
+  orderNumber: number
+  placedAt: Date
+  customerName: string | null
+  email: string | null
+  city: string
+  pincode: string
+  itemsCount: number
+  totalPaise: number
+  isPreorder: boolean
+}
+
+/** Paid orders not yet shipped: fulfilment `unfulfilled`/`partially_fulfilled`, order not
+ *  cancelled, and not tagged on hold. This is the Ready to ship tab's main list - the
+ *  Shopify-style booking flow starts here instead of pasting order numbers. */
+export async function listReadyToShip(
+  tx: StoreTx,
+  input: ReadyToShipFilter,
+): Promise<{ items: ReadyToShipRow[]; total: number }> {
+  const where = and(
+    inArray(order.paymentStatus, ['paid', 'partially_paid']),
+    inArray(order.fulfillmentStatus, ['unfulfilled', 'partially_fulfilled']),
+    sql`${order.status} != 'cancelled'`,
+    // No "hold" concept in the schema yet; a hold/on-hold tag is the stand-in until one exists.
+    sql`not (${order.tags} && array['hold', 'on-hold']::text[])`,
+    input.search
+      ? or(
+          ilike(order.email, `%${input.search}%`),
+          ilike(address.name, `%${input.search}%`),
+          ilike(address.pincode, `%${input.search}%`),
+        )
+      : undefined,
+  )
+  const base = tx
+    .select({
+      orderId: order.id,
+      orderNumber: order.number,
+      placedAt: order.placedAt,
+      email: order.email,
+      totalPaise: order.totalPaise,
+      customerName: sql<string | null>`coalesce(${address.name}, ${customer.name})`,
+      city: address.city,
+      pincode: address.pincode,
+    })
+    .from(order)
+    .innerJoin(address, eq(address.id, order.shippingAddressId))
+    .leftJoin(customer, eq(customer.id, order.customerId))
+    .where(where)
+  const [countRow] = await tx
+    .select({ total: count() })
+    .from(order)
+    .innerJoin(address, eq(address.id, order.shippingAddressId))
+    .leftJoin(customer, eq(customer.id, order.customerId))
+    .where(where)
+  const rows = await base
+    .orderBy(desc(order.placedAt))
+    .limit(input.perPage)
+    .offset((input.page - 1) * input.perPage)
+
+  const orderIds = rows.map((r) => r.orderId)
+  const lineAgg =
+    orderIds.length === 0
+      ? []
+      : await tx
+          .select({
+            orderId: orderLine.orderId,
+            itemsCount: sql<number>`coalesce(sum(${orderLine.quantity}), 0)`,
+            isPreorder: sql<boolean>`bool_or(${orderLine.preorder})`,
+          })
+          .from(orderLine)
+          .where(inArray(orderLine.orderId, orderIds))
+          .groupBy(orderLine.orderId)
+  const byOrder = new Map(lineAgg.map((l) => [l.orderId, l]))
+
+  return {
+    items: rows.map((r) => ({
+      ...r,
+      itemsCount: Number(byOrder.get(r.orderId)?.itemsCount ?? 0),
+      isPreorder: byOrder.get(r.orderId)?.isPreorder ?? false,
+    })),
+    total: countRow?.total ?? 0,
+  }
+}
+
 /**
  * Rate comparison for a batch of orders (the bulk-book panel's preview table
  * and the per-order "compare couriers" view): every connected courier's price
@@ -243,6 +339,7 @@ export async function bulkBookShipments(
     ok: boolean
     shipmentId?: string
     waybill?: string
+    labelUrl?: string | null
     error?: string
   }> = []
 
@@ -273,7 +370,13 @@ export async function bulkBookShipments(
           insured: input.insured,
         },
       )
-      results.push({ orderId: o.orderId, ok: true, shipmentId: row.id, waybill: row.waybill })
+      results.push({
+        orderId: o.orderId,
+        ok: true,
+        shipmentId: row.id,
+        waybill: row.waybill,
+        labelUrl: row.labelUrl,
+      })
     } catch (err) {
       results.push({
         orderId: o.orderId,

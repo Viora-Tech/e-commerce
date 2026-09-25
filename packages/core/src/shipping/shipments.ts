@@ -1,10 +1,11 @@
-import { address, order, orderLine, shipment, store } from '@commerce/db'
+import { address, order, orderLine, shipment, store, variant } from '@commerce/db'
 import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
 import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
 import { recomputeOrderStatuses } from '../order/recompute'
-import { parseShippingSettings } from './settings'
+import { resolveParcelWeightGrams } from './parcel'
+import { defaultBoxPreset, parseShippingSettings } from './settings'
 
 export type ShipmentRow = typeof shipment.$inferSelect
 
@@ -19,13 +20,15 @@ export const OPEN_SHIPMENT_STATUSES = [
 /**
  * Book a consignment with the courier for an order and record it.
  *
- * The order must have a shipping address. Parcel weight is assumed per line
- * until variants carry one (see ASSUMED_WEIGHT_GRAMS). The order is marked
- * fulfilled here because the label exists now; whether the courier has
+ * The order must have a shipping address. Parcel weight sums the order's own
+ * variant weights when every line has one, else falls back to the store's
+ * default box weight (see `resolveParcelWeightGrams`), and finally
+ * `ASSUMED_WEIGHT_GRAMS` if the store has no box preset either. The order is
+ * marked fulfilled here because the label exists now; whether the courier has
  * collected it is what tracking is for.
  */
 export type CreateShipmentOptions = {
-  /** Overrides the per-line assumed-weight sum, e.g. from the bulk create dialog. */
+  /** Overrides the computed weight, e.g. the merchant's per-row edit in the booking panel. */
   weightGrams?: number | undefined
   dimensionsCm?: { length: number; width: number; height: number } | undefined
   /** Explicit merchant choice; defaults from the store's "insure above ₹X" policy when omitted. */
@@ -48,12 +51,20 @@ export async function createShipmentForOrder(
   if (!to) throw new Error('shipping address not found')
   const [s] = await ctx.tx.select().from(store).where(eq(store.id, ctx.storeId))
   const settings = parseShippingSettings(s?.shipping)
-  const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+  const lines = await ctx.tx
+    .select({
+      title: orderLine.title,
+      variantTitle: orderLine.variantTitle,
+      quantity: orderLine.quantity,
+      unitPricePaise: orderLine.unitPricePaise,
+      variantWeightGrams: variant.weightGrams,
+    })
+    .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .where(eq(orderLine.orderId, orderId))
   const w = settings.policy.warehouse
-  const weightGrams =
-    options.weightGrams ||
-    lines.reduce((g, l) => g + l.quantity * ASSUMED_WEIGHT_GRAMS, 0) ||
-    ASSUMED_WEIGHT_GRAMS
+  const boxWeightGrams = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
+  const weightGrams = options.weightGrams || resolveParcelWeightGrams(lines, boxWeightGrams)
   const threshold = settings.policy.insuranceThresholdPaise
   const insured = options.insured ?? (threshold > 0 && o.totalPaise >= threshold)
 
@@ -172,6 +183,7 @@ export type BulkCreateResult = {
   ok: boolean
   shipmentId?: string
   waybill?: string
+  labelUrl?: string | null
   error?: string
 }
 
@@ -190,7 +202,13 @@ export async function bulkCreateShipments(
   for (const orderId of orderIds) {
     try {
       const row = await createShipmentForOrder(ctx, provider, orderId, options)
-      results.push({ orderId, ok: true, shipmentId: row.id, waybill: row.waybill })
+      results.push({
+        orderId,
+        ok: true,
+        shipmentId: row.id,
+        waybill: row.waybill,
+        labelUrl: row.labelUrl,
+      })
     } catch (err) {
       results.push({ orderId, ok: false, error: err instanceof Error ? err.message : String(err) })
     }

@@ -20,6 +20,9 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { authContent } from '@/data/auth'
 import {
   APPS_GROUP,
   NAV_GROUPS,
@@ -52,11 +55,21 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
   const pathname = usePathname()
   const router = useRouter()
   const { toggleSidebar } = useSidebar()
+  const [switchingId, setSwitchingId] = useState<string | null>(null)
 
   // Event handlers
   const handleSwitchStore = async (id: string) => {
-    await authClient.organization.setActive({ organizationId: id })
-    router.refresh()
+    if (switchingId) return
+    setSwitchingId(id)
+    try {
+      const { error } = await authClient.organization.setActive({ organizationId: id })
+      if (error) throw new Error(error.message ?? authContent.selectStore.switchFailed)
+      router.push('/')
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : authContent.selectStore.switchFailed)
+      setSwitchingId(null)
+    }
   }
 
   // Render logic
@@ -96,14 +109,18 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
             </span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-60">
+          <DropdownMenuContent align="start" className="w-60 bg-popover">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 {navigationContent.stores}
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             {stores.map((s) => (
-              <DropdownMenuItem key={s.id} onSelect={() => handleSwitchStore(s.id)}>
+              <DropdownMenuItem
+                key={s.id}
+                disabled={switchingId !== null || s.id === activeStoreId}
+                onSelect={() => handleSwitchStore(s.id)}
+              >
                 <Store className="size-4" />
                 {s.name}
               </DropdownMenuItem>

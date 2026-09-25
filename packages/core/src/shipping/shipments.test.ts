@@ -164,7 +164,9 @@ describe('shipments', () => {
       orderNumber: 7,
       paymentMode: 'cod',
       codAmountPaise: 199900,
-      weightGrams: 1000,
+      // No variant weight and no box preset on this store: falls back to ASSUMED_WEIGHT_GRAMS,
+      // not the old per-line multiply (see resolveParcelWeightGrams).
+      weightGrams: 500,
       to: { pincode: '560001', state: 'KA' },
       from: { name: 'Waimers HQ', pincode: '131028' },
       lines: [{ title: 'Pad', quantity: 2 }],
@@ -182,6 +184,63 @@ describe('shipments', () => {
     // The shipped notification now carries the waybill.
     const built = await withStore(app, storeId, (tx) => buildTemplateData({ storeId, tx }, orderId))
     expect(built?.data.waybill).toBe('WB1')
+  })
+
+  it('sums variant weights when the line has one, else falls back to the default box preset', async () => {
+    const { storeId, orderId } = await seedOrder()
+    // The seeded variant has no weight; give the store a default box preset.
+    await owner
+      .update(store)
+      .set({
+        shipping: {
+          enabled: ['fake'],
+          policy: { originPincode: '131028' },
+          boxPresets: [
+            { id: 'b1', name: 'Small', lengthCm: 20, widthCm: 15, heightCm: 10, weightGrams: 300 },
+            {
+              id: 'b2',
+              name: 'Default',
+              lengthCm: 30,
+              widthCm: 20,
+              heightCm: 15,
+              weightGrams: 700,
+              isDefault: true,
+            },
+          ],
+        },
+      })
+      .where(eq(store.id, storeId))
+    const captured: unknown[] = []
+    const provider = Object.assign(new FakeShippingProvider(), {
+      createShipment: async (input: { weightGrams: number }) => {
+        captured.push(input)
+        return { waybill: 'WB2', providerRef: 'WB2' }
+      },
+    })
+    await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider, orderId),
+    )
+    expect((captured[0] as { weightGrams: number }).weightGrams).toBe(700)
+
+    // Now give the variant a real weight: the line sum wins over the box.
+    await owner.update(variant).set({ weightGrams: 250 }).where(eq(variant.storeId, storeId))
+    const captured2: unknown[] = []
+    const provider2 = Object.assign(new FakeShippingProvider(), {
+      createShipment: async (input: { weightGrams: number }) => {
+        captured2.push(input)
+        return { waybill: 'WB3', providerRef: 'WB3' }
+      },
+    })
+    const [existing] = await owner.select().from(shipment).where(eq(shipment.orderId, orderId))
+    await owner
+      .update(shipment)
+      .set({ status: 'cancelled' })
+      .where(eq(shipment.id, existing?.id as string))
+    await withStore(app, storeId, (tx) =>
+      createShipmentForOrder({ storeId, tx }, provider2, orderId),
+    )
+    // Two units of the seeded line at 250g each.
+    expect((captured2[0] as { weightGrams: number }).weightGrams).toBe(500)
   })
 
   it('applies tracking, flips the order to delivered once, and lists open shipments', async () => {
