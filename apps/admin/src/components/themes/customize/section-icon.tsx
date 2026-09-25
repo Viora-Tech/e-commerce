@@ -36,9 +36,9 @@ const GLYPHS = {
 /** The glyph a section shows in the tree and the add menu. */
 export default function SectionIcon({ type, className }: SectionIconProps) {
   // Render logic
-  if (type === 'Header') return <PanelTop aria-hidden className={className} />
-  if (type === 'Footer') return <PanelBottom aria-hidden className={className} />
+  if (type === 'Header') return <PanelTop aria-hidden weight="light" className={className} />
+  if (type === 'Footer') return <PanelBottom aria-hidden weight="light" className={className} />
   const key = (SECTION_ICONS[type] ?? 'text') as keyof typeof GLYPHS
   const Glyph = GLYPHS[key] ?? FileText
-  return <Glyph aria-hidden className={className} />
+  return <Glyph aria-hidden weight="light" className={className} />
 }

@@ -50,6 +50,7 @@ import {
   Gear,
   Gift,
   GlobeSimple,
+  Hash,
   Highlighter,
   House,
   Image,
@@ -57,6 +58,7 @@ import {
   Info,
   Layout,
   LinkSimple,
+  ListBullets,
   MagnifyingGlass,
   MagnifyingGlassMinus,
   MapPinLine,
@@ -66,6 +68,7 @@ import {
   Newspaper,
   NotePencil,
   Package,
+  Paragraph,
   PaperPlaneTilt,
   PencilSimpleLine,
   Clock as PhClock,
@@ -88,8 +91,12 @@ import {
   SquaresFour,
   Storefront,
   Sun,
+  Swatches,
   Target,
   TerminalWindow,
+  TextAlignLeft,
+  TextT,
+  ToggleLeft,
   Trash,
   Tray,
   TreeStructure,
@@ -223,6 +230,15 @@ export const Pencil = defineIcon(PencilSimpleLine, 'Pencil')
 export const Trash2 = defineIcon(Trash, 'Trash2')
 export const ImagePlus = defineIcon(ImageSquare, 'ImagePlus')
 export const ImageIcon = defineIcon(Image, 'ImageIcon')
+/* Field-type glyphs for Customize's right panel (Puck fieldTypes overrides). */
+export const FieldText = defineIcon(TextT, 'FieldText')
+export const FieldTextarea = defineIcon(Paragraph, 'FieldTextarea')
+export const FieldNumber = defineIcon(Hash, 'FieldNumber')
+export const FieldToggle = defineIcon(ToggleLeft, 'FieldToggle')
+export const FieldList = defineIcon(ListBullets, 'FieldList')
+export const FieldSwatch = defineIcon(Swatches, 'FieldSwatch')
+export const FieldRichText = defineIcon(TextAlignLeft, 'FieldRichText')
+export const FieldGroup = defineIcon(SquaresFour, 'FieldGroup')
 export const Video_ = defineIcon(Video, 'Video')
 export { Video_ as Video }
 export const Upload_ = defineIcon(Upload, 'Upload')

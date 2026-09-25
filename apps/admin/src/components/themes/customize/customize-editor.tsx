@@ -5,6 +5,7 @@ import { type Data, Puck } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
 import '@/styles/vendor-editor.css'
+import type { ComponentProps, ComponentType } from 'react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
@@ -20,11 +21,18 @@ import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
 import ThemeSettings from '../theme-settings'
 import type { ThemeItem } from '../theme-types'
+import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
+import CustomizeArrayField from './customize-array-field'
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
+import CustomizeNumberField from './customize-number-field'
+import CustomizeObjectField from './customize-object-field'
+import CustomizeRadioField from './customize-radio-field'
+import CustomizeRichTextField from './customize-richtext-field'
+import CustomizeSelectField from './customize-select-field'
+import CustomizeTextField from './customize-text-field'
 import CustomizeTopBar from './customize-top-bar'
-import ImageField from './image-field'
 import PreviewFrame from './preview-frame'
 import ResourcePicker from './resource-picker'
 import SectionOverlay from './section-overlay'
@@ -53,6 +61,10 @@ const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix 
  * the inspector and undo all share Puck's state. Edits autosave as drafts of this
  * theme; Save commits them, which for the live theme is what shoppers see.
  */
+/** The props a field override component expects, for narrowing Puck's wide field props. */
+// biome-ignore lint/suspicious/noExplicitAny: matches React's own ComponentProps constraint.
+type FieldOverride<C extends ComponentType<any>> = ComponentProps<C>
+
 export default function CustomizeEditor({ theme, canPublish, initial }: CustomizeEditorProps) {
   // Hooks
   const [record, setRecord] = useState(theme)
@@ -219,11 +231,6 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       saving={saving}
       publishing={publishing}
       canPublish={canPublish}
-      device={device}
-      mode={mode}
-      darkMode={settings.darkMode.enabled}
-      onDevice={setDevice}
-      onMode={setModePick}
       onDiscard={handleDiscard}
       onSave={handleSave}
       onPublish={handlePublish}
@@ -283,11 +290,43 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
             componentOverlay: (props) => <SectionOverlay {...props} />,
             // Puck's own label + duplicate/delete action bar is replaced by SectionOverlay above.
             actionBar: () => <></>,
+            // Puck's own field label can't tell field types apart (it only gets the label
+            // text), so it's suppressed here: every fieldTypes override below renders its
+            // own icon + label through FieldFrame instead.
+            // Puck types `field` as a wide union (every field type plus custom ones); each
+            // override is only ever called for its own type, so narrow it to what it reads.
+            fieldLabel: () => <></>,
             fieldTypes: {
+              text: (props) => (
+                <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
+              ),
+              textarea: (props) => (
+                <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
+              ),
+              number: (props) => (
+                <CustomizeNumberField {...(props as FieldOverride<typeof CustomizeNumberField>)} />
+              ),
+              select: (props) => (
+                <CustomizeSelectField {...(props as FieldOverride<typeof CustomizeSelectField>)} />
+              ),
+              radio: (props) => (
+                <CustomizeRadioField {...(props as FieldOverride<typeof CustomizeRadioField>)} />
+              ),
+              array: (props) => (
+                <CustomizeArrayField {...(props as FieldOverride<typeof CustomizeArrayField>)} />
+              ),
               object: (props) => (
-                <ImageField field={props.field} value={props.value} onChange={props.onChange}>
-                  {props.children}
-                </ImageField>
+                <CustomizeObjectField {...(props as FieldOverride<typeof CustomizeObjectField>)} />
+              ),
+              custom: (props: {
+                field: unknown
+                value: unknown
+                onChange: (v: unknown) => void
+                name: string
+              }) => (
+                <CustomizeRichTextField
+                  {...(props as unknown as FieldOverride<typeof CustomizeRichTextField>)}
+                />
               ),
             },
           }}
@@ -297,6 +336,15 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
             <CustomizeLayout
               topBar={topBar}
               settings={settingsPanel}
+              dock={
+                <CanvasDock
+                  device={device}
+                  mode={mode}
+                  darkMode={settings.darkMode.enabled}
+                  onDevice={setDevice}
+                  onMode={setModePick}
+                />
+              }
               device={device}
               loading={switching}
             />

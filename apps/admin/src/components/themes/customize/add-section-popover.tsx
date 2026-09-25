@@ -26,7 +26,11 @@ export default function AddSectionPopover({ zone, group, count }: AddSectionPopo
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant="ghost" size="sm" className="w-full justify-start text-primary">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-full justify-start rounded-lg text-[0.8125rem] font-normal text-muted-foreground hover:text-primary"
+          >
             <Plus aria-hidden />
             {customizeContent.tree.add}
           </Button>

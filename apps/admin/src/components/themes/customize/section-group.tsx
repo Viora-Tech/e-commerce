@@ -8,7 +8,7 @@ import {
 import { SortableList } from '@commerce/ui/sortable'
 import { useReducedMotion } from 'motion/react'
 import { sectionSortLabels } from '@/data/customize'
-import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
+import { deleteWithCollapse, scrollToSection } from '@/lib/customize-canvas-motion'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AddSectionPopover from './add-section-popover'
 import SectionRow from './section-row'
@@ -72,35 +72,45 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
   // Render logic
   const items: Item[] = sections.map((section) => ({ id: section.props.id, section }))
   return (
-    <section className="flex flex-col gap-0.5 border-b border-border px-2 py-3">
-      <h2 className="text-eyebrow px-2 pb-1">{title}</h2>
-      <SortableList
-        items={items}
-        onReorder={handleReorder}
-        getTitle={(i) => labelOf(i.section.type)}
-        labels={sectionSortLabels}
-        renderItem={(item, { handle }) => {
-          const index = items.indexOf(item)
-          return (
-            <SectionRow
-              section={item.section}
-              label={labelOf(item.section.type)}
-              selected={selector?.zone === zone && selector.index === index}
-              locked={SINGLE_SECTIONS.has(item.section.type)}
-              handle={handle}
-              onSelect={() => dispatch({ type: 'setUi', ui: { itemSelector: { index, zone } } })}
-              onToggleHidden={() => handleToggle(index, item.section)}
-              onDuplicate={() =>
-                dispatch({ type: 'duplicate', sourceIndex: index, sourceZone: zone })
-              }
-              onRemove={(el) =>
-                deleteWithCollapse(dispatch, { index, zone }, el, reducedMotion === true)
-              }
-            />
-          )
-        }}
-      />
-      <AddSectionPopover zone={zone} group={group} count={sections.length} />
+    <section className="flex flex-col gap-1 px-2 pt-3 pb-1">
+      <h2 className="flex items-center gap-2 px-2 text-eyebrow">
+        {title}
+        <span className="rounded-full bg-muted px-1.5 text-[0.625rem] leading-4 font-medium text-muted-foreground tabular-nums">
+          {sections.length}
+        </span>
+      </h2>
+      <div className="ml-3.5 flex flex-col gap-0.5 border-l border-border pl-1.5">
+        <SortableList
+          items={items}
+          onReorder={handleReorder}
+          getTitle={(i) => labelOf(i.section.type)}
+          labels={sectionSortLabels}
+          renderItem={(item, { handle }) => {
+            const index = items.indexOf(item)
+            return (
+              <SectionRow
+                section={item.section}
+                label={labelOf(item.section.type)}
+                selected={selector?.zone === zone && selector.index === index}
+                locked={SINGLE_SECTIONS.has(item.section.type)}
+                handle={handle}
+                onSelect={() => {
+                  dispatch({ type: 'setUi', ui: { itemSelector: { index, zone } } })
+                  scrollToSection(item.id, reducedMotion === true)
+                }}
+                onToggleHidden={() => handleToggle(index, item.section)}
+                onDuplicate={() =>
+                  dispatch({ type: 'duplicate', sourceIndex: index, sourceZone: zone })
+                }
+                onRemove={(el) =>
+                  deleteWithCollapse(dispatch, { index, zone }, el, reducedMotion === true)
+                }
+              />
+            )
+          }}
+        />
+        <AddSectionPopover zone={zone} group={group} count={sections.length} />
+      </div>
     </section>
   )
 }

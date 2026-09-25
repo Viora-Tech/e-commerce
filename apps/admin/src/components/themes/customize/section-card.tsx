@@ -3,6 +3,7 @@
 import { Drawer } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import Image from 'next/image'
+import type { KeyboardEvent } from 'react'
 import SectionIcon from './section-icon'
 import SectionLivePreview from './section-live-preview'
 
@@ -36,14 +37,25 @@ export default function SectionCard({
   // Hooks
   const reducedMotion = useReducedMotion()
 
+  // Event handlers
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    onAdd()
+  }
+
   // Render logic
   return (
     <>
       <Drawer.Item name={type}>
         {() => (
-          <motion.button
-            type="button"
+          // A div, not a button: Puck's drag sensor won't start a drag from
+          // interactive elements, so a <button> here could be clicked but never dragged.
+          <motion.div
+            role="button"
+            tabIndex={0}
             onClick={onAdd}
+            onKeyDown={handleKeyDown}
             onMouseEnter={() => onHover(type)}
             onFocus={() => onHover(type)}
             initial={reducedMotion ? false : { opacity: 0, y: -4 }}
@@ -53,7 +65,7 @@ export default function SectionCard({
                 ? { duration: 0 }
                 : { duration: 0.22, ease: 'easeOut', delay: index * 0.025 }
             }
-            className="flex w-full items-start gap-3 rounded-md p-2 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex w-full cursor-grab items-start gap-3 rounded-md p-2 text-left hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
           >
             <span className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <SectionIcon type={type} className="size-4" />
@@ -71,7 +83,7 @@ export default function SectionCard({
               <span className="text-body-strong">{label}</span>
               <span className="truncate text-caption text-muted-foreground">{description}</span>
             </span>
-          </motion.button>
+          </motion.div>
         )}
       </Drawer.Item>
       {hovered ? (

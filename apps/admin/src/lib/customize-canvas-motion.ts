@@ -200,3 +200,13 @@ export function deleteWithCollapse(
   }
   collapseSection(el, reducedMotion).then(commit)
 }
+
+/**
+ * Brings a section into view in the preview iframe, e.g. after it's picked in
+ * the Sections tree (Puck only scrolls for selections made on the canvas).
+ */
+export function scrollToSection(id: string, reducedMotion: boolean): void {
+  const frame = document.querySelector<HTMLIFrameElement>('#main iframe')
+  const el = frame?.contentDocument?.querySelector<HTMLElement>(`[data-puck-component="${id}"]`)
+  el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+}
