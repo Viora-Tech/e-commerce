@@ -3,7 +3,7 @@
  * build skips Puck's remote Inter @import (invalid inside a layer, and the
  * admin already loads Inter through next/font).
  */
-@import "@measured/puck/no-external.css" layer(vendor);
+@import "@puckeditor/core/no-external.css" layer(vendor);
 
 /*
  * Puck's root DropZone assumes ONE zone filling a scrollable canvas, so its
@@ -17,4 +17,79 @@
  */
 [data-puck-dropzone] {
   height: auto;
+}
+
+/*
+ * Theming (Puck 0.22+ token API): map Puck's chrome to the admin's own design
+ * tokens instead of its default azure palette, so the editor reads as part of
+ * the admin, not a bolted-on vendor widget. These reference our CSS variables
+ * directly (packages/ui/src/styles.css), so light/dark and the merchant's
+ * accent pick (--primary) apply automatically — no separate dark block needed.
+ */
+:root {
+  /* Type */
+  --puck-font-family: var(--font-sans);
+  --puck-outline-font-family: var(--font-sans);
+
+  /* Accent: links, focus, the primary button, drag affordances */
+  --puck-color-interactive: var(--primary);
+  --puck-color-interactive-hover: var(--primary);
+  --puck-color-interactive-active: var(--primary);
+  --puck-color-interactive-subtle: var(--primary-soft);
+  --puck-color-interactive-soft: var(--primary-soft);
+  --puck-color-interactive-soft-hover: var(--primary-tint);
+  --puck-color-focus-ring: var(--ring);
+  --puck-button-primary-color-bg: var(--action);
+  --puck-button-primary-color-bg-hover: var(--action);
+  --puck-button-primary-color-text: var(--action-foreground);
+
+  /* Borders and corner radius, matched to our field/card scale */
+  --puck-color-border: var(--border);
+  --puck-color-border-hover: var(--border-strong);
+  --puck-field-color-border: var(--input);
+  --puck-field-color-border-hover: var(--border-strong);
+  --puck-field-color-border-focus: var(--ring);
+  --puck-field-radius: var(--radius-md);
+  --puck-button-radius: var(--radius-md);
+  --puck-iconbutton-radius: var(--radius-md);
+  --puck-drawer-item-radius: var(--radius-md);
+  --puck-outline-radius: var(--radius-md);
+  --puck-radius-xs: var(--radius-sm);
+  --puck-radius-s: var(--radius-sm);
+  --puck-radius-m: var(--radius-md);
+  --puck-radius-l: var(--radius-lg);
+
+  /* Drag-and-drop (0.23 dnd.behavior "auto"): the insertion line and the
+   * selection/hover outline drawn around a dragged or selected section. */
+  --puck-color-line-placeholder: var(--primary);
+  --puck-line-placeholder-width: 2px;
+  --puck-outline-color-drop-indicator: var(--primary);
+  --puck-color-selection-bg: color-mix(in srgb, var(--primary) 8%, transparent);
+  --puck-color-selection-border: var(--primary);
+  --puck-border-width-focus: 1.5px;
+  --puck-slot-component-color-border-selected: var(--primary);
+  --puck-slot-component-color-overlay: color-mix(in srgb, var(--primary) 8%, transparent);
+  --puck-slot-component-color-overlay-border: var(--primary);
+  --puck-slot-component-color-placeholder: var(--primary-soft);
+
+  /* The outline panel (unused directly — SectionsTree replaces it — but its
+   * tokens still theme the drawer previews and nested-slot chrome we inherit). */
+  --puck-outline-color-bg-hover: var(--accent);
+  --puck-outline-color-bg-selected: var(--primary-soft);
+  --puck-outline-color-border-hover: var(--border-strong);
+  --puck-outline-color-border-selected: var(--primary);
+  --puck-outline-color-icon: var(--muted-foreground);
+  --puck-outline-color-text: var(--foreground);
+
+  /* Feel: hover/selection ease in fast, never longer than our own micro-interactions. */
+  --puck-duration-fast: 120ms;
+  --puck-duration-medium: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --puck-duration-fast: 0ms;
+    --puck-duration-medium: 0ms;
+    --puck-duration-slow: 0ms;
+  }
 }

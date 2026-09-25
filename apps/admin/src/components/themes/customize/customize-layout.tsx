@@ -2,7 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
-import { Puck } from '@measured/puck'
+import { Puck } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'

@@ -1,4 +1,4 @@
-import { createUsePuck } from '@measured/puck'
+import { createUsePuck } from '@puckeditor/core'
 
 /** Selector hook over the Customize Puck store; every panel reads and dispatches through it. */
 export const useCustomizePuck = createUsePuck()

@@ -1,5 +1,5 @@
 import type { TemplateData, TemplateSection } from '@commerce/core/theme'
-import type { Config } from '@measured/puck'
+import type { Config } from '@puckeditor/core'
 
 /**
  * Customize edits one Puck document per template. The header and footer section
@@ -44,6 +44,20 @@ export function splitDoc(doc: CustomizeDoc): CustomizeParts {
 /** The sections of one zone of the document, as the tree lists them. */
 export function zoneSections(doc: CustomizeDoc, zone: string): TemplateSection[] {
   return zone === MAIN_ZONE ? doc.content : (doc.zones[zone] ?? [])
+}
+
+const ZONES = [MAIN_ZONE, HEADER_ZONE, FOOTER_ZONE]
+
+/** Which zone and index a section id sits at, for the canvas overlay's move/duplicate/remove actions. */
+export function locateSection(
+  doc: CustomizeDoc,
+  id: string,
+): { zone: string; index: number } | null {
+  for (const zone of ZONES) {
+    const index = zoneSections(doc, zone).findIndex((s) => s.props.id === id)
+    if (index !== -1) return { zone, index }
+  }
+  return null
 }
 
 const withDefaults = (sections: TemplateSection[], config: Config): TemplateSection[] =>

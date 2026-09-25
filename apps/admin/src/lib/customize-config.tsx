@@ -1,7 +1,7 @@
 import { type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
 import { RichTextEditor } from '@commerce/editor'
-import { type ComponentConfig, type Config, DropZone } from '@measured/puck'
+import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import { api } from '@/lib/api-client'
 

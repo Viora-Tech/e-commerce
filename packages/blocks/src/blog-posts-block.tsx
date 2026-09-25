@@ -1,4 +1,4 @@
-import type { ComponentConfig } from '@measured/puck'
+import type { ComponentConfig } from '@puckeditor/core'
 import BlogPosts from './components/blog-posts'
 import SectionFrame from './components/section-frame'
 import type { Frame, frameFields } from './puck-config'

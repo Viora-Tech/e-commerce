@@ -56,6 +56,10 @@ export const customizeContent = {
     hidden: 'Hidden',
     locked: 'This section shows the page content and cannot be removed',
   },
+  overlay: {
+    moveUp: (name: string) => `Move ${name} up`,
+    moveDown: (name: string) => `Move ${name} down`,
+  },
   addSection: {
     search: 'Search sections',
     empty: 'No sections match',

@@ -1,4 +1,4 @@
-import type { ComponentConfig, Fields } from '@measured/puck'
+import type { ComponentConfig, Fields } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import type { NewsletterAction } from '../components/sections/newsletter'
 import { sectionsContent } from '../data/sections'

@@ -1,7 +1,7 @@
 'use client'
 
 import { type TemplateKind, THEME_FONT_IDS, THEME_FONTS } from '@commerce/core/theme'
-import { type Data, Puck } from '@measured/puck'
+import { type Data, Puck } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
 import '@/styles/vendor-editor.css'
@@ -21,11 +21,13 @@ import type { PreviewDevice } from '../theme-preview'
 import ThemeSettings from '../theme-settings'
 import type { ThemeItem } from '../theme-types'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
+import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
 import ImageField from './image-field'
 import PreviewFrame from './preview-frame'
 import ResourcePicker from './resource-picker'
+import SectionOverlay from './section-overlay'
 import TemplatePicker, { type TemplateRef } from './template-picker'
 
 type CustomizeEditorProps = {
@@ -256,12 +258,16 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           onChange={handleChange}
           onPublish={handleSave}
           iframe={{ enabled: true, waitForStyles: true }}
+          dnd={{ behavior: 'auto' }}
           overrides={{
             iframe: ({ children, document }) => (
               <PreviewFrame document={document} theme={settings} mode={mode}>
                 {children}
               </PreviewFrame>
             ),
+            componentOverlay: (props) => <SectionOverlay {...props} />,
+            // Puck's own label + duplicate/delete action bar is replaced by SectionOverlay above.
+            actionBar: () => <></>,
             fieldTypes: {
               object: (props) => (
                 <ImageField field={props.field} value={props.value} onChange={props.onChange}>
@@ -272,6 +278,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           }}
         >
           <ThemePreviewContext.Provider value={settings}>
+            <CustomizeHotkeys />
             <CustomizeLayout
               topBar={topBar}
               settings={settingsPanel}
