@@ -10,12 +10,24 @@ import { config } from 'dotenv'
  * namespace so one checkout's reset never truncates another's run.
  */
 export function loadTestEnv(suffix: string, envFile: string): void {
-  config({ path: envFile })
+  // override: Bun auto-loads the repo's `.env` first; without it the dev DATABASE_URL
+  // survives and the suites' resets wipe the dev database.
+  config({ path: envFile, override: true })
   const namespace = testDbNamespace()
   const name = namespace ? `${namespace}_${suffix}` : suffix
   for (const key of ['DATABASE_URL', 'DATABASE_URL_OWNER'] as const) {
     const url = process.env[key]
     if (url) process.env[key] = url.replace(/\/commerce_test$/, `/commerce_test_${name}`)
+    assertTestDatabase(key, process.env[key])
+  }
+}
+
+/** Refuse to run against anything but a `commerce_test*` database. */
+function assertTestDatabase(key: string, url: string | undefined): void {
+  if (!url) return
+  const db = new URL(url).pathname.slice(1)
+  if (!/^commerce_test(_[a-z0-9_]+)?$/.test(db)) {
+    throw new Error(`${key} points at "${db}", not a commerce_test database; refusing to run tests`)
   }
 }
 
