@@ -1,0 +1,126 @@
+---
+title: Backups
+---
+
+> Moved from `docs/ops/backups.md`. This is the source of truth.
+
+# Database and uploads backups
+
+`scripts/backup-db.ts` dumps the app's Postgres database with `pg_dump` (custom format `-Fc`),
+gzips it, and writes it to a backup target with a **7 daily + 4 weekly** retention policy per
+dataset. When the built-in local storage provider is in use (`LOCAL_STORAGE_DIR`, default
+`./.data/uploads` — see [Plugins SDK](/developer-docs/plugins)), it also tars and gzips that folder and backs it up
+the same way, under its own `uploads/` prefix and its own retention count, so pruning one never
+eats into the other's history. A store using a storage Connection (R2, ...) instead has nothing
+under `LOCAL_STORAGE_DIR` to tar, so only the database is backed up — the bucket is its own
+backup surface.
+
+The backup target is Cloudflare R2 (`BACKUP_R2_*`) or a local folder (`BACKUP_LOCAL_DIR`, which
+wins when both are set) — see below. `scripts/restore-db.ts` reverses the database half with
+`pg_restore`; there is no restore script for uploads, since it is a plain `tar -xzf` of whichever
+`uploads/daily/<timestamp>.tar.gz` you want back into `LOCAL_STORAGE_DIR`. Both scripts run with
+`bun`, not part of any app's build or test — nothing here runs automatically, and neither script
+is ever invoked by CI or by this codebase's own test suite.
+
+## What you need
+
+- `pg_dump` and `pg_restore` on PATH, matching (or newer than) the Postgres server's major
+  version — the same tools `bun run db:migrate` and friends assume are available.
+- `tar` on PATH — only used when there is a local uploads folder to back up.
+- Either a Cloudflare R2 bucket, or a local folder:
+
+  **R2** — separate from (or the same as, your call) the one `@commerce/storage-r2` uses for
+  store media. It's identified by its own env vars so backups don't depend on any store's own R2
+  app configuration:
+
+  ```sh
+  BACKUP_R2_ACCOUNT_ID=
+  BACKUP_R2_ACCESS_KEY_ID=
+  BACKUP_R2_SECRET_ACCESS_KEY=
+  BACKUP_R2_BUCKET=
+  ```
+
+  Create an R2 API token scoped to Object Read & Write on that bucket only.
+
+  **Local folder** — for dev, or a single-server store with no R2 account. Set one env var; it
+  takes priority over `BACKUP_R2_*` when both are present:
+
+  ```sh
+  BACKUP_LOCAL_DIR=
+  ```
+
+  Point it somewhere that itself gets backed up by something else (a mounted volume, a synced
+  folder) — writing backups next to the data they protect, on the one disk that can fail, defeats
+  the purpose.
+
+## Running a backup
+
+```sh
+bun scripts/backup-db.ts
+```
+
+This dumps `DATABASE_URL_OWNER` (the owner role has the full schema; the app's `app` role is
+RLS-restricted and would produce an incomplete dump), gzips it, and writes it as:
+
+```
+postgres/daily/<timestamp>.dump.gz
+postgres/weekly/<timestamp>.dump.gz   # only on the first run of each ISO week (Monday, UTC)
+uploads/daily/<timestamp>.tar.gz      # only when LOCAL_STORAGE_DIR has files in it
+uploads/weekly/<timestamp>.tar.gz     # same Monday rule
+```
+
+Then it lists everything in the target and deletes whatever is past retention: older than the 7
+newest daily backups, or older than the 4 newest weekly ones, **per dataset**. Postgres and
+uploads are pruned independently of each other, and daily and weekly are pruned independently
+within each, so a Monday backup counted as both never gets deleted twice for the same reason.
+
+The key naming and retention-selection logic lives in `@commerce/backup`
+(`packages/backup/src/retention.ts`) as pure functions with no AWS SDK, `tar` or `child_process`
+dependency, so `packages/backup/test/retention.test.ts` covers it without touching Postgres,
+R2, the filesystem or Docker: `bun run test --cwd packages/backup`.
+
+## Scheduling it
+
+Run it once a day, off-peak. Two common setups:
+
+- **Cron** (on a box that already has `bun`, the repo checked out, and `pg_dump`/`pg_restore`/`tar`
+  installed):
+
+  ```cron
+  0 3 * * * cd /path/to/repo && bun run --env-file=.env scripts/backup-db.ts >> /var/log/commerce-backup.log 2>&1
+  ```
+
+- **Coolify Scheduled Tasks**: add a scheduled command against the app's service —
+  `bun scripts/backup-db.ts` — with the `BACKUP_R2_*` or `BACKUP_LOCAL_DIR` (and
+  `DATABASE_URL_OWNER`) env vars set on that service, on a daily cron expression (e.g.
+  `0 3 * * *`). Coolify runs it inside the same container image, so `pg_dump`/`pg_restore`/`tar`
+  need to be present there — add them to the image if they aren't already (`pg_dump`/`pg_restore`
+  are already on the worker/admin images that run `bun run db:migrate`; `tar` ships with almost
+  every base image).
+
+## Restoring
+
+```sh
+bun scripts/restore-db.ts --list                                          # see what's in R2
+bun scripts/restore-db.ts                                                  # restores the newest backup, into DATABASE_URL_OWNER
+bun scripts/restore-db.ts --key postgres/daily/2026-09-24T03-00-00Z.dump.gz
+bun scripts/restore-db.ts --target postgres://user:pass@host:5432/scratch  # restore somewhere else, e.g. to verify a backup
+```
+
+It downloads the object, gunzips it, and pipes it into `pg_restore --clean --if-exists
+--no-owner`, which drops and recreates the objects the dump contains before restoring them —
+**this overwrites existing data in the target database**. The script prints the target
+(password masked) and requires typing `restore` to continue; there is no `--yes`/non-interactive
+flag on purpose.
+
+**Test restores on a scratch database first** (`--target` pointed at a throwaway Postgres, e.g.
+`bun run infra:up` and a fresh database on that same instance) before ever restoring into a real
+one. Nothing in this repository runs a restore for you.
+
+## Why R2 (or a local folder) and not something else
+
+R2 reuses the platform's existing `@aws-sdk/client-s3` dependency — its S3-compatible API needs
+no new provider — and gets its own bucket and credentials (`BACKUP_R2_*`) so a compromised
+store's media R2 token has no path to the database backups. `BACKUP_LOCAL_DIR` exists so dev and
+a single-server store (local storage, no R2 account yet) still get backups without standing up a
+bucket first; it is not a substitute for R2 once a store has real traffic, only a floor.

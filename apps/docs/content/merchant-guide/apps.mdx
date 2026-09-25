@@ -1,0 +1,31 @@
+---
+title: Apps
+---
+
+# Apps
+
+**Apps** is where you add tools to your store — invoicing, importers, marketing tools,
+couriers, payment gateways and more. Each one is a plugin you can turn on or off any time.
+
+## Built-in apps vs. connections
+
+The Apps page is split into two sections:
+
+- **Built-in apps** — made by us. Turn one on and start using it — there's no outside account
+  to set up (for example GST invoices, the Shopify importer, or the built-in local file
+  storage).
+- **Connections** — link your store to another company's account: a storage bucket, a
+  payment gateway, a courier, a message channel. These show **by \<company\>** on their card
+  (for example "by Razorpay" or "by Delhivery") and need that company's account details to
+  connect.
+
+Uninstalling an app switches its providers off for your store, but saved credentials are kept
+until you remove them from Settings, so reinstalling restores your setup.
+
+## Storage: local disk or R2
+
+Every store starts on the built-in **local disk** storage — no setup needed, and it's the
+default whenever you haven't connected a storage app. If you want your files on your own
+Cloudflare R2 bucket instead, install the R2 connection under Apps and use **Move existing
+files** to copy everything over; the move happens in the background and only removes the
+originals once each file is verified copied.

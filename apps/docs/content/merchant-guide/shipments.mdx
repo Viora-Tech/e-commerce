@@ -1,0 +1,83 @@
+---
+title: Shipments
+---
+
+# Shipments
+
+**Orders → Shipments** is where every parcel across every courier gets booked, tracked,
+labelled and handled: **Ready to ship**, **Shipments**, **Pickups**, **Delivery problems**.
+
+If no courier is connected yet you'll see: "Connect a courier to start shipping — bring in
+Delhivery or Shiprocket so orders can get rates, labels and tracking."
+
+## Connecting Delhivery
+
+From **Apps**, install Delhivery, then follow the three steps (about a minute):
+
+1. **Open Delhivery One** — sign in to your Delhivery account in a new tab.
+2. **Copy your API token** — go to **Settings › API Setup** and copy the token shown there.
+   It's shown only once and stays visible for about 5 minutes, so copy it straight away. If
+   it disappears, click "Request Live API Token" to get a new one — the old one stops working
+   the moment you do.
+3. **Paste it in and pick your pickup location** — fill in the fields, then use **Test
+   connection** before saving.
+
+You'll need:
+
+- **API token** — from Delhivery One → Settings → API Setup. Paste it right after copying.
+- **Client name** — usually shown next to your API token on the same page. Ask your Delhivery
+  account manager if you can't find it.
+- **Pickup location name** — must match your registered warehouse name in Delhivery exactly
+  (spacing and capitalisation included). Ask your Delhivery account manager (SPOC) if unsure.
+- **Origin PIN code** — the 6-digit PIN code your parcels ship from.
+
+There's also a **Mode** switch: **Test** (staging, needs a separate staging token) or **Live**
+(real shipments, real charges).
+
+## Connecting Shiprocket
+
+1. **Create an API user** — in Shiprocket, go to **Settings › API › Configure**, and add a
+   new API user. This is a separate login from the one you use to sign in — it only needs an
+   email and password, and it's what we connect with, never your own dashboard password.
+2. **Note the API user email and password** — Shiprocket does not show these again later, so
+   save them somewhere safe (a password manager) the moment you create them.
+
+We check the connection by logging in with your API user credentials — nothing is booked.
+This can't confirm your pickup location nickname; Shiprocket only checks that when you book a
+shipment.
+
+## Box presets
+
+Under **Settings → Shipping → Box presets**, set up named boxes you pack into. The default
+box pre-fills weight and dimensions when booking; the weight used per order is the sum of
+your products' weights when they have them, otherwise the box weight.
+
+## Ready to ship
+
+Paid orders waiting on a label show up in **Ready to ship**. Select the ones you want, then:
+
+- **Compare rates** — compare couriers before booking.
+- **Print labels**.
+- **Schedule pickup**.
+
+There's also an advanced option to book by order number directly.
+
+## Pickups
+
+Pick shipments in the Shipments tab, then come back to **Pickups** to book the courier pickup
+for them. A manifest groups a pickup into one printable label sheet (Delhivery has no
+separate manifest API yet, so this is generated from your saved labels).
+
+## Delivery problems (NDR)
+
+When a courier can't deliver a parcel, it shows up under **Delivery problems**, with the
+reason the courier gave. For each one, choose:
+
+- **Try delivery again**
+- **Use a new address**
+- **Send it back (RTO)**
+
+## Courier wallet balance
+
+Delhivery and Shiprocket don't share wallet balance over the API yet, so you enter it by hand
+after checking the courier's own dashboard, with a low-balance alert threshold you set.

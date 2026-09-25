@@ -1,0 +1,50 @@
+---
+title: Conventions
+---
+
+# Conventions
+
+This page summarises the repo's code conventions. The source of truth stays at
+[`docs/conventions.md`](https://github.com/Viora-Tech/e-commerce/blob/main/docs/conventions.md)
+in the repo, because it's read directly by contributors and agents working in the codebase
+alongside the checker that enforces it (`bun run lint:components`); this page is a summary
+for browsing, not a fork.
+
+## React component files
+
+Every `.tsx` under `apps/*/src`, `packages/blocks/src`, `packages/editor/src` and
+`packages/ui/src` (vendored `packages/ui/src/components/shadcn/**` excepted) follows one
+fixed order, checked by `scripts/check-components.ts` as part of `bun run lint`:
+
+1. `'use client'` only when the file needs browser APIs, state or effects.
+2. Imports.
+3. `type XProps = { ... }` — never `interface` (the one exception is
+   `declare global { interface Window }`).
+4. Pure helpers and constants at module scope.
+5. Exactly one component, `export default function ComponentName()`. No named exports of
+   components; named exports of types and helpers are fine.
+6. Component body, in order: hooks → helpers → event handlers (`handleX`) → early returns →
+   render logic → a single `return`.
+7. No `useCallback`, `useMemo` or `React.memo` — React 19's React Compiler handles
+   memoisation.
+8. Soft cap 300 lines, hard cap 500.
+
+Naming: kebab-case files named after the component. Copy lives in `data/<feature>.ts`, never
+inline. Sizes are rem, never px, and styling is Tailwind only.
+
+## Client/server boundary
+
+`@commerce/core` and `@commerce/db` are server barrels — their root entry pulls in Drizzle and
+Postgres. A `'use client'` module may only import **types** from them; for values, use a pure
+subpath such as `@commerce/core/catalog`, `/permissions`, `/segments`, `/navigation`,
+`/adjustments`, `/emi`.
+
+## Adapting open-source code
+
+Permissive licences only (MIT, BSD, Apache 2.0). Keep the licence text beside the code, mark
+adapted files with a short comment, and add a row to
+[`THIRD_PARTY_NOTICES.md`](https://github.com/Viora-Tech/e-commerce/blob/main/THIRD_PARTY_NOTICES.md).
+GPL/AGPL/source-available licences are ideas only, never copied code.
+
+For the full checklist, worked example and the checker's exact error messages, read
+`docs/conventions.md` in the repo.

@@ -8,7 +8,9 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:docs": "bun run --cwd apps/docs dev",
     "build": "turbo run build",
+    "build:docs": "turbo run build --filter=@commerce/docs",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "lint": "biome check --error-on-warnings . && bun run lint:components",
