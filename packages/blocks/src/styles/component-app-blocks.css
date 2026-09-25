@@ -1,0 +1,22 @@
+/**
+ * App blocks (Shopify's "app blocks"): sections installed apps add to the
+ * theme editor's Add panel → Apps tab. Shared chrome only — each block's own
+ * layout lives with its markup.
+ */
+
+/* Shown in the editor in place of a block whose app was disabled or
+   uninstalled after the merchant placed it; never drawn on the storefront. */
+.app-block-off {
+  display: grid;
+  place-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  border: 1px dashed var(--color-line);
+  border-radius: var(--radius-s);
+  color: var(--color-ink-muted, var(--color-ink));
+  text-align: center;
+}
+
+.app-block-off__text {
+  margin: 0;
+}

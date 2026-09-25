@@ -16,13 +16,20 @@ import NotifyMeForm from '@/components/product/notify-me-form'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
 import RelatedProducts from '@/components/product/related-products'
+import { notifyMeAction } from '@/lib/back-in-stock-actions'
 import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeOffersEmi } from '@/lib/payments'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
+import { estimateDeliveryAction } from '@/lib/shipping-actions'
 import { inStore } from '@/lib/store-context'
 import { renderTemplate } from '@/lib/template-render'
+
+/** Same rule ProductView uses for its initial pick: the first purchasable variant. */
+function defaultVariant(product: ProductDetail) {
+  return product.variants.find((v) => v.purchasable) ?? product.variants[0]
+}
 
 type Params = {
   params: Promise<{ storeId: string; handle: string }>
@@ -93,6 +100,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const emi = await inStore(storeId, (tx) => storeOffersEmi(tx, storeId))
   const bis = await inStore(storeId, (tx) => backInStockContext(tx, storeId))
   const add = addLineAction.bind(null, storeId)
+  const variant = defaultVariant(product)
+  const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
   const schema = productGraph(
     {
       ...product,
@@ -107,6 +116,23 @@ export default async function ProductPage({ params, searchParams }: Params) {
     renderTemplate(tx, storeId, 'product', {
       suffix: product.templateSuffix,
       view,
+      appBlockContext: {
+        notifyMe:
+          bis.installed && variant
+            ? {
+                variantId: variant.id,
+                available: variant.available,
+                isPreorder,
+                whatsappEnabled: bis.whatsappEnabled,
+                action: notifyMeAction.bind(null, storeId),
+              }
+            : undefined,
+        preorderCountdown: {
+          enabled: Boolean(product.preorder?.enabled),
+          launchAt: product.launchAt ?? null,
+        },
+        deliveryChecker: { estimate: estimateDeliveryAction.bind(null, storeId) },
+      },
       renderers: {
         MainProduct: (s) => (
           <>

@@ -69,9 +69,24 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   const [device, setDevice] = useState<PreviewDevice>('desktop')
   const [modePick, setModePick] = useState<'light' | 'dark'>('light')
   const [nonce, setNonce] = useState(0)
-  const [config] = useState(createCustomizeConfig)
+  const [config, setConfig] = useState(() => createCustomizeConfig())
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
+
+  // Which apps this store has installed, for the Add panel's Apps tab and the
+  // storefront-matching "app is off" placeholder for anything already placed
+  // from an app since uninstalled. Rebuilds the config once this resolves;
+  // Puck just re-renders with the new config, same as switching templates.
+  useEffect(() => {
+    let active = true
+    api.apps.list().then((apps) => {
+      if (!active) return
+      setConfig(createCustomizeConfig(new Set(apps.filter((a) => a.installed).map((a) => a.id))))
+    })
+    return () => {
+      active = false
+    }
+  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `drafts` only holds refs; reloading keys on the theme, template and discard nonce.
   useEffect(() => {

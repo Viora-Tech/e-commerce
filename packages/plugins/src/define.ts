@@ -33,6 +33,18 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
   if (input.kind !== 'builtin' && input.kind !== 'connection') {
     throw new Error(`plugin "${input.id}" needs kind: 'builtin' or 'connection'`)
   }
+  const seenBlockTypes = new Set<string>()
+  for (const block of input.storefront?.blocks ?? []) {
+    if (!block.type.startsWith(`${input.id}/`)) {
+      throw new Error(
+        `app block "${block.type}" on plugin "${input.id}" must be namespaced "${input.id}/<Name>"`,
+      )
+    }
+    if (seenBlockTypes.has(block.type)) {
+      throw new Error(`plugin "${input.id}" declares app block "${block.type}" twice`)
+    }
+    seenBlockTypes.add(block.type)
+  }
   return {
     id: input.id,
     name: input.name,
@@ -48,6 +60,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     credits: input.credits,
     jobs: input.jobs,
     emailAttachments: input.emailAttachments,
+    storefront: input.storefront,
     provides: {
       payments: input.provides.payments ?? [],
       shipping: input.provides.shipping ?? [],

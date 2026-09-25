@@ -25,6 +25,12 @@ export const corePlugin = definePlugin({
     notifications: [logChannelFactory],
     storage: [localStorageFactory],
   },
+  // Its storefront block (the pre-order countdown) is not attached here: doing so would
+  // pull @commerce/blocks — a React/DOM package — into the compile graph of every one of
+  // this manifest's many consumers (the worker, the API, every plugin). Callers that
+  // build the live app-blocks config (the storefront route, commerce.blocks.config.ts for
+  // the admin editor) attach `@commerce/core/preorder-block`'s `preorderBlocks` onto the
+  // 'core' source themselves instead. See docs/plugins.md.
   jobs: {
     /** "Move existing files to <connection>": see packages/core/src/media/migrate.ts. */
     migrateStorage,

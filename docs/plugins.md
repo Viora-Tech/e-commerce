@@ -297,3 +297,116 @@ listed in `packages/db/drizzle.config.ts`, so its migration joins the one
 chain in `packages/db/drizzle`. Every table carries `store_id` and the
 migration ends with `SELECT apply_store_rls();` (the RLS coverage test fails
 otherwise).
+
+## 7. Storefront app blocks
+
+An app can add sections merchants pick from the theme editor's Add panel →
+**Apps** tab, the same way Shopify's app blocks work. `packages/plugin-back-in-stock`
+(the "Notify me" block) and `packages/shipping-delhivery`/`packages/shipping-shiprocket`
+(the "Delivery checker" block) are the worked examples; `packages/core`'s
+own pre-order countdown block shows the pattern for a feature with no
+separate plugin package.
+
+```ts
+// src/blocks.tsx
+import { NotifyMeBlock, type NotifyMeBlockContext } from '@commerce/blocks'
+import type { AppBlockDefinition } from '@commerce/plugins'
+import { notifyMeBlockCopy as copy } from './copy'
+
+function render(props: { buttonLabel: string; helperText: string; align: 'left' | 'center' }
+    & { puck?: { metadata?: Record<string, unknown> } }) {
+  const context = (props.puck?.metadata?.appBlockContext as
+    { notifyMe?: NotifyMeBlockContext } | undefined)?.notifyMe
+  return <NotifyMeBlock {...props} context={context} copy={copy} />
+}
+
+export const backInStockBlocks: AppBlockDefinition[] = [{
+  type: 'back-in-stock/NotifyMe',        // '<pluginId>/<Name>', enforced by definePlugin
+  label: 'Notify me',
+  icon: 'Bell',
+  fields: { buttonLabel: { type: 'text', label: 'Button label' }, /* ... */ },
+  defaultProps: { buttonLabel: copy.buttonLabel, helperText: copy.helperText, align: 'left' },
+  render,
+}]
+```
+
+```ts
+// src/plugin.ts
+export const backInStockPlugin = definePlugin({
+  id: 'back-in-stock',
+  // ...
+  storefront: { blocks: backInStockBlocks },
+})
+```
+
+**Shape.** `AppBlockDefinition` (`@commerce/plugins`): `type` (must start
+`<pluginId>/`), `label`, `description?`, `icon?`, Puck `fields` +
+`defaultProps`, `render`, and an optional `resolveData`. It is typed loosely
+(`unknown` render/fields) so `@commerce/plugins` never has to depend on Puck
+or React — `@commerce/blocks`'s `buildAppBlocks` (`packages/blocks/src/app-blocks.tsx`)
+re-types them into real Puck `ComponentConfig`s when it assembles the live
+config from a deployment's plugins and one store's enabled ids. Prefer
+writing the actual block component in `packages/blocks/src/app-blocks/*` (it
+gets the same file-structure checks as every other block there) and having
+your plugin's `blocks.tsx` just wire fields/copy/context onto it, the way all
+three shipped blocks do.
+
+**Context, not fetching.** A block cannot load its own data (no DB access,
+no Next.js server actions of its own) — the storefront route hands it
+whatever it needs through `puck.metadata.appBlockContext`, keyed by a name
+the block picks (`notifyMe`, `preorderCountdown`, `deliveryChecker`), the
+same pattern `SectionMetadata.renderers` already uses for the dynamic
+sections. Bind server actions into it the way `newsletterAction` is bound:
+`action: notifyMeAction.bind(null, storeId)`. Read the context defensively —
+`undefined` when the block is on a template the route never populated (e.g.
+"Notify me" added to a page instead of the product page) — and draw nothing.
+
+**Enabled plugins only.** `createBlocksConfig` takes `(loadProducts, options,
+appBlockSources, enabledAppIds)`. `appBlockSources` is every plugin the
+deployment ships (`AppBlockSource[]`: `id`, `name`, `icon?`, `blocks?`);
+`enabledAppIds` is the ids one store installed (always includes `core`). The
+builder (`buildAppBlocks`, pure and unit-tested in `packages/blocks/test/app-blocks.test.ts`)
+puts only enabled blocks into `categories.apps` and the returned config's
+`appBlockOwners` (the Add panel's "by \<app\>" grouping); a disabled or
+uninstalled app's block still gets a component — an inert "This app is off"
+placeholder — so a template that already placed it keeps loading instead of
+crashing the editor, and the storefront's existing "no component for this
+type" guard (`template-render.tsx`) makes an unlisted type render nothing. A
+block whose `type` collides with another plugin's, or is not namespaced
+`<pluginId>/<Name>`, throws at config-build time (and `definePlugin` already
+rejects the same within one manifest).
+
+**Two call sites, because of the database boundary.** The storefront route
+(`apps/storefront/src/lib/template-render.tsx`) builds `appBlockSources` from
+the real, enabled `PluginManifest[]` (`appBlockSourcesForStore` in
+`packages/core/src/plugins/registries.ts`) — it already runs on the server.
+The admin theme editor cannot: it is a `'use client'` tree, and a real
+manifest's `provides`/`hooks` pull in `@commerce/core`'s database driver (the
+lint rule that blocks a client module importing `@commerce/core`'s barrel).
+So the repo keeps a second, client-safe list, **`commerce.blocks.config.ts`**
+(root, sibling to `commerce.config.ts`): one entry per block-shipping plugin,
+importing each one's block array from a DB-free subpath (`./blocks`, or
+`@commerce/core/preorder-block` for the core plugin) instead of the plugin's
+full manifest. `apps/admin/src/lib/customize-config.tsx` passes it to
+`createBlocksConfig` with the ids `api.apps.list()` says are installed.
+**Keep both in sync**: when you add a block, both the manifest
+(`storefront.blocks`) and, if the admin editor needs to preview it,
+`commerce.blocks.config.ts` must point at the *same* block array — never
+write the block twice.
+
+**Multiple apps, one block.** `packages/shipping-delhivery` and
+`packages/shipping-shiprocket` both ship a "Delivery checker" block
+(`delhivery/DeliveryChecker`, `shiprocket/DeliveryChecker`) that reuses the
+storefront's one shipping estimate path (`estimateForPincode`) via a bound
+`estimate` action in `appBlockContext.deliveryChecker` — neither block calls
+its courier directly. Because the types are namespaced per plugin they never
+collide, so with both couriers installed a merchant sees two "Delivery
+checker" cards in the Add panel, one per app; either gives the same answer
+(there is one active shipping provider per store), so only one needs to be
+added to a page.
+
+**Tests.** The builder itself is covered in `packages/blocks/test/app-blocks.test.ts`
+(enabled vs disabled, namespacing, collisions rejected) and each shipped
+block's render with default/idle props in `packages/blocks/test/render.test.tsx`,
+including that a disabled source's placeholder renders instead of the real
+block.

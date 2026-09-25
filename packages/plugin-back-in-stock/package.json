@@ -6,6 +6,7 @@
   "description": "Back-in-stock alerts app: notify-me signups, double opt-in, throttled restock alerts, metered quota.",
   "exports": {
     ".": "./src/index.ts",
+    "./blocks": "./src/blocks.tsx",
     "./schema": "./src/schema.ts",
     "./server": "./src/server.ts"
   },
@@ -14,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/blocks": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/notifications": "workspace:*",
@@ -21,10 +23,15 @@
     "drizzle-orm": "^0.45.2",
     "zod": "^4.6.5"
   },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
   "devDependencies": {
     "@commerce/config": "workspace:*",
     "@types/node": "^22.20.4",
+    "@types/react": "^19.2.8",
     "dotenv": "^18.0.1",
+    "react": "^19.2.0",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
   }

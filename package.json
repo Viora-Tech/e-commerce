@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@commerce/backup": "workspace:*",
+    "@commerce/blocks": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",

@@ -1,4 +1,5 @@
 import { definePlugin } from '@commerce/plugins'
+import { backInStockBlocks } from './blocks'
 
 export const BACK_IN_STOCK_ID = 'back-in-stock'
 
@@ -17,6 +18,7 @@ export const backInStockPlugin = definePlugin({
   description:
     'Let shoppers ask to be notified when a sold-out variant is back, then message everyone waiting the moment it restocks.',
   provides: {},
+  storefront: { blocks: backInStockBlocks },
   admin: {
     icon: 'Bell',
     pages: [

@@ -1,6 +1,6 @@
 'use client'
 
-import { APP_BLOCK_OWNERS, APPS_CATEGORY } from '@commerce/blocks/puck'
+import { APPS_CATEGORY } from '@commerce/blocks/puck'
 import { Puzzle } from '@commerce/ui/icons'
 import Link from 'next/link'
 import { customizeContent } from '@/data/customize'
@@ -18,14 +18,20 @@ type AppsTabProps = {
 const copy = customizeContent.addSection
 
 /**
- * The Add panel's Apps tab: sections a future plugin SDK registers under Puck
- * config's `categories.apps` (see `APPS_CATEGORY`/`APP_BLOCK_OWNERS` in
- * `@commerce/blocks/puck`), grouped by the app that added them. Empty — and a
- * friendly empty state — until that SDK ships and an app actually registers one.
+ * The Add panel's Apps tab: blocks an installed app registers via
+ * `storefront.blocks` (see `APPS_CATEGORY` and `buildAppBlocks` in
+ * `@commerce/blocks/puck`), grouped by the app that added them. Both the list
+ * and the owner names come live off the Puck config, so uninstalling an app
+ * drops its blocks here without a page reload.
  */
 export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: AppsTabProps) {
   // Hooks
   const appTypes = useCustomizePuck((s) => s.config.categories?.[APPS_CATEGORY]?.components ?? [])
+  const owners = useCustomizePuck(
+    (s) =>
+      (s.config as { appBlockOwners?: Record<string, { appName: string; appIcon?: string }> })
+        .appBlockOwners ?? {},
+  )
 
   // Early returns
   const needle = query.trim().toLowerCase()
@@ -46,7 +52,7 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
   // Render logic
   const byApp = new Map<string, string[]>()
   for (const type of matched) {
-    const app = APP_BLOCK_OWNERS[type]?.appName ?? 'Other'
+    const app = owners[type]?.appName ?? 'Other'
     byApp.set(app, [...(byApp.get(app) ?? []), type])
   }
 
@@ -63,7 +69,7 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
               type={type}
               label={labelOf(type)}
               description={copy.descriptions[type] ?? ''}
-              appIcon={APP_BLOCK_OWNERS[type]?.appIcon}
+              appIcon={owners[type]?.appIcon}
               hovered={hovered === type}
               onHover={onHover}
               onAdd={() => onAdd(type)}

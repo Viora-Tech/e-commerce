@@ -33,6 +33,14 @@ export type SectionRenderer = (settings: SectionSettings) => ReactNode
 export type SectionMetadata = {
   renderers?: Partial<Record<DynamicSection, SectionRenderer>> | undefined
   newsletterAction?: NewsletterAction | undefined
+  /**
+   * Data and bound actions app blocks need beyond their own settings (the
+   * product on a product page, a server action bound to the store) — the
+   * same "storefront hands it through metadata" pattern as `renderers`. Read
+   * defensively: a block may be placed on a template that never sets the key
+   * it wants, e.g. "Notify me" added outside a product page.
+   */
+  appBlockContext?: Record<string, unknown> | undefined
 }
 
 const yesNo = (label: string) =>
