@@ -1,8 +1,24 @@
 'use client'
 
-import { ArrowLeft, Monitor, Moon, Redo, Smartphone, Sun, Tablet, Undo } from '@commerce/ui/icons'
+import {
+  ArrowLeft,
+  Monitor,
+  Moon,
+  MoreHorizontal,
+  Redo,
+  Smartphone,
+  Sun,
+  Tablet,
+  Undo,
+} from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import Link from 'next/link'
@@ -142,28 +158,42 @@ export default function CustomizeTopBar({
         >
           <Redo aria-hidden />
         </Button>
-        <span className="hidden text-caption text-muted-foreground xl:inline" aria-live="polite">
-          {dirty ? copy.unsaved : copy.upToDate}
+        <span
+          role="status"
+          className="relative flex size-2 shrink-0"
+          aria-live="polite"
+          aria-label={dirty ? copy.unsaved : copy.upToDate}
+          title={dirty ? copy.unsaved : copy.upToDate}
+        >
+          {dirty ? <span className="size-2 rounded-full bg-warning" /> : null}
         </span>
-        {dirty ? (
-          <Button variant="ghost" onClick={onDiscard} disabled={saving}>
-            {copy.discard}
-          </Button>
-        ) : null}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" size="icon" aria-label={copy.more} title={copy.more}>
+                <MoreHorizontal aria-hidden />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={!dirty || saving} onClick={onDiscard}>
+              {copy.discard}
+            </DropdownMenuItem>
+            {!live && canPublish ? (
+              <DropdownMenuItem
+                disabled={dirty || publishing}
+                onClick={onPublish}
+                title={dirty ? editor.publishUnsaved : undefined}
+              >
+                {publishing ? editor.publishing : editor.publish}
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="default" onClick={onSave} disabled={!dirty || saving}>
           {saving ? <Spinner /> : null}
           {copy.save}
         </Button>
-        {!live && canPublish ? (
-          <Button
-            onClick={onPublish}
-            disabled={dirty || publishing}
-            title={dirty ? editor.publishUnsaved : undefined}
-          >
-            {publishing ? <Spinner /> : null}
-            {publishing ? editor.publishing : editor.publish}
-          </Button>
-        ) : null}
       </div>
     </header>
   )

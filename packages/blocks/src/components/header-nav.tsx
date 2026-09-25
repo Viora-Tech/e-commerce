@@ -23,6 +23,19 @@ function isMega(link: NavLink): boolean {
 }
 
 /**
+ * True only inside Customize's preview iframe (`data-customize-preview`,
+ * set by `PreviewFrame`), before the pointer has genuinely moved there. A
+ * section mounting under a stationary cursor — e.g. right after selecting it
+ * in the tree — can otherwise fire a real `pointerenter` that opens a nav
+ * dropdown nobody asked to open. The live storefront never sets this
+ * attribute, so hover-to-open there is unaffected.
+ */
+function isHoverIntentSuppressed(): boolean {
+  const root = document.documentElement
+  return root.hasAttribute('data-customize-preview') && !root.hasAttribute('data-pointer-moved')
+}
+
+/**
  * The desktop menu. A top-level item with children opens on hover (with a short
  * intent delay), click or keyboard: a dropdown for two levels, the full-width
  * mega menu with grouped columns for three. Arrow keys walk the open panel,
@@ -58,6 +71,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
   const handlePointerEnter = (index: number | null, event: PointerEvent) => {
     // Touch fires pointerenter too; there, the click that follows is the intent.
     if (event.pointerType !== 'mouse') return
+    if (index !== null && isHoverIntentSuppressed()) return
     const opening = index !== null && openIndex === null
     schedule(index, opening ? MENU_OPEN_DELAY_MS : 0)
   }
