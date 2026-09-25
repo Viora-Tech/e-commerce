@@ -13,7 +13,7 @@ agents should use other ports (3700+) and stop them when done.
 Copy the root `.env.example` to `.env` and fill in the required keys (`packages/config/src/env.ts`
 is the source of truth for which keys each app needs). At minimum:
 
-```sh
+```sh filename=".env"
 DATABASE_URL=              # Postgres, `app` role
 DATABASE_URL_OWNER=        # Postgres, owner role — migrations, seeds
 REDIS_URL=                 # BullMQ queues and visitor counters
@@ -24,13 +24,13 @@ Every app reads it via `bun run --env-file=../../.env`.
 
 ## 2. Infrastructure
 
-```sh
+```sh filename="Terminal"
 docker compose up -d --wait     # Postgres 17 + Dragonfly
 ```
 
 ## 3. Install, migrate, seed
 
-```sh
+```sh filename="Terminal"
 bun install
 bun run db:migrate              # dev database
 bun run db:seed                 # real Waimers catalogue (72 products)
@@ -40,7 +40,7 @@ bun run db:seed:demo:collections
 
 ## 4. Run
 
-```sh
+```sh filename="Terminal"
 bun run dev                     # admin, storefront, worker
 bun run dev:docs                # this docs site, on :3500
 ```

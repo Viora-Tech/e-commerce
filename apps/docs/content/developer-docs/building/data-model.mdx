@@ -37,7 +37,7 @@ store), members map to store staff.
 ## Adding a table
 
 1. Add the Drizzle schema in `packages/db/src` (or a feature's own `schema.ts` if the
-   feature is a plugin/app — see [Plugins SDK](/developer-docs/plugins) for how an app's
+   feature is a plugin/app — see [Plugins SDK](/developer-docs/building/plugins) for how an app's
    tables join the one migration chain via `packages/db/drizzle.config.ts`).
 2. `bun run db:generate` to produce the SQL migration.
 3. Every tenant table's migration ends with `SELECT apply_store_rls();` — the RLS coverage
@@ -46,7 +46,7 @@ store), members map to store staff.
 
 ## Seeding
 
-```sh
+```sh filename="Terminal"
 bun run db:seed                   # real Waimers catalogue (72 products)
 bun run db:seed:demo               # 60+ orders, customers, drafts, abandoned carts
 bun run db:seed:demo:collections
@@ -55,6 +55,6 @@ bun run db:seed:shipping
 bun run db:seed:back-in-stock
 ```
 
-See [Running locally](/developer-docs/running-locally) for the full setup sequence, and
-[Architecture](/developer-docs/architecture) for how the three apps and the queue fit around
+See [Running locally](/developer-docs/operations/running-locally) for the full setup sequence, and
+[Architecture](/developer-docs/building/architecture) for how the three apps and the queue fit around
 this database.

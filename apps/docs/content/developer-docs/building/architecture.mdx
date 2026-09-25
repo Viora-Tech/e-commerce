@@ -2,6 +2,7 @@
 title: Architecture
 ---
 
+# Architecture
 
 How the platform is built today, what keeps it multi-tenant, and the order in
 which we grow it toward Shopify/Medusa-class scale. Sections 2–4 describe
@@ -73,7 +74,7 @@ sequenceDiagram
   P->>DB: select resolve_store('waimers.in')  (SECURITY DEFINER)
   DB-->>P: storeId
   P->>R: rewrite /-s/<storeId>/products/x (client routing headers stripped, cf-ipcountry forwarded)
-  R->>DB: BEGIN; set_config('app.store_id', storeId, true)
+  R->>DB: BEGIN#59; set_config('app.store_id', storeId, true)
   DB-->>R: rows where store_id = current_setting('app.store_id')
   R-->>B: HTML
 ```

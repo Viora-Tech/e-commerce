@@ -1,4 +1,5 @@
 import { generateStaticParamsFor, importPage } from 'nextra/pages'
+import PageFeedback from '../../components/page-feedback'
 import { useMDXComponents as getMDXComponents } from '../../mdx-components'
 
 type PageProps = {
@@ -23,6 +24,7 @@ export default async function Page(props: PageProps) {
   return (
     <Wrapper toc={toc} metadata={metadata}>
       <MDXContent {...props} params={params} />
+      {params.mdxPath && <PageFeedback />}
     </Wrapper>
   )
 }

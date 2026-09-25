@@ -9,7 +9,7 @@ title: Backups
 `scripts/backup-db.ts` dumps the app's Postgres database with `pg_dump` (custom format `-Fc`),
 gzips it, and writes it to a backup target with a **7 daily + 4 weekly** retention policy per
 dataset. When the built-in local storage provider is in use (`LOCAL_STORAGE_DIR`, default
-`./.data/uploads` — see [Plugins SDK](/developer-docs/plugins)), it also tars and gzips that folder and backs it up
+`./.data/uploads` — see [Plugins SDK](/developer-docs/building/plugins)), it also tars and gzips that folder and backs it up
 the same way, under its own `uploads/` prefix and its own retention count, so pruning one never
 eats into the other's history. A store using a storage Connection (R2, ...) instead has nothing
 under `LOCAL_STORAGE_DIR` to tar, so only the database is backed up — the bucket is its own
@@ -55,7 +55,7 @@ is ever invoked by CI or by this codebase's own test suite.
 
 ## Running a backup
 
-```sh
+```sh filename="Terminal"
 bun scripts/backup-db.ts
 ```
 
@@ -100,7 +100,7 @@ Run it once a day, off-peak. Two common setups:
 
 ## Restoring
 
-```sh
+```sh filename="Terminal"
 bun scripts/restore-db.ts --list                                          # see what's in R2
 bun scripts/restore-db.ts                                                  # restores the newest backup, into DATABASE_URL_OWNER
 bun scripts/restore-db.ts --key postgres/daily/2026-09-24T03-00-00Z.dump.gz

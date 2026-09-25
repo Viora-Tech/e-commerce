@@ -36,9 +36,7 @@ packages/shipping-fedex/
   test/fedex.test.ts  offline tests + the conformance suite
 ```
 
-`package.json`:
-
-```json
+```json filename="package.json"
 {
   "name": "@commerce/shipping-fedex",
   "type": "module",
@@ -65,8 +63,7 @@ A payment adapter can offer a second method on the same gateway account (Razorpa
 `webhookId = 'razorpay'` so it answers on the gateway's one webhook URL and shares its
 event dedupe.
 
-```ts
-// src/fedex.ts
+```ts filename="src/fedex.ts"
 import {
   CourierError,
   courierFetch,
@@ -139,8 +136,7 @@ Rules that keep every adapter interchangeable:
 
 ## 3. The manifest
 
-```ts
-// src/plugin.ts
+```ts filename="src/plugin.ts"
 import { definePlugin } from '@commerce/plugins'
 import { fedexFactory } from './fedex'
 
@@ -224,8 +220,7 @@ Run the conformance suite from your own test file; it checks the behaviour
 every provider must share. Offline checks always run; live checks only when
 you pass `live: true` with sandbox credentials from the environment.
 
-```ts
-// test/fedex.test.ts
+```ts filename="test/fedex.test.ts"
 import { describeShippingProvider } from '@commerce/shipping'
 import { fedexFactory } from '../src'
 
@@ -313,8 +308,7 @@ An app can add sections merchants pick from the theme editor's Add panel →
 own pre-order countdown block shows the pattern for a feature with no
 separate plugin package.
 
-```ts
-// src/blocks.tsx
+```ts filename="src/blocks.tsx"
 import { NotifyMeBlock, type NotifyMeBlockContext } from '@commerce/blocks'
 import type { AppBlockDefinition } from '@commerce/plugins'
 import { notifyMeBlockCopy as copy } from './copy'
@@ -336,8 +330,7 @@ export const backInStockBlocks: AppBlockDefinition[] = [{
 }]
 ```
 
-```ts
-// src/plugin.ts
+```ts filename="src/plugin.ts"
 export const backInStockPlugin = definePlugin({
   id: 'back-in-stock',
   // ...

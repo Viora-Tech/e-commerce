@@ -1,40 +1,9 @@
-import {
-  CloudArrowUp,
-  Database,
-  Faders,
-  ListChecks,
-  PuzzlePiece,
-  Rocket,
-  ShieldWarning,
-  Terminal,
-  TestTube,
-  TreeStructure,
-} from '@phosphor-icons/react/ssr'
-import type { ReactNode } from 'react'
-
-function navItem(icon: ReactNode, label: string) {
-  return {
-    title: (
-      <span className="docs-nav-item">
-        {icon}
-        {label}
-      </span>
-    ),
-  }
-}
-
-const iconProps = { size: 16, weight: 'light' as const }
+import { Stack, Terminal } from '@phosphor-icons/react/ssr'
+import NavTitle from '../../components/nav-title'
+import SectionSwitcher from '../../components/section-switcher'
 
 export default {
-  architecture: navItem(<TreeStructure {...iconProps} />, 'Architecture'),
-  conventions: navItem(<ListChecks {...iconProps} />, 'Conventions'),
-  guardrails: navItem(<ShieldWarning {...iconProps} />, 'Guardrails and sweeps'),
-  plugins: navItem(<PuzzlePiece {...iconProps} />, 'Plugins SDK and app blocks'),
-  'section-settings': navItem(<Faders {...iconProps} />, 'Section settings and SectionFrame'),
-  'data-model': navItem(<Database {...iconProps} />, 'Data model'),
-  'sep-run': { type: 'separator', title: 'Working locally' },
-  'running-locally': navItem(<Terminal {...iconProps} />, 'Running locally'),
-  testing: navItem(<TestTube {...iconProps} />, 'Testing'),
-  backups: navItem(<CloudArrowUp {...iconProps} />, 'Backups'),
-  deployment: navItem(<Rocket {...iconProps} />, 'Deployment'),
+  switcher: { type: 'separator', title: <SectionSwitcher current="developer" /> },
+  building: { title: <NavTitle icon={<Stack weight="light" />}>Building</NavTitle> },
+  operations: { title: <NavTitle icon={<Terminal weight="light" />}>Working locally</NavTitle> },
 }
