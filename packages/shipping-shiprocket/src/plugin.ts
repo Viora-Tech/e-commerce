@@ -11,7 +11,9 @@ export const shiprocketPlugin = definePlugin({
   id: 'shiprocket',
   name: 'Shiprocket',
   version: '0.1.0',
+  kind: 'connection',
   category: 'shipping',
+  company: 'Shiprocket',
   description:
     'Rate comparison across Shiprocket’s courier network, bookings, tracking, NDR and wallet balance.',
   provides: { shipping: [shiprocketFactory] },
