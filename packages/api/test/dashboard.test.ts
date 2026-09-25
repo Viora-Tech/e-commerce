@@ -13,6 +13,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
@@ -219,8 +220,10 @@ describe('dashboard.summary', () => {
     expect(s.insight.salesChange).toBeCloseTo((150000 - 20000) / 20000)
     expect(s.insight.bestSeller).toEqual({ title: 'Mouse', units: 4 })
 
-    // Map: only o1 carries a shipping address.
-    expect(s.mapOrders).toEqual([expect.objectContaining({ number: 1, stateCode: 'KA' })])
+    // Live view globe: only o1 carries a shipping address, and it is within the last 24h.
+    expect(s.mapOrders).toEqual([
+      expect.objectContaining({ number: 1, city: 'Bengaluru', stateCode: 'KA' }),
+    ])
 
     // Payment mix, status mix and the hours heatmap read the last 30 days, cancelled orders
     // dropped from the mix (o3) but kept in the status mix's "cancelled" bucket.
@@ -348,6 +351,7 @@ describe('dashboard.summary', () => {
     })
     expect(s.insight).toEqual({ salesChange: null, bestSeller: null })
     expect(s.mapOrders).toEqual([])
+    expect(s.dispatch).toBeNull()
     expect(s.paymentMix).toEqual([])
     expect(s.statusMix).toEqual([
       { status: 'to_ship', count: 0 },
@@ -360,6 +364,18 @@ describe('dashboard.summary', () => {
     )
     expect(s.today.hourly).toEqual(Array.from({ length: 24 }, () => 0))
     expect(s.yesterday.hourly).toEqual(Array.from({ length: 24 }, () => 0))
+  })
+
+  it('reads the dispatch location from the store address, for the globe arc origin', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    await owner
+      .update(store)
+      .set({ address: { line1: '1 Whitefield Rd', city: 'Bengaluru', state: 'Karnataka' } })
+      .where(eq(store.id, a.storeId))
+
+    const s = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })
+
+    expect(s.dispatch).toEqual({ city: 'Bengaluru', state: 'Karnataka' })
   })
 })
 

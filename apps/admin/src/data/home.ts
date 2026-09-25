@@ -94,16 +94,16 @@ export const homeContent = {
       n <= 1 ? 'Today is your streak day one.' : `You have sold something ${n} days in a row.`,
     noData: 'Insights show up here once you have a week of orders.',
   },
-  map: {
-    title: 'Orders across India',
-    subtitle: (n: number) => `Last ${n} orders`,
-    empty: 'States will shade in here once you have shipping addresses.',
-    legendLow: 'Fewer orders',
-    legendHigh: 'More orders',
-    tooltipOrders: (n: number) => (n === 1 ? '1 order' : `${n} orders`),
-    /** Jammu & Kashmir's path also carries Ladakh's orders; see `data/india-map.ts`. */
-    jkLaName: 'Jammu & Kashmir and Ladakh',
-    credit: 'Map: @svg-maps/india (CC BY 4.0)',
+  liveGlobe: {
+    title: 'Live view',
+    subtitle: 'Orders as they come in, worldwide',
+    empty: 'Orders will appear here on the globe once you have shipping addresses.',
+    ordersToday: 'Orders today',
+    salesToday: 'Sales today',
+    visitorsNow: 'Visitors now',
+    tooltipOrder: (number: number) => `Order #${number}`,
+    unsupported: 'Your browser cannot draw the 3-D globe, so here is the order list instead.',
+    credit: 'Globe: cobe (MIT)',
   },
   liveStream: {
     title: 'Latest orders',

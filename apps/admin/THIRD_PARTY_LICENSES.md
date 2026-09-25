@@ -49,24 +49,40 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## @svg-maps/india (Creative Commons Attribution 4.0 International)
+## cobe (MIT)
 
-Source: https://github.com/VictorCazanave/svg-maps/tree/master/packages/india (npm:
-`@svg-maps/india`, v2.0.0). Copyright (c) Victor Cazanave.
+Source: https://github.com/shuding/cobe (npm: `cobe`, v2.0.1). Copyright (c) Shu Ding.
 
-What we adapted: the state/UT path data (`INDIA_MAP_LOCATIONS` in
-`src/data/india-map.ts`), read from the installed package at build time and rendered as
-inline `<path>` elements in `src/components/home/india-order-map.tsx` (not the package's
-own `<SVGMap>` component). Not modified. The licence URI is
-https://creativecommons.org/licenses/by/4.0/; its full text is above, under Macaw UI.
-A small "Map: @svg-maps/india (CC BY 4.0)" credit shows under the map itself.
+Installed as a normal npm dependency (used, not adapted, so it would not otherwise need an
+entry here), listed anyway per the team's request: it draws the dotted 3D WebGL globe on
+the admin home page's "Live view" card (`src/components/home/live-globe`), replacing the
+`@svg-maps/india` state/UT outline previously credited in this section. The globe renders
+only a dotted landmass with markers and arcs — deliberately no country or state borders —
+which sidesteps the outdated-J&K/Ladakh boundary problem the SVG map had.
 
-Known limitation, called out in `src/data/india-map.ts`: this data predates the August
-2019 reorganisation, so it has one path for the whole former state of Jammu & Kashmir and
-no separate Ladakh outline (Dadra & Nagar Haveli and Daman & Diu are likewise still two
-territories, merged into one UT since 2020). Ladakh's orders are folded into the J&K path
-and labelled "Jammu & Kashmir and Ladakh" in the tooltip and legend until a source with the
-current boundary is available; every path still renders as Indian territory either way.
+```text
+MIT License
+
+Copyright (c) Shu Ding
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## Macaw UI (Creative Commons Attribution 4.0 International)
 

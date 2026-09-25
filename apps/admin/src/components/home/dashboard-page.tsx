@@ -4,8 +4,8 @@ import ChartsPanel from './charts/charts-panel'
 import HoursHeatmap from './charts/hours-heatmap'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
 import SalesByStateChart from './charts/sales-by-state-chart'
-import IndiaOrderMap from './india-order-map'
 import InsightsList from './insights-list'
+import LiveGlobeCard from './live-globe/live-globe-card'
 import LiveOrderStream from './live-order-stream'
 import NeedsYouList from './needs-you-list'
 import SalesGoalRing from './sales-goal-ring'
@@ -20,7 +20,7 @@ type DashboardPageProps = {
 /**
  * The home page: a plain-language briefing, the "Needs you" inbox and a few
  * insights first (what the owner actually opens this page to see), then a
- * mini order map with a live stream and the monthly goal ring. No KPI grid.
+ * Live view globe with a live stream and the monthly goal ring. No KPI grid.
  */
 export default function DashboardPage({ summary, charts, firstName }: DashboardPageProps) {
   return (
@@ -44,7 +44,7 @@ export default function DashboardPage({ summary, charts, firstName }: DashboardP
       </div>
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
         <div className="flex flex-col gap-5">
-          <IndiaOrderMap orders={summary.mapOrders} />
+          <LiveGlobeCard initial={summary} />
           <LiveOrderStream orders={summary.recentOrders} />
         </div>
         <SalesGoalRing month={summary.month} />
