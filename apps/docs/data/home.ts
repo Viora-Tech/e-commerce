@@ -7,58 +7,66 @@ export const footerLinks = [
   { href: 'https://github.com/Viora-Tech/e-commerce', label: 'GitHub' },
   { href: 'https://github.com/Viora-Tech/e-commerce/issues/new', label: 'Report an issue' },
   { href: '/merchant-guide', label: 'Merchant guide' },
-  { href: '/developer-docs/architecture', label: 'Developers' },
+  { href: '/developer-docs/building/architecture', label: 'Developers' },
 ]
 
 export const pathCards = [
   {
     href: '/merchant-guide',
-    eyebrow: 'I run a store',
+    icon: 'storefront',
     title: 'Merchant guide',
-    description:
-      'Logging in, orders, shipments, your online store, apps, GST invoices, payments and security. No jargon, short steps.',
+    description: 'Run your store: orders, shipping, payments and GST, in short steps.',
   },
   {
-    href: '/developer-docs/architecture',
-    eyebrow: "I'm building on it",
-    title: 'Developer docs',
-    description:
-      'Architecture, conventions, guardrails, the plugins SDK, the data model, running it locally, testing and backups.',
+    href: '/developer-docs/building/architecture',
+    icon: 'code',
+    title: 'Developers',
+    description: 'Architecture, conventions, the plugins SDK and running it locally.',
   },
 ] as const
 
 export const popularGuides = [
   {
-    href: '/merchant-guide/shipments#connecting-delhivery',
+    href: '/merchant-guide/selling/shipments#connecting-delhivery',
+    icon: 'plugs',
     title: 'Connect Delhivery',
-    description: 'Paste your API token and pickup location — courier rates and labels in a minute.',
+    description: 'Paste your API token and pickup location to get rates and labels.',
   },
   {
-    href: '/merchant-guide/shipments#ready-to-ship',
+    href: '/merchant-guide/selling/shipments#ready-to-ship',
+    icon: 'truck',
     title: 'Book your first shipment',
-    description: 'Compare rates, print labels and schedule a pickup for paid orders.',
+    description: 'Compare rates, print labels and schedule a pickup.',
   },
   {
-    href: '/merchant-guide/online-store',
+    href: '/merchant-guide/selling/online-store',
+    icon: 'paintbrush',
     title: 'Edit your store design',
-    description: 'Sections, theme settings and app blocks in the online store editor.',
+    description: 'Sections, theme settings and app blocks in the editor.',
   },
   {
-    href: '/merchant-guide/gst-invoices',
+    href: '/merchant-guide/money/gst-invoices',
+    icon: 'receipt',
     title: 'GST invoices',
-    description: 'Tax invoices, credit notes and packing slips generated straight from orders.',
+    description: 'Tax invoices, credit notes and packing slips from orders.',
   },
   {
-    href: '/merchant-guide/payments',
+    href: '/merchant-guide/money/payments',
+    icon: 'creditCard',
     title: 'Payments',
-    description: 'Turn on payment methods, connect Razorpay and handle unpaid orders.',
+    description: 'Turn on payment methods and connect Razorpay.',
   },
   {
-    href: '/merchant-guide/apps',
+    href: '/merchant-guide/selling/apps',
+    icon: 'puzzle',
     title: 'Apps',
-    description: 'Built-in apps and connections — couriers, gateways, storage and more.',
+    description: 'Couriers, gateways, storage and other built-in apps.',
   },
 ] as const
+
+export type HomeCardIcon =
+  | (typeof pathCards)[number]['icon']
+  | (typeof popularGuides)[number]['icon']
 
 export const helpStrip = {
   description: "Can't find what you're looking for, or something looks wrong?",
@@ -67,6 +75,6 @@ export const helpStrip = {
       href: 'https://github.com/Viora-Tech/e-commerce/issues/new',
       label: 'report an issue on GitHub',
     },
-    { href: '/developer-docs/running-locally', label: 'run it locally' },
+    { href: '/developer-docs/operations/running-locally', label: 'run it locally' },
   ],
 }

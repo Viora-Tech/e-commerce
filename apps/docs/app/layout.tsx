@@ -33,13 +33,15 @@ const mono = Geist_Mono({
 
 const GITHUB_URL = 'https://github.com/Viora-Tech/e-commerce'
 
-/* Next.js-docs palette: blue links (#0070f3 light, #52a8ff dark) on pure white / pure black. */
+/* Ocean Green accent (#4ea674 light, #30d158 dark) through Nextra's primary-colour hook; it
+   drives the active sidebar link, links, focus rings and the TOC. Backgrounds are our white
+   light theme and Nextra's normal dark grey. */
 const primaryColor = {
-  hue: 212,
-  saturation: 100,
-  lightness: { light: 45, dark: 66 },
+  hue: { light: 146, dark: 135 },
+  saturation: { light: 36, dark: 64 },
+  lightness: { light: 48, dark: 50 },
 }
-const backgroundColor = { light: '#ffffff', dark: '#000000' }
+const backgroundColor = { light: '#ffffff', dark: 'rgb(17,17,17)' }
 
 const navbar = (
   <Navbar logo={<LogoMark size={20} withWordmark />} projectLink={GITHUB_URL} align="right" />
@@ -72,7 +74,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           docsRepositoryBase={`${GITHUB_URL}/tree/main/apps/docs/content`}
           footer={footer}
           search={<Search />}
-          sidebar={{ defaultMenuCollapseLevel: 1 }}
+          sidebar={{ defaultMenuCollapseLevel: 2, toggleButton: true }}
           toc={{ title: 'On this page', backToTop: 'Scroll to top' }}
           editLink="Edit this page on GitHub"
           feedback={{ content: null }}

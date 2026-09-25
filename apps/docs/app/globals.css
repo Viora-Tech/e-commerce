@@ -1,6 +1,6 @@
 /* biome-ignore-all lint/style/noDescendingSpecificity: these rules override nextra-theme-docs selectors, so they are grouped by page area, not by specificity. */
 /*
- * Waimers Commerce Docs — Next.js-docs-style monochrome theme on top of nextra-theme-docs.
+ * Waimers Commerce Docs — Next.js-docs layout on top of nextra-theme-docs, in our own colours.
  *
  * Tailwind is imported without `preflight` (its CSS reset) on purpose: the docs
  * theme ships its own base styles (`nextra-theme-docs/style.css`, imported first
@@ -29,10 +29,11 @@
 @source "../node_modules/nextra-theme-docs/dist/**/*.{js,mjs}";
 
 /* ---------------------------------------------------------------------------
- * Tokens — near-monochrome, in the style of the Next.js docs: black/white
- * surfaces, grey text and hairlines, blue only for links. The primary hue
- * (links, TOC, focus rings) and the page background come from
- * <Head color backgroundColor> in app/layout.tsx.
+ * Tokens — our light theme and Nextra's dark grey, grey text and hairlines,
+ * with a restrained Ocean Green accent (#4ea674 light, #30d158 dark). The
+ * primary hue behind Nextra's own active states, focus rings and TOC, and the
+ * page backgrounds, come from <Head color backgroundColor> in app/layout.tsx.
+ * `--docs-link` is the accent darkened enough to pass contrast as body text.
  * ------------------------------------------------------------------------- */
 :root {
   --docs-fg: #171717;
@@ -41,17 +42,35 @@
   --docs-border: #ebebeb;
   --docs-border-strong: #d6d6d6;
   --docs-surface: #fafafa;
-  --docs-link: #0068d6;
+  --docs-accent: #4ea674;
+  --docs-link: #3a845c;
+  --docs-accent-bg: rgb(78 166 116 / 0.08);
+  --docs-accent-border: rgb(78 166 116 / 0.35);
+  --docs-amber: #a15c07;
+  --docs-amber-bg: #fffbeb;
+  --docs-amber-border: #fcd34d;
+  --docs-red: #b91c1c;
+  --docs-red-bg: #fef2f2;
+  --docs-red-border: #fca5a5;
 }
 
 :root.dark {
   --docs-fg: #ededed;
   --docs-muted: #a1a1a1;
-  --docs-subtle: #707070;
-  --docs-border: #1f1f1f;
-  --docs-border-strong: #2e2e2e;
-  --docs-surface: #0a0a0a;
-  --docs-link: #52a8ff;
+  --docs-subtle: #737373;
+  --docs-border: #262626;
+  --docs-border-strong: #383838;
+  --docs-surface: #1a1a1a;
+  --docs-accent: #30d158;
+  --docs-link: #30d158;
+  --docs-accent-bg: rgb(48 209 88 / 0.08);
+  --docs-accent-border: rgb(48 209 88 / 0.3);
+  --docs-amber: #fbbf24;
+  --docs-amber-bg: rgb(251 191 36 / 0.08);
+  --docs-amber-border: rgb(251 191 36 / 0.3);
+  --docs-red: #f87171;
+  --docs-red-bg: rgb(248 113 113 / 0.08);
+  --docs-red-border: rgb(248 113 113 / 0.3);
 }
 
 /* ---------------------------------------------------------------------------
@@ -117,7 +136,8 @@ samp {
 }
 
 /* ---------------------------------------------------------------------------
- * Sidebar — grey links; the active page is blue text, no coloured pill.
+ * Sidebar — section switcher on top, icon group headings that collapse with a
+ * chevron, grey links; the active page is accent text at weight 500, no pill.
  * ------------------------------------------------------------------------- */
 :is(.nextra-sidebar, .nextra-mobile-nav) li > a,
 :is(.nextra-sidebar, .nextra-mobile-nav) li > button {
@@ -138,12 +158,69 @@ samp {
   background: transparent;
 }
 
-/* Separators: small section headings. */
-:is(.nextra-sidebar, .nextra-mobile-nav) li[class*="x:font-semibold"] {
-  margin-bottom: 0.25rem;
+/* Group headings (folders). */
+:is(.nextra-sidebar, .nextra-mobile-nav) li:has(> button) {
+  margin-top: 0.5rem;
+}
+
+:is(.nextra-sidebar, .nextra-mobile-nav) li > button {
   color: var(--docs-fg);
-  font-size: 0.875rem;
   font-weight: 500;
+}
+
+:is(.nextra-sidebar, .nextra-mobile-nav) li > button > svg {
+  height: 1rem;
+  color: var(--docs-subtle);
+}
+
+.docs-nav-icon {
+  color: var(--docs-subtle);
+}
+
+:is(.nextra-sidebar, .nextra-mobile-nav) li > a[class*="x:bg-primary-100"] .docs-nav-icon {
+  color: var(--docs-accent);
+}
+
+/* Nested pages: hairline rail. */
+:is(.nextra-sidebar, .nextra-mobile-nav) ul ul::before {
+  background: var(--docs-border);
+}
+
+/* The only separator is the section switcher. */
+:is(.nextra-sidebar, .nextra-mobile-nav) li[class*="x:font-semibold"] {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 500;
+}
+
+.docs-switcher {
+  border-color: var(--docs-border);
+  background: rgb(var(--nextra-bg));
+  color: var(--docs-fg);
+}
+
+.docs-switcher:hover {
+  border-color: var(--docs-border-strong);
+}
+
+.docs-switcher:focus-within {
+  outline: 2px solid var(--docs-accent-border);
+  outline-offset: 1px;
+}
+
+/* Breadcrumbs and prev/next reuse the sidebar titles; keep them text-only. */
+:is(.nextra-breadcrumb, a[title]) .docs-nav-icon {
+  display: none;
+}
+
+.nextra-breadcrumb {
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--docs-muted);
+}
+
+.nextra-breadcrumb a:hover {
+  color: var(--docs-fg);
 }
 
 .nextra-sidebar-footer {
@@ -170,7 +247,7 @@ samp {
 }
 
 .nextra-toc ul a[class*="x:text-primary-600"] {
-  color: var(--docs-fg);
+  color: var(--docs-link);
   font-weight: 500;
 }
 
@@ -311,16 +388,19 @@ article > main {
     font-weight: 500;
   }
 
-  /* Steps — hairline rail, neutral numerals. */
+  /* Steps — numbered accent circles on a hairline rail. */
   .nextra-steps {
-    border-color: var(--docs-border);
+    border-color: var(--docs-border-strong);
   }
 
-  .nextra-steps h3::before {
-    border: 1px solid var(--docs-border);
+  .nextra-steps h3:not([style^="visibility:"])::before {
+    border: 1px solid var(--docs-accent-border);
+    border-radius: 9999px;
     background: rgb(var(--nextra-bg));
-    color: var(--docs-fg);
-    font-weight: 500;
+    color: var(--docs-link);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.9375rem;
   }
 }
 
@@ -353,18 +433,34 @@ div.nextra-code pre {
 }
 
 /* ---------------------------------------------------------------------------
- * Callouts — neutral hairline box; colour stays in the icon only.
+ * Callouts (components/callout.tsx) — accent, amber or red tint with an icon.
  * ------------------------------------------------------------------------- */
-.nextra-callout {
-  border-color: var(--docs-border);
-  border-radius: 0.5rem;
-  background: var(--docs-surface);
+.docs-callout {
+  --tone: var(--docs-link);
+  --tone-bg: var(--docs-accent-bg);
+  --tone-border: var(--docs-accent-border);
+  border-color: var(--tone-border);
+  background: var(--tone-bg);
   color: var(--docs-fg);
-  padding-block: 0.75rem;
-  font-size: 0.9375rem;
 }
 
-.nextra-callout :is(p, li) {
+.docs-callout[data-tone="amber"] {
+  --tone: var(--docs-amber);
+  --tone-bg: var(--docs-amber-bg);
+  --tone-border: var(--docs-amber-border);
+}
+
+.docs-callout[data-tone="red"] {
+  --tone: var(--docs-red);
+  --tone-bg: var(--docs-red-bg);
+  --tone-border: var(--docs-red-border);
+}
+
+.docs-callout-icon {
+  color: var(--tone);
+}
+
+.docs-callout :is(p, li) {
   color: var(--docs-fg);
 }
 
@@ -435,4 +531,32 @@ a[title][class*="x:max-w-[50%]"][class*="x:ps-4"]::before {
 a[title][class*="x:max-w-[50%]"] svg {
   height: 1rem;
   color: var(--docs-muted);
+}
+
+/* ---------------------------------------------------------------------------
+ * Home cards and "Was this helpful?"
+ * ------------------------------------------------------------------------- */
+.docs-home-card {
+  border-color: var(--docs-border);
+}
+
+.docs-home-card:hover {
+  border-color: var(--docs-border-strong);
+  background: var(--docs-surface);
+}
+
+.docs-home-card-icon {
+  background: var(--docs-accent-bg);
+  color: var(--docs-link);
+}
+
+.docs-feedback-button {
+  border-color: var(--docs-border);
+  color: var(--docs-muted);
+  cursor: pointer;
+}
+
+.docs-feedback-button:hover {
+  border-color: var(--docs-border-strong);
+  color: var(--docs-fg);
 }
