@@ -1,5 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
+  checkRateLimit,
+  createMemoryRateLimitStore,
   ensureMainTheme,
   liveThemeSettings,
   NotificationSettingsSchema,
@@ -12,6 +14,8 @@ import {
   parseShippingSettings,
   permissions,
   presentStoreGeneral,
+  rateLimitKey,
+  retryAfterSeconds,
   ShippingSettingsSchema,
   StorageSettingsSchema,
   StoreGeneralSchema,
@@ -20,6 +24,7 @@ import {
   ThemeSchema,
   updateThemeSettings,
 } from '@commerce/core'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
@@ -34,10 +39,13 @@ import {
   presentProviderSettings,
 } from '../services/provider-settings'
 import {
+  TEST_CONNECTION_RULE,
+  testShippingConnection,
   tryEstimate,
   updateStoreShipping,
   verifyShippingCredentials,
 } from '../services/shipping.service'
+
 import {
   getStore,
   updateStoreGeneral,
@@ -48,6 +56,13 @@ import {
 } from '../services/store.service'
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
+
+/**
+ * In-process fallback for hosts (and tests) that don't wire a Redis-backed
+ * rate limit store into the context. Fine for a single admin instance;
+ * `apps/admin/src/lib/api.ts` wires a real one for the deployed app.
+ */
+const fallbackRateLimit = createMemoryRateLimitStore()
 
 export const storeRouter = {
   current: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
@@ -218,6 +233,35 @@ export const storeRouter = {
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
     return verifyShippingCredentials(context.tx, context.scope.storeId, shipping, secret())
   }),
+
+  /**
+   * The Connect page's "Test connection" button. Rate-limited per store so a
+   * mistyped token can't be hammered into a credential-guessing loop against
+   * the real courier account.
+   */
+  testDelhiveryConnection: can(permissions.SETTINGS_READ)
+    .input(z.object({ fields: z.record(z.string(), z.string()) }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('shipping-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
+      return testShippingConnection(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        secret(),
+        'delhivery',
+        input.fields,
+      )
+    }),
 
   /** Storage settings with secrets masked, plus the providers this deployment can offer. */
   getStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
