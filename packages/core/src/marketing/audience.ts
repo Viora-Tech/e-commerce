@@ -1,5 +1,6 @@
 import { customer, customerSegment, type StoreTx } from '@commerce/db'
 import { and, eq, isNull, sql } from 'drizzle-orm'
+import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { evaluateSegment, type SegmentRules } from '../customers/segments'
 
 export type AudienceMember = {
@@ -37,6 +38,7 @@ export function normalisePhone(raw: string | null | undefined): string | null {
 export async function campaignAudience(
   tx: StoreTx,
   input: { kind: AudienceKind; segmentId: string | null; now?: Date | undefined },
+  secret: string,
 ): Promise<AudienceMember[]> {
   let rules: SegmentRules | null = null
   if (input.segmentId) {
@@ -87,7 +89,10 @@ export async function campaignAudience(
     ) {
       continue
     }
-    const to = input.kind === 'email' ? r.email?.trim().toLowerCase() : normalisePhone(r.phone)
+    const to =
+      input.kind === 'email'
+        ? r.email?.trim().toLowerCase()
+        : normalisePhone(decryptCustomerPhone(r.phone, secret))
     if (!to || seen.has(to)) continue
     seen.add(to)
     out.push({ customerId: r.id, name: r.name, to })

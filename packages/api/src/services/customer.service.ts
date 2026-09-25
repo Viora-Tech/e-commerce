@@ -1,4 +1,11 @@
-import { evaluateSegment, type SegmentCustomer } from '@commerce/core'
+import {
+  decryptCustomerPhone,
+  encryptCustomerPhone,
+  evaluateSegment,
+  normalisePhoneDigits,
+  phoneBlindIndex,
+  type SegmentCustomer,
+} from '@commerce/core'
 import type { CustomerSegmentRules, StoreTx } from '@commerce/db'
 import { customer, customerSegment, notification, order } from '@commerce/db'
 import { and, asc, count, desc, eq, gte, ilike, inArray, lte, ne, or, sql } from 'drizzle-orm'
@@ -96,15 +103,20 @@ const SELECTION = {
   createdAt: c.createdAt,
 }
 
-function filterWhere(input: CustomerQuery, now: Date) {
+/**
+ * `customer.phone` is encrypted, so it can no longer be `ilike`d; a search that looks
+ * like a phone number (4+ digits once punctuation is stripped) instead matches the
+ * HMAC blind index exactly — a real trade-off of encrypting the column (see
+ * `docs/security/data-protection.md`), not a bug: "987" no longer finds "9876543210".
+ */
+function filterWhere(input: CustomerQuery, now: Date, secret: string) {
   const monthAgo = new Date(now.getTime() - RECENT_WINDOW_DAYS * DAY_MS)
+  const searchDigits = input.search ? normalisePhoneDigits(input.search) : ''
+  const phoneMatch =
+    searchDigits.length >= 4 ? eq(c.phoneIndex, phoneBlindIndex(searchDigits, secret)) : undefined
   return and(
     input.search
-      ? or(
-          ilike(c.name, `%${input.search}%`),
-          ilike(c.email, `%${input.search}%`),
-          ilike(c.phone, `%${input.search}%`),
-        )
+      ? or(ilike(c.name, `%${input.search}%`), ilike(c.email, `%${input.search}%`), phoneMatch)
       : undefined,
     input.segment === 'new' ? gte(c.createdAt, monthAgo) : undefined,
     input.segment === 'returning' ? sql`${orderCountSql} > 1` : undefined,
@@ -131,12 +143,18 @@ function toSegmentCustomer(item: CustomerListItem): SegmentCustomer {
   }
 }
 
+/** Decrypts the SELECTION-shaped `phone` in place; passes plaintext (not-yet-backfilled) rows through. */
+function decryptListItem(item: CustomerListItem, secret: string): CustomerListItem {
+  return { ...item, phone: decryptCustomerPhone(item.phone, secret) }
+}
+
 export async function listCustomers(
   tx: StoreTx,
   input: { page: number; perPage: number; sort?: CustomerSort | undefined } & CustomerQuery,
+  secret: string,
   now = new Date(),
 ) {
-  const where = filterWhere(input, now)
+  const where = filterWhere(input, now, secret)
   const orderBy = {
     recent: [desc(c.createdAt)],
     name: [asc(c.name), asc(c.email)],
@@ -151,7 +169,7 @@ export async function listCustomers(
     .orderBy(...orderBy)
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
-  return { items, total: countRow?.total ?? 0 }
+  return { items: items.map((item) => decryptListItem(item, secret)), total: countRow?.total ?? 0 }
 }
 
 export async function customerStats(tx: StoreTx, now = new Date()): Promise<CustomerStats> {
@@ -272,14 +290,21 @@ export async function customerOverview(
 export async function listAllCustomers(
   tx: StoreTx,
   input: CustomerQuery,
+  secret: string,
   now = new Date(),
 ): Promise<CustomerListItem[]> {
-  return tx.select(SELECTION).from(c).where(filterWhere(input, now)).orderBy(desc(c.createdAt))
+  const items = await tx
+    .select(SELECTION)
+    .from(c)
+    .where(filterWhere(input, now, secret))
+    .orderBy(desc(c.createdAt))
+  return items.map((item) => decryptListItem(item, secret))
 }
 
-export async function getCustomer(tx: StoreTx, id: string) {
-  const [row] = await tx.select().from(customer).where(eq(customer.id, id))
-  if (!row) return null
+export async function getCustomer(tx: StoreTx, id: string, secret: string) {
+  const [raw] = await tx.select().from(customer).where(eq(customer.id, id))
+  if (!raw) return null
+  const row = { ...raw, phone: decryptCustomerPhone(raw.phone, secret) }
   const [orders, sent] = await Promise.all([
     tx
       .select({
@@ -313,8 +338,9 @@ export async function getCustomer(tx: StoreTx, id: string) {
   ])
   const live = orders.filter((o) => o.status !== 'cancelled')
   const spentPaise = live.reduce((sum, o) => sum + o.totalPaise, 0)
+  const { phoneIndex: _phoneIndex, ...customerFields } = row
   return {
-    ...row,
+    ...customerFields,
     orders,
     notifications: sent,
     totals: {
@@ -337,13 +363,26 @@ export async function updateCustomer(
     note?: string | null | undefined
     acceptsMarketing?: boolean | undefined
   },
+  secret: string,
 ) {
+  const { phone, ...rest } = patch
+  const phoneUpdate =
+    phone === undefined
+      ? {}
+      : phone === null || phone === ''
+        ? { phone: null, phoneIndex: null }
+        : {
+            phone: encryptCustomerPhone(phone, secret).cipher,
+            phoneIndex: phoneBlindIndex(phone, secret),
+          }
   const [row] = await tx
     .update(customer)
-    .set({ ...patch, updatedAt: new Date() })
+    .set({ ...rest, ...phoneUpdate, updatedAt: new Date() })
     .where(eq(customer.id, id))
     .returning()
-  return row ?? null
+  if (!row) return null
+  const { phoneIndex: _phoneIndex, ...rest2 } = row
+  return { ...rest2, phone: decryptCustomerPhone(row.phone, secret) }
 }
 
 /** Refuses while orders point at the customer, so history never loses its buyer. */
@@ -388,10 +427,10 @@ export async function customerTags(tx: StoreTx): Promise<string[]> {
   return rows.map((r) => r.tag).sort()
 }
 
-export async function listSegments(tx: StoreTx, now = new Date()) {
+export async function listSegments(tx: StoreTx, secret: string, now = new Date()) {
   const [segments, everyone] = await Promise.all([
     tx.select().from(customerSegment).orderBy(asc(customerSegment.name)),
-    listAllCustomers(tx, {}, now),
+    listAllCustomers(tx, {}, secret, now),
   ])
   return segments.map((s) => ({
     ...s,
@@ -432,17 +471,19 @@ export async function deleteSegment(tx: StoreTx, id: string) {
 export async function listSegmentCustomers(
   tx: StoreTx,
   rules: CustomerSegmentRules,
+  secret: string,
   now = new Date(),
 ) {
-  const everyone = await listAllCustomers(tx, {}, now)
+  const everyone = await listAllCustomers(tx, {}, secret, now)
   return everyone.filter((cu) => evaluateSegment(toSegmentCustomer(cu), rules, now))
 }
 
 /** Customers whose last order predates the window; the win-back building block. */
-export async function lapsedSince(tx: StoreTx, days: number, now = new Date()) {
+export async function lapsedSince(tx: StoreTx, days: number, secret: string, now = new Date()) {
   const cutoff = new Date(now.getTime() - days * DAY_MS)
-  return tx
+  const items = await tx
     .select(SELECTION)
     .from(c)
     .where(and(sql`${lastOrderSql} is not null`, lte(sql`${lastOrderSql}`, cutoff)))
+  return items.map((item) => decryptListItem(item, secret))
 }

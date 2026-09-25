@@ -31,6 +31,7 @@ import { recordMessageClick, recordMessageOpen, unsubscribeCustomer } from './tr
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
+const TEST_SECRET = 'test-only-settings-secret-value'
 const SECRET = 'test-secret-key'
 
 afterAll(async () => {
@@ -114,11 +115,11 @@ describe('campaign audience and consent', () => {
     await addCustomer(storeId, 'wa@x.in', { acceptsWhatsapp: true, phone: '98765 43210' })
     await addCustomer(storeId, 'wa2@x.in', { acceptsWhatsapp: true, phone: '+91 98765 43210' })
     const email = await withStore(app, storeId, (tx) =>
-      campaignAudience(tx, { kind: 'email', segmentId: null }),
+      campaignAudience(tx, { kind: 'email', segmentId: null }, TEST_SECRET),
     )
     expect(email.map((m) => m.to).sort()).toEqual(['wa2@x.in', 'wa@x.in', 'yes@x.in'])
     const wa = await withStore(app, storeId, (tx) =>
-      campaignAudience(tx, { kind: 'whatsapp', segmentId: null }),
+      campaignAudience(tx, { kind: 'whatsapp', segmentId: null }, TEST_SECRET),
     )
     expect(wa.map((m) => m.to)).toEqual(['919876543210'])
   })
@@ -143,7 +144,7 @@ describe('campaign audience and consent', () => {
       })
       .returning()
     const members = await withStore(app, storeId, (tx) =>
-      campaignAudience(tx, { kind: 'email', segmentId: seg?.id as string }),
+      campaignAudience(tx, { kind: 'email', segmentId: seg?.id as string }, TEST_SECRET),
     )
     expect(members.map((m) => m.to)).toEqual(['buyer@x.in'])
   })
@@ -176,15 +177,17 @@ describe('scheduling', () => {
     const id = c?.id as string
     const at = new Date(Date.now() + 3_600_000)
     await withStore(app, storeId, (tx) => scheduleCampaign(tx, id, { at }))
-    expect(await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId))).toEqual([])
+    expect(
+      await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId, TEST_SECRET)),
+    ).toEqual([])
     const back = await withStore(app, storeId, (tx) => cancelCampaign(tx, id))
     expect(back?.status).toBe('draft')
 
     await withStore(app, storeId, (tx) => scheduleCampaign(tx, id, { at }))
     const later = new Date(at.getTime() + 1000)
-    expect(await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId, later))).toEqual([
-      id,
-    ])
+    expect(
+      await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId, TEST_SECRET, later)),
+    ).toEqual([id])
     const [row] = await owner.select().from(marketingCampaign).where(eq(marketingCampaign.id, id))
     expect(row).toMatchObject({ status: 'sending', audienceCount: 1 })
   })
@@ -198,7 +201,7 @@ describe('sending', () => {
     const c = await withStore(app, storeId, (tx) => createCampaign(tx, storeId, content))
     const id = c?.id as string
     await withStore(app, storeId, (tx) => scheduleCampaign(tx, id))
-    await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId))
+    await withStore(app, storeId, (tx) => startDueCampaigns(tx, storeId, TEST_SECRET))
 
     const first = await withStore(app, storeId, (tx) => sendCampaignBatch(tx, storeId, deps, id, 3))
     expect(first).toEqual({ sent: 3, failed: 0, done: false })
@@ -261,7 +264,7 @@ describe('sending', () => {
     const id = c?.id as string
     await withStore(app, storeId, async (tx) => {
       await scheduleCampaign(tx, id)
-      await startDueCampaigns(tx, storeId)
+      await startDueCampaigns(tx, storeId, TEST_SECRET)
       await unsubscribeCustomer(tx, a)
     })
     await withStore(app, storeId, (tx) => sendCampaignBatch(tx, storeId, deps, id))
@@ -287,7 +290,7 @@ describe('sending', () => {
     const id = c?.id as string
     await withStore(app, storeId, async (tx) => {
       await scheduleCampaign(tx, id)
-      await startDueCampaigns(tx, storeId)
+      await startDueCampaigns(tx, storeId, TEST_SECRET)
       await sendCampaignBatch(tx, storeId, deps, id)
     })
     expect(sent).toEqual([
@@ -306,11 +309,11 @@ describe('sending', () => {
     const c = await withStore(app, a, (tx) => createCampaign(tx, a, content))
     await withStore(app, a, async (tx) => {
       await scheduleCampaign(tx, c?.id as string)
-      await startDueCampaigns(tx, a)
+      await startDueCampaigns(tx, a, TEST_SECRET)
     })
     const fromB = await withStore(app, b, (tx) => tx.select().from(marketingMessage))
     expect(fromB).toEqual([])
-    expect(await withStore(app, b, (tx) => startDueCampaigns(tx, b))).toEqual([])
+    expect(await withStore(app, b, (tx) => startDueCampaigns(tx, b, TEST_SECRET))).toEqual([])
     const { deps } = recorder()
     expect(
       await withStore(app, b, (tx) => sendCampaignBatch(tx, b, deps, c?.id as string)),

@@ -20,6 +20,7 @@ import {
 import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
 import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { applyDiscount } from '../discounts/evaluate'
 import {
   customerUsageCount,
@@ -69,6 +70,14 @@ export type PlaceOrderInput = {
   paymentProvider: PaymentProvider
   /** Optional in tests; required by the storefront checkout. */
   checkout?: CheckoutDetails
+  /**
+   * `SETTINGS_SECRET` (the caller already has it — see `packages/api/src/routers/*`'s
+   * `secret()` helper), used to encrypt the new/updated `customer.phone` on the customer
+   * row created or matched here. Omitted (most tests, and any caller that hasn't been
+   * updated yet): `customer.phone` is written in clear, same as before this column was
+   * encrypted — `decryptCustomerPhone` reads plaintext rows through unchanged either way.
+   */
+  secret?: string | undefined
   /** Overrides the code saved on the cart; re-validated here regardless of what the client showed. */
   discountCode?: string | null
   /** Cards the shopper applied (ids from `findRedeemableGiftCard`), spent before the provider is charged. */
@@ -380,13 +389,33 @@ const createOrder: WorkflowStep<State> = {
         country: 'IN',
         phone: co.phone,
       }
-      /* One customer per email per store; a repeat order refreshes name, phone and address. */
+      /* One customer per email per store; a repeat order refreshes name, phone and address.
+       * `customer.phone` is encrypted when the caller passed `input.secret`; the address
+       * snapshot below (`address` table, `defaultAddress`) stays plaintext — see
+       * `docs/security/data-protection.md`. */
+      const customerPhone = input.secret
+        ? encryptCustomerPhone(co.phone, input.secret).cipher
+        : co.phone
+      const customerPhoneIndex = input.secret ? phoneBlindIndex(co.phone, input.secret) : null
       const [cu] = await ctx.tx
         .insert(customer)
-        .values({ storeId: ctx.storeId, email, phone: co.phone, name: co.name, defaultAddress })
+        .values({
+          storeId: ctx.storeId,
+          email,
+          phone: customerPhone,
+          phoneIndex: customerPhoneIndex,
+          name: co.name,
+          defaultAddress,
+        })
         .onConflictDoUpdate({
           target: [customer.storeId, customer.email],
-          set: { phone: co.phone, name: co.name, defaultAddress, updatedAt: new Date() },
+          set: {
+            phone: customerPhone,
+            phoneIndex: customerPhoneIndex,
+            name: co.name,
+            defaultAddress,
+            updatedAt: new Date(),
+          },
         })
         .returning({ id: customer.id })
       const [ad] = await ctx.tx

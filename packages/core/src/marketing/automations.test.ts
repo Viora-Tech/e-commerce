@@ -32,6 +32,7 @@ import type { MarketingDeps } from './send'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
+const TEST_SECRET = 'test-secret'
 const MIN = 60_000
 const HOUR = 60 * MIN
 
@@ -122,7 +123,7 @@ async function activate(storeId: string, template: string, steps?: AutomationSte
 
 const tick = (storeId: string, deps: MarketingDeps, now: Date) =>
   withStore(app, storeId, async (tx) => {
-    await enrolDue(tx, storeId, now)
+    await enrolDue(tx, storeId, deps.settingsSecret, now)
     return processDueRuns(tx, storeId, deps, now)
   })
 
@@ -209,8 +210,8 @@ describe('abandoned checkout sequence', () => {
     await quietCart(storeId, variantId, 10, { email: 'fresh@x.in' })
     await activate(storeId, 'abandoned_checkout')
     const now = new Date()
-    const first = await withStore(app, storeId, (tx) => enrolDue(tx, storeId, now))
-    const again = await withStore(app, storeId, (tx) => enrolDue(tx, storeId, now))
+    const first = await withStore(app, storeId, (tx) => enrolDue(tx, storeId, TEST_SECRET, now))
+    const again = await withStore(app, storeId, (tx) => enrolDue(tx, storeId, TEST_SECRET, now))
     expect([first, again]).toEqual([1, 0])
   })
 })
@@ -239,7 +240,7 @@ describe('consent', () => {
       },
     ])
     for (const email of ['in@x.in', 'gone@x.in', 'no@x.in']) {
-      await withStore(app, storeId, (tx) => enrolSubscriber(tx, storeId, email))
+      await withStore(app, storeId, (tx) => enrolSubscriber(tx, storeId, email, TEST_SECRET))
     }
     const { sent, deps } = recorder()
     await tick(storeId, deps, new Date())
@@ -252,7 +253,9 @@ describe('consent', () => {
     expect(by['gone@x.in']).toEqual(['stopped', 'unsubscribed'])
     expect(by['no@x.in']).toEqual(['completed', null])
     // Signing up again does not restart the welcome.
-    expect(await withStore(app, storeId, (tx) => enrolSubscriber(tx, storeId, 'in@x.in'))).toBe(0)
+    expect(
+      await withStore(app, storeId, (tx) => enrolSubscriber(tx, storeId, 'in@x.in', TEST_SECRET)),
+    ).toBe(0)
   })
 })
 

@@ -3,6 +3,7 @@ import { customer, customerLoginCode, customerSession } from '@commerce/db'
 import { and, eq, gt, lt } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
+import { decryptCustomerPhone } from '../customers/phone-crypto'
 
 /**
  * Storefront shopper sign-in: a six digit code by email, then an opaque session
@@ -146,6 +147,7 @@ const TOKEN = /^[A-Za-z0-9_-]{20,100}$/
 export async function customerForSession(
   ctx: StoreContext,
   token: string | null | undefined,
+  secret: string,
   now: Date = new Date(),
 ): Promise<SignedInCustomer | null> {
   if (!token || !TOKEN.test(token)) return null
@@ -166,7 +168,7 @@ export async function customerForSession(
       ),
     )
   if (!row?.email) return null
-  return { ...row, email: row.email }
+  return { ...row, email: row.email, phone: decryptCustomerPhone(row.phone, secret) }
 }
 
 /** Sign out: the token stops working immediately. */

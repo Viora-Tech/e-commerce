@@ -111,7 +111,7 @@ describe('Shopify connection', () => {
     expect(log[0]?.url).toBe('https://waimers.myshopify.com/admin/api/2025-07/graphql.json')
     const [row] = await owner.select().from(shopifyConnection)
     expect(row?.accessToken).not.toContain('shpat_')
-    expect(row?.accessToken.startsWith('v1.')).toBe(true)
+    expect(row?.accessToken.startsWith('v2.')).toBe(true)
     const view = await withStore(app, storeId, (tx) => getConnection(tx, SECRET))
     expect(view).toMatchObject({
       shopDomain: 'waimers.myshopify.com',

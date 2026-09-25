@@ -123,7 +123,7 @@ describe('shipping settings', () => {
       codAllowed: true,
     })
     const enc = encryptShippingSettings(s, secret)
-    expect(enc.providers.delhivery?.apiToken).toMatch(/^v1\./)
+    expect(enc.providers.delhivery?.apiToken).toMatch(/^v2\./)
     expect(maskShippingSettings(s).providers.delhivery?.apiToken).toBe('••••cret')
     expect(primaryShippingProvider(builtInShippingRegistry(), enc, secret)?.id).toBe('fake')
     expect(toShippingPolicy(s).originPincode).toBe('131028')

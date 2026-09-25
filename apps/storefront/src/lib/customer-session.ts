@@ -1,3 +1,4 @@
+import { loadEnv } from '@commerce/config'
 import { customerForSession, type SignedInCustomer } from '@commerce/core'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -34,7 +35,8 @@ export async function clearCustomerToken(): Promise<void> {
 export const currentCustomer = cache(async (storeId: string): Promise<SignedInCustomer | null> => {
   const token = await readCustomerToken()
   if (!token) return null
-  return inStore(storeId, (tx) => customerForSession({ storeId, tx }, token))
+  const secret = loadEnv(process.env).SETTINGS_SECRET
+  return inStore(storeId, (tx) => customerForSession({ storeId, tx }, token, secret))
 })
 
 /** For account pages: the shopper, or a redirect to sign in that comes back here. */

@@ -3,6 +3,7 @@
 import 'server-only'
 
 import type { NewsletterState } from '@commerce/blocks/puck'
+import { loadEnv } from '@commerce/config'
 import { enrolSubscriber, subscribeToNewsletter } from '@commerce/core'
 import { inStore } from './store-context'
 
@@ -20,7 +21,9 @@ export async function subscribeAction(
   const email = form.get('email')
   const ok = await inStore(storeId, async (tx) => {
     const subscribed = await subscribeToNewsletter(tx, storeId, email)
-    if (subscribed && typeof email === 'string') await enrolSubscriber(tx, storeId, email)
+    if (subscribed && typeof email === 'string') {
+      await enrolSubscriber(tx, storeId, email, loadEnv(process.env).SETTINGS_SECRET)
+    }
     return subscribed
   })
   return { status: ok ? 'done' : 'error' }
