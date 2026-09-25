@@ -1,3 +1,4 @@
+import 'server-only'
 import { createMerchantAuth, type MerchantAuth } from '@commerce/auth'
 import { loadEnv } from '@commerce/config'
 import { headers } from 'next/headers'

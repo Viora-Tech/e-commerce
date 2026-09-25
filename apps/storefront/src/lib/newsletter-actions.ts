@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+
 import type { NewsletterState } from '@commerce/blocks/puck'
 import { enrolSubscriber, subscribeToNewsletter } from '@commerce/core'
 import { inStore } from './store-context'

@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+
 import { BackInStockError, createSignup } from '@commerce/plugin-back-in-stock'
 import { headers } from 'next/headers'
 import { clientIp, rateLimited, retryAfterSeconds } from './rate-limit'

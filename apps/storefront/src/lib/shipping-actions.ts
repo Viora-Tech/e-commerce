@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+
 import type { DeliveryEstimate } from '@commerce/core'
 import { readCartId } from './cart-cookie'
 import { type CheckoutShipping, checkoutShipping, estimateForPincode } from './shipping'

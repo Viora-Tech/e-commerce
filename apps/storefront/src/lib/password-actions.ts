@@ -1,5 +1,7 @@
 'use server'
 
+import 'server-only'
+
 import { checkStorefrontPassword, parsePreferences } from '@commerce/core'
 import { store } from '@commerce/db'
 import { eq } from 'drizzle-orm'

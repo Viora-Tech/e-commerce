@@ -33,4 +33,5 @@ jobs:
         run: PGPASSWORD=postgres psql -h localhost -U postgres -d commerce -v ON_ERROR_STOP=1 -f docker/postgres/init.sql
       - run: bun run lint
       - run: bun run typecheck
+      - run: bun run test:sweeps
       - run: bun run test

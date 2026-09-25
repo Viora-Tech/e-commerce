@@ -1,3 +1,4 @@
+import 'server-only'
 import { appRouter } from '@commerce/api'
 import { loadEnv } from '@commerce/config'
 import { createRedisRateLimitStore } from '@commerce/core'
