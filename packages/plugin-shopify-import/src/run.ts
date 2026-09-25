@@ -151,6 +151,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     }),
     report,
     log: deps.log,
+    secret: deps.settingsSecret,
   }
   const resources = IMPORT_RESOURCES.filter((r) => run.resources.includes(r))
   try {
