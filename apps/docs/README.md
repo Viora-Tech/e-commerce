@@ -8,9 +8,9 @@ guardrails, plugins SDK, data model, running locally, testing, backups, deployme
 Content lives in `content/` as MDX, organised by `_meta.ts` files (sidebar order and titles).
 See `content/merchant-guide/` and `content/developer-docs/`.
 
-Two developer-docs pages, [Architecture](content/developer-docs/architecture.mdx) and
-[Backups](content/developer-docs/backups.mdx), plus
-[Plugins SDK](content/developer-docs/plugins.mdx), were moved here from `docs/*.md` (one
+Two developer-docs pages, [Architecture](content/developer-docs/building/architecture.mdx) and
+[Backups](content/developer-docs/operations/backups.mdx), plus
+[Plugins SDK](content/developer-docs/building/plugins.mdx), were moved here from `docs/*.md` (one
 source of truth) — the old paths (`docs/architecture.md`, `docs/plugins.md`,
 `docs/ops/backups.md`) are now short stubs pointing here.
 
@@ -50,7 +50,7 @@ is used until it's fixed upstream. Bump back to `^4.6.x` once that lands.
 ## Deployment
 
 Not deployed yet; this is a placeholder plan, same shape as the rest of the platform
-(see `docs/handoff.md` / [Deployment](content/developer-docs/deployment.mdx)).
+(see `docs/handoff.md` / [Deployment](content/developer-docs/operations/deployment.mdx)).
 
 **Static export.** Nextra supports Next's static export (`output: 'export'`) and Pagefind
 works against a static build too (index `out/_pagefind` instead of `.next/server/app`). That

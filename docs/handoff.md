@@ -90,7 +90,7 @@ build the data path or put a data equivalent in the same slot, and log it as a d
 **Platform.** Multi-tenant on Postgres RLS (`store_id` everywhere, `apply_store_rls()`,
 `withStore()`); Better Auth email OTP + organizations; oRPC API with `storeProcedure`;
 workflow runner with compensation (`placeOrder`); plugin system (`commerce.config.ts`,
-`@commerce/plugins`, Apps page, `apps/docs/content/developer-docs/plugins.mdx`).
+`@commerce/plugins`, Apps page, `apps/docs/content/developer-docs/building/plugins.mdx`).
 
 **Payments**: Razorpay, COD, UPI/bank transfer with per-order QR, Snapmint via Razorpay,
 per-method fees and discounts. **Shipping**: Delhivery (serviceability, delivery estimate,
@@ -146,4 +146,4 @@ idempotency keys, read caching, rate limits); then GST invoices, returns and RTO
 cart automation, Snapmint direct adapter; then deployment (AWS ECS pipeline, Cloudflare,
 Lambda@Edge routing) and the SaaS layer (onboarding, tenant billing, plugin marketplace).
 
-See `apps/docs/content/developer-docs/architecture.mdx` for the target architecture and the ordered scale roadmap.
+See `apps/docs/content/developer-docs/building/architecture.mdx` for the target architecture and the ordered scale roadmap.
