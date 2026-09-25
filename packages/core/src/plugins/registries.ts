@@ -1,4 +1,9 @@
-import type { AppBlockSource } from '@commerce/blocks/puck'
+// A type-only import from '@commerce/blocks/app-blocks' (not '/puck'), on purpose: this
+// module is on every consumer's compile graph (the worker, api, every plugin package,
+// none of which set the DOM lib), and '@commerce/blocks/puck' pulls in the real block
+// components (DOM-typed) even for a type-only import, since tsc still checks whatever it
+// resolves. app-blocks.tsx has no DOM dependency at all — see packages/blocks/package.json.
+import type { AppBlockSource } from '@commerce/blocks/app-blocks'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
 import { CORE_PLUGIN_ID, type LoadedPlugins, loadPlugins, type Registries } from '@commerce/plugins'

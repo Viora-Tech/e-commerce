@@ -45,8 +45,14 @@ export function availableProviders(registry: FactoryLookup): AvailableProvider[]
 }
 
 /** Decrypt then mask, so the UI sees ••••last4 of the real value, never of the ciphertext. */
-export function presentProviderSettings<S extends ProviderSettings>(s: S, secret: string): S {
-  return maskProviderSettings(decryptProviderSettings(s, secret))
+export function presentProviderSettings<S extends ProviderSettings>(
+  s: S,
+  secret: string,
+  registry?: FactoryLookup,
+  previousSecrets: string[] = [],
+): S {
+  const fieldsOf = registry ? (id: string) => registry.get(id)?.fields : undefined
+  return maskProviderSettings(decryptProviderSettings(s, secret, previousSecrets), fieldsOf)
 }
 
 /**
@@ -89,5 +95,5 @@ export function prepareProviderSettings<S extends ProviderSettings>(
       throw new ORPCError('BAD_REQUEST', { message: `${f.label}: ${check.errors.join(', ')}` })
     }
   }
-  return encryptProviderSettings(merged, secret)
+  return encryptProviderSettings(merged, secret, (id) => registry.get(id)?.fields)
 }

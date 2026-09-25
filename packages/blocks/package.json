@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./puck": "./src/puck-config.tsx",
+    "./app-blocks": "./src/app-blocks.tsx",
     "./styles.css": "./src/styles/index.css"
   },
   "scripts": {

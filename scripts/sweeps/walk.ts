@@ -208,6 +208,56 @@ export function findIntlNumberFormat(sf: ts.SourceFile): number[] {
   return lines
 }
 
+/**
+ * Field name looks secret-ish. Deliberately narrower than a naive "contains 'key' or
+ * 'pin'" match: `keyId`/`accessKeyId` (Razorpay, AWS) are public identifiers, and
+ * `originPincode`/`pincode` are postal codes, not credentials — matching "key" or "pin"
+ * as a bare substring flags both as false positives. Matches
+ * `packages/core/src/settings/secrets.ts`'s `SECRET_KEY`, which is the actual runtime
+ * safety net; this sweep fails if the two ever drift apart.
+ */
+export const LOOKS_SECRET = /secret|token|password/i
+
+export type ProviderFieldViolation = { key: string; line: number }
+
+/**
+ * `ProviderField` object literals (`{ key: '...', label: '...', ... }`, the
+ * shape `packages/payments|shipping|notifications/src/types.ts` all declare)
+ * whose `key` looks secret-ish but the object has no `secret: true`. Matches
+ * on shape (a `key` + `label` string pair) rather than an imported type name,
+ * so it also catches a factory that forgot to import `ProviderField` at all.
+ */
+export function findProviderFieldViolations(sf: ts.SourceFile): ProviderFieldViolation[] {
+  const out: ProviderFieldViolation[] = []
+  const visit = (n: ts.Node) => {
+    if (ts.isObjectLiteralExpression(n)) {
+      const keyProp = n.properties.find(
+        (p): p is ts.PropertyAssignment =>
+          ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'key',
+      )
+      const labelProp = n.properties.find(
+        (p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'label',
+      )
+      if (
+        keyProp &&
+        labelProp &&
+        ts.isStringLiteralLike(keyProp.initializer) &&
+        LOOKS_SECRET.test(keyProp.initializer.text)
+      ) {
+        const secretProp = n.properties.find(
+          (p): p is ts.PropertyAssignment =>
+            ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'secret',
+        )
+        const flagged = !!secretProp && secretProp.initializer.kind === ts.SyntaxKind.TrueKeyword
+        if (!flagged) out.push({ key: keyProp.initializer.text, line: lineOf(sf, n) })
+      }
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(sf)
+  return out
+}
+
 /** Hex colour literals (`#fff`, `#a1b2c3`) inside string/template literals, by line. */
 export function findHexColours(sf: ts.SourceFile): number[] {
   const lines: number[] = []

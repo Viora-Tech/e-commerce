@@ -126,7 +126,14 @@ export * from './rate-limit/memory-store'
 export * from './rate-limit/redis-store'
 export * from './redirects/paths'
 export * from './redirects/service'
-export { decryptSecret, encryptSecret, isEncrypted as isEncryptedSecret } from './secrets'
+export {
+  decryptSecret,
+  encryptSecret,
+  isEncrypted as isEncryptedSecret,
+  isLegacyEncrypted,
+  keyId as secretKeyId,
+  parsePreviousSecrets,
+} from './secrets'
 export * from './settings/general'
 export * from './settings/secrets'
 export * from './shipping/courier-rates'

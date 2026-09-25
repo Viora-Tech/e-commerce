@@ -126,6 +126,19 @@ This avoids a `git diff`-against-main dependency (works in a shallow clone, or a
 `bun run test:sweeps` with no git history), at the cost of never retroactively checking
 existing files. That's an accepted trade-off, not a bug.
 
+### i. `secret-fields` (`scripts/sweeps/secret-fields.test.ts`)
+
+Not a ratchet — every provider config field across `payments-*`, `shipping-*`,
+`notifications-*` and `storage-*` connectors is already flagged correctly, so any
+violation here is new and should be fixed, not allow-listed. A `ProviderField` whose
+`key` matches `/secret|token|password/i` (case-insensitive, whole word — see the sweep's
+own comment for why substrings like "key" or "pin" are deliberately excluded) must
+declare `secret: true`. A second check round-trips every real connector factory through
+`encryptProviderSettings` and confirms flagged fields come back encrypted and decrypt to
+the original value. See `docs/security/data-protection.md` for what this feeds into
+(encryption, masking, rotation) and why the field flag is the source of truth, not just
+the name regex.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
