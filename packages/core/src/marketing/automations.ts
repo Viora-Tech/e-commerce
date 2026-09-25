@@ -11,6 +11,7 @@ import {
 import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
+import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { normalisePhone } from './audience'
 import {
   AutomationSettingsSchema,
@@ -249,7 +250,12 @@ const lineCount = sql<number>`(select count(*)::int from cart_line cl where cl.c
  * or signed-in shoppers who never reached checkout) and customers whose
  * last order was `lapsedDays` ago. Event triggers enrol from the storefront.
  */
-export async function enrolDue(tx: StoreTx, storeId: string, now = new Date()): Promise<number> {
+export async function enrolDue(
+  tx: StoreTx,
+  storeId: string,
+  secret: string,
+  now = new Date(),
+): Promise<number> {
   let enrolled = 0
   for (const a of await activeAutomations(tx, 'checkout_abandoned')) {
     const after = parseAutomationSettings(a.settings).afterMinutes ?? 60
@@ -320,7 +326,10 @@ export async function enrolDue(tx: StoreTx, storeId: string, now = new Date()): 
       )
       .limit(200)
     for (const c of carts) {
-      if (await enrol(tx, storeId, a, { triggerKey: `cart:${c.id}`, cartId: c.id, ...c }, now)) {
+      const phone = decryptCustomerPhone(c.phone, secret)
+      if (
+        await enrol(tx, storeId, a, { triggerKey: `cart:${c.id}`, cartId: c.id, ...c, phone }, now)
+      ) {
         enrolled += 1
       }
     }
@@ -363,7 +372,7 @@ export async function enrolDue(tx: StoreTx, storeId: string, now = new Date()): 
             triggerKey: `lapsed:${r.order_id}`,
             customerId: r.customer_id,
             email: r.email,
-            phone: r.phone,
+            phone: decryptCustomerPhone(r.phone, secret),
             name: r.name,
           },
           now,
@@ -389,6 +398,7 @@ export async function enrolSubscriber(
   tx: StoreTx,
   storeId: string,
   email: string,
+  secret: string,
   now = new Date(),
 ): Promise<number> {
   const [c] = await tx.select().from(customer).where(eq(customer.email, email.trim().toLowerCase()))
@@ -403,7 +413,7 @@ export async function enrolSubscriber(
         triggerKey: `subscribed:${c.id}`,
         customerId: c.id,
         email: c.email,
-        phone: c.phone,
+        phone: decryptCustomerPhone(c.phone, secret),
         name: c.name,
       },
       now,
@@ -623,8 +633,11 @@ export async function processDueRuns(
         continue
       }
     }
-    const cu = run.customerId
+    const cuRow = run.customerId
       ? (await tx.select().from(customer).where(eq(customer.id, run.customerId)))[0]
+      : undefined
+    const cu = cuRow
+      ? { ...cuRow, phone: decryptCustomerPhone(cuRow.phone, deps.settingsSecret) }
       : undefined
     const transactional = trigger === 'cod_order_placed'
     if (cu?.unsubscribedAt && !transactional) {

@@ -16,7 +16,7 @@ import { spawnSync } from 'node:child_process'
 import { createInterface } from 'node:readline/promises'
 import { gunzipSync } from 'node:zlib'
 import { GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
-import { parseBackupKey } from '@commerce/backup'
+import { decryptBackup, isEncryptedBackup, parseBackupKey } from '@commerce/backup'
 import { loadEnv } from '@commerce/config'
 import { r2Endpoint } from '@commerce/storage-r2'
 
@@ -91,7 +91,25 @@ async function main() {
   console.log(`restore-db: downloading ${key}…`)
   const got = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
   if (!got.Body) throw new Error('restore-db: empty object body')
-  const gzipped = Buffer.from(await got.Body.transformToByteArray())
+  const downloaded = Buffer.from(await got.Body.transformToByteArray())
+
+  let gzipped: Buffer
+  if (isEncryptedBackup(downloaded)) {
+    if (!env.BACKUP_ENCRYPTION_KEY) {
+      throw new Error('restore-db: this backup is encrypted but BACKUP_ENCRYPTION_KEY is not set.')
+    }
+    console.log('restore-db: decrypting…')
+    const decrypted = decryptBackup(downloaded, env.BACKUP_ENCRYPTION_KEY)
+    if (!decrypted.ok) {
+      throw new Error(
+        `restore-db: could not decrypt (${decrypted.reason}) — wrong BACKUP_ENCRYPTION_KEY, or the ` +
+          'file is corrupt. If you rotated BACKUP_ENCRYPTION_KEY, use the value that was current when this backup was made.',
+      )
+    }
+    gzipped = decrypted.plain
+  } else {
+    gzipped = downloaded
+  }
   const dump = gunzipSync(gzipped)
 
   console.log('restore-db: running pg_restore…')

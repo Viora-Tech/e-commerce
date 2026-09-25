@@ -43,6 +43,7 @@ export * from './collections/schemas'
 export * from './collections/service'
 export type { StoreContext } from './context'
 export * from './customers/newsletter'
+export * from './customers/phone-crypto'
 export * from './customers/segments'
 export * from './discounts/evaluate'
 export * from './discounts/resolve'
@@ -126,7 +127,14 @@ export * from './rate-limit/memory-store'
 export * from './rate-limit/redis-store'
 export * from './redirects/paths'
 export * from './redirects/service'
-export { decryptSecret, encryptSecret, isEncrypted as isEncryptedSecret } from './secrets'
+export {
+  decryptSecret,
+  encryptSecret,
+  isEncrypted as isEncryptedSecret,
+  isLegacyEncrypted,
+  keyId as secretKeyId,
+  parsePreviousSecrets,
+} from './secrets'
 export * from './settings/general'
 export * from './settings/secrets'
 export * from './shipping/courier-rates'

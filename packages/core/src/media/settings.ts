@@ -39,13 +39,24 @@ export function parseStorageSettings(raw: unknown): StorageSettings {
   return r.success ? r.data : defaultStorageSettings
 }
 
-export const encryptStorageSettings = (s: StorageSettings, secret: string): StorageSettings =>
-  encryptProviderSettings(s, secret)
+const fieldsOf = (registry: StorageRegistry) => (id: string) => registry.get(id)?.fields
 
-export const decryptStorageSettings = (s: StorageSettings, secret: string): StorageSettings =>
-  decryptProviderSettings(s, secret)
+export const encryptStorageSettings = (
+  s: StorageSettings,
+  secret: string,
+  registry?: StorageRegistry,
+): StorageSettings => encryptProviderSettings(s, secret, registry ? fieldsOf(registry) : undefined)
 
-export const maskStorageSettings = (s: StorageSettings): StorageSettings => maskProviderSettings(s)
+export const decryptStorageSettings = (
+  s: StorageSettings,
+  secret: string,
+  previousSecrets: string[] = [],
+): StorageSettings => decryptProviderSettings(s, secret, previousSecrets)
+
+export const maskStorageSettings = (
+  s: StorageSettings,
+  registry?: StorageRegistry,
+): StorageSettings => maskProviderSettings(s, registry ? fieldsOf(registry) : undefined)
 
 /** Storage every deployment has without an adapter package: the local folder. */
 export function builtInStorageRegistry(): StorageRegistry {
@@ -60,8 +71,9 @@ export function resolveStorageProvider(
   registry: StorageRegistry,
   settings: StorageSettings,
   secret: string,
+  previousSecrets: string[] = [],
 ): { provider: StorageProvider; errors: string[] } {
-  const decrypted = decryptStorageSettings(settings, secret)
+  const decrypted = decryptStorageSettings(settings, secret, previousSecrets)
   const errors: string[] = []
   for (const id of decrypted.enabled) {
     const r = registry.create(id, decrypted.providers[id] ?? {})

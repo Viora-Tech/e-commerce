@@ -174,6 +174,7 @@ export async function checkoutAction(
         paymentProvider: provider,
         giftCardIds,
         shippingRateId: form.shippingRate || null,
+        secret: loadEnv(process.env).SETTINGS_SECRET,
         checkout: {
           name: form.name,
           email: form.email,

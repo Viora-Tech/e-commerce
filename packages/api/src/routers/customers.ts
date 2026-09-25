@@ -1,3 +1,4 @@
+import { loadEnv } from '@commerce/config'
 import { permissions } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
@@ -43,6 +44,8 @@ const RulesSchema = z.object({
     .default([]),
 })
 
+const secret = () => loadEnv(process.env).SETTINGS_SECRET
+
 export const customersRouter = {
   list: can(permissions.CUSTOMERS_READ)
     .input(
@@ -52,7 +55,7 @@ export const customersRouter = {
         sort: z.enum(['recent', 'name', 'orders', 'spent']).optional(),
       }),
     )
-    .handler(({ context, input }) => listCustomers(context.tx, input)),
+    .handler(({ context, input }) => listCustomers(context.tx, input, secret())),
 
   stats: can(permissions.CUSTOMERS_READ).handler(({ context }) => customerStats(context.tx)),
 
@@ -69,11 +72,11 @@ export const customersRouter = {
   /** Rows for a CSV export of the current filter; the browser builds the file. */
   export: can(permissions.CUSTOMERS_READ)
     .input(FiltersSchema)
-    .handler(({ context, input }) => listAllCustomers(context.tx, input)),
+    .handler(({ context, input }) => listAllCustomers(context.tx, input, secret())),
 
   get: can(permissions.CUSTOMERS_READ)
     .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => getCustomer(context.tx, input.id)),
+    .handler(({ context, input }) => getCustomer(context.tx, input.id, secret())),
 
   update: can(permissions.CUSTOMERS_WRITE)
     .input(
@@ -86,7 +89,9 @@ export const customersRouter = {
         acceptsMarketing: z.boolean().optional(),
       }),
     )
-    .handler(({ context, input: { id, ...patch } }) => updateCustomer(context.tx, id, patch)),
+    .handler(({ context, input: { id, ...patch } }) =>
+      updateCustomer(context.tx, id, patch, secret()),
+    ),
 
   delete: can(permissions.CUSTOMERS_DELETE)
     .input(z.object({ id: z.uuid() }))
@@ -102,7 +107,9 @@ export const customersRouter = {
     )
     .handler(({ context, input }) => tagCustomers(context.tx, input)),
 
-  segments: can(permissions.CUSTOMERS_READ).handler(({ context }) => listSegments(context.tx)),
+  segments: can(permissions.CUSTOMERS_READ).handler(({ context }) =>
+    listSegments(context.tx, secret()),
+  ),
 
   segment: can(permissions.CUSTOMERS_READ)
     .input(z.object({ id: z.uuid() }))
@@ -128,7 +135,7 @@ export const customersRouter = {
   previewSegment: can(permissions.CUSTOMERS_READ)
     .input(z.object({ rules: RulesSchema }))
     .handler(async ({ context, input }) => {
-      const matches = await listSegmentCustomers(context.tx, input.rules)
+      const matches = await listSegmentCustomers(context.tx, input.rules, secret())
       return { total: matches.length, sample: matches.slice(0, 5) }
     }),
 }

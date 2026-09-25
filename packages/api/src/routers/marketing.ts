@@ -173,7 +173,9 @@ export const marketingRouter = {
     /** Customers the campaign would reach now: in the segment, consented, not unsubscribed. */
     audience: can(permissions.MARKETING_READ)
       .input(z.object({ kind: z.enum(['email', 'whatsapp']), segmentId: z.uuid().nullable() }))
-      .handler(async ({ context, input }) => ({ count: await audienceSize(context.tx, input) })),
+      .handler(async ({ context, input }) => ({
+        count: await audienceSize(context.tx, input, env().settingsSecret),
+      })),
 
     /** Sends the editor's current content to one address, marked as a test. */
     testSend: can(permissions.MARKETING_SEND)

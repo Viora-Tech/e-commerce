@@ -195,6 +195,7 @@ export async function cancelCampaign(tx: StoreTx, id: string) {
 export async function startDueCampaigns(
   tx: StoreTx,
   storeId: string,
+  secret: string,
   now: Date = new Date(),
 ): Promise<string[]> {
   const due = await tx
@@ -203,7 +204,11 @@ export async function startDueCampaigns(
     .where(and(eq(marketingCampaign.status, 'scheduled'), lte(marketingCampaign.scheduledAt, now)))
     .for('update', { skipLocked: true })
   for (const c of due) {
-    const audience = await campaignAudience(tx, { kind: c.kind, segmentId: c.segmentId, now })
+    const audience = await campaignAudience(
+      tx,
+      { kind: c.kind, segmentId: c.segmentId, now },
+      secret,
+    )
     for (let i = 0; i < audience.length; i += INSERT_CHUNK) {
       await tx
         .insert(marketingMessage)
@@ -430,8 +435,9 @@ export async function listCampaigns(
 export async function audienceSize(
   tx: StoreTx,
   input: { kind: 'email' | 'whatsapp'; segmentId: string | null },
+  secret: string,
 ): Promise<number> {
-  return (await campaignAudience(tx, input)).length
+  return (await campaignAudience(tx, input, secret)).length
 }
 
 /**

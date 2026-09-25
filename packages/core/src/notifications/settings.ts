@@ -28,18 +28,25 @@ export function parseNotificationSettings(raw: unknown): NotificationSettings {
   return r.success ? r.data : defaultNotificationSettings
 }
 
+const fieldsOf = (registry: NotificationRegistry) => (id: string) => registry.get(id)?.fields
+
 export const encryptNotificationSettings = (
   s: NotificationSettings,
   secret: string,
-): NotificationSettings => encryptProviderSettings(s, secret)
+  registry?: NotificationRegistry,
+): NotificationSettings =>
+  encryptProviderSettings(s, secret, registry ? fieldsOf(registry) : undefined)
 
 export const decryptNotificationSettings = (
   s: NotificationSettings,
   secret: string,
-): NotificationSettings => decryptProviderSettings(s, secret)
+  previousSecrets: string[] = [],
+): NotificationSettings => decryptProviderSettings(s, secret, previousSecrets)
 
-export const maskNotificationSettings = (s: NotificationSettings): NotificationSettings =>
-  maskProviderSettings(s)
+export const maskNotificationSettings = (
+  s: NotificationSettings,
+  registry?: NotificationRegistry,
+): NotificationSettings => maskProviderSettings(s, registry ? fieldsOf(registry) : undefined)
 
 /** Channels every deployment has without an adapter package: the worker log, for development. */
 export function builtInNotificationRegistry(): NotificationRegistry {
@@ -51,8 +58,9 @@ export function resolveNotificationChannels(
   registry: NotificationRegistry,
   settings: NotificationSettings,
   secret: string,
+  previousSecrets: string[] = [],
 ): { channels: NotificationChannel[]; errors: string[] } {
-  const decrypted = decryptNotificationSettings(settings, secret)
+  const decrypted = decryptNotificationSettings(settings, secret, previousSecrets)
   const channels: NotificationChannel[] = []
   const errors: string[] = []
   for (const id of decrypted.enabled) {

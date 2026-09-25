@@ -156,7 +156,9 @@ export async function defaultAddressAction(addressId: string): Promise<void> {
 export async function saveProfileAction(input: Record<string, unknown>): Promise<FormResult> {
   const sid = await storeId()
   const c = await me(sid)
-  const r = await inStore(sid, (tx) => updateProfile({ storeId: sid, tx }, c.id, input))
+  const r = await inStore(sid, (tx) =>
+    updateProfile({ storeId: sid, tx }, c.id, input, loadEnv(process.env).SETTINGS_SECRET),
+  )
   if (!r.ok) return r
   revalidatePath('/account', 'layout')
   return { ok: true }

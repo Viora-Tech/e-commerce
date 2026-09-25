@@ -69,7 +69,9 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
       let steps = 0
       for (const storeId of storeIds) {
         try {
-          const sending = await withStore(db, storeId, (tx) => startDueCampaigns(tx, storeId))
+          const sending = await withStore(db, storeId, (tx) =>
+            startDueCampaigns(tx, storeId, opts.settingsSecret),
+          )
           for (const campaignId of sending) {
             await sendQueue.add(
               'batch',
@@ -78,7 +80,9 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
             )
             queued += 1
           }
-          enrolled += await withStore(db, storeId, (tx) => enrolDue(tx, storeId))
+          enrolled += await withStore(db, storeId, (tx) =>
+            enrolDue(tx, storeId, opts.settingsSecret),
+          )
           const r = await withStore(db, storeId, async (tx) =>
             processDueRuns(tx, storeId, await depsFor(tx, storeId, opts)),
           )

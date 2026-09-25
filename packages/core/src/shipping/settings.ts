@@ -134,14 +134,24 @@ export function parseShippingSettings(raw: unknown): ShippingSettings {
   return r.success ? r.data : defaultShippingSettings
 }
 
-export const encryptShippingSettings = (s: ShippingSettings, secret: string): ShippingSettings =>
-  encryptProviderSettings(s, secret)
+const fieldsOf = (registry: ShippingRegistry) => (id: string) => registry.get(id)?.fields
 
-export const decryptShippingSettings = (s: ShippingSettings, secret: string): ShippingSettings =>
-  decryptProviderSettings(s, secret)
+export const encryptShippingSettings = (
+  s: ShippingSettings,
+  secret: string,
+  registry?: ShippingRegistry,
+): ShippingSettings => encryptProviderSettings(s, secret, registry ? fieldsOf(registry) : undefined)
 
-export const maskShippingSettings = (s: ShippingSettings): ShippingSettings =>
-  maskProviderSettings(s)
+export const decryptShippingSettings = (
+  s: ShippingSettings,
+  secret: string,
+  previousSecrets: string[] = [],
+): ShippingSettings => decryptProviderSettings(s, secret, previousSecrets)
+
+export const maskShippingSettings = (
+  s: ShippingSettings,
+  registry?: ShippingRegistry,
+): ShippingSettings => maskProviderSettings(s, registry ? fieldsOf(registry) : undefined)
 
 /** Couriers every deployment has without an adapter package: the demo courier. */
 export function builtInShippingRegistry(): ShippingRegistry {
@@ -169,8 +179,9 @@ export function resolveShippingProviders(
   registry: ShippingRegistry,
   settings: ShippingSettings,
   secret: string,
+  previousSecrets: string[] = [],
 ): { providers: ShippingProvider[]; errors: string[] } {
-  const decrypted = decryptShippingSettings(settings, secret)
+  const decrypted = decryptShippingSettings(settings, secret, previousSecrets)
   const providers: ShippingProvider[] = []
   const errors: string[] = []
   for (const id of decrypted.enabled) {
@@ -186,8 +197,9 @@ export function primaryShippingProvider(
   registry: ShippingRegistry,
   settings: ShippingSettings,
   secret: string,
+  previousSecrets: string[] = [],
 ): ShippingProvider | null {
-  return resolveShippingProviders(registry, settings, secret).providers[0] ?? null
+  return resolveShippingProviders(registry, settings, secret, previousSecrets).providers[0] ?? null
 }
 
 /**
@@ -203,9 +215,10 @@ export function shippingProviderById(
   settings: ShippingSettings,
   secret: string,
   providerId: string,
+  previousSecrets: string[] = [],
 ): ShippingProvider | null {
   return (
-    resolveShippingProviders(registry, settings, secret).providers.find(
+    resolveShippingProviders(registry, settings, secret, previousSecrets).providers.find(
       (p) => p.id === providerId,
     ) ?? null
   )

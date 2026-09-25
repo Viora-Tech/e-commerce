@@ -26,6 +26,8 @@
     "db:seed:navigation": "bun run --cwd packages/db seed:navigation",
     "db:seed:shipping": "bun run --cwd packages/db seed:shipping",
     "db:seed:back-in-stock": "bun run --cwd packages/db seed:back-in-stock",
+    "rotate-secrets": "bun scripts/rotate-secrets.ts",
+    "backfill-phone-encryption": "bun scripts/backfill-phone-encryption.ts",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down"
   },
@@ -41,6 +43,7 @@
     "@commerce/blocks": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
+    "@commerce/db": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/notifications-whatsapp": "workspace:*",
     "@commerce/payments-razorpay": "workspace:*",
@@ -50,6 +53,7 @@
     "@commerce/plugins": "workspace:*",
     "@commerce/shipping-delhivery": "workspace:*",
     "@commerce/shipping-shiprocket": "workspace:*",
-    "@commerce/storage-r2": "workspace:*"
+    "@commerce/storage-r2": "workspace:*",
+    "drizzle-orm": "^0.45.2"
   }
 }

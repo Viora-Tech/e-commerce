@@ -18,6 +18,7 @@ import { resetDb } from '@commerce/db/test'
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { recomputeOrderStatuses } from '../order/recompute'
 import {
   createAddress,
@@ -44,6 +45,7 @@ import { normaliseMobile } from './schemas'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
+const TEST_SECRET = 'test-only-settings-secret-value'
 
 afterAll(async () => {
   await owner.$client.end()
@@ -83,7 +85,7 @@ describe('storefront sign-in', () => {
   it('creates the customer on first sign-in and resolves the session to them', async () => {
     const storeId = await makeStore('a')
     const { token, customerId } = await signIn(storeId, ' Asha@Example.com ')
-    const me = await run(storeId, (ctx) => customerForSession(ctx, token))
+    const me = await run(storeId, (ctx) => customerForSession(ctx, token, TEST_SECRET))
     expect(me).toMatchObject({ id: customerId, email: 'asha@example.com' })
     // Only hashes are stored.
     const [s] = await owner.select().from(customerSession)
@@ -114,8 +116,8 @@ describe('storefront sign-in', () => {
     })
     const res = await run(a, (ctx) => verifyLoginCode(ctx, 'asha@example.com', req.code))
     if (!res.ok) throw new Error('not signed in')
-    expect(await run(b, (ctx) => customerForSession(ctx, res.token))).toBeNull()
-    expect(await run(a, (ctx) => customerForSession(ctx, res.token))).not.toBeNull()
+    expect(await run(b, (ctx) => customerForSession(ctx, res.token, TEST_SECRET))).toBeNull()
+    expect(await run(a, (ctx) => customerForSession(ctx, res.token, TEST_SECRET))).not.toBeNull()
 
     // Signing in to B with the same email is a different customer.
     const onB = await signIn(b, 'asha@example.com')
@@ -181,14 +183,14 @@ describe('storefront sign-in', () => {
     const { token, expiresAt } = await signIn(storeId, 'x@example.com', now)
     expect(
       await run(storeId, (ctx) =>
-        customerForSession(ctx, token, new Date(expiresAt.getTime() + 1)),
+        customerForSession(ctx, token, TEST_SECRET, new Date(expiresAt.getTime() + 1)),
       ),
     ).toBeNull()
-    expect(await run(storeId, (ctx) => customerForSession(ctx, 'short'))).toBeNull()
-    expect(await run(storeId, (ctx) => customerForSession(ctx, null))).toBeNull()
+    expect(await run(storeId, (ctx) => customerForSession(ctx, 'short', TEST_SECRET))).toBeNull()
+    expect(await run(storeId, (ctx) => customerForSession(ctx, null, TEST_SECRET))).toBeNull()
     await run(storeId, (ctx) => revokeCustomerSession(ctx, token))
     await run(storeId, (ctx) => revokeCustomerSession(ctx, 'bad token!'))
-    expect(await run(storeId, (ctx) => customerForSession(ctx, token))).toBeNull()
+    expect(await run(storeId, (ctx) => customerForSession(ctx, token, TEST_SECRET))).toBeNull()
   })
 
   it('delivers the code through email channels only', async () => {
@@ -351,29 +353,35 @@ describe('profile', () => {
     const id = (await signIn(storeId, 'asha@example.com')).customerId
     expect(
       await run(storeId, (ctx) =>
-        updateProfile(ctx, id, { name: 'Asha', phone: '98765 43210', acceptsMarketing: true }),
+        updateProfile(
+          ctx,
+          id,
+          { name: 'Asha', phone: '98765 43210', acceptsMarketing: true },
+          TEST_SECRET,
+        ),
       ),
     ).toEqual({ ok: true })
     const [c] = await owner.select().from(customer).where(eq(customer.id, id))
-    expect(c).toMatchObject({
-      name: 'Asha',
-      phone: '9876543210',
-      acceptsMarketing: true,
-      tags: ['newsletter'],
-    })
+    expect(c).toMatchObject({ name: 'Asha', acceptsMarketing: true, tags: ['newsletter'] })
+    expect(decryptCustomerPhone(c?.phone ?? null, TEST_SECRET)).toBe('9876543210')
     expect(
       await run(storeId, (ctx) =>
-        updateProfile(ctx, id, { name: '', phone: '', acceptsMarketing: true }),
+        updateProfile(ctx, id, { name: '', phone: '', acceptsMarketing: true }, TEST_SECRET),
       ),
     ).toEqual({ ok: true })
     expect(
       await run(storeId, (ctx) =>
-        updateProfile(ctx, id, { name: 'A', phone: '12', acceptsMarketing: false }),
+        updateProfile(ctx, id, { name: 'A', phone: '12', acceptsMarketing: false }, TEST_SECRET),
       ),
     ).toEqual({ ok: false, errors: { phone: 'Enter a ten digit mobile number' } })
     expect(
       await run(storeId, (ctx) =>
-        updateProfile(ctx, crypto.randomUUID(), { name: 'A', phone: '', acceptsMarketing: false }),
+        updateProfile(
+          ctx,
+          crypto.randomUUID(),
+          { name: 'A', phone: '', acceptsMarketing: false },
+          TEST_SECRET,
+        ),
       ),
     ).toEqual({ ok: false, errors: { form: 'Account not found' } })
   })

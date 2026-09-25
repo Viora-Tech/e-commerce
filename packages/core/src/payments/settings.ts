@@ -44,14 +44,25 @@ export function parsePaymentSettings(raw: unknown): PaymentSettings {
   return r.success ? r.data : defaultPaymentSettings
 }
 
-export const encryptPaymentSettings = (s: PaymentSettings, secret: string): PaymentSettings =>
-  encryptProviderSettings(s, secret)
+const fieldsOf = (registry: PaymentRegistry) => (id: string) => registry.get(id)?.fields
 
-export const decryptPaymentSettings = (s: PaymentSettings, secret: string): PaymentSettings =>
-  decryptProviderSettings(s, secret)
+export const encryptPaymentSettings = (
+  s: PaymentSettings,
+  secret: string,
+  registry?: PaymentRegistry,
+): PaymentSettings => encryptProviderSettings(s, secret, registry ? fieldsOf(registry) : undefined)
+
+export const decryptPaymentSettings = (
+  s: PaymentSettings,
+  secret: string,
+  previousSecrets: string[] = [],
+): PaymentSettings => decryptProviderSettings(s, secret, previousSecrets)
 
 /** Mask secrets for the admin UI: keep the last 4 characters. */
-export const maskPaymentSettings = (s: PaymentSettings): PaymentSettings => maskProviderSettings(s)
+export const maskPaymentSettings = (
+  s: PaymentSettings,
+  registry?: PaymentRegistry,
+): PaymentSettings => maskProviderSettings(s, registry ? fieldsOf(registry) : undefined)
 
 /** Methods every deployment has, with no adapter package: COD and manual UPI/bank transfer. */
 export function builtInPaymentRegistry(): PaymentRegistry {
@@ -66,8 +77,12 @@ export function resolvePaymentProviders(
   registry: PaymentRegistry,
   settings: PaymentSettings,
   secret: string,
+  previousSecrets: string[] = [],
 ): { providers: PaymentProvider[]; errors: string[] } {
-  const decrypted = decryptPaymentSettings(settings, secret)
+  // previousSecrets lets a payment still be processed mid-rotation, before
+  // `scripts/rotate-secrets.ts --apply` has re-encrypted this store's config
+  // under the new key.
+  const decrypted = decryptPaymentSettings(settings, secret, previousSecrets)
   const providers: PaymentProvider[] = []
   const errors: string[] = []
   for (const id of decrypted.enabled) {

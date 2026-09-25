@@ -558,7 +558,15 @@ export const customer = pgTable(
     id: id(),
     storeId: storeId(),
     email: text('email'),
+    /**
+     * Encrypted at rest (AES-256-GCM, `@commerce/core` `encryptCustomerPhone`) once
+     * `scripts/backfill-phone-encryption.ts --apply` has run; a dev/test database with
+     * no key set, or a row not yet backfilled, may still hold plaintext digits, which
+     * every reader tolerates (`decryptCustomerPhone` passes non-ciphertext through).
+     */
     phone: text('phone'),
+    /** HMAC-SHA256 blind index of the normalised phone, for equality lookup without decrypting. */
+    phoneIndex: text('phone_index'),
     name: text('name'),
     /** Snapshot of the address from the latest order, so the profile card needs no join. */
     defaultAddress: jsonb('default_address').$type<CustomerAddress>(),
@@ -575,7 +583,10 @@ export const customer = pgTable(
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('customer_store_email').on(t.storeId, t.email)],
+  (t) => [
+    uniqueIndex('customer_store_email').on(t.storeId, t.email),
+    index('customer_store_phone_index').on(t.storeId, t.phoneIndex),
+  ],
 )
 
 export type CustomerSegmentField =

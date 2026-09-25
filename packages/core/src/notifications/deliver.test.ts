@@ -108,7 +108,7 @@ describe('notification settings', () => {
       providers: { whatsapp: { phoneNumberId: '1', accessToken: 'tok_secret' } },
     })
     const enc = encryptNotificationSettings(s, secret)
-    expect(enc.providers.whatsapp?.accessToken).toMatch(/^v1\./)
+    expect(enc.providers.whatsapp?.accessToken).toMatch(/^v2\./)
     expect(maskNotificationSettings(s).providers.whatsapp?.accessToken).toBe('••••cret')
     const r = resolveNotificationChannels(registry, enc, secret)
     expect(r.channels.map((c) => c.id)).toEqual(['log'])

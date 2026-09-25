@@ -2,6 +2,7 @@ import { customer } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { NEWSLETTER_TAG } from '../customers/newsletter'
+import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { fieldErrors, ProfileInputSchema } from './schemas'
 
 export type ProfileResult = { ok: true } | { ok: false; errors: Record<string, string> }
@@ -14,6 +15,7 @@ export async function updateProfile(
   ctx: StoreContext,
   customerId: string,
   raw: unknown,
+  secret: string,
 ): Promise<ProfileResult> {
   const parsed = ProfileInputSchema.safeParse(raw)
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) }
@@ -30,7 +32,14 @@ export async function updateProfile(
       : current.tags
   await ctx.tx
     .update(customer)
-    .set({ name: name || null, phone, acceptsMarketing, tags, updatedAt: new Date() })
+    .set({
+      name: name || null,
+      phone: phone ? encryptCustomerPhone(phone, secret).cipher : phone,
+      phoneIndex: phone ? phoneBlindIndex(phone, secret) : null,
+      acceptsMarketing,
+      tags,
+      updatedAt: new Date(),
+    })
     .where(eq(customer.id, customerId))
   return { ok: true }
 }

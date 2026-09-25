@@ -13,6 +13,18 @@ const schema = z.object({
   STOREFRONT_URL: z.string().url().default('http://localhost:3100'),
   /** Encrypts gateway credentials stored in store settings. */
   SETTINGS_SECRET: z.string().min(16).default('dev-only-settings-secret'),
+  /**
+   * Retired SETTINGS_SECRET value(s), comma-separated, kept only while
+   * `scripts/rotate-secrets.ts --apply` re-encrypts everything under the new
+   * SETTINGS_SECRET. Decryption tries these after the current key.
+   */
+  SETTINGS_SECRET_PREVIOUS: z.string().optional(),
+  /**
+   * Encrypts backup archives (`scripts/backup-db.ts`). Separate from
+   * SETTINGS_SECRET so a compromised app secret can't also open the backups.
+   * Required in production; dev without it writes unencrypted backups.
+   */
+  BACKUP_ENCRYPTION_KEY: z.string().min(16).optional(),
   /** Checks custom domains' DNS and certificates. `dev` decides from the hostname, offline. */
   DOMAIN_PROVIDER: z.enum(['dev']).default('dev'),
   /** IPv4 an apex custom domain's A record must point at. Default is a documentation address. */

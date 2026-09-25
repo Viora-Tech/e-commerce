@@ -13,6 +13,7 @@ import {
   parsePaymentSettings,
   parsePreferences,
   parsePreorderStoreSettings,
+  parsePreviousSecrets,
   parseShippingSettings,
   permissions,
   presentStoreGeneral,
@@ -59,6 +60,7 @@ import {
 } from '../services/store.service'
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
+const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
 
 /**
  * In-process fallback for hosts (and tests) that don't wire a Redis-backed
@@ -138,7 +140,12 @@ export const storeRouter = {
     const s = await getStore(context.tx, context.scope.storeId)
     const { payments } = await storeRegistries(context.tx, context.scope.storeId)
     return {
-      settings: presentProviderSettings(parsePaymentSettings(s?.payments), secret()),
+      settings: presentProviderSettings(
+        parsePaymentSettings(s?.payments),
+        secret(),
+        payments,
+        previousSecrets(),
+      ),
       available: availableProviders(payments),
     }
   }),
@@ -156,7 +163,14 @@ export const storeRouter = {
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
       const next = prepareProviderSettings(input, current, payments, secret(), 'payment provider')
       const saved = await updateStorePayments(context.tx, context.scope.storeId, next)
-      return saved ? presentProviderSettings(parsePaymentSettings(saved.payments), secret()) : null
+      return saved
+        ? presentProviderSettings(
+            parsePaymentSettings(saved.payments),
+            secret(),
+            payments,
+            previousSecrets(),
+          )
+        : null
     }),
 
   /** Pre-order balance rules: automatic request, reminders, what an unpaid balance does. */
@@ -177,7 +191,12 @@ export const storeRouter = {
     const s = await getStore(context.tx, context.scope.storeId)
     const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
     return {
-      settings: presentProviderSettings(parseNotificationSettings(s?.notifications), secret()),
+      settings: presentProviderSettings(
+        parseNotificationSettings(s?.notifications),
+        secret(),
+        notifications,
+        previousSecrets(),
+      ),
       available: availableProviders(notifications),
     }
   }),
@@ -198,7 +217,12 @@ export const storeRouter = {
       )
       const saved = await updateStoreNotifications(context.tx, context.scope.storeId, next)
       return saved
-        ? presentProviderSettings(parseNotificationSettings(saved.notifications), secret())
+        ? presentProviderSettings(
+            parseNotificationSettings(saved.notifications),
+            secret(),
+            notifications,
+            previousSecrets(),
+          )
         : null
     }),
 
@@ -207,7 +231,12 @@ export const storeRouter = {
     const s = await getStore(context.tx, context.scope.storeId)
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
     return {
-      settings: presentProviderSettings(parseShippingSettings(s?.shipping), secret()),
+      settings: presentProviderSettings(
+        parseShippingSettings(s?.shipping),
+        secret(),
+        shipping,
+        previousSecrets(),
+      ),
       available: availableProviders(shipping),
     }
   }),
@@ -221,7 +250,14 @@ export const storeRouter = {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       const next = prepareProviderSettings(input, current, shipping, secret(), 'courier')
       const saved = await updateStoreShipping(context.tx, context.scope.storeId, next)
-      return saved ? presentProviderSettings(parseShippingSettings(saved.shipping), secret()) : null
+      return saved
+        ? presentProviderSettings(
+            parseShippingSettings(saved.shipping),
+            secret(),
+            shipping,
+            previousSecrets(),
+          )
+        : null
     }),
 
   /** "Try a PIN" on the settings page: the exact answer the storefront would give. */
@@ -298,6 +334,8 @@ export const storeRouter = {
       settings: presentProviderSettings(
         await loadStorageSettings(context.tx, context.scope.storeId),
         secret(),
+        storage,
+        previousSecrets(),
       ),
       available: availableProviders(storage),
     }
@@ -314,6 +352,8 @@ export const storeRouter = {
         ? presentProviderSettings(
             await loadStorageSettings(context.tx, context.scope.storeId),
             secret(),
+            storage,
+            previousSecrets(),
           )
         : null
     }),

@@ -30,8 +30,8 @@ describe('payment settings', () => {
   it('encrypts only secret-looking fields and masks them for the UI', () => {
     const enc = encryptPaymentSettings(settings, secret)
     expect(enc.providers.razorpay?.keyId).toBe('rzp_test_x')
-    expect(enc.providers.razorpay?.keySecret).toMatch(/^v1\./)
-    expect(enc.providers.razorpay?.webhookSecret).toMatch(/^v1\./)
+    expect(enc.providers.razorpay?.keySecret).toMatch(/^v2\./)
+    expect(enc.providers.razorpay?.webhookSecret).toMatch(/^v2\./)
     expect(decryptPaymentSettings(enc, secret)).toEqual(settings)
     expect(maskPaymentSettings(settings).providers.razorpay?.keySecret).toBe('••••cret')
     // Encrypting twice must not double-encrypt.
