@@ -24,6 +24,7 @@ import { cashfreeFactory } from '@commerce/payments-cashfree'
 import { decentroFactory } from '@commerce/payments-decentro'
 import { razorpayFactory } from '@commerce/payments-razorpay'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
+import { rapidshypFactory } from '@commerce/shipping-rapidshyp'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
 import { r2Factory } from '@commerce/storage-r2'
 import { s3Factory } from '@commerce/storage-s3'
@@ -55,6 +56,7 @@ describe('sweep: secret-fields', () => {
       decentroFactory,
       delhiveryFactory,
       shiprocketFactory,
+      rapidshypFactory,
       sesFactory,
       whatsappFactory,
       r2Factory,

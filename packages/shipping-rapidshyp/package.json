@@ -1,0 +1,31 @@
+{
+  "name": "@commerce/shipping-rapidshyp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./blocks": "./src/blocks.tsx"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@commerce/blocks": "workspace:*",
+    "@commerce/plugins": "workspace:*",
+    "@commerce/shipping": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.2.8",
+    "dotenv": "^18.0.1",
+    "react": "^19.2.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}
