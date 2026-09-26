@@ -61,6 +61,41 @@ UPI or bank transfer, a demo courier for testing, and local file storage.
   caption="Apps page with the Built-in apps section on top (GST invoices showing Installed, Shopify importer and Back in stock with Install buttons) and the Connections section below, filtered to All."
 />
 
+## Connect your Shopify store
+
+The Shopify importer's **Connect store** page (Apps → Shopify importer → Connect store) offers
+two ways in. Both are read-only: the import never writes anything back to Shopify.
+
+- **Connect with your Shopify app (recommended)** — Shopify retired creating new custom apps
+  from its own admin on 1 January 2026, so new connections go through the
+  [Shopify Dev Dashboard](https://shopify.dev/docs/apps/build/authentication-authorization/client-credentials-grant)
+  instead:
+  1. In the Dev Dashboard, create an app.
+  2. Give it these read scopes: `read_products`, `read_inventory`, `read_customers`,
+     `read_orders`, `read_all_orders`, `read_content`, `read_online_store_navigation`.
+  3. Release a version, then install the app on your own store.
+  4. Copy the **client ID** and **client secret** from the app's API credentials page and paste
+     them into the Connect store form, alongside your store address.
+
+  Behind the scenes we exchange the client ID/secret for a Shopify access token (the
+  "client credentials grant"). That token expires after 24 hours; the importer refreshes it
+  automatically, both before it expires and if Shopify ever answers a request with 401 mid-import.
+  Your client secret stays encrypted at rest — the same way every other connection's credentials
+  do — and is never shown again once saved.
+
+- **I already have an Admin API token** — if you already made a custom app in the classic
+  admin flow before 1 Jan 2026, its `shpat_...` token keeps working exactly as before; paste it
+  under this tab.
+
+Either way, use **Test connection** on the Connect store page to confirm the shop name and see,
+in plain words, which of the scopes above are granted and which are missing, before you preview
+an import.
+
+A one-click "Connect Shopify" button (the kind that redirects a *different* merchant's store back
+to sign the connection) needs a public HTTPS address to send them back to, so it ships once the
+admin has one — for connecting your own store today, the Dev Dashboard app above is the
+supported path.
+
 ## Install an app step by step
 
 <Steps>

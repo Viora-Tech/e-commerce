@@ -17,9 +17,11 @@ import {
 import { resetDb } from '@commerce/db/test'
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { connect, disconnect, getConnection } from '../src/connection'
+import { clientFor, connect, disconnect, getConnection, testConnection } from '../src/connection'
 import { htmlToRichText } from '../src/html'
+import { ShopifyOAuthError } from '../src/oauth'
 import { executeRun } from '../src/run'
+import type { InStore } from '../src/runtime'
 import { importRun, shopifyConnection } from '../src/schema'
 import { createApiRun, startRun } from '../src/service'
 import { normaliseShopDomain, ShopifyClient, ShopifyError } from '../src/shopify-client'
@@ -41,6 +43,8 @@ import {
   fakeFetch,
   json,
   MemoryStorageProvider,
+  OAUTH_TOKEN,
+  oauthSuccess,
   owner,
   SECRET,
   seedStore,
@@ -63,9 +67,22 @@ const cost = {
 /** The fake Admin API: answers each operation from the fixtures, by cursor. */
 function shopify(query: string, variables: Record<string, unknown>): Response {
   const cursor = (variables.cursor as string | null) ?? 'first'
-  const op = /query (\w+)/.exec(query)?.[1] ?? 'Shop'
+  const op = query.includes('currentAppInstallation')
+    ? 'Scopes'
+    : (/query (\w+)/.exec(query)?.[1] ?? 'Shop')
   const data: Record<string, unknown> = {
     Shop: { shop: { name: 'Waimers', myshopifyDomain: 'waimers.myshopify.com' } },
+    Scopes: {
+      shop: { name: 'Waimers' },
+      currentAppInstallation: {
+        accessScopes: [
+          { handle: 'read_products' },
+          { handle: 'read_inventory' },
+          { handle: 'read_customers' },
+          { handle: 'read_content' },
+        ],
+      },
+    },
     Products: PRODUCT_PAGES[cursor],
     Variants: VARIANT_PAGES[cursor],
     Collections: COLLECTIONS,
@@ -138,6 +155,101 @@ describe('Shopify connection', () => {
   })
 })
 
+describe('Shopify app (client credentials) connection', () => {
+  it('exchanges the client id/secret for a token and stores it encrypted', async () => {
+    const storeId = await seedStore()
+    const log: FetchLog = []
+    const fetchImpl = fakeFetch(shopify, log)
+    await withStore(app, storeId, (tx) =>
+      connect(
+        tx,
+        storeId,
+        { shopDomain: 'waimers', clientId: 'my-client-id', clientSecret: 'my-client-secret' },
+        SECRET,
+        fetchImpl,
+      ),
+    )
+    expect(log[0]?.url).toBe('https://waimers.myshopify.com/admin/oauth/access_token')
+    expect(log[0]?.body).toContain('grant_type=client_credentials')
+    const [row] = await owner.select().from(shopifyConnection)
+    expect(row?.accessToken).not.toContain('my-client-secret')
+    expect(row?.accessToken).not.toContain(OAUTH_TOKEN)
+    expect(row?.accessToken.startsWith('v2.')).toBe(true)
+    const view = await withStore(app, storeId, (tx) => getConnection(tx, SECRET))
+    expect(view).toMatchObject({
+      shopDomain: 'waimers.myshopify.com',
+      shopName: 'Waimers',
+      authMode: 'client_credentials',
+      tokenHint: '••••t-id',
+    })
+  })
+
+  it('refuses a bad client id/secret with a readable message', async () => {
+    const storeId = await seedStore()
+    const denied = fakeFetch(shopify, [], () => new Response('', { status: 400 }))
+    await expect(
+      withStore(app, storeId, (tx) =>
+        connect(
+          tx,
+          storeId,
+          { shopDomain: 'waimers', clientId: 'x', clientSecret: 'y' },
+          SECRET,
+          denied,
+        ),
+      ),
+    ).rejects.toThrow(ShopifyOAuthError)
+  })
+
+  it('refreshes a token that is expiring soon, and persists the refresh', async () => {
+    const storeId = await seedStore()
+    let tokenCalls = 0
+    const fetchImpl = fakeFetch(shopify, [], () => {
+      tokenCalls++
+      // First token is nearly expired already, so `clientFor` must refresh it.
+      return oauthSuccess(tokenCalls === 1 ? 30 : 86399)
+    })
+    await withStore(app, storeId, (tx) =>
+      connect(
+        tx,
+        storeId,
+        { shopDomain: 'waimers', clientId: 'cid', clientSecret: 'sec' },
+        SECRET,
+        fetchImpl,
+      ),
+    )
+    expect(tokenCalls).toBe(1)
+    const inStore: InStore = (fn) => withStore(app, storeId, fn)
+    const client = await withStore(app, storeId, (tx) =>
+      clientFor(tx, SECRET, { fetch: fetchImpl, inStore }),
+    )
+    expect(tokenCalls).toBe(2)
+    expect(client).not.toBeNull()
+  })
+})
+
+describe('testConnection scope check', () => {
+  it('reports the shop name and which of the import scopes are granted or missing', async () => {
+    const storeId = await connected(fakeFetch(shopify))
+    const check = await withStore(app, storeId, (tx) =>
+      testConnection(tx, SECRET, { fetch: fakeFetch(shopify) }),
+    )
+    expect(check.shopName).toBe('Waimers')
+    expect(check.granted).toEqual(
+      expect.arrayContaining(['read_products', 'read_inventory', 'read_customers', 'read_content']),
+    )
+    expect(check.missing).toEqual(
+      expect.arrayContaining(['read_orders', 'read_all_orders', 'read_online_store_navigation']),
+    )
+  })
+
+  it('refuses when nothing is connected yet', async () => {
+    const storeId = await seedStore()
+    await expect(
+      withStore(app, storeId, (tx) => testConnection(tx, SECRET, { fetch: fakeFetch(shopify) })),
+    ).rejects.toThrow(/Connect your Shopify store first/)
+  })
+})
+
 describe('ShopifyClient rate limits', () => {
   it('waits out THROTTLED and 429 responses, then succeeds', async () => {
     const slept: number[] = []
@@ -190,6 +302,35 @@ describe('ShopifyClient rate limits', () => {
     await client.query('{ a }', {}, 10)
     await client.query('{ a }', {}, 600)
     expect(slept).toEqual([10_000])
+  })
+
+  it('refreshes the access token once on a 401 and retries', async () => {
+    let calls = 0
+    const client = new ShopifyClient({
+      shopDomain: 'waimers.myshopify.com',
+      accessToken: 'stale-token',
+      refreshToken: async () => 'fresh-token',
+      sleep: async () => {},
+      fetch: fakeFetch(() => {
+        calls++
+        if (calls === 1) return new Response('', { status: 401 })
+        return json({ data: { shop: { name: 'Waimers' } }, extensions: { cost } })
+      }),
+    })
+    const data = await client.query<{ shop: { name: string } }>('{ shop { name } }')
+    expect(data.shop.name).toBe('Waimers')
+    expect(calls).toBe(2)
+  })
+
+  it('does not retry a second 401 after the token has already been refreshed once', async () => {
+    const client = new ShopifyClient({
+      shopDomain: 'waimers.myshopify.com',
+      accessToken: 'stale-token',
+      refreshToken: async () => 'still-bad',
+      sleep: async () => {},
+      fetch: fakeFetch(() => new Response('', { status: 401 })),
+    })
+    await expect(client.query('{ shop { name } }')).rejects.toThrow(ShopifyError)
   })
 
   it('gives up with a typed error on repeated 5xx', async () => {

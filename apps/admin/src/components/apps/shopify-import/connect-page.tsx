@@ -17,6 +17,7 @@ import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { api } from '@/lib/api-client'
 import ConnectForm from './connect-form'
+import ScopesCard from './scopes-card'
 
 type Connection = Awaited<ReturnType<typeof api.shopifyImport.connection>>
 
@@ -94,7 +95,7 @@ export default function ConnectPage() {
         ? `${connection.shopName}, ${connection.shopDomain}`
         : connection.shopDomain,
     ],
-    [copy.tokenLabel, connection.tokenHint],
+    [copy.tokenLabel, `${copy.authMode[connection.authMode]} (${connection.tokenHint})`],
     ...(connection.verifiedAt
       ? [
           [
@@ -135,6 +136,7 @@ export default function ConnectPage() {
           </dl>
         </CardContent>
       </Card>
+      <ScopesCard />
       <Card>
         <CardHeader>
           <CardTitle>{copy.chooseHeading}</CardTitle>

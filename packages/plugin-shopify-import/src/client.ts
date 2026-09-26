@@ -58,3 +58,26 @@ export const REQUIRED_SCOPES: Record<ImportResource, string> = {
   menus: 'read_online_store_navigation',
   redirects: 'read_online_store_navigation',
 }
+
+/** The same scopes as handles, for checking what a token actually has. */
+export const ALL_SCOPE_HANDLES = [
+  'read_products',
+  'read_inventory',
+  'read_customers',
+  'read_orders',
+  'read_all_orders',
+  'read_content',
+  'read_online_store_navigation',
+] as const
+export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
+
+/** Which mode a saved connection authenticates with. */
+export const AUTH_MODES = ['legacy', 'client_credentials'] as const
+export type AuthMode = (typeof AUTH_MODES)[number]
+
+/** What `testConnection` reports: shop name plus which scopes the token has and lacks. */
+export type ScopeCheck = {
+  shopName: string
+  granted: ScopeHandle[]
+  missing: ScopeHandle[]
+}
