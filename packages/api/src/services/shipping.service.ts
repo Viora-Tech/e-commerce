@@ -97,6 +97,26 @@ function describeConnectionError(label: string, error: unknown): string {
  * lookup for the origin PIN, against itself) to prove the token and account
  * actually work. Never books a shipment, never logs or returns the token.
  */
+export type PickupLocationOption = {
+  name: string
+  city?: string | undefined
+  pincode?: string | undefined
+}
+
+type ListsPickupLocations = {
+  listPickupLocations(): Promise<
+    Array<{ name: string; city?: string | undefined; pincode?: string | undefined }>
+  >
+}
+
+function hasListPickupLocations(provider: unknown): provider is ListsPickupLocations {
+  return (
+    typeof provider === 'object' &&
+    provider !== null &&
+    typeof (provider as ListsPickupLocations).listPickupLocations === 'function'
+  )
+}
+
 export async function testShippingConnection(
   tx: StoreTx,
   storeId: string,
@@ -104,7 +124,10 @@ export async function testShippingConnection(
   secret: string,
   providerId: string,
   rawFields: Record<string, string>,
-): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; message: string; pickupLocations?: PickupLocationOption[] }
+  | { ok: false; message: string }
+> {
   const factory = registry.get(providerId)
   if (!factory) return { ok: false, message: 'This courier is not available.' }
 
@@ -137,7 +160,18 @@ export async function testShippingConnection(
         message: `${factory.label} accepted the token, but does not currently serve PIN ${pincode}. Double check the origin PIN code.`,
       }
     }
-    return { ok: true, message: `Connected - ${factory.label} serves ${pincode}.` }
+    // A cheap bonus lookup: only RapidShyp exposes this today (Fetch Pickup Location API), and
+    // failing to fetch it never fails the connection test itself - the Connect page just keeps
+    // the free-text field instead of showing a dropdown.
+    let pickupLocations: PickupLocationOption[] | undefined
+    if (hasListPickupLocations(built.provider)) {
+      pickupLocations = await built.provider.listPickupLocations().catch(() => undefined)
+    }
+    return {
+      ok: true,
+      message: `Connected - ${factory.label} serves ${pincode}.`,
+      ...(pickupLocations?.length ? { pickupLocations } : {}),
+    }
   } catch (error) {
     return { ok: false, message: describeConnectionError(factory.label, error) }
   }

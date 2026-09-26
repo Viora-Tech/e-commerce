@@ -36,6 +36,7 @@ export const rapidshypAppContent = {
       pickupAddressName: {
         label: 'Pickup location nickname',
         help: 'Must match a pickup location nickname registered in RapidShyp exactly, including spacing and capitalisation.',
+        helpWithLocations: 'Pick the pickup location this store ships from.',
       },
       originPincode: {
         label: 'Origin PIN code',
@@ -46,6 +47,7 @@ export const rapidshypAppContent = {
     testing: 'Testing…',
     testHint:
       "We check this with a real serviceability lookup using your API key - nothing is booked. This can't confirm the pickup location nickname; RapidShyp only checks that when you book a shipment.",
+    pickupLocationsFetched: 'Loaded your registered pickup locations below.',
     advanced: {
       trigger: 'Advanced',
       baseUrlLabel: 'API base URL',
@@ -66,15 +68,17 @@ export const rapidshypAppContent = {
     capabilities: {
       serviceability: 'Check if a PIN code is deliverable, with an estimated delivery date',
       rates: 'Compare prices and delivery times across RapidShyp’s courier network',
-      create_shipment: 'Book a shipment with the best available courier and get an AWB',
+      create_shipment: 'Book a shipment with the best available courier, label and pickup included',
+      label: 'Print the courier label as a PDF',
+      tracking: 'Track a shipment (checked on a schedule - RapidShyp has no webhook)',
+      cancel: 'Cancel a booked order',
+      ndr: 'Reattempt, change address or send back a delivery attempt that failed',
+      reverse_pickup: 'Book a courier pickup for a customer return',
     } as Record<string, string>,
     notYetSupported: 'Not yet available for RapidShyp',
     notYetSupportedItems: [
-      'Automatic label printing',
-      'Automatic tracking updates (webhook or polling)',
-      'NDR reattempt / change address from the queue',
-      'Wallet balance',
-      'Cancel from this app (cancel from the RapidShyp dashboard for now)',
+      'Automatic tracking updates via webhook (RapidShyp has none documented - this app polls instead)',
+      'Wallet balance (no endpoint documented; enter it by hand for now)',
     ],
     copied: 'Copied',
   },

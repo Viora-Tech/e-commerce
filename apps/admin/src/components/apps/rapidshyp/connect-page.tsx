@@ -6,6 +6,13 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
@@ -66,6 +73,9 @@ export default function ConnectPage() {
   const [openedDashboard, setOpenedDashboard] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [test, setTest] = useState<TestResult>({ status: 'idle' })
+  const [pickupLocations, setPickupLocations] = useState<
+    Array<{ name: string; city?: string; pincode?: string }>
+  >([])
 
   useEffect(() => {
     api.store.getShipping().then((r) => {
@@ -95,6 +105,7 @@ export default function ConnectPage() {
       if (result.ok) {
         setTest({ status: 'ok', message: result.message })
         markTested()
+        setPickupLocations(result.pickupLocations ?? [])
       } else {
         setTest({ status: 'error', message: result.message })
       }
@@ -210,14 +221,37 @@ export default function ConnectPage() {
                   <FieldLabel htmlFor="rapidshyp-pickupAddressName">
                     {copy.fields.pickupAddressName.label}
                   </FieldLabel>
-                  <Input
-                    size="lg"
-                    id="rapidshyp-pickupAddressName"
-                    autoComplete="off"
-                    value={values.pickupAddressName}
-                    onChange={(e) => setField('pickupAddressName', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.pickupAddressName.help}</FieldDescription>
+                  {pickupLocations.length > 0 ? (
+                    <Select
+                      value={values.pickupAddressName}
+                      onValueChange={(v) => setField('pickupAddressName', v ?? '')}
+                    >
+                      <SelectTrigger id="rapidshyp-pickupAddressName" size="lg" className="w-full">
+                        <SelectValue placeholder={copy.fields.pickupAddressName.label} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pickupLocations.map((loc) => (
+                          <SelectItem key={loc.name} value={loc.name}>
+                            {loc.name}
+                            {loc.city ? ` — ${loc.city}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      size="lg"
+                      id="rapidshyp-pickupAddressName"
+                      autoComplete="off"
+                      value={values.pickupAddressName}
+                      onChange={(e) => setField('pickupAddressName', e.target.value)}
+                    />
+                  )}
+                  <FieldDescription>
+                    {pickupLocations.length > 0
+                      ? copy.fields.pickupAddressName.helpWithLocations
+                      : copy.fields.pickupAddressName.help}
+                  </FieldDescription>
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="rapidshyp-originPincode">
@@ -249,7 +283,9 @@ export default function ConnectPage() {
                 {test.status === 'ok' ? (
                   <p className="flex items-center gap-1.5 text-body font-medium text-success">
                     <CircleCheck aria-hidden="true" className="size-4" />
-                    {test.message}
+                    {pickupLocations.length > 0
+                      ? `${test.message} ${copy.pickupLocationsFetched}`
+                      : test.message}
                   </p>
                 ) : test.status === 'error' ? (
                   <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
