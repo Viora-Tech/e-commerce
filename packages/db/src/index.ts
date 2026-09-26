@@ -1,5 +1,6 @@
 export * as authSchema from './auth-schema'
 export { createDb, type Db } from './client'
+export { seedWaimersShipping } from './default-shipping'
 export * from './marketing-schema'
 export {
   type HostRoute,
@@ -18,5 +19,4 @@ export {
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
 export * from './schema'
-export { seedWaimersShipping } from './seed-shipping-rates'
 export { type StoreTx, withoutStore, withStore } from './with-store'
