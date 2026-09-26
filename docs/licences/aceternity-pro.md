@@ -28,9 +28,9 @@ every merchant on the platform, is not clearly covered, so we asked the owner di
    https://ui.aceternity.com, and each adapted file carries a comment:
    `From Aceternity UI Pro (licensed; builder use permitted by the owner, see docs/licences/aceternity-pro.md)`.
 
-This covers Aceternity only. Magic UI Pro, shadcnblocks and other paid kits need their own
-permission before their components go into builder blocks (shadcnblocks' licence explicitly
-forbids website builders).
+This covers Aceternity only. Magic UI Pro and shadcnblocks have their own confirmed permission —
+see `docs/licences/magic-ui-pro.md` and `docs/licences/shadcnblocks.md` — and any other paid kit
+needs the same direct confirmation before its components go into builder blocks.
 
 The original message is kept in Kuldeep's chat with Manu Arora; save a screenshot beside this file
 (`aceternity-pro-permission.png`) for the record.

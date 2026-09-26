@@ -7,7 +7,7 @@ import {
 } from '@commerce/core/theme'
 import { SortableList } from '@commerce/ui/sortable'
 import { useReducedMotion } from 'motion/react'
-import { sectionSortLabels } from '@/data/customize'
+import { customizeContent, sectionSortLabels } from '@/data/customize'
 import { deleteWithCollapse, scrollToSection } from '@/lib/customize-canvas-motion'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AddSectionPopover from './add-section-popover'
@@ -21,6 +21,8 @@ type SectionGroupProps = {
 }
 
 type Item = { id: string; section: TemplateSection }
+
+const emptyCopy = customizeContent.tree.empty
 
 /** Where a single drag moved one row, from the list before and after it. */
 function movedIndexes(before: string[], after: string[]): { from: number; to: number } | null {
@@ -72,14 +74,17 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
   // Render logic
   const items: Item[] = sections.map((section) => ({ id: section.props.id, section }))
   return (
-    <section className="flex flex-col gap-1 px-2 pt-3 pb-1">
-      <h2 className="flex items-center gap-2 px-2 text-eyebrow">
+    <section className="flex flex-col gap-0.5 border-border px-2 py-2 not-first:border-t">
+      <h3 className="flex h-7 items-center gap-2 px-2 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
         {title}
-        <span className="rounded-full bg-muted px-1.5 text-[0.625rem] leading-4 font-medium text-muted-foreground tabular-nums">
+        <span className="rounded-full bg-muted px-1.5 text-[0.625rem] leading-4 font-medium tracking-normal tabular-nums">
           {sections.length}
         </span>
-      </h2>
-      <div className="ml-3.5 flex flex-col gap-1 border-l border-border pl-1.5">
+      </h3>
+      <div className="flex flex-col gap-0.5">
+        {sections.length === 0 ? (
+          <p className="px-2 py-1 text-xs text-muted-foreground">{emptyCopy}</p>
+        ) : null}
         <SortableList
           items={items}
           onReorder={handleReorder}

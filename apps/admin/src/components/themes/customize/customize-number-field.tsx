@@ -1,7 +1,8 @@
 'use client'
 
-import { FieldNumber } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
+import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import FieldFrame from './field-frame'
 
 type CustomizeNumberFieldProps = {
@@ -34,7 +35,7 @@ export default function CustomizeNumberField({
   const current = value ?? field.min ?? 0
 
   return (
-    <FieldFrame icon={FieldNumber} label={label}>
+    <FieldFrame label={label} htmlFor={id}>
       <div className="flex items-center gap-3">
         {hasRange ? (
           <input
@@ -45,7 +46,7 @@ export default function CustomizeNumberField({
             value={current}
             disabled={readOnly}
             onChange={(e) => handleChange(e.target.value)}
-            className="h-1.5 w-full flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+            className="h-1 w-full min-w-0 flex-1 cursor-pointer accent-primary"
           />
         ) : null}
         <Input
@@ -59,7 +60,7 @@ export default function CustomizeNumberField({
           disabled={readOnly}
           onChange={(e) => handleChange(e.target.value)}
           size="lg"
-          className={hasRange ? 'w-20 shrink-0 rounded-xl text-center' : 'rounded-xl'}
+          className={cn(FIELD_CONTROL, hasRange && 'w-16 shrink-0 px-1.5 text-center tabular-nums')}
         />
       </div>
     </FieldFrame>

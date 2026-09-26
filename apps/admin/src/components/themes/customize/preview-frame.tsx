@@ -1,30 +1,32 @@
 'use client'
 
-import { type Theme, themeRootAttrs, themeToCss } from '@commerce/core/theme'
+import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
 import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
+import { usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 
 type PreviewFrameProps = {
   children: ReactNode
   document?: Document | undefined
-  theme: Theme
-  mode: 'light' | 'dark'
 }
 
 /**
  * Paints the theme being edited into Puck's preview iframe, as the storefront
- * preview bridge does: the same CSS and root attributes. It goes into the frame
+ * preview bridge does: the same CSS and root attributes. The theme and mode
+ * come from context (see `PreviewModeContext`) so this stays one stable override. It goes into the frame
  * only, since the theme's variable names overlap the admin's own tokens. Also
  * where the canvas gets its drag/drop/enter motion — vendor-puck.css and the
  * admin's own stylesheets never reach the iframe, so this is the only place
  * that can style what's inside it.
  */
-export default function PreviewFrame({ children, document, theme, mode }: PreviewFrameProps) {
+export default function PreviewFrame({ children, document }: PreviewFrameProps) {
   // Hooks
+  const theme = useThemePreview()
+  const mode = usePreviewMode()
   const reducedMotion = useReducedMotion()
   useEffect(() => {
-    if (!document) return
+    if (!document || !theme) return
     const style = document.createElement('style')
     style.textContent = themeToCss(theme)
     document.head.appendChild(style)

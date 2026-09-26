@@ -29,14 +29,21 @@ export default function AddSectionPopover({ zone, group, count }: AddSectionPopo
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-full justify-start rounded-lg text-[0.8125rem] font-normal text-muted-foreground hover:text-primary"
+            className="group/add h-8 w-full justify-start gap-2 rounded-lg pl-6 text-[0.8125rem] font-normal text-muted-foreground hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
           >
-            <Plus aria-hidden />
+            <span className="flex size-5 items-center justify-center rounded-md border border-dashed border-border-strong group-hover/add:border-primary group-hover/add:text-primary">
+              <Plus aria-hidden className="size-3" />
+            </span>
             {customizeContent.tree.add}
           </Button>
         }
       />
-      <PopoverContent align="start" side="right" className="relative flex w-96 flex-col p-0">
+      <PopoverContent
+        align="start"
+        side="right"
+        sideOffset={12}
+        className="relative flex w-[22rem] flex-col gap-0 p-0"
+      >
         <AddSectionBrowser zone={zone} group={group} count={count} onAdd={() => setOpen(false)} />
       </PopoverContent>
     </Popover>

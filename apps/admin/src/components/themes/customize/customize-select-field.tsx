@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import {
   Select,
   SelectContent,
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import { FIELD_CONTROL } from '@/lib/customize-field-styles'
 import FieldFrame from './field-frame'
 
 type Option = { label: string; value: string | number | boolean | undefined | null | object }
@@ -36,7 +37,7 @@ export default function CustomizeSelectField({
   const items = Object.fromEntries(field.options.map((o) => [String(o.value), o.label]))
 
   return (
-    <FieldFrame icon={ChevronDown} label={label}>
+    <FieldFrame label={label} htmlFor={id}>
       <Select
         items={items}
         value={stringValue}
@@ -46,7 +47,7 @@ export default function CustomizeSelectField({
           if (option) onChange(option.value)
         }}
       >
-        <SelectTrigger id={id} size="lg" className="w-full rounded-xl">
+        <SelectTrigger id={id} className={cn(FIELD_CONTROL, 'w-full')}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

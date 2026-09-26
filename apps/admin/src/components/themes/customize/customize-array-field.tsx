@@ -1,6 +1,6 @@
 'use client'
 
-import { FieldList, Plus } from '@commerce/ui/icons'
+import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { SortableList } from '@commerce/ui/sortable'
 import type { Field } from '@puckeditor/core'
@@ -88,7 +88,7 @@ export default function CustomizeArrayField({
   const canDelete = items.length > (field.min ?? 0)
 
   return (
-    <FieldFrame icon={FieldList} label={label}>
+    <FieldFrame label={label}>
       <div className="flex flex-col gap-2">
         <SortableList
           items={rows}

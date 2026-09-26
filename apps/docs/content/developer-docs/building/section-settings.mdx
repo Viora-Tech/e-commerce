@@ -5,7 +5,8 @@ title: Section settings and SectionFrame
 # Section settings and SectionFrame
 
 Every section a merchant can add — the library sections in
-`packages/blocks/src/sections/library.tsx`, and the frame-wrapped blocks in
+`packages/blocks/src/sections/library.tsx` and `packages/blocks/src/sections/modern.tsx`,
+and the frame-wrapped blocks in
 `packages/blocks/src/puck-config.tsx` (`ProductGrid`, `FeaturedProducts`,
 `CollectionGrid`, `RichText`, `BlogPosts`) — carries one `settings` field:
 layout, spacing, style and advanced options, defined once in
@@ -41,14 +42,30 @@ type SectionSettingsValue = {
 }
 ```
 
-`sectionSettingsField(schemeOptions)` returns the Puck `Fields` entry for it — one `object`
-field per group, which `apps/admin/src/components/themes/customize/customize-object-field.tsx`
-renders as its own collapsible section in the Field panel (that's existing behaviour for any
-`object` field; this schema just uses it four times).
+`sectionSettingsField(schemeOptions)` returns the Puck `Fields` entry for it — one top-level
+`settings` object with one nested `object` per group. The editor recognises that shape
+(`isSectionSettingsField` in `apps/admin/src/lib/customize-field-shape.ts`) and draws it with
+`section-settings-groups.tsx`: a divider and a "Section settings" heading under the section's
+own fields, then one collapsible row per group with its current values summarised on the right
+(`settingsGroupSummary` in `apps/admin/src/lib/customize-settings-summary.ts` — "Normal ·
+Center", "48 / 64", "Mobile only · Fade"). A `{ mobile, tablet, desktop }` number object (the
+padding) renders as one three-up row (`responsive-number-field.tsx`). Nothing about the schema
+itself changed, so any section that adopts it gets this panel for free.
 
 A section wires it in by adding `settings: sectionSettingsField(SCHEMES)` to its `fields`, and
-`settings: defaultSectionSettings(...)` to its `defaultProps` — see `library.tsx`'s shared
-`frame` object and `frameDefaults` for the pattern every section reuses.
+`settings: defaultSectionSettings(...)` to its `defaultProps`. Library sections don't do this
+by hand: `framed()` in `packages/blocks/src/sections/framed.tsx` (used by `library.tsx` and
+the newer `modern.tsx`) adds both, and wraps the section's render in `SectionFrame`.
+
+### Links in section fields
+
+Link fields need no special type. Use the `{ label, href }` object shape (`linkField()` in
+`framed.tsx`), or a `text` field named `href` or labelled "Link", and the editor shows its
+link picker for it (`isLinkTextField` in `apps/admin/src/lib/customize-links.ts`). The picker
+stores a plain storefront path string — `/products/<handle>`, `/collections/<handle>`,
+`/pages/<handle>`, `/blogs/<blog>/<article>`, `/` for the home page — or a pasted `https://`
+address, so blocks render the value as an ordinary `href`. Media URLs ("Image URL", "Video
+link") are left as plain text fields.
 
 ## Backward compatibility: `migrateSectionSettings`
 
@@ -75,7 +92,7 @@ It's called in two places, both load-bearing:
    migrated values, not blanks. Raw stored props matter here: running migration on the
    post-merge object risks reading `defaultProps.settings` (the fresh default) instead of a
    doc's real old scheme/padding.
-2. **Inside every section's own `render()`** — `library.tsx`'s `framed()` helper and each
+2. **Inside every section's own `render()`** — the shared `framed()` helper and each
    `puck-config.tsx` block call `migrateSectionSettings(props)` right before rendering
    `<SectionFrame settings={...}>`. This is what makes the storefront correct too:
    `apps/storefront/src/lib/template-render.tsx` calls a section's `render()` directly

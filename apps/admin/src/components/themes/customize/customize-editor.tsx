@@ -1,20 +1,21 @@
 'use client'
 
 import { type TemplateKind, THEME_FONT_IDS, THEME_FONTS } from '@commerce/core/theme'
-import { type Data, Puck } from '@puckeditor/core'
+import { type Data, Puck, type PuckAction } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
 import '@/styles/vendor-editor.css'
-import type { ComponentProps, ComponentType } from 'react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { themesContent } from '@/data/themes'
 import { api } from '@/lib/api-client'
+import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
-import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
+import { type CustomizeDoc, composeDoc, normalizeDoc, zoneSections } from '@/lib/customize-doc'
+import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
-import { ThemePreviewContext } from '@/lib/customize-theme-context'
+import { PreviewModeContext, ThemePreviewContext } from '@/lib/customize-theme-context'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import ThemePresets from '../theme-presets'
@@ -23,19 +24,10 @@ import ThemeSettings from '../theme-settings'
 import type { ThemeItem } from '../theme-types'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
-import CustomizeArrayField from './customize-array-field'
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
-import CustomizeNumberField from './customize-number-field'
-import CustomizeObjectField from './customize-object-field'
-import CustomizeRadioField from './customize-radio-field'
-import CustomizeRichTextField from './customize-richtext-field'
-import CustomizeSelectField from './customize-select-field'
-import CustomizeTextField from './customize-text-field'
 import CustomizeTopBar from './customize-top-bar'
-import PreviewFrame from './preview-frame'
 import ResourcePicker from './resource-picker'
-import SectionOverlay from './section-overlay'
 import TemplatePicker, { type TemplateRef } from './template-picker'
 
 type CustomizeEditorProps = {
@@ -56,14 +48,26 @@ const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
 
 /**
+ * Every way a section gets added — a click in the Add panel, the Sections
+ * tree's "Add section" popover, or a card dragged onto the canvas — ends in
+ * one Puck `insert` action, so this is the one place that brings the new
+ * section into view. (Selection is already handled: a click selects it
+ * itself, and Puck selects a dropped one.)
+ */
+function revealInserted(action: PuckAction, next: { data: Data }): void {
+  if (action.type !== 'insert') return
+  const doc = next.data as unknown as CustomizeDoc
+  const id =
+    action.id ?? zoneSections(doc, action.destinationZone)[action.destinationIndex]?.props.id
+  if (id) scrollToSection(id, prefersReducedMotion())
+}
+
+/**
  * Online Store › Themes › Customize. Puck is the engine: one document per template
  * (with the header and footer groups as root zones), so the tree, the preview,
  * the inspector and undo all share Puck's state. Edits autosave as drafts of this
  * theme; Save commits them, which for the live theme is what shoppers see.
  */
-/** The props a field override component expects, for narrowing Puck's wide field props. */
-// biome-ignore lint/suspicious/noExplicitAny: matches React's own ComponentProps constraint.
-type FieldOverride<C extends ComponentType<any>> = ComponentProps<C>
 
 export default function CustomizeEditor({ theme, canPublish, initial }: CustomizeEditorProps) {
   // Hooks
@@ -270,7 +274,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
 
   const settingsPanel = (
     <>
-      <div className="border-b border-border px-4 pb-4">
+      <div className="border-b border-border px-4 py-4">
         <ThemePresets theme={settings} onChange={setSettings} />
       </div>
       <ThemeSettings theme={settings} mode={mode} onChange={setSettings} />
@@ -287,76 +291,31 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           data={doc as unknown as Data}
           metadata={metadata}
           onChange={handleChange}
+          onAction={revealInserted}
           onPublish={handleSave}
           iframe={{ enabled: true, waitForStyles: true }}
           dnd={{ behavior: 'auto' }}
-          overrides={{
-            iframe: ({ children, document }) => (
-              <PreviewFrame document={document} theme={settings} mode={mode}>
-                {children}
-              </PreviewFrame>
-            ),
-            componentOverlay: (props) => <SectionOverlay {...props} />,
-            // Puck's own label + duplicate/delete action bar is replaced by SectionOverlay above.
-            actionBar: () => <></>,
-            // Puck's own field label can't tell field types apart (it only gets the label
-            // text), so it's suppressed here: every fieldTypes override below renders its
-            // own icon + label through FieldFrame instead.
-            // Puck types `field` as a wide union (every field type plus custom ones); each
-            // override is only ever called for its own type, so narrow it to what it reads.
-            fieldLabel: () => <></>,
-            fieldTypes: {
-              text: (props) => (
-                <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
-              ),
-              textarea: (props) => (
-                <CustomizeTextField {...(props as FieldOverride<typeof CustomizeTextField>)} />
-              ),
-              number: (props) => (
-                <CustomizeNumberField {...(props as FieldOverride<typeof CustomizeNumberField>)} />
-              ),
-              select: (props) => (
-                <CustomizeSelectField {...(props as FieldOverride<typeof CustomizeSelectField>)} />
-              ),
-              radio: (props) => (
-                <CustomizeRadioField {...(props as FieldOverride<typeof CustomizeRadioField>)} />
-              ),
-              array: (props) => (
-                <CustomizeArrayField {...(props as FieldOverride<typeof CustomizeArrayField>)} />
-              ),
-              object: (props) => (
-                <CustomizeObjectField {...(props as FieldOverride<typeof CustomizeObjectField>)} />
-              ),
-              custom: (props: {
-                field: unknown
-                value: unknown
-                onChange: (v: unknown) => void
-                name: string
-              }) => (
-                <CustomizeRichTextField
-                  {...(props as unknown as FieldOverride<typeof CustomizeRichTextField>)}
-                />
-              ),
-            },
-          }}
+          overrides={CUSTOMIZE_OVERRIDES}
         >
           <ThemePreviewContext.Provider value={settings}>
-            <CustomizeHotkeys />
-            <CustomizeLayout
-              topBar={topBar}
-              settings={settingsPanel}
-              dock={
-                <CanvasDock
-                  device={device}
-                  mode={mode}
-                  darkMode={settings.darkMode.enabled}
-                  onDevice={setDevice}
-                  onMode={setModePick}
-                />
-              }
-              device={device}
-              loading={switching}
-            />
+            <PreviewModeContext.Provider value={mode}>
+              <CustomizeHotkeys />
+              <CustomizeLayout
+                topBar={topBar}
+                settings={settingsPanel}
+                dock={
+                  <CanvasDock
+                    device={device}
+                    mode={mode}
+                    darkMode={settings.darkMode.enabled}
+                    onDevice={setDevice}
+                    onMode={setModePick}
+                  />
+                }
+                device={device}
+                loading={switching}
+              />
+            </PreviewModeContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>
       ) : (

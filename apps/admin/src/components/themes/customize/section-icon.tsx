@@ -1,16 +1,21 @@
 import {
+  ArrowLeftRight,
   Boxes,
+  Columns,
   FileText,
   FolderOpen,
   ImageIcon,
+  Images,
   LayoutGrid,
   Megaphone,
   MessageSquare,
+  Monitor,
   Newspaper,
   Package,
   PanelBottom,
   PanelTop,
   Send,
+  TrendingUp,
   Video,
 } from '@commerce/ui/icons'
 import { SECTION_ICONS } from '@/lib/customize-puck'
@@ -31,6 +36,11 @@ const GLYPHS = {
   video: Video,
   news: Newspaper,
   send: Send,
+  spotlight: Monitor,
+  split: Columns,
+  marquee: ArrowLeftRight,
+  stats: TrendingUp,
+  gallery: Images,
 } as const
 
 /** The glyph a section shows in the tree and the add menu. */

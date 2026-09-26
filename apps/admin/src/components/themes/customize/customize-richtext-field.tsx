@@ -1,4 +1,3 @@
-import { FieldRichText } from '@commerce/ui/icons'
 import type { ReactNode } from 'react'
 import FieldFrame from './field-frame'
 
@@ -16,8 +15,8 @@ export default function CustomizeRichTextField({
   children,
 }: CustomizeRichTextFieldProps) {
   return (
-    <FieldFrame icon={FieldRichText} label={field.label ?? name}>
-      <div className="overflow-hidden rounded-xl border border-input">{children}</div>
+    <FieldFrame label={field.label ?? name}>
+      <div className="overflow-hidden rounded-lg border border-input">{children}</div>
     </FieldFrame>
   )
 }

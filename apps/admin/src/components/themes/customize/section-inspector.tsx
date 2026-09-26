@@ -1,11 +1,14 @@
 'use client'
 
+import { X } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
 import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE, locateSection } from '@/lib/customize-doc'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import PanelHeader from './panel-header'
 import SectionIcon from './section-icon'
 
 type SectionInspectorProps = {
@@ -15,6 +18,7 @@ type SectionInspectorProps = {
 
 const copy = customizeContent.inspector
 const groups = customizeContent.groups
+const panels = customizeContent.panels
 
 const zoneLabel = (zone: string) => {
   if (zone === HEADER_ZONE) return groups.header
@@ -23,20 +27,23 @@ const zoneLabel = (zone: string) => {
 }
 
 /** The right pane: the selected section's settings, drawn by Puck's own field
- * renderer, breadcrumbed under the zone it's in — or, with nothing selected,
- * the theme settings, so there's always something to edit here. */
+ * renderer, under a header naming the section and the group it sits in — or,
+ * with nothing selected, the theme settings, so there's always something to
+ * edit here. */
 export default function SectionInspector({ settings }: SectionInspectorProps) {
   // Hooks
   const selected = useCustomizePuck((s) => s.selectedItem)
   const components = useCustomizePuck((s) => s.config.components)
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
+  const dispatch = useCustomizePuck((s) => s.dispatch)
   const reducedMotion = useReducedMotion()
 
   // Early returns
   if (!selected) {
     return (
-      <section aria-label={copy.label} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {settings}
+      <section aria-label={panels.theme} className="flex min-h-0 flex-1 flex-col">
+        <PanelHeader title={panels.theme} hint={panels.themeHint} />
+        <div className="min-h-0 flex-1 overflow-y-auto">{settings}</div>
       </section>
     )
   }
@@ -51,32 +58,39 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
   return (
     <motion.section
       key={selected.props.id}
-      initial={reducedMotion ? false : { opacity: 0, x: 12 }}
+      initial={reducedMotion ? false : { opacity: 0, x: 8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.28, ease: 'easeOut' }}
-      className="flex min-h-0 flex-col"
+      transition={{ duration: reducedMotion ? 0 : 0.2, ease: 'easeOut' }}
+      className="flex min-h-0 flex-1 flex-col"
       aria-label={copy.label}
     >
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <SectionIcon type={selected.type} className="size-4 shrink-0 text-muted-foreground" />
-        <h2 className="flex min-w-0 items-baseline gap-1 truncate text-body font-semibold text-foreground normal-case">
-          {crumb ? (
-            <>
-              <span className="font-normal text-muted-foreground">{crumb}</span>
-              <span aria-hidden className="font-normal text-muted-foreground">
-                ›
-              </span>
-            </>
-          ) : null}
-          <span className="truncate">{label}</span>
-        </h2>
-      </div>
+      <PanelHeader
+        icon={<SectionIcon type={selected.type} className="size-4" />}
+        title={label}
+        hint={crumb}
+        actions={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => dispatch({ type: 'setUi', ui: { itemSelector: null } })}
+            aria-label={panels.deselect}
+            title={panels.deselect}
+          >
+            <X aria-hidden />
+          </Button>
+        }
+      />
       {hasFields ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <Puck.Fields />
+        <div className="min-h-0 flex-1 overflow-y-auto [&>form]:flex [&>form]:flex-col [&>form]:gap-5 [&>form]:px-4 [&>form]:pt-4 [&>form]:pb-6">
+          <Puck.Fields wrapFields={false} />
         </div>
       ) : (
-        <p className="p-4 text-body text-muted-foreground">{copy.emptyFields}</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <SectionIcon type={selected.type} className="size-5" />
+          </span>
+          <p className="text-[0.8125rem] text-muted-foreground">{copy.emptyFields}</p>
+        </div>
       )}
     </motion.section>
   )

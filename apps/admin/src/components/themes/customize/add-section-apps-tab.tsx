@@ -63,7 +63,7 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
           <p className="sticky top-0 bg-popover px-2 pt-2 pb-1 text-caption font-medium text-muted-foreground">
             {app}
           </p>
-          {types.map((type, i) => (
+          {types.map((type) => (
             <SectionCard
               key={type}
               type={type}
@@ -73,7 +73,6 @@ export default function AppsTab({ query, hovered, onHover, labelOf, onAdd }: App
               hovered={hovered === type}
               onHover={onHover}
               onAdd={() => onAdd(type)}
-              index={i}
             />
           ))}
         </div>

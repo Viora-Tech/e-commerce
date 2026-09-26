@@ -1,0 +1,111 @@
+'use client'
+
+import {
+  ArrowUpDown,
+  ChevronDown,
+  type IconComponent,
+  LayoutGrid,
+  Palette,
+  Settings,
+  SlidersHorizontal,
+} from '@commerce/ui/icons'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@commerce/ui/shadcn/collapsible'
+import { AutoField, type Field } from '@puckeditor/core'
+import { customizeContent } from '@/data/customize'
+import type { FieldLike } from '@/lib/customize-field-shape'
+import { settingsGroupSummary } from '@/lib/customize-settings-summary'
+
+type SectionSettingsGroupsProps = {
+  field: FieldLike
+  value: Record<string, unknown>
+  onChange: (value: unknown) => void
+}
+
+type GroupField = { label?: string; objectFields?: Record<string, Field> }
+
+const GROUP_ICONS: Record<string, IconComponent> = {
+  layout: LayoutGrid,
+  spacing: ArrowUpDown,
+  style: Palette,
+  advanced: Settings,
+}
+
+const copy = customizeContent.settingsGroups
+
+/**
+ * The Layout / Spacing / Style / Advanced settings every section shares,
+ * set apart from the section's own fields by a full-width divider and a
+ * heading, each group one row with its current values summarised on the
+ * right — Webflow's style panel, where a closed group still tells you what's
+ * in it.
+ */
+export default function SectionSettingsGroups({
+  field,
+  value,
+  onChange,
+}: SectionSettingsGroupsProps) {
+  // Event handlers
+  const handleChange = (group: string, key: string, next: unknown) => {
+    const current = (value[group] ?? {}) as Record<string, unknown>
+    onChange({ ...value, [group]: { ...current, [key]: next } })
+  }
+
+  // Render logic
+  const groups = Object.entries((field.objectFields ?? {}) as Record<string, GroupField>)
+
+  return (
+    <section className="-mx-4 mt-2 flex flex-col border-t border-border">
+      <header className="flex flex-col gap-0.5 px-4 pt-4 pb-2">
+        <h3 className="text-[0.8125rem] font-semibold text-foreground">{copy.title}</h3>
+        <p className="text-xs text-muted-foreground">{copy.hint}</p>
+      </header>
+      <div className="flex flex-col px-2 pb-2">
+        {groups.map(([key, group]) => {
+          const Icon = GROUP_ICONS[key] ?? SlidersHorizontal
+          const groupValue = (value[key] ?? {}) as Record<string, unknown>
+          const subFields = group.objectFields ?? {}
+          const summary = settingsGroupSummary(
+            key,
+            subFields as Parameters<typeof settingsGroupSummary>[1],
+            groupValue,
+          )
+          return (
+            <Collapsible key={key} className="rounded-lg data-[open]:bg-muted/40">
+              <CollapsibleTrigger className="group flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-muted/60">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground group-data-[panel-open]:bg-card group-data-[panel-open]:text-foreground">
+                  <Icon aria-hidden weight="light" className="size-3.5" />
+                </span>
+                <span className="text-[0.8125rem] font-medium text-foreground">
+                  {group.label ?? key}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground tabular-nums">
+                  {summary}
+                </span>
+                <ChevronDown
+                  aria-hidden
+                  className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="flex flex-col gap-4 px-2 pt-2 pb-3">
+                  {Object.entries(subFields).map(([subKey, subField]) => (
+                    <AutoField
+                      key={subKey}
+                      field={subField}
+                      value={groupValue[subKey]}
+                      onChange={(next: unknown) => handleChange(key, subKey, next)}
+                    />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )
+        })}
+      </div>
+    </section>
+  )
+}

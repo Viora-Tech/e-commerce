@@ -5,9 +5,11 @@ import { Puck } from '@puckeditor/core'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
+import { customizeContent } from '@/data/customize'
 import type { PreviewDevice } from '../theme-preview'
 import AddSectionPanel from './add-section-panel'
 import CustomizeRail, { type RailPanel } from './customize-rail'
+import PanelHeader from './panel-header'
 import SectionInspector from './section-inspector'
 import SectionsTree from './sections-tree'
 
@@ -25,6 +27,14 @@ const DEVICE_WIDTH: Record<PreviewDevice, string> = {
   desktop: 'w-full',
   tablet: 'w-[48rem] max-w-full',
   mobile: 'w-[24.375rem] max-w-full',
+}
+
+const panels = customizeContent.panels
+
+const PANEL_HEADERS: Record<RailPanel, { title: string; hint: string }> = {
+  sections: { title: panels.sections, hint: panels.sectionsHint },
+  add: { title: panels.add, hint: panels.addHint },
+  theme: { title: panels.theme, hint: panels.themeHint },
 }
 
 /** Side panels float as rounded cards on the tinted editor backdrop. */
@@ -56,7 +66,8 @@ export default function CustomizeLayout({
       {topBar}
       <div className="flex min-h-0 flex-1 gap-2 px-2 pb-2">
         <CustomizeRail active={panel} onChange={setPanel} />
-        <aside className={cn(FLOATING_PANEL, 'w-64')}>
+        <aside className={cn(FLOATING_PANEL, 'w-[17.5rem]')}>
+          <PanelHeader title={PANEL_HEADERS[panel].title} hint={PANEL_HEADERS[panel].hint} />
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={panel}
@@ -94,7 +105,7 @@ export default function CustomizeLayout({
           </div>
           {dock}
         </main>
-        <aside className={cn(FLOATING_PANEL, 'w-[20rem]')}>
+        <aside className={cn(FLOATING_PANEL, 'w-[20.5rem]')}>
           <SectionInspector settings={settings} />
         </aside>
       </div>

@@ -84,7 +84,7 @@ export default function AddSectionBrowser({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={copy.search}
           aria-label={copy.search}
-          className="pl-8"
+          className="h-8 rounded-lg pl-8 text-[0.8125rem]"
         />
       </div>
       <Tabs
@@ -92,7 +92,7 @@ export default function AddSectionBrowser({
         onValueChange={(v) => setTab(v as 'sections' | 'apps')}
         className={cn('gap-2', fill && 'min-h-0 flex-1')}
       >
-        <TabsList variant="line" className="gap-4">
+        <TabsList variant="line" className="gap-4 px-1">
           <TabsTrigger value="sections">{copy.tabs.sections}</TabsTrigger>
           <TabsTrigger value="apps">{copy.tabs.apps}</TabsTrigger>
         </TabsList>

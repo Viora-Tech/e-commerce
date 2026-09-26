@@ -207,18 +207,38 @@ export function deleteWithCollapse(
   collapseSection(el, reducedMotion).then(commit)
 }
 
+/** How many frames `scrollToSection` waits for a just-inserted section to reach the iframe. */
+const MAX_WAIT_FRAMES = 60
+
 /**
  * Brings a section into view in the preview iframe, e.g. after it's picked in
- * the Sections tree (Puck only scrolls for selections made on the canvas).
+ * the Sections tree (Puck only scrolls for selections made on the canvas), or
+ * right after it was added.
  */
 export function scrollToSection(id: string, reducedMotion: boolean): void {
   // Selecting a row also dispatches Puck's own `setUi`, which re-renders the
   // canvas's selection chrome (SectionOverlay) a tick later — scrolling in
   // the same call stack raced that re-render and was silently un-done before
-  // it ever painted. Waiting a frame lets that settle first.
-  requestAnimationFrame(() => {
+  // it ever painted. Waiting a frame lets that settle first. A section that
+  // was only just inserted may take a few more frames to render inside the
+  // iframe, so keep looking (up to about a second) until it's there.
+  let frames = 0
+  const attempt = () => {
     const frame = document.querySelector<HTMLIFrameElement>('#main iframe')
     const el = frame?.contentDocument?.querySelector<HTMLElement>(`[data-puck-component="${id}"]`)
-    el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
-  })
+    if (el) {
+      el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+      return
+    }
+    frames += 1
+    if (frames < MAX_WAIT_FRAMES) requestAnimationFrame(attempt)
+  }
+  requestAnimationFrame(attempt)
+}
+
+/** The OS "reduce motion" setting, for callers outside React (Puck's `onAction`). */
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
 }
