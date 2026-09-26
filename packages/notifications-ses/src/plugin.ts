@@ -11,4 +11,12 @@ export const sesPlugin = definePlugin({
   company: 'Amazon Web Services',
   description: 'Order emails through Amazon SES.',
   provides: { notifications: [sesFactory] },
+  admin: {
+    icon: 'Inbox',
+    pages: [
+      // The app opens on its Connect page; Settings → Notifications links here too.
+      { path: '', title: 'Connect email', icon: 'Settings' },
+      { path: 'connect', title: 'Connect email', navLabel: 'Connect', icon: 'Settings' },
+    ],
+  },
 })

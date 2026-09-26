@@ -38,16 +38,17 @@ flowchart TD
 
 ### Fill in your store details
 
-**Settings → General**:
+Open **Settings**: the **Get your shop ready** checklist shows what is left, with a progress
+bar, and ticks each item by itself. Then **Settings → General**:
 
 - **Store details**: **Store name**, **Contact email** (shoppers reply to it), **Phone**.
-- **Business address**: address lines, **City**, **State**, **PIN code** (e.g. `302001`). This
-  is printed on invoices and used as the starting point for delivery estimates.
-- **Standards and formats**: **Timezone** (India, Asia/Kolkata), **GSTIN** (leave blank if you
-  aren't registered) and **GST rate (%)**, the tax already inside your prices, used to split
-  CGST, SGST and IGST.
+- **Business address**: address lines, **City**, **State**, **Pincode** (e.g. `302001`). This
+  is printed on invoices and used to work out delivery dates.
+- **Taxes / GST**: **GSTIN** (skip it if you aren't registered) and **GST in your prices (%)**,
+  used to split CGST, SGST and IGST.
+- **Currency and time**: **Time zone** (India, Asia/Kolkata).
 
-Select **Save**; you'll see "Store details saved".
+Select **Save**; you'll see "Store details saved". Guide: [Settings](/merchant-guide/settings).
 
 ### Add your products
 
@@ -66,12 +67,14 @@ and **UPI to your own ID — you confirm it** if you take them. Set **Cancel unp
 
 1. Connect **Delhivery** or **Shiprocket** from **Apps**
    ([Shipments](/merchant-guide/selling/shipments#connect-a-courier)).
-2. **Settings → Shipping → Box presets**: add your boxes and **Make default** the usual one.
-3. **Shipping rates**: **Create zone** (e.g. "All of India") and **Add rate**, like "Standard"
-   ₹60, with **Free shipping above (optional)** ₹999.
-4. **Dispatch policy**: **Warehouse PIN code**, **Order cutoff (HH:mm)**, **Dispatch days** and
-   **Holidays**.
-5. **Try a PIN code** with a far-away PIN (say `781001`) and select **Check**.
+2. **Settings → Shipping → Where you ship and what it costs**: **Add a delivery area** (e.g.
+   "All of India") and **Add rate**, like "Standard" ₹60, with **Free shipping above
+   (optional)** ₹999.
+3. **Your boxes**: add your boxes and **Make main box** the usual one.
+4. **When orders go out**: **Pincode you send parcels from**, **Last order time for same-day
+   sending**, **Days you send parcels** and **Days you are closed**.
+5. **Check delivery to a pincode** with a far-away pincode (say `781001`) and select **Check**.
+   Guide: [Shipping](/merchant-guide/settings/shipping).
 
 ### Turn on GST invoices (if registered)
 
@@ -115,7 +118,7 @@ shipment straight after). Cancel and refund the test orders afterwards.
 | Problem | Why it happens | Fix |
 | --- | --- | --- |
 | Invoices show the wrong state | **State** in Business address is wrong. | Fix it in **Settings → General**. |
-| Checkout says a PIN code isn't serviceable | No shipping zone covers it, or the courier doesn't deliver there. | Check **Shipping rates** covers **All of India**, and **Try a PIN code**. |
+| Checkout says a PIN code isn't serviceable | No delivery area covers it, or the courier doesn't deliver there. | Check **Where you ship and what it costs** covers **All of India**, and **Check delivery to a pincode**. |
 | Test Razorpay order stays **Unpaid** | Webhook not set up. | Add the webhook URL and secret in the Razorpay Dashboard. |
 
 ## FAQ
@@ -131,8 +134,9 @@ No. The minimum is store details, one product, one payment method and one way to
 
 <FaqItem question="Is there a setup checklist inside the admin?">
 
-The GST invoices app has its own ("Finish setting up GST invoices"). A store-wide guided setup
-inside the admin is coming soon; until then, this page is the checklist.
+Yes. Open **Settings**: **Get your shop ready** lists store details, payments, shipping, taxes,
+domain, notifications and policies, and ticks each one from your real settings. The GST
+invoices app also has its own ("Finish setting up GST invoices").
 
 </FaqItem>
 

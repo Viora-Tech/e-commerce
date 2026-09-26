@@ -17,6 +17,7 @@ import { marketingRouter } from './marketing'
 import { mediaRouter } from './media'
 import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
+import { notificationsRouter } from './notifications'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
@@ -48,6 +49,7 @@ export const appRouter = {
   shipments: shipmentsRouter,
   shipping: shippingRouter,
   payments: paymentsRouter,
+  notifications: notificationsRouter,
   customers: customersRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,

@@ -135,8 +135,8 @@ nickname, because Shiprocket only checks that when you book a shipment.
 
 ### Set up your boxes once
 
-Under **Settings → Shipping → Box presets**, add the boxes you pack into, for example "Small
-mailer, 25 × 20 × 5 cm, 80 g", and **Make default** the one you use most. The default box
+Under **Settings → Shipping → Your boxes**, add the boxes you pack into, for example "Small
+mailer, 25 × 20 × 5 cm, 80 g", and **Make main box** the one you use most. The main box
 fills in the size when booking. The parcel weight is the sum of your products' weights when
 they have one, otherwise the box weight.
 
@@ -213,12 +213,13 @@ dismiss by hand.
 Delhivery and Shiprocket are prepaid: shipments are charged from a wallet on their side. They
 don't share the balance over their APIs yet, so you enter it by hand after checking the
 courier's dashboard (**Balance on the courier dashboard (₹)**, then **Save balance**). Set
-**Low courier wallet balance alert (₹)** under **Settings → Shipping → Dispatch policy**, say
+**Warn me when my courier wallet is below (₹)** under **Settings → Shipping → When orders go
+out → More options**, say
 ₹2,000, and you'll see "Balance is low. Recharge soon to avoid shipments getting stuck."
 
 <Callout type="info">
   **Tip.** Put your real dispatch days, order cutoff (for example `14:00`) and holidays (Diwali,
-  Holi) in **Settings → Shipping → Dispatch policy**. Delivery dates shown to shoppers are worked
+  Holi) in **Settings → Shipping → When orders go out**. Delivery dates shown to shoppers are worked
   out from these, so they stay honest during festival weeks.
 </Callout>
 
@@ -238,16 +239,16 @@ courier's dashboard (**Balance on the courier dashboard (₹)**, then **Save bal
 
 <FaqItem question="Can I use Delhivery and Shiprocket together?">
 
-Yes. Install both and compare them on every booking. **Settings → Shipping → Default courier**
-decides which one is pre-selected: **Cheapest**, **Fastest**, **Always use one courier** or **By
-state**.
+Yes. Install both and compare them on every booking. **Settings → Shipping → Which courier
+ships** decides which one is pre-selected: **Cheapest price**, **Fastest delivery**, **Always the
+same courier** or **The state it goes to**.
 
 </FaqItem>
 
 <FaqItem question="Does cash on delivery work with couriers?">
 
 Yes, where the courier offers COD for that PIN code. Turn on **Offer cash on delivery where the
-courier supports it** in **Dispatch policy**. The courier collects the cash and pays it to you
+courier allows it** in **When orders go out**. The courier collects the cash and pays it to you
 on their own remittance schedule.
 
 </FaqItem>

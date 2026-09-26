@@ -43,6 +43,7 @@ import {
   prepareProviderSettings,
   presentProviderSettings,
 } from '../services/provider-settings'
+import { settingsChecklist } from '../services/settings-home.service'
 import {
   TEST_CONNECTION_RULE,
   testShippingConnection,
@@ -77,6 +78,11 @@ export const storeRouter = {
     if (!s) return null
     return { ...s, theme: await liveThemeSettings(context.tx, storeId), role: context.scope.role }
   }),
+
+  /** The Settings home's setup checklist: what is done, from real data. */
+  setupChecklist: can(permissions.SETTINGS_READ).handler(({ context }) =>
+    settingsChecklist(context.tx, context.scope.storeId),
+  ),
 
   /** Store details for Settings › General. */
   getGeneral: can(permissions.SETTINGS_READ).handler(async ({ context }) => {

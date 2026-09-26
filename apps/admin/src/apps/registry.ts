@@ -8,6 +8,7 @@ import {
   FileText,
   Inbox,
   type LucideIcon,
+  MessageSquare,
   Puzzle,
   Settings,
   Store,
@@ -31,6 +32,8 @@ import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import SesConnectPage from '@/components/apps/messages/ses-connect-page'
+import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
 import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
@@ -98,10 +101,22 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: RazorpayConnectPage,
     },
   },
+  ses: {
+    pages: {
+      '': SesConnectPage,
+      connect: SesConnectPage,
+    },
+  },
   shiprocket: {
     pages: {
       '': ShiprocketOverviewPage,
       connect: ShiprocketConnectPage,
+    },
+  },
+  whatsapp: {
+    pages: {
+      '': WhatsappConnectPage,
+      connect: WhatsappConnectPage,
     },
   },
   'shopify-import': {
@@ -124,6 +139,7 @@ const ICONS: Record<string, LucideIcon> = {
   FileBarChart,
   FileText,
   Inbox,
+  MessageSquare,
   Puzzle,
   Settings,
   Store,

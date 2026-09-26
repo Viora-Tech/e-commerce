@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { shippingSettingsContent as appCopy } from '@/data/shipping'
@@ -215,6 +216,14 @@ export default function CourierRuleFields({ value, onChange }: CourierRuleFields
             ) : null}
           </FieldGroup>
         )}
+        <Button
+          variant="outline"
+          className="w-fit"
+          nativeButton={false}
+          render={<Link href="/apps" />}
+        >
+          {copy.manage}
+        </Button>
       </div>
     </DataCard>
   )

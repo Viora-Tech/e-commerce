@@ -67,7 +67,7 @@ export default function ShippingZonesCard() {
   // Render logic
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const create = canManage ? (
-    <Button render={<Link href="/settings/shipping/zones/new" />}>
+    <Button nativeButton={false} render={<Link href="/settings/shipping/zones/new" />}>
       <Plus />
       {copy.create}
     </Button>

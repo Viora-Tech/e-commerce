@@ -1,21 +1,21 @@
 /** Copy for Settings → Shipping → Shipping rates and the zone pages. */
 export const shippingRatesContent = {
   list: {
-    heading: 'Shipping rates',
-    meta: 'What shoppers pay for delivery, by where the parcel goes.',
-    create: 'Create zone',
-    columns: { zone: 'Zone', covers: 'Covers', rates: 'Rates' },
+    heading: 'Where you ship and what it costs',
+    meta: 'The delivery price customers see at checkout, by where the parcel goes.',
+    create: 'Add a delivery area',
+    columns: { zone: 'Area', covers: 'Covers', rates: 'Prices' },
     allIndia: 'All of India',
     everywhereExcept: (n: number) =>
       `All of India except ${n} PIN code ${n === 1 ? 'rule' : 'rules'}`,
     states: (names: string[]) =>
       names.length <= 3 ? names.join(', ') : `${names.slice(0, 3).join(', ')} +${names.length - 3}`,
     pincodes: (n: number) => `${n} PIN code ${n === 1 ? 'rule' : 'rules'}`,
-    noRates: 'No rates: addresses here cannot check out',
+    noRates: 'No price yet: customers here cannot check out',
     rateCount: (n: number) => `${n} ${n === 1 ? 'rate' : 'rates'}`,
     empty: {
-      heading: 'Shipping is free on every order',
-      body: 'Create a zone to charge for delivery: a flat rate for all of India, bands by order value or weight, and free shipping above an amount.',
+      heading: 'Delivery is free on every order',
+      body: 'Add a delivery area to charge for delivery: one price for all of India, prices by order value or weight, or free delivery above an amount.',
     },
     loadFailed: 'Could not load shipping rates.',
   },

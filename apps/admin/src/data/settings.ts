@@ -4,6 +4,7 @@ import {
   Braces,
   CreditCard,
   Globe,
+  Home,
   Images,
   Palette,
   Store,
@@ -16,6 +17,14 @@ export type SettingsSection = {
   title: string
   body: string
   icon: LucideIcon
+}
+
+/** The settings home: setup checklist and every section. First in the left rail. */
+export const SETTINGS_HOME: SettingsSection = {
+  href: '/settings',
+  title: 'Overview',
+  body: 'Your setup checklist and every settings page.',
+  icon: Home,
 }
 
 /** Settings tabs in the left rail, in Shopify's order. */
@@ -81,14 +90,6 @@ export const settingsContent = {
     label: 'Settings sections',
   },
   sections: {
-    shipping: [
-      { id: 'section-couriers', label: 'Couriers' },
-      { id: 'section-rates', label: 'Shipping rates' },
-      { id: 'section-courier-rule', label: 'Default courier' },
-      { id: 'section-box-presets', label: 'Box presets' },
-      { id: 'section-policy', label: 'Dispatch policy' },
-      { id: 'section-try-pin', label: 'Try a PIN code' },
-    ],
     payments: [
       { id: 'section-methods', label: 'Payment methods' },
       { id: 'section-unpaid', label: 'Unpaid orders' },
@@ -101,34 +102,59 @@ export const settingsContent = {
   },
   general: {
     title: 'General',
-    intro: 'What shoppers see in emails and invoices, and where your store operates.',
+    intro: 'Your shop name, how customers reach you, and your address for invoices.',
+    completion: {
+      progress: (done: number, total: number) => `${done} of ${total} details done`,
+      allDone: 'All your shop details are filled in.',
+      missing: (items: string[]) => `Still to add: ${items.join(', ')}.`,
+      items: {
+        name: 'store name',
+        email: 'contact email',
+        phone: 'phone',
+        address: 'business address',
+        gstin: 'GSTIN',
+      },
+    },
     details: {
       heading: 'Store details',
+      help: 'Customers see these on order emails and invoices.',
       name: 'Store name',
+      nameHelp: 'The name customers know your shop by.',
       email: 'Contact email',
-      emailHelp: 'Shown on order emails and used for replies.',
+      emailHelp: 'Shown on order emails. When customers reply, it comes here.',
       phone: 'Phone',
+      phoneHelp: 'For customers and couriers to call you. Include the country code, like +91.',
     },
     address: {
       heading: 'Business address',
-      help: 'Printed on invoices and used as the default origin for delivery estimates.',
+      help: 'Printed on invoices and used to work out delivery dates.',
+      prompt: {
+        title: 'Add your business address',
+        body: 'It is printed on your invoices and used to work out when parcels will arrive.',
+        action: 'Add address',
+      },
       line1: 'Address line 1',
-      line2: 'Address line 2',
+      line2: 'Address line 2 (optional)',
       city: 'City',
       state: 'State',
-      pincode: 'PIN code',
+      pincode: 'Pincode',
       country: 'Country',
     },
-    locale: {
-      heading: 'Standards and formats',
-      currency: 'Currency',
-      currencyHelp: 'INR is the only currency for now.',
-      timezone: 'Timezone',
+    tax: {
+      heading: 'Taxes / GST',
+      help: 'Only needed if your shop is GST registered. Skip this card if it is not.',
       gstin: 'GSTIN',
-      gstinHelp: 'Leave blank if not registered. Appears on tax invoices.',
-      gstRate: 'GST rate (%)',
+      gstinHelp: 'Your 15-character GST number. It appears on tax invoices.',
+      gstRate: 'GST in your prices (%)',
       gstRateHelp:
-        'The tax already included in your listed prices. Used to split CGST, SGST and IGST on orders.',
+        'The GST already included in your prices. Most shops use 18. Used to show CGST, SGST and IGST on invoices.',
+    },
+    locale: {
+      heading: 'Currency and time',
+      help: 'Used for prices, order times and reports.',
+      currency: 'Currency',
+      currencyHelp: 'Indian rupees (INR) for now.',
+      timezone: 'Time zone',
     },
     timezones: [
       { value: 'Asia/Kolkata', label: 'India (Asia/Kolkata)' },
@@ -146,5 +172,77 @@ export const settingsContent = {
   staff: {
     heading: 'Only you, for now',
     body: 'Invite teammates and set what each person can see and change in this store.',
+  },
+} as const
+
+export type SetupItemId =
+  | 'store'
+  | 'payments'
+  | 'shipping'
+  | 'taxes'
+  | 'domain'
+  | 'notifications'
+  | 'policies'
+
+/** Copy for the Settings home: the setup checklist and the list of every settings page. */
+export const settingsHomeContent = {
+  title: 'Settings',
+  intro: 'Everything about how your shop works, in one place.',
+  checklist: {
+    heading: 'Get your shop ready',
+    help: 'Do these once. Each one ticks itself when it is done.',
+    progress: (done: number, total: number) => `${done} of ${total} done`,
+    progressLabel: 'Setup progress',
+    allDone: 'All done. Your shop is ready to sell.',
+    doneLabel: 'Done',
+    open: 'Open',
+    loadFailed: 'Could not load your checklist.',
+    items: {
+      store: {
+        title: 'Store details',
+        todo: 'Add your shop name, email and business address.',
+        done: 'Name, email and address are filled in.',
+        href: '/settings/general',
+      },
+      payments: {
+        title: 'Payments',
+        todo: 'Choose how customers pay you: UPI, cards or cash on delivery.',
+        done: 'You can take payments.',
+        href: '/settings/payments',
+      },
+      shipping: {
+        title: 'Shipping',
+        todo: 'Say where you deliver and what delivery costs.',
+        done: 'Delivery areas and prices are set.',
+        href: '/settings/shipping',
+      },
+      taxes: {
+        title: 'Taxes / GST',
+        todo: 'Add your GSTIN if you are GST registered. Skip this if you are not.',
+        done: 'Your GSTIN is on your invoices.',
+        href: '/settings/general#tax',
+      },
+      domain: {
+        title: 'Domain',
+        todo: 'Connect your own website address, like yourshop.in.',
+        done: 'Your own website address is working.',
+        href: '/settings/domains',
+      },
+      notifications: {
+        title: 'Notifications',
+        todo: 'Connect email so customers hear from you when they order.',
+        done: 'Customers get order emails.',
+        href: '/settings/notifications',
+      },
+      policies: {
+        title: 'Policies',
+        todo: 'Publish your return, privacy and terms pages.',
+        done: 'Your policy pages are live.',
+        href: '/online-store/pages',
+      },
+    } satisfies Record<SetupItemId, { title: string; todo: string; done: string; href: string }>,
+  },
+  all: {
+    heading: 'All settings',
   },
 } as const

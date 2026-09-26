@@ -1,6 +1,9 @@
-import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
+import SettingsHome from '@/components/settings/settings-home'
 
-/** The settings index is the first tab. */
+export const metadata: Metadata = { title: 'Settings' }
+
+/** The settings home: setup checklist and every settings page. */
 export default function Page() {
-  redirect('/settings/general')
+  return <SettingsHome />
 }
