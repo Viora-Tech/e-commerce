@@ -49,6 +49,7 @@ const config: NextConfig = {
     '@commerce/blocks',
     '@commerce/payments',
     '@commerce/payments-cashfree',
+    '@commerce/payments-decentro',
     '@commerce/payments-razorpay',
     '@commerce/invoices',
     '@commerce/plugin-gst-invoices',

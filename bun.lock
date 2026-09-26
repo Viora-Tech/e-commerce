@@ -13,6 +13,7 @@
         "@commerce/notifications-ses": "workspace:*",
         "@commerce/notifications-whatsapp": "workspace:*",
         "@commerce/payments-cashfree": "workspace:*",
+        "@commerce/payments-decentro": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
@@ -468,6 +469,20 @@
         "vitest": "^4.1.11",
       },
     },
+    "packages/payments-decentro": {
+      "name": "@commerce/payments-decentro",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/payments": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
     "packages/payments-razorpay": {
       "name": "@commerce/payments-razorpay",
       "version": "0.0.0",
@@ -900,6 +915,8 @@
     "@commerce/payments": ["@commerce/payments@workspace:packages/payments"],
 
     "@commerce/payments-cashfree": ["@commerce/payments-cashfree@workspace:packages/payments-cashfree"],
+
+    "@commerce/payments-decentro": ["@commerce/payments-decentro@workspace:packages/payments-decentro"],
 
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
 

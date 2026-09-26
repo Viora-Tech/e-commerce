@@ -37,6 +37,7 @@ import {
   updateStoreStorage,
   verifyStorageCredentials,
 } from '../services/media.service'
+import { testPaymentConnection } from '../services/payments-setup.service'
 import {
   availableProviders,
   prepareProviderSettings,
@@ -323,6 +324,35 @@ export const storeRouter = {
         shipping,
         secret(),
         'shiprocket',
+        input.fields,
+      )
+    }),
+
+  /**
+   * The Decentro Connect page's "Test connection": the form's values (a
+   * masked secret means the saved one) through Decentro's read-only status
+   * lookup. Nothing is saved or created.
+   */
+  testDecentroConnection: can(permissions.SETTINGS_READ)
+    .input(z.object({ fields: z.record(z.string(), z.string()) }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('payments-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      const { payments } = await storeRegistries(context.tx, context.scope.storeId)
+      return testPaymentConnection(
+        context.tx,
+        context.scope.storeId,
+        payments,
+        { secret: secret(), previousSecrets: previousSecrets() },
+        'decentro',
         input.fields,
       )
     }),

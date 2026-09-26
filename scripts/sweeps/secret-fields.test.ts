@@ -21,6 +21,7 @@ import { decryptSecret, encryptProviderSettings, isEncryptedSecret } from '@comm
 import { sesFactory } from '@commerce/notifications-ses'
 import { whatsappFactory } from '@commerce/notifications-whatsapp'
 import { cashfreeFactory } from '@commerce/payments-cashfree'
+import { decentroFactory } from '@commerce/payments-decentro'
 import { razorpayFactory } from '@commerce/payments-razorpay'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
@@ -50,6 +51,7 @@ describe('sweep: secret-fields', () => {
     const factories = [
       razorpayFactory,
       cashfreeFactory,
+      decentroFactory,
       delhiveryFactory,
       shiprocketFactory,
       sesFactory,

@@ -69,8 +69,8 @@ From top to bottom:
   payment window offers only those. New shops start with UPI, Cards and Netbanking on and cash
   on delivery off. A shop that already saved its own cash on delivery choice keeps it.
 - **+ Add another way to get paid.** Search payment companies, filter by UPI, cards and so on,
-  and see their fees. Razorpay and Cashfree connect today; others
-  show **Coming soon**.
+  and see their fees. Razorpay and Cashfree connect today, and Decentro for UPI only (see
+  [UPI with Decentro](#upi-with-decentro)); others show **Coming soon**.
 - **Advanced.** Bank transfer and UPI QR you confirm yourself, a fee or discount per method, and
   unpaid-order rules, on their own page (**Settings → Payments → Advanced**). Payments are taken
   as soon as the shopper pays, so there is no capture setting.
@@ -191,11 +191,55 @@ For pre-orders that take a deposit at checkout, **Advanced → Pre-orders** cont
   chargebacks.
 </Callout>
 
+## UPI with Decentro
+
+[Decentro](https://decentro.tech) is an Indian payments company. The **Decentro** app takes UPI
+payments only: the shopper scans a QR code for the exact amount (or taps a link that opens their
+UPI app on a phone), and the order is marked paid on its own when Decentro confirms it. Cards and
+netbanking still need Razorpay or Cashfree.
+
+<Steps>
+
+### Install the app
+
+In **Settings → Payments**, select **+ Add another way to get paid** and pick **UPI — confirmed
+automatically (Decentro)**, or go to **Apps**, install **Decentro** and open **Connect**.
+
+### Get your keys from Decentro
+
+Decentro emails your **Client ID**, **Client secret** and **Consumer URN** when they set up your
+account. You get test keys first and live keys once Decentro approves your business. Can't find
+them? Ask your Decentro account manager.
+
+### Paste them and test
+
+Pick **Test** or **Live** to match the keys, paste the three values, and select **Test
+connection**. It only looks up a payment that doesn't exist, so nothing is created and no money
+moves. Then select **Save and turn on**.
+
+### Turn on payment updates
+
+Open **Advanced** and copy the **Callback secret** and the **Payment updates address**. Email
+both to Decentro support at `pgsupport@decentro.tech` and ask them to send the secret in the
+`x-webhook-token` header of every payment update. Updates without the secret are refused. Copy
+the secret before you save: after that it is hidden, and you'd make a new one.
+
+</Steps>
+
+Good to know:
+
+- Decentro takes UPI payments from **₹5**. A QR code stays open for **30 minutes**; after that
+  the shopper asks for a new one from the order page.
+- **Refund** sends the money back to the shopper's UPI ID through Decentro. Partial refunds work.
+- A payment Decentro can't confirm yet ("deemed") stays **Unpaid** until Decentro settles it,
+  usually within 3 days.
+- In **Advanced**, **How shoppers pay** switches between the QR code (best on computers) and a
+  link that opens the shopper's UPI app (best on phones).
+
 ## More payment companies
 
-Razorpay and Cashfree connect today. **UPI — confirmed automatically (Decentro)** connects once
-the Decentro app is available on your platform, and shows **Coming soon** until then. PhonePe and
-PayU are listed as **Coming soon**.
+Razorpay and Cashfree connect today, and **UPI — confirmed automatically (Decentro)** for UPI.
+PhonePe and PayU are listed as **Coming soon**.
 A developer can add others as a plugin (see the [Plugins SDK](/developer-docs/building/plugins)).
 
 ## Common problems and fixes
@@ -206,6 +250,8 @@ A developer can add others as a plugin (see the [Plugins SDK](/developer-docs/bu
 | Checkout shows only cash on delivery | Every online way to pay is off, or no payment company is connected. | Switch UPI (or another) on under **Shoppers can pay with**. |
 | "These look like Live keys, but Test is picked" | The keys and the Test/Live switch don't match. | Pick the mode that matches your keys. |
 | Auto-confirmed UPI orders never get paid | The QR events aren't ticked. | Tick `qr_code.credited` and `qr_code.closed` on the Razorpay webhook. |
+| Decentro payments are confirmed late | Decentro isn't sending payment updates yet, or sends the wrong secret. | Send the **Payment updates address** and **Callback secret** from **Apps → Decentro → Connect → Advanced** to `pgsupport@decentro.tech`. |
+| Decentro **Test connection** says the keys are wrong | Test keys used in Live (or the other way round), or a typo. | Match **Test**/**Live** to the keys Decentro sent, and paste them again. |
 | An order was cancelled but the shopper paid | They paid after the unpaid-order window. | The order shows **Refund needed**; refund that payment, or place a fresh order for them. |
 | COD fee isn't showing at checkout | Cash on delivery is off, or Type is **None**. | Switch **Cash on delivery** on under **Shoppers can pay with**, and set **Fixed amount (₹)** under **Advanced**. |
 

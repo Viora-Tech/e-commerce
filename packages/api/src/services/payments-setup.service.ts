@@ -83,7 +83,7 @@ const webhookUrlFor = (workerUrl: string, providerId: string, storeId: string) =
 
 function modeOf(id: string, cfg: Record<string, string> | undefined): 'test' | 'live' | null {
   if (!cfg) return null
-  if (id === 'cashfree') return cfg.mode === 'live' ? 'live' : 'test'
+  if (id === 'cashfree' || id === 'decentro') return cfg.mode === 'live' ? 'live' : 'test'
   const key = cfg.keyId ?? ''
   if (key.startsWith('rzp_test_')) return 'test'
   if (key.startsWith('rzp_live_')) return 'live'
@@ -101,7 +101,9 @@ function gatewayApps(installed: Set<string>, enabled: string[]): GatewayApp[] {
     .summaries()
     .filter((p) => p.kind === 'connection' && p.category === 'payments')
     .map((p) => {
-      const main = p.provides.payments.find((f) => isGatewayProvider(f.id))
+      // A UPI-only app (Decentro) has no main gateway; its one method is the app.
+      const main =
+        p.provides.payments.find((f) => isGatewayProvider(f.id)) ?? p.provides.payments[0]
       const isInstalled = installed.has(p.id)
       return {
         id: p.id,

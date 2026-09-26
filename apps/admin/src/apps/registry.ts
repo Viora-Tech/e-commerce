@@ -21,6 +21,8 @@ import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
 import CashfreeConnectPage from '@/components/apps/cashfree/connect-page'
 import CashfreeOverviewPage from '@/components/apps/cashfree/overview-page'
+import DecentroConnectPage from '@/components/apps/decentro/connect-page'
+import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
@@ -68,6 +70,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       connect: CashfreeConnectPage,
     },
   },
+  decentro: {
+    pages: {
+      '': DecentroOverviewPage,
+      connect: DecentroConnectPage,
+    },
+  },
   delhivery: {
     pages: {
       '': DelhiveryOverviewPage,
@@ -110,8 +118,8 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
 const ICONS: Record<string, LucideIcon> = {
   BarChart3,
   Bell,
-  CreditCard,
   Blocks,
+  CreditCard,
   Download,
   FileBarChart,
   FileText,
