@@ -92,6 +92,15 @@ export const checkoutContent = {
   contact: 'Contact',
   address: 'Delivery address',
   payment: 'Payment',
+  /** The main gateway's option when the merchant chose which online methods to offer. */
+  payOnline: 'Pay online',
+  onlineMethodNames: {
+    upi: 'UPI',
+    card: 'Cards',
+    netbanking: 'Netbanking',
+    wallet: 'Wallets',
+    emi: 'EMI and pay later',
+  } as Record<string, string>,
   summary: 'Order summary',
   subtotal: 'Subtotal',
   discount: 'Discount',

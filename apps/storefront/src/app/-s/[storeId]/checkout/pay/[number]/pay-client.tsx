@@ -7,14 +7,30 @@ import { useEffect, useRef, useState } from 'react'
 import { confirmPaymentAction } from '@/lib/cart-actions'
 
 type RazorpayCheckout = new (options: Record<string, unknown>) => { open(): void }
+type CashfreeResult = { error?: unknown; redirect?: boolean; paymentDetails?: unknown }
+type CashfreeFactory = (init: { mode: string }) => {
+  checkout(options: Record<string, unknown>): Promise<CashfreeResult>
+}
 declare global {
   interface Window {
     Razorpay?: RazorpayCheckout
+    Cashfree?: CashfreeFactory
   }
 }
 
+type PayClientProps = {
+  storeId: string
+  orderNumber: number
+  session: Extract<CheckoutSession, { kind: 'client' }>
+  amountPaise: number
+  /** The signed `/checkout/thank-you/...` path; built server-side, token included. */
+  thankYouPath: string
+}
+
+/** The gateways' own browser scripts (Razorpay Checkout, Cashfree JS SDK v3). */
 const SCRIPTS: Record<string, string> = {
   razorpay: 'https://checkout.razorpay.com/v1/checkout.js',
+  cashfree: 'https://sdk.cashfree.com/js/v3/cashfree.js',
 }
 
 type State = 'loading' | 'ready' | 'confirming' | 'failed' | 'dismissed'
@@ -38,14 +54,7 @@ export default function PayClient({
   session,
   amountPaise,
   thankYouPath,
-}: {
-  storeId: string
-  orderNumber: number
-  session: Extract<CheckoutSession, { kind: 'client' }>
-  amountPaise: number
-  /** The signed `/checkout/thank-you/...` path; built server-side, token included. */
-  thankYouPath: string
-}) {
+}: PayClientProps) {
   // Hooks
   const router = useRouter()
   const [state, setState] = useState<State>('loading')
@@ -67,22 +76,42 @@ export default function PayClient({
     }
   })
 
+  // Helpers
+  const confirm = async (response: Record<string, string>) => {
+    setState('confirming')
+    const status = await confirmPaymentAction(storeId, session.providerRef, response)
+    if (status === 'captured' || status === 'pending') {
+      router.push(thankYouPath)
+    } else {
+      setState('failed')
+    }
+  }
+
+  const openCashfree = async () => {
+    const factory = window.Cashfree
+    if (!factory) return
+    setState('ready')
+    const result = await factory({ mode: String(session.options.mode ?? 'sandbox') }).checkout({
+      paymentSessionId: session.options.paymentSessionId,
+      redirectTarget: '_modal',
+    })
+    // Cashfree reports the outcome through its API and webhook; ask the server either way.
+    if (result.paymentDetails) await confirm({})
+    else setState('dismissed')
+  }
+
   // Event handlers
   const handleOpen = () => {
+    if (session.provider === 'cashfree') {
+      void openCashfree()
+      return
+    }
     const Rzp = window.Razorpay
     if (!Rzp) return
     setState('ready')
     const checkout = new Rzp({
       ...session.options,
-      handler: async (response: Record<string, string>) => {
-        setState('confirming')
-        const status = await confirmPaymentAction(storeId, session.providerRef, response)
-        if (status === 'captured' || status === 'pending') {
-          router.push(thankYouPath)
-        } else {
-          setState('failed')
-        }
-      },
+      handler: confirm,
       modal: { ondismiss: () => setState('dismissed') },
     })
     checkout.open()

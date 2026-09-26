@@ -407,7 +407,14 @@ export default function CheckoutForm({
                   disabled={m.id === 'cod' && codBlocked}
                   onChange={set('payment')}
                 />
-                <span className="checkout__option-label">{m.label}</span>
+                <span className="checkout__option-label">
+                  {m.methods?.length ? content.payOnline : m.label}
+                  {m.methods?.length ? (
+                    <span className="checkout__option-meta text-small">
+                      {m.methods.map((id) => content.onlineMethodNames[id]).join(' · ')}
+                    </span>
+                  ) : null}
+                </span>
                 {m.id === 'cod' && giftCards.length > 0 && !coveredByCards ? (
                   <span className="checkout__adjustment text-small">{content.codWithGiftCard}</span>
                 ) : null}
