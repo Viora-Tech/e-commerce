@@ -6,6 +6,7 @@
 
 export type MessageGroupId =
   | 'orders'
+  | 'returns'
   | 'transfer'
   | 'preorder'
   | 'manual'
@@ -49,12 +50,16 @@ export const notificationsSettingsContent = {
     openApp: 'Open app',
     notYet: {
       heading: 'Not sent yet',
-      body: 'Customers do not get a message yet when their parcel is out for delivery, delivered, has a delivery problem, or when an order is cancelled or refunded. These are coming.',
+      body: 'Customers do not get a message yet when their parcel is out for delivery, delivered, has a delivery problem, or when an order is cancelled or refunded outside a return. These are coming.',
     },
   },
 
   groups: {
     orders: { title: 'Orders', help: 'Sent by themselves as the order moves along.' },
+    returns: {
+      title: 'Returns',
+      help: 'Sent by themselves as a customer return moves along.',
+    },
     transfer: {
       title: 'UPI or bank transfer orders',
       help: 'For orders paid by UPI QR or bank transfer that you check yourself.',
@@ -139,6 +144,26 @@ export const notificationsSettingsContent = {
     back_in_stock_alert: {
       name: 'Back in stock',
       when: 'When the item they asked about is back in stock.',
+    },
+    return_requested: {
+      name: 'Return request received',
+      when: 'Right after a customer asks to return items.',
+    },
+    return_approved: {
+      name: 'Return approved',
+      when: 'When you approve a return. Says whether a courier collects it.',
+    },
+    return_rejected: {
+      name: 'Return declined',
+      when: 'When you decline a return. Includes your reason.',
+    },
+    return_received: {
+      name: 'Return received',
+      when: 'When you mark the returned parcel as received.',
+    },
+    return_refunded: {
+      name: 'Return refunded',
+      when: 'When you refund a return or give store credit.',
     },
     unpaid_cancel_notice: {
       name: 'Unpaid order will be cancelled',
