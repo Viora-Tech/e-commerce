@@ -179,20 +179,33 @@ sheet is made from your saved labels.
 ## Delivery problems (NDR)
 
 When a courier can't deliver a parcel (shopper not home, phone switched off, address
-incomplete) it's called an **NDR**, a non-delivery report. Those parcels show up under
-**Delivery problems**, with what the **Courier said**. For each one choose:
+incomplete) it's called an **NDR**, a non-delivery report. A parcel moves into **Delivery
+problems** by itself as soon as the courier's own tracking update says so - the same tracking
+check that flips a parcel to **Out for delivery** or **Delivered** (every 30 minutes, and
+instantly over a webhook) also reads the courier's remark for a failed attempt and, if it
+looks like one, opens it here with what the **Courier said**. No parcel needs a manual nudge
+into this tab. For each one choose:
 
 - **Try delivery again**: the courier re-attempts.
 - **Use a new address**: fix the address or phone number, and the courier tries there.
 - **Send it back (RTO)**: return to origin. The parcel comes back to your pickup address.
 
-Then select **Send to courier**.
+Then select **Send to courier**. Once the courier's next update reports **Delivered** or
+**RTO**, the parcel clears out of Delivery problems automatically too - there's nothing to
+dismiss by hand.
+
+<Callout type="info">
+  **How the match works.** Neither Delhivery nor Shiprocket has a single fixed "this is an
+  NDR" status code over their tracking APIs - both describe a failed attempt in free text
+  (Delhivery's scan remarks, Shiprocket's "Undelivered" activity text) rather than a coded
+  field. Detection matches that wording, so an unusual phrasing from a courier could in rare
+  cases be missed; if a parcel sits on **Out for delivery** for more than a day without
+  moving here, check it from your courier's dashboard directly.
+</Callout>
 
 <Callout type="warning">
-  **Coming soon.** Parcels are not yet moved into Delivery problems automatically from the
-  courier's updates. Until they are, check stuck parcels (**Out for delivery** for more than a
-  day) in the **Shipments** tab and act on them from your courier's dashboard. Shiprocket also
-  does not accept **Send it back (RTO)** over its API yet; raise the RTO in Shiprocket itself.
+  Shiprocket does not accept **Send it back (RTO)** over its API yet; raise the RTO in
+  Shiprocket itself.
 </Callout>
 
 ## Courier wallet balance
