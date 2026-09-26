@@ -1,6 +1,7 @@
 import {
   expireUnpaidOrders,
   parsePaymentSettings,
+  refreshPaymentCredentials,
   resolvePaymentProviders,
   runManualFollowUp,
 } from '@commerce/core'
@@ -46,11 +47,13 @@ export function createUnpaidOrderExpiry(
       for (const storeId of storeIds) {
         try {
           const providers = await withStore(db, storeId, async (tx) => {
+            const { payments } = await registriesForStore(tx, storeId)
+            // Asking the gateway needs a live OAuth token; renew it first when due.
+            await refreshPaymentCredentials({ storeId, tx }, payments, opts.settingsSecret)
             const [s] = await tx
               .select({ payments: store.payments })
               .from(store)
               .where(eq(store.id, storeId))
-            const { payments } = await registriesForStore(tx, storeId)
             return resolvePaymentProviders(
               payments,
               parsePaymentSettings(s?.payments),

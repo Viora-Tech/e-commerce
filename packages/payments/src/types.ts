@@ -5,6 +5,13 @@
 
 export type PaymentStatus = 'pending' | 'authorized' | 'captured' | 'failed' | 'refunded'
 
+/**
+ * The ways a shopper can pay online, as the merchant turns them on in
+ * Settings → Payments. Gateways map each kind to their own method codes.
+ * `emi` covers card EMI, cardless EMI and pay later.
+ */
+export type PaymentMethodKind = 'upi' | 'card' | 'netbanking' | 'wallet' | 'emi'
+
 export type PaymentCustomer = {
   email?: string | undefined
   phone?: string | undefined
@@ -32,6 +39,12 @@ export type CreatePaymentInput = {
    * Pattern from Medusa's payment provider `idempotency_key` (MIT).
    */
   idempotencyKey?: string | undefined
+  /**
+   * The online methods the merchant turned on, in the order shoppers should
+   * see them. Adapters show only these, in this order, where the gateway
+   * allows it. Undefined means "whatever the gateway account offers".
+   */
+  methods?: PaymentMethodKind[] | undefined
 }
 
 export type PaymentShipping = {
@@ -190,7 +203,15 @@ export interface PaymentProvider {
     providerPaymentId: string,
     amountPaise: number,
     note?: string,
+    /** Extra references some gateways refund by (Cashfree refunds per order, not per payment). */
+    context?: RefundContext,
   ): Promise<{ providerRefundId: string; status: 'pending' | 'processed' }>
+
+  /**
+   * Optional read-only check that the saved keys work, for the Connect page's
+   * "Test connection" button. Must not create anything on the gateway.
+   */
+  testConnection?(): Promise<ConnectionTestResult>
 
   /** Verify the signature and parse the body into a normalised event. Never throws on bad input. */
   parseWebhook(input: {
@@ -198,6 +219,15 @@ export interface PaymentProvider {
     headers: Record<string, string | undefined>
   }): WebhookVerification
 }
+
+export type RefundContext = {
+  /** The attempt's gateway reference (the gateway order id). */
+  providerRef?: string | undefined
+  /** Our refund row key, when the gateway wants a merchant refund id. */
+  refundKey?: string | undefined
+}
+
+export type ConnectionTestResult = { ok: boolean; message: string }
 
 export type ProviderField = {
   key: string
@@ -209,6 +239,8 @@ export type ProviderField = {
   /** `boolean` renders a checkbox and stores 'true' | 'false'. Defaults to text. */
   type?: 'text' | 'boolean'
   help?: string
+  /** Written by the platform (e.g. OAuth tokens), never typed in: forms leave it out. */
+  hidden?: boolean
 }
 
 export type PaymentProviderFactory<Config> = {
@@ -222,6 +254,16 @@ export type PaymentProviderFactory<Config> = {
    * needs the other configured, not enabled.
    */
   credentialsFrom?: string | undefined
+  /**
+   * Renew short-lived credentials (OAuth access tokens) before they run out.
+   * Gets the decrypted saved config; returns the fields to overwrite, or null
+   * when nothing needed doing. The platform saves (encrypted) and uses them.
+   */
+  refreshCredentials?:
+    | ((saved: Record<string, string>, now?: Date) => Promise<Record<string, string> | null>)
+    | undefined
+  /** Online methods this gateway can take, for the admin's "Shoppers can pay with" row. */
+  methods?: readonly PaymentMethodKind[] | undefined
   /** Zod-like validator kept minimal so this package has no runtime deps. */
   validateConfig(raw: unknown): { ok: true; config: Config } | { ok: false; errors: string[] }
   create(config: Config): PaymentProvider
