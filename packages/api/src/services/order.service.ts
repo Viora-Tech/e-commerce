@@ -1,5 +1,6 @@
 import {
   changeOrderStatus,
+  insertOutboxEvent,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   type OrderStatus,
@@ -331,7 +332,13 @@ export async function refundOrderPayment(
   const [p] = await tx.select().from(payment).where(eq(payment.id, input.paymentId))
   if (!p) return null
   const provider = await providerForPayment(tx, storeId, registry, secret, p.provider)
-  return refundPayment({ tx, storeId }, provider, input)
+  const row = await refundPayment({ tx, storeId }, provider, input)
+  // Not tagged with a return: this is a direct refund from the order page, so the
+  // shopper gets the generic `refund_issued` message (see the outbox relay).
+  if (row && row.status !== 'failed') {
+    await insertOutboxEvent(tx, storeId, 'refund.created', { orderId: p.orderId, refundId: row.id })
+  }
+  return row
 }
 
 /**

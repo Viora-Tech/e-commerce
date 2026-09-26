@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull, notInArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { insertOutboxEvent } from '../outbox/write'
 import { applyPaymentStatus } from '../payments/confirm'
 import { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
 import { capturedPaise, checkoutDuePaise } from './aggregate-status'
@@ -70,6 +71,12 @@ export async function cancelOrder(
   opts: {
     /** False when the store keeps a forfeited pre-order deposit, gift card part included. */
     returnGiftCards?: boolean | undefined
+    /**
+     * False when the caller already tells the shopper their order was cancelled in a more
+     * specific way (the unpaid-transfer cancel has its own dedicated message). Defaults to
+     * true: writes `order.cancel_notice`, which sends the generic `order_cancelled` message.
+     */
+    notifyCustomer?: boolean | undefined
   } = {},
 ) {
   const [cancelled] = await ctx.tx
@@ -96,6 +103,9 @@ export async function cancelOrder(
     })
   }
   if (opts.returnGiftCards !== false) await returnGiftCardPayments(ctx, orderId)
+  if (opts.notifyCustomer !== false) {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.cancel_notice', { orderId })
+  }
   await recomputeOrderStatuses(ctx, orderId)
   const [after] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   return after ?? cancelled
@@ -175,10 +185,14 @@ export async function changeOrderStatus(
     await fulfilRemainingLines(ctx, orderId)
   }
   if (change === 'delivered') {
-    await ctx.tx
+    const [marked] = await ctx.tx
       .update(order)
       .set({ deliveredAt: new Date() })
       .where(and(eq(order.id, orderId), isNull(order.deliveredAt)))
+      .returning({ id: order.id })
+    // Tracking may already have flipped the shipment to delivered (see `applyTracking`),
+    // which sends the same message; the notification job id makes a repeat harmless.
+    if (marked) await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId })
   }
   await recomputeOrderStatuses(ctx, orderId)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))

@@ -33,6 +33,27 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     waybill: 'AWB123456789',
     trackingUrl: 'https://waimers.example/track/42',
   },
+  out_for_delivery: {
+    ...base,
+    waybill: 'AWB123456789',
+    trackingUrl: 'https://waimers.example/track/42',
+  },
+  delivered: { ...base, orderUrl: 'https://waimers.example/account/orders/42' },
+  delivery_failed: {
+    ...base,
+    trackingUrl: 'https://waimers.example/track/42',
+    deliveryIssue: { reasonLabel: 'Consignee not available' },
+  },
+  order_cancelled: { ...base, orderUrl: 'https://waimers.example/account/orders/42' },
+  refund_issued: {
+    ...base,
+    orderUrl: 'https://waimers.example/account/orders/42',
+    refund: {
+      amountLabel: '₹1,999',
+      methodLabel: 'Original payment method',
+      etaLabel: '5 to 7 working days',
+    },
+  },
   draft_invoice: { ...base, actionUrl: 'https://waimers.example/pay/42' },
   checkout_recovery: {
     ...base,

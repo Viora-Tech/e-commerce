@@ -15,6 +15,8 @@ export type NotificationJob = {
   key?: string | undefined
   /** For return messages: which return the message is about. */
   returnId?: string | undefined
+  /** For refund_issued: which refund the message reports. */
+  refundId?: string | undefined
 }
 
 /**

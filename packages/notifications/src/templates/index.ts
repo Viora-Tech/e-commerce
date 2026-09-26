@@ -11,6 +11,11 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'order_placed',
   'payment_received',
   'order_shipped',
+  'out_for_delivery',
+  'delivered',
+  'delivery_failed',
+  'order_cancelled',
+  'refund_issued',
   'draft_invoice',
   'checkout_recovery',
   'document_copy',
@@ -36,6 +41,11 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   order_placed: 'Order placed',
   payment_received: 'Payment received',
   order_shipped: 'Order shipped',
+  out_for_delivery: 'Out for delivery',
+  delivered: 'Delivered',
+  delivery_failed: 'Delivery attempt failed',
+  order_cancelled: 'Order cancelled',
+  refund_issued: 'Refund issued',
   draft_invoice: 'Draft invoice',
   checkout_recovery: 'Checkout recovery',
   document_copy: 'Document copy',
@@ -91,6 +101,17 @@ function primaryActionFor(
     case 'payment_received':
       return d.orderUrl ? { label: shared.viewOrder, url: d.orderUrl } : undefined
     case 'order_shipped':
+    case 'out_for_delivery':
+      return d.trackingUrl
+        ? { label: 'Track your order', url: d.trackingUrl }
+        : d.orderUrl
+          ? { label: shared.viewOrder, url: d.orderUrl }
+          : undefined
+    case 'delivered':
+    case 'order_cancelled':
+    case 'refund_issued':
+      return d.orderUrl ? { label: shared.viewOrder, url: d.orderUrl } : undefined
+    case 'delivery_failed':
       return d.trackingUrl
         ? { label: 'Track your order', url: d.trackingUrl }
         : d.orderUrl

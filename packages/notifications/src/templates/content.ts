@@ -184,11 +184,72 @@ const returnTemplates = {
   TemplateCopy
 >
 
+/** Shipment status and order lifecycle messages not already covered above. */
+const shipmentTemplates = {
+  out_for_delivery: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} is out for delivery`,
+    heading: () => "It's out for delivery",
+    intro: (d) =>
+      `Order #${d.orderNumber} is with the courier for delivery today.${d.waybill ? ` Tracking number: ${d.waybill}.` : ''}`,
+    outro: (d) => (d.trackingUrl ? `Track it here: ${d.trackingUrl}` : 'It should arrive today.'),
+    whatsapp: (d) =>
+      `${d.storeName} order #${d.orderNumber} is out for delivery today.${d.trackingUrl ? ` Track: ${d.trackingUrl}` : ''}`,
+  },
+  delivered: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} was delivered`,
+    heading: () => 'Delivered',
+    intro: (d) => `Order #${d.orderNumber} has been delivered. We hope you love it.`,
+    outro: () => 'Something wrong with it? Just reply to this email.',
+    whatsapp: (d) => `${d.storeName} order #${d.orderNumber} was delivered. Enjoy!`,
+  },
+  delivery_failed: {
+    subject: (d) => `${d.storeName}: a delivery attempt for order #${d.orderNumber} failed`,
+    heading: () => 'We could not deliver your order',
+    intro: (d) =>
+      `The courier tried to deliver order #${d.orderNumber} but could not.${
+        d.deliveryIssue?.reasonLabel ? ` Reason given: ${d.deliveryIssue.reasonLabel}.` : ''
+      }`,
+    outro: (d) =>
+      d.trackingUrl
+        ? `Check the tracking page and reply to this email with the best time and address to try again: ${d.trackingUrl}`
+        : 'Reply to this email with the best time and address to try again, and we will arrange another attempt.',
+    whatsapp: (d) =>
+      `${d.storeName}: delivery of order #${d.orderNumber} failed.${
+        d.deliveryIssue?.reasonLabel ? ` Reason: ${d.deliveryIssue.reasonLabel}.` : ''
+      } Reply here to arrange another attempt.`,
+  },
+  order_cancelled: {
+    subject: (d) => `${d.storeName}: order #${d.orderNumber} was cancelled`,
+    heading: (d) => `Hi ${d.customerName}, your order was cancelled`,
+    intro: (d) => `Order #${d.orderNumber} (${d.totalLabel}) has been cancelled.`,
+    outro: () => 'Anything already paid will be refunded separately if it has not been already.',
+    whatsapp: (d) =>
+      `${d.storeName}: your order #${d.orderNumber} (${d.totalLabel}) was cancelled.`,
+  },
+  refund_issued: {
+    subject: (d) => `${d.storeName}: a refund for order #${d.orderNumber} was issued`,
+    heading: () => 'Refund issued',
+    intro: (d) =>
+      `We have refunded ${d.refund?.amountLabel ?? ''} for order #${d.orderNumber} to ${
+        d.refund?.methodLabel ?? 'your payment method'
+      }.${d.refund?.etaLabel ? ` It should reach you in ${d.refund.etaLabel}.` : ''}`,
+    outro: () => 'Reply to this email if you have any questions about this refund.',
+    whatsapp: (d) =>
+      `${d.storeName}: ${d.refund?.amountLabel ?? ''} refunded for order #${d.orderNumber} to ${
+        d.refund?.methodLabel ?? 'your payment method'
+      }.${d.refund?.etaLabel ? ` Expect it in ${d.refund.etaLabel}.` : ''}`,
+  },
+} satisfies Record<
+  'out_for_delivery' | 'delivered' | 'delivery_failed' | 'order_cancelled' | 'refund_issued',
+  TemplateCopy
+>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...balanceTemplates,
   ...transferTemplates,
   ...backInStockTemplates,
   ...returnTemplates,
+  ...shipmentTemplates,
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => `Thanks, ${d.customerName}`,

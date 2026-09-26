@@ -98,9 +98,12 @@ export async function refundReturn(ctx: StoreContext, id: string, input: RefundR
     if (row) {
       refundIds.push(row.id)
       if (row.status !== 'failed') {
+        // Tagged with the return so the relay skips the generic `refund_issued` message:
+        // `return_refunded` (or, for an RTO, no shopper message by design) already covers it.
         await insertOutboxEvent(ctx.tx, ctx.storeId, 'refund.created', {
           orderId: r.orderId,
           refundId: row.id,
+          returnId: r.id,
         })
       }
     }

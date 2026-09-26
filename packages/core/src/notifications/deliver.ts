@@ -2,10 +2,14 @@ import {
   cart,
   cartLine,
   customer,
+  media,
   notification,
   order,
   orderLine,
+  payment,
   product,
+  productMedia,
+  refund,
   shipment,
   store,
   variant,
@@ -19,8 +23,9 @@ import type {
   TemplateData,
   TemplateId,
 } from '@commerce/notifications'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
@@ -33,6 +38,7 @@ import {
 } from '../preorder/store-settings'
 import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
+import type { GstBreakdown } from '../tax/gst'
 import { isMessageOn } from './messages'
 import { parseNotificationSettings } from './settings'
 
@@ -93,6 +99,66 @@ function balanceData(
   }
 }
 
+const isGst = (v: unknown): v is GstBreakdown =>
+  typeof v === 'object' && v !== null && typeof (v as GstBreakdown).taxPaise === 'number'
+
+/**
+ * The GST split for the totals block, straight from what the order already stored at checkout
+ * (see `computeOrderGst` in `order/place-order.ts`) - never recomputed, so it always matches the
+ * order's own invoice. Omitted when the order carries no tax.
+ */
+function taxLines(o: typeof order.$inferSelect): TemplateData['taxBreakdown'] {
+  const t = o.taxBreakdown
+  if (!isGst(t) || t.taxPaise <= 0) return undefined
+  const taxableLabel = inr(o.totalPaise - t.taxPaise)
+  if (t.interState) {
+    return [
+      { label: 'Taxable value', amount: taxableLabel },
+      { label: `IGST (${t.ratePercent}%)`, amount: inr(t.igstPaise) },
+    ]
+  }
+  return [
+    { label: 'Taxable value', amount: taxableLabel },
+    { label: `CGST (${t.ratePercent / 2}%)`, amount: inr(t.cgstPaise) },
+    { label: `SGST (${t.ratePercent / 2}%)`, amount: inr(t.sgstPaise) },
+  ]
+}
+
+/** Human label for a refund's method, for the refund_issued message. */
+function refundMethodLabel(provider: string): string {
+  if (provider === GIFT_CARD_PROVIDER) return 'your gift card'
+  return PAYMENT_LABELS[provider] ?? 'your original payment method'
+}
+
+/**
+ * A gateway refund takes a few days to clear; a gift card or an offline method (COD, manual
+ * transfer) the merchant settles directly does not have a bank-side wait to quote.
+ */
+function refundEtaLabel(provider: string): string | undefined {
+  if (provider === GIFT_CARD_PROVIDER || provider === 'cod' || provider === 'manual') {
+    return undefined
+  }
+  return '5 to 7 working days'
+}
+
+/** Everything the refund_issued message needs. Null when the refund row is gone. */
+async function refundTemplateData(
+  ctx: StoreContext,
+  refundId: string,
+): Promise<Partial<TemplateData> | null> {
+  const [r] = await ctx.tx.select().from(refund).where(eq(refund.id, refundId))
+  if (!r) return null
+  const [p] = await ctx.tx.select().from(payment).where(eq(payment.id, r.paymentId))
+  const provider = p?.provider ?? ''
+  return {
+    refund: {
+      amountLabel: inr(r.amountPaise),
+      methodLabel: refundMethodLabel(provider),
+      etaLabel: refundEtaLabel(provider),
+    },
+  }
+}
+
 /** Messages asking for the balance: pointless (and confusing) once it is paid or the order is gone. */
 const BALANCE_ASKS: ReadonlySet<TemplateId> = new Set(['balance_request', 'balance_reminder'])
 
@@ -150,12 +216,36 @@ export async function buildTemplateData(
     .select({ name: store.name, preorder: store.preorder })
     .from(store)
     .where(eq(store.id, ctx.storeId))
-  const lines = await ctx.tx.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+  const lines = await ctx.tx
+    .select({
+      title: orderLine.title,
+      variantTitle: orderLine.variantTitle,
+      quantity: orderLine.quantity,
+      unitPricePaise: orderLine.unitPricePaise,
+      productId: variant.productId,
+      variantImage: media.url,
+    })
+    .from(orderLine)
+    .leftJoin(variant, eq(variant.id, orderLine.variantId))
+    .leftJoin(media, eq(media.id, variant.mediaId))
+    .where(eq(orderLine.orderId, orderId))
+  const productIds = [...new Set(lines.map((l) => l.productId).filter((id): id is string => !!id))]
+  const images = productIds.length
+    ? await ctx.tx
+        .select({ productId: productMedia.productId, url: media.url })
+        .from(productMedia)
+        .innerJoin(media, eq(media.id, productMedia.mediaId))
+        .where(and(inArray(productMedia.productId, productIds), eq(productMedia.position, 0)))
+    : []
   const [cu] = o.customerId
     ? await ctx.tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
   const [ship] = await ctx.tx
-    .select({ waybill: shipment.waybill, trackingUrl: shipment.trackingUrl })
+    .select({
+      waybill: shipment.waybill,
+      trackingUrl: shipment.trackingUrl,
+      ndrReason: shipment.ndrReason,
+    })
     .from(shipment)
     .where(eq(shipment.orderId, orderId))
   const method = o.paymentMethod ?? ''
@@ -171,7 +261,10 @@ export async function buildTemplateData(
           .join(' / '),
         quantity: l.quantity,
         priceLabel: inr(l.quantity * l.unitPricePaise),
+        imageUrl:
+          l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
       })),
+      taxBreakdown: taxLines(o),
       paymentMethodLabel: PAYMENT_LABELS[method] ?? method,
       orderUrl:
         storefrontUrl && settingsSecret
@@ -179,6 +272,7 @@ export async function buildTemplateData(
           : undefined,
       waybill: ship?.waybill ?? undefined,
       trackingUrl: ship?.trackingUrl ?? undefined,
+      deliveryIssue: ship?.ndrReason ? { reasonLabel: ship.ndrReason } : undefined,
       balance: balanceData(o, parsePreorderStoreSettings(s?.preorder)),
     },
     to: { email: o.email ?? undefined, phone: o.phone ?? undefined },
@@ -304,7 +398,12 @@ export async function deliverCartRecovery(
  */
 export async function deliverNotification(
   ctx: StoreContext,
-  input: { orderId: string; template: TemplateId; returnId?: string | undefined },
+  input: {
+    orderId: string
+    template: TemplateId
+    returnId?: string | undefined
+    refundId?: string | undefined
+  },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
   const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl, opts.settingsSecret)
@@ -328,6 +427,9 @@ export async function deliverNotification(
   // A return message lists the items going back, not the whole order.
   const returned = input.returnId ? await returnTemplateData(ctx, input.returnId) : null
   if (input.template.startsWith('return_') && !returned) return []
+  // refund_issued reports one specific refund's amount and method.
+  const refunded = input.refundId ? await refundTemplateData(ctx, input.refundId) : null
+  if (input.template === 'refund_issued' && !refunded) return []
   const merchant = MERCHANT_TEMPLATES.has(input.template)
     ? await merchantNotice(ctx, input.orderId)
     : null
@@ -340,6 +442,7 @@ export async function deliverNotification(
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
     ...returned,
+    ...refunded,
     ...merchant?.data,
     ...opts.data,
     ...(extras?.links.length ? { links: extras.links } : {}),
