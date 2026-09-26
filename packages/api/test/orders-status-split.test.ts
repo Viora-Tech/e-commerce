@@ -173,7 +173,7 @@ describe('order list tabs and filters on the split statuses', () => {
     expect(after?.paymentStatus).toBe('unpaid')
   })
 
-  it('mark as fulfilled then delivered announces fulfilment once and completes a paid order', async () => {
+  it('mark as fulfilled then delivered announces fulfilment and delivery once each and completes a paid order', async () => {
     const m = await merchant('mark@example.com', 'mark')
     const [p] = await owner
       .insert(product)
@@ -218,6 +218,10 @@ describe('order list tabs and filters on the split statuses', () => {
       fulfillmentStatus: 'delivered',
     })
     const events = await withStore(app, m.storeId, (tx) => tx.select().from(outboxEvent))
-    expect(events.map((e) => e.type).sort()).toEqual(['order.fulfilled', 'order.paid'])
+    expect(events.map((e) => e.type).sort()).toEqual([
+      'order.delivered',
+      'order.fulfilled',
+      'order.paid',
+    ])
   })
 })
