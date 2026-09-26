@@ -20,6 +20,8 @@
     "@commerce/notifications": "workspace:*",
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
+    "@commerce/payments-cashfree": "workspace:*",
+    "@commerce/payments-razorpay": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",

@@ -19,6 +19,7 @@ import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
+import { paymentsRouter } from './payments'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
 import { shipmentsRouter } from './shipments'
@@ -46,6 +47,7 @@ export const appRouter = {
   orders: ordersRouter,
   shipments: shipmentsRouter,
   shipping: shippingRouter,
+  payments: paymentsRouter,
   customers: customersRouter,
   discounts: discountsRouter,
   marketing: marketingRouter,
