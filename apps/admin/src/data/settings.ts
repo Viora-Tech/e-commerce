@@ -207,7 +207,7 @@ export const settingsHomeContent = {
       payments: {
         title: 'Payments',
         todo: 'Choose how customers pay you: UPI, cards or cash on delivery.',
-        done: 'You can take payments.',
+        done: 'You chose how customers pay you.',
         href: '/settings/payments',
       },
       shipping: {

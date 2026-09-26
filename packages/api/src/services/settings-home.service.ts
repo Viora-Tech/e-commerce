@@ -1,4 +1,6 @@
 import {
+  defaultPaymentSettings,
+  isGatewayProvider,
   listDomains,
   listShippingZones,
   parseNotificationSettings,
@@ -23,6 +25,28 @@ export type SetupItemId =
 const POLICY_HANDLE = /refund|return|privacy|terms|policy|policies|cancellation/i
 
 const filled = (v: string | null | undefined) => (v ?? '').trim().length > 0
+
+/** The saved settings without the "skip for now" stamp, for comparing with the defaults. */
+function withoutSkip(s: ReturnType<typeof parsePaymentSettings>) {
+  const { setupSkippedAt: _skip, ...rest } = s
+  return JSON.stringify(rest)
+}
+
+/**
+ * Payments is done when a payment company is connected (switched on with its
+ * account saved), or the merchant saved a payments choice themselves. Cash on
+ * delivery being on by default does not count, and neither does "Skip for now".
+ */
+function paymentsChosen(raw: unknown): boolean {
+  if (raw === null || raw === undefined) return false
+  const s = parsePaymentSettings(raw)
+  const gateway = s.enabled.some(
+    (id) => isGatewayProvider(id) && Object.values(s.providers[id] ?? {}).some(filled),
+  )
+  if (gateway) return true
+  const offline = s.enabled.some((id) => id === 'cod' || id === 'manual')
+  return offline && withoutSkip(s) !== withoutSkip(defaultPaymentSettings)
+}
 
 /**
  * What a new shop still has to set up, each item computed from real data:
@@ -51,7 +75,7 @@ export async function settingsChecklist(
         filled(a.city) &&
         filled(a.pincode),
     },
-    { id: 'payments', done: parsePaymentSettings(s.payments).enabled.length > 0 },
+    { id: 'payments', done: paymentsChosen(s.payments) },
     { id: 'shipping', done: zones.some((z) => z.rates.length > 0) },
     { id: 'taxes', done: filled(general.gstin) },
     { id: 'domain', done: domains.some((d) => d.kind === 'custom' && d.status === 'active') },

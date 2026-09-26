@@ -1,5 +1,6 @@
 import {
   builtInNotificationRegistry,
+  defaultPaymentSettings,
   encryptNotificationSettings,
   parseNotificationSettings,
 } from '@commerce/core'
@@ -146,13 +147,45 @@ describe('sendTestMessage', () => {
   })
 })
 
+describe('settingsChecklist: payments', () => {
+  const paymentsDone = async (slug: string, payments: unknown) => {
+    const storeId = await makeStore(slug, payments === undefined ? {} : { payments })
+    const items = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
+    return items.find((i) => i.id === 'payments')?.done
+  }
+
+  it('needs a connected gateway or a payments choice the merchant saved', async () => {
+    // Never saved, or only "Skip for now": the default cash on delivery does not count.
+    expect(await paymentsDone('p-new', undefined)).toBe(false)
+    expect(
+      await paymentsDone('p-skip', {
+        ...defaultPaymentSettings,
+        setupSkippedAt: '2026-09-26T10:00:00Z',
+      }),
+    ).toBe(false)
+    // A gateway switched on with its account saved.
+    expect(
+      await paymentsDone('p-rzp', {
+        enabled: ['razorpay'],
+        providers: { razorpay: { keyId: 'rzp_test_1' } },
+      }),
+    ).toBe(true)
+    // A gateway switched on with nothing saved is not connected.
+    expect(await paymentsDone('p-rzp-empty', { enabled: ['razorpay'], providers: {} })).toBe(false)
+    // The merchant turned on UPI to their own ID (manual) themselves.
+    expect(await paymentsDone('p-manual', { enabled: ['cod', 'manual'], providers: {} })).toBe(true)
+    // Nothing on at all.
+    expect(await paymentsDone('p-none', { enabled: [], providers: {} })).toBe(false)
+  })
+})
+
 describe('settingsChecklist', () => {
   it('ticks items from real data', async () => {
     const storeId = await makeStore('n-checklist', {
       contactEmail: 'shop@example.com',
       address: { line1: '1 MG Road', city: 'Bengaluru', pincode: '560001' },
       gstin: '29ABCDE1234F1Z5',
-      payments: { enabled: ['cod'], providers: {} },
+      payments: { enabled: ['cod', 'manual'], providers: {} },
       notifications: { enabled: ['ses'], providers: {} },
     })
     const items = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
@@ -168,10 +201,10 @@ describe('settingsChecklist', () => {
     })
   })
 
-  it('leaves everything but payments to do on a new store (cash on delivery starts on)', async () => {
+  it('leaves everything to do on a new store, even though cash on delivery starts on', async () => {
     const storeId = await makeStore('n-checklist-new')
     const items = await withStore(app, storeId, (tx) => settingsChecklist(tx, storeId))
-    expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(['payments'])
+    expect(items.filter((i) => i.done)).toEqual([])
     expect(items).toHaveLength(7)
   })
 })
