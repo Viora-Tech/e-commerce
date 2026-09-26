@@ -85,7 +85,11 @@ export const draftEditorContent = {
     saveFirst: 'Save the draft first',
   },
   paymentMethod: 'Payment method',
-  methods: { manual: 'UPI or bank transfer', cod: 'Cash on delivery', razorpay: 'Razorpay' },
+  methods: {
+    manual: 'UPI to your own ID — you confirm it',
+    cod: 'Cash on delivery',
+    razorpay: 'Razorpay',
+  },
 } as const
 
 export const abandonedContent = {

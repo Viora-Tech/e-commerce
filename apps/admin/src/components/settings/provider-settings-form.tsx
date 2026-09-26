@@ -38,6 +38,10 @@ type ProviderSettingsFormProps<Extra> = {
   emptyExtra: Extra
   /** Rendered under a provider's fields, e.g. a webhook URL hint. */
   renderHint?: ((provider: ProviderDef) => ReactNode) | undefined
+  /** A plain line on what a provider is, at the top of its card. */
+  renderDescription?: ((provider: ProviderDef) => ReactNode) | undefined
+  /** The parent page, shown as the back button beside the title. */
+  back?: { label: string; href: string } | undefined
   /** Rendered under an enabled provider, receives and updates the extra part. */
   renderExtra?:
     | ((provider: ProviderDef, extra: Extra, setExtra: (next: Extra) => void) => ReactNode)
@@ -86,6 +90,8 @@ export default function ProviderSettingsForm<Extra extends object>({
   save,
   emptyExtra,
   renderHint,
+  renderDescription,
+  back,
   renderExtra,
   renderFooter,
   noConfigText,
@@ -162,7 +168,12 @@ export default function ProviderSettingsForm<Extra extends object>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={title} subtitle={intro} icon={icon} />
+      <PageHeader
+        title={title}
+        subtitle={intro}
+        icon={back ? undefined : icon}
+        breadcrumbs={back ? [back, { label: title }] : undefined}
+      />
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
@@ -204,6 +215,7 @@ export default function ProviderSettingsForm<Extra extends object>({
                     onToggle={(v) => toggle(m.id, v)}
                     onField={(k, v) => setField(m.id, k, v)}
                     hint={renderHint?.(m)}
+                    description={renderDescription?.(m)}
                     extra={extra}
                     noConfigText={noConfigText}
                   />

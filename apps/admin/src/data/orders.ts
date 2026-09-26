@@ -237,8 +237,8 @@ export const orderDetailContent = {
     heading: 'Payment',
     method: {
       cod: 'Cash on delivery',
-      manual: 'UPI / bank transfer',
-      razorpay_upi: 'UPI (auto-confirmed)',
+      manual: 'UPI to your own ID — you confirm it',
+      razorpay_upi: 'UPI — confirmed automatically',
     } as Record<string, string>,
     reference: 'Reference',
     gatewayId: 'Gateway payment id',

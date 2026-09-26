@@ -133,14 +133,10 @@ export default function AddGatewayDialog({
                 <p className="text-caption text-muted-foreground">
                   {g.methods.map((m) => methodNames[m].name).join(' · ')}
                 </p>
-                <dl className="grid gap-1 text-caption sm:grid-cols-2">
+                <dl className="text-caption">
                   <div>
                     <dt className="inline font-medium text-foreground">{copy.fees}: </dt>
                     <dd className="inline text-muted-foreground">{g.fees}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline font-medium text-foreground">{copy.settlement}: </dt>
-                    <dd className="inline text-muted-foreground">{g.settlement}</dd>
                   </div>
                 </dl>
               </li>

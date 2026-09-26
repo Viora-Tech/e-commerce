@@ -56,7 +56,7 @@ function qrStatus(qr: RzpQrCode): PaymentStatus {
 }
 
 /**
- * "UPI (auto-confirmed)": a single-use Razorpay UPI QR for the exact amount,
+ * "UPI — confirmed automatically": a single-use Razorpay UPI QR for the exact amount,
  * shown on the thank-you page. No Checkout modal and no merchant step: the
  * `qr_code.credited` webhook captures the attempt, `qr_code.closed` unpaid
  * fails it and the shopper asks for a new QR (a new attempt). Runs on the
@@ -66,7 +66,7 @@ function qrStatus(qr: RzpQrCode): PaymentStatus {
  */
 export class RazorpayUpiQrProvider extends RazorpayProvider {
   override readonly id = RAZORPAY_UPI_ID
-  override readonly label = 'UPI (auto-confirmed)'
+  override readonly label = 'UPI — confirmed automatically'
   readonly webhookId = 'razorpay'
 
   constructor(
@@ -129,7 +129,7 @@ export class RazorpayUpiQrProvider extends RazorpayProvider {
 /** Offered as its own method at checkout; the keys come from the Razorpay settings. */
 export const razorpayUpiFactory: PaymentProviderFactory<RazorpayConfig> = {
   id: RAZORPAY_UPI_ID,
-  label: 'UPI (auto-confirmed, Razorpay QR)',
+  label: 'UPI — confirmed automatically',
   credentialsFrom: razorpayFactory.id,
   fields: [],
   validateConfig: (raw) => razorpayFactory.validateConfig(raw),

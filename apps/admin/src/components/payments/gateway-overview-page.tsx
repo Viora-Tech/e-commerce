@@ -11,6 +11,7 @@ import {
   gatewayGuides,
 } from '@/data/payments-setup'
 import { api } from '@/lib/api-client'
+import BackToPayments from './back-to-payments'
 import MainGatewayCard from './main-gateway-card'
 import type { GatewayId, PaymentsSetup } from './types'
 
@@ -48,6 +49,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
 
   return (
     <div className="flex flex-col gap-4">
+      <BackToPayments />
       {isMain ? (
         <MainGatewayCard
           primary={setup.primary}
@@ -61,11 +63,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
             <p className="text-body font-semibold text-foreground">
               {gatewayGuides[providerId].intro}
             </p>
-            {entry ? (
-              <p className="text-body text-muted-foreground">
-                {entry.fees} {entry.settlement}
-              </p>
-            ) : null}
+            {entry ? <p className="text-body text-muted-foreground">{entry.fees}</p> : null}
             <Button
               className="w-fit"
               nativeButton={false}
@@ -76,14 +74,6 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
           </CardContent>
         </Card>
       )}
-      <Button
-        variant="outline"
-        className="w-fit"
-        nativeButton={false}
-        render={<Link href="/settings/payments" />}
-      >
-        {copy.title}
-      </Button>
     </div>
   )
 }

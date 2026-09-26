@@ -73,7 +73,7 @@ export const manualPaymentContent = {
   },
 } as const
 
-/** The auto-confirmed Razorpay UPI QR on the thank-you page. */
+/** "UPI — confirmed automatically": the Razorpay UPI QR on the thank-you page. */
 export const upiQrContent = {
   heading: (amount: string) => `Pay ${amount} by UPI`,
   qrAlt: (amount: string) => `UPI QR code for ${amount}`,

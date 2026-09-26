@@ -42,7 +42,8 @@ export function upiDeepLink(input: {
  */
 export class ManualPaymentProvider implements PaymentProvider {
   readonly id = 'manual'
-  readonly label = 'UPI or bank transfer'
+  /** What shoppers see at checkout; the admin calls it "UPI to your own ID — you confirm it". */
+  readonly label = 'UPI or bank transfer to the shop'
 
   constructor(private readonly config: ManualConfig) {}
 
@@ -112,7 +113,7 @@ function normaliseManualConfig(raw: ManualConfig): ManualConfig {
 
 export const manualFactory: PaymentProviderFactory<ManualConfig> = {
   id: 'manual',
-  label: 'UPI or bank transfer',
+  label: 'UPI to your own ID — you confirm it',
   fields: [
     { key: 'upiId', label: 'UPI ID', help: 'e.g. waimers@hdfcbank' },
     { key: 'payeeName', label: 'Payee name', help: 'Shown in the UPI app.' },

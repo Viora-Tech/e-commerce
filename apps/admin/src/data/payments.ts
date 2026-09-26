@@ -2,7 +2,7 @@
 export const paymentsSettingsContent = {
   advancedTitle: 'Advanced payments',
   advancedIntro:
-    'Bank transfer and UPI QR you confirm yourself, a fee or discount per method, and what happens to unpaid orders. Connect Razorpay or Cashfree and pick ways to pay on the main Payments page.',
+    'The two extra UPI options, a fee or discount per method, and what happens to unpaid orders. Connect Razorpay or Cashfree and pick ways to pay on the main Payments page.',
   webhookHint:
     'Webhook URL for the Razorpay dashboard (tick payment.* and refund.* events, plus qr_code.credited and qr_code.closed for auto-confirmed UPI):',
   upiQrHint:

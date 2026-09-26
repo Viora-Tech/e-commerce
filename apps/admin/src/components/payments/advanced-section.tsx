@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import Link from 'next/link'
 import { paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import UpiOptions from './upi-options'
 
 const copy = setupCopy.advanced
 
@@ -30,6 +31,7 @@ export default function AdvancedSection() {
       <CollapsibleContent>
         <Card className="mt-3">
           <CardContent className="flex flex-col gap-4">
+            <UpiOptions />
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex flex-1 flex-col gap-0.5">
                 <p className="text-body font-medium text-foreground">{copy.manual}</p>

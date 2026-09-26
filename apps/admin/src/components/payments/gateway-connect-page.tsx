@@ -1,13 +1,13 @@
 'use client'
 
-import { CreditCard } from '@commerce/ui/icons'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
-import { gatewayGuides } from '@/data/payments-setup'
+import { paymentsSetupContent as copy, gatewayGuides } from '@/data/payments-setup'
 import { api } from '@/lib/api-client'
+import BackToPayments, { PAYMENTS_PAGE_HREF } from './back-to-payments'
 import GatewayConnectForm from './gateway-connect-form'
 import HelpFooter from './help-footer'
 import type { GatewayId, PaymentsSetup } from './types'
@@ -34,10 +34,11 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
 
   return (
     <div className="flex flex-col gap-4">
+      <BackToPayments />
       <PageHeader
         title={`Connect ${guide.name}`}
+        breadcrumbs={[{ label: copy.title, href: PAYMENTS_PAGE_HREF }, { label: guide.name }]}
         subtitle={guide.intro}
-        icon={<CreditCard aria-hidden="true" />}
       />
       <Card size="form">
         <CardContent>

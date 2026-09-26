@@ -4,7 +4,7 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { gatewayCatalogue, paymentsSetupContent as setupCopy } from '@/data/payments-setup'
 import GatewayLogo from './gateway-logo'
-import type { PaymentsSetup } from './types'
+import { isGatewayId, type PaymentsSetup } from './types'
 
 type WizardHowStepProps = {
   gateways: PaymentsSetup['gateways']
@@ -21,7 +21,10 @@ const optionClass =
 export default function WizardHowStep({ gateways, busy, onPick }: WizardHowStepProps) {
   // Render logic
   const shipped = new Set(gateways.map((g) => g.id))
-  const options = gatewayCatalogue.filter((g) => g.available && shipped.has(g.id))
+  // The guide connects a main gateway; UPI-only apps (Decentro) are added from the page.
+  const options = gatewayCatalogue.filter(
+    (g) => g.available && shipped.has(g.id) && isGatewayId(g.id),
+  )
 
   return (
     <div className="flex flex-col gap-3">
@@ -40,7 +43,6 @@ export default function WizardHowStep({ gateways, busy, onPick }: WizardHowStepP
               {i === 0 ? <Badge variant="info">{copy.recommended}</Badge> : null}
             </span>
             <span className="text-caption text-muted-foreground">{g.blurb}</span>
-            <span className="text-caption text-muted-foreground">{g.settlement}</span>
           </span>
           {busy === g.id ? <Spinner /> : null}
         </button>

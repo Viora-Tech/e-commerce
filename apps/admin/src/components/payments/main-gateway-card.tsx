@@ -51,7 +51,6 @@ export default function MainGatewayCard({
 
   // Render logic
   const healthy = primary.problems.length === 0
-  const settlement = gatewayCatalogue.find((g) => g.id === primary.id)?.settlement
 
   return (
     <Card>
@@ -105,12 +104,6 @@ export default function MainGatewayCard({
                 : copy.noPaymentsYet}
             </dd>
           </div>
-          {settlement ? (
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-caption text-muted-foreground">{setupCopy.add.settlement}</dt>
-              <dd className="font-medium text-foreground">{settlement}</dd>
-            </div>
-          ) : null}
         </dl>
 
         {primary.mode === 'test' ? (

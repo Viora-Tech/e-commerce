@@ -25,8 +25,7 @@ export type GatewayCatalogueEntry = {
   blurb: string
   methods: MethodId[]
   fees: string
-  settlement: string
-  /** False: listed so merchants know it is coming, but it can't be connected yet. */
+  /** False: listed so merchants know it is coming. True still needs the app in this deployment. */
   available: boolean
 }
 
@@ -39,7 +38,6 @@ export const gatewayCatalogue: GatewayCatalogueEntry[] = [
     blurb: 'The most used payment company in India. Quick to sign up.',
     methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
     fees: 'Around 2% per payment. Razorpay sets your exact rate.',
-    settlement: 'Money reaches your bank in about 2 working days.',
     available: true,
   },
   {
@@ -49,18 +47,17 @@ export const gatewayCatalogue: GatewayCatalogueEntry[] = [
     blurb: 'Popular with small shops. Payment updates are set up for you.',
     methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
     fees: 'Around 2% per payment. Cashfree sets your exact rate.',
-    settlement: 'Money reaches your bank in about 2 working days.',
     available: true,
   },
   {
     id: 'decentro',
-    name: 'Decentro',
+    name: 'UPI — confirmed automatically (Decentro)',
     monogram: 'De',
-    blurb: 'UPI collections for businesses.',
+    blurb: "Shoppers scan a QR made for their order; it's marked paid by itself within seconds.",
     methods: ['upi'],
     fees: 'Set by Decentro.',
-    settlement: 'Set by Decentro.',
-    available: false,
+    /** Connects once the Decentro app ships in commerce.config.ts; "Coming soon" until then. */
+    available: true,
   },
   {
     id: 'phonepe',
@@ -69,7 +66,6 @@ export const gatewayCatalogue: GatewayCatalogueEntry[] = [
     blurb: 'Take payments through the PhonePe payment gateway.',
     methods: ['upi', 'card', 'netbanking'],
     fees: 'Set by PhonePe.',
-    settlement: 'Set by PhonePe.',
     available: false,
   },
   {
@@ -79,7 +75,6 @@ export const gatewayCatalogue: GatewayCatalogueEntry[] = [
     blurb: 'Cards, UPI, netbanking and EMI.',
     methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
     fees: 'Set by PayU.',
-    settlement: 'Set by PayU.',
     available: false,
   },
 ]
@@ -96,6 +91,7 @@ export const paymentsSetupContent = {
   },
   testOrder: 'Place a test order',
   openGuide: 'Set up step by step',
+  backToPayments: 'Payments',
   testOrderHelp:
     'Opens your checkout in a new tab with a ₹1 test item. Nothing real is charged in Test mode.',
   testOrderFailed: 'Could not open a test order. Try again.',
@@ -148,15 +144,50 @@ export const paymentsSetupContent = {
     connected: 'Connected',
     comingSoon: 'Coming soon',
     fees: 'Fees',
-    settlement: 'Money in bank',
     installing: 'Opening…',
     installFailed: 'Could not add this app. Ask the store owner to add it from Apps.',
+  },
+  upiOptions: {
+    heading: 'Two more ways to take UPI',
+    auto: {
+      name: 'UPI — confirmed automatically',
+      help: "Shoppers scan a QR made for their order; it's marked paid by itself within seconds.",
+    },
+    manual: {
+      name: 'UPI to your own ID — you confirm it',
+      help: 'Money comes straight to you, but you check your bank and mark each order paid.',
+    },
+    compare: {
+      trigger: "What's this?",
+      title: 'Which UPI should I use?',
+      rows: [
+        {
+          label: 'Order marked paid',
+          auto: 'By itself, in seconds',
+          manual: 'You click Mark paid',
+        },
+        {
+          label: 'Fake payment risk',
+          auto: 'None: the payment company confirms it',
+          manual: 'A shopper can show a fake screenshot. Always check your bank.',
+        },
+        { label: 'Fee', auto: "The payment company's fee", manual: 'No fee' },
+        {
+          label: 'Money arrives',
+          auto: 'When the payment company pays you out',
+          manual: 'Straight away, in your bank',
+        },
+      ],
+      autoHeading: 'Confirmed automatically',
+      manualHeading: 'Your own ID',
+    },
+    offNote: 'Both are off. Turn them on with Open, below.',
   },
   advanced: {
     heading: 'Advanced',
     help: 'Extra settings most shops never need.',
     manual: 'Bank transfer, UPI QR and fees per method',
-    manualHelp: 'Take UPI or bank transfers yourself, add a fee or discount, cancel unpaid orders.',
+    manualHelp: 'Turn on the two UPI options above, add a fee or discount, cancel unpaid orders.',
     open: 'Open',
     captureNote:
       'Payments are taken right away when the shopper pays. There is nothing to set up for this.',
@@ -164,7 +195,7 @@ export const paymentsSetupContent = {
   whatsThis: {
     trigger: "What's this?",
     title: 'How getting paid online works',
-    body: 'A payment company (like Razorpay or Cashfree) takes the money from the shopper by UPI or card and sends it to your bank account, usually in 2 working days. They keep a small fee, around 2%.',
+    body: 'A payment company (like Razorpay or Cashfree) takes the money from the shopper by UPI or card and sends it to your bank account. They keep a small fee, usually around 2%.',
   },
   whatsapp: {
     label: 'Need help? Chat with us on WhatsApp',
@@ -198,7 +229,7 @@ export const paymentsSetupContent = {
     },
     ready: {
       title: "You're ready",
-      body: 'Shoppers can now pay you online. Money reaches your bank in about 2 working days.',
+      body: 'Shoppers can now pay you online. Your payment company sends the money to your bank.',
       codBody: 'Shoppers can now pay cash on delivery. Connect online payments any time from here.',
       done: 'Go to Payments',
     },
