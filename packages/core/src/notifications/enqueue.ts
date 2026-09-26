@@ -13,6 +13,8 @@ export type NotificationJob = {
    * worker sends it even when the same template went out before.
    */
   key?: string | undefined
+  /** For return messages: which return the message is about. */
+  returnId?: string | undefined
 }
 
 /**

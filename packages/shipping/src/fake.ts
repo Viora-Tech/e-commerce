@@ -23,6 +23,7 @@ import type {
   CreateShipmentInput,
   CreateShipmentResult,
   CredentialCheck,
+  ReturnPickupInput,
   Serviceability,
   ServiceabilityQuery,
   ShipmentStatus,
@@ -111,7 +112,8 @@ export class FakeShippingProvider implements ShippingProvider {
   }
 
   async createShipment(input: CreateShipmentInput): Promise<CreateShipmentResult> {
-    const waybill = `DEMO${String(input.orderNumber).padStart(8, '0')}`
+    // A short time suffix keeps a second booking for the same order (a re-ship after RTO) unique.
+    const waybill = `DEMO${String(input.orderNumber).padStart(8, '0')}${this.now().toString(36).slice(-4).toUpperCase()}`
     this.created.set(waybill, { at: this.now() })
     return { waybill, providerRef: waybill }
   }
@@ -140,6 +142,13 @@ export class FakeShippingProvider implements ShippingProvider {
     this.created.delete(waybill)
   }
 
+  /** A demo reverse pickup: a stable return AWB, no network. */
+  async createReturnPickup(input: ReturnPickupInput): Promise<CreateShipmentResult> {
+    const waybill = `DEMORET${input.reference.replace(/[^A-Za-z0-9]/g, '')}`
+    this.created.set(waybill, { at: this.now() })
+    return { waybill, providerRef: waybill }
+  }
+
   async verifyCredentials(): Promise<CredentialCheck> {
     return {
       ok: true,
@@ -153,7 +162,7 @@ export const fakeShippingFactory: ShippingProviderFactory<FakeShippingConfig> = 
   id: 'fake',
   label: 'Demo courier (no account needed)',
   fields: [],
-  capabilities: ['serviceability', 'create_shipment', 'tracking', 'cancel'],
+  capabilities: ['serviceability', 'create_shipment', 'tracking', 'cancel', 'reverse_pickup'],
   validateConfig: () => ({ ok: true, config: {} }),
   create: () => new FakeShippingProvider(),
 }

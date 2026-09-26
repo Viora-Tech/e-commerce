@@ -30,7 +30,7 @@ export function createNotificationWorker(
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     async (job) => {
-      const { storeId, orderId, template, key } = job.data
+      const { storeId, orderId, template, key, returnId } = job.data
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app
       // event's own job id makes the repeat a no-op.
@@ -57,7 +57,7 @@ export function createNotificationWorker(
       const results = await withStore(db, storeId, async (tx) =>
         deliverNotification(
           { storeId, tx },
-          { orderId, template },
+          { orderId, template, returnId },
           {
             registry: (await registriesForStore(tx, storeId)).notifications,
             settingsSecret: opts.settingsSecret,

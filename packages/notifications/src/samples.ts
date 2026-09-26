@@ -107,4 +107,37 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       unsubscribeUrl: 'https://waimers.example/back-in-stock/unsubscribe/abc',
     },
   },
+  return_requested: {
+    ...base,
+    taxBreakdown: undefined,
+    orderUrl: 'https://waimers.example/account/orders/42',
+    returnInfo: { label: 'R-3', reasonLabel: 'It arrived damaged or broken' },
+  },
+  return_approved: {
+    ...base,
+    taxBreakdown: undefined,
+    orderUrl: 'https://waimers.example/account/orders/42',
+    returnInfo: { label: 'R-3', pickup: 'courier', pickupWaybill: 'RVP123456789' },
+  },
+  return_rejected: {
+    ...base,
+    taxBreakdown: undefined,
+    orderUrl: 'https://waimers.example/account/orders/42',
+    returnInfo: {
+      label: 'R-3',
+      decisionNote: 'The mousepad has been used and cannot be sold again.',
+    },
+  },
+  return_received: {
+    ...base,
+    taxBreakdown: undefined,
+    orderUrl: 'https://waimers.example/account/orders/42',
+    returnInfo: { label: 'R-3' },
+  },
+  return_refunded: {
+    ...base,
+    taxBreakdown: undefined,
+    orderUrl: 'https://waimers.example/account/orders/42',
+    returnInfo: { label: 'R-3', refundLabel: '₹1,999', refundMethod: 'original' },
+  },
 }

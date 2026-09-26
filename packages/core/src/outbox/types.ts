@@ -31,6 +31,18 @@ export type OutboxEventType =
   | 'shipment.ndr_raised'
   /** A previously-open NDR cleared: the courier later reported delivered or RTO. */
   | 'shipment.ndr_resolved'
+  /** A shopper (or the merchant on their behalf) asked to send items back. */
+  | 'return.requested'
+  /** The merchant accepted a return request. */
+  | 'return.approved'
+  /** The merchant declined a return request, with a reason. */
+  | 'return.rejected'
+  /** The returned parcel reached the merchant. */
+  | 'return.received'
+  /** Money went back for a return (to the original payment or as store credit). */
+  | 'return.refunded'
+  /** A shipment came back to the merchant undelivered (RTO); an RTO task was opened on the order. */
+  | 'order.rto'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -44,6 +56,8 @@ export type OutboxPayload = {
   refundId?: string | undefined
   variantId?: string | undefined
   locationId?: string | undefined
+  /** The return a `return.*` or `order.rto` event is about. */
+  returnId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -82,6 +96,13 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // without touching `syncNdrFromTracking`, which only needs this row to exist.
   'shipment.ndr_raised': null,
   'shipment.ndr_resolved': null,
+  'return.requested': 'return_requested',
+  'return.approved': 'return_approved',
+  'return.rejected': 'return_rejected',
+  'return.received': 'return_received',
+  'return.refunded': 'return_refunded',
+  // The merchant sees the RTO task on the order and in Shipments; the shopper is not emailed.
+  'order.rto': null,
 }
 
 /**
@@ -93,6 +114,12 @@ export const REPEATABLE_OUTBOX_EVENTS: ReadonlySet<OutboxEventType> = new Set([
   'order.balance_requested',
   'order.balance_reminder',
   'order.payment_reminder',
+  // An order can have several returns; each one's messages are their own.
+  'return.requested',
+  'return.approved',
+  'return.rejected',
+  'return.received',
+  'return.refunded',
 ])
 
 /**
@@ -115,4 +142,10 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'inventory.restocked': null,
   'shipment.ndr_raised': null,
   'shipment.ndr_resolved': null,
+  'return.requested': null,
+  'return.approved': null,
+  'return.rejected': null,
+  'return.received': null,
+  'return.refunded': null,
+  'order.rto': null,
 }

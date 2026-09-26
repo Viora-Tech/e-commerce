@@ -42,6 +42,7 @@ import {
   type NdrActionInput,
   type NdrActionResult,
   type ProviderField,
+  type ReturnPickupInput,
   type SchedulePickupInput,
   type SchedulePickupResult,
   type Serviceability,
@@ -367,6 +368,91 @@ export class DelhiveryProvider implements ShippingProvider {
     }
   }
 
+  /**
+   * Reverse pickup payload. Same create endpoint as a forward shipment
+   * (`/api/cmu/create.json`), with `payment_mode: "Pickup"`: Delhivery's
+   * order-creation reference says payment_mode is "COD or Pre-paid when the
+   * order is created for forwarding shipment else Pickup if it is created for
+   * reverse flow" (https://delhivery-express-api-doc.readme.io/reference/order-creation-api).
+   * In the reverse flow the consignee fields are where the courier collects
+   * (the shopper), and the `return_*` keys are where it is delivered (our
+   * warehouse); "if you are not passing the return keys then shipment will be
+   * delivered to the warehouse address".
+   */
+  buildReturnPayload(input: ReturnPickupInput, waybill: string) {
+    const rupees = (paise: number) => (paise / 100).toFixed(2)
+    const address = (a: ReturnPickupInput['from']) => [a.line1, a.line2].filter(Boolean).join(', ')
+    return {
+      shipments: [
+        {
+          name: input.from.name,
+          add: address(input.from),
+          pin: input.from.pincode,
+          city: input.from.city,
+          state: input.from.state,
+          country: input.from.country || 'IN',
+          phone: input.from.phone,
+          order: input.reference,
+          payment_mode: 'Pickup',
+          cod_amount: '0',
+          weight: input.weightGrams,
+          quantity: input.lines.reduce((n, l) => n + l.quantity, 0),
+          commodity_value: rupees(input.valuePaise),
+          products_desc: input.lines
+            .map((l) => `${l.title} x${l.quantity}`)
+            .join(', ')
+            .slice(0, 250),
+          pickup_location: this.config.pickupLocationName,
+          waybill,
+          return_name: input.to.name,
+          return_add: address(input.to),
+          return_pin: input.to.pincode,
+          return_city: input.to.city,
+          return_state: input.to.state,
+          return_country: input.to.country || 'IN',
+          return_phone: input.to.phone,
+          seller_name: this.config.clientName,
+        },
+      ],
+      pickup_location: { name: this.config.pickupLocationName },
+    }
+  }
+
+  /**
+   * Book a reverse pickup. Delhivery's FAQ: "Reverse shipment will be
+   * scheduled automatically so there is no requirement to create pickup
+   * requests for those" (https://delhivery-express-api-doc.readme.io/reference/frequently-asked-questions),
+   * so this is one create call and nothing else.
+   */
+  async createReturnPickup(input: ReturnPickupInput): Promise<CreateShipmentResult> {
+    const waybill = await this.reserveWaybill()
+    const payload = this.buildReturnPayload(input, waybill)
+    const result = await this.postForm<CreateResponse>(
+      '/api/cmu/create.json',
+      `format=json&data=${encodeURIComponent(JSON.stringify(payload))}`,
+    )
+    const packages = result.packages ?? []
+    const ok =
+      result.success === true ||
+      (packages.length > 0 && packages.every((p) => !p.error && p.status !== 'Error'))
+    if (!ok) {
+      const detail = [
+        ...packages.map((p) => p.error ?? p.remarks?.join(' ')).filter(Boolean),
+        result.rmk,
+        result.error,
+      ]
+        .filter(Boolean)
+        .join(' | ')
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `Delhivery rejected the return pickup: ${detail || 'no detail returned'}`,
+      )
+    }
+    const assigned = packages[0]?.waybill || waybill
+    return { waybill: assigned, providerRef: assigned }
+  }
+
   async track(waybill: string): Promise<Tracking> {
     const data = await this.getJson<TrackResponse>(
       `/api/v1/packages/json/?waybill=${encodeURIComponent(waybill)}`,
@@ -591,6 +677,7 @@ export const DELHIVERY_CAPABILITIES: ShippingCapability[] = [
   'webhook',
   'cancel',
   'ndr',
+  'reverse_pickup',
 ]
 
 export const delhiveryFactory: ShippingProviderFactory<DelhiveryConfig> = {

@@ -120,10 +120,70 @@ export const backInStockTemplates = {
   },
 } satisfies Record<'back_in_stock_confirm' | 'back_in_stock_alert', TemplateCopy>
 
+const ret = (d: TemplateData): string => d.returnInfo?.label ?? ''
+const refundWhere = (d: TemplateData): string =>
+  d.returnInfo?.refundMethod === 'store_credit'
+    ? 'as store credit. The gift card code is in a separate email, and you can use it at checkout'
+    : 'to the way you paid. Banks usually show it in 5 to 7 working days'
+const howBack = (d: TemplateData): string =>
+  d.returnInfo?.pickup === 'courier'
+    ? `A courier will come to collect it${d.returnInfo.pickupWaybill ? ` (tracking number ${d.returnInfo.pickupWaybill})` : ''}. Please pack the items safely and keep them ready.`
+    : 'Please pack the items safely and send them back to us. Reply to this email if you need our address.'
+
+export const returnTemplates = {
+  return_requested: {
+    subject: (d) => `${d.storeName}: we got your return request for order #${d.orderNumber}`,
+    heading: (d) => `Thanks, ${d.customerName}. We got your request`,
+    intro: (d) =>
+      `Your return ${ret(d)} for order #${d.orderNumber} is with us${d.returnInfo?.reasonLabel ? ` (${d.returnInfo.reasonLabel.toLowerCase()})` : ''}. We usually reply within 2 working days.`,
+    outro: () => 'You can see where it stands on your order page at any time.',
+    whatsapp: (d) =>
+      `${d.storeName}: we got your return request ${ret(d)} for order #${d.orderNumber}. We will reply within 2 working days.`,
+  },
+  return_approved: {
+    subject: (d) => `${d.storeName}: your return ${ret(d)} is approved`,
+    heading: () => 'Your return is approved',
+    intro: (d) => `Good news: we accepted return ${ret(d)} for order #${d.orderNumber}.`,
+    outro: (d) => howBack(d),
+    whatsapp: (d) =>
+      `${d.storeName}: return ${ret(d)} for order #${d.orderNumber} is approved. ${howBack(d)}`,
+  },
+  return_rejected: {
+    subject: (d) => `${d.storeName}: about your return request for order #${d.orderNumber}`,
+    heading: (d) => `Hi ${d.customerName}, we could not accept this return`,
+    intro: (d) =>
+      `We are sorry, return ${ret(d)} for order #${d.orderNumber} was not accepted.${d.returnInfo?.decisionNote ? ` Reason: ${d.returnInfo.decisionNote}` : ''}`,
+    outro: () => 'If you think this is a mistake, just reply to this email and we will look again.',
+    whatsapp: (d) =>
+      `${d.storeName}: return ${ret(d)} for order #${d.orderNumber} was not accepted.${d.returnInfo?.decisionNote ? ` Reason: ${d.returnInfo.decisionNote}` : ''} Reply if you have questions.`,
+  },
+  return_received: {
+    subject: (d) => `${d.storeName}: we received your return ${ret(d)}`,
+    heading: () => 'We received your return',
+    intro: (d) => `The items from return ${ret(d)} (order #${d.orderNumber}) reached us.`,
+    outro: () => 'We are checking them now and will message you once your refund or exchange is on its way.',
+    whatsapp: (d) =>
+      `${d.storeName}: we received return ${ret(d)} for order #${d.orderNumber}. We will update you once it is processed.`,
+  },
+  return_refunded: {
+    subject: (d) => `${d.storeName}: refund for return ${ret(d)} is on its way`,
+    heading: () => 'Your refund is on its way',
+    intro: (d) =>
+      `We sent ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} (order #${d.orderNumber}) ${refundWhere(d)}.`,
+    outro: () => 'Thank you for shopping with us.',
+    whatsapp: (d) =>
+      `${d.storeName}: refund of ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} is on its way ${d.returnInfo?.refundMethod === 'store_credit' ? 'as store credit' : 'to the way you paid'}.`,
+  },
+} satisfies Record<
+  'return_requested' | 'return_approved' | 'return_rejected' | 'return_received' | 'return_refunded',
+  TemplateCopy
+>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
   ...balanceTemplates,
   ...transferTemplates,
   ...backInStockTemplates,
+  ...returnTemplates,
   order_placed: {
     subject: (d) => `${d.storeName}: order #${d.orderNumber} received`,
     heading: (d) => `Thanks, ${d.customerName}`,

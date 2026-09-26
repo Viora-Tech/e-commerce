@@ -162,6 +162,26 @@ export type ShippingCapability =
   | 'ndr'
   | 'wallet'
   | 'insurance'
+  /** Book a courier to collect a customer return from the shopper (a reverse pickup). */
+  | 'reverse_pickup'
+
+/**
+ * A reverse pickup: the courier collects the parcel from the shopper
+ * (`from`) and brings it back to the merchant's warehouse (`to`).
+ */
+export type ReturnPickupInput = {
+  /** Our return id; couriers echo it as their order reference. */
+  returnId: string
+  /** Human return reference printed on the courier's paperwork, e.g. "R-12-1044". */
+  reference: string
+  /** The original order's number, for the merchant's own lookup. */
+  orderNumber: number
+  from: ShipmentAddress
+  to: ShipmentAddress
+  lines: ShipmentLine[]
+  valuePaise: number
+  weightGrams: number
+}
 
 export type SchedulePickupInput = {
   pickupLocationName: string
@@ -248,6 +268,12 @@ export type ShippingProvider = {
   ndrAction?(input: NdrActionInput): Promise<NdrActionResult>
   /** Present only when `capabilities` includes `wallet`. */
   getWalletBalance?(): Promise<WalletBalance>
+  /**
+   * Present only when `capabilities` includes `reverse_pickup`. Books the
+   * courier to collect a return from the shopper; the result's waybill is
+   * the return's tracking number.
+   */
+  createReturnPickup?(input: ReturnPickupInput): Promise<CreateShipmentResult>
   /**
    * Present only when `capabilities` includes `webhook`. Verifies whatever
    * signature the courier sends and returns the AWBs it mentioned; the

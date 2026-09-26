@@ -35,7 +35,8 @@
     "./shipping-rates": "./src/shipping/rates.ts",
     "./preorder": "./src/preorder/client.ts",
     "./preorder-block": "./src/preorder/block.tsx",
-    "./order-status": "./src/order/aggregate-status.ts"
+    "./order-status": "./src/order/aggregate-status.ts",
+    "./returns": "./src/returns/policy.ts"
   },
   "scripts": {
     "test": "vitest run",

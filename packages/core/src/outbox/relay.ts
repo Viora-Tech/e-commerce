@@ -63,6 +63,7 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       orderId: payload.orderId as string,
       template,
       key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
+      returnId: payload.returnId,
     })
   }
   const appEvent = OUTBOX_APP_EVENT[type]

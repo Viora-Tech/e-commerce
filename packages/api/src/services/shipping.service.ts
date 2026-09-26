@@ -16,7 +16,7 @@ import type { StoreTx } from '@commerce/db'
 import { shipment, store } from '@commerce/db'
 import { CourierError, describeCourierFailure, isValidPincode } from '@commerce/shipping'
 import { ORPCError } from '@orpc/server'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 
 export async function updateStoreShipping(tx: StoreTx, storeId: string, shipping: unknown) {
   const [s] = await tx.update(store).set({ shipping }).where(eq(store.id, storeId)).returning()
@@ -31,8 +31,13 @@ export async function loadShippingSettings(
   return parseShippingSettings(s?.shipping)
 }
 
+/** The order's latest shipment (a re-ship after RTO is newer than the parcel that came back). */
 export async function getShipmentForOrder(tx: StoreTx, orderId: string) {
-  const [row] = await tx.select().from(shipment).where(eq(shipment.orderId, orderId))
+  const [row] = await tx
+    .select()
+    .from(shipment)
+    .where(eq(shipment.orderId, orderId))
+    .orderBy(desc(shipment.createdAt))
   return row ?? null
 }
 

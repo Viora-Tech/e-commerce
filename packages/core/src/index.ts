@@ -132,6 +132,11 @@ export * from './rate-limit/memory-store'
 export * from './rate-limit/redis-store'
 export * from './redirects/paths'
 export * from './redirects/service'
+export * from './returns/notify'
+export * from './returns/policy'
+export * from './returns/resolve'
+export * from './returns/rto'
+export * from './returns/service'
 export {
   decryptSecret,
   encryptSecret,
