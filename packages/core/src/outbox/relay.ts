@@ -92,7 +92,8 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       'restocked',
       { storeId: row.storeId, variantId: payload.variantId, locationId: payload.locationId },
       {
-        jobId: `${row.storeId}:${row.id}`,
+        // BullMQ rejects custom ids with a colon unless they have exactly three parts.
+        jobId: `restock-${row.storeId}-${row.id}`,
         attempts: 5,
         backoff: { type: 'exponential', delay: 10_000 },
       },
