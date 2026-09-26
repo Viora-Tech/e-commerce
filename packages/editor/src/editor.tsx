@@ -41,8 +41,8 @@ export type RichTextEditorProps = {
   media?: EditorMedia | null | undefined
   /** Soft character limit shown as a counter; text past it is flagged, not blocked. */
   maxLength?: number | undefined
-  /** Minimum height of the writing area in px. */
-  minHeight?: number | undefined
+  /** Minimum height of the writing area: a number of px, or any CSS length (e.g. `'60svh'`). */
+  minHeight?: number | string | undefined
   readOnly?: boolean | undefined
   className?: string | undefined
   /** Field id for the contentEditable, so a <label htmlFor> can target it. */

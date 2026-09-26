@@ -6,6 +6,9 @@ export const metadata: Metadata = { title: 'Live view' }
 
 export default async function Page() {
   const context = await serverContext()
-  const live = await call(appRouter.analytics.live, undefined, { context })
-  return <LiveView initial={live} />
+  const [live, globe] = await Promise.all([
+    call(appRouter.analytics.live, undefined, { context }),
+    call(appRouter.dashboard.summary, undefined, { context }),
+  ])
+  return <LiveView initial={live} globe={globe} />
 }

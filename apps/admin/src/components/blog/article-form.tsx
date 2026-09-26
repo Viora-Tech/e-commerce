@@ -116,7 +116,7 @@ export default function ArticleForm({
     : null
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
+    <PageBody width="wide" className="kit-form gap-4">
       <SaveBar
         open={dirty}
         message={copy.unsaved}

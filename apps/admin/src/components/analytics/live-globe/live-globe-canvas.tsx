@@ -1,7 +1,11 @@
 'use client'
 
+import { Minus, Plus, RotateCcw } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import createGlobe, { type Globe } from 'cobe'
 import { type ReactNode, useEffect, useRef } from 'react'
+import { liveGlobeContent as copy } from '@/data/live-globe'
 import { type Rgb01, readCssColorVar } from '@/lib/cobe-colors'
 import { locationToAngles, projectToView } from './projection'
 
@@ -32,6 +36,16 @@ type LiveGlobeCanvasProps = {
   focus: { lat: number; lng: number }
   activeId: string | null
   onActiveChange: (id: string | null) => void
+  /**
+   * Sizes the drawing area. Square by default (Home card); the Live view hero passes a wide
+   * box so the globe, which cobe fits to the height, can grow sideways when zoomed.
+   */
+  className?: string
+  /**
+   * Moves the globe's centre right by this share of the canvas width (0 = centred). The Live
+   * view uses it to sit the globe on the right while the stats float over the left.
+   */
+  shiftX?: number
 }
 
 const BASE_PHI_SPEED = 0.0022
@@ -40,9 +54,35 @@ const EASE_MS = 1400
 const PULSE_MS = 1800
 const REVEAL_MS = 900
 
+/** Zoom clamps and how briskly a step (button or wheel notch) moves the target. */
+const ZOOM_MIN = 0.6
+const ZOOM_MAX = 2.6
+const ZOOM_BUTTON_STEP = 0.25
+const ZOOM_WHEEL_SENSITIVITY = 0.0016
+const ZOOM_EASE = 0.2
+
+/** How far a vertical drag may tilt the globe, in radians, so it never flips over a pole. */
+const THETA_LIMIT = 1.1
+
 /** Ease-out cubic, 0..1 -> 0..1. */
 function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3
+}
+
+function clampZoom(value: number): number {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value))
+}
+
+function clampTheta(value: number): number {
+  return Math.min(THETA_LIMIT, Math.max(-THETA_LIMIT, value))
+}
+
+/**
+ * cobe's `offset` moves the centre by `offset * scale / 4` CSS pixels (its buffer is twice the
+ * CSS size and the shift grows with scale), so this is the offset that pins the centre `px` right.
+ */
+function cobeOffset(px: number, zoom: number): [number, number] {
+  return [(4 * px) / zoom, 0]
 }
 
 /** cobe wants `[0,0,0]`..`[1,1,1]` colours; these are the tokens the whole dashboard uses. */
@@ -66,39 +106,55 @@ function readPalette(dark: boolean): {
 
 /** Places (and keeps positioned) one invisible-but-real, focusable button per marker over the
  * canvas, so hover and keyboard focus both work; screen position is recomputed every frame
- * from the globe's current rotation. Also re-anchors the tooltip to the active marker, when
- * there is one. */
+ * from the globe's current rotation and zoom. Also re-anchors the tooltip to the active
+ * marker, when there is one. */
 function positionOverlay(
   container: HTMLDivElement,
   markers: GlobeMarker[],
   phi: number,
   theta: number,
+  zoom: number,
   activeId: string | null,
+  shiftPx: number,
 ) {
   const { clientWidth: w, clientHeight: h } = container
-  const radius = (Math.min(w, h) / 2) * 0.92
+  const radius = (Math.min(w, h) / 2) * 0.92 * zoom
   const tooltip = container.querySelector<HTMLDivElement>('[data-globe-tooltip]')
   for (const marker of markers) {
     const el = container.querySelector<HTMLButtonElement>(`[data-marker-id="${marker.id}"]`)
     if (!el) continue
     const p = projectToView(marker.lat, marker.lng, phi, theta)
-    const x = w / 2 + p.x * radius
+    const x = w / 2 + shiftPx + p.x * radius
     const y = h / 2 - p.y * radius
+    const onScreen = p.visible && Math.abs(p.x) < 1.3 && Math.abs(p.y) < 1.3
     el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
-    el.style.opacity = p.visible ? '1' : '0'
-    el.style.pointerEvents = p.visible ? 'auto' : 'none'
+    el.style.opacity = onScreen ? '1' : '0'
+    el.style.pointerEvents = onScreen ? 'auto' : 'none'
     if (tooltip && marker.id === activeId) {
       tooltip.style.transform = `translate(${x}px, ${y}px) translate(-50%, calc(-100% - 0.5rem))`
-      tooltip.style.opacity = p.visible ? '1' : '0'
+      tooltip.style.opacity = onScreen ? '1' : '0'
     }
   }
 }
 
+/** Distance between two touch points, for pinch-to-zoom. */
+function pinchDistance(points: Map<number, { x: number; y: number }>): number {
+  const [a, b] = [...points.values()]
+  if (!a || !b) return 0
+  return Math.hypot(a.x - b.x, a.y - b.y)
+}
+
 /**
  * The cobe canvas itself: dotted landmass, glow, accent markers and arcs, auto-rotate that
- * eases onto `focus` on mount, drag-to-spin with inertia, and an accessible overlay button per
- * marker for the tooltip (hover or focus). No borders or polygons are drawn — cobe's world map
- * is dots only.
+ * eases onto `focus` on mount, drag-to-spin with inertia, wheel/pinch/button zoom, and an
+ * accessible overlay button per marker for the tooltip (hover or focus). No borders or
+ * polygons are drawn — cobe's world map is dots only.
+ *
+ * Zoom: mouse wheel or trackpad pinch while the pointer is over the globe (the wheel listener
+ * only prevents the page's own scroll while hovering the canvas, so it never fights the page),
+ * plus on-screen +/- and reset buttons in the bottom-right corner and touch pinch. Reduced
+ * motion turns off the zoom-ease and the auto-rotate/reveal animations, but dragging to rotate
+ * still works either way.
  */
 export default function LiveGlobeCanvas({
   markers,
@@ -108,6 +164,8 @@ export default function LiveGlobeCanvas({
   focus,
   activeId,
   onActiveChange,
+  className,
+  shiftX = 0,
 }: LiveGlobeCanvasProps) {
   // Hooks
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -115,6 +173,7 @@ export default function LiveGlobeCanvas({
   const markersRef = useRef(markers)
   const arcsRef = useRef(arcs)
   const activeIdRef = useRef(activeId)
+  const zoomTargetRef = useRef(1)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -125,13 +184,18 @@ export default function LiveGlobeCanvas({
     const state = {
       phi: reducedMotion ? focusPhi : 0,
       theta: reducedMotion ? focusTheta : 0.28,
+      zoom: 1,
       dragging: false,
       pointerId: null as number | null,
       lastX: 0,
+      lastY: 0,
       velocity: 0,
       startedAt: performance.now(),
       revealStartedAt: performance.now(),
       lastNewestId: markersRef.current.find((m) => m.isNewest)?.id ?? null,
+      touches: new Map<number, { x: number; y: number }>(),
+      pinchStartDistance: 0,
+      pinchStartZoom: 1,
     }
     const palette = readPalette(dark)
 
@@ -144,6 +208,7 @@ export default function LiveGlobeCanvas({
       dark: dark ? 1 : 0,
       diffuse: 1.15,
       scale: 1,
+      offset: cobeOffset(shiftX * canvas.clientWidth, 1),
       mapSamples: 14000,
       mapBrightness: dark ? 4.5 : 5.5,
       baseColor: palette.base,
@@ -159,8 +224,8 @@ export default function LiveGlobeCanvas({
     })
 
     // cobe 2's `update` is the whole render loop's entry point: it does not call back on its
-    // own, so this rAF loop drives phi/theta each frame (autorotate/ease/drag) and re-sends
-    // markers/arcs, exactly like cobe's own demos.
+    // own, so this rAF loop drives phi/theta/scale (autorotate/ease/drag/zoom) each frame and
+    // re-sends markers/arcs, exactly like cobe's own demos.
     let rafId = 0
     const tick = () => {
       const now = performance.now()
@@ -179,6 +244,10 @@ export default function LiveGlobeCanvas({
         state.velocity *= 0.92
       }
 
+      state.zoom = reducedMotion
+        ? zoomTargetRef.current
+        : state.zoom + (zoomTargetRef.current - state.zoom) * ZOOM_EASE
+
       const newestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
       if (newestId !== state.lastNewestId) {
         state.lastNewestId = newestId
@@ -187,9 +256,12 @@ export default function LiveGlobeCanvas({
       const revealT = reducedMotion ? 1 : Math.min(1, (now - state.revealStartedAt) / REVEAL_MS)
       const pulse = reducedMotion ? 1 : 0.55 + 0.45 * Math.abs(Math.sin((now / PULSE_MS) * Math.PI))
 
+      const shiftPx = shiftX * canvas.clientWidth
       globe.update({
         phi: state.phi,
         theta: state.theta,
+        scale: state.zoom,
+        offset: cobeOffset(shiftPx, state.zoom),
         markers: markersRef.current.map((m) => ({
           location: [m.lat, m.lng] as [number, number],
           size: m.isNewest ? 0.09 * (0.6 + 0.4 * pulse) * revealT : 0.045,
@@ -202,7 +274,15 @@ export default function LiveGlobeCanvas({
         })),
       })
 
-      positionOverlay(container, markersRef.current, state.phi, state.theta, activeIdRef.current)
+      positionOverlay(
+        container,
+        markersRef.current,
+        state.phi,
+        state.theta,
+        state.zoom,
+        activeIdRef.current,
+        shiftPx,
+      )
       rafId = requestAnimationFrame(tick)
     }
     rafId = requestAnimationFrame(tick)
@@ -211,6 +291,7 @@ export default function LiveGlobeCanvas({
       state.dragging = true
       state.pointerId = e.pointerId
       state.lastX = e.clientX
+      state.lastY = e.clientY
       canvas.style.cursor = 'grabbing'
       canvas.setPointerCapture(e.pointerId)
     }
@@ -219,6 +300,9 @@ export default function LiveGlobeCanvas({
       const delta = e.clientX - state.lastX
       state.lastX = e.clientX
       state.phi += delta * DRAG_SPEED
+      // Up/down tilts the globe. Touch keeps vertical swipes for page scroll (`pan-y`).
+      state.theta = clampTheta(state.theta + (e.clientY - state.lastY) * DRAG_SPEED)
+      state.lastY = e.clientY
       state.velocity = reducedMotion ? 0 : delta * DRAG_SPEED * 0.5
     }
     const endDrag = (e: PointerEvent) => {
@@ -234,6 +318,49 @@ export default function LiveGlobeCanvas({
     window.addEventListener('pointerup', endDrag)
     window.addEventListener('pointercancel', endDrag)
 
+    // Touch pinch-to-zoom: tracked separately from the pointer-drag above since a pinch
+    // starts as two simultaneous pointers, and rotation is suspended while it is in progress.
+    const handleTouchStart = (e: TouchEvent) => {
+      for (const t of e.changedTouches) {
+        state.touches.set(t.identifier, { x: t.clientX, y: t.clientY })
+      }
+      if (state.touches.size === 2) {
+        state.dragging = false
+        state.pinchStartDistance = pinchDistance(state.touches)
+        state.pinchStartZoom = zoomTargetRef.current
+      }
+    }
+    const handleTouchMove = (e: TouchEvent) => {
+      if (state.touches.size !== 2) return
+      e.preventDefault()
+      for (const t of e.changedTouches) {
+        if (state.touches.has(t.identifier)) {
+          state.touches.set(t.identifier, { x: t.clientX, y: t.clientY })
+        }
+      }
+      const distance = pinchDistance(state.touches)
+      if (state.pinchStartDistance > 0) {
+        const ratio = distance / state.pinchStartDistance
+        zoomTargetRef.current = clampZoom(state.pinchStartZoom * ratio)
+      }
+    }
+    const handleTouchEnd = (e: TouchEvent) => {
+      for (const t of e.changedTouches) state.touches.delete(t.identifier)
+      if (state.touches.size < 2) state.pinchStartDistance = 0
+    }
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false })
+    canvas.addEventListener('touchend', handleTouchEnd)
+    canvas.addEventListener('touchcancel', handleTouchEnd)
+
+    // Wheel / trackpad pinch zoom. `preventDefault` only fires for wheel events the canvas
+    // itself receives, so the page scrolls normally everywhere except while over the globe.
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      zoomTargetRef.current = clampZoom(zoomTargetRef.current - e.deltaY * ZOOM_WHEEL_SENSITIVITY)
+    }
+    canvas.addEventListener('wheel', handleWheel, { passive: false })
+
     const handleResize = () => {
       globe.update({ width: canvas.clientWidth * 2, height: canvas.clientHeight * 2 })
     }
@@ -246,16 +373,30 @@ export default function LiveGlobeCanvas({
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', endDrag)
       window.removeEventListener('pointercancel', endDrag)
+      canvas.removeEventListener('touchstart', handleTouchStart)
+      canvas.removeEventListener('touchmove', handleTouchMove)
+      canvas.removeEventListener('touchend', handleTouchEnd)
+      canvas.removeEventListener('touchcancel', handleTouchEnd)
+      canvas.removeEventListener('wheel', handleWheel)
       window.removeEventListener('resize', handleResize)
     }
     // Re-run on theme/focus changes; markers/arcs update through the refs above so drag state
     // and the reveal/pulse animation are not interrupted by every new-order poll.
-  }, [dark, reducedMotion, focus.lat, focus.lng])
+  }, [dark, reducedMotion, focus.lat, focus.lng, shiftX])
 
   // Event handlers
   const handleMarkerEnter = (id: string) => onActiveChange(id)
   const handleMarkerLeave = (id: string) => {
     if (activeId === id) onActiveChange(null)
+  }
+  const handleZoomIn = () => {
+    zoomTargetRef.current = clampZoom(zoomTargetRef.current + ZOOM_BUTTON_STEP)
+  }
+  const handleZoomOut = () => {
+    zoomTargetRef.current = clampZoom(zoomTargetRef.current - ZOOM_BUTTON_STEP)
+  }
+  const handleZoomReset = () => {
+    zoomTargetRef.current = 1
   }
 
   // Render logic
@@ -267,7 +408,10 @@ export default function LiveGlobeCanvas({
   const active = markers.find((m) => m.id === activeId)
 
   return (
-    <div ref={containerRef} className="relative aspect-square w-full select-none">
+    <div
+      ref={containerRef}
+      className={cn('relative w-full select-none', className ?? 'aspect-square')}
+    >
       <canvas
         ref={canvasRef}
         aria-hidden
@@ -296,6 +440,38 @@ export default function LiveGlobeCanvas({
           {active.tooltip}
         </div>
       ) : null}
+      <div className="absolute right-2 bottom-2 z-10 flex flex-col gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          aria-label={copy.zoomIn}
+          onClick={handleZoomIn}
+        >
+          <Plus className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          aria-label={copy.zoomOut}
+          onClick={handleZoomOut}
+        >
+          <Minus className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          aria-label={copy.zoomReset}
+          onClick={handleZoomReset}
+        >
+          <RotateCcw className="size-4" />
+        </Button>
+      </div>
     </div>
   )
 }

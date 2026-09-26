@@ -1,6 +1,6 @@
 'use client'
 
-import type { AnalyticsLive } from '@commerce/api'
+import type { AnalyticsLive, DashboardSummary } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import CountUp from '@/components/layout/count-up'
@@ -11,13 +11,18 @@ import { analyticsContent as copy } from '@/data/analytics'
 import { api } from '@/lib/api-client'
 import { formatCompact, formatPaise } from '@/lib/money'
 import LiveEventRow from './live-event-row'
+import LiveGlobeHero from './live-globe/live-globe-hero'
 
-type LiveViewProps = { initial: AnalyticsLive }
+type LiveViewProps = { initial: AnalyticsLive; globe: DashboardSummary }
 
 const POLL_MS = 15_000
 
-/** Visitors, carts and orders as they happen; refreshes itself every 15 seconds. */
-export default function LiveView({ initial }: LiveViewProps) {
+/** Stats cards float over the globe: see-through enough to feel part of it, still readable. */
+const FLOATING_CARD = 'gap-0 bg-card/85 p-5 shadow-lift backdrop-blur-md'
+
+/** Visitors, carts and orders as they happen, floating over the live orders globe; refreshes
+ *  itself every 15 seconds. The globe polls dashboard data on its own, independent cadence. */
+export default function LiveView({ initial, globe }: LiveViewProps) {
   // Hooks
   const [data, setData] = useState(initial)
 
@@ -42,15 +47,15 @@ export default function LiveView({ initial }: LiveViewProps) {
   return (
     <PageBody width="frame" className="gap-5">
       <PageHeader title={c.title} subtitle={c.updating} />
-      <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <Card className="gap-0 p-5">
+      <LiveGlobeHero initial={globe}>
+        <Card className={FLOATING_CARD}>
           <p className="text-kit-body text-muted-foreground">{c.visitors}</p>
           <p className="mt-2 text-kit-stat text-ink-strong tabular-nums">
             <CountUp value={formatCompact(data.visitors.last30)} />
           </p>
-          <p className="mt-6 text-kit-body font-medium text-muted-foreground">{c.perMinute}</p>
-          <MiniBars data={bars} className="mt-3 h-16" />
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <p className="mt-5 text-kit-body font-medium text-muted-foreground">{c.perMinute}</p>
+          <MiniBars data={bars} className="mt-3 h-14" />
+          <div className="mt-5 grid grid-cols-3 gap-3">
             <div>
               <p className="text-kit-mini text-muted-foreground-soft">{c.activeCarts}</p>
               <p className="mt-1 text-kit-stat-sm text-foreground tabular-nums">
@@ -71,19 +76,19 @@ export default function LiveView({ initial }: LiveViewProps) {
             </div>
           </div>
         </Card>
-        <Card className="gap-0 p-5">
+        <Card className={FLOATING_CARD}>
           <p className="text-kit-title text-foreground">{c.events}</p>
           {data.events.length === 0 ? (
-            <p className="mt-5 text-kit-body text-muted-foreground">{c.eventsEmpty}</p>
+            <p className="mt-4 text-kit-body text-muted-foreground">{c.eventsEmpty}</p>
           ) : (
-            <ul className="mt-5 flex flex-col gap-4">
+            <ul className="mt-4 flex flex-col gap-4">
               {data.events.map((event) => (
                 <LiveEventRow key={event.id} event={event} />
               ))}
             </ul>
           )}
         </Card>
-      </div>
+      </LiveGlobeHero>
     </PageBody>
   )
 }
