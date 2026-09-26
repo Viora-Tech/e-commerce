@@ -7,6 +7,7 @@ import {
   renderEmail,
   type SendResult,
 } from '@commerce/notifications'
+import { formatMailbox } from './address'
 
 export type SesConfig = {
   region: string
@@ -14,7 +15,12 @@ export type SesConfig = {
   secretAccessKey: string
   fromEmail: string
   fromName?: string | undefined
+  /** Where customer replies go when From is an address nobody reads (the platform sender). */
+  replyTo?: string | undefined
 }
+
+/** Lets the platform's own sender reuse this channel under its own id and label. */
+export type SesChannelOptions = { id?: string | undefined; label?: string | undefined }
 
 /** The one SDK call we make, so tests can swap the client for a recorder. */
 export type SesClientLike = {
@@ -22,20 +28,27 @@ export type SesClientLike = {
 }
 
 export function formatFrom(config: SesConfig): string {
-  return config.fromName ? `${config.fromName} <${config.fromEmail}>` : config.fromEmail
+  return formatMailbox(config.fromName, config.fromEmail)
 }
+
+/** `ReplyToAddresses`, only when set: SES would otherwise reply to From. */
+const replyTo = (config: SesConfig) =>
+  config.replyTo ? { ReplyToAddresses: [config.replyTo] } : {}
 
 /** Transactional email through Amazon SES v2. Sandbox accounts can only mail verified addresses. */
 export class SesChannel implements NotificationChannel {
-  readonly id = 'ses'
-  readonly label = 'Email (Amazon SES)'
+  readonly id: string
+  readonly label: string
   readonly requires = 'email' as const
   private readonly client: SesClientLike
 
   constructor(
     private readonly config: SesConfig,
     client?: SesClientLike,
+    options: SesChannelOptions = {},
   ) {
+    this.id = options.id ?? 'ses'
+    this.label = options.label ?? 'Email (Amazon SES)'
     this.client =
       client ??
       new SESv2Client({
@@ -56,6 +69,7 @@ export class SesChannel implements NotificationChannel {
         new SendEmailCommand({
           FromEmailAddress: formatFrom(this.config),
           Destination: { ToAddresses: [to] },
+          ...replyTo(this.config),
           Content: {
             Simple: {
               Subject: { Data: body.subject, Charset: 'UTF-8' },
@@ -96,6 +110,7 @@ export class SesChannel implements NotificationChannel {
         new SendEmailCommand({
           FromEmailAddress: formatFrom(this.config),
           Destination: { ToAddresses: [to] },
+          ...replyTo(this.config),
           Content: {
             Simple: {
               Subject: { Data: message.subject, Charset: 'UTF-8' },

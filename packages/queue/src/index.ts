@@ -23,6 +23,8 @@ export const PREORDER_BALANCE_QUEUE = '{payments}-preorder-balance'
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */
 export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
+/** Repeat job that checks store sender email domains (pending, and verified ones daily). */
+export const SENDER_EMAIL_VERIFY_QUEUE = '{sender-email}-verify'
 /** Repeat job that claims undispatched outbox rows and fans them out. */
 export const OUTBOX_RELAY_QUEUE = '{outbox}-relay'
 /** Repeat tick that starts scheduled campaigns and runs due automation steps. */

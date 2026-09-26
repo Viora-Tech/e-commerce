@@ -185,7 +185,11 @@ export const notificationsSettingsContent = {
       connected: 'Connected',
       installed: 'Not connected yet',
       missing: 'Not set up',
+      platform: 'On',
     },
+    platformHelp:
+      'Sent for you, from your sender email once it is verified. Connect your own Amazon SES only if you want to.',
+    useOwn: 'Use my own Amazon SES',
     testMode:
       'Test mode is on: WhatsApp only reaches people who messaged your shop in the last day.',
     connect: 'Connect',

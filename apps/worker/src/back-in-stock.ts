@@ -1,6 +1,6 @@
-import { parseNotificationSettings, resolveNotificationChannels } from '@commerce/core'
+import { storeNotificationChannels } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
-import { type Db, product, store, variant, withStore } from '@commerce/db'
+import { type Db, product, variant, withStore } from '@commerce/db'
 import {
   availableStockFor,
   BACK_IN_STOCK_QUEUE,
@@ -32,19 +32,17 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
     BACK_IN_STOCK_QUEUE,
     async (job) => {
       const { storeId, variantId } = job.data
-      const [settings, notif, registries] = await withStore(db, storeId, async (tx) => [
-        await loadStoreSettings(tx, storeId),
-        await tx
-          .select({ notifications: store.notifications })
-          .from(store)
-          .where(eq(store.id, storeId)),
-        await registriesForStore(tx, storeId),
-      ])
-      const channels = resolveNotificationChannels(
-        registries.notifications,
-        parseNotificationSettings(notif[0]?.notifications),
-        opts.settingsSecret,
-      ).channels.filter(
+      const [settings, all] = await withStore(db, storeId, async (tx) => {
+        const registries = await registriesForStore(tx, storeId)
+        return [
+          await loadStoreSettings(tx, storeId),
+          await storeNotificationChannels(tx, storeId, {
+            registry: registries.notifications,
+            settingsSecret: opts.settingsSecret,
+          }),
+        ] as const
+      })
+      const channels = all.filter(
         (c) =>
           (c.requires === 'email' && settings.emailEnabled) ||
           (c.requires === 'phone' && settings.whatsappEnabled),

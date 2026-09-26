@@ -81,6 +81,11 @@ customer instantly.
   Deliberately not the same value as `SETTINGS_SECRET`: a leaked app secret should not
   also open the backups, and vice versa.
 
+- `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` — the platform's own Amazon SES account, which
+  sends for every store that has no SES app of its own and holds each store's sender domain
+  (`sender_email`). Read from the environment only, never stored in or read from the database.
+  The `sender_email` table holds no secrets: only the address, domain and public DKIM tokens.
+
 Store these as deployment secrets (Coolify/Dokploy environment, or your platform's
 secret manager) — never in the repo, never in a `.env` committed anywhere. `.env.example`
 documents the variable names, not real values.

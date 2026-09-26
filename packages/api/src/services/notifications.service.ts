@@ -1,11 +1,12 @@
 import {
+  getPlatformEmail,
   isMessageOn,
   MESSAGE_CATALOGUE,
   messageDef,
   messageSwitchable,
   parseAppsSettings,
   parseNotificationSettings,
-  resolveNotificationChannels,
+  storeNotificationChannels,
   withMessage,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -64,6 +65,8 @@ export async function notificationsOverview(tx: StoreTx, storeId: string) {
   const enabled = new Set(settings.enabled)
   const email = channelStatus('email', installed, enabled, settings.providers)
   const whatsapp = channelStatus('whatsapp', installed, enabled, settings.providers)
+  // The platform's own SES account sends for every store without an email app.
+  const platformEmail = getPlatformEmail().transport !== null
   return {
     messages: MESSAGE_CATALOGUE.map((m) => ({
       id: m.id,
@@ -75,10 +78,12 @@ export async function notificationsOverview(tx: StoreTx, storeId: string) {
       on: isMessageOn(settings, m.id),
     })),
     channels: { email, whatsapp },
+    /** Email goes out through the platform account even with no email app connected. */
+    platformEmail,
     /** The development log channel prints every message to the console instead of sending it. */
     devLog: enabled.has('log'),
     /** A test email can go out: an email app is connected, or the dev log is on. */
-    canSendTest: email.state === 'connected' || enabled.has('log'),
+    canSendTest: email.state === 'connected' || platformEmail || enabled.has('log'),
     /** Where "Send me a test" goes: the merchant's own contact email is shown for reference. */
     storeEmail: s?.contactEmail ?? null,
   }
@@ -131,12 +136,11 @@ export async function sendTestMessage(
   },
 ): Promise<{ ok: boolean; sent: number; error?: string | undefined }> {
   const s = await getStore(tx, storeId)
-  const { channels } = resolveNotificationChannels(
-    input.registry,
-    parseNotificationSettings(s?.notifications),
-    input.secret,
-    input.previousSecrets,
-  )
+  const channels = await storeNotificationChannels(tx, storeId, {
+    registry: input.registry,
+    settingsSecret: input.secret,
+    previousSecrets: input.previousSecrets,
+  })
   const email = channels.filter((c) => c.requires === 'email')
   if (email.length === 0) return { ok: false, sent: 0, error: 'no_channel' }
   const data = sampleFor(input.template, s?.name)

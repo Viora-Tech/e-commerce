@@ -18,9 +18,9 @@ import type {
 import { and, desc, eq, ilike, inArray, isNull, or, type SQL, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
-import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { decryptSecret, encryptSecret } from '../secrets'
+import { storeNotificationChannels } from '../sender-email/channels'
 import {
   addMonths,
   dateInZone,
@@ -588,15 +588,11 @@ export async function giftCardChannels(
   registry: NotificationRegistry,
   secret: string,
 ): Promise<NotificationChannel[]> {
-  const [s] = await ctx.tx
-    .select({ notifications: store.notifications })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
-  return resolveNotificationChannels(
+  const channels = await storeNotificationChannels(ctx.tx, ctx.storeId, {
     registry,
-    parseNotificationSettings(s?.notifications),
-    secret,
-  ).channels.filter((c) => c.requires === 'email')
+    settingsSecret: secret,
+  })
+  return channels.filter((c) => c.requires === 'email')
 }
 
 const longDate = (ymd: string) =>
