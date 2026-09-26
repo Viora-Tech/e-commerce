@@ -4,6 +4,7 @@ import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
 import { recomputeOrderStatuses } from '../order/recompute'
+import { syncNdrFromTracking } from './ndr'
 import { resolveParcelWeightGrams } from './parcel'
 import { defaultBoxPreset, parseShippingSettings } from './settings'
 
@@ -150,7 +151,9 @@ export async function applyTracking(
   const becameDelivered = before.status !== 'delivered' && tracking.status === 'delivered'
   // Courier events (in transit, delivered, RTO) move the fulfilment status.
   if (before.status !== row.status) await recomputeOrderStatuses(ctx, row.orderId)
-  return { shipment: row, becameDelivered }
+  // Raises or clears the delivery-problem flag from this same scan; see `syncNdrFromTracking`.
+  const final = await syncNdrFromTracking(ctx, row, tracking)
+  return { shipment: final, becameDelivered }
 }
 
 export async function cancelShipment(

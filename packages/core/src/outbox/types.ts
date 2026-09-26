@@ -27,6 +27,10 @@ export type OutboxEventType =
   | 'order.unpaid_cancelled'
   /** A variant's available stock (on-hand minus reserved) went from 0 to positive. */
   | 'inventory.restocked'
+  /** A shipment's latest tracking scan looks like a failed delivery attempt (see `syncNdrFromTracking`). */
+  | 'shipment.ndr_raised'
+  /** A previously-open NDR cleared: the courier later reported delivered or RTO. */
+  | 'shipment.ndr_resolved'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -73,6 +77,11 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // Handled by the back-in-stock plugin's own dispatch path, not the generic
   // per-order notification/app-hook fan-out (there is no order to attach it to).
   'inventory.restocked': null,
+  // No merchant notification consumer yet - the Delivery problems queue reads
+  // `shipment.ndrStatus` directly. A notification/app hook can be wired later
+  // without touching `syncNdrFromTracking`, which only needs this row to exist.
+  'shipment.ndr_raised': null,
+  'shipment.ndr_resolved': null,
 }
 
 /**
@@ -104,4 +113,6 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.unpaid_cancel_notice': null,
   'order.unpaid_cancelled': null,
   'inventory.restocked': null,
+  'shipment.ndr_raised': null,
+  'shipment.ndr_resolved': null,
 }
