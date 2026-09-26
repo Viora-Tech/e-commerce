@@ -94,7 +94,7 @@ const columns: ResourceColumnSpec<Item>[] = [
   },
 ]
 
-/** Marketing > Campaigns: tiles, then every email and WhatsApp campaign with its results. */
+/** Growth > Campaigns: tiles, then every email and WhatsApp campaign with its results. */
 export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
   // Hooks
   const [kind, setKind] = useState<Kind | null>(null)
@@ -135,7 +135,7 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
         columns={columns}
         items={items}
         getId={(c) => c.id}
-        href={(c) => `/marketing/campaigns/${c.id}`}
+        href={(c) => `/growth/campaigns/${c.id}`}
         query={query}
         onQueryChange={(next) => {
           setQuery(next)

@@ -28,7 +28,7 @@ type Item = Awaited<ReturnType<typeof api.marketing.automations.list>>[number]
 
 type AutomationsPageProps = { automations: Item[] }
 
-/** Marketing > Automations: the store's automations with results, then the template gallery. */
+/** Growth > Automations: the store's automations with results, then the template gallery. */
 export default function AutomationsPage({ automations }: AutomationsPageProps) {
   // Hooks
   const router = useRouter()
@@ -40,7 +40,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
     try {
       const row = await api.marketing.automations.create({ template })
       toast.success(copy.created)
-      router.push(`/marketing/automations/${row.id}`)
+      router.push(`/growth/automations/${row.id}`)
     } finally {
       setBusy(null)
     }
@@ -75,7 +75,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
                 <TableRow key={a.id}>
                   <TableCell className="max-w-80 whitespace-normal">
                     <Link
-                      href={`/marketing/automations/${a.id}`}
+                      href={`/growth/automations/${a.id}`}
                       className="flex flex-col hover:underline"
                     >
                       <span className="text-body-strong">{a.name}</span>

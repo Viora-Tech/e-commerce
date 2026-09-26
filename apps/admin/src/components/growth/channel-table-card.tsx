@@ -1,6 +1,5 @@
-import type { CampaignRow } from '@commerce/api'
+import type { ChannelRow } from '@commerce/api'
 import { formatNumber } from '@commerce/money'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card } from '@commerce/ui/shadcn/card'
 import {
   Table,
@@ -10,21 +9,16 @@ import {
   TableHeader,
   TableRow,
 } from '@commerce/ui/shadcn/table'
-import Link from 'next/link'
-import { marketingOverviewContent } from '@/data/marketing'
+import { CHANNEL_LABELS, growthOverviewContent } from '@/data/growth'
+import { formatRate } from '@/lib/analytics-range'
 import { formatPaise } from '@/lib/money'
 
-type TopCampaignsCardProps = { rows: CampaignRow[] }
+type ChannelTableCardProps = { rows: ChannelRow[] }
 
-const copy = marketingOverviewContent.campaigns
+const copy = growthOverviewContent.channels
 
-function sourceLabel(row: CampaignRow): string {
-  if (row.kind !== 'utm') return copy.kinds[row.kind]
-  return [row.source, row.medium].filter(Boolean).join(' / ') || '-'
-}
-
-/** Campaigns ranked by the sales they drove: tagged links, email and WhatsApp sends, automations. */
-export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
+/** Sessions, orders, sales and conversion per channel for the selected range. */
+export default function ChannelTableCard({ rows }: ChannelTableCardProps) {
   // Render logic
   const c = copy.columns
 
@@ -37,32 +31,17 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
         <Table className="mt-3">
           <TableHeader>
             <TableRow>
-              <TableHead>{c.campaign}</TableHead>
-              <TableHead>{c.source}</TableHead>
+              <TableHead>{c.channel}</TableHead>
               <TableHead className="text-right">{c.sessions}</TableHead>
               <TableHead className="text-right">{c.orders}</TableHead>
               <TableHead className="text-right">{c.sales}</TableHead>
+              <TableHead className="text-right">{c.conversion}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.key}>
-                <TableCell className="max-w-64 truncate font-medium">
-                  {row.href ? (
-                    <Link href={row.href} className="hover:underline">
-                      {row.name}
-                    </Link>
-                  ) : (
-                    row.name
-                  )}
-                </TableCell>
-                <TableCell>
-                  {row.kind === 'utm' ? (
-                    <span className="text-muted-foreground">{sourceLabel(row)}</span>
-                  ) : (
-                    <Badge variant="secondary">{sourceLabel(row)}</Badge>
-                  )}
-                </TableCell>
+              <TableRow key={row.channel}>
+                <TableCell className="font-medium">{CHANNEL_LABELS[row.channel]}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatNumber(row.sessions)}
                 </TableCell>
@@ -71,6 +50,9 @@ export default function TopCampaignsCard({ rows }: TopCampaignsCardProps) {
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatPaise(row.salesPaise)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {row.sessions > 0 ? formatRate(row.conversion) : '-'}
                 </TableCell>
               </TableRow>
             ))}

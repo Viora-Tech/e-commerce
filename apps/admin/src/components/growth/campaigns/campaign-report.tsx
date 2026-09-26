@@ -75,7 +75,7 @@ export default function CampaignReport({
     setBusy(false)
     if (!copyRow) return
     toast.success(copy.duplicated)
-    router.push(`/marketing/campaigns/${copyRow.id}`)
+    router.push(`/growth/campaigns/${copyRow.id}`)
   }
 
   const handleCancel = async () => {
@@ -104,7 +104,7 @@ export default function CampaignReport({
         title={campaign.name}
         subtitle={headline(campaign)}
         breadcrumbs={[
-          { label: copy.breadcrumb, href: '/marketing/campaigns' },
+          { label: copy.breadcrumb, href: '/growth/campaigns' },
           { label: campaign.name },
         ]}
         actions={

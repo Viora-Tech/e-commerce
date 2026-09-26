@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import AutomationEditor from '@/components/marketing/automations/automation-editor'
+import AutomationEditor from '@/components/growth/automations/automation-editor'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Automation' }

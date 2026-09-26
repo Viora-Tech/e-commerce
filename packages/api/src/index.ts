@@ -33,4 +33,11 @@ export type {
   MarketingKpi,
   MarketingOverview,
   OverviewChannel,
+  SourceKey,
+  SourceRow,
+} from './services/marketing-overview.service'
+export {
+  normalizeSource,
+  SOURCE_KEYS,
+  SOURCE_LABELS,
 } from './services/marketing-overview.service'

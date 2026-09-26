@@ -3,11 +3,11 @@ import { Card } from '@commerce/ui/shadcn/card'
 import CountUp from '@/components/layout/count-up'
 import DeltaChip from '@/components/layout/delta-chip'
 import MiniBars from '@/components/layout/mini-bars'
-import { marketingOverviewContent as copy } from '@/data/marketing'
+import { growthOverviewContent as copy } from '@/data/growth'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'
 
-type MarketingKpiTileProps = { kpi: MarketingKpi }
+type GrowthKpiTileProps = { kpi: MarketingKpi }
 
 function formatValue(kpi: MarketingKpi): string {
   if (kpi.id === 'attributed_sales') return formatPaiseCompact(kpi.value)
@@ -15,8 +15,8 @@ function formatValue(kpi: MarketingKpi): string {
   return formatCompact(kpi.value)
 }
 
-/** One Marketing KPI, drawn like the Analytics tiles so the two sections read alike. */
-export default function MarketingKpiTile({ kpi }: MarketingKpiTileProps) {
+/** One Growth KPI, drawn like the Analytics tiles so the two sections read alike. */
+export default function GrowthKpiTile({ kpi }: GrowthKpiTileProps) {
   // Render logic
   const meta = copy.kpis[kpi.id]
   const bars = kpi.series.map((value, i) => ({ label: String(i), value }))

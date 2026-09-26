@@ -102,7 +102,7 @@ export default function CampaignEditor({
     try {
       const id = await persist()
       toast.success(campaign ? copy.toasts.saved : copy.toasts.created)
-      if (!campaign && id) router.replace(`/marketing/campaigns/${id}`)
+      if (!campaign && id) router.replace(`/growth/campaigns/${id}`)
       else router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -124,7 +124,7 @@ export default function CampaignEditor({
       })
       toast.success(at ? copy.schedule.scheduled : copy.schedule.sent)
       setDialog(null)
-      router.replace(`/marketing/campaigns/${id}`)
+      router.replace(`/growth/campaigns/${id}`)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -139,7 +139,7 @@ export default function CampaignEditor({
     try {
       await api.marketing.campaigns.delete({ id: campaign.id })
       toast.success(copy.toasts.deleted)
-      router.push('/marketing/campaigns')
+      router.push('/growth/campaigns')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.toasts.failed)
@@ -173,7 +173,7 @@ export default function CampaignEditor({
       />
       <PageHeader
         title={title}
-        breadcrumbs={[{ label: copy.breadcrumb, href: '/marketing/campaigns' }, { label: title }]}
+        breadcrumbs={[{ label: copy.breadcrumb, href: '/growth/campaigns' }, { label: title }]}
         actions={
           <div className="flex items-center gap-2">
             {campaign ? (

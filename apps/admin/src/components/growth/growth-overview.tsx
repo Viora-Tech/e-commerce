@@ -1,7 +1,7 @@
 'use client'
 
 import type { MarketingOverview } from '@commerce/api'
-import { BadgePercent, Send, Workflow } from '@commerce/ui/icons'
+import { BadgePercent, LinkIcon, Send, Workflow } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
@@ -10,15 +10,16 @@ import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
-import { marketingOverviewContent as copy } from '@/data/marketing'
+import { growthOverviewContent as copy } from '@/data/growth'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
-import ChannelTableCard from './channel-table-card'
-import MarketingKpiTile from './marketing-kpi-tile'
+import BestSourceCallout from './best-source-callout'
+import GrowthKpiTile from './growth-kpi-tile'
+import SourceOrChannelCard from './source-or-channel-card'
 import TopCampaignsCard from './top-campaigns-card'
 
-type MarketingOverviewPageProps = {
+type GrowthOverviewPageProps = {
   initialRange: RangeState
   initial: MarketingOverview
 }
@@ -26,14 +27,12 @@ type MarketingOverviewPageProps = {
 const SHORTCUTS = [
   { ...copy.shortcuts.campaigns, icon: Send },
   { ...copy.shortcuts.automations, icon: Workflow },
+  { ...copy.shortcuts.links, icon: LinkIcon },
   { ...copy.shortcuts.discounts, icon: BadgePercent },
 ]
 
-/** Marketing overview (Shopify Marketing): KPIs, attributed sales, channels and top campaigns. */
-export default function MarketingOverviewPage({
-  initialRange,
-  initial,
-}: MarketingOverviewPageProps) {
+/** Growth overview: KPIs, sales by source and channel, and top campaigns. */
+export default function GrowthOverviewPage({ initialRange, initial }: GrowthOverviewPageProps) {
   // Hooks
   const [range, setRange] = useState(initialRange)
   const [data, setData] = useState(initial)
@@ -62,7 +61,7 @@ export default function MarketingOverviewPage({
   // Event handlers
   const handleRange = (next: RangeState) => {
     setRange(next)
-    window.history.replaceState(null, '', `/marketing${rangeQuery(next)}`)
+    window.history.replaceState(null, '', `/growth${rangeQuery(next)}`)
   }
 
   // Render logic
@@ -77,7 +76,7 @@ export default function MarketingOverviewPage({
         actions={
           <div className="flex items-center gap-2">
             <RangePicker value={range} onChange={handleRange} />
-            <Button render={<Link href="/marketing/campaigns" />} nativeButton={false}>
+            <Button render={<Link href="/growth/campaigns" />} nativeButton={false}>
               {copy.createCampaign}
             </Button>
           </div>
@@ -88,7 +87,7 @@ export default function MarketingOverviewPage({
         aria-busy={loading || undefined}
       >
         {data.kpis.map((kpi) => (
-          <MarketingKpiTile key={kpi.id} kpi={kpi} />
+          <GrowthKpiTile key={kpi.id} kpi={kpi} />
         ))}
       </div>
       <ChartCard
@@ -101,13 +100,18 @@ export default function MarketingOverviewPage({
         seriesLabel={copy.salesOverTime.series}
         formatValue={formatPaiseCompact}
       />
+      {data.bestSource ? <BestSourceCallout source={data.bestSource} /> : null}
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
-        <ChannelTableCard rows={data.channels} />
+        <SourceOrChannelCard
+          sources={data.sources}
+          channels={data.channels}
+          campaigns={data.campaigns}
+        />
         <TopCampaignsCard rows={data.campaigns} />
       </div>
       <section className="flex flex-col gap-3">
         <h2 className="text-kit-title text-foreground">{copy.shortcuts.title}</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((s) => (
             <Link key={s.href} href={s.href} className="group">
               <Card className="h-full flex-row items-start gap-3 p-4 transition-colors group-hover:bg-muted/50">

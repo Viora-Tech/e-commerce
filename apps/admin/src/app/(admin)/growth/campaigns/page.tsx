@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import CampaignsPage from '@/components/marketing/campaigns/campaigns-page'
+import CampaignsPage from '@/components/growth/campaigns/campaigns-page'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Campaigns' }

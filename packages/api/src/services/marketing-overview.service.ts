@@ -37,6 +37,46 @@ export type ChannelRow = {
   conversion: number
 }
 
+/**
+ * A source normalised to something a non-technical merchant recognises, so
+ * the overview can answer "how much am I selling from Instagram/Google/
+ * WhatsApp/ChatGPT/direct" without them knowing what a UTM parameter is.
+ */
+export const SOURCE_KEYS = [
+  'instagram',
+  'facebook',
+  'youtube',
+  'google',
+  'whatsapp',
+  'ai_assistant',
+  'email',
+  'direct',
+  'other',
+] as const
+export type SourceKey = (typeof SOURCE_KEYS)[number]
+
+export const SOURCE_LABELS: Record<SourceKey, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+  google: 'Google',
+  whatsapp: 'WhatsApp',
+  ai_assistant: 'AI assistants',
+  email: 'Email',
+  direct: 'Direct',
+  other: 'Other',
+}
+
+export type SourceRow = {
+  source: SourceKey
+  sessions: number
+  orders: number
+  salesPaise: number
+  conversion: number
+  /** Share of this range's total sales, 0 to 1. */
+  shareOfSales: number
+}
+
 export type CampaignRow = {
   /** `our:<id>` for campaigns and automations sent from here, `utm:<name>` for tagged links. */
   key: string
@@ -49,6 +89,8 @@ export type CampaignRow = {
   sessions: number
   orders: number
   salesPaise: number
+  /** The friendly source this campaign rolls up under, for the "by source" expandable rows. */
+  sourceKey: SourceKey
 }
 
 export type MarketingOverview = {
@@ -56,6 +98,9 @@ export type MarketingOverview = {
   kpis: MarketingKpi[]
   salesOverTime: { day: SeriesPoint[]; week: SeriesPoint[] }
   channels: ChannelRow[]
+  sources: SourceRow[]
+  /** The best-performing non-direct, non-other source this period, or null with too little data. */
+  bestSource: SourceKey | null
   campaigns: CampaignRow[]
 }
 
@@ -66,6 +111,7 @@ type SessionRow = {
   channel: string
   source: string | null
   medium: string | null
+  referrer: string | null
   campaign: string | null
   campaignId: string | null
   automationId: string | null
@@ -78,6 +124,7 @@ type AttributedOrder = {
   channel: string | null
   source: string | null
   medium: string | null
+  referrer: string | null
   campaign: string | null
   campaignId: string | null
   automationId: string | null
@@ -89,6 +136,7 @@ async function sessionsIn(tx: StoreTx, from: Date, to: Date): Promise<SessionRow
       channel: marketingSession.channel,
       source: marketingSession.source,
       medium: marketingSession.medium,
+      referrer: marketingSession.referrer,
       campaign: marketingSession.campaign,
       campaignId: marketingSession.campaignId,
       automationId: marketingSession.automationId,
@@ -106,6 +154,7 @@ async function ordersIn(tx: StoreTx, from: Date, to: Date): Promise<AttributedOr
       channel: sql<string | null>`${order.attribution}->>'channel'`,
       source: sql<string | null>`${order.attribution}->>'source'`,
       medium: sql<string | null>`${order.attribution}->>'medium'`,
+      referrer: sql<string | null>`${order.attribution}->>'referrer'`,
       campaign: sql<string | null>`${order.attribution}->>'campaign'`,
       campaignId: sql<string | null>`${order.attribution}->>'campaignId'`,
       automationId: sql<string | null>`${order.attribution}->>'automationId'`,
@@ -136,6 +185,92 @@ function channelRows(sessions: SessionRow[], orders: AttributedOrder[]): Channel
   return [...by.values()]
     .map((r) => ({ ...r, conversion: conversionRate(r.orders, r.sessions) }))
     .sort((a, b) => b.salesPaise - a.salesPaise || b.sessions - a.sessions)
+}
+
+/**
+ * Normalises a source/medium/channel/referrer combination to a name a
+ * non-technical merchant recognises. UTM tags win (a merchant who tagged
+ * "instagram" meant Instagram); the channel and referrer are the fallback
+ * for untagged organic and AI-assistant traffic.
+ */
+export function normalizeSource(input: {
+  source: string | null
+  medium: string | null
+  referrer: string | null
+  channel: string | null
+}): SourceKey {
+  const source = input.source?.toLowerCase() ?? ''
+  const medium = input.medium?.toLowerCase() ?? ''
+  const referrer = input.referrer?.toLowerCase() ?? ''
+  const has = (needle: string) => source.includes(needle) || referrer.includes(needle)
+  if (has('instagram') || source === 'ig') return 'instagram'
+  if (has('facebook') || source === 'fb' || source === 'meta') return 'facebook'
+  if (has('youtube') || source === 'yt') return 'youtube'
+  if (has('google') || source === 'adwords' || source === 'googleads') return 'google'
+  if (has('whatsapp') || source === 'wa' || medium === 'whatsapp' || input.channel === 'whatsapp')
+    return 'whatsapp'
+  if (
+    has('chatgpt') ||
+    has('openai') ||
+    has('perplexity') ||
+    has('gemini') ||
+    has('claude.ai') ||
+    has('copilot.microsoft') ||
+    input.channel === 'ai_assistant'
+  )
+    return 'ai_assistant'
+  if (has('mail.') || medium === 'email' || medium === 'newsletter' || input.channel === 'email')
+    return 'email'
+  if (!input.channel || input.channel === 'direct') return 'direct'
+  return 'other'
+}
+
+/** Aggregates every session and order (attributed or not) by friendly source. */
+function sourceRows(sessions: SessionRow[], orders: AttributedOrder[]): SourceRow[] {
+  const by = new Map<SourceKey, SourceRow>()
+  const get = (source: SourceKey) => {
+    let row = by.get(source)
+    if (!row) {
+      row = { source, sessions: 0, orders: 0, salesPaise: 0, conversion: 0, shareOfSales: 0 }
+      by.set(source, row)
+    }
+    return row
+  }
+  for (const s of sessions) get(normalizeSource(s)).sessions += 1
+  let totalSales = 0
+  for (const o of orders) {
+    const row = get(normalizeSource(o))
+    row.orders += 1
+    row.salesPaise += o.totalPaise
+    totalSales += o.totalPaise
+  }
+  return [...by.values()]
+    .map((r) => ({
+      ...r,
+      conversion: conversionRate(r.orders, r.sessions),
+      shareOfSales: totalSales > 0 ? r.salesPaise / totalSales : 0,
+    }))
+    .sort((a, b) => b.salesPaise - a.salesPaise || b.sessions - a.sessions)
+}
+
+/** The best source this period to feature in the "best source" callout. */
+function bestSource(rows: SourceRow[]): SourceKey | null {
+  const candidate = rows
+    .filter((r) => r.source !== 'direct' && r.source !== 'other' && r.salesPaise > 0)
+    .sort((a, b) => b.salesPaise - a.salesPaise)[0]
+  return candidate?.source ?? null
+}
+
+/** Which friendly source a campaign row rolls up under, for the "by source" drilldown. */
+function campaignSourceKey(
+  kind: CampaignRow['kind'],
+  source: string | null,
+  medium: string | null,
+): SourceKey {
+  if (kind === 'whatsapp') return 'whatsapp'
+  if (kind === 'email') return 'email'
+  if (kind === 'automation') return medium?.toLowerCase() === 'whatsapp' ? 'whatsapp' : 'email'
+  return normalizeSource({ source, medium, referrer: null, channel: null })
 }
 
 function campaignKey(r: {
@@ -170,6 +305,7 @@ async function campaignRows(
         sessions: 0,
         orders: 0,
         salesPaise: 0,
+        sourceKey: campaignSourceKey('utm', r.source, r.medium),
       }
       by.set(key, row)
     }
@@ -209,7 +345,12 @@ async function campaignRows(
   for (const c of campaigns) {
     const row = by.get(`our:c:${c.id}`)
     if (row)
-      Object.assign(row, { kind: c.kind, name: c.name, href: `/marketing/campaigns/${c.id}` })
+      Object.assign(row, {
+        kind: c.kind,
+        name: c.name,
+        href: `/growth/campaigns/${c.id}`,
+        sourceKey: campaignSourceKey(c.kind, row.source, row.medium),
+      })
   }
   for (const a of automations) {
     const row = by.get(`our:a:${a.id}`)
@@ -217,7 +358,8 @@ async function campaignRows(
       Object.assign(row, {
         kind: 'automation',
         name: a.name,
-        href: `/marketing/automations/${a.id}`,
+        href: `/growth/automations/${a.id}`,
+        sourceKey: campaignSourceKey('automation', row.source, row.medium),
       })
   }
   return [...by.values()]
@@ -242,6 +384,7 @@ export async function marketingOverview(
     ordersIn(tx, range.from, range.to),
     ordersIn(tx, range.previousFrom, range.previousTo),
   ])
+  const sources = sourceRows(sessions, orders)
   const attributed = orders.filter(isAttributed)
   const attributedPrev = ordersPrev.filter(isAttributed)
   const sales = attributed.reduce((n, o) => n + o.totalPaise, 0)
@@ -316,6 +459,8 @@ export async function marketingOverview(
       week: toWeeklyPoints(range.days, salesByDay),
     },
     channels: channelRows(sessions, orders),
+    sources,
+    bestSource: bestSource(sources),
     campaigns: await campaignRows(tx, sessions, orders),
   }
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import CampaignEditor from '@/components/marketing/campaigns/campaign-editor'
-import CampaignReport from '@/components/marketing/campaigns/campaign-report'
+import CampaignEditor from '@/components/growth/campaigns/campaign-editor'
+import CampaignReport from '@/components/growth/campaigns/campaign-report'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Campaign' }
