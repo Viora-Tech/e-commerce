@@ -1,8 +1,8 @@
 import {
   approveReturn,
   arrangeReturnPickup,
-  closeReturn,
   CommerceError,
+  closeReturn,
   deliverGiftCard,
   exchangeReturn,
   getReturn,
@@ -11,8 +11,8 @@ import {
   loadReturnPolicy,
   orderReturnState,
   parseShippingSettings,
-  type RequestReturnInput,
   type ReceiveReturnInput,
+  type RequestReturnInput,
   type ReturnListFilter,
   receiveReturn,
   refundablePayments,
@@ -20,8 +20,8 @@ import {
   rejectReturn,
   requestReturn,
   reshipReturn,
-  restockReturn,
   resolveShippingProviders,
+  restockReturn,
   returnCounts,
   rtoSummary,
   saveReturnPolicy,
@@ -84,8 +84,7 @@ export const listStoreReturns = (tx: StoreTx, storeId: string, filter: ReturnLis
 
 export const storeReturnCounts = (tx: StoreTx, storeId: string) => returnCounts({ storeId, tx })
 
-export const storeReturnPolicy = (tx: StoreTx, storeId: string) =>
-  loadReturnPolicy({ storeId, tx })
+export const storeReturnPolicy = (tx: StoreTx, storeId: string) => loadReturnPolicy({ storeId, tx })
 
 export const updateStoreReturnPolicy = (tx: StoreTx, storeId: string, input: unknown) =>
   saveReturnPolicy({ storeId, tx }, input)

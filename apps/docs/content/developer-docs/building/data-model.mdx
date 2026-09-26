@@ -6,7 +6,7 @@ description: The main tables and how they relate, the two database roles, row-le
 # Data model overview
 
 Postgres 17, one database, every tenant table carrying `store_id` and row-level security
-(RLS). Migrations live in `packages/db/drizzle` (SQL, `0064` at the time of writing), generated
+(RLS). Migrations live in `packages/db/drizzle` (SQL, `0067` at the time of writing), generated
 from the Drizzle schema files in `packages/db/src` (`schema.ts` plus feature schemas such as
 `marketing-schema.ts`; auth tables are separate, see below) and each app's own `schema.ts`.
 
@@ -32,6 +32,10 @@ erDiagram
   order ||--o{ shipment : "parcels"
   shipment_pickup |o--o{ shipment : "collects"
   order ||--o{ notification : "messages"
+  order ||--o{ return_request : "returns and RTOs"
+  return_request ||--|{ return_request_line : "lines"
+  order_line ||--o{ return_request_line : "sent back"
+  shipment |o--o| return_request : "came back (RTO)"
 
   order {
     uuid id PK
@@ -63,6 +67,25 @@ erDiagram
     int amount_paise
     text status "pending, processed, failed, manual"
   }
+  return_request {
+    uuid id PK
+    uuid order_id FK
+    int number "per-store, shown as R-12"
+    text kind "return, rto"
+    text status "requested, approved, rejected, in_transit, received, resolved, cancelled"
+    text reason "code from @commerce/core/returns"
+    text resolution "refund, exchange, store_credit, reship, none"
+    int refund_amount_paise
+    uuid shipment_id "RTO: the parcel that came back"
+    bool restock
+  }
+  return_request_line {
+    uuid id PK
+    uuid return_request_id FK
+    uuid order_line_id FK
+    int quantity
+    int restocked_quantity
+  }
 ```
 
 </Tabs.Tab>
@@ -84,6 +107,7 @@ erDiagram
     uuid id PK
     text organization_id "1 org = 1 store"
     jsonb apps "installed plugin ids"
+    jsonb returns "returns policy: window, reasons, restock, refund default"
     text gstin
   }
   product {
@@ -141,6 +165,21 @@ events written in the same transaction as the change), `order_note`, `discount` 
 `purchase_order`, `transfer`, `page`, `navigation_menu`, `store_domain`, metaobjects and
 metafields, `role` / `role_permission` / `store_member` / `store_invitation`, and the marketing
 tables in `marketing-schema.ts`.
+
+### Returns and RTO
+
+`return_request` holds both a shopper's return (`kind = return`) and a parcel the courier brought
+back undelivered (`kind = rto`, opened by `applyTracking` when a shipment turns `rto`; a partial
+unique index on `shipment_id` keeps it to one per shipment). `return_request_line` says which
+order lines and how many units, and how many were put back in stock. Each step has its own
+timestamp (`requested_at`, `approved_at`, `rejected_at`, `pickup_arranged_at`, `received_at`,
+`resolved_at`), which is what the status timeline reads. Refunds, store credit (a `gift_card`)
+and exchange drafts are ordinary rows elsewhere, linked back by id (`refund_ids`,
+`gift_card_id`, `exchange_order_id`, `reship_shipment_id`). The policy lives on `store.returns`
+(`ReturnPolicySchema` in `@commerce/core/returns`). Received customer returns count toward the
+order's derived `fulfillment_status` (`returned` once every unit is back). Every change is owned by
+`packages/core/src/returns/*` and writes its outbox event (`return.requested`, `return.approved`,
+`return.rejected`, `return.received`, `return.refunded`, `order.rto`) in the same transaction.
 
 ### Status columns are text with a CHECK
 

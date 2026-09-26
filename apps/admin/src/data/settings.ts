@@ -9,6 +9,7 @@ import {
   Palette,
   Store,
   Truck,
+  Undo,
   UserCog,
 } from '@commerce/ui/icons'
 
@@ -46,6 +47,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Shipping',
     body: 'Couriers, shipping rates, delivery estimates and dispatch policy.',
     icon: Truck,
+  },
+  {
+    href: '/settings/returns',
+    title: 'Returns',
+    body: 'How many days customers have to return, which reasons you accept, restock and refunds.',
+    icon: Undo,
   },
   {
     href: '/settings/notifications',

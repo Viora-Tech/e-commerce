@@ -47,9 +47,9 @@ export async function createShipmentForOrder(
   if (!o) throw new Error('order not found')
   if (!o.shippingAddressId) throw new Error('order has no shipping address')
   // A live booking is reused; a cancelled label or a parcel that came back (RTO) gets a new one.
-  const existing = (
-    await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))
-  ).find((s) => s.status !== 'cancelled' && s.status !== 'rto')
+  const existing = (await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))).find(
+    (s) => s.status !== 'cancelled' && s.status !== 'rto',
+  )
   if (existing) return existing
 
   const [to] = await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))

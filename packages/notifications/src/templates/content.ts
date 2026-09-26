@@ -130,7 +130,7 @@ const howBack = (d: TemplateData): string =>
     ? `A courier will come to collect it${d.returnInfo.pickupWaybill ? ` (tracking number ${d.returnInfo.pickupWaybill})` : ''}. Please pack the items safely and keep them ready.`
     : 'Please pack the items safely and send them back to us. Reply to this email if you need our address.'
 
-export const returnTemplates = {
+const returnTemplates = {
   return_requested: {
     subject: (d) => `${d.storeName}: we got your return request for order #${d.orderNumber}`,
     heading: (d) => `Thanks, ${d.customerName}. We got your request`,
@@ -161,7 +161,8 @@ export const returnTemplates = {
     subject: (d) => `${d.storeName}: we received your return ${ret(d)}`,
     heading: () => 'We received your return',
     intro: (d) => `The items from return ${ret(d)} (order #${d.orderNumber}) reached us.`,
-    outro: () => 'We are checking them now and will message you once your refund or exchange is on its way.',
+    outro: () =>
+      'We are checking them now and will message you once your refund or exchange is on its way.',
     whatsapp: (d) =>
       `${d.storeName}: we received return ${ret(d)} for order #${d.orderNumber}. We will update you once it is processed.`,
   },
@@ -175,7 +176,11 @@ export const returnTemplates = {
       `${d.storeName}: refund of ${d.returnInfo?.refundLabel ?? d.totalLabel} for return ${ret(d)} is on its way ${d.returnInfo?.refundMethod === 'store_credit' ? 'as store credit' : 'to the way you paid'}.`,
   },
 } satisfies Record<
-  'return_requested' | 'return_approved' | 'return_rejected' | 'return_received' | 'return_refunded',
+  | 'return_requested'
+  | 'return_approved'
+  | 'return_rejected'
+  | 'return_received'
+  | 'return_refunded',
   TemplateCopy
 >
 

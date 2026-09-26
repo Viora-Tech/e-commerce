@@ -241,6 +241,72 @@ describe('ShiprocketProvider createShipment', () => {
   })
 })
 
+describe('ShiprocketProvider reverse pickup', () => {
+  const returnInput = {
+    returnId: 'r1',
+    reference: 'R-3-1044',
+    orderNumber: 1044,
+    from: sampleShipment.to,
+    to: sampleShipment.from,
+    lines: sampleShipment.lines,
+    valuePaise: 199900,
+    weightGrams: 400,
+  }
+
+  it('creates a return order then assigns a return AWB', async () => {
+    const f = fakeFetch(
+      withLogin({
+        '/v1/external/orders/create/return': () => json({ order_id: 9, shipment_id: 10 }),
+        '/v1/external/courier/assign/awb': () => json({ response: { data: { awb_code: 'RSR1' } } }),
+      }),
+    )
+    const p = new ShiprocketProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createReturnPickup(returnInput)
+    expect(r).toEqual({ waybill: 'RSR1', providerRef: '10' })
+    const create = f.calls.find((c) => c.url.pathname.endsWith('/orders/create/return'))
+    expect(create?.init?.method).toBe('POST')
+    const body = JSON.parse(create?.init?.body as string)
+    expect(body).toMatchObject({
+      order_id: 'R-3-1044',
+      pickup_customer_name: sampleShipment.to.name,
+      pickup_pincode: sampleShipment.to.pincode,
+      shipping_customer_name: sampleShipment.from.name,
+      shipping_pincode: sampleShipment.from.pincode,
+      payment_method: 'Prepaid',
+      sub_total: 1999,
+    })
+    const assign = f.calls.find((c) => c.url.pathname.endsWith('/courier/assign/awb'))
+    expect(JSON.parse(assign?.init?.body as string)).toEqual({ shipment_id: 10, is_return: 1 })
+  })
+
+  it('throws when Shiprocket rejects the return or assigns no AWB', async () => {
+    const rejected = fakeFetch(
+      withLogin({ '/v1/external/orders/create/return': () => json({ message: 'Bad pincode' }) }),
+    )
+    await expect(
+      new ShiprocketProvider({ ...config, fetchImpl: rejected.impl }).createReturnPickup(
+        returnInput,
+      ),
+    ).rejects.toMatchObject({ kind: 'rejected', message: expect.stringContaining('Bad pincode') })
+
+    const noAwb = fakeFetch(
+      withLogin({
+        '/v1/external/orders/create/return': () => json({ order_id: 9, shipment_id: 10 }),
+        '/v1/external/courier/assign/awb': () => json({ message: 'No courier available' }),
+      }),
+    )
+    const err = await new ShiprocketProvider({ ...config, fetchImpl: noAwb.impl })
+      .createReturnPickup(returnInput)
+      .catch((e) => e)
+    expect(err).toBeInstanceOf(CourierError)
+    expect(err.message).toContain('No courier available')
+  })
+
+  it('declares reverse pickup', () => {
+    expect(shiprocketFactory.capabilities).toContain('reverse_pickup')
+  })
+})
+
 describe('ShiprocketProvider tracking', () => {
   it('normalises tracking activities into ordered events and a status', async () => {
     const f = fakeFetch(

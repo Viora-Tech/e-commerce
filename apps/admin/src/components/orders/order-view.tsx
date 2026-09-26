@@ -25,6 +25,7 @@ import {
   unfulfilledLines,
 } from './order-detail-types'
 import OrderHeader from './order-header'
+import OrderReturnsCard from './order-returns-card'
 import PackingSlip from './packing-slip'
 import PaymentCard from './payment-card'
 import RefundDialog from './refund-dialog'
@@ -212,6 +213,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
               onCancel={handleCancelShipment}
             />
           )}
+          <OrderReturnsCard orderId={order.id} readOnly={readOnly} onChanged={refresh} />
           <TimelineCard order={order} onChanged={refresh} />
         </>
       }

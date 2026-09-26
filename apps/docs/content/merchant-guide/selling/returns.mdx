@@ -1,0 +1,169 @@
+---
+title: Returns and RTO
+description: Set your return rules, handle a customer's return from request to refund, and deal with parcels the courier brings back (RTO).
+---
+
+# Returns and RTO
+
+There are two ways a parcel comes back to you:
+
+- **A return.** The customer got the order and wants to send something back, for example a
+  mousepad that arrived with a torn corner.
+- **An RTO** (return to origin). The courier could not deliver the parcel and brought it back
+  to you. The customer never got it.
+
+Both show up in **Orders → Returns**. Customer returns and RTOs are kept apart with the
+**RTO** filter.
+
+## What this is for
+
+- A customer asks for a return from their own account, with photos, and you do not have to
+  chase them on WhatsApp for details.
+- You decide in one place: accept, say no with a reason, book a courier to collect it, check
+  it when it arrives, and give the money back.
+- Stock goes back on the shelf by itself when a good item comes back.
+- When a courier brings a parcel back, you see it straight away, put the items back in stock
+  with one click, and then refund the customer or send it again.
+
+## Set your return rules
+
+Go to **Settings → Returns**. The defaults suit most shops, so you can leave them as they are.
+
+| Setting | What it means | Default |
+| --- | --- | --- |
+| **Let customers ask for returns online** | Shows the **Return or exchange** button on the customer's order page. | On |
+| **How many days after delivery can they ask?** | How many days after delivery a customer can ask. | 7 days |
+| **Which reasons do you accept?** | The reasons shown to the customer. Untick the ones you do not accept, for example "I changed my mind". | Everything except "I changed my mind" |
+| **Put items back in stock automatically** | When a returned item arrives in good condition, add it back to your stock. | On |
+| **When you give money back, suggest** | What the refund step suggests first: back to the way they paid, or store credit. You can still pick the other one each time. | Back to the way they paid |
+
+## How a customer asks for a return
+
+1. The customer signs in to your shop and opens **Account → the order**.
+2. They see how many days are left to return, and which items can go back.
+3. They select **Return or exchange**, choose the items and how many, pick a reason in plain
+   words, add a note and up to 3 photos if they like, and send it.
+4. They can come back to the order page any time to see where the return stands.
+
+The button only shows once the order is delivered and while the return window is open.
+
+## What you do
+
+<Steps>
+
+### Open the return
+
+Go to **Orders → Returns**. New requests are under **Needs your decision**. Open one to see the items,
+the reason, the customer's note and their photos.
+
+### Accept it, or say no
+
+- **Approve return**: then choose how the parcel comes back.
+  - **(Courier) picks it up from the customer**: we book a reverse pickup with your courier and save the return
+    tracking number. Delhivery and Shiprocket both support this (and the Demo courier, for
+    trying it out).
+  - **Ask the customer to send it**: the customer packs it and sends it to you themselves.
+- **Decline**: write a short reason, for example "The mousepad has been used". The customer
+  sees it in the email and on their order page.
+
+You can also open a return yourself for a customer who phoned you: open the order and use
+**Create return**.
+
+### Mark it received
+
+When the parcel reaches you, select **Mark as received** and check its condition: **Good, can be sold again**,
+**Used** or **Damaged**. Good items go back in stock automatically if that setting is on.
+Otherwise select **Put back in stock** when you are ready.
+
+### Give the money back, or send a replacement
+
+- **Refund**: full or part of the amount, back to the way the customer paid (Razorpay,
+  Cashfree, Decentro, or a UPI or bank transfer you send yourself). The amount is filled in
+  for you.
+- **Store credit**: a gift card for the amount, emailed to the customer, which they use at
+  checkout next time.
+- **Exchange**: we make a free draft order with the same items for the same address. Open it
+  under **Orders → Drafts**, check it and turn it into an order to ship it.
+
+</Steps>
+
+## Emails the customer gets
+
+Each step sends the customer a short email (and WhatsApp, if you have it connected):
+
+| When | Email |
+| --- | --- |
+| They send the request | "We got your return request" |
+| You approve it | "Your return is approved", saying whether a courier will collect it or they should send it |
+| You reject it | "We could not accept this return", with your reason |
+| The parcel reaches you | "We received your return" |
+| You refund or give store credit | "Your refund is on its way" |
+
+## RTO: when the courier brings a parcel back
+
+When the courier's tracking says a parcel is coming back to you, we do three things by
+ourselves:
+
+1. The order gets a **Returned to you (RTO)** task, shown on the order page and in
+   **Orders → Returns** under the **RTO** filter.
+2. A note is added to the order's timeline.
+3. The order's Fulfilment status shows **Returned**.
+
+Then you decide:
+
+- **Put back in stock**: one click adds the items back to your stock.
+- **Refund the customer**: for a prepaid order the full amount is filled in, since the
+  customer got nothing.
+- **Send it again**: books a new shipment with the same courier. If you already put the items
+  back in stock, they are taken out again.
+- **Close without refund**: nothing more to do.
+
+Add what the courier charged you for the RTO on the task. It is added up in
+**Orders → Shipments → RTO**.
+
+## RTO numbers in Shipments
+
+**Orders → Shipments → RTO** shows the last 30 days: how many parcels came back, what share of
+your shipments that is, the value of the goods, the courier charges you entered, and how many
+RTOs still wait for a decision. A high RTO share usually means wrong addresses or phone
+numbers, so it is worth checking your checkout and confirmation messages.
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| The customer does not see **Return or exchange** | The order is not delivered yet, the window has passed, or returns are off. | Check **Settings → Returns**. You can still open a return for them from the order page. |
+| The courier pickup option is missing | No connected courier supports reverse pickups. | Connect Delhivery or Shiprocket in **Apps**, or use **Ask the customer to send it**. |
+| Shiprocket says it created the return but gave no courier | Shiprocket could not pick a courier for that PIN code. | Open the return in Shiprocket and assign a courier there. |
+| Refund button says "more than is left to refund" | Part of the money was already refunded from the order page. | Enter a smaller amount. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="Does a returned item always go back in stock?">
+
+Only if it arrives in good condition and **Put items back in stock automatically** is on. For
+anything else, select **Put back in stock** yourself when you are happy with it.
+
+</FaqItem>
+
+<FaqItem question="Can a customer return part of an order?">
+
+Yes. They choose the items and how many. They can ask again later for the rest, while the
+window is open.
+
+</FaqItem>
+
+<FaqItem question="How long does a refund take to reach the customer?">
+
+Refunds to UPI and cards usually show in 5 to 7 working days, depending on their bank. Store
+credit is instant.
+
+</FaqItem>
+
+</Faq>
+
+## Related guides
+
+<RelatedGuides ids={['orders', 'shipments', 'payments', 'glossary']} />

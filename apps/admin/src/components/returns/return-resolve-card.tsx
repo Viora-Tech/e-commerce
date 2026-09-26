@@ -1,0 +1,154 @@
+'use client'
+
+import { Button } from '@commerce/ui/shadcn/button'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Input } from '@commerce/ui/shadcn/input'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import DataCard from '@/components/layout/data-card'
+import { returnDetailContent } from '@/data/returns'
+import { api } from '@/lib/api-client'
+import { formatPaise } from '@/lib/money'
+import ChoiceList from './choice-list'
+import RestockButton from './restock-button'
+import { type ReturnDetail, toPaise, toRupees } from './return-types'
+
+type Outcome = 'refund' | 'credit' | 'exchange' | 'reship' | 'close'
+
+type ReturnResolveCardProps = { detail: ReturnDetail; onChanged: () => void }
+
+const copy = returnDetailContent.resolve
+
+/** What the merchant usually picks first: their policy for returns, sending again for an RTO. */
+function firstChoice(r: ReturnDetail): Outcome {
+  if (r.kind === 'rto') return 'reship'
+  if (r.refundablePaise <= 0) return 'exchange'
+  return r.policy.refundMethod === 'store_credit' ? 'credit' : 'refund'
+}
+
+const isOutcome = (v: string): v is Outcome =>
+  ['refund', 'credit', 'exchange', 'reship', 'close'].includes(v)
+
+/** Settle a received return or RTO: refund, store credit, exchange, re-ship or close. */
+export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolveCardProps) {
+  // Hooks
+  const [outcome, setOutcome] = useState<Outcome>(() => firstChoice(r))
+  const [amount, setAmount] = useState(() => toRupees(r.suggestedRefundPaise ?? 0))
+  const [busy, setBusy] = useState(false)
+
+  // Helpers
+  const act = async (run: () => Promise<string>) => {
+    setBusy(true)
+    try {
+      toast.success(await run())
+      onChanged()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : returnDetailContent.failed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Event handlers
+  const handleOutcome = (v: string) => {
+    if (isOutcome(v)) setOutcome(v)
+  }
+
+  const handleConfirm = () =>
+    act(async () => {
+      if (outcome === 'refund') {
+        await api.returns.refund({ id: r.id, amountPaise: paise })
+        return copy.refunded(formatPaise(paise))
+      }
+      if (outcome === 'credit') {
+        await api.returns.storeCredit({ id: r.id, amountPaise: paise })
+        return copy.credited(formatPaise(paise))
+      }
+      if (outcome === 'exchange') {
+        const ex = await api.returns.exchange({ id: r.id })
+        return copy.exchanged(ex.draftNumber)
+      }
+      if (outcome === 'reship') {
+        await api.returns.reship({ id: r.id })
+        return copy.reshipped
+      }
+      await api.returns.close({ id: r.id })
+      return copy.closed
+    })
+
+  // Render logic
+  const rto = r.kind === 'rto'
+  const paise = toPaise(amount)
+  const needsAmount = outcome === 'refund' || outcome === 'credit'
+  const maxPaise = outcome === 'refund' ? r.refundablePaise : 20_000_000
+  const validAmount = Number.isInteger(paise) && paise > 0 && paise <= maxPaise
+  const suggestion = r.suggestedRefundPaise ?? 0
+  const choices = [
+    ...(r.refundablePaise > 0
+      ? [{ value: 'refund', label: copy.refund, hint: copy.refundHint }]
+      : []),
+    ...(rto ? [{ value: 'reship', label: copy.reship, hint: copy.reshipHint }] : []),
+    { value: 'credit', label: copy.credit, hint: copy.creditHint },
+    ...(rto ? [] : [{ value: 'exchange', label: copy.exchange, hint: copy.exchangeHint }]),
+    { value: 'close', label: copy.close, hint: copy.closeHint },
+  ]
+  const confirmLabel =
+    outcome === 'refund'
+      ? copy.confirmRefund(formatPaise(validAmount ? paise : 0))
+      : outcome === 'credit'
+        ? copy.confirmCredit(formatPaise(validAmount ? paise : 0))
+        : outcome === 'exchange'
+          ? copy.confirmExchange
+          : outcome === 'reship'
+            ? copy.confirmReship
+            : copy.confirmClose
+
+  return (
+    <DataCard title={copy.title} action={<RestockButton detail={r} onChanged={onChanged} />}>
+      <div className="flex flex-col gap-4">
+        <p className="text-body text-muted-foreground">
+          {copy.body} {rto ? null : copy.defaultMethod(copy.methods[r.policy.refundMethod])}
+        </p>
+        <ChoiceList name="resolve" choices={choices} value={outcome} onChange={handleOutcome} />
+        {needsAmount ? (
+          <Field>
+            <FieldLabel htmlFor="resolve-amount">{copy.amount}</FieldLabel>
+            <div className="flex max-w-sm gap-2">
+              <Input
+                id="resolve-amount"
+                type="number"
+                inputMode="decimal"
+                min="1"
+                step="1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAmount(toRupees(suggestion))}
+              >
+                {copy.full}
+              </Button>
+            </div>
+            <FieldDescription>
+              {rto
+                ? copy.rtoSuggestion(formatPaise(suggestion))
+                : copy.suggestion(formatPaise(suggestion))}
+              {outcome === 'refund' ? ` ${copy.available(formatPaise(r.refundablePaise))}` : ''}
+            </FieldDescription>
+          </Field>
+        ) : null}
+        <div>
+          <Button
+            size="lg"
+            onClick={handleConfirm}
+            disabled={busy || (needsAmount && !validAmount)}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </DataCard>
+  )
+}

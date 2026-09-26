@@ -232,8 +232,8 @@ export function returnTimeline(r: ReturnTimes): TimelineStep[] {
 export function returnActions(r: {
   status: ReturnStatus
   kind: ReturnKind
-  restock: boolean
-  restockedAt: Date | null
+  restockedAt: Date | string | null
+  resolution?: ReturnResolution | null | undefined
 }) {
   const received = RECEIVED_RETURN_STATUSES.includes(r.status)
   return {
@@ -242,7 +242,7 @@ export function returnActions(r: {
     arrangePickup: r.kind === 'return' && r.status === 'approved',
     receive: r.kind === 'return' && (r.status === 'approved' || r.status === 'in_transit'),
     resolve: r.status === 'received',
-    restock: received && r.restockedAt === null,
+    restock: received && r.restockedAt === null && r.resolution !== 'reship',
   }
 }
 

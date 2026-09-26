@@ -14,11 +14,7 @@ import {
   store,
   variant,
 } from '@commerce/db'
-import {
-  ASSUMED_WEIGHT_GRAMS,
-  type ShippingProvider,
-  type Tracking,
-} from '@commerce/shipping'
+import { ASSUMED_WEIGHT_GRAMS, type ShippingProvider, type Tracking } from '@commerce/shipping'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
@@ -33,8 +29,8 @@ import {
   parseReturnPolicy,
   RETURN_REASONS,
   type ReturnPolicy,
-  type ReturnReason,
   ReturnPolicySchema,
+  type ReturnReason,
   type ReturnStatus,
   returnEligibility,
   returnLabel,
@@ -94,10 +90,7 @@ async function deliveredAtFor(
 }
 
 /** Units of each order line already in a live customer return. */
-async function alreadyReturning(
-  ctx: StoreContext,
-  orderId: string,
-): Promise<Map<string, number>> {
+async function alreadyReturning(ctx: StoreContext, orderId: string): Promise<Map<string, number>> {
   const rows = await ctx.tx
     .select({ lineId: returnRequestLine.orderLineId, quantity: returnRequestLine.quantity })
     .from(returnRequestLine)
@@ -141,10 +134,7 @@ export type OrderLineView = {
 }
 
 /** An order's lines with a picture each (the variant's own, else the product's first). */
-export async function orderLinesWithImages(
-  ctx: StoreContext,
-  orderId: string,
-): Promise<OrderLineView[]> {
+async function orderLinesWithImages(ctx: StoreContext, orderId: string): Promise<OrderLineView[]> {
   const lines = await ctx.tx
     .select({
       id: orderLine.id,
@@ -302,11 +292,7 @@ const MAX_PHOTOS = 5
  * not held to the window, but neither can send back more than was shipped.
  */
 export async function requestReturn(ctx: StoreContext, input: RequestReturnInput) {
-  const [o] = await ctx.tx
-    .select()
-    .from(order)
-    .where(eq(order.id, input.orderId))
-    .for('update')
+  const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId)).for('update')
   if (!o) throw new ReturnNotAllowed('Order not found', ctx.storeId)
   if (input.customerId && o.customerId !== input.customerId) {
     throw new ReturnNotAllowed('Order not found', ctx.storeId)
@@ -377,7 +363,11 @@ export async function requestReturn(ctx: StoreContext, input: RequestReturnInput
 
 /** Lock one return for a state change; refuses a missing one. */
 export async function lockReturn(ctx: StoreContext, id: string): Promise<ReturnRow> {
-  const [r] = await ctx.tx.select().from(returnRequest).where(eq(returnRequest.id, id)).for('update')
+  const [r] = await ctx.tx
+    .select()
+    .from(returnRequest)
+    .where(eq(returnRequest.id, id))
+    .for('update')
   if (!r) throw new ReturnNotAllowed('Return not found', ctx.storeId)
   return r
 }
@@ -520,7 +510,10 @@ export async function arrangeReturnPickup(
 }
 
 /** The location a variant sells from online; returned units go back there. */
-export async function sellingLocation(ctx: StoreContext, variantId: string): Promise<string | undefined> {
+export async function sellingLocation(
+  ctx: StoreContext,
+  variantId: string,
+): Promise<string | undefined> {
   const [level] = await ctx.tx
     .select({ locationId: inventoryLevel.locationId })
     .from(inventoryLevel)
@@ -535,6 +528,12 @@ export async function sellingLocation(ctx: StoreContext, variantId: string): Pro
 export async function restockReturn(ctx: StoreContext, id: string) {
   const r = await lockReturn(ctx, id)
   expect(ctx, r, ['received', 'resolved'], 'restocked before it arrives')
+  if (r.resolution === 'reship') {
+    throw new ReturnNotAllowed(
+      'These items were sent out again, so they are not in stock.',
+      ctx.storeId,
+    )
+  }
   const lines = await ctx.tx
     .select({
       id: returnRequestLine.id,
@@ -704,6 +703,8 @@ export async function returnCounts(ctx: StoreContext) {
     inProgress: sum((r) => r.status === 'approved' || r.status === 'in_transit'),
     received: sum((r) => r.status === 'received'),
     rto: sum((r) => r.kind === 'rto'),
+    /** RTO parcels back with the merchant, waiting for restock and a refund or re-ship. */
+    rtoOpen: sum((r) => r.kind === 'rto' && r.status === 'received'),
   }
 }
 

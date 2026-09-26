@@ -191,6 +191,9 @@ function HeaderActions() {
           <DropdownMenuItem render={<Link href="/orders/abandoned-checkouts" />}>
             {ordersContent.menu.abandoned}
           </DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/orders/returns" />}>
+            {ordersContent.menu.returns}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <Tooltip>

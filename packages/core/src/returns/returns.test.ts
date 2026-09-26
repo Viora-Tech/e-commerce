@@ -139,9 +139,11 @@ describe('returnEligibility (pure)', () => {
       false,
     ])
     expect(returnTimeline({ ...t, kind: 'rto', status: 'received' })[0]?.key).toBe('received')
-    expect(
-      returnActions({ status: 'received', kind: 'rto', restock: false, restockedAt: null }),
-    ).toMatchObject({ approve: false, resolve: true, restock: true })
+    expect(returnActions({ status: 'received', kind: 'rto', restockedAt: null })).toMatchObject({
+      approve: false,
+      resolve: true,
+      restock: true,
+    })
   })
 })
 
@@ -158,7 +160,13 @@ async function seed(opts: { delivered?: Date | null; paid?: boolean } = {}) {
         enabled: ['fake'],
         policy: {
           originPincode: '131028',
-          warehouse: { name: 'Waimers HQ', line1: 'Plot 4', city: 'Sonipat', state: 'HR', phone: '9' },
+          warehouse: {
+            name: 'Waimers HQ',
+            line1: 'Plot 4',
+            city: 'Sonipat',
+            state: 'HR',
+            phone: '9',
+          },
         },
       },
     })
@@ -298,7 +306,12 @@ describe('customer return, start to finish', () => {
       fulfillmentStatus: 'returned',
       status: 'completed',
     })
-    for (const type of ['return.approved', 'return.received', 'return.refunded', 'refund.created']) {
+    for (const type of [
+      'return.approved',
+      'return.received',
+      'return.refunded',
+      'refund.created',
+    ]) {
       expect(await events(s.storeId, type)).toHaveLength(1)
     }
   })
@@ -446,7 +459,10 @@ describe('RTO', () => {
 
   it('opens one task per returned shipment, restocks in one click and re-ships', async () => {
     const s = await seed({ delivered: null })
-    await owner.update(orderLine).set({ fulfilledQuantity: 0 }).where(eq(orderLine.orderId, s.orderId))
+    await owner
+      .update(orderLine)
+      .set({ fulfilledQuantity: 0 })
+      .where(eq(orderLine.orderId, s.orderId))
     await owner
       .update(inventoryLevel)
       .set({ reserved: 2 })
@@ -494,7 +510,10 @@ describe('RTO', () => {
       createShipmentForOrder(ctx, new FakeShippingProvider(), s.orderId),
     )
     await inStore(s.storeId, (ctx) => applyTracking(ctx, sh.id, rtoScan(sh.waybill)))
-    const [task] = await owner.select().from(returnRequest).where(eq(returnRequest.orderId, s.orderId))
+    const [task] = await owner
+      .select()
+      .from(returnRequest)
+      .where(eq(returnRequest.orderId, s.orderId))
     await inStore(s.storeId, (ctx) =>
       refundReturn(ctx, task?.id as string, { amountPaise: 200000, providerFor: async () => null }),
     )

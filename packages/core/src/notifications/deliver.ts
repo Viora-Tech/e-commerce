@@ -25,13 +25,13 @@ import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
 import { balanceUrl, thankYouUrl } from '../preorder/balance-link'
-import { returnTemplateData } from '../returns/notify'
 import {
   balancePayBy,
   depositIsNonRefundable,
   type PreorderStoreSettings,
   parsePreorderStoreSettings,
 } from '../preorder/store-settings'
+import { returnTemplateData } from '../returns/notify'
 import { isMessageOn } from './messages'
 import { parseNotificationSettings, resolveNotificationChannels } from './settings'
 

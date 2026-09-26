@@ -58,6 +58,13 @@ export const guides = {
     title: 'Shipments',
     description: 'Connect a courier, book, print labels, pickups and delivery problems.',
   },
+  returns: {
+    href: '/merchant-guide/selling/returns',
+    icon: 'receipt',
+    title: 'Returns and RTO',
+    description:
+      'Return rules, handling a return from request to refund, and parcels that come back.',
+  },
   'online-store': {
     href: '/merchant-guide/selling/online-store',
     icon: 'paintbrush',

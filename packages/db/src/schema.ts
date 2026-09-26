@@ -1936,7 +1936,7 @@ export const outboxEvent = pgTable(
   ],
 )
 
-export const RETURN_STATUSES = [
+const RETURN_STATUSES = [
   'requested',
   'approved',
   'rejected',
@@ -1945,8 +1945,8 @@ export const RETURN_STATUSES = [
   'resolved',
   'cancelled',
 ] as const
-export const RETURN_KINDS = ['return', 'rto'] as const
-export const RETURN_RESOLUTIONS = ['refund', 'exchange', 'store_credit', 'reship', 'none'] as const
+const RETURN_KINDS = ['return', 'rto'] as const
+const RETURN_RESOLUTIONS = ['refund', 'exchange', 'store_credit', 'reship', 'none'] as const
 
 /**
  * A shopper's request to send items back (`kind = return`), or a parcel the
@@ -2017,9 +2017,7 @@ export const returnRequest = pgTable(
     index('return_request_store_status').on(t.storeId, t.status, t.requestedAt),
     index('return_request_order').on(t.orderId),
     /* One RTO task per returned shipment: re-applying the same tracking scan is a no-op. */
-    uniqueIndex('return_request_rto_shipment')
-      .on(t.shipmentId)
-      .where(sql`${t.kind} = 'rto'`),
+    uniqueIndex('return_request_rto_shipment').on(t.shipmentId).where(sql`${t.kind} = 'rto'`),
     check(
       'return_request_status_check',
       sql`${t.status} in ('requested', 'approved', 'rejected', 'in_transit', 'received', 'resolved', 'cancelled')`,
