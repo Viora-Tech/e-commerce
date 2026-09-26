@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: checkout payment methods tests — WHAT the method row guarantees / WHY checkout order and COD rules don't drift */
 import { describe, expect, it } from 'vitest'
 import {
   checkoutMethodsOf,

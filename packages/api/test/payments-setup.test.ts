@@ -85,7 +85,7 @@ describe('OAuth state', () => {
 
 describe('connectPaymentGateway', () => {
   it('makes the gateway the main way to get paid with the default methods, secrets encrypted', async () => {
-    // A new store's settings default to COD on; connecting keeps whatever COD was.
+    // A store that never saved payment settings: COD starts off, as agreed.
     const storeId = await makeStore('pay-connect')
     await withStore(app, storeId, (tx) =>
       connectPaymentGateway(tx, storeId, registry, env, 'razorpay', razorpayKeys),
@@ -96,12 +96,26 @@ describe('connectPaymentGateway', () => {
       'upi',
       'card',
       'netbanking',
-      'cod',
     ])
+    expect(saved.enabled).not.toContain('cod')
     expect(saved.providers.razorpay?.keySecret).not.toBe(razorpayKeys.keySecret)
     expect(decryptPaymentSettings(saved, secret).providers.razorpay?.keySecret).toBe(
       razorpayKeys.keySecret,
     )
+  })
+
+  it('keeps COD on for a store that had saved it on before connecting', async () => {
+    const storeId = await makeStore('pay-connect-cod')
+    await owner
+      .update(store)
+      .set({ payments: { enabled: ['cod'], providers: {} } })
+      .where(eq(store.id, storeId))
+    await withStore(app, storeId, (tx) =>
+      connectPaymentGateway(tx, storeId, registry, env, 'razorpay', razorpayKeys),
+    )
+    const saved = await savedSettings(storeId)
+    expect(saved.methods?.find((m) => m.id === 'cod')?.on).toBe(true)
+    expect(saved.enabled).toEqual(['razorpay', 'cod'])
   })
 
   it('switching to Cashfree replaces Razorpay at checkout, keeps its keys, and sets the update URL', async () => {

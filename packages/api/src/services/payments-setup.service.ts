@@ -217,6 +217,13 @@ export async function paymentsSetup(
   }
 }
 
+/** True once the store has saved payment settings; before that every value is a default. */
+async function paymentsEverSaved(tx: StoreTx, storeId: string): Promise<boolean> {
+  const [s] = await tx.select({ payments: store.payments }).from(store).where(eq(store.id, storeId))
+  const raw = s?.payments
+  return !!raw && typeof raw === 'object' && Array.isArray((raw as { enabled?: unknown }).enabled)
+}
+
 /** Read, change and save the settings blob the way the admin form does: validated and encrypted. */
 async function writeSettings(
   tx: StoreTx,
@@ -262,7 +269,7 @@ export function savePaymentMethods(
  * replaces any other gateway at checkout (whose keys are kept, for switching
  * back). First connection also saves the default method row.
  */
-export function connectPaymentGateway(
+export async function connectPaymentGateway(
   tx: StoreTx,
   storeId: string,
   registry: PaymentRegistry,
@@ -270,6 +277,9 @@ export function connectPaymentGateway(
   providerId: string,
   fields: Record<string, string>,
 ) {
+  // COD starts off for a shop that never saved payment settings (its "on" is only
+  // the schema default); a shop that saved its own choice keeps it.
+  const everSaved = await paymentsEverSaved(tx, storeId)
   return writeSettings(tx, storeId, registry, env, (s) => {
     const others = s.enabled.filter((id) => !isGatewayProvider(id) || id === providerId)
     const methods = checkoutMethodsOf(
@@ -278,7 +288,7 @@ export function connectPaymentGateway(
         : {
             ...s,
             methods: DEFAULT_CHECKOUT_METHODS.map((m) =>
-              m.id === 'cod' ? { ...m, on: s.enabled.includes('cod') } : m,
+              m.id === 'cod' ? { ...m, on: everSaved && s.enabled.includes('cod') } : m,
             ),
           },
     )
