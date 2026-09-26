@@ -209,7 +209,8 @@ export default function LiveGlobeCanvas({
       diffuse: 1.15,
       scale: 1,
       offset: cobeOffset(shiftX * canvas.clientWidth, 1),
-      mapSamples: 14000,
+      // Dense enough to show the detailed land map (patches/cobe@2.0.1.patch) coast by coast.
+      mapSamples: 32000,
       mapBrightness: dark ? 4.5 : 5.5,
       baseColor: palette.base,
       markerColor: palette.marker,
