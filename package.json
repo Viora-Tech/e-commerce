@@ -21,6 +21,7 @@
     "db:generate": "bun run --cwd packages/db generate",
     "db:migrate": "bun run --cwd packages/db migrate",
     "db:seed": "bun run --cwd packages/db seed",
+    "db:seed:empty": "bun run --cwd packages/db seed:empty",
     "db:seed:demo": "bun run --cwd packages/db seed:demo",
     "db:seed:demo:collections": "bun run --cwd packages/db seed:demo:collections",
     "db:seed:navigation": "bun run --cwd packages/db seed:navigation",

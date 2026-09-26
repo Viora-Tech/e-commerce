@@ -83,6 +83,13 @@ export async function seedDev(ownerUrl: string): Promise<void> {
       console.log(`seed: ${ownerEmail} owns waimers`)
     }
 
+    // `--empty` stops here: the store, its localhost domains and the owner, no catalog.
+    // Used for a clean Shopify import rehearsal, where products come from the import.
+    if (process.argv.includes('--empty')) {
+      console.log('seed: empty waimers store (no catalog)')
+      return
+    }
+
     const rows: Row[] = JSON.parse(
       readFileSync(fileURLToPath(new URL('../seed/waimers-catalog.json', import.meta.url)), 'utf8'),
     )
