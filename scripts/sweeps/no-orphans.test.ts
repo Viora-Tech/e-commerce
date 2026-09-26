@@ -651,7 +651,13 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/payments-razorpay/src/razorpay.ts',
-    names: ['SNAPMINT_PROVIDER', 'buildOrderNotes', 'buildReceipt', 'buildDisplayConfig'],
+    names: [
+      'SNAPMINT_PROVIDER',
+      'buildOrderNotes',
+      'buildReceipt',
+      'buildDisplayConfig',
+      'buildMethodDisplayConfig',
+    ],
     reason: 'no external importer today — investigate before removing',
   },
   {

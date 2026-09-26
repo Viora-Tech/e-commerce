@@ -1,5 +1,6 @@
 import { sesPlugin } from '@commerce/notifications-ses'
 import { whatsappPlugin } from '@commerce/notifications-whatsapp'
+import { cashfreePlugin } from '@commerce/payments-cashfree'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
 import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
@@ -18,6 +19,7 @@ import { r2Plugin } from '@commerce/storage-r2'
 export default defineConfig({
   plugins: [
     razorpayPlugin,
+    cashfreePlugin,
     delhiveryPlugin,
     shiprocketPlugin,
     sesPlugin,
