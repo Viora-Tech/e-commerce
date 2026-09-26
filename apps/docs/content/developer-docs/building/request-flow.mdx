@@ -142,6 +142,9 @@ Things worth knowing:
 - **Side effects go through the outbox.** `outbox_event` rows are written in the same
   transaction as the state change; the relay maps them to notification templates
   (`order.paid` → `payment_received`, `order.fulfilled` → `order_shipped`, …) and app hooks.
+  Return events (`return.requested`, `return.approved`, `return.rejected`, `return.received`,
+  `return.refunded`) carry a `returnId` and are repeatable per order, so each return gets its
+  own `return_*` email; `order.rto` has no shopper message (the merchant sees the RTO task).
 
 ## 4. The worker's clock
 

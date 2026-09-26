@@ -31,6 +31,7 @@ import {
   type PreorderStoreSettings,
   parsePreorderStoreSettings,
 } from '../preorder/store-settings'
+import { returnTemplateData } from '../returns/notify'
 import { storeNotificationChannels } from '../sender-email/channels'
 import { isMessageOn } from './messages'
 import { parseNotificationSettings } from './settings'
@@ -303,7 +304,7 @@ export async function deliverCartRecovery(
  */
 export async function deliverNotification(
   ctx: StoreContext,
-  input: { orderId: string; template: TemplateId },
+  input: { orderId: string; template: TemplateId; returnId?: string | undefined },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
   const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl, opts.settingsSecret)
@@ -324,6 +325,9 @@ export async function deliverNotification(
       .where(eq(order.id, input.orderId))
     if (o?.status !== 'open' || o.checkoutPaidAt) return []
   }
+  // A return message lists the items going back, not the whole order.
+  const returned = input.returnId ? await returnTemplateData(ctx, input.returnId) : null
+  if (input.template.startsWith('return_') && !returned) return []
   const merchant = MERCHANT_TEMPLATES.has(input.template)
     ? await merchantNotice(ctx, input.orderId)
     : null
@@ -335,6 +339,7 @@ export async function deliverNotification(
   const data = {
     ...built.data,
     ...(actionUrl ? { actionUrl } : {}),
+    ...returned,
     ...merchant?.data,
     ...opts.data,
     ...(extras?.links.length ? { links: extras.links } : {}),

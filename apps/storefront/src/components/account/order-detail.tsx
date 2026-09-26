@@ -26,6 +26,8 @@ type OrderDetailProps = {
   reorderEmpty: boolean
   /** A deposit pre-order's "Pay balance" block, when a balance is still owed. */
   balance?: ReactNode
+  /** The returns section: return window, start button and returns so far. */
+  returns?: ReactNode
 }
 
 const copy = accountContent.order
@@ -42,6 +44,7 @@ export default function OrderDetail({
   links,
   reorderEmpty,
   balance = null,
+  returns = null,
 }: OrderDetailProps) {
   // Render logic
   const canReorder = o.lines.some((l) => l.purchasable)
@@ -132,6 +135,7 @@ export default function OrderDetail({
               ))}
             </ul>
           </section>
+          {returns}
         </div>
 
         <div className="flex flex-col gap-6">

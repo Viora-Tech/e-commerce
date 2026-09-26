@@ -23,7 +23,15 @@ import type { MessageRowData, NotificationsOverview } from './types'
 
 type MessageId = Parameters<typeof api.notifications.setMessage>[0]['id']
 
-const GROUPS: MessageGroupId[] = ['orders', 'transfer', 'preorder', 'manual', 'account', 'app']
+const GROUPS: MessageGroupId[] = [
+  'orders',
+  'returns',
+  'transfer',
+  'preorder',
+  'manual',
+  'account',
+  'app',
+]
 
 /** Advanced (the developer log) only exists while developing. */
 const DEV = process.env.NODE_ENV !== 'production'

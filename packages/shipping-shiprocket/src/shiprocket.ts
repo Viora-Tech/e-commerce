@@ -55,6 +55,7 @@ import {
   type ProviderField,
   type RateQuery,
   type RateQuote,
+  type ReturnPickupInput,
   type SchedulePickupInput,
   type SchedulePickupResult,
   type Serviceability,
@@ -426,6 +427,89 @@ export class ShiprocketProvider implements ShippingProvider {
     return { waybill: awb, providerRef: String(order.shipment_id), labelUrl }
   }
 
+  /**
+   * Return order payload for `POST /v1/external/orders/create/return`
+   * ("Create a Return Order" in Shiprocket's official API collection,
+   * postman.com/shiprocketdev). `pickup_*` is the shopper the courier collects
+   * from, `shipping_*` is the warehouse it comes back to. Field names match
+   * the published collection and the maintained SDK wrappers.
+   */
+  buildReturnPayload(input: ReturnPickupInput) {
+    const rupees = (paise: number) => Math.round(paise) / 100
+    return {
+      order_id: input.reference,
+      order_date: new Date().toISOString().slice(0, 10),
+      pickup_customer_name: input.from.name,
+      pickup_last_name: '',
+      pickup_address: input.from.line1,
+      pickup_address_2: input.from.line2 ?? '',
+      pickup_city: input.from.city,
+      pickup_state: input.from.state,
+      pickup_country: 'India',
+      pickup_pincode: input.from.pincode,
+      pickup_email: 'orders@example.com',
+      pickup_phone: input.from.phone,
+      shipping_customer_name: input.to.name,
+      shipping_last_name: '',
+      shipping_address: input.to.line1,
+      shipping_address_2: input.to.line2 ?? '',
+      shipping_city: input.to.city,
+      shipping_state: input.to.state,
+      shipping_country: 'India',
+      shipping_pincode: input.to.pincode,
+      shipping_phone: input.to.phone,
+      order_items: input.lines.map((l) => ({
+        name: l.title.slice(0, 250),
+        sku: l.title.slice(0, 50).replace(/\s+/g, '-').toLowerCase() || 'item',
+        units: l.quantity,
+        selling_price: rupees(l.unitPricePaise),
+      })),
+      payment_method: 'Prepaid',
+      sub_total: rupees(input.valuePaise),
+      length: 10,
+      breadth: 10,
+      height: 10,
+      weight: Math.max(input.weightGrams, 1) / 1000,
+    }
+  }
+
+  /**
+   * Book a reverse pickup: create the return order, then ask for its AWB with
+   * `is_return: 1` on `/courier/assign/awb`. The return-order endpoint is
+   * confirmed by the official collection; the `is_return` flag on AWB
+   * assignment is Shiprocket's documented way to get a return AWB but is not
+   * yet confirmed against a live account (one SDK uses a separate
+   * `/courier/assign/awb/return` path). If no AWB comes back the return order
+   * still exists in Shiprocket and the merchant can assign it there, so this
+   * throws with that instruction rather than guessing.
+   */
+  async createReturnPickup(input: ReturnPickupInput): Promise<CreateShipmentResult> {
+    const order = await this.postJson<CreateOrderResponse>(
+      '/orders/create/return',
+      this.buildReturnPayload(input),
+    )
+    if (!order.shipment_id) {
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `Shiprocket rejected the return: ${order.message || 'no detail returned'}`,
+      )
+    }
+    const assign = await this.postJson<AssignAwbResponse>('/courier/assign/awb', {
+      shipment_id: order.shipment_id,
+      is_return: 1,
+    })
+    const awb = assign.response?.data?.awb_code
+    if (!awb) {
+      throw new CourierError(
+        'rejected',
+        this.id,
+        `Shiprocket created the return but did not assign a courier: ${assign.message || 'assign one in Shiprocket under Returns'}`,
+      )
+    }
+    return { waybill: awb, providerRef: String(order.shipment_id) }
+  }
+
   async track(waybill: string): Promise<Tracking> {
     const data = await this.getJson<TrackResponse>(
       `/courier/track/awb/${encodeURIComponent(waybill)}`,
@@ -627,6 +711,7 @@ export const SHIPROCKET_CAPABILITIES: ShippingCapability[] = [
   'webhook',
   'ndr',
   'wallet',
+  'reverse_pickup',
 ]
 
 export const shiprocketFactory: ShippingProviderFactory<ShiprocketConfig> = {

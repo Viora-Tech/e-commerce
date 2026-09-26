@@ -32,6 +32,7 @@ import { campaignsContent } from '@/data/marketing-campaigns'
 import { onlineStoreContent } from '@/data/online-store'
 import { orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
+import { returnsContent } from '@/data/returns'
 import { shipmentPanelContent } from '@/data/shipping'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { staffContent } from '@/data/staff'
@@ -130,6 +131,16 @@ export const STATUS = {
     delivered: entry(shipmentPanelContent.status.delivered ?? 'Delivered', 'success', PackageCheck),
     rto: entry(shipmentPanelContent.status.rto ?? 'Returning', 'error', CancelCircle),
     cancelled: entry(shipmentPanelContent.status.cancelled ?? 'Cancelled', 'error', CancelCircle),
+  },
+  /** A customer return or an RTO task: amber when it waits on the merchant. */
+  return: {
+    requested: entry(returnsContent.status.requested, 'pending'),
+    approved: entry(returnsContent.status.approved, 'accent'),
+    rejected: entry(returnsContent.status.rejected, 'error'),
+    in_transit: entry(returnsContent.status.in_transit, 'info', Truck),
+    received: entry(returnsContent.status.received, 'pending', PackageOpen),
+    resolved: entry(returnsContent.status.resolved, 'success', CircleCheck),
+    cancelled: entry(returnsContent.status.cancelled, 'neutral'),
   },
   discount: {
     active: entry(discountsContent.lifecycle.active, 'success'),

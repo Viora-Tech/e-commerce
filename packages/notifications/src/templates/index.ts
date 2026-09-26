@@ -24,6 +24,11 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'unpaid_cancelled',
   'back_in_stock_confirm',
   'back_in_stock_alert',
+  'return_requested',
+  'return_approved',
+  'return_rejected',
+  'return_received',
+  'return_refunded',
 ]
 
 /** Human names for the dev preview list and the admin's document-template picker. */
@@ -44,6 +49,11 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   unpaid_cancelled: 'Unpaid order cancelled',
   back_in_stock_confirm: 'Back in stock: confirm alert',
   back_in_stock_alert: 'Back in stock: alert',
+  return_requested: 'Return requested',
+  return_approved: 'Return approved',
+  return_rejected: 'Return declined',
+  return_received: 'Return received',
+  return_refunded: 'Return refunded',
 }
 
 /** Drop runs of blank lines left by optional sections. */
@@ -61,6 +71,12 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
     case 'back_in_stock_confirm':
     case 'back_in_stock_alert':
       return 'Back in stock'
+    case 'return_requested':
+    case 'return_approved':
+    case 'return_rejected':
+    case 'return_received':
+    case 'return_refunded':
+      return d.returnInfo ? `Return ${d.returnInfo.label}` : `Order #${d.orderNumber}`
     default:
       return d.orderNumber ? `Order #${d.orderNumber}` : d.storeName
   }

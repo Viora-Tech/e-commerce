@@ -67,6 +67,15 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.backInStock?.productTitle ?? '-', d.backInStock?.confirmUrl ?? '-']
     case 'back_in_stock_alert':
       return [d.backInStock?.productTitle ?? '-', d.storeName, d.backInStock?.productUrl ?? '-']
+    case 'return_requested':
+    case 'return_received':
+      return [d.storeName, d.returnInfo?.label ?? '-', n]
+    case 'return_approved':
+      return [d.storeName, d.returnInfo?.label ?? '-', n, d.returnInfo?.pickupWaybill ?? '-']
+    case 'return_rejected':
+      return [d.storeName, d.returnInfo?.label ?? '-', n, d.returnInfo?.decisionNote ?? '-']
+    case 'return_refunded':
+      return [d.storeName, d.returnInfo?.refundLabel ?? d.totalLabel, d.returnInfo?.label ?? '-']
   }
 }
 

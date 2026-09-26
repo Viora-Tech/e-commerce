@@ -5,6 +5,8 @@ import {
   order,
   orderLine,
   product,
+  returnRequest,
+  returnRequestLine,
   store,
   variant,
   withStore,
@@ -165,6 +167,52 @@ describe('deliverNotification', () => {
     const rows = await owner.select().from(notification)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({ channel: 'mail', status: 'sent', providerRef: 'mail_1' })
+  })
+
+  it('a return message lists the returned items; a missing return sends nothing', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const [line] = await owner.select().from(orderLine).where(eq(orderLine.orderId, orderId))
+    const [r] = await owner
+      .insert(returnRequest)
+      .values({
+        storeId,
+        orderId,
+        number: 3,
+        status: 'approved',
+        reason: 'damaged',
+        pickupMethod: 'courier',
+        pickupWaybill: 'RVP9',
+      })
+      .returning()
+    await owner.insert(returnRequestLine).values({
+      storeId,
+      returnRequestId: r?.id as string,
+      orderLineId: line?.id as string,
+      quantity: 1,
+    })
+    const email = recorder('mail', 'email')
+    const send = (returnId: string) =>
+      withStore(app, storeId, (tx) =>
+        deliverNotification(
+          { storeId, tx },
+          { orderId, template: 'return_approved', returnId },
+          { registry, settingsSecret: secret, channels: [email] },
+        ),
+      )
+    expect(await send(r?.id as string)).toEqual([
+      { channel: 'mail', to: 'asha@example.com', ok: true },
+    ])
+    const data = email.sent[0]?.data
+    expect(data?.lines).toEqual([{ title: 'Pad', quantity: 1, priceLabel: '₹1,999' }])
+    expect(data?.totalLabel).toBe('₹1,999')
+    expect(data?.returnInfo).toMatchObject({
+      label: 'R-3',
+      pickup: 'courier',
+      pickupWaybill: 'RVP9',
+      reasonLabel: 'It arrived damaged or broken',
+    })
+    expect(await send('00000000-0000-7000-8000-000000000000')).toEqual([])
+    expect(email.sent).toHaveLength(1)
   })
 
   it('records a failure, then only retries the failed channel', async () => {

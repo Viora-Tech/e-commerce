@@ -6,8 +6,8 @@ description: Connect Delhivery, Shiprocket or RapidShyp, compare rates, book, pr
 # Shipments
 
 **Orders → Shipments** is where every parcel across every courier gets booked, tracked,
-labelled and handled. It has four tabs: **Ready to ship**, **Shipments**, **Pickups** and
-**Delivery problems**.
+labelled and handled. It has five tabs: **Ready to ship**, **Shipments**, **Pickups**,
+**Delivery problems** and **RTO**.
 
 ## What this is for
 
@@ -41,7 +41,8 @@ flowchart TD
 ```
 
 When every parcel on an order is **Delivered** (and the order is paid), the order becomes
-**Completed**. If every parcel comes back as **RTO**, the order's Fulfilment shows **Returned**.
+**Completed**. If every parcel comes back as **RTO**, the order's Fulfilment shows **Returned**
+and the order gets a **Returned to you (RTO)** task. See [Returns and RTO](/merchant-guide/selling/returns).
 
 ## Connect a courier
 
@@ -253,6 +254,14 @@ dismiss by hand.
   Shiprocket itself.
 </Callout>
 
+## RTO: parcels that came back
+
+The **RTO** tab shows the last 30 days: how many parcels came back, what share of your
+shipments that is, the value of the goods, and the courier charges you entered on each RTO.
+Each RTO opens a task on its order where you put the items back in stock with one click, then
+refund the customer or ship it again. The full steps are in
+[Returns and RTO](/merchant-guide/selling/returns).
+
 ## Courier wallet balance
 
 Delhivery, Shiprocket and RapidShyp are prepaid: shipments are charged from a wallet on their side. They
@@ -316,4 +325,4 @@ tracking link yourself. Tracking won't update automatically for these.
 
 ## Related guides
 
-<RelatedGuides ids={['orders', 'online-store', 'apps', 'glossary']} />
+<RelatedGuides ids={['orders', 'returns', 'apps', 'glossary']} />

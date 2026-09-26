@@ -308,7 +308,8 @@ export async function setOrderTags(tx: StoreTx, id: string, tags: string[]) {
 }
 
 /** Build the gateway for a payment from the store's saved credentials; null for offline methods. */
-async function providerForPayment(
+/** The store's connected gateway for a payment provider id; null when it is not installed. */
+export async function providerForPayment(
   tx: StoreTx,
   storeId: string,
   registry: PaymentRegistry,

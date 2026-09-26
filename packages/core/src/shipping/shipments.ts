@@ -4,6 +4,7 @@ import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
 import { recomputeOrderStatuses } from '../order/recompute'
+import { recordRtoForShipment } from '../returns/rto'
 import { syncNdrFromTracking } from './ndr'
 import { resolveParcelWeightGrams } from './parcel'
 import { defaultBoxPreset, parseShippingSettings } from './settings'
@@ -45,8 +46,11 @@ export async function createShipmentForOrder(
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new Error('order not found')
   if (!o.shippingAddressId) throw new Error('order has no shipping address')
-  const [existing] = await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))
-  if (existing && existing.status !== 'cancelled') return existing
+  // A live booking is reused; a cancelled label or a parcel that came back (RTO) gets a new one.
+  const existing = (await ctx.tx.select().from(shipment).where(eq(shipment.orderId, orderId))).find(
+    (s) => s.status !== 'cancelled' && s.status !== 'rto',
+  )
+  if (existing) return existing
 
   const [to] = await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
   if (!to) throw new Error('shipping address not found')
@@ -151,6 +155,8 @@ export async function applyTracking(
   const becameDelivered = before.status !== 'delivered' && tracking.status === 'delivered'
   // Courier events (in transit, delivered, RTO) move the fulfilment status.
   if (before.status !== row.status) await recomputeOrderStatuses(ctx, row.orderId)
+  // The parcel came back undelivered: open the order's RTO task (once per shipment).
+  if (before.status !== 'rto' && row.status === 'rto') await recordRtoForShipment(ctx, row)
   // Raises or clears the delivery-problem flag from this same scan; see `syncNdrFromTracking`.
   const final = await syncNdrFromTracking(ctx, row, tracking)
   return { shipment: final, becameDelivered }

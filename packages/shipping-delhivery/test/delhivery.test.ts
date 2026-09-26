@@ -130,6 +130,69 @@ describe('DelhiveryProvider', () => {
     })
   })
 
+  const returnInput = {
+    returnId: 'r1',
+    reference: 'R-3-1044',
+    orderNumber: 1044,
+    from: sampleShipment.to,
+    to: sampleShipment.from,
+    lines: sampleShipment.lines,
+    valuePaise: 199900,
+    weightGrams: 400,
+  }
+
+  it('builds a reverse pickup payload: payment_mode Pickup, shopper as consignee, warehouse as return', () => {
+    const p = new DelhiveryProvider(config)
+    const data = p.buildReturnPayload(returnInput, 'RWB1')
+    expect(data.shipments[0]).toMatchObject({
+      payment_mode: 'Pickup',
+      cod_amount: '0',
+      order: 'R-3-1044',
+      waybill: 'RWB1',
+      name: sampleShipment.to.name,
+      pin: sampleShipment.to.pincode,
+      return_name: sampleShipment.from.name,
+      return_pin: sampleShipment.from.pincode,
+      commodity_value: '1999.00',
+      weight: 400,
+    })
+    expect(data.pickup_location.name).toBe('Waimers Sonipat')
+  })
+
+  it('books a reverse pickup: reserves a waybill, then one create call', async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('RWB7'),
+      '/api/cmu/create.json': () =>
+        json({ success: true, packages: [{ waybill: 'RWB7', status: 'Success' }] }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const r = await p.createReturnPickup(returnInput)
+    expect(r).toEqual({ waybill: 'RWB7', providerRef: 'RWB7' })
+    expect(f.calls.map((c) => c.url.pathname)).toEqual([
+      '/waybill/api/bulk/json/',
+      '/api/cmu/create.json',
+    ])
+    const body = new URLSearchParams(f.calls[1]?.init?.body as string)
+    expect(JSON.parse(body.get('data') as string).shipments[0].payment_mode).toBe('Pickup')
+  })
+
+  it('surfaces a rejected reverse pickup as a CourierError', async () => {
+    const f = fakeFetch({
+      '/waybill/api/bulk/json/': () => json('RWB8'),
+      '/api/cmu/create.json': () =>
+        json({ success: false, packages: [{ status: 'Error', remarks: ['Pin not serviceable'] }] }),
+    })
+    const p = new DelhiveryProvider({ ...config, fetchImpl: f.impl })
+    const err = await p.createReturnPickup(returnInput).catch((e) => e)
+    expect(err).toBeInstanceOf(CourierError)
+    expect(err).toMatchObject({ kind: 'rejected' })
+    expect(err.message).toContain('Pin not serviceable')
+  })
+
+  it('declares reverse pickup', () => {
+    expect(delhiveryFactory.capabilities).toContain('reverse_pickup')
+  })
+
   it('normalises tracking scans into ordered events and a status', async () => {
     const f = fakeFetch({
       '/api/v1/packages/json/': () =>

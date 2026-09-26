@@ -4,16 +4,18 @@ import { useEffect, useState } from 'react'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import { rtoTabContent } from '@/data/returns'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
 import NdrTab from './ndr-tab'
 import NoCourierBanner from './no-courier-banner'
 import PickupsTab from './pickups-tab'
 import ReadyToShipTab from './ready-to-ship-tab'
+import RtoTab from './rto-tab'
 import ShipmentsTab from './shipments-tab'
 import WalletCards from './wallet-cards'
 
-type TabValue = 'ready' | 'shipments' | 'pickups' | 'ndr'
+type TabValue = 'ready' | 'shipments' | 'pickups' | 'ndr' | 'rto'
 
 const copy = shipmentsContent
 
@@ -24,6 +26,7 @@ export default function ShipmentsWorkspace() {
   const [hasCourier, setHasCourier] = useState<boolean | null>(null)
   const [readyCount, setReadyCount] = useState(0)
   const [ndrCount, setNdrCount] = useState(0)
+  const [rtoOpen, setRtoOpen] = useState(0)
 
   useEffect(() => {
     api.shipments.wallets().then((w) => setHasCourier(w.length > 0))
@@ -35,6 +38,7 @@ export default function ShipmentsWorkspace() {
     if (tab.length < 0) return
     api.shipments.readyToShip({ page: 1, perPage: 1 }).then((r) => setReadyCount(r.total))
     api.shipments.listNdr().then((r) => setNdrCount(r.length))
+    api.returns.counts().then((c) => setRtoOpen(c.rtoOpen))
   }, [tab])
 
   return (
@@ -49,6 +53,7 @@ export default function ShipmentsWorkspace() {
           { value: 'shipments', label: copy.tabs.shipments },
           { value: 'pickups', label: copy.tabs.pickups },
           { value: 'ndr', label: copy.tabs.ndr, count: ndrCount },
+          { value: 'rto', label: rtoTabContent.tab, count: rtoOpen },
         ]}
         value={tab}
         onChange={(v) => setTab(v ?? 'ready')}
@@ -57,6 +62,7 @@ export default function ShipmentsWorkspace() {
       {tab === 'shipments' ? <ShipmentsTab /> : null}
       {tab === 'pickups' ? <PickupsTab /> : null}
       {tab === 'ndr' ? <NdrTab /> : null}
+      {tab === 'rto' ? <RtoTab /> : null}
     </PageBody>
   )
 }

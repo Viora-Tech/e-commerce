@@ -1,4 +1,12 @@
-import { order, orderLine, payment, refund, shipment } from '@commerce/db'
+import {
+  order,
+  orderLine,
+  payment,
+  refund,
+  returnRequest,
+  returnRequestLine,
+  shipment,
+} from '@commerce/db'
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { insertOutboxEvent } from '../outbox/write'
@@ -105,7 +113,7 @@ export async function recomputeOrderStatuses(
     return { before, after: next, changed, becamePaid: false, becameFulfilled: false }
   }
 
-  const [payments, lines, shipments] = await Promise.all([
+  const [payments, lines, shipments, returned] = await Promise.all([
     paymentFacts(ctx, orderId),
     ctx.tx
       .select({
@@ -116,6 +124,18 @@ export async function recomputeOrderStatuses(
       .from(orderLine)
       .where(eq(orderLine.orderId, orderId)),
     ctx.tx.select({ status: shipment.status }).from(shipment).where(eq(shipment.orderId, orderId)),
+    // Units customers sent back that reached the merchant (RTOs count through the shipment).
+    ctx.tx
+      .select({ units: sql<number>`coalesce(sum(${returnRequestLine.quantity}), 0)::int` })
+      .from(returnRequestLine)
+      .innerJoin(returnRequest, eq(returnRequest.id, returnRequestLine.returnRequestId))
+      .where(
+        and(
+          eq(returnRequest.orderId, orderId),
+          eq(returnRequest.kind, 'return'),
+          inArray(returnRequest.status, ['received', 'resolved']),
+        ),
+      ),
   ])
 
   const paymentStatus = derivePaymentStatus({ totalPaise: o.totalPaise, payments })
@@ -123,6 +143,7 @@ export async function recomputeOrderStatuses(
     lines,
     shipments,
     deliveredAt: o.deliveredAt,
+    returnedUnits: Number(returned[0]?.units ?? 0),
   })
   const hasPhysicalLines = lines.some((l) => !l.giftCard)
   const status = deriveLifecycle({

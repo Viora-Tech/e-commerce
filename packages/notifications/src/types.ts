@@ -32,6 +32,16 @@ export type TemplateId =
   | 'back_in_stock_confirm'
   /** The variant the shopper asked about is available again. */
   | 'back_in_stock_alert'
+  /** We got the shopper's return request. */
+  | 'return_requested'
+  /** The return was accepted; says how the parcel comes back. */
+  | 'return_approved'
+  /** The return was declined, with the merchant's reason. */
+  | 'return_rejected'
+  /** The returned parcel reached the store. */
+  | 'return_received'
+  /** Money went back for the return (original payment or store credit). */
+  | 'return_refunded'
 
 export type Recipient = {
   email?: string | undefined
@@ -90,6 +100,23 @@ export type TemplateData = {
         productUrl?: string | undefined
         /** Stop future alerts for this signup; carried on every message. */
         unsubscribeUrl: string
+      }
+    | undefined
+  /** For return_* messages: the return itself. `lines` then lists the items going back. */
+  returnInfo?:
+    | {
+        /** e.g. "R-12". */
+        label: string
+        reasonLabel?: string | undefined
+        /** The merchant's reason for declining (return_rejected). */
+        decisionNote?: string | undefined
+        /** How the parcel comes back (return_approved): the courier collects, or the shopper sends it. */
+        pickup?: 'courier' | 'customer' | undefined
+        /** Return tracking number when a courier collects. */
+        pickupWaybill?: string | undefined
+        /** Amount and where it went (return_refunded). */
+        refundLabel?: string | undefined
+        refundMethod?: 'original' | 'store_credit' | undefined
       }
     | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */

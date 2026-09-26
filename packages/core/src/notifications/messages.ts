@@ -12,7 +12,15 @@ import type { NotificationSettings } from './settings'
 export type MessageTrigger = 'auto' | 'manual' | 'always' | 'app'
 
 /** Groups in the order Settings → Notifications shows them. */
-export type MessageGroup = 'orders' | 'transfer' | 'preorder' | 'manual' | 'account' | 'app' | 'you'
+export type MessageGroup =
+  | 'orders'
+  | 'returns'
+  | 'transfer'
+  | 'preorder'
+  | 'manual'
+  | 'account'
+  | 'app'
+  | 'you'
 
 export type MessageChannelKind = 'email' | 'whatsapp'
 
@@ -33,6 +41,11 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'order_placed', group: 'orders', trigger: 'auto', channels: BOTH },
   { id: 'payment_received', group: 'orders', trigger: 'auto', channels: BOTH },
   { id: 'order_shipped', group: 'orders', trigger: 'auto', channels: BOTH },
+  { id: 'return_requested', group: 'returns', trigger: 'auto', channels: BOTH },
+  { id: 'return_approved', group: 'returns', trigger: 'auto', channels: BOTH },
+  { id: 'return_rejected', group: 'returns', trigger: 'auto', channels: BOTH },
+  { id: 'return_received', group: 'returns', trigger: 'auto', channels: BOTH },
+  { id: 'return_refunded', group: 'returns', trigger: 'auto', channels: BOTH },
   { id: 'unpaid_cancelled', group: 'transfer', trigger: 'auto', channels: BOTH },
   { id: 'balance_request', group: 'preorder', trigger: 'auto', channels: BOTH },
   { id: 'balance_reminder', group: 'preorder', trigger: 'auto', channels: BOTH },

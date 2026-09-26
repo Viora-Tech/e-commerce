@@ -23,6 +23,7 @@ import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
+import { returnsRouter } from './returns'
 import { shipmentsRouter } from './shipments'
 import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
@@ -46,6 +47,7 @@ export const appRouter = {
   navigation: navigationRouter,
   redirects: redirectsRouter,
   orders: ordersRouter,
+  returns: returnsRouter,
   shipments: shipmentsRouter,
   shipping: shippingRouter,
   payments: paymentsRouter,

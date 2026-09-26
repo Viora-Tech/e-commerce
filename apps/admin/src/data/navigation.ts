@@ -52,6 +52,7 @@ export const NAV_GROUPS: NavGroup[] = [
             permission: permissions.ORDERS_READ,
           },
           { href: '/orders/shipments', label: 'Shipments', permission: permissions.ORDERS_READ },
+          { href: '/orders/returns', label: 'Returns', permission: permissions.ORDERS_READ },
         ],
       },
       {

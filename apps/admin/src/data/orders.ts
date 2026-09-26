@@ -46,7 +46,7 @@ export const ordersContent = {
   heading: 'Order list',
   addOrder: 'Add order',
   moreActions: 'More actions',
-  menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts' },
+  menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
   export: 'Export',
   resource: { singular: 'order', plural: 'orders' },
   tabs: {

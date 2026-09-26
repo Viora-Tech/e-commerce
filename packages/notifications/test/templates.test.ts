@@ -31,6 +31,32 @@ describe('templates', () => {
     expect(renderWhatsapp('order_placed', sampleTemplateData).text).toContain('#42')
   })
 
+  it('return messages name the return and say where the money went', async () => {
+    const credit = await renderEmail('return_refunded', {
+      ...sampleTemplateData,
+      returnInfo: { label: 'R-3', refundLabel: '₹999', refundMethod: 'store_credit' },
+    })
+    expect(credit.subject).toContain('R-3')
+    expect(credit.text).toContain('store credit')
+    expect(credit.text).toContain('₹999')
+    expect(credit.html).toContain('Return R-3')
+    const original = await renderEmail('return_refunded', {
+      ...sampleTemplateData,
+      returnInfo: { label: 'R-3', refundLabel: '₹999', refundMethod: 'original' },
+    })
+    expect(original.text).not.toContain('store credit')
+    const rejected = await renderEmail('return_rejected', {
+      ...sampleTemplateData,
+      returnInfo: { label: 'R-4', decisionNote: 'Item was used' },
+    })
+    expect(rejected.text).toContain('Item was used')
+    const approved = renderWhatsapp('return_approved', {
+      ...sampleTemplateData,
+      returnInfo: { label: 'R-5', pickup: 'courier', pickupWaybill: 'RVP1' },
+    })
+    expect(approved.text).toContain('RVP1')
+  })
+
   it('escapes shopper-supplied text in the html body', async () => {
     const e = await renderEmail('order_placed', { ...sampleTemplateData, customerName: '<b>x</b>' })
     expect(e.html).not.toContain('<b>x</b>')

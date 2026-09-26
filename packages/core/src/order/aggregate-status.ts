@@ -151,6 +151,8 @@ export type FulfillmentStatusInput = {
   shipments: readonly ShipmentFacts[]
   /** Set when the merchant marked the order delivered by hand (no courier tracking). */
   deliveredAt: Date | null
+  /** Units a customer return brought back to the merchant (received returns only). */
+  returnedUnits?: number | undefined
 }
 
 const IN_TRANSIT = new Set(['picked_up', 'in_transit', 'out_for_delivery'])
@@ -165,6 +167,9 @@ export function deriveFulfillmentStatus(input: FulfillmentStatusInput): OrderFul
   const moving = live.filter((s) => s.status !== 'rto')
   if (live.length > 0 && moving.length === 0) return 'returned'
   const ordered = input.lines.reduce((sum, l) => sum + l.quantity, 0)
+  // Every unit came back through a customer return.
+  const physical = input.lines.filter((l) => !l.giftCard).reduce((sum, l) => sum + l.quantity, 0)
+  if (physical > 0 && (input.returnedUnits ?? 0) >= physical) return 'returned'
   const packed = input.lines.reduce(
     (sum, l) => sum + Math.min(Math.max(l.fulfilledQuantity, 0), l.quantity),
     0,
@@ -195,6 +200,8 @@ export type LifecycleInput = {
  */
 export function deriveLifecycle(input: LifecycleInput): OrderLifecycleStatus {
   if (input.current === 'draft' || input.current === 'cancelled') return input.current
+  // Goods back and money back: nothing left to do on this order.
+  if (input.fulfillment === 'returned' && input.payment === 'refunded') return 'completed'
   const paid = SETTLED_PAYMENT_STATUSES.includes(input.payment)
   const done =
     input.fulfillment === 'delivered' ||
