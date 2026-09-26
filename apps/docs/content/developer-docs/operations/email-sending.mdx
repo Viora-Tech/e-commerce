@@ -1,0 +1,112 @@
+---
+title: Email sending and sender domains
+description: The platform SES account, per-store sender domains (Easy DKIM, custom MAIL FROM, DMARC), the From/Reply-To rule, the worker poll, and the env vars.
+---
+
+# Email sending and sender domains
+
+Every store's customer email goes out through **one Amazon SES account owned by the platform**.
+Each store can add its own sender address (`support@waimers.in`); its domain becomes a **domain
+identity** in that account. Merchants never need an AWS account. A store can still connect the
+**Amazon SES app** with its own keys; then that app sends instead and none of this applies.
+
+## Pieces
+
+| Piece | Where | What it does |
+| --- | --- | --- |
+| `sender_email` table | `packages/db/src/schema.ts`, migration `0067_sender_email` | One row per store (unique `store_id`), `domain` unique across the platform, status `pending \| verified \| failed`, DKIM tokens, MAIL FROM state. Under RLS. |
+| `sender_domain_taken(domain, store)` | SQL, `SECURITY DEFINER` | True when another store holds the domain, a parent or a subdomain. Returns yes/no only. |
+| `stores_with_sender_email_checks()` | SQL, `SECURITY DEFINER` | Stores with a pending domain, or a verified one not checked for a day. Feeds the worker. |
+| `SesIdentityProvider` | `packages/notifications-ses/src/identity.ts` | `CreateEmailIdentity` (Easy DKIM), `GetEmailIdentity`, `PutEmailIdentityMailFromAttributes`, `DeleteEmailIdentity`. |
+| Dev provider | `packages/core/src/sender-email/dev-provider.ts` | Offline: `*.test`, `*.example`, `*.localhost` verify on the first check, `fail.*` fails, others stay pending. |
+| Rules | `packages/core/src/sender-email/client.ts` (`@commerce/core/sender-email`) | Address parsing, DNS record builder, `chooseSender`. Pure, safe in the browser. |
+| Lifecycle | `packages/core/src/sender-email/service.ts` | `setSenderEmail`, `checkSenderEmail`, `removeSenderEmail`, `pollSenderEmails`. |
+| Channels | `packages/core/src/sender-email/channels.ts` | `storeNotificationChannels`: enabled apps plus the platform sender. Every send path uses it. |
+| API | `packages/api/src/routers/notifications.ts` | `senderEmail`, `setSenderEmail`, `checkSenderEmail`, `removeSenderEmail`. |
+| Worker | `apps/worker/src/sender-email.ts` | Repeat job every 5 minutes on `{sender-email}-verify`. |
+| UI | `apps/admin/src/components/notifications/sender-email-card.tsx` | The Sender email card on Settings → Notifications. |
+
+## The From / Reply-To rule
+
+`chooseSender` (`packages/core/src/sender-email/client.ts`) decides, for every email:
+
+- **Verified** sender, address on that exact domain: `From: Store name <support@waimers.in>`, no
+  Reply-To.
+- **Anything else** (no sender, pending, failed): `From: Store name <PLATFORM_EMAIL_FROM>`,
+  `Reply-To: support@waimers.in` (or the store's contact email when no sender is set).
+
+The display name is the sender name, else the store name. It is cleaned (no CR/LF or angle
+brackets), quoted when needed and MIME encoded-word for non-ASCII (`formatMailbox`,
+`packages/notifications-ses/src/address.ts`).
+
+`storeNotificationChannels` adds the platform channel (id `platform_email`) only when the
+platform account is configured and the store has no email app of its own (the dev `log`
+channel does not count). `deliverNotification`, `deliverCartRecovery`, `deliverLoginCode`, gift
+card delivery, marketing sends, back-in-stock alerts and **Send me a test** all resolve channels
+through it.
+
+`List-Unsubscribe` / `List-Unsubscribe-Post` ride only on `sendMarketing` (campaigns and
+automations); transactional `send` never sets them.
+
+## Lifecycle
+
+```mermaid
+flowchart TD
+  start(["setSenderEmail<br/>CreateEmailIdentity"]) --> pending["pending"]
+  pending -->|"DKIM SUCCESS<br/>worker or Check now"| verified["verified"]
+  pending -->|"DKIM FAILED<br/>SES stops after 72 h"| failed["failed"]
+  failed -->|"Check now<br/>delete + create, fresh tokens"| pending
+  verified -->|"records removed<br/>daily re-check"| failed
+  verified -->|"removeSenderEmail<br/>DeleteEmailIdentity"| gone(["removed"])
+```
+
+- **Same domain, new local part or name**: the identity stays; the row is re-checked.
+- **New domain**: the claim is checked (`sender_domain_taken`), a new identity is created, the
+  row replaced in a savepoint, then the old identity deleted.
+- **Race**: two stores claiming at once hit the `domain` unique index; the loser gets
+  `domain_taken` and the winner's identity is left alone.
+- **MAIL FROM** is `bounce.<domain>` with `BehaviorOnMxFailure: USE_DEFAULT_VALUE`, so a missing
+  MX never blocks mail. If SES refuses it on a pending identity, it is retried once DKIM passes.
+
+## Security
+
+- Only a **verified** domain goes in From, and only for an address on that domain.
+- Addresses are validated (`parseSenderAddress`): format, free-mail providers, platform domains
+  (`PLATFORM_DOMAINS` and the domain of `PLATFORM_EMAIL_FROM`, including parents and subdomains).
+- One store, one domain. Parents and subdomains are blocked too, because SES lets a subdomain
+  inherit its parent's verification.
+- Rate limits: `setSenderEmail` 5 per hour per store (each may create an SES identity), `checkSenderEmail`
+  12 per 10 minutes.
+- `SETTINGS_MANAGE` for changes, `SETTINGS_READ` to view.
+
+## Env
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `SENDER_EMAIL_PROVIDER` | `dev` | `ses` turns on the platform account. `dev` checks domains offline and sends nothing through the platform. |
+| `SES_REGION` | none | Region of the platform SES account, e.g. `ap-south-1`. Also the MAIL FROM MX (`feedback-smtp.<region>.amazonses.com`). |
+| `SES_ACCESS_KEY_ID`, `SES_SECRET_ACCESS_KEY` | none | IAM user with `ses:SendEmail`, `ses:CreateEmailIdentity`, `ses:GetEmailIdentity`, `ses:DeleteEmailIdentity`, `ses:PutEmailIdentityMailFromAttributes`, `ses:TagResource`. |
+| `PLATFORM_EMAIL_FROM` | none | The platform's verified sender, e.g. `no-reply@mail.waimers.com`. Verify its domain in SES by hand once. |
+| `PLATFORM_EMAIL_NAME` | `Waimers` | Display name when a store has no name. |
+| `SES_CONFIGURATION_SET` | none | Optional default configuration set for every store identity (event destinations). |
+
+Set these on **all three apps** (admin, storefront, worker): the storefront sends sign-in codes,
+the worker sends order email and runs the poll, the admin creates identities.
+`SENDER_EMAIL_PROVIDER=ses` without the SES keys or `PLATFORM_EMAIL_FROM` fails at first use
+with a clear error. The SES account must be **out of the sandbox** (production access), or it
+can only mail verified addresses. The same `SES_*` keys drive the SES package's live test suite, so never put
+real keys in `.env.test`.
+
+## Bounces and complaints
+
+Not wired in this release. SES's **account-level suppression list** (on by default for new
+accounts, bounces and complaints) already stops repeat sends to bad addresses. Follow-up: an SES
+configuration set (`SES_CONFIGURATION_SET`) with an SNS event destination posting to a worker
+webhook that verifies the SNS signature and marks customers `bounced`/`complained`.
+
+## Testing
+
+All SES calls are mocked: `packages/notifications-ses/test/identity.test.ts` (SDK commands and
+state mapping), `packages/core/src/sender-email/client.test.ts` (rules) and
+`packages/core/src/sender-email/service.test.ts` (lifecycle, claims across stores, RLS, the
+From/Reply-To choice before and after verification, BYO SES precedence).

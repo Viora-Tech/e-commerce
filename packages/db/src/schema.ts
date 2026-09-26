@@ -1456,6 +1456,51 @@ export const storeDomain = pgTable(
   ],
 )
 
+export type SenderEmailStatus = 'pending' | 'verified' | 'failed'
+
+/**
+ * The address a store's customer emails come from (Settings → Notifications →
+ * Sender email). One per store; the domain is a domain identity in the
+ * platform's SES account. `domain` is unique across the platform, and the
+ * `sender_domain_taken` SECURITY DEFINER function also refuses a parent or
+ * subdomain of another store's domain (SES lets subdomains inherit a parent's
+ * verification). Until `status` is `verified`, mail goes out from the
+ * platform's address with Reply-To set to `email`.
+ */
+export const senderEmail = pgTable(
+  'sender_email',
+  {
+    id: id(),
+    storeId: storeId(),
+    email: text('email').notNull(),
+    domain: text('domain').notNull().unique(),
+    /** Shown before the address; null means the store name. */
+    displayName: text('display_name'),
+    status: text('status').$type<SenderEmailStatus>().notNull().default('pending'),
+    /** Why verification failed or is stuck, as a code the admin words (`records_not_found`, ...). */
+    error: text('error'),
+    /** Which identity provider holds the domain: `ses` or the offline `dev` one. */
+    provider: text('provider').notNull(),
+    dkimTokens: jsonb('dkim_tokens').$type<string[]>().notNull().default([]),
+    dkimHostedZone: text('dkim_hosted_zone'),
+    /** Custom MAIL FROM (`bounce.<domain>`); null when SES refused it. */
+    mailFromDomain: text('mail_from_domain'),
+    mailFromStatus: text('mail_from_status').$type<SenderEmailStatus>(),
+    lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('sender_email_store').on(t.storeId),
+    check('sender_email_status', sql`${t.status} in ('pending', 'verified', 'failed')`),
+    check(
+      'sender_email_mail_from_status',
+      sql`${t.mailFromStatus} is null or ${t.mailFromStatus} in ('pending', 'verified', 'failed')`,
+    ),
+  ],
+)
+
 export type GiftCardSource = 'manual' | 'purchase'
 export type GiftCardTransactionKind = 'issue' | 'debit' | 'refund' | 'adjustment'
 

@@ -6,3 +6,6 @@ export type NotificationsOverview = Awaited<ReturnType<typeof api.notifications.
 export type MessageRowData = NotificationsOverview['messages'][number]
 
 export type ChannelStatusData = NotificationsOverview['channels']['email']
+
+/** What the Sender email card loads and gets back from every action. */
+export type SenderEmailOverview = Awaited<ReturnType<typeof api.notifications.senderEmail>>

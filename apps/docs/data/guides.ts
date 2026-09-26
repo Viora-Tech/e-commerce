@@ -46,6 +46,12 @@ export const guides = {
     title: 'Notifications',
     description: 'The messages customers get, previews, tests, and email or WhatsApp.',
   },
+  'sender-email': {
+    href: '/merchant-guide/settings/sender-email',
+    icon: 'sparkle',
+    title: 'Send emails from your own address',
+    description: 'support@yourshop.in on every email: the DNS records and where to add them.',
+  },
   shipping: {
     href: '/merchant-guide/settings/shipping',
     icon: 'truck',

@@ -2,7 +2,7 @@ import { marketingMessage, type StoreTx, store } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { NotificationChannel, NotificationRegistry, SendResult } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
-import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
+import { storeNotificationChannels } from '../sender-email/channels'
 import { StoreAddressSchema } from '../settings/general'
 import {
   type EmailBlock,
@@ -44,18 +44,12 @@ export async function marketingChannels(
   storeId: string,
   deps: MarketingDeps,
 ): Promise<MarketingChannels> {
-  let channels = deps.channels
-  if (!channels) {
-    const [s] = await tx
-      .select({ notifications: store.notifications })
-      .from(store)
-      .where(eq(store.id, storeId))
-    channels = resolveNotificationChannels(
-      deps.registry,
-      parseNotificationSettings(s?.notifications),
-      deps.settingsSecret,
-    ).channels
-  }
+  const channels =
+    deps.channels ??
+    (await storeNotificationChannels(tx, storeId, {
+      registry: deps.registry,
+      settingsSecret: deps.settingsSecret,
+    }))
   const capable = channels.filter((c) => typeof c.sendMarketing === 'function')
   return {
     email: capable.find((c) => c.requires === 'email') ?? null,

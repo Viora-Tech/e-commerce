@@ -31,8 +31,9 @@ import {
   type PreorderStoreSettings,
   parsePreorderStoreSettings,
 } from '../preorder/store-settings'
+import { storeNotificationChannels } from '../sender-email/channels'
 import { isMessageOn } from './messages'
-import { parseNotificationSettings, resolveNotificationChannels } from './settings'
+import { parseNotificationSettings } from './settings'
 
 export type DeliveryResult = {
   channel: string
@@ -186,15 +187,10 @@ export async function buildTemplateData(
 /** The store's enabled channels, unless the caller injected fakes. */
 async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
   if (opts.channels) return opts.channels
-  const [s] = await ctx.tx
-    .select({ notifications: store.notifications })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
-  return resolveNotificationChannels(
-    opts.registry,
-    parseNotificationSettings(s?.notifications),
-    opts.settingsSecret,
-  ).channels
+  return storeNotificationChannels(ctx.tx, ctx.storeId, {
+    registry: opts.registry,
+    settingsSecret: opts.settingsSecret,
+  })
 }
 
 /** Whether the store still sends this template (see `isMessageOn`). */
