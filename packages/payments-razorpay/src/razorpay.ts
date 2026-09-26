@@ -1,8 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type {
   ClientConfirmation,
+  ConnectionTestResult,
   CreatePaymentInput,
   CreatePaymentResult,
+  PaymentMethodKind,
   PaymentProvider,
   PaymentProviderFactory,
   PaymentStatus,
@@ -10,15 +12,32 @@ import type {
   WebhookVerification,
 } from '@commerce/payments'
 import Razorpay from 'razorpay'
+import { refreshOAuthConfig } from './oauth'
 
 export type RazorpayConfig = {
+  /** API key id, or the OAuth `public_token` (rzp_test_oauth_...) when connected with OAuth. */
   keyId: string
+  /** API key secret. Empty when connected with OAuth. */
   keySecret: string
   webhookSecret: string
+  /** OAuth access token (Bearer); set only for "Connect Razorpay" connections. */
+  accessToken?: string | undefined
   /** Shown in the Checkout modal. */
   displayName?: string | undefined
   /** Surface EMI (Snapmint cardless EMI first) as its own block at the top of Checkout. */
   enableEmi?: boolean | undefined
+}
+
+/** True for a "Connect Razorpay" (OAuth) connection rather than pasted API keys. */
+export const isOAuthConfig = (c: Pick<RazorpayConfig, 'accessToken'>): boolean =>
+  Boolean(c.accessToken)
+
+/** Test or live, from the key id Razorpay issued (`rzp_test_...`, `rzp_live_...`, `rzp_test_oauth_...`). */
+export function razorpayMode(keyId: string | undefined): 'test' | 'live' | null {
+  if (!keyId) return null
+  if (keyId.startsWith('rzp_test_')) return 'test'
+  if (keyId.startsWith('rzp_live_')) return 'live'
+  return null
 }
 
 /** Razorpay caps order notes at 15 keys, 256 characters per value. */
@@ -79,6 +98,40 @@ export function buildReceipt(input: CreatePaymentInput): string {
   const base = input.orderNumber != null ? `order-${input.orderNumber}` : input.orderId
   const receipt = attempt && attempt !== '1' ? `${base}-${attempt}` : base
   return receipt.slice(0, RECEIPT_MAX_LEN)
+}
+
+/** Checkout blocks for each merchant-facing method; EMI also carries Snapmint cardless EMI. */
+const METHOD_BLOCKS: Record<
+  PaymentMethodKind,
+  { name: string; instruments: Record<string, unknown>[] }
+> = {
+  upi: { name: 'Pay using UPI', instruments: [{ method: 'upi' }] },
+  card: { name: 'Cards', instruments: [{ method: 'card' }] },
+  netbanking: { name: 'Netbanking', instruments: [{ method: 'netbanking' }] },
+  wallet: { name: 'Wallets', instruments: [{ method: 'wallet' }] },
+  emi: {
+    name: 'Pay in EMIs',
+    instruments: [{ method: 'cardless_emi', providers: [SNAPMINT_PROVIDER] }, { method: 'emi' }],
+  },
+}
+
+/**
+ * Checkout `config.display` for the merchant's method row: one block per method
+ * turned on, in their order, and Razorpay's default blocks switched off so
+ * nothing else shows. `blocks`, `sequence` and `preferences.show_default_blocks`
+ * are Razorpay's documented Checkout options
+ * (https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/configure-payment-methods/sample-code/).
+ */
+export function buildMethodDisplayConfig(methods: PaymentMethodKind[]): Record<string, unknown> {
+  const blocks: Record<string, unknown> = {}
+  const sequence: string[] = []
+  for (const m of methods) {
+    const block = METHOD_BLOCKS[m]
+    if (!block || blocks[m]) continue
+    blocks[m] = block
+    sequence.push(`block.${m}`)
+  }
+  return { display: { blocks, sequence, preferences: { show_default_blocks: false } } }
 }
 
 /**
@@ -171,7 +224,11 @@ export class RazorpayProvider implements PaymentProvider {
   protected readonly client: Razorpay
 
   constructor(protected readonly config: RazorpayConfig) {
-    this.client = new Razorpay({ key_id: config.keyId, key_secret: config.keySecret })
+    // An OAuth connection calls the API as the merchant with a Bearer token;
+    // pasted keys use basic auth. The SDK supports both (`oauthToken`).
+    this.client = isOAuthConfig(config)
+      ? new Razorpay({ oauthToken: config.accessToken as string })
+      : new Razorpay({ key_id: config.keyId, key_secret: config.keySecret })
   }
 
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
@@ -202,7 +259,9 @@ export class RazorpayProvider implements PaymentProvider {
             name: input.customer.name,
           },
           // UPI intent on mobile, dynamic QR on desktop; Checkout decides by device.
-          config: buildDisplayConfig(this.config.enableEmi),
+          config: input.methods?.length
+            ? buildMethodDisplayConfig(input.methods)
+            : buildDisplayConfig(this.config.enableEmi),
         },
       },
     }
@@ -216,6 +275,13 @@ export class RazorpayProvider implements PaymentProvider {
     const paymentId = confirmation.razorpay_payment_id
     const signature = confirmation.razorpay_signature
     if (!paymentId || !signature) return { status: 'pending' as const, providerPaymentId: null }
+    if (isOAuthConfig(this.config)) {
+      // No key secret to check the handler signature with: ask Razorpay (as
+      // the merchant) and trust only a payment that belongs to this order.
+      const p = (await this.client.payments.fetch(paymentId)) as unknown as RzpPayment
+      if (p.order_id !== providerRef) return { status: 'failed' as const, providerPaymentId: null }
+      return { status: RAZORPAY_STATUS[p.status] ?? 'pending', providerPaymentId: p.id }
+    }
     const expected = hmacHex(this.config.keySecret, `${providerRef}|${paymentId}`)
     if (!safeEqual(expected, signature))
       return { status: 'failed' as const, providerPaymentId: paymentId }
@@ -233,6 +299,28 @@ export class RazorpayProvider implements PaymentProvider {
       status: best ? (RAZORPAY_STATUS[best.status] ?? 'pending') : ('pending' as PaymentStatus),
       providerPaymentId: best?.id ?? null,
       amountPaise: Number(order.amount),
+    }
+  }
+
+  /** "Test connection": lists one order, which needs working keys and creates nothing. */
+  async testConnection(): Promise<ConnectionTestResult> {
+    try {
+      await this.client.orders.all({ count: 1 })
+      return { ok: true, message: 'Connected. Razorpay accepted these keys.' }
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode
+      if (status === 401) {
+        return {
+          ok: false,
+          message:
+            "Razorpay didn't accept these keys. Copy the Key ID and Key secret again, both from the same mode (Test or Live).",
+        }
+      }
+      const detail = (err as { error?: { description?: string } }).error?.description
+      return {
+        ok: false,
+        message: `Couldn't reach Razorpay${detail ? `: ${detail}` : '. Try again in a minute.'}`,
+      }
     }
   }
 
@@ -351,9 +439,10 @@ export class RazorpayProvider implements PaymentProvider {
 export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
   id: 'razorpay',
   label: 'Razorpay',
+  methods: ['upi', 'card', 'netbanking', 'wallet', 'emi'],
   fields: [
     { key: 'keyId', label: 'Key ID', required: true },
-    { key: 'keySecret', label: 'Key secret', secret: true, required: true },
+    { key: 'keySecret', label: 'Key secret', secret: true },
     {
       key: 'webhookSecret',
       label: 'Webhook secret',
@@ -368,26 +457,36 @@ export const razorpayFactory: PaymentProviderFactory<RazorpayConfig> = {
       type: 'boolean',
       help: 'Turn Snapmint on under Razorpay Dashboard > Payment Methods first; this only moves EMI to the top of Checkout.',
     },
+    // Written by "Connect Razorpay" (OAuth), never typed in; hidden from forms.
+    { key: 'accessToken', label: 'Access token', secret: true, hidden: true },
+    { key: 'refreshToken', label: 'Refresh token', secret: true, hidden: true },
+    { key: 'accessExpiresAt', label: 'Access expires', hidden: true },
+    { key: 'accountId', label: 'Razorpay account', hidden: true },
+    { key: 'oauthMode', label: 'Connected in', hidden: true },
+    { key: 'webhookId', label: 'Webhook id', hidden: true },
   ],
   validateConfig(raw) {
     const r = (raw ?? {}) as Partial<Omit<RazorpayConfig, 'enableEmi'>> & {
       enableEmi?: boolean | string | undefined
     }
     const errors: string[] = []
+    const oauth = Boolean(r.accessToken)
     if (!r.keyId?.startsWith('rzp_')) errors.push('keyId must start with rzp_')
-    if (!r.keySecret) errors.push('keySecret is required')
+    if (!oauth && !r.keySecret) errors.push('keySecret is required')
     if (!r.webhookSecret) errors.push('webhookSecret is required')
     if (errors.length) return { ok: false, errors }
     return {
       ok: true,
       config: {
         keyId: r.keyId as string,
-        keySecret: r.keySecret as string,
+        keySecret: r.keySecret ?? '',
         webhookSecret: r.webhookSecret as string,
+        accessToken: oauth ? r.accessToken : undefined,
         displayName: r.displayName,
         enableEmi: r.enableEmi === true || r.enableEmi === 'true',
       },
     }
   },
+  refreshCredentials: (saved, now) => refreshOAuthConfig(saved, process.env, fetch, now),
   create: (config) => new RazorpayProvider(config),
 }
