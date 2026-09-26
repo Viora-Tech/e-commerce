@@ -2,6 +2,8 @@
 
 import type { PaymentAdjustment } from '@commerce/core'
 import { CreditCard } from '@commerce/ui/icons'
+import BackToPayments, { PAYMENTS_PAGE_HREF } from '@/components/payments/back-to-payments'
+import UpiCompare from '@/components/payments/upi-compare'
 import ManualTransferFields from '@/components/settings/manual-transfer-fields'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import PreorderBalanceSettings from '@/components/settings/preorder-balance-settings'
@@ -11,6 +13,7 @@ import ProviderSettingsForm, {
 import SettingsSection from '@/components/settings/settings-section'
 import UnpaidExpiryField from '@/components/settings/unpaid-expiry-field'
 import { paymentsSettingsContent as copy } from '@/data/payments'
+import { paymentsSetupContent } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 
@@ -24,14 +27,42 @@ type Extra = {
 
 const DEFAULT_EXPIRY_MINUTES = 30
 
+const upiCopy = paymentsSetupContent.upiOptions
+
+/** Back to the main Payments page; `view=page` skips the first-time guide. */
+const BACK = { label: paymentsSetupContent.title, href: PAYMENTS_PAGE_HREF }
+
 /** Methods that confirm through the Razorpay webhook. */
 const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
-const load = () => api.store.getPayments()
+/** Set up on the main Payments page (connect, "Shoppers can pay with"), so not repeated here. */
+const MAIN_PAGE_METHODS = new Set(['razorpay', 'cashfree', 'cod'])
+
+const load = () =>
+  api.store.getPayments().then((r) => ({
+    ...r,
+    available: r.available.filter((p) => !MAIN_PAGE_METHODS.has(p.id)),
+  }))
 const save = (next: Parameters<typeof api.store.updatePayments>[0]) =>
   api.store.updatePayments(next)
+
+/** The plain-word helper line (and comparison) for the two UPI options. */
+const UPI_HELP: Record<string, string> = {
+  razorpay_upi: upiCopy.auto.help,
+  manual: upiCopy.manual.help,
+}
+
+function upiDescription(m: ProviderDef) {
+  const help = UPI_HELP[m.id]
+  if (!help) return null
+  return (
+    <p className="flex flex-wrap items-center gap-x-2">
+      {help} <UpiCompare />
+    </p>
+  )
+}
 
 function webhookHint(m: ProviderDef) {
   if (!RAZORPAY_WEBHOOK_METHODS.has(m.id)) return null
@@ -82,23 +113,28 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
   )
 }
 
-export default function PaymentsSettings() {
+export default function AdvancedPayments() {
   return (
-    <ProviderSettingsForm<Extra>
-      title={copy.title}
-      icon={<CreditCard aria-hidden="true" />}
-      intro={copy.intro}
-      load={load}
-      save={save}
-      emptyExtra={{
-        adjustments: {},
-        expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES,
-        manualCancelAfterHours: 0,
-      }}
-      renderHint={webhookHint}
-      renderExtra={adjustmentFields}
-      renderFooter={footer}
-      sections={settingsContent.sections.payments}
-    />
+    <div className="flex flex-col gap-3">
+      <BackToPayments />
+      <ProviderSettingsForm<Extra>
+        title={copy.advancedTitle}
+        icon={<CreditCard aria-hidden="true" />}
+        intro={copy.advancedIntro}
+        load={load}
+        save={save}
+        emptyExtra={{
+          adjustments: {},
+          expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES,
+          manualCancelAfterHours: 0,
+        }}
+        renderHint={webhookHint}
+        renderDescription={upiDescription}
+        back={BACK}
+        renderExtra={adjustmentFields}
+        renderFooter={footer}
+        sections={settingsContent.sections.payments}
+      />
+    </div>
   )
 }

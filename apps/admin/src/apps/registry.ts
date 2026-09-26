@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bell,
   Blocks,
+  CreditCard,
   Download,
   FileBarChart,
   FileText,
@@ -18,6 +19,8 @@ import type { ComponentType } from 'react'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
 import SignupsList from '@/components/apps/back-in-stock/signups-list'
+import CashfreeConnectPage from '@/components/apps/cashfree/connect-page'
+import CashfreeOverviewPage from '@/components/apps/cashfree/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
@@ -26,6 +29,8 @@ import GstOrderCard from '@/components/apps/gst-invoices/order-card'
 import QueuePage from '@/components/apps/gst-invoices/queue-page'
 import ReturnsPage from '@/components/apps/gst-invoices/returns-page'
 import GstSettingsEditor from '@/components/apps/gst-invoices/settings-editor'
+import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
+import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectPage from '@/components/apps/shopify-import/connect-page'
@@ -57,6 +62,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: SettingsEditorBackInStock,
     },
   },
+  cashfree: {
+    pages: {
+      '': CashfreeOverviewPage,
+      connect: CashfreeConnectPage,
+    },
+  },
   delhivery: {
     pages: {
       '': DelhiveryOverviewPage,
@@ -72,6 +83,12 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
       settings: GstSettingsEditor,
     },
     OrderCard: GstOrderCard,
+  },
+  razorpay: {
+    pages: {
+      '': RazorpayOverviewPage,
+      connect: RazorpayConnectPage,
+    },
   },
   shiprocket: {
     pages: {
@@ -93,6 +110,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
 const ICONS: Record<string, LucideIcon> = {
   BarChart3,
   Bell,
+  CreditCard,
   Blocks,
   Download,
   FileBarChart,

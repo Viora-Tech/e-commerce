@@ -1,10 +1,12 @@
-import { address, type Db, order, orderLine, payment, withStore } from '@commerce/db'
+import { address, type Db, order, orderLine, payment, store, withStore } from '@commerce/db'
 import type { CheckoutSession, CreatePaymentInput, PaymentProvider } from '@commerce/payments'
 import { and, desc, eq, isNull, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { CommerceError } from '../errors'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { type AppliedPayment, applyPaymentStatus } from './confirm'
+import { checkoutMethodsOf, isGatewayProvider, onlineMethodsOn } from './methods'
+import { parsePaymentSettings } from './settings'
 import { OPEN_ATTEMPT_STATUSES, type PaymentRowStatus } from './transitions'
 
 /*
@@ -108,6 +110,8 @@ async function claimAttempt(ctx: StoreContext, attemptId: string) {
   const [ship] = o.shippingAddressId
     ? await ctx.tx.select().from(address).where(eq(address.id, o.shippingAddressId))
     : []
+  // The main gateway's window offers only the methods the merchant turned on, in their order.
+  const methods = isGatewayProvider(claimed.provider) ? await gatewayMethods(ctx) : undefined
   const request: CreatePaymentInput = {
     orderId: o.id,
     orderNumber: o.number,
@@ -138,8 +142,21 @@ async function claimAttempt(ctx: StoreContext, attemptId: string) {
       quantity: l.quantity,
       unitPricePaise: l.unitPricePaise,
     })),
+    methods,
   }
   return { attempt: claimed, request }
+}
+
+/** Online methods on for this store, or undefined for stores that never saved the method row. */
+async function gatewayMethods(ctx: StoreContext) {
+  const [s] = await ctx.tx
+    .select({ payments: store.payments })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  const settings = parsePaymentSettings(s?.payments)
+  if (!settings.methods?.length) return undefined
+  const on = onlineMethodsOn(checkoutMethodsOf(settings))
+  return on.length ? on : undefined
 }
 
 const sessionOf = (p: PaymentAttempt): CheckoutSession | null =>
@@ -242,7 +259,9 @@ export async function startPaymentAttempt(
     // Only money actually taken needs returning; providerRef doubles as the
     // payment id for providers that capture at creation.
     if (result.status !== 'pending' && result.status !== 'failed') {
-      await provider.refund(result.providerRef, claim.attempt.amountPaise)
+      await provider.refund(result.providerRef, claim.attempt.amountPaise, undefined, {
+        providerRef: result.providerRef,
+      })
     }
     await markFailed(db, storeId, attemptId, message(err))
     return {

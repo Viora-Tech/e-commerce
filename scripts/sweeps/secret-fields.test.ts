@@ -20,6 +20,7 @@
 import { decryptSecret, encryptProviderSettings, isEncryptedSecret } from '@commerce/core'
 import { sesFactory } from '@commerce/notifications-ses'
 import { whatsappFactory } from '@commerce/notifications-whatsapp'
+import { cashfreeFactory } from '@commerce/payments-cashfree'
 import { razorpayFactory } from '@commerce/payments-razorpay'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
@@ -48,6 +49,7 @@ describe('sweep: secret-fields', () => {
   it('round-trips every real connector factory: flagged fields encrypt and decrypt correctly', () => {
     const factories = [
       razorpayFactory,
+      cashfreeFactory,
       delhiveryFactory,
       shiprocketFactory,
       sesFactory,

@@ -32,6 +32,8 @@ type ProviderCardProps = {
   onField: (key: string, value: string) => void
   /** Under the fields, e.g. a webhook URL or dashboard hint; providers without fields use noConfigText. */
   hint?: ReactNode
+  /** A plain line on what this method is, at the top of the card whether or not it has fields. */
+  description?: ReactNode
   /** Under the hint when enabled, e.g. fee/discount for a payment method. */
   extra?: ReactNode
   noConfigText?: string | undefined
@@ -111,6 +113,7 @@ export default function ProviderCard({
   onToggle,
   onField,
   hint,
+  description,
   extra,
   noConfigText,
 }: ProviderCardProps) {
@@ -134,6 +137,7 @@ export default function ProviderCard({
         </label>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        {description ? <div className="text-body text-muted-foreground">{description}</div> : null}
         {provider.fields.length > 0 ? (
           <FieldGroup>
             {provider.fields.map((f) => (

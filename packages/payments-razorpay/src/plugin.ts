@@ -13,4 +13,11 @@ export const razorpayPlugin = definePlugin({
   description:
     'Cards, UPI, netbanking, wallets and EMI through Razorpay Checkout, plus UPI QR payments confirmed automatically.',
   provides: { payments: [razorpayFactory, razorpayUpiFactory] },
+  admin: {
+    icon: 'CreditCard',
+    pages: [
+      { path: '', title: 'Razorpay', navLabel: 'Overview', icon: 'CreditCard' },
+      { path: 'connect', title: 'Connect Razorpay', navLabel: 'Connect', icon: 'Settings' },
+    ],
+  },
 })

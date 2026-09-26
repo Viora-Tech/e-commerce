@@ -1,17 +1,17 @@
 ---
 title: Payments
-description: Turn on UPI, cards, cash on delivery and bank transfer, connect Razorpay, and set rules for unpaid orders and pre-order balances.
+description: Get paid online with Razorpay or Cashfree, choose how shoppers can pay, place a ₹1 test order, and set rules for unpaid orders and pre-order balances.
 ---
 
 # Payments
 
-**Settings → Payments** is where you choose how shoppers can pay, add a fee or discount per
-method, and decide what happens to orders that never get paid. Gateway keys are stored
-encrypted.
+**Settings → Payments** is where you get paid online. You connect one payment company (Razorpay
+or Cashfree), choose which ways shoppers can pay (UPI, cards, cash on delivery and so on), and
+try it with a ₹1 test order. Keys are stored encrypted.
 
 ## What this is for
 
-- Taking UPI, cards and netbanking through Razorpay.
+- Taking UPI, cards, netbanking, wallets and pay later through Razorpay or Cashfree.
 - Offering cash on delivery with a ₹49 handling fee, or a 2% discount for paying by UPI.
 - Letting shoppers pay straight to your UPI ID or bank account, and confirming it yourself.
 - Cancelling online orders that were never paid, so stock isn't held for nobody.
@@ -47,64 +47,122 @@ Two safety nets are built in:
 - **The total is always recalculated on our side**, including the payment method's fee or
   discount. A shopper can't change what they pay by editing the page.
 
-## Payment methods
+## The Payments page
 
-| Method | What the shopper does | Who confirms payment |
+<Screenshot
+  name="Settings → Payments"
+  caption="The status line (You can take payments), Main way to get paid with Razorpay in Test mode and a green Working tick, the Shoppers can pay with rows, and Add another way to get paid."
+/>
+
+From top to bottom:
+
+- **Status line.** "✓ You can take payments", or what is missing ("You can take cash on delivery
+  only"). **Place a test order** opens your checkout in a new tab with a ₹1 test item in the
+  basket. The test item is hidden from your store and never touches your stock.
+- **Main way to get paid.** The payment company that takes the money, **Test** or **Live**, a
+  green **Working** tick and the last payment. **Manage**
+  opens its Connect page; **Change** lets you pick another company. Your old keys are kept, so
+  you can switch back.
+- **Shoppers can pay with.** One row per way to pay: **UPI**, **Cards**, **Netbanking**,
+  **Wallets**, **Pay later / EMI** and **Cash on delivery**. Switch each on or off, and drag
+  the rows to change the order. Checkout shows only the ones that are on, in this order, and the
+  payment window offers only those. New shops start with UPI, Cards and Netbanking on and cash
+  on delivery off. A shop that already saved its own cash on delivery choice keeps it.
+- **+ Add another way to get paid.** Search payment companies, filter by UPI, cards and so on,
+  and see their fees. Razorpay and Cashfree connect today; others
+  show **Coming soon**.
+- **Advanced.** Bank transfer and UPI QR you confirm yourself, a fee or discount per method, and
+  unpaid-order rules, on their own page (**Settings → Payments → Advanced**). Payments are taken
+  as soon as the shopper pays, so there is no capture setting.
+
+### When something is wrong
+
+A problem shows as a red dot with one plain sentence, and a button to fix it where we can:
+
+| Message | Button | What it does |
 | --- | --- | --- |
-| **Razorpay** | Pays by card, netbanking, UPI or wallet in the Razorpay window | Razorpay, automatically |
-| **UPI (auto-confirmed, Razorpay QR)** | Scans a single-use QR for the exact amount | Razorpay, automatically |
-| **UPI or bank transfer** | Pays your UPI ID or bank account from their own app | You, in **Orders → Pending UPI** |
-| **Cash on delivery** | Pays the delivery person | You or the courier's remittance |
+| Payments go through, but updates aren't reaching your shop | **Fix it** | For a one-click Razorpay connection, points Razorpay's updates back at your shop. |
+| (same, with pasted keys) | **Show me how** | Opens the Connect page at the webhook step. |
+| Your connection ran out | **Connect again** | Opens the Connect page to run Connect Razorpay again. |
+| Some connection details are missing or wrong | **Check details** | Opens the Connect page. |
+| Every online way to pay is turned off | **Turn on UPI** | Turns UPI back on. |
 
-Razorpay can also offer EMI (Snapmint cardless EMI and card EMI) with **Offer EMI**.
+## First-time setup, one question at a time
 
-## Set up payments step by step
+A new shop opening **Settings → Payments** gets a short guide with a progress bar. You can press
+**Skip for now** at any step, and reopen it with **Set up step by step**.
 
 <Steps>
 
-### Open Settings → Payments
+### How do you want to get paid?
 
-The page has three tabs: **Payment methods**, **Unpaid orders** and **Pre-orders**.
+Pick **Razorpay**, **Cashfree**, or **Only cash on delivery for now**. Not sure? Press
+**What's this?** for a two-line explanation.
 
-### Connect Razorpay
+### Connect
 
-Install **Razorpay** from **Apps** if it isn't installed. On the **Razorpay** card, enter your
-**Key ID** and **Key secret** from the Razorpay Dashboard (**Account & Settings → API Keys**),
-and the **Name shown in checkout**, for example "Asha Handlooms".
+Pick **Test** or **Live**, then follow the three numbered steps. They tell you where to click in
+your payment company's dashboard and what to copy. Press **Test connection** to check your keys
+(nothing is charged or created), then **Save and connect**.
 
-### Add the webhook
+If your platform has Razorpay's partner app set up, you'll also see a **Connect Razorpay**
+button: log in to Razorpay, press Allow, done. Payment updates are switched on for you.
 
-Copy the **webhook URL** shown on the card into your Razorpay Dashboard's webhooks, set a
-**Webhook secret** there and paste the same secret here. Tick the `payment.*` and `refund.*`
-events, plus `qr_code.credited` and `qr_code.closed` if you use auto-confirmed UPI.
+### Which payments?
 
-<Screenshot
-  name="Razorpay payment method card"
-  caption="Settings → Payments → Payment methods with the Razorpay card expanded: Key ID filled in, Key secret masked as ••••1234, the webhook URL with a copy button, and Enabled switched on."
-/>
+UPI, Cards and Netbanking are already on. Turn others on if you want them.
 
-### Turn on the other methods you want
+### Try a ₹1 test order
 
-Enable **Cash on delivery**, **UPI or bank transfer** (fill in **UPI ID**, **Payee name**,
-**Bank**, **Account holder**, **Account number**, **IFSC** and **Instructions for the shopper**)
-and **UPI (auto-confirmed, Razorpay QR)**.
+Press **Open test checkout**, pay ₹1 (in Test mode no real money moves), and see the order arrive
+in **Orders**.
 
-### Add a fee or discount (optional)
+### You're ready
 
-Each method has **Fee or discount**: **None**, **Fixed amount (₹)** or **Percent of subtotal**,
-and a **Label shown to shoppers**, such as "COD handling" (₹49) or "UPI discount" (2%).
-
-### Save and test
-
-Select **Save**, then place a small test order on your storefront (say a ₹10 product) with each
-method, and check it shows up correctly in **Orders**.
+Your payment company sends the money from real orders to your bank. How soon depends on your
+agreement with them; check their dashboard.
 
 </Steps>
 
+## Connect Razorpay with API keys
+
+1. Open the Razorpay Dashboard, **Account & Settings → API Keys**, and pick Test or Live at the
+   top.
+2. Press **Generate Key**, and paste the **Key ID** and **Key Secret** on the Connect page.
+3. In **Account & Settings → Webhooks**, add a webhook with the **Webhook address** and
+   **Webhook secret** shown on the Connect page (we make the secret for you; copy it). Tick
+   `payment.captured`, `payment.failed` and `refund.processed`, plus `qr_code.credited` and
+   `qr_code.closed` if you use **UPI — confirmed automatically**.
+
 <VideoTip
-  title="Connect Razorpay and add the webhook"
-  caption="Copy Key ID and Key secret from the Razorpay Dashboard, paste them, copy our webhook URL back into Razorpay, Save."
+  title="Connect Razorpay"
+  caption="Copy Key ID and Key Secret from the Razorpay Dashboard, paste them, copy our webhook address and secret back into Razorpay, then Save and connect."
 />
+
+For Cashfree, see [Cashfree](/merchant-guide/money/cashfree): it needs only two values and no
+webhook.
+
+## Ways to pay you confirm yourself
+
+| Method | What the shopper does | Who confirms payment |
+| --- | --- | --- |
+| **UPI — confirmed automatically** | Scans a QR made for their order | Razorpay, automatically, within seconds |
+| **UPI to your own ID — you confirm it** | Pays your UPI ID or bank account from their own app | You, in **Orders → Pending UPI** |
+| **Cash on delivery** | Pays the delivery person | You or the courier's remittance |
+
+Both UPI options are off until you turn them on under **Advanced**. **What's this?** beside them
+compares the two:
+
+| | UPI — confirmed automatically | UPI to your own ID — you confirm it |
+| --- | --- | --- |
+| Order marked paid | By itself, in seconds | You click **Mark paid** |
+| Fake payment risk | None: the payment company confirms it | A shopper can show a fake screenshot. Always check your bank. |
+| Fee | The payment company's fee | No fee |
+| Money arrives | When the payment company pays you out | Straight away, in your bank |
+
+Set them up under **Advanced**. Each method can also have a **Fee or discount**:
+**None**, **Fixed amount (₹)** or **Percent of subtotal**, with a **Label shown to shoppers**
+such as "COD handling" (₹49) or "UPI discount" (2%).
 
 ## Unpaid orders
 
@@ -118,7 +176,7 @@ method, and check it shows up correctly in **Orders**.
 
 ## Pre-order balances
 
-For pre-orders that take a deposit at checkout, the **Pre-orders** tab controls the rest:
+For pre-orders that take a deposit at checkout, **Advanced → Pre-orders** controls the rest:
 
 - **Request the balance automatically**, a set number of **Days before the expected ship
   date**.
@@ -133,20 +191,23 @@ For pre-orders that take a deposit at checkout, the **Pre-orders** tab controls 
   chargebacks.
 </Callout>
 
-## More gateways: coming soon
+## More payment companies
 
-Razorpay is the gateway available today. Other gateways (Cashfree, PhonePe, PayU) can be added
-by a developer as a plugin (see the [Plugins SDK](/developer-docs/building/plugins)); a one-click
-**Connect** for them from Apps is coming soon.
+Razorpay and Cashfree connect today. **UPI — confirmed automatically (Decentro)** connects once
+the Decentro app is available on your platform, and shows **Coming soon** until then. PhonePe and
+PayU are listed as **Coming soon**.
+A developer can add others as a plugin (see the [Plugins SDK](/developer-docs/building/plugins)).
 
 ## Common problems and fixes
 
 | Problem | Why it happens | Fix |
 | --- | --- | --- |
-| Shopper paid but the order is still **Unpaid** | The webhook isn't reaching us, or the secret doesn't match. | Check the webhook URL and **Webhook secret** in the Razorpay Dashboard match this page exactly. |
+| Shopper paid but the order is still **Unpaid** | The webhook isn't reaching us, or the secret doesn't match. | Press **Fix it** or **Show me how** on the red line, or check the webhook address and secret in the Razorpay Dashboard match the Connect page exactly. |
+| Checkout shows only cash on delivery | Every online way to pay is off, or no payment company is connected. | Switch UPI (or another) on under **Shoppers can pay with**. |
+| "These look like Live keys, but Test is picked" | The keys and the Test/Live switch don't match. | Pick the mode that matches your keys. |
 | Auto-confirmed UPI orders never get paid | The QR events aren't ticked. | Tick `qr_code.credited` and `qr_code.closed` on the Razorpay webhook. |
 | An order was cancelled but the shopper paid | They paid after the unpaid-order window. | The order shows **Refund needed**; refund that payment, or place a fresh order for them. |
-| COD fee isn't showing at checkout | The fee is set on a disabled method, or Type is **None**. | Enable **Cash on delivery** and set **Fixed amount (₹)**. |
+| COD fee isn't showing at checkout | Cash on delivery is off, or Type is **None**. | Switch **Cash on delivery** on under **Shoppers can pay with**, and set **Fixed amount (₹)** under **Advanced**. |
 
 ## FAQ
 
@@ -185,4 +246,4 @@ yourself.
 
 ## Related guides
 
-<RelatedGuides ids={['orders', 'gst', 'security', 'going-live']} />
+<RelatedGuides ids={['cashfree', 'orders', 'security', 'going-live']} />

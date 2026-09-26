@@ -3,10 +3,12 @@ import { describePaymentProvider } from '@commerce/payments/testing'
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildDisplayConfig,
+  buildMethodDisplayConfig,
   buildOrderNotes,
   buildReceipt,
   RazorpayProvider,
   razorpayFactory,
+  razorpayMode,
 } from '../src/razorpay'
 
 const live = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
@@ -200,5 +202,100 @@ describe('payment attempts', () => {
       headers: { 'x-razorpay-signature': sign(body), 'x-razorpay-event-id': 'evt_9' },
     })
     expect(r.ok && r.event).toMatchObject({ type: 'payment.failed', idempotencyKey: 'o1:2' })
+  })
+})
+
+describe('merchant method row', () => {
+  const base = { orderId: 'o1', amountPaise: 100, currency: 'INR' as const, customer: {} }
+
+  it('shows only the methods turned on, in their order, without default blocks', () => {
+    const c = buildMethodDisplayConfig(['card', 'upi', 'emi']) as {
+      display: {
+        blocks: Record<string, { instruments: Record<string, unknown>[] }>
+        sequence: string[]
+        preferences: { show_default_blocks: boolean }
+      }
+    }
+    expect(c.display.sequence).toEqual(['block.card', 'block.upi', 'block.emi'])
+    expect(Object.keys(c.display.blocks)).toEqual(['card', 'upi', 'emi'])
+    expect(c.display.blocks.upi?.instruments).toEqual([{ method: 'upi' }])
+    expect(c.display.preferences.show_default_blocks).toBe(false)
+  })
+
+  it('uses the method row in Checkout options when the order carries it', async () => {
+    const p = new RazorpayProvider(config)
+    const create = vi.fn(async () => ({ id: 'order_m2' }))
+    const client = (p as unknown as { client: { orders: { create: typeof create } } }).client
+    client.orders.create = create
+    const r = await p.createPayment({ ...base, methods: ['netbanking'] })
+    const options = r.session.kind === 'client' ? r.session.options : {}
+    expect((options.config as { display: { sequence: string[] } }).display.sequence).toEqual([
+      'block.netbanking',
+    ])
+  })
+
+  it('reads test or live from the key id', () => {
+    expect(razorpayMode('rzp_test_abc')).toBe('test')
+    expect(razorpayMode('rzp_test_oauth_abc')).toBe('test')
+    expect(razorpayMode('rzp_live_abc')).toBe('live')
+    expect(razorpayMode('nope')).toBeNull()
+  })
+})
+
+describe('test connection', () => {
+  const withOrdersAll = (impl: () => Promise<unknown>) => {
+    const p = new RazorpayProvider(config)
+    const client = (p as unknown as { client: { orders: { all: () => Promise<unknown> } } }).client
+    client.orders.all = vi.fn(impl)
+    return p
+  }
+
+  it('passes when Razorpay lists orders', async () => {
+    const r = await withOrdersAll(async () => ({ items: [] })).testConnection()
+    expect(r.ok).toBe(true)
+  })
+
+  it('explains rejected keys in plain words', async () => {
+    const r = await withOrdersAll(async () => {
+      throw { statusCode: 401, error: { description: 'Authentication failed' } }
+    }).testConnection()
+    expect(r.ok).toBe(false)
+    expect(r.message).toMatch(/didn't accept these keys/)
+  })
+})
+
+describe('oauth connection', () => {
+  const oauthConfig = {
+    keyId: 'rzp_test_oauth_ABC',
+    keySecret: '',
+    webhookSecret: 'whsec_test',
+    accessToken: 'at_1',
+  }
+
+  it('validates without a key secret when an access token is present', () => {
+    expect(razorpayFactory.validateConfig(oauthConfig).ok).toBe(true)
+    expect(razorpayFactory.validateConfig({ ...oauthConfig, accessToken: '' }).ok).toBe(false)
+  })
+
+  it('confirms by asking Razorpay, and only for a payment on this order', async () => {
+    const p = new RazorpayProvider(oauthConfig)
+    const fetchPayment = vi.fn(async (id: string) => ({
+      id,
+      order_id: 'order_abc',
+      amount: 100,
+      status: 'captured',
+    }))
+    const client = (p as unknown as { client: { payments: { fetch: typeof fetchPayment } } }).client
+    client.payments.fetch = fetchPayment
+    const ok = await p.confirm('order_abc', {
+      razorpay_payment_id: 'pay_1',
+      razorpay_signature: 'any',
+    })
+    expect(ok).toEqual({ status: 'captured', providerPaymentId: 'pay_1' })
+    const other = await p.confirm('order_other', {
+      razorpay_payment_id: 'pay_1',
+      razorpay_signature: 'any',
+    })
+    expect(other.status).toBe('failed')
   })
 })

@@ -88,7 +88,10 @@ export async function refundPayment(
     if (!p.providerPaymentId) {
       throw new RefundNotAllowed('Gateway has not reported a payment id for this payment yet')
     }
-    const r = await provider.refund(p.providerPaymentId, input.amountPaise, input.reason)
+    const r = await provider.refund(p.providerPaymentId, input.amountPaise, input.reason, {
+      providerRef: p.providerRef,
+      refundKey: `rf_${p.id.replace(/-/g, '').slice(0, 20)}_${already}`,
+    })
     status = r.status
     providerRefundId = r.providerRefundId
   }

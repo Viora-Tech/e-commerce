@@ -8,6 +8,7 @@ import {
   maskProviderSettings,
 } from '../settings/secrets'
 import { PaymentAdjustmentSchema } from './adjustments'
+import { CheckoutMethodSchema } from './methods'
 
 /** Stored on store.payments. Secret fields are encrypted before they reach the row. */
 export const PaymentSettingsSchema = z.object({
@@ -28,6 +29,14 @@ export const PaymentSettingsSchema = z.object({
    * merchant is told 12 hours before; marking the order paid stops it.
    */
   manualCancelAfterHours: z.number().int().min(0).max(720).default(0),
+  /**
+   * "Shoppers can pay with": UPI, cards, netbanking, wallets, EMI and COD, each
+   * on or off, in checkout order. Unset on stores saved before it existed;
+   * `checkoutMethodsOf` (./methods) fills the defaults.
+   */
+  methods: z.array(CheckoutMethodSchema).max(12).optional(),
+  /** Set when the merchant chose "Skip for now" on the first-time payment setup. */
+  setupSkippedAt: z.string().max(40).optional(),
 })
 export type PaymentSettings = z.infer<typeof PaymentSettingsSchema>
 

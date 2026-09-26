@@ -25,6 +25,13 @@ const schema = z.object({
    * Required in production; dev without it writes unencrypted backups.
    */
   BACKUP_ENCRYPTION_KEY: z.string().min(16).optional(),
+  /**
+   * Razorpay Technology Partner OAuth app ("Connect Razorpay"). Both set turns
+   * the one-click connect button on; unset, merchants paste API keys instead.
+   * The app's redirect URL must be `<ADMIN_URL>/api/apps/razorpay/oauth/callback`.
+   */
+  RAZORPAY_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+  RAZORPAY_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
   /** Checks custom domains' DNS and certificates. `dev` decides from the hostname, offline. */
   DOMAIN_PROVIDER: z.enum(['dev']).default('dev'),
   /** IPv4 an apex custom domain's A record must point at. Default is a documentation address. */

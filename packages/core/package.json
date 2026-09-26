@@ -8,6 +8,7 @@
     "./testing": "./src/testing/index.ts",
     "./emi": "./src/payments/emi.ts",
     "./adjustments": "./src/payments/adjustments.ts",
+    "./payment-methods": "./src/payments/methods.ts",
     "./registries": "./src/plugins/registries.ts",
     "./catalog": "./src/catalog/client.ts",
     "./discounts": "./src/discounts/client.ts",

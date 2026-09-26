@@ -1,0 +1,67 @@
+---
+title: Cashfree
+description: Connect Cashfree to take UPI, cards, netbanking, wallets and pay later. Two values to copy, no webhook to set up.
+---
+
+# Cashfree
+
+**Cashfree** is a payment company, like Razorpay. It takes the money from the shopper (UPI,
+cards, netbanking, wallets, pay later) and sends it to your bank account. Connect it from
+**Settings → Payments** or from **Apps → Cashfree → Connect**.
+
+## What this is for
+
+- Taking online payments if you already have a Cashfree account, or prefer their rates.
+- Switching between Razorpay and Cashfree without losing either set of keys.
+
+## Connect Cashfree
+
+<Steps>
+
+### Pick Test or Live
+
+**Test** uses Cashfree's sandbox: nothing real is charged. **Live** takes real money. Your
+Test and Live keys are different; use the ones that match.
+
+### Copy your keys
+
+In the Cashfree dashboard, open Payment Gateway, then **Developers → API Keys**. Copy the
+**App ID** and the **Secret Key** into the Connect page.
+
+### Nothing else to set up
+
+We tell Cashfree where to send payment updates with every order, so there is no webhook to add
+in the Cashfree dashboard.
+
+### Test and save
+
+Press **Test connection** (it only checks the keys; nothing is charged or created), then
+**Save and connect**. Cashfree becomes your **Main way to get paid** on **Settings → Payments**.
+
+</Steps>
+
+<Callout type="info">
+  **Tip.** After connecting, press **Place a test order** on **Settings → Payments** and pay ₹1
+  in Test mode to see the whole flow end to end.
+</Callout>
+
+## How it works
+
+The shopper pays in Cashfree's window on your checkout. Only the ways to pay you switched on
+under **Shoppers can pay with** are offered. Cashfree then tells your store the result (signed,
+and checked before we trust it), and the order is marked **Paid**. If that update is late, we
+also ask Cashfree directly.
+
+Refunds you start from an order go back through Cashfree.
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| "Cashfree didn't accept these keys" | Wrong key, or Test keys with Live picked (or the other way). | Copy both again from the same mode and pick the matching Test/Live. |
+| Cashfree window says the phone number is invalid | Cashfree needs a 10-digit phone number for every order. | The shopper enters a 10-digit mobile number at checkout. |
+| Paid order still **Unpaid** on a local test shop | Cashfree can't reach a shop running on your own computer. | Open the order; we ask Cashfree for the status when the shopper returns. On a live shop this is automatic. |
+
+## Related guides
+
+<RelatedGuides ids={['payments', 'orders', 'security']} />

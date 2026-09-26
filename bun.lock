@@ -12,6 +12,7 @@
         "@commerce/db": "workspace:*",
         "@commerce/notifications-ses": "workspace:*",
         "@commerce/notifications-whatsapp": "workspace:*",
+        "@commerce/payments-cashfree": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
@@ -192,6 +193,8 @@
         "@commerce/notifications": "workspace:*",
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
+        "@commerce/payments-cashfree": "workspace:*",
+        "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
@@ -444,6 +447,20 @@
     "packages/payments": {
       "name": "@commerce/payments",
       "version": "0.0.0",
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+    },
+    "packages/payments-cashfree": {
+      "name": "@commerce/payments-cashfree",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/payments": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+      },
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
@@ -881,6 +898,8 @@
     "@commerce/observability": ["@commerce/observability@workspace:packages/observability"],
 
     "@commerce/payments": ["@commerce/payments@workspace:packages/payments"],
+
+    "@commerce/payments-cashfree": ["@commerce/payments-cashfree@workspace:packages/payments-cashfree"],
 
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
 
