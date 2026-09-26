@@ -15,7 +15,7 @@ The sections further down describe an earlier stage and are partly outdated; thi
   in invite mode, no live invite means "Signups are invite-only for now" instead of the wizard.
   No platform admin UI yet - `bun run platform:invite <email>` prints the link. Existing staff
   invitations to an existing store are untouched. Store picker (`/select-store`) gained a
-  "Create another store" link. Migration `0071_signup_onboarding` adds `signup_invite`
+  "Create another store" link. Migration `0070_signup_onboarding` adds `signup_invite`
   (single-use, email-keyed) and a `store_slug_taken` SECURITY DEFINER function so the slug check
   works before any store's RLS context exists.
 - **Built since**: GST invoices app (queue, series, credit notes, GSTR-1), shopper accounts,
