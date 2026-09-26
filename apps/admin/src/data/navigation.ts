@@ -113,6 +113,7 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/growth',
         label: 'Growth',
         icon: TrendingUp,
+        permission: permissions.MARKETING_READ,
         children: [
           { href: '/growth/campaigns', label: 'Campaigns' },
           { href: '/growth/automations', label: 'Automations' },
