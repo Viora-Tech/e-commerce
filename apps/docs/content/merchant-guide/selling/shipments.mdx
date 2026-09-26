@@ -1,6 +1,6 @@
 ---
 title: Shipments
-description: Connect Delhivery or Shiprocket, compare rates, book, print labels, schedule pickups and handle delivery problems.
+description: Connect Delhivery, Shiprocket or RapidShyp, compare rates, book, print labels, schedule pickups and handle delivery problems.
 ---
 
 # Shipments
@@ -13,8 +13,8 @@ labelled and handled. It has four tabs: **Ready to ship**, **Shipments**, **Pick
 
 - Booking 20 Diwali orders with a courier in one go, instead of typing each address into the
   courier's website.
-- Comparing Delhivery and Shiprocket prices for a 500 g parcel from Jaipur (`302001`) to
-  Guwahati (`781001`) before you book.
+- Comparing Delhivery, Shiprocket and RapidShyp prices for a 500 g parcel from Jaipur
+  (`302001`) to Guwahati (`781001`) before you book.
 - Printing all labels as one sheet, and asking the courier to come and collect.
 - Seeing which parcels are stuck, and telling the courier what to do with them.
 
@@ -46,9 +46,9 @@ When every parcel on an order is **Delivered** (and the order is paid), the orde
 ## Connect a courier
 
 If no courier is connected yet you'll see "Connect a courier to start shipping", with
-**Connect Delhivery** and **Connect Shiprocket** buttons.
+**Connect Delhivery**, **Connect Shiprocket** and **Connect RapidShyp** buttons.
 
-<Tabs items={['Delhivery', 'Shiprocket']}>
+<Tabs items={['Delhivery', 'Shiprocket', 'RapidShyp']}>
 <Tabs.Tab>
 
 From **Apps**, install **Delhivery**, then open its **Connect** page. It takes about a minute.
@@ -122,6 +122,45 @@ The test logs in with your API user; nothing is booked. It can't confirm your pi
 nickname, because Shiprocket only checks that when you book a shipment.
 
 </Tabs.Tab>
+<Tabs.Tab>
+
+From **Apps**, install **RapidShyp**, then open its **Connect** page.
+
+<Steps>
+
+### Generate an API key
+
+In your RapidShyp dashboard, look under **Settings** for the API key generator and create
+one. If you don't see it on your plan, email `techsupport@rapidshyp.com` and ask them to
+enable API access for your account.
+
+### Copy the API key
+
+<Callout type="warning">
+  RapidShyp may not show the full key again later, so save it somewhere safe (a password
+  manager) the moment you generate it.
+</Callout>
+
+### Paste it below and pick your pickup location
+
+Enter **API key**, **Store name** (use `DEFAULT` unless RapidShyp set up a named sales
+channel for you), **Pickup location nickname** and **Origin PIN code**, then **Test
+connection**.
+
+</Steps>
+
+The test runs a real serviceability lookup with your API key; nothing is booked. It can't
+confirm your pickup location nickname, because RapidShyp only checks that when you book a
+shipment.
+
+<Callout type="warning">
+  RapidShyp support in this app is rate comparison and booking only for now. Label printing,
+  automatic tracking, delivery-problem (NDR) detection, cancelling from this app and wallet
+  balance could not be confirmed against RapidShyp's fetchable API docs, so they aren't wired
+  up yet - manage those from the RapidShyp dashboard directly until a follow-up adds them.
+</Callout>
+
+</Tabs.Tab>
 </Tabs>
 
 <VideoTip
@@ -152,7 +191,7 @@ shipments** for high-value parcels, then **Book** them.
 
 <Screenshot
   name="Compare couriers"
-  caption="Ready to ship → Compare couriers dialog for 3 selected orders, Delhivery and Shiprocket rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
+  caption="Ready to ship → Compare couriers dialog for 3 selected orders, Delhivery, Shiprocket and RapidShyp rates side by side with the Cheapest badge on one and the Book 3 shipments button at the bottom."
 />
 
 ### Print labels
@@ -194,6 +233,12 @@ Then select **Send to courier**. Once the courier's next update reports **Delive
 **RTO**, the parcel clears out of Delivery problems automatically too - there's nothing to
 dismiss by hand.
 
+<Callout type="warning">
+  RapidShyp shipments don't move through this tab automatically yet - tracking isn't wired
+  up for RapidShyp (see the RapidShyp connect page for what is and isn't supported today).
+  Check delivery problems from the RapidShyp dashboard for now.
+</Callout>
+
 <Callout type="info">
   **How the match works.** Neither Delhivery nor Shiprocket has a single fixed "this is an
   NDR" status code over their tracking APIs - both describe a failed attempt in free text
@@ -210,7 +255,7 @@ dismiss by hand.
 
 ## Courier wallet balance
 
-Delhivery and Shiprocket are prepaid: shipments are charged from a wallet on their side. They
+Delhivery, Shiprocket and RapidShyp are prepaid: shipments are charged from a wallet on their side. They
 don't share the balance over their APIs yet, so you enter it by hand after checking the
 courier's dashboard (**Balance on the courier dashboard (₹)**, then **Save balance**). Set
 **Warn me when my courier wallet is below (₹)** under **Settings → Shipping → When orders go

@@ -8,6 +8,7 @@ import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
+import { rapidshypPlugin } from '@commerce/shipping-rapidshyp'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
 import { r2Plugin } from '@commerce/storage-r2'
 import { s3Plugin } from '@commerce/storage-s3'
@@ -25,6 +26,7 @@ export default defineConfig({
     decentroPlugin,
     delhiveryPlugin,
     shiprocketPlugin,
+    rapidshypPlugin,
     sesPlugin,
     whatsappPlugin,
     r2Plugin,

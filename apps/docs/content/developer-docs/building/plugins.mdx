@@ -364,8 +364,8 @@ otherwise).
 
 An app can add sections merchants pick from the theme editor's Add panel →
 **Apps** tab, the same way Shopify's app blocks work. `packages/plugin-back-in-stock`
-(the "Notify me" block) and `packages/shipping-delhivery`/`packages/shipping-shiprocket`
-(the "Delivery checker" block) are the worked examples; `packages/core`'s
+(the "Notify me" block) and `packages/shipping-delhivery`/`packages/shipping-shiprocket`/
+`packages/shipping-rapidshyp` (the "Delivery checker" block) are the worked examples; `packages/core`'s
 own pre-order countdown block shows the pattern for a feature with no
 separate plugin package.
 
@@ -454,14 +454,14 @@ full manifest. `apps/admin/src/lib/customize-config.tsx` passes it to
 `commerce.blocks.config.ts` must point at the *same* block array — never
 write the block twice.
 
-**Multiple apps, one block.** `packages/shipping-delhivery` and
-`packages/shipping-shiprocket` both ship a "Delivery checker" block
-(`delhivery/DeliveryChecker`, `shiprocket/DeliveryChecker`) that reuses the
-storefront's one shipping estimate path (`estimateForPincode`) via a bound
-`estimate` action in `appBlockContext.deliveryChecker` — neither block calls
-its courier directly. Because the types are namespaced per plugin they never
-collide, so with both couriers installed a merchant sees two "Delivery
-checker" cards in the Add panel, one per app; either gives the same answer
+**Multiple apps, one block.** `packages/shipping-delhivery`, `packages/shipping-shiprocket`
+and `packages/shipping-rapidshyp` each ship a "Delivery checker" block
+(`delhivery/DeliveryChecker`, `shiprocket/DeliveryChecker`, `rapidshyp/DeliveryChecker`) that
+reuses the storefront's one shipping estimate path (`estimateForPincode`) via a bound
+`estimate` action in `appBlockContext.deliveryChecker` — none of the blocks call
+their courier directly. Because the types are namespaced per plugin they never
+collide, so with more than one courier installed a merchant sees one "Delivery
+checker" card per app in the Add panel; any of them gives the same answer
 (there is one active shipping provider per store), so only one needs to be
 added to a page.
 
