@@ -1,0 +1,323 @@
+# Production compose file for Dokploy, one Lightsail server (Mumbai, 8 GB RAM / 2 vCPU
+# burstable, Ubuntu 24.04). Dokploy builds every image ON this server, straight from the
+# Dockerfiles below, using its own GitHub integration (auto-deploy on push to `main`) — there
+# is no separate CI build/push step and no GHCR. See "Builds run on the live box" below and
+# apps/docs/content/developer-docs/operations/deployment.mdx for the full setup.
+#
+# Memory budget (8 GB total): Dokploy + its Traefik proxy ~400 MB, OS ~300 MB, leaving ~7.3 GB.
+# The mem_limit values below add up to well under that at steady state, with headroom for
+# traffic bursts AND for a build running alongside the live containers (see below):
+#   postgres 1536M, dragonfly 640M, admin 768M, storefront 768M, worker 384M, backup 256M
+#   (mostly idle) = ~4.35 GB steady-state, ~2.95 GB free (migrate is a one-shot 512M that only
+#   overlaps this for the seconds it takes to run, before the apps below it start).
+#
+# Builds run on the live box: Dokploy has no separate build server on this plan, so
+# `docker compose build` runs on the same 2 vCPU / 8 GB instance that's serving traffic.
+# Mitigations, in order of how much they help:
+#   1. Deploy off-peak (see the runbook) — the biggest lever, since builds are CPU-heavy.
+#   2. Builds run one service at a time here, never in parallel — see the per-service
+#      NODE_OPTIONS below and "Deploy order" in the runbook.
+#   3. Each Next build's heap is capped (NODE_OPTIONS below) well under the box's total RAM,
+#      so a build can't itself trigger an OOM of the running containers.
+#   4. If this box outgrows single-server building, Dokploy supports a separate remote build
+#      server (Settings → Cluster/Docker context) — move builds off the box entirely rather
+#      than tuning further.
+#
+# See apps/docs/content/developer-docs/operations/deployment.mdx for the full runbook
+# (first deploy, domains, rollback, restore) and deploy/env.production.example for every
+# variable referenced here.
+
+name: commerce
+
+x-app-env: &app-env
+  DATABASE_URL: ${DATABASE_URL}
+  DATABASE_URL_OWNER: ${DATABASE_URL_OWNER}
+  REDIS_URL: ${REDIS_URL:-redis://dragonfly:6379}
+  AUTH_SECRET: ${AUTH_SECRET}
+  ADMIN_URL: ${ADMIN_URL}
+  STOREFRONT_URL: ${STOREFRONT_URL}
+  NEXT_PUBLIC_WORKER_URL: ${NEXT_PUBLIC_WORKER_URL}
+  SETTINGS_SECRET: ${SETTINGS_SECRET}
+  SETTINGS_SECRET_PREVIOUS: ${SETTINGS_SECRET_PREVIOUS:-}
+  BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+  DOMAIN_PROVIDER: ${DOMAIN_PROVIDER:-dev}
+  STOREFRONT_A_RECORD: ${STOREFRONT_A_RECORD:-}
+  STOREFRONT_CNAME_TARGET: ${STOREFRONT_CNAME_TARGET:-}
+  PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
+  RAZORPAY_OAUTH_CLIENT_ID: ${RAZORPAY_OAUTH_CLIENT_ID:-}
+  RAZORPAY_OAUTH_CLIENT_SECRET: ${RAZORPAY_OAUTH_CLIENT_SECRET:-}
+  R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
+  S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+  SENDER_EMAIL_PROVIDER: ${SENDER_EMAIL_PROVIDER:-dev}
+  SES_REGION: ${SES_REGION:-}
+  SES_ACCESS_KEY_ID: ${SES_ACCESS_KEY_ID:-}
+  SES_SECRET_ACCESS_KEY: ${SES_SECRET_ACCESS_KEY:-}
+  SES_CONFIGURATION_SET: ${SES_CONFIGURATION_SET:-}
+  PLATFORM_EMAIL_FROM: ${PLATFORM_EMAIL_FROM:-}
+  PLATFORM_EMAIL_NAME: ${PLATFORM_EMAIL_NAME:-Waimers}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+  # No IMAGE_TAG to derive this from any more (Dokploy builds straight from git, not a tagged
+  # image) — set it by hand to a commit sha when you want release-tagged Sentry events, or
+  # leave unset.
+  SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+  NODE_ENV: production
+  # V8 heap cap, sized under each service's mem_limit (below) so the process fails fast with a
+  # clear OOM inside its own container instead of the kernel OOM-killer picking a victim among
+  # everything else on the box. admin/storefront (768m limit) get 640; worker overrides this
+  # lower in its own environment block (see there for why).
+  NODE_OPTIONS: --max-old-space-size=640
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-commerce}
+      # Read only by deploy/postgres/init.sh, on first boot of a fresh pgdata volume.
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      # Tuned for an 8 GB box where Postgres shares the machine with everything else.
+      # shared_buffers=1GB is real reserved RAM (mem_limit below covers it plus headroom);
+      # effective_cache_size=3GB is only a planner hint about how much of the box's RAM ends
+      # up caching Postgres pages (this box's OS page cache, not a Postgres allocation) — it
+      # doesn't need its own memory budget line. max_connections is kept low (40) because
+      # nothing here uses a per-request connection: admin/storefront/worker each hold one
+      # long-lived pool (postgres.js default max 10 connections) — 3 apps x 10 + a few spare
+      # for migrate/backup/psql fits comfortably under 40.
+      POSTGRES_INITDB_ARGS: --data-checksums
+    command:
+      - postgres
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - max_connections=40
+      - -c
+      - wal_compression=on
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 1536m
+    mem_reservation: 1024m
+    networks: [internal]
+
+  # Dragonfly, not Redis (same as docker-compose.yml) — BullMQ needs --cluster_mode=emulated
+  # and --lock_on_hashtags. Pinned to a specific version, never `latest`, so a redeploy never
+  # silently jumps versions on a stateful store; bump deliberately and test.
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.27.1
+    restart: unless-stopped
+    command:
+      - dragonfly
+      - --cluster_mode=emulated
+      - --lock_on_hashtags
+      - --proactor_threads=2
+      - --maxmemory=512mb
+      - --dir=/data
+      - --dbfilename=dump
+      - --snapshot_cron=0 */6 * * *
+    volumes:
+      - dragonflydata:/data
+    ulimits:
+      memlock: -1
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    mem_limit: 640m
+    mem_reservation: 320m
+    networks: [internal]
+
+  # One-shot: runs drizzle migrations against DATABASE_URL_OWNER, then exits 0. Every app
+  # service below waits for this to succeed before starting (service_completed_successfully) —
+  # see "Deploy order" in apps/docs/content/developer-docs/operations/deployment.mdx.
+  migrate:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile.tasks
+    # Stable name so an ad hoc `docker run commerce-tasks:local ...` (restore, key rotation —
+    # see the runbook) doesn't have to guess Dokploy's auto-generated build tag.
+    image: commerce-tasks:local
+    command: ['bun', 'run', 'packages/db/src/migrate.ts']
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL_OWNER: ${DATABASE_URL_OWNER}
+      REDIS_URL: ${REDIS_URL:-redis://dragonfly:6379}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 512m
+    networks: [internal]
+
+  admin:
+    build:
+      context: ../
+      dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'bun', '-e', "fetch('http://127.0.0.1:3200/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    mem_limit: 768m
+    mem_reservation: 384m
+    networks: [internal, web]
+    deploy:
+      # `deploy.update_config` is a Swarm-mode field; Dokploy runs Compose applications through
+      # Swarm internally (that's how it gets rolling redeploys at all), so this takes effect
+      # there. A plain `docker compose up` outside Dokploy ignores it silently — you'd get the
+      # ordinary stop-then-start behaviour instead, briefly dropping traffic. Confirm in
+      # Dokploy's UI (Advanced → Rolling update / Zero-downtime, naming varies by version) that
+      # it's actually on for this application, since the exact toggle has moved between
+      # Dokploy releases.
+      update_config:
+        order: start-first
+        failure_action: rollback
+    labels:
+      # Dokploy manages Traefik itself; these labels are read the same way whether you paste
+      # this compose file into a Dokploy "Compose" application or run it directly with
+      # `docker compose`. ADMIN_DOMAIN comes from env, never hardcoded — see
+      # deploy/env.production.example.
+      - traefik.enable=true
+      - traefik.http.routers.commerce-admin.rule=Host(`${ADMIN_DOMAIN}`)
+      - traefik.http.routers.commerce-admin.entrypoints=websecure
+      - traefik.http.routers.commerce-admin.tls=true
+      - traefik.http.routers.commerce-admin.tls.certresolver=letsencrypt
+      - traefik.http.services.commerce-admin.loadbalancer.server.port=3200
+      # gzip/brotli at the edge — Next already sets far-future Cache-Control on hashed
+      # /_next/static assets itself, this only adds compression on top.
+      - traefik.http.routers.commerce-admin.middlewares=commerce-compress
+      - traefik.http.middlewares.commerce-compress.compress=true
+
+  storefront:
+    build:
+      context: ../
+      dockerfile: apps/storefront/Dockerfile
+    restart: unless-stopped
+    environment: *app-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'bun', '-e', "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    mem_limit: 768m
+    mem_reservation: 384m
+    networks: [internal, web]
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.commerce-storefront.rule=Host(`${STOREFRONT_DOMAIN}`)
+      - traefik.http.routers.commerce-storefront.entrypoints=websecure
+      - traefik.http.routers.commerce-storefront.tls=true
+      - traefik.http.routers.commerce-storefront.tls.certresolver=letsencrypt
+      - traefik.http.services.commerce-storefront.loadbalancer.server.port=3100
+      - traefik.http.routers.commerce-storefront.middlewares=commerce-compress
+      - traefik.http.middlewares.commerce-compress.compress=true
+
+  worker:
+    build:
+      context: ../
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      # Bun's heap sizing differs from Node's; --max-old-space-size is honoured on a
+      # best-effort basis. 320 leaves headroom under the 384m mem_limit for the queue
+      # connections and BullMQ's own buffers, which live outside the JS heap.
+      NODE_OPTIONS: --max-old-space-size=320
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      dragonfly:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'bun', '-e', "fetch('http://127.0.0.1:4100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    mem_limit: 384m
+    mem_reservation: 192m
+    networks: [internal]
+    # No `web`/Traefik labels: the worker's webhook endpoints are reachable only through the
+    # storefront/admin's NEXT_PUBLIC_WORKER_URL if you choose to expose them — most stores route
+    # payment/shipment webhooks straight to the worker's own domain if needed; add labels here
+    # the same way as admin/storefront if you expose it publicly.
+
+  # Nightly encrypted Postgres (+ uploads, if the local storage provider is in use) backup to
+  # R2/S3. See "Backups" in apps/docs/content/developer-docs/operations/backups.mdx — on
+  # Dokploy, prefer its Scheduled Job feature instead of this always-on service (comment this
+  # out if you do).
+  backup:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile.tasks
+    image: commerce-tasks:local
+    restart: unless-stopped
+    command: ['sh', '/repo/deploy/backup-cron.sh']
+    environment:
+      DATABASE_URL_OWNER: ${DATABASE_URL_OWNER}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+      BACKUP_R2_ACCOUNT_ID: ${BACKUP_R2_ACCOUNT_ID:-}
+      BACKUP_R2_ACCESS_KEY_ID: ${BACKUP_R2_ACCESS_KEY_ID:-}
+      BACKUP_R2_SECRET_ACCESS_KEY: ${BACKUP_R2_SECRET_ACCESS_KEY:-}
+      BACKUP_R2_BUCKET: ${BACKUP_R2_BUCKET:-}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-03}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 256m
+    networks: [internal]
+
+networks:
+  internal:
+    internal: true
+  web:
+    # Dokploy creates and attaches its own Traefik network to every app it manages, named
+    # `dokploy-network` by default — confirm the exact name for your install with
+    # `docker network ls` and override DOKPLOY_NETWORK if it differs. Running this compose
+    # file directly (no Dokploy) instead, create it yourself first:
+    # `docker network create ${DOKPLOY_NETWORK:-dokploy-network}` and put your own reverse
+    # proxy on it, or drop the `web` network and Traefik labels entirely and publish ports.
+    name: ${DOKPLOY_NETWORK:-dokploy-network}
+    external: true
+
+volumes:
+  pgdata:
+  dragonflydata:

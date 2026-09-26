@@ -131,5 +131,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // /api/health is excluded: it's an infra liveness/readiness probe (Docker HEALTHCHECK,
+  // deploy/docker-compose.prod.yml), not tied to any store's host, so it must answer even
+  // when the request's Host header ("localhost" inside the container, no store configured
+  // for it) would otherwise 404 here.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health).*)'],
 }

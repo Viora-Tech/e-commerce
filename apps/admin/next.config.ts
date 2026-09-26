@@ -1,5 +1,11 @@
+import { fileURLToPath } from 'node:url'
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
+
+// Monorepo root, two levels up from apps/admin — lets `output: 'standalone'`
+// trace workspace packages (packages/*) correctly instead of only this app's
+// own node_modules. See deploy/README.md and apps/admin/Dockerfile.
+const monorepoRoot = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
  * Baseline security headers, same set on both apps (see storefront's
@@ -17,6 +23,11 @@ const SECURITY_HEADERS = [
 
 const config: NextConfig = {
   reactCompiler: true,
+  // Standalone build for the production Docker image (apps/admin/Dockerfile): a minimal
+  // server.js plus only the node_modules this app actually uses, traced from the monorepo
+  // root so workspace packages (packages/*) are included.
+  output: 'standalone',
+  outputFileTracingRoot: monorepoRoot,
   // Marketing was renamed to Growth; old links (bookmarks, emails, other apps) keep working.
   async redirects() {
     return [

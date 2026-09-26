@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+#
+# "Tasks" image: runs one-shot jobs that don't fit the per-app images because they span
+# multiple packages that aren't a single turbo scope — database migrations
+# (packages/db/src/migrate.ts) and the nightly backup/restore scripts (scripts/backup-db.ts,
+# scripts/restore-db.ts, which pull in @commerce/backup, @commerce/config, @commerce/core and
+# @commerce/storage-r2). Used by the `migrate` and `backup` services in
+# deploy/docker-compose.prod.yml.
+#
+# No Next build step (bun runs the TypeScript entrypoints directly) and no turbo prune — a
+# full monorepo install is simpler than juggling multiple prune scopes for a container that
+# runs briefly and isn't public-facing, so its extra size doesn't matter the way it would for
+# the admin/storefront/worker images.
+#
+# Build from the MONOREPO ROOT (.dockerignore keeps node_modules/.git/dist out of the context):
+#   docker build -f deploy/Dockerfile.tasks -t commerce-tasks .
+
+FROM oven/bun:1.3.11-alpine
+WORKDIR /repo
+# postgresql17-client: pg_dump/pg_restore for backup-db.ts, restore-db.ts and migrate.ts's
+# preflight checks. tar: backup-db.ts tars the local uploads folder when in use.
+RUN apk add --no-cache postgresql17-client tar ca-certificates
+
+COPY . .
+RUN bun install --frozen-lockfile
+
+RUN addgroup -S tasks && adduser -S tasks -G tasks && chown -R tasks:tasks /repo
+USER tasks
+ENV NODE_ENV=production
+
+# No CMD/ENTRYPOINT: deploy/docker-compose.prod.yml's `migrate` and `backup` services each set
+# their own `command` against this same image (migrate: packages/db/src/migrate.ts; backup:
+# deploy/backup-cron.sh, which loops scripts/backup-db.ts on a schedule).
