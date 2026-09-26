@@ -10,6 +10,7 @@ import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
 import { shiprocketPlugin } from '@commerce/shipping-shiprocket'
 import { r2Plugin } from '@commerce/storage-r2'
+import { s3Plugin } from '@commerce/storage-s3'
 
 /**
  * Plugins this deployment ships. Adding a gateway, courier, channel or bucket is one
@@ -27,6 +28,7 @@ export default defineConfig({
     sesPlugin,
     whatsappPlugin,
     r2Plugin,
+    s3Plugin,
     gstInvoicesPlugin,
     shopifyImportPlugin,
     backInStockPlugin,

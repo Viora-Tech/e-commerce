@@ -26,6 +26,7 @@ import { razorpayFactory } from '@commerce/payments-razorpay'
 import { delhiveryFactory } from '@commerce/shipping-delhivery'
 import { shiprocketFactory } from '@commerce/shipping-shiprocket'
 import { r2Factory } from '@commerce/storage-r2'
+import { s3Factory } from '@commerce/storage-s3'
 import { describe, expect, it } from 'vitest'
 import { findProviderFieldViolations, listFiles, loadSourceFile, toRel } from './walk'
 
@@ -57,6 +58,7 @@ describe('sweep: secret-fields', () => {
       sesFactory,
       whatsappFactory,
       r2Factory,
+      s3Factory,
     ]
     const secret = 'test-only-settings-secret-value'
 

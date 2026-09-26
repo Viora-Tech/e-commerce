@@ -56,6 +56,16 @@ const config: NextConfig = {
             },
           ]
         : []),
+      // Amazon S3 storage connection: a custom public URL or CloudFront domain typed into
+      // the Connect page needs this env var set before the build that serves it, same as R2 above.
+      ...(process.env.S3_PUBLIC_BASE_URL
+        ? [
+            {
+              protocol: 'https' as const,
+              hostname: new URL(process.env.S3_PUBLIC_BASE_URL).hostname,
+            },
+          ]
+        : []),
       // Local storage provider (the built-in default): `publicUrl` is a fully-qualified
       // URL back to this same app's `/uploads/[...key]` route, so next/image still needs it listed.
       ...(process.env.ADMIN_URL
