@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+dist
+.turbo
+.next
+**/.next
+coverage
+.git
+.data
+.env
+.env.local
+*.tsbuildinfo
+apps/docs/public/_pagefind
+.claude/worktrees

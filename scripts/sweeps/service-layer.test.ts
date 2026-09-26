@@ -35,6 +35,12 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'creates the Db connection for the admin app request context',
   },
   {
+    path: 'apps/admin/src/app/api/health/route.ts',
+    exact: true,
+    reason:
+      'infra liveness/readiness probe (Docker HEALTHCHECK) — deliberately a raw connectivity check, not a service call',
+  },
+  {
     path: 'apps/storefront/src/lib/db.ts',
     exact: true,
     reason: 'creates the Db connection for the storefront app request context',

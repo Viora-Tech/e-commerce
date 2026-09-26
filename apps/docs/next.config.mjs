@@ -16,6 +16,9 @@ const MERMAID_WRAPPER = './components/mermaid-alias.ts'
 
 export default withNextra({
   reactStrictMode: true,
+  // Standalone build for the optional production Docker image (apps/docs/Dockerfile).
+  output: 'standalone',
+  outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
   images: {
     unoptimized: true,
   },
