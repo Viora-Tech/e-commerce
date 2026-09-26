@@ -19,7 +19,7 @@ import {
 } from '@commerce/ui/shadcn/sidebar'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authContent } from '@/data/auth'
@@ -53,7 +53,6 @@ function nestApps(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] 
 export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: AdminSidebarProps) {
   // Hooks
   const pathname = usePathname()
-  const router = useRouter()
   const { toggleSidebar } = useSidebar()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
 
@@ -64,8 +63,8 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
     try {
       const { error } = await authClient.organization.setActive({ organizationId: id })
       if (error) throw new Error(error.message ?? authContent.selectStore.switchFailed)
-      router.push('/')
-      router.refresh()
+      // A full load, so client caches (permissions, lists) start fresh for the new store.
+      window.location.assign('/')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : authContent.selectStore.switchFailed)
       setSwitchingId(null)

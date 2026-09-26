@@ -15,9 +15,16 @@ export type CurrentMember = {
 
 let cached: Promise<CurrentMember> | null = null
 
-/** One request per page load; the server re-checks every call regardless. */
+/**
+ * One request per page load; the server re-checks every call regardless. A failed
+ * answer (say, asked before a store was picked) is not kept, so the next read retries
+ * instead of hiding the whole sidebar until a hard reload.
+ */
 function load(): Promise<CurrentMember> {
-  cached ??= api.staff.me() as Promise<CurrentMember>
+  cached ??= (api.staff.me() as Promise<CurrentMember>).catch((err: unknown) => {
+    cached = null
+    throw err
+  })
   return cached
 }
 
