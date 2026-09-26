@@ -44,8 +44,8 @@ export default function AcceptInvitation({
     const joined = await api.invitations.accept({ id: invitationId })
     // Set from the browser so the cached session cookie picks up the new store.
     await authClient.organization.setActive({ organizationId: joined.organizationId })
-    router.push('/')
-    router.refresh()
+    // A full load, so client caches (permissions, lists) start fresh for the new store.
+    window.location.assign('/')
   }
 
   // Event handlers
