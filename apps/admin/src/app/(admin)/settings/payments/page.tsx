@@ -1,8 +1,13 @@
 import type { Metadata } from 'next'
-import PaymentsSettings from './payments-settings'
+import { Suspense } from 'react'
+import PaymentsPage from '@/components/payments/payments-page'
 
 export const metadata: Metadata = { title: 'Payments' }
 
 export default function Page() {
-  return <PaymentsSettings />
+  return (
+    <Suspense>
+      <PaymentsPage />
+    </Suspense>
+  )
 }

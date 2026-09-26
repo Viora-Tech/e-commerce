@@ -1,8 +1,8 @@
 /** Copy for Settings → Payments. */
 export const paymentsSettingsContent = {
-  title: 'Payments',
-  intro:
-    'Enable the methods shoppers can pay with and add a fee or discount per method. Gateway keys are stored encrypted.',
+  advancedTitle: 'Advanced payments',
+  advancedIntro:
+    'Bank transfer and UPI QR you confirm yourself, a fee or discount per method, and what happens to unpaid orders. Connect Razorpay or Cashfree and pick ways to pay on the main Payments page.',
   webhookHint:
     'Webhook URL for the Razorpay dashboard (tick payment.* and refund.* events, plus qr_code.credited and qr_code.closed for auto-confirmed UPI):',
   upiQrHint:

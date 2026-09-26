@@ -29,7 +29,14 @@ const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
 
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL ?? 'http://localhost:4100'
 
-const load = () => api.store.getPayments()
+/** Set up on the main Payments page (connect, "Shoppers can pay with"), so not repeated here. */
+const MAIN_PAGE_METHODS = new Set(['razorpay', 'cashfree', 'cod'])
+
+const load = () =>
+  api.store.getPayments().then((r) => ({
+    ...r,
+    available: r.available.filter((p) => !MAIN_PAGE_METHODS.has(p.id)),
+  }))
 const save = (next: Parameters<typeof api.store.updatePayments>[0]) =>
   api.store.updatePayments(next)
 
@@ -82,12 +89,12 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
   )
 }
 
-export default function PaymentsSettings() {
+export default function AdvancedPayments() {
   return (
     <ProviderSettingsForm<Extra>
-      title={copy.title}
+      title={copy.advancedTitle}
       icon={<CreditCard aria-hidden="true" />}
-      intro={copy.intro}
+      intro={copy.advancedIntro}
       load={load}
       save={save}
       emptyExtra={{
