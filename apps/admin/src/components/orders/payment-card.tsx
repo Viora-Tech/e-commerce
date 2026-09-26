@@ -79,7 +79,12 @@ export default function PaymentCard({
           <PreorderBalanceLine order={order} onRequest={onRequestBalance} busy={busy} />
         ) : null}
         {onSendReminder ? (
-          <TransferReminderLine order={order} onSend={onSendReminder} busy={busy} />
+          <TransferReminderLine
+            order={order}
+            onSend={onSendReminder}
+            onMarkPaid={onCollect}
+            busy={busy}
+          />
         ) : null}
         {order.payments.map((p) => {
           const pill = paymentStatus(p, order.refunds)

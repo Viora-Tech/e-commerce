@@ -9,9 +9,12 @@ const PAYMENT_TEST_HANDLE = 'payment-test'
 const PAYMENT_TEST_PRICE_PAISE = 100
 
 /**
- * The ₹1 test product, created on first use. It stays a draft (never listed,
- * never in search or collections) and does not track stock, so a test order
- * never touches real inventory. Carts accept drafts; only listings hide them.
+ * The ₹1 test product, created on first use. It stays a draft and is flagged
+ * `isSystemTest`, so it never appears in listings, search, collections,
+ * storefront surfaces, analytics or inventory — see `notSystemTest` in
+ * `@commerce/core`. It does not track stock, so a test order never
+ * touches real inventory. Carts and direct-id lookups ignore the flag, so the
+ * "Place a test order" checkout flow still works.
  */
 async function ensurePaymentTestProduct(ctx: StoreContext): Promise<string> {
   const [existing] = await ctx.tx
@@ -30,6 +33,7 @@ async function ensurePaymentTestProduct(ctx: StoreContext): Promise<string> {
       status: 'draft',
       tags: ['payment-test'],
       vendor: 'Settings → Payments',
+      isSystemTest: true,
     })
     .returning({ id: product.id })
   if (!p) throw new Error('test product insert returned nothing')

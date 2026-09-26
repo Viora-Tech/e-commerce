@@ -22,6 +22,7 @@ const METRICS: readonly Metric[] = [
 const weekday = new Intl.DateTimeFormat('en-IN', { weekday: 'short' })
 
 const percent = (n: number) => `${n.toFixed(1)}%`
+const percentOrDash = (n: number | null) => (n === null ? '—' : percent(n))
 
 function toPoints(series: Series, metric: Metric): ChartPoint[] {
   return series.days.map((date, i) => ({
@@ -47,7 +48,7 @@ export default function CustomerOverviewCard({ overview }: { overview: CustomerO
     { label: c.tabs.activeCustomers, value: formatCompact(overview.activeCustomers) },
     { label: c.tabs.repeatCustomers, value: formatCompact(overview.repeatCustomers) },
     { label: c.tabs.shopVisitors, value: formatCompact(overview.shopVisitors) },
-    { label: c.tabs.conversionRate, value: percent(overview.conversionRate) },
+    { label: c.tabs.conversionRate, value: percentOrDash(overview.conversionRate) },
   ]
 
   return (

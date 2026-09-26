@@ -205,8 +205,8 @@ export type CustomerOverview = {
   activeCustomers: number
   repeatCustomers: number
   shopVisitors: number
-  /** Orders per visitor over the window, as a percentage. */
-  conversionRate: number
+  /** Orders per visitor over the window, as a percentage; null when there were no visitors. */
+  conversionRate: number | null
   /** Visitor window for the third tile, with the week before for its delta. */
   visitors: { value: number; previous: number }
   thisWeek: CustomerOverviewSeries
@@ -279,7 +279,8 @@ export async function customerOverview(
     activeCustomers: active.size,
     repeatCustomers: repeat.size,
     shopVisitors: visitorsThis,
-    conversionRate: Math.round(conversionRate(recent.length, visitorsThis) * 1000) / 10,
+    conversionRate:
+      visitorsThis > 0 ? Math.round(conversionRate(recent.length, visitorsThis) * 1000) / 10 : null,
     visitors: { value: visitorsThis, previous: sum(lastWeek.shopVisitors) },
     thisWeek,
     lastWeek,

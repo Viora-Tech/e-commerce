@@ -1,3 +1,4 @@
+import { notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryAdjustment,
@@ -54,6 +55,7 @@ export const LOW_STOCK_AT = 5
 
 function listWhere(input: ProductListInput) {
   return and(
+    notSystemTest,
     input.search
       ? or(
           ilike(product.title, `%${input.search}%`),
@@ -240,6 +242,7 @@ export async function productFacets(tx: StoreTx) {
   const rows = await tx
     .select({ vendor: product.vendor, productType: product.productType, tags: product.tags })
     .from(product)
+    .where(notSystemTest)
   const uniq = (xs: (string | null)[]) =>
     [...new Set(xs.filter((x): x is string => Boolean(x)))].sort((a, b) => a.localeCompare(b))
   return {
@@ -325,6 +328,7 @@ export async function searchVariants(
       and(
         isNull(variant.archivedAt),
         ne(product.status, 'archived'),
+        notSystemTest,
         search
           ? or(ilike(product.title, `%${search}%`), ilike(variant.sku, `%${search}%`))
           : undefined,
@@ -349,22 +353,27 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
       active: sql<number>`count(*) filter (where ${product.status} = 'active')`,
     })
     .from(product)
+    .where(notSystemTest)
   const [stock] = await tx
     .select({
       value: sql<number>`coalesce(sum(greatest(0, ${inventoryLevel.onHand}) * coalesce(${variant.costPaise}, ${variant.pricePaise})), 0)`,
     })
     .from(variant)
+    .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
-    .where(isNull(variant.archivedAt))
+    .where(and(isNull(variant.archivedAt), notSystemTest))
   const [out] = await tx
     .select({ n: sql<number>`count(*)` })
     .from(product)
     .where(
-      sql`(
+      and(
+        notSystemTest,
+        sql`(
         select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
         from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
         where v.product_id = ${product.id} and v.archived_at is null
       ) = 0`,
+      ),
     )
   return {
     total: counts?.total ?? 0,

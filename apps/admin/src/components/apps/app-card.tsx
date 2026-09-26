@@ -163,7 +163,9 @@ export default function AppCard({ app, busy, onInstall, onUninstall }: AppCardPr
             <span />
           )}
           {app.installed ? null : (
-            <Button type="button" disabled={busy} onClick={() => onInstall(app)}>
+            // Explicit primary variant: this is the card's one call to action, never a
+            // secondary/disabled-looking button.
+            <Button type="button" variant="default" disabled={busy} onClick={() => onInstall(app)}>
               {busy ? <Spinner /> : null}
               {copy.install}
             </Button>

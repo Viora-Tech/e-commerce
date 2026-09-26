@@ -1,3 +1,4 @@
+import { notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   inventoryAdjustment,
@@ -238,12 +239,14 @@ export async function inventoryFacets(tx: StoreTx) {
   const vendors = await tx
     .selectDistinct({ v: product.vendor })
     .from(product)
-    .where(sql`${product.vendor} is not null and ${product.vendor} <> ''`)
+    .where(and(notSystemTest, sql`${product.vendor} is not null and ${product.vendor} <> ''`))
     .orderBy(asc(product.vendor))
   const types = await tx
     .selectDistinct({ t: product.productType })
     .from(product)
-    .where(sql`${product.productType} is not null and ${product.productType} <> ''`)
+    .where(
+      and(notSystemTest, sql`${product.productType} is not null and ${product.productType} <> ''`),
+    )
     .orderBy(asc(product.productType))
   return {
     vendors: vendors.map((r) => r.v as string),
@@ -281,6 +284,7 @@ export async function searchVariants(
       and(
         isNull(variant.archivedAt),
         ne(product.status, 'archived'),
+        notSystemTest,
         term
           ? or(
               ilike(product.title, `%${term}%`),
