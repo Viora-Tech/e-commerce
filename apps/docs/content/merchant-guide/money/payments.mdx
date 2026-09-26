@@ -60,15 +60,16 @@ From top to bottom:
   only"). **Place a test order** opens your checkout in a new tab with a ₹1 test item in the
   basket. The test item is hidden from your store and never touches your stock.
 - **Main way to get paid.** The payment company that takes the money, **Test** or **Live**, a
-  green **Working** tick, the last payment, and when money usually reaches your bank. **Manage**
+  green **Working** tick and the last payment. **Manage**
   opens its Connect page; **Change** lets you pick another company. Your old keys are kept, so
   you can switch back.
 - **Shoppers can pay with.** One row per way to pay: **UPI**, **Cards**, **Netbanking**,
   **Wallets**, **Pay later / EMI** and **Cash on delivery**. Switch each on or off, and drag
   the rows to change the order. Checkout shows only the ones that are on, in this order, and the
-  payment window offers only those. New shops start with UPI, Cards and Netbanking on.
+  payment window offers only those. New shops start with UPI, Cards and Netbanking on and cash
+  on delivery off. A shop that already saved its own cash on delivery choice keeps it.
 - **+ Add another way to get paid.** Search payment companies, filter by UPI, cards and so on,
-  and see fees and when money reaches your bank. Razorpay and Cashfree connect today; others
+  and see their fees. Razorpay and Cashfree connect today; others
   show **Coming soon**.
 - **Advanced.** Bank transfer and UPI QR you confirm yourself, a fee or discount per method, and
   unpaid-order rules, on their own page (**Settings → Payments → Advanced**). Payments are taken
@@ -118,7 +119,8 @@ in **Orders**.
 
 ### You're ready
 
-Money from real orders reaches your bank in about 2 working days.
+Your payment company sends the money from real orders to your bank. How soon depends on your
+agreement with them; check their dashboard.
 
 </Steps>
 
@@ -130,7 +132,7 @@ Money from real orders reaches your bank in about 2 working days.
 3. In **Account & Settings → Webhooks**, add a webhook with the **Webhook address** and
    **Webhook secret** shown on the Connect page (we make the secret for you; copy it). Tick
    `payment.captured`, `payment.failed` and `refund.processed`, plus `qr_code.credited` and
-   `qr_code.closed` if you use auto-confirmed UPI.
+   `qr_code.closed` if you use **UPI — confirmed automatically**.
 
 <VideoTip
   title="Connect Razorpay"
@@ -144,11 +146,21 @@ webhook.
 
 | Method | What the shopper does | Who confirms payment |
 | --- | --- | --- |
-| **UPI (auto-confirmed, Razorpay QR)** | Scans a single-use QR for the exact amount | Razorpay, automatically |
-| **UPI or bank transfer** | Pays your UPI ID or bank account from their own app | You, in **Orders → Pending UPI** |
+| **UPI — confirmed automatically** | Scans a QR made for their order | Razorpay, automatically, within seconds |
+| **UPI to your own ID — you confirm it** | Pays your UPI ID or bank account from their own app | You, in **Orders → Pending UPI** |
 | **Cash on delivery** | Pays the delivery person | You or the courier's remittance |
 
-Set the first two up under **Advanced**. Each method can also have a **Fee or discount**:
+Both UPI options are off until you turn them on under **Advanced**. **What's this?** beside them
+compares the two:
+
+| | UPI — confirmed automatically | UPI to your own ID — you confirm it |
+| --- | --- | --- |
+| Order marked paid | By itself, in seconds | You click **Mark paid** |
+| Fake payment risk | None: the payment company confirms it | A shopper can show a fake screenshot. Always check your bank. |
+| Fee | The payment company's fee | No fee |
+| Money arrives | When the payment company pays you out | Straight away, in your bank |
+
+Set them up under **Advanced**. Each method can also have a **Fee or discount**:
 **None**, **Fixed amount (₹)** or **Percent of subtotal**, with a **Label shown to shoppers**
 such as "COD handling" (₹49) or "UPI discount" (2%).
 
@@ -181,7 +193,9 @@ For pre-orders that take a deposit at checkout, **Advanced → Pre-orders** cont
 
 ## More payment companies
 
-Razorpay and Cashfree connect today. Decentro, PhonePe and PayU are listed as **Coming soon**.
+Razorpay and Cashfree connect today. **UPI — confirmed automatically (Decentro)** connects once
+the Decentro app is available on your platform, and shows **Coming soon** until then. PhonePe and
+PayU are listed as **Coming soon**.
 A developer can add others as a plugin (see the [Plugins SDK](/developer-docs/building/plugins)).
 
 ## Common problems and fixes
