@@ -6,7 +6,7 @@ description: The main tables and how they relate, the two database roles, row-le
 # Data model overview
 
 Postgres 17, one database, every tenant table carrying `store_id` and row-level security
-(RLS). Migrations live in `packages/db/drizzle` (SQL, `0067` at the time of writing), generated
+(RLS). Migrations live in `packages/db/drizzle` (SQL, `0068` at the time of writing), generated
 from the Drizzle schema files in `packages/db/src` (`schema.ts` plus feature schemas such as
 `marketing-schema.ts`; auth tables are separate, see below) and each app's own `schema.ts`.
 
