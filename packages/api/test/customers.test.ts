@@ -486,7 +486,65 @@ describe('customers', () => {
     const a = await merchant('a@example.com', 'store-a')
     const overview = await call(appRouter.customers.overview, undefined, { context: a.ctx })
     expect(overview.shopVisitors).toBe(0)
-    expect(overview.conversionRate).toBe(0)
+    // No visitors at all is a data gap, not "0% conversion" — show a dash, never a rate.
+    expect(overview.conversionRate).toBeNull()
     expect(overview.thisWeek.shopVisitors).toEqual([0, 0, 0, 0, 0, 0, 0])
+  })
+
+  it('caps conversion rate at 100% when orders outnumber counted visitors', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [asha] = await owner
+      .insert(customer)
+      .values([
+        {
+          storeId: a.storeId,
+          name: 'Asha Menon',
+          email: 'asha@example.com',
+          createdAt: daysAgo(1),
+        },
+      ])
+      .returning()
+    const base = { storeId: a.storeId, subtotalPaise: 1, totalPaise: 1000 }
+    await owner.insert(order).values([
+      {
+        ...base,
+        customerId: asha?.id,
+        number: 1,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(1),
+      },
+      {
+        ...base,
+        customerId: asha?.id,
+        number: 2,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(2),
+      },
+      {
+        ...base,
+        customerId: asha?.id,
+        number: 3,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(3),
+      },
+    ])
+    const ctx: ApiContext = {
+      ...a.ctx,
+      visitors: {
+        live: async () => ({ last30: 0, perMinute: [] }),
+        // Only one visitor tracked all week, far fewer than the orders placed.
+        daily: async (_storeId, days) => ({
+          perDay: days.map((_, i) => (i === 13 ? 1 : 0)),
+          total: 1,
+        }),
+      },
+    }
+    const overview = await call(appRouter.customers.overview, undefined, { context: ctx })
+    expect(overview.shopVisitors).toBeGreaterThan(0)
+    expect(overview.conversionRate).not.toBeNull()
+    expect(overview.conversionRate as number).toBeLessThanOrEqual(100)
   })
 })

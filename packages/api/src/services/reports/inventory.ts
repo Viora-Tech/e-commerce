@@ -1,3 +1,4 @@
+import { notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { inventoryLevel, location, product, store, variant } from '@commerce/db'
 import { and, eq, isNull, ne } from 'drizzle-orm'
@@ -47,7 +48,7 @@ async function levelFacts(tx: StoreTx): Promise<LevelFact[]> {
     .innerJoin(variant, eq(variant.id, inventoryLevel.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .leftJoin(location, eq(location.id, inventoryLevel.locationId))
-    .where(and(isNull(variant.archivedAt), ne(product.status, 'archived')))
+    .where(and(isNull(variant.archivedAt), ne(product.status, 'archived'), notSystemTest))
 }
 
 function soldByVariant(lines: LineFact[]): Map<string, number> {

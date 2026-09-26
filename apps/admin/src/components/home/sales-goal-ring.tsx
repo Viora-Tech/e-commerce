@@ -8,6 +8,7 @@ import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
+import { sanitizeGoalInput, suggestedGoalPaise } from '@/lib/sales-goal'
 
 type SalesGoalRingProps = {
   month: DashboardSummary['month']
@@ -36,17 +37,22 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
   const [goalPaise, setGoalPaise] = useState<number | null>(() => readGoalCookie())
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
+  const [error, setError] = useState(false)
 
   // Event handlers
   const handleEdit = () => {
-    setDraft(goalPaise ? String(Math.round(goalPaise / 100)) : '')
+    const startFrom = goalPaise ?? suggestedGoalPaise(month.lastMonthSalesPaise)
+    setDraft(startFrom ? String(Math.round(startFrom / 100)) : '')
+    setError(false)
     setEditing(true)
   }
 
   const handleSave = () => {
-    const rupees = Number(draft.replace(/[^0-9.]/g, ''))
-    if (!Number.isFinite(rupees) || rupees <= 0) return
-    const paise = Math.round(rupees * 100)
+    const paise = sanitizeGoalInput(draft)
+    if (paise === null) {
+      setError(true)
+      return
+    }
     writeGoalCookie(paise)
     setGoalPaise(paise)
     setEditing(false)
@@ -54,6 +60,7 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
 
   // Render logic
   const c = homeContent.goal
+  const suggestion = suggestedGoalPaise(month.lastMonthSalesPaise)
   const daysLeft = Math.max(0, month.daysInMonth - month.dayOfMonth)
   const pct = goalPaise ? Math.min(100, Math.round((month.toDatePaise / goalPaise) * 100)) : 0
   const dashoffset = CIRCUMFERENCE - (CIRCUMFERENCE * pct) / 100
@@ -76,11 +83,21 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
             inputMode="decimal"
             autoFocus
             aria-label={c.inputLabel}
+            aria-invalid={error}
             placeholder="50,000"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              setError(false)
+            }}
           />
-          <p className="text-caption text-muted-foreground">{c.inputHelp}</p>
+          <p
+            className={
+              error ? 'text-caption text-destructive' : 'text-caption text-muted-foreground'
+            }
+          >
+            {error ? c.inputError : c.inputHelp}
+          </p>
           <div className="flex gap-2">
             <Button onClick={handleSave}>{c.save}</Button>
             <Button variant="outline" onClick={() => setEditing(false)}>
@@ -133,7 +150,9 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
               </p>
             </div>
           ) : (
-            <p className="text-body text-muted-foreground">{c.noGoal}</p>
+            <p className="text-body text-muted-foreground">
+              {suggestion ? c.noGoalSuggested(formatPaise(suggestion)) : c.noGoal}
+            </p>
           )}
           <div className="flex w-full items-center gap-2 border-border border-t pt-3">
             <FireIcon className="size-4 shrink-0 text-warning" />

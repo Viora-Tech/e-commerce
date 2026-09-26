@@ -44,11 +44,14 @@ export const appsRouter = {
     return getRegistries()
       .summaries()
       .map((p) => {
-        const installed = p.builtIn || apps.installed.includes(p.id)
-        const connected =
-          p.kind === 'connection'
-            ? installed && providerIdsOf(p).some((id) => connectedIds.has(id))
-            : installed
+        // A connection with saved working credentials counts as installed even if this
+        // store saved them before "Apps → Install" existed, or connected directly from
+        // Settings — otherwise the gallery shows "Install" on a gateway/courier that is
+        // actively processing orders (e.g. Razorpay, Delhivery), which reads as broken.
+        const hasCredentials =
+          p.kind === 'connection' && providerIdsOf(p).some((id) => connectedIds.has(id))
+        const installed = p.builtIn || apps.installed.includes(p.id) || hasCredentials
+        const connected = p.kind === 'connection' ? hasCredentials : installed
         return { ...p, installed, connected }
       })
   }),

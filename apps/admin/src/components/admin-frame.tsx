@@ -2,7 +2,6 @@
 
 import { SidebarInset, SidebarProvider } from '@commerce/ui/shadcn/sidebar'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
-import { motion, useReducedMotion } from 'motion/react'
 import { usePathname } from 'next/navigation'
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react'
 import { hasOwnHeading, pageTitleFor } from '@/data/layout'
@@ -38,7 +37,6 @@ export default function AdminFrame({
 }: AdminFrameProps) {
   // Hooks
   const pathname = usePathname()
-  const reduced = useReducedMotion()
   const mainRef = useRef<HTMLElement>(null)
   const [scrolled, setScrolled] = useState(false)
   // Sticky page headers lift off the page once content scrolls under them.
@@ -78,15 +76,8 @@ export default function AdminFrame({
               <h1 className="text-page-title text-ink-strong">{title}</h1>
             </div>
           )}
-          {/* A soft settle on each navigation: the page fades up a few pixels, never slides. */}
-          <motion.div
-            key={pathname}
-            initial={reduced ? false : { opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {children}
-          </motion.div>
+          {/* The page-enter fade lives once, in the (admin) template.tsx, not here. */}
+          {children}
         </main>
         <Toaster />
         <PaletteHost />

@@ -1,3 +1,4 @@
+import { notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { collection, collectionProduct, media, product, productMedia, variant } from '@commerce/db'
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
@@ -131,6 +132,7 @@ const onSaleSql = sql`exists (
 
 function productsWhere(input: CollectionProductsInput) {
   return and(
+    notSystemTest,
     input.collectionId
       ? sql`exists (select 1 from collection_product cp where cp.product_id = ${product.id} and cp.collection_id = ${input.collectionId})`
       : undefined,
@@ -203,7 +205,7 @@ export async function searchProducts(tx: StoreTx, search: string, limit = 20) {
       and(eq(productMedia.productId, product.id), eq(productMedia.position, 0)),
     )
     .leftJoin(media, eq(media.id, productMedia.mediaId))
-    .where(search ? ilike(product.title, `%${search}%`) : undefined)
+    .where(and(notSystemTest, search ? ilike(product.title, `%${search}%`) : undefined))
     .orderBy(asc(product.title))
     .limit(limit)
   return rows.map((r) => ({

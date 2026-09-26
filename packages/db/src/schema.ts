@@ -97,6 +97,13 @@ export const product = pgTable(
     featured: boolean('featured').notNull().default(false),
     /** Sold as a gift card: digital, never shipped or taxed at sale; paid lines issue a card by email. */
     isGiftCard: boolean('is_gift_card').notNull().default(false),
+    /**
+     * System-generated fixture, e.g. the ₹1 "Payment test" product created by the payments
+     * setup wizard. Fetchable directly by id/handle for its own flow (test checkout), but
+     * excluded from every listing, search, collection, storefront surface, analytics and
+     * inventory query — see `notSystemTest` in `@commerce/core`.
+     */
+    isSystemTest: boolean('is_system_test').notNull().default(false),
     /** Optional window for the compare-at price; outside it the storefront shows the plain price. */
     saleStartsAt: timestamp('sale_starts_at', { withTimezone: true }),
     saleEndsAt: timestamp('sale_ends_at', { withTimezone: true }),

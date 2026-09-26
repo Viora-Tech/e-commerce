@@ -129,9 +129,13 @@ export function toWeeklyPoints(days: string[], values: number[]): SeriesPoint[] 
   return out
 }
 
-/** Share of sessions that placed an order, 0 when nobody visited. */
+/**
+ * Share of sessions that placed an order, 0 when nobody visited. Capped at 1 (100%):
+ * a session count that undercounts real traffic (e.g. a visitor beacon gap) must never
+ * inflate this past a sensible ceiling.
+ */
 export function conversionRate(orders: number, sessions: number): number {
-  return sessions > 0 ? orders / sessions : 0
+  return sessions > 0 ? Math.min(orders / sessions, 1) : 0
 }
 
 /** Mean order value in paise, rounded to the paisa. */

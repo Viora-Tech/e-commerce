@@ -1,4 +1,5 @@
 import {
+  notSystemTest,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   parseAppsSettings,
@@ -198,6 +199,8 @@ export type DashboardSummary = {
     bestDay: string | null
     /** Consecutive days up to today (IST) with at least one paid order, capped at 14 (the lookback window). */
     streakDays: number
+    /** Last full calendar month's total, for suggesting a sensible default sales goal. */
+    lastMonthSalesPaise: number
   }
   /** Orders from the last 24h with a shipping address, newest first, for the Live view globe. */
   mapOrders: {
@@ -430,7 +433,7 @@ export async function dashboardSummary(
   const [productsRow] = await tx
     .select({ n: count() })
     .from(product)
-    .where(ne(product.status, 'archived'))
+    .where(and(ne(product.status, 'archived'), notSystemTest))
   const stockRows = await tx
     .select({
       variantId: inventoryLevel.variantId,
@@ -448,7 +451,7 @@ export async function dashboardSummary(
   const newProducts = await tx
     .select({ at: product.createdAt })
     .from(product)
-    .where(gte(product.createdAt, lastStart))
+    .where(and(gte(product.createdAt, lastStart), notSystemTest))
   const adjustments = await tx
     .select({
       variantId: inventoryAdjustment.variantId,
@@ -607,6 +610,7 @@ export async function dashboardSummary(
     .where(
       and(
         ne(product.status, 'archived'),
+        notSystemTest,
         sql`${product.productType} is not null and ${product.productType} <> ''`,
       ),
     )
@@ -616,7 +620,7 @@ export async function dashboardSummary(
   const latestRows = await tx
     .select({ productId: product.id, title: product.title })
     .from(product)
-    .where(ne(product.status, 'archived'))
+    .where(and(ne(product.status, 'archived'), notSystemTest))
     .orderBy(desc(product.createdAt))
     .limit(LATEST_PRODUCTS)
   const coverRows = typeRows.length
@@ -626,6 +630,7 @@ export async function dashboardSummary(
         .where(
           and(
             ne(product.status, 'archived'),
+            notSystemTest,
             inArray(
               product.productType,
               typeRows.map((r) => r.type ?? ''),
@@ -793,6 +798,12 @@ export async function dashboardSummary(
     if ((byDay.get(day) ?? 0) > 0) streakDays++
     else break
   }
+  const lastMonthStart = new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() - 1, 1) - IST_OFFSET_MS,
+  )
+  const lastMonthSalesPaise = revenueRows
+    .filter((r) => r.placedAt >= lastMonthStart && r.placedAt < monthStart)
+    .reduce((n, r) => n + r.totalPaise, 0)
 
   /* Orders from the last 24h with a shipping address, for the Live view globe's markers/arcs. */
   const mapOrderRows = await tx
@@ -913,6 +924,7 @@ export async function dashboardSummary(
       bestDayPaise,
       bestDay,
       streakDays,
+      lastMonthSalesPaise,
     },
     mapOrders: mapOrderRows,
     dispatch,

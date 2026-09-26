@@ -265,6 +265,8 @@ export const orderDetailContent = {
       nextAt: (when: string) => `Next one possible ${when.charAt(0).toLowerCase()}${when.slice(1)}`,
       send: 'Send payment reminder',
       sentToast: 'Payment reminder sent to the customer',
+      hint: (amount: string) => `Check your bank or UPI app for ${amount}, then mark it paid.`,
+      markPaid: 'Mark as paid',
     },
     refundNeeded:
       'Money was captured after this order was cancelled or already paid. Refund it to the shopper.',

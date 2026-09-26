@@ -118,10 +118,13 @@ export const homeContent = {
     setGoal: 'Set a goal',
     inputLabel: 'This month’s sales goal',
     inputHelp: 'Kept on this device for now.',
+    inputError: 'Enter an amount between ₹1 and ₹1,00,00,000.',
     percentDone: (pct: number) => `${pct}% of the way there`,
     daysLeft: (n: number) => (n === 1 ? '1 day left' : `${n} days left`),
     projected: (amount: string) => `On this pace, you will finish around ${amount}.`,
     noGoal: 'Set a goal to track this month against it.',
+    noGoalSuggested: (amount: string) =>
+      `Set a goal to track this month against it. Last month you sold ${amount} — that could be a good target.`,
     record: (amount: string, when: string) => `Best day so far: ${amount} on ${when}.`,
     noRecord: 'Your best day will show up here once you have sales to compare.',
   },

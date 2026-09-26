@@ -1,3 +1,4 @@
+import { notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { discount, discountUsage, order, orderLine, product, variant } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
@@ -51,7 +52,7 @@ export async function lineFacts(tx: StoreTx, span: ReportSpan): Promise<LineFact
     .innerJoin(order, eq(order.id, orderLine.orderId))
     .innerJoin(variant, eq(variant.id, orderLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
-    .where(and(counted, placedIn(span)))
+    .where(and(counted, placedIn(span), notSystemTest))
   return rows.map(({ unitPricePaise, ...r }) => ({ ...r, grossPaise: r.quantity * unitPricePaise }))
 }
 
