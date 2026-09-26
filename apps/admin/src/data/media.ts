@@ -108,6 +108,7 @@ export const mediaContent = {
       local:
         'Writes to public/uploads on this machine and is served by the admin app. Fine for development; production needs a bucket.',
       r2: 'Create an R2 bucket, give it a public URL (r2.dev subdomain or custom domain), add a CORS rule allowing PUT from this admin origin, then paste an API token with Object Read & Write.',
+      s3: 'Create an S3 bucket and an IAM user scoped to it, add a CORS rule allowing PUT from this admin origin, then paste the access key ID and secret. See Apps → Amazon S3 for the guided setup.',
     } as Record<string, string>,
     verifyHeading: 'Connection',
     verifyHelp:

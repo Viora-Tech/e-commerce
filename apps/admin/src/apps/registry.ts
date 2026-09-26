@@ -36,6 +36,7 @@ import SesConnectPage from '@/components/apps/messages/ses-connect-page'
 import WhatsappConnectPage from '@/components/apps/messages/whatsapp-connect-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
 import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
+import S3ConnectPage from '@/components/apps/s3/connect-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
 import ConnectPage from '@/components/apps/shopify-import/connect-page'
@@ -99,6 +100,11 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': RazorpayOverviewPage,
       connect: RazorpayConnectPage,
+    },
+  },
+  s3: {
+    pages: {
+      '': S3ConnectPage,
     },
   },
   ses: {

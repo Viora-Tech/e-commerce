@@ -1,20 +1,10 @@
+import { HeadBucketCommand } from '@aws-sdk/client-s3'
+import type { CredentialCheck, StorageProviderFactory } from '@commerce/storage'
 import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadBucketCommand,
-  PutObjectCommand,
-  S3Client,
-  type S3ClientConfig,
-} from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type {
-  CredentialCheck,
-  PresignedUpload,
-  PresignInput,
-  PutInput,
-  StorageProvider,
-  StorageProviderFactory,
-} from '@commerce/storage'
+  makeS3CompatClient,
+  type S3CompatDeps,
+  S3CompatProvider,
+} from '@commerce/storage-s3-compat'
 
 export type R2Config = {
   accountId: string
@@ -36,108 +26,37 @@ export const R2_PRESIGN_SECONDS = 15 * 60
 
 export const r2Endpoint = (accountId: string) => `https://${accountId}.r2.cloudflarestorage.com`
 
-type Deps = {
-  /** Injected in tests; production builds a real client. */
-  client?: S3Client | undefined
-  /** Injected in tests so no signature maths runs. */
-  sign?:
-    | ((client: S3Client, command: PutObjectCommand, expiresIn: number) => Promise<string>)
-    | undefined
-}
-
-function makeClient(config: R2Config): S3Client {
-  const opts: S3ClientConfig = {
-    region: 'auto',
-    endpoint: config.endpoint ?? r2Endpoint(config.accountId),
-    credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
-  }
-  return new S3Client(opts)
-}
-
-const defaultSign: NonNullable<Deps['sign']> = (client, command, expiresIn) =>
-  getSignedUrl(client, command, { expiresIn })
-
 /**
  * Cloudflare R2 through its S3-compatible API. The browser PUTs straight to
  * the bucket with a presigned URL; the platform never proxies bytes.
  * Requires a CORS rule on the bucket allowing PUT from the admin origin.
  */
-export class R2StorageProvider implements StorageProvider {
+export class R2StorageProvider extends S3CompatProvider {
   readonly id = 'r2'
   readonly label = 'Cloudflare R2'
-  private readonly client: S3Client
-  private readonly sign: NonNullable<Deps['sign']>
-  private readonly publicBase: string
 
-  constructor(
-    private readonly config: R2Config,
-    deps: Deps = {},
-  ) {
-    this.client = deps.client ?? makeClient(config)
-    this.sign = deps.sign ?? defaultSign
-    this.publicBase = config.publicBaseUrl.replace(/\/$/, '')
-  }
-
-  async presignUpload(input: PresignInput): Promise<PresignedUpload> {
-    const command = new PutObjectCommand({
-      Bucket: this.config.bucket,
-      Key: input.key,
-      ContentType: input.contentType,
-      ContentLength: input.size,
-    })
-    const url = await this.sign(this.client, command, R2_PRESIGN_SECONDS)
-    return {
-      url,
-      method: 'PUT',
-      headers: { 'content-type': input.contentType },
-      expiresIn: R2_PRESIGN_SECONDS,
-    }
-  }
-
-  publicUrl(key: string): string {
-    return `${this.publicBase}/${key}`
-  }
-
-  async put(input: PutInput): Promise<void> {
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.config.bucket,
-        Key: input.key,
-        Body: input.body,
-        ContentType: input.contentType,
-        ContentLength: input.body.byteLength,
-      }),
-    )
-  }
-
-  async get(key: string): Promise<Uint8Array | null> {
-    try {
-      const res = await this.client.send(
-        new GetObjectCommand({ Bucket: this.config.bucket, Key: key }),
-      )
-      return res.Body ? await res.Body.transformToByteArray() : null
-    } catch (err) {
-      const name = err instanceof Error ? err.name : ''
-      if (name === 'NoSuchKey' || name === 'NotFound') return null
-      throw err
-    }
-  }
-
-  async delete(key: string): Promise<void> {
-    // S3 semantics: deleting a missing key is a 204, so this is idempotent for free.
-    await this.client.send(new DeleteObjectCommand({ Bucket: this.config.bucket, Key: key }))
+  constructor(config: R2Config, deps: S3CompatDeps = {}) {
+    const client =
+      deps.client ??
+      makeS3CompatClient({
+        region: 'auto',
+        endpoint: config.endpoint ?? r2Endpoint(config.accountId),
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      })
+    super(client, { bucket: config.bucket, publicBaseUrl: config.publicBaseUrl }, deps)
   }
 
   async verifyCredentials(): Promise<CredentialCheck> {
     try {
-      await this.client.send(new HeadBucketCommand({ Bucket: this.config.bucket }))
-      return { ok: true, message: `Connected to bucket "${this.config.bucket}".` }
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }))
+      return { ok: true, message: `Connected to bucket "${this.bucket}".` }
     } catch (err) {
       const name = err instanceof Error ? err.name : 'Error'
       if (name === 'NotFound' || name === 'NoSuchBucket') {
         return {
           ok: false,
-          message: `Bucket "${this.config.bucket}" does not exist on this account.`,
+          message: `Bucket "${this.bucket}" does not exist on this account.`,
         }
       }
       if (name === 'InvalidAccessKeyId' || name === 'SignatureDoesNotMatch' || name === '403') {

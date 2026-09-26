@@ -87,7 +87,7 @@ export function resolveStorageProvider(
   return { provider: localStorageFactory.create(config), errors }
 }
 
-/** Env-seeded defaults so a deployment with R2_* in .env needs no form filling. */
+/** Env-seeded defaults so a deployment with R2_* or S3_* in .env needs no form filling. */
 export function storageDefaultsFromEnv(env: Record<string, string | undefined>): StorageSettings {
   const r2 = {
     accountId: env.R2_ACCOUNT_ID ?? '',
@@ -96,8 +96,23 @@ export function storageDefaultsFromEnv(env: Record<string, string | undefined>):
     bucket: env.R2_BUCKET ?? '',
     publicBaseUrl: env.R2_PUBLIC_BASE_URL ?? '',
   }
-  const complete = Object.values(r2).every((v) => v.length > 0)
-  return complete ? { enabled: ['r2'], providers: { r2 }, migration: null } : defaultStorageSettings
+  if (Object.values(r2).every((v) => v.length > 0)) {
+    return { enabled: ['r2'], providers: { r2 }, migration: null }
+  }
+  const s3 = {
+    accessKeyId: env.S3_ACCESS_KEY_ID ?? '',
+    secretAccessKey: env.S3_SECRET_ACCESS_KEY ?? '',
+    region: env.S3_REGION ?? '',
+    bucket: env.S3_BUCKET ?? '',
+    publicBaseUrl: env.S3_PUBLIC_BASE_URL ?? '',
+    pathPrefix: env.S3_PATH_PREFIX ?? '',
+  }
+  const s3Complete = ['accessKeyId', 'secretAccessKey', 'region', 'bucket'].every(
+    (k) => s3[k as keyof typeof s3].length > 0,
+  )
+  return s3Complete
+    ? { enabled: ['s3'], providers: { s3 }, migration: null }
+    : defaultStorageSettings
 }
 
 export { StorageRegistry }

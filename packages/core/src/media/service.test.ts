@@ -175,4 +175,29 @@ describe('storage settings', () => {
     expect(full.enabled).toEqual(['r2'])
     expect(full.providers.r2?.bucket).toBe('b')
   })
+
+  it('seeds S3 from env only when every required variable is present, and prefers R2 when both are set', () => {
+    expect(storageDefaultsFromEnv({ S3_BUCKET: 'b' }).enabled).toEqual([])
+    const full = storageDefaultsFromEnv({
+      S3_ACCESS_KEY_ID: 'ak',
+      S3_SECRET_ACCESS_KEY: 'sk',
+      S3_REGION: 'ap-south-1',
+      S3_BUCKET: 'b',
+    })
+    expect(full.enabled).toEqual(['s3'])
+    expect(full.providers.s3?.bucket).toBe('b')
+
+    const both = storageDefaultsFromEnv({
+      R2_ACCOUNT_ID: 'a',
+      R2_ACCESS_KEY_ID: 'k',
+      R2_SECRET_ACCESS_KEY: 's',
+      R2_BUCKET: 'b',
+      R2_PUBLIC_BASE_URL: 'https://pub.r2.dev',
+      S3_ACCESS_KEY_ID: 'ak',
+      S3_SECRET_ACCESS_KEY: 'sk',
+      S3_REGION: 'ap-south-1',
+      S3_BUCKET: 'b2',
+    })
+    expect(both.enabled).toEqual(['r2'])
+  })
 })

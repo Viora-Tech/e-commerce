@@ -10,7 +10,7 @@ Protection Act (DPDP), 2023. Written for a merchant or auditor, not just enginee
 declares which of its config fields are secrets (`secret: true` on a `ProviderField`,
 `packages/{payments,shipping,notifications,storage}-*/src/*.ts`). Razorpay's `key_secret`,
 Delhivery's and Shiprocket's API tokens, SES's secret access key, WhatsApp's access token
-and R2's secret access key are all flagged this way; public identifiers like Razorpay's
+and R2's and S3's secret access keys are all flagged this way; public identifiers like Razorpay's
 `key_id` are not. A field name matching `/secret|token|password/i` is also encrypted even
 if a connector forgot to flag it (`packages/core/src/settings/secrets.ts`'s `SECRET_KEY`
 regex) — a safety net, not the primary mechanism; `scripts/sweeps/secret-fields.test.ts`

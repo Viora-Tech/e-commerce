@@ -34,6 +34,7 @@ import { can } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   loadStorageSettings,
+  testStorageConnection,
   updateStoreStorage,
   verifyStorageCredentials,
 } from '../services/media.service'
@@ -398,6 +399,35 @@ export const storeRouter = {
     const { storage } = await storeRegistries(context.tx, context.scope.storeId)
     return verifyStorageCredentials(context.tx, context.scope.storeId, storage, secret())
   }),
+
+  /**
+   * A storage Connect page's "Test connection" button (e.g. Amazon S3's guided page):
+   * validates the form's current, unsaved field values against the real provider before the
+   * merchant commits to Save. Rate-limited per store like the shipping/payments equivalents.
+   */
+  testStorageConnection: can(permissions.SETTINGS_READ)
+    .input(z.object({ providerId: z.string().min(1), fields: z.record(z.string(), z.string()) }))
+    .handler(async ({ context, input }) => {
+      const limit = await checkRateLimit(
+        context.rateLimit ?? fallbackRateLimit,
+        rateLimitKey('storage-test-connection', context.scope.storeId),
+        TEST_CONNECTION_RULE,
+      )
+      if (!limit.ok) {
+        throw new ORPCError('TOO_MANY_REQUESTS', {
+          message: `Too many attempts. Try again in about ${Math.ceil(retryAfterSeconds(limit) / 60)} minute(s).`,
+        })
+      }
+      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      return testStorageConnection(
+        context.tx,
+        context.scope.storeId,
+        storage,
+        secret(),
+        input.providerId,
+        input.fields,
+      )
+    }),
 
   /** "Move existing files to <connection>": queues the worker job; see packages/core/src/media/migrate.ts. */
   migrateStorage: can(permissions.SETTINGS_MANAGE)

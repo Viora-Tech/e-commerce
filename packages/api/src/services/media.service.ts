@@ -1,4 +1,6 @@
 import {
+  decryptStorageSettings,
+  isMaskedSecret,
   parseStorageSettings,
   resolveStorageProvider,
   type StorageSettings,
@@ -33,6 +35,49 @@ export async function storageProviderFor(
   secret: string,
 ): Promise<StorageProvider> {
   return resolveStorageProvider(registry, await loadStorageSettings(tx, storeId), secret).provider
+}
+
+/**
+ * A storage Connect page's "Test connection" button: the form's current field values (a
+ * masked secret means "use what's already saved") through the provider's own
+ * `verifyCredentials()`, before anything is saved. Every `StorageProvider` already
+ * implements this uniformly (unlike shipping, there's no provider-specific read-only call to
+ * special-case), so one function serves every storage connector — R2 today, S3 and anything
+ * added later.
+ */
+export async function testStorageConnection(
+  tx: StoreTx,
+  storeId: string,
+  registry: StorageRegistry,
+  secret: string,
+  providerId: string,
+  rawFields: Record<string, string>,
+): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+  const factory = registry.get(providerId)
+  if (!factory) return { ok: false, message: 'This storage connection is not available.' }
+
+  const stored = decryptStorageSettings(await loadStorageSettings(tx, storeId), secret).providers[
+    providerId
+  ]
+  const merged = Object.fromEntries(
+    Object.entries(rawFields).map(([key, value]) => [
+      key,
+      isMaskedSecret(value) && stored?.[key] ? stored[key] : value,
+    ]),
+  )
+
+  const built = registry.create(providerId, merged)
+  if (!built.ok) return { ok: false, message: built.errors.join(', ') }
+
+  try {
+    return await built.provider.verifyCredentials()
+  } catch (err) {
+    return {
+      ok: false,
+      message:
+        err instanceof Error ? err.message : `Could not test the ${factory.label} connection.`,
+    }
+  }
 }
 
 export async function verifyStorageCredentials(
