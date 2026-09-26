@@ -83,6 +83,12 @@ export const guides = {
     title: 'Apps',
     description: 'Built-in apps and connections: install, set up, uninstall.',
   },
+  growth: {
+    href: '/merchant-guide/selling/growth',
+    icon: 'sparkle',
+    title: 'Growth',
+    description: 'Sales by source, tagged links, campaigns and automations.',
+  },
   payments: {
     href: '/merchant-guide/money/payments',
     icon: 'card',

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import AutomationsPage from '@/components/marketing/automations/automations-page'
+import AutomationsPage from '@/components/growth/automations/automations-page'
 import { appRouter, call, serverContext } from '@/lib/api'
 
 export const metadata: Metadata = { title: 'Automations' }

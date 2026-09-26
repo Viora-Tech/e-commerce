@@ -41,6 +41,7 @@ import {
   DownloadSimple,
   Eye,
   EyeClosed,
+  FacebookLogo,
   FileText,
   Fire,
   Flag,
@@ -50,12 +51,14 @@ import {
   Gear,
   Gift,
   GlobeSimple,
+  GoogleLogo,
   Hash,
   Highlighter,
   House,
   Image,
   ImageSquare,
   Info,
+  InstagramLogo,
   Layout,
   LinkSimple,
   ListBullets,
@@ -110,8 +113,10 @@ import {
   WarningCircle,
   WarningDiamond,
   WarningOctagon,
+  WhatsappLogo,
   X,
   XCircle,
+  YoutubeLogo,
 } from '@phosphor-icons/react/ssr'
 import { defineIcon, definePath, type IconComponent } from './lib/icon'
 
@@ -167,6 +172,18 @@ export const Inbox = defineIcon(Tray, 'Inbox', 'duotone')
 export const MessageSquare = defineIcon(ChatCircleText, 'MessageSquare', 'duotone')
 export const Send = defineIcon(PaperPlaneTilt, 'Send', 'duotone')
 export const TrendingUp = defineIcon(ChartLineUp, 'TrendingUp', 'duotone')
+
+/* Brand marks for the Growth "sales by source" table: recognisable logos, no other use of the mark. */
+export const InstagramLogo_ = defineIcon(InstagramLogo, 'InstagramLogo', 'duotone')
+export { InstagramLogo_ as InstagramLogo }
+export const FacebookLogo_ = defineIcon(FacebookLogo, 'FacebookLogo', 'duotone')
+export { FacebookLogo_ as FacebookLogo }
+export const YoutubeLogo_ = defineIcon(YoutubeLogo, 'YoutubeLogo', 'duotone')
+export { YoutubeLogo_ as YoutubeLogo }
+export const GoogleLogo_ = defineIcon(GoogleLogo, 'GoogleLogo', 'duotone')
+export { GoogleLogo_ as GoogleLogo }
+export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
+export { WhatsappLogo_ as WhatsappLogo }
 
 /* Chrome: regular weight, 16px inline / 18px nav-header sizing set at call sites. */
 export const Search = defineIcon(MagnifyingGlass, 'Search')

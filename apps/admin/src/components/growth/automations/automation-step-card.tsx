@@ -9,11 +9,11 @@ import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import EmailContentCard from '@/components/marketing/campaigns/email-content-card'
-import EmailPreview from '@/components/marketing/campaigns/email-preview'
+import EmailContentCard from '@/components/growth/campaigns/email-content-card'
+import EmailPreview from '@/components/growth/campaigns/email-preview'
 import WhatsappTemplateCard, {
   type TemplatesResult,
-} from '@/components/marketing/campaigns/whatsapp-template-card'
+} from '@/components/growth/campaigns/whatsapp-template-card'
 import { automationEditorContent, durationLabel } from '@/data/marketing-automations'
 
 type AutomationStepCardProps = {

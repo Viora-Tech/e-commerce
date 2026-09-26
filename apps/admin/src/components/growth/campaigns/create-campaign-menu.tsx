@@ -37,7 +37,7 @@ export default function CreateCampaignMenu() {
         {OPTIONS.map((o) => (
           <DropdownMenuItem
             key={o.kind}
-            onClick={() => router.push(`/marketing/campaigns/new?kind=${o.kind}`)}
+            onClick={() => router.push(`/growth/campaigns/new?kind=${o.kind}`)}
             className="items-start gap-3 py-2"
           >
             <o.icon className="mt-0.5 size-4 text-muted-foreground" />

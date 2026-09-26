@@ -6,11 +6,11 @@ import {
   Blocks,
   FolderOpen,
   Home,
-  Megaphone,
   Package,
   Settings,
   ShoppingBag,
   Store,
+  TrendingUp,
   Users,
 } from '@commerce/ui/icons'
 
@@ -110,12 +110,13 @@ export const NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
-        href: '/marketing',
-        label: 'Marketing',
-        icon: Megaphone,
+        href: '/growth',
+        label: 'Growth',
+        icon: TrendingUp,
         children: [
-          { href: '/marketing/campaigns', label: 'Campaigns' },
-          { href: '/marketing/automations', label: 'Automations' },
+          { href: '/growth/campaigns', label: 'Campaigns' },
+          { href: '/growth/automations', label: 'Automations' },
+          { href: '/growth/links', label: 'Links' },
         ],
       },
       {

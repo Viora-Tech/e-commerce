@@ -15,6 +15,12 @@ The sections further down describe an earlier stage and are partly outdated; thi
   transactional outbox, rate limits, pre-order with deposits and balance collection, launch
   countdown, back-in-stock alerts app, admin accent colour, and the admin premium UI pass
   (see `docs/design/admin-frames.md`, "Premium pass").
+- **Marketing renamed to Growth** (26 September 2026): admin section moved to `/growth`
+  (`/growth`, `/growth/campaigns`, `/growth/automations`, new `/growth/links` UTM builder), old
+  `/marketing/*` paths redirect permanently. Overview now leads with sales by source (Instagram,
+  Facebook, YouTube, Google, WhatsApp, AI assistants, Email, Direct, Other) with a best-source
+  callout and a By source / By channel toggle; core marketing domain names (`@commerce/core/marketing`,
+  permissions, table names) are unchanged.
 - **Working rules**: one build at a time and merge before the next; check open source first
   (`docs/open-source-radar.md`) and credit per `THIRD_PARTY_NOTICES.md`; UI tweaks are
   reviewed live on :3200 before a PR.

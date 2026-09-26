@@ -27,11 +27,11 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { blockId } from '@/components/growth/campaigns/form-state'
+import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { blockId } from '@/components/marketing/campaigns/form-state'
-import type { TemplatesResult } from '@/components/marketing/campaigns/whatsapp-template-card'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
@@ -138,7 +138,7 @@ export default function AutomationEditor({
     setBusy(true)
     await api.marketing.automations.delete({ id: automation.id })
     toast.success(copy.deleted)
-    router.push('/marketing/automations')
+    router.push('/growth/automations')
     router.refresh()
   }
 
@@ -180,7 +180,7 @@ export default function AutomationEditor({
       <PageHeader
         title={form.name}
         breadcrumbs={[
-          { label: copy.breadcrumb, href: '/marketing/automations' },
+          { label: copy.breadcrumb, href: '/growth/automations' },
           { label: form.name },
         ]}
         actions={

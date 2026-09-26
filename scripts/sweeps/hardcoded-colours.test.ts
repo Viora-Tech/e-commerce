@@ -34,7 +34,7 @@ const ALLOWLIST: AllowEntry[] = [
       'accent-colour presets are stored as invoice.accentColor and passed straight into the react-pdf templates (packages/invoices/src/templates), which render outside the DOM and cannot resolve CSS custom properties — swapping these for var(--chart-N) would store an unusable value and break the PDF',
   },
   {
-    file: 'apps/admin/src/components/marketing/campaigns/email-preview.tsx',
+    file: 'apps/admin/src/components/growth/campaigns/email-preview.tsx',
     reason: 'previews an email whose colours are author-chosen inline styles, not app UI',
   },
   {

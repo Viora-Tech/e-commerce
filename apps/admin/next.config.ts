@@ -17,6 +17,24 @@ const SECURITY_HEADERS = [
 
 const config: NextConfig = {
   reactCompiler: true,
+  // Marketing was renamed to Growth; old links (bookmarks, emails, other apps) keep working.
+  async redirects() {
+    return [
+      { source: '/marketing', destination: '/growth', permanent: true },
+      { source: '/marketing/campaigns', destination: '/growth/campaigns', permanent: true },
+      {
+        source: '/marketing/campaigns/:path*',
+        destination: '/growth/campaigns/:path*',
+        permanent: true,
+      },
+      { source: '/marketing/automations', destination: '/growth/automations', permanent: true },
+      {
+        source: '/marketing/automations/:path*',
+        destination: '/growth/automations/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

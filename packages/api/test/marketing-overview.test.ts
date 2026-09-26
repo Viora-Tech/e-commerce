@@ -10,7 +10,7 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { marketingOverview } from '../src/services/marketing-overview.service'
+import { marketingOverview, normalizeSource } from '../src/services/marketing-overview.service'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -102,8 +102,66 @@ describe('marketing overview', () => {
       kind: 'email',
       orders: 1,
       salesPaise: 150000,
-      href: `/marketing/campaigns/${campaign?.id}`,
+      href: `/growth/campaigns/${campaign?.id}`,
+      sourceKey: 'email',
     })
+
+    const instagram = o.sources.find((s) => s.source === 'instagram')
+    expect(instagram).toMatchObject({ sessions: 2, orders: 1, salesPaise: 200000 })
+    const direct = o.sources.find((s) => s.source === 'direct')
+    expect(direct).toMatchObject({ orders: 2 }) // the direct order and the untracked (null) order
+    expect(o.bestSource).toBe('instagram')
+    const total = o.sources.reduce((n, s) => n + s.salesPaise, 0)
+    for (const s of o.sources) expect(s.shareOfSales).toBeCloseTo(s.salesPaise / total, 5)
+    expect(drop?.sourceKey).toBe('instagram')
+  })
+
+  it('normalises sources to plain merchant-facing names', () => {
+    expect(
+      normalizeSource({ source: 'instagram', medium: 'social', referrer: null, channel: 'social' }),
+    ).toBe('instagram')
+    expect(
+      normalizeSource({
+        source: null,
+        medium: null,
+        referrer: 'l.instagram.com',
+        channel: 'social',
+      }),
+    ).toBe('instagram')
+    expect(normalizeSource({ source: 'ig', medium: null, referrer: null, channel: null })).toBe(
+      'instagram',
+    )
+    expect(
+      normalizeSource({ source: 'google', medium: 'cpc', referrer: null, channel: 'paid_search' }),
+    ).toBe('google')
+    expect(
+      normalizeSource({
+        source: null,
+        medium: null,
+        referrer: 'chat.openai.com',
+        channel: 'ai_assistant',
+      }),
+    ).toBe('ai_assistant')
+    expect(
+      normalizeSource({ source: null, medium: null, referrer: null, channel: 'whatsapp' }),
+    ).toBe('whatsapp')
+    expect(normalizeSource({ source: null, medium: null, referrer: null, channel: 'email' })).toBe(
+      'email',
+    )
+    expect(normalizeSource({ source: null, medium: null, referrer: null, channel: 'direct' })).toBe(
+      'direct',
+    )
+    expect(normalizeSource({ source: null, medium: null, referrer: null, channel: null })).toBe(
+      'direct',
+    )
+    expect(
+      normalizeSource({
+        source: null,
+        medium: null,
+        referrer: 'news.example.com',
+        channel: 'referral',
+      }),
+    ).toBe('other')
   })
 
   it('keeps each store to its own sessions and orders', async () => {
