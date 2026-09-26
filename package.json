@@ -47,6 +47,7 @@
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/notifications-whatsapp": "workspace:*",
     "@commerce/payments-cashfree": "workspace:*",
+    "@commerce/payments-decentro": "workspace:*",
     "@commerce/payments-razorpay": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",

@@ -272,6 +272,24 @@ describeShippingProvider('fedex', {
 Mock `fetch` for the rest: one test per API call, plus the tampered/expired
 cases for webhooks.
 
+### Gateways that don't sign webhooks
+
+Some gateways send no signature. Decentro (`packages/payments-decentro`) is the
+worked example: its callbacks carry custom headers the merchant registers with
+Decentro support, so the adapter checks a shared secret in `x-webhook-token`
+with a timing-safe compare, fails closed when no secret is saved, and also
+rejects a body whose `consumer_urn` is another merchant's. Two optional
+provider members exist for gateways like it:
+
+- `webhookAck`: fields merged into the worker's 200 reply. Decentro retries a
+  callback unless the reply carries `{ "response_code": "CB_S00000" }`.
+- `refundViaPayout(input)`: a refund sent as a fresh UPI payout (Decentro
+  Payouts v3) when a refund to source isn't possible. It needs the shopper's
+  UPI ID; the order refund flow doesn't call it yet.
+
+Anything the gateway's docs don't confirm stays out of the adapter and is
+listed in the PR (for Decentro: the refund-status callback format).
+
 ## 5. Ship it
 
 1. Add the package to `commerce.config.ts`:

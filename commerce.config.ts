@@ -1,6 +1,7 @@
 import { sesPlugin } from '@commerce/notifications-ses'
 import { whatsappPlugin } from '@commerce/notifications-whatsapp'
 import { cashfreePlugin } from '@commerce/payments-cashfree'
+import { decentroPlugin } from '@commerce/payments-decentro'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
 import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
@@ -20,6 +21,7 @@ export default defineConfig({
   plugins: [
     razorpayPlugin,
     cashfreePlugin,
+    decentroPlugin,
     delhiveryPlugin,
     shiprocketPlugin,
     sesPlugin,

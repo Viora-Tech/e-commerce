@@ -218,6 +218,36 @@ export interface PaymentProvider {
     rawBody: string
     headers: Record<string, string | undefined>
   }): WebhookVerification
+
+  /**
+   * Fields the gateway needs in the body of our 200 reply to a webhook, or it
+   * keeps retrying (Decentro wants `{ "response_code": "CB_S00000" }`).
+   */
+  readonly webhookAck?: Record<string, string> | undefined
+
+  /**
+   * Optional capability: refund by sending the money as a fresh payout (UPI)
+   * instead of reversing the original payment. For gateways that can pay out
+   * from a funded account; the refund flow may use it when a UPI refund to
+   * source is not possible. Needs the shopper's UPI ID.
+   */
+  refundViaPayout?(input: PayoutRefundInput): Promise<PayoutRefundResult>
+}
+
+export type PayoutRefundInput = {
+  /** Shopper's UPI ID (VPA), e.g. from the payment's webhook. */
+  toUpi: string
+  /** Name on the shopper's account; gateways may reject special characters. */
+  payeeName: string
+  amountPaise: number
+  /** Our refund row key; the same key never pays out twice. */
+  refundKey: string
+  note?: string | undefined
+}
+
+export type PayoutRefundResult = {
+  providerRefundId: string
+  status: 'pending' | 'processed'
 }
 
 export type RefundContext = {

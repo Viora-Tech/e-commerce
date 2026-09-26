@@ -65,7 +65,8 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
       if (!provider) return { ok: false as const, reason: 'provider not enabled for store' }
       // handlePaymentWebhook -> applyPaymentStatus already writes the
       // order.paid outbox row in this same transaction when it captures.
-      return handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
+      const handled = await handlePaymentWebhook({ storeId, tx }, provider, { rawBody, headers })
+      return { ...handled, ack: provider.webhookAck }
     })
 
     if (!outcome.ok) {
@@ -75,7 +76,9 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
     console.log(
       `[webhook] ${providerId} ${outcome.eventId} applied=${outcome.applied} duplicate=${outcome.duplicate}`,
     )
-    return c.json(outcome)
+    // Some gateways (Decentro) keep retrying unless the reply carries their acknowledgement.
+    const { ack, ...result } = outcome
+    return c.json({ ...result, ...ack })
   })
   return app
 }

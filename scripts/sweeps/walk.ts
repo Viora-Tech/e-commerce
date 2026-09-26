@@ -27,6 +27,7 @@ export const SERVER_ONLY_PACKAGES = new Set([
   '@commerce/storage-r2',
   '@commerce/payments',
   '@commerce/payments-cashfree',
+  '@commerce/payments-decentro',
   '@commerce/payments-razorpay',
   '@commerce/shipping',
   '@commerce/shipping-delhivery',
