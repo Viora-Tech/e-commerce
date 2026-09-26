@@ -12,10 +12,12 @@ import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import { notificationsSettingsContent as copy, type MessageGroupId } from '@/data/notifications'
+import { senderEmailContent } from '@/data/sender-email'
 import { api } from '@/lib/api-client'
 import AdvancedSection from './advanced-section'
 import MessageRow from './message-row'
 import PreviewDialog from './preview-dialog'
+import SenderEmailCard from './sender-email-card'
 import SendingCard from './sending-card'
 import type { MessageRowData, NotificationsOverview } from './types'
 
@@ -107,8 +109,9 @@ export default function NotificationsPage() {
     try {
       const r = await api.notifications.sendTest({ id: m.id as MessageId })
       if (!r.ok) toast.error(r.error === 'no_channel' ? copy.test.noChannel : copy.test.failed)
-      else if (data.channels.email.state === 'connected') toast.success(copy.test.sent(r.to))
-      else toast.success(copy.test.sentLog)
+      else if (data.channels.email.state === 'connected' || data.platformEmail) {
+        toast.success(copy.test.sent(r.to))
+      } else toast.success(copy.test.sentLog)
     } catch (err) {
       toast.error(errorText(err, copy.test.failed))
     } finally {
@@ -134,7 +137,8 @@ export default function NotificationsPage() {
   }
 
   // Render logic
-  const emailOn = data.channels.email.state === 'connected'
+  // The platform's SES account sends for the store when it has no email app of its own.
+  const emailOn = data.channels.email.state === 'connected' || data.platformEmail
   const whatsappOn = data.channels.whatsapp.state === 'connected'
   return (
     <div className="flex flex-col gap-5">
@@ -214,6 +218,16 @@ export default function NotificationsPage() {
         </Card>
       </section>
 
+      <section className="flex flex-col gap-2" aria-labelledby="notifications-sender">
+        <div className="flex flex-col gap-0.5">
+          <h2 id="notifications-sender" className="text-card font-semibold text-foreground">
+            {senderEmailContent.heading}
+          </h2>
+          <p className="text-body text-muted-foreground">{senderEmailContent.help}</p>
+        </div>
+        <SenderEmailCard />
+      </section>
+
       <section
         id="how-messages-are-sent"
         className="flex scroll-mt-6 flex-col gap-2"
@@ -225,7 +239,11 @@ export default function NotificationsPage() {
           </h2>
           <p className="text-body text-muted-foreground">{copy.sending.help}</p>
         </div>
-        <SendingCard email={data.channels.email} whatsapp={data.channels.whatsapp} />
+        <SendingCard
+          email={data.channels.email}
+          whatsapp={data.channels.whatsapp}
+          platformEmail={data.platformEmail}
+        />
       </section>
 
       {DEV ? <AdvancedSection devLog={data.devLog} onChanged={reload} /> : null}

@@ -28,6 +28,7 @@
     "./accounts": "./src/accounts/schemas.ts",
     "./gift-cards": "./src/gift-cards/client.ts",
     "./domains": "./src/domains/client.ts",
+    "./sender-email": "./src/sender-email/client.ts",
     "./metaobjects": "./src/metaobjects/client.ts",
     "./redirects": "./src/redirects/paths.ts",
     "./marketing": "./src/marketing/client.ts",
@@ -50,7 +51,9 @@
     "drizzle-orm": "^0.45.2",
     "zod": "^4.6.5",
     "@commerce/payments": "workspace:*",
+    "@commerce/config": "workspace:*",
     "@commerce/notifications": "workspace:*",
+    "@commerce/notifications-ses": "workspace:*",
     "@commerce/shipping": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/storage": "workspace:*"
@@ -59,7 +62,6 @@
     "react": "^19.0.0"
   },
   "devDependencies": {
-    "@commerce/config": "workspace:*",
     "@types/node": "^22.20.4",
     "@types/react": "^19.2.8",
     "@vitest/coverage-v8": "4.1.11",

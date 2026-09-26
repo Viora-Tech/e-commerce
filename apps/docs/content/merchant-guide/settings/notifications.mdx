@@ -49,6 +49,8 @@ From top to bottom:
     off.
   - **From your apps**: Back in stock messages. Change them in the Back in stock app.
 - **Messages you get**: Unpaid order will be cancelled, sent to your shop email.
+- **Sender email**: the address customers see in From, and the DNS records that make it yours.
+  See [Send emails from your own address](/merchant-guide/settings/sender-email).
 - **How messages are sent**: Email and WhatsApp, each **Connected** or **Not set up**, with a
   **Connect** button.
 
@@ -64,9 +66,16 @@ it can be switched off, **Preview** and **Send me a test**.
 
 <Steps>
 
-### Connect email
+### Set your sender email
 
-Under **How messages are sent**, select **Connect** next to **Email**. This adds the Amazon SES
+On a live shop, email already works: we send it for you. Type your address under **Sender
+email** and add the DNS records it shows, so emails come from your own address. See
+[Send emails from your own address](/merchant-guide/settings/sender-email).
+
+### Connect your own Amazon SES (optional)
+
+Only if you want your own Amazon account: under **How messages are sent**, select **Use my own
+Amazon SES** (or **Connect**) next to **Email**. This adds the Amazon SES
 app and opens its **Connect email** page. Follow the three steps on the page: open Amazon SES,
 verify the address you send from, and paste the access details. Switch it on and **Save**.
 
@@ -133,4 +142,4 @@ It is a developer tool, so it now lives under **Advanced** and only shows while 
 
 ## Related guides
 
-<RelatedGuides ids={['settings', 'apps', 'orders', 'shipping']} />
+<RelatedGuides ids={['sender-email', 'settings', 'apps', 'orders']} />

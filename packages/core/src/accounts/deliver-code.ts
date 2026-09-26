@@ -2,7 +2,7 @@ import { store } from '@commerce/db'
 import type { NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { parseNotificationSettings, resolveNotificationChannels } from '../notifications/settings'
+import { storeNotificationChannels } from '../sender-email/channels'
 
 export type DeliverCodeOptions = {
   registry: NotificationRegistry
@@ -21,17 +21,13 @@ export async function deliverLoginCode(
   input: { email: string; code: string },
   opts: DeliverCodeOptions,
 ): Promise<number> {
-  const [s] = await ctx.tx
-    .select({ name: store.name, notifications: store.notifications })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
+  const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
   const channels =
     opts.channels ??
-    resolveNotificationChannels(
-      opts.registry,
-      parseNotificationSettings(s?.notifications),
-      opts.settingsSecret,
-    ).channels
+    (await storeNotificationChannels(ctx.tx, ctx.storeId, {
+      registry: opts.registry,
+      settingsSecret: opts.settingsSecret,
+    }))
   let sent = 0
   for (const channel of channels) {
     if (channel.requires !== 'email') continue

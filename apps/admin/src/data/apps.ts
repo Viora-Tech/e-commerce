@@ -32,7 +32,7 @@ export const appsContent = {
     storage: { label: 'Files', href: '/settings/files' },
   },
   configure: (kind: string) => `Set up in ${kind}`,
-  docs: 'Want FedEx, DHL, S3 or a new gateway? Write a plugin: docs/plugins.md',
+  docs: 'Want FedEx, DHL or a new gateway? Write a plugin: docs/plugins.md',
   /** Shown on a `kind: 'builtin'` card: made by us, nothing else to sign up for. */
   builtByPlatform: 'Built by Waimers',
   /** Shown on a `kind: 'connection'` card: which outside company this links to. */

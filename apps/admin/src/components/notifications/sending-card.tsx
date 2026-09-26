@@ -15,6 +15,8 @@ import type { ChannelStatusData } from './types'
 type SendingCardProps = {
   email: ChannelStatusData
   whatsapp: ChannelStatusData
+  /** Email goes out through the platform account when no email app is connected. */
+  platformEmail: boolean
 }
 
 const copy = setupCopy.sending
@@ -22,7 +24,7 @@ const copy = setupCopy.sending
 const ICONS = { email: Inbox, whatsapp: MessageSquare }
 
 /** "How messages are sent": Email and WhatsApp, whether each is connected, and one button. */
-export default function SendingCard({ email, whatsapp }: SendingCardProps) {
+export default function SendingCard({ email, whatsapp, platformEmail }: SendingCardProps) {
   // Hooks
   const router = useRouter()
   const [opening, setOpening] = useState<string | null>(null)
@@ -46,6 +48,8 @@ export default function SendingCard({ email, whatsapp }: SendingCardProps) {
           const Icon = ICONS[c.kind]
           const words = copy[c.kind]
           const connected = c.state === 'connected'
+          // Email already works through the platform; the app becomes an optional upgrade.
+          const viaPlatform = c.kind === 'email' && !connected && platformEmail
           return (
             <div
               key={c.kind}
@@ -60,14 +64,14 @@ export default function SendingCard({ email, whatsapp }: SendingCardProps) {
                     <p className="text-body font-medium text-foreground">{words.name}</p>
                     <StatusLabel
                       kind="app"
-                      value={connected ? 'connected' : 'notConnected'}
+                      value={connected || viaPlatform ? 'connected' : 'notConnected'}
                       variant="pill"
                       size="sm"
-                      label={copy.state[c.state]}
+                      label={viaPlatform ? copy.state.platform : copy.state[c.state]}
                     />
                   </div>
                   <p className="text-caption text-muted-foreground">
-                    {words.via} · {words.help}
+                    {viaPlatform ? copy.platformHelp : `${words.via} · ${words.help}`}
                   </p>
                   {c.kind === 'whatsapp' && connected && c.testMode ? (
                     <p className="text-caption text-warning-foreground dark:text-warning">
@@ -77,13 +81,13 @@ export default function SendingCard({ email, whatsapp }: SendingCardProps) {
                 </div>
               </div>
               <Button
-                variant={connected ? 'outline' : 'default'}
+                variant={connected || viaPlatform ? 'outline' : 'default'}
                 className="w-full sm:w-auto"
                 disabled={opening === c.appId}
                 onClick={() => handleConnect(c)}
               >
                 {opening === c.appId ? <Spinner /> : null}
-                {connected ? copy.manage : copy.connect}
+                {connected ? copy.manage : viaPlatform ? copy.useOwn : copy.connect}
               </Button>
             </div>
           )

@@ -1,5 +1,35 @@
 import { z } from 'zod'
 
+/**
+ * The platform's own email sending: one Amazon SES account for every store.
+ * `SENDER_EMAIL_PROVIDER=dev` (default) checks sender domains offline and
+ * sends nothing; `ses` needs the SES_* keys and PLATFORM_EMAIL_FROM.
+ */
+const platformEmailShape = {
+  SENDER_EMAIL_PROVIDER: z.enum(['dev', 'ses']).default('dev'),
+  /** The platform SES account (also used by the SES live test suite). */
+  SES_REGION: z.string().min(1).optional(),
+  SES_ACCESS_KEY_ID: z.string().min(1).optional(),
+  SES_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  /** Optional configuration set every store identity uses by default (bounce/complaint events). */
+  SES_CONFIGURATION_SET: z.string().min(1).optional(),
+  /** The platform's verified sender, used until a store's own address is verified. */
+  PLATFORM_EMAIL_FROM: z.string().email().optional(),
+  /** Display name when a store has no name yet. */
+  PLATFORM_EMAIL_NAME: z.string().min(1).default('Waimers'),
+}
+
+/** Comma-separated platform domains; they and their subdomains cannot be connected as custom. */
+const platformDomains = z
+  .string()
+  .default('localhost')
+  .transform((s) =>
+    s
+      .split(',')
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean),
+  )
+
 const schema = z.object({
   DATABASE_URL: z.string().url(),
   DATABASE_URL_OWNER: z.string().url(),
@@ -38,16 +68,7 @@ const schema = z.object({
   STOREFRONT_A_RECORD: z.ipv4().default('192.0.2.10'),
   /** Hostname a subdomain's CNAME must point at. */
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
-  /** Comma-separated platform domains; they and their subdomains cannot be connected as custom. */
-  PLATFORM_DOMAINS: z
-    .string()
-    .default('localhost')
-    .transform((s) =>
-      s
-        .split(',')
-        .map((d) => d.trim().toLowerCase())
-        .filter(Boolean),
-    ),
+  PLATFORM_DOMAINS: platformDomains,
   /** Dev seed: this email becomes owner of the seeded Waimers store. */
   SEED_OWNER_EMAIL: z.string().email().optional(),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
@@ -65,12 +86,30 @@ const schema = z.object({
   BACKUP_LOCAL_DIR: z.string().min(1).optional(),
   /** Folder the built-in local storage provider reads and writes. Default ./.data/uploads. */
   LOCAL_STORAGE_DIR: z.string().min(1).optional(),
+  ...platformEmailShape,
 })
 
 export type Env = z.infer<typeof schema>
 
 export function loadEnv(source: Record<string, string | undefined>): Env {
   const result = schema.safeParse(source)
+  if (!result.success) {
+    const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
+    throw new Error(`Invalid environment: ${keys}`)
+  }
+  return result.data
+}
+
+const platformEmailSchema = z.object({ ...platformEmailShape, PLATFORM_DOMAINS: platformDomains })
+
+export type PlatformEmailEnv = z.infer<typeof platformEmailSchema>
+
+/**
+ * Just the platform email keys, for code that must not require the database
+ * URLs (the send path in `@commerce/core`). Throws on a malformed value.
+ */
+export function loadPlatformEmailEnv(source: Record<string, string | undefined>): PlatformEmailEnv {
+  const result = platformEmailSchema.safeParse(source)
   if (!result.success) {
     const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
     throw new Error(`Invalid environment: ${keys}`)

@@ -145,6 +145,11 @@ export {
   keyId as secretKeyId,
   parsePreviousSecrets,
 } from './secrets'
+export * from './sender-email/channels'
+export * from './sender-email/client'
+export * from './sender-email/dev-provider'
+export * from './sender-email/platform'
+export * from './sender-email/service'
 export * from './settings/general'
 export * from './settings/secrets'
 export * from './shipping/courier-rates'

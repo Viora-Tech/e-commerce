@@ -51,6 +51,7 @@ The Apps page has two sections:
 | Amazon SES email | Connection, by Amazon Web Services | Sends order emails through Amazon SES. |
 | WhatsApp | Connection, by Meta | Order updates on WhatsApp through the Meta Cloud API. |
 | Cloudflare R2 | Connection, by Cloudflare | Stores your images and files on your own R2 bucket. |
+| Amazon S3 | Connection, by Amazon Web Services | Stores your images and files on your own S3 bucket, with a guided setup and a CloudFront option. |
 
 Every store also has the core features built in, with nothing to install: cash on delivery,
 UPI or bank transfer, a demo courier for testing, and local file storage.
@@ -94,12 +95,19 @@ switches the app's features off for your store, but saved credentials are kept u
 them from Settings, so reinstalling restores your setup. Blocks the app added to your pages
 stay in place but show nothing until you reinstall.
 
-## Storage: local disk or R2
+## Storage: local disk, R2 or S3
 
 Every store starts on the built-in **Local disk** storage: no setup, and it's the default
-whenever you haven't connected a storage app. To keep your files on your own Cloudflare R2
-bucket instead, install the **Cloudflare R2** connection and use **Move existing files**. The
-move runs in the background and only removes each original once its copy is verified.
+whenever you haven't connected a storage app. To keep your files on your own bucket instead,
+install **Cloudflare R2** or **Amazon S3** and use **Move existing files**. The move runs in
+the background and only removes each original once its copy is verified.
+
+The **Amazon S3** app's Connect page walks through the whole setup: create a bucket, create an
+IAM user with a policy scoped to just that bucket (the exact JSON is shown, with a copy
+button), paste the access key and secret, then **Test connection** — it writes a tiny file to
+the bucket, reads it back and deletes it, so you know the keys and policy actually work before
+you save. It also explains public access vs. putting CloudFront in front of the bucket, and
+shows the CORS rule the bucket needs so uploads can go straight from your browser to S3.
 
 <Callout type="info">
   **Tip.** Apps can credit the open-source projects they're built on. Look for "Built with …"

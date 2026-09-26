@@ -1,0 +1,26 @@
+{
+  "name": "@commerce/storage-s3-compat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared S3-compatible client, presigning and StorageProvider base used by every S3-flavoured connector (R2, S3). No adapter-specific config lives here.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1140.0",
+    "@aws-sdk/s3-request-presigner": "^3.1140.0",
+    "@commerce/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@commerce/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "dotenv": "^18.0.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -17,6 +17,7 @@ import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createConnection, createHeartbeat } from './queues'
+import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
 
@@ -52,6 +53,7 @@ const domains = createDomainPoller(redis, db, {
   provider: env.DOMAIN_PROVIDER,
   targets: { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET },
 })
+const senderEmails = createSenderEmailPoller(redis, db)
 const marketing = createMarketingWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
@@ -74,6 +76,7 @@ reportWorkerFailures(tracker.worker, 'shipping-tracker', reportError)
 reportWorkerFailures(unpaidExpiry.worker, 'unpaid-order-expiry', reportError)
 reportWorkerFailures(preorderBalance.worker, 'preorder-balance', reportError)
 reportWorkerFailures(domains.worker, 'domain-verify', reportError)
+reportWorkerFailures(senderEmails.worker, 'sender-email-verify', reportError)
 reportWorkerFailures(marketing.tick, 'marketing-tick', reportError)
 reportWorkerFailures(marketing.send, 'marketing-send', reportError)
 reportWorkerFailures(outboxRelay.worker, 'outbox-relay', reportError)
@@ -101,6 +104,11 @@ await retireAbandonedSweep(redis)
 await domains.queue.upsertJobScheduler(
   'verify-pending-domains',
   { every: VERIFY_EVERY_MS },
+  { name: 'verify' },
+)
+await senderEmails.queue.upsertJobScheduler(
+  'verify-sender-emails',
+  { every: SENDER_CHECK_EVERY_MS },
   { name: 'verify' },
 )
 await marketing.tickQueue.upsertJobScheduler(
@@ -148,6 +156,8 @@ const shutdown = async () => {
   await preorderBalance.queue.close()
   await domains.worker.close()
   await domains.queue.close()
+  await senderEmails.worker.close()
+  await senderEmails.queue.close()
   await marketing.tick.close()
   await marketing.send.close()
   await marketing.tickQueue.close()

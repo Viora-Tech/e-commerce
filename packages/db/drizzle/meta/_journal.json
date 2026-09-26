@@ -451,6 +451,13 @@
       "breakpoints": true
     },
     {
+      "idx": 64,
+      "version": "7",
+      "when": 1790600000000,
+      "tag": "0067_sender_email",
+      "breakpoints": true
+    },
+    {
       "idx": 65,
       "version": "7",
       "when": 1790700000000,

@@ -10,7 +10,7 @@ Protection Act (DPDP), 2023. Written for a merchant or auditor, not just enginee
 declares which of its config fields are secrets (`secret: true` on a `ProviderField`,
 `packages/{payments,shipping,notifications,storage}-*/src/*.ts`). Razorpay's `key_secret`,
 Delhivery's and Shiprocket's API tokens, SES's secret access key, WhatsApp's access token
-and R2's secret access key are all flagged this way; public identifiers like Razorpay's
+and R2's and S3's secret access keys are all flagged this way; public identifiers like Razorpay's
 `key_id` are not. A field name matching `/secret|token|password/i` is also encrypted even
 if a connector forgot to flag it (`packages/core/src/settings/secrets.ts`'s `SECRET_KEY`
 regex) — a safety net, not the primary mechanism; `scripts/sweeps/secret-fields.test.ts`
@@ -80,6 +80,11 @@ customer instantly.
 - `BACKUP_ENCRYPTION_KEY` — separate key, encrypts backup archives only (next section).
   Deliberately not the same value as `SETTINGS_SECRET`: a leaked app secret should not
   also open the backups, and vice versa.
+
+- `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` — the platform's own Amazon SES account, which
+  sends for every store that has no SES app of its own and holds each store's sender domain
+  (`sender_email`). Read from the environment only, never stored in or read from the database.
+  The `sender_email` table holds no secrets: only the address, domain and public DKIM tokens.
 
 Store these as deployment secrets (Coolify/Dokploy environment, or your platform's
 secret manager) — never in the repo, never in a `.env` committed anywhere. `.env.example`
