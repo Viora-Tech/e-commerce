@@ -1,4 +1,5 @@
 export { NotificationRegistry } from './registry'
+export { sampleTemplateDataByTemplate } from './samples'
 export {
   type EmailBody,
   renderEmail,

@@ -11,4 +11,12 @@ export const whatsappPlugin = definePlugin({
   company: 'Meta',
   description: 'Order updates on WhatsApp through the Meta Cloud API.',
   provides: { notifications: [whatsappFactory] },
+  admin: {
+    icon: 'MessageSquare',
+    pages: [
+      // The app opens on its Connect page; Settings → Notifications links here too.
+      { path: '', title: 'Connect WhatsApp', icon: 'Settings' },
+      { path: 'connect', title: 'Connect WhatsApp', navLabel: 'Connect', icon: 'Settings' },
+    ],
+  },
 })

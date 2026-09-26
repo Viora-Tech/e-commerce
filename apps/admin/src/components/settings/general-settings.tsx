@@ -1,15 +1,10 @@
 'use client'
 
 import { type StoreGeneral, StoreGeneralSchema } from '@commerce/core/store-settings'
-import { Store } from '@commerce/ui/icons'
+import { MapPinLineIcon, Store } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@commerce/ui/shadcn/field'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -25,6 +20,8 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import GeneralCompletion, { detailsDone } from './general-completion'
+import GeneralTextField from './general-text-field'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
 type Errors = Partial<Record<string, string>>
@@ -37,48 +34,6 @@ function validate(form: StoreGeneral): Errors {
   const r = StoreGeneralSchema.safeParse(form)
   if (r.success) return {}
   return Object.fromEntries(r.error.issues.map((i) => [i.path.join('.'), i.message]))
-}
-
-type TextFieldProps = {
-  id: string
-  label: string
-  value: string
-  onChange: (v: string) => void
-  error?: string | undefined
-  help?: string | undefined
-  type?: 'text' | 'email' | 'tel'
-  autoComplete?: string
-}
-
-function TextField({
-  id,
-  label,
-  value,
-  onChange,
-  error,
-  help,
-  type,
-  autoComplete,
-}: TextFieldProps) {
-  return (
-    <Field data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input
-        size="lg"
-        id={id}
-        type={type ?? 'text'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? true : undefined}
-        autoComplete={autoComplete ?? 'off'}
-      />
-      {error ? (
-        <FieldError>{error}</FieldError>
-      ) : help ? (
-        <FieldDescription>{help}</FieldDescription>
-      ) : null}
-    </Field>
-  )
 }
 
 function LoadingCards() {
@@ -95,7 +50,11 @@ function LoadingCards() {
   )
 }
 
-/** Settings › General: store name, contact, address, GSTIN, timezone. Currency is read-only. */
+/**
+ * Settings › General in four cards (store details, business address, taxes /
+ * GST, currency and time), each with a help line, plus how many details are
+ * done and a prompt when the business address is still empty.
+ */
 export default function GeneralSettings() {
   // Hooks
   const [form, setForm] = useState<Loaded | null>(null)
@@ -141,9 +100,13 @@ export default function GeneralSettings() {
     setAttempted(false)
   }
 
+  const handleAddAddress = () => document.getElementById('addr-line1')?.focus()
+
   // Render logic
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
   const errors = form && attempted ? validate(form) : {}
+  const savedDetails = saved ? (JSON.parse(saved) as Loaded) : null
+  const addressMissing = savedDetails ? !detailsDone(savedDetails).address : false
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -161,21 +124,25 @@ export default function GeneralSettings() {
         <LoadingCards />
       ) : (
         <>
-          <Card size="form">
+          {savedDetails ? <GeneralCompletion details={savedDetails} /> : null}
+
+          <Card size="form" id="store-details" className="scroll-mt-6">
             <CardHeader>
               <CardTitle>{copy.details.heading}</CardTitle>
+              <CardDescription>{copy.details.help}</CardDescription>
             </CardHeader>
             <CardContent>
               <FieldGroup>
-                <TextField
+                <GeneralTextField
                   id="store-name"
                   label={copy.details.name}
                   value={form.name}
                   onChange={(name) => patch({ name })}
                   error={errors.name}
+                  help={copy.details.nameHelp}
                 />
                 <div className="grid gap-4 md:grid-cols-2">
-                  <TextField
+                  <GeneralTextField
                     id="store-email"
                     type="email"
                     label={copy.details.email}
@@ -185,13 +152,14 @@ export default function GeneralSettings() {
                     help={copy.details.emailHelp}
                     autoComplete="email"
                   />
-                  <TextField
+                  <GeneralTextField
                     id="store-phone"
                     type="tel"
                     label={copy.details.phone}
                     value={form.contactPhone}
                     onChange={(contactPhone) => patch({ contactPhone })}
                     error={errors.contactPhone}
+                    help={copy.details.phoneHelp}
                     autoComplete="tel"
                   />
                 </div>
@@ -199,21 +167,38 @@ export default function GeneralSettings() {
             </CardContent>
           </Card>
 
-          <Card size="form">
+          <Card size="form" id="address" className="scroll-mt-6">
             <CardHeader>
               <CardTitle>{copy.address.heading}</CardTitle>
               <CardDescription>{copy.address.help}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-5">
+              {addressMissing ? (
+                <div className="flex flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft p-4 sm:flex-row sm:items-center">
+                  <MapPinLineIcon
+                    aria-hidden="true"
+                    className="size-5 shrink-0 text-warning-foreground dark:text-warning"
+                  />
+                  <div className="flex flex-1 flex-col gap-0.5">
+                    <p className="text-body font-semibold text-foreground">
+                      {copy.address.prompt.title}
+                    </p>
+                    <p className="text-body text-muted-foreground">{copy.address.prompt.body}</p>
+                  </div>
+                  <Button variant="outline" onClick={handleAddAddress}>
+                    {copy.address.prompt.action}
+                  </Button>
+                </div>
+              ) : null}
               <FieldGroup>
-                <TextField
+                <GeneralTextField
                   id="addr-line1"
                   label={copy.address.line1}
                   value={form.address.line1}
                   onChange={(line1) => patchAddress({ line1 })}
                   autoComplete="address-line1"
                 />
-                <TextField
+                <GeneralTextField
                   id="addr-line2"
                   label={copy.address.line2}
                   value={form.address.line2}
@@ -221,80 +206,94 @@ export default function GeneralSettings() {
                   autoComplete="address-line2"
                 />
                 <div className="grid gap-4 md:grid-cols-3">
-                  <TextField
+                  <GeneralTextField
                     id="addr-city"
                     label={copy.address.city}
                     value={form.address.city}
                     onChange={(city) => patchAddress({ city })}
+                    autoComplete="address-level2"
                   />
-                  <TextField
+                  <GeneralTextField
                     id="addr-state"
                     label={copy.address.state}
                     value={form.address.state}
                     onChange={(state) => patchAddress({ state })}
+                    autoComplete="address-level1"
                   />
-                  <TextField
+                  <GeneralTextField
                     id="addr-pincode"
                     label={copy.address.pincode}
                     value={form.address.pincode}
                     onChange={(pincode) => patchAddress({ pincode })}
                     error={errors['address.pincode']}
                     autoComplete="postal-code"
+                    inputMode="numeric"
                   />
                 </div>
               </FieldGroup>
             </CardContent>
           </Card>
 
-          <Card size="form">
+          <Card size="form" id="tax" className="scroll-mt-6">
             <CardHeader>
-              <CardTitle>{copy.locale.heading}</CardTitle>
+              <CardTitle>{copy.tax.heading}</CardTitle>
+              <CardDescription>{copy.tax.help}</CardDescription>
             </CardHeader>
             <CardContent>
               <FieldGroup>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="store-currency">{copy.locale.currency}</FieldLabel>
-                    <Input size="lg" id="store-currency" value={form.currency} readOnly disabled />
-                    <FieldDescription>{copy.locale.currencyHelp}</FieldDescription>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="store-timezone">{copy.locale.timezone}</FieldLabel>
-                    <Select
-                      items={timezoneItems}
-                      value={form.timezone}
-                      onValueChange={(timezone) => timezone && patch({ timezone })}
-                    >
-                      <SelectTrigger size="lg" id="store-timezone" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {copy.timezones.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-                <TextField
+                <GeneralTextField
                   id="store-gstin"
-                  label={copy.locale.gstin}
+                  label={copy.tax.gstin}
                   value={form.gstin}
                   onChange={(gstin) => patch({ gstin: gstin.toUpperCase() })}
                   error={errors.gstin}
-                  help={copy.locale.gstinHelp}
+                  help={copy.tax.gstinHelp}
                 />
-                <TextField
+                <GeneralTextField
                   id="store-gst-rate"
-                  label={copy.locale.gstRate}
+                  label={copy.tax.gstRate}
                   value={String(form.gstRatePercent)}
                   onChange={(rate) => patch({ gstRatePercent: Number(rate) || 0 })}
                   error={errors.gstRatePercent}
-                  help={copy.locale.gstRateHelp}
+                  help={copy.tax.gstRateHelp}
+                  inputMode="decimal"
                 />
               </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <Card size="form" id="formats" className="scroll-mt-6">
+            <CardHeader>
+              <CardTitle>{copy.locale.heading}</CardTitle>
+              <CardDescription>{copy.locale.help}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="store-currency">{copy.locale.currency}</FieldLabel>
+                  <Input size="lg" id="store-currency" value={form.currency} readOnly disabled />
+                  <FieldDescription>{copy.locale.currencyHelp}</FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="store-timezone">{copy.locale.timezone}</FieldLabel>
+                  <Select
+                    items={timezoneItems}
+                    value={form.timezone}
+                    onValueChange={(timezone) => timezone && patch({ timezone })}
+                  >
+                    <SelectTrigger size="lg" id="store-timezone" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {copy.timezones.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
             </CardContent>
           </Card>
         </>

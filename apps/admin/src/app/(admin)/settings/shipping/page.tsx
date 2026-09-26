@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import ShippingSettings from './shipping-settings'
+import ShippingPage from '@/components/shipping-settings/shipping-page'
 
 export const metadata: Metadata = { title: 'Shipping' }
 
 export default function Page() {
-  return <ShippingSettings />
+  return <ShippingPage />
 }

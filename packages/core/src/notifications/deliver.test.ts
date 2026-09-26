@@ -193,6 +193,28 @@ describe('deliverNotification', () => {
     expect(flaky.sent).toHaveLength(1)
   })
 
+  it('skips a message the store switched off, and still sends the others', async () => {
+    const { storeId, orderId } = await seedOrder()
+    await owner
+      .update(store)
+      .set({ notifications: { enabled: [], providers: {}, off: ['order_shipped'] } })
+      .where(eq(store.id, storeId))
+    const email = recorder('mail', 'email')
+    const send = (template: 'order_shipped' | 'order_placed') =>
+      withStore(app, storeId, (tx) =>
+        deliverNotification(
+          { storeId, tx },
+          { orderId, template },
+          { registry, settingsSecret: secret, channels: [email] },
+        ),
+      )
+    expect(await send('order_shipped')).toEqual([])
+    expect(await send('order_placed')).toEqual([
+      { channel: 'mail', to: 'asha@example.com', ok: true },
+    ])
+    expect(email.sent.map((m) => m.template)).toEqual(['order_placed'])
+  })
+
   it('resolves channels from store settings when none are injected', async () => {
     const { storeId, orderId } = await seedOrder()
     await owner

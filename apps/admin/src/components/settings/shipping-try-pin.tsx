@@ -12,7 +12,6 @@ import { shippingSettingsContent as copy } from '@/data/shipping'
 import { api } from '@/lib/api-client'
 
 type Estimate = Awaited<ReturnType<typeof api.store.estimateDelivery>>
-type Verify = Awaited<ReturnType<typeof api.store.verifyShipping>>
 type Tone = 'success' | 'warning' | 'critical'
 
 function describe(r: Estimate): { tone: Tone; lines: string[] } {
@@ -48,14 +47,12 @@ function ResultAlert({ tone, lines }: { tone: Tone; lines: string[] }) {
   )
 }
 
-/** "Try a PIN" and "Test connection" for Settings › Shipping. Both hit the saved settings. */
+/** "Check delivery to a pincode" on Settings › Shipping: what a customer there would see. Uses the saved settings. */
 export default function ShippingTryPin() {
   // Hooks
   const [pincode, setPincode] = useState('')
   const [estimate, setEstimate] = useState<Estimate | null>(null)
-  const [verify, setVerify] = useState<Verify | null>(null)
   const [checking, setChecking] = useState(false)
-  const [verifying, setVerifying] = useState(false)
 
   // Event handlers
   const handleCheck = async () => {
@@ -63,20 +60,9 @@ export default function ShippingTryPin() {
     try {
       setEstimate(await api.store.estimateDelivery({ pincode }))
     } catch (err) {
-      setEstimate({ ok: false, error: err instanceof Error ? err.message : 'Lookup failed' })
+      setEstimate({ ok: false, error: err instanceof Error ? err.message : copy.tryPin.failed })
     } finally {
       setChecking(false)
-    }
-  }
-
-  const handleVerify = async () => {
-    setVerifying(true)
-    try {
-      setVerify(await api.store.verifyShipping())
-    } catch (err) {
-      setVerify({ ok: false, message: err instanceof Error ? err.message : 'Could not verify' })
-    } finally {
-      setVerifying(false)
     }
   }
 
@@ -112,15 +98,8 @@ export default function ShippingTryPin() {
             {checking ? <Spinner /> : null}
             {checking ? copy.tryPin.checking : copy.tryPin.button}
           </Button>
-          <Button type="button" variant="outline" onClick={handleVerify} disabled={verifying}>
-            {verifying ? <Spinner /> : null}
-            {verifying ? copy.verifying : copy.verify}
-          </Button>
         </div>
         {shown ? <ResultAlert tone={shown.tone} lines={shown.lines} /> : null}
-        {verify ? (
-          <ResultAlert tone={verify.ok ? 'success' : 'critical'} lines={[verify.message]} />
-        ) : null}
       </CardContent>
     </Card>
   )

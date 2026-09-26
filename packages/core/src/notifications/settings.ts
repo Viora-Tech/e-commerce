@@ -14,6 +14,8 @@ export const NotificationSettingsSchema = z.object({
   providers: z.record(z.string(), z.record(z.string(), z.string())).default({}),
   /** Nudge shoppers who left a basket behind. Off until a merchant turns it on. */
   recoverAbandoned: z.boolean().default(false),
+  /** Messages the merchant switched off in Settings → Notifications (template ids). Empty: all on. */
+  off: z.array(z.string().min(1).max(64)).max(64).default([]),
 })
 export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>
 
@@ -21,6 +23,7 @@ export const defaultNotificationSettings: NotificationSettings = {
   enabled: [],
   providers: {},
   recoverAbandoned: false,
+  off: [],
 }
 
 export function parseNotificationSettings(raw: unknown): NotificationSettings {

@@ -1,0 +1,94 @@
+'use client'
+
+import { Inbox, MessageSquare } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import { Spinner } from '@commerce/ui/shadcn/spinner'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import StatusLabel from '@/components/status/status-label'
+import { notificationsSettingsContent as setupCopy } from '@/data/notifications'
+import { api } from '@/lib/api-client'
+import type { ChannelStatusData } from './types'
+
+type SendingCardProps = {
+  email: ChannelStatusData
+  whatsapp: ChannelStatusData
+}
+
+const copy = setupCopy.sending
+
+const ICONS = { email: Inbox, whatsapp: MessageSquare }
+
+/** "How messages are sent": Email and WhatsApp, whether each is connected, and one button. */
+export default function SendingCard({ email, whatsapp }: SendingCardProps) {
+  // Hooks
+  const router = useRouter()
+  const [opening, setOpening] = useState<string | null>(null)
+
+  // Event handlers
+  const handleConnect = async (channel: ChannelStatusData) => {
+    setOpening(channel.appId)
+    try {
+      if (channel.state === 'missing') await api.apps.install({ id: channel.appId })
+      router.push(`/apps/${channel.appId}/connect`)
+    } catch {
+      toast.error(copy.installFailed)
+      setOpening(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col divide-y divide-border">
+        {[email, whatsapp].map((c) => {
+          const Icon = ICONS[c.kind]
+          const words = copy[c.kind]
+          const connected = c.state === 'connected'
+          return (
+            <div
+              key={c.kind}
+              className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center"
+            >
+              <div className="flex flex-1 items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                  <Icon aria-hidden="true" className="size-5" />
+                </span>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-body font-medium text-foreground">{words.name}</p>
+                    <StatusLabel
+                      kind="app"
+                      value={connected ? 'connected' : 'notConnected'}
+                      variant="pill"
+                      size="sm"
+                      label={copy.state[c.state]}
+                    />
+                  </div>
+                  <p className="text-caption text-muted-foreground">
+                    {words.via} · {words.help}
+                  </p>
+                  {c.kind === 'whatsapp' && connected && c.testMode ? (
+                    <p className="text-caption text-warning-foreground dark:text-warning">
+                      {copy.testMode}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <Button
+                variant={connected ? 'outline' : 'default'}
+                className="w-full sm:w-auto"
+                disabled={opening === c.appId}
+                onClick={() => handleConnect(c)}
+              >
+                {opening === c.appId ? <Spinner /> : null}
+                {connected ? copy.manage : copy.connect}
+              </Button>
+            </div>
+          )
+        })}
+      </CardContent>
+    </Card>
+  )
+}

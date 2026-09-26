@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import NotificationsSettings from './notifications-settings'
+import NotificationsPage from '@/components/notifications/notifications-page'
 
 export const metadata: Metadata = { title: 'Notifications' }
 
 export default function Page() {
-  return <NotificationsSettings />
+  return <NotificationsPage />
 }

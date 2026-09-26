@@ -31,6 +31,7 @@ import {
   type PreorderStoreSettings,
   parsePreorderStoreSettings,
 } from '../preorder/store-settings'
+import { isMessageOn } from './messages'
 import { parseNotificationSettings, resolveNotificationChannels } from './settings'
 
 export type DeliveryResult = {
@@ -196,6 +197,15 @@ async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
   ).channels
 }
 
+/** Whether the store still sends this template (see `isMessageOn`). */
+async function messageOn(ctx: StoreContext, template: TemplateId): Promise<boolean> {
+  const [s] = await ctx.tx
+    .select({ notifications: store.notifications })
+    .from(store)
+    .where(eq(store.id, ctx.storeId))
+  return isMessageOn(parseNotificationSettings(s?.notifications), template)
+}
+
 /**
  * Everything a recovery message needs, from the cart rather than an order.
  * Null when the cart is gone or empty.
@@ -302,6 +312,8 @@ export async function deliverNotification(
 ): Promise<DeliveryResult[]> {
   const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl, opts.settingsSecret)
   if (!built) return []
+  // The merchant switched this message off in Settings → Notifications.
+  if (!(await messageOn(ctx, input.template))) return []
   let actionUrl: string | undefined
   if (BALANCE_ASKS.has(input.template)) {
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))

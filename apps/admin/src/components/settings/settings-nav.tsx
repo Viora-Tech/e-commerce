@@ -4,8 +4,9 @@ import { cn } from '@commerce/ui/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { SETTINGS_SECTIONS, settingsContent } from '@/data/settings'
+import { SETTINGS_HOME, SETTINGS_SECTIONS, settingsContent } from '@/data/settings'
 import { instant, pill } from '@/lib/motion'
+import SettingsSearch from './settings-search'
 
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
@@ -16,10 +17,14 @@ const TAB = `relative isolate flex h-9 w-full min-w-0 items-center gap-2.5 round
 const TAB_ACTIVE = 'font-medium text-ink-strong hover:bg-transparent'
 
 function isTabActive(pathname: string, href: string): boolean {
+  // The settings home only lights up on itself, not on every page under it.
+  if (href === SETTINGS_HOME.href) return pathname === href
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/** Left rail of the settings area: one tab per section, active by route. */
+const TABS = [SETTINGS_HOME, ...SETTINGS_SECTIONS]
+
+/** Left rail of the settings area: search, then one tab per section, active by route. */
 export default function SettingsNav() {
   // Hooks
   const pathname = usePathname()
@@ -31,10 +36,11 @@ export default function SettingsNav() {
   return (
     <nav
       aria-label={settingsContent.nav.label}
-      className="w-full md:sticky md:top-6 md:w-56 md:shrink-0 md:self-start"
+      className="flex w-full flex-col gap-3 md:sticky md:top-6 md:w-56 md:shrink-0 md:self-start"
     >
+      <SettingsSearch />
       <ul className="flex flex-row gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-        {SETTINGS_SECTIONS.map((section) => {
+        {TABS.map((section) => {
           const active = isTabActive(pathname, section.href)
           return (
             <li key={section.href} className="shrink-0 md:shrink">

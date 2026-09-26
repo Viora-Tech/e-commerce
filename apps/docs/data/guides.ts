@@ -34,6 +34,24 @@ export const guides = {
     title: 'Orders',
     description: 'Order, payment and fulfilment statuses, and what to do next.',
   },
+  settings: {
+    href: '/merchant-guide/settings',
+    icon: 'checklist',
+    title: 'Settings',
+    description: 'The setup checklist, searching settings, and your store details.',
+  },
+  notifications: {
+    href: '/merchant-guide/settings/notifications',
+    icon: 'sparkle',
+    title: 'Notifications',
+    description: 'The messages customers get, previews, tests, and email or WhatsApp.',
+  },
+  shipping: {
+    href: '/merchant-guide/settings/shipping',
+    icon: 'truck',
+    title: 'Shipping settings',
+    description: 'Delivery prices, your boxes, when orders go out, which courier ships.',
+  },
   shipments: {
     href: '/merchant-guide/selling/shipments',
     icon: 'truck',
