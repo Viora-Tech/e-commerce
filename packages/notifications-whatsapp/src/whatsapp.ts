@@ -76,6 +76,16 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.storeName, d.returnInfo?.label ?? '-', n, d.returnInfo?.decisionNote ?? '-']
     case 'return_refunded':
       return [d.storeName, d.returnInfo?.refundLabel ?? d.totalLabel, d.returnInfo?.label ?? '-']
+    case 'out_for_delivery':
+      return [d.storeName, n, d.trackingUrl ?? '-']
+    case 'delivered':
+      return [d.storeName, n]
+    case 'delivery_failed':
+      return [d.storeName, n, d.deliveryIssue?.reasonLabel ?? '-']
+    case 'order_cancelled':
+      return [d.customerName, d.storeName, n, d.totalLabel]
+    case 'refund_issued':
+      return [d.storeName, d.refund?.amountLabel ?? d.totalLabel, n, d.refund?.methodLabel ?? '-']
   }
 }
 

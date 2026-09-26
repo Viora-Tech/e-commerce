@@ -48,10 +48,6 @@ export const notificationsSettingsContent = {
     alwaysBadge: 'Always sent',
     appBadge: 'Set in the app',
     openApp: 'Open app',
-    notYet: {
-      heading: 'Not sent yet',
-      body: 'Customers do not get a message yet when their parcel is out for delivery, delivered, has a delivery problem, or when an order is cancelled or refunded outside a return. These are coming.',
-    },
   },
 
   groups: {
@@ -96,6 +92,26 @@ export const notificationsSettingsContent = {
     order_shipped: {
       name: 'Order shipped',
       when: 'When you ship the order. Includes the tracking link.',
+    },
+    out_for_delivery: {
+      name: 'Out for delivery',
+      when: 'When the courier has the parcel out for delivery today.',
+    },
+    delivered: {
+      name: 'Delivered',
+      when: 'When the parcel is delivered, from tracking or when you mark it delivered by hand.',
+    },
+    delivery_failed: {
+      name: 'Delivery attempt failed',
+      when: 'When the courier tries to deliver and cannot. Tells the customer what to do next.',
+    },
+    order_cancelled: {
+      name: 'Order cancelled',
+      when: 'When an order is cancelled, outside an unpaid UPI or bank transfer order.',
+    },
+    refund_issued: {
+      name: 'Refund issued',
+      when: 'When you refund an order directly, outside a return. Says the amount and method.',
     },
     unpaid_cancelled: {
       name: 'Order cancelled for not paying',

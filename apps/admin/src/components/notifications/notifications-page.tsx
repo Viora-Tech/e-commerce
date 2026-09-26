@@ -200,10 +200,6 @@ export default function NotificationsPage() {
             </Card>
           )
         })}
-        <p className="text-caption text-muted-foreground">
-          <span className="font-medium text-foreground">{copy.list.notYet.heading}: </span>
-          {copy.list.notYet.body}
-        </p>
       </section>
 
       <section className="flex flex-col gap-2" aria-labelledby="notifications-you">

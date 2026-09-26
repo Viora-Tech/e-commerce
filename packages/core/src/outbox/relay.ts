@@ -57,13 +57,18 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
   const type = row.type as OutboxEventType
   const payload = row.payload as OutboxPayload
   const template = OUTBOX_NOTIFICATION_TEMPLATE[type]
-  if (template) {
+  // A return's own refund already told the shopper (`return_refunded`); an RTO refund is
+  // merchant-only by design (see `order.rto` in OUTBOX_NOTIFICATION_TEMPLATE). Either way,
+  // a refund tagged with a return is not the generic `refund_issued` message's job.
+  const isReturnRefund = type === 'refund.created' && Boolean(payload.returnId)
+  if (template && !isReturnRefund) {
     await enqueueNotification(deps.notifications, {
       storeId: row.storeId,
       orderId: payload.orderId as string,
       template,
       key: REPEATABLE_OUTBOX_EVENTS.has(type) ? row.id : undefined,
       returnId: payload.returnId,
+      refundId: payload.refundId,
     })
   }
   const appEvent = OUTBOX_APP_EVENT[type]

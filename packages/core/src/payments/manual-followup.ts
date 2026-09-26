@@ -182,7 +182,8 @@ export async function cancelUnpaidManualOrder(
     .where(and(stillWaiting(orderId), isNotNull(order.unpaidCancelNoticeAt)))
     .for('update')
   if (!o || nextManualStep(hours, o, now) !== 'cancel') return false
-  await cancelOrder(ctx, orderId)
+  // The dedicated `unpaid_cancelled` message below already tells the shopper why.
+  await cancelOrder(ctx, orderId, { notifyCustomer: false })
   await ctx.tx
     .update(payment)
     .set({ status: 'cancelled', error: 'Transfer not received in time' })

@@ -4,6 +4,7 @@ import { eq, inArray } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { fulfilRemainingLines } from '../order/fulfil'
 import { recomputeOrderStatuses } from '../order/recompute'
+import { insertOutboxEvent } from '../outbox/write'
 import { recordRtoForShipment } from '../returns/rto'
 import { syncNdrFromTracking } from './ndr'
 import { resolveParcelWeightGrams } from './parcel'
@@ -153,8 +154,18 @@ export async function applyTracking(
     .returning()
   if (!row) throw new Error('shipment not found')
   const becameDelivered = before.status !== 'delivered' && tracking.status === 'delivered'
+  const becameOutForDelivery =
+    before.status !== 'out_for_delivery' && row.status === 'out_for_delivery'
   // Courier events (in transit, delivered, RTO) move the fulfilment status.
   if (before.status !== row.status) await recomputeOrderStatuses(ctx, row.orderId)
+  if (becameOutForDelivery) {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'shipment.out_for_delivery', {
+      orderId: row.orderId,
+    })
+  }
+  if (becameDelivered) {
+    await insertOutboxEvent(ctx.tx, ctx.storeId, 'order.delivered', { orderId: row.orderId })
+  }
   // The parcel came back undelivered: open the order's RTO task (once per shipment).
   if (before.status !== 'rto' && row.status === 'rto') await recordRtoForShipment(ctx, row)
   // Raises or clears the delivery-problem flag from this same scan; see `syncNdrFromTracking`.

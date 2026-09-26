@@ -43,6 +43,14 @@ export type OutboxEventType =
   | 'return.refunded'
   /** A shipment came back to the merchant undelivered (RTO); an RTO task was opened on the order. */
   | 'order.rto'
+  /** A shipment's tracking says the courier is out with it today. */
+  | 'shipment.out_for_delivery'
+  /** An order's fulfilment became delivered, from tracking or a manual "mark delivered". */
+  | 'order.delivered'
+  /** The merchant (or an automatic flow) cancelled an order and the shopper has not already been
+   * told by a more specific message (unpaid transfer cancel has its own). Off by default when the
+   * caller passes `notifyCustomer: false` to `cancelOrder`. */
+  | 'order.cancel_notice'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -80,7 +88,10 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.paid': 'payment_received',
   'order.fulfilled': 'order_shipped',
   'order.cancelled': null,
-  'refund.created': null,
+  // The order-page refund and the pre-order deposit refund both land here; a return's own
+  // refund is skipped in the relay (see `dispatchRow`) since `return_refunded` already told
+  // the shopper, and an RTO refund is merchant-only by design (see `order.rto` below).
+  'refund.created': 'refund_issued',
   'draft.invoice_sent': 'draft_invoice',
   'order.balance_requested': 'balance_request',
   'order.balance_reminder': 'balance_reminder',
@@ -91,10 +102,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   // Handled by the back-in-stock plugin's own dispatch path, not the generic
   // per-order notification/app-hook fan-out (there is no order to attach it to).
   'inventory.restocked': null,
-  // No merchant notification consumer yet - the Delivery problems queue reads
-  // `shipment.ndrStatus` directly. A notification/app hook can be wired later
-  // without touching `syncNdrFromTracking`, which only needs this row to exist.
-  'shipment.ndr_raised': null,
+  // The merchant sees the Delivery problems queue directly (reads `shipment.ndrStatus`);
+  // the shopper gets `delivery_failed` telling them what they can do about it.
+  'shipment.ndr_raised': 'delivery_failed',
   'shipment.ndr_resolved': null,
   'return.requested': 'return_requested',
   'return.approved': 'return_approved',
@@ -103,6 +113,9 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'return.refunded': 'return_refunded',
   // The merchant sees the RTO task on the order and in Shipments; the shopper is not emailed.
   'order.rto': null,
+  'shipment.out_for_delivery': 'out_for_delivery',
+  'order.delivered': 'delivered',
+  'order.cancel_notice': 'order_cancelled',
 }
 
 /**
@@ -148,4 +161,7 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'return.received': null,
   'return.refunded': null,
   'order.rto': null,
+  'shipment.out_for_delivery': null,
+  'order.delivered': null,
+  'order.cancel_notice': null,
 }

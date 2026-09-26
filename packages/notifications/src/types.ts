@@ -8,6 +8,16 @@ export type TemplateId =
   | 'order_placed'
   | 'payment_received'
   | 'order_shipped'
+  /** The courier has it out for delivery today. */
+  | 'out_for_delivery'
+  /** The order was delivered (courier tracking, or the merchant marked it by hand). */
+  | 'delivered'
+  /** A delivery attempt failed (NDR); says what the shopper can do about it. */
+  | 'delivery_failed'
+  /** An order was cancelled, outside the dedicated unpaid-transfer message. */
+  | 'order_cancelled'
+  /** Money went back on an order, outside a return's own refund message. */
+  | 'refund_issued'
   | 'draft_invoice'
   | 'checkout_recovery'
   /** A copy of an order document (invoice, credit note) sent on request, with the file attached. */
@@ -75,6 +85,17 @@ export type TemplateData = {
   documentLabel?: string | undefined
   /** Extra links installed apps add, e.g. "Download invoice". */
   links?: { label: string; url: string }[] | undefined
+  /** For delivery_failed: what the courier's latest scan said went wrong, if known. */
+  deliveryIssue?: { reasonLabel?: string | undefined } | undefined
+  /** For refund_issued: how much went back, by what method, and roughly when it lands. */
+  refund?:
+    | {
+        amountLabel: string
+        methodLabel: string
+        /** e.g. "5 to 7 business days"; omitted when the method is immediate (gift card). */
+        etaLabel?: string | undefined
+      }
+    | undefined
   /** For balance messages: what is still owed, what was paid up front, and when it must be paid by. */
   balance?:
     | {

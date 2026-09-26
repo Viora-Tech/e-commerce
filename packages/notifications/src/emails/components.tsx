@@ -87,7 +87,7 @@ export function ItemsTable({ lines }: { lines: Line[] }) {
                 src={line.imageUrl}
                 width="40"
                 height="40"
-                alt=""
+                alt={line.title}
                 style={{
                   borderRadius: '8px',
                   objectFit: 'cover',
