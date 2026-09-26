@@ -8,6 +8,16 @@ machine changes.
 
 The sections further down describe an earlier stage and are partly outdated; this list wins.
 
+- **Merchant onboarding** (26 September 2026, `feat/onboarding`): `/onboarding` lets a signed-in
+  person with no store yet create one - store name and address (live availability, reserved
+  words) - via `createStore` (`packages/core/src/onboarding/service.ts`; transactional-per-step,
+  idempotent against double-submit). Gated by `MERCHANT_SIGNUP_MODE` (`invite` default, `open`):
+  in invite mode, no live invite means "Signups are invite-only for now" instead of the wizard.
+  No platform admin UI yet - `bun run platform:invite <email>` prints the link. Existing staff
+  invitations to an existing store are untouched. Store picker (`/select-store`) gained a
+  "Create another store" link. Migration `0070_signup_onboarding` adds `signup_invite`
+  (single-use, email-keyed) and a `store_slug_taken` SECURITY DEFINER function so the slug check
+  works before any store's RLS context exists.
 - **Built since**: GST invoices app (queue, series, credit notes, GSTR-1), shopper accounts,
   search and collection filters, gift cards, metaobjects, custom domains, Shopify importer and
   URL redirects, marketing (attribution, campaigns, automations), analytics reports catalogue,

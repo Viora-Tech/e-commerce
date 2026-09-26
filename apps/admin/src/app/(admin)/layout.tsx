@@ -13,6 +13,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   if (!session) redirect('/login')
 
   const orgs = await auth().api.listOrganizations({ headers: await headers() })
+  // No store at all yet: send them to create one, which shows the invite-only
+  // screen instead of the wizard when they are not allowed to sign up.
+  if (orgs.length === 0) redirect('/onboarding')
   const activeId =
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
   const active = orgs.find((o) => o.id === activeId) ?? null

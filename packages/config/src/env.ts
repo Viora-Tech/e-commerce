@@ -71,6 +71,15 @@ const schema = z.object({
   PLATFORM_DOMAINS: platformDomains,
   /** Dev seed: this email becomes owner of the seeded Waimers store. */
   SEED_OWNER_EMAIL: z.string().email().optional(),
+  /**
+   * Who may sign up and create their own store. `invite` (default): only
+   * emails with a live `bun run platform:invite <email>` invite. `open`:
+   * anyone who signs in with no store yet can create one. Never affects
+   * staff invitations to an existing store, which always work.
+   */
+  MERCHANT_SIGNUP_MODE: z.enum(['invite', 'open']).default('invite'),
+  /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
+  PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */

@@ -18,8 +18,9 @@ export const authContent = {
     open: (name: string) => `Open ${name}`,
     empty: {
       heading: 'No stores yet',
-      body: 'Store creation lands with onboarding. Ask an owner to invite you.',
+      body: 'Create your own, or ask an owner to invite you to theirs.',
     },
+    createAnother: 'Create another store',
     switchFailed: 'Could not switch stores. Try again.',
     opening: 'Opening your store…',
   },

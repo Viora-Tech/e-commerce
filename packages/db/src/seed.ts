@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { eq } from 'drizzle-orm'
 import { member, organization, user } from './auth-schema'
 import { createDb } from './client'
+import { seedWaimersShipping } from './default-shipping'
 import {
   inventoryLevel,
   media,
@@ -17,7 +18,6 @@ import {
   variant,
   variantOptionValue,
 } from './schema'
-import { seedWaimersShipping } from './seed-shipping-rates'
 
 type Row = {
   sku: string

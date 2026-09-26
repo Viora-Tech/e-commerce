@@ -48,6 +48,29 @@ bun run dev:docs                # this docs site, on :3500
 Admin: `http://localhost:3200`. Storefront: `http://localhost:3100`. Worker:
 `http://localhost:4100`. Docs: `http://localhost:3500`.
 
+## Signing up to create a new store
+
+`MERCHANT_SIGNUP_MODE` (`packages/config/src/env.ts`) gates who may create their own store from
+`/onboarding`: `invite` (default) or `open`. In `invite` mode, a person with no store yet who
+signs in sees "Signups are invite-only for now" unless their email has a live invite. There is
+no platform admin UI yet, so invites are issued from the CLI:
+
+```sh filename="Terminal"
+bun run platform:invite owner@example.com
+```
+
+This prints a link (`<ADMIN_URL>/onboarding?...`); send it to the merchant. Access is granted by
+matching their signed-in email to a live invite, not by the link itself, so it is a convenience,
+not a secret. Set `MERCHANT_SIGNUP_MODE=open` in `.env` for local development if you want to skip
+this and let any signed-in email create a store. `PLATFORM_STORE_DOMAIN` (default
+`waimers.store`) is the base domain new stores' primary domain is built from
+(`<slug>.<PLATFORM_STORE_DOMAIN>`); every new store also gets `<slug>.localhost` outside
+production. The service behind all of this is `createStore`
+(`packages/core/src/onboarding/service.ts`).
+
+Existing staff invitations to join an existing store (Settings → Staff, `/accept-invitation/[id]`)
+are unaffected by this gate - they always work.
+
 ## The dev OTP route
 
 Sign-in uses email OTP (Better Auth). Instead of reading the `verification` table out of
