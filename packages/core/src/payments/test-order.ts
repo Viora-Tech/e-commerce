@@ -23,7 +23,20 @@ async function ensurePaymentTestProduct(ctx: StoreContext): Promise<string> {
     .innerJoin(product, eq(product.id, variant.productId))
     .where(and(eq(product.handle, PAYMENT_TEST_HANDLE), eq(product.storeId, ctx.storeId)))
     .limit(1)
-  if (existing) return existing.variantId
+  if (existing) {
+    // Products created before the flag existed stay hidden once this runs again.
+    await ctx.tx
+      .update(product)
+      .set({ isSystemTest: true })
+      .where(
+        and(
+          eq(product.handle, PAYMENT_TEST_HANDLE),
+          eq(product.storeId, ctx.storeId),
+          eq(product.isSystemTest, false),
+        ),
+      )
+    return existing.variantId
+  }
   const [p] = await ctx.tx
     .insert(product)
     .values({
