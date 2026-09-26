@@ -1138,6 +1138,10 @@ export const shipment = pgTable(
       .references(() => order.id),
     provider: text('provider').notNull(),
     waybill: text('waybill').notNull(),
+    /** Whatever id the courier's own API needs for a later call (cancel, pickup, label) when
+     *  that is not the waybill itself - e.g. RapidShyp's cancel_order wants its own order id,
+     *  not the AWB. Null for couriers (Delhivery) whose every follow-up call takes the waybill. */
+    providerRef: text('provider_ref'),
     status: text('status', {
       enum: [
         'created',

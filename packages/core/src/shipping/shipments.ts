@@ -117,6 +117,7 @@ export async function createShipmentForOrder(
       orderId: o.id,
       provider: provider.id,
       waybill: result.waybill,
+      providerRef: result.providerRef ?? null,
       labelUrl: result.labelUrl ?? null,
       weightGrams,
       lengthCm: options.dimensionsCm?.length ?? null,
@@ -180,7 +181,10 @@ export async function cancelShipment(
 ): Promise<ShipmentRow> {
   const [row] = await ctx.tx.select().from(shipment).where(eq(shipment.id, shipmentId))
   if (!row) throw new Error('shipment not found')
-  await provider.cancel(row.waybill)
+  // Most couriers cancel by waybill; RapidShyp's cancel_order wants its own
+  // order id instead (stored as providerRef on create) - see
+  // packages/shipping-rapidshyp/src/rapidshyp.ts.
+  await provider.cancel(row.providerRef || row.waybill)
   const [updated] = await ctx.tx
     .update(shipment)
     .set({ status: 'cancelled', updatedAt: new Date() })

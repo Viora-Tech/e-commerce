@@ -145,20 +145,22 @@ enable API access for your account.
 ### Paste it below and pick your pickup location
 
 Enter **API key**, **Store name** (use `DEFAULT` unless RapidShyp set up a named sales
-channel for you), **Pickup location nickname** and **Origin PIN code**, then **Test
-connection**.
+channel for you) and **Origin PIN code**, then **Test connection**. Once it succeeds, this
+app fetches your registered pickup locations from RapidShyp and turns **Pickup location
+nickname** into a dropdown - pick the warehouse this store ships from, no need to retype it.
 
 </Steps>
 
-The test runs a real serviceability lookup with your API key; nothing is booked. It can't
-confirm your pickup location nickname, because RapidShyp only checks that when you book a
-shipment.
+The test runs a real serviceability lookup with your API key; nothing is booked.
+
+Booking, cancelling, printing labels, tracking (checked on a schedule), delivery-problem
+(NDR) actions, and reverse pickups for customer returns all work the same way they do for
+Delhivery and Shiprocket.
 
 <Callout type="warning">
-  RapidShyp support in this app is rate comparison and booking only for now. Label printing,
-  automatic tracking, delivery-problem (NDR) detection, cancelling from this app and wallet
-  balance could not be confirmed against RapidShyp's fetchable API docs, so they aren't wired
-  up yet - manage those from the RapidShyp dashboard directly until a follow-up adds them.
+  RapidShyp has no tracking webhook documented, so shipments are checked on the same polling
+  schedule as Delhivery and Shiprocket rather than updating instantly. Wallet balance has no
+  documented API either - enter it by hand from the RapidShyp dashboard's own balance.
 </Callout>
 
 </Tabs.Tab>
@@ -221,10 +223,11 @@ sheet is made from your saved labels.
 When a courier can't deliver a parcel (shopper not home, phone switched off, address
 incomplete) it's called an **NDR**, a non-delivery report. A parcel moves into **Delivery
 problems** by itself as soon as the courier's own tracking update says so - the same tracking
-check that flips a parcel to **Out for delivery** or **Delivered** (every 30 minutes, and
-instantly over a webhook) also reads the courier's remark for a failed attempt and, if it
-looks like one, opens it here with what the **Courier said**. No parcel needs a manual nudge
-into this tab. For each one choose:
+check that flips a parcel to **Out for delivery** or **Delivered** (every 30 minutes for
+RapidShyp - it has no tracking webhook - and instantly over a webhook for Delhivery and
+Shiprocket) also reads the courier's remark for a failed attempt and, if it looks like one,
+opens it here with what the **Courier said**. No parcel needs a manual nudge into this tab.
+For each one choose:
 
 - **Try delivery again**: the courier re-attempts.
 - **Use a new address**: fix the address or phone number, and the courier tries there.
@@ -234,19 +237,13 @@ Then select **Send to courier**. Once the courier's next update reports **Delive
 **RTO**, the parcel clears out of Delivery problems automatically too - there's nothing to
 dismiss by hand.
 
-<Callout type="warning">
-  RapidShyp shipments don't move through this tab automatically yet - tracking isn't wired
-  up for RapidShyp (see the RapidShyp connect page for what is and isn't supported today).
-  Check delivery problems from the RapidShyp dashboard for now.
-</Callout>
-
 <Callout type="info">
-  **How the match works.** Neither Delhivery nor Shiprocket has a single fixed "this is an
-  NDR" status code over their tracking APIs - both describe a failed attempt in free text
-  (Delhivery's scan remarks, Shiprocket's "Undelivered" activity text) rather than a coded
-  field. Detection matches that wording, so an unusual phrasing from a courier could in rare
-  cases be missed; if a parcel sits on **Out for delivery** for more than a day without
-  moving here, check it from your courier's dashboard directly.
+  **How the match works.** None of Delhivery, Shiprocket or RapidShyp has a single fixed
+  "this is an NDR" status code over their tracking APIs - each describes a failed attempt in
+  free text (Delhivery's scan remarks, Shiprocket's and RapidShyp's "Undelivered" activity
+  text) rather than a coded field. Detection matches that wording, so an unusual phrasing
+  from a courier could in rare cases be missed; if a parcel sits on **Out for delivery** for
+  more than a day without moving here, check it from your courier's dashboard directly.
 </Callout>
 
 <Callout type="warning">

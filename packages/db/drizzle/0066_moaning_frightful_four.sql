@@ -1,0 +1,1 @@
+ALTER TABLE "shipment" ADD COLUMN "provider_ref" text;
