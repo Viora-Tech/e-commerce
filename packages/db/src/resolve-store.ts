@@ -13,6 +13,19 @@ export async function resolveStore(db: Db, hostname: string): Promise<string | n
   return row?.id ?? null
 }
 
+/**
+ * Whether a store slug is already in use, before any store context exists
+ * (picking a store address in onboarding). Backed by the SECURITY DEFINER
+ * function `store_slug_taken`, so the app role can check even though `store`
+ * itself is RLS-protected by id.
+ */
+export async function isStoreSlugTaken(db: Db, slug: string): Promise<boolean> {
+  const [row] = await db.execute<{ taken: boolean | null }>(
+    sql`select store_slug_taken(${slug.toLowerCase()}) as taken`,
+  )
+  return row?.taken ?? false
+}
+
 /** Organization id -> store id, via the SECURITY DEFINER function. Null if none. */
 export async function resolveStoreForOrganization(
   db: Db,

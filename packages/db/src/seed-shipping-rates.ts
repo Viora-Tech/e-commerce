@@ -1,14 +1,16 @@
 import { eq } from 'drizzle-orm'
 import { createDb, type Db } from './client'
 import { shippingRate, shippingZone, store } from './schema'
+import type { StoreTx } from './with-store'
 
 /**
- * One "All India" shipping zone for the Waimers demo store: ₹49 flat, free
- * from ₹999. Adds rows only; a store that already has any zone is left alone,
- * so running this twice (or after the merchant edited their rates) changes
- * nothing.
+ * One "All India" shipping zone for a store: ₹49 flat, free from ₹999. Adds
+ * rows only; a store that already has any zone is left alone, so running
+ * this twice (or after the merchant edited their rates) changes nothing.
+ * Takes either a plain `Db` (the seed script, on the owner connection) or a
+ * store-scoped `StoreTx` (a running store's own creation, under RLS).
  */
-export async function seedWaimersShipping(db: Db, storeId: string): Promise<boolean> {
+export async function seedWaimersShipping(db: Db | StoreTx, storeId: string): Promise<boolean> {
   const [existing] = await db
     .select({ id: shippingZone.id })
     .from(shippingZone)

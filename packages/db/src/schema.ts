@@ -1462,6 +1462,30 @@ export const storeDomain = pgTable(
   ],
 )
 
+/**
+ * A platform admin's invite for a new merchant to sign up and create their own
+ * store (`bun run platform:invite <email>`). Distinct from `invitation`
+ * (Better Auth, staff joining an existing store) - this is the signup gate for
+ * `MERCHANT_SIGNUP_MODE=invite`. No store yet exists when this row is created,
+ * so it carries no `store_id` and sits outside RLS like `store` itself.
+ */
+export const signupInvite = pgTable(
+  'signup_invite',
+  {
+    id: id(),
+    email: text('email').notNull(),
+    token: text('token').notNull().unique(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // One live (unused) invite per email at a time; a fresh invite is issued
+    // by first cancelling or letting the old one expire.
+    uniqueIndex('signup_invite_email_unused').on(t.email).where(sql`used_at is null`),
+  ],
+)
+
 export type SenderEmailStatus = 'pending' | 'verified' | 'failed'
 
 /**

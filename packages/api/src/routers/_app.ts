@@ -18,6 +18,7 @@ import { mediaRouter } from './media'
 import { metaobjectsRouter } from './metaobjects'
 import { navigationRouter } from './navigation'
 import { notificationsRouter } from './notifications'
+import { onboardingRouter } from './onboarding'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
@@ -66,6 +67,7 @@ export const appRouter = {
   staff: staffRouter,
   domains: domainsRouter,
   invitations: invitationsRouter,
+  onboarding: onboardingRouter,
 }
 
 export type AppRouter = typeof appRouter

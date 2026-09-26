@@ -27,6 +27,7 @@
     "db:seed:shipping": "bun run --cwd packages/db seed:shipping",
     "db:seed:back-in-stock": "bun run --cwd packages/db seed:back-in-stock",
     "rotate-secrets": "bun scripts/rotate-secrets.ts",
+    "platform:invite": "bun scripts/platform-invite.ts",
     "backfill-phone-encryption": "bun scripts/backfill-phone-encryption.ts",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down"

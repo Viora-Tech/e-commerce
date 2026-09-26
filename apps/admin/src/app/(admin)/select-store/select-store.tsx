@@ -1,8 +1,9 @@
 'use client'
 
-import { ArrowRight, Loader2Icon, Store } from '@commerce/ui/icons'
+import { ArrowRight, Loader2Icon, Plus, Store } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -101,6 +102,15 @@ export default function SelectStore({ stores, autoSelect = false }: SelectStoreP
           ))}
         </div>
       )}
+      <Button
+        type="button"
+        variant="outline"
+        nativeButton={false}
+        render={<Link href="/onboarding" />}
+      >
+        <Plus />
+        {copy.createAnother}
+      </Button>
     </PageBody>
   )
 }
