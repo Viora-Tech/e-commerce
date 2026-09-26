@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import type {
   CredentialCheck,
@@ -129,6 +129,16 @@ export class LocalStorageProvider implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     await rm(this.pathOf(key), { force: true })
+  }
+
+  async head(key: string): Promise<{ size: number } | null> {
+    try {
+      const s = await stat(this.pathOf(key))
+      return { size: s.size }
+    } catch (err) {
+      if ((err as { code?: string }).code === 'ENOENT') return null
+      throw err
+    }
   }
 
   private pathOf(key: string): string {

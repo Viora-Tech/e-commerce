@@ -3,8 +3,19 @@
  * adapter agree on what a valid upload is without sharing runtime code.
  */
 
-/** 25 MB: enough for a product video, small enough that a stray upload cannot fill a bucket. */
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+/**
+ * 10 MB for images: the upload-time pipeline (see @commerce/core media
+ * pipeline) re-encodes every image server-side, so the original only needs
+ * to survive one decode; a stray 20 MB phone photo is still comfortably
+ * under this. 100 MB for the one accepted video type (mp4): big enough for
+ * a real product demo clip, small enough a stray upload cannot fill a
+ * bucket. Kept as per-type limits (`maxUploadBytesFor`) rather than one
+ * shared ceiling because images and video have very different honest sizes.
+ */
+export const IMAGE_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+export const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+/** @deprecated Use `maxUploadBytesFor(contentType)`; kept only for external code checking a ceiling. */
+export const MAX_UPLOAD_BYTES = VIDEO_MAX_UPLOAD_BYTES
 
 /**
  * What the media library accepts. Videos are mp4 only; browsers and CDNs
@@ -28,6 +39,11 @@ export function isAllowedContentType(contentType: string): boolean {
 
 export const isImageContentType = (contentType: string): boolean =>
   contentType.toLowerCase().startsWith('image/')
+
+/** The size ceiling for this content type: images 10 MB, mp4 video 100 MB. */
+export function maxUploadBytesFor(contentType: string): number {
+  return isImageContentType(contentType) ? IMAGE_MAX_UPLOAD_BYTES : VIDEO_MAX_UPLOAD_BYTES
+}
 
 const EXTENSION_BY_TYPE: Record<string, string> = {
   'image/jpeg': 'jpg',

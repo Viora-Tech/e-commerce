@@ -54,6 +54,13 @@ export type StorageProvider = {
   put(input: PutInput): Promise<void>
   /** Server-side read; resolves null for a missing key. Used to stream private files. */
   get(key: string): Promise<Uint8Array | null>
+  /**
+   * Metadata without the body: the real size on confirm (a browser can lie
+   * about `Content-Length` at presign time), and what the worker needs
+   * before deciding whether to download the whole object. Resolves null for
+   * a missing key.
+   */
+  head(key: string): Promise<{ size: number; contentType?: string | undefined } | null>
   /** The URL shoppers load. Must be absolute and stable for the life of the object. */
   publicUrl(key: string): string
   /** Idempotent: deleting a missing key resolves. */
