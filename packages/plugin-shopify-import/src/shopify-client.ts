@@ -30,6 +30,12 @@ export type ClientOptions = {
   fetch?: typeof fetch
   sleep?: (ms: number) => Promise<void>
   maxAttempts?: number
+  /**
+   * A client-credentials connection's token expires (~24h). When Shopify
+   * answers 401, this is called once to get a fresh token, which the client
+   * then retries with; the caller is responsible for persisting it.
+   */
+  refreshToken?: () => Promise<string>
 }
 
 /** `waimers`, `waimers.myshopify.com` or a pasted admin URL → `waimers.myshopify.com`. */
@@ -50,11 +56,13 @@ export class ShopifyClient {
   private readonly maxAttempts: number
   /** Last bucket state Shopify reported; used to wait before an expensive query. */
   private bucket: Throttle | null = null
+  private accessToken: string
 
   constructor(private readonly opts: ClientOptions) {
     this.doFetch = opts.fetch ?? fetch
     this.sleep = opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)))
     this.maxAttempts = opts.maxAttempts ?? 6
+    this.accessToken = opts.accessToken
   }
 
   get endpoint(): string {
@@ -62,6 +70,7 @@ export class ShopifyClient {
   }
 
   async query<T>(query: string, variables: Record<string, unknown> = {}, cost = 100): Promise<T> {
+    let refreshed = false
     for (let attempt = 1; ; attempt++) {
       // Leave room in the bucket rather than spending a request on THROTTLED.
       if (this.bucket && this.bucket.currentlyAvailable < cost && this.bucket.restoreRate > 0) {
@@ -73,11 +82,16 @@ export class ShopifyClient {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-shopify-access-token': this.opts.accessToken,
+          'x-shopify-access-token': this.accessToken,
         },
         body: JSON.stringify({ query, variables }),
       })
       if (res.status === 401) {
+        if (this.opts.refreshToken && !refreshed) {
+          refreshed = true
+          this.accessToken = await this.opts.refreshToken()
+          continue
+        }
         throw new ShopifyError('Shopify rejected the access token. Check it and try again.', 'auth')
       }
       if (res.status === 403) {

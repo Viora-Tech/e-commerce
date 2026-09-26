@@ -31,6 +31,22 @@ const PAGE_INFO = 'pageInfo { hasNextPage endCursor }'
 
 export const SHOP_QUERY = '{ shop { name myshopifyDomain } }'
 
+/** Scopes actually granted to the token, not just what the app declares. */
+const SCOPES_QUERY = '{ shop { name } currentAppInstallation { accessScopes { handle } } }'
+
+export async function fetchShopAndScopes(
+  client: ShopifyClient,
+): Promise<{ shopName: string; scopes: string[] }> {
+  const data = await client.query<{
+    shop: { name: string }
+    currentAppInstallation: { accessScopes: { handle: string }[] }
+  }>(SCOPES_QUERY)
+  return {
+    shopName: data.shop.name,
+    scopes: data.currentAppInstallation.accessScopes.map((s) => s.handle),
+  }
+}
+
 /* ---------------------------------------------------------------- products */
 
 const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable inventoryQuantity

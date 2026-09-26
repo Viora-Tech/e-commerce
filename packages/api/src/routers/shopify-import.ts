@@ -17,7 +17,9 @@ import {
   listRuns,
   SHOPIFY_IMPORT_ID,
   ShopifyError,
+  ShopifyOAuthError,
   startRun,
+  testConnection,
 } from '@commerce/plugin-shopify-import/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -39,7 +41,12 @@ async function requireInstalled(context: Ctx) {
 }
 
 function asOrpc(err: unknown): never {
-  if (err instanceof ImportError || err instanceof ConnectionError || err instanceof ShopifyError) {
+  if (
+    err instanceof ImportError ||
+    err instanceof ConnectionError ||
+    err instanceof ShopifyError ||
+    err instanceof ShopifyOAuthError
+  ) {
     throw new ORPCError('BAD_REQUEST', { message: err.message })
   }
   throw err
@@ -73,15 +80,34 @@ export const shopifyImportRouter = {
 
   connect: can(permissions.APPS_MANAGE)
     .input(
-      z.object({
-        shopDomain: z.string().trim().min(1).max(200),
-        accessToken: z.string().trim().min(1).max(200),
-      }),
+      z
+        .object({
+          shopDomain: z.string().trim().min(1).max(200),
+          accessToken: z.string().trim().min(1).max(200).optional(),
+          clientId: z.string().trim().min(1).max(200).optional(),
+          clientSecret: z.string().trim().min(1).max(200).optional(),
+        })
+        .refine((v) => v.accessToken || (v.clientId && v.clientSecret), {
+          message: 'Provide an Admin API token, or a client ID and client secret',
+        }),
     )
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      return connect(context.tx, context.scope.storeId, input, secret()).catch(asOrpc)
+      const connectInput = input.accessToken
+        ? { shopDomain: input.shopDomain, accessToken: input.accessToken }
+        : {
+            shopDomain: input.shopDomain,
+            clientId: input.clientId ?? '',
+            clientSecret: input.clientSecret ?? '',
+          }
+      return connect(context.tx, context.scope.storeId, connectInput, secret()).catch(asOrpc)
     }),
+
+  /** Shop name plus which of the import's scopes the saved token actually has. */
+  testConnection: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return testConnection(context.tx, secret()).catch(asOrpc)
+  }),
 
   disconnect: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
     await requireInstalled(context)

@@ -28,15 +28,28 @@ export const PNG = Uint8Array.from(
 
 export type FetchLog = { url: string; body: string | null }[]
 
-/** Routes image URLs to PNG bytes and the GraphQL endpoint to `graphql`. */
+/** A fake `/admin/oauth/access_token` responder: always issues the same fresh token. */
+export const OAUTH_TOKEN = 'shpca_fake-access-token'
+export function oauthSuccess(expiresInSeconds = 86399): Response {
+  return json({ access_token: OAUTH_TOKEN, expires_in: expiresInSeconds, scope: 'read_products' })
+}
+
+/**
+ * Routes image URLs to PNG bytes, the GraphQL endpoint to `graphql`, and the
+ * client-credentials token endpoint to `oauth` (defaults to always succeeding).
+ */
 export function fakeFetch(
   graphql: (query: string, variables: Record<string, unknown>) => Response | Promise<Response>,
   log: FetchLog = [],
+  oauth: (body: URLSearchParams) => Response | Promise<Response> = () => oauthSuccess(),
 ): typeof fetch {
   return (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input)
     const body = typeof init?.body === 'string' ? init.body : null
     log.push({ url, body })
+    if (url.endsWith('/admin/oauth/access_token')) {
+      return oauth(new URLSearchParams(body ?? ''))
+    }
     if (url.endsWith('/graphql.json')) {
       const parsed = JSON.parse(body ?? '{}') as {
         query: string

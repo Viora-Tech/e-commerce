@@ -162,6 +162,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     } else {
       const client = await deps.inStore((tx) =>
         clientFor(tx, deps.settingsSecret, {
+          inStore: deps.inStore,
           ...(deps.fetch ? { fetch: deps.fetch } : {}),
           ...(deps.sleep ? { sleep: deps.sleep } : {}),
         }),
