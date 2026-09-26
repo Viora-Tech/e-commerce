@@ -16,8 +16,9 @@ type RichTextFieldProps = {
   placeholder?: string | undefined
   media?: EditorMedia | null | undefined
   maxLength?: number | undefined
-  minHeight?: number | undefined
+  minHeight?: number | string | undefined
   required?: boolean | undefined
+  className?: string | undefined
 }
 
 /** shadcn Field wrapper (label / help / error) around the shared Lexical editor. */
@@ -32,6 +33,7 @@ export default function RichTextField({
   maxLength,
   minHeight,
   required,
+  className,
 }: RichTextFieldProps) {
   // Hooks
   const id = useId()
@@ -50,7 +52,7 @@ export default function RichTextField({
         media={media}
         maxLength={maxLength}
         minHeight={minHeight}
-        className={cn(error && 'rounded-lg ring-2 ring-destructive/30')}
+        className={cn(error && 'rounded-lg ring-2 ring-destructive/30', className)}
       />
       {helpText && !error ? <FieldDescription>{helpText}</FieldDescription> : null}
       {error ? <FieldError>{error}</FieldError> : null}

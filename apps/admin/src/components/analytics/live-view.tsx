@@ -1,6 +1,6 @@
 'use client'
 
-import type { AnalyticsLive } from '@commerce/api'
+import type { AnalyticsLive, DashboardSummary } from '@commerce/api'
 import { Card } from '@commerce/ui/shadcn/card'
 import { useEffect, useState } from 'react'
 import CountUp from '@/components/layout/count-up'
@@ -11,13 +11,15 @@ import { analyticsContent as copy } from '@/data/analytics'
 import { api } from '@/lib/api-client'
 import { formatCompact, formatPaise } from '@/lib/money'
 import LiveEventRow from './live-event-row'
+import LiveGlobeHero from './live-globe/live-globe-hero'
 
-type LiveViewProps = { initial: AnalyticsLive }
+type LiveViewProps = { initial: AnalyticsLive; globe: DashboardSummary }
 
 const POLL_MS = 15_000
 
-/** Visitors, carts and orders as they happen; refreshes itself every 15 seconds. */
-export default function LiveView({ initial }: LiveViewProps) {
+/** Visitors, carts and orders as they happen; refreshes itself every 15 seconds. The globe
+ *  hero above the stats polls dashboard data on its own, independent cadence. */
+export default function LiveView({ initial, globe }: LiveViewProps) {
   // Hooks
   const [data, setData] = useState(initial)
 
@@ -42,6 +44,7 @@ export default function LiveView({ initial }: LiveViewProps) {
   return (
     <PageBody width="frame" className="gap-5">
       <PageHeader title={c.title} subtitle={c.updating} />
+      <LiveGlobeHero initial={globe} />
       <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
         <Card className="gap-0 p-5">
           <p className="text-kit-body text-muted-foreground">{c.visitors}</p>

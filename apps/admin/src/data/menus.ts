@@ -38,10 +38,17 @@ export function destinationPath(type: NavigationItemType, value?: string): strin
   }
 }
 
-/** The header/footer assignment card above the menu list. */
+/** The compact "Storefront navigation" summary card beside the menus table, and the
+ *  sheet its Edit button opens. */
 export const storefrontContent = {
   heading: 'Storefront navigation',
   description: 'Which menus the storefront header and footer render.',
+  edit: 'Edit',
+  editTitle: 'Edit storefront navigation',
+  editDescription: 'Choose which menu the header renders, and which fill the footer columns.',
+  summaryHeaderLabel: 'Header',
+  summaryFooterLabel: 'Footer',
+  summaryNone: 'None set',
   headerLabel: 'Header menu',
   headerHelp: 'The main navigation across every storefront page.',
   none: 'None',
@@ -52,6 +59,7 @@ export const storefrontContent = {
   moveUp: 'Move column up',
   moveDown: 'Move column down',
   save: 'Save',
+  cancel: 'Cancel',
   saved: 'Storefront navigation saved',
   failed: 'Could not save the storefront navigation',
   noMenus: 'Add a menu first. The header and footer can only render menus that exist.',
@@ -62,6 +70,8 @@ export const menusContent = {
   add: 'Add menu',
   redirects: 'URL redirects',
   columns: { title: 'Menu', handle: 'Handle', items: 'Items', updated: 'Updated' },
+  /** Small badges on the title cell, showing where the storefront uses this menu. */
+  usage: { header: 'Header', footer: 'Footer' },
   empty: {
     heading: 'No menus yet',
     body: 'Menus drive the storefront header and footer. Add one to start.',

@@ -38,7 +38,8 @@ export default function ArticleMainCard({ title, body, excerpt, onChange }: Arti
             label={copy.content}
             value={body}
             onChange={(value) => onChange({ body: value })}
-            minHeight={320}
+            minHeight="60svh"
+            className="[&_.editor-scroller]:max-h-none [&_.editor-scroller]:overflow-visible [&_.editor-input]:mx-auto [&_.editor-input]:w-full [&_.editor-input]:max-w-[48rem]"
           />
           <Field>
             <FieldLabel htmlFor="article-excerpt">{copy.excerpt}</FieldLabel>
