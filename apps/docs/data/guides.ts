@@ -56,7 +56,13 @@ export const guides = {
     href: '/merchant-guide/money/payments',
     icon: 'card',
     title: 'Payments',
-    description: 'Razorpay, UPI, cash on delivery, fees and unpaid-order rules.',
+    description: 'Get paid online, ways to pay, the ₹1 test order, fees and unpaid-order rules.',
+  },
+  cashfree: {
+    href: '/merchant-guide/money/cashfree',
+    icon: 'card',
+    title: 'Cashfree',
+    description: 'Connect Cashfree with two keys; no webhook to set up.',
   },
   gst: {
     href: '/merchant-guide/money/gst-invoices',

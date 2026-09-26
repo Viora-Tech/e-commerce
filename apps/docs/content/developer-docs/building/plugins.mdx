@@ -83,6 +83,25 @@ A payment adapter can offer a second method on the same gateway account (Razorpa
 `webhookId = 'razorpay'` so it answers on the gateway's one webhook URL and shares its
 event dedupe.
 
+Payment factories have a few optional hooks the easy-setup screens use:
+
+- `methods`: the ways to pay the gateway can take (`upi`, `card`, `netbanking`, `wallet`,
+  `emi`). The merchant's "Shoppers can pay with" row arrives on `createPayment` as
+  `input.methods`, in order; show only those where the gateway allows it (Razorpay Checkout
+  `config.display` blocks, Cashfree `order_meta.payment_methods`).
+- `testConnection()` on the provider: a read-only key check for the Connect page's "Test
+  connection" button. It must not create anything on the gateway.
+- `refreshCredentials(saved, now)`: renews short-lived tokens (Razorpay OAuth) before use;
+  return the fields to overwrite, or `null`. The platform encrypts and saves them.
+- `hidden: true` on a `ProviderField`: written by the platform (OAuth tokens), never shown in a
+  form. Secret-looking keys still need `secret: true`.
+- `refund(paymentId, amount, note, context)`: `context.providerRef` is the gateway order id,
+  for gateways that refund per order (Cashfree).
+
+`packages/payments-cashfree` is a compact example of the whole contract: order creation,
+raw-body webhook verification with a timing-safe compare, status polling and refunds, with every
+network call mocked in its tests.
+
 ```ts filename="src/fedex.ts"
 import {
   CourierError,
