@@ -51,7 +51,7 @@ export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps)
   const dark = resolvedTheme === 'dark'
 
   return (
-    <section className="relative overflow-hidden rounded-xl border border-border bg-card lg:h-[calc(100svh-9rem)] lg:min-h-[38rem]">
+    <section className="relative -mx-4 -mb-5 md:-mx-6 md:-mb-6 lg:h-[calc(100svh-8.5rem)] lg:min-h-[38rem]">
       {webglOk ? (
         <div className="h-[24rem] lg:absolute lg:inset-0 lg:h-auto">
           <LiveGlobeCanvas
