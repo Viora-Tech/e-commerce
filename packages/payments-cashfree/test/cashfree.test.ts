@@ -239,13 +239,67 @@ describe('fetchStatus', () => {
     expect(s).toEqual({ status: 'captured', providerPaymentId: '55', amountPaise: 269900 })
   })
 
-  it('maps ACTIVE to pending', async () => {
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse(200, { order_status: 'ACTIVE', order_amount: 2699, cf_order_id: 1 }),
+  const activeWith = (payments: unknown[]) =>
+    vi.fn(async (url: string) =>
+      url.endsWith('/payments')
+        ? jsonResponse(200, payments)
+        : jsonResponse(200, { order_status: 'ACTIVE', order_amount: 2699, cf_order_id: 1 }),
     )
-    const p = new CashfreeProvider(config, fetchImpl as unknown as typeof fetch)
+
+  it('maps ACTIVE with no payment yet to pending', async () => {
+    const p = new CashfreeProvider(config, activeWith([]) as unknown as typeof fetch)
     const s = await p.fetchStatus('o7_01a0bcde_1')
     expect(s.status).toBe('pending')
+  })
+
+  it('keeps PENDING and NOT_ATTEMPTED payments pending', async () => {
+    for (const status of ['PENDING', 'NOT_ATTEMPTED']) {
+      const fetchImpl = activeWith([
+        { cf_payment_id: 7, payment_status: status, payment_amount: 2699 },
+      ])
+      const p = new CashfreeProvider(config, fetchImpl as unknown as typeof fetch)
+      expect((await p.fetchStatus('o7_01a0bcde_1')).status).toBe('pending')
+    }
+  })
+
+  it('maps FAILED, USER_DROPPED, VOID and CANCELLED payments to failed', async () => {
+    for (const status of ['FAILED', 'USER_DROPPED', 'VOID', 'CANCELLED']) {
+      const fetchImpl = activeWith([
+        { cf_payment_id: 8, payment_status: status, payment_amount: 2699 },
+      ])
+      const p = new CashfreeProvider(config, fetchImpl as unknown as typeof fetch)
+      const s = await p.fetchStatus('o7_01a0bcde_1')
+      expect(s).toEqual({ status: 'failed', providerPaymentId: '8', amountPaise: 269900 })
+    }
+  })
+
+  it('judges by the latest payment, and a success anywhere wins', async () => {
+    const retried = activeWith([
+      {
+        cf_payment_id: 1,
+        payment_status: 'FAILED',
+        payment_amount: 2699,
+        payment_time: '2026-09-26T10:00:00+05:30',
+      },
+      {
+        cf_payment_id: 2,
+        payment_status: 'PENDING',
+        payment_amount: 2699,
+        payment_time: '2026-09-26T10:02:00+05:30',
+      },
+    ])
+    let p = new CashfreeProvider(config, retried as unknown as typeof fetch)
+    expect((await p.fetchStatus('o7_01a0bcde_1')).status).toBe('pending')
+    const paid = activeWith([
+      { cf_payment_id: 3, payment_status: 'FAILED', payment_amount: 2699 },
+      { cf_payment_id: 4, payment_status: 'SUCCESS', payment_amount: 2699 },
+    ])
+    p = new CashfreeProvider(config, paid as unknown as typeof fetch)
+    expect(await p.fetchStatus('o7_01a0bcde_1')).toEqual({
+      status: 'captured',
+      providerPaymentId: '4',
+      amountPaise: 269900,
+    })
   })
 
   it('maps EXPIRED to failed', async () => {

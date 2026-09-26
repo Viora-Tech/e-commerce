@@ -90,6 +90,12 @@ export function buildCashfreeOrderId(input: CreatePaymentInput): string {
 const CASHFREE_ORDER_FAILED_STATUSES = new Set(['EXPIRED', 'TERMINATED', 'TERMINATION_REQUESTED'])
 
 /**
+ * Documented `payment_status` values that end a payment without money taken.
+ * SUCCESS is captured; PENDING and NOT_ATTEMPTED are still open.
+ */
+const CASHFREE_PAYMENT_FAILED_STATUSES = new Set(['FAILED', 'USER_DROPPED', 'VOID', 'CANCELLED'])
+
+/**
  * Cashfree documents `x-idempotency-key` as a UUID. Our key (`<orderId>:<attempt>`)
  * maps to the same UUID every time, so a retried request stays idempotent.
  */
@@ -123,6 +129,7 @@ type CfPayment = {
   payment_status: string
   payment_amount: number
   is_captured?: boolean
+  payment_time?: string
 }
 
 type CfRefundResponse = {
@@ -338,6 +345,19 @@ export class CashfreeProvider implements PaymentProvider {
     }
     if (CASHFREE_ORDER_FAILED_STATUSES.has(order.order_status)) {
       return { status: 'failed', providerPaymentId: null, amountPaise }
+    }
+    // The order stays ACTIVE after a failed try (the shopper may try again in the
+    // same window); the latest payment says whether this attempt has ended.
+    const payments = await this.request<CfPayment[]>('GET', `/orders/${providerRef}/payments`)
+    const success = payments.find((p) => p.payment_status === 'SUCCESS')
+    if (success) {
+      return { status: 'captured', providerPaymentId: String(success.cf_payment_id), amountPaise }
+    }
+    const latest = [...payments].sort(
+      (a, b) => Date.parse(b.payment_time ?? '') - Date.parse(a.payment_time ?? ''),
+    )[0]
+    if (latest && CASHFREE_PAYMENT_FAILED_STATUSES.has(latest.payment_status)) {
+      return { status: 'failed', providerPaymentId: String(latest.cf_payment_id), amountPaise }
     }
     return { status: 'pending', providerPaymentId: null, amountPaise }
   }
