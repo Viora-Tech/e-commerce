@@ -3,6 +3,7 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { Button } from '@commerce/ui/shadcn/button'
 import { productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ProductBulkActionsProps = {
   busy: boolean
@@ -11,8 +12,6 @@ type ProductBulkActionsProps = {
   onDelete: () => void
 }
 
-const copy = productsListContent.bulk
-
 /** Buttons inside the selection bar of the product list. */
 export default function ProductBulkActions({
   busy,
@@ -20,6 +19,9 @@ export default function ProductBulkActions({
   onTag,
   onDelete,
 }: ProductBulkActionsProps) {
+  // Hooks
+  const { bulk: copy } = useCopy(productsListContent)
+
   return (
     <>
       <Button variant="outline" size="sm" disabled={busy} onClick={() => onStatus('active')}>

@@ -18,6 +18,7 @@ import { useState } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import {
   MAX_OPTIONS,
   type MediaItem,
@@ -42,10 +43,10 @@ type VariantsCardProps = {
   onVariant: (index: number, patch: Partial<VariantRow>) => void
 }
 
-const copy = productFormContent.variants
+type VariantsCopy = (typeof productFormContent)['variants']
 
 /** Suggested chip values for a known option name (Size/Colour/Material); custom names get none. */
-function valueSuggestions(name: string): readonly string[] {
+function valueSuggestions(copy: VariantsCopy, name: string): readonly string[] {
   const key = name.trim().toLowerCase()
   if (key === 'size') return copy.optionValueSuggestions.size
   if (/colou?r/.test(key)) return copy.optionValueSuggestions.colour
@@ -63,6 +64,7 @@ export default function VariantsCard({
   onVariant,
 }: VariantsCardProps) {
   // Hooks
+  const { variants: copy } = useCopy(productFormContent)
   const [selected, setSelected] = useState<number[]>([])
   /** Options change pending a "this drops stock" confirmation. */
   const [pending, setPending] = useState<OptionRow[] | null>(null)
@@ -150,7 +152,7 @@ export default function VariantsCard({
               <TagInput
                 id={`option-values-${i}`}
                 tags={o.values}
-                suggestions={valueSuggestions(o.name)}
+                suggestions={valueSuggestions(copy, o.name)}
                 onChange={(values) => handleValues(i, values)}
                 placeholder={copy.optionValuesPlaceholder}
               />

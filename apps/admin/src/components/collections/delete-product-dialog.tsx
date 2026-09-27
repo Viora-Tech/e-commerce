@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type DeleteProductDialogProps = {
   product: { id: string; title: string } | null
@@ -18,14 +19,17 @@ type DeleteProductDialogProps = {
   onConfirm: () => void
 }
 
-const copy = productsListContent.bulk.confirmDelete
-
 /** Guard behind the table's delete glyph; ordered products are archived, not removed. */
 export default function DeleteProductDialog({
   product,
   onCancel,
   onConfirm,
 }: DeleteProductDialogProps) {
+  // Hooks
+  const {
+    bulk: { confirmDelete: copy },
+  } = useCopy(productsListContent)
+
   // Render logic
   return (
     <AlertDialog open={product !== null} onOpenChange={(open) => !open && onCancel()}>

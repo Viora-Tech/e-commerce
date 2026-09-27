@@ -2,7 +2,8 @@ import { RefreshCw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { gatewayGuides, paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import CopyField from './copy-field'
 
 type RazorpayWebhookFieldsProps = {
@@ -10,9 +11,6 @@ type RazorpayWebhookFieldsProps = {
   secret: string
   onNewSecret: () => void
 }
-
-const guide = gatewayGuides.razorpay
-const copy = setupCopy.connect
 
 /** Masked secrets come back as ••••1234; sending one back means "keep the saved value". */
 const isMasked = (v: string) => v.startsWith('••••')
@@ -23,6 +21,10 @@ export default function RazorpayWebhookFields({
   secret,
   onNewSecret,
 }: RazorpayWebhookFieldsProps) {
+  // Hooks
+  const { razorpay: guide } = useCopy(gatewayGuides)
+  const { connect: copy } = useCopy(paymentsSetupContent)
+
   // Render logic
   const saved = isMasked(secret)
 

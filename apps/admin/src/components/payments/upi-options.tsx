@@ -1,10 +1,12 @@
-import { paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import UpiCompare from './upi-compare'
-
-const copy = setupCopy.upiOptions
 
 /** The two UPI options that live in Advanced, named in plain words with a comparison. */
 export default function UpiOptions() {
+  // Hooks
+  const { upiOptions: copy } = useCopy(paymentsSetupContent)
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">

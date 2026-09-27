@@ -1,30 +1,35 @@
 import ProductThumb from '@/components/products/product-thumb'
 import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { productsListContent as copy } from '@/data/products'
+import type { productsListContent } from '@/data/products'
 import type { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
+import type { Formatters } from '@/lib/format'
 
 export type ProductRow = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
+type ListCopy = typeof productsListContent
+
 /** Small status pill for the list; a product past its launch date is on sale, not "Launching". */
-function preorderPill(row: ProductRow): string | null {
+function preorderPill(copy: ListCopy, row: ProductRow): string | null {
   if (row.launchAt && new Date(row.launchAt).getTime() > Date.now()) {
     return copy.launching(new Date(row.launchAt))
   }
   return row.preorderEnabled ? copy.preorderPill : null
 }
 
-function priceRange(row: ProductRow): string {
+function priceRange(copy: ListCopy, fmt: Formatters, row: ProductRow): string {
   if (row.minPricePaise == null) return copy.none
   if (row.maxPricePaise == null || row.maxPricePaise === row.minPricePaise) {
-    return formatPaise(row.minPricePaise)
+    return fmt.money(row.minPricePaise)
   }
-  return `${formatPaise(row.minPricePaise)} to ${formatPaise(row.maxPricePaise)}`
+  return copy.priceRange(fmt.money(row.minPricePaise), fmt.money(row.maxPricePaise))
 }
 
 /** Columns of the product list: text left, figures right (Saleor datagrid). */
-export const productColumns: ResourceColumnSpec<ProductRow>[] = [
+export const productColumns = (
+  copy: ListCopy,
+  fmt: Formatters,
+): ResourceColumnSpec<ProductRow>[] => [
   {
     id: 'product',
     title: copy.columns.product,
@@ -33,7 +38,7 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     align: 'start',
     className: 'w-[40%] whitespace-normal',
     render: (p) => {
-      const pill = preorderPill(p)
+      const pill = preorderPill(copy, p)
       return (
         <span className="flex items-center gap-3 text-left">
           <ProductThumb url={p.imageUrl} />
@@ -85,6 +90,6 @@ export const productColumns: ResourceColumnSpec<ProductRow>[] = [
     title: copy.columns.price,
     sortValue: (p) => p.minPricePaise ?? 0,
     align: 'end',
-    render: (p) => <span className="tabular-nums">{priceRange(p)}</span>,
+    render: (p) => <span className="tabular-nums">{priceRange(copy, fmt, p)}</span>,
   },
 ]

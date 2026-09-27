@@ -44,6 +44,9 @@ export function localeFromCookieHeader(header: string | null | undefined): Local
 export const untranslated: unique symbol = Symbol('untranslated')
 export type Untranslated = typeof untranslated
 
+/** `as const` copy returns literal text (`'COD available.'`); the Hindi only has to return text. */
+type WidenText<R> = R extends string ? string : R
+
 /**
  * The Hindi shape of an English copy value: same keys (all required, no extras), strings
  * stay strings, functions keep their parameters (`(n: number) => string` must be answered
@@ -52,7 +55,7 @@ export type Untranslated = typeof untranslated
 export type Translation<T> = T extends string
   ? string | Untranslated
   : T extends (...args: infer A) => infer R
-    ? ((...args: A) => R) | Untranslated
+    ? ((...args: A) => WidenText<R>) | Untranslated
     : T extends readonly unknown[]
       ? { -readonly [K in keyof T]: Translation<T[K]> } | Untranslated
       : T extends object

@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useRef, useState } from 'react'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import {
   findCategory,
   loadTaxonomy,
@@ -28,6 +29,7 @@ const RESULT_LIMIT = 20
  */
 export default function ProductCategoryPicker({ id, value, onChange }: ProductCategoryPickerProps) {
   // Hooks
+  const { categories: copy } = useCopy(productFormContent)
   const [categories, setCategories] = useState<TaxonomyCategory[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState('')
@@ -101,7 +103,7 @@ export default function ProductCategoryPicker({ id, value, onChange }: ProductCa
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={productFormContent.categories.categoryClear}
+            aria-label={copy.categoryClear}
             onClick={handleClear}
           >
             <X className="size-4" />
@@ -118,31 +120,23 @@ export default function ProductCategoryPicker({ id, value, onChange }: ProductCa
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
-          placeholder={
-            value && loading
-              ? productFormContent.categories.categoryLoading
-              : productFormContent.categories.categoryPlaceholder
-          }
+          placeholder={value && loading ? copy.categoryLoading : copy.categoryPlaceholder}
           autoComplete="off"
         />
       )}
       {open && !selected ? (
         <div className="absolute top-full z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
           {failed ? (
-            <p className="px-2 py-1.5 text-caption text-destructive">
-              {productFormContent.categories.categoryFailed}
-            </p>
+            <p className="px-2 py-1.5 text-caption text-destructive">{copy.categoryFailed}</p>
           ) : loading ? (
-            <p className="px-2 py-1.5 text-caption text-muted-foreground">
-              {productFormContent.categories.categoryLoading}
-            </p>
+            <p className="px-2 py-1.5 text-caption text-muted-foreground">{copy.categoryLoading}</p>
           ) : query.trim() === '' ? (
             <p className="px-2 py-1.5 text-caption text-muted-foreground">
-              {productFormContent.categories.categorySearchHint}
+              {copy.categorySearchHint}
             </p>
           ) : results.length === 0 ? (
             <p className="px-2 py-1.5 text-caption text-muted-foreground">
-              {productFormContent.categories.categoryNoResults}
+              {copy.categoryNoResults}
             </p>
           ) : (
             <ul>

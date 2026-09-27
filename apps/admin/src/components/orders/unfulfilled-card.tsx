@@ -2,7 +2,8 @@ import { PackageOpen } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy } from '@/hooks/use-copy'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
 
@@ -13,6 +14,9 @@ type UnfulfilledCardProps = {
 
 /** What is still waiting to be packed, with the action that packs it. */
 export default function UnfulfilledCard({ order, onFulfil }: UnfulfilledCardProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+
   // Render logic
   const rows = unfulfilledLines(order)
 

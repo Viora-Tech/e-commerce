@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import MoneyInput from '@/components/fields/money-input'
 import { shippingRatesContent } from '@/data/shipping-rates'
+import { useCopy } from '@/hooks/use-copy'
 import { emptyRate, type RateDraft, rateErrors } from './form-state'
 
 type RateDialogProps = {
@@ -30,16 +31,13 @@ type RateDialogProps = {
   onDone: (rate: RateDraft) => void
 }
 
-const copy = shippingRatesContent.rate
-
-const CONDITIONS = copy.conditions.map((c) => ({ value: c.value, label: c.label }))
-
 let nextKey = 0
 const freshKey = () => `new-${Date.now()}-${nextKey++}`
 
 /** Add or edit one rate of a zone. Saved with the zone, not on its own. */
 export default function RateDialog({ open, rate, onOpenChange, onDone }: RateDialogProps) {
   // Hooks
+  const ratesCopy = useCopy(shippingRatesContent)
   const [draft, setDraft] = useState<RateDraft>(() => rate ?? emptyRate(freshKey()))
   const [attempted, setAttempted] = useState(false)
 
@@ -55,13 +53,15 @@ export default function RateDialog({ open, rate, onOpenChange, onDone }: RateDia
   // Event handlers
   const handleDone = () => {
     setAttempted(true)
-    if (Object.keys(rateErrors(draft)).length) return
+    if (Object.keys(rateErrors(ratesCopy, draft)).length) return
     onDone(draft)
     onOpenChange(false)
   }
 
   // Render logic
-  const errors = attempted ? rateErrors(draft) : {}
+  const copy = ratesCopy.rate
+  const conditions = copy.conditions.map((c) => ({ value: c.value, label: c.label }))
+  const errors = attempted ? rateErrors(ratesCopy, draft) : {}
   const banded = draft.condition !== 'none'
   const weight = draft.condition === 'weight'
 
@@ -102,7 +102,7 @@ export default function RateDialog({ open, rate, onOpenChange, onDone }: RateDia
             id="rate-condition"
             label={copy.condition}
             value={draft.condition}
-            options={CONDITIONS}
+            options={conditions}
             onChange={(v) => patch({ condition: v as RateDraft['condition'], min: '', max: '' })}
           />
           {banded ? (

@@ -17,7 +17,8 @@ import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
-import { shippingSettingsContent as copy } from '@/data/shipping'
+import { shippingSettingsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import DemoCourierSection from './demo-courier-section'
 
@@ -38,6 +39,7 @@ type SectionProps = { id: string; children: ReactNode }
  */
 export default function ShippingPage() {
   // Hooks
+  const copy = useCopy(shippingSettingsContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Settings | null>(null)
   const [saved, setSaved] = useState<string | null>(null)

@@ -1,0 +1,173 @@
+import { briefingSentence, greetingWord, homeContent } from '@/data/home'
+import { translation } from '@/lib/i18n'
+
+/** Hindi for the hour names in the heatmap: "सुबह 10 बजे", "दोपहर 2 बजे", "रात 9 बजे". */
+function hindiHour(h: number): string {
+  const clock = h % 12 === 0 ? 12 : h % 12
+  if (h < 4) return `रात ${clock} बजे`
+  if (h < 12) return `सुबह ${clock} बजे`
+  if (h < 16) return `दोपहर ${clock} बजे`
+  if (h < 19) return `शाम ${clock} बजे`
+  return `रात ${clock} बजे`
+}
+
+export default [
+  translation(greetingWord, (hour) => {
+    if (hour < 12) return 'गुड मॉर्निंग'
+    if (hour < 17) return 'नमस्ते'
+    return 'गुड ईवनिंग'
+  }),
+  translation(briefingSentence, (input) => {
+    const { greeting, firstName, ordersToday, salesToday, toShip } = input
+    const hello = firstName ? `${greeting}, ${firstName}।` : `${greeting}।`
+    if (ordersToday === 0) {
+      return `${hello} आज अभी तक कोई ऑर्डर नहीं आया।`
+    }
+    const came = ordersToday === 1 ? 'आया' : 'आए'
+    const base = `${hello} आज ${ordersToday} ऑर्डर ${came}, कुल ${salesToday} के`
+    if (toShip === 0) return `${base}।`
+    return `${base}, ${toShip} भेजने बाकी हैं।`
+  }),
+  translation(homeContent, {
+    briefing: {
+      fallbackName: '',
+    },
+    bestSelling: {
+      inStock: 'स्टॉक',
+      outOfStock: 'स्टॉक खत्म',
+    },
+    needsYou: {
+      title: 'आपके काम',
+      subtitle: 'आगे के काम जो सिर्फ़ आप कर सकते हैं',
+      allClearHeading: 'सब काम हो गया',
+      allClearBody: 'अभी किसी चीज़ पर ध्यान देने की ज़रूरत नहीं है। बढ़िया!',
+      rows: {
+        ordersToShip: {
+          label: (n) => (n === 1 ? '1 ऑर्डर भेजने के लिए तैयार है' : `${n} ऑर्डर भेजने के लिए तैयार हैं`),
+          help: 'पेमेंट हो गया, पैक हो गया, बस कूरियर का इंतज़ार है।',
+          cta: 'ऑर्डर भेजें',
+        },
+        upiToVerify: {
+          label: (n) => (n === 1 ? '1 UPI पेमेंट चेक करना है' : `${n} UPI पेमेंट चेक करने हैं`),
+          help: 'ट्रांसफ़र को ऑर्डर से मिलाएं, फिर उसे पेमेंट हो गया मार्क करें।',
+          cta: 'पेमेंट चेक करें',
+        },
+        gstQueued: {
+          label: (n) => (n === 1 ? '1 GST इनवॉइस बाकी है' : `${n} GST इनवॉइस बाकी हैं`),
+          help: 'आपके जारी करने का इंतज़ार है।',
+          cta: 'इनवॉइस जारी करें',
+        },
+        lowStock: {
+          label: (n) => `${n} प्रोडक्ट का स्टॉक कम हो रहा है`,
+          help: 'इसी रफ़्तार से जल्दी खत्म हो जाएगा।',
+          cta: 'स्टॉक भरें',
+        },
+        preorderBalanceDue: {
+          label: (n) => `${n} प्री-ऑर्डर का बाकी पेमेंट आना है`,
+          help: 'एडवांस आ गया है, बाकी पैसा नहीं।',
+          cta: 'प्री-ऑर्डर देखें',
+        },
+        failedDeliveries: {
+          label: (n) => `${n} डिलीवरी नहीं हो पाई`,
+          help: 'कूरियर डिलीवर नहीं कर पाया, आगे क्या करना है यह आपको तय करना है।',
+          cta: 'डिलीवरी देखें',
+          comingSoon: 'कूरियर जब फ़ेल डिलीवरी की जानकारी भेजेगा, तब यह चालू होगा।',
+        },
+      },
+    },
+    insights: {
+      title: 'क्या चल रहा है',
+      salesUp: (pct, comparedTo) => `${comparedTo} के मुकाबले बिक्री ${pct} बढ़ी है।`,
+      salesDown: (pct, comparedTo) => `${comparedTo} के मुकाबले बिक्री ${pct} घटी है।`,
+      salesFlat: 'बिक्री पिछले हफ़्ते जितनी ही है।',
+      comparedToLastWeek: 'पिछले हफ़्ते के इसी समय',
+      bestSeller: (title, units) => `इस हफ़्ते सबसे ज़्यादा ${title} बिका, ${units} पीस।`,
+      lowStockNudge: (n) =>
+        n === 1
+          ? '1 प्रोडक्ट इसी रफ़्तार से जल्दी खत्म हो जाएगा।'
+          : `${n} प्रोडक्ट इसी रफ़्तार से जल्दी खत्म हो जाएंगे।`,
+      streak: (n) =>
+        n <= 1 ? 'आज से आपकी लगातार बिक्री का पहला दिन है।' : `आप लगातार ${n} दिन से कुछ न कुछ बेच रहे हैं।`,
+      noData: 'एक हफ़्ते के ऑर्डर आने के बाद यहाँ जानकारी दिखेगी।',
+    },
+    liveGlobe: {
+      title: 'लाइव व्यू',
+      subtitle: 'दुनिया भर से आते ऑर्डर, उसी समय',
+      empty: 'शिपिंग पते वाले ऑर्डर आने पर वे यहाँ ग्लोब पर दिखेंगे।',
+      ordersToday: 'आज के ऑर्डर',
+      salesToday: 'आज की बिक्री',
+      visitorsNow: 'अभी के विज़िटर',
+      tooltipOrder: (number) => `ऑर्डर #${number}`,
+      unsupported: 'आपका ब्राउज़र 3-D ग्लोब नहीं दिखा सकता, इसलिए यहाँ ऑर्डर की लिस्ट है।',
+      // Licence attribution: kept exactly as the English.
+      credit: 'Globe: cobe (MIT). Made with Natural Earth',
+    },
+    liveStream: {
+      title: 'नए ऑर्डर',
+      empty: 'नए ऑर्डर आते ही यहाँ दिखेंगे।',
+      viewAll: 'सारे ऑर्डर देखें',
+    },
+    goal: {
+      title: 'महीने का बिक्री टारगेट',
+      edit: 'टारगेट बदलें',
+      save: 'टारगेट सेव करें',
+      cancel: 'कैंसिल करें',
+      setGoal: 'टारगेट रखें',
+      inputLabel: 'इस महीने का बिक्री टारगेट',
+      inputHelp: 'अभी यह सिर्फ़ इसी डिवाइस पर सेव है।',
+      inputError: '₹1 से ₹1,00,00,000 के बीच रकम डालें।',
+      percentDone: (pct) => `${pct}% पूरा हो गया`,
+      progressOf: (done, goal) => `${goal} में से ${done}`,
+      daysLeft: (n) => `${n} दिन बाकी`,
+      projected: (amount) => `इसी रफ़्तार से महीना लगभग ${amount} पर खत्म होगा।`,
+      noGoal: 'इस महीने की बिक्री पर नज़र रखने के लिए टारगेट रखें।',
+      noGoalSuggested: (amount) =>
+        `इस महीने की बिक्री पर नज़र रखने के लिए टारगेट रखें। पिछले महीने आपकी बिक्री ${amount} थी, यह एक अच्छा टारगेट हो सकता है।`,
+      record: (amount, when) => `अब तक का सबसे अच्छा दिन: ${when} को ${amount}।`,
+      noRecord: 'बिक्री होने पर आपका सबसे अच्छा दिन यहाँ दिखेगा।',
+    },
+    charts: {
+      sectionTitle: 'आपका काम कैसा चल रहा है',
+      sectionSubtitle: 'बिक्री, प्रोडक्ट और पेमेंट पर एक नज़र',
+      range7: '7 दिन',
+      range30: '30 दिन',
+      range90: '90 दिन',
+      salesTitle: 'समय के साथ बिक्री',
+      salesLine: (pct, up) =>
+        up ? `पिछले समय के मुकाबले बिक्री ${pct} बढ़ी है।` : `पिछले समय के मुकाबले बिक्री ${pct} घटी है।`,
+      salesFlat: 'बिक्री पिछले समय जितनी ही है।',
+      salesNoPrevious: 'पिछले समय से तुलना के लिए अभी काफ़ी डेटा नहीं है।',
+      salesEmpty: 'पेमेंट वाले ऑर्डर आने पर यहाँ बिक्री की लाइन दिखेगी।',
+      ordersToggle: 'ऑर्डर',
+      salesToggle: 'बिक्री',
+      previous: 'पिछला समय',
+      topProductsTitle: 'टॉप प्रोडक्ट',
+      topProductsLine: (title) => `इस समय में सबसे ज़्यादा कमाई ${title} से हुई।`,
+      topProductsEmpty: 'इस समय के सबसे ज़्यादा बिकने वाले प्रोडक्ट यहाँ दिखेंगे।',
+      stateTitle: 'राज्य के हिसाब से बिक्री',
+      stateLine: (name, pct) => `पिछले 30 दिनों की ${pct} बिक्री ${name} से आई।`,
+      stateEmpty: 'शिपिंग पते वाले ऑर्डर आने पर यहाँ राज्य के हिसाब से बिक्री दिखेगी।',
+      paymentTitle: 'ग्राहक कैसे पेमेंट करते हैं',
+      paymentLine: (label, pct) => `${pct} ऑर्डर का पेमेंट ${label} से हुआ।`,
+      paymentEmpty: 'ऑर्डर आने पर यहाँ पेमेंट का हिसाब दिखेगा।',
+      statusTitle: 'स्टेटस के हिसाब से ऑर्डर',
+      statusLine: (label, pct) => `पिछले 30 दिनों के ${pct} ऑर्डर ${label} हैं।`,
+      statusEmpty: 'ऑर्डर आने पर यहाँ स्टेटस का हिसाब दिखेगा।',
+      statusLabels: {
+        to_ship: 'भेजने बाकी',
+        shipped: 'शिप हो चुके',
+        delivered: 'डिलीवर हो चुके',
+        cancelled: 'कैंसिल',
+      },
+      heatmapTitle: 'लोग कब खरीदते हैं',
+      heatmapLine: (day, from, to) => `ज़्यादातर ऑर्डर ${day}वार को ${from} से ${to} के बीच आते हैं।`,
+      heatmapEmpty: 'कुछ हफ़्तों के ऑर्डर आने पर यहाँ पैटर्न दिखेगा।',
+      heatmapLegendLow: 'कम',
+      heatmapLegendHigh: 'ज़्यादा',
+      hourLabel: hindiHour,
+      heatmapCell: (day, hour, count) => `${day}वार, ${hour}: ${count} ऑर्डर`,
+      days: ['रवि', 'सोम', 'मंगल', 'बुध', 'गुरु', 'शुक्र', 'शनि'],
+      todayVsYesterday: 'आज और कल की तुलना',
+    },
+  }),
+]

@@ -12,6 +12,7 @@ import Link from 'next/link'
 import DataCard from '@/components/layout/data-card'
 import IconBadge from '@/components/layout/icon-badge'
 import { homeContent } from '@/data/home'
+import { getCopy } from '@/lib/copy-server'
 
 type NeedsYouListProps = {
   needsYou: DashboardSummary['needsYou']
@@ -28,8 +29,10 @@ type Row = {
 }
 
 /** Live rows only: a zero-count queue has nothing to act on. */
-function buildRows(needsYou: NeedsYouListProps['needsYou']): Row[] {
-  const c = homeContent.needsYou.rows
+function buildRows(
+  needsYou: NeedsYouListProps['needsYou'],
+  c: (typeof homeContent)['needsYou']['rows'],
+): Row[] {
   const rows: Row[] = []
   if (needsYou.ordersToShip.count > 0) {
     rows.push({
@@ -95,10 +98,10 @@ function buildRows(needsYou: NeedsYouListProps['needsYou']): Row[] {
  * due), each with a plain count and a deep link. Nothing to do shows one calm
  * "all caught up" state instead of an empty list.
  */
-export default function NeedsYouList({ needsYou }: NeedsYouListProps) {
+export default async function NeedsYouList({ needsYou }: NeedsYouListProps) {
   // Render logic
-  const c = homeContent.needsYou
-  const rows = buildRows(needsYou)
+  const c = (await getCopy(homeContent)).needsYou
+  const rows = buildRows(needsYou, c.rows)
 
   return (
     <DataCard title={c.title} meta={c.subtitle}>

@@ -14,9 +14,9 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
 import type { OrderPayment } from './order-detail-types'
 
 type RefundDialogProps = {
@@ -41,6 +41,8 @@ export default function RefundDialog({
   onDone,
 }: RefundDialogProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
@@ -56,7 +58,7 @@ export default function RefundDialog({
         amountPaise: paise,
         reason: reason.trim() || undefined,
       })
-      toast.success(copy.refundDialog.done(formatPaise(paise)))
+      toast.success(copy.refundDialog.done(fmt.money(paise)))
       setAmount('')
       setReason('')
       onDone()
@@ -79,7 +81,7 @@ export default function RefundDialog({
           <DialogHeader>
             <DialogTitle>{copy.refundDialog.title}</DialogTitle>
             <DialogDescription>
-              {copy.refundDialog.body(formatPaise(remainingPaise))}
+              {copy.refundDialog.body(fmt.money(remainingPaise))}
               {offline ? ` ${copy.refundDialog.manualNote}` : ''}
             </DialogDescription>
           </DialogHeader>
@@ -121,7 +123,7 @@ export default function RefundDialog({
             </Button>
             <Button type="submit" disabled={!valid || busy}>
               {copy.refundDialog.confirm}
-              {valid ? ` ${formatPaise(paise)}` : ''}
+              {valid ? ` ${fmt.money(paise)}` : ''}
             </Button>
           </DialogFooter>
         </form>

@@ -21,6 +21,7 @@ import ProductFilters, { type StockFilter } from '@/components/products/product-
 import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
 import RowIconCells from '@/components/table/row-icon-cells'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -50,7 +51,6 @@ type Query = {
 
 const PER_PAGE = LIST_PER_PAGE
 const STOCK_FILTERS = ['in', 'out', 'low'] as const
-const copy = productsListContent
 
 function listInput(q: Query) {
   return {
@@ -69,6 +69,8 @@ function hasFilters(q: Query) {
 
 function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
+  const copy = useCopy(productsListContent)
+  const fmt = useFormat()
   usePrimaryAction('/products/new')
   const [q, setQ] = useQueryStates(
     {
@@ -224,7 +226,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
     >
       <ResourceTable
         resourceName={copy.resource}
-        columns={productColumns}
+        columns={productColumns(copy, fmt)}
         items={items}
         getId={(p) => p.id}
         href={(p) => `/products/${p.id}`}

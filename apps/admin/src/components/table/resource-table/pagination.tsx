@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { tableContent } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 
 type PaginationProps = {
   page: number
@@ -21,6 +22,9 @@ export default function ResourceTablePagination({
   total,
   onPageChange,
 }: PaginationProps) {
+  // Hooks
+  const tableCopy = useCopy(tableContent)
+
   // Render logic
   const totalPages = Math.max(1, Math.ceil(total / perPage))
   const from = total === 0 ? 0 : (page - 1) * perPage + 1
@@ -31,18 +35,16 @@ export default function ResourceTablePagination({
       aria-label="Pagination"
       className="flex min-h-13 items-center justify-between gap-3 px-4 py-2.5 text-body md:px-6 text-muted-foreground"
     >
-      <span className="tabular-nums">{tableContent.range(from, to, total)}</span>
+      <span className="tabular-nums">{tableCopy.range(from, to, total)}</span>
       <div className="flex items-center gap-3">
-        <span className="hidden tabular-nums sm:inline">
-          {tableContent.pageOf(page, totalPages)}
-        </span>
+        <span className="hidden tabular-nums sm:inline">{tableCopy.pageOf(page, totalPages)}</span>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             className={ARROW}
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            aria-label={tableContent.previous}
+            aria-label={tableCopy.previous}
           >
             <ChevronLeftIcon />
           </button>
@@ -51,7 +53,7 @@ export default function ResourceTablePagination({
             className={ARROW}
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
-            aria-label={tableContent.next}
+            aria-label={tableCopy.next}
           >
             <ChevronRightIcon />
           </button>

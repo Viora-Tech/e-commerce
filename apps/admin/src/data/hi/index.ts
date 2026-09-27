@@ -1,10 +1,39 @@
 import type { TranslationPair } from '@/lib/i18n'
 import account from './account'
+import common from './common'
+import dates from './dates'
+import home from './home'
+import layout from './layout'
+import navigation from './navigation'
 import onboarding from './onboarding'
+import orders from './orders'
+import payments from './payments'
+import paymentsSetup from './payments-setup'
+import products from './products'
+import settings from './settings'
+import shipping from './shipping'
+import shippingRates from './shipping-rates'
+import table from './table'
 
 /**
  * Every Hindi translation, as [English export, Hindi overlay] pairs. A `data/<feature>.ts`
  * with no entry here stays English. Add a feature: write `data/hi/<feature>.ts` (default
  * export: an array of `translation(...)` pairs) and spread it in below.
  */
-export const hindiCopy: readonly TranslationPair[] = [...account, ...onboarding]
+export const hindiCopy: readonly TranslationPair[] = [
+  ...account,
+  ...common,
+  ...dates,
+  ...home,
+  ...layout,
+  ...navigation,
+  ...onboarding,
+  ...orders,
+  ...payments,
+  ...paymentsSetup,
+  ...products,
+  ...settings,
+  ...shipping,
+  ...shippingRates,
+  ...table,
+]

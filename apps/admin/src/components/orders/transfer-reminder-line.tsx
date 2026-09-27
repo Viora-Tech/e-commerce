@@ -1,8 +1,7 @@
 import { CircleCheck, Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { orderDetailContent } from '@/data/orders'
-import { formatAgo, formatWhen } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 
 type TransferReminderLineProps = {
@@ -12,8 +11,6 @@ type TransferReminderLineProps = {
   onMarkPaid?: (() => void) | undefined
   busy: boolean
 }
-
-const copy = orderDetailContent.payment.transfer
 
 /** Matches the API's limit: one reminder per order every 6 hours. */
 const REMINDER_EVERY_MS = 6 * 3_600_000
@@ -29,7 +26,12 @@ export default function TransferReminderLine({
   onMarkPaid,
   busy,
 }: TransferReminderLineProps) {
+  // Hooks
+  const detail = useCopy(orderDetailContent)
+  const fmt = useFormat()
+
   // Render logic
+  const copy = detail.payment.transfer
   const sentAt = order.paymentReminderSentAt ? new Date(order.paymentReminderSentAt) : null
   const nextAt = sentAt ? new Date(sentAt.getTime() + REMINDER_EVERY_MS) : null
   const tooSoon = nextAt !== null && nextAt.getTime() > Date.now()
@@ -41,8 +43,8 @@ export default function TransferReminderLine({
           <span className="font-medium">{copy.waiting}</span>
           <span className="text-muted-foreground">
             {' '}
-            · {sentAt ? copy.reminderSent(formatAgo(sentAt)) : copy.noReminder}
-            {tooSoon && nextAt ? ` · ${copy.nextAt(formatWhen(nextAt))}` : null}
+            · {sentAt ? copy.reminderSent(fmt.ago(sentAt)) : copy.noReminder}
+            {tooSoon && nextAt ? ` · ${copy.nextAt(fmt.when(nextAt))}` : null}
           </span>
         </p>
         <Button size="sm" variant="outline" onClick={onSend} disabled={busy || tooSoon}>
@@ -53,7 +55,7 @@ export default function TransferReminderLine({
       {onMarkPaid ? (
         <div className="flex flex-wrap items-center justify-between gap-3 border-border border-t pt-3">
           <p className="text-body text-muted-foreground">
-            {copy.hint(formatPaise(order.balance.balancePaise))}
+            {copy.hint(fmt.money(order.balance.balancePaise))}
           </p>
           <Button size="sm" onClick={onMarkPaid} disabled={busy}>
             <CircleCheck aria-hidden="true" />

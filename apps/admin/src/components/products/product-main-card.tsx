@@ -5,6 +5,7 @@ import type { RichTextValue } from '@commerce/richtext'
 import type { ReactNode } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { ProductFormState, VariantRow } from './form-state'
 import ProductBasicsSection from './product-basics-section'
 import ProductPricingSection from './product-pricing-section'
@@ -23,8 +24,6 @@ type ProductMainCardProps = {
   /** The media card, drawn first so the jump nav reads top to bottom: Media, Details, Pricing, Inventory. */
   media?: ReactNode
 }
-
-const copy = productFormContent
 
 /** Jump-nav targets land below the sticky page header instead of under it. */
 const SECTION = 'scroll-mt-44'
@@ -46,6 +45,9 @@ export default function ProductMainCard({
   onReason,
   media,
 }: ProductMainCardProps) {
+  // Hooks
+  const copy = useCopy(productFormContent)
+
   // Event handlers
   const handleDescription = (description: RichTextValue) => onPatch({ description })
 

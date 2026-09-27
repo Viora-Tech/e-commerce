@@ -9,6 +9,7 @@ import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick
 import type { MediaTileItem } from '@/components/media/media-tile'
 import { useUploadQueue } from '@/components/media/use-upload-queue'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ProductImageCardProps = {
   items: MediaTileItem[]
@@ -18,13 +19,12 @@ type ProductImageCardProps = {
   onUploading?: ((busy: boolean) => void) | undefined
 }
 
-const copy = productFormContent.media
-
 const ACCEPT = 'image/*,video/mp4'
 
 /** Frame 5:5208: a 266px cover well with Browse and Replace, then a strip of 98px thumbs and the dashed add tile. */
 export default function ProductImageCard({ items, onChange, onUploading }: ProductImageCardProps) {
   // Hooks
+  const { media: copy } = useCopy(productFormContent)
   const queue = useUploadQueue((done) => onChange((prev) => [...prev, done]))
   const [editing, setEditing] = useState<MediaTileItem | null>(null)
   const [picking, setPicking] = useState(false)

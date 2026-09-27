@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import { paymentsSetupContent as copy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AddGatewayDialog from './add-gateway-dialog'
 import AdvancedSection from './advanced-section'
@@ -33,6 +34,7 @@ type PaymentsOverviewProps = {
  */
 export default function PaymentsOverview({ setup, onReload, onOpenGuide }: PaymentsOverviewProps) {
   // Hooks
+  const copy = useCopy(paymentsSetupContent)
   const router = useRouter()
   const [methods, setMethods] = useState<CheckoutMethodRow[]>(setup.methods)
   const [savingMethods, setSavingMethods] = useState(false)

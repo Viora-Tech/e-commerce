@@ -5,7 +5,8 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type TagsCardProps = {
@@ -17,6 +18,7 @@ type TagsCardProps = {
 /** Free-form labels for filtering later; saved on every add/remove. */
 export default function TagsCard({ orderId, tags, onChanged }: TagsCardProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
 

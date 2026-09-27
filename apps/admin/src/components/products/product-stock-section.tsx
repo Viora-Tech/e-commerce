@@ -14,6 +14,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { VariantRow } from './form-state'
 
 type ProductStockSectionProps = {
@@ -27,14 +28,12 @@ type ProductStockSectionProps = {
   onReason: (reason: InventoryReason) => void
 }
 
-const copy = productFormContent.inventory
-
-const reasonItems = Object.fromEntries(copy.reasons.map((r) => [r.value, r.label]))
+type InventoryCopy = (typeof productFormContent)['inventory']
 
 const LOW_STOCK = 5
 
 /** What the storefront would say about this variant right now. */
-function stockState(variant: VariantRow): string {
+function stockState(copy: InventoryCopy, variant: VariantRow): string {
   if (!variant.trackInventory) return copy.stockStates.unlimited
   const quantity = Number(variant.quantity)
   if (!Number.isFinite(quantity) || quantity <= 0) return copy.stockStates.out
@@ -51,10 +50,14 @@ export default function ProductStockSection({
   onFeatured,
   onReason,
 }: ProductStockSectionProps) {
+  // Hooks
+  const { inventory: copy } = useCopy(productFormContent)
+
   // Event handlers
   const handleUnlimited = (unlimited: boolean) => onVariant({ trackInventory: !unlimited })
 
   // Render logic
+  const reasonItems = Object.fromEntries(copy.reasons.map((r) => [r.value, r.label]))
   const unlimited = !variant.trackInventory
 
   return (
@@ -86,7 +89,12 @@ export default function ProductStockSection({
           </div>
         </div>
         <KitField label={copy.stockStatus} help={unlimited ? copy.unlimitedHelp : undefined}>
-          <Input size="kit" value={stockState(variant)} readOnly aria-label={copy.stockStatus} />
+          <Input
+            size="kit"
+            value={stockState(copy, variant)}
+            readOnly
+            aria-label={copy.stockStatus}
+          />
         </KitField>
       </div>
 

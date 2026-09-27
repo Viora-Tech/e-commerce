@@ -5,6 +5,7 @@ import TagInput from '@/components/fields/tag-input'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { Facets } from './form-state'
 import ProductCategoryPicker from './product-category-picker'
 
@@ -19,8 +20,6 @@ type ProductCategoriesCardProps = {
   onProductType: (value: string) => void
   onTags: (tags: string[]) => void
 }
-
-const copy = productFormContent.categories
 
 /** Named colours we can show as a swatch; anything else falls back to a labelled chip. */
 const SWATCHES: Record<string, string> = {
@@ -61,6 +60,10 @@ export default function ProductCategoriesCard({
   onProductType,
   onTags,
 }: ProductCategoriesCardProps) {
+  // Hooks
+  const formCopy = useCopy(productFormContent)
+  const copy = formCopy.categories
+
   // Render logic
   return (
     <DataCard title={copy.heading}>
@@ -84,7 +87,7 @@ export default function ProductCategoriesCard({
             tags={tags}
             suggestions={facets.tags}
             onChange={onTags}
-            placeholder={productFormContent.organisation.tagsPlaceholder}
+            placeholder={formCopy.organisation.tagsPlaceholder}
           />
         </KitField>
         {colours.length ? (

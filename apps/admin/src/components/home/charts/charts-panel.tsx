@@ -4,6 +4,7 @@ import type { DashboardChartsData } from '@commerce/api'
 import { useEffect, useState } from 'react'
 import PillTabs from '@/components/layout/pill-tabs'
 import { homeContent } from '@/data/home'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import SalesOrdersChart from './sales-orders-chart'
 import TopProductsChart from './top-products-chart'
@@ -22,6 +23,7 @@ type RangeTab = { value: '7' | '30' | '90'; label: string }
  */
 export default function ChartsPanel({ initialRange, initial }: ChartsPanelProps) {
   // Hooks
+  const copy = useCopy(homeContent)
   const [range, setRange] = useState<7 | 30 | 90>(initialRange)
   const [data, setData] = useState(initial)
   const [loading, setLoading] = useState(false)
@@ -45,7 +47,7 @@ export default function ChartsPanel({ initialRange, initial }: ChartsPanelProps)
   }, [range, initialRange, initial])
 
   // Render logic
-  const c = homeContent.charts
+  const c = copy.charts
   const tabs: RangeTab[] = [
     { value: '7', label: c.range7 },
     { value: '30', label: c.range30 },

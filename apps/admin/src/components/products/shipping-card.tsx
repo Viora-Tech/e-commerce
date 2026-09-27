@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import MoneyInput from '@/components/fields/money-input'
 import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { VariantRow } from './form-state'
 
@@ -37,7 +38,6 @@ type ShippingCardProps = {
   onPackage: (patch: Partial<VariantRow>) => void
 }
 
-const copy = productFormContent.shipping
 const NONE = '__none'
 const STORE_DEFAULT = '__store_default'
 const CUSTOM = '__custom'
@@ -76,6 +76,7 @@ export default function ShippingCard({
   onPackage,
 }: ShippingCardProps) {
   // Hooks
+  const { shipping: copy } = useCopy(productFormContent)
   const [boxPresets, setBoxPresets] = useState<BoxPreset[]>([])
   /* "Custom size" picked but no dimension typed yet still shows the inputs. */
   const [customPicked, setCustomPicked] = useState(false)

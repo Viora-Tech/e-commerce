@@ -19,7 +19,8 @@ import {
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { shippingSettingsContent as copy } from '@/data/shipping'
+import { shippingSettingsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 
 type ShippingPolicyFieldsProps = {
   value: ShippingPolicySettings
@@ -27,8 +28,6 @@ type ShippingPolicyFieldsProps = {
 }
 
 type Warehouse = ShippingPolicySettings['warehouse']
-
-const p = copy.policy
 
 const toDays = (selected: number[]) =>
   [...new Set(selected)].filter((n) => n >= 1 && n <= 7).sort((a, b) => a - b)
@@ -52,6 +51,9 @@ type WeekdayPickerProps = {
 
 /** Seven checkboxes in a row. */
 function WeekdayPicker({ name, legend, selected, onChange }: WeekdayPickerProps) {
+  // Hooks
+  const copy = useCopy(shippingSettingsContent)
+
   // Helpers
   const toggle = (day: number, on: boolean) =>
     onChange(toDays(on ? [...selected, day] : selected.filter((d) => d !== day)))
@@ -108,6 +110,9 @@ function TextField({ id, label, value, onChange, help, type = 'text' }: TextFiel
 
 /** "When orders go out" on Settings › Shipping: the everyday dispatch fields, the rest under More options. */
 export default function ShippingPolicyFields({ value, onChange }: ShippingPolicyFieldsProps) {
+  // Hooks
+  const { policy: p } = useCopy(shippingSettingsContent)
+
   // Helpers
   const set = <K extends keyof ShippingPolicySettings>(k: K, v: ShippingPolicySettings[K]) =>
     onChange({ ...value, [k]: v })

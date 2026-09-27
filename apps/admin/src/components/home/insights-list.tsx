@@ -2,6 +2,8 @@ import type { DashboardSummary } from '@commerce/api'
 import { Sparkle } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
+import { getCopy, getLocale } from '@/lib/copy-server'
+import { INTL_LOCALE, type Locale } from '@/lib/i18n'
 
 type InsightsListProps = {
   insight: DashboardSummary['insight']
@@ -9,14 +11,21 @@ type InsightsListProps = {
   streakDays: number
 }
 
-const PERCENT = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 0 })
+const PERCENT_OPTIONS = { style: 'percent', maximumFractionDigits: 0 } as const
+const PERCENT: Record<Locale, Intl.NumberFormat> = {
+  en: new Intl.NumberFormat(INTL_LOCALE.en, PERCENT_OPTIONS),
+  hi: new Intl.NumberFormat(INTL_LOCALE.hi, PERCENT_OPTIONS),
+}
 
 /** Plain sentences built from real numbers: sales trend, best seller, low stock, streak. */
-function buildLines(input: InsightsListProps): string[] {
-  const c = homeContent.insights
+function buildLines(
+  input: InsightsListProps,
+  c: (typeof homeContent)['insights'],
+  locale: Locale,
+): string[] {
   const lines: string[] = []
   if (input.insight.salesChange !== null) {
-    const pct = PERCENT.format(Math.abs(input.insight.salesChange))
+    const pct = PERCENT[locale].format(Math.abs(input.insight.salesChange))
     if (input.insight.salesChange > 0.02) lines.push(c.salesUp(pct, c.comparedToLastWeek))
     else if (input.insight.salesChange < -0.02) lines.push(c.salesDown(pct, c.comparedToLastWeek))
     else lines.push(c.salesFlat)
@@ -34,10 +43,11 @@ function buildLines(input: InsightsListProps): string[] {
 }
 
 /** 2 to 4 plain-language reads on the week, no charts: what a busy owner wants to know. */
-export default function InsightsList({ insight, needsYou, streakDays }: InsightsListProps) {
+export default async function InsightsList({ insight, needsYou, streakDays }: InsightsListProps) {
   // Render logic
-  const c = homeContent.insights
-  const lines = buildLines({ insight, needsYou, streakDays })
+  const locale = await getLocale()
+  const c = (await getCopy(homeContent)).insights
+  const lines = buildLines({ insight, needsYou, streakDays }, c, locale)
 
   return (
     <DataCard title={c.title}>

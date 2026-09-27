@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import { tableContent } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 import { fast, instant } from '@/lib/motion'
 import {
   type CellAlign,
@@ -136,6 +137,7 @@ function actionsColumn<T extends RowData>(
 
 export default function ResourceTable<T extends RowData>(props: ResourceTableProps<T>) {
   // Hooks
+  const tableCopy = useCopy(tableContent)
   const router = useRouter()
   const reduced = useReducedMotion()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -188,7 +190,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           >
             <div className="flex min-h-11 flex-wrap items-center gap-3 border-b border-border bg-primary-soft/60 px-4 py-1.5 text-body md:px-6">
               <span className="font-medium text-ink-strong">
-                {tableContent.selected(
+                {tableCopy.selected(
                   selectedIds.length,
                   props.resourceName.singular,
                   props.resourceName.plural,
@@ -196,7 +198,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
               </span>
               {props.bulkActions(selectedIds, clearSelection)}
               <Button variant="ghost" size="sm" className="ml-auto" onClick={clearSelection}>
-                {tableContent.clearSelection}
+                {tableCopy.clearSelection}
               </Button>
             </div>
           </motion.div>
@@ -267,8 +269,8 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         </Table>
         {isEmpty ? (
           <EmptyState
-            heading={props.empty?.heading ?? tableContent.emptyHeading(props.resourceName.plural)}
-            body={props.empty?.body ?? tableContent.emptyBody}
+            heading={props.empty?.heading ?? tableCopy.emptyHeading(props.resourceName.plural)}
+            body={props.empty?.body ?? tableCopy.emptyBody}
             action={props.empty?.action}
           />
         ) : null}

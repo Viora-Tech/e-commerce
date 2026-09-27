@@ -19,6 +19,7 @@ import {
 } from '@tanstack/react-table'
 import type { ReactNode } from 'react'
 import { tableContent } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 import type { ResourceTableFeatures } from './features'
 
 // biome-ignore lint/suspicious/noExplicitAny: TanStack's own column arrays are typed with `any` for the value slot.
@@ -126,7 +127,13 @@ type ColumnHeaderProps<T extends RowData> = {
 }
 
 function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderProps<T>) {
+  // Hooks
+  const tableCopy = useCopy(tableContent)
+
+  // Early returns
   if (!column.getCanSort()) return <PlainHeader title={title} align={align} />
+
+  // Render logic
   const sorted = column.getIsSorted()
   const Icon = sorted === 'desc' ? ArrowDown : sorted === 'asc' ? ArrowUp : ChevronsUpDown
 
@@ -150,18 +157,18 @@ function ColumnHeader<T extends RowData>({ column, title, align }: ColumnHeaderP
         <DropdownMenuContent align={align === 'end' ? 'end' : 'start'}>
           <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
             <ArrowUp />
-            {tableContent.sortAsc}
+            {tableCopy.sortAsc}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
             <ArrowDown />
-            {tableContent.sortDesc}
+            {tableCopy.sortDesc}
           </DropdownMenuItem>
           {column.getCanHide() ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => column.toggleVisibility(false)}>
                 <EyeOff />
-                {tableContent.hideColumn}
+                {tableCopy.hideColumn}
               </DropdownMenuItem>
             </>
           ) : null}

@@ -8,7 +8,9 @@ import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { shipmentPanelContent } from '@/data/shipping'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { OrderDetail } from './order-detail-types'
 import { buildEntries, type EntryKind, groupByDay } from './timeline-entries'
@@ -30,6 +32,9 @@ const ICON: Record<EntryKind, typeof Bell> = {
 /** Order history grouped by day, with a note composer at the top. */
 export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
+  const shipping = useCopy(shipmentPanelContent)
+  const fmt = useFormat()
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -50,7 +55,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
   }
 
   // Render logic
-  const days = groupByDay(buildEntries(order))
+  const days = groupByDay(buildEntries(order, copy, shipping, fmt), fmt)
 
   return (
     <DataCard title={copy.timeline.heading} className="print:hidden">

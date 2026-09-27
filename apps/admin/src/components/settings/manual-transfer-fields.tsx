@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Switch } from '@commerce/ui/shadcn/switch'
-import { paymentsSettingsContent as copy } from '@/data/payments'
+import { paymentsSettingsContent } from '@/data/payments'
+import { useCopy } from '@/hooks/use-copy'
 
 type ManualTransferFieldsProps = {
   /** Hours after the order is placed; 0 means auto-cancel is off. */
@@ -25,6 +26,9 @@ const toHours = (raw: string): number => {
 
 /** Settings › Payments: opt-in auto-cancel for UPI / bank transfer orders never paid. */
 export default function ManualTransferFields({ cancelHours, onChange }: ManualTransferFieldsProps) {
+  // Hooks
+  const copy = useCopy(paymentsSettingsContent)
+
   // Render logic
   const on = cancelHours > 0
 

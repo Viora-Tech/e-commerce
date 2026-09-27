@@ -8,11 +8,10 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { type SetupItemId, settingsHomeContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Item = { id: SetupItemId; done: boolean }
-
-const copy = settingsHomeContent.checklist
 
 /**
  * "Get your shop ready": the setup checklist with a progress bar. Each item's
@@ -20,6 +19,7 @@ const copy = settingsHomeContent.checklist
  */
 export default function SetupChecklistCard() {
   // Hooks
+  const { checklist: copy } = useCopy(settingsHomeContent)
   const [items, setItems] = useState<Item[] | null>(null)
   const [failed, setFailed] = useState(false)
 

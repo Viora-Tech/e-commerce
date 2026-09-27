@@ -5,6 +5,7 @@ import { cn } from '@commerce/ui/lib/utils'
 import { useState } from 'react'
 import MediaPickDialog, { type MediaItem as PickerItem } from '@/components/media/media-pick-dialog'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { MediaItem } from './form-state'
 
 type VariantImagePickerProps = {
@@ -13,8 +14,6 @@ type VariantImagePickerProps = {
   label: string
   onChange: (mediaId: string | null) => void
 }
-
-const copy = productFormContent.variantBulk
 
 function toPickerItems(media: MediaItem[]): PickerItem[] {
   return media.map((m) => ({
@@ -35,6 +34,7 @@ export default function VariantImagePicker({
   onChange,
 }: VariantImagePickerProps) {
   // Hooks
+  const { variantBulk: copy } = useCopy(productFormContent)
   const [picking, setPicking] = useState(false)
 
   // Event handlers

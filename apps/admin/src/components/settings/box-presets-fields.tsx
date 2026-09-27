@@ -7,14 +7,13 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
-import { shippingSettingsContent as appCopy } from '@/data/shipping'
+import { shippingSettingsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 
 type BoxPresetsFieldsProps = {
   value: BoxPreset[] | undefined
   onChange: (next: BoxPreset[]) => void
 }
-
-const copy = appCopy.boxPresets
 
 const blankBox = (): BoxPreset => ({
   id: crypto.randomUUID(),
@@ -29,6 +28,9 @@ const blankBox = (): BoxPreset => ({
 /** Settings → Shipping's named boxes, stored in the shipping settings JSON. The booking flow
  *  pre-fills from whichever one is the default. */
 export default function BoxPresetsFields({ value, onChange }: BoxPresetsFieldsProps) {
+  // Hooks
+  const { boxPresets: copy } = useCopy(shippingSettingsContent)
+
   // Event handlers
   const handleAdd = () => {
     const boxes = value ?? []

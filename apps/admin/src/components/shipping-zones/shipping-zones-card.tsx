@@ -19,16 +19,17 @@ import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { INDIAN_STATES } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
 
-const copy = shippingRatesContent.list
+type ListCopy = (typeof shippingRatesContent)['list']
 
 const stateName = (code: string): string => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
 /** "Karnataka, Kerala · 2 PIN code rules", or "All of India". */
-function coverage(zone: LoadedZone): string {
+function coverage(copy: ListCopy, zone: LoadedZone): string {
   const includes = zone.pincodeRules.filter((r) => r.mode === 'include').length
   const excludes = zone.pincodeRules.length - includes
   if (zone.stateCodes.length === 0 && includes === 0) {
@@ -45,6 +46,8 @@ const zoneHref = (id: string) => `/settings/shipping/zones/${id}`
 /** Settings → Shipping → Shipping rates: every zone with what it covers and charges. */
 export default function ShippingZonesCard() {
   // Hooks
+  const ratesCopy = useCopy(shippingRatesContent)
+  const fmt = useFormat()
   const { hasPermission } = usePermissions()
   const [zones, setZones] = useState<LoadedZone[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -65,6 +68,7 @@ export default function ShippingZonesCard() {
   }, [])
 
   // Render logic
+  const copy = ratesCopy.list
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const create = canManage ? (
     <Button nativeButton={false} render={<Link href="/settings/shipping/zones/new" />}>
@@ -108,10 +112,12 @@ export default function ShippingZonesCard() {
                   >
                     {z.name}
                   </Link>
-                  <div className="text-caption text-muted-foreground md:hidden">{coverage(z)}</div>
+                  <div className="text-caption text-muted-foreground md:hidden">
+                    {coverage(copy, z)}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden align-top text-muted-foreground md:table-cell">
-                  {coverage(z)}
+                  {coverage(copy, z)}
                 </TableCell>
                 <TableCell className="pr-5 align-top whitespace-normal">
                   {z.rates.length === 0 ? (
@@ -122,7 +128,7 @@ export default function ShippingZonesCard() {
                         <li key={r.id} className="flex flex-wrap items-baseline gap-x-2">
                           <span className="text-body-strong">{r.name}</span>
                           <span className="text-caption text-muted-foreground">
-                            {describePrice(fromRate(r))}
+                            {describePrice(ratesCopy, fmt, fromRate(r))}
                           </span>
                         </li>
                       ))}

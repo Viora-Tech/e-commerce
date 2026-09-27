@@ -1,8 +1,8 @@
 import { ExternalLink } from '@commerce/ui/icons'
 import ProductThumb from '@/components/products/product-thumb'
 import RowIconCells from '@/components/table/row-icon-cells'
-import { orderDetailContent as copy } from '@/data/orders'
-import { formatPaise } from '@/lib/money'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderLine } from './order-detail-types'
 
 type LineRow = {
@@ -30,6 +30,10 @@ function variantOf(line: OrderLine): string {
  * columns left and figures right, edge to edge inside its section.
  */
 export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
+
   return (
     <div className="no-scrollbar -mx-4 overflow-x-auto md:-mx-6">
       <table className="w-full min-w-[42rem] border-collapse">
@@ -68,10 +72,10 @@ export default function OrderLinesTable({ rows }: OrderLinesTableProps) {
               <td className={`${CELL} text-muted-foreground`}>{variantOf(line)}</td>
               <td className={`${CELL} text-right tabular-nums`}>{quantity}</td>
               <td className={`${CELL} text-right text-muted-foreground tabular-nums`}>
-                {formatPaise(line.unitPricePaise)}
+                {fmt.money(line.unitPricePaise)}
               </td>
               <td className={`${CELL} text-right tabular-nums`}>
-                {formatPaise(line.unitPricePaise * quantity)}
+                {fmt.money(line.unitPricePaise * quantity)}
               </td>
               <td className="w-22 border-border border-t p-0">
                 {line.productId ? (

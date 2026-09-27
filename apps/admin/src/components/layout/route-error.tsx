@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PageBody from '@/components/layout/page-body'
 import { layoutContent } from '@/data/layout'
+import { useCopy } from '@/hooks/use-copy'
 
 type RouteErrorProps = {
   error: Error & { digest?: string }
@@ -15,6 +16,7 @@ type RouteErrorProps = {
 /** Shared body for every `error.tsx`: what went wrong, one retry. */
 export default function RouteError({ error, reset }: RouteErrorProps) {
   // Hooks
+  const layoutCopy = useCopy(layoutContent)
   useEffect(() => {
     console.error(error)
   }, [error])
@@ -23,11 +25,11 @@ export default function RouteError({ error, reset }: RouteErrorProps) {
     <PageBody>
       <EmptyState
         icon={CircleAlert}
-        heading={layoutContent.error.heading}
-        body={error.message || layoutContent.error.body}
+        heading={layoutCopy.error.heading}
+        body={error.message || layoutCopy.error.body}
         action={
           <Button variant="outline" onClick={reset}>
-            {layoutContent.error.retry}
+            {layoutCopy.error.retry}
           </Button>
         }
       />

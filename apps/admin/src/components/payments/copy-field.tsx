@@ -4,7 +4,8 @@ import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
-import { paymentsSetupContent as copy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 
 type CopyFieldProps = {
   id: string
@@ -14,6 +15,7 @@ type CopyFieldProps = {
 /** A read-only value with a Copy button, for things the merchant pastes into a gateway. */
 export default function CopyField({ id, value }: CopyFieldProps) {
   // Hooks
+  const copy = useCopy(paymentsSetupContent)
   const [copied, setCopied] = useState(false)
 
   // Event handlers

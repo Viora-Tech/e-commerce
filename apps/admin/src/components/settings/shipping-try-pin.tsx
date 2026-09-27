@@ -8,21 +8,21 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
-import { shippingSettingsContent as copy } from '@/data/shipping'
+import { shippingSettingsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Estimate = Awaited<ReturnType<typeof api.store.estimateDelivery>>
 type Tone = 'success' | 'warning' | 'critical'
+type TryPinCopy = (typeof shippingSettingsContent)['tryPin']
 
-function describe(r: Estimate): { tone: Tone; lines: string[] } {
-  if (!r.ok) return { tone: 'critical', lines: [r.error] }
-  if (!r.serviceable) return { tone: 'warning', lines: [copy.tryPin.unserviceable(r.reason)] }
-  const lines = [
-    copy.tryPin.serviceable(r.dateRange, r.dispatchLabel),
-    copy.tryPin.cod(r.codAvailable),
-  ]
+/** An empty `error` means our own "could not check" message, looked up at render. */
+function describe(copy: TryPinCopy, r: Estimate): { tone: Tone; lines: string[] } {
+  if (!r.ok) return { tone: 'critical', lines: [r.error || copy.failed] }
+  if (!r.serviceable) return { tone: 'warning', lines: [copy.unserviceable(r.reason)] }
+  const lines = [copy.serviceable(r.dateRange, r.dispatchLabel), copy.cod(r.codAvailable)]
 
-  if (r.fallback) lines.push(copy.tryPin.fallback)
+  if (r.fallback) lines.push(copy.fallback)
   return { tone: r.fallback ? 'warning' : 'success', lines }
 }
 
@@ -50,6 +50,7 @@ function ResultAlert({ tone, lines }: { tone: Tone; lines: string[] }) {
 /** "Check delivery to a pincode" on Settings › Shipping: what a customer there would see. Uses the saved settings. */
 export default function ShippingTryPin() {
   // Hooks
+  const copy = useCopy(shippingSettingsContent)
   const [pincode, setPincode] = useState('')
   const [estimate, setEstimate] = useState<Estimate | null>(null)
   const [checking, setChecking] = useState(false)
@@ -60,14 +61,14 @@ export default function ShippingTryPin() {
     try {
       setEstimate(await api.store.estimateDelivery({ pincode }))
     } catch (err) {
-      setEstimate({ ok: false, error: err instanceof Error ? err.message : copy.tryPin.failed })
+      setEstimate({ ok: false, error: err instanceof Error ? err.message : '' })
     } finally {
       setChecking(false)
     }
   }
 
   // Render logic
-  const shown = estimate ? describe(estimate) : null
+  const shown = estimate ? describe(copy.tryPin, estimate) : null
 
   return (
     <Card size="form">

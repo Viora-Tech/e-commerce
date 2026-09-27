@@ -7,6 +7,7 @@ import {
   InputGroupText,
 } from '@commerce/ui/shadcn/input-group'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type MoneyInputProps = {
   size?: 'default' | 'lg' | 'kit'
@@ -39,11 +40,14 @@ export default function MoneyInput({
   size = 'default',
   className,
 }: MoneyInputProps) {
+  // Hooks
+  const copy = useCopy(productFormContent)
+
   return (
     <InputGroup size={size} className={className}>
       {currency ? (
         <InputGroupAddon>
-          <InputGroupText aria-label={productFormContent.currency}>₹</InputGroupText>
+          <InputGroupText aria-label={copy.currency}>₹</InputGroupText>
         </InputGroupAddon>
       ) : null}
       <InputGroupInput

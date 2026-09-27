@@ -7,7 +7,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
-import { formatPaise } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { sanitizeGoalInput, suggestedGoalPaise } from '@/lib/sales-goal'
 
 type SalesGoalRingProps = {
@@ -34,6 +34,8 @@ function writeGoalCookie(paise: number): void {
 
 export default function SalesGoalRing({ month }: SalesGoalRingProps) {
   // Hooks
+  const copy = useCopy(homeContent)
+  const fmt = useFormat()
   const [goalPaise, setGoalPaise] = useState<number | null>(() => readGoalCookie())
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
@@ -59,7 +61,7 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
   }
 
   // Render logic
-  const c = homeContent.goal
+  const c = copy.goal
   const suggestion = suggestedGoalPaise(month.lastMonthSalesPaise)
   const daysLeft = Math.max(0, month.daysInMonth - month.dayOfMonth)
   const pct = goalPaise ? Math.min(100, Math.round((month.toDatePaise / goalPaise) * 100)) : 0
@@ -142,24 +144,22 @@ export default function SalesGoalRing({ month }: SalesGoalRingProps) {
             <div className="flex flex-col items-center gap-1 text-center">
               <p className="text-body-strong text-ink-strong">{c.percentDone(pct)}</p>
               <p className="text-caption text-muted-foreground">
-                {formatPaise(month.toDatePaise)} of {formatPaise(goalPaise)} ·{' '}
+                {c.progressOf(fmt.money(month.toDatePaise), fmt.money(goalPaise))} ·{' '}
                 {c.daysLeft(daysLeft)}
               </p>
               <p className="text-caption text-muted-foreground">
-                {c.projected(formatPaise(month.projectedPaise))}
+                {c.projected(fmt.money(month.projectedPaise))}
               </p>
             </div>
           ) : (
             <p className="text-body text-muted-foreground">
-              {suggestion ? c.noGoalSuggested(formatPaise(suggestion)) : c.noGoal}
+              {suggestion ? c.noGoalSuggested(fmt.money(suggestion)) : c.noGoal}
             </p>
           )}
           <div className="flex w-full items-center gap-2 border-border border-t pt-3">
             <FireIcon className="size-4 shrink-0 text-warning" />
             <p className="text-caption text-muted-foreground">
-              {month.bestDay
-                ? c.record(formatPaise(month.bestDayPaise), month.bestDay)
-                : c.noRecord}
+              {month.bestDay ? c.record(fmt.money(month.bestDayPaise), month.bestDay) : c.noRecord}
             </p>
           </div>
         </div>

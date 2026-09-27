@@ -9,6 +9,7 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import type { ReactNode } from 'react'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ProductMoreSectionProps = {
   children: ReactNode
@@ -17,14 +18,15 @@ type ProductMoreSectionProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = productFormContent.more
-
 /** Rarely-used cards (pre-order, custom data, template, stock history), collapsed by default. */
 export default function ProductMoreSection({
   children,
   open,
   onOpenChange,
 }: ProductMoreSectionProps) {
+  // Hooks
+  const { more: copy } = useCopy(productFormContent)
+
   // Render logic
   return (
     <section id="more" className="scroll-mt-44">
