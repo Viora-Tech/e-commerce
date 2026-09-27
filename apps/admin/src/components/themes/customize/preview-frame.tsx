@@ -5,6 +5,7 @@ import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
 import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
 import { usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
+import CanvasInsertLine from './canvas-insert-line'
 
 type PreviewFrameProps = {
   children: ReactNode
@@ -93,5 +94,10 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   }, [document])
 
   // Render logic
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {document ? <CanvasInsertLine document={document} /> : null}
+    </>
+  )
 }

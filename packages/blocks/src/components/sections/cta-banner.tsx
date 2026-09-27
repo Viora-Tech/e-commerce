@@ -3,6 +3,7 @@
 // Adapted from Magic UI's Shine Border (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
 import { motion, useReducedMotion } from 'motion/react'
+import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
 
 type CtaBannerProps = {
@@ -43,12 +44,16 @@ export default function CtaBanner({ heading, text, button, secondaryButton }: Ct
           {text ? <p className="text-body text-[var(--color-muted)]">{text}</p> : null}
           <div className="flex flex-wrap items-center justify-center gap-[0.75rem]">
             {button?.label ? (
-              <a className="btn btn--primary" href={button.href || '#'}>
+              <a className="btn btn--primary" href={button.href || '#'} {...linkTarget(button)}>
                 {button.label}
               </a>
             ) : null}
             {secondaryButton?.label ? (
-              <a className="btn btn--secondary" href={secondaryButton.href || '#'}>
+              <a
+                className="btn btn--secondary"
+                href={secondaryButton.href || '#'}
+                {...linkTarget(secondaryButton)}
+              >
                 {secondaryButton.label}
               </a>
             ) : null}

@@ -94,6 +94,7 @@ export const mediaContent = {
       used: { label: 'Used in', all: 'Any', used: 'Used on a product', unused: 'Not used' },
     },
     loading: 'Loading files…',
+    recent: 'Recently used',
     empty: 'Nothing uploaded yet',
     noResults: 'No files match your filters',
     cancel: 'Cancel',

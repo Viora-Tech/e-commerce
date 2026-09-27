@@ -18,6 +18,7 @@ import {
 } from '@/lib/customize-field-shape'
 import FieldFrame from './field-frame'
 import ImageField from './image-field'
+import LinkPicker from './link-picker'
 import ResponsiveNumberField from './responsive-number-field'
 import SectionSettingsGroups from './section-settings-groups'
 
@@ -89,22 +90,47 @@ export default function CustomizeObjectField({
     </>
   )
 
+  // An image (`{ url, alt }`) gets the media picker: preview, alt text and
+  // focal point replace the raw "Image URL" and "Alt text" sub-fields.
   if (isImageField(field)) {
     return (
       <FieldFrame label={label}>
-        <ImageField field={field} value={value} onChange={onChange}>
-          {subFields}
-        </ImageField>
+        <ImageField value={value} onChange={onChange} />
       </FieldFrame>
     )
   }
 
   // A button or link is two short fields (label + where it goes): shown open,
-  // since hiding them behind a toggle only adds a click.
+  // since hiding them behind a toggle only adds a click. Its `href` gets the
+  // link picker here rather than through AutoField, so the picker can also
+  // keep the object's optional `newTab` flag.
   if (isLinkField(field)) {
+    const hrefField = objectFields.href as { label?: string } | undefined
     return (
       <FieldFrame label={label}>
-        <div className="flex flex-col gap-3 rounded-lg border border-border p-2.5">{subFields}</div>
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-2.5">
+          {Object.entries(objectFields)
+            .filter(([key]) => key !== 'href')
+            .map(([key, subField]) => (
+              <AutoField
+                key={key}
+                field={subField}
+                value={objectValue[key]}
+                onChange={handleSubChange(key)}
+              />
+            ))}
+          <FieldFrame label={hrefField?.label ?? 'href'}>
+            <LinkPicker
+              value={objectValue.href as string | undefined}
+              onChange={handleSubChange('href')}
+              newTab={objectValue.newTab === true}
+              onNewTab={(next) => {
+                const { newTab: _drop, ...rest } = objectValue
+                onChange(next ? { ...rest, newTab: true } : rest)
+              }}
+            />
+          </FieldFrame>
+        </div>
       </FieldFrame>
     )
   }

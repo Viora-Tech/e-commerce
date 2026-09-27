@@ -1,4 +1,10 @@
-type Column = { title: string; text: string; image?: { url: string; alt: string } | undefined }
+import { type FocalPoint, focalStyle } from '../../focal-point'
+
+type Column = {
+  title: string
+  text: string
+  image?: { url: string; alt: string; focal?: FocalPoint | undefined } | undefined
+}
 
 type Props = { heading: string; columns: Column[] }
 
@@ -16,6 +22,7 @@ export default function Multicolumn({ heading, columns }: Props) {
                 className="multicolumn__image"
                 src={c.image.url}
                 alt={c.image.alt}
+                style={focalStyle(c.image.focal)}
                 loading="lazy"
               />
             ) : null}

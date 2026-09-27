@@ -181,6 +181,9 @@ export async function listMedia(tx: StoreTx, input: MediaListInput) {
       size: media.size,
       width: media.width,
       height: media.height,
+      /* For the pickers' <Picture> previews: responsive variants and the ThumbHash blur-up. */
+      variants: sql<Record<string, { avif: string; webp: string }> | null>`${media.variants}`,
+      thumbhash: media.thumbhash,
       createdAt: media.createdAt,
       /* Drizzle renders correlated columns unqualified inside a single-table select, so spell the join out. */
       usedBy: sql<number>`(select count(*)::int from product_media pm where pm.media_id = media.id)`,

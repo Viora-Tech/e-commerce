@@ -57,15 +57,15 @@ A section wires it in by adding `settings: sectionSettingsField(SCHEMES)` to its
 by hand: `framed()` in `packages/blocks/src/sections/framed.tsx` (used by `library.tsx` and
 the newer `modern.tsx`) adds both, and wraps the section's render in `SectionFrame`.
 
-### Links in section fields
+### Links and images in section fields
 
-Link fields need no special type. Use the `{ label, href }` object shape (`linkField()` in
-`framed.tsx`), or a `text` field named `href` or labelled "Link", and the editor shows its
-link picker for it (`isLinkTextField` in `apps/admin/src/lib/customize-links.ts`). The picker
-stores a plain storefront path string — `/products/<handle>`, `/collections/<handle>`,
-`/pages/<handle>`, `/blogs/<blog>/<article>`, `/` for the home page — or a pasted `https://`
-address, so blocks render the value as an ordinary `href`. Media URLs ("Image URL", "Video
-link") are left as plain text fields.
+Link and image fields need no special type. Use the `{ label, href }` object shape
+(`linkField()` in `framed.tsx`), or a `text` field named `href` or labelled "Link", and the
+editor shows its link picker; use `{ url, alt }` (`imageField()`) and it shows the image picker.
+Both store small, plain values that blocks render directly: an href string (plus an optional
+`newTab` on link objects) and `{ url, alt, focal? }`. The exact shapes, and how blocks apply
+`newTab` and `focal`, are in [Theme editor](/developer-docs/building/theme-editor#data-shapes).
+Media URLs ("Image URL", "Video link") on their own stay plain text fields.
 
 ## Backward compatibility: `migrateSectionSettings`
 

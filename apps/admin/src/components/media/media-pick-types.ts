@@ -6,13 +6,33 @@ export type MediaItem = {
   contentType: string | null
   size: number | null
   usedBy?: number
+  /** Responsive AVIF/WebP widths from the upload pipeline; null until processed. */
+  variants?: MediaVariants | null | undefined
+  /** Base64 ThumbHash for the blur-up placeholder; null until processed. */
+  thumbhash?: string | null | undefined
 }
+
+export type MediaVariants = Record<string, { avif: string; webp: string }>
 
 export type PickedMedia = {
   id: string
   url: string
   alt: string | null
   contentType: string | null
+  variants?: MediaVariants | null | undefined
+  thumbhash?: string | null | undefined
+}
+
+/** What a pick hands back: the item's own fields, including its preview data. */
+export function pickedFrom(item: MediaItem): PickedMedia {
+  return {
+    id: item.id,
+    url: item.url,
+    alt: item.alt,
+    contentType: item.contentType,
+    variants: item.variants ?? null,
+    thumbhash: item.thumbhash ?? null,
+  }
 }
 
 export function filenameFrom(key: string | null): string {

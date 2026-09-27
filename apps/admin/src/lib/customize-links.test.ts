@@ -3,10 +3,14 @@ import {
   articleHref,
   collectionHref,
   isLinkTextField,
+  isPolicyHandle,
+  linkKindOf,
   normalisePastedUrl,
   pageHref,
   parseHref,
+  parseRecentLinks,
   productHref,
+  pushRecentLink,
 } from './customize-links'
 
 describe('storefront paths', () => {
@@ -78,5 +82,38 @@ describe('isLinkTextField', () => {
     expect(isLinkTextField({ type: 'text', label: 'Image URL' }, 'url')).toBe(false)
     expect(isLinkTextField({ type: 'text', label: 'Video link' }, 'url')).toBe(false)
     expect(isLinkTextField({ type: 'textarea', label: 'Link' })).toBe(false)
+  })
+})
+
+describe('policies', () => {
+  it('reads policy pages as policies and keeps the page route', () => {
+    expect(isPolicyHandle('refund-policy')).toBe(true)
+    expect(isPolicyHandle('terms-of-service')).toBe(true)
+    expect(isPolicyHandle('privacy')).toBe(true)
+    expect(isPolicyHandle('about-us')).toBe(false)
+    expect(isPolicyHandle('politics-blog')).toBe(false)
+    expect(parseHref('/pages/refund-policy')).toEqual({ kind: 'policy', handle: 'refund-policy' })
+    expect(linkKindOf('/pages/about')).toBe('page')
+    expect(linkKindOf('https://example.com')).toBe('url')
+    expect(linkKindOf('')).toBeNull()
+  })
+})
+
+describe('recent links', () => {
+  const a = { href: '/products/a', title: 'A', kind: 'product' as const }
+  const b = { href: '/', title: 'Home page', kind: 'home' as const }
+
+  it('keeps the newest pick first, once, up to the cap', () => {
+    expect(pushRecentLink([a], b)).toEqual([b, a])
+    expect(pushRecentLink([b, a], a)).toEqual([a, b])
+    const many = Array.from({ length: 8 }, (_, i) => ({ ...a, href: `/p/${i}` }))
+    expect(pushRecentLink(many, b)).toHaveLength(5)
+    expect(pushRecentLink([a], { ...b, href: '' })).toEqual([a])
+  })
+
+  it('parses stored recents defensively', () => {
+    expect(parseRecentLinks(JSON.stringify([a, { href: 1 }, null]))).toEqual([a])
+    expect(parseRecentLinks('not json')).toEqual([])
+    expect(parseRecentLinks(null)).toEqual([])
   })
 })

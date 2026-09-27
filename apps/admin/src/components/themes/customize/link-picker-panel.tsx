@@ -1,68 +1,74 @@
 'use client'
 
-import {
-  FileText,
-  FolderOpen,
-  Globe,
-  Home,
-  type IconComponent,
-  Newspaper,
-  Package,
-  Search,
-} from '@commerce/ui/icons'
-import { cn } from '@commerce/ui/lib/utils'
-import { Button } from '@commerce/ui/shadcn/button'
+import { ChevronLeftIcon, Search } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
-import Image from 'next/image'
-import { type FormEvent, useEffect, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { type KeyboardEvent, useEffect, useState } from 'react'
 import { customizeContent } from '@/data/customize'
-import { searchLinkTargets } from '@/lib/customize-link-targets'
+import {
+  type GroupedTargets,
+  readRecentLinks,
+  rememberLink,
+  searchAllLinkTargets,
+  searchLinkTargets,
+} from '@/lib/customize-link-targets'
 import {
   LINK_KINDS,
   type LinkKind,
-  type LinkTarget,
+  linkKindOf,
   normalisePastedUrl,
+  type RecentLink,
 } from '@/lib/customize-links'
+import LinkPasteForm from './link-paste-form'
+import LinkTargetRows, { type LinkRow } from './link-target-rows'
 
 type LinkPickerPanelProps = {
-  /** The href currently stored, to tick the matching row. */
+  /** The href currently stored, to mark the matching row. */
   value: string
   onPick: (href: string) => void
+  newTab?: boolean | undefined
+  onNewTab?: ((value: boolean) => void) | undefined
 }
 
-type Load = { state: 'loading' } | { state: 'failed' } | { state: 'done'; items: LinkTarget[] }
+type Load = { state: 'loading' } | { state: 'failed' } | { state: 'done'; groups: GroupedTargets }
 
 const copy = customizeContent.link
 
-export const LINK_KIND_ICONS: Record<LinkKind | 'home' | 'url', IconComponent> = {
-  product: Package,
-  collection: FolderOpen,
-  page: FileText,
-  article: Newspaper,
-  home: Home,
-  url: Globe,
-}
-
 const SEARCH_DELAY_MS = 180
 
+/** A typed query that reads as a web address, offered as "Use …" above the results. */
+function pastedFrom(query: string): string | null {
+  const q = query.trim()
+  if (!q || (!q.includes('.') && !q.startsWith('/') && !q.includes(':'))) return null
+  return normalisePastedUrl(q)
+}
+
 /**
- * The link picker's popover body, Shopify-style: search on top, one tab per
- * kind of storefront target, then the two shortcuts every link needs — the
- * home page and a pasted web address.
+ * The link picker's popover body, Shopify-style. One search box: empty, it
+ * shows recent picks, the home page and each kind of target to browse into;
+ * typed, it searches every kind at once. Opening a kind drills into it with
+ * its own search. "Paste a link" and the new-tab switch sit at the bottom.
  */
-export default function LinkPickerPanel({ value, onPick }: LinkPickerPanelProps) {
+export default function LinkPickerPanel({ value, onPick, newTab, onNewTab }: LinkPickerPanelProps) {
   // Hooks
-  const [kind, setKind] = useState<LinkKind>('product')
+  const reducedMotion = useReducedMotion()
+  const [kind, setKind] = useState<LinkKind | null>(null)
   const [query, setQuery] = useState('')
-  const [load, setLoad] = useState<Load>({ state: 'loading' })
-  const [pasted, setPasted] = useState('')
-  const [pasteError, setPasteError] = useState(false)
+  const [load, setLoad] = useState<Load>({ state: 'done', groups: [] })
+  const [recent] = useState<RecentLink[]>(() => readRecentLinks())
   useEffect(() => {
     let active = true
+    if (!kind && !query.trim()) {
+      setLoad({ state: 'done', groups: [] })
+      return
+    }
     setLoad({ state: 'loading' })
     const timer = setTimeout(() => {
-      searchLinkTargets(kind, query).then(
-        (items) => active && setLoad({ state: 'done', items }),
+      const search = kind
+        ? searchLinkTargets(kind, query).then((items) => [{ kind, items }])
+        : searchAllLinkTargets(query)
+      search.then(
+        (groups) => active && setLoad({ state: 'done', groups }),
         () => active && setLoad({ state: 'failed' }),
       )
     }, SEARCH_DELAY_MS)
@@ -72,140 +78,145 @@ export default function LinkPickerPanel({ value, onPick }: LinkPickerPanelProps)
     }
   }, [kind, query])
 
+  // Helpers
+  const rowsOf = (groupKind: LinkKind): LinkRow[] =>
+    load.state === 'done'
+      ? (load.groups.find((g) => g.kind === groupKind)?.items ?? []).map((target) => ({
+          type: 'target',
+          target,
+        }))
+      : []
+
   // Event handlers
-  const handlePaste = (e: FormEvent) => {
-    e.preventDefault()
-    const href = normalisePastedUrl(pasted)
-    if (!href) {
-      setPasteError(true)
-      return
-    }
+  const handlePick = (href: string, title: string, pickedKind: RecentLink['kind']) => {
+    rememberLink({ href, title, kind: pickedKind })
     onPick(href)
   }
 
+  const handleOpenKind = (next: LinkKind | null) => {
+    setKind(next)
+    setQuery('')
+  }
+
+  // Arrow keys move between rows; from the search box, Down enters the list.
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    if ((e.target as HTMLElement).closest('form')) return
+    const rows = [...e.currentTarget.querySelectorAll<HTMLElement>('[data-link-row]')]
+    if (rows.length === 0) return
+    e.preventDefault()
+    const at = rows.indexOf(document.activeElement as HTMLElement)
+    const next = e.key === 'ArrowDown' ? Math.min(at + 1, rows.length - 1) : at - 1
+    if (next < 0) e.currentTarget.querySelector<HTMLInputElement>('input')?.focus()
+    else rows[next]?.focus()
+  }
+
   // Render logic
-  const HomeIcon = LINK_KIND_ICONS.home
-  const UrlIcon = LINK_KIND_ICONS.url
+  const browsing = !kind && !query.trim()
+  const pasted = kind ? null : pastedFrom(query)
+  const noResults =
+    !browsing && load.state === 'done' && load.groups.every((g) => g.items.length === 0)
 
   return (
-    <div className="flex flex-col">
-      <div className="relative p-2">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-4.5 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={copy.search}
-          aria-label={copy.search}
-          className="h-8 rounded-lg pl-8 text-[0.8125rem]"
-        />
-      </div>
-      <div role="tablist" className="flex gap-1 border-b border-border px-2 pb-2">
-        {LINK_KINDS.map((k) => (
+    // biome-ignore lint/a11y/noStaticElementInteractions: arrow-key roving between the buttons inside.
+    <div className="flex flex-col" onKeyDown={handleKeyDown}>
+      <div className="flex items-center gap-1 p-2">
+        {kind ? (
           <button
-            key={k}
             type="button"
-            role="tab"
-            aria-selected={kind === k}
-            onClick={() => setKind(k)}
-            className={cn(
-              'rounded-md px-2 py-1 text-xs font-medium transition-colors',
-              kind === k
-                ? 'bg-primary-soft text-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
+            onClick={() => handleOpenKind(null)}
+            aria-label={copy.back}
+            title={copy.back}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            {copy.tabs[k]}
+            <ChevronLeftIcon aria-hidden className="size-4" />
           </button>
-        ))}
-      </div>
-      <div role="tabpanel" className="flex h-56 flex-col gap-0.5 overflow-y-auto p-1.5">
-        <Results kind={kind} load={load} value={value} onPick={onPick} />
-      </div>
-      <div className="flex flex-col gap-1 border-t border-border p-1.5">
-        <button
-          type="button"
-          onClick={() => onPick('/')}
-          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[0.8125rem] hover:bg-muted"
-        >
-          <span className="flex size-6 items-center justify-center rounded-md bg-muted text-muted-foreground">
-            <HomeIcon aria-hidden weight="light" className="size-3.5" />
-          </span>
-          <span className="flex flex-col">
-            <span className="font-medium">{copy.home}</span>
-            <span className="text-xs text-muted-foreground">{copy.homeHint}</span>
-          </span>
-        </button>
-        <form onSubmit={handlePaste} className="flex items-center gap-1.5 px-2 py-1">
-          <UrlIcon aria-hidden weight="light" className="size-4 shrink-0 text-muted-foreground" />
-          <Input
-            value={pasted}
-            onChange={(e) => {
-              setPasted(e.target.value)
-              setPasteError(false)
-            }}
-            placeholder={copy.pastePlaceholder}
-            aria-label={copy.paste}
-            aria-invalid={pasteError || undefined}
-            className="h-7 rounded-md text-xs"
+        ) : null}
+        <div className="relative flex-1">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
           />
-          <Button type="submit" size="xs" variant="outline" disabled={!pasted.trim()}>
-            {copy.pasteApply}
-          </Button>
-        </form>
-        {pasteError ? <p className="px-2 text-xs text-destructive">{copy.pasteInvalid}</p> : null}
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={kind ? copy.searchIn(copy.tabs[kind]) : copy.search}
+            aria-label={kind ? copy.searchIn(copy.tabs[kind]) : copy.search}
+            className="h-8 rounded-lg pl-8 text-[0.8125rem]"
+          />
+        </div>
       </div>
-    </div>
-  )
-}
-
-type ResultsProps = {
-  kind: LinkKind
-  load: Load
-  value: string
-  onPick: (href: string) => void
-}
-
-/** The current tab's rows, or its loading, error or empty line. */
-function Results({ kind, load, value, onPick }: ResultsProps) {
-  // Early returns
-  if (load.state === 'loading') {
-    return <p className="px-2 py-3 text-xs text-muted-foreground">{copy.loading}</p>
-  }
-  if (load.state === 'failed') {
-    return <p className="px-2 py-3 text-xs text-destructive">{copy.failed}</p>
-  }
-  if (load.items.length === 0) {
-    return <p className="px-2 py-3 text-xs text-muted-foreground">{copy.empty}</p>
-  }
-
-  // Render logic
-  const Icon = LINK_KIND_ICONS[kind]
-  return (
-    <>
-      {load.items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onPick(item.href)}
-          aria-current={item.href === value ? 'true' : undefined}
-          className={cn(
-            'flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[0.8125rem] hover:bg-muted',
-            item.href === value && 'bg-primary-soft hover:bg-primary-soft',
-          )}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={kind ?? 'root'}
+          initial={reducedMotion ? false : { opacity: 0, x: kind ? 8 : -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: kind ? -8 : 8 }}
+          transition={{ duration: reducedMotion ? 0 : 0.15, ease: 'easeOut' }}
+          className="flex h-64 flex-col gap-1 overflow-y-auto px-1.5 pb-1.5"
         >
-          <span className="relative flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted text-muted-foreground">
-            {item.imageUrl ? (
-              <Image src={item.imageUrl} alt="" fill sizes="1.5rem" className="object-cover" />
-            ) : (
-              <Icon aria-hidden weight="light" className="size-3.5" />
-            )}
-          </span>
-          <span className="min-w-0 flex-1 truncate">{item.title}</span>
-        </button>
-      ))}
-    </>
+          {pasted ? (
+            <LinkTargetRows
+              rows={[
+                {
+                  type: 'recent',
+                  recent: { href: pasted, title: pasted, kind: linkKindOf(pasted) ?? 'url' },
+                },
+              ]}
+              value={value}
+              onPick={handlePick}
+              onOpenKind={handleOpenKind}
+            />
+          ) : null}
+          {browsing ? (
+            <>
+              <LinkTargetRows
+                heading={copy.recent}
+                rows={recent.map((r) => ({ type: 'recent', recent: r }))}
+                value={value}
+                onPick={handlePick}
+                onOpenKind={handleOpenKind}
+              />
+              <LinkTargetRows
+                heading={copy.browse}
+                rows={[
+                  { type: 'home' },
+                  ...LINK_KINDS.map((k) => ({ type: 'kind' as const, kind: k })),
+                ]}
+                value={value}
+                onPick={handlePick}
+                onOpenKind={handleOpenKind}
+              />
+            </>
+          ) : null}
+          {!browsing && load.state === 'loading' ? (
+            <p className="px-2 py-3 text-xs text-muted-foreground">{copy.loading}</p>
+          ) : null}
+          {load.state === 'failed' ? (
+            <p className="px-2 py-3 text-xs text-destructive">{copy.failed}</p>
+          ) : null}
+          {noResults && !pasted ? (
+            <p className="px-2 py-3 text-xs text-muted-foreground">{copy.empty}</p>
+          ) : null}
+          {!browsing
+            ? (kind ? [kind] : LINK_KINDS).map((k) => (
+                <LinkTargetRows
+                  key={k}
+                  heading={kind ? undefined : copy.tabs[k]}
+                  rows={rowsOf(k)}
+                  value={value}
+                  onPick={handlePick}
+                  onOpenKind={handleOpenKind}
+                />
+              ))
+            : null}
+        </motion.div>
+      </AnimatePresence>
+      <LinkPasteForm
+        onPick={(href) => handlePick(href, href, linkKindOf(href) ?? 'url')}
+        newTab={newTab}
+        onNewTab={onNewTab}
+      />
+    </div>
   )
 }

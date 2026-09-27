@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react'
+import { type FocalPoint, focalStyle } from '../../focal-point'
+import { linkTarget } from '../../link'
 
 type Props = {
-  image: { url: string; alt: string }
+  image: { url: string; alt: string; focal?: FocalPoint | undefined }
   heading: string
   text: string
   button: { label: string; href: string }
@@ -24,7 +26,13 @@ export default function ImageBanner({
   return (
     <div className={`image-banner image-banner--${height} image-banner--${align}`} style={style}>
       {image?.url ? (
-        <img className="image-banner__media" src={image.url} alt={image.alt} loading="lazy" />
+        <img
+          className="image-banner__media"
+          src={image.url}
+          alt={image.alt}
+          style={focalStyle(image.focal)}
+          loading="lazy"
+        />
       ) : (
         <div className="image-banner__media image-banner__media--placeholder" />
       )}
@@ -32,7 +40,11 @@ export default function ImageBanner({
         {heading ? <h2 className="h1">{heading}</h2> : null}
         {text ? <p className="text-body">{text}</p> : null}
         {button.label ? (
-          <a className="btn btn--primary" href={button.href || '/collections/all'}>
+          <a
+            className="btn btn--primary"
+            href={button.href || '/collections/all'}
+            {...linkTarget(button)}
+          >
             {button.label}
           </a>
         ) : null}

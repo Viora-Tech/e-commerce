@@ -2,10 +2,15 @@ import { api } from '@/lib/api-client'
 import {
   articleHref,
   collectionHref,
+  isPolicyHandle,
+  LINK_KINDS,
   type LinkKind,
   type LinkTarget,
   pageHref,
+  parseRecentLinks,
   productHref,
+  pushRecentLink,
+  type RecentLink,
 } from './customize-links'
 
 /**
@@ -57,16 +62,23 @@ async function collections(query: string): Promise<LinkTarget[]> {
   return all.filter((t) => matches(t.title, query))
 }
 
-async function pages(query: string): Promise<LinkTarget[]> {
-  const all = await once('page', async () =>
+/** Every store page once per session; split into Pages and Policies by handle. */
+const allPages = () =>
+  once('page', async () =>
     (await api.pages.list()).map((p) => ({
-      kind: 'page' as const,
+      kind: isPolicyHandle(p.handle) ? ('policy' as const) : ('page' as const),
       id: p.id,
       title: p.title,
       href: pageHref(p.handle),
     })),
   )
-  return all.filter((t) => matches(t.title, query))
+
+async function pages(query: string): Promise<LinkTarget[]> {
+  return (await allPages()).filter((t) => t.kind === 'page' && matches(t.title, query))
+}
+
+async function policies(query: string): Promise<LinkTarget[]> {
+  return (await allPages()).filter((t) => t.kind === 'policy' && matches(t.title, query))
 }
 
 async function articles(query: string): Promise<LinkTarget[]> {
@@ -93,6 +105,7 @@ const LOADERS: Record<LinkKind, (query: string) => Promise<LinkTarget[]>> = {
   collection: collections,
   page: pages,
   article: articles,
+  policy: policies,
 }
 
 /** Targets of one kind matching `query` (blank lists the first page). */
@@ -108,4 +121,42 @@ export async function findLinkTarget(
 ): Promise<LinkTarget | null> {
   const found = await LOADERS[kind](kind === 'product' || kind === 'article' ? handle : '')
   return found.find((t) => t.href === href) ?? null
+}
+
+/** How many rows each kind shows in the combined (top-level) search. */
+const PER_KIND = 4
+
+export type GroupedTargets = { kind: LinkKind; items: LinkTarget[] }[]
+
+/**
+ * The top-level search: every kind at once, a few rows each, in the picker's
+ * order. A kind that fails to load is left out rather than failing the rest.
+ */
+export async function searchAllLinkTargets(query: string): Promise<GroupedTargets> {
+  const settled = await Promise.allSettled(LINK_KINDS.map((kind) => LOADERS[kind](query)))
+  return LINK_KINDS.map((kind, i) => {
+    const result = settled[i]
+    const items = result?.status === 'fulfilled' ? result.value.slice(0, PER_KIND) : []
+    return { kind, items }
+  }).filter((g) => g.items.length > 0)
+}
+
+const RECENT_KEY = 'customize.link.recent'
+
+/** The merchant's recent link picks in this browser (a convenience; empty when storage is blocked). */
+export function readRecentLinks(): RecentLink[] {
+  try {
+    return parseRecentLinks(window.localStorage.getItem(RECENT_KEY))
+  } catch {
+    return []
+  }
+}
+
+/** Remembers a pick at the top of the recent list. */
+export function rememberLink(pick: RecentLink): void {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(pushRecentLink(readRecentLinks(), pick)))
+  } catch {
+    // Private mode or blocked storage: recents are optional.
+  }
 }

@@ -3,9 +3,22 @@
  * at, and the reverse (reading a stored href back into "a product called X").
  * Pure, so the storefront paths are pinned by tests — the storefront routes
  * are `apps/storefront/src/app/-s/[storeId]/{products,collections,pages,blogs}`.
+ *
+ * What a link field stores (documented in developer-docs/building/section-settings.mdx):
+ *
+ * - a bare link text field (`href`, or a field labelled "Link") stores the
+ *   href string itself: `/products/glass-pad`, `/collections/all`,
+ *   `/pages/about`, `/pages/refund-policy`, `/blogs/news/launch-day`, `/`,
+ *   or a pasted `https://…` address;
+ * - a `{ label, href }` link object keeps that same string in `href` and may
+ *   add `newTab: true` (the "Open in a new tab" switch). Nothing else.
+ *
+ * Policies have no route of their own: they are ordinary pages whose handle
+ * reads as a policy (`refund-policy`, `terms-of-service` …), so they are
+ * stored as `/pages/<handle>` and only listed under their own heading.
  */
 
-export type LinkKind = 'product' | 'collection' | 'page' | 'article'
+export type LinkKind = 'product' | 'collection' | 'page' | 'article' | 'policy'
 
 /** One thing a link can point at, as the picker lists it. */
 export type LinkTarget = {
@@ -24,7 +37,20 @@ export type ParsedHref =
   | { kind: LinkKind; handle: string; blog?: string | undefined }
   | { kind: 'url'; url: string }
 
-export const LINK_KINDS: readonly LinkKind[] = ['product', 'collection', 'page', 'article']
+export const LINK_KINDS: readonly LinkKind[] = [
+  'product',
+  'collection',
+  'page',
+  'article',
+  'policy',
+]
+
+/** Page handles that read as a store policy (Shopify's refund, privacy, shipping and terms pages). */
+export function isPolicyHandle(handle: string): boolean {
+  return /(^|-)(polic(y|ies)|terms|refund|returns?|privacy|cancellation)(-|$)/.test(
+    handle.toLowerCase(),
+  )
+}
 
 const enc = encodeURIComponent
 
@@ -66,7 +92,9 @@ export function parseHref(href: string | null | undefined): ParsedHref {
   if (value === '/') return { kind: 'home' }
   for (const { kind, re } of PATTERNS) {
     const m = value.match(re)
-    if (m?.[1]) return { kind, handle: safeDecode(m[1]) }
+    if (!m?.[1]) continue
+    const handle = safeDecode(m[1])
+    return { kind: kind === 'page' && isPolicyHandle(handle) ? 'policy' : kind, handle }
   }
   const article = value.match(/^\/blogs\/([^/?#]+)\/([^/?#]+)\/?$/)
   if (article?.[1] && article[2]) {
@@ -113,4 +141,46 @@ export function isLinkTextField(
   if (field.type !== 'text') return false
   const last = name.split('.').pop() ?? ''
   return last === 'href' || field.label?.trim().toLowerCase() === 'link'
+}
+
+/** A link the merchant picked recently, as the picker's "Recent" list keeps it. */
+export type RecentLink = { href: string; title: string; kind: LinkKind | 'home' | 'url' }
+
+export const RECENT_LINKS_MAX = 5
+
+/** The recent list after a pick: newest first, one entry per href, capped. */
+export function pushRecentLink(
+  list: readonly RecentLink[],
+  pick: RecentLink,
+  max = RECENT_LINKS_MAX,
+): RecentLink[] {
+  if (!pick.href) return [...list]
+  return [pick, ...list.filter((r) => r.href !== pick.href)].slice(0, max)
+}
+
+/** Reads a stored recent list defensively (it comes from localStorage). */
+export function parseRecentLinks(raw: string | null): RecentLink[] {
+  if (!raw) return []
+  try {
+    const value = JSON.parse(raw) as unknown
+    if (!Array.isArray(value)) return []
+    return value
+      .filter(
+        (r): r is RecentLink =>
+          typeof r === 'object' &&
+          r !== null &&
+          typeof (r as RecentLink).href === 'string' &&
+          typeof (r as RecentLink).title === 'string' &&
+          typeof (r as RecentLink).kind === 'string',
+      )
+      .slice(0, RECENT_LINKS_MAX)
+  } catch {
+    return []
+  }
+}
+
+/** The kind a stored href shows as (its chip icon and type label). */
+export function linkKindOf(href: string | null | undefined): LinkKind | 'home' | 'url' | null {
+  const parsed = parseHref(href)
+  return parsed.kind === 'empty' ? null : parsed.kind
 }

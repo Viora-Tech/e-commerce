@@ -2,6 +2,7 @@
 
 // Pattern after shadcnblocks' video hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
 import { useReducedMotion } from 'motion/react'
+import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
 
 type VideoHeroProps = {
@@ -64,7 +65,7 @@ export default function VideoHero({
         {heading ? <h1 className="h1 text-white">{heading}</h1> : null}
         {text ? <p className="text-body max-w-[36rem] text-white/85">{text}</p> : null}
         {button?.label ? (
-          <a className="btn btn--primary" href={button.href || '#'}>
+          <a className="btn btn--primary" href={button.href || '#'} {...linkTarget(button)}>
             {button.label}
           </a>
         ) : null}

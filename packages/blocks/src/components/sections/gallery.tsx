@@ -1,4 +1,7 @@
 // Pattern after shadcnblocks' Gallery (our own implementation). See THIRD_PARTY_NOTICES.md.
+
+import { focalStyle } from '../../focal-point'
+import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
 
 type GalleryImage = { image: Image; caption: string; link: Link }
@@ -35,6 +38,7 @@ export default function Gallery({ heading, layout, images }: GalleryProps) {
                 <img
                   src={item.image.url}
                   alt={item.image.alt}
+                  style={focalStyle(item.image.focal)}
                   loading="lazy"
                   className="aspect-[4/5] size-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
                 />
@@ -55,7 +59,13 @@ export default function Gallery({ heading, layout, images }: GalleryProps) {
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
             <div key={`${item.image?.url ?? item.caption}-${i}`}>
-              {item.link?.href ? <a href={item.link.href}>{figure}</a> : figure}
+              {item.link?.href ? (
+                <a href={item.link.href} {...linkTarget(item.link)}>
+                  {figure}
+                </a>
+              ) : (
+                figure
+              )}
             </div>
           )
         })}

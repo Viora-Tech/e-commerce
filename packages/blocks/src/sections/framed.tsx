@@ -1,6 +1,7 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import SectionFrame from '../components/section-frame'
+import type { FocalPoint } from '../focal-point'
 import {
   defaultSectionSettings,
   type LegacySectionProps,
@@ -18,8 +19,10 @@ import type { SectionMetadata } from './dynamic'
  * `defaultSectionSettings()` alone reproduces today's default look.
  */
 export type Frame = { settings: SectionSettingsValue }
-export type Image = { url: string; alt: string }
-export type Link = { label: string; href: string }
+/** A section image. `focal` is optional: see `../focal-point.ts`. */
+export type Image = { url: string; alt: string; focal?: FocalPoint | undefined }
+/** A section link. `newTab` is optional: see `../link.ts`. */
+export type Link = { label: string; href: string; newTab?: boolean | undefined }
 
 export const SCHEMES = [
   { label: 'Default', value: 'scheme-1' },

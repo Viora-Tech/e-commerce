@@ -1,5 +1,7 @@
 // Adapted from Magic UI's Bento Grid (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
+
+import { focalStyle } from '../../focal-point'
 import type { Image } from '../../sections/framed'
 
 type Tile = {
@@ -35,6 +37,7 @@ export default function BentoGrid({ heading, tiles }: BentoGridProps) {
               <img
                 src={tile.image.url}
                 alt={tile.image.alt}
+                style={focalStyle(tile.image.focal)}
                 loading="lazy"
                 className="absolute inset-0 size-full object-cover opacity-25 transition-opacity duration-300 group-hover:opacity-35"
               />

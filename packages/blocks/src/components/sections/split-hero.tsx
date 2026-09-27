@@ -1,4 +1,7 @@
 // Pattern after shadcnblocks' split hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
+
+import { focalStyle } from '../../focal-point'
+import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
 
 type SplitHeroProps = {
@@ -32,7 +35,11 @@ export default function SplitHero({
         {heading ? <h1 className="h1 text-[var(--color-ink)]">{heading}</h1> : null}
         {text ? <p className="text-body mt-[1rem] text-[var(--color-muted)]">{text}</p> : null}
         {button?.label ? (
-          <a className="btn btn--primary mt-[1.5rem] inline-flex" href={button.href || '#'}>
+          <a
+            className="btn btn--primary mt-[1.5rem] inline-flex"
+            href={button.href || '#'}
+            {...linkTarget(button)}
+          >
             {button.label}
           </a>
         ) : null}
@@ -43,6 +50,7 @@ export default function SplitHero({
             className="aspect-[4/5] w-full rounded-[var(--radius-card)] object-cover"
             src={image.url}
             alt={image.alt}
+            style={focalStyle(image.focal)}
             loading="lazy"
           />
         ) : (

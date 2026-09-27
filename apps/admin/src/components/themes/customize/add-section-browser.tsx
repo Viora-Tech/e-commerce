@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/ta
 import { Drawer } from '@puckeditor/core'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AppsTab from './add-section-apps-tab'
 import SectionsTab from './add-section-sections-tab'
@@ -17,6 +18,9 @@ type AddSectionBrowserProps = {
   zone: string
   /** Header and footer groups only take their own sections; the persistent Add panel passes null. */
   group: SectionGroup | null
+  /** Where a clicked section goes in `zone` (0 = first); `count` puts it at the end. */
+  index: number
+  /** How many sections `zone` holds now, to keep `index` in range. */
   count: number
   /** Closes the popover this sits in; the persistent Add panel leaves it out. */
   onAdd?: () => void
@@ -39,6 +43,7 @@ const copy = customizeContent.addSection
 export default function AddSectionBrowser({
   zone,
   group,
+  index,
   count,
   onAdd,
   fill,
@@ -55,13 +60,7 @@ export default function AddSectionBrowser({
 
   // Event handlers
   const handleAdd = (type: string) => {
-    dispatch({
-      type: 'insert',
-      componentType: type,
-      destinationIndex: count,
-      destinationZone: zone,
-    })
-    dispatch({ type: 'setUi', ui: { itemSelector: { index: count, zone } } })
+    for (const action of insertActions({ zone, index }, type, count)) dispatch(action)
     setQuery('')
     onAdd?.()
   }
