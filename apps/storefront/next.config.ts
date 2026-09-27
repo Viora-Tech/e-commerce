@@ -70,6 +70,9 @@ const config: NextConfig = {
   // react-pdf and pdf-lib load fonts and wasm at runtime; keep them out of the bundle.
   serverExternalPackages: ['postgres', '@react-pdf/renderer', 'pdf-lib'],
   images: {
+    // Dev only: the built-in local storage serves uploads from localhost, which next/image
+    // otherwise refuses as a private address (SSRF guard). Production uses R2/S3 public hosts.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV !== 'production',
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.shopify.com' },
       ...(process.env.R2_PUBLIC_BASE_URL
