@@ -102,24 +102,30 @@ export default function ProductPricingSection({
 
       <KitField label={copy.expiration} help={copy.expirationHelp}>
         <div className="flex flex-col gap-4 md:flex-row">
-          <label className="flex flex-col gap-1.5 md:flex-1">
-            <span className="text-caption text-muted-foreground">{copy.expirationStart}</span>
+          <div className="flex flex-col gap-1.5 md:flex-1">
+            <label htmlFor="sale-starts-at" className="text-caption text-muted-foreground">
+              {copy.expirationStart}
+            </label>
             <Input
+              id="sale-starts-at"
               size="kit"
               type="date"
               value={saleStartsAt}
               onChange={(e) => onSaleStartsAt(e.target.value)}
             />
-          </label>
-          <label className="flex flex-col gap-1.5 md:flex-1">
-            <span className="text-caption text-muted-foreground">{copy.expirationEnd}</span>
+          </div>
+          <div className="flex flex-col gap-1.5 md:flex-1">
+            <label htmlFor="sale-ends-at" className="text-caption text-muted-foreground">
+              {copy.expirationEnd}
+            </label>
             <Input
+              id="sale-ends-at"
               size="kit"
               type="date"
               value={saleEndsAt}
               onChange={(e) => onSaleEndsAt(e.target.value)}
             />
-          </label>
+          </div>
         </div>
       </KitField>
     </div>
