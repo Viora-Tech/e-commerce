@@ -15,6 +15,6 @@ describe('getRegistries', () => {
     const r = getRegistries().forStore([])
     expect(r.payments.ids()).toEqual(['cod', 'manual'])
     expect(r.shipping.ids()).toEqual(['fake'])
-    expect(r.notifications.ids()).toEqual(['log'])
+    expect(r.notifications.ids()).toEqual(['log', 'log-sms'])
   })
 })

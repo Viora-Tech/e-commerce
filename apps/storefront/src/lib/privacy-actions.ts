@@ -25,6 +25,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { accountContent } from '@/data/account'
 import { privacyContent } from '@/data/privacy'
+import { ATTRIBUTION_COOKIE, MARKETING_CLICK_COOKIE, SESSION_COOKIE } from './attribution-cookie'
 import {
   clearCustomerToken,
   currentCustomer,
@@ -97,6 +98,17 @@ export async function recordConsentAction(choice: {
     sameSite: 'lax',
     secure,
   })
+  // Saying no to analytics (now or later) also removes what analytics had set.
+  if (!choice.analytics) {
+    for (const name of [
+      VISITOR_COOKIE,
+      ATTRIBUTION_COOKIE,
+      SESSION_COOKIE,
+      MARKETING_CLICK_COOKIE,
+    ]) {
+      jar.delete(name)
+    }
+  }
   return { ok: true }
 }
 
