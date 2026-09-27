@@ -1,0 +1,123 @@
+---
+title: EMI & pay later
+description: Show "or ₹X/month" under your product prices so shoppers see they can pay in parts. On/off, Razorpay or Cashfree, and a lowest price.
+---
+
+# EMI & pay later
+
+**EMI & pay later** is a built-in app. It adds a short line under the price on your product
+pages, like **or ₹1,000/month with EMI or pay later**, so shoppers see a big purchase can be
+split into monthly payments. With Razorpay it shows Razorpay's own offers box instead, with
+your real banks, plans and offers.
+
+## What this is for
+
+- Helping shoppers say yes to higher-priced products.
+- Showing no-cost EMI or bank offers you already set up in Razorpay, before checkout.
+
+## Before you start
+
+The app only shows offers shoppers can actually use, so two things need to be on first:
+
+1. **Razorpay or Cashfree is taking payments** (Settings → Payments).
+2. **EMI is on at checkout**: in Settings → Payments, under "Shoppers can pay with", turn on
+   **EMI**.
+
+The app's page tells you, in one line, which of these is still missing and links to it.
+
+## Set it up
+
+<Steps>
+
+### Install
+
+Open **Apps**, find **EMI & pay later** under Built-in apps, and select **Install**.
+
+### Pick who gives the EMI
+
+Open **Apps → EMI & pay later**. Under **Who gives the EMI**, pick the payment company your
+checkout uses:
+
+- **Razorpay** shows Razorpay's offers box, with your banks, tenures and offers from your
+  Razorpay account.
+- **Cashfree** shows a simple monthly price.
+
+### Set the lowest price
+
+Under **Lowest price**, enter the cheapest product that should show the line. The default is
+₹1,000, which is where most lenders start. Cheaper products show nothing.
+
+### Save
+
+Select **Save**. The line at the top says **Live** once shoppers can see it. Open any product
+over your lowest price on your store to check.
+
+</Steps>
+
+## How the monthly price is worked out
+
+The simple line divides the price by 12 months and rounds up, the way a no-cost EMI plan
+looks: a ₹12,000 product shows **or ₹1,000/month**. It is an estimate; the real plan (tenure,
+interest, eligibility) is decided by the bank or lender at checkout.
+
+With **Razorpay**, Razorpay's offers box replaces the line once it loads and shows the real
+plans for your account. If it can't load (a slow connection, or an ad blocker), the simple
+line stays, so there is always something under the price.
+
+## Where it shows
+
+- **Under the price** on every product page, following the variant the shopper picks. The
+  theme editor's **EMI hint under the price** switch on the product section turns it off.
+- **Anywhere else on the product page**: in the theme editor, **Add → Apps → EMI offers**.
+  This copy uses the product's first available variant.
+
+Only one Razorpay offers box can show on a page. If you place both, one of them shows it and
+the other shows the simple line, so there is no need to add the block when the line under the
+price is on.
+
+## Dark mode, phones and motion
+
+- The simple line uses your theme's colours, so it looks right in light and dark mode.
+- In **dark mode** the simple line shows instead of Razorpay's box, so shoppers never get a
+  bright white panel on a dark page.
+- It fits phone screens, and it only fades in when the shopper's phone allows animations.
+
+## Common problems and fixes
+
+| Problem | Why it happens | Fix |
+| --- | --- | --- |
+| Nothing shows under the price | EMI is off at checkout, or the gateway isn't set up. | Follow the link at the top of **Apps → EMI & pay later**. |
+| Nothing shows on one product | It costs less than your lowest price. | Lower the **Lowest price**. |
+| Simple line instead of Razorpay's box | Cashfree is picked, the page is in dark mode, or Razorpay's box couldn't load. | Pick Razorpay, or check in light mode. |
+| Razorpay's box shows no offers | No EMI or offers are set up in your Razorpay account. | Set them up in the Razorpay Dashboard. |
+
+## FAQ
+
+<Faq>
+
+<FaqItem question="Does this cost anything?">
+
+The app is free. EMI and pay later fees are between you and your payment company, the same as
+any other payment.
+
+</FaqItem>
+
+<FaqItem question="Is my Razorpay secret key shared?">
+
+No. Razorpay's offers box only needs your public **Key ID** (the `rzp_...` value), the same one
+checkout already uses in the shopper's browser. Your secret key stays encrypted on the server.
+
+</FaqItem>
+
+<FaqItem question="What happened to the old EMI hint?">
+
+Stores without this app keep the older built-in "EMI from ₹X/month" hint when Razorpay EMI is
+on. Once you install this app, it takes over that spot.
+
+</FaqItem>
+
+</Faq>
+
+## Related guides
+
+<RelatedGuides ids={['payments', 'cashfree', 'apps', 'online-store']} />

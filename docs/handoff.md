@@ -35,6 +35,15 @@ The sections further down describe an earlier stage and are partly outdated; thi
   `globe-palette.ts`, `types.ts`. Developer docs: `developer-docs/building/live-globe`. Known,
   untouched: the cobe card's marker buttons use `projection.ts`, which is 90° off cobe's own
   projection, so its hover targets drift from the drawn markers.
+- **EMI & pay later app** (27 September 2026, `feat/emi-widget-app`): built-in app
+  `emi-pay-later` (`packages/plugin-emi`) puts "or ₹X/month with EMI or pay later" under the
+  product price and adds an **EMI offers** app block. Settings (on/off, Razorpay or Cashfree,
+  lowest price) live in `store.apps.settings['emi-pay-later']` via new
+  `appSettingsOf`/`withAppSettings` in `@commerce/core` (no migration). Shows only when the
+  gateway is enabled and EMI is on at checkout. With Razorpay it loads Razorpay's official
+  Affordability Widget script (public key id only), falling back to the `@commerce/core/emi`
+  line when the script fails, in dark theme, or when another block holds the widget. Stores
+  without the app keep the old `EmiHint`. Admin: Apps → EMI & pay later.
 - **Product page UX** (27 September 2026, `claude/exciting-einstein-nos00p`): option chips build every
   variant combination (ids carried over on add/remove, stock-loss confirm, bulk price/stock/SKU
   prefix, SKU suggestions); category picker over Shopify's MIT Standard Product Taxonomy
@@ -101,7 +110,7 @@ The sections further down describe an earlier stage and are partly outdated; thi
   3. Deployment follow-ups: image builds moved to GitHub Actions → GHCR (see top of this list);
      next fix the `internal` network egress, re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
      a limit raise before Lightsail allows the 8 GB plan.
-  4. Pre-go-live: EMI/pay-later widget app, Razorpay OAuth connect (needs Technology Partner),
+  4. Pre-go-live: ~~EMI/pay-later widget app~~ (PR open), Razorpay OAuth connect (needs Technology Partner),
      Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
   5. Small: worker `bun --watch` should also watch `packages/*`; a platform page to browse the
      signup waitlist and invite from it.

@@ -5,6 +5,7 @@ import {
   parsePreorderStoreSettings,
 } from '@commerce/core/preorder'
 import { store } from '@commerce/db'
+import { emiOfferFor } from '@commerce/plugin-emi/offer'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
@@ -12,6 +13,8 @@ import { notFound } from 'next/navigation'
 import { cache } from 'react'
 import DeliveryEstimateWidget from '@/components/product/delivery-estimate'
 import EmiHint from '@/components/product/emi-hint'
+import EmiOffers from '@/components/product/emi-offers'
+import EmiOffersProvider from '@/components/product/emi-offers-provider'
 import NotifyMeForm from '@/components/product/notify-me-form'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import RecordView from '@/components/product/record-view'
@@ -20,6 +23,7 @@ import { notifyMeAction } from '@/lib/back-in-stock-actions'
 import { backInStockContext } from '@/lib/back-in-stock-context'
 import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
+import { storeEmiOffers } from '@/lib/emi-offers'
 import { storeOffersEmi } from '@/lib/payments'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
@@ -97,7 +101,12 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const found = await loadProduct(storeId, handle)
   if (!found) notFound()
   const { product } = found
-  const emi = await inStore(storeId, (tx) => storeOffersEmi(tx, storeId))
+  const emiApp = await inStore(storeId, (tx) => storeEmiOffers(tx, storeId))
+  // Before the EMI & pay later app is installed, the older built-in hint still shows.
+  const legacyEmi = emiApp.installed
+    ? false
+    : await inStore(storeId, (tx) => storeOffersEmi(tx, storeId))
+  const UnderPrice = emiApp.config ? EmiOffers : legacyEmi ? EmiHint : undefined
   const bis = await inStore(storeId, (tx) => backInStockContext(tx, storeId))
   const add = addLineAction.bind(null, storeId)
   const variant = defaultVariant(product)
@@ -132,14 +141,15 @@ export default async function ProductPage({ params, searchParams }: Params) {
           launchAt: product.launchAt ?? null,
         },
         deliveryChecker: { estimate: estimateDeliveryAction.bind(null, storeId) },
+        emiOffers: emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
       },
       renderers: {
-        MainProduct: (s) => (
-          <>
+        MainProduct: (s) => {
+          const view = (
             <ProductView
               product={product}
               onAddToCart={add}
-              UnderPrice={emi && s.showEmiHint !== false ? EmiHint : undefined}
+              UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
               belowBuy={
                 s.showDeliveryEstimate === false ? undefined : (
                   <DeliveryEstimateWidget storeId={storeId} />
@@ -150,9 +160,18 @@ export default async function ProductPage({ params, searchParams }: Params) {
                 bis.installed ? { storeId, whatsappEnabled: bis.whatsappEnabled } : undefined
               }
             />
-            <RecordView handle={product.handle} />
-          </>
-        ),
+          )
+          return (
+            <>
+              {emiApp.config ? (
+                <EmiOffersProvider config={emiApp.config}>{view}</EmiOffersProvider>
+              ) : (
+                view
+              )}
+              <RecordView handle={product.handle} />
+            </>
+          )
+        },
         RelatedProducts: (s) => (
           <RelatedProducts
             storeId={storeId}

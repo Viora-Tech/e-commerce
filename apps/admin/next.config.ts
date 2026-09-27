@@ -69,6 +69,7 @@ const config: NextConfig = {
     '@commerce/ui',
     '@commerce/storage',
     '@commerce/invoices',
+    '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',
     '@commerce/plugin-shopify-import',
   ],

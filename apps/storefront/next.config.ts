@@ -63,6 +63,7 @@ const config: NextConfig = {
     '@commerce/payments-decentro',
     '@commerce/payments-razorpay',
     '@commerce/invoices',
+    '@commerce/plugin-emi',
     '@commerce/plugin-gst-invoices',
     '@commerce/plugin-shopify-import',
   ],

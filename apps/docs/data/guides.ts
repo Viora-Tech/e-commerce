@@ -101,6 +101,12 @@ export const guides = {
     title: 'Cashfree',
     description: 'Connect Cashfree with two keys; no webhook to set up.',
   },
+  'emi-pay-later': {
+    href: '/merchant-guide/money/emi-pay-later',
+    icon: 'card',
+    title: 'EMI & pay later',
+    description: 'Show "or ₹X/month" under product prices, with Razorpay or Cashfree.',
+  },
   gst: {
     href: '/merchant-guide/money/gst-invoices',
     icon: 'invoice',

@@ -4,6 +4,7 @@ import { cashfreePlugin } from '@commerce/payments-cashfree'
 import { decentroPlugin } from '@commerce/payments-decentro'
 import { razorpayPlugin } from '@commerce/payments-razorpay'
 import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
+import { emiPlugin } from '@commerce/plugin-emi'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { defineConfig } from '@commerce/plugins'
@@ -34,5 +35,6 @@ export default defineConfig({
     gstInvoicesPlugin,
     shopifyImportPlugin,
     backInStockPlugin,
+    emiPlugin,
   ],
 })

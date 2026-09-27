@@ -26,6 +26,7 @@ import DecentroConnectPage from '@/components/apps/decentro/connect-page'
 import DecentroOverviewPage from '@/components/apps/decentro/overview-page'
 import DelhiveryConnectPage from '@/components/apps/delhivery/connect-page'
 import DelhiveryOverviewPage from '@/components/apps/delhivery/overview-page'
+import EmiSettingsPage from '@/components/apps/emi/settings-page'
 import InvoiceDetail from '@/components/apps/gst-invoices/invoice-detail'
 import InvoicesList from '@/components/apps/gst-invoices/invoices-list'
 import GstOrderCard from '@/components/apps/gst-invoices/order-card'
@@ -86,6 +87,11 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': DelhiveryOverviewPage,
       connect: DelhiveryConnectPage,
+    },
+  },
+  'emi-pay-later': {
+    pages: {
+      '': EmiSettingsPage,
     },
   },
   'gst-invoices': {

@@ -20,3 +20,45 @@
 .app-block-off__text {
   margin: 0;
 }
+
+/* EMI & pay later: "or ₹X/month" under a price, or Razorpay's Affordability
+   Widget in its place. Colours come from the theme tokens, so the line follows
+   light and dark; the widget itself is Razorpay's and is only shown in light. */
+.emi-offers {
+  margin-top: 0.35rem;
+}
+
+.emi-offers__line {
+  margin: 0;
+  color: var(--color-accent);
+}
+
+.emi-offers__detail {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--color-muted);
+}
+
+.emi-offers__widget:empty {
+  display: none;
+}
+
+.emi-offers__widget {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .emi-offers__widget.is-shown {
+    animation: emi-offers-in 0.2s ease-out;
+  }
+}
+
+@keyframes emi-offers-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
