@@ -4,6 +4,7 @@ import {
   createMemoryRateLimitStore,
   enqueueAppJob,
   ensureMainTheme,
+  GstinSchema,
   liveThemeSettings,
   loadStoreStorageSettings,
   NotificationSettingsSchema,
@@ -92,7 +93,14 @@ export const storeRouter = {
   }),
 
   updateGeneral: can(permissions.SETTINGS_MANAGE)
-    .input(StoreGeneralSchema)
+    // GSTIN and rate are optional here: Settings › Taxes & GST owns them, and a
+    // General save that leaves them out must not reset them to the defaults.
+    .input(
+      StoreGeneralSchema.extend({
+        gstin: GstinSchema.optional(),
+        gstRatePercent: z.coerce.number().min(0).max(40).optional(),
+      }),
+    )
     .handler(async ({ context, input }) => {
       const empty = (v: string) => (v === '' ? null : v)
       const s = await updateStoreGeneral(context.tx, context.scope.storeId, {
@@ -100,8 +108,10 @@ export const storeRouter = {
         contactEmail: empty(input.contactEmail),
         contactPhone: empty(input.contactPhone),
         address: input.address,
-        gstin: empty(input.gstin),
-        gstRatePercent: Math.round(input.gstRatePercent),
+        ...(input.gstin === undefined ? {} : { gstin: empty(input.gstin) }),
+        ...(input.gstRatePercent === undefined
+          ? {}
+          : { gstRatePercent: Math.round(input.gstRatePercent) }),
         timezone: input.timezone,
       })
       return s ? presentStoreGeneral(s) : null

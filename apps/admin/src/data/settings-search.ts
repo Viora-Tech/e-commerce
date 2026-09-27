@@ -48,16 +48,35 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['address', 'pincode', 'pin code', 'city', 'state', 'warehouse', 'invoice address'],
   },
   {
-    title: 'Taxes and GST',
-    where: 'General',
-    href: '/settings/general#tax',
-    keywords: ['gst', 'gstin', 'tax', 'cgst', 'sgst', 'igst', 'tax rate', 'vat'],
-  },
-  {
     title: 'Currency and time zone',
     where: 'General',
     href: '/settings/general#formats',
     keywords: ['currency', 'inr', 'rupee', 'timezone', 'time zone', 'clock'],
+  },
+  // Taxes & GST
+  {
+    title: 'Taxes and GST',
+    where: 'Settings',
+    href: '/settings/taxes',
+    keywords: ['gst', 'gstin', 'tax', 'cgst', 'sgst', 'igst', 'tax rate', 'vat', 'legal name'],
+  },
+  {
+    title: 'Prices include GST',
+    where: 'Taxes & GST',
+    href: '/settings/taxes#charging',
+    keywords: ['inclusive', 'exclusive', 'mrp', 'tax included', 'hsn', 'composition', 'rate'],
+  },
+  {
+    title: 'Invoice numbers',
+    where: 'Taxes & GST',
+    href: '/settings/taxes#invoice-numbers',
+    keywords: ['invoice', 'invoice number', 'prefix', 'series', 'financial year', 'bill number'],
+  },
+  {
+    title: 'E-invoicing (IRN)',
+    where: 'Taxes & GST',
+    href: '/settings/taxes#e-invoice',
+    keywords: ['e-invoice', 'einvoice', 'irn', 'irp', 'qr code', 'e invoice'],
   },
   // Payments
   {

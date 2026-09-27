@@ -1,5 +1,6 @@
 import { validateGstin } from '@commerce/core/gstin'
 import { StoreAddressSchema } from '@commerce/core/store-settings'
+import { chargedGstRate, parseStoreTax } from '@commerce/core/tax-settings'
 import {
   address,
   customer,
@@ -14,6 +15,7 @@ import {
   addressParty,
   buildCreditNote,
   buildDocument,
+  counterYear,
   type DocumentKind,
   type DocumentSnapshot,
   DocumentSnapshotSchema,
@@ -122,7 +124,7 @@ export async function takeNumber(
   const fy = financialYear(at)
   const [row] = await tx
     .insert(invoiceSequence)
-    .values({ storeId, kind, seriesId: series.id, fyStartYear: fy.startYear, next: 2 })
+    .values({ storeId, kind, seriesId: series.id, fyStartYear: counterYear(series, fy), next: 2 })
     .onConflictDoUpdate({
       target: [invoiceSequence.storeId, invoiceSequence.seriesId, invoiceSequence.fyStartYear],
       set: { next: sql`${invoiceSequence.next} + 1` },
@@ -160,9 +162,10 @@ export async function orderSnapshot(
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new InvoiceError('order_not_found', `order ${orderId} not found`)
   const [s] = await tx
-    .select({ name: store.name, gstRatePercent: store.gstRatePercent })
+    .select({ name: store.name, gstRatePercent: store.gstRatePercent, apps: store.apps })
     .from(store)
     .where(eq(store.id, storeId))
+  const storeTax = parseStoreTax(s?.apps)
   const lines = await tx
     .select({
       title: orderLine.title,
@@ -247,7 +250,8 @@ export async function orderSnapshot(
     placeOfSupply: buyer.state,
     defaultHsn: settings.defaultHsn,
     hsnDigits: settings.hsnDigits,
-    fallbackRatePercent: s?.gstRatePercent ?? 18,
+    fallbackRatePercent: chargedGstRate(s?.gstRatePercent ?? 18, storeTax),
+    composition: storeTax.composition,
   })
   return kind === 'tax_invoice' ? { ...doc, advance: await advanceOf(tx, orderId) } : doc
 }

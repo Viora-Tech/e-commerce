@@ -57,6 +57,8 @@ export type BuildDocumentInput = {
   fallbackRatePercent: number
   /** Goods shipped outside India: zero-rated, place of supply 96 (Other Country). */
   exportSupply?: ExportSupply | null | undefined
+  /** The seller is on the composition scheme: a bill of supply with its rule 5(1)(g) note. */
+  composition?: boolean | undefined
 }
 
 type Recorded = {
@@ -241,6 +243,7 @@ export function buildDocument(input: BuildDocumentInput): DocumentSnapshot {
     interState,
     reverseCharge: false,
     exportSupply: exp,
+    composition: input.composition ?? false,
     lines,
     taxSummary: summariseByRate(lines),
     hsnSummary: summariseByHsn(lines),

@@ -1,11 +1,14 @@
 import { order, orderLine, type StoreTx } from '@commerce/db'
 import {
+  counterYear,
   type DocumentSnapshot,
   DocumentSnapshotSchema,
   financialYear,
   formatSeriesNumber,
   isEligible,
+  nextNumberProblem,
   pickSeries,
+  type Series,
 } from '@commerce/invoices'
 import { and, asc, desc, eq, gte, inArray, lt, type SQL, sql } from 'drizzle-orm'
 import {
@@ -252,8 +255,10 @@ export async function issueDrafts(
       await writeLines(tx, storeId, row.id, issued)
       plan.push({ id: row.id, number: n.number, invoiceDate: item.invoiceDate })
     } else {
-      const next = peek.get(key) ?? (await peekNext(tx, series.id, fy))
-      peek.set(key, next + 1)
+      const year = counterYear(series, financialYear(item.invoiceDate))
+      const counter = `${series.id}:${year}`
+      const next = peek.get(counter) ?? (await peekNext(tx, series.id, year))
+      peek.set(counter, next + 1)
       plan.push({
         id: row.id,
         number: formatSeriesNumber(series, financialYear(item.invoiceDate), next),
@@ -283,7 +288,7 @@ export function checkRule46(doc: DocumentSnapshot): void {
   }
 }
 
-/** The number a series will hand out next in a financial year, without taking it. */
+/** The number a series' counter hands out next, without taking it; `fyStartYear` is its {@link counterYear}. */
 export async function peekNext(
   tx: StoreTx,
   seriesId: string,
@@ -296,6 +301,46 @@ export async function peekNext(
       and(eq(invoiceSequence.seriesId, seriesId), eq(invoiceSequence.fyStartYear, fyStartYear)),
     )
   return row?.next ?? 1
+}
+
+/**
+ * The lowest next number a series may take in the financial year of `at`:
+ * the higher of its yearly counter and its never-resetting one, so switching
+ * "start again every April" on or off can never hand out a number twice.
+ */
+export async function nextNumberFloor(
+  tx: StoreTx,
+  series: Pick<Series, 'id'>,
+  at: Date,
+): Promise<number> {
+  const fy = financialYear(at)
+  return Math.max(await peekNext(tx, series.id, fy.startYear), await peekNext(tx, series.id, 0))
+}
+
+/**
+ * Move a series' counter so its next document takes `wanted` (Settings ›
+ * Taxes & GST). Refuses numbers below {@link nextNumberFloor}; the counter
+ * row is upserted under the same lock issuing takes.
+ */
+export async function setNextNumber(
+  tx: StoreTx,
+  storeId: string,
+  series: Series,
+  wanted: number,
+  at = new Date(),
+): Promise<number> {
+  const floor = await nextNumberFloor(tx, series, at)
+  const problem = nextNumberProblem(floor, wanted)
+  if (problem) throw new InvoiceError('invalid', problem)
+  const fyStartYear = counterYear(series, financialYear(at))
+  await tx
+    .insert(invoiceSequence)
+    .values({ storeId, kind: series.kind, seriesId: series.id, fyStartYear, next: wanted })
+    .onConflictDoUpdate({
+      target: [invoiceSequence.storeId, invoiceSequence.seriesId, invoiceSequence.fyStartYear],
+      set: { next: sql`greatest(${invoiceSequence.next}, ${wanted})` },
+    })
+  return wanted
 }
 
 async function latestIssuedDate(

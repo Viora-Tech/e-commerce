@@ -58,8 +58,9 @@ export type StoreGeneralPatch = {
   contactEmail: string | null
   contactPhone: string | null
   address: unknown
-  gstin: string | null
-  gstRatePercent: number
+  /** Left out: Settings › General no longer edits tax, so it cannot overwrite Taxes & GST. */
+  gstin?: string | null
+  gstRatePercent?: number
   timezone: string
 }
 

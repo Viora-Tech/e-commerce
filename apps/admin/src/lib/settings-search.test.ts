@@ -8,7 +8,9 @@ describe('searchSettings', () => {
   it('finds pages by the short forms shop owners type', () => {
     expect(first('UPI')?.href).toBe('/settings/payments')
     expect(first('cod')?.href).toBe('/settings/payments')
-    expect(first('GST')?.href).toBe('/settings/general#tax')
+    expect(first('GST')?.href).toBe('/settings/taxes')
+    expect(first('invoice number')?.href).toBe('/settings/taxes#invoice-numbers')
+    expect(first('irn')?.where).toBe('Taxes & GST')
     expect(first('whatsapp')?.where).toBe('Notifications')
   })
 

@@ -62,6 +62,47 @@ export function computeGst(input: {
   }
 }
 
+/** One price and the GST in it or on it. */
+export type PriceGst = {
+  /** Value before tax. */
+  taxablePaise: number
+  taxPaise: number
+  /** What the shopper pays. */
+  totalPaise: number
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+}
+
+/**
+ * GST for a single price, either contained in it (`inclusive`, the Indian
+ * retail norm: ₹1,000 at 18% is ₹847.46 + ₹152.54) or added on top of it
+ * (₹1,000 + ₹180 = ₹1,180). The CGST/SGST split follows {@link computeGst}.
+ * Used by Settings › Taxes & GST to show worked examples.
+ */
+export function gstOnPrice(input: {
+  pricePaise: number
+  ratePercent: number
+  inclusive: boolean
+  interState: boolean
+}): PriceGst {
+  const price = Math.max(0, Math.round(input.pricePaise))
+  const rate = Math.max(0, input.ratePercent)
+  const taxPaise = input.inclusive
+    ? Math.round((price * rate) / (100 + rate))
+    : Math.round((price * rate) / 100)
+  const taxablePaise = input.inclusive ? price - taxPaise : price
+  const sgstPaise = input.interState ? 0 : Math.floor(taxPaise / 2)
+  return {
+    taxablePaise,
+    taxPaise,
+    totalPaise: taxablePaise + taxPaise,
+    cgstPaise: input.interState ? 0 : taxPaise - sgstPaise,
+    sgstPaise,
+    igstPaise: input.interState ? taxPaise : 0,
+  }
+}
+
 /** Tax for one GST rate on an order. `taxablePaise` is the value net of the tax inside it. */
 export type GstRateRow = {
   ratePercent: number

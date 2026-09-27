@@ -55,6 +55,7 @@ import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
+import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { recomputeOrderStatuses } from './recompute'
 
@@ -443,8 +444,10 @@ const createOrder: WorkflowStep<State> = {
         payments: store.payments,
         address: store.address,
         gstRatePercent: store.gstRatePercent,
+        apps: store.apps,
       })
     if (!s) throw new Error(`store ${ctx.storeId} not visible in context`)
+    const storeTax = parseStoreTax(s.apps)
     const orderNumber = s.next - 1
     const subtotalPaise = sumPaise(lines)
     // Discount first, then the payment-method fee or discount on what is left.
@@ -502,7 +505,7 @@ const createOrder: WorkflowStep<State> = {
     const tax = computeOrderGst({
       lines: lines.map((l) => ({
         grossPaise: l.quantity * l.unitPricePaise,
-        ratePercent: lineGstRate(l, s.gstRatePercent),
+        ratePercent: lineGstRate(l, s.gstRatePercent, storeTax),
       })),
       totalPaise,
       reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
@@ -567,7 +570,7 @@ const createOrder: WorkflowStep<State> = {
         variantTitle: l.variantTitle,
         quantity: l.quantity,
         unitPricePaise: l.unitPricePaise,
-        gstRatePercent: lineGstRate(l, s.gstRatePercent),
+        gstRatePercent: lineGstRate(l, s.gstRatePercent, storeTax),
         hsCode: l.giftCard ? null : l.hsCode,
         giftCard: l.giftCard,
         preorder: l.preorder.enabled && !l.giftCard,
@@ -642,9 +645,12 @@ async function claimDiscountUse(
   if (claimed.length === 0) throw new DiscountUnavailable(discountId, ctx.storeId)
 }
 
-/** GST at the line's rate; a gift card sale is a voucher, taxed only when it is redeemed. */
-const lineGstRate = (l: Line, storeRate: number): number =>
-  l.giftCard || !l.taxable ? 0 : (l.gstRatePercent ?? storeRate)
+/**
+ * GST at the line's rate; a gift card sale is a voucher, taxed only when it is
+ * redeemed. A composition-scheme store charges no GST on anything.
+ */
+const lineGstRate = (l: Line, storeRate: number, tax: StoreTaxSettings): number =>
+  l.giftCard || !l.taxable ? 0 : chargedGstRate(l.gstRatePercent ?? storeRate, tax)
 
 /**
  * Spend the applied gift cards against the total. Runs after the order exists

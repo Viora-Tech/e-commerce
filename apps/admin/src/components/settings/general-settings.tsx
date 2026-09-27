@@ -14,11 +14,14 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { settingsContent } from '@/data/settings'
+import { taxesContent } from '@/data/taxes'
 import { api } from '@/lib/api-client'
 import GeneralCompletion, { detailsDone } from './general-completion'
 import GeneralTextField from './general-text-field'
@@ -27,6 +30,8 @@ type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
 type Errors = Partial<Record<string, string>>
 
 const copy = settingsContent.general
+const movedCopy = taxesContent.movedFromGeneral
+const TAXES_HREF = '/settings/taxes'
 const timezoneItems = Object.fromEntries(copy.timezones.map((t) => [t.value, t.label]))
 
 /** Zod issues keyed by dotted path, e.g. `address.pincode`. */
@@ -51,16 +56,22 @@ function LoadingCards() {
 }
 
 /**
- * Settings › General in four cards (store details, business address, taxes /
- * GST, currency and time), each with a help line, plus how many details are
- * done and a prompt when the business address is still empty.
+ * Settings › General in three cards (store details, business address,
+ * currency and time), each with a help line, plus how many details are done
+ * and a prompt when the business address is still empty. Taxes moved to
+ * Settings › Taxes & GST; `#tax` keeps a pointer there and redirects.
  */
 export default function GeneralSettings() {
   // Hooks
+  const router = useRouter()
   const [form, setForm] = useState<Loaded | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
+  useEffect(() => {
+    // Old links to the tax card (/settings/general#tax) land on the new page.
+    if (window.location.hash === '#tax') router.replace(TAXES_HREF)
+  }, [router])
   useEffect(() => {
     api.store.getGeneral().then((g) => {
       if (!g) return
@@ -81,7 +92,8 @@ export default function GeneralSettings() {
     if (Object.keys(validate(form)).length) return
     setBusy(true)
     try {
-      const { currency: _c, ...input } = form
+      // Tax fields belong to Settings › Taxes & GST; leaving them out keeps that page's values.
+      const { currency: _c, gstin: _g, gstRatePercent: _r, ...input } = form
       const result = await api.store.updateGeneral(input)
       if (!result) throw new Error(copy.failed)
       setForm(result)
@@ -234,33 +246,15 @@ export default function GeneralSettings() {
             </CardContent>
           </Card>
 
-          <Card size="form" id="tax" className="scroll-mt-6">
-            <CardHeader>
-              <CardTitle>{copy.tax.heading}</CardTitle>
-              <CardDescription>{copy.tax.help}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <GeneralTextField
-                  id="store-gstin"
-                  label={copy.tax.gstin}
-                  value={form.gstin}
-                  onChange={(gstin) => patch({ gstin: gstin.toUpperCase() })}
-                  error={errors.gstin}
-                  help={copy.tax.gstinHelp}
-                />
-                <GeneralTextField
-                  id="store-gst-rate"
-                  label={copy.tax.gstRate}
-                  value={String(form.gstRatePercent)}
-                  onChange={(rate) => patch({ gstRatePercent: Number(rate) || 0 })}
-                  error={errors.gstRatePercent}
-                  help={copy.tax.gstRateHelp}
-                  inputMode="decimal"
-                />
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <div
+            id="tax"
+            className="flex scroll-mt-6 flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center"
+          >
+            <p className="flex-1 text-body text-foreground">{movedCopy.body}</p>
+            <Button variant="outline" render={<Link href={TAXES_HREF} />} nativeButton={false}>
+              {movedCopy.action}
+            </Button>
+          </div>
 
           <Card size="form" id="formats" className="scroll-mt-6">
             <CardHeader>

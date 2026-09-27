@@ -13,18 +13,17 @@ const copy = settingsContent.general.completion
 
 const filled = (v: string) => v.trim().length > 0
 
-/** Which of the five shop details are filled in. */
+/** Which of the four shop details are filled in (GSTIN lives on Taxes & GST). */
 export function detailsDone(d: StoreGeneral): Record<DetailKey, boolean> {
   return {
     name: filled(d.name),
     email: filled(d.contactEmail),
     phone: filled(d.contactPhone),
     address: filled(d.address.line1) && filled(d.address.city) && filled(d.address.pincode),
-    gstin: filled(d.gstin),
   }
 }
 
-/** "3 of 5 details done", a bar, and what is still missing, in plain words. */
+/** "3 of 4 details done", a bar, and what is still missing, in plain words. */
 export default function GeneralCompletion({ details }: GeneralCompletionProps) {
   // Render logic
   const done = detailsDone(details)
