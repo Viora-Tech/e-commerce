@@ -2,7 +2,14 @@
 
 import { type RichTextValue, richTextToPlainText } from '@commerce/richtext'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
@@ -59,6 +66,7 @@ export default function SeoCard({
     <Card size="form">
       <CardHeader>
         <CardTitle>{copy.heading}</CardTitle>
+        <CardDescription>{copy.intro}</CardDescription>
         {!editing ? (
           <CardAction>
             <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)}>

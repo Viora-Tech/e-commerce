@@ -12,6 +12,8 @@ type DetailLayoutProps = {
   children?: ReactNode
   /** Extra classes on the grid, e.g. `print:hidden` when the page prints its own view. */
   className?: string
+  /** Pins the side column in view on desktop instead of scrolling it with the (often much longer) main column. */
+  stickySide?: boolean
 }
 
 /**
@@ -26,6 +28,7 @@ export default function DetailLayout({
   side,
   children,
   className,
+  stickySide = false,
 }: DetailLayoutProps) {
   return (
     <>
@@ -43,7 +46,14 @@ export default function DetailLayout({
           <div className="flex flex-col">{main}</div>
         </div>
         {side ? (
-          <aside className="flex min-w-0 flex-col border-border border-t lg:border-t-0">
+          <aside
+            className={cn(
+              'flex min-w-0 flex-col border-border border-t lg:border-t-0',
+              /* Height of the scrolling <main>: the window less the 3.5rem top bar (admin-frame). */
+              stickySide &&
+                'lg:sticky lg:top-0 lg:max-h-[calc(100svh-3.5rem)] lg:self-start lg:overflow-y-auto',
+            )}
+          >
             {side}
           </aside>
         ) : null}

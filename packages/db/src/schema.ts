@@ -86,6 +86,8 @@ export const product = pgTable(
     /** Lexical JSON (see @commerce/richtext). Legacy rows hold a plain string; parseRichText copes. */
     description: jsonb('description'),
     vendor: text('vendor'),
+    /** Shopify Standard Product Taxonomy category id (vendored, trimmed copy); productType stays separate free text. */
+    categoryId: text('category_id'),
     productType: text('product_type'),
     tags: text('tags').array().notNull().default([]),
     seoTitle: text('seo_title'),
@@ -385,6 +387,11 @@ export const variant = pgTable('variant', {
   countryOfOrigin: text('country_of_origin'),
   /** GST rate for this variant; null uses the store default. Ignored when `taxable` is false. */
   gstRatePercent: integer('gst_rate_percent'),
+  /** One of the store's named boxes (shipping settings JSON); null with dims set below means a custom box. */
+  boxPresetId: text('box_preset_id'),
+  packageLengthCm: integer('package_length_cm'),
+  packageWidthCm: integer('package_width_cm'),
+  packageHeightCm: integer('package_height_cm'),
   position: integer('position').notNull().default(0),
   mediaId: uuid('media_id').references(() => media.id),
   /**

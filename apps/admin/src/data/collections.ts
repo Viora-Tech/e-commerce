@@ -147,3 +147,16 @@ export const productCollectionsContent = {
   none: 'Not in any collection',
   placeholder: 'Add to a collection',
 } as const
+
+/** Standalone collections card on the product form (frame: organisation). */
+export const productCollectionsCardContent = {
+  heading: 'Collections',
+  save: 'Save',
+  saving: 'Saving…',
+  saved: 'Collections updated',
+  failed: 'Could not update collections',
+  saveFirst: 'Save the product first, then add it to collections.',
+  automaticLabel: 'Added automatically',
+  automaticHelp: 'Smart collections whose rules match this product.',
+  automaticNone: 'Not added to any smart collection yet.',
+} as const

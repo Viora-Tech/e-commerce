@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import KitButton from '@/components/kit/kit-button'
+import DataCard from '@/components/layout/data-card'
 import DetailLayout from '@/components/layout/detail-layout'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
@@ -31,6 +32,7 @@ import {
   formErrors,
   fromProduct,
   type LoadedProduct,
+  matrixOptions,
   type OptionRow,
   type ProductFormState,
   reconcileVariants,
@@ -39,10 +41,14 @@ import {
   type VariantRow,
 } from './form-state'
 import ProductCategoriesCard from './product-categories-card'
+import ProductCollectionsCard from './product-collections-card'
 import ProductFormActions from './product-form-actions'
 import ProductImageCard from './product-image-card'
 import ProductMainCard from './product-main-card'
+import ProductMoreSection from './product-more-section'
 import ProductPageActions from './product-page-actions'
+import ProductPreorderSection from './product-preorder-section'
+import ProductSectionNav from './product-section-nav'
 import SeoCard from './seo-card'
 import ShippingCard from './shipping-card'
 import StatusCard from './status-card'
@@ -56,6 +62,22 @@ type ProductFormProps = {
 }
 
 const copy = productFormContent
+
+/** Jump-nav targets in page order; pricing and inventory move into the variants table once options exist. */
+const SINGLE_SECTIONS = [
+  'media',
+  'details',
+  'pricing',
+  'inventory',
+  'variants',
+  'shipping',
+  'seo',
+  'more',
+] as const
+const MATRIX_SECTIONS = ['media', 'details', 'variants', 'shipping', 'seo', 'more'] as const
+
+/** Jump-nav targets land below the sticky page header instead of under it. */
+const SECTION = 'scroll-mt-44'
 
 function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()
@@ -77,6 +99,9 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   const [serverError, setServerError] = useState<string | null>(null)
   const [attempted, setAttempted] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  /* Bumped after each save so cards that load their own data (collections) refetch. */
+  const [revision, setRevision] = useState(0)
 
   /* Browser guard: a reload or a close with edits pending asks first. */
   useEffect(() => {
@@ -94,13 +119,22 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
       variants: f.variants.map((v, i) => (i === index ? { ...v, ...vp } : v)),
     }))
   const setOptions = (options: OptionRow[]) =>
-    setForm((f) => ({ ...f, options, variants: reconcileVariants(options, f.variants) }))
+    setForm((f) => ({
+      ...f,
+      options,
+      variants: reconcileVariants(options, f.options, f.variants).variants,
+    }))
+  /* The package is one box per product, so every variant ships in it. */
+  const patchPackage = (vp: Partial<VariantRow>) =>
+    setForm((f) => ({ ...f, variants: f.variants.map((v) => ({ ...v, ...vp })) }))
 
   // Event handlers
   const handleSave = async (status?: ProductStatus) => {
     setAttempted(true)
     const next = status ? { ...form, status } : form
-    if (Object.keys(formErrors(next)).length) return
+    const found = formErrors(next)
+    if (found.preorderDeposit) setMoreOpen(true)
+    if (Object.keys(found).length) return
     if (status) setForm(next)
     setBusy(true)
     setServerError(null)
@@ -110,6 +144,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
       const fresh = fromProduct(result)
       setForm(fresh)
       setSaved(snapshot(fresh))
+      setRevision((r) => r + 1)
       toast.success(product ? copy.toasts.saved : copy.toasts.created)
       if (!product) router.replace(`/products/${result.id}`)
       else router.refresh()
@@ -164,7 +199,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   const isDirty = snapshot(form) !== saved
   const errors = formErrors(form)
   const showErrors = attempted
-  const single = form.options.length === 0
+  const single = matrixOptions(form.options).length === 0
   const savedForm = JSON.parse(saved) as ProductFormState
   const quantityChanged = form.variants.some(
     (v, i) => v.quantity !== savedForm.variants[i]?.quantity,
@@ -173,6 +208,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
 
   return (
     <DetailLayout
+      stickySide
       header={
         <>
           <SaveBar
@@ -203,6 +239,10 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
               />
             }
           />
+          <ProductSectionNav
+            sections={single ? SINGLE_SECTIONS : MATRIX_SECTIONS}
+            onJump={(id) => id === 'more' && setMoreOpen(true)}
+          />
           {serverError ? (
             <Alert variant="destructive">
               <CircleAlert />
@@ -220,7 +260,6 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             singleVariant={single}
             titleError={showErrors ? errors.title : undefined}
             quantityChanged={quantityChanged}
-            preorderDepositError={showErrors ? errors.preorderDeposit : undefined}
             onPatch={patch}
             onVariant={(vp) => patchVariant(0, vp)}
             onReason={(inventoryReason) => patch({ inventoryReason })}
@@ -232,28 +271,55 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
               />
             }
           />
-          <VariantsCard
-            options={form.options}
-            variants={form.variants}
-            media={form.media}
-            error={showErrors ? errors.variants : undefined}
-            onOptions={setOptions}
-            onVariant={patchVariant}
-          />
-          <ShippingCard variant={first} onChange={(vp) => patchVariant(0, vp)} />
-          {product ? <StockHistoryCard productId={product.id} /> : null}
-          <SeoCard
-            title={form.title}
-            description={form.description}
-            seoTitle={form.seoTitle}
-            seoDescription={form.seoDescription}
-            handle={form.handle}
-            storefrontOrigin={storefrontOrigin}
-            onSeoTitle={(seoTitle) => patch({ seoTitle })}
-            onSeoDescription={(seoDescription) => patch({ seoDescription })}
-            onHandle={(handle) => patch({ handle })}
-          />
-          <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+          <section id="variants" className={SECTION}>
+            <VariantsCard
+              title={form.title}
+              options={form.options}
+              variants={form.variants}
+              media={form.media}
+              error={showErrors ? errors.variants : undefined}
+              onOptions={setOptions}
+              onVariant={patchVariant}
+            />
+          </section>
+          <section id="shipping" className={SECTION}>
+            <ShippingCard
+              variant={first}
+              singleVariant={single}
+              packageError={showErrors ? errors.package : undefined}
+              onChange={(vp) => patchVariant(0, vp)}
+              onPackage={patchPackage}
+            />
+          </section>
+          <section id="seo" className={SECTION}>
+            <SeoCard
+              title={form.title}
+              description={form.description}
+              seoTitle={form.seoTitle}
+              seoDescription={form.seoDescription}
+              handle={form.handle}
+              storefrontOrigin={storefrontOrigin}
+              onSeoTitle={(seoTitle) => patch({ seoTitle })}
+              onSeoDescription={(seoDescription) => patch({ seoDescription })}
+              onHandle={(handle) => patch({ handle })}
+            />
+          </section>
+          <ProductMoreSection open={moreOpen} onOpenChange={setMoreOpen}>
+            <DataCard title={copy.preorder.heading}>
+              <ProductPreorderSection
+                form={form}
+                depositError={showErrors ? errors.preorderDeposit : undefined}
+                onPatch={patch}
+              />
+            </DataCard>
+            <MetafieldsCard ownerType="product" ownerId={product?.id ?? null} />
+            <TemplateSelectCard
+              kind="product"
+              value={form.templateSuffix}
+              onChange={(templateSuffix) => patch({ templateSuffix })}
+            />
+            {product ? <StockHistoryCard productId={product.id} /> : null}
+          </ProductMoreSection>
           <div className="flex flex-wrap justify-end gap-2 px-4 py-6 md:px-6">
             <KitButton
               variant="secondary"
@@ -283,18 +349,16 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             onVendor={(vendor) => patch({ vendor })}
           />
           <ProductCategoriesCard
+            categoryId={form.categoryId}
             productType={form.productType}
             tags={form.tags}
             colours={colourValues(form.options)}
             facets={facets}
+            onCategoryId={(categoryId) => patch({ categoryId })}
             onProductType={(productType) => patch({ productType })}
             onTags={(tags) => patch({ tags })}
           />
-          <TemplateSelectCard
-            kind="product"
-            value={form.templateSuffix}
-            onChange={(templateSuffix) => patch({ templateSuffix })}
-          />
+          <ProductCollectionsCard productId={product?.id ?? null} revision={revision} />
           {product ? (
             <ProductFormActions
               product={product}

@@ -25,6 +25,11 @@ export type VariantInput = {
   hsCode?: string | null | undefined
   countryOfOrigin?: string | null | undefined
   gstRatePercent?: number | null | undefined
+  /** One of the store's named boxes (Settings, Shipping); null with dimensions set means a custom box. */
+  boxPresetId?: string | null | undefined
+  packageLengthCm?: number | null | undefined
+  packageWidthCm?: number | null | undefined
+  packageHeightCm?: number | null | undefined
   /** Absolute on-hand count when the merchant edits it inline. */
   onHand?: number | undefined
   mediaId?: string | null | undefined

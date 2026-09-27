@@ -137,6 +137,23 @@ export const productFormContent = {
   },
   /** Aria label for the money prefix so screen readers read the currency. */
   currency: 'Rupees',
+  sectionNav: {
+    label: 'Jump to section',
+    labels: {
+      media: 'Media',
+      details: 'Details',
+      pricing: 'Pricing',
+      inventory: 'Inventory',
+      variants: 'Variants',
+      shipping: 'Shipping',
+      seo: 'Google preview',
+      more: 'More',
+    },
+  },
+  more: {
+    heading: 'More settings',
+    help: 'Pre-order and launch, custom data, theme template and stock history.',
+  },
   details: {
     title: 'Title',
     titlePlaceholder: 'Short sleeve t-shirt',
@@ -155,7 +172,16 @@ export const productFormContent = {
   },
   categories: {
     heading: 'Organisation',
-    type: 'Product categories',
+    category: 'Category',
+    categoryPlaceholder: 'Search categories, e.g. "Shirts"',
+    categorySearchHint: 'Start typing to search',
+    categoryNoResults: 'No matching category',
+    categoryLoading: 'Loading categories…',
+    categoryClear: 'Clear category',
+    categoryFailed: 'Could not load categories. Click the field to try again.',
+    categoryHelp:
+      'From Shopify’s open standard product taxonomy. Optional, but helps search and marketplaces.',
+    type: 'Product type',
     typePlaceholder: 'Select a category',
     tag: 'Product tag',
     colour: 'Select your colour',
@@ -218,11 +244,18 @@ export const productFormContent = {
     heading: 'Variants',
     addOption: 'Add options like size or colour',
     addAnother: 'Add another option',
+    optionNameSuggestions: ['Size', 'Colour', 'Material'],
     optionName: 'Option name',
     optionNamePlaceholder: 'Size',
     optionValues: 'Option values',
-    optionValuesPlaceholder: 'Small, Medium, Large',
-    optionValuesHelp: 'Separate values with commas.',
+    optionValuesPlaceholder: 'Type a value and press Enter',
+    optionValuesHelp: 'Press Enter or comma after each value.',
+    optionValueRemove: (value: string) => `Remove ${value}`,
+    optionValueSuggestions: {
+      size: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+      colour: ['Black', 'White', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Beige'],
+      material: ['Cotton', 'Polyester', 'Linen', 'Wool', 'Silk', 'Leather'],
+    },
     remove: 'Remove option',
     done: 'Done',
     maxOptions: 'Up to 3 options',
@@ -230,6 +263,14 @@ export const productFormContent = {
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
     tooMany: (n: number) =>
       `${n} variants. Large matrices are slow to edit; consider fewer values.`,
+    autoFillSku: 'Suggest SKUs',
+    autoFillSkuHelp: 'Fills blank SKUs from the product title and variant.',
+    needsValues: 'Add at least one value to each option to build the variants.',
+    confirmRemoveTitle: 'Remove variants that have stock?',
+    confirmRemoveBody: (n: number, units: number) =>
+      `${n} variant${n === 1 ? '' : 's'} holding ${units} unit${units === 1 ? '' : 's'} in stock will be removed. Past orders keep their own record.`,
+    confirmRemoveCancel: 'Keep them',
+    confirmRemoveConfirm: 'Remove anyway',
   },
   status: {
     heading: 'Status',
@@ -264,6 +305,22 @@ export const productFormContent = {
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
+    package: 'Package',
+    packageHelp:
+      'The box this product ships in. Shipment booking uses it instead of the store default box.',
+    packageManage: 'Add or edit named boxes in Settings, Shipping.',
+    packageAllVariants: 'Applies to every variant of this product.',
+    packageStoreDefault: "Use the store's default box",
+    packageCustom: 'Custom size',
+    packageOption: (name: string, l: number, w: number, h: number) =>
+      `${name} (${l} × ${w} × ${h} cm)`,
+    packageIncomplete: 'Enter the length, width and height, or pick a named box.',
+    packageLength: 'Length (cm)',
+    packageWidth: 'Width (cm)',
+    packageHeight: 'Height (cm)',
+    packageVolumetric: (kg: number) => `Volumetric weight ${kg} kg (L × W × H ÷ 5000)`,
+    packageActual: (kg: number) => `actual ${kg} kg`,
+    packageBillingHint: (kg: number) => `couriers bill the higher, ${kg} kg`,
   },
   preorder: {
     heading: 'Pre-order & launch',
@@ -302,6 +359,8 @@ export const productFormContent = {
     selected: (n: number) => `${n} variant${n === 1 ? '' : 's'} selected`,
     price: 'Set price',
     quantity: 'Set quantity',
+    sku: 'SKU prefix',
+    skuHelp: 'A prefix gives each selected variant PREFIX-VALUE SKUs.',
     apply: 'Apply',
     clear: 'Clear selection',
     image: 'Image',
@@ -311,7 +370,9 @@ export const productFormContent = {
     selectOne: (title: string) => `Select ${title}`,
   },
   seo: {
-    heading: 'Search engine listing',
+    heading: 'Google search preview',
+    intro:
+      'How this product can appear in Google results. Optional: we fill it in from the title and description.',
     edit: 'Edit',
     title: 'Page title',
     titleHelp: (n: number) => `${n} of 70 characters used`,
@@ -320,8 +381,7 @@ export const productFormContent = {
     handle: 'URL handle',
     handlePrefix: '/products/',
     previewLabel: 'Preview',
-    previewHint:
-      'Add a title and description to see how this product might appear in a search engine listing.',
+    previewHint: 'Add a title and description to see how this product might appear on Google.',
   },
   delete: {
     action: 'Delete product',

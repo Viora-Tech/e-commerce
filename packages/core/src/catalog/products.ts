@@ -60,6 +60,7 @@ function productRow(fields: ProductFields) {
     title: fields.title,
     description: fields.description ?? null,
     vendor: fields.vendor || null,
+    categoryId: fields.categoryId || null,
     productType: fields.productType || null,
     tags: dedupe(fields.tags ?? []),
     seoTitle: fields.seoTitle || null,
@@ -113,6 +114,10 @@ function variantRow(input: VariantInput) {
     hsCode: input.hsCode ?? null,
     countryOfOrigin: input.countryOfOrigin ?? null,
     gstRatePercent: input.gstRatePercent ?? null,
+    boxPresetId: input.boxPresetId ?? null,
+    packageLengthCm: input.packageLengthCm ?? null,
+    packageWidthCm: input.packageWidthCm ?? null,
+    packageHeightCm: input.packageHeightCm ?? null,
     mediaId: input.mediaId ?? null,
   }
 }
