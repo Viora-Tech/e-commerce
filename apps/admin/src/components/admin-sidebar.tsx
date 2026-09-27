@@ -23,6 +23,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { authContent } from '@/data/auth'
+import { layoutContent } from '@/data/layout'
 import {
   APPS_GROUP,
   NAV_GROUPS,
@@ -42,9 +43,19 @@ type AdminSidebarProps = {
   logoUrl: string | null
 }
 
-/** Installed apps hang under the Apps entry, like Drafts under Orders. */
+/** How many installed apps the sidebar lists before "View all apps". */
+const SIDEBAR_APPS = 5
+
+/**
+ * Installed apps hang under the Apps entry, like Drafts under Orders. Past a handful the list
+ * would push everything else off the rail, so it stops at `SIDEBAR_APPS` with a "View all".
+ */
 function nestApps(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] {
-  const children = apps.map((a) => ({ href: `/apps/${a.id}`, label: a.name }))
+  const shown = apps.slice(0, SIDEBAR_APPS).map((a) => ({ href: `/apps/${a.id}`, label: a.name }))
+  const children =
+    apps.length > SIDEBAR_APPS
+      ? [...shown, { href: '/apps', label: layoutContent.viewAllApps(apps.length) }]
+      : shown
   return items.map((item) =>
     item.href === '/apps' ? { ...item, children: [...(item.children ?? []), ...children] } : item,
   )

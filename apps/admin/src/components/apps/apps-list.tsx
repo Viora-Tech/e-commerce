@@ -17,6 +17,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
+import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import EmptyState from '@/components/layout/empty-state'
@@ -98,6 +99,7 @@ function AppsSection({
 /** Apps: every plugin from commerce.config.ts, split into Built-in apps and Connections. */
 export default function AppsList() {
   // Hooks
+  const router = useRouter()
   const [apps, setApps] = useState<AppSummary[] | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -120,6 +122,9 @@ export default function AppsList() {
       if (install) await api.apps.install({ id: app.id })
       else await api.apps.uninstall({ id: app.id })
       setApps(await api.apps.list())
+      // The sidebar's app links come from the server layout; re-render it so the app shows up
+      // (or goes) under Apps without a manual reload.
+      router.refresh()
       toast.success(install ? copy.installedToast(app.name) : copy.uninstalledToast(app.name))
     } catch (err) {
       toast.error(describeError(err, copy.actionFailed))

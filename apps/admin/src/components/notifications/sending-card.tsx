@@ -35,6 +35,8 @@ export default function SendingCard({ email, whatsapp, platformEmail }: SendingC
     try {
       if (channel.state === 'missing') await api.apps.install({ id: channel.appId })
       router.push(`/apps/${channel.appId}/connect`)
+      // A just-installed app gets its sidebar link from the server layout.
+      router.refresh()
     } catch {
       toast.error(copy.installFailed)
       setOpening(null)

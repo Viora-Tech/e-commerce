@@ -5,6 +5,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { gatewayGuides, paymentsSetupContent as setupCopy } from '@/data/payments-setup'
@@ -43,6 +44,7 @@ const codOnly = (methods: CheckoutMethodRow[]) => methods.map((m) => ({ ...m, on
  */
 export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProps) {
   // Hooks
+  const router = useRouter()
   const reduced = useReducedMotion()
   const [step, setStep] = useState<Step>('how')
   const [gateway, setGateway] = useState<GatewayId | 'cod' | null>(null)
@@ -65,7 +67,11 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
         return
       }
       if (!isGatewayId(id)) return
-      if (!setup.gateways.find((g) => g.id === id)?.installed) await api.apps.install({ id })
+      if (!setup.gateways.find((g) => g.id === id)?.installed) {
+        await api.apps.install({ id })
+        // The new app's sidebar link comes from the server layout.
+        router.refresh()
+      }
       await onReload()
       setGateway(id)
       go('connect')
