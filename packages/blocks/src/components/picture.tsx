@@ -1,8 +1,12 @@
+import type { CSSProperties } from 'react'
+import { thumbHashToDataURL } from 'thumbhash'
+
 type PictureProps = {
   image: {
     url: string
     alt: string | null
     variants?: Record<string, { avif: string; webp: string }> | null | undefined
+    thumbhash?: string | null | undefined
   }
   alt: string
   className?: string | undefined
@@ -34,6 +38,28 @@ function srcSet(variants: Record<string, { avif: string; webp: string }>, format
 }
 
 /**
+ * The ThumbHash decodes to a tiny data URL, set as the `<img>`'s own CSS
+ * background: it shows through until the real image finishes loading and
+ * paints over it, with no JS and no extra DOM node. Malformed/undecodable
+ * hashes (there should never be one, but a corrupt row is not worth a crash)
+ * fall back to no placeholder rather than throwing.
+ */
+function blurStyle(thumbhash: string | null | undefined): CSSProperties | undefined {
+  if (!thumbhash) return undefined
+  try {
+    const bytes = Uint8Array.from(atob(thumbhash), (c) => c.charCodeAt(0))
+    const dataUrl = thumbHashToDataURL(bytes)
+    return {
+      backgroundImage: `url(${dataUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Native `<picture>` with AVIF and WebP sources at every pre-generated
  * width, falling back to the original `url` (unprocessed/legacy media, or
  * when the pipeline never got to it — see `media.status`). No JS: the
@@ -53,11 +79,16 @@ export default function Picture({
   sizes,
   ariaHidden,
 }: PictureProps) {
+  // Render logic
   const variants = image.variants
+  const style = blurStyle(image.thumbhash)
+
+  // Early returns
   if (!variants || Object.keys(variants).length === 0) {
     return (
       <img
         className={className}
+        style={style}
         src={image.url}
         alt={alt}
         width={width}
@@ -77,6 +108,7 @@ export default function Picture({
       <source type="image/webp" srcSet={srcSet(variants, 'webp')} sizes={sizes} />
       <img
         className={className}
+        style={style}
         src={fallbackWebp ?? image.url}
         alt={alt}
         width={width}

@@ -220,7 +220,7 @@ export const media = pgTable('media', {
   /** Base64 ThumbHash (~20-40 bytes decoded) used as the blur-up placeholder. Null until processed. */
   thumbhash: text('thumbhash'),
   /** Set when the pipeline finishes (success or failure); null while pending/processing. */
-  processedAt: timestamp('processed_at'),
+  processedAt: timestamp('processed_at', { withTimezone: true }),
   /** Last pipeline error, kept for the admin media UI and for debugging a stuck `failed` row. */
   processError: text('process_error'),
   createdAt: createdAt(),

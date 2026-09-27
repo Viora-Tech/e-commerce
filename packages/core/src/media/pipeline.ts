@@ -152,7 +152,7 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
 
   // limitInputPixels throws synchronously from sharp() when the header alone
   // already declares more pixels than the limit, before any frame decodes.
-  let img: sharp.Sharp
+  let img: ReturnType<typeof sharp>
   try {
     img = sharp(input.bytes, { limitInputPixels: limit, failOn: 'error' })
     await img.metadata()

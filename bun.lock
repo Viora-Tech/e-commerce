@@ -254,6 +254,7 @@
         "@commerce/richtext": "workspace:*",
         "@puckeditor/core": "^0.23.0",
         "motion": "^13.4.1",
+        "thumbhash": "^0.1.1",
       },
       "devDependencies": {
         "@commerce/config": "workspace:*",

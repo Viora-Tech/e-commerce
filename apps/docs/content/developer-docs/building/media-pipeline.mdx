@@ -82,6 +82,12 @@ itself — no loader indirection, no JS. `images.formats: ['image/avif', 'image/
 in both apps' `next.config.ts` for the remaining call sites that still go through the
 default optimizer (blog/CMS content images, anything not yet migrated to `<Picture>`).
 
+`<Picture>` also sets the ThumbHash as the `<img>`'s own inline `background-image` (decoded
+with `thumbhash`'s `thumbHashToDataURL` directly — `packages/blocks` stays free of a
+`@commerce/core` dependency, so it doesn't call `thumbhashPlaceholder` for this). No wrapper
+element or JS: the blur shows through until the real image paints over it, and a
+corrupt/missing hash just renders with no placeholder rather than throwing.
+
 ## Storage usage and quota
 
 `storageUsageBytes(tx, storeId)` sums `media.size` for `status = 'ready'` rows — no new
