@@ -4,7 +4,7 @@ Written 22 September 2026, after PR #59. Read this first when starting a session
 conversation history. Everything here is checked into the repo, so it survives model or
 machine changes.
 
-## Latest state (24 September 2026)
+## Latest state (27 September 2026)
 
 The sections further down describe an earlier stage and are partly outdated; this list wins.
 
@@ -34,10 +34,37 @@ The sections further down describe an earlier stage and are partly outdated; thi
 - **Working rules**: one build at a time and merge before the next; check open source first
   (`docs/open-source-radar.md`) and credit per `THIRD_PARTY_NOTICES.md`; UI tweaks are
   reviewed live on :3200 before a PR.
-- **Queued**: auto-confirm UPI (Razorpay QR) and manual-UPI expiry, light/dark theme presets in
-  Settings → Appearance, order status split, React Email templates, GlitchTip error tracking,
-  Home dashboard redesign (waiting for design references), deployment (Coolify or Dokploy on
-  Lightsail), then the SaaS layer.
+- **Done since the old queue** (all merged by 27 September 2026): auto-confirm UPI via Razorpay
+  QR + manual-UPI expiry, light/dark presets in Settings → Appearance, order status split,
+  React Email templates, GlitchTip error tracking, Returns & RTO, order emails (out for delivery,
+  delivered, NDR, cancelled, refund), sender email from the merchant's own domain, S3 storage,
+  RapidShyp (full API), Growth (sales by source), Shopify import via Dev Dashboard apps, merchant
+  onboarding, and the Dokploy deployment files (#173).
+- **Open PRs waiting for a local test run** (need Postgres, so run them on the owner's machine):
+  #180 Shopify import speed-up (bulk operations + parallel writes), #181 price fields / sale-date
+  labels / import history fixes, #182 image pipeline (sharp, AVIF/WebP variants, GPS stripped,
+  ThumbHash; migration `0071_media_pipeline`).
+- **In progress**: product page overhaul on branch `feat/product-page-ux` (WIP commit): options
+  auto-generate variants, Shopify product-taxonomy category picker, collections on the product
+  page, package/box size with volumetric weight, sticky side column + section nav, "Google
+  search preview". Next migration number is **0072**.
+- **Queued, in order**:
+  1. Waimers Shopify import rehearsal on a clean local store (dry run → real import → check
+     products, images, collections, customers, order numbers, menus, redirects).
+  2. After #180 and #182: process Shopify-import media automatically (today it needs
+     `bun run media:reprocess`).
+  3. Deployment follow-ups: building Next on the 8 GB box crashed Docker locally, so move image
+     builds off the server (GitHub Actions → registry, Dokploy pulls; or a Dokploy build server),
+     re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
+     a limit raise before Lightsail allows the 8 GB plan.
+  4. Pre-go-live: EMI/pay-later widget app, Razorpay OAuth connect (needs Technology Partner),
+     Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
+  5. Small: worker `bun --watch` should also watch `packages/*`; fuller onboarding (what you sell,
+     location step, waitlist).
+  6. Later: Home dashboard redesign (waiting for design references), custom WebGL globe (cobe
+     tops out at ~32k dots), section library → Shopify theme importer (Level 1: rebuild with our
+     blocks; Level 2: LiquidJS for owner-owned themes only) → website builder / editor part 2
+     (`feat/editor-part2`, paused) last.
 
 ## What this is
 
