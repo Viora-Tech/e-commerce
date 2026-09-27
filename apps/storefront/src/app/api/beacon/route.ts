@@ -9,6 +9,7 @@ import {
   recordMarketingSession,
   setCartAttribution,
 } from '@commerce/core'
+import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { recordVisit, sharedRedis } from '@commerce/queue'
 import { cookies, headers } from 'next/headers'
 import {
@@ -20,8 +21,9 @@ import {
   SESSION_MAX_AGE,
 } from '@/lib/attribution-cookie'
 import { readCartId } from '@/lib/cart-cookie'
+import { analyticsAllowed } from '@/lib/consent-cookie'
 import { inStore } from '@/lib/store-context'
-import { parseVisitorId, VISITOR_COOKIE } from '@/lib/visitor-cookie'
+import { parseVisitorId, VISITOR_COOKIE, VISITOR_COOKIE_MAX_AGE } from '@/lib/visitor-cookie'
 
 type BeaconBody = { href?: unknown; referrer?: unknown }
 
@@ -67,15 +69,29 @@ export async function POST(request: Request) {
   const h = await headers()
   const jar = await cookies()
   const storeId = h.get('x-store-id')
-  const visitorId = parseVisitorId(jar.get(VISITOR_COOKIE)?.value)
-  if (!storeId || !visitorId) return new Response(null, { status: 204 })
+  // No analytics consent, no counting: the banner gates the beacon, and so does the server.
+  if (!storeId || !analyticsAllowed(jar.get(CONSENT_COOKIE)?.value)) {
+    return new Response(null, { status: 204 })
+  }
+  const secure = new URL(request.url).protocol === 'https:'
+  let visitorId = parseVisitorId(jar.get(VISITOR_COOKIE)?.value)
+  if (!visitorId) {
+    // Consent was just given on this page, before the proxy could mint the id.
+    visitorId = crypto.randomUUID()
+    jar.set(VISITOR_COOKIE, visitorId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      path: '/',
+      maxAge: VISITOR_COOKIE_MAX_AGE,
+    })
+  }
 
   await recordVisit(sharedRedis(loadEnv(process.env).REDIS_URL), storeId, visitorId)
 
   const { href, referrer } = await readBody(request)
   const click = decodeMarketingClick(jar.get(MARKETING_CLICK_COOKIE)?.value)
   const inSession = Boolean(jar.get(SESSION_COOKIE)?.value)
-  const secure = new URL(request.url).protocol === 'https:'
   jar.set(SESSION_COOKIE, '1', {
     httpOnly: true,
     sameSite: 'lax',

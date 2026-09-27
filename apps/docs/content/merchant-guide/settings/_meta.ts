@@ -5,4 +5,6 @@ export default {
   shipping: 'Shipping',
   checkout: 'Checkout',
   policies: 'Policies',
+  'customer-privacy': 'Customer privacy',
+  'customer-accounts': 'Customer accounts',
 }

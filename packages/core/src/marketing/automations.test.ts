@@ -105,6 +105,15 @@ async function quietCart(
   return c?.id as string
 }
 
+/** A customer who said yes to email and WhatsApp marketing. */
+async function consenting(storeId: string, email = 'asha@x.in') {
+  const [c] = await owner
+    .insert(customer)
+    .values({ storeId, email, acceptsMarketing: true, acceptsWhatsapp: true })
+    .returning()
+  return c?.id as string
+}
+
 async function activate(storeId: string, template: string, steps?: AutomationStep[]) {
   return withStore(app, storeId, async (tx) => {
     const a = await createAutomationFromTemplate(tx, storeId, template)
@@ -141,6 +150,7 @@ describe('abandoned checkout sequence', () => {
     const cartId = await quietCart(storeId, variantId, 61, {
       email: 'asha@x.in',
       phone: '9876543210',
+      customerId: await consenting(storeId),
     })
     const id = await activate(storeId, 'abandoned_checkout')
     const { sent, deps } = recorder()
@@ -184,7 +194,10 @@ describe('abandoned checkout sequence', () => {
 
   it('stops at the next step when an order arrives between steps, even without the hook', async () => {
     const { storeId, variantId } = await seedStore('b')
-    await quietCart(storeId, variantId, 61)
+    await quietCart(storeId, variantId, 61, {
+      email: 'asha@x.in',
+      customerId: await consenting(storeId),
+    })
     const id = await activate(storeId, 'abandoned_checkout')
     const { sent, deps } = recorder()
     const now = new Date()
@@ -200,6 +213,22 @@ describe('abandoned checkout sequence', () => {
     await tick(storeId, deps, new Date(now.getTime() + 25 * HOUR))
     expect(sent).toHaveLength(1)
     expect((await runOf(id))?.status).toBe('converted')
+  })
+
+  it('sends nothing to a shopper who only left a contact, without marketing consent', async () => {
+    const { storeId, variantId } = await seedStore('nc')
+    await quietCart(storeId, variantId, 61, { email: 'guest@x.in', phone: '9876543210' })
+    const [cu] = await owner
+      .insert(customer)
+      .values({ storeId, email: 'buyer@x.in', acceptsMarketing: false })
+      .returning()
+    await quietCart(storeId, variantId, 61, { email: 'buyer@x.in', customerId: cu?.id as string })
+    await activate(storeId, 'abandoned_checkout')
+    const { sent, deps } = recorder()
+    const now = new Date()
+    await tick(storeId, deps, now)
+    await tick(storeId, deps, new Date(now.getTime() + 6 * HOUR))
+    expect(sent).toHaveLength(0)
   })
 
   it('skips baskets the old recovery sweep already nudged, and never enrols twice', async () => {

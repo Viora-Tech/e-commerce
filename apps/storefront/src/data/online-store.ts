@@ -18,14 +18,17 @@ export const previewBarContent = {
 export const consentContent = {
   label: 'Cookie consent',
   heading: 'Your privacy',
-  body: 'We use necessary cookies to run this store, like your cart. With your consent we also use analytics cookies to understand visits and marketing cookies to measure ads. You can change your mind any time by clearing cookies for this site.',
+  body: 'We use necessary cookies to run this store, like your cart. With your consent we also use analytics cookies to understand visits and marketing cookies to measure ads. You can change your mind any time from Cookie settings at the bottom of every page.',
   acceptAll: 'Accept all',
   rejectAll: 'Necessary only',
   customise: 'Choose',
   save: 'Save choices',
   categories: {
     necessary: { label: 'Necessary', body: 'Cart, checkout and security. Always on.' },
-    analytics: { label: 'Analytics', body: 'Counts visits and pages so the store can improve.' },
+    analytics: {
+      label: 'Analytics',
+      body: 'Counts visits and pages, and where visitors came from, so the store can improve.',
+    },
     marketing: { label: 'Marketing', body: 'Measures ads on Meta and other platforms.' },
   },
 } as const

@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
 import { requestCodeAction, verifyCodeAction } from '@/lib/account-actions'
@@ -7,12 +8,16 @@ import { requestCodeAction, verifyCodeAction } from '@/lib/account-actions'
 type LoginFormProps = {
   /** Same-site path to land on after signing in. */
   returnTo: string
+  /** Under the button: guest checkout allowed, or an account needed. */
+  note: string
+  /** A link to switch to mobile sign-in, when the store offers it too. */
+  alternative?: ReactNode
 }
 
 const copy = accountContent.login
 
-/** Two steps, one card: email, then the six digit code mailed to it. */
-export default function LoginForm({ returnTo }: LoginFormProps) {
+/** Two steps: email, then the six digit code mailed to it. The card is `SignIn`'s. */
+export default function LoginForm({ returnTo, note, alternative }: LoginFormProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [email, setEmail] = useState('')
@@ -63,7 +68,7 @@ export default function LoginForm({ returnTo }: LoginFormProps) {
   ) : null
 
   return (
-    <div className="mx-auto w-full max-w-[26rem] rounded-2xl border border-line p-8">
+    <>
       {sentTo ? (
         <form onSubmit={handleCode} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
@@ -138,9 +143,10 @@ export default function LoginForm({ returnTo }: LoginFormProps) {
           >
             <span className="btn__label">{pending ? copy.sending : copy.sendCode}</span>
           </button>
-          <p className="text-small text-muted">{copy.guestNote}</p>
+          {alternative}
+          <p className="text-small text-muted">{note}</p>
         </form>
       )}
-    </div>
+    </>
   )
 }

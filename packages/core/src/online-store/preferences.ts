@@ -3,9 +3,9 @@ import { MediaRefSchema } from '../theme/schema'
 
 /**
  * Online Store › Preferences, as Shopify has them: the home page's search listing
- * and social image, a storefront password, the cookie consent banner, and the
- * analytics/marketing tags that load only after consent. Browser safe: the admin
- * form imports it directly.
+ * and social image, a storefront password, and the analytics/marketing tags that
+ * load only after consent. The cookie banner itself is Settings → Customer privacy
+ * (`@commerce/core/privacy`). Browser safe: the admin form imports it directly.
  */
 
 export const GA4_ID = /^G-[A-Z0-9]{4,12}$/
@@ -46,13 +46,6 @@ const PasswordSchema = z
     path: ['password'],
   })
 
-const PrivacySchema = z.object({
-  /** Show the consent banner and hold analytics and marketing tags until the shopper chooses. */
-  bannerEnabled: z.boolean().default(true),
-  /** Replaces the default banner copy when set. */
-  message: z.string().trim().max(PREFERENCE_LIMITS.message).default(''),
-})
-
 const TrackingSchema = z.object({
   ga4: trackingId(GA4_ID, 'A GA4 measurement id looks like G-XXXXXXXXXX', true).default(''),
   gtm: trackingId(GTM_ID, 'A Tag Manager id looks like GTM-XXXXXXX', true).default(''),
@@ -62,7 +55,6 @@ const TrackingSchema = z.object({
 export const StorePreferencesSchema = z.object({
   seo: SeoSchema.prefault({}),
   password: PasswordSchema.prefault({}),
-  privacy: PrivacySchema.prefault({}),
   tracking: TrackingSchema.prefault({}),
 })
 export type StorePreferences = z.infer<typeof StorePreferencesSchema>
@@ -80,30 +72,59 @@ export const CONSENT_CATEGORIES = ['necessary', 'analytics', 'marketing'] as con
 export type ConsentCategory = (typeof CONSENT_CATEGORIES)[number]
 export type Consent = { analytics: boolean; marketing: boolean }
 
-/** Cookie holding the shopper's choice; `a1m0` style so it is readable and tiny. */
+/** A choice as the cookie keeps it: which banner version it answered, and when. */
+export type StoredConsent = Consent & {
+  /** Banner version the shopper answered; 0 for cookies from before versions existed. */
+  version: number
+  /** Seconds since the epoch; 0 when unknown. */
+  at: number
+}
+
+/** Cookie holding the shopper's choice; `a1m0.v2.t1790000000` style so it is readable and tiny. */
 export const CONSENT_COOKIE = 'wc_consent'
 export const CONSENT_MAX_AGE = 60 * 60 * 24 * 180
 
-export function encodeConsent(c: Consent): string {
-  return `a${c.analytics ? 1 : 0}m${c.marketing ? 1 : 0}`
+export function encodeConsent(c: Consent, version: number, at: Date): string {
+  const seconds = Math.floor(at.getTime() / 1000)
+  return `a${c.analytics ? 1 : 0}m${c.marketing ? 1 : 0}.v${version}.t${seconds}`
 }
 
-/** The stored choice, or null when the shopper has not chosen yet. */
-export function decodeConsent(raw: string | null | undefined): Consent | null {
-  const m = /^a([01])m([01])$/.exec(raw ?? '')
-  return m ? { analytics: m[1] === '1', marketing: m[2] === '1' } : null
+/** The stored choice, or null when the shopper has not chosen yet (or the cookie is junk). */
+export function decodeConsent(raw: string | null | undefined): StoredConsent | null {
+  const m = /^a([01])m([01])(?:\.v(\d{1,6})\.t(\d{1,12}))?$/.exec(raw ?? '')
+  if (!m) return null
+  return {
+    analytics: m[1] === '1',
+    marketing: m[2] === '1',
+    version: m[3] ? Number(m[3]) : 0,
+    at: m[4] ? Number(m[4]) : 0,
+  }
 }
 
 /**
- * Which tags may load. Without a banner there is nothing to ask, so tags load; with
- * one, they wait for the shopper's choice per category.
+ * The choice that still counts: one made for the banner the store shows now.
+ * When the merchant changes the banner and asks everyone again, older answers
+ * lapse and the banner comes back, with everything optional off meanwhile.
+ */
+export function currentConsent(
+  stored: StoredConsent | null,
+  bannerVersion: number,
+): Consent | null {
+  if (!stored || stored.version < bannerVersion) return null
+  return { analytics: stored.analytics, marketing: stored.marketing }
+}
+
+/**
+ * Which tags may load. Nothing optional loads before the shopper says yes to
+ * its category (DPDP: consent is opt in); analytics tags need analytics, the
+ * Meta pixel needs marketing.
  */
 export function allowedTags(
-  prefs: Pick<StorePreferences, 'privacy' | 'tracking'>,
+  prefs: Pick<StorePreferences, 'tracking'>,
   consent: Consent | null,
 ): { ga4: string | null; gtm: string | null; metaPixel: string | null } {
-  const analytics = !prefs.privacy.bannerEnabled || consent?.analytics === true
-  const marketing = !prefs.privacy.bannerEnabled || consent?.marketing === true
+  const analytics = consent?.analytics === true
+  const marketing = consent?.marketing === true
   const t = prefs.tracking
   return {
     ga4: analytics && t.ga4 ? t.ga4 : null,

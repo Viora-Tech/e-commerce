@@ -264,4 +264,34 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     href: '/settings/checkout#gstin',
     keywords: ['gstin', 'b2b', 'business buyer', 'gst invoice', 'company'],
   },
+  {
+    title: 'Customer privacy',
+    where: 'Settings',
+    href: '/settings/customer-privacy',
+    keywords: ['privacy', 'dpdp', 'data protection', 'gdpr', 'personal data', 'consent'],
+  },
+  {
+    title: 'Cookie banner',
+    where: 'Settings → Customer privacy',
+    href: '/settings/customer-privacy#banner',
+    keywords: ['cookie', 'cookies', 'consent banner', 'tracking consent', 'pixel consent'],
+  },
+  {
+    title: 'Data requests',
+    where: 'Settings → Customer privacy',
+    href: '/settings/customer-privacy/requests',
+    keywords: ['data request', 'export data', 'delete data', 'erase', 'right to erasure', 'dsar'],
+  },
+  {
+    title: 'Customer accounts',
+    where: 'Settings',
+    href: '/settings/customer-accounts',
+    keywords: ['login', 'sign in', 'otp', 'guest checkout', 'customer login', 'account'],
+  },
+  {
+    title: 'Sign-in by SMS or WhatsApp',
+    where: 'Settings → Customer accounts',
+    href: '/settings/customer-accounts#sign-in',
+    keywords: ['sms otp', 'whatsapp otp', 'phone login', 'mobile login', 'email otp'],
+  },
 ]

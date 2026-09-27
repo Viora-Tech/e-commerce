@@ -1,19 +1,13 @@
 'use client'
 
-import { Label } from '@commerce/ui/shadcn/label'
-import { Switch } from '@commerce/ui/shadcn/switch'
-import { useState } from 'react'
-import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import { customerDetailContent as copy } from '@/data/customers'
-import { api } from '@/lib/api-client'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
 
 type ProfileCardProps = {
   customer: CustomerDetail
-  onChanged: () => void
 }
 
 type ContactRowProps = { label: string; value: string | null; what: string; href?: string }
@@ -37,28 +31,8 @@ function ContactRow({ label, value, what, href }: ContactRowProps) {
   )
 }
 
-/** Contact details, the default address and the marketing toggle, saved as it changes. */
-export default function ProfileCard({ customer, onChanged }: ProfileCardProps) {
-  // Hooks
-  const [marketing, setMarketing] = useState(customer.acceptsMarketing)
-  const [saving, setSaving] = useState(false)
-
-  // Event handlers
-  const handleMarketing = async (next: boolean) => {
-    setMarketing(next)
-    setSaving(true)
-    try {
-      await api.customers.update({ id: customer.id, acceptsMarketing: next })
-      toast.success(copy.profile.marketingSaved)
-      onChanged()
-    } catch {
-      setMarketing(!next)
-      toast.error(copy.profile.failed)
-    } finally {
-      setSaving(false)
-    }
-  }
-
+/** Contact details and the default address. Marketing consent has its own card. */
+export default function ProfileCard({ customer }: ProfileCardProps) {
   // Render logic
   const a = customer.defaultAddress
   const address = a
@@ -101,17 +75,6 @@ export default function ProfileCard({ customer, onChanged }: ProfileCardProps) {
           </div>
           {address ? <CopyButton value={address} what={copy.profile.address} /> : null}
         </div>
-      </div>
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
-        <Label htmlFor="customer-marketing" className="text-body">
-          {copy.profile.marketing}
-        </Label>
-        <Switch
-          id="customer-marketing"
-          checked={marketing}
-          disabled={saving}
-          onCheckedChange={handleMarketing}
-        />
       </div>
       <p className="mt-4 text-caption text-muted-foreground">
         {copy.profile.created} {day(customer.createdAt)}

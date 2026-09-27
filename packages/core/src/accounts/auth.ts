@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto'
 import { customer, customerLoginCode, customerSession } from '@commerce/db'
-import { and, eq, gt, lt } from 'drizzle-orm'
+import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
@@ -116,7 +116,18 @@ export async function verifyLoginCode(
       set: { updatedAt: now },
     })
     .returning({ id: customer.id })
-  const customerId = cu?.id as string
+  return startCustomerSession(ctx, cu?.id as string, now)
+}
+
+/**
+ * Mint a session for a customer who just proved who they are (email or phone
+ * code). Only the token's hash is stored; the token goes in the cookie.
+ */
+export async function startCustomerSession(
+  ctx: StoreContext,
+  customerId: string,
+  now: Date = new Date(),
+): Promise<{ ok: true; token: string; customerId: string; expiresAt: Date }> {
   const token = randomBytes(32).toString('base64url')
   const expiresAt = new Date(now.getTime() + CUSTOMER_SESSION_TTL_MS)
   await ctx.tx.insert(customerSession).values({
@@ -133,12 +144,27 @@ export async function verifyLoginCode(
   return { ok: true, token, customerId, expiresAt }
 }
 
+/** End every session a customer has, on every device (account deletion). */
+export async function revokeAllCustomerSessions(
+  ctx: StoreContext,
+  customerId: string,
+): Promise<number> {
+  const rows = await ctx.tx
+    .delete(customerSession)
+    .where(eq(customerSession.customerId, customerId))
+    .returning({ id: customerSession.id })
+  return rows.length
+}
+
 export type SignedInCustomer = {
   id: string
-  email: string
+  /** Null for a shopper who signs in with their mobile number and never gave an email. */
+  email: string | null
   name: string | null
   phone: string | null
   acceptsMarketing: boolean
+  acceptsWhatsapp: boolean
+  acceptsSms: boolean
 }
 
 const TOKEN = /^[A-Za-z0-9_-]{20,100}$/
@@ -158,6 +184,8 @@ export async function customerForSession(
       name: customer.name,
       phone: customer.phone,
       acceptsMarketing: customer.acceptsMarketing,
+      acceptsWhatsapp: customer.acceptsWhatsapp,
+      acceptsSms: customer.acceptsSms,
     })
     .from(customerSession)
     .innerJoin(customer, eq(customer.id, customerSession.customerId))
@@ -165,10 +193,14 @@ export async function customerForSession(
       and(
         eq(customerSession.tokenHash, hashSessionToken(token)),
         gt(customerSession.expiresAt, now),
+        isNull(customer.anonymisedAt),
       ),
     )
-  if (!row?.email) return null
-  return { ...row, email: row.email, phone: decryptCustomerPhone(row.phone, secret) }
+  if (!row) return null
+  const phone = decryptCustomerPhone(row.phone, secret)
+  // A session needs something to know the shopper by.
+  if (!row.email && !phone) return null
+  return { ...row, phone }
 }
 
 /** Sign out: the token stops working immediately. */

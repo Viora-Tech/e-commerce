@@ -11,6 +11,7 @@ import CustomerOrdersCard from './customer-orders-card'
 import CustomerStatsCard from './customer-stats-card'
 import CustomerTagsCard from './customer-tags-card'
 import EditCustomerDialog from './edit-customer-dialog'
+import MarketingConsentCard from './marketing-consent-card'
 import MessagesCard from './messages-card'
 import ProfileCard from './profile-card'
 
@@ -40,7 +41,12 @@ export default function CustomerView({ customer }: CustomerViewProps) {
         }
         side={
           <>
-            <ProfileCard customer={customer} onChanged={refresh} />
+            <ProfileCard customer={customer} />
+            <MarketingConsentCard
+              customerId={customer.id}
+              customerLabel={customer.name || customer.email || customer.phone || ''}
+              onChanged={refresh}
+            />
             <CustomerStatsCard customer={customer} />
             <CustomerTagsCard customerId={customer.id} tags={customer.tags} onChanged={refresh} />
           </>

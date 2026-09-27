@@ -12,6 +12,7 @@ import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
+import { hasMarketingConsent } from '../privacy/client'
 import { normalisePhone } from './audience'
 import {
   AutomationSettingsSchema,
@@ -512,7 +513,6 @@ async function markConversions(tx: StoreTx, o: OrderRow, now: Date): Promise<num
 type Context = {
   automation: AutomationRow
   steps: AutomationStep[]
-  audience: 'subscribed' | 'all'
 }
 
 async function cartFacts(tx: StoreTx, cartId: string) {
@@ -620,7 +620,6 @@ export async function processDueRuns(
       ctx = {
         automation: a,
         steps: parseAutomationSteps(a.steps),
-        audience: parseAutomationSettings(a.settings).audience ?? 'subscribed',
       }
       contexts.set(a.id, ctx)
     }
@@ -688,7 +687,7 @@ export async function processDueRuns(
       }
       if (step.type === 'email') {
         const email = run.email ?? cu?.email ?? null
-        const consented = ctx.audience === 'all' || cu?.acceptsMarketing === true
+        const consented = hasMarketingConsent(cu, 'email')
         if (email && consented && channels.email) {
           const id = await messageFor(tx, storeId, run, index, 'email', email)
           if (id) {
@@ -718,14 +717,21 @@ export async function processDueRuns(
       }
       // WhatsApp
       const phone = normalisePhone(run.phone ?? cu?.phone)
-      const consented = ctx.audience === 'all' || transactional || cu?.acceptsWhatsapp === true
+      const consented = transactional || hasMarketingConsent(cu, 'whatsapp')
       if (phone && consented && channels.whatsapp) {
         const id = await messageFor(tx, storeId, run, index, 'whatsapp', phone)
         if (id) {
           const r = await sendMarketingWhatsapp(
             tx,
             channels.whatsapp,
-            { messageId: id, to: phone, template: step.template, merge },
+            {
+              messageId: id,
+              to: phone,
+              customerId: cu?.id ?? null,
+              transactional,
+              template: step.template,
+              merge,
+            },
             applyMergeTags,
           )
           if (r.ok) sent += 1

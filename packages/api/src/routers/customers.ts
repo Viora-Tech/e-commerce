@@ -1,5 +1,5 @@
 import { loadEnv } from '@commerce/config'
-import { permissions } from '@commerce/core'
+import { permissions, setMarketingConsent } from '@commerce/core'
 import { z } from 'zod'
 import { can } from '../procedures'
 import {
@@ -89,9 +89,27 @@ export const customersRouter = {
         acceptsMarketing: z.boolean().optional(),
       }),
     )
-    .handler(({ context, input: { id, ...patch } }) =>
-      updateCustomer(context.tx, id, patch, secret()),
-    ),
+    .handler(async ({ context, input: { id, acceptsMarketing, ...patch } }) => {
+      // Consent goes through the consent writer, so the change is in the customer's
+      // history and the privacy audit trail with who made it.
+      if (acceptsMarketing !== undefined) {
+        await setMarketingConsent(
+          { tx: context.tx, storeId: context.scope.storeId },
+          {
+            customerId: id,
+            channel: 'email',
+            granted: acceptsMarketing,
+            source: 'admin',
+            actor: {
+              type: 'staff',
+              id: context.scope.userId,
+              label: context.session.user.name?.trim() || context.session.user.email,
+            },
+          },
+        )
+      }
+      return updateCustomer(context.tx, id, patch, secret())
+    }),
 
   delete: can(permissions.CUSTOMERS_DELETE)
     .input(z.object({ id: z.uuid() }))

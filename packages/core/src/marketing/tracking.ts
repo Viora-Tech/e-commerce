@@ -1,5 +1,6 @@
 import { customer, marketingMessage, type StoreTx } from '@commerce/db'
 import { and, eq, isNull, sql } from 'drizzle-orm'
+import { setMarketingConsent, withdrawAllMarketing } from '../privacy/marketing-consent'
 
 /** First open wins; later opens (and image-proxy prefetches) change nothing. */
 export async function recordMessageOpen(tx: StoreTx, messageId: string, at = new Date()) {
@@ -33,41 +34,38 @@ export async function recordMessageClick(
 }
 
 /**
- * Unsubscribe from marketing: email consent off, the time recorded, so no
- * campaign or marketing automation reaches this customer again. Returns the
- * email for the confirmation page, or null for an unknown customer.
+ * Unsubscribe from marketing: every channel's consent off, the time recorded,
+ * so no campaign or marketing automation reaches this customer again. Each
+ * withdrawal is kept in the consent history. Returns the email for the
+ * confirmation page, or null for an unknown customer.
  */
 export async function unsubscribeCustomer(
   tx: StoreTx,
   customerId: string,
   at = new Date(),
 ): Promise<{ email: string | null } | null> {
-  const [row] = await tx
-    .update(customer)
-    .set({
-      acceptsMarketing: false,
-      unsubscribedAt: sql`coalesce(${customer.unsubscribedAt}, ${at.toISOString()}::timestamptz)`,
-      updatedAt: at,
-    })
-    .where(eq(customer.id, customerId))
-    .returning({ email: customer.email })
-  return row ?? null
+  return withdrawAllMarketing(tx, customerId, 'unsubscribe_link', at)
 }
 
-/** Undo from the confirmation page: consent back on, the unsubscribe cleared. */
+/** Undo from the confirmation page: email consent back on, the unsubscribe cleared. */
 export async function resubscribeCustomer(tx: StoreTx, customerId: string, at = new Date()) {
   const [row] = await tx
-    .update(customer)
-    .set({
-      acceptsMarketing: true,
-      unsubscribedAt: null,
-      marketingConsentAt: at,
-      marketingConsentSource: 'unsubscribe_page',
-      updatedAt: at,
-    })
+    .select({ storeId: customer.storeId, email: customer.email })
+    .from(customer)
     .where(eq(customer.id, customerId))
-    .returning({ email: customer.email })
-  return row ?? null
+  if (!row) return null
+  await setMarketingConsent(
+    { tx, storeId: row.storeId },
+    {
+      customerId,
+      channel: 'email',
+      granted: true,
+      source: 'unsubscribe_page',
+      actor: { type: 'customer' },
+      at,
+    },
+  )
+  return { email: row.email }
 }
 
 export async function customerSubscription(tx: StoreTx, customerId: string) {

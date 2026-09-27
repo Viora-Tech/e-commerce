@@ -1,7 +1,8 @@
-import { marketingMessage, type StoreTx, store } from '@commerce/db'
+import { customer, marketingMessage, type StoreTx, store } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { NotificationChannel, NotificationRegistry, SendResult } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
+import { type ConsentChannel, hasMarketingConsent } from '../privacy/client'
 import { storeNotificationChannels } from '../sender-email/channels'
 import { StoreAddressSchema } from '../settings/general'
 import {
@@ -83,10 +84,53 @@ export function firstName(name: string | null | undefined): string {
   return name?.trim().split(/\s+/)[0] || 'there'
 }
 
+/**
+ * The consent gate every marketing send passes, right before the provider is
+ * called. A marketing message goes only to a customer who said yes on that
+ * channel and has not unsubscribed or been erased; someone who only left a
+ * contact at checkout (no customer) gets nothing. `transactional` is for an
+ * update about the shopper's own order (the COD confirmation), which needs no
+ * marketing consent. Checked here, not only when the audience is chosen, so
+ * a withdrawal between queueing and sending always wins.
+ */
+async function mayMarket(
+  tx: StoreTx,
+  input: {
+    customerId: string | null
+    channel: ConsentChannel
+    transactional?: boolean | undefined
+  },
+): Promise<boolean> {
+  if (input.transactional) return true
+  if (!input.customerId) return false
+  const [row] = await tx
+    .select({
+      acceptsMarketing: customer.acceptsMarketing,
+      acceptsWhatsapp: customer.acceptsWhatsapp,
+      acceptsSms: customer.acceptsSms,
+      unsubscribedAt: customer.unsubscribedAt,
+      anonymisedAt: customer.anonymisedAt,
+    })
+    .from(customer)
+    .where(eq(customer.id, input.customerId))
+  return hasMarketingConsent(row, input.channel)
+}
+
+/** Why a send was refused at the gate; stored on the message row. */
+const NO_CONSENT = 'no_consent'
+
+async function skipForConsent(tx: StoreTx, messageId: string): Promise<SendResult> {
+  await tx
+    .update(marketingMessage)
+    .set({ status: 'skipped', error: NO_CONSENT })
+    .where(eq(marketingMessage.id, messageId))
+  return { ok: false, error: NO_CONSENT }
+}
+
 export type EmailSendInput = {
   messageId: string
   to: string
-  /** Unsubscribe needs a customer; a shopper with only a checkout contact gets the link to the store. */
+  /** The recipient's customer; consent is checked on it. Null (a bare checkout contact) is never sent marketing. */
   customerId: string | null
   subject: string
   previewText: string
@@ -124,6 +168,9 @@ export async function sendMarketingEmail(
   sender: StoreSender,
   input: EmailSendInput,
 ): Promise<SendResult> {
+  if (!(await mayMarket(tx, { customerId: input.customerId, channel: 'email' }))) {
+    return skipForConsent(tx, input.messageId)
+  }
   const secret = deps.settingsSecret
   const base = deps.storefrontUrl
   const payload = { storeId, messageId: input.messageId }
@@ -170,6 +217,10 @@ export async function sendMarketingEmail(
 export type WhatsappSendInput = {
   messageId: string
   to: string
+  /** The recipient's customer; consent is checked on it unless the message is `transactional`. */
+  customerId: string | null
+  /** An update about the shopper's own order (COD confirmation), not marketing. */
+  transactional?: boolean | undefined
   template: { name: string; language: string; variables: string[] }
   merge: MergeValues
 }
@@ -181,6 +232,12 @@ export async function sendMarketingWhatsapp(
   input: WhatsappSendInput,
   apply: (s: string, m: MergeValues) => string,
 ): Promise<SendResult> {
+  const allowed = await mayMarket(tx, {
+    customerId: input.customerId,
+    channel: 'whatsapp',
+    transactional: input.transactional,
+  })
+  if (!allowed) return skipForConsent(tx, input.messageId)
   const send = channel.sendMarketing
   const result: SendResult = send
     ? await send.call(channel, {
