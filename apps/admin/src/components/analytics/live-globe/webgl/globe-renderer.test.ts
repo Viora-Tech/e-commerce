@@ -55,4 +55,56 @@ describe('overlay points', () => {
     expect(points[7 + 3]).toBeCloseTo(0.09 * 0.5 * 1.25, 6)
     expect([...points.slice(11, 14)]).toEqual(palette.newest)
   })
+
+  it('with highlightBigOrders off, ignores order value entirely (unchanged from before)', () => {
+    const marker = { lat: 0, lng: 0, label: '', tooltip: null, isNewest: false }
+    const points = buildMarkerPoints(
+      [
+        { ...marker, id: 'small', valuePaise: 100 },
+        { ...marker, id: 'huge', valuePaise: 100_000_000 },
+      ],
+      palette,
+      1,
+      1,
+      false,
+    )
+    expect(points).toHaveLength(14)
+    expect(points[3]).toBeCloseTo(points[7 + 3], 6)
+  })
+
+  it('with highlightBigOrders on, scales marker size with order value', () => {
+    const marker = { lat: 0, lng: 0, label: '', tooltip: null, isNewest: false }
+    const points = buildMarkerPoints(
+      [
+        { ...marker, id: 'small', valuePaise: 100 },
+        { ...marker, id: 'huge', valuePaise: 100_000_000 },
+      ],
+      palette,
+      1,
+      1,
+      true,
+    )
+    // The huge order gets its own glow point (drawn first) plus its marker: 3 points in all.
+    expect(points).toHaveLength(21)
+    const smallSize = points[3] as number
+    const glowSize = points[7 + 3] as number
+    const hugeSize = points[14 + 3] as number
+    expect(hugeSize).toBeGreaterThan(smallSize)
+    expect(glowSize).toBeGreaterThan(hugeSize)
+  })
+
+  it('gives only the top 10% by value a glow point, dimmer than its marker', () => {
+    const marker = { lat: 0, lng: 0, label: '', tooltip: null, isNewest: false }
+    const markers = Array.from({ length: 10 }, (_, i) => ({
+      ...marker,
+      id: `m${i}`,
+      valuePaise: (i + 1) * 1000,
+    }))
+    const points = buildMarkerPoints(markers, palette, 1, 1, true)
+    // 10 markers, only the biggest (the top 10%) gets an extra glow point ahead of it.
+    expect(points.length / 7).toBe(11)
+    const glowColor = points.slice(0, 3) as unknown as [number, number, number]
+    const markerColor = palette.marker
+    expect(glowColor[0]).toBeLessThan(markerColor[0])
+  })
 })

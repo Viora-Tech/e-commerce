@@ -55,14 +55,17 @@ export function buildArcPoints(arcs: GlobeArc[], palette: OverlayPalette): Float
 const GLOW_SIZE_SCALE = 2.6
 const GLOW_BRIGHTNESS = 0.4
 
-/** The value (0..1 of the largest order shown) at or above which "Highlight big orders" treats
- * an order as big enough for the soft glow: the top 10%. */
-const BIG_ORDER_QUANTILE = 0.9
+/** What share of the shown markers "Highlight big orders" treats as big enough for the soft
+ * glow: the top 10%, at least one when there is any spread in value at all. */
+const BIG_ORDER_SHARE = 0.1
 
-function quantile(sortedAscending: number[], q: number): number {
-  if (sortedAscending.length === 0) return 0
-  const idx = Math.min(sortedAscending.length - 1, Math.floor(q * (sortedAscending.length - 1)))
-  return sortedAscending[idx] ?? 0
+/** The value at (and above) which a marker counts as "big": the smallest value among the top
+ * `BIG_ORDER_SHARE` of `values`, so exactly that many (rounded, floor 1) qualify. */
+function bigOrderThreshold(values: number[]): number {
+  if (values.length === 0) return Number.POSITIVE_INFINITY
+  const count = Math.max(1, Math.round(values.length * BIG_ORDER_SHARE))
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.max(0, sorted.length - count)] ?? Number.POSITIVE_INFINITY
 }
 
 /**
@@ -84,12 +87,7 @@ export function buildMarkerPoints(
   const values = markers.map((m) => m.valuePaise ?? 0)
   const maxValue = Math.max(0, ...values)
   const bigThreshold =
-    highlightBigOrders && maxValue > 0
-      ? quantile(
-          [...values].sort((a, b) => a - b),
-          BIG_ORDER_QUANTILE,
-        )
-      : Number.POSITIVE_INFINITY
+    highlightBigOrders && maxValue > 0 ? bigOrderThreshold(values) : Number.POSITIVE_INFINITY
 
   const out: number[] = []
   for (const m of markers) {

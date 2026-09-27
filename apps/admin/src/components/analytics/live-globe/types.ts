@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { GlobeSettings } from './globe-settings'
 
 export type GlobeMarker = {
   id: string
@@ -42,4 +43,12 @@ export type GlobeCanvasProps = {
    * view uses it to sit the globe on the right while the stats float over the left.
    */
   shiftX?: number
+  /**
+   * The "Globe settings" panel's state, and its gear button next to the zoom controls. Only
+   * the WebGL globe reads or shows any of this — the Home card's cobe globe (which never
+   * passes these) keeps its fixed look.
+   */
+  settings?: GlobeSettings
+  onSettingsChange?: (patch: Partial<GlobeSettings>) => void
+  onSettingsReset?: () => void
 }
