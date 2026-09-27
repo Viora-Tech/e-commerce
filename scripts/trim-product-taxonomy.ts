@@ -1,5 +1,5 @@
 /**
- * Regenerates `apps/admin/src/data/product-taxonomy.json` from Shopify's open-source
+ * Regenerates `packages/core/src/catalog/product-taxonomy.json` from Shopify's open-source
  * Standard Product Taxonomy (MIT, https://github.com/Shopify/product-taxonomy; credited in
  * THIRD_PARTY_NOTICES.md). Keeps only `[id, name]` pairs: the breadcrumb, parent and depth
  * are all derivable from the hierarchical id (`aa-1-2` sits under `aa-1`), so the admin
@@ -11,7 +11,7 @@
 
 const release = process.argv[2] ?? 'v2026-08'
 const url = `https://raw.githubusercontent.com/Shopify/product-taxonomy/${release}/dist/en/categories.txt`
-const out = new URL('../apps/admin/src/data/product-taxonomy.json', import.meta.url)
+const out = new URL('../packages/core/src/catalog/product-taxonomy.json', import.meta.url)
 
 const res = await fetch(url)
 if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`)

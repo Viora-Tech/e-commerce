@@ -35,6 +35,7 @@ import {
   Copy,
   CreditCard,
   Cube,
+  Database,
   DeviceMobile,
   DeviceTablet,
   DotsSix,
@@ -210,6 +211,8 @@ export const NewShop = defineIcon(ShoppingBagOpen, 'NewShop', 'duotone')
 
 /* Chrome: regular weight, 16px inline / 18px nav-header sizing set at call sites. */
 export const Search = defineIcon(MagnifyingGlass, 'Search')
+/** Theme editor: "Connect dynamic source" next to a setting, Shopify's database glyph. */
+export const DynamicSource = defineIcon(Database, 'DynamicSource')
 export const SearchIcon = Search
 export const SearchX = defineIcon(MagnifyingGlassMinus, 'SearchX')
 export const Bell = defineIcon(BellSimple, 'Bell')

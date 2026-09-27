@@ -6,8 +6,11 @@ import {
   type SectionMetadata,
 } from '@commerce/blocks/puck'
 import {
+  applyBindings,
+  boundPaths,
   defaultTemplate,
   isSectionHidden,
+  loadSourceValues,
   loadTemplate,
   mainThemeId,
   recentVisibleArticles,
@@ -36,6 +39,8 @@ export type TemplateOptions = {
   renderers?: SectionMetadata['renderers']
   /** Data and bound actions app blocks need beyond their own settings (a product, a subscribe action). */
   appBlockContext?: SectionMetadata['appBlockContext']
+  /** The page's own product or collection, for settings connected to its dynamic sources. */
+  sources?: { productId?: string | undefined; collectionId?: string | undefined }
 }
 
 /** Whether this request is a verified theme preview (Customize, or the Preview button). */
@@ -93,7 +98,13 @@ export async function renderTemplate(
   const data = themeId
     ? (await loadTemplate(tx, themeId, key, suffix, { withDraft: preview })).data
     : defaultTemplate(key)
-  const visible = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  const shown = { ...data, content: data.content.filter((s) => !isSectionHidden(s)) }
+  // Connected settings read their source now, per request and under this store's RLS;
+  // an empty source renders what the merchant typed in.
+  const paths = boundPaths(shown)
+  const visible = paths.length
+    ? applyBindings(shown, await loadSourceValues(tx, paths, { storeId, ...options.sources }))
+    : shown
   const config = await blocksConfig(tx, storeId)
   const metadata: SectionMetadata = {
     renderers: {

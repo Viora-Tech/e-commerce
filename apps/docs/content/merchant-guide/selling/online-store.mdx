@@ -207,6 +207,52 @@ Each one works in light and dark mode, has a phone layout, and uses the same **S
 settings** as every other section. Sections based on outside design libraries say so under
 their name, for example "by Magic UI". Moving effects pause for shoppers whose device is set to
 reduce motion, and so do the editor's own small animations.
+## Show your store's own data in a section
+
+Instead of typing a heading, a price or a picture into a section, you can **connect** the
+setting to something your store already knows. The section then shows the real value on every
+page, and keeps up by itself when you change it. On a product page, one banner can show each
+product's own material, size chart image or price, without a separate template per product.
+Shopify calls this "dynamic sources"; it works the same way here.
+
+<Steps>
+
+### Find the connect button
+
+Select a section, then look at its settings on the right. Next to text, rich text, image,
+link, number and colour settings there is a small **database** button, **Connect dynamic
+source**.
+
+### Pick what to show
+
+A list opens with only what fits that setting. An image setting lists images (the product's
+featured image, a collection image, your logo, image custom fields), a text setting lists
+text, prices and dates, and a link setting lists links and product or collection pages.
+
+- **On a product template**: the product's title, price, compare-at price, vendor, product
+  type, category, description, featured image and other images, plus its custom fields.
+- **On a collection template**: the collection's title, description, image and link, plus its
+  custom fields.
+- **Everywhere**: your store name, logo, contact email, phone and address, and the fields of
+  your **Content → Metaobjects** entries (FAQs, size guides, team members and so on).
+
+### Check the chip
+
+The setting now shows a chip such as **Product › Material**. The preview fills it in from the
+product or collection chosen in the picker at the top of the editor. Select the chip to pick a
+different source, or the **✕** to disconnect.
+
+### Save
+
+Select **Save** as usual. If a connected source no longer exists (for example you deleted
+that custom field), Save tells you which section and setting to fix.
+
+</Steps>
+
+<Callout type="info">
+  What you typed before connecting is kept. It shows whenever the source is empty, for
+  example a product with no material filled in, and comes back if you disconnect.
+</Callout>
 
 ## App blocks
 
@@ -257,6 +303,9 @@ launch), the cookie banner and your Google Analytics 4, Google Tag Manager and M
 | A face or product is cut off on phones | The banner crops the photo to fit a narrow screen. | Open the image and click the part that must stay in view to set the **focal point**. |
 | "Enter a web address or a path starting with /" | The pasted link isn't a web address. | Paste the full address from your browser's address bar, for example `https://instagram.com/yourstore`. |
 | I can't find **Remove** for a section | The header, footer and a page's main content can't be removed. | Use the eye to hide it instead. |
+| **Save** says a setting "is connected to ... which no longer exists" | The custom field or metaobject entry it showed was deleted, renamed or hidden from the online store. | Open that section, select the chip's **✕** to disconnect, or pick another source. |
+| A connected setting shows my old text | The source is empty for this product or collection. | Fill in the field on the product, collection or metaobject entry, or change the typed-in text. |
+| My custom field isn't in the connect list | It doesn't fit that setting (for example text for an image), it is a list, or it isn't visible on the online store. | Check the field's type and **Storefront access** in **Settings → Custom data**. |
 
 ## FAQ
 
@@ -280,6 +329,14 @@ the editor at that saved version. It cannot be undone.
 
 Yes. Use **Create template** in the editor to make an alternate product template, then pick it
 under **Theme template** on that product's page in Products.
+
+</FaqItem>
+
+<FaqItem question="Why can't I connect product fields on the home page?">
+
+The home page isn't about one product, so there is no product to read from. Product fields
+appear on product templates and collection fields on collection templates. Your store details
+and metaobject entries can be connected on any page, the header and footer included.
 
 </FaqItem>
 

@@ -507,32 +507,8 @@ Creative Commons may be contacted at creativecommons.org.
 
 Source: https://github.com/Shopify/product-taxonomy
 
-What we adapted: the category list from release `v2026-08`, trimmed to `[id, name]` pairs
-(attributes, values and return reasons dropped; breadcrumbs are rebuilt from the hierarchical
-ids at load time) by `scripts/trim-product-taxonomy.ts`, vendored at
-`src/data/product-taxonomy.json` and searched by `src/lib/product-taxonomy.ts` for the product
-category picker (`src/components/products/product-category-picker.tsx`). No code was copied,
-only the generated category data. Licence text as in the upstream `LICENSE` file:
+The vendored category data moved to `packages/core/src/catalog/product-taxonomy.json` (so the
+storefront can name a product's category for theme dynamic sources); its licence text is in
+[`packages/core/THIRD_PARTY_LICENSES.md`](../../packages/core/THIRD_PARTY_LICENSES.md). This app
+still searches it in `src/lib/product-taxonomy.ts` for the product category picker.
 
-```text
-Copyright (c) Shopify
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```

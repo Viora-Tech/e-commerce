@@ -1,8 +1,10 @@
 import { type AppBlockOwner, type CardProduct, createBlocksConfig } from '@commerce/blocks/puck'
+import { applyBindings, isBinding } from '@commerce/core/dynamic-sources'
 import { GROUP_SECTIONS, SINGLE_SECTIONS } from '@commerce/core/theme'
 import { RichTextEditor } from '@commerce/editor'
 import { type ComponentConfig, type Config, DropZone } from '@puckeditor/core'
 import type { ReactNode } from 'react'
+import DynamicSourceSection from '@/components/themes/customize/dynamic-source-section'
 import { api } from '@/lib/api-client'
 import { APP_BLOCK_SOURCES } from '../../../../commerce.blocks.config'
 
@@ -47,12 +49,41 @@ type Render = (props: Record<string, unknown>) => ReactNode
 
 /**
  * A hidden section stays in the tree (Shopify's eye toggle) but draws nothing
- * in the preview, as on the storefront.
+ * in the preview, as on the storefront. A shown one draws with its connected
+ * settings (dynamic sources) filled from the previewed product or collection.
  */
 function withHiding(component: ComponentConfig): ComponentConfig {
   const render = component.render as unknown as Render
-  const hidden: Render = (props) => (props._hidden === true ? null : render(props))
-  return { ...component, render: hidden as unknown as ComponentConfig['render'] }
+  const hidden: Render = (props) =>
+    props._hidden === true ? null : <DynamicSourceSection render={render} props={props} />
+  return {
+    ...component,
+    render: hidden as unknown as ComponentConfig['render'],
+    ...(component.resolveData ? { resolveData: withFallbacks(component.resolveData) } : {}),
+  }
+}
+
+type ResolveData = NonNullable<ComponentConfig['resolveData']>
+
+/**
+ * Blocks' `resolveData` (product rows, collection lists) reads plain settings, so
+ * it gets the typed-in fallbacks instead of bindings. A connected setting it
+ * hands back unchanged is restored, so resolving never disconnects anything.
+ */
+function withFallbacks(resolveData: ResolveData): ResolveData {
+  return async (data, params) => {
+    const props = data.props as Record<string, unknown>
+    const plain = applyBindings(props)
+    const out = await resolveData({ ...data, props: plain } as typeof data, params)
+    const next = { ...(out.props ?? {}) } as Record<string, unknown>
+    for (const [key, value] of Object.entries(props)) {
+      const connected = isBinding(value) || JSON.stringify(value)?.includes('"$source"')
+      if (connected && key in next && JSON.stringify(next[key]) === JSON.stringify(plain[key])) {
+        next[key] = value
+      }
+    }
+    return { ...out, props: next as typeof out.props }
+  }
 }
 
 /**
