@@ -7,9 +7,13 @@ import {
 } from '@commerce/core'
 import { product } from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { mapLimit } from './concurrency'
 import { htmlToRichText, replaceImageSources } from './html'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { NProduct } from './types'
+
+/** How many images (product images, or a body's inline images) download at once. */
+const IMAGE_CONCURRENCY = 6
 
 const clip = (value: string | null, max: number) => (value ? value.slice(0, max) : null)
 
@@ -37,10 +41,13 @@ async function existingProduct(ctx: ImportContext, p: NProduct): Promise<string 
   })
 }
 
-/** Download every image once; failures become issues and the product imports without them. */
+/**
+ * Download every image, `IMAGE_CONCURRENCY` at a time; failures become issues
+ * and the product imports without them.
+ */
 async function hostImages(ctx: ImportContext, p: NProduct): Promise<Map<string, string>> {
   const hosted = new Map<string, string>()
-  for (const image of p.images) {
+  await mapLimit(p.images, IMAGE_CONCURRENCY, async (image) => {
     try {
       const id = await ctx.media.host(image.src, image.alt)
       if (id) hosted.set(image.src, id)
@@ -52,7 +59,7 @@ async function hostImages(ctx: ImportContext, p: NProduct): Promise<Map<string, 
         message: `Image ${image.src} was not copied: ${errorMessage(err)}`,
       })
     }
-  }
+  })
   return hosted
 }
 
@@ -60,7 +67,7 @@ async function descriptionOf(ctx: ImportContext, p: NProduct) {
   const { doc, images } = htmlToRichText(p.bodyHtml)
   if (!doc || images.length === 0) return doc
   const urls = new Map<string, string>()
-  for (const image of images) {
+  await mapLimit(images, IMAGE_CONCURRENCY, async (image) => {
     try {
       const id = await ctx.media.host(image.src, image.alt || null)
       const url = id ? await ctx.media.urlOf(id) : null
@@ -68,7 +75,7 @@ async function descriptionOf(ctx: ImportContext, p: NProduct) {
     } catch {
       // A missing body image keeps pointing at the source; not worth failing the product.
     }
-  }
+  })
   replaceImageSources(doc, urls)
   return doc
 }
