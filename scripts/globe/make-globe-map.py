@@ -68,8 +68,11 @@ def main(src: str, out: str) -> None:
     band = ImageChops.subtract(india.filter(ImageFilter.MaxFilter(9)), india.filter(ImageFilter.MinFilter(9)))
     lines = ImageChops.multiply(lines, ImageChops.invert(band))
     lines = lines.filter(ImageFilter.GaussianBlur(BLUR))
-    peak = max(lines.getextrema()[1], 1)
-    lines = lines.point(lambda v: min(255, round(v * 255 / peak)))
+    # A 1 px line blurred by a Gaussian of sigma BLUR peaks at 1 / (sqrt(2 pi) * BLUR) of its
+    # value. Scale by the inverse so every line's centre is ~255 and the value falls off as
+    # exp(-d^2 / 2 sigma^2): the shader turns it back into a distance from the line.
+    gain = (2 * 3.14159265 * 1) ** 0.5 * BLUR
+    lines = lines.point(lambda v: min(255, round(v * gain)))
     soft_land = land.filter(ImageFilter.GaussianBlur(0.9))
     Image.merge("RGB", (soft_land, lines, Image.new("L", (WIDTH, HEIGHT), 0))).save(out, optimize=True)
 
