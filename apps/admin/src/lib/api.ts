@@ -7,6 +7,7 @@ import {
   appJobQueue,
   dailyVisitors,
   liveVisitors,
+  mediaProcessQueue,
   notificationQueue,
   sharedRedis,
 } from '@commerce/queue'
@@ -24,6 +25,7 @@ export function apiHost() {
     notifications: notificationQueue(loadEnv(process.env).REDIS_URL),
     appEvents: appEventQueue(loadEnv(process.env).REDIS_URL),
     appJobs: appJobQueue(loadEnv(process.env).REDIS_URL),
+    mediaProcess: mediaProcessQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

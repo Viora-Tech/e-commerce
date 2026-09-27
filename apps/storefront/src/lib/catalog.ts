@@ -77,6 +77,8 @@ export async function listCardProducts(
       url: media.url,
       alt: media.alt,
       position: productMedia.position,
+      variants: media.variants,
+      thumbhash: media.thumbhash,
     })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
@@ -98,7 +100,14 @@ export async function listCardProducts(
       pricePaise: cheapest?.pricePaise ?? 0,
       mrpPaise: cheapest?.mrpPaise ?? null,
       available: vs.reduce((n, v) => n + availableFor(v), 0),
-      images: images.filter((i) => i.productId === p.id).map((i) => ({ url: i.url, alt: i.alt })),
+      images: images
+        .filter((i) => i.productId === p.id)
+        .map((i) => ({
+          url: i.url,
+          alt: i.alt,
+          variants: i.variants as Record<string, { avif: string; webp: string }> | null,
+          thumbhash: i.thumbhash,
+        })),
     }
   })
 }

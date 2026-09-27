@@ -103,6 +103,11 @@ const config: NextConfig = {
           ]
         : []),
     ],
+    // Most product imagery goes through `<Picture>` (packages/core media-loader), which
+    // already serves pre-generated AVIF/WebP variants directly and never touches this
+    // optimizer. This only covers what still does: blog/CMS content images and anything
+    // referencing unprocessed/legacy media — worth AVIF-first there too.
+    formats: ['image/avif', 'image/webp'],
   },
 }
 

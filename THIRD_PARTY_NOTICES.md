@@ -16,6 +16,10 @@ that adapts outside work keeps the full licence text next to it; this file is th
 Paid UI kits: Aceternity UI Pro may be used in builder blocks under the owner's written permission, see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md).
 
 Libraries installed from npm are not listed here; their licences ship inside `node_modules`.
+Two are worth naming because the upload-time image pipeline (`packages/core/src/media/pipeline.ts`,
+run in `apps/worker`) depends on them directly rather than adapting any of their code:
+[sharp](https://github.com/lovell/sharp) (Apache License 2.0) for image decode/resize/encode, and
+[thumbhash](https://github.com/evanw/thumbhash) (MIT) for the blur-up placeholder.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

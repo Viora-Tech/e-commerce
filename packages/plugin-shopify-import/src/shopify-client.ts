@@ -69,6 +69,16 @@ export class ShopifyClient {
     return `https://${this.opts.shopDomain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`
   }
 
+  /** The fetch this client was built with — reused to download a bulk operation's JSONL result. */
+  get fetchImpl(): typeof fetch {
+    return this.doFetch
+  }
+
+  /** The injected/faked sleep — bulk-operation polling waits on the same clock as everything else. */
+  async wait(ms: number): Promise<void> {
+    await this.sleep(ms)
+  }
+
   async query<T>(query: string, variables: Record<string, unknown> = {}, cost = 100): Promise<T> {
     let refreshed = false
     for (let attempt = 1; ; attempt++) {

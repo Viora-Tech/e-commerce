@@ -58,10 +58,12 @@ export default function MoneyInput({
         aria-label={ariaLabel}
         placeholder={placeholder}
         autoComplete="off"
+        // Money is typed, not nudged: hide the browser's number spinner.
+        className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       {suffix ? (
         <InputGroupAddon align="inline-end">
-          <InputGroupText>{suffix}</InputGroupText>
+          <InputGroupText className="whitespace-nowrap">{suffix}</InputGroupText>
         </InputGroupAddon>
       ) : null}
     </InputGroup>

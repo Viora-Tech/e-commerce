@@ -39,7 +39,10 @@
     "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts",
     "./returns": "./src/returns/policy.ts",
-    "./onboarding": "./src/onboarding/client.ts"
+    "./onboarding": "./src/onboarding/client.ts",
+    "./media-pipeline": "./src/media/pipeline.ts",
+    "./media-queue": "./src/media/queue.ts",
+    "./media-loader": "./src/media/loader.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -58,7 +61,9 @@
     "@commerce/notifications-ses": "workspace:*",
     "@commerce/shipping": "workspace:*",
     "@commerce/plugins": "workspace:*",
-    "@commerce/storage": "workspace:*"
+    "@commerce/storage": "workspace:*",
+    "sharp": "^0.35.4",
+    "thumbhash": "^0.1.1"
   },
   "peerDependencies": {
     "react": "^19.0.0"

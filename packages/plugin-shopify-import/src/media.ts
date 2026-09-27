@@ -6,7 +6,8 @@
 import { media, newId } from '@commerce/db'
 import {
   isAllowedContentType,
-  MAX_UPLOAD_BYTES,
+  isImageContentType,
+  maxUploadBytesFor,
   mediaKey,
   type StorageProvider,
 } from '@commerce/storage'
@@ -52,6 +53,14 @@ export type MediaHostOptions = {
   storage: () => Promise<StorageProvider>
   fetch?: typeof fetch
   timeoutMs?: number
+  /**
+   * Called after an image row is written, so the caller can queue it for the
+   * upload-time pipeline (see `@commerce/core/media-pipeline`) the same way
+   * `mediaRouter.confirm` does for a direct upload. Optional: an import run
+   * without this wired up leaves the row `processing` for `bun run
+   * media:reprocess` to pick up later, same as any other stuck row.
+   */
+  onMediaImported?: (mediaId: string, contentType: string) => Promise<void>
 }
 
 export function createMediaHost(opts: MediaHostOptions): MediaHost {
@@ -92,10 +101,12 @@ export function createMediaHost(opts: MediaHostOptions): MediaHost {
         if (!res.ok) throw new Error(`download failed (${res.status})`)
         contentType = contentTypeOf(res.headers.get('content-type'), key)
         if (!isAllowedContentType(contentType)) throw new Error(`${contentType} is not supported`)
+        const limit = maxUploadBytesFor(contentType)
+        const limitMb = Math.round(limit / 1024 / 1024)
         const declared = Number(res.headers.get('content-length') ?? 0)
-        if (declared > MAX_UPLOAD_BYTES) throw new Error('file is larger than 25 MB')
+        if (declared > limit) throw new Error(`file is larger than ${limitMb} MB`)
         bytes = new Uint8Array(await res.arrayBuffer())
-        if (bytes.byteLength > MAX_UPLOAD_BYTES) throw new Error('file is larger than 25 MB')
+        if (bytes.byteLength > limit) throw new Error(`file is larger than ${limitMb} MB`)
       } finally {
         clearTimeout(timer)
       }
@@ -110,6 +121,10 @@ export function createMediaHost(opts: MediaHostOptions): MediaHost {
       })
       await provider.put({ key: objectKey, body: bytes, contentType })
       const store = provider
+      // Imported images still go through the pipeline (strip EXIF/GPS, generate
+      // AVIF/WebP variants) — Shopify's own CDN copy is not something this
+      // platform controls, so it gets the same treatment as a direct upload.
+      const needsPipeline = isImageContentType(contentType)
       await opts.inStore(async (tx) => {
         await tx.insert(media).values({
           id,
@@ -120,10 +135,11 @@ export function createMediaHost(opts: MediaHostOptions): MediaHost {
           contentType,
           size: bytes.byteLength,
           alt: alt || null,
-          status: 'ready',
+          status: needsPipeline ? 'processing' : 'ready',
         })
         await saveMapping(tx, opts.storeId, 'media', key, id)
       })
+      if (needsPipeline) await opts.onMediaImported?.(id, contentType)
       known.set(key, id)
       return id
     },

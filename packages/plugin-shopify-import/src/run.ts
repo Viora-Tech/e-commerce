@@ -4,6 +4,7 @@
  */
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
+import { mapLimit } from './concurrency'
 import { clientFor } from './connection'
 import { parseCustomersCsv } from './csv-customers'
 import { parseOrdersCsv } from './csv-orders'
@@ -38,18 +39,35 @@ export type RunDeps = {
   sleep?: (ms: number) => Promise<void>
 }
 
+/**
+ * `concurrency` > 1 runs a batch's writes with `mapLimit` instead of one at a
+ * time. Safe for any resource whose writes are independent: `Reporter.count`/
+ * `issue`/`sample` are plain synchronous methods (no `await` inside), so
+ * however these calls interleave across concurrent writers, each one runs to
+ * completion before the next gets a turn on the event loop — no locking
+ * needed. Orders stay sequential (`concurrency` left at 1): they resolve or
+ * create customers through a shared cache that a race could double-insert.
+ */
 async function forEachBatch<T>(
   ctx: ImportContext,
   resource: ImportResource,
   source: AsyncGenerator<T[]>,
   write: (item: T) => Promise<unknown>,
+  concurrency = 1,
 ) {
   ctx.report.of(resource)
   for await (const batch of source) {
     ctx.report.addTotal(resource, batch.length)
-    for (const item of batch) {
-      await write(item)
-      await ctx.report.flush()
+    if (concurrency > 1) {
+      await mapLimit(batch, concurrency, async (item) => {
+        await write(item)
+        await ctx.report.flush()
+      })
+    } else {
+      for (const item of batch) {
+        await write(item)
+        await ctx.report.flush()
+      }
     }
     await ctx.report.flush()
   }
@@ -93,15 +111,38 @@ async function runCsv(ctx: ImportContext, deps: RunDeps, resource: ImportResourc
 async function runApi(ctx: ImportContext, client: ShopifyClient, resources: ImportResource[]) {
   const wanted = (r: ImportResource) => resources.includes(r)
   const cache = new Map<string, string>()
+  const onBulkFallback = (reason: unknown) =>
+    ctx.log(`Shopify bulk read fell back to paged fetching: ${errorMessage(reason)}`)
   // Products before collections (membership) and orders (line matching); customers before orders.
-  if (wanted('products'))
-    await forEachBatch(ctx, 'products', fetchProducts(client), (p) => writeProduct(ctx, p))
+  // Products and customers write 3/4 at a time (independent rows); orders stay sequential.
+  if (wanted('products')) {
+    ctx.log('Asking Shopify to prepare your products…')
+    await forEachBatch(
+      ctx,
+      'products',
+      fetchProducts(client, onBulkFallback),
+      (p) => writeProduct(ctx, p),
+      3,
+    )
+  }
   if (wanted('collections'))
     await forEachBatch(ctx, 'collections', fetchCollections(client), (c) => writeCollection(ctx, c))
-  if (wanted('customers'))
-    await forEachBatch(ctx, 'customers', fetchCustomers(client), (c) => writeCustomer(ctx, c))
-  if (wanted('orders'))
-    await forEachBatch(ctx, 'orders', fetchOrders(client), (o) => writeOrder(ctx, o, cache))
+  if (wanted('customers')) {
+    ctx.log('Asking Shopify to prepare your customers…')
+    await forEachBatch(
+      ctx,
+      'customers',
+      fetchCustomers(client, onBulkFallback),
+      (c) => writeCustomer(ctx, c),
+      4,
+    )
+  }
+  if (wanted('orders')) {
+    ctx.log('Asking Shopify to prepare your orders…')
+    await forEachBatch(ctx, 'orders', fetchOrders(client, onBulkFallback), (o) =>
+      writeOrder(ctx, o, cache),
+    )
+  }
   if (wanted('pages'))
     await forEachBatch(ctx, 'pages', fetchPages(client), (p) => writePage(ctx, p))
   if (wanted('articles'))

@@ -5,13 +5,17 @@ import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct, updateProduct } from '../catalog/products'
 import {
+  checkStorageQuota,
   confirmUpload,
   createUploadIntent,
   deleteMedia,
   InvalidUpload,
   listMedia,
+  markMediaFailed,
+  markMediaProcessed,
   productGallery,
   setProductMedia,
+  storageUsageBytes,
 } from './service'
 import { builtInStorageRegistry, resolveStorageProvider, storageDefaultsFromEnv } from './settings'
 
@@ -34,16 +38,47 @@ async function seedStore() {
 
 const png = { filename: 'Front.png', contentType: 'image/png', size: 1000, width: 800, height: 600 }
 
+/** Simulates the browser's PUT: writes bytes at the key the ticket was signed for. */
+async function putBytes(provider: MemoryStorageProvider, key: string, size = 1000) {
+  await provider.put({ key, body: new Uint8Array(size), contentType: 'image/png' })
+}
+
+/** The key of the most (or nth-most) recent `presignUpload` call; throws rather than risk a silent `undefined` key in a test. */
+function signedKey(provider: MemoryStorageProvider, index = -1): string {
+  const signed = provider.signed.at(index)
+  if (!signed) throw new Error(`no signed upload at index ${index}`)
+  return signed.key
+}
+
+/**
+ * A media row all the way through: signed, "uploaded" (bytes written to the
+ * memory provider so `confirmUpload`'s HEAD check finds them), confirmed
+ * (which for an image goes `processing`, not `ready`), then the worker's
+ * pipeline outcome simulated with `markMediaProcessed` so it behaves like a
+ * finished upload for tests that only care about the gallery/product side.
+ */
 async function readyUpload(storeId: string, provider: MemoryStorageProvider, filename = 'a.png') {
   return withStore(app, storeId, async (tx) => {
     const t = await createUploadIntent(tx, storeId, provider, { ...png, filename })
-    await confirmUpload(tx, t.mediaId)
+    await putBytes(provider, signedKey(provider))
+    await confirmUpload(tx, t.mediaId, provider)
+    await markMediaProcessed(tx, t.mediaId, {
+      url: t.url,
+      key: signedKey(provider),
+      provider: provider.id,
+      contentType: 'image/png',
+      size: 1000,
+      width: png.width,
+      height: png.height,
+      variants: null,
+      thumbhash: 'AAAA',
+    })
     return t.mediaId
   })
 }
 
 describe('createUploadIntent / confirmUpload', () => {
-  it('signs a per-store key, stores a pending row, and confirm makes it ready', async () => {
+  it('signs a per-store key, stores a pending row, and confirm queues an image for processing', async () => {
     const storeId = await seedStore()
     const provider = new MemoryStorageProvider()
     const ticket = await withStore(app, storeId, (tx) =>
@@ -57,10 +92,77 @@ describe('createUploadIntent / confirmUpload', () => {
     expect(
       (await withStore(app, storeId, (tx) => listMedia(tx, { page: 1, perPage: 10 }))).total,
     ).toBe(0)
-    await withStore(app, storeId, (tx) => confirmUpload(tx, ticket.mediaId, { width: 1600 }))
+
+    await putBytes(provider, signedKey(provider, 0))
+    const confirmed = await withStore(app, storeId, (tx) =>
+      confirmUpload(tx, ticket.mediaId, provider, { width: 1600 }),
+    )
+    // Images are handed to the pipeline, not made ready immediately.
+    expect(confirmed.status).toBe('processing')
+    expect(
+      (await withStore(app, storeId, (tx) => listMedia(tx, { page: 1, perPage: 10 }))).total,
+    ).toBe(0)
+
+    await withStore(app, storeId, (tx) =>
+      markMediaProcessed(tx, ticket.mediaId, {
+        url: ticket.url,
+        key: signedKey(provider, 0),
+        provider: provider.id,
+        contentType: 'image/png',
+        size: 1000,
+        width: 1600,
+        height: 1200,
+        variants: { '320': { avif: 'a', webp: 'w' } },
+        thumbhash: 'AAAA',
+      }),
+    )
     const list = await withStore(app, storeId, (tx) => listMedia(tx, { page: 1, perPage: 10 }))
     expect(list.total).toBe(1)
     expect(list.items[0]).toMatchObject({ width: 1600, usedBy: 0 })
+  })
+
+  it('confirming a video goes straight to ready (no pipeline for mp4)', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const mp4 = { filename: 'clip.mp4', contentType: 'video/mp4', size: 2000 }
+    const ticket = await withStore(app, storeId, (tx) =>
+      createUploadIntent(tx, storeId, provider, mp4),
+    )
+    await provider.put({
+      key: signedKey(provider, 0),
+      body: new Uint8Array(2000),
+      contentType: 'video/mp4',
+    })
+    const confirmed = await withStore(app, storeId, (tx) =>
+      confirmUpload(tx, ticket.mediaId, provider),
+    )
+    expect(confirmed.status).toBe('ready')
+  })
+
+  it('confirm rejects (and deletes) an object whose real size exceeds the per-type limit', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const ticket = await withStore(app, storeId, (tx) =>
+      createUploadIntent(tx, storeId, provider, png),
+    )
+    const key = signedKey(provider, 0)
+    // The browser lied about size at presign time; the real object is over the 10 MB image limit.
+    await provider.put({ key, body: new Uint8Array(11 * 1024 * 1024), contentType: 'image/png' })
+    await expect(
+      withStore(app, storeId, (tx) => confirmUpload(tx, ticket.mediaId, provider)),
+    ).rejects.toBeInstanceOf(InvalidUpload)
+    expect(await provider.get(key)).toBeNull()
+  })
+
+  it('confirm rejects when the object never arrived', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const ticket = await withStore(app, storeId, (tx) =>
+      createUploadIntent(tx, storeId, provider, png),
+    )
+    await expect(
+      withStore(app, storeId, (tx) => confirmUpload(tx, ticket.mediaId, provider)),
+    ).rejects.toBeInstanceOf(InvalidUpload)
   })
 
   it('rejects disallowed types and oversized files before signing', async () => {
@@ -73,10 +175,46 @@ describe('createUploadIntent / confirmUpload', () => {
     ).rejects.toBeInstanceOf(InvalidUpload)
     await expect(
       withStore(app, storeId, (tx) =>
-        createUploadIntent(tx, storeId, provider, { ...png, size: 30 * 1024 * 1024 }),
+        createUploadIntent(tx, storeId, provider, { ...png, size: 11 * 1024 * 1024 }),
       ),
     ).rejects.toBeInstanceOf(InvalidUpload)
     expect(provider.signed).toHaveLength(0)
+  })
+})
+
+describe('markMediaFailed', () => {
+  it('marks a row failed and hides it from listMedia', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const ticket = await withStore(app, storeId, (tx) =>
+      createUploadIntent(tx, storeId, provider, png),
+    )
+    await putBytes(provider, signedKey(provider, 0))
+    await withStore(app, storeId, (tx) => confirmUpload(tx, ticket.mediaId, provider))
+    await withStore(app, storeId, (tx) => markMediaFailed(tx, ticket.mediaId, 'decompression bomb'))
+    const [row] = await withStore(app, storeId, (tx) => tx.select().from(media))
+    expect(row).toMatchObject({ status: 'failed', processError: 'decompression bomb' })
+  })
+})
+
+describe('storageUsageBytes / checkStorageQuota', () => {
+  it('sums only ready media and reports ok under the default quota', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    await readyUpload(storeId, provider, 'a.png')
+    const used = await withStore(app, storeId, (tx) => storageUsageBytes(tx, storeId))
+    expect(used).toBe(1000)
+    const check = await withStore(app, storeId, (tx) => checkStorageQuota(tx, storeId))
+    expect(check.ok).toBe(true)
+    expect(check.usedBytes).toBe(1000)
+  })
+
+  it('reports over quota when a small explicit quota is passed', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    await readyUpload(storeId, provider, 'a.png')
+    const check = await withStore(app, storeId, (tx) => checkStorageQuota(tx, storeId, 100))
+    expect(check.ok).toBe(false)
   })
 })
 

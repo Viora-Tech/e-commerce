@@ -5,6 +5,8 @@ import {
   type AppEventQueue,
   type AppJobData,
   type AppJobQueue,
+  type MediaProcessJob,
+  type MediaProcessQueue,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
   type NotificationQueue,
@@ -31,6 +33,8 @@ export const OUTBOX_RELAY_QUEUE = '{outbox}-relay'
 export const MARKETING_TICK_QUEUE = '{marketing}-tick'
 /** One job per sending campaign; works through recipients in batches. */
 export const MARKETING_SEND_QUEUE = '{marketing}-send'
+/** One job per confirmed image upload (or Shopify-import media row); runs the upload-time pipeline. */
+export const MEDIA_PROCESS_QUEUE = '{media}-process'
 
 export function createConnection(redisUrl: string): IORedis {
   return new IORedis(redisUrl, { maxRetriesPerRequest: null })
@@ -64,6 +68,7 @@ export function createAppJobQueue(connection: IORedis): Queue<AppJobData> & AppJ
 }
 
 export type OutboxRelayJob = { storeId?: string }
+export type { MediaProcessJob, MediaProcessQueue }
 
 export function createOutboxRelayQueue(connection: IORedis): Queue<OutboxRelayJob> {
   return new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })
@@ -101,6 +106,21 @@ export async function nudgeOutboxRelay(
   } catch (err) {
     console.error(`[outbox] could not nudge relay for store ${storeId}`, err)
   }
+}
+
+export function createMediaProcessQueue(
+  connection: IORedis,
+): Queue<MediaProcessJob> & MediaProcessQueue {
+  return new Queue<MediaProcessJob>(MEDIA_PROCESS_QUEUE, { connection })
+}
+
+/** Process-wide media-processing queue, cached like the others. */
+export function mediaProcessQueue(redisUrl: string): MediaProcessQueue {
+  const g = globalThis as { __mediaProcessQueue?: MediaProcessQueue }
+  if (!g.__mediaProcessQueue) {
+    g.__mediaProcessQueue = createMediaProcessQueue(createConnection(redisUrl))
+  }
+  return g.__mediaProcessQueue
 }
 
 /** Process-wide app jobs queue. */

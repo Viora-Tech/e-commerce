@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3'
@@ -91,6 +92,22 @@ export abstract class S3CompatProvider implements StorageProvider {
   async delete(key: string): Promise<void> {
     // S3 semantics: deleting a missing key is a 204, so this is idempotent for free.
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }))
+  }
+
+  async head(key: string): Promise<{ size: number; contentType?: string } | null> {
+    try {
+      const res = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }),
+      )
+      return {
+        size: res.ContentLength ?? 0,
+        ...(res.ContentType ? { contentType: res.ContentType } : {}),
+      }
+    } catch (err) {
+      const name = err instanceof Error ? err.name : ''
+      if (name === 'NotFound' || name === 'NoSuchKey') return null
+      throw err
+    }
   }
 
   abstract verifyCredentials(): ReturnType<StorageProvider['verifyCredentials']>

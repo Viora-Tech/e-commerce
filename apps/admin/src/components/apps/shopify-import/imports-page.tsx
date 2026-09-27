@@ -39,13 +39,20 @@ const columns: ResourceColumnSpec<RunListItem>[] = [
   {
     id: 'what',
     title: copy.columns.what,
+    align: 'start',
+    // The list can be long ("Products, Collections, …"); let it wrap instead of running
+    // under the Status column.
+    className: 'min-w-[14rem] max-w-[24rem] whitespace-normal',
     render: (r) => (
-      <span>{r.resources.map((x) => shopifyImportContent.resources[x]).join(', ')}</span>
+      <span className="line-clamp-2">
+        {r.resources.map((x) => shopifyImportContent.resources[x]).join(', ')}
+      </span>
     ),
   },
   {
     id: 'status',
     title: copy.columns.status,
+    className: 'whitespace-nowrap',
     render: (r) => <RunStatusLabel status={r.status} preview={r.dryRun} />,
   },
   {
@@ -55,8 +62,12 @@ const columns: ResourceColumnSpec<RunListItem>[] = [
     render: (r) => {
       const t = totals(r.progress)
       return (
-        <span className="text-muted-foreground tabular-nums">
-          {r.status === 'completed' ? copy.result(t.created, t.updated, t.failed) : null}
+        <span className="line-clamp-2 text-muted-foreground tabular-nums">
+          {r.status === 'completed'
+            ? copy.result(t.created, t.updated, t.failed)
+            : r.status === 'failed'
+              ? (r.error ?? copy.failedNoReason)
+              : null}
         </span>
       )
     },

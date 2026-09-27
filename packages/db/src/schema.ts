@@ -198,14 +198,33 @@ export const media = pgTable('media', {
   /** Which provider holds the object, so deletes go to the right bucket. */
   provider: text('provider'),
   contentType: text('content_type'),
-  /** Bytes as declared at presign time. */
+  /** Bytes as declared at presign time; updated to the real size on confirm and again after processing. */
   size: integer('size'),
   alt: text('alt'),
   width: integer('width'),
   height: integer('height'),
-  status: text('status', { enum: ['pending', 'ready'] })
+  /**
+   * `pending` (awaiting confirm) → `processing` (image queued for the
+   * upload-time pipeline) → `ready` (or `failed`, retried by the same job
+   * id). Imported/legacy rows with no pipeline run go straight to `ready`
+   * with `variants` null; the loader then falls back to `url`.
+   */
+  status: text('status', { enum: ['pending', 'processing', 'ready', 'failed'] })
     .notNull()
     .default('ready'),
+  /**
+   * `{ [width]: { avif: url, webp: url } }` for each generated width, plus
+   * the cleaned master's own width/height (already on the row). Null until
+   * the pipeline runs; the loader and `<Picture>` fall back to `url` when
+   * null. See packages/core/src/media/pipeline.ts.
+   */
+  variants: jsonb('variants'),
+  /** Base64 ThumbHash (~20-40 bytes decoded) used as the blur-up placeholder. Null until processed. */
+  thumbhash: text('thumbhash'),
+  /** Set when the pipeline finishes (success or failure); null while pending/processing. */
+  processedAt: timestamp('processed_at', { withTimezone: true }),
+  /** Last pipeline error, kept for the admin media UI and for debugging a stuck `failed` row. */
+  processError: text('process_error'),
   createdAt: createdAt(),
 })
 

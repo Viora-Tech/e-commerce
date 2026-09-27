@@ -47,6 +47,11 @@ export class MemoryStorageProvider implements StorageProvider {
     return this.objects.get(key)?.body ?? null
   }
 
+  async head(key: string): Promise<{ size: number; contentType?: string } | null> {
+    const obj = this.objects.get(key)
+    return obj ? { size: obj.body.byteLength, contentType: obj.contentType } : null
+  }
+
   async delete(key: string): Promise<void> {
     this.deleted.push(key)
     this.objects.delete(key)

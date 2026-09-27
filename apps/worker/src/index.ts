@@ -10,6 +10,7 @@ import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
+import { createMediaProcessWorker } from './media-process'
 import { createNotificationWorker } from './notifications'
 import { initSentry, reportError } from './observability'
 import { createOutboxRelay, RELAY_EVERY_MS } from './outbox-relay'
@@ -67,6 +68,7 @@ const outboxRelay = createOutboxRelay(redis, db, {
   appEvents,
   inventoryRestock: backInStock.queue,
 })
+const mediaProcess = createMediaProcessWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 
 reportWorkerFailures(worker, 'heartbeat', reportError)
 reportWorkerFailures(notificationWorker, 'notifications', reportError)
@@ -81,6 +83,7 @@ reportWorkerFailures(marketing.tick, 'marketing-tick', reportError)
 reportWorkerFailures(marketing.send, 'marketing-send', reportError)
 reportWorkerFailures(outboxRelay.worker, 'outbox-relay', reportError)
 reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
+reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
