@@ -26,8 +26,11 @@ const ZOOM_MAX = 4
 /** Globe radius as a share of the canvas height at zoom 1 (cobe's fit). */
 const RADIUS = 0.4
 
-/** Natural Earth 1:50m land, 2048x1024 (see scripts/globe/make-land-map.py), in public/. */
-const LAND_MAP_SRC = '/globe/land-2048.png'
+/**
+ * Natural Earth 1:10m countries, India point of view, 2048x1024: land in red, country borders in
+ * green (see scripts/globe/make-globe-map.py). Served from public/.
+ */
+const LAND_MAP_SRC = '/globe/globe-2048.png'
 
 /**
  * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, markers,
