@@ -1,6 +1,5 @@
 'use client'
 
-import { FieldToggle, SlidersHorizontal } from '@commerce/ui/icons'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import FieldFrame from './field-frame'
@@ -38,37 +37,41 @@ export default function CustomizeRadioField({
     const checked = value === true
     const current = field.options.find((o) => o.value === value)
     return (
-      <FieldFrame icon={FieldToggle} label={label}>
-        <label htmlFor={id} className="flex items-center gap-2">
+      <FieldFrame label={label} htmlFor={id} inline>
+        <span className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{current?.label}</span>
           <Switch
             id={id}
             checked={checked}
             disabled={readOnly}
             onCheckedChange={(next) => onChange(next)}
           />
-          <span className="text-body text-foreground">{current?.label}</span>
-        </label>
+        </span>
       </FieldFrame>
     )
   }
 
   const stringValue = value === undefined || value === null ? '' : String(value)
   return (
-    <FieldFrame icon={SlidersHorizontal} label={label}>
+    <FieldFrame label={label}>
       <ToggleGroup
         id={id}
         value={[stringValue]}
         disabled={readOnly}
         spacing={0}
         variant="outline"
-        className="w-full"
+        className="w-full rounded-lg bg-muted/70 p-0.5"
         onValueChange={(values) => {
           const option = field.options.find((o) => String(o.value) === String(values[0]))
           if (option) onChange(option.value)
         }}
       >
         {field.options.map((o) => (
-          <ToggleGroupItem key={String(o.value)} value={String(o.value)} className="flex-1">
+          <ToggleGroupItem
+            key={String(o.value)}
+            value={String(o.value)}
+            className="h-7 flex-1 rounded-md border-0 text-xs font-medium text-muted-foreground data-[pressed]:bg-card data-[pressed]:text-foreground data-[pressed]:shadow-card"
+          >
             {o.label}
           </ToggleGroupItem>
         ))}

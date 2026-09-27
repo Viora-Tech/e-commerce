@@ -12,8 +12,16 @@ that adapts outside work keeps the full licence text next to it; this file is th
 | [cobe](https://github.com/shuding/cobe) | MIT | Dotted 3D WebGL globe (no borders) on the Home card, patched with a detailed land map (`patches/cobe@2.0.1.patch`). Our own Live view globe re-implements its look (sphere and dot shading, halo, marker and arc sizes) in new code | `apps/admin/src/components/analytics/live-globe` (`live-globe-canvas.tsx`; look only in `webgl/globe-renderer.ts`, `webgl/overlay-points.ts`) | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 | [Natural Earth](https://www.naturalearthdata.com/) 1:50m land | Public domain | Rasterised to the 2048×1024 land map in the cobe patch and in `apps/admin/public/globe/land-2048.png` (our Live view globe), so India and Sri Lanka read correctly | `patches/cobe@2.0.1.patch`, `apps/admin/public/globe/land-2048.png` | Public domain, credited as "Made with Natural Earth" |
 | [Shopify Product Taxonomy](https://github.com/Shopify/product-taxonomy) | MIT | Category list (release `v2026-08`, trimmed to id and name by `scripts/trim-product-taxonomy.ts`) for the product category picker | `apps/admin/src/data/product-taxonomy.json`, `apps/admin/src/lib/product-taxonomy.ts` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
+| [Magic UI](https://magicui.design) | MIT | Marquee, Number Ticker, Shine Border and Bento Grid patterns, adapted for `LogoMarquee`, `TestimonialMarquee`, `StatsCounter`, `CtaBanner` and `BentoGrid` | `packages/blocks/src/components/sections` | [`packages/blocks/THIRD_PARTY_LICENSES.md`](packages/blocks/THIRD_PARTY_LICENSES.md) |
 
-Paid UI kits: Aceternity UI Pro may be used in builder blocks under the owner's written permission, see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md).
+Paid UI kits: Aceternity UI Pro, Magic UI Pro and shadcnblocks may be used in builder blocks under
+the owner's written permission — see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md),
+[`docs/licences/magic-ui-pro.md`](docs/licences/magic-ui-pro.md) and
+[`docs/licences/shadcnblocks.md`](docs/licences/shadcnblocks.md). Sections built from these
+patterns (batch 1, 2026-09-26): `SpotlightHero` (Aceternity UI), `BentoGrid`, `LogoMarquee`,
+`TestimonialMarquee`, `StatsCounter`, `CtaBanner` (Magic UI, free MIT components — see the row
+above), `SplitHero`, `VideoHero`, `FaqAccordion`, `Gallery` (shadcnblocks patterns, no Pro code
+copied).
 
 Libraries installed from npm are not listed here; their licences ship inside `node_modules`.
 Two are worth naming because the upload-time image pipeline (`packages/core/src/media/pipeline.ts`,

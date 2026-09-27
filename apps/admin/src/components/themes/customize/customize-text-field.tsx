@@ -1,9 +1,11 @@
 'use client'
 
-import { FieldText, FieldTextarea } from '@commerce/ui/icons'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import { FIELD_CONTROL, FIELD_TEXTAREA } from '@/lib/customize-field-styles'
+import { isLinkTextField } from '@/lib/customize-links'
 import FieldFrame from './field-frame'
+import LinkPicker from './link-picker'
 
 type CustomizeTextFieldProps = {
   field: { type: 'text' | 'textarea'; label?: string; placeholder?: string }
@@ -14,7 +16,10 @@ type CustomizeTextFieldProps = {
   name: string
 }
 
-/** Puck's `text` and `textarea` field types: one rounded, our-styled input. */
+/**
+ * Puck's `text` and `textarea` field types: one rounded, our-styled input —
+ * or, for a link (`href`, or a field labelled "Link"), the link picker.
+ */
 export default function CustomizeTextField({
   field,
   value,
@@ -23,12 +28,21 @@ export default function CustomizeTextField({
   readOnly,
   name,
 }: CustomizeTextFieldProps) {
-  // Render logic
+  // Early returns
   const label = field.label ?? name
+  if (isLinkTextField(field, name)) {
+    return (
+      <FieldFrame label={label} htmlFor={id}>
+        <LinkPicker id={id} value={value} onChange={onChange} readOnly={readOnly} />
+      </FieldFrame>
+    )
+  }
+
+  // Render logic
   const multiline = field.type === 'textarea'
 
   return (
-    <FieldFrame icon={multiline ? FieldTextarea : FieldText} label={label}>
+    <FieldFrame label={label} htmlFor={id}>
       {multiline ? (
         <Textarea
           id={id}
@@ -37,7 +51,7 @@ export default function CustomizeTextField({
           placeholder={field.placeholder}
           disabled={readOnly}
           rows={3}
-          className="rounded-xl"
+          className={FIELD_TEXTAREA}
         />
       ) : (
         <Input
@@ -47,7 +61,7 @@ export default function CustomizeTextField({
           placeholder={field.placeholder}
           disabled={readOnly}
           size="lg"
-          className="rounded-xl"
+          className={FIELD_CONTROL}
         />
       )}
     </FieldFrame>

@@ -3,6 +3,7 @@
 import { Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
+import type { KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
 import {
   extLabel,
@@ -11,6 +12,7 @@ import {
   isVideoMedia,
   type MediaItem,
 } from './media-pick-types'
+import MediaThumb from './media-thumb'
 import type { PendingUpload } from './use-upload-queue'
 
 type MediaPickGridProps = {
@@ -24,6 +26,36 @@ type MediaPickGridProps = {
 }
 
 const copy = mediaContent.picker
+
+/** How many columns a CSS grid is currently laying out, for arrow-key moves between rows. */
+function columnsOf(el: HTMLElement): number {
+  const template = getComputedStyle(el).gridTemplateColumns
+  return Math.max(1, template.split(' ').filter(Boolean).length)
+}
+
+/**
+ * Arrow keys move focus between tiles (up and down by a whole row in the
+ * grid), Home and End jump to the ends. Space or Enter still toggles the
+ * focused tile, as any button does.
+ */
+function handleTileKeys(e: KeyboardEvent<HTMLUListElement>, grid: boolean) {
+  const tiles = [...e.currentTarget.querySelectorAll<HTMLElement>('[data-media-tile]')]
+  const at = tiles.indexOf(document.activeElement as HTMLElement)
+  if (at === -1) return
+  const step = grid ? columnsOf(e.currentTarget) : 1
+  const moves: Record<string, number> = {
+    ArrowRight: grid ? 1 : 0,
+    ArrowLeft: grid ? -1 : 0,
+    ArrowDown: step,
+    ArrowUp: -step,
+    Home: -at,
+    End: tiles.length - 1 - at,
+  }
+  const move = moves[e.key]
+  if (!move) return
+  e.preventDefault()
+  tiles[Math.min(tiles.length - 1, Math.max(0, at + move))]?.focus()
+}
 
 /** The picker's results area: pending uploads plus the selectable grid or list. */
 export default function MediaPickGrid({
@@ -44,13 +76,14 @@ export default function MediaPickGrid({
   // Render logic
   if (view === 'list') {
     return (
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-1" onKeyDown={(e) => handleTileKeys(e, false)}>
         {results.map((item) => {
           const active = selectedIds.includes(item.id)
           return (
             <li key={item.id}>
               <button
                 type="button"
+                data-media-tile
                 onClick={() => onToggle(item.id)}
                 onDoubleClick={() => handleDoubleClick(item.id)}
                 aria-pressed={active}
@@ -61,17 +94,7 @@ export default function MediaPickGrid({
               >
                 <Checkbox checked={active} tabIndex={-1} />
                 <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted p-1">
-                  {isVideoMedia(item.contentType) ? (
-                    <video src={item.url} muted playsInline className="size-full object-contain" />
-                  ) : (
-                    // biome-ignore lint/performance/noImgElement: thumbnails from arbitrary storage hosts.
-                    <img
-                      src={item.url}
-                      alt=""
-                      className="size-full object-contain"
-                      loading="lazy"
-                    />
-                  )}
+                  <MediaThumb item={item} className="object-contain" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-body">
@@ -90,7 +113,10 @@ export default function MediaPickGrid({
   }
 
   return (
-    <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+    <ul
+      className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6"
+      onKeyDown={(e) => handleTileKeys(e, true)}
+    >
       {pending.map((p) => (
         <li key={p.key} className="flex flex-col gap-1">
           <div className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-lg border bg-muted">
@@ -112,6 +138,7 @@ export default function MediaPickGrid({
           <li key={item.id} className="flex flex-col gap-1">
             <button
               type="button"
+              data-media-tile
               onClick={() => onToggle(item.id)}
               onDoubleClick={() => handleDoubleClick(item.id)}
               aria-pressed={active}
@@ -124,17 +151,7 @@ export default function MediaPickGrid({
               <span className="absolute top-1.5 left-1.5 z-10">
                 <Checkbox checked={active} tabIndex={-1} />
               </span>
-              {isVideoMedia(item.contentType) ? (
-                <video src={item.url} muted playsInline className="size-full object-contain" />
-              ) : (
-                // biome-ignore lint/performance/noImgElement: thumbnails from arbitrary storage hosts.
-                <img
-                  src={item.url}
-                  alt={item.alt ?? ''}
-                  className="size-full object-contain"
-                  loading="lazy"
-                />
-              )}
+              <MediaThumb item={item} className="object-contain" />
               {isVideoMedia(item.contentType) ? (
                 <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-md bg-card/90 px-1.5 py-0.5 text-caption text-foreground">
                   <Video className="size-3" aria-hidden />

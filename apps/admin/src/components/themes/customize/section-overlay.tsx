@@ -88,12 +88,9 @@ export default function SectionOverlay({
           legible over any storefront colours in light and dark previews. */}
       <motion.div
         key={isSelected ? 'selected' : 'hover'}
-        initial={reducedMotion ? false : { opacity: 0, y: -4, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{
-          duration: reducedMotion ? 0 : 0.22,
-          ease: isSelected ? [0.34, 1.56, 0.64, 1] : 'easeOut',
-        }}
+        initial={reducedMotion ? false : { opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reducedMotion ? 0 : 0.16, ease: 'easeOut' }}
         className="pointer-events-none absolute top-0 left-0 z-10 flex w-full items-start justify-between gap-2 p-2"
       >
         <span

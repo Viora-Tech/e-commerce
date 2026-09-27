@@ -14,11 +14,12 @@ import type { PuckAction } from '@puckeditor/core'
  * `.tsx` files.
  */
 
-const DURATION_MOVE = 280
-const DURATION_ENTER = 300
+// Subtle and quick (150–220 ms), easing out, never overshooting: the canvas
+// should feel responsive, not animated.
+const DURATION_MOVE = 200
+const DURATION_ENTER = 200
+const DURATION_OUTLINE = 150
 const EASE = 'ease-out'
-/** A gentle overshoot for things settling into place — the "spring" feel for inserts. */
-const EASE_BACK = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
 // --puck-color-interactive lives in vendor-puck.css, the admin document's own
 // stylesheet, which never reaches this iframe (see this file's own doc comment)
 // — so this reads --admin-accent instead, the value PreviewFrame writes onto
@@ -36,7 +37,7 @@ export function canvasMotionCss(reducedMotion: boolean): string {
   }
   return `
     [data-puck-component] {
-      transition: translate ${DURATION_MOVE}ms ${EASE}, opacity ${DURATION_ENTER}ms ${EASE_BACK};
+      transition: translate ${DURATION_MOVE}ms ${EASE}, opacity ${DURATION_ENTER}ms ${EASE};
     }
     /* Named here so installCanvasMotion can apply it by name; it targets only a section
        it has confirmed is a genuine new insert, never the ones already on screen at load. */
@@ -60,6 +61,14 @@ export function canvasMotionCss(reducedMotion: boolean): string {
     }
     [data-puck-line-placeholder] {
       transition: transform 200ms ${EASE}, opacity 200ms ${EASE};
+    }
+    /* Puck mounts a section's hover/selection outline instantly; fade it in instead. */
+    @keyframes puck-outline-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    [data-puck-overlay] {
+      animation: puck-outline-in ${DURATION_OUTLINE}ms ${EASE};
     }
     @starting-style {
       [data-puck-line-placeholder] {
@@ -134,7 +143,7 @@ function installInsertRing(doc: Document): () => void {
   let known = new Set(components(doc).map(idOf))
 
   const ring = (el: HTMLElement) => {
-    el.style.animation = 'puck-insert-ring 900ms ease-out'
+    el.style.animation = 'puck-insert-ring 220ms ease-out'
     const clear = () => {
       el.style.animation = ''
       el.removeEventListener('animationend', clear)
@@ -177,7 +186,7 @@ function collapseSection(el: HTMLElement, reducedMotion: boolean): Promise<void>
       { opacity: 1, maxHeight: `${height}px` },
       { opacity: 0, maxHeight: '0px' },
     ],
-    { duration: 250, easing: 'ease-in' },
+    { duration: 200, easing: 'ease-in' },
   )
   return animation.finished.catch(() => undefined).then(() => undefined)
 }
@@ -207,18 +216,38 @@ export function deleteWithCollapse(
   collapseSection(el, reducedMotion).then(commit)
 }
 
+/** How many frames `scrollToSection` waits for a just-inserted section to reach the iframe. */
+const MAX_WAIT_FRAMES = 60
+
 /**
  * Brings a section into view in the preview iframe, e.g. after it's picked in
- * the Sections tree (Puck only scrolls for selections made on the canvas).
+ * the Sections tree (Puck only scrolls for selections made on the canvas), or
+ * right after it was added.
  */
 export function scrollToSection(id: string, reducedMotion: boolean): void {
   // Selecting a row also dispatches Puck's own `setUi`, which re-renders the
   // canvas's selection chrome (SectionOverlay) a tick later — scrolling in
   // the same call stack raced that re-render and was silently un-done before
-  // it ever painted. Waiting a frame lets that settle first.
-  requestAnimationFrame(() => {
+  // it ever painted. Waiting a frame lets that settle first. A section that
+  // was only just inserted may take a few more frames to render inside the
+  // iframe, so keep looking (up to about a second) until it's there.
+  let frames = 0
+  const attempt = () => {
     const frame = document.querySelector<HTMLIFrameElement>('#main iframe')
     const el = frame?.contentDocument?.querySelector<HTMLElement>(`[data-puck-component="${id}"]`)
-    el?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
-  })
+    if (el) {
+      el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' })
+      return
+    }
+    frames += 1
+    if (frames < MAX_WAIT_FRAMES) requestAnimationFrame(attempt)
+  }
+  requestAnimationFrame(attempt)
+}
+
+/** The OS "reduce motion" setting, for callers outside React (Puck's `onAction`). */
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
 }

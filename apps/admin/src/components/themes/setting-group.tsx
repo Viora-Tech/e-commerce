@@ -18,7 +18,7 @@ type SettingGroupProps = {
 export default function SettingGroup({ title, defaultOpen = false, children }: SettingGroupProps) {
   return (
     <Collapsible defaultOpen={defaultOpen} className="border-b border-border last:border-b-0">
-      <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-body font-semibold text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+      <CollapsibleTrigger className="group flex h-11 w-full items-center justify-between gap-3 px-4 text-left text-[0.8125rem] font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
         {title}
         <ChevronDown
           className="size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"

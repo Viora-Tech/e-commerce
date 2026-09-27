@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@commerce/blocks/styles.css";
 
+/* Monorepo: tell Tailwind to scan the shared blocks package for class names */
+@source "../../../../packages/blocks/src/**/*.tsx";
+
 /*
  * Glide's token names, unchanged. Values are injected per store by the
  * layout (see @commerce/core themeToCss). Tailwind classes below map onto

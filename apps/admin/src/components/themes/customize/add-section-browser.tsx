@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/ta
 import { Drawer } from '@puckeditor/core'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AppsTab from './add-section-apps-tab'
 import SectionsTab from './add-section-sections-tab'
@@ -17,6 +18,9 @@ type AddSectionBrowserProps = {
   zone: string
   /** Header and footer groups only take their own sections; the persistent Add panel passes null. */
   group: SectionGroup | null
+  /** Where a clicked section goes in `zone` (0 = first); `count` puts it at the end. */
+  index: number
+  /** How many sections `zone` holds now, to keep `index` in range. */
   count: number
   /** Closes the popover this sits in; the persistent Add panel leaves it out. */
   onAdd?: () => void
@@ -39,6 +43,7 @@ const copy = customizeContent.addSection
 export default function AddSectionBrowser({
   zone,
   group,
+  index,
   count,
   onAdd,
   fill,
@@ -55,13 +60,7 @@ export default function AddSectionBrowser({
 
   // Event handlers
   const handleAdd = (type: string) => {
-    dispatch({
-      type: 'insert',
-      componentType: type,
-      destinationIndex: count,
-      destinationZone: zone,
-    })
-    dispatch({ type: 'setUi', ui: { itemSelector: { index: count, zone } } })
+    for (const action of insertActions({ zone, index }, type, count)) dispatch(action)
     setQuery('')
     onAdd?.()
   }
@@ -84,7 +83,7 @@ export default function AddSectionBrowser({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={copy.search}
           aria-label={copy.search}
-          className="pl-8"
+          className="h-8 rounded-lg pl-8 text-[0.8125rem]"
         />
       </div>
       <Tabs
@@ -92,7 +91,7 @@ export default function AddSectionBrowser({
         onValueChange={(v) => setTab(v as 'sections' | 'apps')}
         className={cn('gap-2', fill && 'min-h-0 flex-1')}
       >
-        <TabsList variant="line" className="gap-4">
+        <TabsList variant="line" className="gap-4 px-1">
           <TabsTrigger value="sections">{copy.tabs.sections}</TabsTrigger>
           <TabsTrigger value="apps">{copy.tabs.apps}</TabsTrigger>
         </TabsList>

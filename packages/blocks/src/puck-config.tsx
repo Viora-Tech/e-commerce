@@ -3,7 +3,6 @@ import type { Config, CustomField, Data } from '@puckeditor/core'
 import type { ComponentType } from 'react'
 import { type AppBlockOwner, type AppBlockSource, buildAppBlocks } from './app-blocks'
 import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
-import HeroCarousel, { type HeroSlide } from './components/hero-carousel'
 import ProductCard from './components/product-card'
 import TabbedProducts from './components/product-grid'
 import RichTextBlock from './components/rich-text'
@@ -16,12 +15,14 @@ import {
   sectionSettingsField,
 } from './section-settings'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
+import { type HeroProps, heroBlock } from './sections/hero-block'
 import {
   type CollectionLoader,
   type LibraryProps,
   librarySections,
   type SingleProductLoader,
 } from './sections/library'
+import { type ModernProps, modernSections } from './sections/modern'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
@@ -41,6 +42,9 @@ export {
   type SectionSettings,
 } from './sections/dynamic'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
+export type { ModernProps } from './sections/modern'
+export type { SectionSource } from './sections/sources'
+export { SECTION_SOURCES } from './sections/sources'
 export type { CardCollection, CardProduct } from './types'
 
 /**
@@ -67,12 +71,6 @@ const SCHEMES = [
 export const frameFields = { settings: sectionSettingsField(SCHEMES) } as const
 
 export type Frame = { settings: SectionSettingsValue }
-
-export type HeroProps = {
-  slides: HeroSlide[]
-  autoplaySeconds: number
-  heightVh: number
-}
 
 export type ProductGridProps = Frame & {
   heading: string
@@ -135,6 +133,7 @@ export type BlockProps = {
   RichText: RichTextProps
   BlogPosts: BlogPostsProps
 } & LibraryProps &
+  ModernProps &
   Record<DynamicSection, SectionSettings>
 
 /**
@@ -144,11 +143,31 @@ export type BlockProps = {
 export const SECTION_CATEGORIES = {
   banners: {
     title: 'Banners',
-    components: ['Hero', 'ImageBanner', 'ImageWithText', 'AnnouncementBar'],
+    components: [
+      'Hero',
+      'ImageBanner',
+      'ImageWithText',
+      'AnnouncementBar',
+      'SpotlightHero',
+      'SplitHero',
+      'VideoHero',
+      'CtaBanner',
+    ],
   },
   text: {
     title: 'Text',
-    components: ['RichText', 'Multicolumn', 'Testimonials', 'Faq', 'LogoList'],
+    components: [
+      'RichText',
+      'Multicolumn',
+      'Testimonials',
+      'Faq',
+      'LogoList',
+      'BentoGrid',
+      'StatsCounter',
+      'FaqAccordion',
+      'TestimonialMarquee',
+      'LogoMarquee',
+    ],
   },
   products: {
     title: 'Products',
@@ -162,7 +181,7 @@ export const SECTION_CATEGORIES = {
       'RecentlyViewed',
     ],
   },
-  media: { title: 'Media', components: ['Video'] },
+  media: { title: 'Media', components: ['Video', 'Gallery'] },
   more: { title: 'More', components: ['BlogPosts', 'Newsletter'] },
 } as const
 
@@ -251,85 +270,9 @@ export function createBlocksConfig(
         loadCollections: options.loadCollections,
         loadProduct: options.loadProduct,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof LibraryProps>),
+      ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
       ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
-      Hero: {
-        label: 'Hero carousel',
-        fields: {
-          slides: {
-            type: 'array',
-            label: 'Slides',
-            getItemSummary: (s) => s.heading || 'Slide',
-            arrayFields: {
-              heading: { type: 'text', label: 'Heading' },
-              subheading: { type: 'textarea', label: 'Subheading' },
-              image: {
-                type: 'object',
-                label: 'Image',
-                objectFields: {
-                  url: { type: 'text', label: 'URL' },
-                  alt: { type: 'text', label: 'Alt text' },
-                },
-              },
-              cta: {
-                type: 'object',
-                label: 'Primary button',
-                objectFields: {
-                  label: { type: 'text', label: 'Label' },
-                  href: { type: 'text', label: 'Link' },
-                },
-              },
-              cta2: {
-                type: 'object',
-                label: 'Secondary button',
-                objectFields: {
-                  label: { type: 'text', label: 'Label' },
-                  href: { type: 'text', label: 'Link' },
-                },
-              },
-              textPosition: {
-                type: 'radio',
-                label: 'Text position',
-                options: [
-                  { label: 'Left', value: 'left' },
-                  { label: 'Center', value: 'center' },
-                  { label: 'Right', value: 'right' },
-                ],
-              },
-            },
-          },
-          autoplaySeconds: {
-            type: 'number',
-            label: 'Autoplay (seconds, 0 = off)',
-            min: 0,
-            max: 30,
-          },
-          heightVh: { type: 'number', label: 'Height (vh)', min: 40, max: 100 },
-        },
-        defaultProps: {
-          slides: [
-            {
-              heading: 'Glide faster',
-              subheading: "India's glasspad specialist.",
-              image: { url: '', alt: '' },
-              cta: { label: 'Shop now', href: '/collections/all' },
-              textPosition: 'left',
-            },
-          ],
-          autoplaySeconds: 5,
-          heightVh: 72,
-        },
-        render: ({ slides, autoplaySeconds, heightVh }) => (
-          <HeroCarousel
-            slides={slides.map(({ cta, cta2, ...s }) => ({
-              ...s,
-              ...(cta?.label ? { cta } : {}),
-              ...(cta2?.label ? { cta2 } : {}),
-            }))}
-            autoplaySeconds={autoplaySeconds}
-            heightVh={heightVh}
-          />
-        ),
-      },
+      Hero: heroBlock(),
 
       ProductGrid: {
         label: 'Tabbed product grid',

@@ -7,6 +7,7 @@ export default {
   'media-pipeline': 'Image pipeline',
   'live-globe': 'Live view globe',
   'section-settings': 'Section settings and SectionFrame',
+  'theme-editor': 'Theme editor',
   security: 'Security',
   conventions: 'Conventions',
   guardrails: 'Guardrails and sweeps',

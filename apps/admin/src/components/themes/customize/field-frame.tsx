@@ -1,27 +1,38 @@
-import type { IconComponent } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import type { ReactNode } from 'react'
 
 type FieldFrameProps = {
-  icon: IconComponent
   label: string
+  /** Label and control on one row, for small controls (a switch, a short number). */
+  inline?: boolean
+  htmlFor?: string | undefined
   children: ReactNode
 }
 
+const LABEL = 'min-w-0 truncate text-xs font-medium text-muted-foreground'
+
 /**
- * The icon + label row every field-type override in Customize's right panel
- * shares, with the actual control below it. Puck's own `fieldLabel` can't tell
- * one field type from another (it only gets the label text), so the panel
- * suppresses it entirely (`fieldLabel: () => <></>`) and every `fieldTypes`
- * override renders its label through this instead — the one place that knows
- * both the icon and the text.
+ * The label + control every field-type override in Customize's right panel
+ * shares. Puck's own `fieldLabel` is suppressed (`fieldLabel: () => <></>`)
+ * so every field is labelled here, once, in the panel's one quiet label
+ * style: 12px medium, muted, sentence case — the control carries the weight.
  */
-export default function FieldFrame({ icon: Icon, label, children }: FieldFrameProps) {
+export default function FieldFrame({ label, inline, htmlFor, children }: FieldFrameProps) {
+  // Render logic
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="flex items-center gap-1.5 text-caption font-medium text-muted-foreground">
-        <Icon aria-hidden weight="light" className="size-4 shrink-0" />
-        {label}
-      </span>
+    <div
+      className={cn(
+        'flex min-w-0',
+        inline ? 'min-h-8 items-center justify-between gap-3' : 'flex-col gap-1.5',
+      )}
+    >
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className={LABEL}>
+          {label}
+        </label>
+      ) : (
+        <span className={LABEL}>{label}</span>
+      )}
       {children}
     </div>
   )

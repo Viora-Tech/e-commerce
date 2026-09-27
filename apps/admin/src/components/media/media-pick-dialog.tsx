@@ -13,9 +13,11 @@ import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'r
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
+import { readRecentMedia, rememberMedia } from '@/lib/media-recent'
 import { rejectReason } from '@/lib/upload'
 import MediaPickDropzone from './media-pick-dropzone'
 import MediaPickGrid from './media-pick-grid'
+import MediaPickRecent from './media-pick-recent'
 import MediaPickToolbar, {
   type MediaFileTypeFilter,
   type MediaSizeFilter,
@@ -23,7 +25,7 @@ import MediaPickToolbar, {
   type MediaUsedFilter,
   type MediaViewMode,
 } from './media-pick-toolbar'
-import { type MediaItem, matchesMediaQuery, type PickedMedia } from './media-pick-types'
+import { type MediaItem, matchesMediaQuery, type PickedMedia, pickedFrom } from './media-pick-types'
 import { useUploadQueue } from './use-upload-queue'
 
 export type { MediaItem, PickedMedia } from './media-pick-types'
@@ -106,6 +108,7 @@ export default function MediaPickDialog({
   const [urlOpen, setUrlOpen] = useState(false)
   const [urlValue, setUrlValue] = useState('')
   const [urlBusy, setUrlBusy] = useState(false)
+  const [recent, setRecent] = useState<MediaItem[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const queue = useUploadQueue((done) => {
@@ -122,6 +125,10 @@ export default function MediaPickDialog({
     setTotal((n) => n + 1)
     setSelectedIds((ids) => (multiple ? [...ids, item.id] : [item.id]))
   })
+
+  useEffect(() => {
+    if (open) setRecent(readRecentMedia())
+  }, [open])
 
   useEffect(() => {
     if (!open) {
@@ -227,18 +234,19 @@ export default function MediaPickDialog({
     })
   }
   const handleConfirmOne = (id: string) => {
-    const list = fixedItems ?? items
+    const list = fixedItems ?? [...items, ...recent]
     const found = list.find((i) => i.id === id)
-    if (found) {
-      onPick?.({ id: found.id, url: found.url, alt: found.alt, contentType: found.contentType })
-    }
+    if (!found) return
+    if (!fixedItems) rememberMedia([found])
+    onPick?.(pickedFrom(found))
   }
   const handleDone = () => {
-    const list = fixedItems ?? items
-    const picked = selectedIds
+    const list = fixedItems ?? [...items, ...recent]
+    const found = selectedIds
       .map((id) => list.find((i) => i.id === id))
       .filter((i): i is MediaItem => Boolean(i))
-      .map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType }))
+    if (!fixedItems) rememberMedia(found)
+    const picked = found.map(pickedFrom)
     if (multiple) {
       onPickMany?.(picked)
       return
@@ -255,6 +263,7 @@ export default function MediaPickDialog({
   const results = restricted ? fixedItems.filter((i) => matchesMediaQuery(i, needle)) : items
   const showEmpty = !loading && results.length === 0 && queue.pending.length === 0
   const doneDisabled = selectedIds.length === 0
+  const showRecent = !restricted && !needle && recent.length > 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -297,6 +306,14 @@ export default function MediaPickDialog({
         ) : null}
 
         <div className="min-h-[20rem] flex-1 overflow-y-auto p-4">
+          {showRecent ? (
+            <MediaPickRecent
+              items={recent}
+              selectedIds={selectedIds}
+              onToggle={handleToggle}
+              onConfirm={handleConfirmOne}
+            />
+          ) : null}
           {loading ? (
             <div className="flex h-64 items-center justify-center text-muted-foreground">
               <Loader2Icon className="size-5 animate-spin" aria-hidden />

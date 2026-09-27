@@ -2,6 +2,7 @@
 
 import { SECTION_CATEGORIES } from '@commerce/blocks/puck'
 import { GROUP_SECTIONS, type SectionGroup } from '@commerce/core/theme'
+import { SearchX } from '@commerce/ui/icons'
 import { customizeContent } from '@/data/customize'
 import SectionCard from './section-card'
 
@@ -21,10 +22,17 @@ function categoriesFor(group: SectionGroup | null) {
   if (!group)
     return Object.values(SECTION_CATEGORIES).map((c) => ({
       title: c.title,
-      types: [...c.components],
+      types: [...c.components] as string[],
     }))
   const allowed = GROUP_SECTIONS[group].filter((t) => t !== 'Header' && t !== 'Footer')
-  return [{ title: customizeContent.groups[group], types: allowed }]
+  return [{ title: customizeContent.groups[group], types: [...allowed] }]
+}
+
+/** A section matches on its name or its one-line description. */
+function matches(type: string, label: string, needle: string): boolean {
+  if (!needle) return true
+  const description = (copy.descriptions[type] ?? '').toLowerCase()
+  return label.toLowerCase().includes(needle) || description.includes(needle)
 }
 
 /** The Add panel's Sections tab: our own section library, grouped into categories. */
@@ -39,20 +47,26 @@ export default function SectionsTab({
   // Early returns
   const needle = query.trim().toLowerCase()
   const categories = categoriesFor(group)
-    .map((c) => ({ ...c, types: c.types.filter((t) => labelOf(t).toLowerCase().includes(needle)) }))
+    .map((c) => ({ ...c, types: c.types.filter((t) => matches(t, labelOf(t), needle)) }))
     .filter((c) => c.types.length > 0)
   if (categories.length === 0) {
-    return <p className="px-2 py-4 text-caption text-muted-foreground">{copy.empty}</p>
+    return (
+      <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+          <SearchX aria-hidden weight="light" className="size-4" />
+        </span>
+        <p className="text-[0.8125rem] font-medium text-foreground">{copy.empty}</p>
+        <p className="text-xs text-muted-foreground">{copy.emptyHint}</p>
+      </div>
+    )
   }
 
   // Render logic
-  const flatTypes = categories.flatMap((c) => c.types)
-
   return (
     <>
       {categories.map((c) => (
         <div key={c.title} className="flex flex-col">
-          <p className="sticky top-0 bg-popover px-2 pt-2 pb-1 text-caption font-medium text-muted-foreground">
+          <p className="sticky top-0 z-10 bg-popover px-2 pt-3 pb-1 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
             {c.title}
           </p>
           {c.types.map((type) => (
@@ -64,7 +78,6 @@ export default function SectionsTab({
               hovered={hovered === type}
               onHover={onHover}
               onAdd={() => onAdd(type)}
-              index={flatTypes.indexOf(type)}
             />
           ))}
         </div>

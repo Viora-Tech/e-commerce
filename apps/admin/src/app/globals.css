@@ -13,6 +13,7 @@
 
 /* Monorepo: tell Tailwind to scan shared packages for class names */
 @source "../../../../packages/ui/src/**/*.tsx";
+@source "../../../../packages/blocks/src/**/*.tsx";
 
 /* Admin-only variables. */
 :root {

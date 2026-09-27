@@ -4,14 +4,16 @@ import { animate, stagger } from 'motion'
 import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HERO, remToPx } from '../data/motion'
+import { type FocalPoint, focalStyle } from '../focal-point'
+import { linkTarget } from '../link'
 import Icon from './icon'
 
 export type HeroSlide = {
   heading: string
   subheading?: string | undefined
-  image: { url: string; alt: string }
-  cta?: { label: string; href: string } | undefined
-  cta2?: { label: string; href: string } | undefined
+  image: { url: string; alt: string; focal?: FocalPoint | undefined }
+  cta?: { label: string; href: string; newTab?: boolean } | undefined
+  cta2?: { label: string; href: string; newTab?: boolean } | undefined
   textPosition?: 'left' | 'center' | 'right' | undefined
 }
 
@@ -106,6 +108,7 @@ export default function HeroCarousel({
                       className="hero-carousel__image"
                       src={s.image.url}
                       alt={s.image.alt}
+                      style={focalStyle(s.image.focal)}
                       loading={i === 0 ? 'eager' : 'lazy'}
                       fetchPriority={i === 0 ? 'high' : undefined}
                       sizes="100vw"
@@ -125,13 +128,14 @@ export default function HeroCarousel({
                   {s.cta || s.cta2 ? (
                     <div className="hero-carousel__ctas">
                       {s.cta ? (
-                        <a href={s.cta.href} className="btn btn--primary">
+                        <a href={s.cta.href} {...linkTarget(s.cta)} className="btn btn--primary">
                           {s.cta.label}
                         </a>
                       ) : null}
                       {s.cta2 ? (
                         <a
                           href={s.cta2.href}
+                          {...linkTarget(s.cta2)}
                           className="btn btn--secondary hero-carousel__cta-secondary"
                         >
                           {s.cta2.label}

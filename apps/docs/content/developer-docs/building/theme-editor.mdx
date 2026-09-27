@@ -1,0 +1,144 @@
+---
+title: Theme editor
+description: How Online Store → Themes → Customize is put together — the sections sidebar, insert points, blocks, motion, and the link and image field data shapes.
+---
+
+# Theme editor
+
+Online Store → Themes → **Customize** (`apps/admin/src/components/themes/customize/*`, copy in
+`apps/admin/src/data/customize.ts`) is a Shopify-style editor on top of
+[Puck](https://puckeditor.com) 0.23 (`@puckeditor/core`, MIT). Puck is the engine: one document
+per template, with the header and footer groups as extra root zones (`root:header`,
+`root:footer`, see `lib/customize-doc.ts`), so the sidebar, the canvas, the inspector and undo
+all share one Puck state. Every change the editor makes is a Puck action (`insert`, `replace`,
+`reorder`, `duplicate`, `remove`, `setUi`), which is what keeps undo a single history.
+
+```mermaid
+flowchart LR
+  tree["Sections sidebar<br/>SectionsTree → SectionGroup → SectionTreeItem"] -->|Puck actions| store[("Puck state<br/>one doc per template")]
+  canvas["Canvas<br/>SectionOverlay, CanvasInsertLine"] -->|Puck actions| store
+  inspector["Inspector<br/>Puck.Fields + our field overrides"] -->|onChange| store
+  store -->|onChange| drafts["useTemplateDrafts<br/>autosaved drafts"]
+```
+
+## Sections sidebar
+
+`SectionsTree` renders three `SectionGroup`s: **Header**, **Template**, **Footer**. Each group
+heading collapses its rows. Rows are `SectionTreeItem`s inside the shared `SortableList`
+(`@commerce/ui/sortable`, dnd-kit), so dragging, keyboard reordering and the lifted drag
+overlay are the same as everywhere else in the admin.
+
+A row (`section-row.tsx`) has the drag handle, a toggle for its blocks, the section's glyph and
+name, the eye (hide/show, stored as `props._hidden`), and a "more" menu with **Duplicate**,
+**Rename** and **Remove**. Main sections and the header and footer (`SINGLE_SECTIONS`) only get
+Rename. Rename stores the merchant's name in `props._name` (`renamedProps` in
+`lib/customize-insert.ts`); a blank name, or the type's own label, removes it again. Neither
+`_hidden` nor `_name` is a field, so they never show in the inspector.
+
+### Insert points
+
+There are three ways to reach the Add section browser (`add-section-browser.tsx`) at an exact
+position, and all of them end in `insertActions({ zone, index }, type, count)`: an `insert` at
+that index (clamped by `clampInsertIndex`) and a `setUi` selecting the new section.
+`customize-editor.tsx`'s `revealInserted` then scrolls it into view.
+
+| Where | Component | Position |
+| --- | --- | --- |
+| "+ Add section" closing a group | `add-section-popover.tsx` (`variant="row"`) | end of the zone |
+| Thin line above any row (hover or focus) | `add-section-popover.tsx` (`variant="line"`) | before that row |
+| Line between two sections on the canvas | `canvas-insert-line.tsx` → `add-section-dialog.tsx` | before or after the section whose edge is nearest |
+
+The canvas line is our own layer inside the preview iframe, portalled into its `body`, rather
+than part of Puck's per-section overlay: Puck mounts that overlay only while its section is
+hovered, so a "+" inside it would vanish as the pointer moved onto it. `edgeNear` picks the
+section edge within `0.75rem` of the pointer, and `targetForEdge` turns it into `{ zone, index }`.
+The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `CustomizeLayout`,
+which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
+`registerOverlayPortal` so pressing it never starts a section drag.
+
+### Blocks
+
+Our sections keep repeatable content (slides, columns, logos, FAQ entries) in Puck `array`
+fields, not slots, so those items are the section's blocks. `sectionBlocks` reads them from the
+section's props and its component's `fields`, using the field's `getItemSummary` for names.
+They are listed under the row (`section-blocks.tsx`) with **Add block**, which appends the
+field's `defaultItemProps` (`withBlockAdded`), and a remove button (`withBlockRemoved`), both a
+single `replace` action. A section with several array fields gets a small menu to choose which
+one to add to.
+
+## Motion
+
+All editor motion uses Motion (`motion/react`), 150 to 220 ms, easing out, never overshooting,
+and switches off under `prefers-reduced-motion` (`useReducedMotion`, or `motion-reduce:` utilities
+for CSS transitions):
+
+- group expand and collapse, and a section's blocks opening, animate height and opacity;
+- rows added after load slide in, and rows move with a `layout="position"` animation keyed to
+  their index (so a canvas "Move up" glides; during a drag dnd-kit's own transforms apply);
+- removing a section collapses it first (`deleteWithCollapse`), then dispatches `remove`;
+- hover and selected highlights are colour transitions; the drag lift is `SortableOverlay`;
+- on the canvas, `canvasMotionCss` (injected into the iframe) fades Puck's hover and selection
+  outline in, eases sections pushed aside during a drag, and rings a new section once;
+- the inspector cross-fades when the selection changes, and the link picker slides between its
+  top level and a drilled-in list.
+
+## Data shapes
+
+These are deliberately small and plain, so blocks render them without the editor, and so a
+later "dynamic sources" binding (a `{ "$source": "…" }` object in place of a value) can sit on
+the same fields.
+
+### Links
+
+A bare link text field (named `href`, or labelled "Link") stores the href string. A
+`{ label, href }` link object stores the same string in `href`, plus an optional `newTab`:
+
+```json
+{ "label": "Shop the sale", "href": "/collections/diwali", "newTab": true }
+```
+
+| Target | Stored `href` |
+| --- | --- |
+| Product | `/products/<handle>` |
+| Collection | `/collections/<handle>` |
+| Page | `/pages/<handle>` |
+| Policy | `/pages/<handle>` (a page whose handle reads as a policy, see `isPolicyHandle`) |
+| Blog post | `/blogs/<blog>/<article>` |
+| Home page | `/` |
+| Pasted link | `https://…`, `mailto:`, `tel:`, a `/path` or `#anchor` (`normalisePastedUrl` refuses anything else, such as `javascript:`) |
+
+`newTab` is only written when the merchant turns on "Open in a new tab", so older docs are
+unchanged. Blocks spread `linkTarget(link)` (`packages/blocks/src/link.ts`) onto the `<a>`,
+which adds `target="_blank" rel="noopener noreferrer"` only when `newTab === true`.
+
+The picker (`link-picker.tsx`, `link-picker-panel.tsx`) searches every kind at once
+(`searchAllLinkTargets`, a few rows per kind), drills into one kind with its own search
+(`searchLinkTargets`), remembers the last five picks in this browser (`customize.link.recent`,
+localStorage, `pushRecentLink`), and shows the chosen link as a chip with the target's title,
+glyph and type (`parseHref` reads the stored string back). Parsing and searching are covered by
+`customize-links.test.ts` and `customize-link-targets.test.ts`.
+
+### Images
+
+An image field (`{ url, alt }`, `imageField()` in `framed.tsx`) stores:
+
+```json
+{ "url": "https://cdn.example.com/media/keyboard.jpg", "alt": "Black keyboard", "focal": { "x": 30, "y": 62.5 } }
+```
+
+`focal` is optional: percentages from the image's top-left corner, 0 to 100, one decimal
+(`packages/blocks/src/focal-point.ts`). Missing or malformed means the centre, which is how every
+image rendered before. Blocks that crop an image (`HeroCarousel`, `ImageBanner`,
+`ImageWithText`, `SplitHero`, `BentoGrid`, `Gallery`, `Multicolumn`) pass
+`style={focalStyle(image.focal)}` to the `<img>`, an inline `object-position` that is left out
+entirely for the centre. Choosing a different picture clears `focal`, because it belonged to the
+old one.
+
+The field (`image-field.tsx`) is a large preview you can drop a file onto (uploaded through
+`lib/upload.ts` with progress), **Select** for the media library dialog, editable alt text, and
+Replace, Reset focal point and Remove in its "more" menu. Clicking the preview, or the arrow keys
+once it has focus, sets the focal point (`focalFromPoint`, `nudgeFocal`); the click is measured
+against the image itself, so the point maps onto the real picture. Previews and the library grid
+render through `<Picture>` from `@commerce/blocks/media` with the media row's variants and
+ThumbHash, which `listMedia` now returns. The media dialog adds a "Recently used" strip
+(`media.pick.recent`, localStorage) and arrow-key movement between tiles.
