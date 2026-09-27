@@ -35,7 +35,7 @@ const ZOOM_MAX = 4
 const RADIUS = 0.4
 
 /** A land dot's diameter as a share of the spacing between dots (cobe's 0.008 / 0.0198). */
-const DOT_FILL = 0.8
+const DOT_FILL = 0.62
 
 /**
  * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, look,
@@ -135,7 +135,8 @@ export default function WebglGlobeCanvas({
         cy: cy * dpr,
         radius: radius * dpr,
         rotation: m,
-        dotSize: DOT_FILL * dotSpacing(levelSamples(shownLevel)) * radius * dpr,
+        // Never smaller than ~2 device px, or dots flicker and read as noise.
+        dotSize: Math.max(2 * dpr, DOT_FILL * dotSpacing(levelSamples(shownLevel)) * radius * dpr),
         pointScale: (radius / Math.max(1, s.zoom)) * dpr,
         dark,
         base: palette.base,

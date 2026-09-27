@@ -13,8 +13,6 @@
 /** A 1-per-pixel land mask, equirectangular, north up, longitude -180 at the left edge. */
 export type LandMask = { width: number; height: number; land: Uint8Array }
 
-/** The golden angle as a share of a full turn. */
-const GOLDEN_TURN = (3 - Math.sqrt(5)) / 2
 const TAU = Math.PI * 2
 
 /**
@@ -30,7 +28,7 @@ export function levelSamples(level: number): number {
 }
 
 /** Dot spacing we aim for on screen, in CSS pixels: about cobe's at its default size. */
-const TARGET_SPACING_PX = 4.2
+const TARGET_SPACING_PX = 5.5
 
 /** Angular distance between neighbouring points of an n-point Fibonacci sphere, in radians. */
 export function dotSpacing(samples: number): number {
@@ -58,51 +56,37 @@ export function isLand(mask: LandMask, lat: number, lng: number): boolean {
  * `asin` per point), and sin/cos are only paid for points that turn out to be land.
  */
 /**
- * Fixed pseudo-random 0..1 for point i and a salt (integer hash, same result every run).
- * Used to nudge each dot off the Fibonacci lattice: at 3-4 px spacing a perfectly regular
- * lattice beats against the screen's pixel grid and shows ring-shaped moiré ("waves").
+ * Unit-sphere `x, y, z` of every land dot, packed for a vertex buffer. Axes: y is north,
+ * z faces longitude 0, x faces longitude 90 E.
+ *
+ * Dots sit in rows of latitude, `dotSpacing(samples)` apart, and each row holds as many
+ * evenly spaced dots as fit around it (fewer towards the poles), every other row shifted by
+ * half a step. That is the neat, hexagon-like pattern of the Shopify/GitHub globes. (A
+ * Fibonacci spiral looked like ring-shaped moiré at 3-4 px, and nudging it at random looked
+ * like TV static.) `samples` still means "about this many dots on the whole sphere".
  */
-function hash01(i: number, salt: number): number {
-  let h = Math.imul(i ^ salt, 0x9e3779b1)
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca77)
-  h ^= h >>> 13
-  return (h >>> 0) / 4294967296
-}
-
-/** How far a dot may move off the lattice, as a share of the dot spacing. */
-const JITTER = 0.35
-
 export function buildLandDots(mask: LandMask, samples: number): Float32Array {
   const { width, height, land } = mask
-  const out = new Float32Array(samples * 3)
-  const nudge = JITTER * dotSpacing(samples)
-  const rowFloor = (row: number) => Math.cos((Math.PI * (row + 1)) / height)
-  let n = 0
-  let row = 0
-  let floor = rowFloor(0)
-  for (let i = 0; i < samples; i++) {
-    const y = 1 - (2 * (i + 0.5)) / samples
-    while (y < floor && row < height - 1) floor = rowFloor(++row)
-    // Share of a full turn east of longitude 0, then shifted so -180 is the map's left edge.
-    const turns = i * GOLDEN_TURN
-    const turn = turns - Math.floor(turns)
-    const x = Math.floor(turn * width + width / 2)
-    if (land[row * width + (x >= width ? x - width : x)] !== 1) continue
-    const lng = turn * TAU
-    const r = Math.sqrt(1 - y * y)
-    const [sl, cl] = [Math.sin(lng), Math.cos(lng)]
-    // Move along the local east and north directions, then back onto the unit sphere.
-    const a = (hash01(i, 0x1b873593) * 2 - 1) * nudge
-    const b = (hash01(i, 0x2c1b3c6d) * 2 - 1) * nudge
-    const px = r * sl + a * cl - b * y * sl
-    const py = y + b * r
-    const pz = r * cl - a * sl - b * y * cl
-    const len = Math.hypot(px, py, pz)
-    out[n++] = px / len
-    out[n++] = py / len
-    out[n++] = pz / len
+  const step = dotSpacing(samples)
+  const rows = Math.max(1, Math.round(Math.PI / step))
+  const out: number[] = []
+  for (let r = 0; r < rows; r++) {
+    const lat = Math.PI / 2 - (r + 0.5) * (Math.PI / rows)
+    const ring = Math.cos(lat)
+    const count = Math.max(1, Math.round((TAU * ring) / step))
+    const offset = r % 2 === 0 ? 0 : 0.5
+    const y = Math.sin(lat)
+    const row = Math.min(height - 1, Math.floor(((Math.PI / 2 - lat) / Math.PI) * height))
+    for (let k = 0; k < count; k++) {
+      // Share of a full turn east of longitude 0, then shifted so -180 is the map's left edge.
+      const turn = (k + offset) / count
+      const x = Math.floor(turn * width + width / 2)
+      if (land[row * width + (x >= width ? x - width : x)] !== 1) continue
+      const lng = turn * TAU
+      out.push(ring * Math.sin(lng), y, ring * Math.cos(lng))
+    }
   }
-  return out.slice(0, n)
+  return Float32Array.from(out)
 }
 
 /** Decodes the land map PNG (white land on black sea) into a mask. Browser only. */

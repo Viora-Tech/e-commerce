@@ -41,13 +41,20 @@ describe('buildLandDots', () => {
     for (let i = 0; i < dots.length; i += 3) {
       const [x = 0, y = 0, z = 0] = dots.subarray(i, i + 3)
       expect(Math.hypot(x, y, z)).toBeCloseTo(1, 5)
-      // Dots are nudged off the lattice by at most JITTER x spacing (~0.6 degrees here), so a
-      // land dot can sit just past the quadrant edge but never further.
-      const slack = dotSpacing(20_000)
-      expect(y).toBeGreaterThanOrEqual(-slack)
+      expect(y).toBeGreaterThanOrEqual(0)
       // East longitudes (0..180) have x = cos(lat) sin(lng) >= 0.
-      expect(x).toBeGreaterThanOrEqual(-slack)
+      expect(x).toBeGreaterThanOrEqual(-1e-6)
     }
+  })
+
+  it('lays dots out in even rows of latitude (no spiral moiré, no random static)', () => {
+    const dots = buildLandDots(quadrantMask(), 20_000)
+    const heights = new Set<string>()
+    for (let i = 1; i < dots.length; i += 3) heights.add((dots[i] ?? 0).toFixed(6))
+    // About half the rows are in the northern (land) half; every dot sits on one of them.
+    const rows = Math.round(Math.PI / dotSpacing(20_000))
+    expect(heights.size).toBeLessThanOrEqual(Math.ceil(rows / 2))
+    expect(heights.size).toBeGreaterThan(rows / 2 - 2)
   })
 
   it('scales past cobe’s 32k ceiling without losing precision', () => {
@@ -75,7 +82,7 @@ describe('pickLevel', () => {
   it('keeps the chosen level’s spacing near the target where it can', () => {
     for (const radius of [300, 600, 900]) {
       const level = pickLevel(radius)
-      expect(dotSpacing(levelSamples(level)) * radius).toBeLessThanOrEqual(4.2)
+      expect(dotSpacing(levelSamples(level)) * radius).toBeLessThanOrEqual(5.5)
     }
   })
 })
