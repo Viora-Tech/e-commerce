@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: media delivery URL tests — variant srcsets and fallbacks */
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import {

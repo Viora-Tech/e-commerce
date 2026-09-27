@@ -3,7 +3,7 @@ import { checkSignupGate } from '@commerce/core'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import InviteOnlyCard from '@/components/onboarding/invite-only-card'
-import OnboardingForm from '@/components/onboarding/onboarding-form'
+import OnboardingWizard from '@/components/onboarding/onboarding-wizard'
 import { auth, getSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
@@ -20,14 +20,14 @@ export default async function OnboardingPage() {
   })
 
   return (
-    <main className="flex min-h-svh items-start justify-center px-4 pt-[12vh]">
+    <main className="flex min-h-svh items-start justify-center px-4 pt-[8vh] pb-8">
       {decision.allowed ? (
-        <OnboardingForm
+        <OnboardingWizard
           platformDomain={env.PLATFORM_STORE_DOMAIN}
           defaultName={session.user.name}
         />
       ) : (
-        <InviteOnlyCard />
+        <InviteOnlyCard defaultEmail={session.user.email} />
       )}
     </main>
   )

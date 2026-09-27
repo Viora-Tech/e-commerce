@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: store slug availability — WHAT format checks plus the cross-store uniqueness lookup (store_slug_taken) / WHY the slug is checked before any store RLS context exists */
 import { type Db, isStoreSlugTaken } from '@commerce/db'
 import { type SlugAvailability, slugFormatProblem } from './slug-format'
 

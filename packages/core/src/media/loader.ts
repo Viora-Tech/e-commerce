@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: media delivery URLs — WHAT picture sources and ThumbHash placeholders from a media row / WHY apps must never bundle sharp */
 /**
  * Delivery-side helpers: turn a `media` row's `variants` map into the URLs a
  * `<picture>` element or a `next/image` loader needs, and decode its

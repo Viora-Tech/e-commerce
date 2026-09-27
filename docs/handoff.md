@@ -27,6 +27,17 @@ The sections further down describe an earlier stage and are partly outdated; thi
   collections card; per-product package box (`variant.box_preset_id`, `package_*_cm`) with a
   volumetric hint, used by shipment booking when every line agrees; sticky side column, jump nav,
   rare cards under "More settings"; "Google search preview". Migration `0072` (0071 is PR #182).
+- **Guided onboarding** (27 September 2026, `feat/onboarding-guided-flow`): `/onboarding` is now one
+  question per screen with progress dots and Back: store name + address → what you sell (picture
+  cards → starter automatic collections keyed by tag) → where you are based (India default, state
+  for GST, written to `store.address`) → do you already sell somewhere (Shopify installs the
+  importer and lands on `/apps/shopify-import`). Answers on `store.business_profile`. Invite mode
+  shows a waitlist form (email, phone, what you sell; 5/hour per user and IP) into
+  `signup_waitlist`; `platform:invite` marks the row invited. Migration `0073_signup_waitlist`.
+  `bun run test:sweeps` is green again (onboarding + media headers, orphan fixes/allow-list).
+  **Main's migration chain needs a fix**: the #183 merge dropped `0071_media_pipeline` from
+  `_journal.json`, and the 0071 and 0072 snapshots both point at 0070, so `drizzle-kit generate`
+  errors with a snapshot collision on main (details in the PR).
 - **Merchant onboarding** (26 September 2026, `feat/onboarding`): `/onboarding` lets a signed-in
   person with no store yet create one - store name and address (live availability, reserved
   words) - via `createStore` (`packages/core/src/onboarding/service.ts`; transactional-per-step,
@@ -77,8 +88,8 @@ The sections further down describe an earlier stage and are partly outdated; thi
      a limit raise before Lightsail allows the 8 GB plan.
   4. Pre-go-live: EMI/pay-later widget app, Razorpay OAuth connect (needs Technology Partner),
      Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
-  5. Small: worker `bun --watch` should also watch `packages/*`; fuller onboarding (what you sell,
-     location step, waitlist).
+  5. Small: worker `bun --watch` should also watch `packages/*`; a platform page to browse the
+     signup waitlist and invite from it.
   6. Later: Home dashboard redesign (waiting for design references), custom WebGL globe (cobe
      tops out at ~32k dots), section library → Shopify theme importer (Level 1: rebuild with our
      blocks; Level 2: LiquidJS for owner-owned themes only) → website builder / editor part 2

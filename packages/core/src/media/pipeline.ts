@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: upload-time image pipeline — WHAT cleans the master, strips GPS, makes AVIF/WebP variants and a ThumbHash / WHY the live server never resizes on request */
 /**
  * Upload-time image pipeline: run once, in the worker, right after an upload
  * is confirmed (or a Shopify-import media row is written). The live server

@@ -1,6 +1,11 @@
-/** Copy for creating your own store (/onboarding). */
+import type { SellsOn, SellsWhat } from '@commerce/core/onboarding'
+
+/** Copy for creating your own store (/onboarding): one question per screen. */
 export const onboardingContent = {
   title: 'Create your store',
+  progress: (step: number, total: number) => `Step ${step} of ${total}`,
+  back: 'Back',
+  next: 'Continue',
   name: { label: 'Store name', placeholder: 'e.g. Asha Handlooms' },
   slug: {
     label: 'Store address',
@@ -8,19 +13,70 @@ export const onboardingContent = {
     checking: 'Checking…',
     available: 'Available',
     problem: {
-      too_short: 'Too short - use at least 3 characters',
-      too_long: 'Too long - use 40 characters or fewer',
+      too_short: 'Too short. Use at least 3 characters',
+      too_long: 'Too long. Use 40 characters or fewer',
       invalid_chars: 'Use lower-case letters, numbers and hyphens only',
       reserved: 'That address is reserved',
       taken: 'That address is already taken',
     },
   },
-  shopifyNote: 'Moving from Shopify? You can import your catalogue after setup.',
+  nameStep: {
+    heading: 'Create your store',
+    body: 'Pick a name. You can change it later in Settings.',
+  },
+  sellsWhat: {
+    heading: 'What do you sell?',
+    body: 'We will set up a few collections to match. You can rename or delete them later.',
+    starterNote: 'Starts you with:',
+    options: {
+      fashion: 'Clothing and fashion',
+      beauty: 'Beauty and personal care',
+      jewellery: 'Jewellery',
+      home: 'Home and decor',
+      electronics: 'Electronics and gadgets',
+      food: 'Food and drinks',
+      handmade: 'Handmade and crafts',
+      other: 'Something else',
+    } satisfies Record<SellsWhat, string>,
+  },
+  location: {
+    heading: 'Where are you based?',
+    body: 'Your state decides how GST is charged on your orders.',
+    country: 'Country',
+    state: 'State',
+    statePlaceholder: 'Choose your state',
+    outsideIndia: 'Payments, shipping and GST invoices are built for India today.',
+  },
+  sellsOn: {
+    heading: 'Do you already sell somewhere?',
+    body: 'Pick the main one.',
+    options: {
+      shopify: 'Yes, on Shopify',
+      website: 'Yes, on my own website',
+      social: 'Yes, on Instagram or WhatsApp',
+      marketplace: 'Yes, on Amazon, Flipkart or Meesho',
+      none: 'Not yet, this is my first shop',
+    } satisfies Record<SellsOn, string>,
+    shopifyNote: 'We will take you to the Shopify import right after setup.',
+  },
   submit: 'Create store',
   creating: 'Creating your store…',
   createFailed: 'Could not create your store',
   inviteOnly: {
     heading: 'Signups are invite-only for now',
-    body: 'Ask whoever invited you for a fresh link, or check back later.',
+    body: 'Leave your details and we will send you an invite as soon as there is room.',
+  },
+  waitlist: {
+    email: 'Email',
+    phone: 'Phone number',
+    phonePlaceholder: 'e.g. 98765 43210',
+    sells: 'What do you sell?',
+    sellsPlaceholder: 'e.g. Handmade cotton sarees',
+    submit: 'Join the waitlist',
+    sending: 'Sending…',
+    invalidPhone: 'Enter a valid phone number',
+    failed: 'Could not add you. Try again in a bit.',
+    doneHeading: 'You are on the list',
+    doneBody: 'We will email you an invite as soon as there is room.',
   },
 } as const

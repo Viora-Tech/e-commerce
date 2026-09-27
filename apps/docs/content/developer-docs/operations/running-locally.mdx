@@ -71,6 +71,30 @@ production. The service behind all of this is `createStore`
 Existing staff invitations to join an existing store (Settings → Staff, `/accept-invitation/[id]`)
 are unaffected by this gate - they always work.
 
+### The guided flow and the waitlist
+
+`/onboarding` is a client-side wizard (`apps/admin/src/components/onboarding/onboarding-wizard.tsx`),
+one question per screen: store name and address → what you sell → where you are based → where you
+sell today. Nothing is written until the last screen, which calls `onboarding.create` with the
+name, slug and a `profile` (`BusinessProfileSchema` in
+`packages/core/src/onboarding/business-profile.ts`, browser-safe via `@commerce/core/onboarding`).
+`createStore` then, idempotently:
+
+- stores `{ sells, sellsOn }` on `store.business_profile`;
+- fills `store.address` with the country and state, only when the address is still empty;
+- creates the starter collections for that kind of shop (`starterCollections()`), each an
+  automatic collection with one "tag is `<tag>`" rule, skipping any title that already exists;
+- installs the apps the router passes in `installApps`. For `sellsOn: 'shopify'` that is the
+  Shopify importer, and the response's `nextPath` is `/apps/shopify-import` instead of `/`.
+
+In invite mode the "invite-only" card carries a waitlist form (email, phone, what you sell).
+`onboarding.joinWaitlist` is rate-limited to 5 tries an hour per user and per IP
+(`checkRateLimit`, Redis-backed in the deployed admin, in-memory otherwise) and upserts
+`signup_waitlist` by email (`joinSignupWaitlist`, `packages/core/src/onboarding/waitlist.ts`).
+`bun run platform:invite <email>` sets `invited_at` on the matching waitlist row. There is no UI to
+browse the waitlist yet; read it with `select email, phone, sells, invited_at from signup_waitlist`.
+Migration `0073_signup_waitlist` adds the table and the `store.business_profile` column.
+
 ## The dev OTP route
 
 Sign-in uses email OTP (Better Auth). Instead of reading the `verification` table out of

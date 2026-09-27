@@ -1,12 +1,10 @@
-import { createDb } from '@commerce/db'
+/** SOURCE OF TRUTH: merchant signup gate tests — open/invite modes, single-use and expiring invites */
+import { createDb, signupWaitlist } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import {
-  checkSignupGate,
-  consumeSignupInvite,
-  createSignupInvite,
-  findLiveSignupInvite,
-} from './signup-gate'
+import { checkSignupGate, consumeSignupInvite, createSignupInvite } from './signup-gate'
+import { joinSignupWaitlist } from './waitlist'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -18,6 +16,12 @@ afterAll(async () => {
 beforeEach(async () => {
   await resetDb(owner)
 })
+
+/** The live invite the gate would use for this email in invite mode, if any. */
+const findLiveSignupInvite = async (db: typeof app, email: string) => {
+  const decision = await checkSignupGate(db, { email, mode: 'invite', ownsAStoreAlready: false })
+  return decision.allowed ? decision.invite : null
+}
 
 describe('checkSignupGate', () => {
   it('allows anyone in open mode', async () => {
@@ -80,5 +84,29 @@ describe('signup invites', () => {
   it('an expired invite is not live', async () => {
     await createSignupInvite(app, 'stale@example.com', { expiresInMs: -1000 })
     expect(await findLiveSignupInvite(app, 'stale@example.com')).toBeNull()
+  })
+})
+
+describe('signup waitlist', () => {
+  it('joining twice updates the entry, and an invite marks it invited', async () => {
+    const entry = { email: 'Wait@Example.com', phone: '98765 43210', sells: 'Tea' }
+    await joinSignupWaitlist(app, entry, { userId: 'usr_wait' })
+    await joinSignupWaitlist(app, { ...entry, sells: 'Tea and spices' })
+
+    const rows = await app.select().from(signupWaitlist)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      email: 'wait@example.com',
+      sells: 'Tea and spices',
+      userId: 'usr_wait',
+      invitedAt: null,
+    })
+
+    await createSignupInvite(app, 'wait@example.com')
+    const [invited] = await app
+      .select()
+      .from(signupWaitlist)
+      .where(eq(signupWaitlist.email, 'wait@example.com'))
+    expect(invited?.invitedAt).toBeInstanceOf(Date)
   })
 })

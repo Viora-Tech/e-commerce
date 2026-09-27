@@ -1,6 +1,6 @@
-import { type Db, newId, signupInvite } from '@commerce/db'
+/** SOURCE OF TRUTH: merchant signup gate — WHAT decides whether a signed-in person may create their first store (MERCHANT_SIGNUP_MODE, single-use signup invites) / WHY invite mode keeps the platform closed while it is tested with a few merchants */
+import { type Db, newId, signupInvite, signupWaitlist } from '@commerce/db'
 import { and, eq, isNull } from 'drizzle-orm'
-import { CommerceError } from '../errors'
 
 export type MerchantSignupMode = 'invite' | 'open'
 
@@ -26,7 +26,7 @@ async function cancelLiveInvite(db: Db, email: string): Promise<void> {
 /**
  * Issues a single-use invite for `email` to sign up and create their own
  * store. Used by `bun run platform:invite <email>` - there is no platform
- * admin UI yet.
+ * admin UI yet. Marks the email's waitlist entry, if any, as invited.
  */
 export async function createSignupInvite(
   db: Db,
@@ -45,14 +45,15 @@ export async function createSignupInvite(
     })
     .returning()
   if (!row) throw new Error('signup invite insert failed')
+  await db
+    .update(signupWaitlist)
+    .set({ invitedAt: row.createdAt, updatedAt: new Date() })
+    .where(eq(signupWaitlist.email, row.email))
   return row
 }
 
 /** A live (unused, unexpired) invite for this email, if there is one. */
-export async function findLiveSignupInvite(
-  db: Db,
-  email: string,
-): Promise<SignupInviteRecord | null> {
+async function findLiveSignupInvite(db: Db, email: string): Promise<SignupInviteRecord | null> {
   const rows = await db
     .select()
     .from(signupInvite)
@@ -66,15 +67,6 @@ export async function findLiveSignupInvite(
 /** Marks the invite consumed. Call once the store it unlocked actually exists. */
 export async function consumeSignupInvite(db: Db, id: string): Promise<void> {
   await db.update(signupInvite).set({ usedAt: new Date() }).where(eq(signupInvite.id, id))
-}
-
-export type SignupGateErrorCode = 'SIGNUP_NOT_ALLOWED'
-
-export class SignupGateError extends CommerceError {
-  declare readonly code: SignupGateErrorCode
-  constructor(message: string) {
-    super('SIGNUP_NOT_ALLOWED', message)
-  }
 }
 
 export type SignupGateDecision =
