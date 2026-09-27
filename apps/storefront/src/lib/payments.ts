@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   checkoutMethodsOf,
+  gatewayOffersEmi,
   isGatewayProvider,
   type OnlineMethodId,
   onlineMethodsOn,
@@ -66,10 +67,7 @@ export async function storeCheckoutMethods(
     }))
 }
 
-/** True when Razorpay is enabled with EMI on (the method row, or the older EMI switch). */
+/** True when Razorpay or Cashfree is enabled with EMI on (the method row, or the older EMI switch). */
 export async function storeOffersEmi(tx: StoreTx, storeId: string): Promise<boolean> {
-  const settings = await loadSettings(tx, storeId)
-  if (!settings.enabled.includes('razorpay')) return false
-  if (settings.methods?.length) return onlineMethodsOn(checkoutMethodsOf(settings)).includes('emi')
-  return settings.providers.razorpay?.enableEmi === 'true'
+  return gatewayOffersEmi(await loadSettings(tx, storeId))
 }

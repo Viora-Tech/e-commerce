@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   buildCashfreeOrderId,
   CASHFREE_METHOD_CODES,
+  CASHFREE_WEBHOOK_TOLERANCE_MS,
   CashfreeProvider,
   cashfreeFactory,
 } from '../src/cashfree'
@@ -40,6 +41,9 @@ const paymentSuccessBody = JSON.stringify({
   },
 })
 
+/** Cashfree sends milliseconds; signed "now" so the replay window accepts it. */
+const ts = String(Date.now())
+
 const sign = (timestamp: string, body: string) =>
   createHmac('sha256', config.secretKey).update(`${timestamp}${body}`).digest('base64')
 
@@ -51,15 +55,15 @@ describePaymentProvider('cashfree', {
     valid: {
       rawBody: paymentSuccessBody,
       headers: {
-        'x-webhook-signature': sign('1735689000', paymentSuccessBody),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, paymentSuccessBody),
+        'x-webhook-timestamp': ts,
       },
     },
     tampered: {
       rawBody: paymentSuccessBody.replace('998877', '1'),
       headers: {
-        'x-webhook-signature': sign('1735689000', paymentSuccessBody),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, paymentSuccessBody),
+        'x-webhook-timestamp': ts,
       },
     },
   },
@@ -331,6 +335,29 @@ describe('refund', () => {
     expect(r).toEqual({ providerRefundId: '42', status: 'processed' })
   })
 
+  it('sends the refund key as an alphanumeric refund_id with the note', async () => {
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string)
+      expect(body).toEqual({
+        refund_amount: 250.5,
+        refund_id: 'ref01a0order2',
+        refund_note: 'Damaged in transit',
+      })
+      return jsonResponse(200, {
+        cf_refund_id: 43,
+        refund_id: body.refund_id,
+        refund_amount: 250.5,
+        refund_status: 'PENDING',
+      })
+    })
+    const p = new CashfreeProvider(config, fetchImpl as unknown as typeof fetch)
+    const r = await p.refund('pay_1', 25050, 'Damaged in transit', {
+      providerRef: 'o7_01a0bcde_1',
+      refundKey: 'ref:01a0-order:2',
+    })
+    expect(r).toEqual({ providerRefundId: '43', status: 'pending' })
+  })
+
   it('throws without a provider reference', async () => {
     const p = new CashfreeProvider(config, vi.fn() as unknown as typeof fetch)
     await expect(p.refund('pay_1', 10000)).rejects.toThrow(
@@ -345,8 +372,8 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: paymentSuccessBody,
       headers: {
-        'x-webhook-signature': sign('1735689000', paymentSuccessBody),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, paymentSuccessBody),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r.ok && r.event).toMatchObject({
@@ -364,8 +391,8 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: paymentSuccessBody,
       headers: {
-        'x-webhook-signature': sign('1735689000', paymentSuccessBody),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, paymentSuccessBody),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r.ok && r.eventId).toBe('PAYMENT_SUCCESS_WEBHOOK:998877')
@@ -388,8 +415,8 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: body,
       headers: {
-        'x-webhook-signature': sign('1735689000', body),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, body),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r.ok && r.event).toMatchObject({
@@ -405,8 +432,8 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: body,
       headers: {
-        'x-webhook-signature': sign('1735689000', body),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, body),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r.ok && r.event.type).toBe('ignored')
@@ -431,8 +458,8 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: body,
       headers: {
-        'x-webhook-signature': sign('1735689000', body),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, body),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r.ok && r.event).toMatchObject({
@@ -460,8 +487,8 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: body,
       headers: {
-        'x-webhook-signature': sign('1735689000', body),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, body),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r.ok && r.event.type).toBe('ignored')
@@ -471,7 +498,7 @@ describe('parseWebhook', () => {
     const p = new CashfreeProvider(config)
     const r = p.parseWebhook({
       rawBody: paymentSuccessBody,
-      headers: { 'x-webhook-signature': 'nope', 'x-webhook-timestamp': '1735689000' },
+      headers: { 'x-webhook-signature': 'nope', 'x-webhook-timestamp': ts },
     })
     expect(r.ok).toBe(false)
   })
@@ -486,11 +513,74 @@ describe('parseWebhook', () => {
     const r = p.parseWebhook({
       rawBody: 'not json',
       headers: {
-        'x-webhook-signature': sign('1735689000', 'not json'),
-        'x-webhook-timestamp': '1735689000',
+        'x-webhook-signature': sign(ts, 'not json'),
+        'x-webhook-timestamp': ts,
       },
     })
     expect(r).toEqual({ ok: false, reason: 'invalid json' })
+  })
+
+  it('rejects a correctly signed webhook older than the replay window', () => {
+    const p = new CashfreeProvider(config)
+    const old = String(Date.now() - CASHFREE_WEBHOOK_TOLERANCE_MS - 60_000)
+    const r = p.parseWebhook({
+      rawBody: paymentSuccessBody,
+      headers: {
+        'x-webhook-signature': sign(old, paymentSuccessBody),
+        'x-webhook-timestamp': old,
+      },
+    })
+    expect(r).toEqual({ ok: false, reason: 'stale timestamp' })
+  })
+
+  it('rejects a correctly signed webhook dated too far in the future', () => {
+    const p = new CashfreeProvider(config)
+    const future = String(Date.now() + CASHFREE_WEBHOOK_TOLERANCE_MS + 60_000)
+    const r = p.parseWebhook({
+      rawBody: paymentSuccessBody,
+      headers: {
+        'x-webhook-signature': sign(future, paymentSuccessBody),
+        'x-webhook-timestamp': future,
+      },
+    })
+    expect(r).toEqual({ ok: false, reason: 'stale timestamp' })
+  })
+
+  it('rejects a signed timestamp that is not a number', () => {
+    const p = new CashfreeProvider(config)
+    const r = p.parseWebhook({
+      rawBody: paymentSuccessBody,
+      headers: {
+        'x-webhook-signature': sign('yesterday', paymentSuccessBody),
+        'x-webhook-timestamp': 'yesterday',
+      },
+    })
+    expect(r).toEqual({ ok: false, reason: 'stale timestamp' })
+  })
+
+  it('also reads a timestamp in seconds', () => {
+    const p = new CashfreeProvider(config)
+    const seconds = String(Math.floor(Date.now() / 1000))
+    const r = p.parseWebhook({
+      rawBody: paymentSuccessBody,
+      headers: {
+        'x-webhook-signature': sign(seconds, paymentSuccessBody),
+        'x-webhook-timestamp': seconds,
+      },
+    })
+    expect(r.ok).toBe(true)
+  })
+
+  it('rejects a signature made with a different secret', () => {
+    const p = new CashfreeProvider(config)
+    const other = createHmac('sha256', 'someone_else')
+      .update(`${ts}${paymentSuccessBody}`)
+      .digest('base64')
+    const r = p.parseWebhook({
+      rawBody: paymentSuccessBody,
+      headers: { 'x-webhook-signature': other, 'x-webhook-timestamp': ts },
+    })
+    expect(r).toEqual({ ok: false, reason: 'bad signature' })
   })
 })
 
@@ -545,5 +635,69 @@ describe('validateConfig', () => {
       notifyUrl: 'https://store.example.com/webhooks/cashfree',
     })
     expect(r.ok && r.config.notifyUrl).toBe('https://store.example.com/webhooks/cashfree')
+  })
+})
+
+describe('sandbox and production', () => {
+  const order = {
+    orderId: '01a0bcde-1234-5678-9abc-def012345678',
+    orderNumber: 7,
+    amountPaise: 100,
+    currency: 'INR' as const,
+    customer: { phone: '9876543210' },
+  }
+  const created = {
+    cf_order_id: 1,
+    order_id: 'o7_01a0bcde_1',
+    payment_session_id: 'session_abc',
+    order_status: 'ACTIVE',
+  }
+
+  for (const [mode, host, checkoutMode] of [
+    ['test', 'https://sandbox.cashfree.com/pg', 'sandbox'],
+    ['live', 'https://api.cashfree.com/pg', 'production'],
+  ] as const) {
+    it(`${mode} mode calls ${host} for every request`, async () => {
+      const urls: string[] = []
+      const fetchImpl = vi.fn(async (url: string) => {
+        urls.push(url)
+        if (url.endsWith('/orders')) return jsonResponse(200, created)
+        if (url.endsWith('/payments')) return jsonResponse(200, [])
+        if (url.endsWith('/refunds')) {
+          return jsonResponse(200, {
+            cf_refund_id: 1,
+            refund_id: 'r1',
+            refund_amount: 1,
+            refund_status: 'PENDING',
+          })
+        }
+        if (url.includes('connection-test')) return jsonResponse(404, { message: 'not found' })
+        return jsonResponse(200, { order_status: 'ACTIVE', order_amount: 1, cf_order_id: 1 })
+      })
+      const p = new CashfreeProvider({ ...config, mode }, fetchImpl as unknown as typeof fetch)
+
+      const r = await p.createPayment(order)
+      await p.fetchStatus('o7_01a0bcde_1')
+      await p.refund('pay_1', 100, undefined, { providerRef: 'o7_01a0bcde_1' })
+      expect((await p.testConnection()).ok).toBe(true)
+
+      expect(urls.length).toBeGreaterThanOrEqual(4)
+      for (const url of urls) expect(url.startsWith(`${host}/`)).toBe(true)
+      expect(r.session).toMatchObject({ options: { mode: checkoutMode } })
+    })
+  }
+
+  it('a live connection test with test keys reads as bad keys', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      expect(url.startsWith('https://api.cashfree.com/pg/orders/connection-test-')).toBe(true)
+      return jsonResponse(401, { message: 'authentication Failed' })
+    })
+    const p = new CashfreeProvider(
+      { ...config, mode: 'live' },
+      fetchImpl as unknown as typeof fetch,
+    )
+    const r = await p.testConnection()
+    expect(r.ok).toBe(false)
+    expect(r.message).toMatch(/Test or Live/)
   })
 })

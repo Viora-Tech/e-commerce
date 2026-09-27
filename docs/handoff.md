@@ -8,6 +8,15 @@ machine changes.
 
 The sections further down describe an earlier stage and are partly outdated; this list wins.
 
+- **Cashfree connector finished** (27 September 2026, `feat/cashfree`, no migration): the
+  connector itself (`packages/payments-cashfree`, guided Connect page under Apps, merchant guide)
+  was already on main from 26 September. This pass re-checked hosts, headers, API version
+  `2026-01-01` and the webhook signature against Cashfree's official Node SDK (`cashfree-pg`
+  6.0.6; cashfree.com is blocked from the cloud build machines), added a 15-minute replay window
+  on webhook timestamps (`CASHFREE_WEBHOOK_TOLERANCE_MS`), and made the older product-page EMI
+  hint show for Cashfree stores too (`gatewayOffersEmi` in `@commerce/core/payment-methods`;
+  hint copy no longer names Snapmint). Still to do by hand: a sandbox run with real Cashfree
+  test keys on a https worker URL, to confirm the webhook timestamp unit (we accept ms or s).
 - **Theme editor, part 2** (27 September 2026, `feat/editor-part2-finish`, no migration):
   Shopify-style Sections sidebar (collapsible Header / Template / Footer groups; rows with drag
   handle, blocks toggle, eye and a ⋯ menu for Duplicate / Rename (`props._name`) / Remove; an
@@ -140,7 +149,7 @@ The sections further down describe an earlier stage and are partly outdated; thi
      next fix the `internal` network egress, re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
      a limit raise before Lightsail allows the 8 GB plan.
   4. Pre-go-live: ~~EMI/pay-later widget app~~ (PR open), Razorpay OAuth connect (needs Technology Partner),
-     Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
+     ~~Cashfree~~ (connector done; sandbox run pending), CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
   5. Small: worker `bun --watch` should also watch `packages/*`; a platform page to browse the
      signup waitlist and invite from it.
   5. Small: fuller onboarding (what you sell, location step, waitlist). (Worker watching
