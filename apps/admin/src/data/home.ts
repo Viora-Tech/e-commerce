@@ -103,7 +103,7 @@ export const homeContent = {
     visitorsNow: 'Visitors now',
     tooltipOrder: (number: number) => `Order #${number}`,
     unsupported: 'Your browser cannot draw the 3-D globe, so here is the order list instead.',
-    credit: 'Globe: cobe (MIT)',
+    credit: 'Globe: cobe (MIT). Made with Natural Earth',
   },
   liveStream: {
     title: 'Latest orders',

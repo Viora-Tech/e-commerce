@@ -60,6 +60,11 @@ the admin home page's "Live view" card (`src/components/home/live-globe`), repla
 only a dotted landmass with markers and arcs — deliberately no country or state borders —
 which sidesteps the outdated-J&K/Ladakh boundary problem the SVG map had.
 
+The Analytics → Live view page uses our own WebGL globe instead
+(`src/components/analytics/live-globe/webgl`). It copies no cobe code, but re-creates cobe's
+look from its shaders: the sphere, dot and halo shading formulas and the marker and arc
+sizes (`webgl/globe-renderer.ts`, `webgl/overlay-points.ts` carry an "after cobe" comment).
+
 ```text
 MIT License
 

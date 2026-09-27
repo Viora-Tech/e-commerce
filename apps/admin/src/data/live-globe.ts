@@ -8,4 +8,5 @@ export const liveGlobeContent = {
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
   zoomReset: 'Reset zoom',
+  credit: 'Made with Natural Earth',
 } as const
