@@ -1,11 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { getCopy } from '@/lib/copy-server'
 import WaitlistForm from './waitlist-form'
 
 type InviteOnlyCardProps = { defaultEmail: string }
 
 /** Shown instead of the wizard when MERCHANT_SIGNUP_MODE=invite and this email has no live invite. */
-export default function InviteOnlyCard({ defaultEmail }: InviteOnlyCardProps) {
+export default async function InviteOnlyCard({ defaultEmail }: InviteOnlyCardProps) {
+  // Render logic
+  const copy = await getCopy(onboardingContent)
+
   return (
     <Card size="form" className="w-full max-w-md">
       <CardHeader>

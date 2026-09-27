@@ -4,7 +4,8 @@ import { type SellsOn, type SellsWhat, slugifyStoreName } from '@commerce/core/o
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { authClient } from '@/lib/auth-client'
 import LocationStep, { type LocationValue } from './location-step'
@@ -24,6 +25,7 @@ const TOTAL_STEPS = 4
  */
 export default function OnboardingWizard({ platformDomain, defaultName }: OnboardingWizardProps) {
   // Hooks
+  const copy = useCopy(onboardingContent)
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [store, setStore] = useState<StoreNameValue>({

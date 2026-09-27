@@ -216,6 +216,12 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['dark mode', 'light mode', 'theme', 'colour', 'color', 'accent'],
   },
   {
+    title: 'Admin language',
+    where: 'Settings → Account',
+    href: '/settings/account',
+    keywords: ['language', 'hindi', 'english', 'हिंदी', 'भाषा', 'translate', 'account'],
+  },
+  {
     title: 'Return, privacy and terms pages',
     where: 'Online Store → Pages',
     href: '/online-store/pages',

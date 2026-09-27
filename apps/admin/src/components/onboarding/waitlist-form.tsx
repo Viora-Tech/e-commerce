@@ -5,7 +5,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useState } from 'react'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type WaitlistFormProps = { defaultEmail: string }
@@ -16,6 +17,7 @@ const PHONE = /^\+?[0-9 -]{8,16}$/
 /** Invite mode: email, phone and what you sell, so the platform can invite you later. */
 export default function WaitlistForm({ defaultEmail }: WaitlistFormProps) {
   // Hooks
+  const copy = useCopy(onboardingContent)
   const [email, setEmail] = useState(defaultEmail)
   const [phone, setPhone] = useState('')
   const [sells, setSells] = useState('')

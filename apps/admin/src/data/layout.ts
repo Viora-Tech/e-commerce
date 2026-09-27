@@ -46,6 +46,7 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/settings/custom-data', 'Custom data'],
   ['/settings/domains', 'Domains'],
   ['/settings/invoices', 'Invoices'],
+  ['/settings/account', 'Account'],
   ['/dev', 'Developer'],
 ]
 

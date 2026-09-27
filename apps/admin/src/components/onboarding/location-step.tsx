@@ -11,7 +11,8 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { COUNTRIES } from '@/data/countries'
 import { INDIAN_STATES } from '@/data/india'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 
 export type LocationValue = { country: string; state: string }
 
@@ -27,6 +28,9 @@ const stateItems = INDIAN_STATES.map((s) => ({ value: s.name, label: s.name }))
 
 /** Screen 3: country (India by default) and, in India, the state that decides GST. */
 export default function LocationStep({ value, onChange, onNext }: LocationStepProps) {
+  // Hooks
+  const copy = useCopy(onboardingContent)
+
   // Event handlers
   const handleCountry = (country: string) => {
     onChange({ country, state: country === 'IN' ? value.state : '' })

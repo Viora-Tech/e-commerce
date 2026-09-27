@@ -12,7 +12,8 @@ import {
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 export type StoreNameValue = { name: string; slug: string; slugEdited: boolean }
@@ -24,10 +25,13 @@ type StoreNameStepProps = {
   onNext: () => void
 }
 
-type SlugCheck = { status: 'idle' | 'checking' | 'available' | 'problem'; message?: string }
+/** `problem` is the server's code; the message is looked up at render, in the current language. */
+type SlugCheck = { status: 'idle' | 'checking' | 'available' | 'problem'; problem?: string }
 
-const problemMessage = (problem: string): string =>
-  copy.slug.problem[problem as keyof typeof copy.slug.problem] ?? copy.slug.problem.taken
+type SlugProblems = (typeof onboardingContent)['slug']['problem']
+
+const problemMessage = (problems: SlugProblems, problem: string): string =>
+  problems[problem as keyof SlugProblems] ?? problems.taken
 
 /** Screen 1: store name and address, with a live availability check on the address. */
 export default function StoreNameStep({
@@ -37,6 +41,7 @@ export default function StoreNameStep({
   onNext,
 }: StoreNameStepProps) {
   // Hooks
+  const copy = useCopy(onboardingContent)
   const [check, setCheck] = useState<SlugCheck>({ status: 'idle' })
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -53,7 +58,7 @@ export default function StoreNameStep({
         setCheck(
           result.available
             ? { status: 'available' }
-            : { status: 'problem', message: problemMessage(result.problem ?? 'taken') },
+            : { status: 'problem', problem: result.problem ?? 'taken' },
         )
       } catch {
         setCheck({ status: 'idle' })
@@ -124,7 +129,7 @@ export default function StoreNameStep({
             ) : null}
           </div>
           {check.status === 'problem' ? (
-            <FieldError>{check.message}</FieldError>
+            <FieldError>{problemMessage(copy.slug.problem, check.problem ?? 'taken')}</FieldError>
           ) : (
             <FieldDescription>
               {check.status === 'checking' ? copy.slug.checking : null}
