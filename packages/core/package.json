@@ -42,7 +42,9 @@
     "./onboarding": "./src/onboarding/client.ts",
     "./media-pipeline": "./src/media/pipeline.ts",
     "./media-queue": "./src/media/queue.ts",
-    "./media-loader": "./src/media/loader.ts"
+    "./media-loader": "./src/media/loader.ts",
+    "./dynamic-sources": "./src/dynamic-sources/client.ts",
+    "./product-taxonomy.json": "./src/catalog/product-taxonomy.json"
   },
   "scripts": {
     "test": "vitest run",

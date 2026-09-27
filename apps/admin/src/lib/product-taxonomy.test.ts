@@ -105,7 +105,7 @@ describe('expandTaxonomy', () => {
 
 describe('vendored taxonomy file', () => {
   it('is trimmed id/name pairs whose parents all exist', async () => {
-    const rows = (await import('@/data/product-taxonomy.json')).default as unknown as [
+    const rows = (await import('@commerce/core/product-taxonomy.json')).default as unknown as [
       string,
       string,
     ][]

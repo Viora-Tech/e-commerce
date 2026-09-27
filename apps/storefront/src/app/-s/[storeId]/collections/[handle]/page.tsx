@@ -89,6 +89,7 @@ export default async function CollectionPage({ params, searchParams }: Params) {
   return inStore(storeId, (tx) =>
     renderTemplate(tx, storeId, 'collection', {
       suffix: data.collection.templateSuffix,
+      sources: { collectionId: data.collection.id },
       view: typeof query.view === 'string' ? query.view : undefined,
       renderers: {
         MainCollection: (settings) => (

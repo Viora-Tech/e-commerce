@@ -124,6 +124,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const page = await inStore(storeId, (tx) =>
     renderTemplate(tx, storeId, 'product', {
       suffix: product.templateSuffix,
+      sources: { productId: product.id },
       view,
       appBlockContext: {
         notifyMe:

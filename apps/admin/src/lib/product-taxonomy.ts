@@ -45,7 +45,7 @@ export function expandTaxonomy(rows: readonly TaxonomyRow[]): TaxonomyCategory[]
 
 /** Lazily fetches the vendored taxonomy (its own chunk); only downloaded once the picker is used. */
 export function loadTaxonomy(): Promise<TaxonomyCategory[]> {
-  cached ??= import('@/data/product-taxonomy.json')
+  cached ??= import('@commerce/core/product-taxonomy.json')
     .then((mod) => expandTaxonomy(mod.default as unknown as TaxonomyRow[]))
     .catch((err: unknown) => {
       cached = null

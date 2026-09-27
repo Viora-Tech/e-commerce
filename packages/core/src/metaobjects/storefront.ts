@@ -213,15 +213,15 @@ export async function metaobjectByHandle(
   return entry ?? null
 }
 
-/**
- * A product's or collection's metafields as `namespace → key → value`, the
- * shape templates read (`product.metafields.custom.size_guide`).
- */
-export async function metafieldsFor(
+/** One resolved metafield with its definition's type (dynamic sources coerce by type). */
+export type TypedMetafield = { namespace: string; key: string; type: FieldType; value: unknown }
+
+/** A product's or collection's storefront-visible metafields, references resolved. */
+export async function typedMetafieldsFor(
   ctx: Ctx,
   ownerType: MetafieldOwnerType,
   ownerId: string,
-): Promise<Record<string, Record<string, unknown>>> {
+): Promise<TypedMetafield[]> {
   const rows = await ctx.tx
     .select({
       namespace: metafieldDefinition.namespace,
@@ -241,10 +241,22 @@ export async function metafieldsFor(
   const refs = emptyRefs()
   for (const r of rows) gather(refs, r.type, r.value)
   const loaded = await load(ctx, refs)
+  return rows.map((r) => ({ ...r, value: resolveValue(r.type, r.value, loaded) }))
+}
+
+/**
+ * A product's or collection's metafields as `namespace → key → value`, the
+ * shape templates read (`product.metafields.custom.size_guide`).
+ */
+export async function metafieldsFor(
+  ctx: Ctx,
+  ownerType: MetafieldOwnerType,
+  ownerId: string,
+): Promise<Record<string, Record<string, unknown>>> {
   const out: Record<string, Record<string, unknown>> = {}
-  for (const r of rows) {
+  for (const r of await typedMetafieldsFor(ctx, ownerType, ownerId)) {
     const ns = out[r.namespace] ?? {}
-    ns[r.key] = resolveValue(r.type, r.value, loaded)
+    ns[r.key] = r.value
     out[r.namespace] = ns
   }
   return out

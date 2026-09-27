@@ -33,6 +33,8 @@ export type ThemeLibraryErrorCode =
   | 'THEME_LIVE'
   | 'THEME_LIMIT'
   | 'THEME_NAME_INVALID'
+  /** A connected setting reads a dynamic source it cannot have. */
+  | 'THEME_SOURCE_INVALID'
 
 export class ThemeLibraryError extends CommerceError {
   declare readonly code: ThemeLibraryErrorCode

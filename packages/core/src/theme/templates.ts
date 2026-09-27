@@ -1,5 +1,7 @@
 import { newId, type StoreTx, theme, themeTemplate } from '@commerce/db'
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
+import { bindingProblems } from '../dynamic-sources/format'
+import { assertTemplateBindings, InvalidBindings } from '../dynamic-sources/service'
 import { ThemeLibraryError } from './library'
 import {
   defaultTemplate,
@@ -120,6 +122,9 @@ export async function saveTemplateDraft(
 ): Promise<void> {
   assertSuffix(input.suffix)
   await assertTheme(tx, input.themeId)
+  // Drafts get the cheap checks (shape, scope, fixed-field types); Save checks the store's sources.
+  const problems = bindingProblems(input.data, input.template)
+  if (problems.length) throw new ThemeLibraryError('THEME_SOURCE_INVALID', problems.join('. '))
   const existing = await findRow(tx, input.themeId, input.template, input.suffix)
   if (existing) {
     // A draft that matches the saved template is no edit: store none, so Save has nothing to do.
@@ -147,8 +152,30 @@ export async function saveTemplateDraft(
   })
 }
 
-/** Save: every draft of the theme becomes its saved sections. Returns how many changed. */
+/**
+ * Save: every draft of the theme becomes its saved sections. Returns how many
+ * changed. Refused when a connected setting reads a source this store no longer
+ * has (a deleted metafield, a hidden metaobject), so nothing half-saves.
+ */
 export async function commitTemplateDrafts(tx: StoreTx, themeId: string): Promise<number> {
+  const drafts = await tx
+    .select({ template: themeTemplate.template, draft: themeTemplate.draft })
+    .from(themeTemplate)
+    .where(and(eq(themeTemplate.themeId, themeId), isNotNull(themeTemplate.draft)))
+  try {
+    await assertTemplateBindings(
+      tx,
+      drafts.flatMap((d) => {
+        const data = parseTemplateData(d.draft)
+        return data ? [{ template: d.template, data }] : []
+      }),
+    )
+  } catch (err) {
+    if (err instanceof InvalidBindings) {
+      throw new ThemeLibraryError('THEME_SOURCE_INVALID', err.problems.join('. '))
+    }
+    throw err
+  }
   const rows = await tx
     .update(themeTemplate)
     .set({ sections: sql`${themeTemplate.draft}`, draft: null, updatedAt: new Date() })

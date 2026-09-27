@@ -16,6 +16,7 @@ import { type CustomizeDoc, composeDoc, normalizeDoc, zoneSections } from '@/lib
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import { PreviewModeContext, ThemePreviewContext } from '@/lib/customize-theme-context'
+import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import ThemePresets from '../theme-presets'
@@ -46,6 +47,10 @@ const FONT_SAMPLES = `https://fonts.googleapis.com/css2?${THEME_FONT_IDS.map(
 ).join('&')}&display=swap`
 
 const sameRef = (a: TemplateRef, b: TemplateRef) => a.key === b.key && a.suffix === b.suffix
+
+/** Save's only refusal is a connected setting whose source is gone; its message names it. */
+const isSourceError = (err: unknown): err is Error =>
+  err instanceof Error && (err as { code?: unknown }).code === 'BAD_REQUEST'
 
 /**
  * Every way a section gets added — a click in the Add panel, the Sections
@@ -181,8 +186,9 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       }
       setTemplatesDirty(false)
       toast.success(copy.saved)
-    } catch {
-      toast.error(copy.saveFailed)
+    } catch (err) {
+      // A connected setting whose source is gone names itself (see dynamic sources).
+      toast.error(isSourceError(err) ? err.message : copy.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -232,6 +238,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     ? { url: settings.brand.logo.url, width: settings.brand.logoWidth }
     : null
   const metadata = previewMetadata({ ...preview, logo })
+  const sourceScope = scopeFor(ref.key, preview.kind, preview.resourceId)
   // Keep showing the previously loaded template (dimmed via `switching`) while the
   // next one fetches, instead of unmounting the whole editor to a blank "Connecting" screen.
   const doc = loaded?.doc ?? null
@@ -299,6 +306,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
         >
           <ThemePreviewContext.Provider value={settings}>
             <PreviewModeContext.Provider value={mode}>
+              <DynamicSourceContext.Provider value={sourceScope}>
               <CustomizeHotkeys />
               <CustomizeLayout
                 topBar={topBar}
@@ -315,6 +323,7 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
                 device={device}
                 loading={switching}
               />
+              </DynamicSourceContext.Provider>
             </PreviewModeContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>

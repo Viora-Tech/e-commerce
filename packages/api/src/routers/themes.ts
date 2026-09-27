@@ -11,6 +11,8 @@ import {
   getTheme,
   listTemplates,
   listThemes,
+  loadSourceCatalog,
+  loadSourceValues,
   loadTemplate,
   permissions,
   publishTheme,
@@ -87,9 +89,33 @@ const templatesRouter = {
 
   commit: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
-    .handler(async ({ context, input }) => ({
-      saved: await commitTemplateDrafts(context.tx, input.themeId),
-    })),
+    .handler(({ context, input }) =>
+      libraryErrors(async () => ({
+        saved: await commitTemplateDrafts(context.tx, input.themeId),
+      })),
+    ),
+
+  /** Dynamic sources a template's settings can connect to (the editor's picker). */
+  sources: can(permissions.ONLINE_STORE_READ)
+    .input(z.object({ template: TemplateKeyInput }))
+    .handler(({ context, input }) => loadSourceCatalog(context.tx, input.template)),
+
+  /** Values of connected sources for the Customize preview's chosen product or collection. */
+  sourceValues: can(permissions.ONLINE_STORE_READ)
+    .input(
+      z.object({
+        paths: z.array(z.string().max(300)).max(100),
+        productId: z.string().uuid().nullish(),
+        collectionId: z.string().uuid().nullish(),
+      }),
+    )
+    .handler(({ context, input }) =>
+      loadSourceValues(context.tx, input.paths, {
+        storeId: context.scope.storeId,
+        productId: input.productId,
+        collectionId: input.collectionId,
+      }),
+    ),
 
   discard: can(permissions.ONLINE_STORE_WRITE)
     .input(z.object({ themeId: z.string().uuid() }))
