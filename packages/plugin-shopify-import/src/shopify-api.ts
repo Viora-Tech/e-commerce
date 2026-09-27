@@ -5,6 +5,7 @@
  * paged separately.
  */
 import type { CollectionCondition, CollectionOp, CollectionRules } from '@commerce/db'
+import { reassembleBulkStream, runBulkQuery, streamJsonl } from './bulk'
 import type { ShopifyClient } from './shopify-client'
 import type {
   NAddress,
@@ -53,8 +54,15 @@ const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable invent
   selectedOptions { name value } image { url }
   inventoryItem { tracked harmonizedSystemCode unitCost { amount } measurement { weight { unit value } } }`
 
+/**
+ * Only used when the Bulk Operations path (`fetchProducts` below) is
+ * unavailable. Sized against the calculated-cost bucket rather than kept
+ * artificially small: `ShopifyClient.query` already waits out the bucket
+ * before an expensive page (see `shopify-client.ts`), so a bigger page that
+ * spends more of the budget per round trip beats many tiny ones.
+ */
 export const PRODUCTS_QUERY = `query Products($cursor: String) {
-  products(first: 10, after: $cursor, sortKey: ID) {
+  products(first: 25, after: $cursor, sortKey: ID) {
     ${PAGE_INFO}
     nodes {
       id handle title descriptionHtml vendor productType tags status
@@ -62,7 +70,7 @@ export const PRODUCTS_QUERY = `query Products($cursor: String) {
       options { name position }
       hsn: metafield(namespace: "custom", key: "hsn") { value }
       media(first: 25) { nodes { ... on MediaImage { alt image { url altText } } } }
-      variants(first: 50) { ${PAGE_INFO} nodes { ${VARIANT_FIELDS} } }
+      variants(first: 75) { ${PAGE_INFO} nodes { ${VARIANT_FIELDS} } }
     }
   }
 }`
@@ -184,12 +192,56 @@ export function mapProduct(p: GProduct, variants: GVariant[]): NProduct {
   }
 }
 
-export async function* fetchProducts(client: ShopifyClient): AsyncGenerator<NProduct[]> {
+/**
+ * Bulk-op shape: the same fields as `PRODUCTS_QUERY`, but as one query over
+ * every product (no `first`/pagination) so it runs outside the calculated
+ * cost bucket. See the header of `bulk.ts` for the shapes and limits, cited
+ * from shopify.dev.
+ */
+export const PRODUCTS_BULK_QUERY = `{
+  products {
+    edges {
+      node {
+        id handle title descriptionHtml vendor productType tags status
+        seo { title description }
+        options { name position }
+        hsn: metafield(namespace: "custom", key: "hsn") { value }
+        media {
+          edges { node { id ... on MediaImage { alt image { url altText } } } }
+        }
+        variants {
+          edges { node { ${VARIANT_FIELDS} } }
+        }
+      }
+    }
+  }
+}`
+
+async function fetchProductsBulk(client: ShopifyClient): Promise<NProduct[]> {
+  const url = await runBulkQuery(client, PRODUCTS_BULK_QUERY)
+  if (!url) return []
+  const nodes = await reassembleBulkStream<GProduct>(
+    streamJsonl(url, client.fetchImpl),
+    (type) =>
+      type === 'ProductVariant'
+        ? { field: 'variants', asPage: true }
+        : type === 'MediaImage'
+          ? { field: 'media', asPage: false }
+          : null,
+    [
+      { field: 'variants', asPage: true },
+      { field: 'media', asPage: false },
+    ],
+  )
+  return nodes.map((p) => mapProduct(p, p.variants.nodes.slice(0, 100)))
+}
+
+async function* fetchProductsPaged(client: ShopifyClient): AsyncGenerator<NProduct[]> {
   for await (const nodes of client.paginate<GProduct>(
     PRODUCTS_QUERY,
     (d) => (d as { products: Page<GProduct> }).products,
     {},
-    800,
+    1500,
   )) {
     const batch: NProduct[] = []
     for (const p of nodes) {
@@ -211,10 +263,33 @@ export async function* fetchProducts(client: ShopifyClient): AsyncGenerator<NPro
   }
 }
 
+const BULK_BATCH_SIZE = 50
+
+/**
+ * Products, preferring one Bulk Operation over the whole catalogue (no
+ * per-page cost) and falling back to the paged path when a bulk op is
+ * already running for this app/shop, Shopify rejects it, or it fails.
+ */
+export async function* fetchProducts(
+  client: ShopifyClient,
+  onBulkFallback?: (reason: unknown) => void,
+): AsyncGenerator<NProduct[]> {
+  try {
+    const products = await fetchProductsBulk(client)
+    for (let i = 0; i < products.length; i += BULK_BATCH_SIZE) {
+      yield products.slice(i, i + BULK_BATCH_SIZE)
+    }
+    return
+  } catch (err) {
+    onBulkFallback?.(err)
+  }
+  yield* fetchProductsPaged(client)
+}
+
 /* ------------------------------------------------------------- collections */
 
 export const COLLECTIONS_QUERY = `query Collections($cursor: String) {
-  collections(first: 5, after: $cursor, sortKey: ID) {
+  collections(first: 15, after: $cursor, sortKey: ID) {
     ${PAGE_INFO}
     nodes {
       id handle title descriptionHtml sortOrder
@@ -296,7 +371,7 @@ export async function* fetchCollections(client: ShopifyClient): AsyncGenerator<N
     COLLECTIONS_QUERY,
     (d) => (d as { collections: Page<GCollection> }).collections,
     {},
-    600,
+    900,
   )) {
     const batch: NCollection[] = []
     for (const c of nodes) {
@@ -410,7 +485,30 @@ export function mapCustomer(c: GCustomer): NCustomer {
   }
 }
 
-export async function* fetchCustomers(client: ShopifyClient): AsyncGenerator<NCustomer[]> {
+export const CUSTOMERS_BULK_QUERY = `{
+  customers {
+    edges {
+      node {
+        id email phone firstName lastName tags note createdAt
+        emailMarketingConsent { marketingState }
+        smsMarketingConsent { marketingState }
+        defaultAddress { firstName lastName company address1 address2 city province provinceCode country countryCodeV2 zip phone }
+      }
+    }
+  }
+}`
+
+async function fetchCustomersBulk(client: ShopifyClient): Promise<NCustomer[]> {
+  const url = await runBulkQuery(client, CUSTOMERS_BULK_QUERY)
+  if (!url) return []
+  const nodes = await reassembleBulkStream<GCustomer>(
+    streamJsonl(url, client.fetchImpl),
+    () => null,
+  )
+  return nodes.map(mapCustomer)
+}
+
+async function* fetchCustomersPaged(client: ShopifyClient): AsyncGenerator<NCustomer[]> {
   for await (const nodes of client.paginate<GCustomer>(
     CUSTOMERS_QUERY,
     (d) => (d as { customers: Page<GCustomer> }).customers,
@@ -421,10 +519,26 @@ export async function* fetchCustomers(client: ShopifyClient): AsyncGenerator<NCu
   }
 }
 
+export async function* fetchCustomers(
+  client: ShopifyClient,
+  onBulkFallback?: (reason: unknown) => void,
+): AsyncGenerator<NCustomer[]> {
+  try {
+    const customers = await fetchCustomersBulk(client)
+    for (let i = 0; i < customers.length; i += BULK_BATCH_SIZE) {
+      yield customers.slice(i, i + BULK_BATCH_SIZE)
+    }
+    return
+  } catch (err) {
+    onBulkFallback?.(err)
+  }
+  yield* fetchCustomersPaged(client)
+}
+
 /* ------------------------------------------------------------------ orders */
 
 export const ORDERS_QUERY = `query Orders($cursor: String) {
-  orders(first: 25, after: $cursor, sortKey: CREATED_AT) {
+  orders(first: 50, after: $cursor, sortKey: CREATED_AT) {
     ${PAGE_INFO}
     nodes {
       id name email phone createdAt cancelledAt displayFinancialStatus displayFulfillmentStatus
@@ -528,15 +642,75 @@ export function mapOrder(o: GOrder): NOrder {
   }
 }
 
-export async function* fetchOrders(client: ShopifyClient): AsyncGenerator<NOrder[]> {
+export const ORDERS_BULK_QUERY = `{
+  orders {
+    edges {
+      node {
+        id name email phone createdAt cancelledAt displayFinancialStatus displayFulfillmentStatus
+        currencyCode tags note paymentGatewayNames discountCodes
+        subtotalPriceSet { shopMoney { amount } }
+        totalShippingPriceSet { shopMoney { amount } }
+        totalTaxSet { shopMoney { amount } }
+        totalPriceSet { shopMoney { amount } }
+        totalDiscountsSet { shopMoney { amount } }
+        totalRefundedSet { shopMoney { amount } }
+        customer { firstName lastName }
+        shippingAddress { name company address1 address2 city province provinceCode countryCodeV2 zip phone }
+        lineItems {
+          edges {
+            node {
+              id title variantTitle sku quantity taxable unfulfilledQuantity
+              originalUnitPriceSet { shopMoney { amount } }
+              product { handle }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+async function fetchOrdersBulk(client: ShopifyClient): Promise<NOrder[]> {
+  const url = await runBulkQuery(client, ORDERS_BULK_QUERY)
+  if (!url) return []
+  const nodes = await reassembleBulkStream<GOrder>(
+    streamJsonl(url, client.fetchImpl),
+    (type) => (type === 'LineItem' ? { field: 'lineItems', asPage: false } : null),
+    [{ field: 'lineItems', asPage: false }],
+  )
+  return nodes.map(mapOrder)
+}
+
+async function* fetchOrdersPaged(client: ShopifyClient): AsyncGenerator<NOrder[]> {
   for await (const nodes of client.paginate<GOrder>(
     ORDERS_QUERY,
     (d) => (d as { orders: Page<GOrder> }).orders,
     {},
-    600,
+    1000,
   )) {
     yield nodes.map(mapOrder)
   }
+}
+
+/**
+ * Orders are still written sequentially by `run.ts` (they resolve/create
+ * customers through a shared cache), but reading them is just as safe to do
+ * as one bulk op as products and customers are.
+ */
+export async function* fetchOrders(
+  client: ShopifyClient,
+  onBulkFallback?: (reason: unknown) => void,
+): AsyncGenerator<NOrder[]> {
+  try {
+    const orders = await fetchOrdersBulk(client)
+    for (let i = 0; i < orders.length; i += BULK_BATCH_SIZE) {
+      yield orders.slice(i, i + BULK_BATCH_SIZE)
+    }
+    return
+  } catch (err) {
+    onBulkFallback?.(err)
+  }
+  yield* fetchOrdersPaged(client)
 }
 
 /* ---------------------------------------------------- pages and articles */

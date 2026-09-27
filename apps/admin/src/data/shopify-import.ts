@@ -193,6 +193,11 @@ export const shopifyImportContent = {
     tryAgain: 'Try again',
     started: 'Import started',
     startFailed: 'Could not start the import',
+    phase: {
+      products: 'Asking Shopify to prepare your products…',
+      customers: 'Asking Shopify to prepare your customers…',
+      orders: 'Asking Shopify to prepare your orders…',
+    },
     progressHeading: 'By type',
     columns: {
       what: 'Type',
