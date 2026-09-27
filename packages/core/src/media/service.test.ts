@@ -261,6 +261,31 @@ describe('setProductMedia / deleteMedia', () => {
     expect(list.items.map((i) => i.id)).toEqual([b])
   })
 
+  it('keeps an image that is still being optimised (processing) and the variant pointing at it', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const a = await readyUpload(storeId, provider, 'a.png')
+    await withStore(app, storeId, (tx) =>
+      tx.update(media).set({ status: 'processing' }).where(eq(media.id, a)),
+    )
+    const productId = await withStore(app, storeId, (tx) =>
+      createProduct(tx, storeId, {
+        title: 'Pad',
+        status: 'active',
+        tags: [],
+        options: [],
+        variants: [{ optionValues: [], pricePaise: 100, mediaId: a }],
+        mediaIds: [a],
+      }),
+    )
+    const gallery = await withStore(app, storeId, (tx) => productGallery(tx, productId))
+    expect(gallery.map((g) => g.id)).toEqual([a])
+    const [v] = await withStore(app, storeId, (tx) =>
+      tx.select().from(variant).where(eq(variant.productId, productId)),
+    )
+    expect(v?.mediaId).toBe(a)
+  })
+
   it('updateProduct without mediaIds leaves the gallery alone', async () => {
     const storeId = await seedStore()
     const provider = new MemoryStorageProvider()
