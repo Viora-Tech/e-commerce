@@ -31,6 +31,11 @@ export type VariantRow = {
   countryOfOrigin: string
   /** Blank uses the store rate. */
   gstRate: string
+  /** One of the store's named boxes; null with dims set means a custom box, both null means the store default. */
+  boxPresetId: string | null
+  packageLengthCm: number | null
+  packageWidthCm: number | null
+  packageHeightCm: number | null
   mediaId: string | null
 }
 
@@ -41,6 +46,8 @@ export type ProductFormState = {
   description: RichTextValue | null
   status: ProductStatus
   vendor: string
+  /** Shopify Standard Product Taxonomy category id; null when unset. `productType` stays a secondary, free-text field. */
+  categoryId: string | null
   productType: string
   tags: string[]
   seoTitle: string
@@ -93,6 +100,10 @@ export function emptyVariant(optionValues: string[], template?: VariantRow): Var
     hsCode: template?.hsCode ?? '',
     countryOfOrigin: template?.countryOfOrigin ?? '',
     gstRate: template?.gstRate ?? '',
+    boxPresetId: template?.boxPresetId ?? null,
+    packageLengthCm: template?.packageLengthCm ?? null,
+    packageWidthCm: template?.packageWidthCm ?? null,
+    packageHeightCm: template?.packageHeightCm ?? null,
     mediaId: null,
   }
 }
@@ -103,6 +114,7 @@ export function emptyForm(): ProductFormState {
     description: null,
     status: 'draft',
     vendor: '',
+    categoryId: null,
     productType: '',
     tags: [],
     seoTitle: '',
@@ -136,6 +148,7 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
     description: parseRichText(p.description),
     status: p.status,
     vendor: p.vendor ?? '',
+    categoryId: p.categoryId ?? null,
     productType: p.productType ?? '',
     tags: p.tags,
     seoTitle: p.seoTitle ?? '',
@@ -177,6 +190,10 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       hsCode: v.hsCode ?? '',
       countryOfOrigin: v.countryOfOrigin ?? '',
       gstRate: v.gstRatePercent == null ? '' : String(v.gstRatePercent),
+      boxPresetId: v.boxPresetId ?? null,
+      packageLengthCm: v.packageLengthCm ?? null,
+      packageWidthCm: v.packageWidthCm ?? null,
+      packageHeightCm: v.packageHeightCm ?? null,
       mediaId: v.mediaId,
     })),
     media: p.images.map((i) => ({ id: i.id, url: i.url, alt: i.alt, contentType: i.contentType })),
@@ -250,6 +267,7 @@ export function toWrite(form: ProductFormState): ProductWrite {
     handle: form.handle.trim() || undefined,
     description: form.description && isRichTextEmpty(form.description) ? null : form.description,
     vendor: form.vendor.trim() || null,
+    categoryId: form.categoryId,
     productType: form.productType.trim() || null,
     tags: form.tags,
     seoTitle: form.seoTitle.trim() || null,
@@ -291,6 +309,10 @@ export function toWrite(form: ProductFormState): ProductWrite {
       hsCode: v.hsCode.trim() || null,
       countryOfOrigin: v.countryOfOrigin.trim() || null,
       gstRatePercent: v.gstRate.trim() === '' ? null : Number(v.gstRate),
+      boxPresetId: v.boxPresetId,
+      packageLengthCm: v.packageLengthCm,
+      packageWidthCm: v.packageWidthCm,
+      packageHeightCm: v.packageHeightCm,
       onHand: v.trackInventory ? (intOrNull(v.quantity) ?? 0) : undefined,
       mediaId: v.mediaId,
     })),
@@ -326,6 +348,34 @@ export function formErrors(form: ProductFormState): {
     }
   }
   return errors
+}
+
+/**
+ * Variant rows that a change of options would drop (their combination no
+ * longer exists), so the caller can warn before an option value with stock
+ * or orders against it disappears.
+ */
+export function droppedVariants(options: OptionRow[], previous: VariantRow[]): VariantRow[] {
+  const next = new Set(reconcileVariants(options, previous).map((v) => variantTitle(v.optionValues)))
+  return previous.filter((v) => !next.has(variantTitle(v.optionValues)))
+}
+
+/** Whether any variant a change of options would drop still has stock on hand. */
+export function dropsStock(options: OptionRow[], previous: VariantRow[]): boolean {
+  return droppedVariants(options, previous).some((v) => (Number(v.quantity) || 0) > 0)
+}
+
+/** "Classic T-Shirt" + ["Red", "M"] -> "CLASSIC-TSHIRT-RED-M", trimmed to a sane length. */
+export function suggestSku(title: string, optionValues: string[]): string {
+  const part = (s: string) =>
+    s
+      .normalize('NFKD')
+      .replace(/[̀-ͯ]/g, '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  const parts = [part(title), ...optionValues.map(part)].filter(Boolean)
+  return parts.join('-').slice(0, 60)
 }
 
 /** Percent margin and profit for the pricing card; null when cost or price is missing. */

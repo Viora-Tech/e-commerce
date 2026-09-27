@@ -39,6 +39,7 @@ import {
   type VariantRow,
 } from './form-state'
 import ProductCategoriesCard from './product-categories-card'
+import ProductCollectionsCard from './product-collections-card'
 import ProductFormActions from './product-form-actions'
 import ProductImageCard from './product-image-card'
 import ProductMainCard from './product-main-card'
@@ -173,6 +174,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
 
   return (
     <DetailLayout
+      stickySide
       header={
         <>
           <SaveBar
@@ -233,6 +235,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             }
           />
           <VariantsCard
+            title={form.title}
             options={form.options}
             variants={form.variants}
             media={form.media}
@@ -283,13 +286,16 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             onVendor={(vendor) => patch({ vendor })}
           />
           <ProductCategoriesCard
+            categoryId={form.categoryId}
             productType={form.productType}
             tags={form.tags}
             colours={colourValues(form.options)}
             facets={facets}
+            onCategoryId={(categoryId) => patch({ categoryId })}
             onProductType={(productType) => patch({ productType })}
             onTags={(tags) => patch({ tags })}
           />
+          <ProductCollectionsCard productId={product?.id ?? null} />
           <TemplateSelectCard
             kind="product"
             value={form.templateSuffix}

@@ -7,7 +7,6 @@ import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
 import type { ProductFormState, VariantRow } from './form-state'
 import ProductBasicsSection from './product-basics-section'
-import ProductPreorderSection from './product-preorder-section'
 import ProductPricingSection from './product-pricing-section'
 import ProductStockSection from './product-stock-section'
 
@@ -18,7 +17,6 @@ type ProductMainCardProps = {
   singleVariant: boolean
   titleError?: string | undefined
   quantityChanged: boolean
-  preorderDepositError?: string | undefined
   onPatch: (patch: Partial<ProductFormState>) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onReason: (reason: InventoryReason) => void
@@ -30,7 +28,9 @@ const copy = productFormContent
 
 /**
  * The product page main column head, after the Saleor Dashboard product page (BSD-3):
- * general information, media, then pricing and inventory as their own cards.
+ * general information, media, then pricing and inventory as their own cards. Each
+ * section carries an id so the compact jump nav (`ProductSectionNav`) can scroll to it;
+ * pre-order moved out to the "More" group (`ProductMoreSection`, in `product-form.tsx`).
  */
 export default function ProductMainCard({
   form,
@@ -38,7 +38,6 @@ export default function ProductMainCard({
   singleVariant,
   titleError,
   quantityChanged,
-  preorderDepositError,
   onPatch,
   onVariant,
   onReason,
@@ -50,46 +49,49 @@ export default function ProductMainCard({
   // Render logic
   return (
     <>
-      <DataCard title={copy.basics}>
-        <ProductBasicsSection
-          title={form.title}
-          description={form.description}
-          titleError={titleError}
-          onTitle={(title) => onPatch({ title })}
-          onDescription={handleDescription}
-        />
-      </DataCard>
-      {media}
+      <div id="details">
+        <DataCard title={copy.basics}>
+          <ProductBasicsSection
+            title={form.title}
+            description={form.description}
+            titleError={titleError}
+            onTitle={(title) => onPatch({ title })}
+            onDescription={handleDescription}
+          />
+        </DataCard>
+      </div>
+      <div id="media">{media}</div>
       {singleVariant ? (
         <>
-          <DataCard title={copy.pricing.heading}>
-            <ProductPricingSection
-              variant={variant}
-              taxIncluded={form.taxIncluded}
-              saleStartsAt={form.saleStartsAt}
-              saleEndsAt={form.saleEndsAt}
-              onVariant={onVariant}
-              onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
-              onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}
-              onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
-            />
-          </DataCard>
-          <DataCard title={copy.inventory.heading}>
-            <ProductStockSection
-              variant={variant}
-              featured={form.featured}
-              quantityChanged={quantityChanged}
-              reason={form.inventoryReason}
-              onVariant={onVariant}
-              onFeatured={(featured) => onPatch({ featured })}
-              onReason={onReason}
-            />
-          </DataCard>
+          <div id="pricing">
+            <DataCard title={copy.pricing.heading}>
+              <ProductPricingSection
+                variant={variant}
+                taxIncluded={form.taxIncluded}
+                saleStartsAt={form.saleStartsAt}
+                saleEndsAt={form.saleEndsAt}
+                onVariant={onVariant}
+                onTaxIncluded={(taxIncluded) => onPatch({ taxIncluded })}
+                onSaleStartsAt={(saleStartsAt) => onPatch({ saleStartsAt })}
+                onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
+              />
+            </DataCard>
+          </div>
+          <div id="inventory">
+            <DataCard title={copy.inventory.heading}>
+              <ProductStockSection
+                variant={variant}
+                featured={form.featured}
+                quantityChanged={quantityChanged}
+                reason={form.inventoryReason}
+                onVariant={onVariant}
+                onFeatured={(featured) => onPatch({ featured })}
+                onReason={onReason}
+              />
+            </DataCard>
+          </div>
         </>
       ) : null}
-      <DataCard title={copy.preorder.heading}>
-        <ProductPreorderSection form={form} depositError={preorderDepositError} onPatch={onPatch} />
-      </DataCard>
     </>
   )
 }

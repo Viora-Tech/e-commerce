@@ -11,6 +11,7 @@ that adapts outside work keeps the full licence text next to it; this file is th
 | Inter, Geist, Noto Sans (+ Devanagari, SC) | SIL Open Font License 1.1 | Fonts embedded in invoice PDFs | `packages/invoices/fonts` | `OFL.txt` beside each family |
 | [cobe](https://github.com/shuding/cobe) | MIT | Dotted 3D WebGL globe (no borders) that renders the Home card and the Live view page, patched with a detailed land map (`patches/cobe@2.0.1.patch`) | `apps/admin/src/components/analytics/live-globe` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 | [Natural Earth](https://www.naturalearthdata.com/) 1:50m land | Public domain | Rasterised to the 2048×1024 land map in the cobe patch, so India and Sri Lanka read correctly | `patches/cobe@2.0.1.patch` | Public domain, credited as "Made with Natural Earth" |
+| [Shopify Product Taxonomy](https://github.com/Shopify/product-taxonomy) | MIT | Trimmed category list (id/name/path/parent only) for the product category picker | `apps/admin/src/data/product-taxonomy.json`, `apps/admin/src/lib/product-taxonomy.ts` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 
 Paid UI kits: Aceternity UI Pro may be used in builder blocks under the owner's written permission, see [`docs/licences/aceternity-pro.md`](docs/licences/aceternity-pro.md).
 

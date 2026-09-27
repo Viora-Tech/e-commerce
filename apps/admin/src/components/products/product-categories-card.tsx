@@ -6,13 +6,16 @@ import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
 import type { Facets } from './form-state'
+import ProductCategoryPicker from './product-category-picker'
 
 type ProductCategoriesCardProps = {
+  categoryId: string | null
   productType: string
   tags: string[]
   /** Values of the colour option, when the product has one. */
   colours: string[]
   facets: Facets
+  onCategoryId: (categoryId: string | null) => void
   onProductType: (value: string) => void
   onTags: (tags: string[]) => void
 }
@@ -49,10 +52,12 @@ function swatchFor(value: string): string | null {
 
 /** Frame 5:5233: product category and tag pickers over the colour swatch row. */
 export default function ProductCategoriesCard({
+  categoryId,
   productType,
   tags,
   colours,
   facets,
+  onCategoryId,
   onProductType,
   onTags,
 }: ProductCategoriesCardProps) {
@@ -60,6 +65,9 @@ export default function ProductCategoriesCard({
   return (
     <DataCard title={copy.heading}>
       <div className="flex flex-col gap-4">
+        <KitField label={copy.category} htmlFor="product-category" help={copy.categoryHelp}>
+          <ProductCategoryPicker id="product-category" value={categoryId} onChange={onCategoryId} />
+        </KitField>
         <KitField label={copy.type} htmlFor="product-type">
           <SuggestInput
             id="product-type"

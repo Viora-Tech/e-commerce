@@ -137,6 +137,23 @@ export const productFormContent = {
   },
   /** Aria label for the money prefix so screen readers read the currency. */
   currency: 'Rupees',
+  sectionNav: {
+    label: 'Jump to section',
+    labels: {
+      media: 'Media',
+      details: 'Details',
+      pricing: 'Pricing',
+      inventory: 'Inventory',
+      variants: 'Variants',
+      shipping: 'Shipping',
+      seo: 'Google preview',
+      more: 'More',
+    },
+  },
+  more: {
+    heading: 'More settings',
+    help: 'Pre-order, custom data, template and stock history.',
+  },
   details: {
     title: 'Title',
     titlePlaceholder: 'Short sleeve t-shirt',
@@ -155,7 +172,14 @@ export const productFormContent = {
   },
   categories: {
     heading: 'Organisation',
-    type: 'Product categories',
+    category: 'Category',
+    categoryPlaceholder: 'Search categories, e.g. "Shirts"',
+    categorySearchHint: 'Start typing to search',
+    categoryNoResults: 'No matching category',
+    categoryLoading: 'Loading categories…',
+    categoryClear: 'Clear category',
+    categoryHelp: 'From Shopify’s standard product taxonomy. Optional, but helps with search and marketplaces.',
+    type: 'Product type',
     typePlaceholder: 'Select a category',
     tag: 'Product tag',
     colour: 'Select your colour',
@@ -218,11 +242,18 @@ export const productFormContent = {
     heading: 'Variants',
     addOption: 'Add options like size or colour',
     addAnother: 'Add another option',
+    optionNameSuggestions: ['Size', 'Colour', 'Material'],
     optionName: 'Option name',
     optionNamePlaceholder: 'Size',
     optionValues: 'Option values',
-    optionValuesPlaceholder: 'Small, Medium, Large',
-    optionValuesHelp: 'Separate values with commas.',
+    optionValuesPlaceholder: 'Type a value and press Enter',
+    optionValuesHelp: 'Press Enter or comma after each value.',
+    optionValueRemove: (value: string) => `Remove ${value}`,
+    optionValueSuggestions: {
+      size: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+      colour: ['Black', 'White', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Beige'],
+      material: ['Cotton', 'Polyester', 'Linen', 'Wool', 'Silk', 'Leather'],
+    },
     remove: 'Remove option',
     done: 'Done',
     maxOptions: 'Up to 3 options',
@@ -230,6 +261,13 @@ export const productFormContent = {
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
     tooMany: (n: number) =>
       `${n} variants. Large matrices are slow to edit; consider fewer values.`,
+    autoFillSku: 'Auto-fill SKUs',
+    autoFillSkuHelp: 'Fills blank SKUs from the product title and variant.',
+    confirmRemoveTitle: 'Remove these variants?',
+    confirmRemoveBody: (n: number) =>
+      `${n} variant${n === 1 ? '' : 's'} with stock will be removed along with this value. Past orders keep their own record.`,
+    confirmRemoveCancel: 'Keep the value',
+    confirmRemoveConfirm: 'Remove anyway',
   },
   status: {
     heading: 'Status',
@@ -264,6 +302,16 @@ export const productFormContent = {
     country: 'Country of origin',
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
+    package: 'Package',
+    packageHelp: 'Which box this ships in. Used for the booking flow instead of the store default.',
+    packageStoreDefault: "Use the store's default box",
+    packageCustom: 'Custom size',
+    packageLength: 'Length (cm)',
+    packageWidth: 'Width (cm)',
+    packageHeight: 'Height (cm)',
+    packageVolumetric: (kg: number) => `Volumetric weight: ${kg} kg`,
+    packageActual: (kg: number) => `Actual weight: ${kg} kg`,
+    packageBillingHint: (kg: number) => `Couriers will bill this parcel at ${kg} kg.`,
   },
   preorder: {
     heading: 'Pre-order & launch',
@@ -311,7 +359,9 @@ export const productFormContent = {
     selectOne: (title: string) => `Select ${title}`,
   },
   seo: {
-    heading: 'Search engine listing',
+    heading: 'Google search preview',
+    intro:
+      'How this product can look on Google. Optional — we fill it from the title and description.',
     edit: 'Edit',
     title: 'Page title',
     titleHelp: (n: number) => `${n} of 70 characters used`,
@@ -320,8 +370,7 @@ export const productFormContent = {
     handle: 'URL handle',
     handlePrefix: '/products/',
     previewLabel: 'Preview',
-    previewHint:
-      'Add a title and description to see how this product might appear in a search engine listing.',
+    previewHint: 'Add a title and description to see how this product might appear on Google.',
   },
   delete: {
     action: 'Delete product',

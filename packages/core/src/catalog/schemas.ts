@@ -28,6 +28,11 @@ export const VariantInputSchema = z.object({
   weightGrams: z.number().int().min(0).max(1_000_000).nullable().optional(),
   hsCode: z.string().trim().max(20).nullable().optional(),
   countryOfOrigin: z.string().trim().max(2).nullable().optional(),
+  /** One of the store's named boxes (Settings → Shipping); null with dims set means a custom box. */
+  boxPresetId: z.string().trim().max(60).nullable().optional(),
+  packageLengthCm: z.number().min(1).max(200).nullable().optional(),
+  packageWidthCm: z.number().min(1).max(200).nullable().optional(),
+  packageHeightCm: z.number().min(1).max(200).nullable().optional(),
   /** Null uses the store's GST rate. */
   gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
   onHand: z.number().int().min(0).max(1_000_000).optional(),
@@ -51,6 +56,8 @@ export const ProductFieldsSchema = z
     handle: HandleSchema.optional(),
     description: RichTextSchema.nullable().optional(),
     vendor: z.string().trim().max(100).nullable().optional(),
+    /** Shopify Standard Product Taxonomy category id (e.g. "aa-1-1"); `productType` stays separate free text. */
+    categoryId: z.string().trim().max(40).nullable().optional(),
     productType: z.string().trim().max(100).nullable().optional(),
     tags: z.array(z.string().trim().min(1).max(50)).max(100).optional(),
     seoTitle: z.string().trim().max(70).nullable().optional(),
