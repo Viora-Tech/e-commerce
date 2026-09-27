@@ -1,0 +1,91 @@
+# Builds the production images OFF the server and pushes them to GHCR, then (optionally) tells
+# Dokploy to pull and redeploy. Building the admin on the 8 GB Lightsail box used ~7 GB and
+# crashed Docker, so the box now only pulls. Lint/typecheck/tests stay in ci.yml.
+#
+# Tags: ghcr.io/viora-tech/<image>:<full commit sha> and :latest. Rollback = set IMAGE_TAG in
+# Dokploy to an older sha and redeploy (see
+# apps/docs/content/developer-docs/operations/deployment.mdx, "Rollback").
+#
+# Optional repo settings:
+#   secrets.DOKPLOY_WEBHOOK_URL   Dokploy Compose app → Deployments → Webhook URL. Unset = the
+#                                 deploy step is skipped (images are still pushed).
+#   vars.NEXT_PUBLIC_WORKER_URL   inlined into the admin's browser bundle at build time.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One release at a time; a newer push to main supersedes a queued one.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # GHCR image names must be lowercase (the org is Viora-Tech).
+  IMAGE_PREFIX: ghcr.io/viora-tech
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - image: admin
+            dockerfile: apps/admin/Dockerfile
+          - image: storefront
+            dockerfile: apps/storefront/Dockerfile
+          - image: worker
+            dockerfile: apps/worker/Dockerfile
+          - image: tasks
+            dockerfile: deploy/Dockerfile.tasks
+          - image: docs
+            dockerfile: apps/docs/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_WORKER_URL=${{ vars.NEXT_PUBLIC_WORKER_URL }}
+          # Layer cache in the GitHub Actions cache, one scope per image so they don't evict
+          # each other.
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy redeploy
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DOKPLOY_WEBHOOK_URL" ]; then
+            echo "DOKPLOY_WEBHOOK_URL is not set; images are pushed, skipping the Dokploy deploy."
+            exit 0
+          fi
+          curl --fail --silent --show-error --max-time 30 -X POST "$DOKPLOY_WEBHOOK_URL"
+          echo "Dokploy redeploy triggered for ${GITHUB_SHA}."

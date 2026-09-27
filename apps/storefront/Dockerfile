@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# Production image for @commerce/storefront. Dokploy builds this ON the Lightsail server from
-# the `main` branch (its own GitHub integration, auto-deploy on push) — there is no separate CI
-# image build/push step. See deploy/README.md and
-# apps/docs/content/developer-docs/operations/deployment.mdx.
+# Production image for @commerce/storefront. Built by .github/workflows/release.yml in GitHub
+# Actions on every push to `main` and pushed to ghcr.io/viora-tech/storefront; the server only
+# pulls it. See deploy/README.md and apps/docs/content/developer-docs/operations/deployment.mdx.
 #
 # Build from the MONOREPO ROOT (bun install needs the root lockfile and every workspace's
 # package.json), e.g.:
@@ -34,8 +33,8 @@ COPY --from=pruner /repo/out/full/ .
 COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# See apps/admin/Dockerfile's identical line for why this is here (Dokploy builds on the live
-# box, not a separate build server).
+# See apps/admin/Dockerfile's identical line for why this is here (fits the GitHub Actions
+# runner that builds this image).
 ENV NODE_OPTIONS=--max-old-space-size=3072
 RUN bun run build --filter=@commerce/storefront
 

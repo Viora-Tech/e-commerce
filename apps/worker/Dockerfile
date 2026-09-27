@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 #
 # Production image for @commerce/worker (BullMQ jobs + payment/shipment webhooks, port 4100).
-# Dokploy builds this ON the Lightsail server from the `main` branch (its own GitHub
-# integration, auto-deploy on push) — there is no separate CI image build/push step. See
-# deploy/README.md and apps/docs/content/developer-docs/operations/deployment.mdx.
+# Built by .github/workflows/release.yml in GitHub Actions on every push to `main` and pushed
+# to ghcr.io/viora-tech/worker; the server only pulls it. See deploy/README.md and
+# apps/docs/content/developer-docs/operations/deployment.mdx.
 #
 # A `bun build --target=bun` single-file bundle was tried here to avoid shipping node_modules
 # at all (it got the image to ~190 MB). Reverted: pdf-lib/fontkit (pulled in transitively via
