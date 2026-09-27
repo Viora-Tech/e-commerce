@@ -30,7 +30,7 @@ export function levelSamples(level: number): number {
 }
 
 /** Dot spacing we aim for on screen, in CSS pixels: about cobe's at its default size. */
-const TARGET_SPACING_PX = 3.4
+const TARGET_SPACING_PX = 4.2
 
 /** Angular distance between neighbouring points of an n-point Fibonacci sphere, in radians. */
 export function dotSpacing(samples: number): number {
@@ -57,9 +57,25 @@ export function isLand(mask: LandMask, lat: number, lng: number): boolean {
  * falls as i grows, so the map row is found by walking down one row boundary at a time (no
  * `asin` per point), and sin/cos are only paid for points that turn out to be land.
  */
+/**
+ * Fixed pseudo-random 0..1 for point i and a salt (integer hash, same result every run).
+ * Used to nudge each dot off the Fibonacci lattice: at 3-4 px spacing a perfectly regular
+ * lattice beats against the screen's pixel grid and shows ring-shaped moiré ("waves").
+ */
+function hash01(i: number, salt: number): number {
+  let h = Math.imul(i ^ salt, 0x9e3779b1)
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca77)
+  h ^= h >>> 13
+  return (h >>> 0) / 4294967296
+}
+
+/** How far a dot may move off the lattice, as a share of the dot spacing. */
+const JITTER = 0.35
+
 export function buildLandDots(mask: LandMask, samples: number): Float32Array {
   const { width, height, land } = mask
   const out = new Float32Array(samples * 3)
+  const nudge = JITTER * dotSpacing(samples)
   const rowFloor = (row: number) => Math.cos((Math.PI * (row + 1)) / height)
   let n = 0
   let row = 0
@@ -74,9 +90,17 @@ export function buildLandDots(mask: LandMask, samples: number): Float32Array {
     if (land[row * width + (x >= width ? x - width : x)] !== 1) continue
     const lng = turn * TAU
     const r = Math.sqrt(1 - y * y)
-    out[n++] = r * Math.sin(lng)
-    out[n++] = y
-    out[n++] = r * Math.cos(lng)
+    const [sl, cl] = [Math.sin(lng), Math.cos(lng)]
+    // Move along the local east and north directions, then back onto the unit sphere.
+    const a = (hash01(i, 0x1b873593) * 2 - 1) * nudge
+    const b = (hash01(i, 0x2c1b3c6d) * 2 - 1) * nudge
+    const px = r * sl + a * cl - b * y * sl
+    const py = y + b * r
+    const pz = r * cl - a * sl - b * y * cl
+    const len = Math.hypot(px, py, pz)
+    out[n++] = px / len
+    out[n++] = py / len
+    out[n++] = pz / len
   }
   return out.slice(0, n)
 }

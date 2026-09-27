@@ -41,9 +41,12 @@ describe('buildLandDots', () => {
     for (let i = 0; i < dots.length; i += 3) {
       const [x = 0, y = 0, z = 0] = dots.subarray(i, i + 3)
       expect(Math.hypot(x, y, z)).toBeCloseTo(1, 5)
-      expect(y).toBeGreaterThanOrEqual(0)
+      // Dots are nudged off the lattice by at most JITTER x spacing (~0.6 degrees here), so a
+      // land dot can sit just past the quadrant edge but never further.
+      const slack = dotSpacing(20_000)
+      expect(y).toBeGreaterThanOrEqual(-slack)
       // East longitudes (0..180) have x = cos(lat) sin(lng) >= 0.
-      expect(x).toBeGreaterThanOrEqual(-1e-6)
+      expect(x).toBeGreaterThanOrEqual(-slack)
     }
   })
 
@@ -72,7 +75,7 @@ describe('pickLevel', () => {
   it('keeps the chosen level’s spacing near the target where it can', () => {
     for (const radius of [300, 600, 900]) {
       const level = pickLevel(radius)
-      expect(dotSpacing(levelSamples(level)) * radius).toBeLessThanOrEqual(3.4)
+      expect(dotSpacing(levelSamples(level)) * radius).toBeLessThanOrEqual(4.2)
     }
   })
 })
