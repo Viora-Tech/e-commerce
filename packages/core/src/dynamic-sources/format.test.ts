@@ -190,6 +190,14 @@ describe('coerceValue: one case per source type', () => {
     ).toEqual({ label: 'See all', href: '/collections/mice' })
   })
 
+  it('plain link settings get just the href', () => {
+    expect(coerceValue('url', 'url', 'https://a.in/x', '/')).toBe('https://a.in/x')
+    expect(coerceValue('url', 'product_reference', { handle: 'mouse', title: 'M' }, '/')).toBe(
+      '/products/mouse',
+    )
+    expect(coerceValue('url', 'single_line_text', 'hello', '/')).toBeUndefined()
+  })
+
   it('numbers from numbers, colours only when they are colours', () => {
     expect(coerceValue('number', 'number_integer', 4, 3)).toBe(4)
     expect(coerceValue('number', 'number_decimal', '2.5', 3)).toBe(2.5)

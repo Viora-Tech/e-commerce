@@ -4,6 +4,7 @@ import { createContext, useContext } from 'react'
 import { dynamicSourcesContent as copy } from '@/data/dynamic-sources'
 import { api } from '@/lib/api-client'
 import { type FieldLike, isImageField, isLinkField } from './customize-field-shape'
+import { isLinkTextField } from './customize-links'
 
 /**
  * Admin side of dynamic sources: which template (and which previewed product or
@@ -41,11 +42,13 @@ const OBJECT_PART = /(^|[.\]])(url|href)$/
 /**
  * What kind of setting a Puck field is, for the connect button; null when it
  * cannot be connected (choices, toggles, lists, groups). Colours are text
- * fields named after a colour, as the section settings define them.
+ * fields named after a colour, as the section settings define them; link text
+ * fields (the link picker) are plain `url` settings.
  */
 export function settingKindOf(field: FieldLike, name: string): SettingKind | null {
   switch (field.type) {
     case 'text':
+      if (isLinkTextField(field, name)) return 'url'
       if (OBJECT_PART.test(name)) return null
       return COLOUR_NAME.test(name) || COLOUR_NAME.test(field.label ?? '') ? 'color' : 'text'
     case 'textarea':
