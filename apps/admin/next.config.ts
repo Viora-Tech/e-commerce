@@ -109,6 +109,9 @@ const config: NextConfig = {
           ]
         : [{ protocol: 'http' as const, hostname: 'localhost', port: '3200' }]),
     ],
+    // The media library grid still uses next/image for arbitrary/unprocessed media; give
+    // it AVIF-first too. Product pages use `<Picture>` (packages/core media-loader) directly.
+    formats: ['image/avif', 'image/webp'],
   },
 }
 

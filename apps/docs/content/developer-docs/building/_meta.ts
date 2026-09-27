@@ -4,6 +4,7 @@ export default {
   'data-model': 'Data model',
   'first-app': 'Build your first app',
   plugins: 'Plugins SDK and app blocks',
+  'media-pipeline': 'Image pipeline',
   'section-settings': 'Section settings and SectionFrame',
   security: 'Security',
   conventions: 'Conventions',

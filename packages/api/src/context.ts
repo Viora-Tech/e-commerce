@@ -1,5 +1,11 @@
 import type { MerchantAuth } from '@commerce/auth'
-import type { AppEventQueue, AppJobQueue, NotificationQueue, RateLimitStore } from '@commerce/core'
+import type {
+  AppEventQueue,
+  AppJobQueue,
+  MediaProcessQueue,
+  NotificationQueue,
+  RateLimitStore,
+} from '@commerce/core'
 import type { Db } from '@commerce/db'
 import type { ErrorReporter } from '@commerce/observability'
 
@@ -14,6 +20,8 @@ export type ApiContext = {
   appEvents?: AppEventQueue | undefined
   /** Background jobs installed apps queue for themselves (PDF renders, email batches). */
   appJobs?: AppJobQueue | undefined
+  /** Upload-time image pipeline job (worker). Absent in tests that do not exercise media confirm; the row is then left `processing` for the backfill script to pick up. */
+  mediaProcess?: MediaProcessQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */

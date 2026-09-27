@@ -62,6 +62,17 @@ export function describeStorageProvider(name: string, opts: ConformanceOptions):
         expect(await p.get(key)).toBeNull()
         expect(await p.get(`${sampleKey}.never-written`)).toBeNull()
       })
+
+      it('heads a written object for its real size, and null once missing', async () => {
+        const p = await opts.create()
+        const key = `${sampleKey}.head.pdf`
+        const body = new TextEncoder().encode('%PDF-1.7 conformance head check')
+        await p.put({ key, body, contentType: 'application/pdf' })
+        const head = await p.head(key)
+        expect(head?.size).toBe(body.byteLength)
+        await p.delete(key)
+        expect(await p.head(key)).toBeNull()
+      })
     }
 
     if (opts.live) {

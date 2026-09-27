@@ -1,4 +1,7 @@
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { createMerchantAuth } from '@commerce/auth'
+import { localStoragePath } from '@commerce/core'
 import { createDb, media, store } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
@@ -60,11 +63,22 @@ describe('media', () => {
     expect(ticket.upload.url).toContain('/api/uploads?key=')
     expect(ticket.url).toMatch(new RegExp(`/uploads/stores/${a.storeId}/media/`))
 
+    // Simulate the browser's PUT: write the object where confirm's HEAD check looks for it.
+    const key = ticket.url.split('/uploads/')[1] as string
+    const path = localStoragePath(key)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, Buffer.alloc(1234))
+
     // Pending rows are invisible to the library.
     expect((await call(appRouter.media.list, {}, { context: a.ctx })).total).toBe(0)
-    await call(appRouter.media.confirm, { id: ticket.mediaId }, { context: a.ctx })
-    const listed = await call(appRouter.media.list, {}, { context: a.ctx })
-    expect(listed.items.map((i) => i.id)).toEqual([ticket.mediaId])
+    const confirmed = await call(
+      appRouter.media.confirm,
+      { id: ticket.mediaId },
+      { context: a.ctx },
+    )
+    // An image is queued for the upload-time pipeline, not made ready immediately.
+    expect(confirmed.status).toBe('processing')
+    expect((await call(appRouter.media.list, {}, { context: a.ctx })).total).toBe(0)
 
     // Another store sees nothing and cannot touch it.
     expect((await call(appRouter.media.list, {}, { context: b.ctx })).total).toBe(0)

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  IMAGE_MAX_UPLOAD_BYTES,
   isAllowedContentType,
   keyBelongsToStore,
-  MAX_UPLOAD_BYTES,
+  maxUploadBytesFor,
   mediaKey,
   safeFilename,
+  VIDEO_MAX_UPLOAD_BYTES,
 } from '../src/keys'
 import { MemoryStorageProvider } from '../src/memory'
 import { StorageRegistry } from '../src/registry'
@@ -34,7 +36,14 @@ describe('media keys', () => {
     expect(isAllowedContentType('video/mp4')).toBe(true)
     expect(isAllowedContentType('video/quicktime')).toBe(false)
     expect(isAllowedContentType('application/pdf')).toBe(false)
-    expect(MAX_UPLOAD_BYTES).toBe(25 * 1024 * 1024)
+  })
+
+  it('caps images at 10 MB and mp4 video at 100 MB', () => {
+    expect(IMAGE_MAX_UPLOAD_BYTES).toBe(10 * 1024 * 1024)
+    expect(VIDEO_MAX_UPLOAD_BYTES).toBe(100 * 1024 * 1024)
+    expect(maxUploadBytesFor('image/png')).toBe(IMAGE_MAX_UPLOAD_BYTES)
+    expect(maxUploadBytesFor('IMAGE/JPEG')).toBe(IMAGE_MAX_UPLOAD_BYTES)
+    expect(maxUploadBytesFor('video/mp4')).toBe(VIDEO_MAX_UPLOAD_BYTES)
   })
 
   it('refuses SVG (XML that can carry <script>, so never on the upload allow-list)', () => {

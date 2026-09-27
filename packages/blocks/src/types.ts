@@ -1,6 +1,20 @@
 import type { RichTextValue } from '@commerce/richtext'
 /** Data shapes blocks render. Apps fetch these; blocks never touch the database. */
 
+/**
+ * `media.variants`/`media.thumbhash` straight off the row (see
+ * `@commerce/core`'s media pipeline). Optional/nullable throughout: legacy
+ * or still-`processing` media has neither, and `<Picture>` (./components/picture)
+ * falls back to plain `url` in that case.
+ */
+export type MediaImage = {
+  url: string
+  alt: string | null
+  contentType?: string | null | undefined
+  variants?: Record<string, { avif: string; webp: string }> | null | undefined
+  thumbhash?: string | null | undefined
+}
+
 export type CardProduct = {
   id: string
   handle: string
@@ -10,7 +24,7 @@ export type CardProduct = {
   pricePaise: number
   mrpPaise: number | null
   available: number
-  images: { url: string; alt: string | null; contentType?: string | null | undefined }[]
+  images: MediaImage[]
 }
 
 export type ProductDetail = {
@@ -21,7 +35,7 @@ export type ProductDetail = {
   description: RichTextValue | string | null
   vendor: string | null
   productType: string | null
-  images: { url: string; alt: string | null; contentType?: string | null | undefined }[]
+  images: MediaImage[]
   /** Alternate product template (`product.<suffix>`), when one is assigned. */
   templateSuffix?: string | null | undefined
   options: { id: string; name: string; values: { id: string; value: string }[] }[]
