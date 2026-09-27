@@ -148,6 +148,9 @@ const SIZE_BUCKETS: Record<MediaSizeBucket, [number, number | null]> = {
 
 const usedSubquery = sql`(select count(*)::int from product_media pm where pm.media_id = media.id)`
 
+/** Media a product or metaobject may point at: confirmed and stored, optimised or not yet. */
+const USABLE_MEDIA_STATUSES: ('processing' | 'ready')[] = ['processing', 'ready']
+
 /** Library listing: ready items newest first, with how many products use each. */
 export async function listMedia(tx: StoreTx, input: MediaListInput) {
   const [sizeMin, sizeMax] = input.size ? SIZE_BUCKETS[input.size] : [null, null]
@@ -319,7 +322,11 @@ export async function setProductMedia(
     ? await tx
         .select({ id: media.id })
         .from(media)
-        .where(and(inArray(media.id, unique), eq(media.status, 'ready')))
+        // `processing` is a stored, confirmed file whose optimised copies are still being made;
+        // the pipeline replaces it in place under the same id, so a product may use it now.
+        // Without this, saving a product seconds after an upload (or any Shopify import, whose
+        // media starts as `processing`) silently dropped the images and cleared variant images.
+        .where(and(inArray(media.id, unique), inArray(media.status, USABLE_MEDIA_STATUSES)))
     : []
   const keep = new Set(valid.map((v) => v.id))
   const ordered = unique.filter((id) => keep.has(id))
