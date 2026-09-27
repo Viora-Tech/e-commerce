@@ -1,5 +1,6 @@
 'use client'
 
+import { withFreshBlockIds } from '@commerce/core/theme'
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { SortableList } from '@commerce/ui/sortable'
@@ -66,7 +67,8 @@ export default function CustomizeArrayField({
   const handleDuplicate = (index: number) =>
     onChange([
       ...(value ?? []).slice(0, index + 1),
-      { ...(value ?? [])[index] },
+      // Blocks nested in the item's slots (a tab's content) get new ids in the copy.
+      withFreshBlockIds({ ...(value ?? [])[index] }),
       ...(value ?? []).slice(index + 1),
     ])
 

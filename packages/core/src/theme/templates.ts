@@ -2,6 +2,7 @@ import { newId, type StoreTx, theme, themeTemplate } from '@commerce/db'
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
 import { bindingProblems } from '../dynamic-sources/format'
 import { assertTemplateBindings, InvalidBindings } from '../dynamic-sources/service'
+import { sanitizeTemplateEmbeds } from './embeds'
 import { ThemeLibraryError } from './library'
 import {
   defaultTemplate,
@@ -122,8 +123,10 @@ export async function saveTemplateDraft(
 ): Promise<void> {
   assertSuffix(input.suffix)
   await assertTheme(tx, input.themeId)
+  // Custom HTML is stored only after the embed allow-list, wherever it is nested.
+  const data = sanitizeTemplateEmbeds(input.data)
   // Drafts get the cheap checks (shape, scope, fixed-field types); Save checks the store's sources.
-  const problems = bindingProblems(input.data, input.template)
+  const problems = bindingProblems(data, input.template)
   if (problems.length) throw new ThemeLibraryError('THEME_SOURCE_INVALID', problems.join('. '))
   const existing = await findRow(tx, input.themeId, input.template, input.suffix)
   if (existing) {
@@ -131,10 +134,10 @@ export async function saveTemplateDraft(
     const saved = parseTemplateData(existing.sections)
     const same =
       saved !== null &&
-      stableTemplateJson(stripResolved(saved)) === stableTemplateJson(stripResolved(input.data))
+      stableTemplateJson(stripResolved(saved)) === stableTemplateJson(stripResolved(data))
     await tx
       .update(themeTemplate)
-      .set({ draft: same ? null : input.data, updatedAt: new Date() })
+      .set({ draft: same ? null : data, updatedAt: new Date() })
       .where(eq(themeTemplate.id, existing.id))
     return
   }
@@ -148,7 +151,7 @@ export async function saveTemplateDraft(
     template: input.template,
     suffix: '',
     sections: defaultTemplate(input.template),
-    draft: input.data,
+    draft: data,
   })
 }
 

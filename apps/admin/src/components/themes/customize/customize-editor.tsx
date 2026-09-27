@@ -12,9 +12,10 @@ import { themesContent } from '@/data/themes'
 import { api } from '@/lib/api-client'
 import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
-import { type CustomizeDoc, composeDoc, normalizeDoc, zoneSections } from '@/lib/customize-doc'
+import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
+import { zoneItems } from '@/lib/customize-slots'
 import { PreviewModeContext, ThemePreviewContext } from '@/lib/customize-theme-context'
 import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
@@ -62,8 +63,7 @@ const isSourceError = (err: unknown): err is Error =>
 function revealInserted(action: PuckAction, next: { data: Data }): void {
   if (action.type !== 'insert') return
   const doc = next.data as unknown as CustomizeDoc
-  const id =
-    action.id ?? zoneSections(doc, action.destinationZone)[action.destinationIndex]?.props.id
+  const id = action.id ?? zoneItems(doc, action.destinationZone)[action.destinationIndex]?.props.id
   if (id) scrollToSection(id, prefersReducedMotion())
 }
 

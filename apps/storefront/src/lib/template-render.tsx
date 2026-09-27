@@ -1,10 +1,6 @@
 import { Reveal } from '@commerce/blocks'
-import {
-  type BlockProps,
-  createBlocksConfig,
-  type PageData,
-  type SectionMetadata,
-} from '@commerce/blocks/puck'
+import { createBlocksConfig, type PageData, type SectionMetadata } from '@commerce/blocks/puck'
+import { renderBlock } from '@commerce/blocks/slots'
 import {
   applyBindings,
   boundPaths,
@@ -131,23 +127,13 @@ export async function renderTemplate(
   return (
     <>
       {resolved.content.map((item, index) => {
-        const section = components[item.type]
-        if (!section?.render) return null
-        const Section = section.render as (props: Record<string, unknown>) => React.ReactNode
-        const props = {
-          ...section.defaultProps,
-          ...item.props,
-          puck,
-        } as BlockProps[keyof BlockProps]
+        // Slots (Group, Columns, Tabs … and anything nested in them) are drawn here on
+        // the server too: renderBlock fills each slot prop with its children.
+        const section = renderBlock(item, components, puck)
+        if (!section) return null
         return (
           <Fragment key={item.props.id}>
-            {reveals && index > 0 ? (
-              <Reveal>
-                <Section {...(props as Record<string, unknown>)} />
-              </Reveal>
-            ) : (
-              <Section {...(props as Record<string, unknown>)} />
-            )}
+            {reveals && index > 0 ? <Reveal>{section}</Reveal> : section}
           </Fragment>
         )
       })}

@@ -56,6 +56,15 @@ The click goes through `InsertContext` (`lib/customize-insert-context.ts`) to `C
 which opens the browser in a dialog in the admin document. The "+" is registered with Puck's
 `registerOverlayPortal` so pressing it never starts a section drag.
 
+### Nested blocks (slots)
+
+Layout blocks (Group, Columns, Grid, Tabs, Accordion, Carousel) hold other blocks in Puck
+slots. The tree lists a container's slots under it with an indent guide and a disclosure
+chevron (containers start open); each slot is a `SlotZoneList` whose rows are full
+`SectionTreeItem`s, so nesting goes to any depth. Every row action is a Puck action on the
+slot's zone (`<parentId>:<propPath>`). Details, the data shape and "My sections":
+[Slots and custom sections](/developer-docs/building/custom-sections).
+
 ### Blocks
 
 Our sections keep repeatable content (slides, columns, logos, FAQ entries) in Puck `array`

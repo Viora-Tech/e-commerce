@@ -1,15 +1,28 @@
 import { parseNavigationSettings } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export async function getStore(tx: StoreTx, storeId: string) {
   const [s] = await tx.select().from(store).where(eq(store.id, storeId))
   return s ?? null
 }
 
+/**
+ * Replaces the Online Store preferences. The theme editor's "My sections" share
+ * this column (`customSections`, written by `saveCustomSection`), so that key is
+ * carried over rather than wiped by the preferences form.
+ */
 export async function updateStorePreferences(tx: StoreTx, storeId: string, preferences: unknown) {
-  const [s] = await tx.update(store).set({ preferences }).where(eq(store.id, storeId)).returning()
+  const next = { ...(preferences as Record<string, unknown>) }
+  delete next.customSections
+  const [s] = await tx
+    .update(store)
+    .set({
+      preferences: sql`${JSON.stringify(next)}::jsonb || jsonb_strip_nulls(jsonb_build_object('customSections', ${store.preferences} -> 'customSections'))`,
+    })
+    .where(eq(store.id, storeId))
+    .returning()
   return s ?? null
 }
 

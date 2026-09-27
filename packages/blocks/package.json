@@ -8,7 +8,10 @@
     "./puck": "./src/puck-config.tsx",
     "./app-blocks": "./src/app-blocks.tsx",
     "./media": "./src/media.ts",
-    "./styles.css": "./src/styles/index.css"
+    "./styles.css": "./src/styles/index.css",
+    "./embed": "./src/embed-sanitize.ts",
+    "./slots": "./src/slots.tsx",
+    "./element-style": "./src/element-style.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -20,6 +23,7 @@
     "@commerce/richtext": "workspace:*",
     "@puckeditor/core": "^0.23.0",
     "motion": "^13.4.1",
+    "sanitize-html": "^2.17.0",
     "thumbhash": "^0.1.1"
   },
   "peerDependencies": {
@@ -31,6 +35,7 @@
     "@types/node": "^22.20.4",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
+    "@types/sanitize-html": "^2.16.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "typescript": "~5.9.3",

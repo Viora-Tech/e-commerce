@@ -31,16 +31,47 @@ function responsiveText(value: unknown): string | null {
 
 type Summariser = (fields: Record<string, SubField>, value: Values) => string
 
+/** First couple of plain values, with option labels — for any group without its own summariser. */
+const genericSummary: Summariser = (fields, value) =>
+  Object.entries(fields)
+    .map(([key, field]) => {
+      const v = value[key]
+      if (field.options) return optionLabel(field, v)
+      if (typeof v === 'number' && v !== 0) return String(v)
+      if (typeof v === 'string' && v) return v.length > 18 ? `${v.slice(0, 17)}…` : v
+      return null
+    })
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(' · ')
+
 const SUMMARISERS: Record<string, Summariser> = {
   layout: (fields, v) =>
     [optionLabel(fields.contentWidth, v.contentWidth), optionLabel(fields.alignment, v.alignment)]
       .filter(Boolean)
       .join(' · '),
-  spacing: (_fields, v) => {
+  spacing: (fields, v) => {
+    // Element style spacing (margins and inner space) reads like any other group.
+    if (!('paddingTop' in fields)) return genericSummary(fields, v)
     const top = responsiveText(v.paddingTop)
     const bottom = responsiveText(v.paddingBottom)
     return top && bottom ? `${top} / ${bottom}` : ''
   },
+  visibility: (_fields, v) => {
+    const on = (['mobile', 'tablet', 'desktop'] as const).filter((k) => v[k] !== false)
+    if (on.length === 3) return 'Everywhere'
+    if (on.length === 0) return 'Hidden'
+    const names = { mobile: 'Phones', tablet: 'Tablets', desktop: 'Computers' }
+    return on.map((k) => names[k]).join(' · ')
+  },
+  colour: (_fields, v) =>
+    ['text', 'background']
+      .map((k) => {
+        const token = ((v[k] ?? {}) as Values).token
+        return token && token !== 'inherit' ? (k === 'text' ? 'Text' : 'Background') : null
+      })
+      .filter(Boolean)
+      .join(' · '),
   style: (fields, v) => {
     const image = (v.backgroundImage ?? {}) as Values
     return [
@@ -69,20 +100,6 @@ const SUMMARISERS: Record<string, Summariser> = {
     return [visibility, animation].filter(Boolean).join(' · ')
   },
 }
-
-/** First couple of plain values, with option labels — for any group without its own summariser. */
-const genericSummary: Summariser = (fields, value) =>
-  Object.entries(fields)
-    .map(([key, field]) => {
-      const v = value[key]
-      if (field.options) return optionLabel(field, v)
-      if (typeof v === 'number' && v !== 0) return String(v)
-      if (typeof v === 'string' && v) return v.length > 18 ? `${v.slice(0, 17)}…` : v
-      return null
-    })
-    .filter(Boolean)
-    .slice(0, 2)
-    .join(' · ')
 
 export function settingsGroupSummary(
   group: string,

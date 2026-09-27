@@ -417,3 +417,87 @@ describe('buildSourceCatalog', () => {
     })
   })
 })
+
+describe('bindings inside slots (custom sections)', () => {
+  // A Group whose content slot holds a Heading, and a Tabs block whose second
+  // tab holds an Image: bindings two and three levels down.
+  const template = {
+    root: { props: {} },
+    content: [
+      {
+        type: 'Group',
+        props: {
+          id: 'group-1',
+          content: [
+            {
+              type: 'Heading',
+              props: {
+                id: 'heading-1',
+                text: { $source: 'product.title', kind: 'text', fallback: 'Our pick' },
+                level: 'h2',
+              },
+            },
+            {
+              type: 'Tabs',
+              props: {
+                id: 'tabs-1',
+                tabs: [
+                  { label: 'One', content: [] },
+                  {
+                    label: 'Two',
+                    content: [
+                      {
+                        type: 'Image',
+                        props: {
+                          id: 'image-1',
+                          image: {
+                            $source: 'product.featured_image',
+                            kind: 'image',
+                            fallback: { url: 'https://cdn/fallback.jpg', alt: 'Fallback' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    ],
+  }
+
+  it('boundPaths finds bindings at any depth', () => {
+    expect(boundPaths(template).sort()).toEqual(['product.featured_image', 'product.title'])
+  })
+
+  it('applyBindings resolves them in place, leaving the tree shape alone', () => {
+    const out = applyBindings(template, {
+      'product.title': { type: 'single_line_text', value: 'Viper Mouse' },
+      'product.featured_image': { type: 'file', value: { url: 'https://cdn/m.jpg', alt: '' } },
+    })
+    const group = out.content[0]?.props as { content: { props: Record<string, unknown> }[] }
+    expect(group.content[0]?.props.text).toBe('Viper Mouse')
+    const tabs = group.content[1]?.props as {
+      tabs: { content: { props: Record<string, unknown> }[] }[]
+    }
+    expect(tabs.tabs[1]?.content[0]?.props.image).toEqual({
+      url: 'https://cdn/m.jpg',
+      alt: 'Fallback',
+    })
+  })
+
+  it('renders fallbacks when the page has no values', () => {
+    const out = applyBindings(template)
+    const group = out.content[0]?.props as { content: { props: Record<string, unknown> }[] }
+    expect(group.content[0]?.props.text).toBe('Our pick')
+  })
+
+  it('names the nested block, not the container, in problems', () => {
+    const problems = bindingProblems(template, 'home')
+    expect(problems).toHaveLength(2)
+    expect(problems[0]).toMatch(/^Heading › text reads product\.title/)
+    expect(problems[1]).toMatch(/^Image › image reads product\.featured_image/)
+  })
+})

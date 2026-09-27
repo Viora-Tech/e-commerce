@@ -1,7 +1,17 @@
 'use client'
 
 import type { TemplateSection } from '@commerce/core/theme'
-import { ChevronRight, Copy, Eye, EyeOff, MoreHorizontal, Pencil, Trash2 } from '@commerce/ui/icons'
+import {
+  ArrowLeft,
+  Bookmark,
+  ChevronRight,
+  Copy,
+  Eye,
+  EyeOff,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -39,6 +49,11 @@ type SectionRowProps = {
   onRename: (name: string) => void
   /** Passed this row's own element, so the caller can collapse it before dispatching. */
   onRemove: (el: HTMLElement | null) => void
+  /** "Save as my section": keep a copy in the store's library. */
+  onSaveAsSection?: (() => void) | undefined
+  /** Set for a nested block: the container's name and moving the block out of it. */
+  moveOutLabel?: string | undefined
+  onMoveOut?: (() => void) | undefined
 }
 
 const copy = customizeContent.tree
@@ -62,6 +77,9 @@ export default function SectionRow({
   onDuplicate,
   onRename,
   onRemove,
+  onSaveAsSection,
+  moveOutLabel,
+  onMoveOut,
 }: SectionRowProps) {
   // Hooks
   const [renaming, setRenaming] = useState(false)
@@ -116,7 +134,7 @@ export default function SectionRow({
           type="button"
           onClick={onToggleBlocks}
           aria-expanded={blocksOpen}
-          aria-label={blocksOpen ? copy.hideBlocks(name) : copy.showBlocks(name)}
+          aria-label={blocksOpen ? copy.hideChildren(name) : copy.showChildren(name)}
           className={cn(
             'flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground',
             CHROME_FOCUS,
@@ -236,6 +254,18 @@ export default function SectionRow({
                 <Pencil aria-hidden />
                 {copy.rename}
               </DropdownMenuItem>
+              {onMoveOut && moveOutLabel ? (
+                <DropdownMenuItem onClick={onMoveOut}>
+                  <ArrowLeft aria-hidden />
+                  {copy.moveOut(moveOutLabel)}
+                </DropdownMenuItem>
+              ) : null}
+              {!locked && onSaveAsSection ? (
+                <DropdownMenuItem onClick={onSaveAsSection}>
+                  <Bookmark aria-hidden />
+                  {copy.saveAsSection}
+                </DropdownMenuItem>
+              ) : null}
               {locked ? null : (
                 <>
                   <DropdownMenuSeparator />

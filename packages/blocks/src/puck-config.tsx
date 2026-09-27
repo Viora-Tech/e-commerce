@@ -1,6 +1,5 @@
 import type { RichTextValue } from '@commerce/richtext'
-import type { Config, CustomField, Data } from '@puckeditor/core'
-import type { ComponentType } from 'react'
+import type { Config, Data } from '@puckeditor/core'
 import { type AppBlockOwner, type AppBlockSource, buildAppBlocks } from './app-blocks'
 import { type ArticleLoader, type BlogPostsProps, blogPostsBlock } from './blog-posts-block'
 import ProductCard from './components/product-card'
@@ -14,6 +13,7 @@ import {
   type SectionSettingsValue,
   sectionSettingsField,
 } from './section-settings'
+import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
 import { type HeroProps, heroBlock } from './sections/hero-block'
 import {
@@ -23,6 +23,7 @@ import {
   type SingleProductLoader,
 } from './sections/library'
 import { type ModernProps, modernSections } from './sections/modern'
+import { type RichTextFieldEditor, richTextField } from './sections/rich-text-field'
 import type { CardProduct } from './types'
 
 export type { ArticleLoader, BlogPostsProps } from './blog-posts-block'
@@ -34,6 +35,13 @@ export {
   type SectionSettingsValue,
   sectionSettingsField,
 } from './section-settings'
+export {
+  type CustomBlockType,
+  type CustomProps,
+  ELEMENT_BLOCKS,
+  LAYOUT_BLOCKS,
+  SLOT_DISALLOW,
+} from './sections/custom'
 export {
   DYNAMIC_SECTIONS,
   type DynamicSection,
@@ -103,12 +111,7 @@ export type RichTextProps = Frame & {
   align: 'left' | 'center'
 }
 
-/** A field editor the host supplies (admin passes the Lexical editor). */
-export type RichTextFieldEditor = ComponentType<{
-  value: RichTextValue | null | undefined
-  onChange: (value: RichTextValue) => void
-  placeholder?: string | undefined
-}>
+export type { RichTextFieldEditor } from './sections/rich-text-field'
 
 export type BlocksConfigOptions = {
   /**
@@ -134,6 +137,7 @@ export type BlockProps = {
   BlogPosts: BlogPostsProps
 } & LibraryProps &
   ModernProps &
+  CustomProps &
   Record<DynamicSection, SectionSettings>
 
 /**
@@ -183,6 +187,9 @@ export const SECTION_CATEGORIES = {
   },
   media: { title: 'Media', components: ['Video', 'Gallery'] },
   more: { title: 'More', components: ['BlogPosts', 'Newsletter'] },
+  // Build your own: containers whose content is slots, and the elements that go in them.
+  layout: { title: 'Layout', components: LAYOUT_BLOCKS },
+  elements: { title: 'Elements', components: ELEMENT_BLOCKS },
 } as const
 
 /**
@@ -200,25 +207,6 @@ export type { AppBlockOwner, AppBlockSource } from './app-blocks'
 export { buildAppBlocks } from './app-blocks'
 
 export type PageData = Data<BlockProps>
-
-function richTextField(
-  Editor: RichTextFieldEditor | undefined,
-): CustomField<RichTextValue | string> {
-  return {
-    type: 'custom',
-    label: 'Body',
-    render: ({ value, onChange }) =>
-      Editor ? (
-        <Editor
-          value={typeof value === 'string' ? null : value}
-          onChange={onChange}
-          placeholder="Write the section text…"
-        />
-      ) : (
-        <textarea readOnly value={typeof value === 'string' ? value : JSON.stringify(value)} />
-      ),
-  }
-}
 
 export type BlocksConfig = Config<BlockProps> & {
   /** Which app owns each enabled app block, for the Add panel's "by <app>" grouping. */
@@ -255,6 +243,14 @@ export function createBlocksConfig(
       },
       media: { ...SECTION_CATEGORIES.media, components: [...SECTION_CATEGORIES.media.components] },
       more: { ...SECTION_CATEGORIES.more, components: [...SECTION_CATEGORIES.more.components] },
+      layout: {
+        ...SECTION_CATEGORIES.layout,
+        components: [...SECTION_CATEGORIES.layout.components],
+      },
+      elements: {
+        ...SECTION_CATEGORIES.elements,
+        components: [...SECTION_CATEGORIES.elements.components],
+      },
       // App block types are dynamic (one per installed plugin's block), so the category's
       // components list is cast the same way `components` below is for library/dynamic sections.
       [APPS_CATEGORY]: {
@@ -271,6 +267,10 @@ export function createBlocksConfig(
         loadProduct: options.loadProduct,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof LibraryProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
+      ...(customSections({
+        RichTextEditor: options.RichTextEditor,
+        loadProduct: options.loadProduct,
+      }) as unknown as Pick<Config<BlockProps>['components'], keyof CustomProps>),
       ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
       Hero: heroBlock(),
 

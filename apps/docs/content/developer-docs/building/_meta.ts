@@ -9,6 +9,7 @@ export default {
   'section-settings': 'Section settings and SectionFrame',
   'theme-editor': 'Theme editor',
   'dynamic-sources': 'Dynamic sources',
+  'custom-sections': 'Slots and custom sections',
   security: 'Security',
   conventions: 'Conventions',
   guardrails: 'Guardrails and sweeps',

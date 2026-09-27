@@ -46,9 +46,13 @@ import {
   AlignBottom as EdAlignBottom,
   AlignTop as EdAlignTop,
   ArrowsLeftRight as EdArrowsLeftRight,
+  ArrowsVertical as EdArrowsVertical,
   Basket as EdBasket,
+  BoundingBox as EdBoundingBox,
   ChartLineUp as EdChartLineUp,
+  Code as EdCode,
   Columns as EdColumns,
+  CursorClick as EdCursorClick,
   EnvelopeSimple as EdEnvelope,
   FileText as EdFileText,
   FilmStrip as EdFilmStrip,
@@ -58,14 +62,21 @@ import {
   ListDashes as EdListDashes,
   MagnifyingGlass as EdMagnifyingGlass,
   Megaphone as EdMegaphone,
+  Minus as EdMinus,
   Newspaper as EdNewspaper,
   Package as EdPackage,
   Quotes as EdQuotes,
+  Rows as EdRows,
   Shapes as EdShapes,
+  Slideshow as EdSlideshow,
   Sparkle as EdSparkle,
   SquareSplitHorizontal as EdSplit,
   SquaresFour as EdSquaresFour,
+  StarFour as EdStarFour,
+  Tabs as EdTabs,
+  Tag as EdTag,
   TextAlignLeft as EdTextAlignLeft,
+  TextH as EdTextH,
   WarningCircle as EdWarningCircle,
   Eye,
   EyeClosed,
@@ -102,6 +113,7 @@ import {
   PaperPlaneTilt,
   Paragraph,
   PencilSimpleLine,
+  BookmarkSimple as PhBookmarkSimple,
   Clock as PhClock,
   Cookie as PhCookie,
   Diamond as PhDiamond,
@@ -316,6 +328,8 @@ export const Save = defineIcon(DownloadSimple, 'Save') // kit "save-01" on Save 
 export const RotateCcw = defineIcon(ArrowCounterClockwise, 'RotateCcw')
 export const Printer_ = defineIcon(Printer, 'Printer')
 export { Printer_ as Printer }
+/** Theme editor: "Save as my section". */
+export const Bookmark = defineIcon(PhBookmarkSimple, 'Bookmark')
 export const Copy_ = defineIcon(Copy, 'Copy')
 export { Copy_ as Copy }
 export const EyeOff = defineIcon(EyeClosed, 'EyeOff')
@@ -386,6 +400,18 @@ export const editorGlyphs = {
   cart: defineIcon(EdBasket, 'GlyphCart'),
   search: defineIcon(EdMagnifyingGlass, 'GlyphSearch'),
   notFound: defineIcon(EdWarningCircle, 'GlyphNotFound'),
+  // Build-your-own blocks: containers and elements.
+  group: defineIcon(EdBoundingBox, 'GlyphGroup'),
+  tabs: defineIcon(EdTabs, 'GlyphTabs'),
+  accordion: defineIcon(EdRows, 'GlyphAccordion'),
+  carousel: defineIcon(EdSlideshow, 'GlyphCarousel'),
+  heading: defineIcon(EdTextH, 'GlyphHeading'),
+  button: defineIcon(EdCursorClick, 'GlyphButton'),
+  icon: defineIcon(EdStarFour, 'GlyphIcon'),
+  spacer: defineIcon(EdArrowsVertical, 'GlyphSpacer'),
+  divider: defineIcon(EdMinus, 'GlyphDivider'),
+  badge: defineIcon(EdTag, 'GlyphBadge'),
+  code: defineIcon(EdCode, 'GlyphCode'),
 } as const
 export type EditorGlyph = keyof typeof editorGlyphs
 
