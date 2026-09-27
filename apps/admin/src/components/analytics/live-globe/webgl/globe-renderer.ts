@@ -20,6 +20,15 @@ export type Vec3 = [number, number, number]
 /** A 3x3 matrix, row-major. */
 export type Mat3 = [number, number, number, number, number, number, number, number, number]
 
+/** Which layers the sphere shader draws; independent of `style` (solid vs dotted land). */
+export type GlobeLayerFlags = {
+  borders: boolean
+  coastlines: boolean
+  grid: boolean
+  /** Halo outside the disc plus the rim light along its edge. */
+  glow: boolean
+}
+
 export type GlobeFrame = {
   /** Centre and radius of the globe, in canvas (device) pixels from the top-left. */
   cx: number
@@ -31,8 +40,22 @@ export type GlobeFrame = {
    * The radius itself at zoom 1; held there when zoomed in so markers do not balloon. */
   pointScale: number
   dark: boolean
+  /** Land colour. */
   base: Rgb
+  /** Ocean colour. Equal to `base` for the original look (the shader shades one colour into
+   * both), a separate colour for the other theme presets. */
+  ocean: Rgb
   glow: Rgb
+  layers: GlobeLayerFlags
+  /** "Dotted" draws land as dots straight from the land map's texel, in even rows of latitude
+   * (see `webgl/dot-layout.ts`); "solid" is the original filled-continent look. */
+  style: 'solid' | 'dotted'
+  /** Row count and per-dot radius (device px) for the dotted look; ignored otherwise. */
+  dotRows: number
+  dotRadiusPx: number
+  /** Subsolar point as a unit vector in the globe's own axes (`toVector`), or `null` to turn
+   * the day/night shadow off. */
+  sun: Vec3 | null
 }
 
 export type GlobeRenderer = {
@@ -49,30 +72,47 @@ const SPHERE_VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}'
 
 // V = centre xy (GL pixels, y up), radius, dark. M turns a view vector back to the globe's own
 // axes (y north, z at longitude 0, x at 90 E). T = land map, H = 1 once it has loaded.
+// L = layer toggles (borders, coastlines, grid, glow), each 0 or 1. D = style (0 solid / 1
+// dotted), row count. R = dot radius, device px. SUN = subsolar point, or the zero vector to
+// turn the day/night shadow off.
 // The longitude seam: atan jumps from +pi to -pi at 180°, which would make the mipmap pick its
 // blurriest level along that meridian. Two u's with seams half a turn apart are computed and
 // the one that is smooth at this pixel is used (Tarini's trick).
 const SPHERE_FS = `#extension GL_OES_standard_derivatives : enable
-precision highp float;uniform vec4 V;uniform vec3 C,G;uniform mat3 M;uniform sampler2D T;uniform float H;
+precision highp float;uniform vec4 V;uniform vec3 C,O,G,SUN;uniform mat3 M;uniform sampler2D T;
+uniform float H;uniform vec4 L;uniform vec2 D;uniform float R;
 float grid(float x){float w=fwidth(x);return 1.-min(abs(fract(x-.5)-.5)/max(w,1e-4),1.);}
 void main(){vec2 b=(gl_FragCoord.xy-V.xy)/V.z;float a=dot(b,b);
-if(a>1.){float r=sqrt(.3125/(a-1.));float f=smoothstep(.5,1.,r/(r+1.));gl_FragColor=vec4(f*G,f);return;}
+if(a>1.){float f=0.;if(L.w>.5){float r=sqrt(.3125/(a-1.));f=smoothstep(.5,1.,r/(r+1.));}
+gl_FragColor=vec4(f*G,f);return;}
 float i=sqrt(1.-a);vec3 w=M*vec3(b,i);
 float lat=asin(clamp(w.y,-1.,1.));float t=atan(w.x,w.z)/6.2831853;
 float u1=t+.5,u2=fract(t)+.5;float u=fwidth(u1)<=fwidth(u2)+1e-6?u1:u2;
 vec2 st=vec2(u,.5-lat/3.1415927);vec4 m=texture2D(T,st);
-float land=H*smoothstep(.3,.7,m.r);
-float coast=H*(1.-smoothstep(.6,1.4,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
+float land;
+if(D.x>.5){
+float rows=max(D.y,1.);float rowIdx=floor(st.y*rows);float rowV=(rowIdx+.5)/rows;
+float rowLat=(.5-rowV)*3.1415927;float ring=max(cos(rowLat),1e-3);
+float count=max(1.,floor(ring*rows*2.+.5));float offset=mod(rowIdx,2.)*.5/count;
+float slot=floor((u-offset)*count+.5);float nearestU=slot/count+offset;
+vec4 dm=texture2D(T,vec2(nearestU,rowV));float dotLand=H*smoothstep(.3,.7,dm.r);
+float du=u-nearestU;du-=floor(du+.5);float dv=st.y-rowV;
+float pxU=max(fwidth(u),1e-5);float pxV=max(fwidth(st.y),1e-5);
+float distPx=length(vec2(du/pxU,dv/pxV));
+land=dotLand*(1.-smoothstep(R-1.,R+1.,distPx));
+}else{land=H*smoothstep(.3,.7,m.r);}
+float coast=L.y*H*(1.-smoothstep(.6,1.4,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
 float px=max(fwidth(st.x*2048.),1e-4);float bd=1.4*sqrt(-2.*log(max(m.g,1e-3)))/px;
-float border=H*step(.03,m.g)*(1.-smoothstep(.2,.8,bd));
-vec3 ocean=C*(pow(i,.4)*(1.-V.w)+.1)+pow(1.-i,4.)*G;
-vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+pow(1.-i,4.)*G;
+float border=L.x*H*step(.03,m.g)*(1.-smoothstep(.2,.8,bd));
+vec3 ocean=O*(pow(i,.4)*(1.-V.w)+.1)+L.w*pow(1.-i,4.)*G;
+vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+L.w*pow(1.-i,4.)*G;
 vec3 col=mix(ocean,ground,land*smoothstep(0.,.18,i));
 vec3 line=mix(C*1.25+.12,C*2.3+.2,V.w);float rim=smoothstep(0.,.3,i);
 col=mix(col,line,coast*rim*.8);col=mix(col,line,border*rim*.4);
 float g1=grid(degrees(lat)/15.);float lx=u*24.;float g2=grid(lx)*smoothstep(.97,.88,abs(w.y));
-float g=max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
+float g=L.z*max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
 col=mix(col,G*.9+C*.3,g);
+if(dot(SUN,SUN)>.01){float sun=dot(w,SUN);float night=smoothstep(-.12,.12,-sun);col*=mix(1.,.42,night);}
 gl_FragColor=vec4(col,1)*.97;}`
 
 // Marker/arc points carry their size as a share of the radius (p.w) and Z is the radius.
@@ -186,7 +226,18 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       gl.vertexAttribPointer(sphere.a('a'), 2, gl.FLOAT, false, 0, 0)
       gl.uniform4f(sphere.u('V'), f.cx, h - f.cy, f.radius, f.dark ? 1 : 0)
       gl.uniform3fv(sphere.u('C'), f.base)
+      gl.uniform3fv(sphere.u('O'), f.ocean)
       gl.uniform3fv(sphere.u('G'), f.glow)
+      gl.uniform4f(
+        sphere.u('L'),
+        f.layers.borders ? 1 : 0,
+        f.layers.coastlines ? 1 : 0,
+        f.layers.grid ? 1 : 0,
+        f.layers.glow ? 1 : 0,
+      )
+      gl.uniform2f(sphere.u('D'), f.style === 'dotted' ? 1 : 0, f.dotRows)
+      gl.uniform1f(sphere.u('R'), f.dotRadiusPx)
+      gl.uniform3fv(sphere.u('SUN'), f.sun ?? [0, 0, 0])
       // Row-major upload read as column-major is the transpose: the inverse rotation.
       gl.uniformMatrix3fv(sphere.u('M'), false, f.rotation)
       gl.activeTexture(gl.TEXTURE0)

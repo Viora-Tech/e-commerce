@@ -8,6 +8,10 @@ export type GlobeMarker = {
   isNewest: boolean
   /** City, order number and amount; shown next to the marker on hover or focus. */
   tooltip: ReactNode
+  /** The order's total, for "Highlight big orders" (marker size, and a glow on the top 10%).
+   * Undefined markers (e.g. none carry it) are treated as zero, so sizing just falls back to
+   * the flat default. */
+  valuePaise?: number
 }
 
 export type GlobeArc = {

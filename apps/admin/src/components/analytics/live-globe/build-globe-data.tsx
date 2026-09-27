@@ -34,6 +34,7 @@ export function buildGlobeData(summary: DashboardSummary): GlobeData {
       lat: point.lat,
       lng: point.lng,
       isNewest,
+      valuePaise: order.totalPaise,
       label: `${order.city}, ${c.tooltipOrder(order.number)}, ${formatPaise(order.totalPaise)}`,
       tooltip: (
         <div className="flex flex-col gap-0.5">
