@@ -17,13 +17,13 @@ export function resolveParcelWeightGrams(lines: WeighableLine[], boxWeightGrams:
 export type PackageDimensionsCm = { lengthCm: number; widthCm: number; heightCm: number }
 
 /**
- * Couriers bill by whichever is greater, actual or "volumetric" weight - a
- * stand-in for how much room a light, bulky parcel takes on their trucks.
- * The industry-standard Indian-courier divisor is 5000 (cm³ per kg).
+ * Couriers bill by whichever is greater, actual or "volumetric" weight: a stand-in for how
+ * much room a light, bulky parcel takes on their trucks. Indian couriers use L×W×H (cm) ÷ 5000
+ * for kilograms, so cm³ ÷ 5 for grams, rounded up to the next gram. Slab rounding (500 g and
+ * so on) is the courier's own and happens on their side.
  */
 export function volumetricWeightGrams(dims: PackageDimensionsCm): number {
-  const cm3 = dims.lengthCm * dims.widthCm * dims.heightCm
-  return Math.ceil(cm3 / 5000) * 1000
+  return Math.ceil((dims.lengthCm * dims.widthCm * dims.heightCm) / 5)
 }
 
 /** The heavier of a parcel's actual and volumetric weight, in grams. */
@@ -46,8 +46,9 @@ export type LinePackage = {
 /**
  * The box to pack an order in: a product/variant's own package when every
  * sellable line agrees on one (same named box, or the same custom
- * dimensions) - otherwise the store's default box, since a mixed order
- * needs the merchant's own packing judgement more than ours.
+ * dimensions). Null otherwise, and the booking falls back to the store's
+ * default box as before, since a mixed order needs the merchant's own
+ * packing judgement more than ours.
  */
 export function resolveParcelPackage(
   lines: LinePackage[],
@@ -62,7 +63,9 @@ export function resolveParcelPackage(
     }
     if (l.boxPresetId) {
       const preset = boxPresets.find((b) => b.id === l.boxPresetId)
-      if (preset) return preset
+      if (preset) {
+        return { lengthCm: preset.lengthCm, widthCm: preset.widthCm, heightCm: preset.heightCm }
+      }
     }
     return null
   }
@@ -71,7 +74,12 @@ export function resolveParcelPackage(
   if (!first) return null
   const sameForAll = packed.every((l) => {
     const d = dimsOf(l)
-    return d && d.lengthCm === first.lengthCm && d.widthCm === first.widthCm && d.heightCm === first.heightCm
+    return (
+      d &&
+      d.lengthCm === first.lengthCm &&
+      d.widthCm === first.widthCm &&
+      d.heightCm === first.heightCm
+    )
   })
   return sameForAll ? first : null
 }

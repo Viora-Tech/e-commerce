@@ -34,6 +34,7 @@
     "./marketing": "./src/marketing/client.ts",
     "./admin-accent": "./src/admin-accent/accent.ts",
     "./shipping-rates": "./src/shipping/rates.ts",
+    "./parcel": "./src/shipping/parcel.ts",
     "./preorder": "./src/preorder/client.ts",
     "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts",

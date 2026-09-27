@@ -152,7 +152,7 @@ export const productFormContent = {
   },
   more: {
     heading: 'More settings',
-    help: 'Pre-order, custom data, template and stock history.',
+    help: 'Pre-order and launch, custom data, theme template and stock history.',
   },
   details: {
     title: 'Title',
@@ -178,7 +178,9 @@ export const productFormContent = {
     categoryNoResults: 'No matching category',
     categoryLoading: 'Loading categories…',
     categoryClear: 'Clear category',
-    categoryHelp: 'From Shopify’s standard product taxonomy. Optional, but helps with search and marketplaces.',
+    categoryFailed: 'Could not load categories. Click the field to try again.',
+    categoryHelp:
+      'From Shopify’s open standard product taxonomy. Optional, but helps search and marketplaces.',
     type: 'Product type',
     typePlaceholder: 'Select a category',
     tag: 'Product tag',
@@ -261,12 +263,13 @@ export const productFormContent = {
     columns: { variant: 'Variant', price: 'Price', mrp: 'MRP', sku: 'SKU', available: 'Available' },
     tooMany: (n: number) =>
       `${n} variants. Large matrices are slow to edit; consider fewer values.`,
-    autoFillSku: 'Auto-fill SKUs',
+    autoFillSku: 'Suggest SKUs',
     autoFillSkuHelp: 'Fills blank SKUs from the product title and variant.',
-    confirmRemoveTitle: 'Remove these variants?',
-    confirmRemoveBody: (n: number) =>
-      `${n} variant${n === 1 ? '' : 's'} with stock will be removed along with this value. Past orders keep their own record.`,
-    confirmRemoveCancel: 'Keep the value',
+    needsValues: 'Add at least one value to each option to build the variants.',
+    confirmRemoveTitle: 'Remove variants that have stock?',
+    confirmRemoveBody: (n: number, units: number) =>
+      `${n} variant${n === 1 ? '' : 's'} holding ${units} unit${units === 1 ? '' : 's'} in stock will be removed. Past orders keep their own record.`,
+    confirmRemoveCancel: 'Keep them',
     confirmRemoveConfirm: 'Remove anyway',
   },
   status: {
@@ -303,15 +306,21 @@ export const productFormContent = {
     countryHelp: 'Where the product was made or assembled.',
     countryPlaceholder: 'Select a country',
     package: 'Package',
-    packageHelp: 'Which box this ships in. Used for the booking flow instead of the store default.',
+    packageHelp:
+      'The box this product ships in. Shipment booking uses it instead of the store default box.',
+    packageManage: 'Add or edit named boxes in Settings, Shipping.',
+    packageAllVariants: 'Applies to every variant of this product.',
     packageStoreDefault: "Use the store's default box",
     packageCustom: 'Custom size',
+    packageOption: (name: string, l: number, w: number, h: number) =>
+      `${name} (${l} × ${w} × ${h} cm)`,
+    packageIncomplete: 'Enter the length, width and height, or pick a named box.',
     packageLength: 'Length (cm)',
     packageWidth: 'Width (cm)',
     packageHeight: 'Height (cm)',
-    packageVolumetric: (kg: number) => `Volumetric weight: ${kg} kg`,
-    packageActual: (kg: number) => `Actual weight: ${kg} kg`,
-    packageBillingHint: (kg: number) => `Couriers will bill this parcel at ${kg} kg.`,
+    packageVolumetric: (kg: number) => `Volumetric weight ${kg} kg (L × W × H ÷ 5000)`,
+    packageActual: (kg: number) => `actual ${kg} kg`,
+    packageBillingHint: (kg: number) => `couriers bill the higher, ${kg} kg`,
   },
   preorder: {
     heading: 'Pre-order & launch',
@@ -350,6 +359,8 @@ export const productFormContent = {
     selected: (n: number) => `${n} variant${n === 1 ? '' : 's'} selected`,
     price: 'Set price',
     quantity: 'Set quantity',
+    sku: 'SKU prefix',
+    skuHelp: 'A prefix gives each selected variant PREFIX-VALUE SKUs.',
     apply: 'Apply',
     clear: 'Clear selection',
     image: 'Image',
@@ -361,7 +372,7 @@ export const productFormContent = {
   seo: {
     heading: 'Google search preview',
     intro:
-      'How this product can look on Google. Optional — we fill it from the title and description.',
+      'How this product can appear in Google results. Optional: we fill it in from the title and description.',
     edit: 'Edit',
     title: 'Page title',
     titleHelp: (n: number) => `${n} of 70 characters used`,

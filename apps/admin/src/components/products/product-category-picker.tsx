@@ -29,7 +29,7 @@ const RESULT_LIMIT = 20
 export default function ProductCategoryPicker({ id, value, onChange }: ProductCategoryPickerProps) {
   // Hooks
   const [categories, setCategories] = useState<TaxonomyCategory[] | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -42,19 +42,35 @@ export default function ProductCategoryPicker({ id, value, onChange }: ProductCa
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  // Helpers
-  const ensureLoaded = () => {
-    if (categories || loading) return
-    setLoading(true)
+  /* Fetch the taxonomy chunk once it is needed: the picker opened, or a saved category needs its label. */
+  useEffect(() => {
+    if (categories || failed || (!open && !value)) return
+    let cancelled = false
     loadTaxonomy()
-      .then(setCategories)
-      .finally(() => setLoading(false))
-  }
+      .then((loaded) => {
+        if (!cancelled) setCategories(loaded)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [categories, failed, open, value])
 
   // Event handlers
   const handleFocus = () => {
-    ensureLoaded()
+    setFailed(false)
     setOpen(true)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') setOpen(false)
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const top = categories ? searchCategories(categories, query, 1)[0] : undefined
+      if (top) handlePick(top)
+    }
   }
 
   const handlePick = (category: TaxonomyCategory) => {
@@ -70,6 +86,7 @@ export default function ProductCategoryPicker({ id, value, onChange }: ProductCa
 
   // Render logic
   const selected = findCategory(categories ?? [], value)
+  const loading = !categories && !failed && (open || Boolean(value))
   const results = categories ? searchCategories(categories, query, RESULT_LIMIT) : []
 
   return (
@@ -97,8 +114,12 @@ export default function ProductCategoryPicker({ id, value, onChange }: ProductCa
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
+          onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
           placeholder={
-            value && !categories
+            value && loading
               ? productFormContent.categories.categoryLoading
               : productFormContent.categories.categoryPlaceholder
           }
@@ -107,7 +128,11 @@ export default function ProductCategoryPicker({ id, value, onChange }: ProductCa
       )}
       {open && !selected ? (
         <div className="absolute top-full z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
-          {loading ? (
+          {failed ? (
+            <p className="px-2 py-1.5 text-caption text-destructive">
+              {productFormContent.categories.categoryFailed}
+            </p>
+          ) : loading ? (
             <p className="px-2 py-1.5 text-caption text-muted-foreground">
               {productFormContent.categories.categoryLoading}
             </p>

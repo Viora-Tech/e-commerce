@@ -20,15 +20,18 @@ type ProductMainCardProps = {
   onPatch: (patch: Partial<ProductFormState>) => void
   onVariant: (patch: Partial<VariantRow>) => void
   onReason: (reason: InventoryReason) => void
-  /** The media card, drawn right under general information (Saleor product page order). */
+  /** The media card, drawn first so the jump nav reads top to bottom: Media, Details, Pricing, Inventory. */
   media?: ReactNode
 }
 
 const copy = productFormContent
 
+/** Jump-nav targets land below the sticky page header instead of under it. */
+const SECTION = 'scroll-mt-44'
+
 /**
  * The product page main column head, after the Saleor Dashboard product page (BSD-3):
- * general information, media, then pricing and inventory as their own cards. Each
+ * media, general information, then pricing and inventory as their own cards. Each
  * section carries an id so the compact jump nav (`ProductSectionNav`) can scroll to it;
  * pre-order moved out to the "More" group (`ProductMoreSection`, in `product-form.tsx`).
  */
@@ -49,7 +52,10 @@ export default function ProductMainCard({
   // Render logic
   return (
     <>
-      <div id="details">
+      <section id="media" className={SECTION}>
+        {media}
+      </section>
+      <section id="details" className={SECTION}>
         <DataCard title={copy.basics}>
           <ProductBasicsSection
             title={form.title}
@@ -59,11 +65,10 @@ export default function ProductMainCard({
             onDescription={handleDescription}
           />
         </DataCard>
-      </div>
-      <div id="media">{media}</div>
+      </section>
       {singleVariant ? (
         <>
-          <div id="pricing">
+          <section id="pricing" className={SECTION}>
             <DataCard title={copy.pricing.heading}>
               <ProductPricingSection
                 variant={variant}
@@ -76,8 +81,8 @@ export default function ProductMainCard({
                 onSaleEndsAt={(saleEndsAt) => onPatch({ saleEndsAt })}
               />
             </DataCard>
-          </div>
-          <div id="inventory">
+          </section>
+          <section id="inventory" className={SECTION}>
             <DataCard title={copy.inventory.heading}>
               <ProductStockSection
                 variant={variant}
@@ -89,7 +94,7 @@ export default function ProductMainCard({
                 onReason={onReason}
               />
             </DataCard>
-          </div>
+          </section>
         </>
       ) : null}
     </>

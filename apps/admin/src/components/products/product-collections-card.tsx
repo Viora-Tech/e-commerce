@@ -14,17 +14,22 @@ import ProductCollectionsField, { type CollectionOption } from './product-collec
 type ProductCollectionsCardProps = {
   /** Null while the product is unsaved. */
   productId: string | null
+  /** Changes after each product save; smart collections re-evaluate on save, so refetch. */
+  revision?: number
 }
 
 type Loaded = { manual: CollectionOption[]; automatic: CollectionOption[]; memberOf: string[] }
 
 /**
  * Manual collections this product sits in (editable here) plus the automatic
- * ones it currently matches (read-only — they follow the collection's rules).
+ * ones it currently matches (read-only: they follow the collection's rules).
  * Saves on its own button, like MetafieldsCard, so the page's save bar and
  * its product write stay untouched.
  */
-export default function ProductCollectionsCard({ productId }: ProductCollectionsCardProps) {
+export default function ProductCollectionsCard({
+  productId,
+  revision = 0,
+}: ProductCollectionsCardProps) {
   // Hooks
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [value, setValue] = useState<string[]>([])
@@ -32,7 +37,7 @@ export default function ProductCollectionsCard({ productId }: ProductCollections
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!productId) return
+    if (!productId || revision < 0) return
     let live = true
     Promise.all([api.collections.list(), api.collections.forProduct({ productId })])
       .then(([all, memberOf]) => {
@@ -48,7 +53,7 @@ export default function ProductCollectionsCard({ productId }: ProductCollections
     return () => {
       live = false
     }
-  }, [productId])
+  }, [productId, revision])
 
   // Event handlers
   const handleSave = async () => {

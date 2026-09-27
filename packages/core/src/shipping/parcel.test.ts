@@ -40,14 +40,19 @@ describe('resolveParcelWeightGrams', () => {
 })
 
 describe('volumetricWeightGrams', () => {
-  it('divides L*W*H by 5000 and rounds up to whole kg, in grams', () => {
-    // 20*15*10 = 3000cm3 / 5000 = 0.6kg -> rounds up to 1000g
-    expect(volumetricWeightGrams({ lengthCm: 20, widthCm: 15, heightCm: 10 })).toBe(1000)
+  it('is L*W*H / 5000 kg, in grams', () => {
+    // 20*15*10 = 3000 cm3 / 5000 = 0.6 kg
+    expect(volumetricWeightGrams({ lengthCm: 20, widthCm: 15, heightCm: 10 })).toBe(600)
   })
 
   it('scales with box size', () => {
-    // 40*30*20 = 24000cm3 / 5000 = 4.8kg -> rounds up to 5000g
-    expect(volumetricWeightGrams({ lengthCm: 40, widthCm: 30, heightCm: 20 })).toBe(5000)
+    // 40*30*20 = 24000 cm3 / 5000 = 4.8 kg
+    expect(volumetricWeightGrams({ lengthCm: 40, widthCm: 30, heightCm: 20 })).toBe(4800)
+  })
+
+  it('rounds up to the next gram', () => {
+    // 7*7*7 = 343 cm3 -> 68.6 g
+    expect(volumetricWeightGrams({ lengthCm: 7, widthCm: 7, heightCm: 7 })).toBe(69)
   })
 })
 
@@ -57,13 +62,13 @@ describe('effectiveWeightGrams', () => {
   })
 
   it('returns the actual weight when it exceeds the volumetric weight', () => {
-    // volumetric here is 1000g; actual (a dense product) is heavier.
+    // volumetric here is 600g; actual (a dense product) is heavier.
     expect(effectiveWeightGrams(2000, { lengthCm: 20, widthCm: 15, heightCm: 10 })).toBe(2000)
   })
 
   it('returns the volumetric weight when it exceeds the actual weight', () => {
     // A light, bulky parcel: actual 150g but a big box.
-    expect(effectiveWeightGrams(150, { lengthCm: 40, widthCm: 30, heightCm: 20 })).toBe(5000)
+    expect(effectiveWeightGrams(150, { lengthCm: 40, widthCm: 30, heightCm: 20 })).toBe(4800)
   })
 })
 
@@ -74,7 +79,15 @@ describe('resolveParcelPackage', () => {
     expect(resolveParcelPackage([], presets)).toBeNull()
     expect(
       resolveParcelPackage(
-        [{ quantity: 0, boxPresetId: 'box-1', packageLengthCm: null, packageWidthCm: null, packageHeightCm: null }],
+        [
+          {
+            quantity: 0,
+            boxPresetId: 'box-1',
+            packageLengthCm: null,
+            packageWidthCm: null,
+            packageHeightCm: null,
+          },
+        ],
         presets,
       ),
     ).toBeNull()
@@ -98,7 +111,15 @@ describe('resolveParcelPackage', () => {
 
   it('resolves a named box preset when no custom dims are set', () => {
     const dims = resolveParcelPackage(
-      [{ quantity: 1, boxPresetId: 'box-1', packageLengthCm: null, packageWidthCm: null, packageHeightCm: null }],
+      [
+        {
+          quantity: 1,
+          boxPresetId: 'box-1',
+          packageLengthCm: null,
+          packageWidthCm: null,
+          packageHeightCm: null,
+        },
+      ],
       presets,
     )
     expect(dims).toEqual({ lengthCm: 30, widthCm: 20, heightCm: 10 })
@@ -107,7 +128,13 @@ describe('resolveParcelPackage', () => {
   it('falls back to null when lines disagree on the package', () => {
     const dims = resolveParcelPackage(
       [
-        { quantity: 1, boxPresetId: 'box-1', packageLengthCm: null, packageWidthCm: null, packageHeightCm: null },
+        {
+          quantity: 1,
+          boxPresetId: 'box-1',
+          packageLengthCm: null,
+          packageWidthCm: null,
+          packageHeightCm: null,
+        },
         {
           quantity: 1,
           boxPresetId: null,
@@ -123,7 +150,15 @@ describe('resolveParcelPackage', () => {
 
   it('falls back to null when no line has a package', () => {
     const dims = resolveParcelPackage(
-      [{ quantity: 1, boxPresetId: null, packageLengthCm: null, packageWidthCm: null, packageHeightCm: null }],
+      [
+        {
+          quantity: 1,
+          boxPresetId: null,
+          packageLengthCm: null,
+          packageWidthCm: null,
+          packageHeightCm: null,
+        },
+      ],
       presets,
     )
     expect(dims).toBeNull()

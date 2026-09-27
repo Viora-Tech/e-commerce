@@ -502,15 +502,14 @@ Creative Commons may be contacted at creativecommons.org.
 
 Source: https://github.com/Shopify/product-taxonomy
 
-What we adapted: a trimmed copy of the category list (id, name, full path, parent id, depth
-only — attributes and return-reason data dropped) vendored at
-`src/data/product-taxonomy.json` and searched by `src/lib/product-taxonomy.ts`, used by the
-product category picker (`src/components/products/product-category-picker.tsx`). No code was
-copied, only the generated category data.
+What we adapted: the category list from release `v2026-08`, trimmed to `[id, name]` pairs
+(attributes, values and return reasons dropped; breadcrumbs are rebuilt from the hierarchical
+ids at load time) by `scripts/trim-product-taxonomy.ts`, vendored at
+`src/data/product-taxonomy.json` and searched by `src/lib/product-taxonomy.ts` for the product
+category picker (`src/components/products/product-category-picker.tsx`). No code was copied,
+only the generated category data. Licence text as in the upstream `LICENSE` file:
 
 ```text
-MIT License
-
 Copyright (c) Shopify
 
 Permission is hereby granted, free of charge, to any person obtaining

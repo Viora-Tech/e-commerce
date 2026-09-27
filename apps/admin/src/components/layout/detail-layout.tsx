@@ -49,7 +49,9 @@ export default function DetailLayout({
           <aside
             className={cn(
               'flex min-w-0 flex-col border-border border-t lg:border-t-0',
-              stickySide && 'lg:sticky lg:top-0 lg:h-fit lg:max-h-screen lg:self-start lg:overflow-y-auto',
+              /* Height of the scrolling <main>: the window less the 3.5rem top bar (admin-frame). */
+              stickySide &&
+                'lg:sticky lg:top-0 lg:max-h-[calc(100svh-3.5rem)] lg:self-start lg:overflow-y-auto',
             )}
           >
             {side}

@@ -273,6 +273,7 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
     handle: await uniqueHandle(tx, title),
     description: (source.description ?? null) as ProductWrite['description'],
     vendor: source.vendor,
+    categoryId: source.categoryId,
     productType: source.productType,
     tags: source.tags,
     seoTitle: source.seoTitle,
@@ -291,6 +292,10 @@ export async function duplicateProduct(tx: StoreTx, storeId: string, id: string)
       taxable: v.taxable,
       trackInventory: v.trackInventory,
       weightGrams: v.weightGrams,
+      boxPresetId: v.boxPresetId,
+      packageLengthCm: v.packageLengthCm,
+      packageWidthCm: v.packageWidthCm,
+      packageHeightCm: v.packageHeightCm,
       onHand: levels.find((l) => l.variantId === v.id)?.onHand ?? 0,
     })),
   })

@@ -19,15 +19,16 @@ import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
 import { productFormContent } from '@/data/products'
 import {
-  droppedVariants,
-  dropsStock,
   MAX_OPTIONS,
   type MediaItem,
+  matrixOptions,
   type OptionRow,
+  reconcileVariants,
+  stockOf,
   suggestSku,
   type VariantRow,
 } from './form-state'
-import VariantBulkBar from './variant-bulk-bar'
+import VariantBulkBar, { type VariantBulkPatch } from './variant-bulk-bar'
 import VariantMatrix from './variant-matrix'
 
 type VariantsCardProps = {
@@ -67,21 +68,25 @@ export default function VariantsCard({
   const [pending, setPending] = useState<OptionRow[] | null>(null)
 
   // Helpers
-  const setOption = (i: number, patch: Partial<OptionRow>) =>
-    onOptions(options.map((o, j) => (j === i ? { ...o, ...patch } : o)))
-  const addOption = () => onOptions([...options, { name: '', values: [] }])
-  const removeOption = (i: number) => onOptions(options.filter((_, j) => j !== i))
-
-  // Event handlers
-  const handleValues = (i: number, values: string[]) => {
-    const proposed = options.map((o, j) => (j === i ? { ...o, values } : o))
-    if (dropsStock(proposed, variants)) {
-      setPending(proposed)
+  /** Applies an options edit, asking first when it would remove variants that still hold stock. */
+  const propose = (next: OptionRow[]) => {
+    if (stockOf(reconcileVariants(next, options, variants).dropped) > 0) {
+      setPending(next)
       return
     }
-    onOptions(proposed)
+    onOptions(next)
     setSelected([])
   }
+  const setOption = (i: number, patch: Partial<OptionRow>) =>
+    onOptions(options.map((o, j) => (j === i ? { ...o, ...patch } : o)))
+
+  // Event handlers
+  const handleAddOption = () => onOptions([...options, { name: '', values: [] }])
+
+  const handleRemoveOption = (i: number) => propose(options.filter((_, j) => j !== i))
+
+  const handleValues = (i: number, values: string[]) =>
+    propose(options.map((o, j) => (j === i ? { ...o, values } : o)))
 
   const handleConfirmRemove = () => {
     if (pending) onOptions(pending)
@@ -89,8 +94,16 @@ export default function VariantsCard({
     setSelected([])
   }
 
-  const handleBulkApply = (patch: { price?: string; quantity?: string }) => {
-    for (const index of selected) onVariant(index, patch)
+  const handleBulkApply = ({ price, quantity, skuPrefix }: VariantBulkPatch) => {
+    for (const index of selected) {
+      const row = variants[index]
+      if (!row) continue
+      onVariant(index, {
+        ...(price === undefined ? {} : { price }),
+        ...(quantity === undefined || !row.trackInventory ? {} : { quantity }),
+        ...(skuPrefix === undefined ? {} : { sku: suggestSku(skuPrefix, row.optionValues) }),
+      })
+    }
   }
 
   const handleAutoFillSku = () => {
@@ -102,8 +115,10 @@ export default function VariantsCard({
 
   // Render logic
   const hasOptions = options.length > 0
+  const hasMatrix = matrixOptions(options).length > 0
   const atMax = options.length >= MAX_OPTIONS
-  const pendingCount = pending ? droppedVariants(pending, variants).length : 0
+  const pendingDropped = pending ? reconcileVariants(pending, options, variants).dropped : []
+  const waiting = options.some((o) => !o.values.some((v) => v.trim()))
 
   return (
     <Card size="form" className="pb-0">
@@ -146,7 +161,7 @@ export default function VariantsCard({
               variant="ghost"
               size="icon"
               className="text-muted-foreground hover:text-destructive md:mt-6"
-              onClick={() => removeOption(i)}
+              onClick={() => handleRemoveOption(i)}
               aria-label={copy.remove}
             >
               <Trash2 />
@@ -154,30 +169,45 @@ export default function VariantsCard({
           </div>
         ))}
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={addOption} disabled={atMax}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddOption}
+            disabled={atMax}
+          >
             <Plus />
             {hasOptions ? copy.addAnother : copy.addOption}
           </Button>
-          {hasOptions ? (
-            <Button type="button" variant="ghost" size="sm" onClick={handleAutoFillSku}>
+          {hasMatrix ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleAutoFillSku}
+              title={copy.autoFillSkuHelp}
+            >
               {copy.autoFillSku}
             </Button>
           ) : null}
           {atMax ? <span className="text-xs text-muted-foreground">{copy.maxOptions}</span> : null}
         </div>
+        {waiting && !error ? (
+          <p className="text-caption text-muted-foreground">{copy.needsValues}</p>
+        ) : null}
         {error ? <FieldError>{error}</FieldError> : null}
         {variants.length > 30 ? (
           <p className="text-xs text-muted-foreground">{copy.tooMany(variants.length)}</p>
         ) : null}
       </CardContent>
-      {hasOptions && selected.length > 0 ? (
+      {hasMatrix && selected.length > 0 ? (
         <VariantBulkBar
           count={selected.length}
           onApply={handleBulkApply}
           onClear={() => setSelected([])}
         />
       ) : null}
-      {hasOptions ? (
+      {hasMatrix ? (
         <VariantMatrix
           variants={variants}
           media={media}
@@ -190,7 +220,9 @@ export default function VariantsCard({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{copy.confirmRemoveTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{copy.confirmRemoveBody(pendingCount)}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {copy.confirmRemoveBody(pendingDropped.length, stockOf(pendingDropped))}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{copy.confirmRemoveCancel}</AlertDialogCancel>

@@ -30,9 +30,9 @@ export const VariantInputSchema = z.object({
   countryOfOrigin: z.string().trim().max(2).nullable().optional(),
   /** One of the store's named boxes (Settings → Shipping); null with dims set means a custom box. */
   boxPresetId: z.string().trim().max(60).nullable().optional(),
-  packageLengthCm: z.number().min(1).max(200).nullable().optional(),
-  packageWidthCm: z.number().min(1).max(200).nullable().optional(),
-  packageHeightCm: z.number().min(1).max(200).nullable().optional(),
+  packageLengthCm: z.number().int().min(1).max(200).nullable().optional(),
+  packageWidthCm: z.number().int().min(1).max(200).nullable().optional(),
+  packageHeightCm: z.number().int().min(1).max(200).nullable().optional(),
   /** Null uses the store's GST rate. */
   gstRatePercent: z.number().int().min(0).max(40).nullable().optional(),
   onHand: z.number().int().min(0).max(1_000_000).optional(),

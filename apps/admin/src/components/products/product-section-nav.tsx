@@ -1,19 +1,21 @@
 'use client'
 
 import { cn } from '@commerce/ui/lib/utils'
-import { useEffect, useState } from 'react'
+import { type MouseEvent, useEffect, useState } from 'react'
 import { productFormContent } from '@/data/products'
 
 type ProductSectionNavProps = {
   /** Only sections actually rendered for this product (e.g. "pricing" is hidden once it has variants). */
   sections: readonly string[]
+  /** Told before scrolling, so a collapsed target (the "More" group) can open first. */
+  onJump?: (id: string) => void
 }
 
 const LABEL: Record<string, string> = productFormContent.sectionNav.labels
 
-/** Compact jump-link row under the header: Media, Details, Pricing… down to More, highlighting
- *  whichever section is in view. */
-export default function ProductSectionNav({ sections }: ProductSectionNavProps) {
+/** Compact jump-link row inside the sticky page header: Media, Details, Pricing… down to More,
+ *  highlighting whichever section is in view. */
+export default function ProductSectionNav({ sections, onJump }: ProductSectionNavProps) {
   // Hooks
   const [active, setActive] = useState<string | undefined>(sections[0])
 
@@ -26,7 +28,9 @@ export default function ProductSectionNav({ sections }: ProductSectionNavProps) 
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting)
         if (visible.length === 0) return
-        const top = visible.reduce((a, b) => (a.boundingClientRect.top < b.boundingClientRect.top ? a : b))
+        const top = visible.reduce((a, b) =>
+          a.boundingClientRect.top < b.boundingClientRect.top ? a : b,
+        )
         setActive(top.target.id)
       },
       { rootMargin: '-15% 0px -70% 0px', threshold: 0 },
@@ -36,8 +40,9 @@ export default function ProductSectionNav({ sections }: ProductSectionNavProps) 
   }, [sections])
 
   // Event handlers
-  const handleClick = (id: string) => (e: React.MouseEvent) => {
+  const handleClick = (id: string) => (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
+    onJump?.(id)
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setActive(id)
   }
@@ -46,7 +51,7 @@ export default function ProductSectionNav({ sections }: ProductSectionNavProps) 
   return (
     <nav
       aria-label={productFormContent.sectionNav.label}
-      className="no-scrollbar flex gap-1 overflow-x-auto border-border border-b bg-card px-4 py-1.5 md:px-6"
+      className="no-scrollbar -mx-1 -mb-2 flex gap-1 overflow-x-auto"
     >
       {sections.map((id) => (
         <a

@@ -50,6 +50,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Ops | [SigNoz](https://github.com/SigNoz/signoz) | MIT outside `ee/` | Logs, traces, metrics | Self-hosted observability |
 | Ops | [GlitchTip](https://gitlab.com/glitchtip/glitchtip) | MIT | Sentry-protocol-compatible error tracking server | Done: run it as a separate service, point the official Sentry SDKs at its DSN |
 | Invoices | [invoicely](https://github.com/legions-developer/invoicely) | MIT, author's permission | PDF templates | Done: GST invoices app |
+| Catalog | [Shopify Product Taxonomy](https://github.com/Shopify/product-taxonomy) | MIT | Standard product category tree | Done: product category picker (trimmed data, `scripts/trim-product-taxonomy.ts`) |
 
 ## Order of adoption
 

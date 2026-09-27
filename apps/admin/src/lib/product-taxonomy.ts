@@ -1,6 +1,8 @@
 /**
- * Shopify's open-source Standard Product Taxonomy (MIT), trimmed to just the
- * fields the category picker needs. See THIRD_PARTY_NOTICES.md.
+ * Shopify's open-source Standard Product Taxonomy (MIT, https://github.com/Shopify/product-taxonomy),
+ * vendored as `[id, name]` pairs by `scripts/trim-product-taxonomy.ts`. See THIRD_PARTY_NOTICES.md.
+ * Ids are hierarchical (`aa-1-2` sits under `aa-1`), so the breadcrumb, parent and depth
+ * are rebuilt here instead of being shipped.
  */
 export type TaxonomyCategory = {
   id: string
@@ -11,13 +13,44 @@ export type TaxonomyCategory = {
   level: number
 }
 
+export type TaxonomyRow = readonly [id: string, name: string]
+
 let cached: Promise<TaxonomyCategory[]> | null = null
 
-/** Lazily fetches the vendored taxonomy JSON; only downloaded once the picker opens. */
+/** Parent of a hierarchical id: `aa-1-2` -> `aa-1`, `aa` -> null. */
+export function parentIdOf(id: string): string | null {
+  const cut = id.lastIndexOf('-')
+  return cut === -1 ? null : id.slice(0, cut)
+}
+
+/** Rebuilds breadcrumbs from the trimmed rows. Rows arrive parents first, as upstream lists them. */
+export function expandTaxonomy(rows: readonly TaxonomyRow[]): TaxonomyCategory[] {
+  const byId = new Map<string, TaxonomyCategory>()
+  const out: TaxonomyCategory[] = []
+  for (const [id, name] of rows) {
+    const parentId = parentIdOf(id)
+    const parent = parentId ? byId.get(parentId) : undefined
+    const category: TaxonomyCategory = {
+      id,
+      name,
+      path: parent ? `${parent.path} > ${name}` : name,
+      parentId,
+      level: parent ? parent.level + 1 : 0,
+    }
+    byId.set(id, category)
+    out.push(category)
+  }
+  return out
+}
+
+/** Lazily fetches the vendored taxonomy (its own chunk); only downloaded once the picker is used. */
 export function loadTaxonomy(): Promise<TaxonomyCategory[]> {
-  cached ??= import('@/data/product-taxonomy.json').then(
-    (mod) => (mod.default ?? mod) as TaxonomyCategory[],
-  )
+  cached ??= import('@/data/product-taxonomy.json')
+    .then((mod) => expandTaxonomy(mod.default as unknown as TaxonomyRow[]))
+    .catch((err: unknown) => {
+      cached = null
+      throw err
+    })
   return cached
 }
 

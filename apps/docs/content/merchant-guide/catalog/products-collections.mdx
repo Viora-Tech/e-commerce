@@ -42,7 +42,9 @@ flowchart TD
 ### Start a product
 
 Go to **Products → Product list** and select **Add product**. Enter a **Title** and
-**Description**.
+**Description**. The row of links under the page title (**Media**, **Details**, **Pricing**,
+**Inventory**, **Variants**, **Shipping**, **Google preview**, **More**) jumps to each section,
+and the side column stays in view while you scroll.
 
 ### Set the price
 
@@ -57,9 +59,16 @@ In **Media**, drop images in or **Browse** the file library.
 
 ### Add variants
 
-Under **Variants**, select **Add options like size or colour**. Type an **Option name** (Size)
-and **Option values** (S, M, L, XL). Up to 3 options. Then set each variant's price, MRP, SKU
-and quantity in the table, or use **Set price** and **Set quantity** for many at once.
+Under **Variants**, select **Add options like size or colour**. Pick or type an **Option
+name** (Size, Colour, Material or your own) and add **Option values** as chips: type one and
+press Enter. Up to 3 options. Every combination appears as a row straight away (Size S, M, L
+and Colour Indigo, Rust make 6 rows); removing a value removes its rows, and if those rows
+still hold stock you're asked first. Existing variants keep their stock, SKU and order history
+when you add a value or a whole new option.
+
+Set each variant's price, MRP, SKU and quantity in the table, or tick rows and use **Set
+price**, **Set quantity** or **SKU prefix** for many at once (a prefix of `KUR` gives
+`KUR-M-INDIGO`). **Suggest SKUs** fills any blank SKU from the title and the variant.
 
 <Screenshot
   name="Variants table"
@@ -72,6 +81,12 @@ In **Shipping**, fill **Weight (grams)**, **HS (harmonised system) code** (your 
 `6211` for kurtas), **GST rate (%)** (e.g. `5` or `12`, blank uses your store rate) and
 **Country of origin**. Weight is used for courier rates; HSN and GST go on invoices.
 
+Under **Package**, pick one of your named boxes from **Settings → Shipping**, or **Custom size**
+for a length × width × height in cm. The card shows the **volumetric weight** (L × W × H ÷
+5000, in kg): couriers bill the higher of that and the actual weight, so a light product in a
+big box costs more to ship. When you book a shipment for an order whose items all use the same
+box, that box and its volumetric weight are used instead of the store's default box.
+
 ### Stock
 
 Under **Inventory**, turn on **Track quantity**, then set the **Stock quantity**, **SKU (Stock
@@ -82,9 +97,16 @@ history makes sense later.
 ### Organise and publish
 
 In the side column, set **Status** (**Active** shows it on your store), and under
-**Organisation** add a **Vendor**, **Product tag**s and **Collections**. Fill in **Search engine
-listing** (a **Page title** up to 70 characters and a **Meta description**). Then select
+**Organisation** pick a **Category** (search Shopify's standard list, e.g. "Kurtas"), a
+**Product type**, **Vendor** and **Product tag**s. The **Collections** card adds the product to
+manual collections (select **Save** on the card); automatic collections it matches are listed
+there too, but they follow their own conditions. **Google search preview** shows how the
+product can appear in Google results; it fills itself from the title and description, or
+**Edit** it (a **Page title** up to 70 characters and a **Meta description**). Then select
 **Publish product**, or **Save to draft** to finish later.
+
+Rarely used settings (**Pre-order & launch**, custom data, the theme template and stock
+history) sit under **More settings** at the bottom of the page.
 
 </Steps>
 
@@ -95,7 +117,7 @@ listing** (a **Page title** up to 70 characters and a **Meta description**). The
 
 ## Pre-orders and launch countdowns
 
-Open **Pre-order & launch** on a product:
+Open **More settings → Pre-order & launch** on a product:
 
 - **Allow pre-orders on this product**, with an **Expected ship date** or **Or, ships in
   (days)**, an optional **Pre-order quantity limit** and a **Pre-order button label** ("Pre-order

@@ -6,7 +6,7 @@ import {
   variantTitle,
 } from '@commerce/core/catalog'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
-import { rupees } from '@/data/products'
+import { productFormContent, rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -212,19 +212,78 @@ export function snapshot(form: ProductFormState): string {
   })
 }
 
+/** Options that take part in the matrix: at least one non-blank value. A half-typed option waits. */
+export function matrixOptions(options: OptionRow[]): OptionRow[] {
+  return options.filter((o) => o.values.some((v) => v.trim()))
+}
+
+/** Option name -> value for one row, keyed case-insensitively (blank names fall back to position). */
+function valuesByName(options: OptionRow[], optionValues: string[]): Map<string, string> {
+  return new Map(
+    options.map((o, i) => [o.name.trim().toLowerCase() || `#${i}`, optionValues[i] ?? '']),
+  )
+}
+
+/** Every option both rows know about has the same value (vacuously true with none shared). */
+function agrees(a: Map<string, string>, b: Map<string, string>): boolean {
+  for (const [key, value] of a) {
+    if (b.has(key) && b.get(key) !== value) return false
+  }
+  return true
+}
+
 /**
- * Options changed: rebuild the matrix, keeping rows whose combination still
- * exists so their price, SKU and quantity survive a rename elsewhere.
+ * Rebuilds the variant matrix after an options edit, carrying existing rows (and so their ids,
+ * prices, SKUs and stock) over wherever they still fit. A row keeps its place when its
+ * combination survives; otherwise it moves to the first new combination that agrees with it
+ * on every option both share. So the default variant becomes the first row when the first
+ * option arrives, "S" becomes "S / Red" when Colour is added, and one of "S / Red" and
+ * "S / Blue" becomes "S" when Colour goes. Rows `variants` were built from `before`'s
+ * matrix options; `dropped` are the rows nothing took over.
  */
-export function reconcileVariants(options: OptionRow[], previous: VariantRow[]): VariantRow[] {
-  const byTitle = new Map(previous.map((v) => [variantTitle(v.optionValues), v]))
-  const template = previous[0]
-  return buildMatrix(
-    options.map((o) => ({ name: o.name, values: o.values.map((value) => ({ value })) })),
-  ).map((combo) => {
-    const kept = byTitle.get(variantTitle(combo))
-    return kept ? { ...kept, optionValues: combo } : emptyVariant(combo, template)
+export function reconcileVariants(
+  after: OptionRow[],
+  before: OptionRow[],
+  variants: VariantRow[],
+): { variants: VariantRow[]; dropped: VariantRow[] } {
+  const nextOptions = matrixOptions(after)
+  const prevOptions = matrixOptions(before)
+  const combos = buildMatrix(
+    nextOptions.map((o) => ({ name: o.name, values: o.values.map((value) => ({ value })) })),
+  )
+  const used = new Set<number>()
+  const taken: (number | undefined)[] = combos.map((combo) => {
+    const title = variantTitle(combo)
+    const i = variants.findIndex((v, j) => !used.has(j) && variantTitle(v.optionValues) === title)
+    if (i !== -1) used.add(i)
+    return i === -1 ? undefined : i
   })
+  const prevKeys = variants.map((v) => valuesByName(prevOptions, v.optionValues))
+  combos.forEach((combo, c) => {
+    if (taken[c] !== undefined) return
+    const keys = valuesByName(nextOptions, combo)
+    const i = variants.findIndex((_, j) => !used.has(j) && agrees(prevKeys[j] ?? new Map(), keys))
+    if (i === -1) return
+    used.add(i)
+    taken[c] = i
+  })
+  const template = variants[0]
+  return {
+    variants: combos.map((combo, c) => {
+      const i = taken[c]
+      const kept = i === undefined ? undefined : variants[i]
+      return kept ? { ...kept, optionValues: combo } : emptyVariant(combo, template)
+    }),
+    dropped: variants.filter((_, j) => !used.has(j)),
+  }
+}
+
+/** Units on hand across rows, for the "these variants still have stock" confirmation. */
+export function stockOf(rows: VariantRow[]): number {
+  return rows.reduce(
+    (sum, v) => sum + (v.trackInventory ? Math.max(0, Number(v.quantity) || 0) : 0),
+    0,
+  )
 }
 
 /** Timestamp to the `yyyy-mm-dd` a date input wants, in the browser's zone. */
@@ -320,15 +379,26 @@ export function toWrite(form: ProductFormState): ProductWrite {
 }
 
 /** Client-side checks that give an inline message before the round trip. */
-export function formErrors(form: ProductFormState): {
+export type FormErrors = {
   title?: string
   variants?: string
+  /** Custom box with only some of its dimensions filled in. */
+  package?: string
   preorderDeposit?: string
-} {
-  const errors: { title?: string; variants?: string; preorderDeposit?: string } = {}
+}
+
+export function formErrors(form: ProductFormState): FormErrors {
+  const errors: FormErrors = {}
   if (!form.title.trim()) errors.title = 'required'
+  const empty = form.options.find((o) => !o.values.some((v) => v.trim()))
+  if (empty) errors.variants = `Add at least one value to ${empty.name.trim() || 'the new option'}`
   const bad = form.variants.find((v) => rupees.toPaise(v.price) == null)
-  if (bad) errors.variants = `Price is missing for ${variantTitle(bad.optionValues)}`
+  if (bad && !errors.variants)
+    errors.variants = `Price is missing for ${variantTitle(bad.optionValues)}`
+  const dims = form.variants.map((v) => [v.packageLengthCm, v.packageWidthCm, v.packageHeightCm])
+  if (dims.some((d) => d.some((n) => n != null) && d.some((n) => n == null))) {
+    errors.package = productFormContent.shipping.packageIncomplete
+  }
   if (form.preorderEnabled) {
     if (form.preorderPaymentMode === 'fixed') {
       const deposit = rupees.toPaise(form.preorderDeposit)
@@ -350,22 +420,7 @@ export function formErrors(form: ProductFormState): {
   return errors
 }
 
-/**
- * Variant rows that a change of options would drop (their combination no
- * longer exists), so the caller can warn before an option value with stock
- * or orders against it disappears.
- */
-export function droppedVariants(options: OptionRow[], previous: VariantRow[]): VariantRow[] {
-  const next = new Set(reconcileVariants(options, previous).map((v) => variantTitle(v.optionValues)))
-  return previous.filter((v) => !next.has(variantTitle(v.optionValues)))
-}
-
-/** Whether any variant a change of options would drop still has stock on hand. */
-export function dropsStock(options: OptionRow[], previous: VariantRow[]): boolean {
-  return droppedVariants(options, previous).some((v) => (Number(v.quantity) || 0) > 0)
-}
-
-/** "Classic T-Shirt" + ["Red", "M"] -> "CLASSIC-TSHIRT-RED-M", trimmed to a sane length. */
+/** "Classic T-Shirt" + ["Red", "M"] -> "CLASSIC-T-SHIRT-RED-M", trimmed to a sane length. */
 export function suggestSku(title: string, optionValues: string[]): string {
   const part = (s: string) =>
     s

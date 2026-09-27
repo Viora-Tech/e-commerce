@@ -26,12 +26,12 @@ export const OPEN_SHIPMENT_STATUSES = [
  * The order must have a shipping address. Parcel weight sums the order's own
  * variant weights when every line has one, else falls back to the store's
  * default box weight (see `resolveParcelWeightGrams`), and finally
- * `ASSUMED_WEIGHT_GRAMS` if the store has no box preset either. The package -
- * a product/variant's own box (custom dims, or a named preset) when every
- * line agrees on one, otherwise the store default - can push that weight up
- * to its volumetric weight, since couriers bill by whichever is greater. The
- * order is marked fulfilled here because the label exists now; whether the
- * courier has collected it is what tracking is for.
+ * `ASSUMED_WEIGHT_GRAMS` if the store has no box preset either. A
+ * product/variant's own box (custom dims, or a named preset), when every line
+ * agrees on one, can push that weight up to its volumetric weight, since
+ * couriers bill by whichever is greater. The order is marked fulfilled here
+ * because the label exists now; whether the courier has collected it is what
+ * tracking is for.
  */
 export type CreateShipmentOptions = {
   /** Overrides the computed weight, e.g. the merchant's per-row edit in the booking panel. */
@@ -77,12 +77,23 @@ export async function createShipmentForOrder(
     .where(eq(orderLine.orderId, orderId))
   const w = settings.policy.warehouse
   const boxWeightGrams = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
-  /* A product/variant's own package (custom dims, or one of the store's named boxes) wins over
-     the store default box when every sellable line agrees on one; its volumetric weight is
-     compared against the actual weight, as couriers bill by whichever is greater. */
-  const parcelPackage = options.dimensionsCm ?? resolveParcelPackage(lines, settings.boxPresets)
-  const baseWeightGrams = options.weightGrams || resolveParcelWeightGrams(lines, boxWeightGrams)
-  const weightGrams = effectiveWeightGrams(baseWeightGrams, parcelPackage)
+  /* A product/variant's own package (custom dims, or one of the store's named boxes) is used
+     when every sellable line agrees on one; its volumetric weight is compared against the
+     actual weight, as couriers bill by whichever is greater. The merchant's own weight or
+     dimensions from the booking panel win outright, as before. */
+  const parcelPackage = options.dimensionsCm
+    ? {
+        lengthCm: options.dimensionsCm.length,
+        widthCm: options.dimensionsCm.width,
+        heightCm: options.dimensionsCm.height,
+      }
+    : resolveParcelPackage(lines, settings.boxPresets)
+  const weightGrams =
+    options.weightGrams ||
+    effectiveWeightGrams(
+      resolveParcelWeightGrams(lines, boxWeightGrams),
+      options.dimensionsCm ? null : parcelPackage,
+    )
   const threshold = settings.policy.insuranceThresholdPaise
   const insured = options.insured ?? (threshold > 0 && o.totalPaise >= threshold)
 
@@ -132,9 +143,9 @@ export async function createShipmentForOrder(
       providerRef: result.providerRef ?? null,
       labelUrl: result.labelUrl ?? null,
       weightGrams,
-      lengthCm: options.dimensionsCm?.length ?? parcelPackage?.lengthCm ?? null,
-      widthCm: options.dimensionsCm?.width ?? parcelPackage?.widthCm ?? null,
-      heightCm: options.dimensionsCm?.height ?? parcelPackage?.heightCm ?? null,
+      lengthCm: parcelPackage?.lengthCm ?? null,
+      widthCm: parcelPackage?.widthCm ?? null,
+      heightCm: parcelPackage?.heightCm ?? null,
       insured,
       declaredValuePaise: o.totalPaise,
     })
