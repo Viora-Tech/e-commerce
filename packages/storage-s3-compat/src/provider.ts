@@ -99,7 +99,10 @@ export abstract class S3CompatProvider implements StorageProvider {
       const res = await this.client.send(
         new HeadObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }),
       )
-      return { size: res.ContentLength ?? 0, contentType: res.ContentType }
+      return {
+        size: res.ContentLength ?? 0,
+        ...(res.ContentType ? { contentType: res.ContentType } : {}),
+      }
     } catch (err) {
       const name = err instanceof Error ? err.name : ''
       if (name === 'NotFound' || name === 'NoSuchKey') return null

@@ -1,0 +1,116 @@
+---
+title: Image pipeline
+description: Upload-time image processing — variants, ThumbHash, the delivery loader, and the backfill script.
+---
+
+# Image pipeline
+
+The live server never resizes an image on request. Every width and format a page might ask
+for is generated once, right after an upload is confirmed, by a worker job — not by
+`next/image` at request time, and not by a CDN transform.
+
+## Why upload-time, not request-time
+
+A request-time image transform (Next.js's default optimizer, a Cloudflare Image Resizing
+rule) means the first visitor to ever request a given size pays for the resize, and the
+box doing it has to be sized for that spike. Upload-time processing means uploads are
+slightly slower (a few seconds in the background) and every page load is fast — a much
+better trade for a small deployment. It also means EXIF (see below) is stripped from
+*everything* stored, not only from what a resize happened to touch.
+
+## What happens, in order
+
+1. **Confirm.** The browser finishes its presigned `PUT`; `confirmUpload`
+   (`packages/core/src/media/service.ts`) does a server-side `HEAD` against the object —
+   a browser can lie about `Content-Length` at presign time, so this is the real size check,
+   enforced per type (images 10 MB, `video/mp4` 100 MB; see `packages/storage/src/keys.ts`'s
+   `maxUploadBytesFor`). An image row goes to `processing`; a video (no pipeline exists for
+   video) goes straight to `ready`.
+2. **Enqueue.** The API router (`packages/api/src/routers/media.ts`) enqueues a
+   `{media}-process` BullMQ job (`packages/queue`'s `mediaProcessQueue`), keyed by media id
+   so a retried confirm call can't double-enqueue.
+3. **Process** (`apps/worker/src/media-process.ts`, calling
+   `packages/core/src/media/pipeline.ts`'s `processImage`):
+   - `limitInputPixels` (40 MP) rejects a decompression bomb before any full decode.
+   - Auto-orient from EXIF, then **strip all metadata** — GPS included. This is not a
+     targeted "remove GPS" step: sharp strips EXIF/ICC/XMP by default unless you call
+     `.withMetadata()`, so simply never calling it is the strip. Nothing GPS-tagged is kept
+     anywhere, including in the master.
+   - Cap the long edge at 2560px (`MAX_MASTER_LONG_EDGE`) — this cleaned, capped copy is the
+     **master**, and it replaces the original at the same storage key. The pre-pipeline
+     original (which may have carried GPS) is never left reachable under any key once this
+     step finishes.
+   - Generate every width in `VARIANT_WIDTHS` (320/640/960/1280/1920) that doesn't exceed the
+     master's width — never upscale — in both AVIF and WebP.
+   - Hash a ThumbHash (`thumbhash`, MIT) from a small decode of the master.
+4. **Write back.** `markMediaProcessed` sets `status: 'ready'`, `variants` (a
+   `{ "<width>": { avif, webp } }` map of public URLs), `thumbhash`, and the real
+   width/height. A job that exhausts BullMQ's retries (5, exponential backoff) instead calls
+   `markMediaFailed`, setting `status: 'failed'` with the error, so the admin media library
+   can show it and let the merchant delete and re-upload.
+
+### Animated GIF
+
+Converted to a single **animated WebP** master, not resized into multiple widths. Two
+reasons: WebP's animated encoder is materially smaller than GIF at the same look, and
+generating five widths of an *animated* asset multiplies encode cost per frame — not a good
+trade on a small box for a feature (animated product media) used rarely. The WebP master
+still gets the same auto-orient + full metadata strip and a ThumbHash from its first frame.
+Because the extension changes (`.gif` → `.webp`), this is the one case where the master
+writes to a **new** key — the worker deletes the original key immediately after, so nothing
+GPS-tagged is left behind under it either.
+
+## Delivery: `<Picture>` and the loader
+
+`packages/core/src/media/loader.ts` has the pure mapping logic (no `sharp` — that stays in
+`pipeline.ts`, worker/build-only, so it never ends up in an app bundle):
+
+- `pickVariantUrls(media, targetWidth)` — nearest generated width at or below the target
+  (never upscale), falling back to the original `url` when `variants` is null (still
+  `processing`, `failed`, or legacy/imported media the pipeline hasn't reached yet).
+- `mediaImageLoader` — a `next/image` `loader` function. **Its contract is one URL per
+  call**, so it can't vary by `Accept` header; it always resolves to the WebP variant. Use it
+  only where a real `next/image` component is unavoidable.
+- `thumbhashPlaceholder(base64)` — decodes straight to a small PNG `data:` URL server-side
+  (`thumbhash`'s `thumbHashToDataURL`), for the blur-up placeholder.
+
+Everywhere that matters (`packages/blocks/src/components/picture.tsx`, wired into
+`product-card.tsx`), a real `<picture>` element is used instead: an AVIF `<source>`, a WebP
+`<source>`, both with a full `srcSet` across every generated width, and a plain `<img
+src={original}>` fallback for unprocessed media. The browser negotiates format and width
+itself — no loader indirection, no JS. `images.formats: ['image/avif', 'image/webp']` is set
+in both apps' `next.config.ts` for the remaining call sites that still go through the
+default optimizer (blog/CMS content images, anything not yet migrated to `<Picture>`).
+
+## Storage usage and quota
+
+`storageUsageBytes(tx, storeId)` sums `media.size` for `status = 'ready'` rows — no new
+column, computed on read. `checkStorageQuota(tx, storeId, quotaBytes?)` compares that against
+a quota (default: `STORAGE_QUOTA_BYTES_DEFAULT` env var, or a generous 20 GB constant) and
+reports `{ usedBytes, quotaBytes, ok }`. **Nothing calls this to block an upload yet** — it's
+a hook for a future "Settings > Files > usage" page or a billing gate, kept deliberately
+schema-free so it costs nothing today.
+
+## Backfill
+
+```bash
+bun run media:reprocess [--store <slug>]
+```
+
+Runs the same `processImage` pipeline directly (no queue) over every row that still needs it:
+stuck `processing` (a worker restart mid-job), `failed` (retry), and `ready` rows with
+`variants IS NULL` (legacy media from before this feature, or a Shopify import — imported
+images are marked `processing` on write, but nothing currently enqueues them onto the live
+queue; see `packages/plugin-shopify-import/src/media.ts`'s `onMediaImported` hook, which is
+wired but not yet called from the import job — this script is what picks those up in the
+meantime). Batched (`LIMIT`, not `OFFSET` — a fixed row already re-fetches out of the
+`WHERE` on its own) and resumable: interrupt it any time, re-run it, it continues.
+
+## Testing
+
+`packages/core/src/media/pipeline.test.ts` and `loader.test.ts` cover the processing function
+and the delivery mapping with small in-memory fixtures generated by `sharp` itself
+(including a synthetic EXIF GPS tag + a rotation tag, asserted gone/applied after
+processing), the decompression-bomb guard (via an injected `maxInputPixels` override rather
+than a real 40 MP fixture), never-upscale, and the animated-GIF path. No running worker or
+Redis needed for any of it.

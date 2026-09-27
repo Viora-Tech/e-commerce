@@ -1,4 +1,5 @@
 import type { CardProduct } from '../types'
+import Picture from './picture'
 import Price from './price'
 
 const saleLabel = (percent: number) => `${percent}% off`
@@ -38,9 +39,9 @@ export default function ProductCard({
             </span>
           ) : null}
           {primary ? (
-            <img
+            <Picture
+              image={primary}
               className="product-card__image product-card__image--primary"
-              src={primary.url}
               alt={primary.alt ?? product.title}
               width={533}
               height={533}
@@ -52,14 +53,14 @@ export default function ProductCard({
             <div className="product-card__image product-card__image--primary product-card__image--placeholder" />
           )}
           {hover ? (
-            <img
+            <Picture
+              image={hover}
               className="product-card__image product-card__image--hover"
-              src={hover.url}
               alt=""
               width={533}
               height={533}
               loading="lazy"
-              aria-hidden="true"
+              ariaHidden
             />
           ) : null}
         </div>

@@ -18,11 +18,13 @@
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/shipping": "workspace:*",
+    "@commerce/storage": "workspace:*",
     "@sentry/bun": "^11.0.0",
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.8",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",

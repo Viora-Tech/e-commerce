@@ -3,6 +3,7 @@ import {
   confirmUpload,
   createUploadIntent,
   deleteMedia,
+  enqueueMediaProcess,
   InvalidUpload,
   listMedia,
   permissions,
@@ -38,7 +39,12 @@ export const mediaRouter = {
       }
     }),
 
-  /** Step 2: the PUT succeeded; the file is live. */
+  /**
+   * Step 2: the PUT succeeded; the object is HEAD-checked for its real size
+   * (see `confirmUpload`). An image row comes back `processing` — the
+   * upload-time pipeline (worker) still has to run before it is usable
+   * anywhere — so this is also where that job gets queued.
+   */
   confirm: can(permissions.CONTENT_WRITE)
     .input(
       z.object({
@@ -47,7 +53,29 @@ export const mediaRouter = {
         height: z.number().int().min(1).optional(),
       }),
     )
-    .handler(({ context, input: { id, ...dims } }) => confirmUpload(context.tx, id, dims)),
+    .handler(async ({ context, input: { id, ...dims } }) => {
+      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const provider = await storageProviderFor(
+        context.tx,
+        context.scope.storeId,
+        storage,
+        secret(),
+      )
+      try {
+        const row = await confirmUpload(context.tx, id, provider, dims)
+        if (row.status === 'processing' && context.mediaProcess) {
+          await enqueueMediaProcess(context.mediaProcess, {
+            storeId: context.scope.storeId,
+            mediaId: row.id,
+          })
+        }
+        return row
+      } catch (err) {
+        if (err instanceof InvalidUpload)
+          throw new ORPCError('BAD_REQUEST', { message: err.message })
+        throw err
+      }
+    }),
 
   list: can(permissions.CONTENT_READ)
     .input(
