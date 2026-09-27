@@ -1,16 +1,16 @@
 ---
 title: Live view globe
-description: The two admin globes — cobe on the Home card, our own WebGL globe on Analytics → Live view — and how the land dots, levels of detail and lazy loading work.
+description: The two admin globes — cobe on the Home card, our own WebGL globe on Analytics → Live view — and how the solid land, coastlines, country borders and lazy loading work.
 ---
 
 # Live view globe
 
-The admin draws the last 24 hours of orders on a dotted globe in two places:
+The admin draws the last 24 hours of orders on a globe in two places:
 
 | Where | Renderer | Why |
 | --- | --- | --- |
 | Home → Live view card | [cobe](https://github.com/shuding/cobe) (MIT), patched with a detailed land map | Small card, already cached on Home; cobe's ~32k-dot ceiling is fine at that size. |
-| Analytics → Live view (`/analytics/live`) | Our own WebGL globe, `live-globe/webgl-globe-canvas.tsx` | Full-page hero where merchants zoom in on India; cobe's dots overlap and smear past ~32k. |
+| Analytics → Live view (`/analytics/live`) | Our own WebGL globe, `live-globe/webgl-globe-canvas.tsx` | Full-page hero where merchants zoom in on India. Solid land instead of dots: any dot pattern shimmered (moiré) at full-page size. |
 
 Both take the same props (`GlobeCanvasProps` in `live-globe/types.ts`) and share the motion
 and input code (`globe-controls.ts`: ease onto India, auto-rotate, drag to spin and tilt with
@@ -24,40 +24,42 @@ zoom buttons). Only the drawing differs.
 No three.js: about 6 KB minified for the engine (`webgl/`), 12 KB for the whole lazy chunk
 including the shared controls and overlay.
 
-- **Land dots on the CPU** (`webgl/land-dots.ts`). cobe finds each pixel's nearest
-  Fibonacci-sphere point inside its fragment shader in 32-bit floats; we place each point once
-  in JavaScript (doubles), test it against the 2048×1024 land map and upload the land points as
-  a static vertex buffer. The Fibonacci walk moves down the map one row at a time, so no `asin`
-  is needed per point: the finest level (1.08M sphere points, ~320k land dots) builds in about
-  20 ms.
-- **Levels of detail.** `LOD_SAMPLES` is 40k / 120k / 360k / 1.08M sphere points.
-  `pickLevel(radius)` picks the coarsest level whose dots are at most ~3.4 CSS px apart, so
-  zooming in swaps to more, smaller dots. The top level spaces dots about one map pixel
-  (0.18°, 20 km) apart; India goes from ~390 dots with cobe to ~13k. Levels are built on first
-  use and cached for the page session; the next finer level is prebuilt 400 ms after a switch.
-  Zoom goes to 4× (cobe: 2.6×); markers and arcs keep their zoom-1 size past 1×.
-- **Renderer** (`webgl/globe-renderer.ts`, WebGL 1). One full-screen triangle shades the
-  sphere and the halo, then point sprites draw the land dots (with the sphere's shading, so
-  they fade into it at the rim), the arcs (cobe's quadratic curve, drawn as a chain of dots)
-  and the markers. Orthographic projection; anything behind the disc is dropped in the vertex
+- **Solid land, coast and borders in one shader** (`webgl/globe-renderer.ts`, WebGL 1 +
+  `OES_standard_derivatives`). One full-screen triangle shades the sphere and the halo. Each
+  pixel is turned back into latitude/longitude and reads the map texture (mipmapped, so it
+  stays clean at every size): red is land, drawn darker than the ocean; the coast is where red
+  crosses 0.5, and dividing by `fwidth` turns that into an on-screen distance, so the coastline
+  is about one pixel wide at any zoom. Green holds country borders blurred on purpose: the
+  shader turns the blurred value back into a distance (`sqrt(-2 ln g)`) in screen pixels for
+  the same constant width. Faint 15° grid lines use the same trick. The longitude seam (where
+  `atan` jumps from π to −π) would make the mipmap blur a line down the 180° meridian, so two
+  u coordinates with seams half a turn apart are computed and the continuous one is used.
+  Coast, borders and grid fade towards the rim. Zoom goes to 4× (cobe: 2.6×).
+- **Markers and arcs** are point sprites on top (arcs are cobe's quadratic curve drawn as a
+  chain of dots). Orthographic projection; anything behind the disc is dropped in the vertex
   shader. `rotation()` / `anglesFor()` are the same maths the overlay uses to place the marker
   buttons, so tooltips sit exactly on their markers.
 - **Lazy loading.** `live-globe-hero.tsx` imports `webgl-globe-canvas` with a dynamic
   `import()` two animation frames after mount, so the stats cards paint first and nothing of
-  the globe is in the Home bundle. The land map (`apps/admin/public/globe/land-2048.png`,
-  20 KB) is fetched when the globe starts; until it arrives the sphere, markers and arcs draw
+  the globe is in the Home bundle. The map (`apps/admin/public/globe/globe-2048.png`, about
+  330 KB) is fetched when the globe starts; until it arrives the sphere, markers and arcs draw
   without land.
 
-## The land map
+## The maps
 
-Natural Earth 1:50m land (public domain; "Made with Natural Earth"), rasterised by
-`scripts/globe/make-land-map.py` to a 1-bit 2048×1024 equirectangular PNG. The same image
-is inlined in `patches/cobe@2.0.1.patch` for the Home card. To rebuild it, run the script
-(see its docstring), copy the PNG to `apps/admin/public/globe/land-2048.png`, and regenerate
-the cobe patch.
+**Live view:** Natural Earth 1:10m admin-0 countries, **India point of view** (public domain;
+"Made with Natural Earth"), rasterised by `scripts/globe/make-globe-map.py` to a 2048×1024
+equirectangular RGB PNG: red = land, green = borders between countries (outlines near the sea
+are masked out; coasts come from the red channel). The point-of-view dataset draws India's
+boundary as the Government of India does — all of Jammu & Kashmir and Ladakh (including
+Aksai Chin) and Arunachal Pradesh. Never replace it with the default-view file. To rebuild,
+see the script's docstring.
+
+**Home card:** Natural Earth 1:50m land, rasterised by `scripts/globe/make-land-map.py` to a
+1-bit 2048×1024 PNG inlined in `patches/cobe@2.0.1.patch` (cobe draws land only, no borders).
 
 ## Tests
 
-`webgl/land-dots.test.ts` covers the land lookup, dot placement past 32k points, level
-picking, the rotation (the focus point faces the viewer; east is right, north is up) and the
-arc and marker point buffers. WebGL itself is not exercised in unit tests.
+`webgl/globe-renderer.test.ts` covers the rotation (the focus point faces the viewer; east is
+right, north is up) and the arc and marker point buffers. The shader itself is not exercised
+in unit tests; check `/analytics/live` after changing it.
