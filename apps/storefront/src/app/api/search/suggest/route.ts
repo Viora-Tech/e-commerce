@@ -34,7 +34,10 @@ export async function GET(request: Request) {
     pricePaise: p.pricePaise,
     mrpPaise: p.mrpPaise,
     available: p.available > 0,
-    image: p.images[0] ? { url: p.images[0].url, alt: p.images[0].alt } : null,
+    // The result row draws a 3rem thumbnail: the smallest generated variant, not the original.
+    image: p.images[0]
+      ? { url: p.images[0].variants?.['320']?.webp ?? p.images[0].url, alt: p.images[0].alt }
+      : null,
   }))
   return Response.json(body, {
     headers: { 'cache-control': 'public, max-age=30, stale-while-revalidate=60' },

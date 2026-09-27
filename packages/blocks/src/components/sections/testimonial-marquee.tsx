@@ -2,17 +2,22 @@
 
 // Adapted from Magic UI's Marquee (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { motion, useAnimationControls, useReducedMotion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { loadMotion } from '../../lazy-motion'
+import { useReducedMotion } from '../../use-reduced-motion'
 
 type Testimonial = { quote: string; author: string; role: string }
 
 type TestimonialMarqueeProps = { heading: string; items: Testimonial[] }
 
 const DURATION = 40
+const LOOP = { duration: DURATION, repeat: Infinity, ease: 'linear' } as const
+
+const keyframes = (reverse: boolean) => (reverse ? ['-50%', '0%'] : ['0%', '-50%'])
 
 // Two rows scrolling opposite directions, pause on hover, each duplicated track animated with
-// Motion (no CSS keyframes). Reduced motion renders both rows static and fully visible.
+// Motion (no CSS keyframes, fetched after hydration). Reduced motion renders both rows static and
+// fully visible.
 export default function TestimonialMarquee({ heading, items }: TestimonialMarqueeProps) {
   // Early returns
   if (items.length === 0) return null
@@ -36,26 +41,38 @@ export default function TestimonialMarquee({ heading, items }: TestimonialMarque
 function Row({ items, reverse }: { items: Testimonial[]; reverse: boolean }) {
   // Hooks
   const reducedMotion = useReducedMotion()
-  const controls = useAnimationControls()
+  const track = useRef<HTMLDivElement>(null)
+  const loop = useRef<{ stop(): void } | null>(null)
   useEffect(() => {
     if (reducedMotion) return
-    controls.start({
-      x: reverse ? ['-50%', '0%'] : ['0%', '-50%'],
-      transition: { duration: DURATION, repeat: Infinity, ease: 'linear' },
-    })
-  }, [controls, reverse, reducedMotion])
+    let live = true
+    loadMotion()
+      .then(({ animate }) => {
+        const el = track.current
+        if (!live || !el) return
+        loop.current = animate(el, { x: keyframes(reverse) }, LOOP)
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+      loop.current?.stop()
+      loop.current = null
+    }
+  }, [reverse, reducedMotion])
 
   // Event handlers
   const handlePause = () => {
-    if (!reducedMotion) controls.stop()
+    loop.current?.stop()
   }
   const handleResume = () => {
-    if (!reducedMotion) {
-      controls.start({
-        x: reverse ? ['-50%', '0%'] : ['0%', '-50%'],
-        transition: { duration: DURATION, repeat: Infinity, ease: 'linear' },
+    const el = track.current
+    if (reducedMotion || !el) return
+    loadMotion()
+      .then(({ animate }) => {
+        loop.current?.stop()
+        loop.current = animate(el, { x: keyframes(reverse) }, LOOP)
       })
-    }
+      .catch(() => {})
   }
 
   // Render logic
@@ -84,10 +101,10 @@ function Row({ items, reverse }: { items: Testimonial[]; reverse: boolean }) {
         WebkitMaskImage: 'linear-gradient(to right,transparent,black 8%,black 92%,transparent)',
       }}
     >
-      <motion.div className="flex shrink-0 py-[0.5rem]" animate={controls}>
+      <div ref={track} className="flex shrink-0 py-[0.5rem]">
         {cards}
         {cards}
-      </motion.div>
+      </div>
     </div>
   )
 }

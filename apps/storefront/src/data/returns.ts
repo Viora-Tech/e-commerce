@@ -1,6 +1,6 @@
 import type { ReturnStatus, TimelineStepKey } from '@commerce/core/returns'
 
-export { RETURN_REASON_LABELS as returnReasonLabels } from '@commerce/core/returns'
+export { RETURN_REASON_LABELS as returnReasonLabels } from '@commerce/core/return-reasons'
 
 /** Every string the shopper sees about returns. Plain words on purpose. */
 export const returnsContent = {

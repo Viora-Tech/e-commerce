@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { normaliseGiftCardCode } from './code'
+
+export { normaliseGiftCardCode } from './code'
 
 /**
  * Pure gift card helpers, safe for client components (`@commerce/core/gift-cards`).
@@ -13,11 +16,6 @@ export const GIFT_CARD_CUSTOM_CODE_MIN = 8
 export const GIFT_CARD_CUSTOM_CODE_MAX = 20
 /** A typo guard, not a legal limit: ₹2,00,000. */
 export const GIFT_CARD_MAX_VALUE_PAISE = 20_000_000
-
-/** Upper-case and drop spaces and dashes, so "abcd-efgh 2345" and "ABCDEFGH2345" match. */
-export function normaliseGiftCardCode(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '')
-}
 
 /** "ABCDEFGHJKLMNPQR" → "ABCD EFGH JKLM NPQR". */
 export function formatGiftCardCode(code: string): string {

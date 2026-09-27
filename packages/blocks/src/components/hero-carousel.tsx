@@ -1,17 +1,26 @@
 'use client'
 
-import { animate, stagger } from 'motion'
-import { useReducedMotion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { HERO, remToPx } from '../data/motion'
 import { type FocalPoint, focalStyle } from '../focal-point'
+import { loadMotion } from '../lazy-motion'
 import { linkTarget } from '../link'
+import type { MediaImage } from '../types'
+import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
+import Picture from './picture'
 
 export type HeroSlide = {
   heading: string
   subheading?: string | undefined
-  image: { url: string; alt: string; focal?: FocalPoint | undefined }
+  image: {
+    url: string
+    alt: string
+    focal?: FocalPoint | undefined
+    /** Filled in by the storefront from the media library; see `attachImageMedia`. */
+    variants?: MediaImage['variants']
+    thumbhash?: MediaImage['thumbhash']
+  }
   cta?: { label: string; href: string; newTab?: boolean } | undefined
   cta2?: { label: string; href: string; newTab?: boolean } | undefined
   textPosition?: 'left' | 'center' | 'right' | undefined
@@ -21,7 +30,8 @@ export type HeroSlide = {
 // track, dots that reflect the snapped slide, prev/next, optional autoplay.
 // Motion plays the slide entrance (copy rising in sequence) each time a slide
 // becomes active, and a slow Ken Burns on its image. The first slide's copy is
-// never hidden: it is the LCP element and paints with the server HTML.
+// never hidden: it is the LCP element and paints with the server HTML. Motion
+// itself is fetched after hydration (`loadMotion`), never with the page.
 export default function HeroCarousel({
   slides,
   autoplaySeconds = 5,
@@ -46,24 +56,35 @@ export default function HeroCarousel({
   useEffect(() => {
     const slide = track.current?.children[active]
     if (!slide || reduce) return
-    const image = slide.querySelector('.hero-carousel__image')
-    const zoom = image
-      ? animate(
-          image,
-          { scale: [1, HERO.zoomScale] },
-          { duration: HERO.zoomSeconds, ease: 'easeOut' },
-        )
-      : null
     // The copy already on screen at first paint stays put; later slides make an entrance.
-    if (entered.current) {
-      animate(
-        slide.querySelectorAll('.hero-carousel__content > *'),
-        { opacity: [0, 1], y: [remToPx(HERO.riseRem), 0] },
-        { ...HERO.enter, delay: stagger(HERO.step) },
-      )
-    }
+    const enter = entered.current
     entered.current = true
-    return () => zoom?.stop()
+    let live = true
+    let zoom: { stop(): void } | null = null
+    loadMotion()
+      .then(({ animate, stagger }) => {
+        if (!live) return
+        const image = slide.querySelector('.hero-carousel__image')
+        zoom = image
+          ? animate(
+              image,
+              { scale: [1, HERO.zoomScale] },
+              { duration: HERO.zoomSeconds, ease: 'easeOut' },
+            )
+          : null
+        if (enter) {
+          animate(
+            slide.querySelectorAll('.hero-carousel__content > *'),
+            { opacity: [0, 1], y: [remToPx(HERO.riseRem), 0] },
+            { ...HERO.enter, delay: stagger(HERO.step) },
+          )
+        }
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+      zoom?.stop()
+    }
   }, [active, reduce])
   useEffect(() => {
     if (!autoplaySeconds || slides.length < 2) return
@@ -104,11 +125,12 @@ export default function HeroCarousel({
               >
                 <div className="hero-carousel__media">
                   {s.image?.url ? (
-                    <img
-                      className="hero-carousel__image"
-                      src={s.image.url}
+                    <Picture
+                      image={s.image}
                       alt={s.image.alt}
+                      className="hero-carousel__image"
                       style={focalStyle(s.image.focal)}
+                      fill
                       loading={i === 0 ? 'eager' : 'lazy'}
                       fetchPriority={i === 0 ? 'high' : undefined}
                       sizes="100vw"

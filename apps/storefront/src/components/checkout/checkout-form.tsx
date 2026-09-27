@@ -4,8 +4,8 @@ import type { CartView, SavedAddress, SignedInCustomer } from '@commerce/core'
 import {
   applyPaymentAdjustment,
   formatPaymentAdjustment,
-  type PaymentAdjustment,
-} from '@commerce/core/adjustments'
+  type PaymentAdjustmentValue,
+} from '@commerce/core/adjustment-math'
 import { useEffect, useState, useTransition } from 'react'
 import CheckoutField from '@/components/checkout/checkout-field'
 import CheckoutSummary, { type ShippingRow } from '@/components/checkout/checkout-summary'
@@ -115,7 +115,7 @@ function deliveryLine(s: CheckoutShipping | null, checking: boolean): string | n
 function previewAdjustment(
   method: CheckoutMethod | undefined,
   rate: CheckoutRate | undefined,
-): PaymentAdjustment | undefined {
+): PaymentAdjustmentValue | undefined {
   if (method?.id !== 'cod' || rate?.codSurchargePaise == null) return method?.adjustment
   return { type: 'fixed', value: rate.codSurchargePaise, label: method.adjustment?.label }
 }

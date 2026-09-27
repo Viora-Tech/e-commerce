@@ -1,4 +1,5 @@
 import type { CardProduct } from '../../types'
+import Picture from '../picture'
 import Price from '../price'
 
 type Props = {
@@ -22,7 +23,16 @@ export default function FeaturedProduct({ kicker, text, button, product, empty }
   return (
     <div className="featured-product page-width">
       <div className="featured-product__media">
-        {image ? <img src={image.url} alt={image.alt ?? product.title} loading="lazy" /> : null}
+        {image ? (
+          // `object-fit: contain` on a tinted ground: no ThumbHash, it would show in the letterbox.
+          <Picture
+            image={image}
+            alt={image.alt ?? product.title}
+            fill
+            placeholder={false}
+            sizes="(min-width: 750px) 50vw, 100vw"
+          />
+        ) : null}
       </div>
       <div className="featured-product__content">
         {kicker ? <p className="text-caption">{kicker}</p> : null}

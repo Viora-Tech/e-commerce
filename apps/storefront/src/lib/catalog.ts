@@ -123,12 +123,24 @@ export async function getProductByHandle(
   if (!p) return null
   const launched = isLaunched(p.launchAt)
 
-  const images = await tx
-    .select({ url: media.url, alt: media.alt, contentType: media.contentType })
+  const imageRows = await tx
+    .select({
+      url: media.url,
+      alt: media.alt,
+      contentType: media.contentType,
+      variants: media.variants,
+      thumbhash: media.thumbhash,
+    })
     .from(productMedia)
     .innerJoin(media, eq(media.id, productMedia.mediaId))
     .where(eq(productMedia.productId, p.id))
     .orderBy(asc(productMedia.position))
+  // Variants and ThumbHash let the gallery serve AVIF/WebP at the width it needs:
+  // the first image is the product page's LCP element.
+  const images = imageRows.map((i) => ({
+    ...i,
+    variants: i.variants as Record<string, { avif: string; webp: string }> | null,
+  }))
 
   const options = await tx
     .select()

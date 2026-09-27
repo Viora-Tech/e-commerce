@@ -1,8 +1,10 @@
-import { type FocalPoint, focalStyle } from '../../focal-point'
+import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
+import type { Image } from '../../sections/framed'
+import Picture from '../picture'
 
 type Props = {
-  image: { url: string; alt: string; focal?: FocalPoint | undefined }
+  image: Image
   heading: string
   text: string
   button: { label: string; href: string }
@@ -15,7 +17,13 @@ export default function ImageWithText({ image, heading, text, button, imageFirst
     <div className={`image-with-text page-width${imageFirst ? '' : ' image-with-text--reverse'}`}>
       <div className="image-with-text__media">
         {image?.url ? (
-          <img src={image.url} alt={image.alt} style={focalStyle(image.focal)} loading="lazy" />
+          <Picture
+            image={image}
+            alt={image.alt}
+            style={focalStyle(image.focal)}
+            fill
+            sizes="(min-width: 750px) 50vw, 100vw"
+          />
         ) : null}
       </div>
       <div className="image-with-text__content">

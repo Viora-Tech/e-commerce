@@ -1,13 +1,7 @@
 'use client'
 
-import {
-  isThemePreviewMessage,
-  THEME_PREVIEW_PARAM,
-  type Theme,
-  ThemeSchema,
-  themeRootAttrs,
-  themeToCss,
-} from '@commerce/core/theme'
+import type { Theme } from '@commerce/core/theme'
+import { isThemePreviewMessage, THEME_PREVIEW_PARAM } from '@commerce/core/theme-preview'
 import { useEffect } from 'react'
 import { verifyThemePreview } from '@/lib/theme-preview-actions'
 
@@ -39,8 +33,18 @@ function rememberToken(token: string): void {
   }
 }
 
+/**
+ * The theme schema and CSS builder, fetched only once a verified preview is running in
+ * the admin's frame: they carry zod, which no shopper's page should download.
+ */
+const loadTheme = () => import('@commerce/core/theme')
+
 /** Paints a draft exactly as the server would: the same CSS, attributes and mode. */
-function paint(theme: Theme, mode: 'light' | 'dark'): void {
+function paint(
+  { themeToCss, themeRootAttrs }: Awaited<ReturnType<typeof loadTheme>>,
+  theme: Theme,
+  mode: 'light' | 'dark',
+): void {
   let style = document.getElementById(STYLE_ID)
   if (!style) {
     style = document.createElement('style')
@@ -66,17 +70,20 @@ export default function ThemePreviewBridge({ storeId, adminOrigin }: ThemePrevie
     const token = readToken()
     if (!token || window.parent === window) return
     let active = true
+    let theme: Awaited<ReturnType<typeof loadTheme>> | null = null
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== adminOrigin || !isThemePreviewMessage(event.data)) return
+      if (!theme || event.origin !== adminOrigin || !isThemePreviewMessage(event.data)) return
       if (event.data.type !== 'theme-preview:apply') return
-      const parsed = ThemeSchema.safeParse(event.data.theme)
+      const parsed = theme.ThemeSchema.safeParse(event.data.theme)
       if (!parsed.success) return
-      paint(parsed.data, event.data.mode === 'dark' ? 'dark' : 'light')
+      paint(theme, parsed.data, event.data.mode === 'dark' ? 'dark' : 'light')
     }
 
-    verifyThemePreview(storeId, token).then((ok) => {
+    verifyThemePreview(storeId, token).then(async (ok) => {
       if (!ok || !active) return
+      theme = await loadTheme()
+      if (!active) return
       rememberToken(token)
       window.addEventListener('message', handleMessage)
       window.parent.postMessage({ type: 'theme-preview:ready' }, adminOrigin)

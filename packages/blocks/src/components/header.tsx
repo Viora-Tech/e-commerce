@@ -23,7 +23,8 @@ export default function Header({
 }: {
   storeName: string
   /** The merchant's logo from the theme; the store name as text when unset. */
-  logo?: { url: string; width: number } | null
+  /** `height` keeps the file's aspect ratio at `width`, so the header reserves its space before the logo loads (no layout shift). */
+  logo?: { url: string; width: number; height?: number | undefined } | null
   links: NavLink[]
   themeMode: ThemeMode
   showThemeToggle: boolean
@@ -44,6 +45,7 @@ export default function Header({
                 src={logo.url}
                 alt={storeName}
                 width={logo.width}
+                height={logo.height}
                 className="header__logo-image header__logo-image--sized"
               />
             ) : (

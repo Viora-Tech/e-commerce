@@ -27,6 +27,8 @@ import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
 import { themeFontVariables } from '@/lib/fonts'
+import { mediaByUrl } from '@/lib/media-lookup'
+import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
@@ -89,15 +91,21 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 export default async function StoreLayout({ children, params }: Props) {
   const { storeId } = await params
   const preview = await previewRequest(storeId)
-  const { current, menus, theme, previewName } = await inStore(storeId, async (tx) => {
+  const { current, menus, theme, previewName, logoHeight } = await inStore(storeId, async (tx) => {
     const [s] = await tx.select().from(store).where(eq(store.id, storeId))
     const rows = await tx.select().from(navigationMenu)
     const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
+    const settings = previewed?.settings ?? (await liveThemeSettings(tx, storeId))
+    const logo = settings.brand.logo
     return {
       current: s,
       menus: rows,
-      theme: previewed?.settings ?? (await liveThemeSettings(tx, storeId)),
+      theme: settings,
       previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
+      // The logo's real aspect ratio, so the header reserves its height before it loads.
+      logoHeight: logo
+        ? heightForWidth((await mediaByUrl(tx, [logo.url])).get(logo.url), settings.brand.logoWidth)
+        : undefined,
     }
   })
 
@@ -136,7 +144,9 @@ export default async function StoreLayout({ children, params }: Props) {
             cartCount={cartCount}
             search={<PredictiveSearch label={searchContent.title} />}
             logo={
-              theme.brand.logo ? { url: theme.brand.logo.url, width: theme.brand.logoWidth } : null
+              theme.brand.logo
+                ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
+                : null
             }
           />
         ),

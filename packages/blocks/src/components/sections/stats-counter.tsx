@@ -1,9 +1,9 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 // Adapted from Magic UI's Number Ticker (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { useReducedMotion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
+import { useReducedMotion } from '../../use-reduced-motion'
 
 type Stat = { value: number; prefix: string; suffix: string; label: string }
 

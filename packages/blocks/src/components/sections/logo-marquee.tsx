@@ -2,9 +2,10 @@
 
 // Adapted from Magic UI's Marquee (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { motion, useAnimationControls, useReducedMotion } from 'motion/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { loadMotion } from '../../lazy-motion'
 import type { Image } from '../../sections/framed'
+import { useReducedMotion } from '../../use-reduced-motion'
 
 type Logo = { image: Image; alt: string; href: string }
 
@@ -45,31 +46,52 @@ function Track({ logos }: { logos: Logo[] }) {
   )
 }
 
-// Duplicated track animated with Motion, no CSS keyframes, so the mask/pause-on-hover behaviour
-// stays declarative and respects reduced motion (renders both tracks static, fully visible).
+// Duplicated track animated with Motion, no CSS keyframes, and respects reduced motion (renders
+// both tracks static, fully visible). Motion is fetched after hydration, so the page's first-load
+// JS never carries it; until it lands the track simply rests at its start.
 export default function LogoMarquee({ heading, logos, speedSeconds }: LogoMarqueeProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
-  const controls = useAnimationControls()
+  const track = useRef<HTMLDivElement>(null)
+  const loop = useRef<{ stop(): void } | null>(null)
   useEffect(() => {
     if (reducedMotion) return
-    controls.start({
-      x: ['0%', '-50%'],
-      transition: { duration: resolveDuration(speedSeconds), repeat: Infinity, ease: 'linear' },
-    })
-  }, [controls, speedSeconds, reducedMotion])
+    let live = true
+    loadMotion()
+      .then(({ animate }) => {
+        const el = track.current
+        if (!live || !el) return
+        loop.current = animate(
+          el,
+          { x: ['0%', '-50%'] },
+          { duration: resolveDuration(speedSeconds), repeat: Infinity, ease: 'linear' },
+        )
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+      loop.current?.stop()
+      loop.current = null
+    }
+  }, [speedSeconds, reducedMotion])
 
   // Event handlers
   const handlePause = () => {
-    if (!reducedMotion) controls.stop()
+    loop.current?.stop()
   }
   const handleResume = () => {
-    if (!reducedMotion) {
-      controls.start({
-        x: ['0%', '-50%'],
-        transition: { duration: resolveDuration(speedSeconds), repeat: Infinity, ease: 'linear' },
+    const el = track.current
+    if (reducedMotion || !el) return
+    loadMotion()
+      .then(({ animate }) => {
+        loop.current?.stop()
+        loop.current = animate(
+          el,
+          { x: ['0%', '-50%'] },
+          { duration: resolveDuration(speedSeconds), repeat: Infinity, ease: 'linear' },
+        )
       })
-    }
+      .catch(() => {})
   }
 
   // Early returns
@@ -92,10 +114,10 @@ export default function LogoMarquee({ heading, logos, speedSeconds }: LogoMarque
           WebkitMaskImage: 'linear-gradient(to right,transparent,black 10%,black 90%,transparent)',
         }}
       >
-        <motion.div className="flex shrink-0" animate={controls}>
+        <div ref={track} className="flex shrink-0">
           <Track logos={logos} />
           <Track logos={logos} />
-        </motion.div>
+        </div>
       </div>
     </div>
   )

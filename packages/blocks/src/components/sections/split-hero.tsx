@@ -3,6 +3,7 @@
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
+import Picture from '../picture'
 
 type SplitHeroProps = {
   eyebrow: string
@@ -11,6 +12,8 @@ type SplitHeroProps = {
   button: Link
   image: Image
   imageFirst: boolean
+  /** Set by the storefront on a template's first section: this image is likely the LCP. */
+  _aboveFold?: boolean | undefined
 }
 
 const PLACEHOLDER_GRADIENT =
@@ -23,6 +26,7 @@ export default function SplitHero({
   button,
   image,
   imageFirst,
+  _aboveFold,
 }: SplitHeroProps) {
   return (
     <div className="page-width grid grid-cols-1 items-center gap-[2rem] md:grid-cols-2 md:gap-[3rem]">
@@ -46,12 +50,15 @@ export default function SplitHero({
       </div>
       <div className={imageFirst ? 'order-1 md:order-1' : 'order-1 md:order-2'}>
         {image?.url ? (
-          <img
-            className="aspect-[4/5] w-full rounded-[var(--radius-card)] object-cover"
-            src={image.url}
+          <Picture
+            image={image}
             alt={image.alt}
+            className="aspect-[4/5] w-full rounded-[var(--radius-card)] object-cover"
             style={focalStyle(image.focal)}
-            loading="lazy"
+            fill
+            sizes="(min-width: 768px) 50vw, 100vw"
+            loading={_aboveFold ? 'eager' : 'lazy'}
+            fetchPriority={_aboveFold ? 'high' : undefined}
           />
         ) : (
           <div
