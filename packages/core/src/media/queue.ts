@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: media processing job contract — WHAT the job shape producers enqueue / WHY @commerce/queue depends on core, not the other way */
 /**
  * Producer-side contract for the media-processing job. The concrete BullMQ
  * queue lives in `@commerce/queue` (which depends on this package, so the

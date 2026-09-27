@@ -18,6 +18,36 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/onboarding/signup-gate.ts',
+    names: ['createSignupInvite'],
+    reason:
+      'used by scripts/platform-invite.ts (bun run platform:invite); scripts/ is outside this sweep',
+  },
+  {
+    file: 'packages/core/src/media/service.ts',
+    names: ['DEFAULT_STORAGE_QUOTA_BYTES', 'storageUsageBytes', 'checkStorageQuota'],
+    reason:
+      'storage quota hook from #182, not enforced yet; kept for a Settings > Files usage page',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/bulk.ts',
+    names: ['BulkUnavailableError'],
+    reason:
+      'from #180; thrown in this file only, no importer checks for it yet — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/shopify-api.ts',
+    names: ['PRODUCTS_BULK_QUERY', 'CUSTOMERS_BULK_QUERY', 'ORDERS_BULK_QUERY'],
+    reason:
+      'from #180; used in this file only, exported for inspection, investigate before removing',
+  },
+  {
+    file: 'packages/storage/src/keys.ts',
+    names: ['IMAGE_MAX_UPLOAD_BYTES', 'VIDEO_MAX_UPLOAD_BYTES'],
+    reason:
+      'from #182; used by packages/storage/test/keys.test.ts and maxUploadBytesFor in this file',
+  },
+  {
     file: 'packages/api/src/services/analytics-buckets.ts',
     names: ['IST_OFFSET_MS', 'DEFAULT_RANGE', 'istDayStart'],
     reason: 'no external importer today — investigate before removing',

@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: image variant sizes — WHAT the master long-edge cap and the variant widths / WHY the upload pipeline and the delivery loader must agree on them */
 /**
  * Shared between `pipeline.ts` (which needs `sharp`) and `loader.ts` (which
  * must never import `sharp` into an app bundle) — kept in their own

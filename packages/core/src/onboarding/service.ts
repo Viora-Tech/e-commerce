@@ -1,10 +1,23 @@
+/** SOURCE OF TRUTH: merchant store creation — WHAT createStore makes for a new merchant (organization, store, domains, owner, theme, shipping, onboarding defaults) / WHY one resumable, idempotent path any signed-in merchant can call */
 import { createHash } from 'node:crypto'
-import { type Db, seedWaimersShipping, store, storeDomain, withStore } from '@commerce/db'
+import {
+  collection,
+  type Db,
+  type StoreTx,
+  seedWaimersShipping,
+  store,
+  storeDomain,
+  withStore,
+} from '@commerce/db'
 import { eq } from 'drizzle-orm'
+import { installApp, parseAppsSettings } from '../apps/settings'
+import { createCollection } from '../collections/service'
 import { CommerceError } from '../errors'
 import { listRoles, seedSystemRoles, upsertMember } from '../permissions/service'
+import { emptyStoreAddress, StoreAddressSchema } from '../settings/general'
 import { ensureMainTheme } from '../theme/library'
-import { slugFormatProblem } from './slug'
+import { type BusinessProfile, starterCollections } from './business-profile'
+import { SLUG_MAX, SLUG_MIN, slugFormatProblem } from './slug'
 
 export type OnboardingErrorCode = 'SLUG_INVALID' | 'SLUG_RESERVED' | 'SLUG_TAKEN'
 
@@ -32,6 +45,10 @@ export type CreateStoreInput = {
    * See `packages/api/src/routers/onboarding.ts`.
    */
   createOrganization: (input: { name: string; slug: string }) => Promise<{ organizationId: string }>
+  /** Answers from the guided flow: starter collections, the address's state and country. */
+  profile?: BusinessProfile | undefined
+  /** Plugin ids to install on the new store (e.g. the Shopify importer for a store moving from Shopify). */
+  installApps?: string[]
 }
 
 export type CreateStoreResult = {
@@ -73,6 +90,51 @@ async function findOwnRow(db: Db, storeId: string) {
 }
 
 /**
+ * Saves the onboarding answers and seeds what they imply. Safe to repeat: the
+ * address is only filled when still empty, and a starter collection is only
+ * made when no collection with that title exists yet.
+ */
+async function applyBusinessProfile(
+  tx: StoreTx,
+  storeId: string,
+  profile: BusinessProfile,
+): Promise<void> {
+  const [row] = await tx.select({ address: store.address }).from(store).where(eq(store.id, storeId))
+  const address = row?.address
+    ? undefined
+    : StoreAddressSchema.parse({
+        ...emptyStoreAddress,
+        state: profile.state,
+        country: profile.country,
+      })
+  await tx
+    .update(store)
+    .set({
+      businessProfile: { sells: profile.sells, sellsOn: profile.sellsOn },
+      ...(address ? { address } : {}),
+    })
+    .where(eq(store.id, storeId))
+
+  const existing = new Set(
+    (await tx.select({ title: collection.title }).from(collection)).map((c) => c.title),
+  )
+  for (const starter of starterCollections(profile.sells)) {
+    if (existing.has(starter.title)) continue
+    await createCollection(tx, storeId, {
+      title: starter.title,
+      kind: 'automatic',
+      rules: { match: 'all', conditions: [{ field: 'tag', op: 'eq', value: starter.tag }] },
+    })
+  }
+}
+
+async function installStoreApps(tx: StoreTx, storeId: string, ids: string[]): Promise<void> {
+  const [row] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
+  const apps = ids.reduce(installApp, parseAppsSettings(row?.apps))
+  await tx.update(store).set({ apps }).where(eq(store.id, storeId))
+}
+
+/**
  * Creates a store for a signed-in merchant: organization, owner member,
  * store row, primary domain, and the defaults that already have builders
  * (the main theme, a shipping zone). Mirrors what `packages/db/src/seed.ts`
@@ -88,7 +150,7 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
   if (problem === 'too_short' || problem === 'too_long' || problem === 'invalid_chars') {
     throw new OnboardingError(
       'SLUG_INVALID',
-      'Store address should be 3-40 lower-case letters, numbers or hyphens',
+      `Store address should be ${SLUG_MIN}-${SLUG_MAX} lower-case letters, numbers or hyphens`,
     )
   }
   if (problem === 'reserved') {
@@ -159,6 +221,8 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
     })
     await ensureMainTheme(tx, storeId)
     await seedWaimersShipping(tx, storeId)
+    if (input.profile) await applyBusinessProfile(tx, storeId, input.profile)
+    if (input.installApps?.length) await installStoreApps(tx, storeId, input.installApps)
   })
 
   return { storeId, organizationId, slug: storeRow.slug, created }

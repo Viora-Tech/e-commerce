@@ -1,4 +1,14 @@
-import { createDb, shippingZone, storeDomain, storeMember, theme, withStore } from '@commerce/db'
+/** SOURCE OF TRUTH: createStore tests — store, domains, owner, defaults, idempotent retries and onboarding answers */
+import {
+  collection,
+  createDb,
+  shippingZone,
+  store,
+  storeDomain,
+  storeMember,
+  theme,
+  withStore,
+} from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -132,5 +142,37 @@ describe('createStore', () => {
         ...fakeOrg('org_other'),
       }),
     ).rejects.toBeInstanceOf(OnboardingError)
+  })
+
+  it('applies the onboarding answers once: starter collections, state, installed apps', async () => {
+    const input = {
+      db: app,
+      ownerUserId: OWNER_USER_ID,
+      name: 'Asha Handlooms',
+      slug: 'asha-handlooms',
+      platformDomain: 'waimers.store',
+      profile: {
+        sells: 'fashion' as const,
+        sellsOn: 'shopify' as const,
+        country: 'IN',
+        state: 'Rajasthan',
+      },
+      installApps: ['shopify-import'],
+      ...fakeOrg('org_asha'),
+    }
+    const result = await createStore(input)
+    await createStore(input) // a retry must not duplicate anything
+
+    await withStore(app, result.storeId, async (tx) => {
+      const titles = (await tx.select({ title: collection.title }).from(collection))
+        .map((c) => c.title)
+        .sort()
+      expect(titles).toEqual(['Best sellers', 'Kids', 'Men', 'New arrivals', 'Women'])
+
+      const [row] = await tx.select().from(store).where(eq(store.id, result.storeId))
+      expect(row?.businessProfile).toEqual({ sells: 'fashion', sellsOn: 'shopify' })
+      expect(row?.address).toMatchObject({ state: 'Rajasthan', country: 'IN' })
+      expect(row?.apps).toEqual({ installed: ['shopify-import'] })
+    })
   })
 })

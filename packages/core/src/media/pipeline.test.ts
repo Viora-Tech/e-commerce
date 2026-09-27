@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: image pipeline tests — variants, no upscaling, metadata stripped */
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import {

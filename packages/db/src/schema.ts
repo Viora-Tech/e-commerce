@@ -71,6 +71,8 @@ export const store = pgTable('store', {
   preorder: jsonb('preorder'),
   /** Returns policy: window in days, allowed reasons, auto-restock, refund default. Validated by @commerce/core ReturnPolicySchema. */
   returns: jsonb('returns'),
+  /** Answers from the guided /onboarding flow: what the store sells, where it sells today. Validated by @commerce/core BusinessProfileSchema. */
+  businessProfile: jsonb('business_profile'),
   createdAt: createdAt(),
 })
 
@@ -1511,6 +1513,25 @@ export const signupInvite = pgTable(
     uniqueIndex('signup_invite_email_unused').on(t.email).where(sql`used_at is null`),
   ],
 )
+
+/**
+ * People waiting for an invite while signups are invite-only
+ * (MERCHANT_SIGNUP_MODE=invite). Platform-level like `signup_invite`: no
+ * store_id, no RLS. One row per email; joining again updates it.
+ */
+export const signupWaitlist = pgTable('signup_waitlist', {
+  id: id(),
+  email: text('email').notNull().unique(),
+  phone: text('phone').notNull(),
+  /** Free text: what they sell, in their words. */
+  sells: text('sells').notNull(),
+  /** Better Auth user who joined, when signed in. */
+  userId: text('user_id'),
+  /** Set when a platform invite goes out for this email. */
+  invitedAt: timestamp('invited_at', { withTimezone: true }),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 export type SenderEmailStatus = 'pending' | 'verified' | 'failed'
 

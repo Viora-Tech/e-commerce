@@ -1,4 +1,4 @@
-/** Browser-safe store slug rules: format, reserved words. No database. */
+/** SOURCE OF TRUTH: store address (slug) rules — WHAT the format, length and reserved words a store slug must satisfy / WHY the onboarding form checks them live in the browser and createStore enforces the same rules. No database. */
 
 /**
  * Words that would collide with a platform path or a common expectation
@@ -6,7 +6,7 @@
  * because it is about the merchant-facing store slug, not the platform's own
  * hostnames (`PLATFORM_DOMAINS` in `@commerce/config` is a different list).
  */
-export const RESERVED_STORE_SLUGS: readonly string[] = [
+const RESERVED_STORE_SLUGS: readonly string[] = [
   'admin',
   'api',
   'www',

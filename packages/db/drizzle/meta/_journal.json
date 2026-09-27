@@ -484,6 +484,13 @@
       "when": 1791010000000,
       "tag": "0072_product_category_and_package",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791020000000,
+      "tag": "0073_signup_waitlist",
+      "breakpoints": true
     }
   ]
 }

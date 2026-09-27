@@ -4,6 +4,7 @@
  * them by meaning for new code. Add here, never import a glyph pack directly.
  */
 import {
+  Armchair,
   ArrowClockwise,
   ArrowCounterClockwise,
   ArrowDown,
@@ -14,6 +15,7 @@ import {
   ArrowUp,
   ArrowUUpLeft,
   ArrowUUpRight,
+  Basket,
   BellSimple,
   BellSimpleRinging,
   BracketsCurly,
@@ -37,6 +39,7 @@ import {
   DeviceTablet,
   DotsSix,
   DotsThree,
+  DotsThreeOutline,
   DotsThreeVertical,
   DownloadSimple,
   Eye,
@@ -75,6 +78,11 @@ import {
   Paragraph,
   PencilSimpleLine,
   Clock as PhClock,
+  Cookie as PhCookie,
+  Diamond as PhDiamond,
+  Globe as PhGlobe,
+  HandHeart as PhHandHeart,
+  Headphones as PhHeadphones,
   Images as PhImages,
   Monitor as PhMonitor,
   Palette as PhPalette,
@@ -88,6 +96,7 @@ import {
   Receipt,
   Rows,
   SealPercent,
+  ShoppingBagOpen,
   SignOut,
   Sparkle,
   SpinnerGap,
@@ -104,6 +113,7 @@ import {
   Tray,
   TreeStructure,
   Truck,
+  TShirt,
   Upload,
   User,
   UserGear,
@@ -184,6 +194,19 @@ export const GoogleLogo_ = defineIcon(GoogleLogo, 'GoogleLogo', 'duotone')
 export { GoogleLogo_ as GoogleLogo }
 export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
 export { WhatsappLogo_ as WhatsappLogo }
+
+/* Onboarding picture cards ("What do you sell?", "Do you already sell somewhere?"). */
+export const Clothing = defineIcon(TShirt, 'Clothing', 'duotone')
+export const Beauty = defineIcon(Sparkle, 'Beauty', 'duotone')
+export const Jewellery = defineIcon(PhDiamond, 'Jewellery', 'duotone')
+export const HomeDecor = defineIcon(Armchair, 'HomeDecor', 'duotone')
+export const Electronics = defineIcon(PhHeadphones, 'Electronics', 'duotone')
+export const FoodDrink = defineIcon(PhCookie, 'FoodDrink', 'duotone')
+export const Handmade = defineIcon(PhHandHeart, 'Handmade', 'duotone')
+export const SomethingElse = defineIcon(DotsThreeOutline, 'SomethingElse', 'duotone')
+export const Website = defineIcon(PhGlobe, 'Website', 'duotone')
+export const Marketplace = defineIcon(Basket, 'Marketplace', 'duotone')
+export const NewShop = defineIcon(ShoppingBagOpen, 'NewShop', 'duotone')
 
 /* Chrome: regular weight, 16px inline / 18px nav-header sizing set at call sites. */
 export const Search = defineIcon(MagnifyingGlass, 'Search')
