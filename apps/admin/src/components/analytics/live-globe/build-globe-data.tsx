@@ -2,7 +2,7 @@ import type { DashboardSummary } from '@commerce/api'
 import { resolveDispatchLocation, resolveOrderLocation } from '@/data/geo'
 import { homeContent } from '@/data/home'
 import { formatPaise } from '@/lib/money'
-import type { GlobeArc, GlobeMarker } from './live-globe-canvas'
+import type { GlobeArc, GlobeMarker } from './types'
 
 export type GlobeData = {
   markers: GlobeMarker[]

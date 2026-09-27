@@ -5,6 +5,7 @@ export default {
   'first-app': 'Build your first app',
   plugins: 'Plugins SDK and app blocks',
   'media-pipeline': 'Image pipeline',
+  'live-globe': 'Live view globe',
   'section-settings': 'Section settings and SectionFrame',
   security: 'Security',
   conventions: 'Conventions',
