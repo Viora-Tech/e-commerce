@@ -8,6 +8,18 @@ machine changes.
 
 The sections further down describe an earlier stage and are partly outdated; this list wins.
 
+- **Images built off the server** (27 September 2026, `claude/release-images-ghcr`): new
+  `.github/workflows/release.yml` builds admin, storefront, worker, tasks (migrate/backup) and docs
+  images on every push to `main`, pushes `ghcr.io/viora-tech/<app>:<sha>` and `:latest` (GHA
+  layer cache), then POSTs `DOKPLOY_WEBHOOK_URL` if that secret is set. `deploy/docker-compose.prod.yml`
+  uses `image: ...:${IMAGE_TAG:-latest}` + `pull_policy: always` (no `build:`); rollback = set
+  `IMAGE_TAG` to an older sha in Dokploy and redeploy. Dokploy auto-deploy must be **off** (the
+  workflow's webhook deploys once images exist); the server needs a `read:packages` token for
+  GHCR. Admin build takes repo variable `NEXT_PUBLIC_WORKER_URL`. `@aws-sdk/client-s3` moved from
+  root devDependencies to root dependencies (backup/restore scripts). No migration.
+  **Open issue found, not fixed**: the compose `internal` network is `internal: true` (no
+  internet egress) and `worker`/`backup`/`migrate` sit only on it, so the worker can't call
+  payment/shipping APIs and backups can't reach R2 — fix before the first deploy.
 - **Product page UX** (27 September 2026, `claude/exciting-einstein-nos00p`): option chips build every
   variant combination (ids carried over on add/remove, stock-loss confirm, bulk price/stock/SKU
   prefix, SKU suggestions); category picker over Shopify's MIT Standard Product Taxonomy
@@ -60,9 +72,8 @@ The sections further down describe an earlier stage and are partly outdated; thi
      products, images, collections, customers, order numbers, menus, redirects).
   2. After #180 and #182: process Shopify-import media automatically (today it needs
      `bun run media:reprocess`).
-  3. Deployment follow-ups: building Next on the 8 GB box crashed Docker locally, so move image
-     builds off the server (GitHub Actions → registry, Dokploy pulls; or a Dokploy build server),
-     re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
+  3. Deployment follow-ups: image builds moved to GitHub Actions → GHCR (see top of this list);
+     next fix the `internal` network egress, re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
      a limit raise before Lightsail allows the 8 GB plan.
   4. Pre-go-live: EMI/pay-later widget app, Razorpay OAuth connect (needs Technology Partner),
      Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).

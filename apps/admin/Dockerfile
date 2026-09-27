@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# Production image for @commerce/admin. Dokploy builds this ON the Lightsail server from the
-# `main` branch (its own GitHub integration, auto-deploy on push) — there is no separate CI
-# image build/push step. See deploy/README.md and
-# apps/docs/content/developer-docs/operations/deployment.mdx.
+# Production image for @commerce/admin. Built by .github/workflows/release.yml in GitHub
+# Actions on every push to `main` and pushed to ghcr.io/viora-tech/admin; the server only pulls
+# it. See deploy/README.md and apps/docs/content/developer-docs/operations/deployment.mdx.
 #
 # Build from the MONOREPO ROOT (bun install needs the root lockfile and every workspace's
 # package.json), e.g.:
@@ -38,12 +37,16 @@ COPY --from=pruner /repo/out/full/ .
 COPY --from=pruner /repo/commerce.config.ts /repo/commerce.blocks.config.ts ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Caps the build's own heap growth so it fails with a clear OOM inside this one build instead
-# of the kernel OOM-killer picking a victim among Postgres/dragonfly/the other live containers
-# on the same box (Dokploy builds here — see deploy/docker-compose.prod.yml's header comment).
-# Deploy off-peak; this doesn't create memory that isn't there.
+# Caps the build's own heap growth so it fails with a clear OOM instead of the runner killing
+# the job (GitHub's standard runner for private repos has ~7 GB RAM; building this used ~7 GB
+# uncapped, which is why builds moved off the 8 GB server).
 ENV NODE_OPTIONS=--max-old-space-size=3072
-RUN bun run build --filter=@commerce/admin
+# Next inlines NEXT_PUBLIC_* into the browser bundle at build time, so the worker URL shown on
+# the Settings pages has to be known here (release.yml passes the repo variable of this name).
+# Left unset when empty so the code's own localhost fallback applies.
+ARG NEXT_PUBLIC_WORKER_URL
+RUN if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
+  && bun run build --filter=@commerce/admin
 
 # --- Minimal runtime image ------------------------------------------------------------------
 FROM base AS runner

@@ -103,8 +103,8 @@ Run it once a day, off-peak. Two common setups:
   needs nothing extra beyond the `BACKUP_R2_*`/`BACKUP_ENCRYPTION_KEY` env vars already in
   `deploy/env.production.example`. Prefer Dokploy's own **Scheduled Job** feature instead if you
   want a fresh container per run rather than one long-lived service: point it at the same
-  `commerce-tasks:local` image the compose file's `migrate`/`backup` services build (there's no
-  registry image here — Dokploy builds `deploy/Dockerfile.tasks` on the box), command
+  `ghcr.io/viora-tech/tasks:latest` image the compose file's `migrate`/`backup` services pull
+  (built from `deploy/Dockerfile.tasks` by `.github/workflows/release.yml`), command
   `bun run scripts/backup-db.ts`, same env vars, cron expression `0 3 * * *` — then
   remove/comment out the compose `backup` service so backups don't run twice. See
   `apps/docs/content/developer-docs/operations/deployment.mdx` for the rest of the production

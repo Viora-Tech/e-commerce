@@ -6,28 +6,46 @@ title: Deployment
 
 Production runs on **one AWS Lightsail server** (Mumbai region, 8 GB RAM / 2 vCPU burstable,
 Ubuntu 24.04) running **Dokploy** (self-hosted PaaS, Apache-2.0 core — we don't use any of its
-paid enterprise features). Dokploy's own GitHub integration watches the `main` branch and
-**builds every image on the server itself**, straight from the Dockerfiles in this repo — there
-is no GitHub Actions release workflow and no container registry in this setup.
-`.github/workflows/ci.yml` still runs lint/typecheck/tests on every push and PR; it just isn't
-part of the deploy path. Domains sit behind Cloudflare (proxied, Full (strict) SSL).
+paid enterprise features). **Nothing is built on the server.** GitHub Actions
+(`.github/workflows/release.yml`) builds every image on each push to `main`, pushes it to the
+GitHub Container Registry (GHCR), then calls Dokploy's deploy webhook; Dokploy only pulls the new
+images and restarts. `.github/workflows/ci.yml` still runs lint/typecheck/tests on every push and
+PR, separately. Domains sit behind Cloudflare (proxied, Full (strict) SSL).
 
 ```mermaid
 flowchart LR
-  dev["git push to main"] --> ci["GitHub Actions<br/>.github/workflows/ci.yml<br/>lint · typecheck · tests"]
-  dev --> hook["Dokploy GitHub integration<br/>auto-deploy webhook"]
-  hook --> dokploy["Dokploy on Lightsail<br/>docker compose build (on-box)"]
+  dev["git push to main"] --> ci["GitHub Actions<br/>ci.yml<br/>lint · typecheck · tests"]
+  dev --> rel["GitHub Actions<br/>release.yml<br/>build + push images"]
+  rel --> ghcr["GHCR<br/>ghcr.io/viora-tech/APP<br/>:sha + :latest"]
+  rel --> hook["Dokploy deploy webhook<br/>(if DOKPLOY_WEBHOOK_URL is set)"]
+  hook --> dokploy["Dokploy on Lightsail<br/>pull images (no build)"]
+  ghcr --> dokploy
   dokploy --> migrate["migrate service<br/>(runs once, must succeed)"]
   migrate --> apps["admin · storefront · worker<br/>rolling restart"]
   apps --> cf["Cloudflare<br/>proxied, Full (strict)"]
   cf --> users(["waimers.in / admin.waimers.in"])
 ```
 
-Builds run on the same 2 vCPU / 8 GB box that serves live traffic — there's no separate build
-server on this plan. See "Builds run on the live box" at the top of
-`deploy/docker-compose.prod.yml` for the memory budget and mitigations (deploy off-peak,
-one-service-at-a-time builds, capped build heap); move builds to Dokploy's optional remote
-build server before this box's headroom is what's actually limiting how often you can ship.
+Why off the server: the first version of this setup (PR #173) had Dokploy run
+`docker compose build` on the same 8 GB box that serves traffic. Building the admin alone used
+about 7 GB and crashed Docker. Building in GitHub Actions keeps the box's memory for the running
+apps.
+
+### Images
+
+`release.yml` builds five images from the monorepo root, in parallel, with the Docker layer cache
+kept in the GitHub Actions cache (one scope per image):
+
+| Image | Dockerfile | Used by |
+| --- | --- | --- |
+| `ghcr.io/viora-tech/admin` | `apps/admin/Dockerfile` | `admin` |
+| `ghcr.io/viora-tech/storefront` | `apps/storefront/Dockerfile` | `storefront` |
+| `ghcr.io/viora-tech/worker` | `apps/worker/Dockerfile` | `worker` |
+| `ghcr.io/viora-tech/tasks` | `deploy/Dockerfile.tasks` | `migrate`, `backup`, restore, key rotation |
+| `ghcr.io/viora-tech/docs` | `apps/docs/Dockerfile` | not in the compose file (optional) |
+
+Each is tagged with the full commit sha and `latest`. The compose file runs
+`${IMAGE_TAG:-latest}`, with `pull_policy: always` so a redeploy really fetches the new `latest`.
 
 ## Server sizing and why
 
@@ -65,25 +83,46 @@ Follow that page's steps as of your install date; it changes over time. After it
 Dokploy's dashboard is on port `3000` (see firewall step above). Create your admin account
 immediately — the setup wizard is unauthenticated until you do.
 
-## 3. Connect GitHub
+## 3. GitHub and GHCR
 
-There is no container registry in this setup — Dokploy builds every image itself, on the
-server, straight from this repo's Dockerfiles. Connecting GitHub is what makes that automatic:
+**Repository settings** (GitHub → `Viora-Tech/e-commerce` → Settings → Secrets and variables →
+Actions):
 
-1. Dokploy → Settings → Git Providers → **GitHub** → install the Dokploy GitHub App on the
-   `Viora-Tech` org (or a fine-grained PAT if you'd rather not install the App), scoped to at
-   least the `e-commerce` repo. This is what lets Dokploy clone the repo to build from and
-   receive its push webhook.
-2. You'll pick this connection when creating the Compose application (next step) and set:
-   **branch** `main`, **auto-deploy** on. Dokploy then rebuilds and redeploys this Compose
-   application on every push to `main` — the same trigger `.github/workflows/ci.yml` uses for
-   lint/typecheck/tests, just a separate, unrelated hook.
-3. **Watch paths** (if your Dokploy version supports it, under the application's Git settings):
-   scope the trigger to paths that actually affect the running apps — e.g. `apps/**`,
-   `packages/**`, `deploy/**`, `commerce.config.ts`, `commerce.blocks.config.ts`,
-   `bun.lock`/`package.json` — so a docs-only change (`apps/docs/**`, `*.md`, `*.mdx`) doesn't
-   trigger a full rebuild of admin/storefront/worker on the live box. If your version doesn't
-   support this, it's a minor extra rebuild, not a correctness problem — skip it.
+- Secret `DOKPLOY_WEBHOOK_URL`: the Compose application's deploy webhook (Dokploy → the Compose
+  application → Deployments → Webhook URL; it exists once step 4 is done). Without it,
+  `release.yml` still builds and pushes the images and just skips the deploy step, so you can
+  add it last.
+- Variable `NEXT_PUBLIC_WORKER_URL`: the public worker URL (same value as in Dokploy's env).
+  Next bakes `NEXT_PUBLIC_*` into the admin's browser bundle when the image is built, so it has
+  to be known to the build, not only at runtime.
+
+No registry secret is needed for pushing: the workflow logs in to GHCR with its own
+`GITHUB_TOKEN` (`packages: write`).
+
+**Let the server pull from GHCR.** Packages pushed from a private repo are private, so the server
+needs a read-only login once:
+
+1. On GitHub, create a **classic personal access token** with only the `read:packages` scope
+   (fine-grained tokens don't cover GHCR yet), ideally from a bot/machine account with read access
+   to the org's packages. Store it in your password manager.
+2. Either add it in Dokploy → Settings → **Registry** (registry URL `ghcr.io`, your GitHub
+   username, the token as password), or SSH in and log Docker in directly — this works for
+   Compose applications on every Dokploy version:
+
+   ```sh
+   echo "<token>" | sudo docker login ghcr.io -u <github-username> --password-stdin
+   ```
+
+3. Check it: `sudo docker pull ghcr.io/viora-tech/worker:latest` (after the first `release.yml`
+   run) must succeed.
+
+When the token expires or is revoked, pulls fail and redeploys keep the old containers running;
+repeat step 2 with a new token.
+
+**Dokploy's own GitHub connection** is still used, but only to read
+`deploy/docker-compose.prod.yml` and `deploy/postgres/init.sh` from the repo on each deploy:
+Dokploy → Settings → Git Providers → **GitHub** → install the Dokploy GitHub App on the
+`Viora-Tech` org (or use a fine-grained PAT), scoped to the `e-commerce` repo.
 
 ## 4. Create the application in Dokploy
 
@@ -99,16 +138,16 @@ server, straight from this repo's Dockerfiles. Connecting GitHub is what makes t
 4. **Volumes**: `pgdata` and `dragonflydata` (named volumes in the compose file) persist across
    redeploys automatically — Dokploy doesn't recreate named volumes on redeploy, only
    containers. Don't rename them once created, or you'll start from an empty database.
-5. Turn on **auto-deploy** for this application (Deployments settings) and confirm the branch
-   is `main` — this is the actual switch that makes a push start a build; the GitHub connection
-   in step 3 above only makes it possible.
+5. **Turn auto-deploy off** for this application (Deployments settings). `release.yml` calls the
+   deploy webhook after the images are pushed; Dokploy's own auto-deploy on push would fire
+   minutes earlier, before the new images exist, and just restart the old `latest`.
+6. Copy the application's **Webhook URL** into the `DOKPLOY_WEBHOOK_URL` repo secret (step 3).
 
 ## 5. First deploy
 
-1. Trigger a deploy from the Dokploy UI (first one is always manual) — this builds every
-   service's image on the box (`docker compose build`, one service at a time — see the compose
-   file's own header comment) before starting anything, which takes noticeably longer than a
-   pull-only deploy would. Subsequent deploys only rebuild what changed.
+1. Make sure `release.yml` has run at least once on `main` (GitHub → Actions → Release) so the
+   images exist in GHCR, then trigger a deploy from the Dokploy UI (the first one is manual).
+   Dokploy pulls each image and starts the services — no build happens on the box.
 2. Watch the logs: `postgres` and `dragonfly` come up healthy, then `migrate` runs once and must
    exit `0` before `admin`, `storefront` and `worker` start — this ordering is
    `depends_on: service_completed_successfully` in the compose file, not a manual step. If
@@ -151,19 +190,19 @@ additively (new nullable column, not a rename) when a same-day rollback matters.
 
 ## 8. Rollback
 
-There's no image tag to swap here (Dokploy builds from git, not from a registry) — rolling back
-means redeploying an older commit:
+Every push to `main` leaves an image tagged with its commit sha in GHCR, so rolling back is
+pointing the server at an older tag — no rebuild:
 
-1. Dokploy keeps a history of past deployments for this Compose application — its simplest
-   rollback is picking a previous successful deployment from that list and redeploying it
-   directly, if your version supports it.
-2. Otherwise, roll back in git and let the normal path redeploy it: `git revert` the bad
-   commit(s) on `main` (preferred — keeps history linear and honest) or, if you must, force the
-   branch back to the last good commit; either way, the push triggers Dokploy's webhook and it
-   rebuilds and redeploys that older code.
+1. Find the last good commit sha (GitHub → Actions → Release, or `git log`). Use the full
+   40-character sha; that's the tag `release.yml` pushes.
+2. In Dokploy → the Compose application → Environment, set `IMAGE_TAG=<that sha>` and redeploy.
+   Every app image (and the `tasks` image `migrate` uses) switches to that build together.
 3. `migrate` runs again on the rollback deploy too (a no-op if there's nothing new to apply).
-4. If the previous release's migration must also be undone, that's a manual `pg_restore` from
-   the most recent backup taken **before** the migration ran (see Restore below) — there is no
+4. Once `main` is fixed (preferably `git revert` the bad commit), remove `IMAGE_TAG` (back to
+   `latest`) so the next release deploys normally. While `IMAGE_TAG` is pinned, new releases
+   still build and trigger a deploy, but the server keeps running the pinned sha.
+5. If the bad release's migration must also be undone, that's a manual `pg_restore` from the
+   most recent backup taken **before** the migration ran (see Restore below) — there is no
    automatic "down migration" in this codebase.
 
 ## 9. Restore
@@ -173,10 +212,10 @@ specifically:
 
 ```sh
 # From the Lightsail box, inside the tasks image (same image the `migrate`/`backup` services
-# use — built locally by Dokploy as commerce-tasks:local, not pulled from a registry):
+# pull from GHCR):
 docker run --rm -it --network dokploy-network \
   --env-file .env \
-  commerce-tasks:local \
+  ghcr.io/viora-tech/tasks:latest \
   bun run scripts/restore-db.ts --list
 ```
 
@@ -210,7 +249,8 @@ then remove `SETTINGS_SECRET_PREVIOUS` and redeploy once more.
 
 ## What's next
 
-This covers one server, one region, Dokploy building on-box. It does not cover: multi-region, blue/green
+This covers one server, one region, images built in GitHub Actions and pulled by Dokploy. It
+does not cover: multi-region, blue/green
 across two boxes, a managed Postgres (RDS) migration, or the AWS ECS + CodePipeline path
 mentioned as a considered alternative in earlier notes — Dokploy on Lightsail was chosen as the
 cheaper first step (see `docs/handoff.md`). Move to ECS only once this box's headroom

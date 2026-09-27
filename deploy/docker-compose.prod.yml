@@ -1,27 +1,20 @@
 # Production compose file for Dokploy, one Lightsail server (Mumbai, 8 GB RAM / 2 vCPU
-# burstable, Ubuntu 24.04). Dokploy builds every image ON this server, straight from the
-# Dockerfiles below, using its own GitHub integration (auto-deploy on push to `main`) — there
-# is no separate CI build/push step and no GHCR. See "Builds run on the live box" below and
-# apps/docs/content/developer-docs/operations/deployment.mdx for the full setup.
+# burstable, Ubuntu 24.04). Nothing is built on this server: .github/workflows/release.yml
+# builds every image in GitHub Actions on each push to `main`, pushes it to GHCR
+# (ghcr.io/viora-tech/<app>:<sha> and :latest), then calls Dokploy's deploy webhook. Dokploy
+# only pulls these images and restarts. (PR #173 built on the box; building the admin used
+# ~7 GB and crashed Docker, so builds moved off it.)
+#
+# IMAGE_TAG picks which build runs: `latest` by default, or a full commit sha to pin/roll back.
+# Every app-image service sets `pull_policy: always` so a redeploy of `latest` actually fetches
+# the new build instead of reusing the cached one.
 #
 # Memory budget (8 GB total): Dokploy + its Traefik proxy ~400 MB, OS ~300 MB, leaving ~7.3 GB.
 # The mem_limit values below add up to well under that at steady state, with headroom for
-# traffic bursts AND for a build running alongside the live containers (see below):
+# traffic bursts:
 #   postgres 1536M, dragonfly 640M, admin 768M, storefront 768M, worker 384M, backup 256M
 #   (mostly idle) = ~4.35 GB steady-state, ~2.95 GB free (migrate is a one-shot 512M that only
 #   overlaps this for the seconds it takes to run, before the apps below it start).
-#
-# Builds run on the live box: Dokploy has no separate build server on this plan, so
-# `docker compose build` runs on the same 2 vCPU / 8 GB instance that's serving traffic.
-# Mitigations, in order of how much they help:
-#   1. Deploy off-peak (see the runbook) — the biggest lever, since builds are CPU-heavy.
-#   2. Builds run one service at a time here, never in parallel — see the per-service
-#      NODE_OPTIONS below and "Deploy order" in the runbook.
-#   3. Each Next build's heap is capped (NODE_OPTIONS below) well under the box's total RAM,
-#      so a build can't itself trigger an OOM of the running containers.
-#   4. If this box outgrows single-server building, Dokploy supports a separate remote build
-#      server (Settings → Cluster/Docker context) — move builds off the box entirely rather
-#      than tuning further.
 #
 # See apps/docs/content/developer-docs/operations/deployment.mdx for the full runbook
 # (first deploy, domains, rollback, restore) and deploy/env.production.example for every
@@ -57,10 +50,9 @@ x-app-env: &app-env
   PLATFORM_EMAIL_NAME: ${PLATFORM_EMAIL_NAME:-Waimers}
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
-  # No IMAGE_TAG to derive this from any more (Dokploy builds straight from git, not a tagged
-  # image) — set it by hand to a commit sha when you want release-tagged Sentry events, or
-  # leave unset.
-  SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+  # Release-tag Sentry events with the image's commit sha when IMAGE_TAG is pinned; override
+  # with SENTRY_RELEASE, or leave both unset.
+  SENTRY_RELEASE: ${SENTRY_RELEASE:-${IMAGE_TAG:-}}
   NODE_ENV: production
   # V8 heap cap, sized under each service's mem_limit (below) so the process fails fast with a
   # clear OOM inside its own container instead of the kernel OOM-killer picking a victim among
@@ -145,12 +137,10 @@ services:
   # service below waits for this to succeed before starting (service_completed_successfully) —
   # see "Deploy order" in apps/docs/content/developer-docs/operations/deployment.mdx.
   migrate:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile.tasks
-    # Stable name so an ad hoc `docker run commerce-tasks:local ...` (restore, key rotation —
-    # see the runbook) doesn't have to guess Dokploy's auto-generated build tag.
-    image: commerce-tasks:local
+    # Same image as `backup`, and the one to `docker run` for restore / key rotation (see the
+    # runbook). Built from deploy/Dockerfile.tasks by .github/workflows/release.yml.
+    image: ghcr.io/viora-tech/tasks:${IMAGE_TAG:-latest}
+    pull_policy: always
     command: ['bun', 'run', 'packages/db/src/migrate.ts']
     environment:
       DATABASE_URL: ${DATABASE_URL}
@@ -163,9 +153,8 @@ services:
     networks: [internal]
 
   admin:
-    build:
-      context: ../
-      dockerfile: apps/admin/Dockerfile
+    image: ghcr.io/viora-tech/admin:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment: *app-env
     depends_on:
@@ -212,9 +201,8 @@ services:
       - traefik.http.middlewares.commerce-compress.compress=true
 
   storefront:
-    build:
-      context: ../
-      dockerfile: apps/storefront/Dockerfile
+    image: ghcr.io/viora-tech/storefront:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment: *app-env
     depends_on:
@@ -248,9 +236,8 @@ services:
       - traefik.http.middlewares.commerce-compress.compress=true
 
   worker:
-    build:
-      context: ../
-      dockerfile: apps/worker/Dockerfile
+    image: ghcr.io/viora-tech/worker:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment:
       <<: *app-env
@@ -284,10 +271,8 @@ services:
   # Dokploy, prefer its Scheduled Job feature instead of this always-on service (comment this
   # out if you do).
   backup:
-    build:
-      context: ../
-      dockerfile: deploy/Dockerfile.tasks
-    image: commerce-tasks:local
+    image: ghcr.io/viora-tech/tasks:${IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     command: ['sh', '/repo/deploy/backup-cron.sh']
     environment:

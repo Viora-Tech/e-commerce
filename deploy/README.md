@@ -4,9 +4,9 @@ Full runbook: `apps/docs/content/developer-docs/operations/deployment.mdx` (serv
 Dokploy install, GitHub connection, domains, rollback, restore, key rotation, monitoring). This
 folder holds the files that runbook references:
 
-- `docker-compose.prod.yml` — the Dokploy Compose application. Every service's image is built
-  by Dokploy itself, on the server, straight from the Dockerfiles referenced below (`build:`,
-  not `image:`) — there is no CI pipeline or container registry in this setup.
+- `docker-compose.prod.yml` — the Dokploy Compose application. Every app service uses a
+  prebuilt image from GHCR (`image: ghcr.io/viora-tech/<app>:${IMAGE_TAG:-latest}`); nothing is
+  built on the server.
 - `env.production.example` — every env var the compose file and apps need, one line each, no
   real values. Copy into Dokploy's environment editor.
 - `postgres/init.sh` — first-boot script that creates the RLS-restricted `app` role (runs once,
@@ -24,8 +24,8 @@ the **monorepo root** as build context, e.g., to test one locally:
 docker build -f apps/admin/Dockerfile -t commerce-admin .
 ```
 
-On the server, Dokploy connects to the `Viora-Tech/e-commerce` GitHub repo directly (its own
-GitHub App integration) and rebuilds/redeploys this Compose application on every push to
-`main` — see the runbook's "Connect GitHub" and "First deploy" sections. Builds run on the same
-box that serves traffic (this plan has no separate build server), so deploy off-peak — the
-runbook covers the mitigations in the compose file's own header comment.
+Images are built by `.github/workflows/release.yml` in GitHub Actions on every push to `main`
+(admin, storefront, worker, tasks and docs), tagged with the commit sha and `latest`, and pushed
+to `ghcr.io/viora-tech/<app>`. That workflow then calls Dokploy's deploy webhook (repo secret
+`DOKPLOY_WEBHOOK_URL`, skipped if unset) and Dokploy pulls and restarts. The server never runs
+`docker build` — building the admin needs ~7 GB, which crashed Docker on the 8 GB box.
