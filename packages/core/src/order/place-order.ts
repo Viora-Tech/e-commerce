@@ -595,7 +595,8 @@ const createOrder: WorkflowStep<State> = {
         totalPaise,
         customerId,
         shippingAddressId,
-        email: contact ? contact.email : (input.checkout?.email ?? null),
+        // As typed (the customer row is keyed on the lower-cased one); null when optional and blank.
+        email: input.checkout?.email.trim() || null,
         phone: contact?.phone ?? input.checkout?.phone ?? null,
         buyerGstin: contact?.gstin ?? null,
         buyerBusinessName: contact?.businessName ?? null,

@@ -12,6 +12,14 @@ describe('searchSettings', () => {
     expect(first('whatsapp')?.where).toBe('Notifications')
   })
 
+  it('finds Policies and Checkout', () => {
+    expect(first('refund policy')?.href).toBe('/settings/policies')
+    expect(first('grievance')?.href).toBe('/settings/policies#grievance')
+    expect(first('minimum order')?.href).toBe('/settings/checkout#minimum')
+    expect(first('block pincode')?.href).toBe('/settings/checkout#cod')
+    expect(first('business buyer')?.href).toBe('/settings/checkout#gstin')
+  })
+
   it('offers both Shipping and Apps for "courier"', () => {
     const hrefs = searchSettings(SETTINGS_SEARCH_INDEX, 'courier').map((e) => e.href)
     expect(hrefs).toContain('/settings/shipping#courier')

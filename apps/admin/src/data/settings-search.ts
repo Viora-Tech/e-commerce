@@ -259,7 +259,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['cod', 'cash on delivery', 'cod limit', 'block pincode', 'cod fee', 'whatsapp'],
   },
   {
-    title: 'GSTIN at checkout',
+    title: 'Business buyers at checkout',
     where: 'Settings → Checkout',
     href: '/settings/checkout#gstin',
     keywords: ['gstin', 'b2b', 'business buyer', 'gst invoice', 'company'],
