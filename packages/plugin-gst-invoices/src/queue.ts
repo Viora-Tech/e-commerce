@@ -94,7 +94,16 @@ export async function enqueueOrder(
   } else if (!settings.documents.tax_invoice.enabled) {
     throw new InvoiceError('disabled', 'Tax invoices are switched off in the GST invoices settings')
   }
-  const draft = await orderSnapshot(tx, storeId, orderId, 'tax_invoice', null, at, settings, null)
+  const draft = await orderSnapshot(
+    tx,
+    storeId,
+    orderId,
+    'tax_invoice',
+    null,
+    at,
+    settings,
+    undefined,
+  )
   const row = await insertDocument(tx, storeId, draft, {
     status: 'draft',
     eligibleAt: at,

@@ -2,6 +2,7 @@
 
 import { formatPaise } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
+import type { ReactNode } from 'react'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import GiftCardField from '@/components/checkout/gift-card-field'
 import { checkoutContent as content } from '@/data/checkout'
@@ -31,6 +32,8 @@ type CheckoutSummaryProps = {
   error: string | null
   /** Terms the shopper must see before paying, e.g. a non-refundable pre-order deposit. */
   notice?: string | null | undefined
+  /** Under the notice: the minimum-order line and the links to the store's policies. */
+  footnote?: ReactNode
   pending: boolean
   submitDisabled: boolean
   submitLabel: string
@@ -62,6 +65,7 @@ export default function CheckoutSummary({
   duePaise,
   error,
   notice = null,
+  footnote = null,
   pending,
   submitDisabled,
   submitLabel,
@@ -136,6 +140,7 @@ export default function CheckoutSummary({
           </div>
         ) : null}
         {notice ? <p className="text-small">{notice}</p> : null}
+        {footnote}
         {error ? (
           <p className="checkout__error text-small" role="alert">
             {error}

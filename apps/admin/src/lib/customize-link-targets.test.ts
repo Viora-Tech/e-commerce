@@ -32,7 +32,9 @@ describe('link target search', () => {
       { kind: 'collection', id: 'c2', title: 'Mice', href: '/collections/mice', imageUrl: null },
     ])
     expect((await searchLinkTargets('page', '')).map((t) => t.href)).toEqual(['/pages/about'])
-    expect((await searchLinkTargets('policy', '')).map((t) => t.title)).toEqual(['Refund policy'])
+    expect(await searchLinkTargets('policy', '')).toEqual([
+      { kind: 'policy', id: 'g2', title: 'Refund policy', href: '/policies/refund-policy' },
+    ])
   })
 
   it('searches every kind at once and skips the ones that fail or match nothing', async () => {

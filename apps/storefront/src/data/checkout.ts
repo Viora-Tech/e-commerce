@@ -122,7 +122,27 @@ export const checkoutContent = {
     city: 'City',
     state: 'State',
     pincode: 'Pincode',
+    emailOptional: 'Email (optional)',
+    phoneHint: '10 digit mobile number. The courier calls it on delivery.',
+    gstin: 'GSTIN (optional)',
+    gstinHint: 'For a GST invoice in your business name.',
+    businessName: 'Business name',
+    note: 'Order note (optional)',
+    notePlaceholder: 'For example, please call before delivery',
   },
+  pincodeFirst: {
+    finding: 'Finding your city…',
+    found: (city: string, state: string) => `${city}, ${state}. Change it below if needed.`,
+  },
+  business: 'Buying for a business?',
+  minimumOrder: (min: string, missing: string) =>
+    `The minimum order is ${min}. Add ${missing} more to check out.`,
+  codRules: {
+    blockedPincode: 'Not available for this PIN code',
+    overLimit: (limit: string) => `Available on orders up to ${limit}`,
+  },
+  agreement: 'By placing your order, you agree to our',
+  agreementAnd: 'and',
   adjustmentFallback: thankYouContent.adjustmentFallback,
   delivery: {
     checking: 'Checking delivery…',
@@ -148,16 +168,23 @@ export const checkoutContent = {
     discountUnavailable:
       'That discount has just run out, so your order was not placed. Check the new total and place it again.',
     rateLimited: 'Too many attempts. Please wait a minute and try again.',
+    contact: 'Check your contact details and try again.',
+    minimumOrder: (missing: string) =>
+      `Your order is below this shop's minimum. Add ${missing} more and try again.`,
+    codOverLimit: (limit: string) =>
+      `Cash on delivery is available on orders up to ${limit}. Please pay online.`,
   },
 } as const
 
 export const INDIAN_STATES: readonly [string, string][] = [
+  ['AN', 'Andaman and Nicobar Islands'],
   ['AP', 'Andhra Pradesh'],
   ['AR', 'Arunachal Pradesh'],
   ['AS', 'Assam'],
   ['BR', 'Bihar'],
   ['CG', 'Chhattisgarh'],
   ['CH', 'Chandigarh'],
+  ['DN', 'Dadra and Nagar Haveli and Daman and Diu'],
   ['DL', 'Delhi'],
   ['GA', 'Goa'],
   ['GJ', 'Gujarat'],
@@ -168,6 +195,7 @@ export const INDIAN_STATES: readonly [string, string][] = [
   ['KA', 'Karnataka'],
   ['KL', 'Kerala'],
   ['LA', 'Ladakh'],
+  ['LD', 'Lakshadweep'],
   ['MP', 'Madhya Pradesh'],
   ['MH', 'Maharashtra'],
   ['MN', 'Manipur'],

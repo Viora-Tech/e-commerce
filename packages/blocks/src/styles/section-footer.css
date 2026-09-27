@@ -259,6 +259,10 @@ html:not(.has-cursor-fill) .footer__social-link:hover {
   color: var(--ft-ink);
 }
 
+.footer__grievance {
+  color: var(--ft-muted);
+}
+
 .footer__localization .localization {
   display: flex;
   gap: var(--space-3);

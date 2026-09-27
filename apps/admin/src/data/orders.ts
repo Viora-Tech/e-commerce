@@ -323,6 +323,9 @@ export const orderDetailContent = {
     edit: 'Edit',
     editHint: 'Edit the address in the customer profile',
     billing: 'Billing address',
+    business: 'Business buyer',
+    gstin: 'GSTIN',
+    note: 'Note from customer',
   },
   tags: {
     heading: 'Tags',

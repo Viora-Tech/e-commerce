@@ -5,6 +5,7 @@ import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
   addToCart,
+  CheckoutRuleViolation,
   captureCartContact,
   confirmClientPayment,
   createCart,
@@ -37,6 +38,7 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
+import { formatPaise } from './money'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -89,6 +91,11 @@ export type CheckoutForm = {
   giftCards?: string[]
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
+  /** Business buyer's GSTIN and name, when the store shows the field (Settings → Checkout). */
+  gstin?: string
+  businessName?: string
+  /** Order note, when the store turned notes on. */
+  note?: string
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -179,6 +186,9 @@ export async function checkoutAction(
           name: form.name,
           email: form.email,
           phone: form.phone,
+          gstin: form.gstin ?? null,
+          businessName: form.businessName ?? null,
+          note: form.note ?? null,
           address: {
             line1: form.line1,
             ...(form.line2 ? { line2: form.line2 } : {}),
@@ -200,6 +210,8 @@ export async function checkoutAction(
         return { error: checkoutContent.errors.noShipping(form.pincode) }
       if (err instanceof ShippingRateUnavailable)
         return { error: checkoutContent.errors.rateChanged }
+      // Settings → Checkout, re-checked by placeOrder whatever the form showed.
+      if (err instanceof CheckoutRuleViolation) return { error: checkoutRuleMessage(err) }
       throw err
     })
   if ('error' in placed) return { error: placed.error }
@@ -226,6 +238,21 @@ export async function checkoutAction(
   // This only wakes the relay so they go out in ~1s instead of up to 5s.
   await nudgeOutbox(storeId)
   redirectAfterCheckout(result)
+}
+
+/** The shopper-facing reason a checkout rule refused the order. */
+function checkoutRuleMessage(err: CheckoutRuleViolation): string {
+  const e = checkoutContent.errors
+  switch (err.rule) {
+    case 'contact':
+      return Object.values(err.fields)[0] ?? e.contact
+    case 'minimum_order':
+      return e.minimumOrder(formatPaise(err.amountPaise ?? 0))
+    case 'cod_blocked_pincode':
+      return e.codUnavailable
+    case 'cod_over_limit':
+      return e.codOverLimit(formatPaise(err.amountPaise ?? 0))
+  }
 }
 
 /** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */

@@ -5,9 +5,11 @@ import {
   decodeConsent,
   getCart,
   getTheme,
+  grievanceOfficerOf,
   liveThemeSettings,
   parseNavigationSettings,
   parsePreferences,
+  publishedPolicyLinks,
   themeRootAttrs,
   themeToCss,
   toFooterColumns,
@@ -24,6 +26,7 @@ import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
+import { policyPageContent } from '@/data/policies'
 import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
 import { themeFontVariables } from '@/lib/fonts'
@@ -89,13 +92,14 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 export default async function StoreLayout({ children, params }: Props) {
   const { storeId } = await params
   const preview = await previewRequest(storeId)
-  const { current, menus, theme, previewName } = await inStore(storeId, async (tx) => {
+  const { current, menus, policies, theme, previewName } = await inStore(storeId, async (tx) => {
     const [s] = await tx.select().from(store).where(eq(store.id, storeId))
     const rows = await tx.select().from(navigationMenu)
     const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
     return {
       current: s,
       menus: rows,
+      policies: await publishedPolicyLinks({ tx, storeId }),
       theme: previewed?.settings ?? (await liveThemeSettings(tx, storeId)),
       previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
     }
@@ -110,6 +114,7 @@ export default async function StoreLayout({ children, params }: Props) {
   const jar = await cookies()
   const mode = resolveThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode)
   const prefs = parsePreferences(current.preferences)
+  const officer = grievanceOfficerOf(current.preferences)
   const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
 
   // Which menus to render comes from the store setting; the menus themselves are
@@ -151,6 +156,8 @@ export default async function StoreLayout({ children, params }: Props) {
             storeName={current.name}
             tagline={typeof s.tagline === 'string' ? s.tagline : ''}
             columns={footerColumns}
+            policies={policies.map((p) => ({ label: p.title, href: p.href }))}
+            grievance={officer ? policyPageContent.grievance(officer) : null}
             themeToggle={
               theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
             }

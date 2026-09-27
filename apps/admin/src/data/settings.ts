@@ -2,11 +2,13 @@ import type { LucideIcon } from '@commerce/ui/icons'
 import {
   Bell,
   Braces,
+  ClipboardList,
   CreditCard,
   Globe,
   Home,
   Images,
   Palette,
+  ShoppingCart,
   Store,
   Truck,
   Undo,
@@ -43,6 +45,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     icon: CreditCard,
   },
   {
+    href: '/settings/checkout',
+    title: 'Checkout',
+    body: 'What shoppers fill in, minimum order value and cash on delivery rules.',
+    icon: ShoppingCart,
+  },
+  {
     href: '/settings/shipping',
     title: 'Shipping',
     body: 'Couriers, shipping rates, delivery estimates and dispatch policy.',
@@ -53,6 +61,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Returns',
     body: 'How many days customers have to return, which reasons you accept, restock and refunds.',
     icon: Undo,
+  },
+  {
+    href: '/settings/policies',
+    title: 'Policies',
+    body: 'Refund, privacy, terms, shipping and contact pages, from ready-made templates.',
+    icon: ClipboardList,
   },
   {
     href: '/settings/notifications',
@@ -243,9 +257,9 @@ export const settingsHomeContent = {
       },
       policies: {
         title: 'Policies',
-        todo: 'Publish your return, privacy and terms pages.',
+        todo: 'Publish your refund, privacy, terms, shipping and contact pages.',
         done: 'Your policy pages are live.',
-        href: '/online-store/pages',
+        href: '/settings/policies',
       },
     } satisfies Record<SetupItemId, { title: string; todo: string; done: string; href: string }>,
   },

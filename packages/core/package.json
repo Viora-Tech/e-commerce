@@ -39,6 +39,8 @@
     "./preorder-block": "./src/preorder/block.tsx",
     "./order-status": "./src/order/aggregate-status.ts",
     "./returns": "./src/returns/policy.ts",
+    "./policies": "./src/policies/client.ts",
+    "./checkout-settings": "./src/checkout/settings.ts",
     "./onboarding": "./src/onboarding/client.ts",
     "./media-pipeline": "./src/media/pipeline.ts",
     "./media-queue": "./src/media/queue.ts",

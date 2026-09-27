@@ -97,3 +97,29 @@ export class BalanceDue extends CommerceError {
     )
   }
 }
+
+/**
+ * The checkout broke one of the store's checkout rules (Settings → Checkout):
+ * a contact field, the minimum order, or a cash on delivery limit. Thrown by
+ * `placeOrder` before anything is reserved, whatever the storefront showed.
+ */
+export class CheckoutRuleViolation extends CommerceError {
+  readonly rule: 'contact' | 'minimum_order' | 'cod_blocked_pincode' | 'cod_over_limit'
+  readonly fields: Readonly<Record<string, string>>
+  /** Minimum order: what is still missing. COD limit: the limit. In paise. */
+  readonly amountPaise: number | null
+
+  constructor(
+    rule: CheckoutRuleViolation['rule'],
+    opts: {
+      storeId?: string | undefined
+      fields?: Record<string, string>
+      amountPaise?: number
+    } = {},
+  ) {
+    super('CHECKOUT_RULE', `Checkout rule "${rule}" was not met`, { storeId: opts.storeId })
+    this.rule = rule
+    this.fields = opts.fields ?? {}
+    this.amountPaise = opts.amountPaise ?? null
+  }
+}

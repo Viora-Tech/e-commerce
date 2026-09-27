@@ -3,4 +3,6 @@ export default {
   notifications: 'Notifications',
   'sender-email': 'Send emails from your own address',
   shipping: 'Shipping',
+  checkout: 'Checkout',
+  policies: 'Policies',
 }
