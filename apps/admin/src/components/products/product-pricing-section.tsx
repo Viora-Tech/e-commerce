@@ -54,18 +54,13 @@ export default function ProductPricingSection({
   return (
     <div className="flex flex-col gap-4">
       <KitField label={copy.price} htmlFor="variant-price" required>
-        <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-card pr-3 transition-colors hover:border-border-strong focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
-          <MoneyInput
-            size="kit"
-            id="variant-price"
-            value={variant.price}
-            onChange={(price) => onVariant({ price })}
-            className="h-full flex-1 border-0 bg-transparent hover:border-0 focus-visible:ring-0"
-          />
-          <span className="shrink-0 border-border border-l pl-3 text-caption text-muted-foreground">
-            {copy.currency}
-          </span>
-        </div>
+        <MoneyInput
+          size="kit"
+          id="variant-price"
+          value={variant.price}
+          onChange={(price) => onVariant({ price })}
+          suffix={copy.currency}
+        />
       </KitField>
 
       <div className="flex flex-col gap-4 md:flex-row md:gap-4">
@@ -74,20 +69,13 @@ export default function ProductPricingSection({
           htmlFor="variant-mrp"
           help={mrpBelow ? copy.mrpBelowPrice : undefined}
         >
-          <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-card pr-3 transition-colors hover:border-border-strong focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
-            <MoneyInput
-              size="kit"
-              id="variant-mrp"
-              value={variant.mrp}
-              onChange={(mrp) => onVariant({ mrp })}
-              className="h-full flex-1 border-0 bg-transparent hover:border-0 focus-visible:ring-0"
-            />
-            {saving ? (
-              <span className="shrink-0 whitespace-nowrap text-caption text-muted-foreground">
-                {copy.saving(formatPaise(saving))}
-              </span>
-            ) : null}
-          </div>
+          <MoneyInput
+            size="kit"
+            id="variant-mrp"
+            value={variant.mrp}
+            onChange={(mrp) => onVariant({ mrp })}
+            suffix={saving ? copy.saving(formatPaise(saving)) : undefined}
+          />
         </KitField>
 
         <KitField label={copy.taxIncluded} help={copy.taxIncludedHelp}>
@@ -114,22 +102,24 @@ export default function ProductPricingSection({
 
       <KitField label={copy.expiration} help={copy.expirationHelp}>
         <div className="flex flex-col gap-4 md:flex-row">
-          <Input
-            size="kit"
-            type="date"
-            aria-label={copy.expirationStart}
-            value={saleStartsAt}
-            onChange={(e) => onSaleStartsAt(e.target.value)}
-            className="md:flex-1"
-          />
-          <Input
-            size="kit"
-            type="date"
-            aria-label={copy.expirationEnd}
-            value={saleEndsAt}
-            onChange={(e) => onSaleEndsAt(e.target.value)}
-            className="md:flex-1"
-          />
+          <label className="flex flex-col gap-1.5 md:flex-1">
+            <span className="text-caption text-muted-foreground">{copy.expirationStart}</span>
+            <Input
+              size="kit"
+              type="date"
+              value={saleStartsAt}
+              onChange={(e) => onSaleStartsAt(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 md:flex-1">
+            <span className="text-caption text-muted-foreground">{copy.expirationEnd}</span>
+            <Input
+              size="kit"
+              type="date"
+              value={saleEndsAt}
+              onChange={(e) => onSaleEndsAt(e.target.value)}
+            />
+          </label>
         </div>
       </KitField>
     </div>
