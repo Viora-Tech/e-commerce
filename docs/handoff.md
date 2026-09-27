@@ -20,6 +20,11 @@ The sections further down describe an earlier stage and are partly outdated; thi
   **Open issue found, not fixed**: the compose `internal` network is `internal: true` (no
   internet egress) and `worker`/`backup`/`migrate` sit only on it, so the worker can't call
   payment/shipping APIs and backups can't reach R2 — fix before the first deploy.
+- **Worker dev restarts** (27 September 2026, `claude/worker-dev-watch`): `apps/worker` `dev` now
+  runs `scripts/dev.ts`, a small supervisor that watches the worker's transitive workspace
+  packages (`src/` + `package.json` of each) and restarts it on change. It replaces
+  `bun --watch`, which on Windows ignored `packages/*`. See developer docs, Running locally,
+  "Worker restarts in dev". No migration.
 - **Product page UX** (27 September 2026, `claude/exciting-einstein-nos00p`): option chips build every
   variant combination (ids carried over on add/remove, stock-loss confirm, bulk price/stock/SKU
   prefix, SKU suggestions); category picker over Shopify's MIT Standard Product Taxonomy
@@ -90,6 +95,8 @@ The sections further down describe an earlier stage and are partly outdated; thi
      Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
   5. Small: worker `bun --watch` should also watch `packages/*`; a platform page to browse the
      signup waitlist and invite from it.
+  5. Small: fuller onboarding (what you sell, location step, waitlist). (Worker watching
+     `packages/*` is done, see above.)
   6. Later: Home dashboard redesign (waiting for design references), custom WebGL globe (cobe
      tops out at ~32k dots), section library → Shopify theme importer (Level 1: rebuild with our
      blocks; Level 2: LiquidJS for owner-owned themes only) → website builder / editor part 2

@@ -48,6 +48,33 @@ bun run dev:docs                # this docs site, on :3500
 Admin: `http://localhost:3200`. Storefront: `http://localhost:3100`. Worker:
 `http://localhost:4100`. Docs: `http://localhost:3500`.
 
+## Worker restarts in dev
+
+`bun run dev` starts the worker through `apps/worker/scripts/dev.ts`, not `bun --watch`. On
+Windows Bun only watches the folder it started in, so edits under `packages/*` were skipped
+("not in the project directory and will not be watched") and the worker kept running old code.
+
+The script reads `apps/worker/package.json`, follows its `workspace:` dependencies
+transitively (today about 16 packages: `@commerce/core`, `db`, `queue`, `notifications`, ...),
+and watches each package's `src/` folder plus its `package.json`. Any `.ts`, `.tsx`, `.js` or
+`.json` change there, or in `apps/worker/src`, restarts the worker:
+
+```text filename="Terminal"
+[worker:dev] watching 16 workspace packages
+worker listening on :4100
+[worker:dev] packages/core/src/orders/service.ts changed, restarting
+worker listening on :4100
+```
+
+The restart sends `SIGTERM`, waits for the worker's own shutdown (queues and the database pool
+close) and then starts it again. A worker that has not exited after 10 seconds gets `SIGKILL`.
+Test files (`*.test.ts`), `node_modules`, `dist` and non-code files do not trigger a restart.
+If the worker crashes on boot, the script keeps watching, so saving a fix brings it back.
+A new workspace dependency is picked up the next time you start `bun run dev`.
+
+To run the worker once with no watching (it does not load the root `.env`):
+`bun run --cwd apps/worker start`.
+
 ## Signing up to create a new store
 
 `MERCHANT_SIGNUP_MODE` (`packages/config/src/env.ts`) gates who may create their own store from
