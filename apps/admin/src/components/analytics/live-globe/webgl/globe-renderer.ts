@@ -4,8 +4,10 @@
  * 1. Sphere: one full-screen triangle whose fragment shader shades the disc (lit from the
  *    front, rim glow) and the soft halo around it, after cobe's look (MIT, shuding/cobe). Each
  *    pixel is turned back into latitude/longitude and the land map is read as a mipmapped
- *    texture, so continents are smooth filled shapes with a soft coast, plus faint 15° grid
- *    lines. No repeating dot pattern, so nothing beats against the screen's pixel grid (moiré).
+ *    texture, so continents are smooth filled shapes, outlined at the coast, with thin country
+ *    borders (India's official boundary, see scripts/globe/make-globe-map.py) and faint 15°
+ *    grid lines. Coast and borders are turned back into a distance on screen, so they stay
+ *    about one pixel wide at any zoom. No repeating dot pattern, so nothing beats against the screen's pixel grid (moiré).
  * 2. Points: the markers and arcs (a small buffer rebuilt each frame), flat round sprites.
  *
  * Projection is orthographic: a unit-sphere point is turned by the globe's spin (`phi`, about
@@ -58,10 +60,16 @@ if(a>1.){float r=sqrt(.3125/(a-1.));float f=smoothstep(.5,1.,r/(r+1.));gl_FragCo
 float i=sqrt(1.-a);vec3 w=M*vec3(b,i);
 float lat=asin(clamp(w.y,-1.,1.));float t=atan(w.x,w.z)/6.2831853;
 float u1=t+.5,u2=fract(t)+.5;float u=fwidth(u1)<=fwidth(u2)+1e-6?u1:u2;
-float land=H*smoothstep(.3,.7,texture2D(T,vec2(u,.5-lat/3.1415927)).r);
+vec2 st=vec2(u,.5-lat/3.1415927);vec4 m=texture2D(T,st);
+float land=H*smoothstep(.3,.7,m.r);
+float coast=H*(1.-smoothstep(.6,1.4,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
+float px=max(fwidth(st.x*2048.),1e-4);float bd=1.4*sqrt(-2.*log(max(m.g,1e-3)))/px;
+float border=H*step(.03,m.g)*(1.-smoothstep(.55,1.3,bd));
 vec3 ocean=C*(pow(i,.4)*(1.-V.w)+.1)+pow(1.-i,4.)*G;
 vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+pow(1.-i,4.)*G;
 vec3 col=mix(ocean,ground,land*smoothstep(0.,.18,i));
+vec3 line=mix(C*1.25+.12,C*2.3+.2,V.w);float rim=smoothstep(0.,.3,i);
+col=mix(col,line,coast*rim*.8);col=mix(col,line,border*rim*.75);
 float g1=grid(degrees(lat)/15.);float lx=u*24.;float g2=grid(lx)*smoothstep(.97,.88,abs(w.y));
 float g=max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
 col=mix(col,G*.9+C*.3,g);
