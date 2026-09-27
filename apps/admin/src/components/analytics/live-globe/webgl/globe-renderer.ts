@@ -2,10 +2,11 @@
  * A small WebGL 1 globe renderer, no three.js. Two programs:
  *
  * 1. Sphere: one full-screen triangle whose fragment shader shades the disc (lit from the
- *    front, rim glow) and the soft halo around it, after cobe's look (MIT, shuding/cobe).
- * 2. Points: round point sprites for the land dots (a static buffer per level of detail from
- *    `land-dots.ts`), then the markers and arcs (a small buffer rebuilt each frame). Land dots
- *    take the sphere's shading so they fade into it towards the rim; markers and arcs are flat.
+ *    front, rim glow) and the soft halo around it, after cobe's look (MIT, shuding/cobe). Each
+ *    pixel is turned back into latitude/longitude and the land map is read as a mipmapped
+ *    texture, so continents are smooth filled shapes with a soft coast, plus faint 15° grid
+ *    lines. No repeating dot pattern, so nothing beats against the screen's pixel grid (moiré).
+ * 2. Points: the markers and arcs (a small buffer rebuilt each frame), flat round sprites.
  *
  * Projection is orthographic: a unit-sphere point is turned by the globe's spin (`phi`, about
  * the north axis) and tilt (`theta`), then scaled by the radius. Anything behind the globe's
@@ -24,8 +25,6 @@ export type GlobeFrame = {
   radius: number
   /** Row-major rotation from `rotation(phi, theta)`. */
   rotation: Mat3
-  /** Diameter of one land dot, in device pixels. */
-  dotSize: number
   /** What marker and arc sizes (shares of the radius) are multiplied by, in device pixels.
    * The radius itself at zoom 1; held there when zoomed in so markers do not balloon. */
   pointScale: number
@@ -35,7 +34,8 @@ export type GlobeFrame = {
 }
 
 export type GlobeRenderer = {
-  setLand: (dots: Float32Array) => void
+  /** The land map (white land on black sea, equirectangular, north up, -180 at the left). */
+  setLandMap: (image: TexImageSource) => void
   /** Arcs or markers (drawn in that order): `x, y, z, size (share of the radius), r, g, b`
    * per point. Arcs change only with new orders; markers every frame, for the pulse. */
   setPoints: (layer: 0 | 1, points: Float32Array) => void
@@ -45,27 +45,39 @@ export type GlobeRenderer = {
 
 const SPHERE_VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}'
 
-// V = centre xy (GL pixels, y up), radius, dark. K = cobe's (1 + opacity) / 2 at opacity .94.
-const SPHERE_FS = `precision highp float;uniform vec4 V;uniform vec3 C,G;
+// V = centre xy (GL pixels, y up), radius, dark. M turns a view vector back to the globe's own
+// axes (y north, z at longitude 0, x at 90 E). T = land map, H = 1 once it has loaded.
+// The longitude seam: atan jumps from +pi to -pi at 180°, which would make the mipmap pick its
+// blurriest level along that meridian. Two u's with seams half a turn apart are computed and
+// the one that is smooth at this pixel is used (Tarini's trick).
+const SPHERE_FS = `#extension GL_OES_standard_derivatives : enable
+precision highp float;uniform vec4 V;uniform vec3 C,G;uniform mat3 M;uniform sampler2D T;uniform float H;
+float grid(float x){float w=fwidth(x);return 1.-min(abs(fract(x-.5)-.5)/max(w,1e-4),1.);}
 void main(){vec2 b=(gl_FragCoord.xy-V.xy)/V.z;float a=dot(b,b);
-if(a<=1.){float i=sqrt(1.-a);gl_FragColor=vec4(C*(pow(i,.4)*(1.-V.w)+.1)+pow(1.-i,4.)*G,1)*.97;}
-else{float r=sqrt(.3125/(a-1.));float f=smoothstep(.5,1.,r/(r+1.));gl_FragColor=vec4(f*G,f);}}`
+if(a>1.){float r=sqrt(.3125/(a-1.));float f=smoothstep(.5,1.,r/(r+1.));gl_FragColor=vec4(f*G,f);return;}
+float i=sqrt(1.-a);vec3 w=M*vec3(b,i);
+float lat=asin(clamp(w.y,-1.,1.));float t=atan(w.x,w.z)/6.2831853;
+float u1=t+.5,u2=fract(t)+.5;float u=fwidth(u1)<=fwidth(u2)+1e-6?u1:u2;
+float land=H*smoothstep(.3,.7,texture2D(T,vec2(u,.5-lat/3.1415927)).r);
+vec3 ocean=C*(pow(i,.4)*(1.-V.w)+.1)+pow(1.-i,4.)*G;
+vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+pow(1.-i,4.)*G;
+vec3 col=mix(ocean,ground,land*smoothstep(0.,.18,i));
+float g1=grid(degrees(lat)/15.);float lx=u*24.;float g2=grid(lx)*smoothstep(.97,.88,abs(w.y));
+float g=max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
+col=mix(col,G*.9+C*.3,g);
+gl_FragColor=vec4(col,1)*.97;}`
 
-// p.w: land buffers give 3 components, so w = 1 and Z is the dot size; marker/arc points
-// carry their size as a share of the radius and Z is the radius. c.a = 0 marks a land dot.
+// Marker/arc points carry their size as a share of the radius (p.w) and Z is the radius.
 const POINT_VS = `attribute vec4 p,c;uniform mat3 M;uniform vec2 S,R;uniform float Z;
 varying vec4 v;varying float f;
 void main(){vec3 q=p.xyz*M;v=c;f=q.z;
 if(q.z<0.&&dot(q.xy,q.xy)<1.){gl_Position=vec4(2,2,2,1);gl_PointSize=0.;return;}
 gl_Position=vec4(S+q.xy*R,0,1);gl_PointSize=p.w*Z;}`
 
-// L = map brightness, diffuse, dark. cobe's dot shading: strength q falls off towards the rim
-// (so dots melt into the sphere) and the dot's edge fades out, saturating early like cobe's.
-const POINT_FS = `precision highp float;uniform vec3 C,G,L;varying vec4 v;varying float f;
+// Flat round sprites with a one-pixel-ish soft edge.
+const POINT_FS = `precision highp float;varying vec4 v;varying float f;
 void main(){float d=length(gl_PointCoord*2.-1.);if(d>1.)discard;
-if(v.a>.5){gl_FragColor=vec4(v.rgb,1);return;}
-float i=max(f,0.),q=pow(i,L.y)*L.x,a=min(1.,(1.-smoothstep(0.,1.,d))*max(q,1.));
-gl_FragColor=vec4((C*(mix(max(1.-q,0.)*pow(i,.4),q,L.z)+.1)+pow(1.-i,4.)*G)*.97,a*.97);}`
+gl_FragColor=vec4(v.rgb,1.-smoothstep(.8,1.,d));}`
 
 /** Rotation for spin `phi` then tilt `theta`, row-major. */
 export function rotation(phi: number, theta: number): Mat3 {
@@ -115,6 +127,8 @@ function program(gl: WebGLRenderingContext, vs: string, fs: string) {
 
 export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | null {
   const gl = canvas.getContext('webgl', { alpha: true, antialias: true, depth: false })
+  // fwidth() for the soft coast, grid lines and the seam fix; supported on all current GPUs.
+  if (gl && !gl.getExtension('OES_standard_derivatives')) return null
   const sphere = gl && program(gl, SPHERE_VS, SPHERE_FS)
   const dots = gl && program(gl, POINT_VS, POINT_FS)
   if (!gl || !sphere || !dots) return null
@@ -122,10 +136,10 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
   const tri = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, tri)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
-  const land = gl.createBuffer()
   const layers = [gl.createBuffer(), gl.createBuffer()] as const
   const counts: [number, number] = [0, 0]
-  let landCount = 0
+  const landMap = gl.createTexture()
+  let hasLand = false
   const aPos = dots.a('p')
   const aColor = dots.a('c')
 
@@ -135,9 +149,16 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
   }
 
   return {
-    setLand: (data) => {
-      upload(land, data, gl.STATIC_DRAW)
-      landCount = data.length / 3
+    setLandMap: (image) => {
+      gl.bindTexture(gl.TEXTURE_2D, landMap)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image)
+      // 2048x1024 is a power of two, so WebGL 1 can mipmap it: smooth coasts at every size.
+      gl.generateMipmap(gl.TEXTURE_2D)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      hasLand = true
     },
     setPoints: (layer, data) => {
       upload(layers[layer], data, gl.DYNAMIC_DRAW)
@@ -158,6 +179,12 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       gl.uniform4f(sphere.u('V'), f.cx, h - f.cy, f.radius, f.dark ? 1 : 0)
       gl.uniform3fv(sphere.u('C'), f.base)
       gl.uniform3fv(sphere.u('G'), f.glow)
+      // Row-major upload read as column-major is the transpose: the inverse rotation.
+      gl.uniformMatrix3fv(sphere.u('M'), false, f.rotation)
+      gl.activeTexture(gl.TEXTURE0)
+      gl.bindTexture(gl.TEXTURE_2D, landMap)
+      gl.uniform1i(sphere.u('T'), 0)
+      gl.uniform1f(sphere.u('H'), hasLand ? 1 : 0)
       gl.drawArrays(gl.TRIANGLES, 0, 3)
 
       gl.useProgram(dots.p)
@@ -165,18 +192,6 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       gl.uniformMatrix3fv(dots.u('M'), false, f.rotation)
       gl.uniform2f(dots.u('S'), (2 * f.cx) / w - 1, 1 - (2 * f.cy) / h)
       gl.uniform2f(dots.u('R'), (2 * f.radius) / w, (2 * f.radius) / h)
-      gl.uniform3fv(dots.u('C'), f.base)
-      gl.uniform3fv(dots.u('G'), f.glow)
-      gl.uniform3f(dots.u('L'), f.dark ? 4.5 : 5.5, 1.15, f.dark ? 1 : 0)
-      if (landCount > 0) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, land)
-        gl.enableVertexAttribArray(aPos)
-        gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0)
-        gl.disableVertexAttribArray(aColor)
-        gl.vertexAttrib4f(aColor, 0, 0, 0, 0)
-        gl.uniform1f(dots.u('Z'), f.dotSize)
-        gl.drawArrays(gl.POINTS, 0, landCount)
-      }
       gl.uniform1f(dots.u('Z'), f.pointScale)
       for (const layer of [0, 1] as const) {
         if (counts[layer] === 0) continue
@@ -189,7 +204,8 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       }
     },
     destroy: () => {
-      for (const b of [tri, land, ...layers]) gl.deleteBuffer(b)
+      for (const b of [tri, ...layers]) gl.deleteBuffer(b)
+      gl.deleteTexture(landMap)
       gl.deleteProgram(sphere.p)
       gl.deleteProgram(dots.p)
     },

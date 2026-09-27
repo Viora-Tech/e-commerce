@@ -15,34 +15,26 @@ import GlobeOverlay from './globe-overlay'
 import { readPalette } from './globe-palette'
 import type { GlobeCanvasProps } from './types'
 import { anglesFor, createGlobeRenderer, rotate, rotation } from './webgl/globe-renderer'
-import {
-  dotSpacing,
-  LOD_SAMPLES,
-  landLevel,
-  levelSamples,
-  loadLand,
-  pickLevel,
-} from './webgl/land-dots'
 import { buildArcPoints, buildMarkerPoints, markerVector } from './webgl/overlay-points'
 
 const PULSE_MS = 1800
 const REVEAL_MS = 900
 
-/** Deeper than cobe's 2.6: the extra dots are what make zooming in on India worth it. */
+/** Deeper than cobe's 2.6: the land map stays sharp, so zooming in on India is worth it. */
 const ZOOM_MAX = 4
 
 /** Globe radius as a share of the canvas height at zoom 1 (cobe's fit). */
 const RADIUS = 0.4
 
-/** A land dot's diameter as a share of the spacing between dots (cobe's 0.008 / 0.0198). */
-const DOT_FILL = 0.8
+/** Natural Earth 1:50m land, 2048x1024 (see scripts/globe/make-land-map.py), in public/. */
+const LAND_MAP_SRC = '/globe/land-2048.png'
 
 /**
- * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, look,
- * markers, arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`, but the
- * land dots are placed on the CPU in full precision (`webgl/land-dots.ts`) with levels of
- * detail: zooming in swaps to more, smaller dots, up to about one per land-map pixel, so India
- * stays sharp instead of cobe's ~32k-dot ceiling.
+ * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, markers,
+ * arcs, drag/tilt, zoom and reduced-motion behaviour as `LiveGlobeCanvas`, but land is drawn
+ * as smooth filled continents from the land map with faint 15° grid lines instead of dots, so
+ * it never shimmers (dots at 3-6 px beat against the screen's pixel grid) and stays sharp
+ * when zoomed in on India.
  */
 export default function WebglGlobeCanvas({
   markers,
@@ -79,12 +71,15 @@ export default function WebglGlobeCanvas({
     let revealStartedAt = performance.now()
     let lastNewestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
     let shownArcs: typeof arcs | null = null
-    let shownLevel = -1
-    let prebuild = 0
     let alive = true
-    loadLand().catch(() => {
-      // No land map: the sphere, markers and arcs still draw.
-    })
+    const landImage = new Image()
+    landImage.src = LAND_MAP_SRC
+    landImage
+      .decode()
+      .then(() => alive && renderer.setLandMap(landImage))
+      .catch(() => {
+        // No land map: the sphere, markers and arcs still draw.
+      })
 
     let rafId = 0
     const tick = () => {
@@ -100,21 +95,6 @@ export default function WebglGlobeCanvas({
       const radius = RADIUS * h * s.zoom
       const cx = w / 2 + shiftX * w
       const cy = h / 2
-
-      // Level of detail: swap dot sets as the radius crosses each level's threshold, and
-      // build the next finer level while idle so the first zoom in does not stutter.
-      const level = pickLevel(radius)
-      if (level !== shownLevel) {
-        const dots = landLevel(level)
-        if (dots) {
-          renderer.setLand(dots)
-          shownLevel = level
-          clearTimeout(prebuild)
-          if (level + 1 < LOD_SAMPLES.length) {
-            prebuild = window.setTimeout(() => alive && landLevel(level + 1), 400)
-          }
-        }
-      }
 
       if (arcsRef.current !== shownArcs) {
         shownArcs = arcsRef.current
@@ -135,7 +115,6 @@ export default function WebglGlobeCanvas({
         cy: cy * dpr,
         radius: radius * dpr,
         rotation: m,
-        dotSize: DOT_FILL * dotSpacing(levelSamples(shownLevel)) * radius * dpr,
         pointScale: (radius / Math.max(1, s.zoom)) * dpr,
         dark,
         base: palette.base,
@@ -157,7 +136,6 @@ export default function WebglGlobeCanvas({
     return () => {
       alive = false
       cancelAnimationFrame(rafId)
-      clearTimeout(prebuild)
       detach()
       renderer.destroy()
     }
