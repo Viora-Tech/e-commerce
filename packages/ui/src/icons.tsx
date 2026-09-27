@@ -43,6 +43,30 @@ import {
   DotsThreeOutline,
   DotsThreeVertical,
   DownloadSimple,
+  AlignBottom as EdAlignBottom,
+  AlignTop as EdAlignTop,
+  ArrowsLeftRight as EdArrowsLeftRight,
+  Basket as EdBasket,
+  ChartLineUp as EdChartLineUp,
+  Columns as EdColumns,
+  EnvelopeSimple as EdEnvelope,
+  FileText as EdFileText,
+  FilmStrip as EdFilmStrip,
+  FolderSimple as EdFolder,
+  Image as EdImage,
+  Images as EdImages,
+  ListDashes as EdListDashes,
+  MagnifyingGlass as EdMagnifyingGlass,
+  Megaphone as EdMegaphone,
+  Newspaper as EdNewspaper,
+  Package as EdPackage,
+  Quotes as EdQuotes,
+  Shapes as EdShapes,
+  Sparkle as EdSparkle,
+  SquareSplitHorizontal as EdSplit,
+  SquaresFour as EdSquaresFour,
+  TextAlignLeft as EdTextAlignLeft,
+  WarningCircle as EdWarningCircle,
   Eye,
   EyeClosed,
   FacebookLogo,
@@ -330,6 +354,40 @@ export const TargetIcon = defineIcon(Target, 'TargetIcon')
 export const FireIcon = defineIcon(Fire, 'FireIcon')
 export const MapPinLineIcon = defineIcon(MapPinLine, 'MapPinLineIcon')
 export const WarningIcon = defineIcon(Warning, 'WarningIcon')
+
+/*
+ * Theme editor section glyphs: one family, Phosphor regular, drawn at 16px in the
+ * sidebar and 14px inline. Keyed by what the section is, not by its type, so new
+ * sections pick a glyph from here (see `SECTION_GLYPH` in the admin's
+ * lib/customize-section-kinds.ts). Never mix weights or filled glyphs in the editor.
+ */
+export const editorGlyphs = {
+  header: defineIcon(EdAlignTop, 'GlyphHeader'),
+  footer: defineIcon(EdAlignBottom, 'GlyphFooter'),
+  image: defineIcon(EdImage, 'GlyphImage'),
+  megaphone: defineIcon(EdMegaphone, 'GlyphMegaphone'),
+  text: defineIcon(EdTextAlignLeft, 'GlyphText'),
+  page: defineIcon(EdFileText, 'GlyphPage'),
+  columns: defineIcon(EdColumns, 'GlyphColumns'),
+  quote: defineIcon(EdQuotes, 'GlyphQuote'),
+  list: defineIcon(EdListDashes, 'GlyphList'),
+  shapes: defineIcon(EdShapes, 'GlyphShapes'),
+  grid: defineIcon(EdSquaresFour, 'GlyphGrid'),
+  package: defineIcon(EdPackage, 'GlyphPackage'),
+  folder: defineIcon(EdFolder, 'GlyphFolder'),
+  video: defineIcon(EdFilmStrip, 'GlyphVideo'),
+  news: defineIcon(EdNewspaper, 'GlyphNews'),
+  send: defineIcon(EdEnvelope, 'GlyphSend'),
+  spotlight: defineIcon(EdSparkle, 'GlyphSpotlight'),
+  split: defineIcon(EdSplit, 'GlyphSplit'),
+  marquee: defineIcon(EdArrowsLeftRight, 'GlyphMarquee'),
+  stats: defineIcon(EdChartLineUp, 'GlyphStats'),
+  gallery: defineIcon(EdImages, 'GlyphGallery'),
+  cart: defineIcon(EdBasket, 'GlyphCart'),
+  search: defineIcon(EdMagnifyingGlass, 'GlyphSearch'),
+  notFound: defineIcon(EdWarningCircle, 'GlyphNotFound'),
+} as const
+export type EditorGlyph = keyof typeof editorGlyphs
 
 /** Semantic map for new code. */
 export const icons = {

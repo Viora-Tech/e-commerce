@@ -1,0 +1,132 @@
+import type { EditorGlyph } from '@commerce/ui/icons'
+import { SECTION_ICONS } from './customize-puck'
+
+/**
+ * What kind of section a type is, for the small tinted tile its glyph sits on
+ * in the Sections tree, the Add panel and the inspector header. Five kinds,
+ * one tint each, all from theme tokens so dark mode follows:
+ *
+ * - `layout`: containers and page chrome (header, footer, columns, groups)
+ * - `text`: words first (rich text, FAQ, testimonials, newsletter)
+ * - `media`: pictures and video first (banners, galleries, logos)
+ * - `product`: products and collections
+ * - `app`: blocks installed apps contribute (their type is `<app-id>/<Name>`)
+ *
+ * Plain logic with no JSX, so it sits outside the component-structure rule.
+ */
+export type SectionKind = 'layout' | 'text' | 'media' | 'product' | 'app'
+
+const KINDS: Record<string, SectionKind> = {
+  Header: 'layout',
+  Footer: 'layout',
+  Multicolumn: 'layout',
+  BentoGrid: 'layout',
+  MainPage: 'text',
+  MainBlog: 'text',
+  MainArticle: 'text',
+  MainSearch: 'layout',
+  MainNotFound: 'layout',
+  MainCart: 'product',
+  MainProduct: 'product',
+  MainCollection: 'product',
+  RichText: 'text',
+  AnnouncementBar: 'text',
+  Testimonials: 'text',
+  TestimonialMarquee: 'text',
+  Faq: 'text',
+  FaqAccordion: 'text',
+  StatsCounter: 'text',
+  BlogPosts: 'text',
+  Newsletter: 'text',
+  CtaBanner: 'text',
+  Hero: 'media',
+  ImageBanner: 'media',
+  ImageWithText: 'media',
+  SpotlightHero: 'media',
+  SplitHero: 'media',
+  VideoHero: 'media',
+  Video: 'media',
+  Gallery: 'media',
+  LogoList: 'media',
+  LogoMarquee: 'media',
+  ProductGrid: 'product',
+  FeaturedProducts: 'product',
+  CollectionGrid: 'product',
+  FeaturedProduct: 'product',
+  CollectionList: 'product',
+  RelatedProducts: 'product',
+  RecentlyViewed: 'product',
+}
+
+/** The kind a section type belongs to; unknown types read as layout. */
+export function sectionKind(type: string): SectionKind {
+  if (type.includes('/')) return 'app'
+  return KINDS[type] ?? 'layout'
+}
+
+/**
+ * Tile tint per kind: a 12% wash of a token colour with the glyph in the full
+ * colour. Opacity on a token (not a separate "soft" swatch) keeps the same
+ * contrast in light and dark, and follows the merchant's accent where it's used.
+ */
+export const KIND_TILE: Record<SectionKind, string> = {
+  layout: 'bg-info/12 text-info',
+  text: 'bg-muted-foreground/12 text-foreground/80',
+  media: 'bg-chart-4/12 text-chart-4',
+  product: 'bg-success/12 text-success',
+  app: 'bg-chart-2/14 text-chart-2',
+}
+
+/** Glyphs for sections that don't carry an entry in `SECTION_ICONS` (main sections, groups). */
+const EXTRA_GLYPHS: Record<string, EditorGlyph> = {
+  Header: 'header',
+  Footer: 'footer',
+  MainProduct: 'package',
+  MainCollection: 'grid',
+  MainPage: 'page',
+  MainBlog: 'news',
+  MainArticle: 'news',
+  MainCart: 'cart',
+  MainSearch: 'search',
+  MainNotFound: 'notFound',
+}
+
+/** The glyph a section type shows, from the one editor glyph family. */
+export function sectionGlyph(type: string): EditorGlyph {
+  const extra = EXTRA_GLYPHS[type]
+  if (extra) return extra
+  if (type.includes('/')) return 'shapes'
+  const key = SECTION_ICONS[type]
+  return key && isGlyph(key) ? key : 'page'
+}
+
+const GLYPH_KEYS = new Set<string>([
+  'header',
+  'footer',
+  'image',
+  'megaphone',
+  'text',
+  'page',
+  'columns',
+  'quote',
+  'list',
+  'shapes',
+  'grid',
+  'package',
+  'folder',
+  'video',
+  'news',
+  'send',
+  'spotlight',
+  'split',
+  'marquee',
+  'stats',
+  'gallery',
+  'cart',
+  'search',
+  'notFound',
+] satisfies EditorGlyph[])
+
+function isGlyph(key: string): key is EditorGlyph {
+  return GLYPH_KEYS.has(key)
+}

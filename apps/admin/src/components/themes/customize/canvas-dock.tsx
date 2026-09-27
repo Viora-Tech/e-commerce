@@ -30,11 +30,10 @@ const MODES = [
 ] as const
 
 const DOCK_BUTTON =
-  'flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
-const DOCK_ACTIVE =
-  'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+  'flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 motion-reduce:transition-none [&_svg]:size-4'
+const DOCK_ACTIVE = 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
 
-const DIVIDER_CLASS = 'mx-1 h-5 w-px bg-border'
+const DIVIDER_CLASS = 'mx-1 h-4 w-px bg-border'
 
 /** Floating pill under the canvas: preview size, light/dark, undo and redo. */
 export default function CanvasDock({ device, mode, darkMode, onDevice, onMode }: CanvasDockProps) {
@@ -44,7 +43,7 @@ export default function CanvasDock({ device, mode, darkMode, onDevice, onMode }:
   // Render logic
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-center">
-      <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-border bg-popover p-1 shadow-popover">
+      <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-border bg-popover/95 p-1 shadow-dialog backdrop-blur-sm">
         {DEVICES.map(({ value, icon: Icon }) => (
           <button
             key={value}
@@ -55,7 +54,7 @@ export default function CanvasDock({ device, mode, darkMode, onDevice, onMode }:
             title={preview.devices[value]}
             className={cn(DOCK_BUTTON, device === value && DOCK_ACTIVE)}
           >
-            <Icon aria-hidden weight="light" />
+            <Icon aria-hidden weight="regular" />
           </button>
         ))}
         {darkMode ? (
@@ -71,7 +70,7 @@ export default function CanvasDock({ device, mode, darkMode, onDevice, onMode }:
                 title={preview.modes[value]}
                 className={cn(DOCK_BUTTON, mode === value && DOCK_ACTIVE)}
               >
-                <Icon aria-hidden weight="light" />
+                <Icon aria-hidden weight="regular" />
               </button>
             ))}
           </>
@@ -85,7 +84,7 @@ export default function CanvasDock({ device, mode, darkMode, onDevice, onMode }:
           title={copy.undo}
           className={DOCK_BUTTON}
         >
-          <Undo aria-hidden weight="light" />
+          <Undo aria-hidden weight="regular" />
         </button>
         <button
           type="button"
@@ -95,7 +94,7 @@ export default function CanvasDock({ device, mode, darkMode, onDevice, onMode }:
           title={copy.redo}
           className={DOCK_BUTTON}
         >
-          <Redo aria-hidden weight="light" />
+          <Redo aria-hidden weight="regular" />
         </button>
       </div>
     </div>

@@ -30,7 +30,7 @@ export default function ResourcePicker({ kind, value, options, onChange }: Resou
   const items = options.map((o) => ({ value: o.id, label: o.title }))
   return (
     <Select items={items} value={value} onValueChange={handleChange} disabled={items.length === 0}>
-      <SelectTrigger className="w-56" aria-label={copy.label}>
+      <SelectTrigger className="w-56 rounded-lg text-[0.8125rem]" aria-label={copy.label}>
         <SelectValue placeholder={items.length === 0 ? copy.empty : copy[kind]} />
       </SelectTrigger>
       <SelectContent>

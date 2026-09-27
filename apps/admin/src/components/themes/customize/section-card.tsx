@@ -1,12 +1,19 @@
 'use client'
 
 import { SECTION_SOURCES } from '@commerce/blocks/puck'
+import { cn } from '@commerce/ui/lib/utils'
 import { Drawer } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import { type FocusEvent, type KeyboardEvent, type MouseEvent, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { appIcon as appIconFor } from '@/apps/app-icons'
 import { customizeContent } from '@/data/customize'
+import {
+  CHROME_FOCUS,
+  CHROME_META,
+  CHROME_ROW_HOVER,
+  CHROME_TRANSITION,
+} from '@/lib/customize-chrome'
 import SectionIcon from './section-icon'
 import SectionLivePreview from './section-live-preview'
 
@@ -85,17 +92,13 @@ export default function SectionCard({
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: reducedMotion ? 0 : 0.12 }}
         style={{ top: anchor.top, left: anchor.left }}
-        className="pointer-events-none fixed z-50 hidden w-64 flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-popover lg:flex"
+        className="pointer-events-none fixed z-50 hidden w-64 flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-dialog lg:flex"
       >
         <SectionLivePreview type={type} className="aspect-video w-full" />
         <div className="flex flex-col gap-0.5 px-1 pb-1">
           <span className="text-[0.8125rem] font-medium text-foreground">{label}</span>
           <span className="text-xs text-muted-foreground">{description}</span>
-          {source ? (
-            <span className="pt-1 text-[0.6875rem] text-muted-foreground">
-              {copy.by(source.name)}
-            </span>
-          ) : null}
+          {source ? <span className={cn('pt-1', CHROME_META)}>{copy.by(source.name)}</span> : null}
         </div>
       </motion.div>
     ) : null
@@ -114,14 +117,19 @@ export default function SectionCard({
             onKeyDown={handleKeyDown}
             onMouseEnter={handleHover}
             onFocus={handleHover}
-            className="group/card flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
+            className={cn(
+              'group/card flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2 py-1.5 text-left active:cursor-grabbing',
+              CHROME_ROW_HOVER,
+              CHROME_TRANSITION,
+              CHROME_FOCUS,
+            )}
           >
-            <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors group-hover/card:text-foreground">
-              <SectionIcon type={type} className="size-4" />
+            <span className="relative flex shrink-0">
+              <SectionIcon type={type} tile="md" />
               {AppBadge ? (
                 // `appIcon` is an icon name from the app's manifest ("CreditCard"), not a URL.
-                <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-2 ring-card">
-                  <AppBadge aria-hidden className="size-3" />
+                <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-border">
+                  <AppBadge aria-hidden weight="regular" className="size-2.5" />
                 </span>
               ) : null}
             </span>
@@ -133,9 +141,7 @@ export default function SectionCard({
                 {description}
               </span>
               {source ? (
-                <span className="truncate pt-0.5 text-[0.6875rem] leading-4 text-muted-foreground/80">
-                  {copy.by(source.name)}
-                </span>
+                <span className={cn('truncate pt-0.5', CHROME_META)}>{copy.by(source.name)}</span>
               ) : null}
             </span>
           </div>

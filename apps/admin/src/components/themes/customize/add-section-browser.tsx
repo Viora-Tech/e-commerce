@@ -77,13 +77,16 @@ export default function AddSectionBrowser({
       onMouseLeave={() => setHovered(null)}
     >
       <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={copy.search}
           aria-label={copy.search}
-          className="h-8 rounded-lg pl-8 text-[0.8125rem]"
+          className="h-8 rounded-lg bg-muted/60 pl-8 text-[0.8125rem] shadow-none focus-visible:bg-card"
         />
       </div>
       <Tabs
@@ -91,7 +94,7 @@ export default function AddSectionBrowser({
         onValueChange={(v) => setTab(v as 'sections' | 'apps')}
         className={cn('gap-2', fill && 'min-h-0 flex-1')}
       >
-        <TabsList variant="line" className="gap-4 px-1">
+        <TabsList variant="line" className="gap-4 px-1 text-[0.8125rem]">
           <TabsTrigger value="sections">{copy.tabs.sections}</TabsTrigger>
           <TabsTrigger value="apps">{copy.tabs.apps}</TabsTrigger>
         </TabsList>

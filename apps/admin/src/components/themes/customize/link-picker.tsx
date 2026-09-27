@@ -88,7 +88,7 @@ export default function LinkPicker({
           {empty ? (
             <>
               <span className="flex size-6 shrink-0 items-center justify-center text-muted-foreground">
-                <Icon aria-hidden weight="light" className="size-3.5" />
+                <Icon aria-hidden weight="regular" className="size-3.5" />
               </span>
               <span className="flex-1 truncate text-muted-foreground">{shown}</span>
               <ChevronsUpDown aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
@@ -96,10 +96,10 @@ export default function LinkPicker({
           ) : (
             <span className="flex max-w-full min-w-0 items-center gap-1.5 rounded-md bg-muted py-0.5 pr-2 pl-1">
               <span className="flex size-5 shrink-0 items-center justify-center rounded bg-card text-foreground">
-                <Icon aria-hidden weight="light" className="size-3.5" />
+                <Icon aria-hidden weight="regular" className="size-3.5" />
               </span>
               <span className="min-w-0 truncate font-medium">{shown}</span>
-              <span className="shrink-0 text-[0.6875rem] text-muted-foreground">
+              <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
                 {copy.kinds[kindKey]}
               </span>
               {newTab ? (

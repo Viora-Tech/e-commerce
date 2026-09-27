@@ -13,6 +13,13 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { type KeyboardEvent, type ReactNode, useRef, useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import {
+  CHROME_FOCUS,
+  CHROME_ROW,
+  CHROME_ROW_HOVER,
+  CHROME_ROW_SELECTED,
+  CHROME_TRANSITION,
+} from '@/lib/customize-chrome'
 import SectionIcon from './section-icon'
 
 type SectionRowProps = {
@@ -93,10 +100,10 @@ export default function SectionRow({
     <div
       ref={rowRef}
       className={cn(
-        'group relative flex h-8 items-center gap-0.5 rounded-lg pr-1 text-[0.8125rem] transition-colors duration-150 motion-reduce:transition-none',
-        selected
-          ? 'bg-primary-soft font-medium text-foreground'
-          : 'text-foreground/85 hover:bg-muted hover:text-foreground',
+        'group gap-0.5 pr-1',
+        CHROME_ROW,
+        CHROME_TRANSITION,
+        selected ? CHROME_ROW_SELECTED : cn('text-foreground/85', CHROME_ROW_HOVER),
       )}
     >
       <span className="opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
@@ -110,12 +117,15 @@ export default function SectionRow({
           onClick={onToggleBlocks}
           aria-expanded={blocksOpen}
           aria-label={blocksOpen ? copy.hideBlocks(name) : copy.showBlocks(name)}
-          className="flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+          className={cn(
+            'flex size-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground',
+            CHROME_FOCUS,
+          )}
         >
           <ChevronRight
             aria-hidden
             className={cn(
-              'size-3 transition-transform duration-150 motion-reduce:transition-none',
+              'size-3.5 transition-transform duration-150 motion-reduce:transition-none',
               blocksOpen && 'rotate-90',
             )}
           />
@@ -123,9 +133,7 @@ export default function SectionRow({
       )}
       {renaming ? (
         <span className="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-card text-primary">
-            <SectionIcon type={section.type} className="size-3.5" />
-          </span>
+          <SectionIcon type={section.type} tile="sm" />
           <input
             ref={inputRef}
             // biome-ignore lint/a11y/noAutofocus: the input only exists because Rename was just chosen.
@@ -137,7 +145,7 @@ export default function SectionRow({
             onFocus={(e) => e.currentTarget.select()}
             aria-label={copy.renameLabel(name)}
             maxLength={60}
-            className="h-6 min-w-0 flex-1 rounded-md border border-ring bg-card px-1.5 text-[0.8125rem] outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            className="h-6 min-w-0 flex-1 rounded-md border border-ring bg-card px-1.5 text-[0.8125rem] outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </span>
       ) : (
@@ -148,19 +156,23 @@ export default function SectionRow({
           aria-label={copy.select(name)}
           aria-current={selected ? 'true' : undefined}
           className={cn(
-            'flex min-w-0 flex-1 items-center gap-2 pl-0.5 text-left',
+            'flex h-full min-w-0 flex-1 items-center gap-2 rounded-md pl-0.5 text-left',
+            CHROME_FOCUS,
             hidden && 'text-muted-foreground',
           )}
         >
+          <SectionIcon
+            type={section.type}
+            tile="sm"
+            className={cn(hidden && 'opacity-50 grayscale')}
+          />
           <span
             className={cn(
-              'flex size-5 shrink-0 items-center justify-center rounded-md transition-colors duration-150',
-              selected ? 'bg-card text-primary' : 'bg-muted text-muted-foreground',
+              'truncate',
+              selected && 'font-medium',
+              hidden && 'line-through decoration-border-strong',
             )}
           >
-            <SectionIcon type={section.type} className="size-3.5" />
-          </span>
-          <span className={cn('truncate', hidden && 'line-through decoration-border-strong')}>
             {name}
           </span>
         </button>
@@ -171,18 +183,26 @@ export default function SectionRow({
             // Overlays the end of the row instead of squeezing the name; the fade
             // matches the row's own background so the name slides under it.
             'absolute inset-y-0 right-1 items-center bg-linear-to-l via-70% to-transparent pl-6',
-            selected ? 'from-primary-soft via-primary-soft' : 'from-muted via-muted',
+            // The selected wash is translucent, so the fade layers a card base under it.
+            selected
+              ? 'from-[color-mix(in_oklab,var(--primary)_10%,var(--card))] via-[color-mix(in_oklab,var(--primary)_10%,var(--card))]'
+              : 'from-card via-card group-hover:from-[color-mix(in_oklab,var(--muted)_60%,var(--card))] group-hover:via-[color-mix(in_oklab,var(--muted)_60%,var(--card))]',
             hidden || menuOpen ? 'flex' : 'hidden group-hover:flex group-focus-within:flex',
           )}
         >
           <Button
             variant="ghost"
             size="icon-sm"
+            className="size-6 rounded-md text-muted-foreground hover:text-foreground"
             onClick={onToggleHidden}
             aria-label={eyeLabel}
             title={eyeLabel}
           >
-            {hidden ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+            {hidden ? (
+              <EyeOff aria-hidden className="size-3.5" />
+            ) : (
+              <Eye aria-hidden className="size-3.5" />
+            )}
           </Button>
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger
@@ -190,10 +210,11 @@ export default function SectionRow({
                 <Button
                   variant="ghost"
                   size="icon-sm"
+                  className="size-6 rounded-md text-muted-foreground hover:text-foreground"
                   aria-label={copy.more(name)}
                   title={copy.more(name)}
                 >
-                  <MoreHorizontal aria-hidden />
+                  <MoreHorizontal aria-hidden className="size-3.5" />
                 </Button>
               }
             />

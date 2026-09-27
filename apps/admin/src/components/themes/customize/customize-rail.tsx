@@ -3,6 +3,7 @@
 import { ListTree, Palette, Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { customizeContent } from '@/data/customize'
+import { CHROME_FOCUS, CHROME_TRANSITION } from '@/lib/customize-chrome'
 
 export type RailPanel = 'sections' | 'add' | 'theme'
 
@@ -23,7 +24,7 @@ const ITEMS: { panel: RailPanel; icon: typeof ListTree; label: string }[] = [
 export default function CustomizeRail({ active, onChange }: CustomizeRailProps) {
   // Render logic
   return (
-    <nav className="flex w-14 shrink-0 flex-col items-center gap-1 py-1">
+    <nav className="flex w-14 shrink-0 flex-col items-center gap-0.5 py-1">
       {ITEMS.map(({ panel, icon: Icon, label }) => (
         <button
           key={panel}
@@ -33,13 +34,24 @@ export default function CustomizeRail({ active, onChange }: CustomizeRailProps) 
           aria-current={active === panel ? 'true' : undefined}
           title={label}
           className={cn(
-            'flex w-12 flex-col items-center gap-1 rounded-xl py-2 text-[0.6875rem] transition-colors',
+            'flex w-12 flex-col items-center gap-1 rounded-lg pt-2 pb-1.5 text-[0.6875rem] leading-3 font-medium',
+            CHROME_TRANSITION,
+            CHROME_FOCUS,
             active === panel
-              ? 'bg-primary-soft text-primary shadow-card ring-1 ring-primary/20'
-              : 'text-muted-foreground hover:bg-card/60 hover:text-foreground',
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
           )}
         >
-          <Icon aria-hidden weight={active === panel ? 'regular' : 'light'} className="size-5" />
+          <span
+            className={cn(
+              'flex size-8 items-center justify-center rounded-lg',
+              CHROME_TRANSITION,
+              active === panel && 'bg-primary/10 text-primary ring-1 ring-primary/20',
+            )}
+          >
+            {/* One weight everywhere in the chrome: regular, 16px. */}
+            <Icon aria-hidden weight="regular" className="size-4" />
+          </span>
           {label}
         </button>
       ))}
