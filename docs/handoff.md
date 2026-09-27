@@ -57,12 +57,11 @@ The sections further down describe an earlier stage and are partly outdated; thi
      builds off the server (GitHub Actions → registry, Dokploy pulls; or a Dokploy build server),
      re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
      a limit raise before Lightsail allows the 8 GB plan.
-  4. Order numbers: new stores start at 1001; prefix + start number (only upwards) setting.
-  5. Pre-go-live: EMI/pay-later widget app, Razorpay OAuth connect (needs Technology Partner),
+  4. Pre-go-live: EMI/pay-later widget app, Razorpay OAuth connect (needs Technology Partner),
      Cashfree, CMS upgrade. Decentro waits on their reply (v2 vs v3, consumer_urn).
-  6. Small: worker `bun --watch` should also watch `packages/*`; fuller onboarding (what you sell,
+  5. Small: worker `bun --watch` should also watch `packages/*`; fuller onboarding (what you sell,
      location step, waitlist).
-  7. Later: Home dashboard redesign (waiting for design references), custom WebGL globe (cobe
+  6. Later: Home dashboard redesign (waiting for design references), custom WebGL globe (cobe
      tops out at ~32k dots), section library → Shopify theme importer (Level 1: rebuild with our
      blocks; Level 2: LiquidJS for owner-owned themes only) → website builder / editor part 2
      (`feat/editor-part2`, paused) last.
