@@ -78,6 +78,15 @@ export type AppHookContext = {
     documentLabel?: string | undefined
     links?: OrderLink[] | undefined
   }): Promise<{ sent: number; errors: string[] }>
+  /**
+   * Queue an image the app stored as `processing` for the upload-time media
+   * pipeline (EXIF/GPS strip, AVIF/WebP variants, ThumbHash), the same job a
+   * direct upload gets. Idempotent per media id. Throws when the queue is
+   * unreachable, so the caller can record it; `bun run media:reprocess` picks
+   * up anything left `processing`. Absent where no queue is wired (tests,
+   * scripts).
+   */
+  processMedia?: ((mediaId: string) => Promise<void>) | undefined
 }
 
 export type AppHook = (ctx: AppHookContext, payload: AppEventPayload) => Promise<void>

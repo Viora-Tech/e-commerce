@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { addMediaProcessJob, type MediaProcessJob, type MediaProcessQueue } from '@commerce/core'
 import { createDb, store, withStore } from '@commerce/db'
 import { MemoryStorageProvider } from '@commerce/storage'
 import type { RunDeps } from '../src/run'
@@ -81,6 +82,27 @@ export function deps(
     log: () => {},
     ...extra,
   }
+}
+
+/**
+ * Stands in for the BullMQ media-processing queue. `adds` records every call;
+ * `jobs` keeps one entry per job id, the way BullMQ ignores a repeat id.
+ * `failing` makes every add throw, like an unreachable Redis.
+ */
+export function fakeMediaQueue(opts: { failing?: boolean } = {}) {
+  const adds: { data: MediaProcessJob; jobId: string | undefined }[] = []
+  const jobs = new Map<string, MediaProcessJob>()
+  const queue: MediaProcessQueue = {
+    async add(_name, data, jobOpts) {
+      if (opts.failing) throw new Error('connect ECONNREFUSED 127.0.0.1:6379')
+      adds.push({ data, jobId: jobOpts?.jobId })
+      const id = jobOpts?.jobId ?? `${adds.length}`
+      if (!jobs.has(id)) jobs.set(id, data)
+    },
+  }
+  const processMedia = (storeId: string) => (mediaId: string) =>
+    addMediaProcessJob(queue, { storeId, mediaId })
+  return { queue, adds, jobs, processMedia }
 }
 
 export { MemoryStorageProvider }

@@ -3,9 +3,9 @@
  *
  * Backfill: runs the upload-time pipeline (`processImage`) over media that
  * never went through it — legacy rows from before this feature, Shopify
- * imports (whose `onMediaImported` hook is not wired to the live queue yet;
- * see plugin.ts), and anything stuck `processing` after a worker restart or
- * `failed` after its retries were exhausted. Safe to re-run: each row is
+ * import images whose enqueue failed (the run lists them as issues), and
+ * anything stuck `processing` after a worker restart or `failed` after its
+ * retries were exhausted. Safe to re-run: each row is
  * picked up by the same `status`/`variants IS NULL` query that decides it
  * still needs work, so a run interrupted partway through (Ctrl-C, the box
  * restarting) just continues where it left off next time, in createdAt/id

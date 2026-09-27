@@ -42,9 +42,11 @@ const appEventWorker = createAppEventWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
+const mediaProcess = createMediaProcessWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const appJobWorker = createAppJobWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
+  mediaProcess: mediaProcess.queue,
 })
 
 const unpaidExpiry = createUnpaidOrderExpiry(redis, db, { settingsSecret: env.SETTINGS_SECRET })
@@ -68,7 +70,6 @@ const outboxRelay = createOutboxRelay(redis, db, {
   appEvents,
   inventoryRestock: backInStock.queue,
 })
-const mediaProcess = createMediaProcessWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 
 reportWorkerFailures(worker, 'heartbeat', reportError)
 reportWorkerFailures(notificationWorker, 'notifications', reportError)

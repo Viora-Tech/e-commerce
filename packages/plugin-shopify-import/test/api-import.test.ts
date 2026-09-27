@@ -41,6 +41,7 @@ import {
   deps,
   type FetchLog,
   fakeFetch,
+  fakeMediaQueue,
   json,
   MemoryStorageProvider,
   OAUTH_TOKEN,
@@ -532,6 +533,47 @@ describe('API import run', () => {
     const [second] = await owner.select().from(importRun).where(eq(importRun.id, again.id))
     expect(second?.progress.products).toMatchObject({ created: 0, updated: 2 })
     expect(second?.progress.redirects).toMatchObject({ skipped: 1 })
+  })
+
+  it('queues each hosted image once, nothing on a dry run, and nothing again on a re-run', async () => {
+    const log: FetchLog = []
+    const fetchImpl = fakeFetch(shopify, log)
+    const storeId = await connected(fetchImpl)
+    const storage = new MemoryStorageProvider()
+    const q = fakeMediaQueue()
+    const d = deps(storeId, storage, {
+      fetch: fetchImpl,
+      sleep: async () => {},
+      processMedia: q.processMedia(storeId),
+    })
+    const resources = ['products', 'collections', 'pages', 'articles'] as const
+    const newRun = () =>
+      withStore(app, storeId, (tx) =>
+        createApiRun(tx, storeId, { resources: [...resources], createdBy: null }),
+      )
+
+    const run = await newRun()
+    await executeRun(d, run.id) // dry run
+    expect(log.some((l) => l.url.includes('cdn.shopify.com'))).toBe(false)
+    expect(q.adds).toHaveLength(0)
+
+    await withStore(app, storeId, (tx) => startRun(tx, run.id))
+    await executeRun(d, run.id)
+    const images = (await owner.select().from(media)).filter((m) =>
+      m.contentType?.startsWith('image/'),
+    )
+    expect(images.length).toBeGreaterThan(0)
+    expect(q.adds.map((a) => a.jobId).sort()).toEqual(images.map((m) => m.id).sort())
+    expect(q.adds.every((a) => a.data.storeId === storeId && a.jobId === a.data.mediaId)).toBe(true)
+
+    const again = await newRun()
+    await executeRun(d, again.id)
+    await withStore(app, storeId, (tx) => startRun(tx, again.id))
+    await executeRun(d, again.id)
+    const [second] = await owner.select().from(importRun).where(eq(importRun.id, again.id))
+    expect(second?.status).toBe('completed')
+    expect(q.adds).toHaveLength(images.length)
+    expect(q.jobs.size).toBe(images.length)
   })
 
   it('fails the run clearly when there is no connection', async () => {

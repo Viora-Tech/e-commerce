@@ -34,6 +34,11 @@ export type RunDeps = {
   storage: () => Promise<StorageProvider>
   settingsSecret: string
   log: (message: string) => void
+  /**
+   * Queues a hosted image for the media pipeline (`ctx.processMedia` in the
+   * worker). Throws when the queue is unreachable; see `queueImportedMedia`.
+   */
+  processMedia?: ((mediaId: string) => Promise<void>) | undefined
   /** Injected in tests: Shopify API and image downloads. */
   fetch?: typeof fetch
   sleep?: (ms: number) => Promise<void>
@@ -55,7 +60,7 @@ async function forEachBatch<T>(
   write: (item: T) => Promise<unknown>,
   concurrency = 1,
 ) {
-  ctx.report.of(resource)
+  ctx.report.begin(resource)
   for await (const batch of source) {
     ctx.report.addTotal(resource, batch.length)
     if (concurrency > 1) {
@@ -79,6 +84,7 @@ async function runCsv(ctx: ImportContext, deps: RunDeps, resource: ImportResourc
   if (!bytes) throw new Error('The uploaded file is no longer available. Upload it again.')
   const text = new TextDecoder().decode(bytes)
   const cache = new Map<string, string>()
+  ctx.report.begin(resource)
   if (resource === 'products') {
     const { products, issues } = parseProductsCsv(text)
     for (const i of issues) ctx.report.issue(i)
@@ -154,6 +160,31 @@ async function runApi(ctx: ImportContext, client: ShopifyClient, resources: Impo
 }
 
 /**
+ * `onMediaImported` for a real (not dry) run: queue each newly hosted image
+ * for processing. The media host only calls it the first time a source is
+ * hosted and the job id is the media id, so a re-run never queues twice. A
+ * queue failure never fails the row: it becomes an issue on the resource
+ * being imported, and the image stays `processing` for `bun run
+ * media:reprocess`.
+ */
+function queueImportedMedia(
+  report: Reporter,
+  processMedia: (mediaId: string) => Promise<void>,
+): (mediaId: string, contentType: string, src: string) => Promise<void> {
+  return async (mediaId, _contentType, src) => {
+    try {
+      await processMedia(mediaId)
+    } catch (err) {
+      report.issue({
+        resource: report.current ?? 'products',
+        ref: src,
+        message: `Image ${src} was copied but not queued for optimising (${errorMessage(err)}). It stays as uploaded until media is reprocessed.`,
+      })
+    }
+  }
+}
+
+/**
  * Run (or re-run) one import. Never throws for a problem with the data: the
  * run ends `failed` with the reason and the merchant starts it again, which
  * is safe because every write matches on the import mapping first.
@@ -189,6 +220,10 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       inStore: deps.inStore,
       storage: deps.storage,
       ...(deps.fetch ? { fetch: deps.fetch } : {}),
+      // A dry run never hosts media (writers return before downloading); no queue either way.
+      ...(deps.processMedia && !run.dryRun
+        ? { onMediaImported: queueImportedMedia(report, deps.processMedia) }
+        : {}),
     }),
     report,
     log: deps.log,

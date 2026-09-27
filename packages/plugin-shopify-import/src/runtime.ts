@@ -55,6 +55,8 @@ const empty = (): ResourceProgress => ({
 export class Reporter {
   readonly progress: Partial<Record<ImportResource, ResourceProgress>> = {}
   readonly preview: PreviewSample[] = []
+  /** The resource the run is working through now; issues raised outside a writer land here. */
+  current: ImportResource | null = null
   private pendingIssues: Issue[] = []
   private issueCount = 0
   private lastFlush = 0
@@ -69,6 +71,12 @@ export class Reporter {
   of(resource: ImportResource): ResourceProgress {
     this.progress[resource] ??= empty()
     return this.progress[resource]
+  }
+
+  /** Start a resource: its counters show from now on and it becomes `current`. */
+  begin(resource: ImportResource): ResourceProgress {
+    this.current = resource
+    return this.of(resource)
   }
 
   setTotal(resource: ImportResource, total: number) {

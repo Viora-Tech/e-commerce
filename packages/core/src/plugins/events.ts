@@ -4,6 +4,7 @@ import type { AppEvent, AppHookContext, LoadedPlugins } from '@commerce/plugins'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { parseAppsSettings } from '../apps/settings'
+import { addMediaProcessJob, type MediaProcessQueue } from '../media/queue'
 
 /** BullMQ queue for app lifecycle events. Braces keep every key on one Redis slot. */
 export const APP_EVENTS_QUEUE = '{apps}-events'
@@ -74,6 +75,8 @@ export type DispatchDeps = {
         input: Parameters<AppHookContext['notify']>[0],
       ) => ReturnType<AppHookContext['notify']>)
     | undefined
+  /** Backs `ctx.processMedia`; the worker passes its media-processing queue. */
+  mediaProcess?: MediaProcessQueue | undefined
 }
 
 /**
@@ -102,6 +105,12 @@ export function appContext(deps: DispatchDeps, storeId: string, tag: string): Ap
       deps.notify
         ? deps.notify(storeId, input)
         : Promise.resolve({ sent: 0, errors: ['notifications are not available here'] }),
+    ...(deps.mediaProcess
+      ? {
+          processMedia: (mediaId: string) =>
+            addMediaProcessJob(deps.mediaProcess as MediaProcessQueue, { storeId, mediaId }),
+        }
+      : {}),
   }
 }
 

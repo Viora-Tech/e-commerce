@@ -21,24 +21,38 @@ export type MediaProcessQueue = {
 }
 
 /**
- * Called right after `confirmUpload` returns a `processing` row. `jobId:
- * mediaId` makes a repeat enqueue for the same media a no-op (BullMQ won't
- * add a second job with the same id while one is queued/active), so a
- * flaky client retrying its confirm call can't double-enqueue. Never
- * throws: a Redis hiccup must not turn a confirmed upload into an error
- * page — the row is left `processing` and the backfill script
- * (`bun run media:reprocess`) sweeps up anything that never got picked up.
+ * Add one media row to the processing queue. `jobId: mediaId` makes a repeat
+ * enqueue for the same media a no-op (BullMQ won't add a second job with the
+ * same id while one is queued, active or kept as completed/failed), so every
+ * producer (a retried confirm call, a re-run import) can call this freely.
+ * Throws when the queue is unreachable; `enqueueMediaProcess` is the
+ * never-throws variant.
+ */
+export async function addMediaProcessJob(
+  queue: MediaProcessQueue,
+  job: MediaProcessJob,
+): Promise<void> {
+  await queue.add('process', job, {
+    jobId: job.mediaId,
+    attempts: 5,
+    backoff: { type: 'exponential', delay: 5_000 },
+  })
+}
+
+/**
+ * Called right after `confirmUpload` returns a `processing` row. Same job id
+ * scheme as `addMediaProcessJob`, so a flaky client retrying its confirm call
+ * can't double-enqueue. Never throws: a Redis hiccup must not turn a
+ * confirmed upload into an error page — the row is left `processing` and the
+ * backfill script (`bun run media:reprocess`) sweeps up anything that never
+ * got picked up.
  */
 export async function enqueueMediaProcess(
   queue: MediaProcessQueue,
   job: MediaProcessJob,
 ): Promise<void> {
   try {
-    await queue.add('process', job, {
-      jobId: job.mediaId,
-      attempts: 5,
-      backoff: { type: 'exponential', delay: 5_000 },
-    })
+    await addMediaProcessJob(queue, job)
   } catch (err) {
     console.error(`[media] could not enqueue processing for ${job.mediaId}`, err)
   }
