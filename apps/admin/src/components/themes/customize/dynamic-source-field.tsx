@@ -6,7 +6,6 @@ import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { dynamicSourcesContent as copy } from '@/data/dynamic-sources'
-import { iconForField } from '@/lib/customize-field-icons'
 import type { FieldLike } from '@/lib/customize-field-shape'
 import {
   loadCatalog,
@@ -90,7 +89,7 @@ export default function DynamicSourceField({
 
   if (bound) {
     return (
-      <FieldFrame icon={iconForField(field)} label={field.label ?? name}>
+      <FieldFrame label={field.label ?? name}>
         <DynamicSourceChip
           name={sourceName(value.$source, catalog)}
           disabled={readOnly}

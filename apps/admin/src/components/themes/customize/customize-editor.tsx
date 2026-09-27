@@ -307,22 +307,22 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           <ThemePreviewContext.Provider value={settings}>
             <PreviewModeContext.Provider value={mode}>
               <DynamicSourceContext.Provider value={sourceScope}>
-              <CustomizeHotkeys />
-              <CustomizeLayout
-                topBar={topBar}
-                settings={settingsPanel}
-                dock={
-                  <CanvasDock
-                    device={device}
-                    mode={mode}
-                    darkMode={settings.darkMode.enabled}
-                    onDevice={setDevice}
-                    onMode={setModePick}
-                  />
-                }
-                device={device}
-                loading={switching}
-              />
+                <CustomizeHotkeys />
+                <CustomizeLayout
+                  topBar={topBar}
+                  settings={settingsPanel}
+                  dock={
+                    <CanvasDock
+                      device={device}
+                      mode={mode}
+                      darkMode={settings.darkMode.enabled}
+                      onDevice={setDevice}
+                      onMode={setModePick}
+                    />
+                  }
+                  device={device}
+                  loading={switching}
+                />
               </DynamicSourceContext.Provider>
             </PreviewModeContext.Provider>
           </ThemePreviewContext.Provider>
