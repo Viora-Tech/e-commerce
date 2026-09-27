@@ -72,6 +72,8 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
     try {
       if (!setup.gateways.find((g) => g.id === id)?.installed) await api.apps.install({ id })
       router.push(`/apps/${id}/connect`)
+      // A just-installed app gets its sidebar link from the server layout.
+      router.refresh()
     } catch {
       toast.error(copy.add.installFailed)
     }

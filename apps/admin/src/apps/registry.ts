@@ -1,21 +1,3 @@
-import {
-  BarChart3,
-  Bell,
-  Blocks,
-  CreditCard,
-  Download,
-  FileBarChart,
-  FileText,
-  Inbox,
-  type LucideIcon,
-  MessageSquare,
-  Puzzle,
-  Settings,
-  Store,
-  Truck,
-  Upload,
-  Users,
-} from '@commerce/ui/icons'
 import type { ComponentType } from 'react'
 import OverviewPage from '@/components/apps/back-in-stock/overview-page'
 import SettingsEditorBackInStock from '@/components/apps/back-in-stock/settings-editor'
@@ -149,27 +131,7 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
   },
 }
 
-/** Icon names a manifest may use, mapped to the admin icon set. */
-const ICONS: Record<string, LucideIcon> = {
-  BarChart3,
-  Bell,
-  Blocks,
-  CreditCard,
-  Download,
-  FileBarChart,
-  FileText,
-  Inbox,
-  MessageSquare,
-  Puzzle,
-  Settings,
-  Store,
-  Truck,
-  Upload,
-  Users,
-}
-
-export const appIcon = (name: string | null | undefined): LucideIcon =>
-  (name ? ICONS[name] : undefined) ?? Puzzle
+export { appIcon } from './app-icons'
 
 /**
  * The manifest page matching a path under the app root, with its params:

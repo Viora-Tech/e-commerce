@@ -3,9 +3,9 @@
 import { SECTION_SOURCES } from '@commerce/blocks/puck'
 import { Drawer } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
-import Image from 'next/image'
 import { type FocusEvent, type KeyboardEvent, type MouseEvent, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { appIcon as appIconFor } from '@/apps/app-icons'
 import { customizeContent } from '@/data/customize'
 import SectionIcon from './section-icon'
 import SectionLivePreview from './section-live-preview'
@@ -76,6 +76,7 @@ export default function SectionCard({
   }
 
   // Render logic
+  const AppBadge = appIcon ? appIconFor(appIcon) : null
   const source = SECTION_SOURCES[type]
   const preview =
     hovered && anchor ? (
@@ -117,14 +118,11 @@ export default function SectionCard({
           >
             <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors group-hover/card:text-foreground">
               <SectionIcon type={type} className="size-4" />
-              {appIcon ? (
-                <Image
-                  src={appIcon}
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="absolute -right-1 -bottom-1 size-4 rounded-full ring-2 ring-card"
-                />
+              {AppBadge ? (
+                // `appIcon` is an icon name from the app's manifest ("CreditCard"), not a URL.
+                <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-2 ring-card">
+                  <AppBadge aria-hidden className="size-3" />
+                </span>
               ) : null}
             </span>
             <span className="flex min-w-0 flex-1 flex-col">

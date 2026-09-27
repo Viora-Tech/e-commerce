@@ -95,6 +95,7 @@ export const layoutContent = {
   filterRows: 'Filter rows',
   more: 'More',
   viewAll: 'View all',
+  viewAllApps: (n: number) => `View all apps (${n})`,
   noStore: 'No store selected',
   toggleTheme: 'Toggle theme',
 } as const
