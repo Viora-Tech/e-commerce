@@ -51,6 +51,7 @@ export const shopifyImportContent = {
       result: 'Result',
     },
     source: { csv: (file: string | null) => file ?? 'CSV file', api: 'Shopify store' },
+    failedNoReason: 'Stopped before finishing. Open it to see why.',
     preview: 'Preview',
     empty: {
       heading: 'No imports yet',
