@@ -17,6 +17,7 @@
         "@commerce/payments-decentro": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -51,6 +52,7 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -132,6 +134,7 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
@@ -202,6 +205,7 @@
         "@commerce/payments-cashfree": "workspace:*",
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -526,6 +530,29 @@
         "@types/react": "^19.2.8",
         "dotenv": "^18.0.1",
         "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
+    "packages/plugin-emi": {
+      "name": "@commerce/plugin-emi",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/blocks": "workspace:*",
+        "@commerce/core": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "@types/react-dom": "^19.2.3",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
       },
@@ -989,6 +1016,8 @@
     "@commerce/payments-razorpay": ["@commerce/payments-razorpay@workspace:packages/payments-razorpay"],
 
     "@commerce/plugin-back-in-stock": ["@commerce/plugin-back-in-stock@workspace:packages/plugin-back-in-stock"],
+
+    "@commerce/plugin-emi": ["@commerce/plugin-emi@workspace:packages/plugin-emi"],
 
     "@commerce/plugin-gst-invoices": ["@commerce/plugin-gst-invoices@workspace:packages/plugin-gst-invoices"],
 

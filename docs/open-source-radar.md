@@ -51,6 +51,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | Ops | [GlitchTip](https://gitlab.com/glitchtip/glitchtip) | MIT | Sentry-protocol-compatible error tracking server | Done: run it as a separate service, point the official Sentry SDKs at its DSN |
 | Invoices | [invoicely](https://github.com/legions-developer/invoicely) | MIT, author's permission | PDF templates | Done: GST invoices app |
 | Catalog | [Shopify Product Taxonomy](https://github.com/Shopify/product-taxonomy) | MIT | Standard product category tree | Done: product category picker (trimmed data, `scripts/trim-product-taxonomy.ts`) |
+| Payments | [Razorpay Affordability Widget](https://razorpay.com/docs/payments/payment-gateway/affordability/widget/native-web/) | Not open source: Razorpay's hosted script, for Razorpay merchants under their terms | Product-page EMI, pay later and offers | Done: EMI & pay later app loads it from Razorpay's CDN with the store's public key id; never copied. No open-source EMI widget was worth adopting (checked 2026-09-27); the simple line is `@commerce/core/emi` |
 
 ## Order of adoption
 

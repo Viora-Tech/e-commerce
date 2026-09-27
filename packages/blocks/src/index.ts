@@ -5,6 +5,11 @@ export {
   default as DeliveryCheckerBlock,
 } from './app-blocks/delivery-checker-block'
 export {
+  default as EmiOffersBlock,
+  type EmiOffersContext,
+  type EmiOffersCopy,
+} from './app-blocks/emi-offers-block'
+export {
   default as NotifyMeBlock,
   type NotifyMeBlockContext,
   type NotifyMeBlockCopy,

@@ -24,6 +24,7 @@
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
+    "@commerce/plugin-emi": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/richtext": "workspace:*",

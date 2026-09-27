@@ -9,6 +9,7 @@ import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
 import { domainsRouter } from './domains'
+import { emiRouter } from './emi'
 import { giftCardsRouter } from './gift-cards'
 import { gstInvoicesRouter } from './gst-invoices'
 import { inventoryRouter, purchaseOrdersRouter, transfersRouter } from './inventory'
@@ -61,6 +62,7 @@ export const appRouter = {
   gstInvoices: gstInvoicesRouter,
   shopifyImport: shopifyImportRouter,
   backInStock: backInStockRouter,
+  emi: emiRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   media: mediaRouter,
