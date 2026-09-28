@@ -6,9 +6,6 @@ One 2048x1024 RGB image, equirectangular, north up, longitude -180 at the left e
   G = borders between countries (not coasts: outlines within a few pixels of the sea are
       masked out, the shader draws coasts from R), drawn 1 px then blurred so the shader can
       turn the value back into a distance and draw crisp lines of constant width at every zoom.
-      No border is drawn around India at all (the owner's choice): its land borders with
-      China, Pakistan, Nepal, Bhutan, Bangladesh and Myanmar are masked out, so India reads as
-      part of one landmass and no disputed line appears.
 
 Data: Natural Earth 1:10m admin-0 countries, **India point of view** (public domain,
 "Made with Natural Earth"). The point-of-view dataset draws India's boundary the way the
@@ -44,13 +41,8 @@ def main(src: str, out: str) -> None:
     def project(ring):
         return [((lng + 180) / 360 * WIDTH, (90 - lat) / 180 * HEIGHT) for lng, lat in ring]
 
-    india = Image.new("L", (WIDTH, HEIGHT), 0)
-    india_fill = ImageDraw.Draw(india)
     for feature in countries["features"]:
-        is_india = feature["properties"].get("ADM0_A3") == "IND"
         for polygon in rings(feature["geometry"]):
-            if is_india:
-                india_fill.polygon(project(polygon[0]), fill=255)
             outer = project(polygon[0])
             fill.polygon(outer, fill=255)
             for hole in polygon[1:]:
@@ -64,12 +56,12 @@ def main(src: str, out: str) -> None:
     # Keep only borders well inland: erode the land by 3 px and mask the outlines with it.
     inland = land.filter(ImageFilter.MinFilter(7))
     lines = ImageChops.multiply(lines, inland)
-    # Erase every line along India's outline (a band 4 px either side of it).
-    band = ImageChops.subtract(india.filter(ImageFilter.MaxFilter(9)), india.filter(ImageFilter.MinFilter(9)))
-    lines = ImageChops.multiply(lines, ImageChops.invert(band))
     lines = lines.filter(ImageFilter.GaussianBlur(BLUR))
-    peak = max(lines.getextrema()[1], 1)
-    lines = lines.point(lambda v: min(255, round(v * 255 / peak)))
+    # A 1 px line blurred by a Gaussian of sigma BLUR peaks at 1 / (sqrt(2 pi) * BLUR) of its
+    # value. Scale by the inverse so every line's centre is ~255 and the value falls off as
+    # exp(-d^2 / 2 sigma^2): the shader turns it back into a distance from the line.
+    gain = (2 * 3.14159265 * 1) ** 0.5 * BLUR
+    lines = lines.point(lambda v: min(255, round(v * gain)))
     soft_land = land.filter(ImageFilter.GaussianBlur(0.9))
     Image.merge("RGB", (soft_land, lines, Image.new("L", (WIDTH, HEIGHT), 0))).save(out, optimize=True)
 
