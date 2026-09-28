@@ -198,7 +198,7 @@ describe('customer accounts API', () => {
   it('offers only methods the store can send, and refuses the rest', async () => {
     const boss = await merchant('owner@example.com', 'waimers')
     const before = await call(appRouter.customerAccounts.get, {}, { context: boss.ctx })
-    expect(before.settings).toEqual({ checkout: 'guest', loginMethods: ['email'] })
+    expect(before.settings).toMatchObject({ checkout: 'guest', loginMethods: ['email'] })
     expect(before.available).not.toContain('whatsapp')
     await expect(
       call(
@@ -221,6 +221,45 @@ describe('customer accounts API', () => {
       { checkout: 'account_required', loginMethods: ['sms', 'email'] },
       { context: boss.ctx },
     )
-    expect(saved).toEqual({ checkout: 'account_required', loginMethods: ['email', 'sms'] })
+    expect(saved).toMatchObject({ checkout: 'account_required', loginMethods: ['email', 'sms'] })
+  })
+
+  it('keeps a merchant’s own sign-in app encrypted and refuses a provider with no app', async () => {
+    const boss = await merchant('owner@example.com', 'waimers')
+    await call(
+      appRouter.store.updateNotifications,
+      { enabled: ['log'], providers: {}, recoverAbandoned: false, off: [] },
+      { context: boss.ctx },
+    )
+    const before = await call(appRouter.customerAccounts.get, {}, { context: boss.ctx })
+    expect(before.callbacks.google).toMatch(/\/oauth\/google\/callback$/)
+    expect(before.readiness.google.own).toBe(false)
+    const withGoogle = {
+      ...before.settings,
+      providers: {
+        ...before.settings.providers,
+        google: { enabled: true, credentials: 'own' as const },
+      },
+    }
+    await expect(
+      call(appRouter.customerAccounts.save, withGoogle, { context: boss.ctx }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    await expect(
+      call(
+        appRouter.customerAccounts.saveApp,
+        { provider: 'google', fields: { clientId: 'id-only' } },
+        { context: boss.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    await call(
+      appRouter.customerAccounts.saveApp,
+      { provider: 'google', fields: { clientId: 'client-1', clientSecret: 'GOCSPX-verysecret' } },
+      { context: boss.ctx },
+    )
+    const after = await call(appRouter.customerAccounts.get, {}, { context: boss.ctx })
+    expect(after.readiness.google.own).toBe(true)
+    expect(after.ownApps.google).toEqual({ clientId: 'client-1', clientSecret: '••••cret' })
+    const saved = await call(appRouter.customerAccounts.save, withGoogle, { context: boss.ctx })
+    expect(saved.providers.google).toEqual({ enabled: true, credentials: 'own' })
   })
 })

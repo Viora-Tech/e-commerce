@@ -1,20 +1,21 @@
 ---
 title: Customer accounts
-description: Choose how customers sign in (email, SMS or WhatsApp codes), whether guests can check out, and how customers delete their own account.
+description: Choose how customers sign in (codes, Google, Apple, Facebook, Truecaller, sign-in links, passkeys), whether guests can check out, and how customers delete their own account.
 ---
 
 # Customer accounts
 
 **Settings → Customer accounts** decides how customers sign in to your store and whether they
-need an account to buy.
+need an account to buy. Every way to sign in is a switch. Customers only ever see the ways you
+switched on.
 
 ## At checkout
 
 - **Anyone can check out** (recommended): guests buy without an account. Customers can still
   sign in to see their orders and saved addresses.
-- **Customers must sign in first**: every buyer signs in with a code before paying.
+- **Customers must sign in first**: every buyer signs in before paying.
 
-## Ways to sign in
+## Ways to sign in with a code
 
 Customers never use a password. They type their email or mobile number and get a six digit
 code that works for ten minutes.
@@ -26,12 +27,60 @@ code that works for ten minutes.
 | WhatsApp code | A WhatsApp message | The WhatsApp app, with an approved sign-in (authentication) template |
 
 A way you cannot send yet shows **Needs an app** and cannot be switched on. If you turn off an
-app later, customers simply stop seeing that way; the others keep working.
+app later, customers simply stop seeing that way; the others keep working. Keep at least one
+code way on: it is how everyone can always get in.
 
 <Callout>
 When both email and a mobile way are on, the sign-in page opens on the first one and shows a
 link to the other ("Use your mobile number instead").
 </Callout>
+
+## Sign in with an account they already have
+
+| Way | Good for | Setup |
+| --- | --- | --- |
+| Google | Almost everyone | None, or your own Google app |
+| Apple | iPhone customers | None, or your own Apple app |
+| Facebook | Customers who live on Meta apps | None, or your own Facebook app |
+| Truecaller | Android customers in India: one tap, no code | None, or your own Truecaller app |
+
+Switch one on and it is ready: customers go through our secure sign-in page and come straight
+back to your shop, signed in. There is nothing to set up.
+
+**Use my own app** (optional) puts your shop's name on Google's or Apple's sign-in screen. Tick
+it, press **Set up**, and follow the short steps: create the app with the provider, paste the
+one address we show into it, and copy two or three values back. Secret values are stored
+encrypted and only the last four characters are ever shown again.
+
+<Callout>
+Instagram does not offer sign-in for shoppers. Facebook covers Meta accounts.
+</Callout>
+
+**Google One Tap** shows "Continue as Asha" with the customer's Google account right on your
+sign-in page. It needs your own Google app, with your shop's web address added under
+*Authorised JavaScript origins*.
+
+### No duplicate customers
+
+A customer who signs in with Google using the same email they ordered with before stays the
+same customer, with the same orders. We only match on an email or mobile number the provider
+has checked. Facebook does not tell us that, so the first time someone signs in with Facebook
+we ask them to confirm their email with a code.
+
+Customers can connect or remove Google, Apple and Facebook later from **Profile** in their
+account.
+
+## More ways to sign in
+
+- **Sign-in link by email**: customers can ask for a link instead of typing a code. It works
+  once, for 15 minutes. Needs email codes on.
+- **Passkeys**: after signing in once, customers can add a passkey from **Profile** and then
+  sign in with their fingerprint, face or phone screen lock. A passkey works on the web address
+  where it was added: if you move your shop to a new domain, customers sign in another way once
+  and add a new passkey.
+- **Remember this device**: customers see a tick box. Ticked, they stay signed in for 90 days.
+  Unticked (a shared phone or computer), they are signed out when the browser closes. With this
+  off, everyone stays signed in for 30 days.
 
 ## Deleting an account
 
@@ -42,4 +91,6 @@ Customers can delete their own account from **Your data** in their account:
 3. They are signed out everywhere, and a deletion request appears in
    **Settings → Customer privacy → Data requests** for you to finish.
 
-See [Customer privacy](/merchant-guide/settings/customer-privacy) for how to answer it.
+Deleting the account also removes their connected Google, Apple, Facebook and Truecaller
+sign-ins and their passkeys. See [Customer privacy](/merchant-guide/settings/customer-privacy)
+for how to answer the request.

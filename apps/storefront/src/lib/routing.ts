@@ -6,6 +6,8 @@
 export const INTERNAL_PREFIX = '/-s'
 /** Internal segment for the storefront password page, served in place of any page while locked. */
 export const PASSWORD_PREFIX = '/-p'
+/** Internal segment for the platform login domain (`ACCOUNTS_URL`): provider sign-in and callbacks. */
+export const ACCOUNTS_PREFIX = '/-a'
 
 const internal = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -16,7 +18,11 @@ export type Route =
   | { kind: 'passthrough' }
 
 export function routeForStore(storeId: string, pathname: string): Route {
-  if (internal(pathname, INTERNAL_PREFIX) || internal(pathname, PASSWORD_PREFIX)) {
+  if (
+    internal(pathname, INTERNAL_PREFIX) ||
+    internal(pathname, PASSWORD_PREFIX) ||
+    internal(pathname, ACCOUNTS_PREFIX)
+  ) {
     return { kind: 'forbidden' }
   }
   if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
@@ -24,6 +30,16 @@ export function routeForStore(storeId: string, pathname: string): Route {
   }
   const rest = pathname === '/' ? '' : pathname
   return { kind: 'rewrite', path: `${INTERNAL_PREFIX}/${storeId}${rest}` }
+}
+
+/** What the platform login domain serves: provider sign-in and the Truecaller callback. */
+const ACCOUNTS_PATHS = /^\/(oauth\/(google|apple|facebook)\/(start|callback)|truecaller\/callback)$/
+
+/** Route a request on the platform login domain. Nothing else is served there. */
+export function routeForAccounts(pathname: string): Route {
+  if (pathname.startsWith('/_next/')) return { kind: 'passthrough' }
+  if (!ACCOUNTS_PATHS.test(pathname)) return { kind: 'forbidden' }
+  return { kind: 'rewrite', path: `${ACCOUNTS_PREFIX}${pathname}` }
 }
 
 /** Headers the proxy derives. Stripped from every incoming request so a client cannot forge them. */

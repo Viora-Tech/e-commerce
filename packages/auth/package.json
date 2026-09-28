@@ -14,7 +14,7 @@
   "dependencies": {
     "@commerce/config": "workspace:*",
     "@commerce/db": "workspace:*",
-    "better-auth": "^1.7.5",
+    "better-auth": "1.7.6",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {

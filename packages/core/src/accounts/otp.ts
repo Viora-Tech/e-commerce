@@ -179,6 +179,8 @@ export async function verifyPhoneLoginCode(
   rawCode: unknown,
   secret: string,
   now: Date = new Date(),
+  /** Session length; see `sessionLifetime` ("Remember this device"). */
+  ttlMs?: number,
 ): Promise<PhoneVerifyResult> {
   const mobile = typeof rawPhone === 'string' ? normaliseMobile(rawPhone) : null
   if (!mobile) return { ok: false, reason: 'invalid' }
@@ -208,7 +210,7 @@ export async function verifyPhoneLoginCode(
       .returning({ id: customer.id })
     customerId = row?.id as string
   }
-  const session = await startCustomerSession(ctx, customerId, now)
+  const session = await startCustomerSession(ctx, customerId, now, ttlMs)
   return { ...session, created: !found }
 }
 

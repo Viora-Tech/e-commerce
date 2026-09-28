@@ -1,0 +1,227 @@
+---
+title: Shopper login options
+description: Google (and One Tap), Apple, Facebook, Truecaller, magic links, passkeys and "Remember this device" for storefront shoppers, on many store domains through one platform login domain.
+---
+
+# Shopper login options
+
+Shoppers sign in per store. Every row involved carries `store_id` and sits under RLS, so a
+Google account that shops at two stores is two customers with two identities, and nothing
+minted on one store means anything on another. This page extends
+[Customer privacy and accounts](/developer-docs/building/customer-privacy), which covers
+the email, SMS and WhatsApp codes.
+
+## What exists
+
+| Method | Where it runs | How the customer is found |
+| --- | --- | --- |
+| Email, SMS, WhatsApp code | Store domain | Email (upsert) or phone blind index, as before |
+| Magic link | Store domain | Email (upsert), exactly like the email code |
+| Google, Apple, Facebook | Platform login domain, then a hand-off | Linked identity, else a **verified** email |
+| Google One Tap | Store domain | Same as Google |
+| Truecaller | Store domain + server callback on the login domain | Linked identity, else the verified mobile |
+| Passkey | Store domain | The credential's customer |
+
+Merchants switch each one on in **Settings → Customer accounts**
+(`store.preferences.customerAccounts`, schema in `@commerce/core/customer-accounts`).
+The storefront shows only what is switched on **and** working: `signInOptions(settings,
+codes, readiness)` decides, and `quickSignInButtons` (storefront, tested) decides per device.
+
+## Files
+
+| Piece | File |
+| --- | --- |
+| Settings, `signInOptions`, `sessionLifetime` (pure) | `packages/core/src/customer-accounts/client.ts` |
+| Signed tokens, hand-off checks, return URL allow-list (pure) | `packages/core/src/shopper-login/tokens.ts` |
+| Hand-off and magic-link tickets | `packages/core/src/shopper-login/tickets.ts` |
+| Linking rule and identities | `packages/core/src/shopper-login/identities.ts` |
+| Provider apps (platform env, merchant's own, encrypted) | `packages/core/src/shopper-login/credentials.ts` |
+| OAuth and One Tap (Better Auth provider modules) | `packages/core/src/shopper-login/providers.ts` |
+| Passkeys (`@simplewebauthn/server`) | `packages/core/src/shopper-login/passkeys.ts` |
+| Truecaller | `packages/core/src/shopper-login/truecaller.ts` |
+| Tables `customer_identity`, `customer_passkey`, `customer_login_ticket`; `store.login_providers` | `packages/db/src/shopper-login-schema.ts`, migration `0076_shopper_login` |
+| Store-domain routes | `apps/storefront/src/app/-s/[storeId]/account/login/{social/[provider],complete,link}` |
+| Login-domain routes | `apps/storefront/src/app/-a/oauth/[provider]/{start,callback}`, `-a/truecaller/callback` |
+| Actions | `apps/storefront/src/lib/login-actions.ts` (+ `account-actions.ts`, `privacy-actions.ts` for codes) |
+| Admin | `packages/api/src/routers/customer-accounts.ts`, `apps/admin/src/components/settings/{sign-in-providers-card,sign-in-extras-card,login-app-sheet}.tsx` |
+
+## Why not `betterAuth()` for shoppers
+
+Better Auth (already our merchant auth) keeps users and sessions in global tables without
+`store_id`. Shoppers are per-store `customer` rows under RLS with their own sessions
+(`customer_session`). So we reuse Better Auth's **official provider modules**
+(`better-auth/social-providers`: `google`, `apple`, `facebook`, `verifyGoogleIdToken`, the
+same code its `oneTap` plugin calls) for the protocol work (PKCE, code exchange, ID token
+checks), and `@simplewebauthn/server`, the library its `@better-auth/passkey` plugin is
+built on, for passkeys. The magic-link and one-tap plugins create Better Auth users, so
+their flows are rebuilt on our tables with the same behaviour.
+
+Docs: [Google](https://www.better-auth.com/docs/authentication/google),
+[Apple](https://www.better-auth.com/docs/authentication/apple),
+[Facebook](https://www.better-auth.com/docs/authentication/facebook),
+[One Tap](https://www.better-auth.com/docs/plugins/one-tap),
+[Magic link](https://www.better-auth.com/docs/plugins/magic-link),
+[Passkey](https://www.better-auth.com/docs/plugins/passkey). The docs host was blocked from
+the machine that built this; it was written against the 1.7.6 package source in
+`node_modules` (pinned: `better-auth` 1.7.6, `@simplewebauthn/server` 13.3.3,
+`@simplewebauthn/browser` 13.3.0, `jose` 6.2.12).
+
+## One platform login domain
+
+Stores live on `<slug>.<PLATFORM_STORE_DOMAIN>` and on custom domains. Registering every
+domain with Google, Apple and Facebook is impossible, so provider sign-in runs on one domain,
+`ACCOUNTS_URL` (default `https://accounts.<PLATFORM_STORE_DOMAIN>`), served by the storefront
+app: the proxy sends that hostname to the internal `/-a` routes and serves nothing else there
+(`routeForAccounts`). Store hosts can never reach `/-a` (`routeForStore` forbids it), and the
+slug `accounts` is reserved. Each provider needs one redirect URI:
+`<ACCOUNTS_URL>/oauth/<google|apple|facebook>/callback`.
+
+### Hand-off back to the store
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant S as Store domain (shop.example.in)
+  participant A as Login domain (accounts.waimers.store)
+  participant P as Provider (Google/Apple/Facebook)
+  participant DB as Postgres (RLS, store_id)
+  B->>S: GET /account/login/social/google?return_to=/cart
+  S->>B: Set-Cookie wc_login_b=random (host-only, 10 min)<br/>302 A/oauth/google/start?req=signed{store, returnUrl, sha256(random), next, remember}
+  B->>A: GET /oauth/google/start?req=…
+  A->>DB: store's live domains (store_domain.status = active)
+  A->>A: req signature + expiry OK, returnUrl = https://<live domain>/account/login/complete
+  A->>B: Set-Cookie wc_oauth=signed{state, PKCE verifier, req}<br/>302 to provider
+  B->>P: consent
+  P->>B: 302 A/oauth/google/callback?code&state (Apple: form POST)
+  B->>A: callback
+  A->>P: exchange code (PKCE), read profile
+  A->>DB: resolveShopperIdentity (link rule below), then ticket{store, returnUrl, browser hash, customer} (2 min)
+  A->>B: 303 https://shop.example.in/account/login/complete?token=signed{store, returnUrl, jti, exp}
+  B->>S: GET /account/login/complete?token=… (+ cookie wc_login_b)
+  S->>S: signature, expiry, store = this host's store, returnUrl = this exact URL
+  S->>DB: DELETE ticket WHERE token_hash = sha256(jti) RETURNING (single use), browser hash matches cookie
+  S->>B: Set-Cookie wc_customer (host-only session), 302 /cart
+```
+
+What each check stops:
+
+| Attack | Stopped by |
+| --- | --- |
+| Tampered token (other customer, store, URL) | HMAC over the payload, key derived per purpose from `SETTINGS_SECRET` |
+| Expired token | `e` in the payload (2 minutes) and the ticket's `expires_at` |
+| Replayed token | The ticket is deleted in the statement that reads it (`used`) |
+| Token for store A used on store B | Payload store must equal the store the proxy resolved; tickets are under store B's RLS anyway |
+| Open redirect / foreign return URL | Start and callback both require `https://<one of the store's active domains>/account/login/complete` (no port, query, fragment or credentials; http and ports only in development) |
+| Token planted in a victim's browser (login CSRF) | The ticket stores the hash of a random cookie set on the store domain by the browser that started; another browser burns the ticket |
+| OAuth CSRF on the login domain | `state` in a signed cookie on the login domain; PKCE on every provider |
+
+Tests: `packages/core/src/shopper-login/tokens.test.ts` (pure) and `shopper-login.test.ts`
+(database: replay, expiry, wrong browser, wrong store, foreign return URL, tampering).
+
+### Linking accounts
+
+`decideLink` (pure) then `resolveShopperIdentity`:
+
+1. An identity seen before (`customer_identity (store_id, provider, subject)`) signs in as its
+   customer. The subject is the provider's id, never the email, so a changed Google email
+   keeps the account.
+2. A signed-in shopper pressing **Connect** on their profile links to themselves (a
+   `conflict` if that identity already belongs to someone else).
+3. A mobile the provider verified (Truecaller) links to the customer with that phone (blind
+   index), else creates a phone-only customer.
+4. A **verified** email links to the customer with that email, else creates one.
+5. An **unverified** email never links and never creates a customer with that email (the
+   real owner would later sign into it). The shopper confirms it with an email code first: the
+   identity waits in a signed `wc_link` cookie, and `verifyCodeAction` links it once the code
+   proves that same email. Facebook reports no verification flag, so it always takes this
+   path the first time.
+6. No email at all: refused (`no_email`).
+
+Erasing a customer (`anonymiseCustomer`) deletes their identities, passkeys and tickets.
+
+## Passkeys and domains
+
+**Decision: passkeys are registered on the store's own hostname** (rpID = the host the
+shopper is on), not the platform domain. A WebAuthn ceremony must run on a page whose origin
+matches the rpID, so a platform-domain passkey would need a hand-off for every sign-in, and a
+custom domain cannot use an rpID of `waimers.store`. Consequences:
+
+- Each credential stores `rp_id`; sign-in only matches credentials for the current host.
+- When a store moves from `<slug>.waimers.store` to a custom domain, old passkeys stop
+  working there. The shopper signs in another way once and adds a passkey again; the profile
+  page marks passkeys made on another domain.
+- Later: WebAuthn [related origin requests](https://passkeys.dev/docs/advanced/related-origins/)
+  (`/.well-known/webauthn`) could let one rpID serve a store's domains; browser support is
+  still partial.
+
+Challenges are sealed (HMAC, 5 minutes, bound to store and hostname) in a `wc_pk` cookie and
+cleared after one use. No attestation, resident key required (usernameless sign-in), user
+verification preferred: the same defaults as Better Auth's passkey plugin.
+
+## Google One Tap
+
+One Tap runs on the store's own page, so Google must list the store's origin under the
+client's authorised JavaScript origins. That scales only with the **merchant's own** Google
+app, so One Tap is offered only then (`signInOptions`). The page loads Google Identity
+Services, asks our server for a nonce (sealed in `wc_1tap`), and posts the ID token to
+`oneTapSignInAction`, which checks audience, issuer, signature and nonce with
+`verifyGoogleIdToken`, then links like any Google sign-in.
+
+## Truecaller
+
+Truecaller's [web SDK for mobile websites](https://docs.truecaller.com/truecaller-sdk/web/mobile-websites)
+works only in Android browsers with the Truecaller app installed (the button shows on
+Android only). Flow:
+
+1. `startTruecallerAction` writes a pending ticket and a 59-character request nonce that
+   carries the store id and an HMAC (Truecaller's callback has nothing else to go on). The
+   nonce also sits in the `wc_tc` cookie.
+2. The page opens `truecallersdk://truecallersdk?type=btmsheet&requestNonce=…&partnerKey=…`.
+   If the page keeps focus, the app is not there and the shopper picks another way.
+3. Truecaller's server POSTs `{ requestId, accessToken, endpoint }` to
+   `<ACCOUNTS_URL>/truecaller/callback`. We fetch the profile only from `https://*.truecaller.com`
+   (SSRF guard), take the verified number and link or create the customer by phone. A profile
+   email is never used (Truecaller does not verify it).
+4. The page polls `pollTruecallerAction`; the ready ticket is spent by the browser holding the
+   cookie.
+
+Terms: a Truecaller developer account and partner key are required, the consent screen is
+Truecaller's, and profile data may only be used to sign the shopper in. The docs host was
+blocked when this was built; verify the parameter names against the portal before switching
+it on in production.
+
+## Remember this device
+
+Off (default): sessions last 30 days as before. On: the sign-in card shows a tick box;
+ticked = 90-day session and persistent cookie, unticked = 12-hour session in a session cookie
+that the browser drops on close (`sessionLifetime`).
+
+## Setup
+
+Environment (`packages/config/src/env.ts`, `.env.example`):
+
+```bash
+ACCOUNTS_URL=https://accounts.waimers.store   # DNS to the storefront, TLS included
+SHOPPER_GOOGLE_CLIENT_ID=… SHOPPER_GOOGLE_CLIENT_SECRET=…
+SHOPPER_APPLE_SERVICES_ID=… SHOPPER_APPLE_TEAM_ID=… SHOPPER_APPLE_KEY_ID=… SHOPPER_APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n…"
+SHOPPER_FACEBOOK_APP_ID=… SHOPPER_FACEBOOK_APP_SECRET=…
+SHOPPER_TRUECALLER_PARTNER_KEY=… SHOPPER_TRUECALLER_PARTNER_NAME=…
+```
+
+A provider without its env keys is simply "needs your own app" in the admin. Merchants' own
+apps live in `store.login_providers` (secret fields AES-256-GCM under `SETTINGS_SECRET`,
+masked in the API, included in `bun run rotate-secrets`).
+
+### On localhost
+
+The seeded store answers on `localhost` and `waimers.localhost`, so use another host for the
+login domain:
+
+1. `.env`: `ACCOUNTS_URL=http://127.0.0.1:3100` and your test Google client's id and secret.
+2. In Google Cloud, add `http://127.0.0.1:3100/oauth/google/callback` as a redirect URI.
+3. `bun run dev`, turn Google on in Settings → Customer accounts, open
+   `http://localhost:3100/account/login` and press **Continue with Google**: you leave for
+   127.0.0.1, then Google, and come back to localhost signed in.
+4. Magic links print to the storefront console in development. Passkeys work on
+   `http://localhost` (browsers treat it as secure). Apple needs https end to end; Truecaller
+   needs a public https callback (a tunnel) and an Android phone.

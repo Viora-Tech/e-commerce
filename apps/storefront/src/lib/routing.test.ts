@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { INTERNAL_PREFIX, PASSWORD_PREFIX, primaryRedirect, routeForStore } from './routing'
+import {
+  ACCOUNTS_PREFIX,
+  INTERNAL_PREFIX,
+  PASSWORD_PREFIX,
+  primaryRedirect,
+  routeForAccounts,
+  routeForStore,
+} from './routing'
 
 describe('routeForStore', () => {
   it('rewrites a public path onto the internal store segment', () => {
@@ -73,5 +80,31 @@ describe('primaryRedirect', () => {
     expect(primaryRedirect({ ...base, pathname: '/_next/static/x.js' })).toBeNull()
     expect(primaryRedirect({ ...base, pathname: '/webhooks/razorpay' })).toBeNull()
     expect(primaryRedirect({ ...base, pathname: `${INTERNAL_PREFIX}/x` })).toBeNull()
+  })
+})
+
+describe('routeForAccounts (platform login domain)', () => {
+  it('serves only provider sign-in and the Truecaller callback', () => {
+    expect(routeForAccounts('/oauth/google/start')).toEqual({
+      kind: 'rewrite',
+      path: '/-a/oauth/google/start',
+    })
+    expect(routeForAccounts('/oauth/apple/callback')).toEqual({
+      kind: 'rewrite',
+      path: '/-a/oauth/apple/callback',
+    })
+    expect(routeForAccounts('/truecaller/callback')).toEqual({
+      kind: 'rewrite',
+      path: '/-a/truecaller/callback',
+    })
+    for (const p of ['/', '/account', '/oauth/github/start', '/oauth/google/start/x', '/-s/x']) {
+      expect(routeForAccounts(p)).toEqual({ kind: 'forbidden' })
+    }
+  })
+
+  it('never lets a store host reach the login domain routes', () => {
+    expect(routeForStore('store-a', `${ACCOUNTS_PREFIX}/oauth/google/start`)).toEqual({
+      kind: 'forbidden',
+    })
   })
 })

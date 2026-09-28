@@ -34,6 +34,7 @@ import {
 } from './customer-session'
 import { devOtpEnabled, rememberDevOtp } from './dev-otp'
 import { clientIp, rateLimited } from './rate-limit'
+import { lifetimeFor } from './shopper-login'
 import { codeChannelDeps, deliverableMethods, devChannels, storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 import { parseVisitorId, VISITOR_COOKIE } from './visitor-cookie'
@@ -161,6 +162,7 @@ export async function verifyPhoneCodeAction(
   mobile: string,
   code: string,
   returnTo: string,
+  remember = true,
 ): Promise<{ error: string } | undefined> {
   const sid = await storeId()
   const [byPhone, byIp] = await Promise.all([
@@ -169,11 +171,12 @@ export async function verifyPhoneCodeAction(
   ])
   if (!byPhone.ok || !byIp.ok) return { error: accountContent.login.errors.rateLimited }
   const secret = loadEnv(process.env).SETTINGS_SECRET
+  const life = await lifetimeFor(sid, remember)
   const r = await inStore(sid, (tx) =>
-    verifyPhoneLoginCode({ tx, storeId: sid }, mobile, code, secret),
+    verifyPhoneLoginCode({ tx, storeId: sid }, mobile, code, secret, new Date(), life.ttlMs),
   )
   if (!r.ok) return { error: accountContent.login.errors[r.reason] }
-  await writeCustomerToken(r.token, r.expiresAt)
+  await writeCustomerToken(r.token, r.expiresAt, life.persistent)
   revalidatePath('/', 'layout')
   redirect(safeReturnTo(returnTo))
 }

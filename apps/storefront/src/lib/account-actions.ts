@@ -10,6 +10,8 @@ import {
   deleteAddress,
   deliverLoginCode,
   getCart,
+  linkIdentity,
+  openToken,
   reorderLines,
   requestLoginCode,
   revokeCustomerSession,
@@ -32,7 +34,9 @@ import {
   writeCustomerToken,
 } from './customer-session'
 import { devOtpEnabled, rememberDevOtp } from './dev-otp'
+import type { PendingLink } from './login-errors'
 import { clientIp, rateLimited } from './rate-limit'
+import { lifetimeFor, PENDING_LINK_COOKIE, settingsSecret, takeCookie } from './shopper-login'
 import { inStore } from './store-context'
 
 /**
@@ -97,6 +101,7 @@ export async function verifyCodeAction(
   email: string,
   code: string,
   returnTo: string,
+  remember = true,
 ): Promise<{ error: string } | undefined> {
   const sid = await storeId()
   const ip = clientIp(await headers())
@@ -105,11 +110,38 @@ export async function verifyCodeAction(
     rateLimited('login-code-verify:ip', ip, OTP_VERIFY_IP_RULE),
   ])
   if (!byEmail.ok || !byIp.ok) return { error: accountContent.login.errors.rateLimited }
-  const result = await inStore(sid, (tx) => verifyLoginCode({ storeId: sid, tx }, email, code))
+  const life = await lifetimeFor(sid, remember)
+  const result = await inStore(sid, (tx) =>
+    verifyLoginCode({ storeId: sid, tx }, email, code, new Date(), life.ttlMs),
+  )
   if (!result.ok) return { error: accountContent.login.errors[result.reason] }
-  await writeCustomerToken(result.token, result.expiresAt)
+  await linkPendingIdentity(sid, result.customerId, email)
+  await writeCustomerToken(result.token, result.expiresAt, life.persistent)
   revalidatePath('/', 'layout')
   redirect(safeReturnTo(returnTo))
+}
+
+/**
+ * A Facebook (or other) sign-in whose email the provider did not verify waits in a
+ * signed cookie; the code just proved this email, so the identity joins this customer.
+ */
+async function linkPendingIdentity(sid: string, customerId: string, email: string) {
+  const opened = openToken<PendingLink>(
+    await takeCookie(PENDING_LINK_COOKIE),
+    settingsSecret(),
+    'pending-link',
+  )
+  if (!opened.ok || opened.payload.m !== email.trim().toLowerCase()) return
+  const p = opened.payload
+  await inStore(sid, (tx) =>
+    linkIdentity({ storeId: sid, tx }, customerId, {
+      provider: p.p,
+      subject: p.s,
+      email: p.m,
+      emailVerified: true,
+      name: p.n || null,
+    }),
+  )
 }
 
 export async function signOutAction(): Promise<void> {

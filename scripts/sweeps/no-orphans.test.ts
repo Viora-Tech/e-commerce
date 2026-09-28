@@ -899,6 +899,29 @@ const ALLOWLIST: AllowEntry[] = [
     ],
     reason: 'no external importer today — investigate before removing',
   },
+  {
+    file: 'packages/core/src/shopper-login/identities.ts',
+    names: ['decideLink'],
+    reason:
+      'the pure linking rule behind resolveShopperIdentity, exported so tokens.test.ts pins verified vs unverified email without a database',
+  },
+  {
+    file: 'packages/core/src/shopper-login/providers.ts',
+    names: ['appleClientSecret', 'identityFromUserInfo'],
+    reason:
+      'pure pieces of finishSignIn, exported so tokens.test.ts checks the Apple JWT and profile mapping without calling a provider',
+  },
+  {
+    file: 'packages/core/src/shopper-login/credentials.ts',
+    names: ['loginAppFrom'],
+    reason: 'pure field-to-app builder behind loadOwnLoginApps, tested directly in tokens.test.ts',
+  },
+  {
+    file: 'packages/core/src/shopper-login/truecaller.ts',
+    names: ['truecallerNonce', 'isTruecallerEndpoint', 'mobileFromProfile'],
+    reason:
+      'pure pieces of startTruecaller/completeTruecaller (signed nonce, SSRF guard, number parsing), tested directly in tokens.test.ts',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {

@@ -1,7 +1,12 @@
 'use client'
 
 import type { CustomerAccountSettings as Settings } from '@commerce/core'
-import { LOGIN_METHODS, type LoginMethod } from '@commerce/core/customer-accounts'
+import {
+  LOGIN_METHODS,
+  type LoginMethod,
+  type LoginProvider,
+  type ProviderReadiness,
+} from '@commerce/core/customer-accounts'
 import { UserCircle } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -15,13 +20,29 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
-import { customerAccountsContent as copy, LOGIN_METHOD_COPY } from '@/data/customer-accounts'
+import LoginAppSheet from '@/components/settings/login-app-sheet'
+import SignInExtrasCard from '@/components/settings/sign-in-extras-card'
+import SignInProvidersCard from '@/components/settings/sign-in-providers-card'
+import {
+  customerAccountsContent as copy,
+  LOGIN_METHOD_COPY,
+  PROVIDER_COPY,
+} from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 
-type Loaded = { settings: Settings; available: LoginMethod[]; unavailable: LoginMethod[] }
+type Loaded = {
+  settings: Settings
+  available: LoginMethod[]
+  unavailable: LoginMethod[]
+  readiness: ProviderReadiness
+  needsSetup: LoginProvider[]
+  ownApps: Partial<Record<LoginProvider, Record<string, string>>>
+  fields: Record<LoginProvider, { key: string; secret?: boolean; multiline?: boolean }[]>
+  callbacks: Record<LoginProvider, string>
+}
 
-/** Settings → Customer accounts: guest checkout, and which sign-in codes customers get. */
+/** Settings → Customer accounts: guest checkout, and every way customers can sign in. */
 export default function CustomerAccountsSettings() {
   // Hooks
   const [loaded, setLoaded] = useState<Loaded | null>(null)
@@ -29,6 +50,7 @@ export default function CustomerAccountsSettings() {
   const [saved, setSaved] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [setupFor, setSetupFor] = useState<LoginProvider | null>(null)
 
   useEffect(() => {
     api.customerAccounts
@@ -50,13 +72,21 @@ export default function CustomerAccountsSettings() {
     setForm({ ...form, loginMethods: next })
   }
 
+  /** After an app is saved or removed: fresh readiness, the merchant's unsaved edits kept. */
+  const reloadApps = () => {
+    api.customerAccounts
+      .get()
+      .then((v) => setLoaded(v))
+      .catch(() => setFailed(true))
+  }
+
   // Event handlers
   const handleSave = async () => {
     if (!form || !loaded) return
     setBusy(true)
     try {
       const settings = await api.customerAccounts.save(form)
-      setLoaded({ ...loaded, settings, unavailable: [] })
+      setLoaded({ ...loaded, settings, unavailable: [], needsSetup: [] })
       setForm(settings)
       setSaved(JSON.stringify(settings))
       toast.success(copy.saved)
@@ -74,6 +104,7 @@ export default function CustomerAccountsSettings() {
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
   const none = form !== null && form.loginMethods.length === 0
   const stale = loaded?.unavailable ?? []
+  const hidden = loaded?.needsSetup ?? []
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -166,6 +197,32 @@ export default function CustomerAccountsSettings() {
               </FieldGroup>
             </CardContent>
           </Card>
+
+          <SignInProvidersCard
+            form={form}
+            onChange={setForm}
+            readiness={loaded.readiness}
+            onSetUp={setSetupFor}
+          />
+          {hidden.length > 0 ? (
+            <p className="text-caption text-warning-foreground dark:text-warning">
+              {copy.providers.stillHidden(hidden.map((p) => PROVIDER_COPY[p].label).join(', '))}
+            </p>
+          ) : null}
+
+          <SignInExtrasCard form={form} onChange={setForm} />
+
+          <LoginAppSheet
+            key={setupFor ?? 'closed'}
+            provider={setupFor}
+            onOpenChange={(open) => {
+              if (!open) setSetupFor(null)
+            }}
+            fields={loaded.fields}
+            saved={setupFor ? loaded.ownApps[setupFor] : undefined}
+            redirectUrl={setupFor ? loaded.callbacks[setupFor] : ''}
+            onSaved={reloadApps}
+          />
 
           <Card size="form">
             <CardHeader>

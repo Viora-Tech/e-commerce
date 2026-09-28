@@ -21,6 +21,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'document_copy',
   'login_code',
   'account_deletion_code',
+  'login_link',
   'gift_card_issued',
   'balance_request',
   'balance_reminder',
@@ -52,6 +53,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   document_copy: 'Document copy',
   login_code: 'Sign-in code',
   account_deletion_code: 'Account deletion code',
+  login_link: 'Sign-in link',
   gift_card_issued: 'Gift card issued',
   balance_request: 'Balance due',
   balance_reminder: 'Balance reminder',
@@ -78,6 +80,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Sign-in code'
     case 'account_deletion_code':
       return 'Delete your account'
+    case 'login_link':
+      return 'Sign-in link'
     case 'gift_card_issued':
       return 'Gift card'
     case 'checkout_recovery':
@@ -125,6 +129,8 @@ function primaryActionFor(
       return d.actionUrl ? { label: 'Pay securely', url: d.actionUrl } : undefined
     case 'checkout_recovery':
       return d.actionUrl ? { label: 'Finish checkout', url: d.actionUrl } : undefined
+    case 'login_link':
+      return d.actionUrl ? { label: `Sign in to ${d.storeName}`, url: d.actionUrl } : undefined
     case 'document_copy':
       return d.links?.[0] ? { label: d.links[0].label, url: d.links[0].url } : undefined
     case 'balance_request':

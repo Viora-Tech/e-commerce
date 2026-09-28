@@ -1,16 +1,31 @@
 'use client'
 
-import type { CheckoutAccountMode, LoginMethod } from '@commerce/core/customer-accounts'
+import type {
+  CheckoutAccountMode,
+  LoginMethod,
+  SignInOptions,
+} from '@commerce/core/customer-accounts'
 import { useState } from 'react'
+import GoogleOneTap from '@/components/account/google-one-tap'
 import LoginForm from '@/components/account/login-form'
 import PhoneLoginForm from '@/components/account/phone-login-form'
+import QuickSignIn from '@/components/account/quick-sign-in'
 import { accountContent } from '@/data/account'
+import type { LoginError } from '@/lib/login-errors'
 
 type SignInProps = {
   returnTo: string
   /** What the store offers, in order; never empty. */
   methods: LoginMethod[]
   checkout: CheckoutAccountMode
+  /** Everything else the store switched on (providers, passkeys, magic link). */
+  options?: SignInOptions | undefined
+  /** The store's own Google client id when One Tap is on. */
+  oneTapClientId?: string | null | undefined
+  /** Why the last provider sign-in came back without a session. */
+  error?: LoginError | null | undefined
+  /** A provider sign-in waiting for its email to be confirmed with a code. */
+  confirmEmail?: string | null | undefined
 }
 
 const copy = accountContent.login
@@ -18,12 +33,24 @@ const copy = accountContent.login
 const isPhone = (m: LoginMethod): m is 'sms' | 'whatsapp' => m !== 'email'
 
 /**
- * The sign-in card: the store's first method, with a link to the other kind
- * (email or mobile) when both are on. One question at a time.
+ * The sign-in card: the store's first code method, with a link to the other kind
+ * (email or mobile) when both are on, then the one-tap ways in the store switched on.
+ * One question at a time.
  */
-export default function SignIn({ returnTo, methods, checkout }: SignInProps) {
+export default function SignIn({
+  returnTo,
+  methods,
+  checkout,
+  options,
+  oneTapClientId,
+  error,
+  confirmEmail,
+}: SignInProps) {
   // Hooks
-  const [mode, setMode] = useState<'email' | 'phone'>(methods[0] === 'email' ? 'email' : 'phone')
+  const [mode, setMode] = useState<'email' | 'phone'>(
+    confirmEmail || methods[0] === 'email' ? 'email' : 'phone',
+  )
+  const [remember, setRemember] = useState(true)
 
   // Helpers
   /** A link to the other kind of sign-in, only when the store offers both. */
@@ -41,19 +68,55 @@ export default function SignIn({ returnTo, methods, checkout }: SignInProps) {
   // Render logic
   const phoneMethods = methods.filter(isPhone)
   const note = checkout === 'account_required' ? copy.accountNote : copy.guestNote
+  const offerRemember = options?.rememberDevice === true
+  // Unticked counts only when the store offers the choice; otherwise sessions keep their usual length.
+  const keep = offerRemember ? remember : true
 
   return (
-    <div className="mx-auto w-full max-w-[26rem] rounded-2xl border border-line p-8">
+    <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-6 rounded-2xl border border-line p-6 md:p-8">
+      {error ? (
+        <p className="text-small text-danger" role="alert">
+          {copy.providerErrors[error]}
+        </p>
+      ) : null}
       {mode === 'phone' && phoneMethods.length > 0 ? (
         <PhoneLoginForm
           returnTo={returnTo}
           methods={phoneMethods}
           note={note}
           alternative={switcher('email')}
+          remember={keep}
         />
       ) : (
-        <LoginForm returnTo={returnTo} note={note} alternative={switcher('phone')} />
+        <LoginForm
+          returnTo={returnTo}
+          note={note}
+          alternative={switcher('phone')}
+          remember={keep}
+          magicLink={options?.magicLink === true}
+          confirmEmail={confirmEmail ?? null}
+        />
       )}
+      {options && !confirmEmail ? (
+        <QuickSignIn options={options} returnTo={returnTo} remember={keep} />
+      ) : null}
+      {offerRemember ? (
+        <label className="flex items-start gap-3 text-body">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 accent-[var(--color-ink)]"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span className="flex flex-col">
+            <span>{copy.remember}</span>
+            <span className="text-small text-muted">{copy.rememberHint}</span>
+          </span>
+        </label>
+      ) : null}
+      {oneTapClientId && !confirmEmail ? (
+        <GoogleOneTap clientId={oneTapClientId} returnTo={returnTo} remember={keep} />
+      ) : null}
     </div>
   )
 }

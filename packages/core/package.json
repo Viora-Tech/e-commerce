@@ -64,19 +64,22 @@
   },
   "dependencies": {
     "@commerce/blocks": "workspace:*",
+    "@commerce/config": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/money": "workspace:*",
-    "drizzle-orm": "^0.45.2",
-    "zod": "^4.6.5",
-    "@commerce/payments": "workspace:*",
-    "@commerce/config": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",
-    "@commerce/shipping": "workspace:*",
+    "@commerce/payments": "workspace:*",
     "@commerce/plugins": "workspace:*",
+    "@commerce/shipping": "workspace:*",
     "@commerce/storage": "workspace:*",
+    "@simplewebauthn/server": "13.3.3",
+    "better-auth": "1.7.6",
+    "drizzle-orm": "^0.45.2",
+    "jose": "6.2.12",
     "sharp": "^0.35.4",
-    "thumbhash": "^0.1.1"
+    "thumbhash": "^0.1.1",
+    "zod": "^4.6.5"
   },
   "peerDependencies": {
     "react": "^19.0.0"

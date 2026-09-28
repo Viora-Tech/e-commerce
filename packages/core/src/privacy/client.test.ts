@@ -89,9 +89,11 @@ describe('marketing consent gate', () => {
 
 describe('customer account settings', () => {
   it('defaults to guest checkout with email codes', () => {
-    expect(parseCustomerAccountSettings(undefined)).toEqual({
+    expect(parseCustomerAccountSettings(undefined)).toMatchObject({
       checkout: 'guest',
       loginMethods: ['email'],
+      magicLink: false,
+      passkeys: false,
     })
   })
 

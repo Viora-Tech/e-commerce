@@ -115,7 +115,7 @@ describe('sign-in methods a store can offer', () => {
         ['email', 'whatsapp'],
       ),
     )
-    expect(await run(storeId, (ctx) => loadCustomerAccountSettings(ctx))).toEqual({
+    expect(await run(storeId, (ctx) => loadCustomerAccountSettings(ctx))).toMatchObject({
       checkout: 'account_required',
       loginMethods: ['email', 'whatsapp'],
     })

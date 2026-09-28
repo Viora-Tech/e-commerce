@@ -2,15 +2,20 @@ import 'server-only'
 
 import { loadEnv } from '@commerce/config'
 import {
+  appFor,
   availableLoginMethods,
   type CheckoutAccountMode,
   type LoginChannelDeps,
   type LoginMethod,
   loadCustomerAccountSettings,
+  loginReadiness,
+  type SignInOptions,
+  signInOptions,
   usableLoginMethods,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
+import { storeLoginSetup } from './shopper-login'
 import { inStore } from './store-context'
 
 /** Outside production the console log channels count, and email codes are printed as before. */
@@ -36,6 +41,10 @@ export type StoreSignIn = {
   /** What the sign-in form offers, in order; never empty. */
   methods: LoginMethod[]
   checkout: CheckoutAccountMode
+  /** Every enabled, working way to sign in (codes, providers, passkeys, magic link). */
+  options: SignInOptions
+  /** The store's own Google client id, for One Tap (only when One Tap is on). */
+  oneTapClientId: string | null
 }
 
 /**
@@ -44,9 +53,18 @@ export type StoreSignIn = {
  * ever shown an empty form (sending then says sign-in is unavailable).
  */
 export async function storeSignIn(storeId: string): Promise<StoreSignIn> {
+  const { platform, own } = await storeLoginSetup(storeId)
   return inStore(storeId, async (tx) => {
     const settings = await loadCustomerAccountSettings({ tx, storeId })
     const usable = usableLoginMethods(settings, await deliverableMethods(tx, storeId))
-    return { methods: usable.length > 0 ? usable : ['email'], checkout: settings.checkout }
+    const methods: LoginMethod[] = usable.length > 0 ? usable : ['email']
+    const options = signInOptions(settings, methods, loginReadiness(platform, own))
+    const google = options.oneTap ? appFor(settings, platform, own, 'google') : null
+    return {
+      methods,
+      checkout: settings.checkout,
+      options,
+      oneTapClientId: google?.clientId ?? null,
+    }
   })
 }
