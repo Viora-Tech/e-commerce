@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -18,6 +17,11 @@ import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
+import TrackingFields, {
+  EMPTY_TRACKING,
+  type TrackingDraft,
+  trackingPayload,
+} from './tracking-fields'
 
 type FulfilDialogProps = {
   order: OrderDetail | null
@@ -30,8 +34,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
   // Hooks
   const copy = useCopy(orderDetailContent)
   const [picks, setPicks] = useState<Record<string, number>>({})
-  const [courier, setCourier] = useState('')
-  const [tracking, setTracking] = useState('')
+  const [tracking, setTracking] = useState<TrackingDraft>(EMPTY_TRACKING)
   const [busy, setBusy] = useState(false)
 
   // Helpers
@@ -46,8 +49,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
 
   const handleClose = () => {
     setPicks({})
-    setCourier('')
-    setTracking('')
+    setTracking(EMPTY_TRACKING)
     onClose()
   }
 
@@ -65,13 +67,11 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
       await api.orders.fulfil({
         orderId: order.id,
         lines,
-        ...(courier.trim() ? { courier: courier.trim() } : {}),
-        ...(tracking.trim() ? { trackingNumber: tracking.trim() } : {}),
+        ...trackingPayload(tracking),
       })
       toast.success(copy.fulfilDialog.done)
       setPicks({})
-      setCourier('')
-      setTracking('')
+      setTracking(EMPTY_TRACKING)
       onDone()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.fulfilDialog.failed)
@@ -120,26 +120,7 @@ export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogPro
             </ul>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="fulfil-courier">{copy.fulfilDialog.courier}</FieldLabel>
-              <Input
-                id="fulfil-courier"
-                value={courier}
-                placeholder={copy.fulfilDialog.courierPlaceholder}
-                onChange={(e) => setCourier(e.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="fulfil-tracking">{copy.fulfilDialog.tracking}</FieldLabel>
-              <Input
-                id="fulfil-tracking"
-                value={tracking}
-                placeholder={copy.fulfilDialog.trackingPlaceholder}
-                onChange={(e) => setTracking(e.target.value)}
-              />
-            </Field>
-          </div>
+          <TrackingFields value={tracking} onChange={setTracking} />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={busy}>

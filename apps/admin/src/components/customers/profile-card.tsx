@@ -31,16 +31,8 @@ function ContactRow({ label, value, what, href }: ContactRowProps) {
   )
 }
 
-/** Contact details and the default address. Marketing consent has its own card. */
+/** Contact details. Addresses and marketing consent have their own cards. */
 export default function ProfileCard({ customer }: ProfileCardProps) {
-  // Render logic
-  const a = customer.defaultAddress
-  const address = a
-    ? [a.name, a.line1, a.line2, `${a.city}, ${a.stateCode} ${a.pincode}`, a.phone]
-        .filter(Boolean)
-        .join('\n')
-    : null
-
   return (
     <DataCard title={copy.profile.heading}>
       <ContactRow
@@ -55,27 +47,6 @@ export default function ProfileCard({ customer }: ProfileCardProps) {
         what={copy.profile.phone}
         href={customer.phone ? `tel:${customer.phone}` : undefined}
       />
-      <div className="mt-4 border-t border-border pt-4">
-        <div className="group/row flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-eyebrow">{copy.profile.address}</p>
-            {a ? (
-              <address className="mt-1 text-body not-italic">
-                <p>{a.name}</p>
-                <p>{a.line1}</p>
-                {a.line2 ? <p>{a.line2}</p> : null}
-                <p>
-                  {a.city}, {a.stateCode} {a.pincode}
-                </p>
-                {a.phone ? <p>{a.phone}</p> : null}
-              </address>
-            ) : (
-              <p className="mt-1 text-body text-muted-foreground">{copy.profile.noAddress}</p>
-            )}
-          </div>
-          {address ? <CopyButton value={address} what={copy.profile.address} /> : null}
-        </div>
-      </div>
       <p className="mt-4 text-caption text-muted-foreground">
         {copy.profile.created} {day(customer.createdAt)}
       </p>

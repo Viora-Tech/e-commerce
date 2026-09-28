@@ -1,50 +1,89 @@
+'use client'
+
+import { Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import { INDIAN_STATES } from '@/data/india'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
+import EditOrderContactDialog from './edit-order-contact-dialog'
 import type { OrderDetail } from './order-detail-types'
 
 type CustomerCardProps = {
   order: OrderDetail
 }
 
-/** One line of contact detail with the button that copies it. */
-function ContactRow({ value, what, href }: { value: string; what: string; href: string }) {
-  return (
-    <div className="group/row flex items-center gap-1">
-      <a
-        href={href}
-        className="min-w-0 truncate text-link underline underline-offset-2 hover:text-foreground focus-visible:underline focus-visible:outline-none"
-      >
-        {value}
-      </a>
-      <CopyButton value={value} what={what} />
-    </div>
-  )
-}
+type Row = { key: string; label: string; value: string; href?: string | undefined }
 
-/** Who ordered, how often they have, and where this one goes. */
+const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
+
+/**
+ * Who ordered and where it goes, one field per line with its own copy button,
+ * in the order courier apps ask for them. "Copy all" puts the same fields on
+ * the clipboard one per line: name, phone, address, city, state, PIN code.
+ */
 export default function CustomerCard({ order }: CustomerCardProps) {
   // Hooks
   const copy = useCopy(orderDetailContent)
+  const router = useRouter()
+  const [editing, setEditing] = useState(false)
+
+  // Event handlers
+  const handleCopyAll = async () => {
+    try {
+      await navigator.clipboard.writeText(allText)
+      toast.success(c.copied(c.allDetails))
+    } catch {
+      toast.error(c.copy(c.allDetails.toLowerCase()))
+    }
+  }
 
   // Render logic
+  const c = copy.customer
   const a = order.shippingAddress
-  const lines = a
-    ? [a.name, a.line1, a.line2, `${a.city}, ${a.stateCode} ${a.pincode}`, a.phone].filter(
-        (l): l is string => Boolean(l),
-      )
+  const name = a?.name || order.customer?.name || ''
+  const phone = order.phone || a?.phone || ''
+  const contact: Row[] = [
+    { key: 'name', label: c.name, value: name },
+    {
+      key: 'email',
+      label: c.email,
+      value: order.email ?? '',
+      href: order.email ? `mailto:${order.email}` : undefined,
+    },
+    { key: 'phone', label: c.phone, value: phone, href: phone ? `tel:${phone}` : undefined },
+  ]
+  const place: Row[] = a
+    ? [
+        { key: 'line1', label: c.line1, value: a.line1 },
+        ...(a.line2 ? [{ key: 'line2', label: c.line2, value: a.line2 }] : []),
+        { key: 'city', label: c.city, value: a.city },
+        { key: 'state', label: c.state, value: stateName(a.stateCode) },
+        { key: 'pincode', label: c.pincode, value: a.pincode },
+      ]
     : []
-  const addressText = lines.join('\n')
-
+  // Courier-app order: name, phone, address, city, state, PIN code.
+  const allText = [
+    name,
+    phone,
+    a?.line1,
+    a?.line2,
+    a?.city,
+    a ? stateName(a.stateCode) : '',
+    a?.pincode,
+  ]
+    .filter((v): v is string => Boolean(v))
+    .join('\n')
   const link =
     'text-caption text-foreground underline underline-offset-2 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
   const profileHref = order.customer ? `/customers/${order.customer.id}` : null
+  const readOnly = Boolean(order.importedFrom)
 
-  /* After the Saleor Dashboard customer details panel (BSD-3): underlined header links, the
-     email with a copy button, then address blocks with an outlined Edit and a copy icon. */
   return (
     <DataCard
       title={copy.customer.heading2}
@@ -52,116 +91,130 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         <div className="flex items-center gap-3">
           {order.email ? (
             <Link href={`/orders?query=${encodeURIComponent(order.email)}`} className={link}>
-              {copy.customer.viewOrders}
+              {c.viewOrders}
             </Link>
           ) : null}
           {profileHref ? (
             <Link href={profileHref} className={link}>
-              {copy.customer.viewProfile}
+              {c.viewProfile}
             </Link>
           ) : null}
         </div>
       }
     >
-      <div className="flex flex-col gap-6 text-body">
-        <div className="flex flex-col gap-1">
-          <p className="text-ink-strong">
-            {order.customer?.name ?? copy.customer.guest}
-            {order.customerOrderNumber > 0 ? (
-              <span className="text-muted-foreground">
-                {' · '}
-                {copy.customer.orderCount(order.customerOrderNumber)}
-              </span>
-            ) : null}
+      <div className="flex flex-col gap-5 text-body">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-muted-foreground">
+            {order.customer
+              ? order.customerOrderNumber > 0
+                ? c.orderCount(order.customerOrderNumber)
+                : null
+              : c.guest}
           </p>
-          {order.email ? (
-            <ContactRow
-              value={order.email}
-              what={copy.customer.email}
-              href={`mailto:${order.email}`}
-            />
-          ) : null}
-          {order.phone ? (
-            <ContactRow
-              value={order.phone}
-              what={copy.customer.phone}
-              href={`tel:${order.phone}`}
-            />
-          ) : null}
+          <div className="flex items-center gap-2">
+            {allText ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                title={c.copyAllHint}
+                onClick={handleCopyAll}
+              >
+                <Copy />
+                {c.copyAll}
+              </Button>
+            ) : null}
+            {readOnly ? null : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                title={c.editHint}
+                onClick={() => setEditing(true)}
+              >
+                {c.edit}
+              </Button>
+            )}
+          </div>
         </div>
 
-        <AddressBlock
-          heading={copy.customer.address}
-          lines={lines}
-          copyText={addressText}
-          editHref={profileHref}
-        />
-        <AddressBlock
-          heading={copy.customer.billing}
-          lines={lines.length > 0 ? [copy.customer.billingSame] : []}
-          copyText=""
-          editHref={null}
-        />
+        <DetailRows heading={c.contact} rows={contact} />
+        {a ? (
+          <DetailRows heading={c.address} rows={place} />
+        ) : (
+          <div className="flex flex-col gap-1">
+            <p className="text-eyebrow">{c.address}</p>
+            <p className="text-muted-foreground">{c.noAddress}</p>
+          </div>
+        )}
+        {a ? (
+          <div className="flex flex-col gap-1">
+            <p className="text-eyebrow">{c.billing}</p>
+            <p className="text-muted-foreground">{c.billingSame}</p>
+          </div>
+        ) : null}
+
         {order.buyerGstin ? (
           <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{copy.customer.business}</p>
+            <p className="text-eyebrow">{c.business}</p>
             {order.buyerBusinessName ? <p>{order.buyerBusinessName}</p> : null}
             <div className="flex items-center gap-1">
               <span className="font-mono">{order.buyerGstin}</span>
-              <CopyButton value={order.buyerGstin} what={copy.customer.gstin} />
+              <CopyButton value={order.buyerGstin} what={c.gstin} visible />
             </div>
           </div>
         ) : null}
         {order.customerNote ? (
           <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{copy.customer.note}</p>
+            <p className="text-eyebrow">{c.note}</p>
             <p className="whitespace-pre-line">{order.customerNote}</p>
           </div>
         ) : null}
       </div>
+
+      {editing ? (
+        <EditOrderContactDialog
+          order={order}
+          open
+          onClose={() => setEditing(false)}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
     </DataCard>
   )
 }
 
-type AddressBlockProps = {
-  heading: string
-  lines: string[]
-  copyText: string
-  editHref: string | null
-}
+type DetailRowsProps = { heading: string; rows: Row[] }
 
-function AddressBlock({ heading, lines, copyText, editHref }: AddressBlockProps) {
-  // Hooks
-  const copy = useCopy(orderDetailContent)
-
+/** A labelled list of fields; an empty field shows a dash and has nothing to copy. */
+function DetailRows({ heading, rows }: DetailRowsProps) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-eyebrow">{heading}</p>
-        {editHref ? (
-          <Button
-            variant="outline"
-            size="sm"
-            title={copy.customer.editHint}
-            render={<Link href={editHref} />}
-            nativeButton={false}
-          >
-            {copy.customer.edit}
-          </Button>
-        ) : null}
-      </div>
-      <div className="flex items-end justify-between gap-3">
-        {lines.length > 0 ? (
-          <address className="text-ink-strong not-italic">
-            {lines.map((l) => (
-              <p key={l}>{l}</p>
-            ))}
-          </address>
-        ) : (
-          <p className="text-muted-foreground">{copy.customer.noAddress}</p>
-        )}
-        {copyText ? <CopyButton value={copyText} what={copy.customer.addressLabel} /> : null}
-      </div>
+    <div className="flex flex-col gap-1">
+      <p className="text-eyebrow">{heading}</p>
+      <dl className="flex flex-col divide-y divide-border">
+        {rows.map((r) => (
+          <div key={r.key} className="flex min-h-10 items-center gap-2 py-1">
+            <dt className="w-24 shrink-0 text-caption text-muted-foreground">{r.label}</dt>
+            <dd className="min-w-0 flex-1 break-words text-ink-strong">
+              {r.value ? (
+                r.href ? (
+                  <a
+                    href={r.href}
+                    className="text-link underline underline-offset-2 hover:text-foreground"
+                  >
+                    {r.value}
+                  </a>
+                ) : (
+                  r.value
+                )
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </dd>
+            {r.value ? <CopyButton value={r.value} what={r.label} visible /> : null}
+          </div>
+        ))}
+      </dl>
     </div>
   )
 }

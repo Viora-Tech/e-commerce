@@ -3,10 +3,13 @@ import {
   balanceOwed,
   type FulfilOrderInput,
   fulfilOrderLines,
+  type ManualCollection,
   OPEN_ATTEMPT_STATUSES,
+  OrderNotFound,
   recomputeOrderStatuses,
   recordBalancePaid,
   refundedPaise,
+  withManualCollection,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { customer, order, payment } from '@commerce/db'
@@ -103,17 +106,27 @@ export async function orderBalance(
  * Record money the merchant collected outside a gateway (cash on delivery, a
  * bank transfer they matched by hand). The pending payment row is captured so
  * the order and the payment never disagree; without one, a payment row is
- * created so the history still shows where the money came from.
+ * created so the history still shows where the money came from. How it was
+ * paid (method, UTR, day) is kept on the captured row (`checkout_session.collected`).
  */
 export async function collectOrderPayment(
   tx: StoreTx,
   storeId: string,
-  input: { orderId: string; amountPaise: number; method?: string | undefined },
+  input: {
+    orderId: string
+    amountPaise: number
+    method?: string | undefined
+    collected?: ManualCollection | undefined
+  },
 ) {
   const [current] = await tx.select().from(order).where(eq(order.id, input.orderId))
+  // RLS hides other stores' orders; without this a payment row would be written against one.
+  if (!current) throw new OrderNotFound(input.orderId, storeId)
+  const ctx = { storeId, tx }
   // A deposit pre-order whose deposit is in: what is owed is the balance, settled as one.
-  if (current?.checkoutPaidAt && balanceOwed(current) > 0) {
-    await recordBalancePaid({ storeId, tx }, input.orderId, { method: input.method })
+  if (current.checkoutPaidAt && balanceOwed(current) > 0) {
+    await recordBalancePaid(ctx, input.orderId, { method: input.method })
+    await stampCollection(tx, input, 'balance')
     const [o] = await tx.select().from(order).where(eq(order.id, input.orderId))
     return { order: o ?? null, balance: true }
   }
@@ -129,7 +142,6 @@ export async function collectOrderPayment(
     )
     .orderBy(desc(payment.attempt))
   const first = pending[0]
-  const ctx = { storeId, tx }
   if (first) {
     // Through the one capture path, so a capture on a cancelled order is flagged, not kept.
     await applyPaymentStatus(ctx, {
@@ -137,6 +149,7 @@ export async function collectOrderPayment(
       status: 'captured',
       providerPaymentId: null,
     })
+    await stampCollection(tx, input, 'order', first.id)
   } else {
     await tx.insert(payment).values({
       storeId,
@@ -145,11 +158,41 @@ export async function collectOrderPayment(
       providerRef: `manual_${input.orderId}_${Date.now()}`,
       status: 'captured',
       amountPaise: input.amountPaise,
+      checkoutSession: input.collected ? withManualCollection(null, input.collected) : null,
     })
     await recomputeOrderStatuses(ctx, input.orderId)
   }
   const [o] = await tx.select().from(order).where(eq(order.id, input.orderId))
   return { order: o ?? null, balance: false }
+}
+
+/** Write how the merchant was paid onto the payment row that was just captured. */
+async function stampCollection(
+  tx: StoreTx,
+  input: { orderId: string; collected?: ManualCollection | undefined },
+  purpose: 'order' | 'balance',
+  paymentId?: string,
+) {
+  if (!input.collected) return
+  const [row] = await tx
+    .select({ id: payment.id, checkoutSession: payment.checkoutSession })
+    .from(payment)
+    .where(
+      paymentId
+        ? eq(payment.id, paymentId)
+        : and(
+            eq(payment.orderId, input.orderId),
+            eq(payment.purpose, purpose),
+            eq(payment.status, 'captured'),
+          ),
+    )
+    .orderBy(desc(payment.createdAt))
+    .limit(1)
+  if (!row) return
+  await tx
+    .update(payment)
+    .set({ checkoutSession: withManualCollection(row.checkoutSession, input.collected) })
+    .where(eq(payment.id, row.id))
 }
 
 /** Customer name for the header, without pulling the whole record. */

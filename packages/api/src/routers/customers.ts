@@ -1,7 +1,17 @@
 import { loadEnv } from '@commerce/config'
-import { permissions, setMarketingConsent } from '@commerce/core'
+import {
+  createAddress,
+  customerExists,
+  deleteAddress,
+  listAddresses,
+  permissions,
+  setMarketingConsent,
+  updateAddress,
+} from '@commerce/core'
+import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, storeProcedure } from '../procedures'
 import {
   customerOverview,
   customerStats,
@@ -46,6 +56,38 @@ const RulesSchema = z.object({
 
 const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
+const AddressSchema = z.object({
+  name: z.string().max(120),
+  line1: z.string().max(200),
+  line2: z.string().max(200).optional(),
+  city: z.string().max(80),
+  stateCode: z.string().max(2),
+  pincode: z.string().max(10),
+  phone: z.string().max(30),
+  isDefault: z.boolean().optional(),
+})
+
+/**
+ * The address book belongs to one customer of this store. RLS already hides
+ * other stores' customers; checking the customer is visible stops an address
+ * being written against another store's customer id.
+ */
+async function assertCustomer(tx: Parameters<typeof customerExists>[0], id: string) {
+  if (!(await customerExists(tx, id))) {
+    throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
+  }
+}
+
+type AddressResult = Awaited<ReturnType<typeof createAddress>>
+
+function unwrap(result: AddressResult) {
+  if (result.ok) return { id: result.id }
+  throw new ORPCError('BAD_REQUEST', {
+    message: Object.values(result.errors)[0] ?? 'Check the address',
+    data: { errors: result.errors },
+  })
+}
+
 export const customersRouter = {
   list: can(permissions.CUSTOMERS_READ)
     .input(
@@ -76,7 +118,61 @@ export const customersRouter = {
 
   get: can(permissions.CUSTOMERS_READ)
     .input(z.object({ id: z.uuid() }))
-    .handler(({ context, input }) => getCustomer(context.tx, input.id, secret())),
+    .handler(async ({ context, input }) => {
+      const found = await getCustomer(context.tx, input.id, secret())
+      if (!found) return null
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      return { ...found, addresses: await listAddresses(ctx, input.id) }
+    }),
+
+  /** Add an address to the customer's book; the first one becomes their default. */
+  addAddress: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid(), address: AddressSchema }))
+    .handler(async ({ context, input }) => {
+      await assertCustomer(context.tx, input.customerId)
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      return unwrap(await createAddress(ctx, input.customerId, input.address))
+    }),
+
+  updateAddress: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid(), addressId: z.uuid(), address: AddressSchema }))
+    .handler(async ({ context, input }) => {
+      await assertCustomer(context.tx, input.customerId)
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      return unwrap(await updateAddress(ctx, input.customerId, input.addressId, input.address))
+    }),
+
+  deleteAddress: can(permissions.CUSTOMERS_WRITE)
+    .input(z.object({ customerId: z.uuid(), addressId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await assertCustomer(context.tx, input.customerId)
+      const ctx = { tx: context.tx, storeId: context.scope.storeId }
+      const deleted = await deleteAddress(ctx, input.customerId, input.addressId)
+      if (!deleted) throw new ORPCError('NOT_FOUND', { message: 'Address not found' })
+      return { deleted }
+    }),
+
+  /**
+   * City and state for a PIN code, from the same directory as Settings → Checkout's
+   * "PIN code first". Null when unknown or the directory is not installed.
+   */
+  lookupPincode: storeProcedure
+    .input(
+      z.object({
+        pincode: z
+          .string()
+          .trim()
+          .regex(/^[1-9]\d{5}$/),
+      }),
+    )
+    .handler(async ({ input }) => {
+      try {
+        const place = (await loadPincodeDirectory())?.lookup(input.pincode) ?? null
+        return place ? { city: place.district, stateCode: place.stateCode } : null
+      } catch {
+        return null
+      }
+    }),
 
   update: can(permissions.CUSTOMERS_WRITE)
     .input(

@@ -1,9 +1,10 @@
 import type { Tracking } from '@commerce/core'
+import { readManualCollection } from '@commerce/core/manual-payments'
 import type { orderDetailContent } from '@/data/orders'
 import type { shipmentPanelContent } from '@/data/shipping'
 import type { Formatters } from '@/lib/format'
 import { dayKey } from '@/lib/format-date'
-import type { OrderDetail } from './order-detail-types'
+import { methodLabel, type OrderDetail } from './order-detail-types'
 
 export type EntryKind = 'order' | 'payment' | 'refund' | 'notification' | 'shipment' | 'note'
 
@@ -42,6 +43,27 @@ export function buildEntries(
       title: t.paymentEvent(e.type),
       detail: e.error ?? undefined,
       tone: e.status === 'failed' ? 'destructive' : undefined,
+    })
+  }
+
+  // Money the merchant recorded by hand: how, when and by whom.
+  for (const p of order.payments) {
+    const collected = readManualCollection(p.checkoutSession)
+    if (!collected) continue
+    const received = collected.receivedOn
+      ? new Date(`${collected.receivedOn}T00:00:00+05:30`)
+      : null
+    entries.push({
+      id: `mp-${p.id}`,
+      at: new Date(collected.recordedAt ?? received ?? p.createdAt),
+      kind: 'payment',
+      title: t.markedPaid(fmt.money(p.amountPaise), methodLabel(collected.method, copy)),
+      detail:
+        t.markedPaidDetail({
+          reference: collected.reference,
+          receivedOn: received ? fmt.date(received) : undefined,
+          by: collected.recordedBy,
+        }) || undefined,
     })
   }
 

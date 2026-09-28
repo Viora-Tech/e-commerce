@@ -62,6 +62,11 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
 
   // Event handlers
   const handleMove = async (to: OrderMark) => {
+    // "Mark as paid" asks how the money came in, the same as Collect payment.
+    if (to === 'paid' && canCollect) {
+      setCollecting(true)
+      return
+    }
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
