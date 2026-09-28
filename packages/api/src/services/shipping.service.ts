@@ -4,7 +4,7 @@ import {
   createShipmentForOrder,
   decryptShippingSettings,
   estimateForStore,
-  isMaskedSecret,
+  mergeMaskedSecrets,
   parseShippingSettings,
   primaryShippingProvider,
   type RateLimitRule,
@@ -134,12 +134,14 @@ export async function testShippingConnection(
   const stored = decryptShippingSettings(await loadShippingSettings(tx, storeId), secret).providers[
     providerId
   ]
-  const merged = Object.fromEntries(
-    Object.entries(rawFields).map(([key, value]) => [
-      key,
-      isMaskedSecret(value) && stored?.[key] ? stored[key] : value,
-    ]),
-  )
+  const kept = mergeMaskedSecrets(stored ?? {}, rawFields)
+  if (!kept.ok)
+    return {
+      ok: false,
+      message:
+        'To change where this connects, type the secret again (it is not reused for a new address).',
+    }
+  const merged = kept.merged
 
   const built = registry.create(providerId, merged)
   if (!built.ok) return { ok: false, message: built.errors.join(', ') }

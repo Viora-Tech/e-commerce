@@ -1,5 +1,5 @@
 import { loadEnv } from '@commerce/config'
-import { customerForSession, type SignedInCustomer } from '@commerce/core'
+import { customerForSession, type SignedInCustomer, safeNextPath } from '@commerce/core'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
@@ -59,7 +59,5 @@ export async function requireCustomer(
 
 /** Only same-site paths are followed after sign-in, never another origin. */
 export function safeReturnTo(raw: unknown): string {
-  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return '/account'
-  if (raw.startsWith('/\\') || raw.includes('\n')) return '/account'
-  return raw
+  return safeNextPath(raw)
 }

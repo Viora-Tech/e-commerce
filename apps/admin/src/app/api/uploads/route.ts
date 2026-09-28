@@ -1,11 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { localStoragePath } from '@commerce/core'
-import { resolveStoreForOrganization } from '@commerce/db'
-import { isAllowedContentType, keyBelongsToStore, MAX_UPLOAD_BYTES } from '@commerce/storage'
+import { authorizeLocalUpload, localStoragePath } from '@commerce/core'
+import { resolveStoreForOrganization, withStore } from '@commerce/db'
+import { isAllowedContentType, keyBelongsToStore } from '@commerce/storage'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { rateLimited } from '@/lib/rate-limit'
+import { readCappedBody } from '@/lib/read-capped-body'
 
 /** Per organisation: generous enough for a bulk media import, tight enough to stop a runaway script. */
 const UPLOAD_RULE = { limit: 60, windowMs: 5 * 60_000 }
@@ -13,8 +14,9 @@ const UPLOAD_RULE = { limit: 60, windowMs: 5 * 60_000 }
 /**
  * The local storage provider's upload target (the built-in default when no
  * storage Connection is installed). The browser PUTs here with the key the
- * presign step chose; we check the session, that the key belongs to the
- * caller's store, and write the bytes under `LOCAL_STORAGE_DIR` (default
+ * presign step chose; we check the session, that the member may write content,
+ * that the key is one of the store's pending uploads with the same type, and the
+ * size (while reading, never after), then write the bytes under `LOCAL_STORAGE_DIR` (default
  * `./.data/uploads`, gitignored). Reads go through `/uploads/[...key]`,
  * never Next's static `public/` serving. R2 and other connections never
  * touch this route.
@@ -35,12 +37,15 @@ export async function PUT(request: Request) {
   const contentType = request.headers.get('content-type') ?? ''
   if (!isAllowedContentType(contentType)) return new Response('Unsupported type', { status: 415 })
 
-  const bytes = new Uint8Array(await request.arrayBuffer())
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_UPLOAD_BYTES) {
-    return new Response('Bad size', { status: 413 })
-  }
+  const allowed = await withStore(db(), storeId, (tx) =>
+    authorizeLocalUpload(tx, { storeId, userId: session.user.id, key, contentType }),
+  )
+  if (!allowed.ok) return new Response('Not allowed', { status: allowed.status })
+
+  const body = await readCappedBody(request, allowed.maxBytes)
+  if (!body.ok) return new Response('Bad size', { status: 413 })
   const path = localStoragePath(key)
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, bytes)
+  await writeFile(path, body.bytes)
   return new Response(null, { status: 204 })
 }

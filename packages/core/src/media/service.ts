@@ -11,6 +11,8 @@ import {
 import { and, asc, desc, eq, ilike, inArray, isNotNull, notInArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { CommerceError } from '../errors'
+import { memberAccess } from '../permissions/service'
+import { permissions } from '../permissions/statement'
 
 export const UploadIntentSchema = z.object({
   filename: z.string().trim().min(1).max(255),
@@ -102,6 +104,14 @@ export async function confirmUpload(
     const contentType = existing.contentType ?? ''
     const limit = maxUploadBytesFor(contentType)
     if (!head) throw new InvalidUpload('upload did not complete: the object is missing')
+    // The stored type is what the bucket serves; it must be the type this row was presigned
+    // for, never something else PUT under the same key (`text/html` on the media domain).
+    const storedType = head.contentType?.split(';')[0]?.trim().toLowerCase()
+    if (storedType && storedType !== contentType.toLowerCase()) {
+      await provider.delete(existing.key)
+      await tx.delete(media).where(eq(media.id, id))
+      throw new InvalidUpload('the uploaded file type does not match the file that was announced')
+    }
     if (head.size > limit) {
       await provider.delete(existing.key)
       await tx.delete(media).where(eq(media.id, id))
@@ -123,6 +133,33 @@ export async function confirmUpload(
     .returning()
   if (!row) throw new CommerceError('NOT_FOUND', `Media ${id} not found`)
   return row
+}
+
+/**
+ * May this member PUT these bytes to the local storage route? Only a member who can write
+ * content, only to the key of one of this store's `pending` media rows (so an invoice PDF,
+ * an import file or an already processed image can never be overwritten), and only with
+ * the type that row was presigned for. Returns the byte cap for that type.
+ */
+export async function authorizeLocalUpload(
+  tx: StoreTx,
+  input: { storeId: string; userId: string; key: string; contentType: string },
+): Promise<{ ok: true; maxBytes: number } | { ok: false; status: 403 | 415 }> {
+  const access = await memberAccess(tx, input.storeId, input.userId)
+  if (!access || !(access.isOwner || access.permissions.includes(permissions.CONTENT_WRITE))) {
+    return { ok: false, status: 403 }
+  }
+  const [row] = await tx
+    .select({ contentType: media.contentType })
+    .from(media)
+    .where(and(eq(media.key, input.key), eq(media.status, 'pending')))
+    .limit(1)
+  if (!row) return { ok: false, status: 403 }
+  const announced = (row.contentType ?? '').toLowerCase()
+  if (announced !== input.contentType.split(';')[0]?.trim().toLowerCase()) {
+    return { ok: false, status: 415 }
+  }
+  return { ok: true, maxBytes: maxUploadBytesFor(announced) }
 }
 
 export type MediaSort = 'newest' | 'oldest' | 'name' | 'size'

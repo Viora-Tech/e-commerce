@@ -296,7 +296,7 @@ export const storeRouter = {
    * mistyped token can't be hammered into a credential-guessing loop against
    * the real courier account.
    */
-  testDelhiveryConnection: can(permissions.SETTINGS_READ)
+  testDelhiveryConnection: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ fields: z.record(z.string(), z.string()) }))
     .handler(async ({ context, input }) => {
       const limit = await checkRateLimit(
@@ -321,7 +321,7 @@ export const storeRouter = {
     }),
 
   /** Same as `testDelhiveryConnection`, for the Shiprocket Connect page. */
-  testShiprocketConnection: can(permissions.SETTINGS_READ)
+  testShiprocketConnection: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ fields: z.record(z.string(), z.string()) }))
     .handler(async ({ context, input }) => {
       const limit = await checkRateLimit(
@@ -346,7 +346,7 @@ export const storeRouter = {
     }),
 
   /** Same as `testDelhiveryConnection`, for the RapidShyp Connect page. */
-  testRapidshypConnection: can(permissions.SETTINGS_READ)
+  testRapidshypConnection: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ fields: z.record(z.string(), z.string()) }))
     .handler(async ({ context, input }) => {
       const limit = await checkRateLimit(
@@ -375,7 +375,7 @@ export const storeRouter = {
    * masked secret means the saved one) through Decentro's read-only status
    * lookup. Nothing is saved or created.
    */
-  testDecentroConnection: can(permissions.SETTINGS_READ)
+  testDecentroConnection: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ fields: z.record(z.string(), z.string()) }))
     .handler(async ({ context, input }) => {
       const limit = await checkRateLimit(
@@ -440,7 +440,7 @@ export const storeRouter = {
    * validates the form's current, unsaved field values against the real provider before the
    * merchant commits to Save. Rate-limited per store like the shipping/payments equivalents.
    */
-  testStorageConnection: can(permissions.SETTINGS_READ)
+  testStorageConnection: can(permissions.SETTINGS_MANAGE)
     .input(z.object({ providerId: z.string().min(1), fields: z.record(z.string(), z.string()) }))
     .handler(async ({ context, input }) => {
       const limit = await checkRateLimit(

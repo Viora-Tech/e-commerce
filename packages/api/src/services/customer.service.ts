@@ -371,10 +371,13 @@ export async function updateCustomer(
     phone === undefined
       ? {}
       : phone === null || phone === ''
-        ? { phone: null, phoneIndex: null }
+        ? { phone: null, phoneIndex: null, phoneVerifiedAt: null }
         : {
             phone: encryptCustomerPhone(phone, secret).cipher,
             phoneIndex: phoneBlindIndex(phone, secret),
+            // Staff typing a number does not prove it is the shopper's; an unchanged number
+            // keeps its proof (phone sign-in trusts only proven numbers).
+            phoneVerifiedAt: sql`case when ${customer.phoneIndex} = ${phoneBlindIndex(phone, secret)} then ${customer.phoneVerifiedAt} else null end`,
           }
   const [row] = await tx
     .update(customer)

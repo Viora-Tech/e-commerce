@@ -2,10 +2,16 @@
 
 type Cell = string | number | Date | null | undefined
 
+/**
+ * One cell. Text starting with `=`, `+`, `-`, `@`, tab or CR gets an apostrophe so a
+ * spreadsheet shows it instead of running it as a formula (report columns carry shopper
+ * text such as UTM values and cities). Numbers are left alone, so `-2` stays a number.
+ */
 function cell(value: Cell): string {
   if (value === null || value === undefined) return ''
-  const text = value instanceof Date ? value.toISOString() : String(value)
-  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+  let text = value instanceof Date ? value.toISOString() : String(value)
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
 }
 
 export function toCsv(headers: string[], rows: Cell[][]): string {

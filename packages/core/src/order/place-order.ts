@@ -462,9 +462,12 @@ const createOrder: WorkflowStep<State> = {
             })
             .onConflictDoUpdate({
               target: [customer.storeId, customer.email],
+              // Whoever types this email at checkout proved nothing: a phone proven by a
+              // sign-in code stays (phone sign-in trusts it), otherwise the typed one is
+              // stored unproven (`accounts/phone-proof.ts`).
               set: {
-                phone: customerPhone,
-                phoneIndex: customerPhoneIndex,
+                phone: sql`case when ${customer.phoneVerifiedAt} is null then excluded.phone else ${customer.phone} end`,
+                phoneIndex: sql`case when ${customer.phoneVerifiedAt} is null then excluded.phone_index else ${customer.phoneIndex} end`,
                 name: co.name,
                 defaultAddress,
                 updatedAt: new Date(),

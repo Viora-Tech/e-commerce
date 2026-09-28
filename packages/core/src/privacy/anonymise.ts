@@ -181,6 +181,7 @@ export async function anonymiseCustomer(
       email: null,
       phone: null,
       phoneIndex: null,
+      phoneVerifiedAt: null,
       name: null,
       defaultAddress: null,
       tags: [],

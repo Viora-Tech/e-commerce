@@ -4,6 +4,7 @@ import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { decryptCustomerPhone } from '../customers/phone-crypto'
+import { normaliseMobile } from './schemas'
 
 /**
  * Storefront shopper sign-in: a six digit code by email, then an opaque session
@@ -16,6 +17,22 @@ export const LOGIN_CODE_TTL_MS = 10 * 60 * 1000
 export const LOGIN_CODE_MAX_ATTEMPTS = 5
 /** A new code for the same email is refused inside this window, so the form cannot spam an inbox. */
 export const LOGIN_CODE_RESEND_MS = 30 * 1000
+/**
+ * Wrong guesses count for this long across resends: a new code does not hand out five
+ * fresh guesses, or requesting one every 30 seconds would allow unlimited guessing.
+ */
+export const LOGIN_CODE_ATTEMPT_WINDOW_MS = 60 * 60 * 1000
+
+/** Wrong guesses a newly minted code inherits from the one it replaces. */
+export function attemptsCarriedOver(
+  existing: { createdAt: Date; attempts: number } | undefined,
+  now: Date,
+): number {
+  if (!existing) return 0
+  return now.getTime() - existing.createdAt.getTime() < LOGIN_CODE_ATTEMPT_WINDOW_MS
+    ? existing.attempts
+    : 0
+}
 export const CUSTOMER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 const Email = z.string().trim().toLowerCase().email().max(254)
@@ -23,6 +40,18 @@ const Email = z.string().trim().toLowerCase().email().max(254)
 export const normaliseLoginEmail = (raw: unknown): string | null => {
   const parsed = Email.safeParse(raw)
   return parsed.success ? parsed.data : null
+}
+
+/**
+ * The rate-limit key for sending or checking a sign-in code: per store, on the same
+ * normalised address the code is stored under, so `" A@b.com"` and `"a@b.com"`, or
+ * `"+91 98765 43210"` and `"09876543210"`, share one bucket instead of each getting its own.
+ * One store's limit never locks the same shopper out of another store either.
+ */
+export function otpLimiterId(storeId: string, kind: 'email' | 'phone', raw: unknown): string {
+  const text = typeof raw === 'string' ? raw : ''
+  const normalised = kind === 'email' ? normaliseLoginEmail(text) : normaliseMobile(text)
+  return `${storeId}:${normalised ?? text.replace(/\s/g, '').toLowerCase()}`
 }
 
 const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex')
@@ -49,16 +78,18 @@ export async function requestLoginCode(
   const email = normaliseLoginEmail(rawEmail)
   if (!email) return { ok: false, reason: 'invalid_email' }
   const [existing] = await ctx.tx
-    .select({ createdAt: customerLoginCode.createdAt })
+    .select({ createdAt: customerLoginCode.createdAt, attempts: customerLoginCode.attempts })
     .from(customerLoginCode)
     .where(eq(customerLoginCode.email, email))
   if (existing && now.getTime() - existing.createdAt.getTime() < LOGIN_CODE_RESEND_MS) {
     return { ok: false, reason: 'too_soon' }
   }
+  const attempts = attemptsCarriedOver(existing, now)
+  if (attempts >= LOGIN_CODE_MAX_ATTEMPTS) return { ok: false, reason: 'too_soon' }
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
   const values = {
     codeHash: hashCode(ctx.storeId, email, code),
-    attempts: 0,
+    attempts,
     expiresAt: new Date(now.getTime() + LOGIN_CODE_TTL_MS),
     createdAt: now,
   }
@@ -91,10 +122,12 @@ export async function verifyLoginCode(
   const email = normaliseLoginEmail(rawEmail)
   const code = typeof rawCode === 'string' ? rawCode.replace(/\s/g, '') : ''
   if (!email || !/^\d{6}$/.test(code)) return { ok: false, reason: 'invalid' }
+  // Locked, so parallel guesses queue here and each sees the count the last one wrote.
   const [row] = await ctx.tx
     .select()
     .from(customerLoginCode)
     .where(eq(customerLoginCode.email, email))
+    .for('update')
   if (!row) return { ok: false, reason: 'invalid' }
   if (row.expiresAt.getTime() <= now.getTime()) return { ok: false, reason: 'expired' }
   if (row.attempts >= LOGIN_CODE_MAX_ATTEMPTS) return { ok: false, reason: 'locked' }

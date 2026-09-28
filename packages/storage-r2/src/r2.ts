@@ -118,6 +118,10 @@ export const r2Factory: StorageProviderFactory<R2Config> = {
     for (const k of ['accountId', 'accessKeyId', 'secretAccessKey', 'bucket'] as const) {
       if (!config[k]) errors.push(`${k} is required`)
     }
+    // It becomes the endpoint's host (`r2Endpoint`); anything but Cloudflare's 32-hex account
+    // id (`evil.example#`, `10.0.0.5:8443/x?`) would point the signed requests elsewhere.
+    if (config.accountId && !/^[a-f0-9]{32}$/i.test(config.accountId))
+      errors.push('accountId must be the 32-character Cloudflare account ID')
     if (!/^https?:\/\//.test(config.publicBaseUrl))
       errors.push('publicBaseUrl must start with https://')
     return errors.length ? { ok: false, errors } : { ok: true, config }

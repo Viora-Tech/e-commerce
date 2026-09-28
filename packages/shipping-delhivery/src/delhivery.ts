@@ -36,6 +36,7 @@ import {
   type CreateShipmentInput,
   type CreateShipmentResult,
   type CredentialCheck,
+  courierBaseUrlProblem,
   courierFetch,
   courierJson,
   isValidPincode,
@@ -692,8 +693,8 @@ export const delhiveryFactory: ShippingProviderFactory<DelhiveryConfig> = {
     if (!r.clientName?.trim()) errors.push('client name is required')
     if (!r.pickupLocationName?.trim()) errors.push('pickup location name is required')
     if (!isValidPincode(r.originPincode?.trim())) errors.push('origin PIN code must be 6 digits')
-    if (r.baseUrl?.trim() && !/^https:\/\//.test(r.baseUrl.trim()))
-      errors.push('base URL must start with https://')
+    const baseUrlProblem = courierBaseUrlProblem(r.baseUrl, ['delhivery.com'])
+    if (baseUrlProblem) errors.push(baseUrlProblem)
     if (errors.length) return { ok: false, errors }
     return {
       ok: true,

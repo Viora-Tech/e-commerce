@@ -149,6 +149,19 @@ describe('return URL allow-list', () => {
       expect(safeNextPath(bad)).toBe('/account')
     }
   })
+
+  it('refuses paths a browser would read as another origin after dropping tab or CR', () => {
+    for (const bad of [
+      '/\t/evil.com',
+      '/\r/evil.com',
+      '/\t\\evil.com',
+      '/\x00/evil.com',
+      '/a\\b',
+    ]) {
+      expect(safeNextPath(bad), JSON.stringify(bad)).toBe('/account')
+    }
+    expect(safeNextPath('/products/a?b=1#c')).toBe('/products/a?b=1#c')
+  })
 })
 
 const identity = (over: Partial<ShopperIdentity> = {}): ShopperIdentity => ({

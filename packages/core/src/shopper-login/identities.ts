@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: shopper identity linking — WHAT: which customer a Google / Apple / Facebook / Truecaller sign-in becomes (the identity already linked, a customer with the same verified email or phone, a new customer, or "confirm your email first"), and the linked identities a shopper sees and removes / WHY: one person must stay one customer however they sign in, and an email the provider did not verify must never open someone else's account */
 import { customer, customerIdentity, type SHOPPER_IDENTITY_PROVIDERS } from '@commerce/db'
 import { and, desc, eq, isNull } from 'drizzle-orm'
+import { phoneSignInMatch } from '../accounts/phone-proof'
 import type { StoreContext } from '../context'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 
@@ -141,17 +142,24 @@ export async function resolveShopperIdentity(
   }
   let byPhone: string | null = null
   if (!byIdentity && identity.mobile) {
-    const [row] = await ctx.tx
-      .select({ id: customer.id })
-      .from(customer)
-      .where(
-        and(
-          eq(customer.phoneIndex, phoneBlindIndex(identity.mobile, opts.secret)),
-          isNull(customer.anonymisedAt),
-        ),
-      )
-      .orderBy(desc(customer.updatedAt))
-      .limit(1)
+    // Only a phone proven before (or a phone-only customer) links: `phone-proof.ts`.
+    const row = phoneSignInMatch(
+      await ctx.tx
+        .select({
+          id: customer.id,
+          email: customer.email,
+          phoneVerifiedAt: customer.phoneVerifiedAt,
+        })
+        .from(customer)
+        .where(
+          and(
+            eq(customer.phoneIndex, phoneBlindIndex(identity.mobile, opts.secret)),
+            isNull(customer.anonymisedAt),
+          ),
+        )
+        .orderBy(desc(customer.updatedAt))
+        .limit(20),
+    )
     byPhone = row?.id ?? null
   }
   const linkTo = await activeCustomer(ctx, opts.linkTo ?? undefined)
@@ -182,6 +190,13 @@ export async function resolveShopperIdentity(
           )
       }
       await linkIdentity(ctx, decision.customerId, identity, now)
+      if (identity.mobile && decision.customerId === byPhone) {
+        // Truecaller proved this number belongs to the shopper now signing in.
+        await ctx.tx
+          .update(customer)
+          .set({ phoneVerifiedAt: now })
+          .where(eq(customer.id, decision.customerId))
+      }
       return { kind: 'signed_in', customerId: decision.customerId, created: false }
     case 'create': {
       const values = identity.mobile
@@ -190,6 +205,7 @@ export async function resolveShopperIdentity(
             email: null,
             phone: encryptCustomerPhone(identity.mobile, opts.secret).cipher,
             phoneIndex: phoneBlindIndex(identity.mobile, opts.secret),
+            phoneVerifiedAt: now,
           }
         : { storeId: ctx.storeId, email: identity.email }
       const [row] = await ctx.tx.insert(customer).values(values).returning({ id: customer.id })

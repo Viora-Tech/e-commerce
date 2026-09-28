@@ -5,6 +5,7 @@ import {
   encryptProviderSettings,
   isMaskedSecret,
   maskProviderSettings,
+  mergeMaskedSecrets,
   type ProviderSettings,
   type SecretFieldLookup,
 } from './secrets'
@@ -65,5 +66,44 @@ describe('maskProviderSettings', () => {
     expect(masked.providers.razorpay?.keyId).toBe('rzp_live_abc')
     expect(masked.providers.razorpay?.keySecret).toBe('••••alue')
     expect(isMaskedSecret(masked.providers.razorpay?.keySecret)).toBe(true)
+  })
+})
+
+describe('mergeMaskedSecrets', () => {
+  const stored = { apiToken: 'real-token-1234', baseUrl: '', originPincode: '110001' }
+
+  it('fills a masked secret from the stored value when the address is unchanged', () => {
+    const r = mergeMaskedSecrets(stored, {
+      apiToken: '••••1234',
+      baseUrl: '',
+      originPincode: '400001',
+    })
+    expect(r).toEqual({
+      ok: true,
+      merged: { apiToken: 'real-token-1234', baseUrl: '', originPincode: '400001' },
+    })
+  })
+
+  it('refuses to send a kept secret to a new address', () => {
+    expect(
+      mergeMaskedSecrets(stored, { apiToken: '••••1234', baseUrl: 'https://attacker.example' }),
+    ).toEqual({ ok: false, field: 'baseUrl' })
+    expect(
+      mergeMaskedSecrets(
+        { accountId: 'a'.repeat(32), secretAccessKey: 'platform-secret' },
+        { accountId: 'evil.example#', secretAccessKey: '••••cret' },
+      ),
+    ).toEqual({ ok: false, field: 'accountId' })
+  })
+
+  it('lets a new address through when the secret is typed again', () => {
+    const r = mergeMaskedSecrets(stored, {
+      apiToken: 'new-token',
+      baseUrl: 'https://x.delhivery.com',
+    })
+    expect(r).toEqual({
+      ok: true,
+      merged: { apiToken: 'new-token', baseUrl: 'https://x.delhivery.com' },
+    })
   })
 })

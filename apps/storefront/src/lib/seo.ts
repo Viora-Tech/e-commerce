@@ -1,12 +1,14 @@
 import { headers } from 'next/headers'
 import { SEO_DESCRIPTION_MAX, seoContent } from '@/data/seo'
+import { originFromHost } from './store-resolver'
 
 /** The shopper-facing origin of this request, for canonical and JSON-LD URLs. */
 export async function requestOrigin(): Promise<string> {
   const h = await headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost'
-  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
-  return `${proto}://${host}`
+  // The Host the proxy routed on (never x-forwarded-host, which the client controls).
+  const host = h.get('host') ?? 'localhost'
+  const dev = host.startsWith('localhost') || host.includes('.localhost')
+  return originFromHost(host, h.get('x-forwarded-proto'), dev)?.origin ?? 'http://localhost'
 }
 
 /**

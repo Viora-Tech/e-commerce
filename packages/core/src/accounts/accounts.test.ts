@@ -153,6 +153,22 @@ describe('storefront sign-in', () => {
     })
   })
 
+  it('does not hand out fresh guesses with a resent code', async () => {
+    const storeId = await makeStore('a')
+    const t0 = new Date()
+    const req = await run(storeId, (ctx) => requestLoginCode(ctx, 'x@example.com', t0))
+    if (!req.ok) throw new Error('no code')
+    const wrong = req.code === '000000' ? '111111' : '000000'
+    for (let i = 0; i < LOGIN_CODE_MAX_ATTEMPTS; i++) {
+      await run(storeId, (ctx) => verifyLoginCode(ctx, 'x@example.com', wrong, t0))
+    }
+    const resend = new Date(t0.getTime() + LOGIN_CODE_RESEND_MS + 1)
+    expect(await run(storeId, (ctx) => requestLoginCode(ctx, 'x@example.com', resend))).toEqual({
+      ok: false,
+      reason: 'too_soon',
+    })
+  })
+
   it('expires codes, throttles resends and rejects bad emails', async () => {
     const storeId = await makeStore('a')
     const t0 = new Date('2026-09-01T10:00:00Z')

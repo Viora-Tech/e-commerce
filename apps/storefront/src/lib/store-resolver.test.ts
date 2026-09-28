@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createStoreResolver, hostnameFromHeader } from './store-resolver'
+import { createStoreResolver, hostnameFromHeader, originFromHost } from './store-resolver'
 
 describe('hostnameFromHeader', () => {
   it('lowercases and strips the port', () => {
@@ -12,6 +12,32 @@ describe('hostnameFromHeader', () => {
     expect(hostnameFromHeader(null)).toBeNull()
     expect(hostnameFromHeader('')).toBeNull()
     expect(hostnameFromHeader(':3000')).toBeNull()
+  })
+
+  it('refuses a Host that is more than host[:port]', () => {
+    expect(hostnameFromHeader('waimers.in:1@evil.com')).toBeNull()
+    expect(hostnameFromHeader('waimers.in@evil.com')).toBeNull()
+    expect(hostnameFromHeader('waimers.in/evil')).toBeNull()
+    expect(hostnameFromHeader('waimers.in:abc')).toBeNull()
+    expect(hostnameFromHeader('waimers.in evil.com')).toBeNull()
+  })
+})
+
+describe('originFromHost', () => {
+  it('builds the origin from a plain host', () => {
+    expect(originFromHost('Shop.in', null, false)).toEqual({
+      origin: 'https://shop.in',
+      hostname: 'shop.in',
+    })
+    expect(originFromHost('shop.localhost:3100', null, true)?.origin).toBe(
+      'http://shop.localhost:3100',
+    )
+    expect(originFromHost('shop.in', 'https', true)?.origin).toBe('https://shop.in')
+  })
+
+  it('never lets a crafted Host move the origin to another site', () => {
+    expect(originFromHost('shop.in:1@evil.com', 'https', false)).toBeNull()
+    expect(originFromHost(null, 'https', false)).toBeNull()
   })
 })
 

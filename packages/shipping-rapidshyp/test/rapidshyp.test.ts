@@ -542,3 +542,21 @@ if (live) {
       }),
   })
 }
+
+describe('rapidshypFactory base URL', () => {
+  it('only accepts the courier own https hosts, since the stored token is sent there', () => {
+    expect(
+      rapidshypFactory.validateConfig({ ...config, baseUrl: 'https://api.rapidshyp.com' }),
+    ).toMatchObject({ ok: true })
+    expect(
+      rapidshypFactory.validateConfig({ ...config, baseUrl: 'https://attacker.example' }),
+    ).toMatchObject({
+      ok: false,
+    })
+    expect(
+      rapidshypFactory.validateConfig({ ...config, baseUrl: 'https://10.0.0.5' }),
+    ).toMatchObject({
+      ok: false,
+    })
+  })
+})

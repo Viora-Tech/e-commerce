@@ -1,6 +1,6 @@
 import {
   decryptStorageSettings,
-  isMaskedSecret,
+  mergeMaskedSecrets,
   parseStorageSettings,
   resolveStorageProvider,
   type StorageSettings,
@@ -59,12 +59,14 @@ export async function testStorageConnection(
   const stored = decryptStorageSettings(await loadStorageSettings(tx, storeId), secret).providers[
     providerId
   ]
-  const merged = Object.fromEntries(
-    Object.entries(rawFields).map(([key, value]) => [
-      key,
-      isMaskedSecret(value) && stored?.[key] ? stored[key] : value,
-    ]),
-  )
+  const kept = mergeMaskedSecrets(stored ?? {}, rawFields)
+  if (!kept.ok)
+    return {
+      ok: false,
+      message:
+        'To change where this connects, type the secret again (it is not reused for a new address).',
+    }
+  const merged = kept.merged
 
   const built = registry.create(providerId, merged)
   if (!built.ok) return { ok: false, message: built.errors.join(', ') }
