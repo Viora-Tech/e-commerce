@@ -180,6 +180,8 @@ export const DocumentSnapshotSchema = z.object({
    */
   /** Set on export invoices (and their credit notes and vouchers). */
   exportSupply: ExportSupplySchema.nullable().default(null),
+  /** Issued under the composition scheme (Settings › Taxes & GST). Absent on older snapshots. */
+  composition: z.boolean().default(false),
   einvoice: z
     .object({ irn: z.string(), ackNumber: z.string(), ackDate: z.string(), qrPng: z.string() })
     .nullable()

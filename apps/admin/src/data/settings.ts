@@ -2,15 +2,21 @@ import type { LucideIcon } from '@commerce/ui/icons'
 import {
   Bell,
   Braces,
+  ClipboardList,
   CreditCard,
   Globe,
   Home,
   Images,
   Palette,
+  ReceiptIcon,
+  ShieldCheck,
+  ShoppingCart,
   Store,
   Truck,
   Undo,
+  UserCircle,
   UserCog,
+  UserRound,
 } from '@commerce/ui/icons'
 
 export type SettingsSection = {
@@ -43,16 +49,46 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     icon: CreditCard,
   },
   {
+    href: '/settings/checkout',
+    title: 'Checkout',
+    body: 'What shoppers fill in, minimum order value and cash on delivery rules.',
+    icon: ShoppingCart,
+  },
+  {
     href: '/settings/shipping',
     title: 'Shipping',
     body: 'Couriers, shipping rates, delivery estimates and dispatch policy.',
     icon: Truck,
   },
   {
+    href: '/settings/taxes',
+    title: 'Taxes & GST',
+    body: 'Your GSTIN, whether prices include GST, default rate and HSN, and invoice numbers.',
+    icon: ReceiptIcon,
+  },
+  {
     href: '/settings/returns',
     title: 'Returns',
     body: 'How many days customers have to return, which reasons you accept, restock and refunds.',
     icon: Undo,
+  },
+  {
+    href: '/settings/policies',
+    title: 'Policies',
+    body: 'Refund, privacy, terms, shipping and contact pages, from ready-made templates.',
+    icon: ClipboardList,
+  },
+  {
+    href: '/settings/customer-privacy',
+    title: 'Customer privacy',
+    body: 'Cookie banner, data requests (copy or delete) and marketing consent, for the DPDP Act.',
+    icon: ShieldCheck,
+  },
+  {
+    href: '/settings/customer-accounts',
+    title: 'Customer accounts',
+    body: 'Guest checkout, and sign-in codes by email, SMS or WhatsApp.',
+    icon: UserCircle,
   },
   {
     href: '/settings/notifications',
@@ -90,6 +126,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     body: 'Admin accent colour and light or dark mode.',
     icon: Palette,
   },
+  {
+    href: '/settings/account',
+    title: 'Account',
+    body: 'Your own preferences, like the language this admin shows in.',
+    icon: UserRound,
+  },
 ]
 
 export const settingsContent = {
@@ -119,7 +161,6 @@ export const settingsContent = {
         email: 'contact email',
         phone: 'phone',
         address: 'business address',
-        gstin: 'GSTIN',
       },
     },
     details: {
@@ -146,15 +187,6 @@ export const settingsContent = {
       state: 'State',
       pincode: 'Pincode',
       country: 'Country',
-    },
-    tax: {
-      heading: 'Taxes / GST',
-      help: 'Only needed if your shop is GST registered. Skip this card if it is not.',
-      gstin: 'GSTIN',
-      gstinHelp: 'Your 15-character GST number. It appears on tax invoices.',
-      gstRate: 'GST in your prices (%)',
-      gstRateHelp:
-        'The GST already included in your prices. Most shops use 18. Used to show CGST, SGST and IGST on invoices.',
     },
     locale: {
       heading: 'Currency and time',
@@ -224,10 +256,10 @@ export const settingsHomeContent = {
         href: '/settings/shipping',
       },
       taxes: {
-        title: 'Taxes / GST',
+        title: 'Taxes & GST',
         todo: 'Add your GSTIN if you are GST registered. Skip this if you are not.',
         done: 'Your GSTIN is on your invoices.',
-        href: '/settings/general#tax',
+        href: '/settings/taxes',
       },
       domain: {
         title: 'Domain',
@@ -243,9 +275,9 @@ export const settingsHomeContent = {
       },
       policies: {
         title: 'Policies',
-        todo: 'Publish your return, privacy and terms pages.',
+        todo: 'Publish your refund, privacy, terms, shipping and contact pages.',
         done: 'Your policy pages are live.',
-        href: '/online-store/pages',
+        href: '/settings/policies',
       },
     } satisfies Record<SetupItemId, { title: string; todo: string; done: string; href: string }>,
   },

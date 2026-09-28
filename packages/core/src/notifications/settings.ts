@@ -1,6 +1,7 @@
 import { type NotificationChannel, NotificationRegistry } from '@commerce/notifications'
 import { z } from 'zod'
 import { logChannelFactory } from '../providers/log-channel'
+import { logSmsChannelFactory } from '../providers/log-sms-channel'
 import {
   decryptProviderSettings,
   encryptProviderSettings,
@@ -51,9 +52,9 @@ export const maskNotificationSettings = (
   registry?: NotificationRegistry,
 ): NotificationSettings => maskProviderSettings(s, registry ? fieldsOf(registry) : undefined)
 
-/** Channels every deployment has without an adapter package: the worker log, for development. */
+/** Channels every deployment has without an adapter package: the worker logs (email and SMS), for development. */
 export function builtInNotificationRegistry(): NotificationRegistry {
-  return new NotificationRegistry().register(logChannelFactory)
+  return new NotificationRegistry().register(logChannelFactory).register(logSmsChannelFactory)
 }
 
 /** Build the channels a store has enabled from the registry with that store's decrypted credentials. */

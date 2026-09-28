@@ -1,0 +1,196 @@
+---
+title: Storefront performance
+description: The storefront's speed budget, what keeps first-load JS small, and how images, fonts, third-party scripts and caching are handled.
+---
+
+# Storefront performance
+
+The storefront is built for a mid-range Android phone on 4G. The targets are Google's "good"
+Core Web Vitals at the 75th percentile:
+
+| Metric | Target | What moves it here |
+| --- | --- | --- |
+| LCP (Largest Contentful Paint) | under 2.5 s | the hero or first product image, fonts, render-blocking JS |
+| INP (Interaction to Next Paint) | under 200 ms | how much JS hydrates and runs on the main thread |
+| CLS (Cumulative Layout Shift) | under 0.1 | images without a reserved box, font swaps, late-injected widgets |
+
+This page is the checklist for anyone adding a block, a client component or a third-party
+script. Every rule below exists because breaking it showed up in the build output or in a
+Lighthouse run.
+
+## Measuring first-load JS
+
+Next 16 no longer prints "First Load JS" in `next build`. The repo has a script that reads
+the same facts from the build output:
+
+```bash
+cd apps/storefront && bun run build     # needs no database; env vars are optional
+cd ../.. && bun scripts/perf/first-load-js.ts apps/storefront          # table
+bun scripts/perf/first-load-js.ts apps/storefront --json               # for diffs
+```
+
+It adds up the gzip size of the runtime chunks every page loads (`build-manifest.json`
+`rootMainFiles`) and the entry chunks of each route's layouts and page (the `entryJSFiles` in
+its `page_client-reference-manifest.js`). Chunks fetched later with `import()` are not
+counted, which is the point.
+
+The September 2026 speed pass took every store route from about **306 kB to 167 kB**
+gzip (132 kB of that is React and the Next runtime, which every page pays). Run the script
+before and after any change that adds a client component.
+
+### Why one import can cost every page
+
+Turbopack puts **every client component a route segment imports into one chunk group**,
+whether or not the page renders it. The store layout imports `@commerce/blocks` and the Puck
+config, so every section's client code ships on every page. Two consequences:
+
+1. **Keep heavy libraries out of client modules' static imports.** A `'use client'` file that
+   imports `motion`, `zod` or a large SDK puts that library on every storefront page.
+2. **Server components are free.** Anything without `'use client'` costs no JS. Prefer
+   rendering on the server and passing plain props down to a small client leaf.
+
+## Rules for client code
+
+### No zod in the browser
+
+`zod` alone was about 90 kB gzip on every page, pulled in by the consent banner, the theme
+preview bridge and the preview bar through `@commerce/core` subpaths that also define
+schemas. Client components import from zod-free subpaths instead:
+
+| Need | Import from | Not from |
+| --- | --- | --- |
+| consent cookie, `allowedTags` | `@commerce/core/consent` | `@commerce/core/preferences` |
+| `THEME_PREVIEW_PARAM`, preview messages | `@commerce/core/theme-preview` | `@commerce/core/theme` |
+| payment adjustment maths and labels | `@commerce/core/adjustment-math` | `@commerce/core/adjustments` |
+| gift card code normalising | `@commerce/core/gift-card-code` | `@commerce/core/gift-cards` |
+| PIN code and mobile patterns | `@commerce/core/account-patterns` | `@commerce/core/accounts` |
+| return reasons and labels | `@commerce/core/return-reasons` | `@commerce/core/returns` |
+| EMI offer for a price | `@commerce/plugin-emi/offer-for` | `@commerce/plugin-emi/offer` |
+
+Each original module re-exports the split-out one, so server code keeps a single import.
+`import type` from anywhere is fine: types are erased.
+
+When a client component genuinely needs a schema, load it on demand. The theme preview bridge
+does this: it fetches `@commerce/core/theme` (schema and CSS builder) with `import()` only
+after the admin's preview token verifies, inside the editor's frame. No shopper downloads it.
+
+### Motion loads lazily
+
+Blocks use Motion's vanilla API through `packages/blocks/src/lazy-motion.ts`:
+
+```ts
+import { loadMotion } from '../lazy-motion'
+
+useEffect(() => {
+  if (reducedMotion) return
+  let live = true
+  loadMotion()
+    .then(({ animate }) => {
+      if (live) animate(el, { rotate: 360 }, { duration: 6, repeat: Infinity, ease: 'linear' })
+    })
+    .catch(() => {})
+  return () => { live = false }
+}, [reducedMotion])
+```
+
+- Never `import { motion } from 'motion/react'` or `import { animate } from 'motion'` in a
+  block. The library is about 48 kB gzip, fetched once after hydration and shared by every
+  block that asks.
+- For reduced motion, use `useReducedMotion` from `packages/blocks/src/use-reduced-motion.ts`
+  (a `useSyncExternalStore` over the media query). It answers `false` during hydration and
+  corrects right after, so it never causes a hydration mismatch.
+- The server HTML is the resting state. Motion only adds the entrance or the loop, so a slow
+  or failed fetch never hides content. Reveals hide a section only if it is **still below the
+  fold** when Motion arrives; the LCP element is never hidden.
+- `preloadMotionWhenIdle()` (used by the mobile menu) starts the fetch after `load`, when the
+  browser is idle, so the first tap rarely waits on the network.
+
+### Hydrate less
+
+`SectionFrame` renders the plain wrapper itself when a section has no entrance animation (the
+default), instead of mounting `SectionReveal` for every section on the page. Fewer client
+components means less hydration work, which is what INP measures on a slow CPU.
+
+## Images
+
+Everything product and section images render goes through `<Picture>`
+(`packages/blocks/src/components/picture.tsx`): AVIF and WebP `srcSet` at the pipeline's
+widths (see [Image pipeline](/developer-docs/building/media-pipeline)), the ThumbHash as the
+`<img>`'s background while it loads, and the original URL as the fallback.
+
+- **Section images get variants at render time.** The theme editor saves image settings as
+  `{ url, alt, focal }`. `renderTemplate` collects every image URL in a template's section
+  props, looks them up in `media` in one query under the store's RLS
+  (`apps/storefront/src/lib/media-lookup.ts`, pure part in `section-images.ts`), and adds
+  `variants` and `thumbhash` before the sections render. URLs the library does not know
+  (external links, legacy uploads) render as before.
+- **Product images** select `variants` and `thumbhash` in `getProduct` and `listCardProducts`.
+  Gallery thumbnails and predictive search results use the 320 px WebP variant, not the
+  original.
+- **`fill`** is for images sized by their container (`width/height: 100%`,
+  `absolute inset-0`, CSS `aspect-ratio`). It gives the `<picture>` wrapper
+  `display: contents`, so percentages resolve exactly as they did against a bare `<img>`.
+  Inline, because the blocks stylesheet's unlayered `picture { display: block }` beats utility
+  classes.
+- **`placeholder={false}`** for `object-fit: contain` images (the featured product), where the
+  ThumbHash would show in the letterbox.
+- **Priority.** Only the hero and the first product image load eagerly with
+  `fetchpriority="high"`: the first hero carousel slide, the product gallery's first image, and
+  the first section of a page template. `renderTemplate` passes `_aboveFold: true` to that
+  section, and hero-type blocks (image banner, split hero) honour it. Everything else is
+  `loading="lazy"`.
+- **Reserved space.** Every image has either width and height attributes or a CSS box
+  (`aspect-ratio`, fixed height, absolute fill). The header logo gets a `height` from the
+  media row's real size, so the header does not grow when the logo arrives.
+
+## Fonts
+
+`apps/storefront/src/lib/fonts.ts` self-hosts every theme face through `next/font/google`:
+Latin subset, `display: swap`, and next/font's metric-matched fallback (`Archivo Fallback`,
+`Figtree Fallback`: Arial with size-adjust and ascent/descent overrides), so the swap does not
+move text. Only the default pairing's upright faces are preloaded (Archivo, Figtree normal);
+Figtree italic is a separate, non-preloaded declaration under the same family name, and every
+other theme font downloads only when a theme uses it.
+
+## Third-party scripts
+
+| Script | When it loads |
+| --- | --- |
+| GA4, Tag Manager, Meta pixel | `next/script` `lazyOnload`: after `load`, when the browser is idle, and only with consent |
+| Razorpay Affordability Widget | `afterLoadWhenIdle` (`packages/blocks/src/idle.ts`), then Razorpay's script |
+| Razorpay Checkout (`/checkout/pay`) | on that page only, immediately: the shopper is there to pay |
+
+There is no chat widget today. When one is added, load it the same way (`lazyOnload`, or on
+first interaction) and never in the document head.
+
+## Caching
+
+- `/_next/static/*` (JS, CSS, fonts) is content-hashed and served by Next with
+  `public, max-age=31536000, immutable`. The proxy's matcher skips it.
+- Store HTML is dynamic (it depends on the host, the cart cookie and the shopper), and Next
+  sends `private, no-cache, no-store, max-age=0, must-revalidate` for it. Never add a public
+  `Cache-Control` to a page: the storefront is multi-tenant by host and a shared cache would
+  serve one shopper's cart to the next.
+- `robots.txt`, `sitemap.xml`, `llms.txt` (`public, max-age=3600`) and
+  `/api/search/suggest` (`public, max-age=30, stale-while-revalidate=60`) are per-host
+  documents; a shared cache keys them by URL, host included. The proxy does not mint the
+  visitor cookie on the SEO files, so no `Set-Cookie` rides on a publicly cacheable response.
+- **Open item:** media files in R2/S3 are uploaded without a `Cache-Control` header, so
+  browsers fall back to heuristic caching. Keys are unique per upload (`mediaKey` puts a uuid
+  in each), and variant files are written once, so variants can be served
+  `public, max-age=31536000, immutable`. The master is rewritten once in place by the
+  pipeline (original, then cleaned master), so it wants a shorter lifetime, such as a day.
+  Set it on upload or with a bucket or CDN rule.
+
+## Testing on localhost
+
+1. Build and start the storefront in production mode (dev mode is not representative):
+   `bun run --cwd apps/storefront build`, then `bun run --cwd apps/storefront start`.
+2. Open a store host on port 3100 in Chrome, open DevTools, then **Lighthouse** → Mode
+   *Navigation*, Device *Mobile*, Categories *Performance* → *Analyze page load*. The mobile
+   preset simulates a mid-range phone (4× CPU slowdown) on slow 4G.
+3. For real interactions (INP), use the **Performance** panel with *CPU: 4× slowdown* and
+   *Network: Fast 4G*, record, then open the menu, add to cart and change a variant.
+   The **Rendering** tab's *Layout Shift Regions* highlights anything that moves.
+4. Check the home page, a collection, a product page and checkout. Compare against the
+   same run on `main`; one-off numbers vary by ±10%.

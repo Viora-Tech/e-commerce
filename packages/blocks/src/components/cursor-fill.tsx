@@ -1,7 +1,7 @@
 'use client'
 
-import { useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
+import { useReducedMotion } from '../use-reduced-motion'
 
 /** Every control whose hover colour sweeps in from where the cursor entered. */
 const FILL_TARGETS = '.btn, [data-icon-close]'

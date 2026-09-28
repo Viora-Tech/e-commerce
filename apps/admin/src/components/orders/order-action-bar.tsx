@@ -3,7 +3,8 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy } from '@/hooks/use-copy'
 import { base, instant } from '@/lib/motion'
 
 type OrderActionBarProps = {
@@ -18,6 +19,7 @@ const SHOW_AFTER_PX = 240
 /** The order's next step, kept in reach once the page has scrolled past the header. */
 export default function OrderActionBar({ action, orderNumber, busy }: OrderActionBarProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
   const reduced = useReducedMotion()
   const [past, setPast] = useState(false)
 

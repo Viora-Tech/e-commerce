@@ -49,7 +49,7 @@ export default function LinkTargetRows({
   return (
     <div className="flex flex-col gap-0.5">
       {heading ? (
-        <p className="px-2 pt-2 pb-1 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
+        <p className="px-2 pt-2 pb-1 text-[0.6875rem] leading-4 font-medium text-muted-foreground">
           {heading}
         </p>
       ) : null}
@@ -65,7 +65,7 @@ export default function LinkTargetRows({
               className={ROW}
             >
               <Glyph>
-                <Icon aria-hidden weight="light" className="size-3.5" />
+                <Icon aria-hidden weight="regular" className="size-3.5" />
               </Glyph>
               <span className="min-w-0 flex-1 truncate">{copy.tabs[row.kind]}</span>
               <ChevronRight aria-hidden className="size-3.5 text-muted-foreground" />
@@ -93,12 +93,12 @@ export default function LinkTargetRows({
               {pick.imageUrl ? (
                 <Image src={pick.imageUrl} alt="" fill sizes="1.5rem" className="object-cover" />
               ) : (
-                <Icon aria-hidden weight="light" className="size-3.5" />
+                <Icon aria-hidden weight="regular" className="size-3.5" />
               )}
             </Glyph>
             <span className="min-w-0 flex-1 truncate">{pick.title}</span>
             {row.type === 'recent' || row.type === 'home' ? (
-              <span className="shrink-0 text-[0.6875rem] text-muted-foreground">
+              <span className="shrink-0 text-[0.6875rem] text-muted-foreground tabular-nums">
                 {copy.kinds[pick.kind]}
               </span>
             ) : null}

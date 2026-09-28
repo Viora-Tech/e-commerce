@@ -1,0 +1,84 @@
+import { onboardingContent } from '@/data/onboarding'
+import { translation } from '@/lib/i18n'
+
+export default [
+  translation(onboardingContent, {
+    title: 'अपना स्टोर बनाएं',
+    progress: (step, total) => `स्टेप ${step} / ${total}`,
+    back: 'पीछे',
+    next: 'आगे बढ़ें',
+    name: { label: 'स्टोर का नाम', placeholder: 'जैसे Asha Handlooms' },
+    slug: {
+      label: 'स्टोर का पता',
+      suffix: (domain) => `.${domain}`,
+      checking: 'देख रहे हैं…',
+      available: 'मिल जाएगा',
+      problem: {
+        too_short: 'बहुत छोटा है। कम से कम 3 अक्षर रखें',
+        too_long: 'बहुत लंबा है। 40 या उससे कम अक्षर रखें',
+        invalid_chars: 'सिर्फ़ छोटे अंग्रेज़ी अक्षर, नंबर और हाइफ़न (-) इस्तेमाल करें',
+        reserved: 'यह पता रिज़र्व है',
+        taken: 'यह पता पहले से किसी और का है',
+      },
+    },
+    nameStep: {
+      heading: 'अपना स्टोर बनाएं',
+      body: 'एक नाम चुनें। बाद में Settings में बदल सकते हैं।',
+    },
+    sellsWhat: {
+      heading: 'आप क्या बेचते हैं?',
+      body: 'हम इसके हिसाब से कुछ कलेक्शन बना देंगे। बाद में इनका नाम बदल सकते हैं या हटा सकते हैं।',
+      starterNote: 'शुरुआत में मिलेंगे:',
+      options: {
+        fashion: 'कपड़े और फ़ैशन',
+        beauty: 'ब्यूटी और पर्सनल केयर',
+        jewellery: 'ज्वेलरी',
+        home: 'घर और सजावट',
+        electronics: 'इलेक्ट्रॉनिक्स और गैजेट',
+        food: 'खाना-पीना',
+        handmade: 'हाथ से बनी चीज़ें और क्राफ़्ट',
+        other: 'कुछ और',
+      },
+    },
+    location: {
+      heading: 'आपका बिज़नेस कहाँ है?',
+      body: 'आपके राज्य से तय होता है कि आपके ऑर्डर पर GST कैसे लगेगा।',
+      country: 'देश',
+      state: 'राज्य',
+      statePlaceholder: 'अपना राज्य चुनें',
+      outsideIndia: 'पेमेंट, शिपिंग और GST इनवॉइस अभी भारत के लिए बने हैं।',
+    },
+    sellsOn: {
+      heading: 'क्या आप पहले से कहीं बेचते हैं?',
+      body: 'सबसे मुख्य वाला चुनें।',
+      options: {
+        shopify: 'हाँ, Shopify पर',
+        website: 'हाँ, अपनी वेबसाइट पर',
+        social: 'हाँ, Instagram या WhatsApp पर',
+        marketplace: 'हाँ, Amazon, Flipkart या Meesho पर',
+        none: 'अभी नहीं, यह मेरी पहली दुकान है',
+      },
+      shopifyNote: 'सेटअप के तुरंत बाद हम आपको Shopify इंपोर्ट पर ले जाएंगे।',
+    },
+    submit: 'स्टोर बनाएं',
+    creating: 'आपका स्टोर बन रहा है…',
+    createFailed: 'आपका स्टोर नहीं बन पाया',
+    inviteOnly: {
+      heading: 'अभी सिर्फ़ इनवाइट से साइनअप हो रहा है',
+      body: 'अपनी जानकारी छोड़ दें। जगह बनते ही हम आपको इनवाइट भेज देंगे।',
+    },
+    waitlist: {
+      email: 'ईमेल',
+      phone: 'फ़ोन नंबर',
+      phonePlaceholder: 'जैसे 98765 43210',
+      sells: 'आप क्या बेचते हैं?',
+      sellsPlaceholder: 'जैसे हाथ से बनी कॉटन साड़ियाँ',
+      submit: 'वेटलिस्ट में जुड़ें',
+      sending: 'भेज रहे हैं…',
+      invalidPhone: 'सही फ़ोन नंबर डालें',
+      failed: 'आपको जोड़ नहीं पाए। थोड़ी देर में फिर कोशिश करें।',
+      doneHeading: 'आप लिस्ट में जुड़ गए',
+      doneBody: 'जगह बनते ही हम आपको ईमेल पर इनवाइट भेज देंगे।',
+    },
+  }),
+]

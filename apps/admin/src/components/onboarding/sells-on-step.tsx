@@ -12,7 +12,8 @@ import {
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldError } from '@commerce/ui/shadcn/field'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceCard from './choice-card'
 
 type SellsOnStepProps = {
@@ -39,6 +40,9 @@ export default function SellsOnStep({
   submitting,
   error,
 }: SellsOnStepProps) {
+  // Hooks
+  const copy = useCopy(onboardingContent)
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">

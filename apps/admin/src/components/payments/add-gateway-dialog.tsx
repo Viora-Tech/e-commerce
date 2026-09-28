@@ -18,8 +18,9 @@ import {
   gatewayCatalogue,
   type MethodId,
   methodNames,
-  paymentsSetupContent as setupCopy,
+  paymentsSetupContent,
 } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import GatewayLogo from './gateway-logo'
 import type { PaymentsSetup } from './types'
 
@@ -31,8 +32,6 @@ type AddGatewayDialogProps = {
   onConnect: (id: string) => Promise<void>
 }
 
-const copy = setupCopy.add
-
 const FILTERS: MethodId[] = ['upi', 'card', 'netbanking', 'wallet', 'emi']
 
 /** "+ Add another way to get paid": search, filter by way to pay, connect. */
@@ -43,6 +42,9 @@ export default function AddGatewayDialog({
   onConnect,
 }: AddGatewayDialogProps) {
   // Hooks
+  const { add: copy } = useCopy(paymentsSetupContent)
+  const names = useCopy(methodNames)
+  const catalogue = useCopy(gatewayCatalogue)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<string>('all')
   const [busy, setBusy] = useState<string | null>(null)
@@ -62,7 +64,7 @@ export default function AddGatewayDialog({
   // Render logic
   const q = query.trim().toLowerCase()
   const shipped = new Map(gateways.map((g) => [g.id, g]))
-  const results = gatewayCatalogue.filter(
+  const results = catalogue.filter(
     (g) =>
       (!q || g.name.toLowerCase().includes(q) || g.blurb.toLowerCase().includes(q)) &&
       (filter === 'all' || g.methods.includes(filter as MethodId)),
@@ -100,7 +102,7 @@ export default function AddGatewayDialog({
           <ToggleGroupItem value="all">{copy.all}</ToggleGroupItem>
           {FILTERS.map((id) => (
             <ToggleGroupItem key={id} value={id}>
-              {methodNames[id].name}
+              {names[id].name}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -131,7 +133,7 @@ export default function AddGatewayDialog({
                   )}
                 </div>
                 <p className="text-caption text-muted-foreground">
-                  {g.methods.map((m) => methodNames[m].name).join(' · ')}
+                  {g.methods.map((m) => names[m].name).join(' · ')}
                 </p>
                 <dl className="text-caption">
                   <div>

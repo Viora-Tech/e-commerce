@@ -3,6 +3,7 @@
 
 import { focalStyle } from '../../focal-point'
 import type { Image } from '../../sections/framed'
+import Picture from '../picture'
 
 type Tile = {
   title: string
@@ -34,11 +35,12 @@ export default function BentoGrid({ heading, tiles }: BentoGridProps) {
             className={`group relative flex flex-col justify-end overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-[1.25rem] transition-transform duration-300 ease-out hover:-translate-y-[0.25rem] ${SIZE_CLASS[tile.size]}`}
           >
             {tile.image?.url ? (
-              <img
-                src={tile.image.url}
+              <Picture
+                image={tile.image}
                 alt={tile.image.alt}
                 style={focalStyle(tile.image.focal)}
-                loading="lazy"
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
                 className="absolute inset-0 size-full object-cover opacity-25 transition-opacity duration-300 group-hover:opacity-35"
               />
             ) : (

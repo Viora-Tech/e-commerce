@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
 import { paymentsSettingsContent } from '@/data/payments'
+import { useCopy } from '@/hooks/use-copy'
 
 type PaymentAdjustmentFieldsProps = {
   providerId: string
@@ -20,9 +21,6 @@ type PaymentAdjustmentFieldsProps = {
 }
 
 type AdjustmentType = PaymentAdjustment['type']
-
-const copy = paymentsSettingsContent.adjustment
-const typeItems = Object.fromEntries(copy.types.map((t) => [t.value, t.label]))
 
 /** Rupees and percent both store ×100 (paise / basis points). */
 const toStored = (text: string): number | null => {
@@ -38,6 +36,7 @@ export default function PaymentAdjustmentFields({
   onChange,
 }: PaymentAdjustmentFieldsProps) {
   // Hooks
+  const { adjustment: copy } = useCopy(paymentsSettingsContent)
   const [amountText, setAmountText] = useState(toText(value?.value))
 
   // Event handlers
@@ -64,6 +63,7 @@ export default function PaymentAdjustmentFields({
   }
 
   // Render logic
+  const typeItems = Object.fromEntries(copy.types.map((t) => [t.value, t.label]))
   const type: AdjustmentType | 'none' = value?.type ?? 'none'
   const ids = {
     type: `adj-${providerId}-type`,

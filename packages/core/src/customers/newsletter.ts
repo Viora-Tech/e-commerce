@@ -1,6 +1,7 @@
 import { customer, type StoreTx } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
+import { setMarketingConsent } from '../privacy/marketing-consent'
 
 const Email = z.string().trim().toLowerCase().email().max(254)
 
@@ -21,24 +22,31 @@ export async function subscribeToNewsletter(
   const parsed = Email.safeParse(rawEmail)
   if (!parsed.success) return false
   const now = new Date()
-  // Consent is recorded with its time and source; signing up again after an
-  // unsubscribe is a fresh opt-in, so the unsubscribe is cleared.
-  const consent = {
-    acceptsMarketing: true,
-    marketingConsentAt: now,
-    marketingConsentSource: NEWSLETTER_TAG,
-    unsubscribedAt: null,
-  }
-  await tx
+  const [row] = await tx
     .insert(customer)
-    .values({ storeId, email: parsed.data, tags: [NEWSLETTER_TAG], ...consent })
+    .values({ storeId, email: parsed.data, tags: [NEWSLETTER_TAG] })
     .onConflictDoUpdate({
       target: [customer.storeId, customer.email],
       set: {
-        ...consent,
         tags: sql`case when ${NEWSLETTER_TAG} = any(${customer.tags}) then ${customer.tags} else array_append(${customer.tags}, ${NEWSLETTER_TAG}) end`,
         updatedAt: now,
       },
     })
+    .returning({ id: customer.id })
+  // Consent is recorded with its time and source; signing up again after an
+  // unsubscribe is a fresh opt in, so the unsubscribe is cleared.
+  if (row) {
+    await setMarketingConsent(
+      { tx, storeId },
+      {
+        customerId: row.id,
+        channel: 'email',
+        granted: true,
+        source: 'newsletter',
+        actor: { type: 'customer' },
+        at: now,
+      },
+    )
+  }
   return true
 }

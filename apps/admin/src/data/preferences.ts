@@ -46,12 +46,8 @@ export const preferencesContent = {
   },
   privacy: {
     heading: 'Cookie consent',
-    body: 'Under the DPDP Act, ask before loading analytics or marketing tags. Necessary cookies (cart, sign in) always work.',
-    enabled: 'Show the cookie banner',
-    enabledHelp:
-      'Analytics and marketing tags wait for the visitor to agree. Turn off only if you run no tags.',
-    message: 'Banner message',
-    messageHelp: 'Leave blank for the default wording.',
+    body: 'The cookie banner now lives in Settings, Customer privacy. Shoppers are always asked before analytics or marketing tags load.',
+    link: 'Open cookie banner settings',
   },
   tracking: {
     heading: 'Analytics and marketing',

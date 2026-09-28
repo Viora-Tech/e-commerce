@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: product form state: variant matrix reconciliation, SKU suggestion, stock-loss detection */
 import { describe, expect, it } from 'vitest'
+import { productFormContent } from '@/data/products'
 import {
   emptyForm,
   emptyVariant,
@@ -158,7 +159,7 @@ describe('stockOf', () => {
 describe('formErrors', () => {
   it('asks for a value on an option that has none', () => {
     const form = { ...emptyForm(), title: 'Tee', options: [{ name: 'Colour', values: [] }] }
-    expect(formErrors(form).variants).toBe('Add at least one value to Colour')
+    expect(formErrors(productFormContent, form).variants).toBe('Add at least one value to Colour')
   })
 })
 

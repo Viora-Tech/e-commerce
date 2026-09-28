@@ -17,5 +17,10 @@ export default function AddSectionPanel() {
   // Render logic
   const count = zoneSections(data, MAIN_ZONE).length
 
-  return <AddSectionBrowser zone={MAIN_ZONE} group={null} index={count} count={count} fill />
+  return (
+    // Sticky category headings paint the surface they sit on: card here, popover elsewhere.
+    <div className="flex min-h-0 flex-1 flex-col [--add-surface:var(--card)]">
+      <AddSectionBrowser zone={MAIN_ZONE} group={null} index={count} count={count} fill />
+    </div>
+  )
 }

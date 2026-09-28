@@ -14,9 +14,14 @@ import {
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import type { Attachment, TemplateId } from '@commerce/notifications'
-import { type IORedis, Worker } from '@commerce/queue'
+import { type IORedis, type MediaProcessQueue, Worker } from '@commerce/queue'
 
-type AppOpts = { settingsSecret: string; storefrontUrl?: string | undefined }
+type AppOpts = {
+  settingsSecret: string
+  storefrontUrl?: string | undefined
+  /** Lets app jobs (the Shopify importer) queue the images they store for processing. */
+  mediaProcess?: MediaProcessQueue | undefined
+}
 
 /** Everything app hooks and jobs need, resolved per store on demand. */
 export function appDeps(db: Db, opts: AppOpts): DispatchDeps {
@@ -25,6 +30,7 @@ export function appDeps(db: Db, opts: AppOpts): DispatchDeps {
     plugins: getRegistries(),
     settingsSecret: opts.settingsSecret,
     storefrontUrl: opts.storefrontUrl ?? null,
+    mediaProcess: opts.mediaProcess,
     storage: (storeId) =>
       withStore(db, storeId, async (tx) =>
         storageForStore(

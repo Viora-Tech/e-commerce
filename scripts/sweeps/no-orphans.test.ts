@@ -18,6 +18,12 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/shipping/src/pincode.ts',
+    names: ['buildPincodeDirectory'],
+    reason:
+      'used by scripts/build-pincode-directory.ts (builds the PIN code data file); scripts/ is outside this sweep',
+  },
+  {
     file: 'packages/core/src/onboarding/signup-gate.ts',
     names: ['createSignupInvite'],
     reason:

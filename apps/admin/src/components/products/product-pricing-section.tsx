@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import { productFormContent, rupees } from '@/data/products'
-import { formatPaise } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { VariantRow } from './form-state'
 
 type ProductPricingSectionProps = {
@@ -18,8 +18,6 @@ type ProductPricingSectionProps = {
   onSaleStartsAt: (value: string) => void
   onSaleEndsAt: (value: string) => void
 }
-
-const copy = productFormContent.pricing
 
 /** Rupees saved against the compare-at price, or null when there is nothing to show. */
 function savingPaise(price: string, mrp: string): number | null {
@@ -43,6 +41,10 @@ export default function ProductPricingSection({
   onSaleStartsAt,
   onSaleEndsAt,
 }: ProductPricingSectionProps) {
+  // Hooks
+  const { pricing: copy } = useCopy(productFormContent)
+  const fmt = useFormat()
+
   // Render logic
   const saving = savingPaise(variant.price, variant.mrp)
   const mrpBelow =
@@ -74,7 +76,7 @@ export default function ProductPricingSection({
             id="variant-mrp"
             value={variant.mrp}
             onChange={(mrp) => onVariant({ mrp })}
-            suffix={saving ? copy.saving(formatPaise(saving)) : undefined}
+            suffix={saving ? copy.saving(fmt.money(saving)) : undefined}
           />
         </KitField>
 

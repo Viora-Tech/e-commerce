@@ -45,6 +45,12 @@ export const SeriesSchema = z.object({
     .transform((v) => v.replace('{fy}', '{FY}')),
   /** Minimum digits of the running number: 4 gives 0001. It grows past this rather than wrapping. */
   pad: z.coerce.number().int().min(1).max(8).default(4),
+  /**
+   * Start again at 1 every 1 April: true or absent (what older rows mean).
+   * Off: one running count that carries on across years. Either way numbers
+   * stay unique within a financial year, as rule 46(b) asks.
+   */
+  resetEachYear: z.boolean().optional(),
 })
 export type Series = z.infer<typeof SeriesSchema>
 
@@ -86,6 +92,27 @@ export function formatSeriesNumber(
 /** The longest number the series can print before its digits outgrow `pad`. */
 export function widestSeriesNumber(series: Pick<Series, 'pattern' | 'pad'>, at = new Date()) {
   return formatSeriesNumber(series, financialYear(at), 10 ** series.pad - 1)
+}
+
+/**
+ * The year a series' counter row is keyed by: the financial year when it
+ * resets every April, else 0, one counter for good.
+ */
+export function counterYear(series: Pick<Series, 'resetEachYear'>, fy: FinancialYear): number {
+  return series.resetEachYear === false ? 0 : fy.startYear
+}
+
+/**
+ * Why a merchant cannot set the next number to `wanted`, or null. Going back
+ * would hand out a number already used, so only the current next number or a
+ * higher one is allowed.
+ */
+export function nextNumberProblem(current: number, wanted: number): string | null {
+  if (!Number.isInteger(wanted) || wanted < 1) return 'Use a whole number, 1 or more'
+  if (wanted > 99_999_999) return 'That number is too big'
+  if (wanted < current)
+    return `Numbers up to ${current - 1} are already used; pick ${current} or more`
+  return null
 }
 
 /** Why a series is not usable, or null. */

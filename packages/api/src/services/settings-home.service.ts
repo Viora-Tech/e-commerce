@@ -3,8 +3,11 @@ import {
   isGatewayProvider,
   listDomains,
   listShippingZones,
+  missingRequiredPolicies,
+  type PolicyType,
   parseNotificationSettings,
   parsePaymentSettings,
+  policyTypeOfHandle,
   presentStoreGeneral,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -20,9 +23,6 @@ export type SetupItemId =
   | 'domain'
   | 'notifications'
   | 'policies'
-
-/** Page handles that read as a shop policy (returns, privacy, terms, shipping). */
-const POLICY_HANDLE = /refund|return|privacy|terms|policy|policies|cancellation/i
 
 const filled = (v: string | null | undefined) => (v ?? '').trim().length > 0
 
@@ -51,7 +51,8 @@ function paymentsChosen(raw: unknown): boolean {
 /**
  * What a new shop still has to set up, each item computed from real data:
  * store details, a way to get paid, somewhere to ship, GST, its own domain,
- * an email app for customer messages, and published policy pages.
+ * an email app for customer messages, and every required policy published
+ * (Settings → Policies).
  */
 export async function settingsChecklist(
   tx: StoreTx,
@@ -65,6 +66,10 @@ export async function settingsChecklist(
   const domains = await listDomains(tx)
   const pages = await listPages(tx)
   const a = general.address
+  const publishedPolicies = pages.flatMap((p): PolicyType[] => {
+    const type = p.publishedAt ? policyTypeOfHandle(p.handle) : null
+    return type ? [type] : []
+  })
   return [
     {
       id: 'store',
@@ -85,7 +90,7 @@ export async function settingsChecklist(
     },
     {
       id: 'policies',
-      done: pages.some((p) => p.publishedAt !== null && POLICY_HANDLE.test(p.handle)),
+      done: missingRequiredPolicies(publishedPolicies).length === 0,
     },
   ]
 }

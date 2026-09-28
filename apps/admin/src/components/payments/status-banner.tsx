@@ -1,16 +1,18 @@
 import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 
 type StatusBannerProps = {
   canTakePayments: boolean
   canTakeOnline: boolean
 }
 
-const copy = setupCopy.status
-
 /** The one line at the top: can this shop take money right now, and if not, what's missing. */
 export default function StatusBanner({ canTakePayments, canTakeOnline }: StatusBannerProps) {
+  // Hooks
+  const { status: copy } = useCopy(paymentsSetupContent)
+
   // Render logic
   const title = canTakeOnline ? copy.ready : canTakePayments ? copy.readyOffline : copy.notReady
   const help = canTakeOnline ? null : canTakePayments ? copy.offlineHelp : copy.notReadyHelp

@@ -74,9 +74,11 @@ export const AutomationSettingsSchema = z.object({
   /** For win-back: days since the last order. */
   lapsedDays: z.number().int().min(7).max(730).optional(),
   /**
-   * `subscribed` sends only to customers who accepted marketing; `all` also
-   * reaches shoppers who only left a contact at checkout (recovery, COD
-   * confirmation). Unsubscribed customers never receive marketing email.
+   * Kept for automations saved before customer privacy: `all` used to reach
+   * shoppers who only left a contact at checkout. It no longer widens
+   * anything: marketing steps go only to customers with consent on that
+   * channel (enforced in `marketing/send.ts`), and the COD confirmation is an
+   * order update that needs none.
    */
   audience: z.enum(['subscribed', 'all']).optional(),
 })
@@ -141,8 +143,8 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     trigger: 'checkout_abandoned',
     name: 'Abandoned checkout',
     description:
-      'Reach shoppers who entered their contact at checkout and left: an email after an hour, a WhatsApp nudge at six hours, and a discount on day two.',
-    settings: { afterMinutes: 60, audience: 'all' },
+      'Reach shoppers who left at checkout and agreed to hear from you: an email after an hour, a WhatsApp nudge at six hours, and a discount on day two.',
+    settings: { afterMinutes: 60, audience: 'subscribed' },
     steps: [
       {
         id: 'email-1',
@@ -299,7 +301,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
     name: 'COD order confirmation on WhatsApp',
     description:
       'Ask cash-on-delivery buyers to confirm their order on WhatsApp right after checkout, to cut RTO.',
-    settings: { audience: 'all' },
+    settings: { audience: 'subscribed' },
     steps: [
       {
         id: 'whatsapp-1',

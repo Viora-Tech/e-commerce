@@ -5,7 +5,8 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { PaymentProblem } from './types'
 
@@ -16,8 +17,6 @@ type GatewayProblemProps = {
   onTurnOnUpi: () => void
 }
 
-const copy = setupCopy.problems
-
 /** One health problem: a red dot, a plain sentence, and the one-click fix when there is one. */
 export default function GatewayProblem({
   problem,
@@ -26,6 +25,7 @@ export default function GatewayProblem({
   onTurnOnUpi,
 }: GatewayProblemProps) {
   // Hooks
+  const { problems: copy } = useCopy(paymentsSetupContent)
   const [fixing, setFixing] = useState(false)
 
   // Event handlers

@@ -1,3 +1,7 @@
+import { datesContent } from '@/data/dates'
+import { localize } from '@/lib/copy'
+import { INTL_LOCALE, type Locale } from '@/lib/i18n'
+
 const DAY_MS = 86_400_000
 /**
  * Every formatter here is pinned to Asia/Kolkata (the store's own timezone, per
@@ -6,32 +10,58 @@ const DAY_MS = 86_400_000
  * differ between the Next.js server process and the browser (e.g. a server on UTC, a browser
  * on IST) and produce a server/client text mismatch — a React hydration error.
  */
+
 const TIME_ZONE = 'Asia/Kolkata'
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
 
-const time = new Intl.DateTimeFormat('en-IN', {
-  hour: 'numeric',
-  minute: '2-digit',
-  hour12: true,
-  timeZone: TIME_ZONE,
-})
-const dayMonth = new Intl.DateTimeFormat('en-IN', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: TIME_ZONE,
-})
-const dayMonthYear = new Intl.DateTimeFormat('en-IN', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  timeZone: TIME_ZONE,
-})
-const full = new Intl.DateTimeFormat('en-IN', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-  timeZone: TIME_ZONE,
-})
-const medium = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: TIME_ZONE })
+type DateFormats = {
+  time: Intl.DateTimeFormat
+  dayMonth: Intl.DateTimeFormat
+  dayMonthYear: Intl.DateTimeFormat
+  full: Intl.DateTimeFormat
+  medium: Intl.DateTimeFormat
+}
+
+/**
+ * Hindi spells the month out ("12 सितंबर"): hi-IN's short months carry an abbreviation
+ * mark ("सित॰") that reads worse than the full word.
+ */
+function buildFormats(locale: Locale): DateFormats {
+  const tag = INTL_LOCALE[locale]
+  const month = locale === 'hi' ? 'long' : 'short'
+  return {
+    time: new Intl.DateTimeFormat(tag, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: TIME_ZONE,
+    }),
+    dayMonth: new Intl.DateTimeFormat(tag, { day: 'numeric', month, timeZone: TIME_ZONE }),
+    dayMonthYear: new Intl.DateTimeFormat(tag, {
+      day: 'numeric',
+      month,
+      year: 'numeric',
+      timeZone: TIME_ZONE,
+    }),
+    full: new Intl.DateTimeFormat(tag, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: TIME_ZONE,
+    }),
+    medium: new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeZone: TIME_ZONE }),
+  }
+}
+
+const formatsByLocale = new Map<Locale, DateFormats>()
+
+function formats(locale: Locale): DateFormats {
+  let built = formatsByLocale.get(locale)
+  if (!built) {
+    built = buildFormats(locale)
+    formatsByLocale.set(locale, built)
+  }
+  return built
+}
 
 /** The date shifted so its UTC getters read as IST wall-clock time. */
 function toIst(d: Date): Date {
@@ -60,45 +90,48 @@ const DAYS_AGO_LIMIT = 6
  * "Today, 9:15 pm", "Yesterday, 4:02 pm", "3 days ago", then "12 Sept" (the year joins once
  * it is not this year). Pair with `formatDateTime` as a title/tooltip for the exact moment.
  */
-export function formatWhen(value: Date | string, now = new Date()): string {
+export function formatWhen(value: Date | string, now = new Date(), locale: Locale = 'en'): string {
   const date = new Date(value)
   const days = daysApart(date, now)
-  const at = time.format(date).toLowerCase()
-  if (days === 0) return `Today, ${at}`
-  if (days === 1) return `Yesterday, ${at}`
-  if (days > 1 && days <= DAYS_AGO_LIMIT) return `${days} days ago`
-  const day = istYear(date) === istYear(now) ? dayMonth : dayMonthYear
+  const f = formats(locale)
+  const copy = localize(datesContent, locale)
+  const at = f.time.format(date).toLowerCase()
+  if (days === 0) return copy.todayAt(at)
+  if (days === 1) return copy.yesterdayAt(at)
+  if (days > 1 && days <= DAYS_AGO_LIMIT) return copy.daysAgo(days)
+  const day = istYear(date) === istYear(now) ? f.dayMonth : f.dayMonthYear
   return day.format(date)
 }
 
 /** "just now", "5 minutes ago", "3 hours ago", "2 days ago". */
-export function formatAgo(value: Date | string, now = new Date()): string {
+export function formatAgo(value: Date | string, now = new Date(), locale: Locale = 'en'): string {
+  const copy = localize(datesContent, locale)
   const minutes = Math.floor((now.getTime() - new Date(value).getTime()) / 60_000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`
+  if (minutes < 1) return copy.justNow
+  if (minutes < 60) return copy.minutesAgo(minutes)
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
-  const days = Math.floor(hours / 24)
-  return days === 1 ? '1 day ago' : `${days} days ago`
+  if (hours < 24) return copy.hoursAgo(hours)
+  return copy.daysAgoShort(Math.floor(hours / 24))
 }
 
 /** Day heading for grouped lists: "Today", "Yesterday", "3 Sept 2026". */
-export function formatDay(value: Date | string, now = new Date()): string {
+export function formatDay(value: Date | string, now = new Date(), locale: Locale = 'en'): string {
   const date = new Date(value)
   const days = daysApart(date, now)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  return dayMonthYear.format(date)
+  const copy = localize(datesContent, locale)
+  if (days === 0) return copy.today
+  if (days === 1) return copy.yesterday
+  return formats(locale).dayMonthYear.format(date)
 }
 
 /** Date and time in one line, for tables and print. */
-export function formatDateTime(value: Date | string): string {
-  return full.format(new Date(value))
+export function formatDateTime(value: Date | string, locale: Locale = 'en'): string {
+  return formats(locale).full.format(new Date(value))
 }
 
 /** Date only, no time: "12 Sept 2026". */
-export function formatDate(value: Date | string): string {
-  return medium.format(new Date(value))
+export function formatDate(value: Date | string, locale: Locale = 'en'): string {
+  return formats(locale).medium.format(new Date(value))
 }
 
 /** Sort key that groups everything placed on the same IST calendar day. */

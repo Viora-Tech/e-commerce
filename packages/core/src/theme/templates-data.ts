@@ -5,6 +5,8 @@
  * `header` and `footer` are the section groups every template shares.
  */
 
+import { mapNestedBlocks, type StoredBlock } from './nested-blocks'
+
 export const TEMPLATE_KINDS = [
   'home',
   'product',
@@ -132,13 +134,15 @@ export function isTemplateKey(value: string): value is TemplateKey {
  * data compare unequal to itself — "Unsaved changes" lighting up on load.
  */
 export function stripResolved(data: TemplateData): TemplateData {
+  // Nested blocks (in slots) carry resolveData output too, such as a Product card's product.
+  const strip = (block: StoredBlock): StoredBlock => {
+    const { resolved: _resolved, ...props } = block.props
+    const { readOnly: _readOnly, ...rest } = block as StoredBlock & { readOnly?: unknown }
+    return { ...rest, props }
+  }
   return {
     ...data,
-    content: data.content.map((s) => {
-      const { resolved: _resolved, ...props } = s.props
-      const { readOnly: _readOnly, ...section } = s as TemplateSection & { readOnly?: unknown }
-      return { ...section, props: props as TemplateSection['props'] }
-    }),
+    content: data.content.map((s) => mapNestedBlocks(s, strip) as TemplateSection),
   }
 }
 

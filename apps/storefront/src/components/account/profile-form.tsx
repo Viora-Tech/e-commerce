@@ -16,6 +16,8 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
   const [name, setName] = useState(customer.name ?? '')
   const [phone, setPhone] = useState(customer.phone ?? '')
   const [marketing, setMarketing] = useState(customer.acceptsMarketing)
+  const [whatsapp, setWhatsapp] = useState(customer.acceptsWhatsapp)
+  const [sms, setSms] = useState(customer.acceptsSms)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(false)
 
@@ -24,7 +26,13 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
     e.preventDefault()
     setSaved(false)
     start(async () => {
-      const r = await saveProfileAction({ name, phone, acceptsMarketing: marketing })
+      const r = await saveProfileAction({
+        name,
+        phone,
+        acceptsMarketing: marketing,
+        acceptsWhatsapp: whatsapp,
+        acceptsSms: sms,
+      })
       if (r.ok) {
         setErrors({})
         setSaved(true)
@@ -41,8 +49,14 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
       <h2 className="h3">{copy.title}</h2>
       <div className="field">
         <span className="field__label text-small">{copy.email}</span>
-        <p className="text-body">{customer.email}</p>
-        <span className="text-small text-muted">{copy.emailNote}</span>
+        {customer.email ? (
+          <>
+            <p className="text-body">{customer.email}</p>
+            <span className="text-small text-muted">{copy.emailNote}</span>
+          </>
+        ) : (
+          <span className="text-small text-muted">{copy.emailNone}</span>
+        )}
       </div>
       <label className="field">
         <span className="field__label text-small">{copy.name}</span>
@@ -67,15 +81,25 @@ export default function ProfileForm({ customer }: ProfileFormProps) {
         />
         {errors.phone ? <span className="text-small text-danger">{errors.phone}</span> : null}
       </label>
-      <label className="flex items-center gap-3 text-body">
-        <input
-          type="checkbox"
-          className="size-4"
-          checked={marketing}
-          onChange={(e) => setMarketing(e.target.checked)}
-        />
-        {copy.marketing}
-      </label>
+      <fieldset className="flex flex-col gap-3">
+        <legend className="field__label text-small">{copy.marketingHeading}</legend>
+        {[
+          { id: 'email', label: copy.marketing, checked: marketing, set: setMarketing },
+          { id: 'whatsapp', label: copy.marketingWhatsapp, checked: whatsapp, set: setWhatsapp },
+          { id: 'sms', label: copy.marketingSms, checked: sms, set: setSms },
+        ].map((c) => (
+          <label key={c.id} className="flex items-center gap-3 text-body">
+            <input
+              type="checkbox"
+              className="size-4"
+              checked={c.checked}
+              onChange={(e) => c.set(e.target.checked)}
+            />
+            {c.label}
+          </label>
+        ))}
+        <span className="text-small text-muted">{copy.marketingNote}</span>
+      </fieldset>
       <div className="flex items-center gap-4">
         <button
           type="submit"

@@ -73,6 +73,14 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     totalLabel: '',
     code: '482913',
   },
+  account_deletion_code: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    code: '730155',
+  },
   gift_card_issued: {
     ...base,
     orderNumber: undefined,

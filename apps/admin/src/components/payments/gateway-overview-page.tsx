@@ -5,11 +5,8 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import {
-  paymentsSetupContent as copy,
-  gatewayCatalogue,
-  gatewayGuides,
-} from '@/data/payments-setup'
+import { gatewayCatalogue, gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import BackToPayments from './back-to-payments'
 import MainGatewayCard from './main-gateway-card'
@@ -22,6 +19,9 @@ type GatewayOverviewPageProps = {
 /** A payment app's Overview: its health when it is the main way to get paid, else how to connect it. */
 export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageProps) {
   // Hooks
+  const copy = useCopy(paymentsSetupContent)
+  const catalogue = useCopy(gatewayCatalogue)
+  const guides = useCopy(gatewayGuides)
   const [setup, setSetup] = useState<PaymentsSetup | null>(null)
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
 
   // Render logic
   const isMain = setup.primary?.id === providerId
-  const entry = gatewayCatalogue.find((g) => g.id === providerId)
+  const entry = catalogue.find((g) => g.id === providerId)
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,9 +60,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
       ) : (
         <Card>
           <CardContent className="flex flex-col gap-3">
-            <p className="text-body font-semibold text-foreground">
-              {gatewayGuides[providerId].intro}
-            </p>
+            <p className="text-body font-semibold text-foreground">{guides[providerId].intro}</p>
             {entry ? <p className="text-body text-muted-foreground">{entry.fees}</p> : null}
             <Button
               className="w-fit"

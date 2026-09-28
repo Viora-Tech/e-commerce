@@ -77,6 +77,7 @@ export type BlockFieldLike = {
   getItemSummary?: ((item: Record<string, unknown>, index?: number) => string) | undefined
   max?: number | undefined
   min?: number | undefined
+  arrayFields?: Record<string, { type: string }> | undefined
 }
 
 /** One Shopify "block": an item of one of the section's array fields (a slide, a column, a logo). */
@@ -103,7 +104,12 @@ export function sectionBlocks(
   fallback: (index: number) => string,
 ): BlockList[] {
   return Object.entries(fields ?? {})
-    .filter(([, field]) => field.type === 'array')
+    .filter(
+      // Arrays whose items hold slots (columns, tabs, slides) show as slot zones instead.
+      ([, field]) =>
+        field.type === 'array' &&
+        !Object.values(field.arrayFields ?? {}).some((f) => f.type === 'slot'),
+    )
     .map(([key, field]) => {
       const items = Array.isArray(props[key]) ? (props[key] as Record<string, unknown>[]) : []
       return {

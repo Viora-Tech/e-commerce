@@ -7,7 +7,8 @@ import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
-import { shipmentPanelContent as copy } from '@/data/shipping'
+import { shipmentPanelContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import type { OrderShipment } from './order-detail-types'
 
 type ShipmentPanelProps = {
@@ -32,6 +33,9 @@ export default function ShipmentPanel({
   onRefresh,
   onCancel,
 }: ShipmentPanelProps) {
+  // Hooks
+  const copy = useCopy(shipmentPanelContent)
+
   // Early returns
   const canBook = !shipment || shipment.status === 'cancelled'
   const bookable = canBook && !CLOSED.has(orderStatus)

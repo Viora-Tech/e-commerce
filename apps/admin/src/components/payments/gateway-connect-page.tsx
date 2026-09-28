@@ -5,7 +5,8 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
-import { paymentsSetupContent as copy, gatewayGuides } from '@/data/payments-setup'
+import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import BackToPayments, { PAYMENTS_PAGE_HREF } from './back-to-payments'
 import GatewayConnectForm from './gateway-connect-form'
@@ -19,6 +20,8 @@ type GatewayConnectPageProps = {
 /** A payment app's Connect page (`/apps/<id>/connect`): the guided connect, then back to Payments. */
 export default function GatewayConnectPage({ providerId }: GatewayConnectPageProps) {
   // Hooks
+  const copy = useCopy(paymentsSetupContent)
+  const guides = useCopy(gatewayGuides)
   const router = useRouter()
   const [setup, setSetup] = useState<PaymentsSetup | null>(null)
 
@@ -30,13 +33,13 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   const handleConnected = () => router.push('/settings/payments')
 
   // Render logic
-  const guide = gatewayGuides[providerId]
+  const guide = guides[providerId]
 
   return (
     <div className="flex flex-col gap-4">
       <BackToPayments />
       <PageHeader
-        title={`Connect ${guide.name}`}
+        title={copy.wizard.connect.title(guide.name)}
         breadcrumbs={[{ label: copy.title, href: PAYMENTS_PAGE_HREF }, { label: guide.name }]}
         subtitle={guide.intro}
       />

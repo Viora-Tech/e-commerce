@@ -122,11 +122,12 @@ Passing `settings` instead turns on the full schema:
   border as a token-based `border-border`.
 - **Advanced** — `showOnMobile`/`showOnDesktop` become `max-md:hidden`/`md:hidden` (pure CSS,
   no client JS, no layout shift since the hidden class applies at first paint). `anchorId`
-  becomes the section's `id`. `entranceAnimation` renders through `SectionReveal`
-  (`packages/blocks/src/components/section-reveal.tsx`), a small client component using
-  Motion's `whileInView` — it reads `useReducedMotion()` and renders a plain, already-visible
-  `<div>` (no animation, no client-only opacity-0 flash) whenever the visitor has asked for
-  reduced motion.
+  becomes the section's `id`. With `entranceAnimation: 'none'` (the default) SectionFrame draws
+  the wrapper `<div>` itself, so a plain section adds no client component to hydrate. Any other
+  value renders through `SectionReveal` (`packages/blocks/src/components/section-reveal.tsx`):
+  the server HTML is always visible, and only a section still below the fold once Motion has
+  loaded (fetched after hydration, see [Storefront performance](/developer-docs/building/performance))
+  is hidden and then played in with `inView`. Reduced motion renders it plain and visible.
 
 ## Testing
 

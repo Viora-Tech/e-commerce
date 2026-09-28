@@ -20,6 +20,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'checkout_recovery',
   'document_copy',
   'login_code',
+  'account_deletion_code',
   'gift_card_issued',
   'balance_request',
   'balance_reminder',
@@ -50,6 +51,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   checkout_recovery: 'Checkout recovery',
   document_copy: 'Document copy',
   login_code: 'Sign-in code',
+  account_deletion_code: 'Account deletion code',
   gift_card_issued: 'Gift card issued',
   balance_request: 'Balance due',
   balance_reminder: 'Balance reminder',
@@ -74,6 +76,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
   switch (template) {
     case 'login_code':
       return 'Sign-in code'
+    case 'account_deletion_code':
+      return 'Delete your account'
     case 'gift_card_issued':
       return 'Gift card'
     case 'checkout_recovery':

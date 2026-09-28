@@ -1,8 +1,9 @@
+import { policyPath, policyTypeOfHandle } from '@commerce/core/policies'
 import { page } from '@commerce/db'
 import { parseRichText, richTextToPlainText } from '@commerce/richtext'
 import { eq } from 'drizzle-orm'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import MainPage from '@/components/pages/main-page'
 import { metaDescription, NO_INDEX } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
@@ -42,6 +43,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function StorePage({ params, searchParams }: Params) {
   const { storeId, handle } = await params
   const { view } = await searchParams
+  // The five store policies have their own route (Settings → Policies).
+  const policy = policyTypeOfHandle(handle)
+  if (policy) permanentRedirect(policyPath(policy))
   const found = await findPage(storeId, handle)
   // Hidden pages 404 for shoppers; Customize can still preview their template.
   if (!found || (!found.publishedAt && !(await isThemePreview(storeId)))) notFound()

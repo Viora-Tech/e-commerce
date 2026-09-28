@@ -4,7 +4,9 @@ import { SidebarInset, SidebarProvider } from '@commerce/ui/shadcn/sidebar'
 import { Toaster } from '@commerce/ui/shadcn/sonner'
 import { usePathname } from 'next/navigation'
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react'
-import { hasOwnHeading, pageTitleFor } from '@/data/layout'
+import { hasOwnHeading, layoutContent, pagePrefixFor, pageTitleFor } from '@/data/layout'
+import { useCopy, useLocale } from '@/hooks/use-copy'
+import { pageName } from '@/lib/page-names'
 import AdminSidebar from './admin-sidebar'
 import PaletteHost from './layout/palette-host'
 import TopBar from './layout/top-bar'
@@ -36,6 +38,8 @@ export default function AdminFrame({
   logoUrl,
 }: AdminFrameProps) {
   // Hooks
+  const layoutCopy = useCopy(layoutContent)
+  const locale = useLocale()
   const pathname = usePathname()
   const mainRef = useRef<HTMLElement>(null)
   const [scrolled, setScrolled] = useState(false)
@@ -49,7 +53,8 @@ export default function AdminFrame({
   }, [])
 
   // Render logic
-  const title = pageTitleFor(pathname)
+  const prefix = pagePrefixFor(pathname)
+  const title = prefix ? pageName(prefix, pageTitleFor(pathname), locale) : layoutCopy.dashboard
   const ownHeading = hasOwnHeading(pathname)
 
   return (

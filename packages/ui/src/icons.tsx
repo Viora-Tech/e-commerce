@@ -43,6 +43,41 @@ import {
   DotsThreeOutline,
   DotsThreeVertical,
   DownloadSimple,
+  AlignBottom as EdAlignBottom,
+  AlignTop as EdAlignTop,
+  ArrowsLeftRight as EdArrowsLeftRight,
+  ArrowsVertical as EdArrowsVertical,
+  Basket as EdBasket,
+  BoundingBox as EdBoundingBox,
+  ChartLineUp as EdChartLineUp,
+  Code as EdCode,
+  Columns as EdColumns,
+  CursorClick as EdCursorClick,
+  EnvelopeSimple as EdEnvelope,
+  FileText as EdFileText,
+  FilmStrip as EdFilmStrip,
+  FolderSimple as EdFolder,
+  Image as EdImage,
+  Images as EdImages,
+  ListDashes as EdListDashes,
+  MagnifyingGlass as EdMagnifyingGlass,
+  Megaphone as EdMegaphone,
+  Minus as EdMinus,
+  Newspaper as EdNewspaper,
+  Package as EdPackage,
+  Quotes as EdQuotes,
+  Rows as EdRows,
+  Shapes as EdShapes,
+  Slideshow as EdSlideshow,
+  Sparkle as EdSparkle,
+  SquareSplitHorizontal as EdSplit,
+  SquaresFour as EdSquaresFour,
+  StarFour as EdStarFour,
+  Tabs as EdTabs,
+  Tag as EdTag,
+  TextAlignLeft as EdTextAlignLeft,
+  TextH as EdTextH,
+  WarningCircle as EdWarningCircle,
   Eye,
   EyeClosed,
   FacebookLogo,
@@ -78,6 +113,7 @@ import {
   PaperPlaneTilt,
   Paragraph,
   PencilSimpleLine,
+  BookmarkSimple as PhBookmarkSimple,
   Clock as PhClock,
   Cookie as PhCookie,
   Diamond as PhDiamond,
@@ -97,6 +133,7 @@ import {
   Receipt,
   Rows,
   SealPercent,
+  ShieldCheck,
   ShoppingBagOpen,
   SignOut,
   Sparkle,
@@ -117,6 +154,7 @@ import {
   TShirt,
   Upload,
   User,
+  UserCircle,
   UserGear,
   Users,
   Video,
@@ -177,6 +215,11 @@ export const Smartphone = defineIcon(DeviceMobile, 'Smartphone', 'duotone')
 export const Images = defineIcon(PhImages, 'Images', 'duotone')
 export const UserCog = defineIcon(UserGear, 'UserCog', 'duotone')
 export const UserRound = defineIcon(User, 'UserRound', 'duotone')
+/* Settings → Customer privacy and Settings → Customer accounts. */
+export const ShieldCheck_ = defineIcon(ShieldCheck, 'ShieldCheck', 'duotone')
+export { ShieldCheck_ as ShieldCheck }
+export const UserCircle_ = defineIcon(UserCircle, 'UserCircle', 'duotone')
+export { UserCircle_ as UserCircle }
 export const CreditCard_ = defineIcon(CreditCard, 'CreditCard', 'duotone')
 export { CreditCard_ as CreditCard }
 export const Inbox = defineIcon(Tray, 'Inbox', 'duotone')
@@ -292,6 +335,8 @@ export const Save = defineIcon(DownloadSimple, 'Save') // kit "save-01" on Save 
 export const RotateCcw = defineIcon(ArrowCounterClockwise, 'RotateCcw')
 export const Printer_ = defineIcon(Printer, 'Printer')
 export { Printer_ as Printer }
+/** Theme editor: "Save as my section". */
+export const Bookmark = defineIcon(PhBookmarkSimple, 'Bookmark')
 export const Copy_ = defineIcon(Copy, 'Copy')
 export { Copy_ as Copy }
 export const EyeOff = defineIcon(EyeClosed, 'EyeOff')
@@ -330,6 +375,52 @@ export const TargetIcon = defineIcon(Target, 'TargetIcon')
 export const FireIcon = defineIcon(Fire, 'FireIcon')
 export const MapPinLineIcon = defineIcon(MapPinLine, 'MapPinLineIcon')
 export const WarningIcon = defineIcon(Warning, 'WarningIcon')
+
+/*
+ * Theme editor section glyphs: one family, Phosphor regular, drawn at 16px in the
+ * sidebar and 14px inline. Keyed by what the section is, not by its type, so new
+ * sections pick a glyph from here (see `SECTION_GLYPH` in the admin's
+ * lib/customize-section-kinds.ts). Never mix weights or filled glyphs in the editor.
+ */
+export const editorGlyphs = {
+  header: defineIcon(EdAlignTop, 'GlyphHeader'),
+  footer: defineIcon(EdAlignBottom, 'GlyphFooter'),
+  image: defineIcon(EdImage, 'GlyphImage'),
+  megaphone: defineIcon(EdMegaphone, 'GlyphMegaphone'),
+  text: defineIcon(EdTextAlignLeft, 'GlyphText'),
+  page: defineIcon(EdFileText, 'GlyphPage'),
+  columns: defineIcon(EdColumns, 'GlyphColumns'),
+  quote: defineIcon(EdQuotes, 'GlyphQuote'),
+  list: defineIcon(EdListDashes, 'GlyphList'),
+  shapes: defineIcon(EdShapes, 'GlyphShapes'),
+  grid: defineIcon(EdSquaresFour, 'GlyphGrid'),
+  package: defineIcon(EdPackage, 'GlyphPackage'),
+  folder: defineIcon(EdFolder, 'GlyphFolder'),
+  video: defineIcon(EdFilmStrip, 'GlyphVideo'),
+  news: defineIcon(EdNewspaper, 'GlyphNews'),
+  send: defineIcon(EdEnvelope, 'GlyphSend'),
+  spotlight: defineIcon(EdSparkle, 'GlyphSpotlight'),
+  split: defineIcon(EdSplit, 'GlyphSplit'),
+  marquee: defineIcon(EdArrowsLeftRight, 'GlyphMarquee'),
+  stats: defineIcon(EdChartLineUp, 'GlyphStats'),
+  gallery: defineIcon(EdImages, 'GlyphGallery'),
+  cart: defineIcon(EdBasket, 'GlyphCart'),
+  search: defineIcon(EdMagnifyingGlass, 'GlyphSearch'),
+  notFound: defineIcon(EdWarningCircle, 'GlyphNotFound'),
+  // Build-your-own blocks: containers and elements.
+  group: defineIcon(EdBoundingBox, 'GlyphGroup'),
+  tabs: defineIcon(EdTabs, 'GlyphTabs'),
+  accordion: defineIcon(EdRows, 'GlyphAccordion'),
+  carousel: defineIcon(EdSlideshow, 'GlyphCarousel'),
+  heading: defineIcon(EdTextH, 'GlyphHeading'),
+  button: defineIcon(EdCursorClick, 'GlyphButton'),
+  icon: defineIcon(EdStarFour, 'GlyphIcon'),
+  spacer: defineIcon(EdArrowsVertical, 'GlyphSpacer'),
+  divider: defineIcon(EdMinus, 'GlyphDivider'),
+  badge: defineIcon(EdTag, 'GlyphBadge'),
+  code: defineIcon(EdCode, 'GlyphCode'),
+} as const
+export type EditorGlyph = keyof typeof editorGlyphs
 
 /** Semantic map for new code. */
 export const icons = {

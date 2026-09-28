@@ -5,6 +5,7 @@ import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
   addToCart,
+  CheckoutRuleViolation,
   captureCartContact,
   confirmClientPayment,
   createCart,
@@ -37,10 +38,12 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
+import { formatPaise } from './money'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { estimateForPincode } from './shipping'
+import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
 const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
@@ -89,6 +92,11 @@ export type CheckoutForm = {
   giftCards?: string[]
   /** The shipping rate picked in the summary; re-priced on the server. */
   shippingRate?: string
+  /** Business buyer's GSTIN and name, when the store shows the field (Settings → Checkout). */
+  gstin?: string
+  businessName?: string
+  /** Order note, when the store turned notes on. */
+  note?: string
 }
 
 export type CheckoutResult = { error: string } | undefined
@@ -125,8 +133,12 @@ export async function checkoutAction(
   ])
   if (!byCart.ok || !byIp.ok) return { error: checkoutContent.errors.rateLimited }
   // Signed in: the order belongs to the session's customer, whatever email the form carried.
+  // A customer who signs in by mobile and has no email yet may type one.
   const me = await currentCustomer(storeId)
-  const form = me ? { ...submitted, email: me.email } : submitted
+  if (!me && (await storeSignIn(storeId)).checkout === 'account_required') {
+    redirect('/account/login?return_to=%2Fcheckout')
+  }
+  const form = me ? { ...submitted, email: me.email ?? submitted.email } : submitted
 
   /* Contact first: if anything below fails the cart is still recoverable. The latest
      marketing touch rides along so the order credits the email or ad that closed it. */
@@ -179,6 +191,9 @@ export async function checkoutAction(
           name: form.name,
           email: form.email,
           phone: form.phone,
+          gstin: form.gstin ?? null,
+          businessName: form.businessName ?? null,
+          note: form.note ?? null,
           address: {
             line1: form.line1,
             ...(form.line2 ? { line2: form.line2 } : {}),
@@ -200,6 +215,8 @@ export async function checkoutAction(
         return { error: checkoutContent.errors.noShipping(form.pincode) }
       if (err instanceof ShippingRateUnavailable)
         return { error: checkoutContent.errors.rateChanged }
+      // Settings → Checkout, re-checked by placeOrder whatever the form showed.
+      if (err instanceof CheckoutRuleViolation) return { error: checkoutRuleMessage(err) }
       throw err
     })
   if ('error' in placed) return { error: placed.error }
@@ -226,6 +243,21 @@ export async function checkoutAction(
   // This only wakes the relay so they go out in ~1s instead of up to 5s.
   await nudgeOutbox(storeId)
   redirectAfterCheckout(result)
+}
+
+/** The shopper-facing reason a checkout rule refused the order. */
+function checkoutRuleMessage(err: CheckoutRuleViolation): string {
+  const e = checkoutContent.errors
+  switch (err.rule) {
+    case 'contact':
+      return Object.values(err.fields)[0] ?? e.contact
+    case 'minimum_order':
+      return e.minimumOrder(formatPaise(err.amountPaise ?? 0))
+    case 'cod_blocked_pincode':
+      return e.codUnavailable
+    case 'cod_over_limit':
+      return e.codOverLimit(formatPaise(err.amountPaise ?? 0))
+  }
 }
 
 /** Open the gateway, or go straight to the thank-you page (which offers a retry when the gateway failed). */

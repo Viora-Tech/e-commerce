@@ -1,15 +1,19 @@
 import type { CSSProperties } from 'react'
-import { type FocalPoint, focalStyle } from '../../focal-point'
+import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
+import type { Image } from '../../sections/framed'
+import Picture from '../picture'
 
 type Props = {
-  image: { url: string; alt: string; focal?: FocalPoint | undefined }
+  image: Image
   heading: string
   text: string
   button: { label: string; href: string }
   height: 'small' | 'medium' | 'large'
   align: 'left' | 'center'
   overlay: number
+  /** Set by the storefront on a template's first section: this image is likely the LCP. */
+  _aboveFold?: boolean | undefined
 }
 
 // Port of sections/image-banner.liquid: full-bleed image, scrim, text and a button.
@@ -21,17 +25,21 @@ export default function ImageBanner({
   height,
   align,
   overlay,
+  _aboveFold,
 }: Props) {
   const style = { '--banner-overlay': Math.min(90, Math.max(0, overlay)) / 100 } as CSSProperties
   return (
     <div className={`image-banner image-banner--${height} image-banner--${align}`} style={style}>
       {image?.url ? (
-        <img
-          className="image-banner__media"
-          src={image.url}
+        <Picture
+          image={image}
           alt={image.alt}
+          className="image-banner__media"
           style={focalStyle(image.focal)}
-          loading="lazy"
+          fill
+          sizes="100vw"
+          loading={_aboveFold ? 'eager' : 'lazy'}
+          fetchPriority={_aboveFold ? 'high' : undefined}
         />
       ) : (
         <div className="image-banner__media image-banner__media--placeholder" />

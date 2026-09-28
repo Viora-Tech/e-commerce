@@ -12,6 +12,7 @@ import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type BulkTagDialogProps = {
   open: boolean
@@ -19,11 +20,10 @@ type BulkTagDialogProps = {
   onApply: (tag: string) => void
 }
 
-const copy = productsListContent.bulk
-
 /** Asks for the tag to add to every selected product. */
 export default function BulkTagDialog({ open, onOpenChange, onApply }: BulkTagDialogProps) {
   // Hooks
+  const { bulk: copy } = useCopy(productsListContent)
   const [tag, setTag] = useState('')
 
   // Event handlers

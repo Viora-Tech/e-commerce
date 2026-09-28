@@ -1,9 +1,10 @@
 'use client'
 
-// Pattern after shadcnblocks' video hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
-import { useReducedMotion } from 'motion/react'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
+// Pattern after shadcnblocks' video hero layouts (our own implementation). See THIRD_PARTY_NOTICES.md.
+import { useReducedMotion } from '../../use-reduced-motion'
+import Picture from '../picture'
 
 type VideoHeroProps = {
   videoUrl: string
@@ -47,11 +48,12 @@ export default function VideoHero({
           playsInline
         />
       ) : poster?.url ? (
-        <img
-          className="absolute inset-0 size-full object-cover"
-          src={poster.url}
+        <Picture
+          image={poster}
           alt={poster.alt}
-          loading="lazy"
+          className="absolute inset-0 size-full object-cover"
+          fill
+          sizes="100vw"
         />
       ) : (
         <div

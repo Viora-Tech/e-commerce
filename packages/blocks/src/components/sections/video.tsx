@@ -1,13 +1,6 @@
-type Props = { heading: string; url: string; poster: { url: string; alt: string }; empty: string }
+import { videoEmbedUrl as embedUrl } from '../../video-url'
 
-/** YouTube and Vimeo links become privacy-friendly embeds; anything else plays as a file. */
-function embedUrl(url: string): string | null {
-  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([\w-]{11})/)
-  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`
-  const vimeo = url.match(/vimeo\.com\/(\d+)/)
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`
-  return null
-}
+type Props = { heading: string; url: string; poster: { url: string; alt: string }; empty: string }
 
 // Port of sections/video.liquid: an embedded or self-hosted video at 16:9.
 export default function Video({ heading, url, poster, empty }: Props) {

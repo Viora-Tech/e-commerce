@@ -18,8 +18,16 @@ import type { FieldType } from '../metaobjects/schemas'
  * source is empty (the product has no material set, the entry was deleted).
  */
 
-/** Setting types that can be connected. */
-export const SETTING_KINDS = ['text', 'richtext', 'image', 'link', 'number', 'color'] as const
+/** Setting types that can be connected. `link` is a `{ label, href }` object, `url` a plain href string. */
+export const SETTING_KINDS = [
+  'text',
+  'richtext',
+  'image',
+  'link',
+  'url',
+  'number',
+  'color',
+] as const
 export type SettingKind = (typeof SETTING_KINDS)[number]
 
 /** What a source holds: a metafield value type, or `money` (paise) for prices. */
@@ -75,6 +83,7 @@ export const COMPATIBLE: Record<SettingKind, readonly SourceType[]> = {
   richtext: ['rich_text', 'single_line_text', 'multi_line_text'],
   image: ['file'],
   link: ['url', 'product_reference', 'collection_reference'],
+  url: ['url', 'product_reference', 'collection_reference'],
   number: ['number_integer', 'number_decimal'],
   color: ['single_line_text'],
 }
@@ -224,6 +233,13 @@ function walk(value: unknown, section: string, at: (string | number)[], out: Fou
     return
   }
   if (typeof value === 'object' && value !== null) {
+    // A block nested in a slot (`{ type, props }` inside a Group's content, a tab's
+    // panel): its settings are named after it, not after the section around it.
+    const nested = value as { type?: unknown; props?: unknown }
+    if (typeof nested.type === 'string' && typeof nested.props === 'object' && nested.props) {
+      walk(nested.props, nested.type, [], out)
+      return
+    }
     for (const [k, v] of Object.entries(value)) walk(v, section, [...at, k], out)
   }
 }
@@ -371,6 +387,10 @@ function coerceValue(
       if (!url) return undefined
       const alt = typeof img.alt === 'string' && img.alt ? img.alt : asRecord(fallback).alt
       return { ...asRecord(fallback), url, alt: alt ?? '' }
+    }
+    case 'url': {
+      const href = type === 'url' ? safeUrl(value) : referenceHref(type, value)
+      return href ?? undefined
     }
     case 'link': {
       const href = type === 'url' ? safeUrl(value) : referenceHref(type, value)

@@ -54,13 +54,16 @@ export type MediaHostOptions = {
   fetch?: typeof fetch
   timeoutMs?: number
   /**
-   * Called after an image row is written, so the caller can queue it for the
-   * upload-time pipeline (see `@commerce/core/media-pipeline`) the same way
-   * `mediaRouter.confirm` does for a direct upload. Optional: an import run
-   * without this wired up leaves the row `processing` for `bun run
+   * Called once per newly hosted image, after its row is written, so the
+   * caller can queue it for the upload-time pipeline (see
+   * `@commerce/core/media-pipeline`) the same way `mediaRouter.confirm` does
+   * for a direct upload. Never called for a source already mapped (a re-run,
+   * or the same image on two products) or for video, which is stored `ready`.
+   * Runs inside `host`, so it shares the caller's download concurrency. An
+   * import run without this wired up leaves the row `processing` for `bun run
    * media:reprocess` to pick up later, same as any other stuck row.
    */
-  onMediaImported?: (mediaId: string, contentType: string) => Promise<void>
+  onMediaImported?: (mediaId: string, contentType: string, src: string) => Promise<void>
 }
 
 export function createMediaHost(opts: MediaHostOptions): MediaHost {
@@ -139,7 +142,7 @@ export function createMediaHost(opts: MediaHostOptions): MediaHost {
         })
         await saveMapping(tx, opts.storeId, 'media', key, id)
       })
-      if (needsPipeline) await opts.onMediaImported?.(id, contentType)
+      if (needsPipeline) await opts.onMediaImported?.(id, contentType, key)
       known.set(key, id)
       return id
     },

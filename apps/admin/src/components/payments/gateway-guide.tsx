@@ -1,7 +1,8 @@
 import { CheckIcon, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { ReactNode } from 'react'
-import { paymentsSetupContent as copy, type GatewayGuide as Guide } from '@/data/payments-setup'
+import { type GatewayGuide as Guide, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 
 type GatewayGuideProps = {
   guide: Guide
@@ -42,7 +43,12 @@ export default function GatewayGuide({
   stepTwo,
   stepThree,
 }: GatewayGuideProps) {
+  // Hooks
+  const copy = useCopy(paymentsSetupContent)
+
+  // Render logic
   const [one, two, three] = guide.steps
+
   return (
     <ol className="flex flex-col gap-6">
       <Step n={1} title={one.title} body={one.body} done={done[0]}>

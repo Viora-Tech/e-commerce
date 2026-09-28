@@ -10,6 +10,7 @@ import { useState } from 'react'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import DataCard from '@/components/layout/data-card'
 import { shippingRatesContent } from '@/data/shipping-rates'
+import { useCopy } from '@/hooks/use-copy'
 
 type ZonePincodesCardProps = {
   value: PincodeRule[]
@@ -17,29 +18,28 @@ type ZonePincodesCardProps = {
   disabled?: boolean
 }
 
-const copy = shippingRatesContent.zone.pincodes
-
-const MODES = [
-  { value: 'include', label: copy.include },
-  { value: 'exclude', label: copy.exclude },
-]
+/** Why the typed rule was not added; the message is looked up at render. */
+type PincodeError = 'invalid' | 'duplicate'
 
 /** Include or exclude PIN codes (`560001`) and prefixes (`560*`). */
 export default function ZonePincodesCard({ value, onChange, disabled }: ZonePincodesCardProps) {
   // Hooks
+  const {
+    zone: { pincodes: copy },
+  } = useCopy(shippingRatesContent)
   const [pattern, setPattern] = useState('')
   const [mode, setMode] = useState<PincodeRule['mode']>('include')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<PincodeError | null>(null)
 
   // Event handlers
   const handleAdd = () => {
     const p = pattern.trim()
     if (!isPincodePattern(p)) {
-      setError(copy.invalid)
+      setError('invalid')
       return
     }
     if (value.some((r) => r.pattern === p && r.mode === mode)) {
-      setError(copy.duplicate)
+      setError('duplicate')
       return
     }
     onChange([...value, { pattern: p, mode }])
@@ -56,6 +56,12 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
   const handleRemove = (index: number) => {
     onChange(value.filter((_, i) => i !== index))
   }
+
+  // Render logic
+  const modes = [
+    { value: 'include', label: copy.include },
+    { value: 'exclude', label: copy.exclude },
+  ]
 
   return (
     <DataCard title={copy.heading} meta={copy.meta}>
@@ -79,7 +85,7 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
               id="zone-pincode-mode"
               label={copy.mode}
               value={mode}
-              options={MODES}
+              options={modes}
               onChange={(v) => setMode(v as PincodeRule['mode'])}
             />
           </div>
@@ -87,7 +93,7 @@ export default function ZonePincodesCard({ value, onChange, disabled }: ZonePinc
             {copy.add}
           </Button>
         </div>
-        {error ? <FieldError>{error}</FieldError> : null}
+        {error ? <FieldError>{copy[error]}</FieldError> : null}
         {value.length === 0 ? (
           <p className="text-body text-muted-foreground">{copy.none}</p>
         ) : (

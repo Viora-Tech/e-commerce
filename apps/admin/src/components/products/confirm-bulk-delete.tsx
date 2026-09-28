@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConfirmBulkDeleteProps = {
   count: number
@@ -20,8 +21,6 @@ type ConfirmBulkDeleteProps = {
   onConfirm: () => void
 }
 
-const copy = productsListContent.bulk.confirmDelete
-
 /** Guard in front of a bulk delete; ordered products are archived, not removed. */
 export default function ConfirmBulkDelete({
   count,
@@ -30,6 +29,11 @@ export default function ConfirmBulkDelete({
   onOpenChange,
   onConfirm,
 }: ConfirmBulkDeleteProps) {
+  // Hooks
+  const {
+    bulk: { confirmDelete: copy },
+  } = useCopy(productsListContent)
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>

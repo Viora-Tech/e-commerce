@@ -3,7 +3,7 @@ import { resetDb } from '@commerce/db/test'
 import { definePlugin, loadPlugins } from '@commerce/plugins'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { corePlugin } from './core-plugin'
-import { dispatchAppEvent } from './events'
+import { appContext, dispatchAppEvent } from './events'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -98,5 +98,37 @@ describe('dispatchAppEvent', () => {
     ).rejects.toThrow('app A is down')
     expect(ranA).toEqual(['ran', 'ran'])
     expect(ranB).toEqual(['ran'])
+  })
+})
+
+describe('appContext', () => {
+  it('offers processMedia only when a media queue is wired, keyed by store and media id', async () => {
+    const plugins = loadPlugins([corePlugin])
+    const base = {
+      db: app,
+      plugins,
+      storage: async () => {
+        throw new Error('unused')
+      },
+      settingsSecret: 'x',
+      storefrontUrl: null,
+    }
+    expect(appContext(base, 'store-1', 'job').processMedia).toBeUndefined()
+
+    const added: unknown[] = []
+    const ctx = appContext(
+      {
+        ...base,
+        mediaProcess: {
+          add: async (_name, data, opts) => {
+            added.push({ data, jobId: opts?.jobId })
+          },
+        },
+      },
+      'store-1',
+      'job',
+    )
+    await ctx.processMedia?.('media-1')
+    expect(added).toEqual([{ data: { storeId: 'store-1', mediaId: 'media-1' }, jobId: 'media-1' }])
   })
 })

@@ -4,7 +4,10 @@ import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
 import { blogRouter } from './blog'
+import { checkoutSettingsRouter } from './checkout-settings'
 import { collectionsRouter } from './collections'
+import { customerAccountsRouter } from './customer-accounts'
+import { customerPrivacyRouter } from './customer-privacy'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
@@ -23,6 +26,7 @@ import { onboardingRouter } from './onboarding'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
+import { policiesRouter } from './policies'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
@@ -31,6 +35,7 @@ import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
+import { taxesRouter } from './taxes'
 import { themesRouter } from './themes'
 
 export const appRouter = {
@@ -53,6 +58,10 @@ export const appRouter = {
   shipments: shipmentsRouter,
   shipping: shippingRouter,
   payments: paymentsRouter,
+  checkoutSettings: checkoutSettingsRouter,
+  policies: policiesRouter,
+  customerPrivacy: customerPrivacyRouter,
+  customerAccounts: customerAccountsRouter,
   notifications: notificationsRouter,
   customers: customersRouter,
   discounts: discountsRouter,
@@ -60,6 +69,7 @@ export const appRouter = {
   giftCards: giftCardsRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
+  taxes: taxesRouter,
   shopifyImport: shopifyImportRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

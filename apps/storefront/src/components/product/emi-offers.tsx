@@ -2,7 +2,7 @@
 
 import { EmiOffersBlock } from '@commerce/blocks'
 import { emiOffersCopy } from '@commerce/plugin-emi/copy'
-import { emiOfferFor } from '@commerce/plugin-emi/offer'
+import { emiOfferFor } from '@commerce/plugin-emi/offer-for'
 import { use } from 'react'
 import { EmiOffersContext } from '@/lib/emi-offers-context'
 

@@ -6,6 +6,7 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import MoneyInput from '@/components/fields/money-input'
 import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { ProductFormState } from './form-state'
 
 type PreorderPaymentMode = ProductFormState['preorderPaymentMode']
@@ -16,14 +17,15 @@ type ProductPreorderSectionProps = {
   onPatch: (patch: Partial<ProductFormState>) => void
 }
 
-const copy = productFormContent.preorder
-
 /** Frame: pre-order toggle, ship date, limit and button label, then payment mode, then the launch countdown. */
 export default function ProductPreorderSection({
   form,
   depositError,
   onPatch,
 }: ProductPreorderSectionProps) {
+  // Hooks
+  const { preorder: copy } = useCopy(productFormContent)
+
   // Event handlers
   const handleMode = (value: string) =>
     onPatch({ preorderPaymentMode: value as PreorderPaymentMode })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { afterLoadWhenIdle } from '../idle'
 import { formatPaise } from '../money'
 import {
   AFFORDABILITY_ELEMENT_ID,
@@ -46,7 +47,8 @@ const DARK_QUERY = '(prefers-color-scheme: dark)'
  * a Razorpay Dashboard setting we cannot read, so we do not risk a light
  * panel on a dark page). The line is static text, so it renders on the
  * server with no layout shift; the widget only fades in when the shopper
- * allows motion.
+ * allows motion. Razorpay's script is third-party and not needed to read the
+ * page, so it is fetched only after the page has loaded and gone idle.
  */
 export default function EmiOffersBlock({ context, copy }: EmiOffersBlockProps) {
   // Hooks
@@ -78,15 +80,18 @@ export default function EmiOffersBlock({ context, copy }: EmiOffersBlockProps) {
     if (!claimAffordabilitySlot(owner)) return
     let live = true
     el.id = AFFORDABILITY_ELEMENT_ID
-    loadAffordabilityScript(document, window)
-      .then(() => {
-        if (live) setWidgetShown(renderAffordability(window, { key: keyId, amount }))
-      })
-      .catch(() => {
-        if (live) setWidgetShown(false)
-      })
+    const cancelIdle = afterLoadWhenIdle(() => {
+      loadAffordabilityScript(document, window)
+        .then(() => {
+          if (live) setWidgetShown(renderAffordability(window, { key: keyId, amount }))
+        })
+        .catch(() => {
+          if (live) setWidgetShown(false)
+        })
+    })
     return () => {
       live = false
+      cancelIdle()
       releaseAffordabilitySlot(owner)
       el.removeAttribute('id')
       el.replaceChildren()

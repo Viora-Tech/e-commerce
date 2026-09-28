@@ -8,7 +8,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { gatewayGuides, paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { base, instant } from '@/lib/motion'
 import GatewayConnectForm from './gateway-connect-form'
@@ -32,8 +33,6 @@ type Step = 'how' | 'connect' | 'methods' | 'test' | 'ready'
 
 const STEPS: Step[] = ['how', 'connect', 'methods', 'test', 'ready']
 
-const copy = setupCopy.wizard
-
 /** COD only: every online method off, cash on delivery on. */
 const codOnly = (methods: CheckoutMethodRow[]) => methods.map((m) => ({ ...m, on: m.id === 'cod' }))
 
@@ -44,6 +43,8 @@ const codOnly = (methods: CheckoutMethodRow[]) => methods.map((m) => ({ ...m, on
  */
 export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProps) {
   // Hooks
+  const { wizard: copy, ...setupCopy } = useCopy(paymentsSetupContent)
+  const guides = useCopy(gatewayGuides)
   const router = useRouter()
   const reduced = useReducedMotion()
   const [step, setStep] = useState<Step>('how')
@@ -122,7 +123,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
 
   // Render logic
   const index = STEPS.indexOf(step)
-  const gatewayName = gateway && gateway !== 'cod' ? gatewayGuides[gateway].name : ''
+  const gatewayName = gateway && gateway !== 'cod' ? guides[gateway].name : ''
   const title =
     step === 'how'
       ? copy.how.title

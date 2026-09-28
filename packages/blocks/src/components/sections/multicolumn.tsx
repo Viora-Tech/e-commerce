@@ -1,9 +1,11 @@
-import { type FocalPoint, focalStyle } from '../../focal-point'
+import { focalStyle } from '../../focal-point'
+import type { Image } from '../../sections/framed'
+import Picture from '../picture'
 
 type Column = {
   title: string
   text: string
-  image?: { url: string; alt: string; focal?: FocalPoint | undefined } | undefined
+  image?: Image | undefined
 }
 
 type Props = { heading: string; columns: Column[] }
@@ -18,12 +20,13 @@ export default function Multicolumn({ heading, columns }: Props) {
           // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
           <li key={`${c.title}-${i}`} className="multicolumn__item">
             {c.image?.url ? (
-              <img
-                className="multicolumn__image"
-                src={c.image.url}
+              <Picture
+                image={c.image}
                 alt={c.image.alt}
+                className="multicolumn__image"
                 style={focalStyle(c.image.focal)}
-                loading="lazy"
+                fill
+                sizes="(min-width: 750px) 33vw, 100vw"
               />
             ) : null}
             <h3 className="h4">{c.title}</h3>

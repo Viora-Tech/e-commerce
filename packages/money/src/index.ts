@@ -49,6 +49,38 @@ export type FormatMoneyOptions = {
   showZeroDecimals?: boolean
 }
 
+/**
+ * Hindi compact units in the Indian system. hi-IN's own compact notation abbreviates
+ * ("₹1.2 क॰") and switches to अरब above 100 crore, which merchants don't say; this spells
+ * हज़ार / लाख / करोड़ out and stays in crore.
+ */
+const HINDI_UNITS = [
+  { size: 1e7, word: 'करोड़' },
+  { size: 1e5, word: 'लाख' },
+  { size: 1e3, word: 'हज़ार' },
+] as const
+
+function isHindi(locale: string): boolean {
+  return locale === 'hi' || locale.startsWith('hi-')
+}
+
+/** "1.2 लाख", "12.3 हज़ार", "950"; one fraction digit at most, like the Intl compact form. */
+function hindiCompact(n: number, locale: string): string {
+  const abs = Math.abs(n)
+  const digits = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
+  const round = (v: number) => Math.round(v * 10) / 10
+  const unit = HINDI_UNITS.find((u) => abs >= u.size)
+  if (!unit) return digits.format(n)
+  const sign = n < 0 ? '-' : ''
+  const scaled = round(abs / unit.size)
+  // Rounding can reach the next unit: 99,990 reads "1 लाख", not "100 हज़ार".
+  const bigger = HINDI_UNITS[HINDI_UNITS.indexOf(unit) - 1]
+  if (bigger && scaled * unit.size >= bigger.size) {
+    return `${sign}${digits.format(round(abs / bigger.size))} ${bigger.word}`
+  }
+  return `${sign}${digits.format(scaled)} ${unit.word}`
+}
+
 function minorToMajor(minor: number, currency: Currency): number {
   const { minorUnit } = CURRENCIES[currency]
   return minor / 10 ** minorUnit
@@ -81,6 +113,10 @@ export function formatMoney(
   const locale = opts.locale ?? meta.defaultLocale
   const major = minorToMajor(minor, currency)
 
+  if (opts.compact && isHindi(locale)) {
+    const text = hindiCompact(major, locale)
+    return text.startsWith('-') ? `-${meta.symbol}${text.slice(1)}` : `${meta.symbol}${text}`
+  }
   if (opts.compact) {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -112,6 +148,7 @@ export function formatNumber(
   } = {},
 ): string {
   const locale = opts.locale ?? CURRENCIES[DEFAULT_CURRENCY].defaultLocale
+  if (opts.compact && isHindi(locale)) return hindiCompact(n, locale)
   return new Intl.NumberFormat(locale, {
     notation: opts.compact ? 'compact' : 'standard',
     maximumFractionDigits: opts.compact ? 1 : opts.maximumFractionDigits,

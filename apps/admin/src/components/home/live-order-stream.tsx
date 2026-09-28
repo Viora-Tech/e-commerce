@@ -4,7 +4,8 @@ import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import { homeContent } from '@/data/home'
-import { formatPaise } from '@/lib/money'
+import { getCopy, getLocale } from '@/lib/copy-server'
+import { formatters } from '@/lib/format'
 
 type LiveOrderStreamProps = {
   orders: DashboardSummary['recentOrders']
@@ -24,9 +25,10 @@ function dotClass(paymentStatus: string): string {
 }
 
 /** Compact "live" feed of the newest orders: name, when, amount, a payment dot. */
-export default function LiveOrderStream({ orders }: LiveOrderStreamProps) {
+export default async function LiveOrderStream({ orders }: LiveOrderStreamProps) {
   // Render logic
-  const c = homeContent.liveStream
+  const c = (await getCopy(homeContent)).liveStream
+  const fmt = formatters(await getLocale())
 
   return (
     <DataCard title={c.title} detailsHref="/orders">
@@ -51,7 +53,7 @@ export default function LiveOrderStream({ orders }: LiveOrderStreamProps) {
                 className="shrink-0 text-caption text-muted-foreground"
               />
               <span className="w-20 shrink-0 text-right text-body-strong text-ink-strong tabular-nums">
-                {formatPaise(o.totalPaise)}
+                {fmt.money(o.totalPaise)}
               </span>
             </li>
           ))}

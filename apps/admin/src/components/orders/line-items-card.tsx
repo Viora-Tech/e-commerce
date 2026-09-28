@@ -2,8 +2,9 @@ import { PackageCheck } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
 import StatusLabel from '@/components/status/status-label'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
 import type { StatusValue } from '@/data/status'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { type OrderDetail, packedQuantity, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
 import { type TotalRow, totalRows } from './order-totals'
@@ -23,8 +24,12 @@ type LineItemsCardProps = {
  * (totals, the GST split and what was settled).
  */
 export default function LineItemsCard({ order, payment, unfulfilledShown }: LineItemsCardProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
+
   // Render logic
-  const rows = totalRows(order)
+  const rows = totalRows(order, copy, fmt)
   const charges = rows.filter((r) => !r.settlement)
   const settled = rows.filter((r) => r.settlement)
   const packed = order.lines

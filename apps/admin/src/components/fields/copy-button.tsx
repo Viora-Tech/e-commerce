@@ -3,7 +3,8 @@
 import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { copyButtonContent as copy } from '@/data/common'
+import { copyButtonContent } from '@/data/common'
+import { useCopy } from '@/hooks/use-copy'
 
 type CopyButtonProps = {
   value: string
@@ -14,6 +15,7 @@ type CopyButtonProps = {
 /** Copies a value to the clipboard and says so for a moment. */
 export default function CopyButton({ value, what }: CopyButtonProps) {
   // Hooks
+  const copy = useCopy(copyButtonContent)
   const [done, setDone] = useState(false)
 
   // Event handlers

@@ -5,9 +5,12 @@ import {
   decodeConsent,
   getCart,
   getTheme,
+  grievanceOfficerOf,
   liveThemeSettings,
+  parseCustomerPrivacySettings,
   parseNavigationSettings,
   parsePreferences,
+  publishedPolicyLinks,
   themeRootAttrs,
   themeToCss,
   toFooterColumns,
@@ -19,14 +22,18 @@ import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
-import VisitBeacon from '@/components/analytics/visit-beacon'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
+import { policyPageContent } from '@/data/policies'
+import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
+import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { themeFontVariables } from '@/lib/fonts'
+import { mediaByUrl } from '@/lib/media-lookup'
+import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
 import { inStore } from '@/lib/store-context'
 import { readPreview } from '@/lib/storefront-gate'
@@ -89,17 +96,30 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 export default async function StoreLayout({ children, params }: Props) {
   const { storeId } = await params
   const preview = await previewRequest(storeId)
-  const { current, menus, theme, previewName } = await inStore(storeId, async (tx) => {
-    const [s] = await tx.select().from(store).where(eq(store.id, storeId))
-    const rows = await tx.select().from(navigationMenu)
-    const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
-    return {
-      current: s,
-      menus: rows,
-      theme: previewed?.settings ?? (await liveThemeSettings(tx, storeId)),
-      previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
-    }
-  })
+  const { current, menus, policies, theme, previewName, logoHeight } = await inStore(
+    storeId,
+    async (tx) => {
+      const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+      const rows = await tx.select().from(navigationMenu)
+      const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
+      const settings = previewed?.settings ?? (await liveThemeSettings(tx, storeId))
+      const logo = settings.brand.logo
+      return {
+        current: s,
+        menus: rows,
+        policies: await publishedPolicyLinks({ tx, storeId }),
+        theme: settings,
+        previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
+        // The logo's real aspect ratio, so the header reserves its height before it loads.
+        logoHeight: logo
+          ? heightForWidth(
+              (await mediaByUrl(tx, [logo.url])).get(logo.url),
+              settings.brand.logoWidth,
+            )
+          : undefined,
+      }
+    },
+  )
 
   if (!current) notFound()
 
@@ -110,6 +130,8 @@ export default async function StoreLayout({ children, params }: Props) {
   const jar = await cookies()
   const mode = resolveThemeMode(jar.get(THEME_COOKIE)?.value, theme.darkMode)
   const prefs = parsePreferences(current.preferences)
+  const privacy = parseCustomerPrivacySettings(current.preferences)
+  const officer = grievanceOfficerOf(current.preferences)
   const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
 
   // Which menus to render comes from the store setting; the menus themselves are
@@ -136,7 +158,9 @@ export default async function StoreLayout({ children, params }: Props) {
             cartCount={cartCount}
             search={<PredictiveSearch label={searchContent.title} />}
             logo={
-              theme.brand.logo ? { url: theme.brand.logo.url, width: theme.brand.logoWidth } : null
+              theme.brand.logo
+                ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
+                : null
             }
           />
         ),
@@ -151,6 +175,12 @@ export default async function StoreLayout({ children, params }: Props) {
             storeName={current.name}
             tagline={typeof s.tagline === 'string' ? s.tagline : ''}
             columns={footerColumns}
+            policies={[
+              ...policies.map((p) => ({ label: p.title, href: p.href })),
+              // Reopens the cookie banner, so a choice can be changed any time.
+              { label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH },
+            ]}
+            grievance={officer ? policyPageContent.grievance(officer) : null}
             themeToggle={
               theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
             }
@@ -176,13 +206,13 @@ export default async function StoreLayout({ children, params }: Props) {
         {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
         {header}
         <main id="MainContent">{children}</main>
-        <VisitBeacon />
         <CursorFill />
         <ThemePreviewBridge storeId={storeId} adminOrigin={adminOrigin} />
         {preview ? null : (
           <ConsentManager
-            privacy={prefs.privacy}
             tracking={prefs.tracking}
+            bannerMessage={privacy.bannerMessage}
+            bannerVersion={privacy.bannerVersion}
             initial={decodeConsent(jar.get(CONSENT_COOKIE)?.value)}
           />
         )}

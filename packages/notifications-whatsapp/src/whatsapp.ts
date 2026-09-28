@@ -49,6 +49,7 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'document_copy':
       return [d.customerName, d.storeName, n, d.links?.[0]?.url ?? '-']
     case 'login_code':
+    case 'account_deletion_code':
       return [d.code ?? '-', d.storeName]
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
@@ -188,6 +189,7 @@ export class WhatsappChannel implements NotificationChannel {
   readonly id = 'whatsapp'
   readonly label = 'WhatsApp (Meta Cloud API)'
   readonly requires = 'phone' as const
+  readonly medium = 'whatsapp' as const
   private readonly fetchImpl: FetchLike
 
   constructor(

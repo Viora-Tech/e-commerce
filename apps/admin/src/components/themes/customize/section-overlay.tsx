@@ -7,8 +7,9 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { MouseEvent, ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
-import { type CustomizeDoc, locateSection, zoneSections } from '@/lib/customize-doc'
+import type { CustomizeDoc } from '@/lib/customize-doc'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { locateBlock, zoneItems } from '@/lib/customize-slots'
 import SectionIcon from './section-icon'
 
 type SectionOverlayProps = {
@@ -22,7 +23,7 @@ type SectionOverlayProps = {
 const copy = customizeContent
 
 const TOOL =
-  'flex size-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:pointer-events-none disabled:opacity-30'
+  'flex size-7 shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent,black)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30 motion-reduce:transition-none'
 
 /**
  * Puck's `componentOverlay` override: the accent outline itself is themed by
@@ -45,10 +46,10 @@ export default function SectionOverlay({
 
   // Event handlers
   const handleMove = (offset: number) => {
-    const located = locateSection(data, componentId)
+    const located = locateBlock(data, componentId)
     if (!located) return
     const to = located.index + offset
-    if (to < 0 || to >= zoneSections(data, located.zone).length) return
+    if (to < 0 || to >= zoneItems(data, located.zone).length) return
     dispatch({
       type: 'reorder',
       sourceIndex: located.index,
@@ -57,12 +58,12 @@ export default function SectionOverlay({
     })
   }
   const handleDuplicate = () => {
-    const located = locateSection(data, componentId)
+    const located = locateBlock(data, componentId)
     if (located)
       dispatch({ type: 'duplicate', sourceIndex: located.index, sourceZone: located.zone })
   }
   const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
-    const located = locateSection(data, componentId)
+    const located = locateBlock(data, componentId)
     if (!located) return
     const doc = e.currentTarget.ownerDocument
     const el = doc.querySelector<HTMLElement>(`[data-puck-component="${componentId}"]`)
@@ -70,14 +71,14 @@ export default function SectionOverlay({
   }
 
   // Early returns
-  const located = locateSection(data, componentId)
+  const located = locateBlock(data, componentId)
   if (!located || !(hover || isSelected)) return <>{children}</>
 
   // Render logic
   const label = components[componentType]?.label ?? componentType
   const locked = SINGLE_SECTIONS.has(componentType)
   const { zone, index } = located
-  const count = zoneSections(data, zone).length
+  const count = zoneItems(data, zone).length
 
   return (
     <>
@@ -95,7 +96,7 @@ export default function SectionOverlay({
       >
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption font-medium shadow-md',
+            'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs leading-4 font-medium shadow-sm',
             isSelected
               ? // The admin's own accent (--admin-accent, written by preview-frame.tsx),
                 // not the storefront theme's --primary, which this iframe redefines.
@@ -116,7 +117,7 @@ export default function SectionOverlay({
               title={copy.overlay.moveUp(label)}
               className={TOOL}
             >
-              <ArrowUp aria-hidden weight="light" className="size-4" />
+              <ArrowUp aria-hidden weight="regular" className="size-3.5" />
             </button>
             <button
               type="button"
@@ -126,7 +127,7 @@ export default function SectionOverlay({
               title={copy.overlay.moveDown(label)}
               className={TOOL}
             >
-              <ArrowDown aria-hidden weight="light" className="size-4" />
+              <ArrowDown aria-hidden weight="regular" className="size-3.5" />
             </button>
             {locked ? null : (
               <>
@@ -138,7 +139,7 @@ export default function SectionOverlay({
                   title={copy.tree.duplicate(label)}
                   className={TOOL}
                 >
-                  <Copy aria-hidden weight="light" className="size-4" />
+                  <Copy aria-hidden weight="regular" className="size-3.5" />
                 </button>
                 <button
                   type="button"
@@ -147,7 +148,7 @@ export default function SectionOverlay({
                   title={copy.tree.remove(label)}
                   className={cn(TOOL, 'hover:bg-red-50 hover:text-red-600')}
                 >
-                  <Trash2 aria-hidden weight="light" className="size-4" />
+                  <Trash2 aria-hidden weight="regular" className="size-3.5" />
                 </button>
               </>
             )}

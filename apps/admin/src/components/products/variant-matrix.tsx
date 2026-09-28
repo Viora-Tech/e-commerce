@@ -14,6 +14,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { MediaItem, VariantRow } from './form-state'
 import VariantImagePicker from './variant-image-picker'
 
@@ -24,9 +25,6 @@ type VariantMatrixProps = {
   onSelectedChange: (next: number[]) => void
   onVariant: (index: number, patch: Partial<VariantRow>) => void
 }
-
-const copy = productFormContent.variants.columns
-const bulkCopy = productFormContent.variantBulk
 
 /** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
 const HEAD =
@@ -43,6 +41,12 @@ export default function VariantMatrix({
   onSelectedChange,
   onVariant,
 }: VariantMatrixProps) {
+  // Hooks
+  const {
+    variants: { columns: copy },
+    variantBulk: bulkCopy,
+  } = useCopy(productFormContent)
+
   // Event handlers
   const handleToggleAll = (checked: boolean) => {
     onSelectedChange(checked ? variants.map((_, i) => i) : [])

@@ -28,11 +28,38 @@ Two are worth naming because the upload-time image pipeline (`packages/core/src/
 run in `apps/worker`) depends on them directly rather than adapting any of their code:
 [sharp](https://github.com/lovell/sharp) (Apache License 2.0) for image decode/resize/encode, and
 [thumbhash](https://github.com/evanw/thumbhash) (MIT) for the blur-up placeholder.
+The theme editor's Custom HTML element is sanitised by
+[sanitize-html](https://github.com/apostrophecms/sanitize-html) (MIT, dependency of
+`packages/blocks`, used through `packages/blocks/src/embed-sanitize.ts`; its own dependencies
+htmlparser2, postcss, deepmerge, escape-string-regexp, is-plain-object, parse-srcset and launder
+are MIT too), licence verified on npm and its GitHub `LICENSE` on 2026-09-27. Layout blocks use
+Puck's slots (MIT, already our editor); no code is copied.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its
 [GitHub `LICENSE`](https://github.com/shuding/nextra/blob/main/LICENSE); its footer credits
 Nextra too.
+
+### Pending: India PIN code directory (not included yet)
+
+Checkout's "PIN code first" (Settings → Checkout) fills city and state from India Post's
+[All India Pincode Directory](https://www.data.gov.in/catalog/all-india-pincode-directory),
+published on data.gov.in under the Government Open Data Licence - India (GODL-India), which
+allows use and redistribution with attribution. **No data from it is in the repository yet**:
+the session that built the feature could not reach data.gov.in (blocked by its network
+policy), so neither the dataset nor the licence text could be downloaded and verified, and no
+third-party copy was substituted. To add it:
+
+1. Download the CSV from data.gov.in and read the licence shown on the dataset page.
+2. Run `bun scripts/build-pincode-directory.ts <file.csv>`; it writes
+   `packages/shipping/data/pincode-directory.json.gz` (PIN code → district and state).
+3. Replace this section with a table row: Project "All India Pincode Directory (Department of
+   Posts, via data.gov.in)", Licence "GODL-India, with attribution", What we adapted "PIN
+   code → district and state, reduced to one row per PIN code", Where
+   `packages/shipping/data/pincode-directory.json.gz`, and keep the licence text in
+   `packages/shipping/THIRD_PARTY_LICENSES.md`.
+
+Until then checkout works as before: shoppers type city and state.
 
 ## Adding an entry
 

@@ -14,7 +14,8 @@ import {
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
-import { shippingSettingsContent as appCopy } from '@/data/shipping'
+import { shippingSettingsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type CourierRuleFieldsProps = {
@@ -24,7 +25,6 @@ type CourierRuleFieldsProps = {
 
 type Courier = { id: string; label: string }
 
-const copy = appCopy.courierRule
 const MODES: CourierRuleSettings['mode'][] = ['cheapest', 'fastest', 'preferred', 'per_zone']
 
 /** Blank zone rule for the "Add a rule" button. */
@@ -41,6 +41,7 @@ function modeOf(value: CourierRuleSettings | undefined): CourierRuleSettings['mo
  *  Shiprocket) so the "always use" and "by state" pickers only offer real choices. */
 export default function CourierRuleFields({ value, onChange }: CourierRuleFieldsProps) {
   // Hooks
+  const { courierRule: copy } = useCopy(shippingSettingsContent)
   const [couriers, setCouriers] = useState<Courier[] | null>(null)
 
   useEffect(() => {

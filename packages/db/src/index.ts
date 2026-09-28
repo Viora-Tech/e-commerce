@@ -2,6 +2,7 @@ export * as authSchema from './auth-schema'
 export { createDb, type Db } from './client'
 export { seedWaimersShipping } from './default-shipping'
 export * from './marketing-schema'
+export * from './privacy-schema'
 export {
   type HostRoute,
   isStoreSlugTaken,

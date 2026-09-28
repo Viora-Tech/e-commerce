@@ -1,11 +1,11 @@
 'use client'
 
-import { animate, stagger } from 'motion'
-import { useReducedMotion } from 'motion/react'
 import { type KeyboardEvent, type MouseEvent, useEffect, useRef, useState } from 'react'
 import { DRAWER, remToPx } from '../data/motion'
 import { navigationContent } from '../data/navigation'
+import { loadMotion, preloadMotionWhenIdle } from '../lazy-motion'
 import type { NavLink } from '../types'
+import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
 
 type HeaderDrawerProps = { storeName: string; links: NavLink[] }
@@ -22,6 +22,7 @@ function lockScroll(locked: boolean): void {
  * (native details, so it works before hydration). Each section starts with the
  * parent's own link, since the parent row itself only expands. Motion slides the
  * panel in and out (Glide's overlay-motion.js); reduced motion opens it instantly.
+ * The animation library is fetched when the browser goes idle, not with the page.
  */
 export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {
   // Hooks
@@ -43,15 +44,26 @@ export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {
       return
     }
     if (reduce) return
-    animate(panel, { x: ['-100%', '0%'] }, DRAWER.in)
-    animate(scrim, { opacity: [0, 1] }, DRAWER.scrim)
-    animate(
-      panel.querySelectorAll('.header-drawer__item'),
-      { opacity: [0, 1], y: [remToPx(DRAWER.itemRiseRem), 0] },
-      { ...DRAWER.in, delay: stagger(DRAWER.itemStep, { startDelay: 0.08 }) },
-    )
+    // Hold the closed pose until motion is in (usually already, from the idle preload).
+    panel.style.transform = 'translateX(-100%)'
+    scrim.style.opacity = '0'
+    loadMotion()
+      .then(({ animate, stagger }) => {
+        animate(panel, { x: ['-100%', '0%'] }, DRAWER.in)
+        animate(scrim, { opacity: [0, 1] }, DRAWER.scrim)
+        animate(
+          panel.querySelectorAll('.header-drawer__item'),
+          { opacity: [0, 1], y: [remToPx(DRAWER.itemRiseRem), 0] },
+          { ...DRAWER.in, delay: stagger(DRAWER.itemStep, { startDelay: 0.08 }) },
+        )
+      })
+      .catch(() => {
+        panel.style.transform = ''
+        scrim.style.opacity = ''
+      })
   }, [open, reduce])
   useEffect(() => () => lockScroll(false), [])
+  useEffect(() => preloadMotionWhenIdle(), [])
 
   // Event handlers
   const handleClose = async () => {
@@ -60,10 +72,15 @@ export default function HeaderDrawer({ storeName, links }: HeaderDrawerProps) {
     if (closingRef.current) return
     if (!reduce && panel && scrim) {
       closingRef.current = true
-      await Promise.all([
-        animate(panel, { x: '-100%' }, DRAWER.out),
-        animate(scrim, { opacity: 0 }, DRAWER.out),
-      ])
+      try {
+        const { animate } = await loadMotion()
+        await Promise.all([
+          animate(panel, { x: '-100%' }, DRAWER.out),
+          animate(scrim, { opacity: 0 }, DRAWER.out),
+        ])
+      } catch {
+        // No motion: shut without the exit.
+      }
       closingRef.current = false
     }
     setOpen(false)

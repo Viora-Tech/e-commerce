@@ -68,14 +68,18 @@ export default function TemplatePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         render={
-          <Button variant="outline" className="min-w-52 justify-between" aria-label={copy.label}>
+          <Button
+            variant="outline"
+            className="min-w-52 justify-between rounded-lg text-[0.8125rem] font-medium"
+            aria-label={copy.label}
+          >
             <span className="flex min-w-0 items-center gap-2">
               {loading ? (
-                <Loader2Icon className="size-4 shrink-0 animate-spin" aria-hidden />
+                <Loader2Icon className="size-3.5 shrink-0 animate-spin" aria-hidden />
               ) : null}
               <span className="truncate">{templateLabel(value)}</span>
             </span>
-            <ChevronDown aria-hidden />
+            <ChevronDown aria-hidden className="size-3.5 text-muted-foreground" />
           </Button>
         }
       />

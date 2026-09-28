@@ -31,7 +31,9 @@ import {
   navigationContent,
   SETTINGS_NAV,
 } from '@/data/navigation'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
+import { localizeNavItems, navGroupName } from '@/lib/page-names'
 import NavGroupBlock from './nav-group-block'
 
 type StoreOption = { id: string; name: string; slug: string }
@@ -50,11 +52,15 @@ const SIDEBAR_APPS = 5
  * Installed apps hang under the Apps entry, like Drafts under Orders. Past a handful the list
  * would push everything else off the rail, so it stops at `SIDEBAR_APPS` with a "View all".
  */
-function nestApps(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] {
+function nestApps(
+  items: NavItem[],
+  apps: AdminSidebarProps['apps'],
+  viewAllApps: (n: number) => string,
+): NavItem[] {
   const shown = apps.slice(0, SIDEBAR_APPS).map((a) => ({ href: `/apps/${a.id}`, label: a.name }))
   const children =
     apps.length > SIDEBAR_APPS
-      ? [...shown, { href: '/apps', label: layoutContent.viewAllApps(apps.length) }]
+      ? [...shown, { href: '/apps', label: viewAllApps(apps.length) }]
       : shown
   return items.map((item) =>
     item.href === '/apps' ? { ...item, children: [...(item.children ?? []), ...children] } : item,
@@ -63,6 +69,10 @@ function nestApps(items: NavItem[], apps: AdminSidebarProps['apps']): NavItem[] 
 
 export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: AdminSidebarProps) {
   // Hooks
+  const copy = useCopy(navigationContent)
+  const layoutCopy = useCopy(layoutContent)
+  const auth = useCopy(authContent)
+  const locale = useLocale()
   const pathname = usePathname()
   const { toggleSidebar } = useSidebar()
   const [switchingId, setSwitchingId] = useState<string | null>(null)
@@ -73,11 +83,11 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
     setSwitchingId(id)
     try {
       const { error } = await authClient.organization.setActive({ organizationId: id })
-      if (error) throw new Error(error.message ?? authContent.selectStore.switchFailed)
+      if (error) throw new Error(error.message ?? auth.selectStore.switchFailed)
       // A full load, so client caches (permissions, lists) start fresh for the new store.
       window.location.assign('/')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : authContent.selectStore.switchFailed)
+      toast.error(err instanceof Error ? err.message : auth.selectStore.switchFailed)
       setSwitchingId(null)
     }
   }
@@ -111,18 +121,18 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
                 aria-hidden="true"
                 className="flex size-6 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-[0.75rem] font-semibold text-muted-foreground"
               >
-                {(active?.name ?? navigationContent.pickStore).charAt(0).toUpperCase()}
+                {(active?.name ?? copy.pickStore).charAt(0).toUpperCase()}
               </span>
             )}
             <span className="truncate text-body-strong font-semibold text-ink-strong group-data-[collapsible=icon]:hidden">
-              {active?.name ?? navigationContent.pickStore}
+              {active?.name ?? copy.pickStore}
             </span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-60 bg-popover">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                {navigationContent.stores}
+                {copy.stores}
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             {stores.map((s) => (
@@ -137,14 +147,14 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/select-store" />}>
-              {navigationContent.allStores}
+              {copy.allStores}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <button
           type="button"
           onClick={toggleSidebar}
-          aria-label={navigationContent.collapse}
+          aria-label={copy.collapse}
           className="hidden size-6 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground group-data-[collapsible=icon]:hidden md:flex"
         >
           <PanelLeftClose className="size-6" strokeWidth={1.6} />
@@ -156,8 +166,12 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
         {NAV_GROUPS.map((group, gi) => (
           <NavGroupBlock
             key={group.label ?? gi}
-            label={group.label}
-            items={group.label === APPS_GROUP ? nestApps(group.items, apps) : group.items}
+            label={group.label ? navGroupName(group.label, locale) : undefined}
+            items={
+              group.label === APPS_GROUP
+                ? nestApps(localizeNavItems(group.items, locale), apps, layoutCopy.viewAllApps)
+                : localizeNavItems(group.items, locale)
+            }
             pathname={pathname}
             divided={gi > 0}
           />
@@ -168,8 +182,8 @@ export default function AdminSidebar({ stores, activeStoreId, apps, logoUrl }: A
       {/* Settings pinned to the bottom of the rail, like Shopify; the member menu lives in the header. */}
       <SidebarFooter className="p-0 pb-4">
         <NavGroupBlock
-          label={navigationContent.adminGroup}
-          items={[SETTINGS_NAV]}
+          label={copy.adminGroup}
+          items={localizeNavItems([SETTINGS_NAV], locale)}
           pathname={pathname}
           divided
         />

@@ -10,8 +10,8 @@ import LiveGlobeCanvas from '@/components/analytics/live-globe/live-globe-canvas
 import DataCard from '@/components/layout/data-card'
 import EmptyState from '@/components/layout/empty-state'
 import { homeContent } from '@/data/home'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { useLiveGlobeData } from '@/hooks/use-live-globe-data'
-import { formatCompact, formatPaise } from '@/lib/money'
 import { isWebglSupported } from '@/lib/webgl'
 
 type LiveGlobeCardProps = {
@@ -31,6 +31,8 @@ const INDIA_FOCUS = { lat: 22.35, lng: 78.6 }
  */
 export default function LiveGlobeCard({ initial }: LiveGlobeCardProps) {
   // Hooks
+  const copy = useCopy(homeContent)
+  const fmt = useFormat()
   const { resolvedTheme } = useTheme()
   const reducedMotion = useReducedMotion()
   const data = useLiveGlobeData(initial)
@@ -42,8 +44,8 @@ export default function LiveGlobeCard({ initial }: LiveGlobeCardProps) {
   }, [])
 
   // Render logic
-  const c = homeContent.liveGlobe
-  const { markers, arcs } = buildGlobeData(data)
+  const c = copy.liveGlobe
+  const { markers, arcs } = buildGlobeData(data, fmt.locale)
   const dark = resolvedTheme === 'dark'
 
   return (
@@ -56,19 +58,19 @@ export default function LiveGlobeCard({ initial }: LiveGlobeCardProps) {
             <div>
               <p className="text-caption text-muted-foreground">{c.ordersToday}</p>
               <p className="mt-0.5 text-card-title text-ink-strong tabular-nums">
-                {formatCompact(data.today.ordersCount)}
+                {fmt.compact(data.today.ordersCount)}
               </p>
             </div>
             <div>
               <p className="text-caption text-muted-foreground">{c.salesToday}</p>
               <p className="mt-0.5 text-card-title text-ink-strong tabular-nums">
-                {formatPaise(data.today.salesPaise)}
+                {fmt.money(data.today.salesPaise)}
               </p>
             </div>
             <div>
               <p className="text-caption text-muted-foreground">{c.visitorsNow}</p>
               <p className="mt-0.5 text-card-title text-ink-strong tabular-nums">
-                {formatCompact(data.liveVisitors.last30)}
+                {fmt.compact(data.liveVisitors.last30)}
               </p>
             </div>
           </div>

@@ -14,7 +14,8 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ProductThumb from '@/components/products/product-thumb'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
 
@@ -27,6 +28,7 @@ type FulfilDialogProps = {
 /** Choose what goes out now, with an optional courier and tracking number. */
 export default function FulfilDialog({ order, onClose, onDone }: FulfilDialogProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
   const [picks, setPicks] = useState<Record<string, number>>({})
   const [courier, setCourier] = useState('')
   const [tracking, setTracking] = useState('')

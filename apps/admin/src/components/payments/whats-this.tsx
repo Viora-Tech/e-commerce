@@ -9,10 +9,14 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@commerce/ui/shadcn/popover'
-import { paymentsSetupContent as copy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 
 /** The "What's this?" link: how online payments work, in two sentences. */
 export default function WhatsThis() {
+  // Hooks
+  const copy = useCopy(paymentsSetupContent)
+
   return (
     <Popover>
       <PopoverTrigger className="inline-flex items-center gap-1 text-body font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

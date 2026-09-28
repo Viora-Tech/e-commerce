@@ -1,8 +1,10 @@
+import { CONSENT_COOKIE } from '@commerce/core/preferences'
 import { withQuery } from '@commerce/core/redirects'
 import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { type HostRoute, resolveHost } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
+import { analyticsAllowed } from './lib/consent-cookie'
 import { db } from './lib/db'
 import { redirectFor } from './lib/redirects'
 import { DERIVED_HEADERS, PASSWORD_PREFIX, primaryRedirect, routeForStore } from './lib/routing'
@@ -117,9 +119,16 @@ export async function proxy(request: NextRequest) {
       maxAge: PREVIEW_MAX_AGE,
     })
   }
-  // First page view mints the anonymous visitor id the beacon reports; the beacon itself
-  // is a keepalive POST whose Set-Cookie some browsers drop, so it is done here.
-  if (!parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {
+  // The first page view after the shopper allowed analytics mints the anonymous visitor
+  // id the beacon reports (the beacon is a keepalive POST whose Set-Cookie some browsers
+  // drop, so it is done here). Without analytics consent no visitor id is set at all. Never
+  // on robots.txt, sitemap.xml or llms.txt: they answer `cache-control: public`, and a
+  // shared cache that stored a Set-Cookie would hand one visitor id to every shopper after.
+  if (
+    !seoFile &&
+    analyticsAllowed(request.cookies.get(CONSENT_COOKIE)?.value) &&
+    !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)
+  ) {
     response.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
       httpOnly: true,
       sameSite: 'lax',

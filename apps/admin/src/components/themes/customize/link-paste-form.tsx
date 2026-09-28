@@ -45,7 +45,7 @@ export default function LinkPasteForm({ onPick, newTab, onNewTab }: LinkPasteFor
       <form onSubmit={handleSubmit} className="flex flex-col gap-1">
         <label
           htmlFor={`${switchId}-url`}
-          className="px-0.5 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase"
+          className="px-0.5 text-[0.6875rem] leading-4 font-medium text-muted-foreground"
         >
           {copy.pasteHeading}
         </label>
@@ -53,7 +53,7 @@ export default function LinkPasteForm({ onPick, newTab, onNewTab }: LinkPasteFor
           <div className="relative flex-1">
             <Globe
               aria-hidden
-              weight="light"
+              weight="regular"
               className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground"
             />
             <Input

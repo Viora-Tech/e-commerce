@@ -1,17 +1,15 @@
 import { z } from 'zod'
 import { INDIAN_STATE_NAMES } from '../tax/states'
+import { MOBILE_PATTERN, PINCODE_PATTERN } from './patterns'
 
 /**
  * Pure validation for storefront accounts, safe to import from client components
  * (`@commerce/core/accounts`).
  */
 
-/** Indian PIN code: six digits, never starting with 0. */
-export const PINCODE_PATTERN = /^[1-9]\d{5}$/
-/** Ten digit Indian mobile number, optionally written with +91 or a leading 0. */
-export const MOBILE_PATTERN = /^[6-9]\d{9}$/
-
-export const isPincode = (v: string): boolean => PINCODE_PATTERN.test(v.trim())
+// The patterns live in a zod-free module the storefront's address form imports in the
+// browser (`@commerce/core/account-patterns`); re-exported so nothing else changes.
+export { isPincode, MOBILE_PATTERN, PINCODE_PATTERN } from './patterns'
 
 /** "+91 98765 43210" -> "9876543210"; null when it is not a mobile number. */
 export function normaliseMobile(raw: string): string | null {
@@ -58,7 +56,11 @@ export const ProfileInputSchema = z.object({
     if (!m) ctx.addIssue({ code: 'custom', message: 'Enter a ten digit mobile number' })
     return m
   }),
+  /** Email marketing. */
   acceptsMarketing: z.boolean(),
+  /** WhatsApp and SMS marketing; left as they are when the form does not show them. */
+  acceptsWhatsapp: z.boolean().optional(),
+  acceptsSms: z.boolean().optional(),
 })
 
 export type ProfileInput = z.input<typeof ProfileInputSchema>

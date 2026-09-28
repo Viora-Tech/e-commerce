@@ -7,10 +7,10 @@ import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import CreateReturnDialog from '@/components/returns/create-return-dialog'
 import StatusLabel from '@/components/status/status-label'
-import { orderReturnsContent as copy, returnsContent } from '@/data/returns'
+import { orderReturnsContent, returnsContent } from '@/data/returns'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatDate } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import type { Formatters } from '@/lib/format'
 
 type State = Awaited<ReturnType<typeof api.returns.forOrder>>
 
@@ -22,18 +22,25 @@ type OrderReturnsCardProps = {
 }
 
 /** One line about the return window, in the shop owner's words. */
-function windowLine(s: NonNullable<State>): string {
+function windowLine(
+  copy: typeof orderReturnsContent,
+  fmt: Formatters,
+  s: NonNullable<State>,
+): string {
   const e = s.eligibility
   if (e.why === 'disabled') return copy.disabled
   if (!e.closesAt) return copy.notDelivered
   return e.why === 'window_closed'
-    ? copy.windowClosed(formatDate(e.closesAt))
-    : copy.windowOpen(formatDate(e.closesAt))
+    ? copy.windowClosed(fmt.date(e.closesAt))
+    : copy.windowOpen(fmt.date(e.closesAt))
 }
 
 /** The order page's Returns card: an RTO task banner first, then every return on the order. */
 export default function OrderReturnsCard({ orderId, readOnly, onChanged }: OrderReturnsCardProps) {
   // Hooks
+  const copy = useCopy(orderReturnsContent)
+  const fmt = useFormat()
+  const returnsCopy = useCopy(returnsContent)
   const [state, setState] = useState<State | null>(null)
   const [creating, setCreating] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -104,23 +111,23 @@ export default function OrderReturnsCard({ orderId, readOnly, onChanged }: Order
               <li key={r.id} className="flex items-center justify-between gap-3 py-2">
                 <Link href={`/orders/returns/${r.id}`} className="flex flex-col hover:underline">
                   <span className="text-body text-foreground">
-                    {r.label} · {returnsContent.kind[r.kind]}
+                    {r.label} · {returnsCopy.kind[r.kind]}
                   </span>
                   <span className="text-caption text-muted-foreground">
-                    {returnsContent.itemCount(r.lines.reduce((n, l) => n + l.returnQuantity, 0))} ·{' '}
-                    {formatPaise(r.valuePaise)}
+                    {returnsCopy.itemCount(r.lines.reduce((n, l) => n + l.returnQuantity, 0))} ·{' '}
+                    {fmt.money(r.valuePaise)}
                   </span>
                 </Link>
                 <StatusLabel
                   kind="return"
                   value={r.status}
-                  label={r.kind === 'rto' ? returnsContent.rtoStatus[r.status] : undefined}
+                  label={r.kind === 'rto' ? returnsCopy.rtoStatus[r.status] : undefined}
                 />
               </li>
             ))}
           </ul>
         )}
-        <p className="text-caption text-muted-foreground">{windowLine(state)}</p>
+        <p className="text-caption text-muted-foreground">{windowLine(copy, fmt, state)}</p>
       </div>
       {canCreate ? (
         <CreateReturnDialog

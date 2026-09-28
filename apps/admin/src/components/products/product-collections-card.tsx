@@ -7,7 +7,8 @@ import { FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { productCollectionsCardContent as copy } from '@/data/collections'
+import { productCollectionsCardContent } from '@/data/collections'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ProductCollectionsField, { type CollectionOption } from './product-collections-field'
 
@@ -31,6 +32,7 @@ export default function ProductCollectionsCard({
   revision = 0,
 }: ProductCollectionsCardProps) {
   // Hooks
+  const copy = useCopy(productCollectionsCardContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [value, setValue] = useState<string[]>([])
   const [saved, setSaved] = useState<string[]>([])

@@ -1,10 +1,6 @@
 import { Reveal } from '@commerce/blocks'
-import {
-  type BlockProps,
-  createBlocksConfig,
-  type PageData,
-  type SectionMetadata,
-} from '@commerce/blocks/puck'
+import { createBlocksConfig, type PageData, type SectionMetadata } from '@commerce/blocks/puck'
+import { renderBlock } from '@commerce/blocks/slots'
 import {
   applyBindings,
   boundPaths,
@@ -27,6 +23,7 @@ import { Fragment } from 'react'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import { listCardProducts } from './catalog'
 import { collectionCards, listCollections } from './collections'
+import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
 import { readPreview } from './storefront-gate'
 
@@ -102,9 +99,12 @@ export async function renderTemplate(
   // Connected settings read their source now, per request and under this store's RLS;
   // an empty source renders what the merchant typed in.
   const paths = boundPaths(shown)
-  const visible = paths.length
+  const bound = paths.length
     ? applyBindings(shown, await loadSourceValues(tx, paths, { storeId, ...options.sources }))
     : shown
+  // Section images are saved as bare URLs; one lookup gives <Picture> their AVIF/WebP
+  // variants and ThumbHash, so a banner never ships the full-size original.
+  const visible = await attachImageMedia(tx, bound)
   const config = await blocksConfig(tx, storeId)
   const metadata: SectionMetadata = {
     renderers: {
@@ -127,27 +127,26 @@ export async function renderTemplate(
   // Sections below the first rise in on scroll. Not the header and footer groups, and
   // not in a theme preview, where the merchant is looking at sections, not arriving.
   const reveals = !preview && key !== 'header' && key !== 'footer'
+  // The first section of a page is where the LCP image usually is: hero-type blocks
+  // load theirs eagerly at high priority when told so, everything else stays lazy.
+  const group = key === 'header' || key === 'footer'
 
   return (
     <>
       {resolved.content.map((item, index) => {
-        const section = components[item.type]
-        if (!section?.render) return null
-        const Section = section.render as (props: Record<string, unknown>) => React.ReactNode
-        const props = {
-          ...section.defaultProps,
-          ...item.props,
+        // Slots (Group, Columns, Tabs … and anything nested in them) are drawn here on
+        // the server too: renderBlock fills each slot prop with its children. The first
+        // top-level section is flagged above the fold so its image loads with priority.
+        const aboveFold = index === 0 && !group ? { _aboveFold: true } : {}
+        const section = renderBlock(
+          { ...item, props: { ...item.props, ...aboveFold } },
+          components,
           puck,
-        } as BlockProps[keyof BlockProps]
+        )
+        if (!section) return null
         return (
           <Fragment key={item.props.id}>
-            {reveals && index > 0 ? (
-              <Reveal>
-                <Section {...(props as Record<string, unknown>)} />
-              </Reveal>
-            ) : (
-              <Section {...(props as Record<string, unknown>)} />
-            )}
+            {reveals && index > 0 ? <Reveal>{section}</Reveal> : section}
           </Fragment>
         )
       })}

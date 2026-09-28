@@ -6,6 +6,7 @@ import { Label } from '@commerce/ui/shadcn/label'
 import DataCard from '@/components/layout/data-card'
 import { INDIAN_STATES } from '@/data/india'
 import { shippingRatesContent } from '@/data/shipping-rates'
+import { useCopy } from '@/hooks/use-copy'
 
 type ZoneStatesCardProps = {
   value: string[]
@@ -13,10 +14,13 @@ type ZoneStatesCardProps = {
   disabled?: boolean
 }
 
-const copy = shippingRatesContent.zone.regions
-
 /** Tick the states this zone covers; none ticked (and no PIN codes) means all of India. */
 export default function ZoneStatesCard({ value, onChange, disabled }: ZoneStatesCardProps) {
+  // Hooks
+  const {
+    zone: { regions: copy },
+  } = useCopy(shippingRatesContent)
+
   // Event handlers
   const handleToggle = (code: string, on: boolean) => {
     onChange(on ? [...value, code] : value.filter((c) => c !== code))

@@ -35,6 +35,8 @@ export type ThemeLibraryErrorCode =
   | 'THEME_NAME_INVALID'
   /** A connected setting reads a dynamic source it cannot have. */
   | 'THEME_SOURCE_INVALID'
+  /** A "My sections" entry breaks a rule (name, size, how many). */
+  | 'THEME_SECTION_INVALID'
 
 export class ThemeLibraryError extends CommerceError {
   declare readonly code: ThemeLibraryErrorCode

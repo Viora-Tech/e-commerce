@@ -1,8 +1,7 @@
 import { Send } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { orderDetailContent } from '@/data/orders'
-import { formatWhen } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 
 type PreorderBalanceLineProps = {
@@ -11,8 +10,6 @@ type PreorderBalanceLineProps = {
   onRequest?: (() => void) | undefined
   busy: boolean
 }
-
-const copy = orderDetailContent.payment.preorder
 
 /** What the deposit attempts took and kept: the "Deposit paid" figure. */
 function depositPaid(order: OrderDetail): number {
@@ -26,20 +23,25 @@ function depositPaid(order: OrderDetail): number {
  * card: "Deposit paid ₹X · Balance due ₹Y (requested <date>, N reminders sent)".
  */
 export default function PreorderBalanceLine({ order, onRequest, busy }: PreorderBalanceLineProps) {
+  // Hooks
+  const detail = useCopy(orderDetailContent)
+  const fmt = useFormat()
+
   // Render logic
+  const copy = detail.payment.preorder
   const owed = order.balanceDuePaise ?? 0
   const state = order.balancePaidAt
-    ? copy.balancePaid(formatWhen(order.balancePaidAt))
-    : `${copy.balanceDue(formatPaise(owed))} (${
+    ? copy.balancePaid(fmt.when(order.balancePaidAt))
+    : `${copy.balanceDue(fmt.money(owed))} (${
         order.balanceRequestedAt
-          ? copy.requested(formatWhen(order.balanceRequestedAt), order.balanceRemindersSent)
+          ? copy.requested(fmt.when(order.balanceRequestedAt), order.balanceRemindersSent)
           : copy.notRequested
       })`
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2">
       <p className="text-body">
-        <span className="font-medium">{copy.depositPaid(formatPaise(depositPaid(order)))}</span>
+        <span className="font-medium">{copy.depositPaid(fmt.money(depositPaid(order)))}</span>
         <span className="text-muted-foreground"> · {state}</span>
       </p>
       {onRequest ? (

@@ -1,15 +1,31 @@
 import { parseNavigationSettings } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 export async function getStore(tx: StoreTx, storeId: string) {
   const [s] = await tx.select().from(store).where(eq(store.id, storeId))
   return s ?? null
 }
 
+/**
+ * Online Store › Preferences writes its own keys (seo, password, tracking) into
+ * `store.preferences`, merged over what is there: policies, checkout, customer
+ * privacy, customer accounts and the theme editor's "My sections" (`customSections`)
+ * live in the same column and must survive.
+ */
 export async function updateStorePreferences(tx: StoreTx, storeId: string, preferences: unknown) {
-  const [s] = await tx.update(store).set({ preferences }).where(eq(store.id, storeId)).returning()
+  // `customSections` is only ever written by `saveCustomSection`; a stale copy in the form
+  // must not overwrite it.
+  const next = { ...((preferences ?? {}) as Record<string, unknown>) }
+  delete next.customSections
+  const [s] = await tx
+    .update(store)
+    .set({
+      preferences: sql`coalesce(${store.preferences}, '{}'::jsonb) || ${JSON.stringify(next)}::jsonb`,
+    })
+    .where(eq(store.id, storeId))
+    .returning()
   return s ?? null
 }
 
@@ -58,8 +74,9 @@ export type StoreGeneralPatch = {
   contactEmail: string | null
   contactPhone: string | null
   address: unknown
-  gstin: string | null
-  gstRatePercent: number
+  /** Left out: Settings › General no longer edits tax, so it cannot overwrite Taxes & GST. */
+  gstin?: string | null
+  gstRatePercent?: number
   timezone: string
 }
 

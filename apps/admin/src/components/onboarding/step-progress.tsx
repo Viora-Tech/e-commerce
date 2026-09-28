@@ -1,6 +1,7 @@
 import { ArrowLeft } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 
 type StepProgressProps = {
   /** Zero-based. */
@@ -13,6 +14,9 @@ type StepProgressProps = {
 
 /** Progress dots plus a back button, above each onboarding question. */
 export default function StepProgress({ step, total, onBack, disabled }: StepProgressProps) {
+  // Hooks
+  const copy = useCopy(onboardingContent)
+
   // Render logic
   const dots = Array.from({ length: total }, (_, i) => i)
 

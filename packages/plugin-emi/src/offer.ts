@@ -1,7 +1,9 @@
 /** SOURCE OF TRUTH: EMI & pay later app — WHAT its settings mean and WHEN the product page shows an offer. */
-import { lowestEmiPaise } from '@commerce/core/emi'
 import { type CheckoutMethod, checkoutMethodsOf } from '@commerce/core/payment-methods'
 import { z } from 'zod'
+import type { EmiOffersConfig } from './offer-for'
+
+export { type EmiOffersConfig, emiOfferFor } from './offer-for'
 
 /*
  * Pure (no database, no network), so the storefront's client components and
@@ -79,12 +81,6 @@ export function razorpayKeyIdOf(settings: EmiWidgetSettings, payments: EmiPaymen
   return keyId?.startsWith('rzp_') ? keyId : null
 }
 
-/** What the storefront needs to draw offers for any price on the page. Serialisable. */
-export type EmiOffersConfig = {
-  minPricePaise: number
-  razorpayKeyId: string | null
-}
-
 /** Null unless the app is on, the gateway is set up and EMI is on at checkout. */
 export function emiOffersConfig(
   settings: EmiWidgetSettings,
@@ -94,16 +90,6 @@ export function emiOffersConfig(
   return {
     minPricePaise: settings.minPricePaise,
     razorpayKeyId: razorpayKeyIdOf(settings, payments),
-  }
-}
-
-/** The offer for one price, shaped for `EmiOffersBlock`; null below the minimum price. */
-export function emiOfferFor(config: EmiOffersConfig | null, pricePaise: number) {
-  if (!config || pricePaise <= 0 || pricePaise < config.minPricePaise) return null
-  return {
-    amountPaise: pricePaise,
-    monthlyPaise: lowestEmiPaise(pricePaise),
-    razorpayKeyId: config.razorpayKeyId,
   }
 }
 

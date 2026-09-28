@@ -1,5 +1,6 @@
 import { validateGstin } from '@commerce/core/gstin'
 import { StoreAddressSchema } from '@commerce/core/store-settings'
+import { chargedGstRate, parseStoreTax } from '@commerce/core/tax-settings'
 import {
   address,
   customer,
@@ -14,6 +15,7 @@ import {
   addressParty,
   buildCreditNote,
   buildDocument,
+  counterYear,
   type DocumentKind,
   type DocumentSnapshot,
   DocumentSnapshotSchema,
@@ -122,7 +124,7 @@ export async function takeNumber(
   const fy = financialYear(at)
   const [row] = await tx
     .insert(invoiceSequence)
-    .values({ storeId, kind, seriesId: series.id, fyStartYear: fy.startYear, next: 2 })
+    .values({ storeId, kind, seriesId: series.id, fyStartYear: counterYear(series, fy), next: 2 })
     .onConflictDoUpdate({
       target: [invoiceSequence.storeId, invoiceSequence.seriesId, invoiceSequence.fyStartYear],
       set: { next: sql`${invoiceSequence.next} + 1` },
@@ -153,16 +155,18 @@ export async function orderSnapshot(
   number: string | null,
   issuedAt: Date,
   settings: InvoiceSettings,
-  buyerGstin: string | null,
+  /** The buyer's GSTIN; undefined uses the one the shopper gave at checkout (null prints none). */
+  buyerGstin: string | null | undefined,
   /** Shipping bill and currency details already entered on the draft, kept on rebuild. */
   prior?: ExportSupply | null,
 ): Promise<DocumentSnapshot> {
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new InvoiceError('order_not_found', `order ${orderId} not found`)
   const [s] = await tx
-    .select({ name: store.name, gstRatePercent: store.gstRatePercent })
+    .select({ name: store.name, gstRatePercent: store.gstRatePercent, apps: store.apps })
     .from(store)
     .where(eq(store.id, storeId))
+  const storeTax = parseStoreTax(s?.apps)
   const lines = await tx
     .select({
       title: orderLine.title,
@@ -184,8 +188,11 @@ export async function orderSnapshot(
   const [cu] = o.customerId
     ? await tx.select().from(customer).where(eq(customer.id, o.customerId))
     : []
+  // A business buyer's GSTIN from checkout (Settings → Checkout) bills the business by name.
+  const gstin = buyerGstin === undefined ? (o.buyerGstin ?? null) : buyerGstin
+  const businessName = gstin && gstin === o.buyerGstin ? o.buyerBusinessName : null
   const buyer = addressParty({
-    name: ship?.name ?? cu?.name ?? null,
+    name: businessName ?? ship?.name ?? cu?.name ?? null,
     line1: ship?.line1 ?? null,
     line2: ship?.line2 ?? null,
     city: ship?.city ?? null,
@@ -193,7 +200,7 @@ export async function orderSnapshot(
     pincode: ship?.pincode ?? null,
     phone: ship?.phone ?? o.phone,
     email: o.email,
-    gstin: buyerGstin,
+    gstin,
   })
   const cod = o.paymentMethod === 'cod' && !o.checkoutPaidAt
   const country = (ship?.country ?? 'IN').toUpperCase()
@@ -247,7 +254,8 @@ export async function orderSnapshot(
     placeOfSupply: buyer.state,
     defaultHsn: settings.defaultHsn,
     hsnDigits: settings.hsnDigits,
-    fallbackRatePercent: s?.gstRatePercent ?? 18,
+    fallbackRatePercent: chargedGstRate(s?.gstRatePercent ?? 18, storeTax),
+    composition: storeTax.composition,
   })
   return kind === 'tax_invoice' ? { ...doc, advance: await advanceOf(tx, orderId) } : doc
 }
@@ -397,16 +405,7 @@ export async function issueDocument(
   const again = await existing(tx, orderId, kind)
   if (again) return { row: again, created: false }
   const at = opts.at ?? new Date()
-  const doc = await orderSnapshot(
-    tx,
-    storeId,
-    orderId,
-    kind,
-    null,
-    at,
-    settings,
-    opts.buyerGstin ?? null,
-  )
+  const doc = await orderSnapshot(tx, storeId, orderId, kind, null, at, settings, opts.buyerGstin)
   const row = await insertDocument(tx, storeId, doc, {})
   if (!row) throw new Error('invoice insert raced past the advisory lock')
   return { row, created: true }

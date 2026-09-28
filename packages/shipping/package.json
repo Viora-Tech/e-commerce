@@ -6,7 +6,8 @@
   "description": "Shipping provider contract, registry, delivery-date calendar, pincode rules and conformance suite. No runtime dependencies.",
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./pincode-directory": "./src/pincode-directory.ts"
   },
   "scripts": {
     "test": "vitest run",

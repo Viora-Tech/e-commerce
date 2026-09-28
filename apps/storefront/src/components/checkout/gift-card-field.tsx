@@ -1,7 +1,7 @@
 'use client'
 
 import { formatPaise } from '@commerce/blocks'
-import { normaliseGiftCardCode } from '@commerce/core/gift-cards'
+import { normaliseGiftCardCode } from '@commerce/core/gift-card-code'
 import { useState, useTransition } from 'react'
 import { giftCardFieldContent as content } from '@/data/checkout'
 import { type AppliedGiftCard, checkGiftCardAction } from '@/lib/gift-card-actions'

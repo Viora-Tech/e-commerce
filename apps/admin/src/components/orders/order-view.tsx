@@ -5,8 +5,9 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { ADMIN_APPS } from '@/apps/registry'
 import DetailLayout from '@/components/layout/detail-layout'
-import { orderDetailContent as copy, type OrderMark, ordersContent } from '@/data/orders'
+import { type OrderMark, orderDetailContent, ordersContent } from '@/data/orders'
 import { shipmentPanelContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import CollectPaymentDialog from './collect-payment-dialog'
 import CustomerCard from './customer-card'
@@ -42,6 +43,9 @@ type OrderViewProps = {
 
 export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
+  const listCopy = useCopy(ordersContent)
+  const shippingCopy = useCopy(shipmentPanelContent)
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [refunding, setRefunding] = useState<OrderPayment | null>(null)
@@ -61,10 +65,10 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
     setBusy(true)
     try {
       await api.orders.setStatus({ id: order.id, status: to })
-      toast.success(copy.moved(ordersContent.marks[to].toLowerCase()))
+      toast.success(copy.moved(listCopy.marks[to].toLowerCase()))
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : ordersContent.bulk.failed)
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
     } finally {
       setBusy(false)
     }
@@ -76,7 +80,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       toast.success(copy.payment.preorder.requestedToast)
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : ordersContent.bulk.failed)
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
     } finally {
       setBusy(false)
     }
@@ -88,7 +92,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
       toast.success(copy.payment.transfer.sentToast)
       refresh()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : ordersContent.bulk.failed)
+      toast.error(err instanceof Error ? err.message : listCopy.bulk.failed)
     } finally {
       setBusy(false)
     }
@@ -109,7 +113,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   const handleBook = () =>
     handleCourier(
       () => api.orders.createShipment({ orderId: order.id }),
-      (s) => shipmentPanelContent.booked(s.waybill),
+      (s) => shippingCopy.booked(s.waybill),
     )
   const handleRefreshTracking = () =>
     shipmentId &&
@@ -121,7 +125,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
     shipmentId &&
     handleCourier(
       () => api.orders.cancelShipment({ shipmentId }),
-      () => shipmentPanelContent.cancelled,
+      () => shippingCopy.cancelled,
     )
 
   // Render logic

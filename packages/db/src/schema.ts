@@ -612,11 +612,19 @@ export const customer = pgTable(
     acceptsMarketing: boolean('accepts_marketing').notNull().default(false),
     /** Opted in to WhatsApp marketing (broadcasts and promotional automations). */
     acceptsWhatsapp: boolean('accepts_whatsapp').notNull().default(false),
+    /** Opted in to SMS marketing. History of every change: `marketing_consent_event`. */
+    acceptsSms: boolean('accepts_sms').notNull().default(false),
     /** When and where the latest email consent was given, e.g. `newsletter`, `checkout`, `admin`. */
     marketingConsentAt: timestamp('marketing_consent_at', { withTimezone: true }),
     marketingConsentSource: text('marketing_consent_source'),
     /** Set by the unsubscribe link; no marketing email or automation reaches the customer after it. */
     unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+    /**
+     * Set when the customer's personal data was erased (a deletion request).
+     * The row stays so orders and invoices keep their link; name, email,
+     * phone and addresses are gone. See `@commerce/core` `anonymiseCustomer`.
+     */
+    anonymisedAt: timestamp('anonymised_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -808,6 +816,12 @@ export const order = pgTable(
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
+    /** Business buyer's GSTIN from checkout (Settings → Checkout), validated; the GST invoice prints it. */
+    buyerGstin: text('buyer_gstin'),
+    /** Business name typed beside the GSTIN; the GST invoice bills to it. */
+    buyerBusinessName: text('buyer_business_name'),
+    /** The shopper's note from checkout, when the store turned order notes on. */
+    customerNote: text('customer_note'),
     shippingAddressId: uuid('shipping_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
     /**

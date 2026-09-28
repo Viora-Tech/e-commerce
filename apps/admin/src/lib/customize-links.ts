@@ -13,10 +13,14 @@
  * - a `{ label, href }` link object keeps that same string in `href` and may
  *   add `newTab: true` (the "Open in a new tab" switch). Nothing else.
  *
- * Policies have no route of their own: they are ordinary pages whose handle
- * reads as a policy (`refund-policy`, `terms-of-service` …), so they are
- * stored as `/pages/<handle>` and only listed under their own heading.
+ * Policies are ordinary pages whose handle reads as a policy. The five from
+ * Settings → Policies (`refund-policy`, `privacy-policy`, `terms-of-service`,
+ * `shipping-policy`, `contact-information`) have their own route and are
+ * stored as `/policies/<handle>`; any other policy-like page (say
+ * `cancellation-policy`) stays `/pages/<handle>`, listed under Policies.
  */
+
+import { policyPath, policyTypeOfHandle } from '@commerce/core/policies'
 
 export type LinkKind = 'product' | 'collection' | 'page' | 'article' | 'policy'
 
@@ -62,9 +66,11 @@ export function collectionHref(handle: string): string {
   return `/collections/${enc(handle)}`
 }
 
-/** The page with the `home` handle is the home page, served at `/`. */
+/** The page with the `home` handle is the home page, served at `/`; the five store policies live at `/policies/<handle>`. */
 export function pageHref(handle: string): string {
-  return handle === 'home' ? '/' : `/pages/${enc(handle)}`
+  if (handle === 'home') return '/'
+  const policy = policyTypeOfHandle(handle)
+  return policy ? policyPath(policy) : `/pages/${enc(handle)}`
 }
 
 export function articleHref(blogHandle: string, handle: string): string {
@@ -75,6 +81,7 @@ const PATTERNS: { kind: LinkKind; re: RegExp }[] = [
   { kind: 'product', re: /^\/products\/([^/?#]+)\/?$/ },
   { kind: 'collection', re: /^\/collections\/([^/?#]+)\/?$/ },
   { kind: 'page', re: /^\/pages\/([^/?#]+)\/?$/ },
+  { kind: 'policy', re: /^\/policies\/([^/?#]+)\/?$/ },
 ]
 
 const safeDecode = (s: string) => {

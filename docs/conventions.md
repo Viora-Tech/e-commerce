@@ -29,7 +29,10 @@ excepted) follows this order. `bun run lint:components` enforces it and runs as 
 
 Naming: files are kebab-case and named after the component (`order-status-cell.tsx` default-exports
 `OrderStatusCell`); import with `import OrderStatusCell from './order-status-cell'`. Package
-barrels re-export with `export { default as X } from './components/x'`. Copy lives in `data/<feature>.ts`, never inline. Sizes are rem, never px.
+barrels re-export with `export { default as X } from './components/x'`. Copy lives in `data/<feature>.ts`, never inline,
+and admin components read it through `useCopy(x)` (client) or `await getCopy(x)` (server) so it
+follows the member's language (Hindi overlays live in `data/hi/`; developer docs, "Admin
+languages"). Sizes are rem, never px.
 
 ### Example
 

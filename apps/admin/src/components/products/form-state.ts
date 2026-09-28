@@ -6,7 +6,7 @@ import {
   variantTitle,
 } from '@commerce/core/catalog'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
-import { productFormContent, rupees } from '@/data/products'
+import { type productFormContent, rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>
@@ -387,17 +387,18 @@ export type FormErrors = {
   preorderDeposit?: string
 }
 
-export function formErrors(form: ProductFormState): FormErrors {
+export function formErrors(copy: typeof productFormContent, form: ProductFormState): FormErrors {
   const errors: FormErrors = {}
   if (!form.title.trim()) errors.title = 'required'
   const empty = form.options.find((o) => !o.values.some((v) => v.trim()))
-  if (empty) errors.variants = `Add at least one value to ${empty.name.trim() || 'the new option'}`
+  if (empty)
+    errors.variants = copy.errors.optionNeedsValue(empty.name.trim() || copy.errors.newOption)
   const bad = form.variants.find((v) => rupees.toPaise(v.price) == null)
   if (bad && !errors.variants)
-    errors.variants = `Price is missing for ${variantTitle(bad.optionValues)}`
+    errors.variants = copy.errors.priceMissing(variantTitle(bad.optionValues))
   const dims = form.variants.map((v) => [v.packageLengthCm, v.packageWidthCm, v.packageHeightCm])
   if (dims.some((d) => d.some((n) => n != null) && d.some((n) => n == null))) {
-    errors.package = productFormContent.shipping.packageIncomplete
+    errors.package = copy.shipping.packageIncomplete
   }
   if (form.preorderEnabled) {
     if (form.preorderPaymentMode === 'fixed') {
@@ -405,15 +406,15 @@ export function formErrors(form: ProductFormState): FormErrors {
       const lowestPrice = Math.min(
         ...form.variants.map((v) => rupees.toPaise(v.price) ?? Number.POSITIVE_INFINITY),
       )
-      if (deposit == null) errors.preorderDeposit = 'Enter a deposit amount'
+      if (deposit == null) errors.preorderDeposit = copy.errors.depositMissing
       else if (Number.isFinite(lowestPrice) && deposit >= lowestPrice) {
-        errors.preorderDeposit = 'The deposit must be less than the price'
+        errors.preorderDeposit = copy.errors.depositTooHigh
       }
     }
     if (form.preorderPaymentMode === 'percentage') {
       const pct = Number(form.preorderDepositPercent)
       if (!Number.isInteger(pct) || pct < 1 || pct > 99) {
-        errors.preorderDeposit = 'Enter a percentage between 1 and 99'
+        errors.preorderDeposit = copy.errors.depositPercent
       }
     }
   }

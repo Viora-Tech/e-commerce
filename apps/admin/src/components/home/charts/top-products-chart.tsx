@@ -11,7 +11,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Bar, BarChart, Cell, XAxis, YAxis } from 'recharts'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
-import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 
 type TopProductsChartProps = {
   data: DashboardChartsData
@@ -29,8 +29,12 @@ const config = { revenuePaise: { label: 'Revenue', color: 'var(--chart-1)' } } s
 
 /** Top 5 products by revenue for the picked range, as a horizontal bar chart. */
 export default function TopProductsChart({ data, loading }: TopProductsChartProps) {
+  // Hooks
+  const copy = useCopy(homeContent)
+  const fmt = useFormat()
+
   // Render logic
-  const c = homeContent.charts
+  const c = copy.charts
   const points = data.topProducts.map((p) => ({
     id: p.productId,
     label: shorten(p.title),
@@ -58,7 +62,7 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                tickFormatter={(v: number) => formatPaiseCompact(v)}
+                tickFormatter={(v: number) => fmt.moneyCompact(v)}
               />
               <YAxis
                 type="category"
@@ -78,7 +82,7 @@ export default function TopProductsChart({ data, loading }: TopProductsChartProp
                         <span className="text-muted-foreground">
                           {(item.payload as { fullTitle: string }).fullTitle}
                         </span>
-                        <span className="font-bold tabular-nums">{formatPaise(Number(v))}</span>
+                        <span className="font-bold tabular-nums">{fmt.money(Number(v))}</span>
                       </span>
                     )}
                   />

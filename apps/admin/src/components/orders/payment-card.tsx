@@ -4,9 +4,8 @@ import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
-import { orderDetailContent as copy } from '@/data/orders'
-import { formatWhen } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import {
   methodLabel,
   type OrderDetail,
@@ -43,7 +42,7 @@ function Row({ label, value, copyable }: { label: string; value: string; copyabl
 }
 
 /** What the amount row means for an attempt in this status. */
-function amountLabel(status: OrderPayment['status']): string {
+function amountLabel(copy: typeof orderDetailContent, status: OrderPayment['status']): string {
   if (status === 'captured' || status === 'refunded') return copy.payment.captured
   if (status === 'pending' || status === 'authorized') return copy.payment.authorised
   return copy.payment.amount
@@ -58,6 +57,10 @@ export default function PaymentCard({
   onSendReminder,
   busy = false,
 }: PaymentCardProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
+
   // Render logic
   const events = order.paymentEvents
   const multipleAttempts = order.payments.filter((p) => p.provider !== 'gift_card').length > 1
@@ -94,7 +97,7 @@ export default function PaymentCard({
             <div key={p.id} className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">
-                  {methodLabel(p.provider)}
+                  {methodLabel(p.provider, copy)}
                   {multipleAttempts ? (
                     <span className="text-muted-foreground font-normal">
                       {' '}
@@ -120,9 +123,9 @@ export default function PaymentCard({
                 {p.providerPaymentId ? (
                   <Row label={copy.payment.gatewayId} value={p.providerPaymentId} copyable />
                 ) : null}
-                <Row label={amountLabel(p.status)} value={formatPaise(p.amountPaise)} />
+                <Row label={amountLabel(copy, p.status)} value={fmt.money(p.amountPaise)} />
                 {back > 0 ? (
-                  <Row label={copy.payment.refundedTotal} value={`−${formatPaise(back)}`} />
+                  <Row label={copy.payment.refundedTotal} value={`−${fmt.money(back)}`} />
                 ) : null}
               </dl>
             </div>
@@ -137,10 +140,10 @@ export default function PaymentCard({
                 <li key={r.id} className="flex items-center justify-between gap-3 text-body">
                   <span className="min-w-0">
                     <span className="block font-medium tabular-nums">
-                      {formatPaise(r.amountPaise)}
+                      {fmt.money(r.amountPaise)}
                     </span>
                     <span className="block truncate text-caption font-normal">
-                      {[formatWhen(r.createdAt), r.reason].filter(Boolean).join(', ')}
+                      {[fmt.when(r.createdAt), r.reason].filter(Boolean).join(', ')}
                     </span>
                   </span>
                   <StatusLabel kind="refund" value={r.status} size="sm" />

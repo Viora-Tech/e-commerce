@@ -8,8 +8,18 @@ describe('searchSettings', () => {
   it('finds pages by the short forms shop owners type', () => {
     expect(first('UPI')?.href).toBe('/settings/payments')
     expect(first('cod')?.href).toBe('/settings/payments')
-    expect(first('GST')?.href).toBe('/settings/general#tax')
+    expect(first('GST')?.href).toBe('/settings/taxes')
+    expect(first('invoice number')?.href).toBe('/settings/taxes#invoice-numbers')
+    expect(first('irn')?.where).toBe('Taxes & GST')
     expect(first('whatsapp')?.where).toBe('Notifications')
+  })
+
+  it('finds Policies and Checkout', () => {
+    expect(first('refund policy')?.href).toBe('/settings/policies')
+    expect(first('grievance')?.href).toBe('/settings/policies#grievance')
+    expect(first('minimum order')?.href).toBe('/settings/checkout#minimum')
+    expect(first('block pincode')?.href).toBe('/settings/checkout#cod')
+    expect(first('business buyer')?.href).toBe('/settings/checkout#gstin')
   })
 
   it('offers both Shipping and Apps for "courier"', () => {
