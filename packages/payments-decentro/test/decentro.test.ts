@@ -8,6 +8,7 @@ import {
   decentroFactory,
   decentroReferenceId,
   decentroStatus,
+  qrImageSrc,
 } from '../src/decentro'
 import { payoutReferenceId, payoutStatusOf } from '../src/payouts'
 
@@ -432,6 +433,26 @@ describe('refundViaPayout', () => {
       }),
     ).rejects.toThrow('UPI ID')
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('qrImageSrc', () => {
+  it('turns bare base64 into a PNG data URI', () => {
+    expect(qrImageSrc('iVBORw0KGgoAAAANS\nUhEUg==')).toBe(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==',
+    )
+  })
+  it('keeps URLs and data URIs as they are', () => {
+    expect(qrImageSrc('https://img.example/qr.png')).toBe('https://img.example/qr.png')
+    expect(qrImageSrc('data:image/png;base64,abc')).toBe('data:image/png;base64,abc')
+  })
+  it('spots JPEG and SVG base64', () => {
+    expect(qrImageSrc('/9j/4AAQ')).toBe('data:image/jpeg;base64,/9j/4AAQ')
+    expect(qrImageSrc('PHN2ZyB4bWxucz0')).toBe('data:image/svg+xml;base64,PHN2ZyB4bWxucz0')
+  })
+  it('is null when missing', () => {
+    expect(qrImageSrc(undefined)).toBeNull()
+    expect(qrImageSrc('  ')).toBeNull()
   })
 })
 

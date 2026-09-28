@@ -156,6 +156,23 @@ export function attemptFromReference(ref: string | undefined): {
   return { idempotencyKey: `${orderId}:${ref.slice(cut + 1)}`, orderId }
 }
 
+/**
+ * `dynamic_qr_image` as an `<img src>`. Staging returns the PNG as bare base64 (no
+ * `data:` prefix), which a browser shows as a broken image; a URL or data URI passes
+ * through unchanged.
+ */
+export function qrImageSrc(value: string | undefined): string | null {
+  const v = value?.trim()
+  if (!v) return null
+  if (/^(https?:|data:)/i.test(v)) return v
+  const mime = v.startsWith('/9j/')
+    ? 'image/jpeg'
+    : v.startsWith('PHN2Zy')
+      ? 'image/svg+xml'
+      : 'image/png'
+  return `data:${mime};base64,${v.replace(/\s+/g, '')}`
+}
+
 /** Decentro's "this reference id matches nothing" answer, however it phrases it. */
 function isUnknownReference(err: DecentroApiError): boolean {
   const key = err.responseKey ?? ''
@@ -236,7 +253,7 @@ export class DecentroProvider implements PaymentProvider {
       ...body,
       generate_custom_qr_image: false,
     })
-    const imageUrl = res.data?.dynamic_qr_image
+    const imageUrl = qrImageSrc(res.data?.dynamic_qr_image)
     if (!res.decentro_txn_id || !imageUrl) throw new Error('Decentro did not return a QR code.')
     return {
       providerRef: res.decentro_txn_id,
