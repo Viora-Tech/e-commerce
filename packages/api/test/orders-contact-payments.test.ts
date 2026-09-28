@@ -215,7 +215,7 @@ describe('orders.collectPayment with how it was paid', () => {
 })
 
 describe('orders.updateContact', () => {
-  it('moves the order to a new address, keeps the old one and logs the change', async () => {
+  it('moves the order to a new address, drops the orphaned old one and logs the change', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const { orderId, addressId, customerId } = await seedOrder(a.storeId)
 
@@ -241,8 +241,9 @@ describe('orders.updateContact', () => {
       .from(address)
       .where(eq(address.id, o?.shippingAddressId as string))
     expect(moved).toMatchObject({ ...newAddress, name: 'Asha M', phone: '9123456789' })
-    const [old] = await owner.select().from(address).where(eq(address.id, addressId))
-    expect(old?.city).toBe('Pune')
+    // The old snapshot belonged to no order any more; the note keeps what it said, and an
+    // erasure blanks that note (a stray row would have outlived it).
+    expect(await owner.select().from(address).where(eq(address.id, addressId))).toEqual([])
 
     const notes = await owner.select().from(orderNote).where(eq(orderNote.orderId, orderId))
     expect(notes).toHaveLength(1)

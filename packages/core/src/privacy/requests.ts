@@ -48,6 +48,45 @@ export type CreateDataRequestInput = {
 }
 
 /**
+ * A customer id from the admin, checked under this store's RLS before it is written: a
+ * foreign key does not see RLS, so another store's customer id would otherwise be stored
+ * (and pinned for good by the append-only audit trail).
+ */
+async function assertLinkableCustomer(ctx: StoreContext, customerId: string): Promise<void> {
+  const [cu] = await ctx.tx
+    .select({ anonymisedAt: customer.anonymisedAt })
+    .from(customer)
+    .where(eq(customer.id, customerId))
+  if (!cu) throw new DataRequestError('not_found', 'Customer not found')
+  if (cu.anonymisedAt) {
+    throw new DataRequestError('anonymised', "This customer's data was already erased")
+  }
+}
+
+/**
+ * The request an export or erasure answers: it must be this store's, and, when it names
+ * a customer, that same customer. Otherwise erasing customer X could close Y's deletion
+ * request and the audit trail would say Y was erased.
+ */
+export async function requestAnsweredFor(
+  ctx: StoreContext,
+  dataRequestId: string,
+  customerId: string,
+): Promise<DataRequestRow> {
+  const [row] = await ctx.tx.select().from(dataRequest).where(eq(dataRequest.id, dataRequestId))
+  if (!row) throw new DataRequestError('not_found', 'Request not found')
+  if (!requestMatchesCustomer(row.customerId, customerId)) {
+    throw new DataRequestError('bad_status', 'This request is for another customer')
+  }
+  return row
+}
+
+/** A request with no customer yet may be answered for anyone; otherwise only its own. */
+export function requestMatchesCustomer(requestCustomerId: string | null, customerId: string) {
+  return requestCustomerId === null || requestCustomerId === customerId
+}
+
+/**
  * Open a request. A customer who already has an open request of the same kind
  * gets that one back instead of a second (a double tap, or asking twice).
  */
@@ -57,14 +96,7 @@ export async function createDataRequest(
 ): Promise<{ request: DataRequestRow; created: boolean }> {
   const at = input.at ?? new Date()
   if (input.customerId) {
-    const [cu] = await ctx.tx
-      .select({ anonymisedAt: customer.anonymisedAt })
-      .from(customer)
-      .where(eq(customer.id, input.customerId))
-    if (!cu) throw new DataRequestError('not_found', 'Customer not found')
-    if (cu.anonymisedAt) {
-      throw new DataRequestError('anonymised', "This customer's data was already erased")
-    }
+    await assertLinkableCustomer(ctx, input.customerId)
     const [open] = await ctx.tx
       .select()
       .from(dataRequest)
@@ -197,6 +229,7 @@ export async function updateDataRequest(
   if (status === 'rejected' && !resolution) {
     throw new DataRequestError('bad_status', 'Say why the request is declined')
   }
+  if (input.customerId) await assertLinkableCustomer(ctx, input.customerId)
   const closing = !isOpenStatus(status)
   const [row] = await ctx.tx
     .update(dataRequest)

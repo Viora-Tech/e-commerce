@@ -194,6 +194,40 @@ describe('hand-off redemption', () => {
       identity: { provider: 'facebook', subject: 'fb-1', email: 'asha@example.com' },
     })
   })
+
+  it('carries a connect request without linking anything on the login domain', async () => {
+    const storeId = await makeStore()
+    const customerId = await makeCustomer(storeId)
+    const token = await run(storeId, (ctx) =>
+      mintHandoff(
+        ctx,
+        {
+          status: 'connect',
+          customerId,
+          identity: {
+            provider: 'google',
+            subject: 'g-9',
+            email: null,
+            emailVerified: true,
+            name: null,
+          },
+          returnUrl: RETURN,
+          browserHash: sha256Hex(BROWSER),
+          nextPath: '/account/profile',
+          remember: true,
+        },
+        SECRET,
+        NOW,
+      ),
+    )
+    expect(await owner.select().from(customerIdentity)).toEqual([])
+    // A forwarded link finishes in another browser: burnt, nothing linked.
+    expect(await redeem(storeId, token, { browserValue: 'someone-else' })).toEqual({
+      ok: false,
+      reason: 'wrong_browser',
+    })
+    expect(await owner.select().from(customerIdentity)).toEqual([])
+  })
 })
 
 const google = (over: Partial<ShopperIdentity> = {}): ShopperIdentity => ({

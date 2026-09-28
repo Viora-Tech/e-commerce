@@ -62,6 +62,39 @@ export function decideLink(identity: ShopperIdentity, facts: LinkFacts): LinkDec
   return { action: 'no_email' }
 }
 
+/**
+ * "Connect" from a signed-in account page: may this provider account be added to
+ * `customerId`? Nothing is written here. The platform login domain cannot tell whose
+ * browser finished the provider round trip (a forwarded start link would finish in the
+ * victim's), so the link is only made on the store's own domain, after the hand-off's
+ * browser check, for the customer signed in there (`linkIdentity`).
+ */
+export function connectDecision(
+  linkedTo: string | null,
+  customerId: string,
+): 'link' | 'already' | 'conflict' {
+  if (!linkedTo) return 'link'
+  return linkedTo === customerId ? 'already' : 'conflict'
+}
+
+/** `connectDecision` for this identity, reading who (if anyone) it is linked to now. */
+export async function planConnect(
+  ctx: StoreContext,
+  identity: ShopperIdentity,
+  customerId: string,
+): Promise<'link' | 'already' | 'conflict'> {
+  const [linked] = await ctx.tx
+    .select({ customerId: customerIdentity.customerId })
+    .from(customerIdentity)
+    .where(
+      and(
+        eq(customerIdentity.provider, identity.provider),
+        eq(customerIdentity.subject, identity.subject),
+      ),
+    )
+  return connectDecision(await activeCustomer(ctx, linked?.customerId), customerId)
+}
+
 export type ResolveResult =
   | { kind: 'signed_in'; customerId: string; created: boolean }
   | { kind: 'verify_email'; email: string }

@@ -2,7 +2,7 @@ import { paymentEvent } from '@commerce/db'
 import type { PaymentProvider } from '@commerce/payments'
 import { and, eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { applyPaymentStatus } from './confirm'
+import { applyPaymentStatus, gatewayPaidTooLittle, paymentAmountFor } from './confirm'
 
 export type WebhookOutcome =
   | {
@@ -63,6 +63,35 @@ export async function handlePaymentWebhook(
   let capturedOrderId: string | null = null
   try {
     const e = parsed.event
+    const expected =
+      e.type === 'payment.captured' || e.type === 'payment.authorized'
+        ? await paymentAmountFor(ctx, {
+            providerRef: e.providerRef,
+            idempotencyKey: e.idempotencyKey,
+          })
+        : null
+    if (
+      (e.type === 'payment.captured' || e.type === 'payment.authorized') &&
+      expected !== null &&
+      gatewayPaidTooLittle(expected, e.amountPaise)
+    ) {
+      // Kept for the merchant to look at, never applied: the order stays unpaid.
+      await ctx.tx
+        .update(paymentEvent)
+        .set({
+          status: 'processed',
+          processedAt: new Date(),
+          error: `amount mismatch: gateway reported ${e.amountPaise} paise, attempt is ${expected}`,
+        })
+        .where(eq(paymentEvent.id, row.id))
+      return {
+        ok: true,
+        eventId: parsed.eventId,
+        applied: false,
+        duplicate: false,
+        capturedOrderId,
+      }
+    }
     if (e.type === 'payment.captured' || e.type === 'payment.authorized') {
       const r = await applyPaymentStatus(ctx, {
         providerRef: e.providerRef,

@@ -58,7 +58,9 @@ const TOKEN_VAR: Record<Exclude<ColourToken, 'inherit'>, string> = {
   line: 'var(--color-line)',
 }
 
-const COLOUR = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch|oklab)\([0-9.,%\s/+-]+\))$/i
+// Hex, a colour function of numbers, or a plain keyword (`red`, `transparent`): letters only,
+// so no `;`, `url(` or `)` can ride along.
+const COLOUR = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch|oklab)\([0-9.,%\s/+-]+\)|[a-z]{3,30})$/i
 
 /** A custom colour only when it is plainly a CSS colour; anything else (a `url()`, a `;`) is dropped. */
 export function safeColour(value: unknown): string | null {

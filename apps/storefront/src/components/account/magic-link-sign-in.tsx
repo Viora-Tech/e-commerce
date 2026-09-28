@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
 import { redeemMagicLinkAction } from '@/lib/login-actions'
 
@@ -16,6 +16,11 @@ export default function MagicLinkSignIn({ token }: MagicLinkSignInProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    // The token stays in this component only; the address bar (and anything that reads
+    // it later: history, extensions, a shared screenshot) no longer shows it.
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname)
+  }, [])
 
   // Event handlers
   const handleClick = () => {

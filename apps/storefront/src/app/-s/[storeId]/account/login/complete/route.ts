@@ -1,8 +1,9 @@
-import { redeemHandoff, signToken } from '@commerce/core'
+import { linkIdentity, redeemHandoff, signToken } from '@commerce/core'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { currentCustomer } from '@/lib/customer-session'
 import {
   LOGIN_ERRORS,
   type LoginError,
@@ -70,6 +71,13 @@ export async function GET(request: NextRequest, { params }: Params) {
       maxAge: PENDING_LINK_TTL_MS / 1000,
     })
     redirect(`/account/login?confirm=1&return_to=${encodeURIComponent(result.nextPath)}`)
+  }
+  if (result.status === 'connect') {
+    // Only for the customer signed in on this domain, in the browser that started it.
+    const me = await currentCustomer(storeId)
+    if (!me || me.id !== result.customerId) redirect(loginWith('failed'))
+    await inStore(storeId, (tx) => linkIdentity({ tx, storeId }, me.id, result.identity))
+    redirect(result.nextPath)
   }
   await signInCustomer(storeId, result.customerId, result.remember)
   redirect(result.nextPath)

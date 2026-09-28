@@ -136,6 +136,10 @@ describe('migrateSectionSettings — unsafe stored values', () => {
       migrateSectionSettings({ settings: { style: { backgroundColor: '#ff0088' } } }).style
         .backgroundColor,
     ).toBe('#ff0088')
+    expect(
+      migrateSectionSettings({ settings: { style: { backgroundColor: 'red' } } }).style
+        .backgroundColor,
+    ).toBe('red')
   })
 
   it('keeps only slug anchor ids', () => {

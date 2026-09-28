@@ -11,7 +11,7 @@ import {
   signInOptions,
 } from '../customer-accounts/client'
 import { appFor, loginAppFrom, loginReadiness, platformLoginApps } from './credentials'
-import { decideLink, type ShopperIdentity } from './identities'
+import { connectDecision, decideLink, type ShopperIdentity } from './identities'
 import { appleClientSecret, identityFromUserInfo } from './providers'
 import {
   checkHandoffToken,
@@ -457,5 +457,13 @@ describe('Truecaller', () => {
     expect(inits[0]?.redirect).toBe('error')
     expect(inits[0]?.signal).toBeInstanceOf(AbortSignal)
     expect(updates).toEqual([{ status: 'failed' }])
+  })
+})
+
+describe('connectDecision', () => {
+  it('links a free identity, keeps an existing link, and refuses one owned by someone else', () => {
+    expect(connectDecision(null, 'me')).toBe('link')
+    expect(connectDecision('me', 'me')).toBe('already')
+    expect(connectDecision('someone-else', 'me')).toBe('conflict')
   })
 })

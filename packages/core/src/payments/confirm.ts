@@ -73,6 +73,30 @@ async function findPaymentId(ctx: StoreContext, ref: PaymentRef): Promise<string
 }
 
 /**
+ * True when a gateway reports less money than the attempt was for. A signed event is
+ * genuine, but it may be for a different payment than the one it names (a shopper can
+ * pay ₹1 on the store's public key and copy an attempt's notes onto it), so the amount
+ * must cover the attempt before it counts. More than asked (gateway fees) is fine.
+ */
+export function gatewayPaidTooLittle(expectedPaise: number, reportedPaise: number): boolean {
+  return !Number.isFinite(reportedPaise) || reportedPaise < expectedPaise
+}
+
+/** The amount of the attempt a gateway event points at, or null when it names none. */
+export async function paymentAmountFor(
+  ctx: StoreContext,
+  ref: { providerRef: string; idempotencyKey?: string | null | undefined },
+): Promise<number | null> {
+  const id = await findPaymentId(ctx, ref)
+  if (!id) return null
+  const [row] = await ctx.tx
+    .select({ amountPaise: payment.amountPaise })
+    .from(payment)
+    .where(eq(payment.id, id))
+  return row?.amountPaise ?? null
+}
+
+/**
  * Apply a gateway status to one payment attempt and its order. Idempotent and
  * forward-only (`nextPaymentStatus`): a duplicate capture is a no-op and a late
  * failure after a capture is ignored.

@@ -16,8 +16,13 @@ import {
 } from './tokens'
 
 export type HandoffInput = {
-  /** `ready`: sign in as `customerId`. `verify_email`: confirm `identity.email` with a code first. */
-  status: 'ready' | 'verify_email'
+  /**
+   * `ready`: sign in as `customerId`. `verify_email`: confirm `identity.email` with a code
+   * first. `connect`: add `identity` to `customerId`, once the store's domain has checked
+   * the browser and that `customerId` is the one signed in there (stored as `ready` with
+   * the identity attached).
+   */
+  status: 'ready' | 'verify_email' | 'connect'
   customerId: string | null
   identity?: ShopperIdentity | undefined
   returnUrl: string
@@ -39,7 +44,7 @@ export async function mintHandoff(
     storeId: ctx.storeId,
     kind: 'handoff',
     tokenHash: sha256Hex(jti),
-    status: input.status,
+    status: input.status === 'connect' ? 'ready' : input.status,
     customerId: input.customerId,
     returnUrl: input.returnUrl,
     browserHash: input.browserHash,
@@ -75,6 +80,14 @@ export type RedeemResult =
   | {
       ok: true
       status: 'verify_email'
+      identity: ShopperIdentity
+      nextPath: string
+      remember: boolean
+    }
+  | {
+      ok: true
+      status: 'connect'
+      customerId: string
       identity: ShopperIdentity
       nextPath: string
       remember: boolean
@@ -145,6 +158,22 @@ export async function redeemHandoff(
     }
   }
   if (row.status !== 'ready' || !row.customerId) return { ok: false, reason: 'malformed' }
+  if (row.provider && row.subject) {
+    return {
+      ok: true,
+      status: 'connect',
+      customerId: row.customerId,
+      identity: {
+        provider: row.provider,
+        subject: row.subject,
+        email: row.email,
+        emailVerified: false,
+        name: row.name,
+      },
+      nextPath,
+      remember: row.remember,
+    }
+  }
   return { ok: true, status: 'ready', customerId: row.customerId, nextPath, remember: row.remember }
 }
 
