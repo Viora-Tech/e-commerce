@@ -240,6 +240,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     href: '/settings/account',
     keywords: ['language', 'hindi', 'english', 'हिंदी', 'भाषा', 'translate', 'account'],
   },
+  {
     title: 'Policies',
     where: 'Settings',
     href: '/settings/policies',

@@ -96,24 +96,30 @@ export async function generateMetadata({ params }: Pick<Props, 'params'>): Promi
 export default async function StoreLayout({ children, params }: Props) {
   const { storeId } = await params
   const preview = await previewRequest(storeId)
-  const { current, menus, policies, theme, previewName, logoHeight } = await inStore(storeId, async (tx) => {
-    const [s] = await tx.select().from(store).where(eq(store.id, storeId))
-    const rows = await tx.select().from(navigationMenu)
-    const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
-    const settings = previewed?.settings ?? (await liveThemeSettings(tx, storeId))
-    const logo = settings.brand.logo
-    return {
-      current: s,
-      menus: rows,
-      policies: await publishedPolicyLinks({ tx, storeId }),
-      theme: settings,
-      previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
-      // The logo's real aspect ratio, so the header reserves its height before it loads.
-      logoHeight: logo
-        ? heightForWidth((await mediaByUrl(tx, [logo.url])).get(logo.url), settings.brand.logoWidth)
-        : undefined,
-    }
-  })
+  const { current, menus, policies, theme, previewName, logoHeight } = await inStore(
+    storeId,
+    async (tx) => {
+      const [s] = await tx.select().from(store).where(eq(store.id, storeId))
+      const rows = await tx.select().from(navigationMenu)
+      const previewed = preview?.themeId ? await getTheme(tx, preview.themeId) : null
+      const settings = previewed?.settings ?? (await liveThemeSettings(tx, storeId))
+      const logo = settings.brand.logo
+      return {
+        current: s,
+        menus: rows,
+        policies: await publishedPolicyLinks({ tx, storeId }),
+        theme: settings,
+        previewName: previewed && previewed.role !== 'main' ? previewed.name : null,
+        // The logo's real aspect ratio, so the header reserves its height before it loads.
+        logoHeight: logo
+          ? heightForWidth(
+              (await mediaByUrl(tx, [logo.url])).get(logo.url),
+              settings.brand.logoWidth,
+            )
+          : undefined,
+      }
+    },
+  )
 
   if (!current) notFound()
 

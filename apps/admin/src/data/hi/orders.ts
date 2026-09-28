@@ -309,6 +309,9 @@ export default [
       edit: 'बदलें',
       editHint: 'पता ग्राहक की प्रोफ़ाइल में बदलें',
       billing: 'बिलिंग पता',
+      business: 'बिज़नेस ग्राहक',
+      gstin: 'GSTIN',
+      note: 'ग्राहक का नोट',
     },
     tags: {
       heading: 'टैग',

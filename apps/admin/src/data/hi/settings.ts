@@ -29,7 +29,6 @@ export default [
           email: 'संपर्क ईमेल',
           phone: 'फ़ोन',
           address: 'बिज़नेस का पता',
-          gstin: 'GSTIN',
         },
       },
       details: {
@@ -56,15 +55,6 @@ export default [
         state: 'राज्य',
         pincode: 'पिनकोड',
         country: 'देश',
-      },
-      tax: {
-        heading: 'टैक्स / GST',
-        help: 'सिर्फ़ तभी ज़रूरी है जब आपकी दुकान GST में रजिस्टर्ड है। नहीं है तो इसे छोड़ दें।',
-        gstin: 'GSTIN',
-        gstinHelp: 'आपका 15 अक्षर का GST नंबर। यह टैक्स इनवॉइस पर छपता है।',
-        gstRate: 'आपकी कीमतों में GST (%)',
-        gstRateHelp:
-          'आपकी कीमतों में पहले से जुड़ा GST। ज़्यादातर दुकानें 18 रखती हैं। इनवॉइस पर CGST, SGST और IGST दिखाने में काम आता है।',
       },
       locale: {
         heading: 'करेंसी और समय',
