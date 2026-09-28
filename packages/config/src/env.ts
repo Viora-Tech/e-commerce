@@ -80,6 +80,11 @@ const schema = z.object({
   MERCHANT_SIGNUP_MODE: z.enum(['invite', 'open']).default('invite'),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
+  /**
+   * The platform's own store that sells plans. A paid order there with a product tagged
+   * `platform-plan` gives the buyer's email a signup invite. Unset: nothing happens.
+   */
+  PLATFORM_SALES_STORE_ID: z.string().uuid().optional(),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */
