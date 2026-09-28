@@ -356,8 +356,10 @@ that installed the app from Admin → Apps.
 Hooks and jobs get an `AppHookContext`: `inStore(fn)` (a transaction under
 the store's RLS), `storage()` (the store's provider, now with server-side
 `put`/`get`), `notify(...)` (send an order email with attachments through the
-store's channels), `settingsSecret` (for signing links), `storefrontUrl` and
-`log`.
+store's channels), `settingsSecret` (for signing links), `storefrontUrl`,
+`log`, and, in the worker, `processMedia(mediaId)` (queue an image the app stored as
+`processing` for the [media pipeline](/developer-docs/building/media-pipeline); idempotent
+per media id, throws if the queue is unreachable).
 
 **Admin placement (Shopify model).** Installed apps never mount inside
 Settings. Each installed app with pages gets an entry under **Apps** in the

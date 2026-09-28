@@ -32,6 +32,7 @@ import {
   deps,
   type FetchLog,
   fakeFetch,
+  fakeMediaQueue,
   fixture,
   json,
   MemoryStorageProvider,
@@ -118,6 +119,104 @@ describe('CSV parsers', () => {
     expect(orders[1]?.cancelledAt).toBe('2025-12-11T04:30:00.000Z')
     expect(orderNumberFrom('WM-1044-IN')).toBe(1044)
     expect(shopifyDate('nonsense')).toBeNull()
+  })
+})
+
+describe('CSV import: media processing', () => {
+  it('queues each hosted image once, nothing on a dry run, and nothing again on a re-run', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const log: FetchLog = []
+    const q = fakeMediaQueue()
+    const d = deps(storeId, storage, {
+      fetch: fakeFetch(unused, log),
+      processMedia: q.processMedia(storeId),
+    })
+    const runId = await csvRun(storeId, storage, 'products', 'products.csv')
+
+    await executeRun(d, runId) // dry run
+    expect(log).toHaveLength(0)
+    expect(q.adds).toHaveLength(0)
+
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(d, runId)
+    const hosted = await owner.select().from(media)
+    expect(hosted).toHaveLength(5)
+    expect(hosted.every((m) => m.status === 'processing')).toBe(true)
+    // One add per image, keyed by media id (the scheme `enqueueMediaProcess` uses).
+    expect(q.adds.map((a) => a.jobId).sort()).toEqual(hosted.map((m) => m.id).sort())
+    expect(q.adds.every((a) => a.data.storeId === storeId && a.jobId === a.data.mediaId)).toBe(true)
+
+    // A second import of the same file: images are already mapped, so no new adds.
+    const again = await csvRun(storeId, storage, 'products', 'products.csv')
+    await executeRun(d, again)
+    await withStore(app, storeId, (tx) => startRun(tx, again))
+    await executeRun(d, again)
+    expect(q.adds).toHaveLength(5)
+    expect(q.jobs.size).toBe(5)
+    const issues = await owner.select().from(importIssue).where(eq(importIssue.runId, again))
+    expect(issues.filter((i) => i.message.includes('not queued'))).toHaveLength(0)
+  })
+
+  it('records a queue failure as an issue and still imports the row', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const q = fakeMediaQueue({ failing: true })
+    const d = deps(storeId, storage, {
+      fetch: fakeFetch(unused),
+      processMedia: q.processMedia(storeId),
+    })
+    const runId = await csvRun(storeId, storage, 'products', 'products.csv')
+    await executeRun(d, runId) // dry run first, as the admin does
+    await withStore(app, storeId, (tx) => startRun(tx, runId))
+    await executeRun(d, runId)
+
+    const [done] = await owner.select().from(importRun).where(eq(importRun.id, runId))
+    expect(done?.status).toBe('completed')
+    expect(done?.progress.products).toMatchObject({ created: 2, failed: 0 })
+    expect(await owner.select().from(product)).toHaveLength(2)
+    // Left `processing`, which is what `bun run media:reprocess` looks for.
+    const hosted = await owner.select().from(media)
+    expect(hosted.map((m) => m.status)).toEqual(Array(5).fill('processing'))
+    const issues = await owner.select().from(importIssue).where(eq(importIssue.runId, runId))
+    const queued = issues.filter((i) => i.message.includes('not queued'))
+    expect(queued).toHaveLength(5)
+    expect(queued.every((i) => i.resource === 'products')).toBe(true)
+    expect(queued.map((i) => i.ref)).toContain('https://cdn.shopify.com/s/files/viper-front.png')
+    expect(queued[0]?.message).toContain('ECONNREFUSED')
+  })
+
+  it('stores video ready without queueing it, as a direct upload does', async () => {
+    const storeId = await seedStore()
+    const storage = new MemoryStorageProvider()
+    const q = fakeMediaQueue()
+    const images = fakeFetch(unused)
+    const withVideo = (async (input: string | URL | Request, init?: RequestInit) =>
+      String(input).endsWith('.mp4')
+        ? new Response(new Uint8Array([0, 0, 0, 24]), { headers: { 'content-type': 'video/mp4' } })
+        : images(input, init)) as typeof fetch
+    const d = deps(storeId, storage, { fetch: withVideo, processMedia: q.processMedia(storeId) })
+    const csv = fixture('products.csv').replace(
+      'https://cdn.shopify.com/s/files/viper-box.png',
+      'https://cdn.shopify.com/s/files/viper-unboxing.mp4',
+    )
+    const run = await withStore(app, storeId, (tx) =>
+      createCsvRun(tx, storeId, storage, {
+        resource: 'products',
+        fileName: 'products.csv',
+        csv,
+        createdBy: 'owner@example.com',
+      }),
+    )
+    await executeRun(d, run.id)
+    await withStore(app, storeId, (tx) => startRun(tx, run.id))
+    await executeRun(d, run.id)
+
+    const hosted = await owner.select().from(media)
+    const video = hosted.find((m) => m.contentType === 'video/mp4')
+    expect(video?.status).toBe('ready')
+    expect(q.adds.map((a) => a.jobId)).not.toContain(video?.id)
+    expect(q.adds).toHaveLength(hosted.length - 1)
   })
 })
 

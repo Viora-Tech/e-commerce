@@ -40,6 +40,17 @@ The sections further down describe an earlier stage and are partly outdated; thi
   hint show for Cashfree stores too (`gatewayOffersEmi` in `@commerce/core/payment-methods`;
   hint copy no longer names Snapmint). Still to do by hand: a sandbox run with real Cashfree
   test keys on a https worker URL, to confirm the webhook timestamp unit (we accept ms or s).
+- **Shopify-import images processed automatically** (27 September 2026,
+  `feat/import-media-processing`, no migration): every image the importer re-hosts (API and CSV
+  runs) is queued on the existing `{media}-process` job as soon as its row is written, so
+  `bun run media:reprocess` is no longer needed after an import. New `ctx.processMedia(mediaId)`
+  on the plugin job context (`AppHookContext`), backed by the worker's media queue through
+  `DispatchDeps.mediaProcess`; job id = media id via the new throwing `addMediaProcessJob`
+  (`enqueueMediaProcess` now wraps it). Only newly hosted sources are queued (mapped ones, and
+  re-runs, are not), dry runs download and queue nothing, video stays `ready` and unqueued, and
+  a queue failure becomes an import issue with the row left `processing` for the backfill.
+  Developer docs: Building, "Image pipeline", "Shopify imports".
+
 - **Theme editor, part 2** (27 September 2026, `feat/editor-part2-finish`, no migration):
   Shopify-style Sections sidebar (collapsible Header / Template / Footer groups; rows with drag
   handle, blocks toggle, eye and a ⋯ menu for Duplicate / Rename (`props._name`) / Remove; an
@@ -166,8 +177,8 @@ The sections further down describe an earlier stage and are partly outdated; thi
 - **Queued, in order**:
   1. Waimers Shopify import rehearsal on a clean local store (dry run → real import → check
      products, images, collections, customers, order numbers, menus, redirects).
-  2. After #180 and #182: process Shopify-import media automatically (today it needs
-     `bun run media:reprocess`).
+  2. ~~After #180 and #182: process Shopify-import media automatically~~ (PR open,
+     `feat/import-media-processing`).
   3. Deployment follow-ups: image builds moved to GitHub Actions → GHCR (see top of this list);
      next fix the `internal` network egress, re-measure image sizes, then first deploy. The owner's new AWS account needs the Paid plan /
      a limit raise before Lightsail allows the 8 GB plan.

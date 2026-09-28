@@ -30,6 +30,7 @@ export const shopifyImportPlugin = definePlugin({
           storage: ctx.storage,
           settingsSecret: ctx.settingsSecret,
           log: ctx.log,
+          processMedia: ctx.processMedia,
         },
         RunJob.parse(data).runId,
       )
