@@ -2,6 +2,7 @@
  * Execute one import run inside the worker: read the source (the uploaded CSV
  * or the Admin API), then write, or only count and sample on a dry run.
  */
+import type { LookupAll } from '@commerce/core/safe-fetch'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { mapLimit } from './concurrency'
@@ -41,6 +42,8 @@ export type RunDeps = {
   processMedia?: ((mediaId: string) => Promise<void>) | undefined
   /** Injected in tests: Shopify API and image downloads. */
   fetch?: typeof fetch
+  /** Injected in tests: DNS for the image-download SSRF check. */
+  lookup?: LookupAll
   sleep?: (ms: number) => Promise<void>
 }
 
@@ -220,6 +223,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       inStore: deps.inStore,
       storage: deps.storage,
       ...(deps.fetch ? { fetch: deps.fetch } : {}),
+      ...(deps.lookup ? { lookup: deps.lookup } : {}),
       // A dry run never hosts media (writers return before downloading); no queue either way.
       ...(deps.processMedia && !run.dryRun
         ? { onMediaImported: queueImportedMedia(report, deps.processMedia) }

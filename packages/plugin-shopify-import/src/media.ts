@@ -3,6 +3,7 @@
  * is downloaded once per store: the import mapping (resource `media`, keyed by
  * the URL without its `?v=` query) points at our media row thereafter.
  */
+import { type LookupAll, readCapped, safeFetch } from '@commerce/core/safe-fetch'
 import { media, newId } from '@commerce/db'
 import {
   isAllowedContentType,
@@ -13,17 +14,6 @@ import {
 } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
 import { findMapping, type InStore, type MediaHost, saveMapping } from './runtime'
-
-const EXT_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-  gif: 'image/gif',
-  avif: 'image/avif',
-  svg: 'image/svg+xml',
-  mp4: 'video/mp4',
-}
 
 /** `//cdn.shopify.com/a.jpg?v=12` → `https://cdn.shopify.com/a.jpg`. */
 export function mediaSourceKey(src: string): string {
@@ -40,11 +30,31 @@ function filenameOf(url: string): string {
   }
 }
 
-function contentTypeOf(header: string | null, url: string): string {
-  const fromHeader = header?.split(';')[0]?.trim().toLowerCase()
-  if (fromHeader && isAllowedContentType(fromHeader)) return fromHeader
-  const ext = url.split('.').pop()?.toLowerCase() ?? ''
-  return EXT_TYPES[ext] ?? fromHeader ?? 'application/octet-stream'
+const ascii = (bytes: Uint8Array, from: number, to: number) =>
+  String.fromCharCode(...bytes.subarray(from, to))
+
+/**
+ * What the bytes say they are (magic numbers), for a response whose own
+ * content type is not one we accept. The URL's extension is never trusted:
+ * `…/latest/meta-data.mp4` redirected somewhere internal would otherwise be
+ * stored as video. ISO BMFF (`ftyp`) covers AVIF, HEIC, MP4 and QuickTime.
+ */
+function sniffContentType(bytes: Uint8Array): string | null {
+  const [b0, b1, b2, b3] = bytes
+  if (b0 === 0xff && b1 === 0xd8 && b2 === 0xff) return 'image/jpeg'
+  if (b0 === 0x89 && ascii(bytes, 1, 4) === 'PNG') return 'image/png'
+  if (ascii(bytes, 0, 4) === 'GIF8') return 'image/gif'
+  if (ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 12) === 'WEBP') return 'image/webp'
+  if (b0 === 0x1a && b1 === 0x45 && b2 === 0xdf && b3 === 0xa3) return 'video/webm'
+  if (ascii(bytes, 4, 8) === 'ftyp') {
+    const brand = ascii(bytes, 8, 12)
+    if (brand === 'avif' || brand === 'avis') return 'image/avif'
+    if (['heic', 'heix', 'hevc', 'heim', 'heis', 'mif1', 'msf1'].includes(brand))
+      return 'image/heic'
+    if (brand === 'qt  ') return 'video/quicktime'
+    return 'video/mp4'
+  }
+  return null
 }
 
 export type MediaHostOptions = {
@@ -52,6 +62,8 @@ export type MediaHostOptions = {
   inStore: InStore
   storage: () => Promise<StorageProvider>
   fetch?: typeof fetch
+  /** DNS for the SSRF check (`@commerce/core/safe-fetch`); tests inject a fake. */
+  lookup?: LookupAll
   timeoutMs?: number
   /**
    * Called once per newly hosted image, after its row is written, so the
@@ -67,7 +79,6 @@ export type MediaHostOptions = {
 }
 
 export function createMediaHost(opts: MediaHostOptions): MediaHost {
-  const doFetch = opts.fetch ?? fetch
   const known = new Map<string, string>()
   let provider: StorageProvider | null = null
 
@@ -95,23 +106,31 @@ export function createMediaHost(opts: MediaHostOptions): MediaHost {
         return existing
       }
 
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 30_000)
-      let bytes: Uint8Array
-      let contentType: string
-      try {
-        const res = await doFetch(key, { signal: controller.signal })
-        if (!res.ok) throw new Error(`download failed (${res.status})`)
-        contentType = contentTypeOf(res.headers.get('content-type'), key)
-        if (!isAllowedContentType(contentType)) throw new Error(`${contentType} is not supported`)
-        const limit = maxUploadBytesFor(contentType)
-        const limitMb = Math.round(limit / 1024 / 1024)
-        const declared = Number(res.headers.get('content-length') ?? 0)
-        if (declared > limit) throw new Error(`file is larger than ${limitMb} MB`)
-        bytes = new Uint8Array(await res.arrayBuffer())
-        if (bytes.byteLength > limit) throw new Error(`file is larger than ${limitMb} MB`)
-      } finally {
-        clearTimeout(timer)
+      // Source URLs come from a CSV or product HTML: only public hosts, every
+      // redirect re-checked, bytes capped while streaming. Merchant CSVs may
+      // still carry http:// image links, so http is allowed (address checks hold).
+      const res = await safeFetch(key, {
+        allowHttp: true,
+        timeoutMs: opts.timeoutMs ?? 30_000,
+        ...(opts.fetch ? { fetch: opts.fetch } : {}),
+        ...(opts.lookup ? { lookup: opts.lookup } : {}),
+      })
+      if (!res.ok) {
+        await res.body?.cancel()
+        throw new Error(`download failed (${res.status})`)
+      }
+      const declaredType = res.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()
+      const trusted = declaredType && isAllowedContentType(declaredType) ? declaredType : null
+      // Unknown type: read up to the largest cap any accepted type has, then sniff.
+      const readLimit = maxUploadBytesFor(trusted ?? 'video/mp4')
+      const bytes = await readCapped(res, readLimit)
+      if (!bytes) throw new Error(`file is larger than ${Math.round(readLimit / 1024 / 1024)} MB`)
+      const contentType =
+        trusted ?? sniffContentType(bytes) ?? declaredType ?? 'application/octet-stream'
+      if (!isAllowedContentType(contentType)) throw new Error(`${contentType} is not supported`)
+      const limit = maxUploadBytesFor(contentType)
+      if (bytes.byteLength > limit) {
+        throw new Error(`file is larger than ${Math.round(limit / 1024 / 1024)} MB`)
       }
 
       provider ??= await opts.storage()

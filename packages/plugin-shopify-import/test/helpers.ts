@@ -80,6 +80,8 @@ export function deps(
     storage: async () => storage,
     settingsSecret: SECRET,
     log: () => {},
+    // Image hosts resolve to a public address; no real DNS in tests.
+    lookup: async () => ['93.184.216.34'],
     ...extra,
   }
 }

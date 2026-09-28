@@ -2,6 +2,7 @@
 import { generateKeyPairSync } from 'node:crypto'
 import { decodeJwt, decodeProtectedHeader } from 'jose'
 import { describe, expect, it } from 'vitest'
+import type { StoreContext } from '../context'
 import {
   CustomerAccountSettingsSchema,
   type ProviderReadiness,
@@ -21,6 +22,7 @@ import {
   signToken,
 } from './tokens'
 import {
+  completeTruecaller,
   isTruecallerEndpoint,
   mobileFromProfile,
   storeFromTruecallerNonce,
@@ -408,5 +410,39 @@ describe('Truecaller', () => {
     expect(mobileFromProfile({ phoneNumbers: [919876543210] })).toBe('9876543210')
     expect(mobileFromProfile({ phoneNumbers: ['12345'] })).toBeNull()
     expect(mobileFromProfile({})).toBeNull()
+  })
+
+  it('fetches the profile without following redirects, and fails on one', async () => {
+    // Just enough of a transaction for the ticket lookup and the `failed` update.
+    const updates: unknown[] = []
+    const ticket = { id: 't1', status: 'pending', expiresAt: new Date(NOW.getTime() + 60_000) }
+    const tx = {
+      select: () => ({ from: () => ({ where: async () => [ticket] }) }),
+      update: () => ({ set: (v: unknown) => ({ where: async () => updates.push(v) }) }),
+    }
+    const inits: RequestInit[] = []
+    const done = await completeTruecaller(
+      { tx, storeId: STORE } as unknown as StoreContext,
+      {
+        requestId: truecallerNonce(STORE, SECRET, random),
+        accessToken: 'tok',
+        endpoint: 'https://profile4-noneu.truecaller.com/v1/default',
+      },
+      {
+        secret: SECRET,
+        fetch: async (_url, init) => {
+          inits.push(init)
+          return new Response(null, {
+            status: 302,
+            headers: { location: 'http://169.254.169.254/' },
+          })
+        },
+      },
+      NOW,
+    )
+    expect(done).toBe('failed')
+    expect(inits[0]?.redirect).toBe('error')
+    expect(inits[0]?.signal).toBeInstanceOf(AbortSignal)
+    expect(updates).toEqual([{ status: 'failed' }])
   })
 })
