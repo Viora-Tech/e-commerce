@@ -99,6 +99,11 @@ const schema = z.object({
   /** Truecaller partner key and app name from the Truecaller developer portal (web SDK). */
   SHOPPER_TRUECALLER_PARTNER_KEY: z.string().min(1).optional(),
   SHOPPER_TRUECALLER_PARTNER_NAME: z.string().min(1).optional(),
+  /**
+   * The platform's own store that sells plans. A paid order there with a product tagged
+   * `platform-plan` gives the buyer's email a signup invite. Unset: nothing happens.
+   */
+  PLATFORM_SALES_STORE_ID: z.string().uuid().optional(),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */

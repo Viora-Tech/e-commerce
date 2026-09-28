@@ -14,6 +14,10 @@
  *
  * Idempotent-ish: inviting the same email again cancels their older, still
  * unused invite and issues a fresh one (see createSignupInvite).
+ *
+ * Plans sold on the platform's own store (PLATFORM_SALES_STORE_ID, products
+ * tagged `platform-plan`) are invited automatically when the order is paid;
+ * see core `onboarding/plan-invites.ts`.
  */
 import { loadEnv } from '@commerce/config'
 import { createSignupInvite } from '@commerce/core'

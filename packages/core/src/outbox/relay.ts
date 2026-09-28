@@ -2,6 +2,7 @@ import { type Db, outboxEvent, withStore } from '@commerce/db'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
+import { inviteForPaidPlanOrder } from '../onboarding/plan-invites'
 import { type AppEventQueue, enqueueAppEvent, installedApps } from '../plugins/events'
 import {
   OUTBOX_APP_EVENT,
@@ -33,6 +34,8 @@ export type OutboxRelayDeps = {
   /** Absent only in tests that do not exercise `inventory.restocked`; that row is then just marked dispatched. */
   inventoryRestock?: InventoryRestockQueue | undefined
   log?: ((message: string) => void) | undefined
+  /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
+  salesStoreId?: string | undefined
 }
 
 /** Rows claimed per store per tick; the next tick (or the next store) picks up the rest. */
@@ -86,6 +89,14 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
         pluginId,
       })
     }
+  }
+  if (type === 'order.paid' && deps.salesStoreId && row.storeId === deps.salesStoreId) {
+    const r = await inviteForPaidPlanOrder(deps.db, {
+      storeId: row.storeId,
+      orderId: payload.orderId as string,
+      salesStoreId: deps.salesStoreId,
+    })
+    if (r.invited) deps.log?.(`plan order ${payload.orderId}: signup invite for ${r.email}`)
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(

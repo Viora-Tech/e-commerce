@@ -1,3 +1,4 @@
+import { loadEnv } from '@commerce/config'
 import {
   type AppEventQueue,
   type InventoryRestockQueue,
@@ -51,6 +52,7 @@ export function createOutboxRelay(
     notifications: opts.notifications,
     appEvents: opts.appEvents,
     inventoryRestock: opts.inventoryRestock,
+    salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => console.log(`[outbox] ${message}`),
   }
   const queue = new Queue<OutboxRelayJob>(OUTBOX_RELAY_QUEUE, { connection })
