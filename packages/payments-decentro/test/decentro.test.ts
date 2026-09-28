@@ -447,7 +447,19 @@ describe('testConnection', () => {
     const r = await new DecentroProvider(config, fetch).testConnection()
     expect(r.ok).toBe(true)
     expect(calls[0]?.init.method).toBe('GET')
-    expect(calls[0]?.url).toContain('/v3/payments/transaction/status?reference_id=connection-test-')
+    expect(calls[0]?.url).toMatch(/\/v3\/payments\/transaction\/status\?reference_id=conntest[0-9a-f]{12}$/)
+  })
+
+  it('passes when Decentro answers "Invalid Reference ID" for the made-up reference', async () => {
+    const { fetch } = fakeFetch(
+      jsonResponse(400, {
+        api_status: 'FAILURE',
+        response_key: 'error_invalid_reference_id',
+        message: 'Invalid Reference ID',
+      }),
+    )
+    const r = await new DecentroProvider(config, fetch).testConnection()
+    expect(r.ok).toBe(true)
   })
 
   it('fails with a plain message on bad keys', async () => {

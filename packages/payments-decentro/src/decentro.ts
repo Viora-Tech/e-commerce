@@ -156,6 +156,12 @@ export function attemptFromReference(ref: string | undefined): {
   return { idempotencyKey: `${orderId}:${ref.slice(cut + 1)}`, orderId }
 }
 
+/** Decentro's "this reference id matches nothing" answer, however it phrases it. */
+function isUnknownReference(err: DecentroApiError): boolean {
+  const key = err.responseKey ?? ''
+  return /reference/i.test(key) || /invalid reference id/i.test(err.message)
+}
+
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a)
   const bb = Buffer.from(b)
@@ -411,7 +417,8 @@ export class DecentroProvider implements PaymentProvider {
    * exist. Good keys get "no transaction found"; bad keys an auth error.
    */
   async testConnection(): Promise<ConnectionTestResult> {
-    const probe = `connection-test-${randomBytes(4).toString('hex')}`
+    // Letters and digits only: Decentro rejects some punctuation in reference ids.
+    const probe = `conntest${randomBytes(6).toString('hex')}`
     const ok: ConnectionTestResult = {
       ok: true,
       message: 'Connected. Decentro accepted these keys.',
@@ -428,7 +435,16 @@ export class DecentroProvider implements PaymentProvider {
               "Decentro didn't accept these keys. Check the Client ID and Client secret, and that Test or Live matches the keys.",
           }
         }
-        if (err.responseKey === 'error_no_transaction_found' || err.status === 404) return ok
+        // A made-up reference can't match a transaction. Decentro answers that either as
+        // "no transaction found" or as "Invalid Reference ID" (seen on staging); both mean
+        // the keys were accepted and the request reached the payments API.
+        if (
+          err.responseKey === 'error_no_transaction_found' ||
+          err.status === 404 ||
+          isUnknownReference(err)
+        ) {
+          return ok
+        }
       }
       const message = err instanceof Error ? err.message : String(err)
       return { ok: false, message: `Could not reach Decentro: ${message}` }
