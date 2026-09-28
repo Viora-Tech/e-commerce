@@ -9,6 +9,8 @@
   `apps/docs/content/developer-docs/building/plugins.mdx`. Admin design frames:
   `docs/design/admin-frames.md`. Guardrail sweeps (`bun run test:sweeps`): `docs/guardrails.md`.
 - Starting fresh with no conversation history? Read `docs/handoff.md` first.
+- Every PR records what it changed as a new file in `docs/handoff/changes/`
+  (`YYYY-MM-DD-short-title.md`), never by editing `docs/handoff.md`, so parallel PRs don't conflict.
 - New feature? First ask: build from scratch, or adopt from open source? Check
   `docs/open-source-radar.md`, verify the licence, and report candidates plus a recommendation
   before building. Credit anything adapted per `THIRD_PARTY_NOTICES.md`.
