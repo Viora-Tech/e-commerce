@@ -8,7 +8,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import ChoiceField from '@/components/apps/gst-invoices/choice-field'
 import { automationEditorContent, automationsContent } from '@/data/marketing-automations'
 
 type AutomationTriggerCardProps = {
@@ -19,10 +18,6 @@ type AutomationTriggerCardProps = {
 
 const copy = automationEditorContent.trigger
 const CART_TRIGGERS: AutomationTrigger[] = ['checkout_abandoned', 'cart_abandoned']
-const AUDIENCE_OPTIONS = [
-  { value: 'subscribed', label: copy.audienceSubscribed },
-  { value: 'all', label: copy.audienceAll },
-]
 
 /** What starts the automation, its timing and who it may reach. */
 export default function AutomationTriggerCard({
@@ -79,16 +74,12 @@ export default function AutomationTriggerCard({
               </div>
             </Field>
           ) : null}
-          <ChoiceField
-            id="audience"
-            label={copy.audience}
-            value={settings.audience ?? 'subscribed'}
-            options={AUDIENCE_OPTIONS}
-            help={copy.audienceHelp}
-            onChange={(audience) =>
-              onChange({ ...settings, audience: audience as 'subscribed' | 'all' })
-            }
-          />
+          <Field>
+            <FieldLabel>{copy.audience}</FieldLabel>
+            <FieldDescription>
+              {trigger === 'cod_order_placed' ? copy.audienceOrderUpdate : copy.audienceConsent}
+            </FieldDescription>
+          </Field>
           {STOPS_ON_ORDER[trigger] ? <FieldDescription>{copy.stops}</FieldDescription> : null}
         </FieldGroup>
       </CardContent>

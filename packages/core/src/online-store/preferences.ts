@@ -3,9 +3,9 @@ import { MediaRefSchema } from '../theme/schema'
 
 /**
  * Online Store › Preferences, as Shopify has them: the home page's search listing
- * and social image, a storefront password, the cookie consent banner, and the
- * analytics/marketing tags that load only after consent. Browser safe: the admin
- * form imports it directly.
+ * and social image, a storefront password, and the analytics/marketing tags that
+ * load only after consent. The cookie banner itself is Settings → Customer privacy
+ * (`@commerce/core/privacy`). Browser safe: the admin form imports it directly.
  */
 
 export const GA4_ID = /^G-[A-Z0-9]{4,12}$/
@@ -46,13 +46,6 @@ const PasswordSchema = z
     path: ['password'],
   })
 
-const PrivacySchema = z.object({
-  /** Show the consent banner and hold analytics and marketing tags until the shopper chooses. */
-  bannerEnabled: z.boolean().default(true),
-  /** Replaces the default banner copy when set. */
-  message: z.string().trim().max(PREFERENCE_LIMITS.message).default(''),
-})
-
 const TrackingSchema = z.object({
   ga4: trackingId(GA4_ID, 'A GA4 measurement id looks like G-XXXXXXXXXX', true).default(''),
   gtm: trackingId(GTM_ID, 'A Tag Manager id looks like GTM-XXXXXXX', true).default(''),
@@ -62,7 +55,6 @@ const TrackingSchema = z.object({
 export const StorePreferencesSchema = z.object({
   seo: SeoSchema.prefault({}),
   password: PasswordSchema.prefault({}),
-  privacy: PrivacySchema.prefault({}),
   tracking: TrackingSchema.prefault({}),
 })
 export type StorePreferences = z.infer<typeof StorePreferencesSchema>

@@ -3,13 +3,15 @@ import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { NEWSLETTER_TAG } from '../customers/newsletter'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
+import { setMarketingConsents } from '../privacy/marketing-consent'
 import { fieldErrors, ProfileInputSchema } from './schemas'
 
 export type ProfileResult = { ok: true } | { ok: false; errors: Record<string, string> }
 
 /**
- * A shopper edits their own name, mobile and marketing consent. The email is the
- * sign-in identity and is not editable here, as in Shopify's customer accounts.
+ * A shopper edits their own name, mobile and marketing consent (per channel,
+ * each change kept in the consent history). The email is the sign-in identity
+ * and is not editable here, as in Shopify's customer accounts.
  */
 export async function updateProfile(
   ctx: StoreContext,
@@ -24,7 +26,7 @@ export async function updateProfile(
     .from(customer)
     .where(eq(customer.id, customerId))
   if (!current) return { ok: false, errors: { form: 'Account not found' } }
-  const { name, phone, acceptsMarketing } = parsed.data
+  const { name, phone, acceptsMarketing, acceptsWhatsapp, acceptsSms } = parsed.data
   // Opting in from the account page tags the customer like the newsletter form does.
   const tags =
     acceptsMarketing && !current.tags.includes(NEWSLETTER_TAG)
@@ -36,10 +38,15 @@ export async function updateProfile(
       name: name || null,
       phone: phone ? encryptCustomerPhone(phone, secret).cipher : phone,
       phoneIndex: phone ? phoneBlindIndex(phone, secret) : null,
-      acceptsMarketing,
       tags,
       updatedAt: new Date(),
     })
     .where(eq(customer.id, customerId))
+  await setMarketingConsents(
+    ctx,
+    customerId,
+    { email: acceptsMarketing, whatsapp: acceptsWhatsapp, sms: acceptsSms },
+    { source: 'account', actor: { type: 'customer', id: customerId } },
+  )
   return { ok: true }
 }

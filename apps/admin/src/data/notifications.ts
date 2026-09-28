@@ -243,7 +243,7 @@ export const notificationsSettingsContent = {
     help: 'Developer tools',
     devLog: 'Developer log',
     devLogHelp:
-      'Prints every message to the server console instead of sending it. Only in development.',
+      'Prints every email and SMS to the server console instead of sending it, so SMS sign-in codes can be tried without an SMS app. Only in development.',
     devLogOn: 'Developer log turned on',
     devLogOff: 'Developer log turned off',
     emailsPreview: 'All email designs',

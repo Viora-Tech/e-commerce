@@ -612,11 +612,19 @@ export const customer = pgTable(
     acceptsMarketing: boolean('accepts_marketing').notNull().default(false),
     /** Opted in to WhatsApp marketing (broadcasts and promotional automations). */
     acceptsWhatsapp: boolean('accepts_whatsapp').notNull().default(false),
+    /** Opted in to SMS marketing. History of every change: `marketing_consent_event`. */
+    acceptsSms: boolean('accepts_sms').notNull().default(false),
     /** When and where the latest email consent was given, e.g. `newsletter`, `checkout`, `admin`. */
     marketingConsentAt: timestamp('marketing_consent_at', { withTimezone: true }),
     marketingConsentSource: text('marketing_consent_source'),
     /** Set by the unsubscribe link; no marketing email or automation reaches the customer after it. */
     unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+    /**
+     * Set when the customer's personal data was erased (a deletion request).
+     * The row stays so orders and invoices keep their link; name, email,
+     * phone and addresses are gone. See `@commerce/core` `anonymiseCustomer`.
+     */
+    anonymisedAt: timestamp('anonymised_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

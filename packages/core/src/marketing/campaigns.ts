@@ -320,7 +320,13 @@ export async function sendCampaignBatch(
         : await sendMarketingWhatsapp(
             tx,
             channel,
-            { messageId: r.id, to: r.to, template: c.whatsapp as WhatsappTemplateRef, merge },
+            {
+              messageId: r.id,
+              to: r.to,
+              customerId: r.customerId,
+              template: c.whatsapp as WhatsappTemplateRef,
+              merge,
+            },
             applyMergeTags,
           )
     if (result.ok) sent += 1

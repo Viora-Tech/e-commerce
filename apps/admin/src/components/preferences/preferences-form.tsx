@@ -5,8 +5,10 @@ import {
   type StorePreferences,
   StorePreferencesSchema,
 } from '@commerce/core/preferences'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
+import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
@@ -182,25 +184,13 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
           <CardDescription>{copy.privacy.body}</CardDescription>
         </CardHeader>
         <CardContent>
-          <FieldGroup>
-            <SwitchField
-              label={copy.privacy.enabled}
-              help={copy.privacy.enabledHelp}
-              checked={form.privacy.bannerEnabled}
-              onChange={(bannerEnabled) => patch('privacy', { bannerEnabled })}
-            />
-            {form.privacy.bannerEnabled ? (
-              <TextSetting
-                id="privacy-message"
-                label={copy.privacy.message}
-                value={form.privacy.message}
-                maxLength={PREFERENCE_LIMITS.message}
-                multiline
-                onChange={(message) => patch('privacy', { message })}
-                help={copy.privacy.messageHelp}
-              />
-            ) : null}
-          </FieldGroup>
+          <Button
+            variant="outline"
+            render={<Link href="/settings/customer-privacy#banner" />}
+            nativeButton={false}
+          >
+            {copy.privacy.link}
+          </Button>
         </CardContent>
       </Card>
 

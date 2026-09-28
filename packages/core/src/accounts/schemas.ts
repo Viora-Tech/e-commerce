@@ -56,7 +56,11 @@ export const ProfileInputSchema = z.object({
     if (!m) ctx.addIssue({ code: 'custom', message: 'Enter a ten digit mobile number' })
     return m
   }),
+  /** Email marketing. */
   acceptsMarketing: z.boolean(),
+  /** WhatsApp and SMS marketing; left as they are when the form does not show them. */
+  acceptsWhatsapp: z.boolean().optional(),
+  acceptsSms: z.boolean().optional(),
 })
 
 export type ProfileInput = z.input<typeof ProfileInputSchema>

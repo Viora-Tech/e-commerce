@@ -200,8 +200,6 @@ export const customerDetailContent = {
     phone: 'Phone',
     address: 'Default address',
     noAddress: 'No address on file',
-    marketing: 'Accepts marketing emails and messages',
-    marketingSaved: 'Marketing preference saved',
     created: 'Customer since',
     copy: (what: string) => `Copy ${what}`,
     copied: (what: string) => `${what} copied`,

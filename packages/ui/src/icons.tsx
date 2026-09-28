@@ -133,6 +133,7 @@ import {
   Receipt,
   Rows,
   SealPercent,
+  ShieldCheck,
   ShoppingBagOpen,
   SignOut,
   Sparkle,
@@ -153,6 +154,7 @@ import {
   TShirt,
   Upload,
   User,
+  UserCircle,
   UserGear,
   Users,
   Video,
@@ -213,6 +215,11 @@ export const Smartphone = defineIcon(DeviceMobile, 'Smartphone', 'duotone')
 export const Images = defineIcon(PhImages, 'Images', 'duotone')
 export const UserCog = defineIcon(UserGear, 'UserCog', 'duotone')
 export const UserRound = defineIcon(User, 'UserRound', 'duotone')
+/* Settings → Customer privacy and Settings → Customer accounts. */
+export const ShieldCheck_ = defineIcon(ShieldCheck, 'ShieldCheck', 'duotone')
+export { ShieldCheck_ as ShieldCheck }
+export const UserCircle_ = defineIcon(UserCircle, 'UserCircle', 'duotone')
+export { UserCircle_ as UserCircle }
 export const CreditCard_ = defineIcon(CreditCard, 'CreditCard', 'duotone')
 export { CreditCard_ as CreditCard }
 export const Inbox = defineIcon(Tray, 'Inbox', 'duotone')

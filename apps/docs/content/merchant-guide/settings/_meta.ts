@@ -7,4 +7,6 @@ export default {
   taxes: 'Taxes & GST',
   checkout: 'Checkout',
   policies: 'Policies',
+  'customer-privacy': 'Customer privacy',
+  'customer-accounts': 'Customer accounts',
 }

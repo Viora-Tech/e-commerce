@@ -60,6 +60,7 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'checkout_recovery', group: 'manual', trigger: 'manual', channels: BOTH },
   { id: 'document_copy', group: 'manual', trigger: 'manual', channels: EMAIL },
   { id: 'login_code', group: 'account', trigger: 'always', channels: EMAIL },
+  { id: 'account_deletion_code', group: 'account', trigger: 'always', channels: EMAIL },
   { id: 'gift_card_issued', group: 'account', trigger: 'always', channels: EMAIL },
   {
     id: 'back_in_stock_confirm',

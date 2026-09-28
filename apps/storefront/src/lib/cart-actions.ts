@@ -43,6 +43,7 @@ import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
 import { estimateForPincode } from './shipping'
+import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
 const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
@@ -132,8 +133,12 @@ export async function checkoutAction(
   ])
   if (!byCart.ok || !byIp.ok) return { error: checkoutContent.errors.rateLimited }
   // Signed in: the order belongs to the session's customer, whatever email the form carried.
+  // A customer who signs in by mobile and has no email yet may type one.
   const me = await currentCustomer(storeId)
-  const form = me ? { ...submitted, email: me.email } : submitted
+  if (!me && (await storeSignIn(storeId)).checkout === 'account_required') {
+    redirect('/account/login?return_to=%2Fcheckout')
+  }
+  const form = me ? { ...submitted, email: me.email ?? submitted.email } : submitted
 
   /* Contact first: if anything below fails the cart is still recoverable. The latest
      marketing touch rides along so the order credits the email or ad that closed it. */

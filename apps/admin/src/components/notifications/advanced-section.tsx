@@ -21,7 +21,8 @@ type AdvancedSectionProps = {
 }
 
 const copy = setupCopy.advanced
-const LOG = 'log'
+/** The development log channels: email (`log`) and SMS (`log-sms`), switched together. */
+const LOGS = ['log', 'log-sms']
 
 /**
  * Advanced, closed by default and shown only in development: the developer
@@ -37,8 +38,8 @@ export default function AdvancedSection({ devLog, onChanged }: AdvancedSectionPr
     try {
       const { settings } = await api.store.getNotifications()
       const enabled = on
-        ? [...new Set([...settings.enabled, LOG])]
-        : settings.enabled.filter((id) => id !== LOG)
+        ? [...new Set([...settings.enabled, ...LOGS])]
+        : settings.enabled.filter((id) => !LOGS.includes(id))
       await api.store.updateNotifications({ ...settings, enabled })
       toast.success(on ? copy.devLogOn : copy.devLogOff)
       await onChanged()

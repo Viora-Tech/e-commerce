@@ -9,10 +9,12 @@ import {
   Images,
   Palette,
   ReceiptIcon,
+  ShieldCheck,
   ShoppingCart,
   Store,
   Truck,
   Undo,
+  UserCircle,
   UserCog,
   UserRound,
 } from '@commerce/ui/icons'
@@ -75,6 +77,18 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Policies',
     body: 'Refund, privacy, terms, shipping and contact pages, from ready-made templates.',
     icon: ClipboardList,
+  },
+  {
+    href: '/settings/customer-privacy',
+    title: 'Customer privacy',
+    body: 'Cookie banner, data requests (copy or delete) and marketing consent, for the DPDP Act.',
+    icon: ShieldCheck,
+  },
+  {
+    href: '/settings/customer-accounts',
+    title: 'Customer accounts',
+    body: 'Guest checkout, and sign-in codes by email, SMS or WhatsApp.',
+    icon: UserCircle,
   },
   {
     href: '/settings/notifications',

@@ -6,6 +6,8 @@ import { backInStockRouter } from './back-in-stock'
 import { blogRouter } from './blog'
 import { checkoutSettingsRouter } from './checkout-settings'
 import { collectionsRouter } from './collections'
+import { customerAccountsRouter } from './customer-accounts'
+import { customerPrivacyRouter } from './customer-privacy'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
 import { discountsRouter } from './discounts'
@@ -58,6 +60,8 @@ export const appRouter = {
   payments: paymentsRouter,
   checkoutSettings: checkoutSettingsRouter,
   policies: policiesRouter,
+  customerPrivacy: customerPrivacyRouter,
+  customerAccounts: customerAccountsRouter,
   notifications: notificationsRouter,
   customers: customersRouter,
   discounts: discountsRouter,

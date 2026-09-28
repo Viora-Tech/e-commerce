@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { checkStorefrontPassword, signStorefrontAccess, verifyStorefrontAccess } from './access'
 import {
   allowedTags,
+  currentConsent,
   decodeConsent,
   defaultPreferences,
   encodeConsent,
@@ -14,7 +15,6 @@ describe('store preferences', () => {
     expect(parsePreferences(null)).toEqual(defaultPreferences)
     expect(parsePreferences({ seo: 'x' })).toEqual(defaultPreferences)
     expect(defaultPreferences.password.enabled).toBe(false)
-    expect(defaultPreferences.privacy.bannerEnabled).toBe(true)
   })
 
   it('normalises and validates tracking ids', () => {
@@ -38,24 +38,49 @@ describe('store preferences', () => {
     ).toBe(true)
   })
 
-  it('holds tags until consent when the banner is on, and loads them when it is off', () => {
+  it('holds every tag until the shopper allows its category', () => {
     const prefs = StorePreferencesSchema.parse({
-      tracking: { ga4: 'G-ABC1234', metaPixel: '1234567890' },
+      tracking: { ga4: 'G-ABC1234', gtm: 'GTM-5X7K9Q', metaPixel: '1234567890' },
     })
     expect(allowedTags(prefs, null)).toEqual({ ga4: null, gtm: null, metaPixel: null })
-    expect(allowedTags(prefs, { analytics: true, marketing: false })).toEqual({
-      ga4: 'G-ABC1234',
+    expect(allowedTags(prefs, { analytics: false, marketing: false })).toEqual({
+      ga4: null,
       gtm: null,
       metaPixel: null,
     })
-    const noBanner = { ...prefs, privacy: { ...prefs.privacy, bannerEnabled: false } }
-    expect(allowedTags(noBanner, null).metaPixel).toBe('1234567890')
+    expect(allowedTags(prefs, { analytics: true, marketing: false })).toEqual({
+      ga4: 'G-ABC1234',
+      gtm: 'GTM-5X7K9Q',
+      metaPixel: null,
+    })
+    expect(allowedTags(prefs, { analytics: false, marketing: true })).toEqual({
+      ga4: null,
+      gtm: null,
+      metaPixel: '1234567890',
+    })
   })
 
-  it('round-trips the consent cookie', () => {
-    const c = { analytics: true, marketing: false }
-    expect(decodeConsent(encodeConsent(c))).toEqual(c)
+  it('round-trips the consent cookie with its banner version and time', () => {
+    const at = new Date('2026-09-27T10:00:00Z')
+    const raw = encodeConsent({ analytics: true, marketing: false }, 3, at)
+    expect(raw).toBe('a1m0.v3.t1790503200')
+    expect(decodeConsent(raw)).toEqual({
+      analytics: true,
+      marketing: false,
+      version: 3,
+      at: 1790503200,
+    })
+    expect(decodeConsent('a0m1')).toEqual({ analytics: false, marketing: true, version: 0, at: 0 })
     expect(decodeConsent('garbage')).toBeNull()
+    expect(decodeConsent('a1m1.v1')).toBeNull()
+  })
+
+  it('asks again when the banner version moved on', () => {
+    const stored = decodeConsent('a1m1.v1.t1790000000')
+    expect(currentConsent(stored, 1)).toEqual({ analytics: true, marketing: true })
+    expect(currentConsent(stored, 2)).toBeNull()
+    expect(currentConsent(decodeConsent('a1m1'), 1)).toBeNull()
+    expect(currentConsent(null, 1)).toBeNull()
   })
 })
 

@@ -12,6 +12,7 @@ export default {
   'custom-sections': 'Slots and custom sections',
   performance: 'Storefront performance',
   'admin-languages': 'Admin languages (Hindi)',
+  'customer-privacy': 'Customer privacy and accounts',
   security: 'Security',
   conventions: 'Conventions',
   guardrails: 'Guardrails and sweeps',

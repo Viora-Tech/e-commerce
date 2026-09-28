@@ -325,14 +325,16 @@ function privacyBlocks(f: Facts): Block[] {
         'Raise a grievance with us, and if you are not satisfied with our answer, complain to the Data Protection Board of India',
       ],
     },
-    { p: 'To use any of these rights, write to our grievance officer below.' },
+    {
+      p: 'To use any of these rights, write to our grievance officer below. If you have an account, you can also ask for a copy of your data or delete your account under Your data in your account.',
+    },
     { h: 'Children' },
     {
       p: 'Our store is meant for people aged 18 and over. We do not knowingly collect personal data from children without verifiable consent from a parent or guardian.',
     },
     { h: 'Cookies' },
     {
-      p: 'We use cookies that the store needs to work, such as your cart. Analytics and marketing cookies load only if you allow them in the cookie banner, and you can change your choice at any time.',
+      p: 'We use cookies that the store needs to work, such as your cart. Analytics and marketing cookies load only if you allow them in the cookie banner, and you can change your choice at any time from Cookie settings at the bottom of every page.',
     },
     { h: 'Security' },
     {

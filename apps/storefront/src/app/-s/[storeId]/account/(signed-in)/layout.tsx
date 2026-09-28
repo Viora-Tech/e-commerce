@@ -14,7 +14,7 @@ export default async function SignedInLayout({ children, params }: SignedInLayou
   const me = await currentCustomer(storeId)
   return (
     <>
-      {me ? <AccountNav email={me.email} name={me.name} /> : null}
+      {me ? <AccountNav email={me.email ?? me.phone ?? ''} name={me.name} /> : null}
       {children}
     </>
   )

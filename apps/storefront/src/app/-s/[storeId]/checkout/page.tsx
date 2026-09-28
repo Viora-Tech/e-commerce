@@ -6,6 +6,7 @@ import { currentCustomer } from '@/lib/customer-session'
 import { cartDiscountView } from '@/lib/discount-actions'
 import { storeCheckoutMethods } from '@/lib/payments'
 import { nonRefundableDepositDays } from '@/lib/preorder'
+import { storeSignIn } from '@/lib/sign-in-methods'
 import { inStore } from '@/lib/store-context'
 
 type Params = { params: Promise<{ storeId: string }> }
@@ -15,6 +16,11 @@ export default async function CheckoutPage({ params }: Params) {
   const cartId = await readCartId()
   const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
   if (cart?.status !== 'open' || cart.lines.length === 0) redirect('/cart')
+  // Settings → Customer accounts can require an account before checkout.
+  const [signIn, signedIn] = await Promise.all([storeSignIn(storeId), currentCustomer(storeId)])
+  if (signIn.checkout === 'account_required' && !signedIn) {
+    redirect('/account/login?return_to=%2Fcheckout')
+  }
   const [methods, discount, me, depositDays, settings, policies] = await Promise.all([
     inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
     cartDiscountView(storeId, cart.id, cart.discountCode),

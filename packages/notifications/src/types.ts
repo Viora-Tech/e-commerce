@@ -24,6 +24,8 @@ export type TemplateId =
   | 'document_copy'
   /** Storefront account sign-in code. Sent straight away, never queued: it lives ten minutes. */
   | 'login_code'
+  /** Confirms a shopper's own account deletion. Sent straight away, like `login_code`. Email only; phone channels send `login_code`. */
+  | 'account_deletion_code'
   /** A gift card was issued (bought or sent by the merchant); carries the code. Email only. */
   | 'gift_card_issued'
   /** A deposit pre-order's balance is due; carries the pay-balance link. */
@@ -206,6 +208,12 @@ export type NotificationChannel = {
   readonly label: string
   /** Which recipient field this channel needs; the worker skips it when the order has none. */
   readonly requires: 'email' | 'phone'
+  /**
+   * Phone channels only: how the message travels. Absent means WhatsApp, the
+   * only phone channel before SMS apps existed. Sign-in codes by SMS need a
+   * channel that says `sms`.
+   */
+  readonly medium?: 'sms' | 'whatsapp'
   /** Never throws: transport errors come back as `{ ok: false }` so the worker can retry. */
   send(message: Message): Promise<SendResult>
   /** Marketing sends; channels without it cannot carry campaigns or automations. Never throws. */

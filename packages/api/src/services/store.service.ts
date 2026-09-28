@@ -9,17 +9,20 @@ export async function getStore(tx: StoreTx, storeId: string) {
 }
 
 /**
- * Replaces the Online Store preferences. The theme editor's "My sections" share
- * this column (`customSections`, written by `saveCustomSection`), so that key is
- * carried over rather than wiped by the preferences form.
+ * Online Store › Preferences writes its own keys (seo, password, tracking) into
+ * `store.preferences`, merged over what is there: policies, checkout, customer
+ * privacy, customer accounts and the theme editor's "My sections" (`customSections`)
+ * live in the same column and must survive.
  */
 export async function updateStorePreferences(tx: StoreTx, storeId: string, preferences: unknown) {
-  const next = { ...(preferences as Record<string, unknown>) }
+  // `customSections` is only ever written by `saveCustomSection`; a stale copy in the form
+  // must not overwrite it.
+  const next = { ...((preferences ?? {}) as Record<string, unknown>) }
   delete next.customSections
   const [s] = await tx
     .update(store)
     .set({
-      preferences: sql`${JSON.stringify(next)}::jsonb || jsonb_strip_nulls(jsonb_build_object('customSections', ${store.preferences} -> 'customSections'))`,
+      preferences: sql`coalesce(${store.preferences}, '{}'::jsonb) || ${JSON.stringify(next)}::jsonb`,
     })
     .where(eq(store.id, storeId))
     .returning()

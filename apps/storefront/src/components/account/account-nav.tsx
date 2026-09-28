@@ -6,7 +6,7 @@ import { accountContent } from '@/data/account'
 import { signOutAction } from '@/lib/account-actions'
 
 type AccountNavProps = {
-  /** Shown under the heading so the shopper knows which account this is. */
+  /** Email, or the mobile number for a phone-only account: which account this is. */
   email: string
   name: string | null
 }
@@ -28,6 +28,11 @@ const LINKS = [
     href: '/account/profile',
     label: copy.profile,
     match: (p: string) => p.startsWith('/account/profile'),
+  },
+  {
+    href: '/account/privacy',
+    label: copy.privacy,
+    match: (p: string) => p.startsWith('/account/privacy'),
   },
 ]
 

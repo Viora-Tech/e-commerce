@@ -312,6 +312,15 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
       'The code works once and expires in 10 minutes. If you did not ask for it, ignore this email.',
     whatsapp: (d) => `${d.code} is your ${d.storeName} sign-in code. It expires in 10 minutes.`,
   },
+  account_deletion_code: {
+    subject: (d) => `${d.code} is your code to delete your ${d.storeName} account`,
+    heading: () => 'Confirm you want to delete your account',
+    intro: (d) =>
+      `Enter ${d.code} to confirm you want to delete your ${d.storeName} account. We will erase your personal data, except what the law makes us keep for invoices.`,
+    outro: () =>
+      'The code works once and expires in 10 minutes. If you did not ask for this, ignore this email and your account stays as it is.',
+    whatsapp: (d) => `${d.code} is your ${d.storeName} code. It expires in 10 minutes.`,
+  },
   gift_card_issued: {
     subject: (d) => `${d.storeName}: your ${d.giftCard?.balanceLabel ?? ''} gift card`,
     heading: (d) => `Hi ${d.customerName}, here is your gift card`,

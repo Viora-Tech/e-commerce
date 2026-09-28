@@ -34,7 +34,9 @@ export default function CheckoutContactFields({
     <fieldset className="checkout__group">
       <legend className="h4">{content.contact}</legend>
       {customer ? (
-        <p className="text-small text-muted">{accountCopy.signedInAs(customer.email)}</p>
+        <p className="text-small text-muted">
+          {accountCopy.signedInAs(customer.email ?? customer.phone ?? '')}
+        </p>
       ) : (
         <a
           href="/account/login?return_to=%2Fcheckout"
@@ -51,14 +53,14 @@ export default function CheckoutContactFields({
         onChange={onField('name')}
       />
       <CheckoutField
-        label={emailOptional && !customer ? f.emailOptional : f.email}
+        label={emailOptional && !customer?.email ? f.emailOptional : f.email}
         type="email"
-        required={!emailOptional || customer !== null}
+        required={!emailOptional || Boolean(customer?.email)}
         autoComplete="email"
         value={values.email}
         onChange={onField('email')}
         onBlur={onContactBlur}
-        readOnly={customer !== null}
+        readOnly={Boolean(customer?.email)}
       />
       <CheckoutField
         label={f.phone}
