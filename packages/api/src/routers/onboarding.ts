@@ -12,7 +12,9 @@ import {
   OnboardingError,
   type RateLimitRule,
   rateLimitKey,
+  releaseSignupInvite,
   retryAfterSeconds,
+  userOwnsAStore,
   WaitlistEntrySchema,
 } from '@commerce/core'
 import { SHOPIFY_IMPORT_ID } from '@commerce/plugin-shopify-import/client'
@@ -51,14 +53,17 @@ export const onboardingRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
-      const orgs = await context.auth.api.listOrganizations({ headers: context.headers })
-      const ownsAStoreAlready = orgs.length > 0
+      const ownsAStoreAlready = await userOwnsAStore(context.db, context.session.user.id)
       const decision = await checkSignupGate(context.db, {
         email: context.session.user.email,
         mode: env().MERCHANT_SIGNUP_MODE,
         ownsAStoreAlready,
       })
       if (!decision.allowed) {
+        throw new ORPCError('FORBIDDEN', { message: 'Signups are invite-only for now' })
+      }
+      const invite = decision.invite
+      if (invite && !(await consumeSignupInvite(context.db, invite.id))) {
         throw new ORPCError('FORBIDDEN', { message: 'Signups are invite-only for now' })
       }
 
@@ -81,7 +86,6 @@ export const onboardingRouter = {
             return { organizationId: org.id }
           },
         })
-        if (decision.invite) await consumeSignupInvite(context.db, decision.invite.id)
         await context.auth.api.setActiveOrganization({
           headers: context.headers,
           body: { organizationId: result.organizationId },
@@ -90,6 +94,7 @@ export const onboardingRouter = {
         const nextPath = input.profile?.sellsOn === 'shopify' ? `/apps/${SHOPIFY_IMPORT_ID}` : '/'
         return { ...result, nextPath }
       } catch (err) {
+        if (invite) await releaseSignupInvite(context.db, invite.id)
         if (err instanceof OnboardingError) {
           throw new ORPCError(CODE[err.code], { message: err.message, data: { code: err.code } })
         }
@@ -117,7 +122,13 @@ export const onboardingRouter = {
           })
         }
       }
-      await joinSignupWaitlist(context.db, input, { userId: context.session.user.id })
+      // The signed-in email, never a typed one: otherwise anyone could rewrite someone
+      // else's entry (phone, what they sell) or fill the list with other people's emails.
+      await joinSignupWaitlist(
+        context.db,
+        { ...input, email: context.session.user.email },
+        { userId: context.session.user.id },
+      )
       return { ok: true as const }
     }),
 }

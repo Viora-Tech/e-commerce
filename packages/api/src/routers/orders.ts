@@ -120,7 +120,11 @@ export const ordersRouter = {
         lines: z.array(z.object({ lineId: z.uuid(), quantity: z.number().int().min(0) })).min(1),
         courier: z.string().trim().max(60).optional(),
         trackingNumber: z.string().trim().max(60).optional(),
-        trackingUrl: z.url().max(500).optional(),
+        // Shown as a link to the shopper and in emails: web links only, never javascript: or data:.
+        trackingUrl: z
+          .url({ protocol: /^https?$/ })
+          .max(500)
+          .optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -203,6 +207,10 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      // Rewriting the customer's saved address is a customer edit, not an order edit.
+      if (input.alsoUpdateCustomer && !context.scope.can(permissions.CUSTOMERS_WRITE)) {
+        throw new ORPCError('FORBIDDEN', { message: 'Your role does not allow write customers' })
+      }
       await assertNotImported(context.tx, { orderId: input.orderId })
       try {
         return await updateOrderContact(

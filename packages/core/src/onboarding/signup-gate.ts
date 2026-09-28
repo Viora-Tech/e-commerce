@@ -1,5 +1,5 @@
 /** SOURCE OF TRUTH: merchant signup gate — WHAT decides whether a signed-in person may create their first store (MERCHANT_SIGNUP_MODE, single-use signup invites) / WHY invite mode keeps the platform closed while it is tested with a few merchants */
-import { type Db, newId, signupInvite, signupWaitlist } from '@commerce/db'
+import { authSchema, type Db, newId, signupInvite, signupWaitlist } from '@commerce/db'
 import { and, eq, isNull } from 'drizzle-orm'
 
 export type MerchantSignupMode = 'invite' | 'open'
@@ -64,9 +64,39 @@ async function findLiveSignupInvite(db: Db, email: string): Promise<SignupInvite
   return row
 }
 
-/** Marks the invite consumed. Call once the store it unlocked actually exists. */
-export async function consumeSignupInvite(db: Db, id: string): Promise<void> {
-  await db.update(signupInvite).set({ usedAt: new Date() }).where(eq(signupInvite.id, id))
+/**
+ * Claims the invite before the store is created: true for exactly one caller, so two
+ * parallel "Create store" requests cannot both ride one single-use invite. Give it back
+ * with `releaseSignupInvite` if the store could not be created.
+ */
+export async function consumeSignupInvite(db: Db, id: string): Promise<boolean> {
+  const rows = await db
+    .update(signupInvite)
+    .set({ usedAt: new Date() })
+    .where(and(eq(signupInvite.id, id), isNull(signupInvite.usedAt)))
+    .returning({ id: signupInvite.id })
+  return rows.length > 0
+}
+
+/** Undoes `consumeSignupInvite` when creating the store failed. */
+export async function releaseSignupInvite(db: Db, id: string): Promise<void> {
+  await db.update(signupInvite).set({ usedAt: null }).where(eq(signupInvite.id, id))
+}
+
+/** A Better Auth member role (`owner`, or several joined by commas) that owns the organisation. */
+export function isOwnerRole(role: string): boolean {
+  return role.split(',').some((r) => r.trim() === 'owner')
+}
+
+/**
+ * Whether this user owns a store already. Staff membership does not count: anyone can be
+ * invited as staff by any merchant, so counting it would let a staff invite skip the
+ * invite-only gate for creating stores of your own.
+ */
+export async function userOwnsAStore(db: Db, userId: string): Promise<boolean> {
+  const { member } = authSchema
+  const rows = await db.select({ role: member.role }).from(member).where(eq(member.userId, userId))
+  return rows.some((r) => isOwnerRole(r.role))
 }
 
 export type SignupGateDecision =

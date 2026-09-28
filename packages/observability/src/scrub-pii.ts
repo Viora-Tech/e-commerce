@@ -19,37 +19,51 @@ const TOKEN_RE =
 
 const REDACTED = '[redacted]'
 
-/** Object keys redacted outright, wherever they appear in the event tree. */
+/**
+ * Object keys redacted outright, wherever they appear in the event tree, compared with
+ * case, `-` and `_` removed (`secretAccessKey`, `X-Api-Key`, `client_secret` all match).
+ */
 const SENSITIVE_KEYS = new Set([
   'email',
-  'email_address',
+  'emailaddress',
   'phone',
-  'phone_number',
+  'phonenumber',
+  'mobile',
   'address',
   'address1',
   'address2',
-  'billing_address',
-  'shipping_address',
-  'ip_address',
-  'password',
-  'token',
-  'access_token',
-  'refresh_token',
-  'api_key',
-  'apikey',
-  'secret',
-  'authorization',
+  'billingaddress',
+  'shippingaddress',
+  'ipaddress',
+  'otp',
   'cookie',
   'cookies',
-  'set-cookie',
+  'setcookie',
+  'authorization',
 ])
+/** Any key naming a credential, however it is spelled (`accessToken`, `clientSecret`, `privateKey`). */
+const SENSITIVE_KEY_PART = /secret|token|passw|apikey|privatekey|authorization|cookie/
+
+const normaliseKey = (key: string): string => key.toLowerCase().replace(/[-_]/g, '')
+
+function isSensitiveKey(key: string): boolean {
+  const k = normaliseKey(key)
+  return SENSITIVE_KEYS.has(k) || SENSITIVE_KEY_PART.test(k)
+}
+
+/** A UPI id (`name@okaxis`): an email without a dot in its domain. */
+const UPI_RE = /[a-zA-Z0-9._-]{2,}@[a-zA-Z]{2,}\b/g
 
 function scrubString(value: string): string {
-  return value.replace(EMAIL_RE, REDACTED).replace(PHONE_RE, REDACTED).replace(TOKEN_RE, REDACTED)
+  return value
+    .replace(EMAIL_RE, REDACTED)
+    .replace(UPI_RE, REDACTED)
+    .replace(PHONE_RE, REDACTED)
+    .replace(TOKEN_RE, REDACTED)
 }
 
 function scrubValue(value: unknown, keyHint?: string): unknown {
-  if (keyHint && SENSITIVE_KEYS.has(keyHint.toLowerCase())) return REDACTED
+  if (keyHint && isSensitiveKey(keyHint)) return REDACTED
   if (typeof value === 'string') return scrubString(value)
   if (Array.isArray(value)) return value.map((v) => scrubValue(v))
   if (value && typeof value === 'object') {

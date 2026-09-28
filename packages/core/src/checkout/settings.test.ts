@@ -4,6 +4,7 @@ import { CheckoutRuleViolation } from '../errors'
 import {
   CheckoutSettingsSchema,
   checkCheckoutRules,
+  checkoutPincode,
   codDecision,
   defaultCheckoutSettings,
   e164IndianMobile,
@@ -79,6 +80,21 @@ describe('COD rules', () => {
       allowed: false,
       reason: 'blocked_pincode',
     })
+  })
+
+  it('blocks a listed PIN code however it is written', () => {
+    for (const pincode of ['110-001', '110 001', ' 110001 ']) {
+      expect(codDecision(rules, { pincode, orderValuePaise: 100 }), pincode).toMatchObject({
+        allowed: false,
+      })
+    }
+  })
+
+  it('normalises the checkout PIN code, and refuses one that is not six digits', () => {
+    expect(checkoutPincode('110-001')).toBe('110001')
+    expect(checkoutPincode('11O001')).toBeNull()
+    expect(checkoutPincode('011001')).toBeNull()
+    expect(checkoutPincode(undefined)).toBeNull()
   })
 
   it('blocks orders over the limit, and allows one exactly at it', () => {

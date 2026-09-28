@@ -56,6 +56,7 @@ import {
 
 import {
   getStore,
+  presentStore,
   updateStoreGeneral,
   updateStoreNotifications,
   updateStorePayments,
@@ -78,7 +79,11 @@ export const storeRouter = {
     const { storeId } = context.scope
     const s = await getStore(context.tx, storeId)
     if (!s) return null
-    return { ...s, theme: await liveThemeSettings(context.tx, storeId), role: context.scope.role }
+    return {
+      ...presentStore(s),
+      theme: await liveThemeSettings(context.tx, storeId),
+      role: context.scope.role,
+    }
   }),
 
   /** The Settings home's setup checklist: what is done, from real data. */

@@ -22,6 +22,7 @@ import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
 import {
   type CheckoutContact,
   checkCheckoutRules,
+  checkoutPincode,
   parseCheckoutSettings,
 } from '../checkout/settings'
 import type { StoreContext } from '../context'
@@ -35,6 +36,7 @@ import {
 import {
   CartEmpty,
   CartNotOpen,
+  CheckoutRuleViolation,
   DiscountUnavailable,
   NotLaunchedYet,
   OutOfStock,
@@ -919,6 +921,20 @@ export async function placeOrder(
 ): Promise<PlaceOrderResult> {
   const replay = await lockCartOrReplay(ctx, input.cartId)
   if (replay) return replay
+  if (input.checkout) {
+    // One spelling of the PIN code for every rule and for the stored address.
+    const pincode = checkoutPincode(input.checkout.address.pincode)
+    if (!pincode) {
+      throw new CheckoutRuleViolation('contact', {
+        storeId: ctx.storeId,
+        fields: { pincode: 'Enter a valid 6-digit PIN code' },
+      })
+    }
+    input = {
+      ...input,
+      checkout: { ...input.checkout, address: { ...input.checkout.address, pincode } },
+    }
+  }
   const state = await runWorkflow<State>(
     {
       ctx,

@@ -9,6 +9,25 @@ export async function getStore(tx: StoreTx, storeId: string) {
 }
 
 /**
+ * The store row as the admin may see it: without the connector settings (payments,
+ * notifications, shipping, storage, sign-in apps, app settings). Those hold encrypted
+ * secrets and have their own masked endpoints; `store.current` is readable by every role
+ * with settings.read and needs none of them.
+ */
+export function presentStore<S extends typeof store.$inferSelect>(s: S) {
+  const {
+    payments: _payments,
+    notifications: _notifications,
+    shipping: _shipping,
+    storage: _storage,
+    loginProviders: _loginProviders,
+    apps: _apps,
+    ...rest
+  } = s
+  return rest
+}
+
+/**
  * Online Store › Preferences writes its own keys (seo, password, tracking) into
  * `store.preferences`, merged over what is there: policies, checkout, customer
  * privacy, customer accounts and the theme editor's "My sections" (`customSections`)

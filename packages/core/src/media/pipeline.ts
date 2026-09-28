@@ -123,6 +123,19 @@ async function processAnimatedGif(
   }
 }
 
+/** What the pipeline decodes: the raster formats uploads accept (AVIF and HEIC read as `heif`). */
+const RASTER_FORMATS = new Set(['jpeg', 'png', 'webp', 'gif', 'heif', 'avif'])
+
+/**
+ * The bytes must really be one of the accepted raster formats. A file announced as
+ * `image/png` that is an SVG (script inside), a TIFF or a PDF is refused, not decoded.
+ */
+function assertRasterFormat(format: string | undefined): void {
+  if (!format || !RASTER_FORMATS.has(format)) {
+    throw new Error(`not a supported image format: ${format ?? 'unknown'}`)
+  }
+}
+
 /**
  * The full pipeline for one still image: auto-orient from EXIF, strip all
  * metadata (this is what removes GPS — sharp strips EXIF/ICC/XMP by default
@@ -154,9 +167,10 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
   // limitInputPixels throws synchronously from sharp() when the header alone
   // already declares more pixels than the limit, before any frame decodes.
   let img: ReturnType<typeof sharp>
+  let format: string | undefined
   try {
     img = sharp(input.bytes, { limitInputPixels: limit, failOn: 'error' })
-    await img.metadata()
+    format = (await img.metadata()).format
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     if (/exceeds|limitInputPixels|too large/i.test(message)) {
@@ -164,6 +178,7 @@ export async function processImage(input: ProcessImageInput): Promise<ProcessIma
     }
     throw err
   }
+  assertRasterFormat(format)
 
   // `sharp().metadata()` always describes the *source* pixels, never a
   // preview of queued operations — so it reports the un-rotated 400x300 and

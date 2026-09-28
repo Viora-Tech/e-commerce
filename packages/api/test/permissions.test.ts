@@ -136,6 +136,22 @@ describe('store permissions', () => {
       { context: ctx(helperHeaders) },
     )
     expect(updated?.paymentStatus).toBe('paid')
+
+    // Editing the order's contact is fine; rewriting the customer's address book is not.
+    await expect(
+      call(
+        appRouter.orders.updateContact,
+        {
+          orderId: o.id,
+          name: 'Asha',
+          email: 'shopper@example.com',
+          phone: null,
+          address: null,
+          alsoUpdateCustomer: true,
+        },
+        { context: ctx(helperHeaders) },
+      ),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
   it('keeps cancelling behind its own grant', async () => {

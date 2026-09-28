@@ -39,11 +39,33 @@ export async function refundablePayments(ctx: StoreContext, orderId: string) {
  * order (shipping included), since nothing reached the shopper.
  */
 export async function suggestedRefundPaise(ctx: StoreContext, returnId: string): Promise<number> {
+  const v = await returnValue(ctx, returnId)
+  if (!v) return 0
+  if (v.kind === 'rto') return v.availablePaise
+  return Math.max(0, Math.min(v.availablePaise, v.goodsPaise))
+}
+
+/**
+ * The most store credit a return can become: what the returned lines were sold for after
+ * the order's discount, or, for an RTO, what was paid and not yet refunded. Without it
+ * anyone who may refund could mint a gift card of any value on any received return.
+ */
+export function storeCreditCapPaise(v: {
+  kind: 'return' | 'rto'
+  goodsPaise: number
+  availablePaise: number
+}): number {
+  return Math.max(0, v.kind === 'rto' ? v.availablePaise : v.goodsPaise)
+}
+
+async function returnValue(ctx: StoreContext, returnId: string) {
   const r = await lockReturn(ctx, returnId)
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, r.orderId))
-  if (!o) return 0
-  const available = (await refundablePayments(ctx, o.id)).reduce((s, p) => s + p.availablePaise, 0)
-  if (r.kind === 'rto') return available
+  if (!o) return null
+  const availablePaise = (await refundablePayments(ctx, o.id)).reduce(
+    (s, p) => s + p.availablePaise,
+    0,
+  )
   const lines = await ctx.tx
     .select({ quantity: returnRequestLine.quantity, unitPricePaise: orderLine.unitPricePaise })
     .from(returnRequestLine)
@@ -51,7 +73,7 @@ export async function suggestedRefundPaise(ctx: StoreContext, returnId: string):
     .where(eq(returnRequestLine.returnRequestId, returnId))
   const value = lines.reduce((s, l) => s + l.quantity * l.unitPricePaise, 0)
   const share = o.subtotalPaise > 0 ? (o.subtotalPaise - o.discountPaise) / o.subtotalPaise : 1
-  return Math.max(0, Math.min(available, Math.round(value * share)))
+  return { kind: r.kind, goodsPaise: Math.round(value * share), availablePaise }
 }
 
 function assertResolvable(ctx: StoreContext, r: { status: string; number: number }) {
@@ -136,6 +158,18 @@ export async function storeCreditReturn(
 ) {
   const r = await lockReturn(ctx, id)
   assertResolvable(ctx, r)
+  const value = await returnValue(ctx, id)
+  if (
+    !Number.isInteger(input.amountPaise) ||
+    input.amountPaise <= 0 ||
+    !value ||
+    input.amountPaise > storeCreditCapPaise(value)
+  ) {
+    throw new ReturnNotAllowed(
+      'Store credit can be at most what the returned items were paid for.',
+      ctx.storeId,
+    )
+  }
   const [o] = await ctx.tx.select().from(order).where(eq(order.id, r.orderId))
   if (!o) throw new ReturnNotAllowed('Order not found', ctx.storeId)
   const [cu] = o.customerId

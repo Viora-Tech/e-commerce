@@ -409,6 +409,12 @@ describe('customer return, start to finish', () => {
     }
     const a = await make()
     expect(await onHand(s.variantId)).toBe(5) // damaged: not restocked
+    // More than the returned line was sold for is refused.
+    await expect(
+      inStore(s.storeId, (ctx) =>
+        storeCreditReturn(ctx, a.id, { amountPaise: 100001, secret: SECRET }),
+      ),
+    ).rejects.toThrow(/at most/)
     const credit = await inStore(s.storeId, (ctx) =>
       storeCreditReturn(ctx, a.id, { amountPaise: 100000, secret: SECRET }),
     )

@@ -23,9 +23,8 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  packages: write
+# Nothing by default; each job asks for what it needs (only the build pushes to GHCR).
+permissions: {}
 
 env:
   REGISTRY: ghcr.io
@@ -35,6 +34,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: true
       matrix:
@@ -78,6 +80,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Trigger Dokploy redeploy
         env:

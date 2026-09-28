@@ -200,3 +200,14 @@ describe('variantKey', () => {
     )
   })
 })
+
+describe('format check', () => {
+  it('refuses an SVG announced as a PNG instead of decoding it', async () => {
+    const svg = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><script>alert(1)</script><rect width="10" height="10"/></svg>',
+    )
+    await expect(
+      processImage({ bytes: svg, contentType: 'image/png', masterKey: 'stores/s/media/a.png' }),
+    ).rejects.toThrow(/not a supported image format/)
+  })
+})
