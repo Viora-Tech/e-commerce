@@ -78,6 +78,16 @@ export function onlineMethodsOn(methods: CheckoutMethod[]): OnlineMethodId[] {
   return methods.filter((m) => m.on && isOnlineMethod(m.id)).map((m) => m.id as OnlineMethodId)
 }
 
+/**
+ * True when a gateway (Razorpay or Cashfree) is enabled and EMI is on in the
+ * method row (or, before the row existed, Razorpay's EMI switch). Both
+ * gateways offer card EMI, cardless EMI and pay later in their own window.
+ */
+export function gatewayOffersEmi(settings: MethodSource): boolean {
+  if (!settings.enabled.some(isGatewayProvider)) return false
+  return checkoutMethodsOf(settings).some((m) => m.id === 'emi' && m.on)
+}
+
 /** The store's main gateway: the first enabled gateway, else the first configured one. */
 export function primaryGatewayOf(settings: MethodSource): string | null {
   const on = settings.enabled.find(isGatewayProvider)

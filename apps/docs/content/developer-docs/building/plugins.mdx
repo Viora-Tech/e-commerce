@@ -102,6 +102,26 @@ Payment factories have a few optional hooks the easy-setup screens use:
 raw-body webhook verification with a timing-safe compare, status polling and refunds, with every
 network call mocked in its tests.
 
+Cashfree specifics worth knowing (checked against Cashfree's official Node SDK, `cashfree-pg`,
+because their docs site is blocked from our build machines; sources are listed at the top of
+`cashfree.ts`):
+
+- **Hosts**: `mode: 'test'` calls `https://sandbox.cashfree.com/pg`, `mode: 'live'` calls
+  `https://api.cashfree.com/pg`. Every request sends `x-client-id`, `x-client-secret` and
+  `x-api-version: 2026-01-01`; order creation also sends `x-idempotency-key` (a UUID derived
+  from our `<orderId>:<attempt>` key, so a retry reuses it).
+- **Webhooks**: Cashfree signs with the same Secret Key as the API (there is no separate webhook
+  secret): base64 HMAC-SHA256 of `x-webhook-timestamp` followed by the raw body. We also refuse
+  a timestamp more than 15 minutes from our clock (`CASHFREE_WEBHOOK_TOLERANCE_MS`) so a captured
+  request can't be replayed; a refused webhook is safe because the unpaid-order expiry asks
+  Cashfree for the status first. A worker with a badly wrong clock will refuse every webhook, so
+  keep NTP on.
+- **No webhook to register**: `notify_url` goes on each order (`order_meta.notify_url`), and only
+  when it is https. On localhost the order is confirmed by `fetchStatus` instead.
+- **EMI**: our `emi` method maps to Cashfree's `paylater`, `cardlessemi`, `dcemi` and `ccemi`
+  codes. The EMI & pay later app and the older product-page EMI hint both treat Cashfree like
+  Razorpay (`gatewayOffersEmi` in `@commerce/core/payment-methods`).
+
 ```ts filename="src/fedex.ts"
 import {
   CourierError,

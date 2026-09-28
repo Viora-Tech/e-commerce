@@ -7,6 +7,18 @@
  * - https://www.cashfree.com/docs/payments/online/webhooks/signature-verification
  * - https://www.cashfree.com/docs/api-reference/payments/latest/payments/webhooks
  * - https://www.cashfree.com/docs/api-reference/payments/latest/refunds/webhooks
+ *
+ * Re-checked 27 September 2026 against Cashfree's official Node SDK instead,
+ * because www.cashfree.com and docs.cashfree.com were blocked from the build
+ * machine: `cashfree-pg` 6.0.6 on npm (Apache-2.0,
+ * https://github.com/cashfree/cashfree-pg-sdk-nodejs). It confirms the hosts
+ * (`https://sandbox.cashfree.com/pg`, `https://api.cashfree.com/pg`), the
+ * `x-client-id` / `x-client-secret` / `x-api-version: 2026-01-01` /
+ * `x-idempotency-key` headers, the order, payments and refunds paths, and the
+ * webhook check in `PGVerifyWebhookSignature`: base64 HMAC-SHA256 of
+ * `x-webhook-timestamp + rawBody`, keyed with the client secret (Cashfree has
+ * no separate webhook secret). The SDK does not reject old timestamps; the
+ * replay window below is ours.
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
@@ -58,6 +70,24 @@ export const CASHFREE_METHOD_CODES: Record<PaymentMethodKind, string[]> = {
   netbanking: ['nb'],
   wallet: ['app'],
   emi: ['paylater', 'cardlessemi', 'dcemi', 'ccemi'],
+}
+
+/**
+ * Webhooks whose `x-webhook-timestamp` is further than this from our clock are
+ * refused, so a captured request can't be replayed later. Our own choice (see
+ * the header). Generous because a refused genuine webhook costs little: the
+ * unpaid-order expiry asks Cashfree for the status before expiring anything.
+ */
+export const CASHFREE_WEBHOOK_TOLERANCE_MS = 15 * 60_000
+
+/**
+ * UNVERIFIED: Cashfree's samples show a 13-digit (milliseconds) timestamp; a
+ * 10-digit value is read as seconds so either unit works.
+ */
+function webhookTimeMs(raw: string): number | null {
+  if (!/^\d{9,13}$/.test(raw)) return null
+  const n = Number(raw)
+  return raw.length <= 10 ? n * 1000 : n
 }
 
 /** Cashfree Checkout's browser SDK, used by the storefront to open the payment session. */
@@ -405,6 +435,10 @@ export class CashfreeProvider implements PaymentProvider {
       .update(`${timestamp}${input.rawBody}`)
       .digest('base64')
     if (!safeEqual(expected, signature)) return { ok: false, reason: 'bad signature' }
+    const sentAt = webhookTimeMs(timestamp)
+    if (sentAt === null || Math.abs(Date.now() - sentAt) > CASHFREE_WEBHOOK_TOLERANCE_MS) {
+      return { ok: false, reason: 'stale timestamp' }
+    }
 
     let body: CfWebhookBody
     try {

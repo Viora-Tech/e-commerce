@@ -4,6 +4,7 @@ import {
   checkoutMethodsOf,
   DEFAULT_CHECKOUT_METHODS,
   enabledForMethods,
+  gatewayOffersEmi,
   onlineMethodsOn,
   primaryGatewayOf,
 } from './methods'
@@ -69,5 +70,31 @@ describe('primaryGatewayOf', () => {
       primaryGatewayOf({ enabled: ['cod'], providers: { razorpay: { keyId: 'rzp_test_1' } } }),
     ).toBe('razorpay')
     expect(primaryGatewayOf({ enabled: ['cod'] })).toBeNull()
+  })
+})
+
+describe('gatewayOffersEmi', () => {
+  const emiOn = [
+    { id: 'upi' as const, on: true },
+    { id: 'emi' as const, on: true },
+  ]
+
+  it('is true for Cashfree as well as Razorpay when EMI is on in the method row', () => {
+    expect(gatewayOffersEmi({ enabled: ['cashfree'], methods: emiOn })).toBe(true)
+    expect(gatewayOffersEmi({ enabled: ['razorpay'], methods: emiOn })).toBe(true)
+  })
+
+  it('is false with EMI off, or with no gateway enabled', () => {
+    expect(gatewayOffersEmi({ enabled: ['cashfree'], methods: [{ id: 'emi', on: false }] })).toBe(
+      false,
+    )
+    expect(gatewayOffersEmi({ enabled: ['cod', 'manual'], methods: emiOn })).toBe(false)
+  })
+
+  it("keeps an older store's Razorpay EMI switch working without a method row", () => {
+    expect(
+      gatewayOffersEmi({ enabled: ['razorpay'], providers: { razorpay: { enableEmi: 'true' } } }),
+    ).toBe(true)
+    expect(gatewayOffersEmi({ enabled: ['cashfree'], providers: {} })).toBe(false)
   })
 })
