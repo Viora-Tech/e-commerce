@@ -11,6 +11,7 @@ import {
   listAbandoned,
   listDrafts,
   markRecoverySent,
+  RECOVERY_NO_CONSENT,
   recoveryUrl,
   updateDraft,
 } from '@commerce/core'
@@ -177,6 +178,11 @@ export async function sendRecovery(
   if (results.length === 0) {
     throw new ORPCError('PRECONDITION_FAILED', {
       message: 'Enable an email or WhatsApp channel in Settings first',
+    })
+  }
+  if (results.every((r) => r.error === RECOVERY_NO_CONSENT)) {
+    throw new ORPCError('PRECONDITION_FAILED', {
+      message: 'This customer has not agreed to marketing messages, so no recovery was sent',
     })
   }
   return { sent: results.filter((r) => r.ok).length, results }

@@ -83,7 +83,7 @@ export const automationEditorContent = {
     audienceConsent:
       'Only customers who said yes to marketing on that channel (email or WhatsApp). Everyone else is skipped. Customers give or withdraw consent at checkout, in their account, or through you on their customer page.',
     audienceOrderUpdate:
-      'Every cash on delivery buyer: this is an update about their own order, not marketing, so it needs no marketing consent.',
+      'Every cash on delivery buyer gets the first WhatsApp message: it is an update about their own order, not marketing, so it needs no marketing consent. Any step after it is marketing and reaches only customers who said yes.',
     stops: 'The sequence stops as soon as the shopper places an order.',
     minutes: 'minutes',
     days: 'days',
