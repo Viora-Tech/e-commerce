@@ -73,10 +73,13 @@ export default function GlobeSettingsPanel({
           </Button>
         }
       />
+      {/* bg-popover/95 + blur, not a fully opaque panel: in Chrome on Windows an opaque layer
+          over the WebGL canvas makes the compositor stop drawing the canvas beside and below it
+          (a white block over the globe). A barely see-through panel avoids that. */}
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="flex max-h-[min(30rem,75svh)] w-80 flex-col gap-4 overflow-y-auto p-3"
+        className="flex max-h-[min(30rem,75svh)] w-80 flex-col gap-4 overflow-y-auto bg-popover/95 p-3 backdrop-blur-md"
       >
         <div>
           <p className="text-body font-medium text-popover-foreground">{copy.title}</p>
