@@ -358,6 +358,21 @@ export function conditionHolds(
   }
 }
 
+/**
+ * Whether a step is an order update rather than marketing, so it needs no
+ * consent: only the COD confirmation, which is the first step of a
+ * `cod_order_placed` automation, a WhatsApp message with no wait before it.
+ * Anything a merchant adds after it (a wait, then a promo) is marketing and
+ * goes through the consent gate like every other step.
+ */
+export function isTransactionalStep(
+  trigger: AutomationTrigger,
+  steps: AutomationStep[],
+  index: number,
+): boolean {
+  return trigger === 'cod_order_placed' && index === 0 && steps[0]?.type === 'whatsapp'
+}
+
 /** Total delay before a given step, for the editor's timeline ("Sends after 6 hours"). */
 export function minutesBefore(steps: AutomationStep[], index: number): number {
   let total = 0

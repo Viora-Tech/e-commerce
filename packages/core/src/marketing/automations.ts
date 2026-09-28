@@ -21,11 +21,13 @@ import {
   type AutomationTrigger,
   automationTemplate,
   conditionHolds,
+  isTransactionalStep,
   parseAutomationSettings,
   parseAutomationSteps,
   STOPS_ON_ORDER,
 } from './automation-steps'
 import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
+import { RECIPIENT_MISMATCH, recipientIsCustomers } from './recipient'
 import {
   firstName,
   inr,
@@ -638,8 +640,9 @@ export async function processDueRuns(
     const cu = cuRow
       ? { ...cuRow, phone: decryptCustomerPhone(cuRow.phone, deps.settingsSecret) }
       : undefined
-    const transactional = trigger === 'cod_order_placed'
-    if (cu?.unsubscribedAt && !transactional) {
+    // An unsubscribed customer still gets the COD confirmation (an order
+    // update), never anything after it.
+    if (cu?.unsubscribedAt && !isTransactionalStep(trigger, ctx.steps, run.stepIndex)) {
       await finish(tx, run.id, { status: 'stopped', stopReason: 'unsubscribed' })
       continue
     }
@@ -690,7 +693,10 @@ export async function processDueRuns(
         const consented = hasMarketingConsent(cu, 'email')
         if (email && consented && channels.email) {
           const id = await messageFor(tx, storeId, run, index, 'email', email)
-          if (id) {
+          // Consent is the customer's; the typed checkout email may be someone else's.
+          if (id && !recipientIsCustomers('email', email, cu)) {
+            await skipMessage(tx, id, RECIPIENT_MISMATCH)
+          } else if (id) {
             const discount = step.blocks.find((b) => b.type === 'discount')
             const stepMerge = {
               ...merge,
@@ -717,10 +723,15 @@ export async function processDueRuns(
       }
       // WhatsApp
       const phone = normalisePhone(run.phone ?? cu?.phone)
+      const transactional = isTransactionalStep(trigger, ctx.steps, index)
       const consented = transactional || hasMarketingConsent(cu, 'whatsapp')
       if (phone && consented && channels.whatsapp) {
         const id = await messageFor(tx, storeId, run, index, 'whatsapp', phone)
-        if (id) {
+        // The COD confirmation goes to the order's own phone; marketing only
+        // to the phone stored on the consenting customer, never a typed one.
+        if (id && !transactional && !recipientIsCustomers('phone', phone, cu)) {
+          await skipMessage(tx, id, RECIPIENT_MISMATCH)
+        } else if (id) {
           const r = await sendMarketingWhatsapp(
             tx,
             channels.whatsapp,
@@ -769,6 +780,13 @@ async function orderCount(tx: StoreTx, customerId: string): Promise<number> {
       and(eq(order.customerId, customerId), sql`${order.status} not in ('draft', 'cancelled')`),
     )
   return r?.n ?? 0
+}
+
+async function skipMessage(tx: StoreTx, messageId: string, reason: string) {
+  await tx
+    .update(marketingMessage)
+    .set({ status: 'skipped', error: reason })
+    .where(eq(marketingMessage.id, messageId))
 }
 
 /** One message row per run step; a retried step finds its row and does not send twice. */
