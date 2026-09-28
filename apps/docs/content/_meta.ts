@@ -14,4 +14,8 @@ export default {
     type: 'page',
     title: 'Developers',
   },
+  changelog: {
+    type: 'page',
+    title: 'Changelog',
+  },
 }
