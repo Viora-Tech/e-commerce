@@ -2,13 +2,18 @@ import { loadEnv } from '@commerce/config'
 import {
   CommerceError,
   DraftInputSchema,
+  InvalidOrderContact,
   insertOutboxEvent,
+  isIsoDay,
+  MANUAL_PAYMENT_METHODS,
   ORDER_FULFILLMENT_STATUSES,
   ORDER_PAYMENT_STATUSES,
+  OrderNotFound,
   permissions,
   ReminderTooSoon,
   requestBalance,
   sendManualPaymentReminder,
+  updateOrderContact,
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -137,23 +142,82 @@ export const ordersRouter = {
         orderId: z.uuid(),
         amountPaise: z.number().int().positive(),
         method: z.string().trim().max(40).optional(),
+        /** How the merchant was paid: shown on the timeline and in "Payments by method". */
+        paidWith: z.enum(MANUAL_PAYMENT_METHODS).optional(),
+        /** UTR, cheque number or bank reference. */
+        reference: z.string().trim().max(80).optional(),
+        /** The day the money arrived, `YYYY-MM-DD`. */
+        receivedOn: z.string().refine(isIsoDay, 'Pick a date').optional(),
       }),
     )
     .handler(async ({ context, input }) => {
       await assertNotImported(context.tx, { orderId: input.orderId })
+      const { paidWith, reference, receivedOn, ...rest } = input
+      const collected = paidWith
+        ? {
+            method: paidWith,
+            reference,
+            receivedOn,
+            recordedBy: context.session.user.email,
+            recordedAt: new Date().toISOString(),
+          }
+        : undefined
       // order.paid (or order.balance_paid for a pre-order balance) is written
       // inside, by the call that sees the money arrive.
-      const { order: o } = await collectOrderPayment(
-        context.tx,
-        context.scope.storeId,
-        input,
-      ).catch((err) => {
+      const { order: o } = await collectOrderPayment(context.tx, context.scope.storeId, {
+        ...rest,
+        collected,
+      }).catch((err) => {
+        if (err instanceof OrderNotFound) {
+          throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
+        }
         if (err instanceof CommerceError) {
           throw new ORPCError('BAD_REQUEST', { message: err.message })
         }
         throw err
       })
       return o
+    }),
+
+  /**
+   * "Edit" on the order page's customer card: this order's contact and shipping
+   * address, optionally copied to the customer's saved address. Logged on the timeline.
+   */
+  updateContact: can(permissions.ORDERS_WRITE)
+    .input(
+      z.object({
+        orderId: z.uuid(),
+        name: z.string().trim().max(120),
+        email: z.email().max(200).nullable(),
+        phone: z.string().trim().max(30).nullable(),
+        address: z
+          .object({
+            line1: z.string().trim().max(200),
+            line2: z.string().trim().max(200).nullable().optional(),
+            city: z.string().trim().max(80),
+            stateCode: z.string().trim().max(2),
+            pincode: z.string().trim().max(6),
+          })
+          .nullable(),
+        alsoUpdateCustomer: z.boolean().default(false),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      await assertNotImported(context.tx, { orderId: input.orderId })
+      try {
+        return await updateOrderContact(
+          { storeId: context.scope.storeId, tx: context.tx },
+          { ...input, author: context.session.user.email },
+        )
+      } catch (err) {
+        if (err instanceof OrderNotFound) {
+          throw new ORPCError('NOT_FOUND', { message: 'Order not found' })
+        }
+        if (err instanceof InvalidOrderContact) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message, data: { errors: err.errors } })
+        }
+        throw err
+      }
     }),
 
   /**

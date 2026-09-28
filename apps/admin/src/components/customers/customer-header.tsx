@@ -72,7 +72,12 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
               {copy.actions.edit}
             </Button>
             {customer.email ? (
-              <Button variant="outline" size="sm" render={<a href={`mailto:${customer.email}`} />}>
+              <Button
+                variant="outline"
+                size="sm"
+                render={<a href={`mailto:${customer.email}`} />}
+                nativeButton={false}
+              >
                 <Send />
                 {copy.actions.email}
               </Button>

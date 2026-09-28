@@ -1,5 +1,6 @@
 'use client'
 
+import { MANUAL_PAYMENT_METHODS, type ManualPaymentMethod } from '@commerce/core/manual-payments'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -9,8 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import Link from 'next/link'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
@@ -35,6 +37,16 @@ function toPaise(rupees: string): number {
   return Math.round(Number.parseFloat(rupees) * 100)
 }
 
+/** Today in India as `YYYY-MM-DD`, what the date field starts on. */
+function todayIst(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
+}
+
+/** Cash for cash on delivery, UPI for everything else: the most likely answer first. */
+function likelyMethod(order: OrderDetail | null): ManualPaymentMethod {
+  return order?.paymentMethod === 'cod' ? 'cash' : 'upi'
+}
+
 /** Record cash or a bank transfer the merchant took outside the gateway. */
 export default function CollectPaymentDialog({
   order,
@@ -48,7 +60,18 @@ export default function CollectPaymentDialog({
   const copy = useCopy(orderDetailContent)
   const fmt = useFormat()
   const [amount, setAmount] = useState('')
+  const [method, setMethod] = useState<ManualPaymentMethod | null>(null)
+  const [reference, setReference] = useState('')
+  const [receivedOn, setReceivedOn] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // Helpers
+  const reset = () => {
+    setAmount('')
+    setMethod(null)
+    setReference('')
+    setReceivedOn('')
+  }
 
   // Event handlers
   const handleSubmit = async (e: FormEvent) => {
@@ -56,9 +79,15 @@ export default function CollectPaymentDialog({
     if (!order || !valid) return
     setBusy(true)
     try {
-      await api.orders.collectPayment({ orderId: order.id, amountPaise: paise })
+      await api.orders.collectPayment({
+        orderId: order.id,
+        amountPaise: paise,
+        paidWith,
+        ...(reference.trim() ? { reference: reference.trim() } : {}),
+        receivedOn: day,
+      })
       toast.success(copy.collectDialog.done)
-      setAmount('')
+      reset()
       onDone()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.collectDialog.failed)
@@ -67,12 +96,20 @@ export default function CollectPaymentDialog({
     }
   }
 
+  const handleClose = () => {
+    reset()
+    onClose()
+  }
+
   // Render logic
   const paise = amount.trim() === '' ? balancePaise : toPaise(amount)
-  const valid = Number.isInteger(paise) && paise > 0
+  const paidWith = method ?? likelyMethod(order)
+  const day = receivedOn || todayIst()
+  const valid = Number.isInteger(paise) && paise > 0 && day <= todayIst()
+  const c = copy.collectDialog
 
   return (
-    <Dialog open={order !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
+    <Dialog open={order !== null} onOpenChange={(open) => (!open ? handleClose() : undefined)}>
       <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <DialogHeader>
@@ -96,13 +133,55 @@ export default function CollectPaymentDialog({
               autoFocus
             />
           </Field>
+          <Field>
+            <FieldLabel>{c.how}</FieldLabel>
+            <RadioGroup
+              value={paidWith}
+              onValueChange={(v) => setMethod(v as ManualPaymentMethod)}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              {MANUAL_PAYMENT_METHODS.map((m) => (
+                <label
+                  key={m}
+                  htmlFor={`collect-method-${m}`}
+                  className="flex min-h-11 items-center gap-2 rounded-md border border-border px-3 text-body has-data-checked:border-primary"
+                >
+                  <RadioGroupItem id={`collect-method-${m}`} value={m} />
+                  {c.methods[m]}
+                </label>
+              ))}
+            </RadioGroup>
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor="collect-reference">{c.reference}</FieldLabel>
+              <Input
+                id="collect-reference"
+                value={reference}
+                maxLength={80}
+                placeholder={c.referencePlaceholder[paidWith]}
+                onChange={(e) => setReference(e.target.value)}
+              />
+              <FieldDescription>{c.referenceHint}</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="collect-received">{c.receivedOn}</FieldLabel>
+              <Input
+                id="collect-received"
+                type="date"
+                max={todayIst()}
+                value={day}
+                onChange={(e) => setReceivedOn(e.target.value)}
+              />
+            </Field>
+          </div>
           <DialogFooter>
             {gateway ? (
               <Button type="button" variant="outline" render={<Link href={payHref} />}>
                 {copy.collectDialog.openPayPage}
               </Button>
             ) : null}
-            <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={busy}>
               {copy.collectDialog.cancel}
             </Button>
             <Button type="submit" disabled={!valid || busy}>

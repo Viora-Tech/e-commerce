@@ -1,4 +1,4 @@
-import { type CustomerAddress, customer, customerAddress } from '@commerce/db'
+import { type CustomerAddress, customer, customerAddress, type StoreTx } from '@commerce/db'
 import { and, asc, desc, eq, ne } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { AddressInputSchema, fieldErrors, type ParsedAddress } from './schemas'
@@ -27,6 +27,18 @@ const columns = {
   pincode: customerAddress.pincode,
   phone: customerAddress.phone,
   isDefault: customerAddress.isDefault,
+}
+
+/**
+ * Whether the customer is visible in this transaction. Inside `withStore`, RLS
+ * hides other stores' customers, so an id from another store reads as absent.
+ */
+export async function customerExists(tx: StoreTx, customerId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ id: customer.id })
+    .from(customer)
+    .where(eq(customer.id, customerId))
+  return Boolean(row)
 }
 
 /** A customer's address book, default first, then newest. */

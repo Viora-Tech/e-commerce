@@ -175,8 +175,9 @@ function CustomersContent({ initial }: { initial: CustomersInitial }) {
           </Button>
         </div>
       </div>
-      {/* 5:3026 + 5:3062: three stacked tiles (270) beside the overview chart (826), 20px apart. */}
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,270fr)_minmax(0,826fr)]">
+      {/* 5:3026 + 5:3062: three stacked tiles (270) beside the overview chart (826), 20px apart.
+          The row stretches, so the tile column's top and bottom line up with the chart's. */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,270fr)_minmax(0,826fr)] xl:items-stretch">
         <CustomerTiles stats={initial.stats} visitors={initial.overview.visitors} />
         <CustomerOverviewCard overview={initial.overview} />
       </div>

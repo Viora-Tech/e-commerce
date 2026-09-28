@@ -15,3 +15,8 @@ export function averageOrderPaise(orders: CustomerOrder[]): number {
   if (live.length === 0) return 0
   return Math.round(live.reduce((sum, o) => sum + o.totalPaise, 0) / live.length)
 }
+
+/** A saved address, or (`id` null) the latest order's address before it is in the book. */
+export type CustomerAddressRow = Omit<CustomerDetail['addresses'][number], 'id'> & {
+  id: string | null
+}

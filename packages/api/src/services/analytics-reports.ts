@@ -211,6 +211,22 @@ const ENTRIES: Entry[] = [
     metric: 'amount',
     chart: 'series',
   },
+  {
+    slug: 'payments-by-method',
+    title: 'Payments by method',
+    description:
+      'Money received by UPI, bank transfer, cash, cheque or gateway, including payments you marked as paid by hand.',
+    category: 'finance',
+    columns: [
+      c('method', 'payment'),
+      c('recorded', 'label'),
+      c('payments', 'count'),
+      c('amount', 'money'),
+      SHARE,
+    ],
+    metric: 'amount',
+    chart: 'bars',
+  },
 
   // Orders
   {

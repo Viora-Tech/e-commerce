@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
+import CustomerAddressesCard from './customer-addresses-card'
 import type { CustomerDetail } from './customer-detail-types'
 import CustomerHeader from './customer-header'
 import CustomerNoteCard from './customer-note-card'
@@ -17,12 +18,14 @@ import ProfileCard from './profile-card'
 
 type CustomerViewProps = {
   customer: CustomerDetail
+  /** Open the edit dialog on arrival, so one click from elsewhere lands in it. */
+  startEditing?: boolean
 }
 
-export default function CustomerView({ customer }: CustomerViewProps) {
+export default function CustomerView({ customer, startEditing = false }: CustomerViewProps) {
   // Hooks
   const router = useRouter()
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(startEditing)
 
   // Helpers
   const refresh = () => router.refresh()
@@ -42,6 +45,7 @@ export default function CustomerView({ customer }: CustomerViewProps) {
         side={
           <>
             <ProfileCard customer={customer} />
+            <CustomerAddressesCard customer={customer} onChanged={refresh} />
             <MarketingConsentCard
               customerId={customer.id}
               customerLabel={customer.name || customer.email || customer.phone || ''}
@@ -52,12 +56,14 @@ export default function CustomerView({ customer }: CustomerViewProps) {
           </>
         }
       />
-      <EditCustomerDialog
-        customer={customer}
-        open={editing}
-        onClose={() => setEditing(false)}
-        onSaved={refresh}
-      />
+      {editing ? (
+        <EditCustomerDialog
+          customer={customer}
+          open
+          onClose={() => setEditing(false)}
+          onSaved={refresh}
+        />
+      ) : null}
     </PageBody>
   )
 }

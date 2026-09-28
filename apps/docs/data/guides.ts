@@ -34,6 +34,12 @@ export const guides = {
     title: 'Orders',
     description: 'Order, payment and fulfilment statuses, and what to do next.',
   },
+  customers: {
+    href: '/merchant-guide/catalog/customers',
+    icon: 'book',
+    title: 'Customers',
+    description: 'Edit a customer and keep their saved addresses up to date.',
+  },
   settings: {
     href: '/merchant-guide/settings',
     icon: 'checklist',

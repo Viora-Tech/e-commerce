@@ -5,6 +5,7 @@ import { customerBuilders } from './reports/customers'
 import { fulfilmentBuilders } from './reports/fulfilment'
 import { inventoryBuilders } from './reports/inventory'
 import { orderBuilders } from './reports/orders'
+import { paymentBuilders } from './reports/payments'
 import { salesBuilders } from './reports/sales'
 import type { ReportBuilder, ReportData, ReportRow, ReportSpan, ReportValue } from './reports/types'
 
@@ -13,6 +14,7 @@ export type { ReportRow, ReportValue } from './reports/types'
 const BUILDERS: Record<string, ReportBuilder> = {
   ...salesBuilders,
   ...orderBuilders,
+  ...paymentBuilders,
   ...fulfilmentBuilders,
   ...customerBuilders,
   ...inventoryBuilders,

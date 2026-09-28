@@ -121,14 +121,21 @@ customer, Balance due) and a **Timeline** of everything that happened.
 ### Check the money
 
 If the order is **Unpaid** and the shopper paid you outside the gateway (a UPI transfer or
-cash), select **Collect payment**, then **Mark as paid**. For a gateway order such as Razorpay,
-use **Open pay page** instead and send the shopper the link: the gateway marks it paid itself.
+cash), select **Collect payment** (or **Mark as paid** at the top). Pick **How were you paid?**:
+**UPI**, **Bank transfer (NEFT, IMPS, RTGS)**, **Cash**, **Cheque** or **Other**. Add the **UTR
+or reference** from your bank or UPI app if you have it, check the **Date received**, then
+select **Mark as paid**. The Timeline shows it as, for example, "Marked as paid: ₹2,499 by UPI,
+Reference 424512345678, received 27 Sept 2026". For a gateway order such as Razorpay, use **Open
+pay page** instead and send the shopper the link: the gateway marks it paid itself.
 
 ### Ship it
 
 Book a courier label from **Orders → Shipments → Ready to ship** (see
 [Shipments](/merchant-guide/selling/shipments)). Or, if you ship your own way, select **Fulfil
-items** and enter the courier name, tracking number and tracking link.
+items** and paste the **Tracking number**. The courier is picked for you when the number's
+format gives it away (see [Tracking numbers](#tracking-numbers)); you can always choose another
+in the **Courier** list, which you can search by typing. The shopper's tracking link is made
+from the courier you choose.
 
 ### Close it out
 
@@ -141,6 +148,44 @@ Nothing to do. When the courier reports **Delivered** and the order is **Paid**,
   title="Verify a UPI transfer and mark the order paid"
   caption="Open Pending UPI, match the ₹ amount and order number in your bank app, Collect payment, Mark as paid."
 />
+
+## Customer details on the order
+
+The **Customer details** card on the right lists **Name**, **Email**, **Phone**, each address
+line, **City**, **State** and **PIN code** on its own line, each with a copy button. Courier
+apps ask for these one at a time, so copy and paste them field by field.
+
+**Copy all** copies them in one go, one per line, in the order courier apps ask for them: name,
+phone, address, city, state, PIN code.
+
+### Change the customer's details on an order
+
+Select **Edit** on the card. You can change the **Name**, **Email** and **Mobile number** and
+the **Shipping address** (billing uses the same address) without leaving the order. Type the
+**PIN code** and the city and state fill in on their own; change them if they are wrong.
+
+The change applies to this order only. Tick **Also update the customer's saved address** to make
+this their default address for future orders too. Every change is written to the order's
+**Timeline**, with who made it, for example "Shipping address changed from 12 MG Road, Pune, MH
+411001 to 4 Park Street, Kolkata, WB 700016".
+
+## Tracking numbers
+
+When you paste a tracking number in **Fulfil items**, the courier is chosen from how the number
+looks:
+
+| Courier | What its numbers look like | Picked for you? |
+| --- | --- | --- |
+| India Post | Two letters, nine digits, then IN, for example EE123456785IN | Yes (the last digit is checked) |
+| Ekart | FMPC or FMPP then ten digits, for example FMPC0123456789 | Yes |
+| Shadowfax | SF, digits, then letters, for example SF2964097734F | Yes |
+| DTDC | One letter then eight digits, for example D57291883 | Yes |
+| Blue Dart | Eleven digits | Suggested, you confirm |
+| Delhivery, XpressBees, Ecom Express, Amazon Shipping | Twelve to sixteen digits | Suggested, you confirm |
+
+Many couriers use plain numbers of the same length, so for those you see **Could be** with the
+likely couriers as buttons: select the right one. Shiprocket, Delhivery B2B and others are in the
+**Courier** list too. If yours isn't there, choose **Other** and type its name.
 
 ### Doing many at once
 
@@ -195,6 +240,8 @@ email 12 hours before that happens.
 | **Fulfil items** is blocked | A pre-order balance is still due. | Collect the balance first (**Request balance**). |
 | Order shows **Refund needed** | Money arrived after cancellation, or the order was paid twice. | Open the order and refund the extra payment. |
 | An online order cancelled itself | It stayed unpaid past your **Unpaid orders** window. | Adjust the minutes in **Settings → Payments → Unpaid orders**, or set 0 to turn it off. |
+| **Could be** shows two couriers | Their tracking numbers look the same. | Select the one on your label, or pick it from the **Courier** list. |
+| PIN code didn't fill city and state | The PIN code isn't in the directory, or it isn't installed on your server. | Type the city and pick the state yourself. |
 | Order stuck on **Shipped** | The courier hasn't reported delivery yet. | Use **Refresh tracking** on the order, or wait for the next 30-minute check. |
 
 ## FAQ
@@ -217,7 +264,8 @@ optional timer) and gift card payments.
 
 <FaqItem question="Can I change an order after it's placed?">
 
-You can add notes, collect payments, fulfil, refund and cancel. To sell something different,
+You can change the customer's contact and shipping address (**Edit** on the Customer details
+card), add notes, collect payments, fulfil, refund and cancel. To sell something different,
 cancel and create a new draft order from **Orders → Drafts**, then **Send invoice** or
 **Convert to order**.
 
@@ -234,4 +282,4 @@ kept for your records rather than worked like new orders.
 
 ## Related guides
 
-<RelatedGuides ids={['payments', 'shipments', 'gst', 'glossary']} />
+<RelatedGuides ids={['payments', 'shipments', 'customers', 'gst', 'glossary']} />

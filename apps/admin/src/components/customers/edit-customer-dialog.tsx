@@ -29,7 +29,7 @@ function draftFrom(c: CustomerDetail): Draft {
   return { name: c.name ?? '', phone: c.phone ?? '' }
 }
 
-/** Name and phone; the email and address come from the orders the customer places. */
+/** Name and phone. The email comes from their orders; addresses have their own card. */
 export default function EditCustomerDialog({
   customer,
   open,
@@ -58,9 +58,6 @@ export default function EditCustomerDialog({
       setSaving(false)
     }
   }
-
-  // Render logic
-  const a = customer.defaultAddress
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -93,18 +90,6 @@ export default function EditCustomerDialog({
               onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
             />
           </Field>
-          {a ? (
-            <Field>
-              <FieldLabel>{copy.edit.address}</FieldLabel>
-              <address className="text-body not-italic text-muted-foreground">
-                <p>{a.line1}</p>
-                {a.line2 ? <p>{a.line2}</p> : null}
-                <p>
-                  {a.city}, {a.stateCode} {a.pincode}
-                </p>
-              </address>
-            </Field>
-          ) : null}
         </FieldGroup>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
