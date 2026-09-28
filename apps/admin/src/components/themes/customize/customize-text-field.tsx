@@ -14,7 +14,8 @@ type CustomizeTextFieldProps = {
   onChange: (value: string) => void
   id?: string
   readOnly?: boolean
-  name: string
+  /** Puck passes it from the sidebar form; `AutoField` (fields inside a Group, Columns …) does not. */
+  name?: string | undefined
 }
 
 /**
@@ -27,7 +28,7 @@ export default function CustomizeTextField({
   onChange,
   id,
   readOnly,
-  name,
+  name = '',
 }: CustomizeTextFieldProps) {
   // Early returns
   const label = field.label ?? name
