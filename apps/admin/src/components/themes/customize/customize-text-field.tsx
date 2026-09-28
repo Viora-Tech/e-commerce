@@ -6,6 +6,7 @@ import { FIELD_CONTROL, FIELD_TEXTAREA } from '@/lib/customize-field-styles'
 import { isLinkTextField } from '@/lib/customize-links'
 import FieldFrame from './field-frame'
 import LinkPicker from './link-picker'
+import ProductHandleField from './product-handle-field'
 
 type CustomizeTextFieldProps = {
   field: { type: 'text' | 'textarea'; label?: string; placeholder?: string }
@@ -34,6 +35,15 @@ export default function CustomizeTextField({
     return (
       <FieldFrame label={label} htmlFor={id}>
         <LinkPicker id={id} value={value} onChange={onChange} readOnly={readOnly} />
+      </FieldFrame>
+    )
+  }
+
+  // The Product card element stores a product handle: pick it from the catalogue.
+  if (field.type === 'text' && name.split('.').pop() === 'productHandle') {
+    return (
+      <FieldFrame label={label} htmlFor={id}>
+        <ProductHandleField id={id} value={value} onChange={onChange} readOnly={readOnly} />
       </FieldFrame>
     )
   }

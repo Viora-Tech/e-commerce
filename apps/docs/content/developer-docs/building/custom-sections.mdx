@@ -1,0 +1,159 @@
+---
+title: Slots and custom sections
+description: Layout blocks built on Puck slots, the basic elements and their style panel, server rendering of nested blocks, the Custom HTML allow-list, and "My sections".
+---
+
+# Slots and custom sections
+
+Merchants build their own sections from **layout blocks** (containers whose content is a
+[Puck slot](https://puckeditor.com/docs/integrating-puck/multi-column-layouts), MIT) and
+**elements**. Everything here is ordinary Puck data inside a template, so drafts, Save, undo,
+dynamic sources and the storefront work unchanged. No migration.
+
+## Where the code lives
+
+| Piece | File |
+| --- | --- |
+| Block configs (fields, defaults, render) | `packages/blocks/src/sections/custom-layout.tsx`, `custom-elements.tsx`, shared builders in `custom-fields.tsx`, merged by `custom.tsx` |
+| Components (one per file) | `packages/blocks/src/components/custom/*` |
+| Style panel model and CSS | `packages/blocks/src/element-style.ts` (`@commerce/blocks/element-style`) |
+| Server slot renderer | `packages/blocks/src/slots.tsx` (`@commerce/blocks/slots`) |
+| Custom HTML allow-list | `packages/blocks/src/embed-sanitize.ts` (`@commerce/blocks/embed`) |
+| Copy | `packages/blocks/src/data/custom-sections.ts`, `apps/admin/src/data/customize.ts` |
+| Nested-block walker, save-time sanitising | `packages/core/src/theme/nested-blocks.ts`, `embeds.ts` |
+| "My sections" (pure + service) | `packages/core/src/theme/custom-sections.ts`, `custom-sections-service.ts` |
+| API | `themes.customSections.{list,save,rename,delete}` in `packages/api/src/routers/themes.ts` |
+| Tree, hotkeys, Add panel tab | `apps/admin/src/lib/customize-slots.ts`, `components/themes/customize/slot-zone-list.tsx`, `customize-hotkeys.tsx`, `add-section-my-tab.tsx` |
+
+## Blocks
+
+| Type | Slots | Notes |
+| --- | --- | --- |
+| `Group` | `content` | Flex: direction, gap, align, justify, wrap, padding, background colour and image, radius, border, max width, min height, full bleed, link the whole group (a stretched link under the content, left out while editing) |
+| `Columns` | `columns[i].content` (2 to 4) | Width preset on desktop (`1:2` → `minmax(0,1fr) minmax(0,2fr)`), tablet `same` / `two` / `stack`, mobile `stack` / `same`; three CSS variables switched by `md:`/`lg:` classes |
+| `Grid` | `items` | Columns per breakpoint, rows (0 = auto), gap |
+| `Tabs` | `tabs[i].content` | Panels render on the server; a small client switcher (`tabs-switcher.tsx`) handles the WAI-ARIA keyboard pattern |
+| `Accordion` | `items[i].content` | Native `<details>`; one-open mode uses a shared `name` |
+| `Carousel` | `slides[i].content` | CSS scroll snap, no JS; slides per view per breakpoint |
+| `Heading`, `Text`, `Image`, `Button`, `Icon`, `VideoPlayer`, `Spacer`, `Divider`, `Badge`, `ProductCard`, `CustomHtml` | none | `ProductCard` loads its product in `resolveData` (`loadProduct`); `VideoPlayer` embeds YouTube/Vimeo sandboxed |
+
+Slots `disallow` the main sections and the header and footer (`SLOT_DISALLOW`); everything
+else nests anywhere, containers included. Every block carries `style` (below).
+
+### Data shape
+
+A slot's value is Puck content, stored inside the parent's props:
+
+```json
+{
+  "type": "Columns",
+  "props": {
+    "id": "Columns-4f1c…",
+    "columns": [
+      { "content": [{ "type": "Heading", "props": { "id": "Heading-a1…", "text": "Left", "level": "h3" } }] },
+      { "content": [] }
+    ],
+    "layout": { "desktop": "1:2", "tablet": "same", "mobile": "stack" }
+  }
+}
+```
+
+Puck names a slot's zone `<parentId>:<propPath>`, through array items: the second column above
+is `Columns-4f1c…:columns[1].content`. Every editor action on nested blocks (`reorder`, `move`,
+`duplicate`, `remove`, `replace`, `insert`) uses that zone, so undo is one history for
+everything.
+
+## Style panel
+
+`elementStyleField` is an object field with six groups; the admin draws it with the section
+settings' grouped panel (`isElementStyleField` → `SectionSettingsGroups`, with summaries):
+
+| Group | Keys | Rendered as |
+| --- | --- | --- |
+| Spacing | `marginTop`, `marginBottom`, `paddingX`, `paddingY` (px in the panel) | inline `rem` |
+| Size | `width` (`auto`/`full`/`fit`), `maxWidth`, `minHeight` | inline `rem` |
+| Text | `size`, `weight`, `align` | inline; heading sizes use `clamp()` |
+| Colour | `text`, `background`: `{ token, custom }` | a theme variable (`var(--color-brand)` …) or a custom colour that must match a strict CSS colour pattern (`safeColour`) |
+| Corners and shadow | `radius`, `shadow` | inline |
+| Visibility | `mobile`, `tablet`, `desktop` | `max-md:hidden`, `md:max-lg:hidden`, `lg:hidden` (`visibilityClassName`) |
+
+All of it is in the server HTML: no JavaScript and no layout shift. Content fields (text, rich
+text, image, link, number, colour) get **Connect dynamic source** through the same
+`withDynamicSources` wiring as every other setting.
+
+## Rendering
+
+- **Editor**: Puck renders slots itself (`SlotComponent`). Every block, nested or not, is
+  wrapped by `withHiding` in `customize-config.tsx`, so the eye and dynamic sources work at any
+  depth.
+- **Storefront**: `renderTemplate` draws each section with `renderBlock` from
+  `@commerce/blocks/slots`, which replaces each slot prop (top level, in array items, in
+  objects) with a server renderer of the same call shape, recursively. Hidden children
+  (`_hidden`) are skipped. Puck's `resolveAllData` already resolves nested blocks
+  (`ProductCard`), and `applyBindings` already walks nested props.
+- **Dynamic sources**: `boundPaths` and `applyBindings` walk every level; `bindingProblems`
+  names the nested block (`Heading › text …`) rather than its container.
+
+## Custom HTML
+
+`sanitizeEmbedHtml` runs [sanitize-html](https://github.com/apostrophecms/sanitize-html) (MIT)
+with a strict allow-list: formatting, lists, tables, links (`http(s)`, `mailto`, `tel`, site
+paths), `https` images and iframes. Removed: `<script>`, `<style>`, `<svg>`, forms, `on*`
+handlers, every `style` attribute (no CSS exfiltration), `id` (no DOM clobbering),
+`javascript:`/`data:` and protocol-relative URLs. Iframes are kept only for
+`https://www.youtube.com/embed/…`, `www.youtube-nocookie.com/embed/…`,
+`player.vimeo.com/video/…` and `www.instagram.com/p|reel|tv/…/embed`, and always get
+`sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"`,
+`loading="lazy"` and a strict referrer policy (any sandbox the merchant typed is replaced). Input
+is capped at 20,000 characters.
+
+It runs three times: on draft save (`saveTemplateDraft` → `sanitizeTemplateEmbeds`, any depth),
+on storefront render (server), and in the editor preview, which shares the admin origin.
+
+## My sections
+
+A store-level library, shared by every theme, in `store.preferences.customSections` (no
+migration). Writes use `jsonb_set` on that key only, and `updateStorePreferences` carries the key
+over, so the Preferences form and the library never overwrite each other.
+
+```json
+{
+  "id": "0d7…",
+  "name": "Summer offer banner",
+  "thumbnail": "https://cdn.example/banner.jpg",
+  "block": { "type": "Group", "props": { "id": "Group-…", "content": [ … ] } },
+  "createdAt": "2026-09-27T10:00:00.000Z"
+}
+```
+
+- **Save** (`prepareCustomSection`): name required (60 chars), editor-only keys (`resolved`,
+  `_hidden`) removed at every depth, Custom HTML sanitised, depth ≤ 8, 64 KB per section, 40
+  sections and 1 MB in total. The thumbnail is the first `https` image inside.
+- **Insert** (`instantiateCustomSection` → `insertCopyActions`): a deep copy with a fresh id on
+  every block, then one `insert` (not recorded) plus one `replace`, so undo is a single step.
+- Pages keep their copies when a saved section is deleted.
+
+## Editor
+
+- **Tree**: containers list their slots under them with an indent guide; several slots show a
+  label each ("Column 2"). Rows reorder within their slot (`reorderActions`), the ⋯ menu adds
+  **Move out of …** (`moveOutActions`, placed right after the container) and **Save as my
+  section**. Drag between slots on the canvas.
+- **Insert lines**: the "+" line above any row, and **Add block** closing each slot, open the
+  Add browser for that slot's zone.
+- **Hotkeys** (`customize-hotkeys.tsx`): Cmd/Ctrl+C copies the selection with its children,
+  Cmd/Ctrl+V pastes a fresh copy after the selection, Cmd/Ctrl+D duplicates, Alt+Up/Down moves,
+  Delete removes with the collapse animation. Undo/redo stay Puck's.
+- **Array items that hold slots** (a tab, a column) are edited in the inspector's list; duplicating
+  one gives the blocks inside new ids (`withFreshBlockIds`).
+
+## Tests
+
+- `packages/blocks/test/custom-sections.test.tsx`: server slot rendering, nesting, reorder,
+  hidden children, tabs and accordion panels, responsive visibility, style output, column presets.
+- `packages/blocks/test/embed-sanitize.test.ts`: XSS vectors and the iframe allow-list.
+- `packages/core/src/theme/custom-sections.test.ts`: save-as-section round trip (ids regenerated
+  at every depth), limits, nested sanitising and `stripResolved`.
+- `packages/core/src/dynamic-sources/format.test.ts`: bindings inside slots.
+- `apps/admin/src/lib/customize-slots.test.ts`: zone names, nested lookup, reorder, move out,
+  paste.

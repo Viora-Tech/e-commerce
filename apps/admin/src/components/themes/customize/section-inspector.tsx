@@ -6,8 +6,10 @@ import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
-import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE, locateSection } from '@/lib/customize-doc'
+import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE } from '@/lib/customize-doc'
+import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { findBlock, locateBlock, slotOwner } from '@/lib/customize-slots'
 import PanelHeader from './panel-header'
 import SectionIcon from './section-icon'
 
@@ -52,8 +54,15 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
   const component = components[selected.type]
   const label = component?.label ?? selected.type
   const hasFields = Object.keys(component?.fields ?? {}).length > 0
-  const located = locateSection(data, selected.props.id)
-  const crumb = located ? zoneLabel(located.zone) : null
+  const located = locateBlock(data, selected.props.id)
+  // A nested block names its container ("In Promo strip"); a section its group.
+  const owner = located ? slotOwner(data, located.zone) : null
+  const parent = owner ? findBlock(data, owner.id) : null
+  const crumb = parent
+    ? copy.inside(sectionName(parent, components[parent.type]?.label ?? parent.type))
+    : located
+      ? zoneLabel(located.zone)
+      : null
 
   return (
     <motion.section

@@ -7,8 +7,9 @@ import { motion, useReducedMotion } from 'motion/react'
 import type { MouseEvent, ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
-import { type CustomizeDoc, locateSection, zoneSections } from '@/lib/customize-doc'
+import type { CustomizeDoc } from '@/lib/customize-doc'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { locateBlock, zoneItems } from '@/lib/customize-slots'
 import SectionIcon from './section-icon'
 
 type SectionOverlayProps = {
@@ -45,10 +46,10 @@ export default function SectionOverlay({
 
   // Event handlers
   const handleMove = (offset: number) => {
-    const located = locateSection(data, componentId)
+    const located = locateBlock(data, componentId)
     if (!located) return
     const to = located.index + offset
-    if (to < 0 || to >= zoneSections(data, located.zone).length) return
+    if (to < 0 || to >= zoneItems(data, located.zone).length) return
     dispatch({
       type: 'reorder',
       sourceIndex: located.index,
@@ -57,12 +58,12 @@ export default function SectionOverlay({
     })
   }
   const handleDuplicate = () => {
-    const located = locateSection(data, componentId)
+    const located = locateBlock(data, componentId)
     if (located)
       dispatch({ type: 'duplicate', sourceIndex: located.index, sourceZone: located.zone })
   }
   const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
-    const located = locateSection(data, componentId)
+    const located = locateBlock(data, componentId)
     if (!located) return
     const doc = e.currentTarget.ownerDocument
     const el = doc.querySelector<HTMLElement>(`[data-puck-component="${componentId}"]`)
@@ -70,14 +71,14 @@ export default function SectionOverlay({
   }
 
   // Early returns
-  const located = locateSection(data, componentId)
+  const located = locateBlock(data, componentId)
   if (!located || !(hover || isSelected)) return <>{children}</>
 
   // Render logic
   const label = components[componentType]?.label ?? componentType
   const locked = SINGLE_SECTIONS.has(componentType)
   const { zone, index } = located
-  const count = zoneSections(data, zone).length
+  const count = zoneItems(data, zone).length
 
   return (
     <>

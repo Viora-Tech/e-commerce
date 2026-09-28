@@ -42,3 +42,20 @@ export const isSectionSettingsField = (field: FieldLike, name = ''): boolean => 
   const keys = Object.keys(field.objectFields ?? {})
   return SETTINGS_GROUPS.every((k) => keys.includes(k))
 }
+
+const STYLE_GROUPS = ['spacing', 'size', 'typography', 'colour', 'corners', 'visibility'] as const
+
+/** The per-element style panel (`elementStyleField` in `@commerce/blocks`). */
+export const isElementStyleField = (field: FieldLike, name = ''): boolean => {
+  if (field.type !== 'object') return false
+  if (name && name.split('.').pop() !== 'style') return false
+  const keys = Object.keys(field.objectFields ?? {})
+  return STYLE_GROUPS.every((k) => keys.includes(k))
+}
+
+/** A theme-token-or-custom colour (`{ token, custom }`): one select, a text box for custom. */
+export const isColourChoiceField = (field: FieldLike): boolean => {
+  if (field.type !== 'object') return false
+  const keys = Object.keys(field.objectFields ?? {})
+  return keys.length === 2 && keys.includes('token') && keys.includes('custom')
+}

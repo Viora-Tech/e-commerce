@@ -13,6 +13,11 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/blocks/src/components/custom/embed-element.tsx',
+    reason:
+      'merchant Custom HTML, rendered only after sanitizeEmbedHtml (sanitize-html allow-list: no scripts, handlers, styles or foreign iframes); also sanitised on save',
+  },
+  {
     file: 'apps/admin/src/components/layout/accent-style.tsx',
     reason: 'injects a <style> tag of computed CSS variables, not user input',
   },

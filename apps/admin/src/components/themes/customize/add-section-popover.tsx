@@ -22,6 +22,8 @@ type AddSectionPopoverProps = {
    * insert line between two rows, which only shows on hover or focus.
    */
   variant?: 'row' | 'line'
+  /** Inside a container's slot: reads "Add block" rather than "Add section". */
+  slot?: boolean | undefined
 }
 
 const copy = customizeContent.tree
@@ -33,6 +35,7 @@ export default function AddSectionPopover({
   index,
   count,
   variant = 'row',
+  slot = false,
 }: AddSectionPopoverProps) {
   // Hooks
   const [open, setOpen] = useState(false)
@@ -42,8 +45,8 @@ export default function AddSectionPopover({
     variant === 'line' ? (
       <button
         type="button"
-        aria-label={copy.insertHere}
-        title={copy.insertHere}
+        aria-label={slot ? copy.addToSlotHere : copy.insertHere}
+        title={slot ? copy.addToSlotHere : copy.insertHere}
         className={cn(
           // A 0.5rem band straddling the gap above a row: the line and its "+"
           // fade in while the pointer is in the band or the popover is open.
@@ -69,7 +72,7 @@ export default function AddSectionPopover({
         <span className="flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 group-hover/add:text-primary motion-reduce:transition-none">
           <Plus aria-hidden className="size-4" />
         </span>
-        {copy.add}
+        {slot ? copy.addToSlot : copy.add}
       </button>
     )
 

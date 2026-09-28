@@ -4,7 +4,9 @@
  * the preview token lives in the server barrel only.
  */
 export * from './css'
+export * from './custom-sections'
 export * from './fonts'
+export * from './nested-blocks'
 export * from './presets'
 export * from './preview-messages'
 export * from './schema'

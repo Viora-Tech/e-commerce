@@ -28,6 +28,12 @@ Two are worth naming because the upload-time image pipeline (`packages/core/src/
 run in `apps/worker`) depends on them directly rather than adapting any of their code:
 [sharp](https://github.com/lovell/sharp) (Apache License 2.0) for image decode/resize/encode, and
 [thumbhash](https://github.com/evanw/thumbhash) (MIT) for the blur-up placeholder.
+The theme editor's Custom HTML element is sanitised by
+[sanitize-html](https://github.com/apostrophecms/sanitize-html) (MIT, dependency of
+`packages/blocks`, used through `packages/blocks/src/embed-sanitize.ts`; its own dependencies
+htmlparser2, postcss, deepmerge, escape-string-regexp, is-plain-object, parse-srcset and launder
+are MIT too), licence verified on npm and its GitHub `LICENSE` on 2026-09-27. Layout blocks use
+Puck's slots (MIT, already our editor); no code is copied.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

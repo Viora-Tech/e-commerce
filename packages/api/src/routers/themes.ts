@@ -3,12 +3,14 @@ import {
   commitTemplateDrafts,
   createTemplateAlternate,
   createThemeFromPreset,
+  deleteCustomSection,
   deleteTemplateAlternate,
   deleteTheme,
   discardTemplateDrafts,
   duplicateTheme,
   ensureMainTheme,
   getTheme,
+  listCustomSections,
   listTemplates,
   listThemes,
   loadSourceCatalog,
@@ -16,8 +18,10 @@ import {
   loadTemplate,
   permissions,
   publishTheme,
+  renameCustomSection,
   renameTheme,
   SECTION_GROUPS,
+  saveCustomSection,
   saveTemplateDraft,
   signThemePreviewToken,
   TEMPLATE_KINDS,
@@ -140,6 +144,46 @@ const templatesRouter = {
     ),
 }
 
+/**
+ * "My sections": the store's own saved sections, a library shared by every theme.
+ * The block is validated for shape and size in core (`prepareCustomSection`).
+ */
+const customSectionsRouter = {
+  list: can(permissions.ONLINE_STORE_READ).handler(({ context }) =>
+    listCustomSections(context.tx, context.scope.storeId),
+  ),
+
+  save: can(permissions.ONLINE_STORE_WRITE)
+    .input(
+      z.object({
+        name: z.string().max(200),
+        block: z.object({
+          type: z.string().min(1).max(60),
+          props: z.object({ id: z.string().min(1).max(80) }).catchall(z.unknown()),
+        }),
+      }),
+    )
+    .handler(({ context, input }) =>
+      libraryErrors(() => saveCustomSection(context.tx, context.scope.storeId, input)),
+    ),
+
+  rename: can(permissions.ONLINE_STORE_WRITE)
+    .input(z.object({ id: z.string().uuid(), name: z.string().max(200) }))
+    .handler(({ context, input }) =>
+      libraryErrors(async () => {
+        await renameCustomSection(context.tx, context.scope.storeId, input)
+        return { ok: true as const }
+      }),
+    ),
+
+  delete: can(permissions.ONLINE_STORE_WRITE)
+    .input(IdInput)
+    .handler(async ({ context, input }) => {
+      await deleteCustomSection(context.tx, context.scope.storeId, input.id)
+      return { ok: true as const }
+    }),
+}
+
 async function libraryErrors<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn()
@@ -166,6 +210,7 @@ function present(storeId: string, t: ThemeRecord) {
 /** Online Store › Themes: the library, Shopify style. One theme is live (`main`). */
 export const themesRouter = {
   templates: templatesRouter,
+  customSections: customSectionsRouter,
 
   list: can(permissions.ONLINE_STORE_READ).handler(async ({ context }) => {
     const { storeId } = context.scope

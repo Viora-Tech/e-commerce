@@ -8,14 +8,18 @@ import {
 } from '@commerce/ui/shadcn/collapsible'
 import { AutoField, type Field } from '@puckeditor/core'
 import type { ReactNode } from 'react'
+import { customizeContent } from '@/data/customize'
 import { iconForField } from '@/lib/customize-field-icons'
 import {
   type FieldLike,
+  isColourChoiceField,
+  isElementStyleField,
   isImageField,
   isLinkField,
   isResponsiveNumberField,
   isSectionSettingsField,
 } from '@/lib/customize-field-shape'
+import ColourChoiceField from './colour-choice-field'
 import FieldFrame from './field-frame'
 import ImageField from './image-field'
 import LinkPicker from './link-picker'
@@ -63,6 +67,27 @@ export default function CustomizeObjectField({
   const label = field.label ?? name
   if (isSectionSettingsField(field, name)) {
     return <SectionSettingsGroups field={field} value={objectValue} onChange={onChange} />
+  }
+  if (isElementStyleField(field, name)) {
+    return (
+      <SectionSettingsGroups
+        field={field}
+        value={objectValue}
+        onChange={onChange}
+        title={customizeContent.styleGroups.title}
+        hint={customizeContent.styleGroups.hint}
+      />
+    )
+  }
+  if (isColourChoiceField(field)) {
+    return (
+      <ColourChoiceField
+        label={label}
+        field={field}
+        value={objectValue}
+        onChange={(next) => onChange(next)}
+      />
+    )
   }
   if (isResponsiveNumberField(field)) {
     return (

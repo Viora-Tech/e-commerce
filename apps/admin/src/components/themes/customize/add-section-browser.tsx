@@ -1,16 +1,19 @@
 'use client'
 
-import type { SectionGroup } from '@commerce/core/theme'
+import type { CustomSection, SectionGroup, TemplateSection } from '@commerce/core/theme'
 import { Search } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { Drawer } from '@puckeditor/core'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { customizeContent } from '@/data/customize'
 import { insertActions } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { insertCopyActions } from '@/lib/customize-slots'
 import AppsTab from './add-section-apps-tab'
+import MySectionsTab from './add-section-my-tab'
 import SectionsTab from './add-section-sections-tab'
 
 type AddSectionBrowserProps = {
@@ -35,6 +38,9 @@ type AddSectionBrowserProps = {
 
 const copy = customizeContent.addSection
 
+type Tab = 'sections' | 'apps' | 'mine'
+const TABS = new Set<string>(['sections', 'apps', 'mine'])
+
 /**
  * Shopify's "Add section": searchable, tabbed (Sections / Apps) and categorised,
  * with a glyph and one-line description each. Shared by the per-group popover
@@ -49,7 +55,7 @@ export default function AddSectionBrowser({
   fill,
 }: AddSectionBrowserProps) {
   // Hooks
-  const [tab, setTab] = useState<'sections' | 'apps'>('sections')
+  const [tab, setTab] = useState<Tab>('sections')
   const [query, setQuery] = useState('')
   const [hovered, setHovered] = useState<string | null>(null)
   const dispatch = useCustomizePuck((s) => s.dispatch)
@@ -61,6 +67,14 @@ export default function AddSectionBrowser({
   // Event handlers
   const handleAdd = (type: string) => {
     for (const action of insertActions({ zone, index }, type, count)) dispatch(action)
+    setQuery('')
+    onAdd?.()
+  }
+
+  const handleAddCopy = (section: CustomSection) => {
+    const block = section.block as TemplateSection
+    for (const action of insertCopyActions({ zone, index }, block, count)) dispatch(action)
+    toast.success(customizeContent.mySections.added(section.name))
     setQuery('')
     onAdd?.()
   }
@@ -91,12 +105,15 @@ export default function AddSectionBrowser({
       </div>
       <Tabs
         value={tab}
-        onValueChange={(v) => setTab(v as 'sections' | 'apps')}
+        onValueChange={(v) => {
+          if (typeof v === 'string' && TABS.has(v)) setTab(v as Tab)
+        }}
         className={cn('gap-2', fill && 'min-h-0 flex-1')}
       >
         <TabsList variant="line" className="gap-4 px-1 text-[0.8125rem]">
           <TabsTrigger value="sections">{copy.tabs.sections}</TabsTrigger>
           <TabsTrigger value="apps">{copy.tabs.apps}</TabsTrigger>
+          {group ? null : <TabsTrigger value="mine">{copy.tabs.mine}</TabsTrigger>}
         </TabsList>
         <TabsContent value="sections" className={cn(fill && 'flex min-h-0 flex-col')}>
           <Drawer>
@@ -125,6 +142,13 @@ export default function AddSectionBrowser({
             </div>
           </Drawer>
         </TabsContent>
+        {group ? null : (
+          <TabsContent value="mine" className={cn(fill && 'flex min-h-0 flex-col')}>
+            <div className={listClass}>
+              <MySectionsTab query={query} onAdd={handleAddCopy} />
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

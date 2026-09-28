@@ -8,9 +8,10 @@ import {
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
 import { customizeContent } from '@/data/customize'
-import { type CustomizeDoc, zoneSections } from '@/lib/customize-doc'
+import type { CustomizeDoc } from '@/lib/customize-doc'
 import { groupForZone, type InsertTarget } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
+import { zoneItems } from '@/lib/customize-slots'
 import AddSectionBrowser from './add-section-browser'
 
 type AddSectionDialogProps = {
@@ -30,7 +31,7 @@ export default function AddSectionDialog({ target, onClose }: AddSectionDialogPr
   const data = useCustomizePuck((s) => s.appState.data as unknown as CustomizeDoc)
 
   // Render logic
-  const count = target ? zoneSections(data, target.zone).length : 0
+  const count = target ? zoneItems(data, target.zone).length : 0
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => (open ? undefined : onClose())}>

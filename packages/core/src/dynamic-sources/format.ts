@@ -233,6 +233,13 @@ function walk(value: unknown, section: string, at: (string | number)[], out: Fou
     return
   }
   if (typeof value === 'object' && value !== null) {
+    // A block nested in a slot (`{ type, props }` inside a Group's content, a tab's
+    // panel): its settings are named after it, not after the section around it.
+    const nested = value as { type?: unknown; props?: unknown }
+    if (typeof nested.type === 'string' && typeof nested.props === 'object' && nested.props) {
+      walk(nested.props, nested.type, [], out)
+      return
+    }
     for (const [k, v] of Object.entries(value)) walk(v, section, [...at, k], out)
   }
 }
