@@ -53,8 +53,9 @@ def main(src: str, out: str) -> None:
                     stroke.line([a, b], fill=255, width=1)
 
     land = land.point(lambda v: 255 if v > 127 else 0)
-    # Keep only borders well inland: erode the land by 3 px and mask the outlines with it.
-    inland = land.filter(ImageFilter.MinFilter(7))
+    # Keep only borders inland: erode the land by 1 px (~20 km) and mask the outlines with it, so
+    # coasts are not drawn twice but borders still run almost to the sea.
+    inland = land.filter(ImageFilter.MinFilter(3))
     lines = ImageChops.multiply(lines, inland)
     lines = lines.filter(ImageFilter.GaussianBlur(BLUR))
     # A 1 px line blurred by a Gaussian of sigma BLUR peaks at 1 / (sqrt(2 pi) * BLUR) of its

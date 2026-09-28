@@ -29,6 +29,11 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/admin/src/components/analytics/live-globe/globe-settings-panel.tsx',
+    reason:
+      'Live view globe colour presets (Night, Ocean blue, Mono) and colour-picker fallbacks: they are uploaded to the WebGL shader as RGB uniforms, which cannot read CSS custom properties; the default "Store accent" preset still comes from theme tokens',
+  },
+  {
     file: 'apps/admin/src/components/apps/gst-invoices/look-group.tsx',
     reason:
       'accent-colour presets are stored as invoice.accentColor and passed straight into the react-pdf templates (packages/invoices/src/templates), which render outside the DOM and cannot resolve CSS custom properties — swapping these for var(--chart-N) would store an unusable value and break the PDF',

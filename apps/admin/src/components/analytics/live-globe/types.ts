@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { GlobeSettings } from './globe-settings'
 
 export type GlobeMarker = {
   id: string
@@ -8,6 +9,10 @@ export type GlobeMarker = {
   isNewest: boolean
   /** City, order number and amount; shown next to the marker on hover or focus. */
   tooltip: ReactNode
+  /** The order's total, for "Highlight big orders" (marker size, and a glow on the top 10%).
+   * Undefined markers (e.g. none carry it) are treated as zero, so sizing just falls back to
+   * the flat default. */
+  valuePaise?: number
 }
 
 export type GlobeArc = {
@@ -38,4 +43,12 @@ export type GlobeCanvasProps = {
    * view uses it to sit the globe on the right while the stats float over the left.
    */
   shiftX?: number
+  /**
+   * The "Globe settings" panel's state, and its gear button next to the zoom controls. Only
+   * the WebGL globe reads or shows any of this — the Home card's cobe globe (which never
+   * passes these) keeps its fixed look.
+   */
+  settings?: GlobeSettings
+  onSettingsChange?: (patch: Partial<GlobeSettings>) => void
+  onSettingsReset?: () => void
 }

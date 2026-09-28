@@ -2,6 +2,7 @@
 
 import { Minus, Plus, RotateCcw } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import type { ReactNode } from 'react'
 import { liveGlobeContent as copy } from '@/data/live-globe'
 import type { GlobeMarker } from './types'
 
@@ -11,18 +12,24 @@ type GlobeOverlayProps = {
   onActiveChange: (id: string | null) => void
   /** +1 zooms in a step, -1 out, 0 resets. */
   onZoom: (direction: -1 | 0 | 1) => void
+  /** The Live view hero's gear button (its own popover); left out on the Home card's cobe
+   * globe, which stays exactly as it was. */
+  settingsButton?: ReactNode
 }
 
 /**
  * What sits over either globe's canvas: one focusable button per marker (moved into place
- * every frame by `positionOverlay`), the tooltip for the active one, and the zoom buttons in
- * the bottom-right corner.
+ * every frame by `positionOverlay`), the tooltip for the active one, and the control stack
+ * (gear, then zoom buttons) in the top-right corner — top, not bottom, so it is never cut off
+ * by the bottom of a tall Live view hero on a short viewport; the gear's popover opens
+ * downward and leftward from there, staying on screen too.
  */
 export default function GlobeOverlay({
   markers,
   activeId,
   onActiveChange,
   onZoom,
+  settingsButton,
 }: GlobeOverlayProps) {
   // Event handlers
   const handleMarkerEnter = (id: string) => onActiveChange(id)
@@ -62,7 +69,8 @@ export default function GlobeOverlay({
           {active.tooltip}
         </div>
       ) : null}
-      <div className="absolute right-2 bottom-2 z-10 flex flex-col gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
+      <div className="absolute top-2 right-2 z-10 flex flex-row gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
+        {settingsButton}
         {zoomButtons.map(({ label, icon: Icon, direction }) => (
           <Button
             key={label}

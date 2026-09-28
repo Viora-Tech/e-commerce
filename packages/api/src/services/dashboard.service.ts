@@ -58,8 +58,17 @@ const MIX_WINDOW_DAYS = 30
 const LIVE_MINUTES = 30
 const CATEGORY_ROWS = 3
 const LATEST_PRODUCTS = 3
-/** How many of the last 24h's orders the Live view globe plots as markers/arcs. */
-const MAP_ORDERS = 40
+/** How many orders the Live view globe plots as markers/arcs. A bit more than the 24h default's
+ * 40 so the 7-day range still shows a reasonable spread. */
+const MAP_ORDERS = 200
+
+/** The Live view globe's "Time range" setting, and how far back each one looks. */
+export type GlobeMapRange = '1h' | '24h' | '7d'
+const MAP_RANGE_MS: Record<GlobeMapRange, number> = {
+  '1h': 3_600_000,
+  '24h': 86_400_000,
+  '7d': 7 * 86_400_000,
+}
 
 export type DashboardWindow = {
   /** Current window value. */
@@ -202,7 +211,8 @@ export type DashboardSummary = {
     /** Last full calendar month's total, for suggesting a sensible default sales goal. */
     lastMonthSalesPaise: number
   }
-  /** Orders from the last 24h with a shipping address, newest first, for the Live view globe. */
+  /** Orders with a shipping address over the Live view globe's "Time range" setting (`mapRange`,
+   * 24h by default), newest first. */
   mapOrders: {
     id: string
     number: number
@@ -399,7 +409,12 @@ function buildSeries(input: SeriesInput, from: Date, days: number): DashboardSer
  */
 export async function dashboardSummary(
   tx: StoreTx,
-  opts: { storeId?: string; visitors?: VisitorSource | undefined; now?: Date } = {},
+  opts: {
+    storeId?: string
+    visitors?: VisitorSource | undefined
+    now?: Date
+    mapRange?: GlobeMapRange
+  } = {},
 ): Promise<DashboardSummary> {
   const now = opts.now ?? new Date()
   const thisStart = startOfDay(now, WINDOW_DAYS - 1)
@@ -805,7 +820,8 @@ export async function dashboardSummary(
     .filter((r) => r.placedAt >= lastMonthStart && r.placedAt < monthStart)
     .reduce((n, r) => n + r.totalPaise, 0)
 
-  /* Orders from the last 24h with a shipping address, for the Live view globe's markers/arcs. */
+  /* Orders with a shipping address over the globe's chosen time range, for its markers/arcs. */
+  const mapFrom = new Date(now.getTime() - MAP_RANGE_MS[opts.mapRange ?? '24h'])
   const mapOrderRows = await tx
     .select({
       id: order.id,
@@ -817,7 +833,7 @@ export async function dashboardSummary(
     })
     .from(order)
     .innerJoin(address, eq(address.id, order.shippingAddressId))
-    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, dayAgo)))
+    .where(and(notDraft, ne(order.status, 'cancelled'), gte(order.placedAt, mapFrom)))
     .orderBy(desc(order.placedAt))
     .limit(MAP_ORDERS)
 

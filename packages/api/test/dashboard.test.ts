@@ -377,6 +377,75 @@ describe('dashboard.summary', () => {
 
     expect(s.dispatch).toEqual({ city: 'Bengaluru', state: 'Karnataka' })
   })
+
+  it("narrows mapOrders to the Live view globe's chosen time range, 24h by default", async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const [addr] = await owner
+      .insert(address)
+      .values({
+        storeId: a.storeId,
+        name: 'Test Customer',
+        line1: '1 MG Road',
+        city: 'Bengaluru',
+        stateCode: 'KA',
+        pincode: '560001',
+        country: 'IN',
+        phone: '9999999999',
+      })
+      .returning()
+    await owner.insert(order).values([
+      {
+        storeId: a.storeId,
+        number: 1,
+        shippingAddressId: addr?.id as string,
+        subtotalPaise: 1000,
+        totalPaise: 1000,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: new Date(Date.now() - 30 * 60_000), // 30 minutes ago
+      },
+      {
+        storeId: a.storeId,
+        number: 2,
+        shippingAddressId: addr?.id as string,
+        subtotalPaise: 2000,
+        totalPaise: 2000,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(2), // 2 days ago
+      },
+      {
+        storeId: a.storeId,
+        number: 3,
+        shippingAddressId: addr?.id as string,
+        subtotalPaise: 3000,
+        totalPaise: 3000,
+        status: 'open',
+        paymentStatus: 'paid',
+        placedAt: daysAgo(6), // 6 days ago
+      },
+    ])
+
+    const oneHour = await call(appRouter.dashboard.summary, { mapRange: '1h' }, { context: a.ctx })
+    expect(oneHour.mapOrders.map((o) => o.number)).toEqual([1])
+
+    const twentyFourHours = await call(appRouter.dashboard.summary, undefined, { context: a.ctx })
+    expect(twentyFourHours.mapOrders.map((o) => o.number)).toEqual([1])
+
+    const sevenDays = await call(
+      appRouter.dashboard.summary,
+      { mapRange: '7d' },
+      { context: a.ctx },
+    )
+    expect(sevenDays.mapOrders.map((o) => o.number).sort()).toEqual([1, 2, 3])
+  })
+
+  it('rejects a mapRange outside the fixed 1h/24h/7d set', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    await expect(
+      call(appRouter.dashboard.summary, { mapRange: '30d' } as never, { context: a.ctx }),
+    ).rejects.toThrow()
+  })
 })
 
 describe('dashboard.charts', () => {
