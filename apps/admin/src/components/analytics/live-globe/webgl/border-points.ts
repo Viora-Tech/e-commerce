@@ -5,7 +5,7 @@ export type BorderPoint = { lat: number; lng: number; arc: number }
 
 /** A border dash point's diameter as a share of the radius: small, so consecutive points (a
  * few km apart) merge into a continuous stroke rather than reading as separate dots. */
-const BORDER_POINT_SIZE_SHARE = 0.0055
+const BORDER_POINT_SIZE_SHARE = 0.0085
 
 /** For tests, and to keep the format's write side in one place even though the real file is
  * written by `scripts/globe/make-globe-borders.py`. `arc` is radians along the point's run. */

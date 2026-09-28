@@ -143,7 +143,11 @@ const POINT_FS = `precision highp float;varying vec4 v;varying float f,arc;
 uniform float DASH;uniform vec2 DP;
 void main(){float d=length(gl_PointCoord*2.-1.);if(d>1.)discard;
 float a=1.-smoothstep(.35,1.,d);
-if(DASH>.5){float phase=fract(arc*DP.x/DP.y);if(phase>.62)discard;a*=.7*(1.-smoothstep(.48,.62,phase));}
+// Dashes: a soft round falloff over a sprite big enough to cover whole pixels, at low
+// opacity, so sub-pixel motion while the globe turns does not make them flicker.
+if(DASH>.5){float phase=fract(arc*DP.x/DP.y);if(phase>.62)discard;
+a=exp(-d*d*2.5)*.8*(1.-smoothstep(.48,.62,phase))*smoothstep(-.04,.1,f);
+gl_FragColor=vec4(v.rgb*a,1);return;}
 float rim=smoothstep(-.04,.1,f);
 gl_FragColor=vec4(v.rgb,a*rim);}`
 
@@ -197,6 +201,10 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
   const gl = canvas.getContext('webgl', { alpha: true, antialias: true, depth: false })
   // fwidth() for the soft coast, grid lines and the seam fix; supported on all current GPUs.
   if (gl && !gl.getExtension('OES_standard_derivatives')) return null
+  // Border dashes are many overlapping soft sprites; drawing them with MAX blending keeps each
+  // pixel at the brightest sprite instead of adding them up (which read as a glowing, shiny
+  // line). Supported everywhere WebGL 1 is; without it dashes fall back to normal blending.
+  const minmax = gl?.getExtension('EXT_blend_minmax') ?? null
   const sphere = gl && program(gl, SPHERE_VS, SPHERE_FS)
   const dots = gl && program(gl, POINT_VS, POINT_FS)
   if (!gl || !sphere || !dots) return null
@@ -277,6 +285,7 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       for (const layer of [0, 1, 2] as const) {
         if (counts[layer] === 0) continue
         gl.uniform1f(dots.u('DASH'), layer === 2 ? 1 : 0)
+        if (layer === 2 && minmax) gl.blendEquation(minmax.MAX_EXT)
         gl.bindBuffer(gl.ARRAY_BUFFER, layers[layer])
         gl.enableVertexAttribArray(aPos)
         gl.vertexAttribPointer(aPos, 4, gl.FLOAT, false, 32, 0)
@@ -285,6 +294,7 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
         gl.enableVertexAttribArray(aArc)
         gl.vertexAttribPointer(aArc, 1, gl.FLOAT, false, 32, 28)
         gl.drawArrays(gl.POINTS, 0, counts[layer])
+        if (layer === 2 && minmax) gl.blendEquation(gl.FUNC_ADD)
       }
     },
     destroy: () => {
