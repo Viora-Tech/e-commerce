@@ -6,27 +6,11 @@ import { z } from 'zod'
  * use it through `@commerce/core/returns`.
  */
 
-/** Reason codes, in the order the shopper sees them. Words are plain on purpose. */
-export const RETURN_REASONS = [
-  'damaged',
-  'wrong_item',
-  'not_as_described',
-  'quality',
-  'size',
-  'changed_mind',
-  'other',
-] as const
-export type ReturnReason = (typeof RETURN_REASONS)[number]
+// The reason list has no zod, so the storefront's return form can import it in the browser
+// (`@commerce/core/return-reasons`); re-exported here so nothing else changes.
+import { RETURN_REASONS, type ReturnReason } from './reasons'
 
-export const RETURN_REASON_LABELS: Record<ReturnReason, string> = {
-  damaged: 'It arrived damaged or broken',
-  wrong_item: 'I got the wrong item',
-  not_as_described: 'It does not match the photos or description',
-  quality: 'The quality is not good',
-  size: 'Wrong size',
-  changed_mind: 'I changed my mind',
-  other: 'Something else',
-}
+export { RETURN_REASON_LABELS, RETURN_REASONS, type ReturnReason } from './reasons'
 
 /** Reasons on by default: problems with the product, not "changed my mind". */
 export const DEFAULT_RETURN_REASONS: ReturnReason[] = [

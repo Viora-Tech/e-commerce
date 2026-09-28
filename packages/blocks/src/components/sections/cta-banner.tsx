@@ -2,9 +2,11 @@
 
 // Adapted from Magic UI's Shine Border (MIT). See THIRD_PARTY_NOTICES.md and
 // packages/blocks/THIRD_PARTY_LICENSES.md.
-import { motion, useReducedMotion } from 'motion/react'
+import { useEffect, useRef } from 'react'
+import { loadMotion } from '../../lazy-motion'
 import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
+import { useReducedMotion } from '../../use-reduced-motion'
 
 type CtaBannerProps = {
   heading: string
@@ -17,9 +19,27 @@ const GLOW_GRADIENT =
   'conic-gradient(from 0deg,var(--color-brand),var(--color-accent),var(--color-brand))'
 
 // Rounded card with an animated glow behind it. Reduced motion renders the glow as a static ring.
+// The spin is added once motion loads after hydration; until then the ring sits still.
 export default function CtaBanner({ heading, text, button, secondaryButton }: CtaBannerProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
+  const glow = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = glow.current
+    if (!el || reducedMotion) return
+    let live = true
+    let spin: { stop(): void } | undefined
+    loadMotion()
+      .then(({ animate }) => {
+        if (live)
+          spin = animate(el, { rotate: 360 }, { duration: 6, repeat: Infinity, ease: 'linear' })
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+      spin?.stop()
+    }
+  }, [reducedMotion])
 
   return (
     <div className="page-width flex justify-center">
@@ -31,12 +51,11 @@ export default function CtaBanner({ heading, text, button, secondaryButton }: Ct
             style={{ backgroundImage: GLOW_GRADIENT }}
           />
         ) : (
-          <motion.div
+          <div
+            ref={glow}
             aria-hidden
             className="absolute inset-0 rounded-[var(--radius-card)]"
             style={{ backgroundImage: GLOW_GRADIENT }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
           />
         )}
         <div className="relative flex flex-col items-center gap-[1rem] rounded-[calc(var(--radius-card)-2px)] bg-[var(--color-surface)] px-[2rem] py-[3rem] text-center">

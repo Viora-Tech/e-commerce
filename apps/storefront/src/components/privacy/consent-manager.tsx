@@ -5,16 +5,16 @@ import {
   CONSENT_COOKIE,
   CONSENT_MAX_AGE,
   type Consent,
+  type ConsentPreferences,
   encodeConsent,
-  type StorePreferences,
-} from '@commerce/core/preferences'
+} from '@commerce/core/consent'
 import { useState } from 'react'
 import TrackingTags from '@/components/analytics/tracking-tags'
 import { consentContent as copy } from '@/data/online-store'
 
 type ConsentManagerProps = {
-  privacy: StorePreferences['privacy']
-  tracking: StorePreferences['tracking']
+  privacy: ConsentPreferences['privacy']
+  tracking: ConsentPreferences['tracking']
   /** The choice read from the cookie on the server; null until the shopper decides. */
   initial: Consent | null
 }

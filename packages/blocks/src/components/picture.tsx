@@ -10,8 +10,20 @@ type PictureProps = {
   }
   alt: string
   className?: string | undefined
-  width: number
-  height: number
+  /** Merged over the ThumbHash background, e.g. a focal point's `object-position`. */
+  style?: CSSProperties | undefined
+  /** Intrinsic size hints; leave out when CSS sizes the image (see `fill`). */
+  width?: number | undefined
+  height?: number | undefined
+  /**
+   * The image is sized by its container (`width/height: 100%`, `absolute inset-0`).
+   * The `<picture>` wrapper then takes no box of its own (`display: contents`), so
+   * those percentages still resolve against the container exactly as they did for
+   * a bare `<img>`: swapping one in never changes the layout.
+   */
+  fill?: boolean | undefined
+  /** Off for `object-fit: contain` images, where the blur would show in the letterbox. */
+  placeholder?: boolean | undefined
   loading?: 'lazy' | 'eager' | undefined
   fetchPriority?: 'high' | 'low' | 'auto' | undefined
   sizes?: string | undefined
@@ -59,6 +71,9 @@ function blurStyle(thumbhash: string | null | undefined): CSSProperties | undefi
   }
 }
 
+/** Inline, because the shared stylesheet's unlayered `picture { display: block }` outranks utilities. */
+const FILL_WRAPPER: CSSProperties = { display: 'contents' }
+
 /**
  * Native `<picture>` with AVIF and WebP sources at every pre-generated
  * width, falling back to the original `url` (unprocessed/legacy media, or
@@ -72,8 +87,11 @@ export default function Picture({
   image,
   alt,
   className,
+  style: ownStyle,
   width,
   height,
+  fill,
+  placeholder = true,
   loading = 'lazy',
   fetchPriority,
   sizes,
@@ -81,7 +99,8 @@ export default function Picture({
 }: PictureProps) {
   // Render logic
   const variants = image.variants
-  const style = blurStyle(image.thumbhash)
+  const blur = placeholder ? blurStyle(image.thumbhash) : undefined
+  const style = blur || ownStyle ? { ...blur, ...ownStyle } : undefined
 
   // Early returns
   if (!variants || Object.keys(variants).length === 0) {
@@ -103,7 +122,7 @@ export default function Picture({
   const widest = WIDTHS.filter((w) => variants[String(w)]).at(-1)
   const fallbackWebp = widest ? variants[String(widest)]?.webp : undefined
   return (
-    <picture>
+    <picture style={fill ? FILL_WRAPPER : undefined}>
       <source type="image/avif" srcSet={srcSet(variants, 'avif')} sizes={sizes} />
       <source type="image/webp" srcSet={srcSet(variants, 'webp')} sizes={sizes} />
       <img

@@ -3,6 +3,7 @@
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
+import Picture from '../picture'
 
 type GalleryImage = { image: Image; caption: string; link: Link }
 
@@ -35,11 +36,12 @@ export default function Gallery({ heading, layout, images }: GalleryProps) {
               }`}
             >
               {item.image?.url ? (
-                <img
-                  src={item.image.url}
+                <Picture
+                  image={item.image}
                   alt={item.image.alt}
                   style={focalStyle(item.image.focal)}
-                  loading="lazy"
+                  fill
+                  sizes="(min-width: 768px) 33vw, 50vw"
                   className="aspect-[4/5] size-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
                 />
               ) : (

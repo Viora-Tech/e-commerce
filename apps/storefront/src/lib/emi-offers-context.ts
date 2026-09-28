@@ -1,6 +1,6 @@
 'use client'
 
-import type { EmiOffersConfig } from '@commerce/plugin-emi/offer'
+import type { EmiOffersConfig } from '@commerce/plugin-emi/offer-for'
 import { createContext } from 'react'
 
 /**

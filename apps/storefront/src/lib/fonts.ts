@@ -20,9 +20,12 @@ import {
 /*
  * Every face a theme can choose, self-hosted by next/font. Each one defines a
  * `--font-<id>` custom property; `themeToCss` points --font-heading and
- * --font-body at the chosen two. Only Archivo and Figtree (the default Waimers
- * pairing) are preloaded: the rest declare @font-face and download only when a
- * theme actually uses them, so the curated list costs nothing it does not paint.
+ * --font-body at the chosen two. Only Archivo and Figtree's upright faces (the
+ * default Waimers pairing) are preloaded: the rest declare @font-face and download
+ * only when a theme actually uses them, so the curated list costs nothing it does
+ * not paint. Every face is `display: swap` with next/font's metric-matched Arial
+ * fallback (`<Family> Fallback`, size-adjust + ascent/descent overrides), so the
+ * swap does not move text (CLS).
  * The ids here must match THEME_FONTS in @commerce/core.
  *
  * next/font only accepts literal options, hence the repetition.
@@ -37,9 +40,25 @@ export const archivo = Archivo({
 export const figtree = Figtree({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  style: 'normal',
   variable: '--font-figtree',
   display: 'swap',
+})
+
+/*
+ * Figtree's italic faces, declared apart so they are not preloaded: italic body copy is
+ * rare above the fold, and a preload is a full font file on every first visit. The
+ * @font-face rules keep the family name "Figtree" (next/font under Turbopack does not
+ * rename families; `bun run build` output shows it), so `--font-figtree` picks up the
+ * italic faces the moment a page actually sets italic text.
+ */
+const figtreeItalic = Figtree({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: 'italic',
+  variable: '--font-figtree-italic',
+  display: 'swap',
+  preload: false,
 })
 
 const inter = Inter({
@@ -123,6 +142,7 @@ const instrumentSerif = Instrument_Serif({
 export const themeFontVariables = [
   archivo,
   figtree,
+  figtreeItalic,
   inter,
   manrope,
   dmSans,

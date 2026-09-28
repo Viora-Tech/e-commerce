@@ -10,6 +10,7 @@ export default {
   'theme-editor': 'Theme editor',
   'dynamic-sources': 'Dynamic sources',
   'custom-sections': 'Slots and custom sections',
+  performance: 'Storefront performance',
   security: 'Security',
   conventions: 'Conventions',
   guardrails: 'Guardrails and sweeps',

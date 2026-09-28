@@ -138,11 +138,21 @@ export default function SectionFrame({
           ) : null}
         </>
       ) : null}
-      <SectionReveal animation={advanced.entranceAnimation}>
-        <div className={contentClasses} style={contentStyle}>
-          {children}
+      {advanced.entranceAnimation === 'none' ? (
+        // Same markup SectionReveal draws with no animation, without a client boundary
+        // to hydrate for every section on the page.
+        <div>
+          <div className={contentClasses} style={contentStyle}>
+            {children}
+          </div>
         </div>
-      </SectionReveal>
+      ) : (
+        <SectionReveal animation={advanced.entranceAnimation}>
+          <div className={contentClasses} style={contentStyle}>
+            {children}
+          </div>
+        </SectionReveal>
+      )}
     </div>
   )
 }

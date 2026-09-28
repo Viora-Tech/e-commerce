@@ -6,9 +6,10 @@ import {
   RichTextRenderer,
   richTextToPlainText,
 } from '@commerce/richtext'
-import { useReducedMotion } from 'motion/react'
 import { type ComponentType, type ReactNode, useEffect, useState, useTransition } from 'react'
-import type { ProductDetail } from '../types'
+import type { MediaImage, ProductDetail } from '../types'
+import { useReducedMotion } from '../use-reduced-motion'
+import Picture from './picture'
 import Price from './price'
 
 /** Imported products hold a plain string; the admin editor writes Lexical JSON. */
@@ -20,6 +21,9 @@ function descriptionDoc(raw: ProductDetail['description']) {
 
 const isVideo = (img: { contentType?: string | null | undefined }) =>
   img.contentType?.startsWith('video/') ?? false
+
+/** A thumbnail is at most 120px wide (240 on a 2x screen): the smallest variant, not the original. */
+const thumbSrc = (img: MediaImage) => img.variants?.['320']?.webp ?? img.url
 
 function defaultVariant(product: ProductDetail) {
   return product.variants.find((v) => v.purchasable) ?? product.variants[0]
@@ -144,11 +148,12 @@ export default function ProductView({
                         aria-label={img.alt ?? product.title}
                       />
                     ) : (
-                      <img
-                        src={img.url}
+                      <Picture
+                        image={img}
                         alt={img.alt ?? product.title}
                         width={1200}
                         height={1200}
+                        fill
                         loading={i === 0 ? 'eager' : 'lazy'}
                         fetchPriority={i === 0 ? 'high' : undefined}
                         sizes="(min-width: 990px) 55vw, 100vw"
@@ -172,7 +177,7 @@ export default function ProductView({
                     {isVideo(img) ? (
                       <video src={img.url} muted playsInline preload="metadata" />
                     ) : (
-                      <img src={img.url} alt="" width={120} height={120} loading="lazy" />
+                      <img src={thumbSrc(img)} alt="" width={120} height={120} loading="lazy" />
                     )}
                   </button>
                 ))}

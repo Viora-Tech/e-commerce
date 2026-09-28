@@ -9,6 +9,7 @@ import {
   type SectionSettingsValue,
   sectionSettingsField,
 } from '../section-settings'
+import type { MediaImage } from '../types'
 import type { SectionMetadata } from './dynamic'
 
 /**
@@ -20,7 +21,17 @@ import type { SectionMetadata } from './dynamic'
  */
 export type Frame = { settings: SectionSettingsValue }
 /** A section image. `focal` is optional: see `../focal-point.ts`. */
-export type Image = { url: string; alt: string; focal?: FocalPoint | undefined }
+export type Image = {
+  url: string
+  alt: string
+  focal?: FocalPoint | undefined
+  /**
+   * Never saved by the editor: the storefront looks the URL up in the media library at
+   * render time (`attachImageMedia`) so `<Picture>` can serve AVIF/WebP and a ThumbHash.
+   */
+  variants?: MediaImage['variants']
+  thumbhash?: MediaImage['thumbhash']
+}
 /** A section link. `newTab` is optional: see `../link.ts`. */
 export type Link = { label: string; href: string; newTab?: boolean | undefined }
 

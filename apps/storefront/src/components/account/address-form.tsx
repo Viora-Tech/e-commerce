@@ -1,7 +1,7 @@
 'use client'
 
 import type { SavedAddress } from '@commerce/core'
-import { isPincode } from '@commerce/core/accounts'
+import { isPincode } from '@commerce/core/account-patterns'
 import { useState, useTransition } from 'react'
 import { accountContent } from '@/data/account'
 import { INDIAN_STATES } from '@/data/checkout'

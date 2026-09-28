@@ -1,6 +1,6 @@
 'use client'
 
-import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
+import { THEME_PREVIEW_PARAM } from '@commerce/core/theme-preview'
 import { useEffect, useState } from 'react'
 import { previewBarContent as copy } from '@/data/online-store'
 

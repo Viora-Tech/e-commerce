@@ -118,8 +118,10 @@ export async function proxy(request: NextRequest) {
     })
   }
   // First page view mints the anonymous visitor id the beacon reports; the beacon itself
-  // is a keepalive POST whose Set-Cookie some browsers drop, so it is done here.
-  if (!parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {
+  // is a keepalive POST whose Set-Cookie some browsers drop, so it is done here. Never on
+  // robots.txt, sitemap.xml or llms.txt: they answer `cache-control: public`, and a shared
+  // cache that stored a Set-Cookie would hand one visitor id to every shopper after.
+  if (!seoFile && !parseVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {
     response.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), {
       httpOnly: true,
       sameSite: 'lax',

@@ -2,10 +2,11 @@
 
 // Pattern after Aceternity UI's Spotlight (our own implementation, not copied code).
 // See THIRD_PARTY_NOTICES.md.
-import { motion, useReducedMotion } from 'motion/react'
-import { type PointerEvent, useState } from 'react'
+import { type PointerEvent, useEffect, useRef, useState } from 'react'
+import { loadMotion } from '../../lazy-motion'
 import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
+import { useReducedMotion } from '../../use-reduced-motion'
 
 type SpotlightHeroProps = {
   heading: string
@@ -16,6 +17,8 @@ type SpotlightHeroProps = {
 
 const DOT_BACKDROP =
   'radial-gradient(circle,color-mix(in_oklab,var(--color-ink)_14%,transparent) 1px,transparent 1px)'
+/** Where the glow sits before motion takes over (and in the server HTML). */
+const REST = { left: '45%', top: '40%' } as const
 const STATIC_GLOW =
   'radial-gradient(circle,color-mix(in_oklab,var(--color-brand)_32%,transparent),transparent 70%)'
 
@@ -25,6 +28,31 @@ export default function SpotlightHero({ heading, text, primary, secondary }: Spo
   // Hooks
   const reducedMotion = useReducedMotion()
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
+  const glow = useRef<HTMLDivElement>(null)
+  // Drift while nothing is pointing, glide after the pointer when something is. Motion
+  // is fetched after hydration; until it lands the glow rests where the server drew it.
+  useEffect(() => {
+    const el = glow.current
+    if (!el || reducedMotion) return
+    let live = true
+    let run: { stop(): void } | undefined
+    loadMotion()
+      .then(({ animate }) => {
+        if (!live) return
+        run = pointer
+          ? animate(el, { left: `${pointer.x}%`, top: `${pointer.y}%` }, { duration: 0.2 })
+          : animate(
+              el,
+              { left: ['30%', '68%', '42%', '30%'], top: ['35%', '55%', '28%', '35%'] },
+              { duration: 16, repeat: Infinity, ease: 'easeInOut' },
+            )
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+      run?.stop()
+    }
+  }, [pointer, reducedMotion])
 
   // Event handlers
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -36,11 +64,6 @@ export default function SpotlightHero({ heading, text, primary, secondary }: Spo
     })
   }
   const handlePointerLeave = () => setPointer(null)
-
-  // Render logic
-  const drifting = !pointer && !reducedMotion
-  const glowLeft = pointer ? `${pointer.x}%` : '45%'
-  const glowTop = pointer ? `${pointer.y}%` : '40%'
 
   return (
     <div
@@ -60,24 +83,18 @@ export default function SpotlightHero({ heading, text, primary, secondary }: Spo
           style={{ background: STATIC_GLOW }}
         />
       ) : (
-        <motion.div
+        <div
+          ref={glow}
           aria-hidden
           className="pointer-events-none absolute size-[32rem] rounded-full blur-3xl"
+          // The resting spot only: after hydration motion owns left/top, and a constant
+          // here means React never writes over a glide in progress.
           style={{
-            left: glowLeft,
-            top: glowTop,
-            translateX: '-50%',
-            translateY: '-50%',
+            left: REST.left,
+            top: REST.top,
+            transform: 'translateX(-50%) translateY(-50%)',
             background: STATIC_GLOW,
           }}
-          animate={
-            drifting
-              ? { left: ['30%', '68%', '42%', '30%'], top: ['35%', '55%', '28%', '35%'] }
-              : { left: glowLeft, top: glowTop }
-          }
-          transition={
-            drifting ? { duration: 16, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }
-          }
         />
       )}
       <div className="page-width relative flex flex-col items-center gap-[1.25rem]">

@@ -23,6 +23,7 @@ import { Fragment } from 'react'
 import RecentlyViewed from '@/components/product/recently-viewed'
 import { listCardProducts } from './catalog'
 import { collectionCards, listCollections } from './collections'
+import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
 import { readPreview } from './storefront-gate'
 
@@ -98,9 +99,12 @@ export async function renderTemplate(
   // Connected settings read their source now, per request and under this store's RLS;
   // an empty source renders what the merchant typed in.
   const paths = boundPaths(shown)
-  const visible = paths.length
+  const bound = paths.length
     ? applyBindings(shown, await loadSourceValues(tx, paths, { storeId, ...options.sources }))
     : shown
+  // Section images are saved as bare URLs; one lookup gives <Picture> their AVIF/WebP
+  // variants and ThumbHash, so a banner never ships the full-size original.
+  const visible = await attachImageMedia(tx, bound)
   const config = await blocksConfig(tx, storeId)
   const metadata: SectionMetadata = {
     renderers: {
@@ -123,13 +127,22 @@ export async function renderTemplate(
   // Sections below the first rise in on scroll. Not the header and footer groups, and
   // not in a theme preview, where the merchant is looking at sections, not arriving.
   const reveals = !preview && key !== 'header' && key !== 'footer'
+  // The first section of a page is where the LCP image usually is: hero-type blocks
+  // load theirs eagerly at high priority when told so, everything else stays lazy.
+  const group = key === 'header' || key === 'footer'
 
   return (
     <>
       {resolved.content.map((item, index) => {
         // Slots (Group, Columns, Tabs … and anything nested in them) are drawn here on
-        // the server too: renderBlock fills each slot prop with its children.
-        const section = renderBlock(item, components, puck)
+        // the server too: renderBlock fills each slot prop with its children. The first
+        // top-level section is flagged above the fold so its image loads with priority.
+        const aboveFold = index === 0 && !group ? { _aboveFold: true } : {}
+        const section = renderBlock(
+          { ...item, props: { ...item.props, ...aboveFold } },
+          components,
+          puck,
+        )
         if (!section) return null
         return (
           <Fragment key={item.props.id}>

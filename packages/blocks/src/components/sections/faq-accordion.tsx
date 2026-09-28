@@ -1,8 +1,9 @@
 'use client'
 
 // Pattern after shadcnblocks' FAQ accordion (our own implementation). See THIRD_PARTY_NOTICES.md.
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { loadMotion } from '../../lazy-motion'
+import { useReducedMotion } from '../../use-reduced-motion'
 
 type FaqItem = { question: string; answer: string }
 
@@ -13,17 +14,39 @@ type FaqAccordionProps = {
   multiOpen: boolean
 }
 
+type FaqPanelProps = {
+  id: string
+  labelledBy: string
+  open: boolean
+  answer: string
+  /** Called once a closing panel has finished its exit, so the parent can unmount it. */
+  onExited: () => void
+}
+
+const TRANSITION = { duration: 0.25, ease: 'easeOut' } as const
+
 export default function FaqAccordion({ heading, intro, items, multiOpen }: FaqAccordionProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
   const [openIds, setOpenIds] = useState<Set<number>>(new Set())
+  // Panels still playing their exit: kept mounted until FaqPanel reports it is done.
+  const [closingIds, setClosingIds] = useState<Set<number>>(new Set())
 
   // Event handlers
   const handleToggle = (index: number) => {
-    setOpenIds((current) => {
-      const next = multiOpen ? new Set(current) : new Set<number>()
-      if (current.has(index)) next.delete(index)
-      else next.add(index)
+    const next = multiOpen ? new Set(openIds) : new Set<number>()
+    if (openIds.has(index)) next.delete(index)
+    else next.add(index)
+    const closing = [...openIds].filter((i) => !next.has(i))
+    if (!reducedMotion && closing.length > 0) {
+      setClosingIds((current) => new Set([...current, ...closing]))
+    }
+    setOpenIds(next)
+  }
+  const handleExited = (index: number) => {
+    setClosingIds((current) => {
+      const next = new Set(current)
+      next.delete(index)
       return next
     })
   }
@@ -62,26 +85,85 @@ export default function FaqAccordion({ heading, intro, items, multiOpen }: FaqAc
                   +
                 </span>
               </button>
-              <AnimatePresence initial={false}>
-                {isOpen ? (
-                  <motion.div
-                    id={panelId}
-                    role="region"
-                    aria-labelledby={buttonId}
-                    initial={reducedMotion ? false : { height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: reducedMotion ? 'auto' : 0, opacity: reducedMotion ? 1 : 0 }}
-                    transition={{ duration: reducedMotion ? 0 : 0.25, ease: 'easeOut' }}
-                    className="overflow-hidden"
-                  >
-                    <p className="text-body pb-[1rem] text-[var(--color-muted)]">{item.answer}</p>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+              {isOpen || closingIds.has(i) ? (
+                <FaqPanel
+                  id={panelId}
+                  labelledBy={buttonId}
+                  open={isOpen}
+                  answer={item.answer}
+                  onExited={() => handleExited(i)}
+                />
+              ) : null}
             </div>
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/**
+ * One answer: grows from nothing when it opens and shrinks away when it closes
+ * (height and opacity, 0.25 s ease-out). Motion is fetched on first use rather than
+ * with the page; reduced motion (or a failed fetch) opens and shuts instantly.
+ */
+function FaqPanel({ id, labelledBy, open, answer, onExited }: FaqPanelProps) {
+  // Hooks
+  const reducedMotion = useReducedMotion()
+  const ref = useRef<HTMLDivElement>(null)
+  const mounted = useRef(false)
+  // The parent hands a fresh arrow every render; the animation must not restart for it.
+  const exited = useRef(onExited)
+  useEffect(() => {
+    exited.current = onExited
+  })
+  useEffect(() => {
+    const el = ref.current
+    // A fresh panel grows from zero; one reopened mid-exit grows from where it is.
+    const from = mounted.current ? el?.offsetHeight : 0
+    mounted.current = true
+    if (!el) return
+    if (reducedMotion) {
+      if (!open) exited.current()
+      return
+    }
+    // Hold the starting pose until motion is in (it usually already is after one use).
+    el.style.height = `${from}px`
+    if (open && from === 0) el.style.opacity = '0'
+    let live = true
+    let run: { stop(): void } | undefined
+    loadMotion()
+      .then(({ animate }) => {
+        if (!live) return
+        const target = open ? el.scrollHeight : 0
+        const animation = animate(
+          el,
+          { height: [from ?? 0, target], opacity: open ? 1 : 0 },
+          TRANSITION,
+        )
+        run = animation
+        return animation.then(() => {
+          if (!live) return
+          if (open) el.style.height = 'auto'
+          else exited.current()
+        })
+      })
+      .catch(() => {
+        if (!live) return
+        el.style.height = ''
+        el.style.opacity = ''
+        if (!open) exited.current()
+      })
+    return () => {
+      live = false
+      run?.stop()
+    }
+  }, [open, reducedMotion])
+
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: the same div + role the Motion version rendered; a <section> would pick up the theme's section styles.
+    <div id={id} role="region" aria-labelledby={labelledBy} ref={ref} className="overflow-hidden">
+      <p className="text-body pb-[1rem] text-[var(--color-muted)]">{answer}</p>
     </div>
   )
 }
