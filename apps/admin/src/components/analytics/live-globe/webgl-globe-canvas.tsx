@@ -17,7 +17,11 @@ import { defaultGlobeSettings, saveLastZoom } from './globe-settings'
 import GlobeSettingsPanel from './globe-settings-panel'
 import type { GlobeCanvasProps } from './types'
 import { DASH_PERIOD_CSS_PX } from './webgl/border-dash'
-import { type BorderPoint, buildBorderStrokePoints, decodeBorderPoints } from './webgl/border-points'
+import {
+  type BorderPoint,
+  buildBorderStrokePoints,
+  decodeBorderPoints,
+} from './webgl/border-points'
 import { dotRadiusPx as dotRadius, pickDotRows } from './webgl/dot-layout'
 import { anglesFor, createGlobeRenderer, rotate, rotation, toVector } from './webgl/globe-renderer'
 import { buildArcPoints, buildMarkerPoints, markerVector } from './webgl/overlay-points'

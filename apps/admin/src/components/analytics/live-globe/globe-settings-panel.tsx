@@ -4,21 +4,16 @@ import { Settings as GearIcon } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@commerce/ui/shadcn/select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import type { ReactNode } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
 import { globeSettingsContent as copy } from '@/data/live-globe'
 import type {
   GlobeLayerSettings,
   GlobeLookSettings,
   GlobeMotionSettings,
   GlobeSettings,
+  GlobeThemePreset,
 } from './globe-settings'
 
 type GlobeSettingsPanelProps = {
@@ -34,10 +29,13 @@ const STYLES = ['solid', 'dotted'] as const
 const THEMES = ['accent', 'night', 'ocean', 'mono'] as const
 const TIME_RANGES = ['1h', '24h', '7d'] as const
 
-/** A `Select`'s `items` map is only used for its labels; the value/label pairs below already
- * carry those, so this just satisfies the prop without repeating them. */
-function asItems<T extends string>(labels: Record<T, string>): Record<T, string> {
-  return labels
+/** Small preview swatches for each theme preset's chip (its land colour is enough to tell them
+ * apart at a glance; "Store accent" shows the ring/pill instead, since its colour depends on
+ * the merchant's own token). */
+const THEME_SWATCH: Record<Exclude<GlobeThemePreset, 'accent'>, string> = {
+  night: '#293548',
+  ocean: '#3a6b66',
+  mono: '#808080',
 }
 
 /**
@@ -68,7 +66,7 @@ export default function GlobeSettingsPanel({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-7"
+            className="size-8"
             aria-label={copy.openSettings}
           >
             <GearIcon className="size-4" />
@@ -77,7 +75,8 @@ export default function GlobeSettingsPanel({
       />
       <PopoverContent
         align="end"
-        className="max-h-[min(32rem,80svh)] w-[19rem] space-y-4 overflow-y-auto"
+        sideOffset={8}
+        className="flex max-h-[min(30rem,75svh)] w-80 flex-col gap-4 overflow-y-auto p-3"
       >
         <div>
           <p className="text-body font-medium text-popover-foreground">{copy.title}</p>
@@ -104,41 +103,21 @@ export default function GlobeSettingsPanel({
               aria-label={copy.motion.autoRotate}
             />
           </Row>
-          <Row label={copy.motion.speed}>
-            <Select
-              items={asItems(copy.motion.speeds)}
+          <Row label={copy.motion.speed} stack>
+            <PillTabs
+              variant="segmented"
+              tabs={MOTION_SPEEDS.map((s) => ({ value: s, label: copy.motion.speeds[s] }))}
               value={settings.motion.speed}
-              onValueChange={(v) => v && setMotion('speed', v as (typeof MOTION_SPEEDS)[number])}
-            >
-              <SelectTrigger size="sm" className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MOTION_SPEEDS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {copy.motion.speeds[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => v && setMotion('speed', v)}
+            />
           </Row>
-          <Row label={copy.motion.startView}>
-            <Select
-              items={asItems(copy.motion.startViews)}
+          <Row label={copy.motion.startView} stack>
+            <PillTabs
+              variant="segmented"
+              tabs={START_VIEWS.map((s) => ({ value: s, label: copy.motion.startViews[s] }))}
               value={settings.motion.startView}
-              onValueChange={(v) => v && setMotion('startView', v as (typeof START_VIEWS)[number])}
-            >
-              <SelectTrigger size="sm" className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {START_VIEWS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {copy.motion.startViews[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => v && setMotion('startView', v)}
+            />
           </Row>
           <Row label={copy.motion.rememberZoom}>
             <Switch
@@ -150,60 +129,36 @@ export default function GlobeSettingsPanel({
         </Section>
 
         <Section heading={copy.look.heading}>
-          <Row label={copy.look.style}>
-            <Select
-              items={asItems(copy.look.styles)}
+          <Row label={copy.look.style} stack>
+            <PillTabs
+              variant="segmented"
+              tabs={STYLES.map((s) => ({ value: s, label: copy.look.styles[s] }))}
               value={settings.look.style}
-              onValueChange={(v) => v && setLook('style', v as (typeof STYLES)[number])}
-            >
-              <SelectTrigger size="sm" className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STYLES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {copy.look.styles[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => v && setLook('style', v)}
+            />
           </Row>
-          <Row label={copy.look.theme}>
-            <Select
-              items={asItems(copy.look.themes)}
-              value={settings.look.theme}
-              onValueChange={(v) => v && setLook('theme', v as (typeof THEMES)[number])}
-            >
-              <SelectTrigger size="sm" className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {THEMES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {copy.look.themes[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Row>
-          <Row label={copy.look.borderStyle}>
-            <Select
-              items={asItems(copy.look.borderStyles)}
+          <Row label={copy.look.borderStyle} stack>
+            <PillTabs
+              variant="segmented"
+              tabs={STYLES.map((s) => ({ value: s, label: copy.look.borderStyles[s] }))}
               value={settings.look.borderStyle}
-              onValueChange={(v) => v && setLook('borderStyle', v as (typeof STYLES)[number])}
-            >
-              <SelectTrigger size="sm" className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STYLES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {copy.look.borderStyles[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => v && setLook('borderStyle', v)}
+            />
           </Row>
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-caption text-muted-foreground">{copy.look.theme}</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {THEMES.map((t) => (
+                <ThemeChip
+                  key={t}
+                  theme={t}
+                  active={settings.look.theme === t}
+                  label={copy.look.themes[t]}
+                  onClick={() => setLook('theme', t)}
+                />
+              ))}
+            </div>
+          </div>
           <ColorRow
             label={copy.look.customLand}
             value={settings.look.customLand}
@@ -225,23 +180,13 @@ export default function GlobeSettingsPanel({
         </Section>
 
         <Section heading={copy.data.heading}>
-          <Row label={copy.data.timeRange}>
-            <Select
-              items={asItems(copy.data.timeRanges)}
+          <Row label={copy.data.timeRange} stack>
+            <PillTabs
+              variant="segmented"
+              tabs={TIME_RANGES.map((r) => ({ value: r, label: copy.data.timeRanges[r] }))}
               value={settings.data.timeRange}
-              onValueChange={(v) => v && setData({ timeRange: v as (typeof TIME_RANGES)[number] })}
-            >
-              <SelectTrigger size="sm" className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIME_RANGES.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {copy.data.timeRanges[r]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(v) => v && setData({ timeRange: v })}
+            />
           </Row>
           <Row label={copy.data.highlightBigOrders} help={copy.data.highlightBigOrdersHelp}>
             <Switch
@@ -260,7 +205,13 @@ export default function GlobeSettingsPanel({
           <p className="text-caption text-muted-foreground">{copy.data.visitorsUnavailable}</p>
         </Section>
 
-        <Button type="button" variant="outline" className="w-full" onClick={onReset}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-center text-muted-foreground"
+          onClick={onReset}
+        >
           {copy.reset}
         </Button>
       </PopoverContent>
@@ -268,13 +219,23 @@ export default function GlobeSettingsPanel({
   )
 }
 
-type RowProps = { label: string; help?: string; children: ReactNode }
+type RowProps = { label: string; help?: string; stack?: boolean; children: ReactNode }
 
-/** One settings row: a label (and optional help line) with its control on the right. */
-function Row({ label, help, children }: RowProps) {
+/** One settings row: a label (and optional help line) with its control on the right, in a
+ * 32px-tall row — or, when `stack` (a segmented control needs more width than fits beside a
+ * label), the control on its own line below. */
+function Row({ label, help, stack, children }: RowProps) {
+  if (stack) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-caption text-muted-foreground">{label}</Label>
+        {children}
+      </div>
+    )
+  }
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex flex-col">
+    <div className="flex h-8 items-center justify-between gap-3">
+      <div className="flex flex-col justify-center">
         <Label>{label}</Label>
         {help ? <span className="text-caption text-muted-foreground">{help}</span> : null}
       </div>
@@ -285,15 +246,45 @@ function Row({ label, help, children }: RowProps) {
 
 type SectionProps = { heading: string; children: ReactNode }
 
-/** A labelled group of rows. */
+/** A labelled group of rows, its heading the small muted eyebrow style also used on detail
+ * pages' section labels. */
 function Section({ heading, children }: SectionProps) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <p className="text-caption font-medium text-muted-foreground uppercase tracking-wide">
-        {heading}
-      </p>
+    <div className="flex flex-col gap-2.5 border-t border-border pt-3 first:border-t-0 first:pt-0">
+      <p className="text-eyebrow">{heading}</p>
       <div className="flex flex-col gap-2.5">{children}</div>
     </div>
+  )
+}
+
+type ThemeChipProps = {
+  theme: GlobeThemePreset
+  label: string
+  active: boolean
+  onClick: () => void
+}
+
+/** One theme preset as a small round swatch plus its name; "Store accent" shows the accent
+ * token itself (via the ring utility class), the rest a fixed preview colour. */
+function ThemeChip({ theme, label, active, onClick }: ThemeChipProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-caption transition-colors ${
+        active
+          ? 'border-ring bg-secondary text-ink-strong'
+          : 'border-border text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`size-3 rounded-full ${theme === 'accent' ? 'bg-primary' : ''}`}
+        style={theme === 'accent' ? undefined : { backgroundColor: THEME_SWATCH[theme] }}
+      />
+      {label}
+    </button>
   )
 }
 
@@ -304,8 +295,8 @@ type ColorRowProps = {
   onChange: (hex: string | null) => void
 }
 
-/** A colour picker row that also offers "use theme colour" (clears the override) once one is
- * picked. */
+/** A colour picker row: a round swatch (the native colour input, styled circular) plus "use
+ * theme colour" once an override is picked. */
 function ColorRow({ label, value, fallback, onChange }: ColorRowProps) {
   return (
     <Row label={label}>
@@ -313,7 +304,7 @@ function ColorRow({ label, value, fallback, onChange }: ColorRowProps) {
         {value ? (
           <button
             type="button"
-            className="text-caption text-muted-foreground underline underline-offset-2"
+            className="text-caption text-muted-foreground underline underline-offset-2 hover:text-foreground"
             onClick={() => onChange(null)}
           >
             {copy.look.useTheme}
@@ -324,7 +315,7 @@ function ColorRow({ label, value, fallback, onChange }: ColorRowProps) {
           aria-label={label}
           value={value ?? fallback}
           onChange={(e) => onChange(e.target.value)}
-          className="size-7 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
+          className="size-6 cursor-pointer rounded-full border border-border bg-transparent p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:rounded-full [&::-webkit-color-swatch-wrapper]:p-0"
         />
       </div>
     </Row>
