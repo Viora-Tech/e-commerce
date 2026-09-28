@@ -149,6 +149,10 @@ export const notificationsSettingsContent = {
       name: 'Sign-in code',
       when: 'When a customer signs in to their account on your shop.',
     },
+    login_link: {
+      name: 'Sign-in link',
+      when: 'When a customer asks for a sign-in link instead of a code.',
+    },
     gift_card_issued: {
       name: 'Gift card',
       when: 'When a gift card is bought or you send one. Carries the code.',

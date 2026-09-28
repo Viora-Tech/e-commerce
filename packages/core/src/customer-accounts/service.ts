@@ -8,7 +8,10 @@ import {
   type CustomerAccountSettings,
   CustomerAccountSettingsSchema,
   type LoginMethod,
+  type LoginProvider,
+  type ProviderReadiness,
   parseCustomerAccountSettings,
+  providersNeedingSetup,
   unavailableLoginMethods,
 } from './client'
 
@@ -79,19 +82,30 @@ export class LoginMethodUnavailable extends Error {
   }
 }
 
+export class LoginProviderNeedsSetup extends Error {
+  constructor(readonly providers: LoginProvider[]) {
+    super(`These sign-in options need their app set up first: ${providers.join(', ')}`)
+    this.name = 'LoginProviderNeedsSetup'
+  }
+}
+
 /**
  * Save the settings. A method the store cannot deliver is refused, so a
- * merchant cannot promise shoppers an SMS code with no SMS app. Other
- * preferences are left alone.
+ * merchant cannot promise shoppers an SMS code with no SMS app; so is a
+ * provider switched on whose app (the platform's or their own) is not set up,
+ * when `readiness` is given. Other preferences are left alone.
  */
 export async function saveCustomerAccountSettings(
   ctx: StoreContext,
   input: unknown,
   available: readonly LoginMethod[],
+  readiness?: ProviderReadiness,
 ): Promise<CustomerAccountSettings> {
   const customerAccounts = CustomerAccountSettingsSchema.parse(input)
   const missing = unavailableLoginMethods(customerAccounts, available)
   if (missing.length > 0) throw new LoginMethodUnavailable(missing)
+  const needSetup = readiness ? providersNeedingSetup(customerAccounts, readiness) : []
+  if (needSetup.length > 0) throw new LoginProviderNeedsSetup(needSetup)
   await ctx.tx
     .update(store)
     .set({

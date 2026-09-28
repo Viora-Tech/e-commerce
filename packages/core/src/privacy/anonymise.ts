@@ -4,8 +4,11 @@ import {
   cart,
   customer,
   customerAddress,
+  customerIdentity,
   customerLoginCode,
+  customerLoginTicket,
   customerOtp,
+  customerPasskey,
   customerSession,
   dataRequest,
   discountUsage,
@@ -84,6 +87,11 @@ export async function anonymiseCustomer(
     .where(eq(customerSession.customerId, id))
     .returning({ id: customerSession.id })
   await tx.delete(customerOtp).where(eq(customerOtp.customerId, id))
+  // Every way back in goes too: provider links, passkeys and login tickets in flight.
+  await tx.delete(customerIdentity).where(eq(customerIdentity.customerId, id))
+  await tx.delete(customerPasskey).where(eq(customerPasskey.customerId, id))
+  await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.customerId, id))
+  if (cu.email) await tx.delete(customerLoginTicket).where(eq(customerLoginTicket.email, cu.email))
   if (cu.email) await tx.delete(customerLoginCode).where(eq(customerLoginCode.email, cu.email))
 
   // Address book: nothing legal hangs on it.

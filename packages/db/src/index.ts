@@ -20,4 +20,5 @@ export {
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'
 export * from './schema'
+export * from './shopper-login-schema'
 export { type StoreTx, withoutStore, withStore } from './with-store'

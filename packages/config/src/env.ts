@@ -80,6 +80,25 @@ const schema = z.object({
   MERCHANT_SIGNUP_MODE: z.enum(['invite', 'open']).default('invite'),
   /** `<slug>.<PLATFORM_STORE_DOMAIN>` becomes a new store's primary domain. */
   PLATFORM_STORE_DOMAIN: z.string().min(1).default('waimers.store'),
+  /**
+   * The one platform login domain every store's "Continue with Google / Apple / Facebook"
+   * goes through (the storefront app answers it). Default `https://accounts.<PLATFORM_STORE_DOMAIN>`.
+   * Provider redirect URIs are `<ACCOUNTS_URL>/oauth/<provider>/callback`.
+   */
+  ACCOUNTS_URL: z.string().url().optional(),
+  /** The platform's own shopper sign-in apps. Unset: merchants can still add their own. */
+  SHOPPER_GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  SHOPPER_GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  /** Apple Services ID, team, key id and the .p8 private key (PEM, `\n` escapes allowed). */
+  SHOPPER_APPLE_SERVICES_ID: z.string().min(1).optional(),
+  SHOPPER_APPLE_TEAM_ID: z.string().min(1).optional(),
+  SHOPPER_APPLE_KEY_ID: z.string().min(1).optional(),
+  SHOPPER_APPLE_PRIVATE_KEY: z.string().min(1).optional(),
+  SHOPPER_FACEBOOK_APP_ID: z.string().min(1).optional(),
+  SHOPPER_FACEBOOK_APP_SECRET: z.string().min(1).optional(),
+  /** Truecaller partner key and app name from the Truecaller developer portal (web SDK). */
+  SHOPPER_TRUECALLER_PARTNER_KEY: z.string().min(1).optional(),
+  SHOPPER_TRUECALLER_PARTNER_NAME: z.string().min(1).optional(),
   /** GlitchTip (or Sentry) DSN. Error tracking is entirely off, in every app, unless this is set. */
   SENTRY_DSN: z.string().url().optional(),
   /** Free-text environment tag on every event, e.g. production, staging. Defaults by NODE_ENV. */

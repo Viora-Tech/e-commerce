@@ -51,6 +51,8 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
     case 'login_code':
     case 'account_deletion_code':
       return [d.code ?? '-', d.storeName]
+    case 'login_link':
+      return [d.storeName, d.actionUrl ?? '-']
     case 'gift_card_issued':
       return [d.customerName, d.storeName, d.giftCard?.balanceLabel ?? '-', d.giftCard?.code ?? '-']
     case 'balance_request':

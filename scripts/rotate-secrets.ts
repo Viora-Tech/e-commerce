@@ -13,6 +13,7 @@ import { loadEnv } from '@commerce/config'
  *
  * Covers every `encryptSecret`/`decryptSecret` usage in the codebase:
  *   - store.payments / .notifications / .shipping / .storage (provider config)
+ *   - store.login_providers (merchants' own shopper sign-in apps)
  *   - gift_card.code_cipher
  *   - shopify_import_connection.access_token
  *
@@ -99,12 +100,19 @@ async function main() {
           notifications: store.notifications,
           shipping: store.shipping,
           storage: store.storage,
+          loginProviders: store.loginProviders,
         })
         .from(store)
         .where(eq(store.id, s.id))
       if (row) {
         const updates: Record<string, unknown> = {}
-        for (const col of ['payments', 'notifications', 'shipping', 'storage'] as const) {
+        for (const col of [
+          'payments',
+          'notifications',
+          'shipping',
+          'storage',
+          'loginProviders',
+        ] as const) {
           const result = rotateProviderSettings(row[col], keyring)
           if (result.changed) {
             updates[col] = result.next

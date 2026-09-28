@@ -13,6 +13,7 @@ export default {
   performance: 'Storefront performance',
   'admin-languages': 'Admin languages (Hindi)',
   'customer-privacy': 'Customer privacy and accounts',
+  'shopper-login': 'Shopper login options',
   security: 'Security',
   conventions: 'Conventions',
   guardrails: 'Guardrails and sweeps',

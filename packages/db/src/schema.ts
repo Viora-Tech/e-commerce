@@ -50,6 +50,11 @@ export const store = pgTable('store', {
   shipping: jsonb('shipping'),
   /** Enabled storage provider and its (encrypted) credentials; see core media settings. */
   storage: jsonb('storage'),
+  /**
+   * The merchant's own Google / Apple / Facebook / Truecaller sign-in app credentials, when
+   * they do not use the platform's. Secret fields encrypted. See @commerce/core shopper-login.
+   */
+  loginProviders: jsonb('login_providers'),
   /** Installed plugins: { installed: string[] }. Validated by @commerce/core AppsSettingsSchema. */
   apps: jsonb('apps'),
   /** Store details shown to shoppers and on invoices. Validated by @commerce/core StoreGeneralSchema. */

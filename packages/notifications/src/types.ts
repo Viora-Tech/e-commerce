@@ -26,6 +26,8 @@ export type TemplateId =
   | 'login_code'
   /** Confirms a shopper's own account deletion. Sent straight away, like `login_code`. Email only; phone channels send `login_code`. */
   | 'account_deletion_code'
+  /** A one-time sign-in link (magic link) for a storefront shopper. Email only, sent straight away. */
+  | 'login_link'
   /** A gift card was issued (bought or sent by the merchant); carries the code. Email only. */
   | 'gift_card_issued'
   /** A deposit pre-order's balance is due; carries the pay-balance link. */

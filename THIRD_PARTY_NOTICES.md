@@ -34,6 +34,15 @@ The theme editor's Custom HTML element is sanitised by
 htmlparser2, postcss, deepmerge, escape-string-regexp, is-plain-object, parse-srcset and launder
 are MIT too), licence verified on npm and its GitHub `LICENSE` on 2026-09-27. Layout blocks use
 Puck's slots (MIT, already our editor); no code is copied.
+Shopper sign-in (`packages/core/src/shopper-login/`) uses, without copying code,
+[Better Auth](https://github.com/better-auth/better-auth) 1.7.6 (MIT, already our merchant
+auth) for its Google, Apple and Facebook provider modules and `verifyGoogleIdToken`,
+[SimpleWebAuthn](https://github.com/MasterKale/SimpleWebAuthn) (`@simplewebauthn/server`
+13.3.3 and `@simplewebauthn/browser` 13.3.0, MIT) for passkeys, and
+[jose](https://github.com/panva/jose) 6.2.12 (MIT) to sign Apple's client secret; licences read
+from each package's `package.json` in `node_modules` on 2026-09-28 (the docs hosts were blocked
+from the build machine). Google Identity Services (One Tap) is Google's hosted script, loaded
+from `accounts.google.com`, never copied.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

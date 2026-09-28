@@ -14,6 +14,8 @@ type PhoneLoginFormProps = {
   note: string
   /** A link to switch to email, when the store offers it too. */
   alternative?: ReactNode
+  /** "Remember this device", when the store offers the choice. */
+  remember?: boolean
 }
 
 const copy = accountContent.login
@@ -24,6 +26,7 @@ export default function PhoneLoginForm({
   methods,
   note,
   alternative,
+  remember = true,
 }: PhoneLoginFormProps) {
   // Hooks
   const [pending, start] = useTransition()
@@ -58,7 +61,7 @@ export default function PhoneLoginForm({
     if (!sentTo) return
     setError(null)
     start(async () => {
-      const r = await verifyPhoneCodeAction(sentTo, code, returnTo)
+      const r = await verifyPhoneCodeAction(sentTo, code, returnTo, remember)
       if (r?.error) setError(r.error)
     })
   }

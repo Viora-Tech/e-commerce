@@ -16,14 +16,22 @@ export async function readCustomerToken(): Promise<string | null> {
   return (await cookies()).get(CUSTOMER_COOKIE)?.value ?? null
 }
 
-export async function writeCustomerToken(token: string, expiresAt: Date): Promise<void> {
+/**
+ * `persistent: false` ("Remember this device" unticked) writes a session cookie the
+ * browser drops when it closes; the server-side session still expires on its own.
+ */
+export async function writeCustomerToken(
+  token: string,
+  expiresAt: Date,
+  persistent = true,
+): Promise<void> {
   const proto = (await headers()).get('x-forwarded-proto')
   ;(await cookies()).set(CUSTOMER_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: proto === 'https',
     path: '/',
-    expires: expiresAt,
+    ...(persistent ? { expires: expiresAt } : {}),
   })
 }
 

@@ -4,10 +4,18 @@ import { THEME_PREVIEW_PARAM } from '@commerce/core/theme'
 import { type HostRoute, resolveHost } from '@commerce/db'
 import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
+import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
 import { db } from './lib/db'
 import { redirectFor } from './lib/redirects'
-import { DERIVED_HEADERS, PASSWORD_PREFIX, primaryRedirect, routeForStore } from './lib/routing'
+import {
+  DERIVED_HEADERS,
+  PASSWORD_PREFIX,
+  primaryRedirect,
+  routeForAccounts,
+  routeForStore,
+} from './lib/routing'
+
 import { createStoreResolver, hostnameFromHeader } from './lib/store-resolver'
 import {
   ACCESS_COOKIE,
@@ -32,6 +40,17 @@ function visitorCountry(request: NextRequest): string | null {
 export async function proxy(request: NextRequest) {
   const host = request.headers.get('host')
   const hostname = hostnameFromHeader(host)
+  // The platform login domain (ACCOUNTS_URL) is no store: it serves provider sign-in only.
+  if (hostname && hostname === accountsHostname()) {
+    const route = routeForAccounts(request.nextUrl.pathname)
+    if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
+    const headers = new Headers(request.headers)
+    for (const h of DERIVED_HEADERS) headers.delete(h)
+    if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
+    const url = request.nextUrl.clone()
+    url.pathname = route.path
+    return NextResponse.rewrite(url, { request: { headers } })
+  }
   const hostRoute = hostname ? await resolve(hostname) : null
   if (!hostname || !hostRoute) {
     return new NextResponse(`No store is configured for ${hostname ?? 'this host'}.`, {

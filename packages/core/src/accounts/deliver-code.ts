@@ -47,3 +47,39 @@ export async function deliverLoginCode(
   }
   return sent
 }
+
+/**
+ * Send a one-time sign-in link (magic link) through the store's email channels,
+ * straight away like the code. Returns how many channels accepted it.
+ */
+export async function deliverLoginLink(
+  ctx: StoreContext,
+  input: { email: string; url: string },
+  opts: DeliverCodeOptions,
+): Promise<number> {
+  const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
+  const channels =
+    opts.channels ??
+    (await storeNotificationChannels(ctx.tx, ctx.storeId, {
+      registry: opts.registry,
+      settingsSecret: opts.settingsSecret,
+    }))
+  let sent = 0
+  for (const channel of channels) {
+    if (channel.requires !== 'email') continue
+    const r = await channel.send({
+      to: { email: input.email },
+      template: 'login_link',
+      data: {
+        storeName: s?.name ?? '',
+        customerName: '',
+        totalLabel: '',
+        lines: [],
+        paymentMethodLabel: '',
+        actionUrl: input.url,
+      },
+    })
+    if (r.ok) sent += 1
+  }
+  return sent
+}

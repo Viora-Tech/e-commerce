@@ -85,6 +85,8 @@ export async function verifyLoginCode(
   rawEmail: unknown,
   rawCode: unknown,
   now: Date = new Date(),
+  /** Session length; see `sessionLifetime` ("Remember this device"). */
+  ttlMs: number = CUSTOMER_SESSION_TTL_MS,
 ): Promise<VerifyCodeResult> {
   const email = normaliseLoginEmail(rawEmail)
   const code = typeof rawCode === 'string' ? rawCode.replace(/\s/g, '') : ''
@@ -116,20 +118,22 @@ export async function verifyLoginCode(
       set: { updatedAt: now },
     })
     .returning({ id: customer.id })
-  return startCustomerSession(ctx, cu?.id as string, now)
+  return startCustomerSession(ctx, cu?.id as string, now, ttlMs)
 }
 
 /**
- * Mint a session for a customer who just proved who they are (email or phone
- * code). Only the token's hash is stored; the token goes in the cookie.
+ * Mint a session for a customer who just proved who they are (a code, a magic
+ * link, a passkey or a provider sign-in). Only the token's hash is stored; the
+ * token goes in the cookie.
  */
 export async function startCustomerSession(
   ctx: StoreContext,
   customerId: string,
   now: Date = new Date(),
+  ttlMs: number = CUSTOMER_SESSION_TTL_MS,
 ): Promise<{ ok: true; token: string; customerId: string; expiresAt: Date }> {
   const token = randomBytes(32).toString('base64url')
-  const expiresAt = new Date(now.getTime() + CUSTOMER_SESSION_TTL_MS)
+  const expiresAt = new Date(now.getTime() + ttlMs)
   await ctx.tx.insert(customerSession).values({
     storeId: ctx.storeId,
     customerId,

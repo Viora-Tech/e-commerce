@@ -321,6 +321,15 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
       'The code works once and expires in 10 minutes. If you did not ask for this, ignore this email and your account stays as it is.',
     whatsapp: (d) => `${d.code} is your ${d.storeName} code. It expires in 10 minutes.`,
   },
+  login_link: {
+    subject: (d) => `Your ${d.storeName} sign-in link`,
+    heading: () => 'Sign in with one tap',
+    intro: (d) => `Tap the button to sign in to your ${d.storeName} account.`,
+    outro: () =>
+      'The link works once and expires in 15 minutes. If you did not ask for it, ignore this email.',
+    whatsapp: (d) =>
+      `Sign in to ${d.storeName}: ${d.actionUrl ?? ''} (works once, expires in 15 minutes).`,
+  },
   gift_card_issued: {
     subject: (d) => `${d.storeName}: your ${d.giftCard?.balanceLabel ?? ''} gift card`,
     heading: (d) => `Hi ${d.customerName}, here is your gift card`,
