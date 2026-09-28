@@ -3,7 +3,7 @@ export const emiHintContent = {
   /** Below this the hint is noise; Razorpay lists no minimum for Snapmint, lenders start around ₹1,000. */
   minPricePaise: 100000,
   label: (monthly: string) => `EMI from ${monthly}/month`,
-  detail: 'Cardless EMI with Snapmint or card EMI at checkout.',
+  detail: 'Card EMI, cardless EMI or pay later at checkout.',
 } as const
 
 /** Copy for the product-page delivery estimate widget. */

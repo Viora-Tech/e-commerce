@@ -52,7 +52,23 @@ under **Shoppers can pay with** are offered. Cashfree then tells your store the 
 and checked before we trust it), and the order is marked **Paid**. If that update is late, we
 also ask Cashfree directly.
 
-Refunds you start from an order go back through Cashfree.
+Refunds you start from an order go back through Cashfree, and the order shows the refund as
+soon as Cashfree confirms it.
+
+## Pay in parts (EMI and pay later)
+
+Turn on **EMI** under **Shoppers can pay with** on **Settings → Payments**. Cashfree's window
+then offers card EMI, cardless EMI and pay later, where your Cashfree account has them. To show
+"or ₹X/month" under your product prices, add the [EMI & pay later](/merchant-guide/money/emi-pay-later)
+app and pick **Cashfree**.
+
+## Try it before going live
+
+1. In Cashfree, switch the dashboard to **Test** and copy the Test App ID and Secret Key.
+2. On the Connect page pick **Test**, paste both, press **Test connection**, then save.
+3. Place an order on your shop and pay with Cashfree's test UPI id or test card (Cashfree lists
+   them in its dashboard). Nothing real is charged.
+4. When you're ready, come back, pick **Live** and paste your Live keys.
 
 ## Common problems and fixes
 
@@ -60,8 +76,9 @@ Refunds you start from an order go back through Cashfree.
 | --- | --- | --- |
 | "Cashfree didn't accept these keys" | Wrong key, or Test keys with Live picked (or the other way). | Copy both again from the same mode and pick the matching Test/Live. |
 | Cashfree window says the phone number is invalid | Cashfree needs a 10-digit phone number for every order. | The shopper enters a 10-digit mobile number at checkout. |
+| EMI isn't offered in the Cashfree window | EMI is off under **Shoppers can pay with**, or not active on your Cashfree account. | Turn EMI on in Settings → Payments, and ask Cashfree to enable EMI and pay later. |
 | Paid order still **Unpaid** on a local test shop | Cashfree can't reach a shop running on your own computer. | Open the order; we ask Cashfree for the status when the shopper returns. On a live shop this is automatic. |
 
 ## Related guides
 
-<RelatedGuides ids={['payments', 'orders', 'security']} />
+<RelatedGuides ids={['payments', 'emi-pay-later', 'orders', 'security']} />
