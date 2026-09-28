@@ -4,4 +4,5 @@ export default {
   'sender-email': 'Send emails from your own address',
   shipping: 'Shipping',
   language: 'Admin language (हिंदी)',
+  taxes: 'Taxes & GST',
 }

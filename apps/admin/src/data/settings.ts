@@ -7,6 +7,7 @@ import {
   Home,
   Images,
   Palette,
+  ReceiptIcon,
   Store,
   Truck,
   Undo,
@@ -48,6 +49,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Shipping',
     body: 'Couriers, shipping rates, delivery estimates and dispatch policy.',
     icon: Truck,
+  },
+  {
+    href: '/settings/taxes',
+    title: 'Taxes & GST',
+    body: 'Your GSTIN, whether prices include GST, default rate and HSN, and invoice numbers.',
+    icon: ReceiptIcon,
   },
   {
     href: '/settings/returns',
@@ -126,7 +133,6 @@ export const settingsContent = {
         email: 'contact email',
         phone: 'phone',
         address: 'business address',
-        gstin: 'GSTIN',
       },
     },
     details: {
@@ -153,15 +159,6 @@ export const settingsContent = {
       state: 'State',
       pincode: 'Pincode',
       country: 'Country',
-    },
-    tax: {
-      heading: 'Taxes / GST',
-      help: 'Only needed if your shop is GST registered. Skip this card if it is not.',
-      gstin: 'GSTIN',
-      gstinHelp: 'Your 15-character GST number. It appears on tax invoices.',
-      gstRate: 'GST in your prices (%)',
-      gstRateHelp:
-        'The GST already included in your prices. Most shops use 18. Used to show CGST, SGST and IGST on invoices.',
     },
     locale: {
       heading: 'Currency and time',
@@ -231,10 +228,10 @@ export const settingsHomeContent = {
         href: '/settings/shipping',
       },
       taxes: {
-        title: 'Taxes / GST',
+        title: 'Taxes & GST',
         todo: 'Add your GSTIN if you are GST registered. Skip this if you are not.',
         done: 'Your GSTIN is on your invoices.',
-        href: '/settings/general#tax',
+        href: '/settings/taxes',
       },
       domain: {
         title: 'Domain',

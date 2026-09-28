@@ -2,6 +2,7 @@ import { loadEnv } from '@commerce/config'
 import { enqueueAppJob, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
+  counterYear,
   DOCUMENT_KINDS,
   DocumentSnapshotSchema,
   financialYear,
@@ -341,7 +342,7 @@ export const gstInvoicesRouter = {
     const fy = financialYear(new Date())
     const out: Record<string, string> = {}
     for (const series of settings.series) {
-      const next = await peekNext(context.tx, series.id, fy.startYear)
+      const next = await peekNext(context.tx, series.id, counterYear(series, fy))
       out[series.id] = formatSeriesNumber(series, fy, next)
     }
     return out

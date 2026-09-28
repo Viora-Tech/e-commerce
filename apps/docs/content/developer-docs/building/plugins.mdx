@@ -388,6 +388,10 @@ no migration: `appSettingsOf(apps, pluginId)` reads its entry and
 `withAppSettings(apps, pluginId, value)` writes it (`@commerce/core`,
 `packages/core/src/apps/settings.ts`). The app validates its own entry with
 zod; install and uninstall keep it, so a reinstall restores the setup.
+The core plugin uses the same slot under the id `core`: Settings › Taxes &
+GST keeps its composition and prices-include-GST switches at
+`store.apps.settings.core.tax` (`parseStoreTax` / `withStoreTax` in
+`@commerce/core/tax-settings`).
 `packages/plugin-emi` (EMI & pay later) is the worked example: a pure
 `./offer` entry (schema, readiness, offer maths) shared by the admin page,
 the API service (`packages/api/src/services/emi.service.ts`) and the

@@ -31,6 +31,7 @@ import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
+import { taxesRouter } from './taxes'
 import { themesRouter } from './themes'
 
 export const appRouter = {
@@ -60,6 +61,7 @@ export const appRouter = {
   giftCards: giftCardsRouter,
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
+  taxes: taxesRouter,
   shopifyImport: shopifyImportRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

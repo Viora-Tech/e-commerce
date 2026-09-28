@@ -1,0 +1,109 @@
+---
+title: Taxes & GST
+description: Add your GSTIN, choose whether prices include GST, set the default rate and HSN code, the composition scheme, and how invoices are numbered.
+---
+
+# Taxes & GST
+
+**Settings → Taxes & GST** is where your GST details live: your **GSTIN**, whether your prices
+include GST, the default rate and HSN code, the composition scheme, and how your invoices are
+numbered. It used to be a card on **Settings → General**; old links to it now open this page.
+
+## What this is for
+
+- Putting your GST number, legal name and registered address on your invoices.
+- Deciding how much GST each order carries when a product has no rate of its own.
+- Numbering your tax invoices the way GST expects: every number used once, in order.
+
+If your business is not registered for GST, leave the GSTIN empty. Nothing else on this page
+is needed.
+
+## How GST works here
+
+The page ends with a short guide. The same points, in brief:
+
+- **Inside your state: CGST + SGST.** When the delivery address is in the same state as your
+  GST registration, the tax is split in half: CGST to the central government, SGST to your
+  state.
+- **Outside your state: IGST.** When it is another state, it is one tax, IGST, at the full rate.
+  The delivery address decides which one; you do not pick it.
+- **Prices including or excluding GST.** Including means the price already has the tax inside
+  it and the customer pays exactly that. Excluding means tax is added on top.
+
+A ₹1,000 item at 18%:
+
+| | Price includes GST | Price excludes GST |
+| --- | --- | --- |
+| Item value | ₹847.46 | ₹1,000 |
+| GST | ₹152.54 | ₹180 |
+| Customer pays | ₹1,000 | ₹1,180 |
+| Same state | CGST ₹76.27 + SGST ₹76.27 | CGST ₹90 + SGST ₹90 |
+| Other state | IGST ₹152.54 | IGST ₹180 |
+
+The example on the page uses your own default rate.
+
+## Settings → Taxes & GST
+
+<Steps>
+
+### GST registration
+
+Type your 15-character **GSTIN**, like `06AAACW1234A1Z5`. The page checks it as you save: a
+typo in any character is caught by the check digit at the end. Once the first two digits are
+in, it shows the state you are registered in, for example "Registered in Haryana".
+
+Add your **Registered legal name** (the name on your GST certificate, which can differ from your
+shop name) and your **Registered address**. Both are printed on invoices.
+
+### How you charge GST
+
+- **I am on the composition scheme**: turn this on only if you chose the composition scheme
+  when you registered. No GST is added to your orders, and your invoices become a "Bill of
+  Supply" with the words "Composition taxable person, not eligible to collect tax on supplies".
+- **My prices include GST**: on by default, the usual way in India. The price you type is what
+  the customer pays and GST is worked out from inside it.
+
+  <Callout type="warning">
+  Adding GST on top of your prices at checkout is not built yet. You can switch this off to
+  record how you price, but for now customers still pay the price you type.
+  </Callout>
+
+- **Default GST rate**: used for any product that has no rate of its own. Since 22 September
+  2025 most goods are 5% or 18%.
+- **Default HSN code**: the goods code printed on invoices for products without their own.
+  4 digits up to ₹5 crore turnover, 6 above.
+
+A different rate or HSN code for one product is set on that product's page in **Products**.
+
+### Invoice numbers
+
+- **Starts with**: letters, numbers, `/` and `-`. Write `{FY}` where you want the year:
+  `INV/{FY}/` gives `INV/26-27/0001`.
+- **Next number**: moving from another system? Start where your old invoices stopped. You can
+  only go up, never back to a number that is already used.
+- **Start again at 1 every April**: on by default. A new financial year starts on 1 April; most
+  shops restart the count then and keep the year in the number.
+
+The line under the fields shows your next invoice number. These are the same numbers the
+**GST invoices** app uses; if the app is not installed yet, the page says so and links to
+**Apps**. Separate numbers for exports, credit notes or business buyers are set in
+**Apps → GST invoices → Settings**.
+
+### E-invoicing (IRN)
+
+Not built yet. Businesses above ₹5 crore turnover must get an IRN and QR code from the
+government portal for B2B invoices; for now, do that on the e-invoice portal yourself.
+
+### Save
+
+Select **Save** in the bar at the top. You will see "Tax settings saved".
+
+</Steps>
+
+## Common questions
+
+**I changed the legal name here and it changed in the GST invoices app too. Is that right?**
+Yes. Both screens edit the same details, so your invoices always match.
+
+**Does changing the default rate change old orders?** No. Each order keeps the tax it was
+placed with. The new rate applies to orders placed after you save.

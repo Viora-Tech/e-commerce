@@ -1,3 +1,4 @@
+import { COMPOSITION_NOTE } from '@commerce/core/tax-settings'
 import { formatRate } from '../money'
 import type { DocumentConfig, DocumentFields, InvoiceSettings, LabelKey } from '../settings'
 import type { DocumentKind, DocumentSnapshot } from '../snapshot'
@@ -62,7 +63,7 @@ export type TemplateView = {
   config: DocumentConfig
   /** Printed under the heading: invoice number, dates, order. */
   meta: { label: string; value: string }[]
-  /** Rule 46 export endorsement, printed under the title. */
+  /** Rule 46 export endorsement, or the composition note, printed under the title. */
   endorsement: string | null
 }
 
@@ -118,7 +119,10 @@ export function templateView({ doc, settings }: TemplateProps): TemplateView {
       : []),
   ]
   return {
-    title: labels.title || TITLES[doc.kind],
+    // Rule 49: a composition dealer issues a bill of supply, not a tax invoice.
+    title:
+      labels.title ||
+      (doc.composition && doc.kind === 'tax_invoice' ? 'Bill of Supply' : TITLES[doc.kind]),
     label,
     fields: config.fields,
     prices,
@@ -130,7 +134,7 @@ export function templateView({ doc, settings }: TemplateProps): TemplateView {
     lines: doc.kind === 'packing_slip' ? doc.lines.filter((l) => !l.charge) : doc.lines,
     config,
     meta,
-    endorsement: doc.exportSupply?.endorsement ?? null,
+    endorsement: doc.exportSupply?.endorsement ?? (doc.composition ? COMPOSITION_NOTE : null),
   }
 }
 
