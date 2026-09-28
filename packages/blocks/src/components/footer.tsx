@@ -6,11 +6,17 @@ export default function Footer({
   storeName,
   tagline,
   columns,
+  policies = [],
+  grievance = null,
   themeToggle = null,
 }: {
   storeName: string
   tagline: string
   columns: { id: string; heading: string; links: { id: string; label: string; href: string }[] }[]
+  /** The store's published policies (Settings → Policies), in order; none renders no list. */
+  policies?: { label: string; href: string }[]
+  /** One line naming the grievance officer and how to reach them, when the store has one. */
+  grievance?: string | null
   /** The visitor's mode when the theme puts the light / dark toggle in the footer. */
   themeToggle?: ThemeMode | null
 }) {
@@ -42,23 +48,18 @@ export default function Footer({
         ))}
       </div>
       <div className="footer__bottom page-width">
-        <ul className="footer__policies">
-          <li>
-            <a href="/policies/privacy" className="footer__policy-link">
-              Privacy
-            </a>
-          </li>
-          <li>
-            <a href="/policies/returns" className="footer__policy-link">
-              Returns
-            </a>
-          </li>
-          <li>
-            <a href="/policies/shipping" className="footer__policy-link">
-              Shipping
-            </a>
-          </li>
-        </ul>
+        {policies.length > 0 ? (
+          <ul className="footer__policies">
+            {policies.map((p) => (
+              <li key={p.href}>
+                <a href={p.href} className="footer__policy-link">
+                  {p.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {grievance ? <p className="footer__grievance text-caption">{grievance}</p> : null}
         {themeToggle ? (
           <ThemeToggle
             initial={themeToggle}

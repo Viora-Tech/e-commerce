@@ -1,0 +1,76 @@
+---
+title: Checkout
+description: Choose what shoppers fill in at checkout, set a minimum order value, let business buyers add a GSTIN, and limit cash on delivery.
+---
+
+# Checkout
+
+**Settings → Checkout** decides what shoppers fill in when they order and when cash on
+delivery is offered. Every rule is checked again on our side when the order is placed, so a
+shopper cannot get around it.
+
+## What this is for
+
+- Faster checkout with the PIN code first: city and state fill in by themselves.
+- GST invoices in a business buyer's name, with their GSTIN on it.
+- Stopping small orders that cost more to ship than they earn.
+- Keeping big or risky orders off cash on delivery.
+
+## The settings
+
+<Steps>
+
+### Contact details
+
+A 10 digit Indian mobile number is always asked for, because couriers call it on delivery.
+Choose whether **Email address** is **Required** or **Optional**. With optional email, shoppers
+without one get updates on WhatsApp or SMS only.
+
+### Address
+
+**Ask for the PIN code first** puts the PIN code at the top of the address. City and state
+then fill in from it, and the shopper can still change them. The page tells you if the PIN
+code lookup data is not installed on your server yet; until it is, shoppers type city and
+state themselves.
+
+### Business buyers
+
+**Let buyers add a GSTIN** shows an optional "Buying for a business?" section with GSTIN and
+business name. A GSTIN with a typo is refused at checkout. The GSTIN and business name show on
+the order and on its GST invoice (GST invoices app), so the buyer can claim input tax credit.
+
+### Order notes
+
+**Let shoppers add a note to their order** adds a note box, for things like "Please call before
+delivery". You see the note on the order page.
+
+### Minimum order value
+
+Checkout will not place an order below this amount, counted after discounts and before
+shipping. Shoppers see how much more to add. Leave it at 0 for no minimum. Gift card orders are
+not counted.
+
+### Cash on delivery rules
+
+These show only when cash on delivery is on in **Settings → Payments**.
+
+- **Fee or discount**: the same cash on delivery fee as in **Settings → Payments**. Change it in
+  either place. A shipping rate can still set its own.
+- **Largest order for cash on delivery**: bigger orders, counted with shipping, must be paid
+  online. Leave it at 0 for no limit.
+- **PIN codes without cash on delivery**: paste PIN codes, one per line or separated by commas,
+  or upload a CSV file. Anything that is not a PIN code is left out and listed. Up to 5,000.
+- **Confirm cash on delivery orders on WhatsApp**: saves your choice for a WhatsApp
+  confirmation step that is coming soon. It does nothing yet.
+
+</Steps>
+
+## What shoppers see
+
+| Your setting | At checkout |
+| --- | --- |
+| PIN code first | The PIN code field comes first; "New Delhi, Delhi. Change it below if needed." appears under it. |
+| Minimum order ₹500, cart ₹350 | "The minimum order is ₹500. Add ₹150 more to check out." and the button is greyed out. |
+| COD limit ₹5,000, order ₹6,200 | Cash on delivery shows "Available on orders up to ₹5,000" and cannot be picked. |
+| Blocked PIN code | Cash on delivery shows "Not available for this PIN code". |
+| Published policies | "By placing your order, you agree to our …" with a link to each one. |

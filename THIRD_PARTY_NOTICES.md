@@ -40,6 +40,27 @@ Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [GitHub `LICENSE`](https://github.com/shuding/nextra/blob/main/LICENSE); its footer credits
 Nextra too.
 
+### Pending: India PIN code directory (not included yet)
+
+Checkout's "PIN code first" (Settings → Checkout) fills city and state from India Post's
+[All India Pincode Directory](https://www.data.gov.in/catalog/all-india-pincode-directory),
+published on data.gov.in under the Government Open Data Licence - India (GODL-India), which
+allows use and redistribution with attribution. **No data from it is in the repository yet**:
+the session that built the feature could not reach data.gov.in (blocked by its network
+policy), so neither the dataset nor the licence text could be downloaded and verified, and no
+third-party copy was substituted. To add it:
+
+1. Download the CSV from data.gov.in and read the licence shown on the dataset page.
+2. Run `bun scripts/build-pincode-directory.ts <file.csv>`; it writes
+   `packages/shipping/data/pincode-directory.json.gz` (PIN code → district and state).
+3. Replace this section with a table row: Project "All India Pincode Directory (Department of
+   Posts, via data.gov.in)", Licence "GODL-India, with attribution", What we adapted "PIN
+   code → district and state, reduced to one row per PIN code", Where
+   `packages/shipping/data/pincode-directory.json.gz`, and keep the licence text in
+   `packages/shipping/THIRD_PARTY_LICENSES.md`.
+
+Until then checkout works as before: shoppers type city and state.
+
 ## Adding an entry
 
 Before copying or closely adapting code from another project:

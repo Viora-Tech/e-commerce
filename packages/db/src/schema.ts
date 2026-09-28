@@ -808,6 +808,12 @@ export const order = pgTable(
     customerId: uuid('customer_id').references(() => customer.id),
     email: text('email'),
     phone: text('phone'),
+    /** Business buyer's GSTIN from checkout (Settings → Checkout), validated; the GST invoice prints it. */
+    buyerGstin: text('buyer_gstin'),
+    /** Business name typed beside the GSTIN; the GST invoice bills to it. */
+    buyerBusinessName: text('buyer_business_name'),
+    /** The shopper's note from checkout, when the store turned order notes on. */
+    customerNote: text('customer_note'),
     shippingAddressId: uuid('shipping_address_id').references(() => address.id),
     paymentMethod: text('payment_method'),
     /**

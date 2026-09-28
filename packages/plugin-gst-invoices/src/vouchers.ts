@@ -52,7 +52,16 @@ export async function issueReceiptVoucher(
   const again = await existing(tx, orderId, 'receipt_voucher')
   if (again) return { row: again, created: false }
   await assertPeriodOpen(tx, storeId, at)
-  const base = await orderSnapshot(tx, storeId, orderId, 'tax_invoice', null, at, settings, null)
+  const base = await orderSnapshot(
+    tx,
+    storeId,
+    orderId,
+    'tax_invoice',
+    null,
+    at,
+    settings,
+    undefined,
+  )
   const n = await takeNumber(tx, storeId, 'receipt_voucher', at, settings, seriesContextOf(base))
   const doc = buildVoucher({
     base,

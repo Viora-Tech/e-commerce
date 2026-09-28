@@ -120,7 +120,10 @@ export async function findLinkTarget(
   href: string,
 ): Promise<LinkTarget | null> {
   const found = await LOADERS[kind](kind === 'product' || kind === 'article' ? handle : '')
-  return found.find((t) => t.href === href) ?? null
+  // A policy saved before it had its own route is stored as /pages/<handle>.
+  return (
+    found.find((t) => t.href === href || (kind === 'policy' && t.href === pageHref(handle))) ?? null
+  )
 }
 
 /** How many rows each kind shows in the combined (top-level) search. */

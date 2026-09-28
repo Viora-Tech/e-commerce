@@ -102,6 +102,22 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           copyText=""
           editHref={null}
         />
+        {order.buyerGstin ? (
+          <div className="flex flex-col gap-1">
+            <p className="text-eyebrow">{copy.customer.business}</p>
+            {order.buyerBusinessName ? <p>{order.buyerBusinessName}</p> : null}
+            <div className="flex items-center gap-1">
+              <span className="font-mono">{order.buyerGstin}</span>
+              <CopyButton value={order.buyerGstin} what={copy.customer.gstin} />
+            </div>
+          </div>
+        ) : null}
+        {order.customerNote ? (
+          <div className="flex flex-col gap-1">
+            <p className="text-eyebrow">{copy.customer.note}</p>
+            <p className="whitespace-pre-line">{order.customerNote}</p>
+          </div>
+        ) : null}
       </div>
     </DataCard>
   )

@@ -5,4 +5,6 @@ export default {
   shipping: 'Shipping',
   language: 'Admin language (हिंदी)',
   taxes: 'Taxes & GST',
+  checkout: 'Checkout',
+  policies: 'Policies',
 }

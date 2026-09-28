@@ -4,6 +4,7 @@ import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
 import { blogRouter } from './blog'
+import { checkoutSettingsRouter } from './checkout-settings'
 import { collectionsRouter } from './collections'
 import { customersRouter } from './customers'
 import { dashboardRouter } from './dashboard'
@@ -23,6 +24,7 @@ import { onboardingRouter } from './onboarding'
 import { ordersRouter } from './orders'
 import { pagesRouter } from './pages'
 import { paymentsRouter } from './payments'
+import { policiesRouter } from './policies'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
@@ -54,6 +56,8 @@ export const appRouter = {
   shipments: shipmentsRouter,
   shipping: shippingRouter,
   payments: paymentsRouter,
+  checkoutSettings: checkoutSettingsRouter,
+  policies: policiesRouter,
   notifications: notificationsRouter,
   customers: customersRouter,
   discounts: discountsRouter,

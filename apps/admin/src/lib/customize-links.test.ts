@@ -93,6 +93,12 @@ describe('policies', () => {
     expect(isPolicyHandle('about-us')).toBe(false)
     expect(isPolicyHandle('politics-blog')).toBe(false)
     expect(parseHref('/pages/refund-policy')).toEqual({ kind: 'policy', handle: 'refund-policy' })
+    expect(parseHref('/policies/privacy-policy')).toEqual({
+      kind: 'policy',
+      handle: 'privacy-policy',
+    })
+    expect(pageHref('refund-policy')).toBe('/policies/refund-policy')
+    expect(pageHref('cancellation-policy')).toBe('/pages/cancellation-policy')
     expect(linkKindOf('/pages/about')).toBe('page')
     expect(linkKindOf('https://example.com')).toBe('url')
     expect(linkKindOf('')).toBeNull()

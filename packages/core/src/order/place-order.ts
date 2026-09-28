@@ -19,6 +19,11 @@ import {
 } from '@commerce/db'
 import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
 import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import {
+  type CheckoutContact,
+  checkCheckoutRules,
+  parseCheckoutSettings,
+} from '../checkout/settings'
 import type { StoreContext } from '../context'
 import { encryptCustomerPhone, phoneBlindIndex } from '../customers/phone-crypto'
 import { applyDiscount } from '../discounts/evaluate'
@@ -60,10 +65,16 @@ import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/ru
 import { recomputeOrderStatuses } from './recompute'
 
 export type CheckoutDetails = {
+  /** Blank is allowed only when Settings → Checkout makes email optional. */
   email: string
   phone: string
   name: string
   address: { line1: string; line2?: string; city: string; stateCode: string; pincode: string }
+  /** Business buyer's GSTIN; kept only when the store shows the GSTIN field and it validates. */
+  gstin?: string | null | undefined
+  businessName?: string | null | undefined
+  /** Kept only when the store turned order notes on. */
+  note?: string | null | undefined
 }
 
 export type PlaceOrderInput = {
@@ -140,6 +151,8 @@ type State = {
   discount: ResolvedDiscount | null
   /** The rate charged; null when nothing ships or the store has no rates. */
   shipping: ShippingRateOption | null
+  /** Contact fields as Settings → Checkout allows them; null without checkout details. */
+  contact: CheckoutContact | null
   reserved: Line[]
   orderId: string | null
   orderNumber: number | null
@@ -300,6 +313,38 @@ const resolveShipping: WorkflowStep<State> = {
 }
 
 /**
+ * Settings → Checkout, enforced on the server whatever the form showed:
+ * contact fields (email required or optional, a real mobile number, a valid
+ * GSTIN, the note length), the minimum order, and the cash on delivery limits.
+ * Runs before stock is reserved, so a refusal leaves nothing to undo.
+ */
+const enforceCheckoutRules: WorkflowStep<State> = {
+  name: 'enforceCheckoutRules',
+  async run({ ctx, input, lines, discount: applied, shipping }) {
+    const [s] = await ctx.tx
+      .select({ preferences: store.preferences })
+      .from(store)
+      .where(eq(store.id, ctx.storeId))
+    const settings = parseCheckoutSettings(s?.preferences)
+    const { discountedSubtotalPaise, shippingPaise } = applyDiscount(
+      sumPaise(lines),
+      shipping?.pricePaise ?? 0,
+      applied,
+    )
+    return {
+      contact: checkCheckoutRules(settings, {
+        checkout: input.checkout ?? null,
+        paymentProviderId: input.paymentProvider.id,
+        giftCardsOnly: lines.every((l) => l.giftCard),
+        discountedSubtotalPaise,
+        shippingPaise,
+        storeId: ctx.storeId,
+      }),
+    }
+  },
+}
+
+/**
  * The payment fee for this order. Cash on delivery takes the rate's own COD
  * fee when the rate sets one, instead of the store's (Settings → Payments),
  * never both; a rate without one leaves the store's fee in place.
@@ -374,12 +419,12 @@ const reserveStock: WorkflowStep<State> = {
 
 const createOrder: WorkflowStep<State> = {
   name: 'createOrder',
-  async run({ ctx, lines, input, discount: applied, cartAttribution, shipping }) {
+  async run({ ctx, lines, input, discount: applied, cartAttribution, shipping, contact }) {
     let customerId: string | null = null
     let shippingAddressId: string | null = null
     if (input.checkout) {
-      const co = input.checkout
-      const email = co.email.trim().toLowerCase()
+      const co = { ...input.checkout, phone: contact?.phone ?? input.checkout.phone }
+      const email = contact ? (contact.email ?? '') : co.email.trim().toLowerCase()
       const defaultAddress = {
         name: co.name,
         line1: co.address.line1,
@@ -398,27 +443,34 @@ const createOrder: WorkflowStep<State> = {
         ? encryptCustomerPhone(co.phone, input.secret).cipher
         : co.phone
       const customerPhoneIndex = input.secret ? phoneBlindIndex(co.phone, input.secret) : null
-      const [cu] = await ctx.tx
-        .insert(customer)
-        .values({
-          storeId: ctx.storeId,
-          email,
-          phone: customerPhone,
-          phoneIndex: customerPhoneIndex,
-          name: co.name,
-          defaultAddress,
-        })
-        .onConflictDoUpdate({
-          target: [customer.storeId, customer.email],
-          set: {
+      const [cu] = !email
+        ? await upsertCustomerByPhone(ctx, {
             phone: customerPhone,
             phoneIndex: customerPhoneIndex,
             name: co.name,
             defaultAddress,
-            updatedAt: new Date(),
-          },
-        })
-        .returning({ id: customer.id })
+          })
+        : await ctx.tx
+            .insert(customer)
+            .values({
+              storeId: ctx.storeId,
+              email,
+              phone: customerPhone,
+              phoneIndex: customerPhoneIndex,
+              name: co.name,
+              defaultAddress,
+            })
+            .onConflictDoUpdate({
+              target: [customer.storeId, customer.email],
+              set: {
+                phone: customerPhone,
+                phoneIndex: customerPhoneIndex,
+                name: co.name,
+                defaultAddress,
+                updatedAt: new Date(),
+              },
+            })
+            .returning({ id: customer.id })
       const [ad] = await ctx.tx
         .insert(address)
         .values({
@@ -546,8 +598,12 @@ const createOrder: WorkflowStep<State> = {
         totalPaise,
         customerId,
         shippingAddressId,
-        email: input.checkout?.email ?? null,
-        phone: input.checkout?.phone ?? null,
+        // As typed (the customer row is keyed on the lower-cased one); null when optional and blank.
+        email: input.checkout?.email.trim() || null,
+        phone: contact?.phone ?? input.checkout?.phone ?? null,
+        buyerGstin: contact?.gstin ?? null,
+        buyerBusinessName: contact?.businessName ?? null,
+        customerNote: contact?.note ?? null,
         paymentMethod: input.paymentProvider.id,
         attribution: cartAttribution,
         cartId: input.cartId,
@@ -579,7 +635,7 @@ const createOrder: WorkflowStep<State> = {
       })),
     )
     if (applied) {
-      const email = input.checkout?.email.trim().toLowerCase() ?? null
+      const email = (contact ? contact.email : input.checkout?.email.trim().toLowerCase()) || null
       await claimDiscountUse(ctx, applied.discount.id, email)
       await ctx.tx.insert(discountUsage).values({
         storeId: ctx.storeId,
@@ -604,6 +660,43 @@ const createOrder: WorkflowStep<State> = {
     await ctx.tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
     await ctx.tx.delete(order).where(eq(order.id, orderId))
   },
+}
+
+/**
+ * A checkout without an email (Settings → Checkout made it optional) cannot use
+ * the email key, so the shopper is matched on their mobile number: the blind
+ * index when phones are encrypted, the plain number otherwise.
+ */
+async function upsertCustomerByPhone(
+  ctx: StoreContext,
+  values: {
+    phone: string
+    phoneIndex: string | null
+    name: string
+    defaultAddress: typeof customer.$inferInsert.defaultAddress
+  },
+): Promise<{ id: string }[]> {
+  const [found] = await ctx.tx
+    .select({ id: customer.id })
+    .from(customer)
+    .where(
+      values.phoneIndex
+        ? eq(customer.phoneIndex, values.phoneIndex)
+        : and(isNull(customer.phoneIndex), eq(customer.phone, values.phone)),
+    )
+    .orderBy(desc(customer.updatedAt))
+    .limit(1)
+  if (found) {
+    await ctx.tx
+      .update(customer)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(customer.id, found.id))
+    return [found]
+  }
+  return ctx.tx
+    .insert(customer)
+    .values({ storeId: ctx.storeId, email: null, ...values })
+    .returning({ id: customer.id })
 }
 
 /**
@@ -832,6 +925,7 @@ export async function placeOrder(
       cartAttribution: null,
       discount: null,
       shipping: null,
+      contact: null,
       reserved: [],
       orderId: null,
       orderNumber: null,
@@ -847,6 +941,7 @@ export async function placeOrder(
       enforceLaunch,
       resolveDiscount,
       resolveShipping,
+      enforceCheckoutRules,
       reserveStock,
       createOrder,
       redeemCards,
