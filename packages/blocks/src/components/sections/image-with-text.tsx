@@ -1,6 +1,7 @@
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import Picture from '../picture'
 
 type Props = {
@@ -30,7 +31,11 @@ export default function ImageWithText({ image, heading, text, button, imageFirst
         {heading ? <h2 className="h2">{heading}</h2> : null}
         {text ? <p className="text-body">{text}</p> : null}
         {button.label ? (
-          <a className="btn btn--secondary" href={button.href || '/'} {...linkTarget(button)}>
+          <a
+            className="btn btn--secondary"
+            href={safeHref(button.href) ?? '/'}
+            {...linkTarget(button)}
+          >
             {button.label}
           </a>
         ) : null}

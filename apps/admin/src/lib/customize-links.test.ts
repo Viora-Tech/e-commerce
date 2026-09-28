@@ -69,6 +69,7 @@ describe('normalisePastedUrl', () => {
     expect(normalisePastedUrl('')).toBeNull()
     expect(normalisePastedUrl('javascript:alert(1)')).toBeNull()
     expect(normalisePastedUrl('hello')).toBeNull()
+    expect(normalisePastedUrl('/\\evil.com')).toBeNull()
   })
 })
 

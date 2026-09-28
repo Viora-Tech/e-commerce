@@ -67,11 +67,18 @@ export function safeColour(value: unknown): string | null {
   return v.length <= 64 && COLOUR.test(v) ? v : null
 }
 
+/** An own-key table lookup, so a stored `'constructor'` or `'__proto__'` finds nothing. */
+function lookup<T extends string | null>(table: Record<string, T>, key: unknown): T | null {
+  return typeof key === 'string' && Object.hasOwn(table, key) ? (table[key] ?? null) : null
+}
+
+const TEXT_ALIGN = new Set(['left', 'center', 'right', 'justify'])
+
 /** The CSS value a colour choice stands for, or null to inherit. */
 export function colourValue(choice: Partial<ColourChoice> | undefined): string | null {
   if (!choice?.token || choice.token === 'inherit') return null
   if (choice.token === 'custom') return safeColour(choice.custom)
-  return TOKEN_VAR[choice.token] ?? null
+  return lookup(TOKEN_VAR, choice.token)
 }
 
 const FONT_SIZE: Record<Exclude<ElementStyle['typography']['size'], 'inherit'>, string> = {
@@ -147,15 +154,15 @@ export function elementStyle(style: DeepPartial<ElementStyle> | undefined): {
   set('maxWidth', rem(s.size?.maxWidth, 2400))
   set('minHeight', rem(s.size?.minHeight, 2400))
   const size = s.typography?.size
-  if (size && size !== 'inherit') set('fontSize', FONT_SIZE[size] ?? null)
-  const weight = s.typography?.weight
-  if (weight && weight !== 'inherit') css.fontWeight = Number(weight)
+  if (size && size !== 'inherit') set('fontSize', lookup(FONT_SIZE, size))
+  const weight = Number(s.typography?.weight)
+  if (Number.isFinite(weight) && weight >= 100 && weight <= 900) css.fontWeight = weight
   const align = s.typography?.align
-  if (align && align !== 'inherit') css.textAlign = align
+  if (typeof align === 'string' && TEXT_ALIGN.has(align)) css.textAlign = align
   set('color', colourValue(s.colour?.text as Partial<ColourChoice> | undefined))
   set('backgroundColor', colourValue(s.colour?.background as Partial<ColourChoice> | undefined))
-  set('borderRadius', RADIUS[s.corners?.radius ?? 'none'] ?? null)
-  set('boxShadow', SHADOW[s.corners?.shadow ?? 'none'] ?? null)
+  set('borderRadius', lookup(RADIUS, s.corners?.radius))
+  set('boxShadow', lookup(SHADOW, s.corners?.shadow))
   if (css.borderRadius && css.backgroundColor) css.overflow = 'hidden'
   return { className: visibilityClassName(s.visibility), style: css }
 }

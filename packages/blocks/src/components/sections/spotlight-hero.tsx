@@ -6,6 +6,7 @@ import { type PointerEvent, useEffect, useRef, useState } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import { useReducedMotion } from '../../use-reduced-motion'
 
 type SpotlightHeroProps = {
@@ -102,14 +103,18 @@ export default function SpotlightHero({ heading, text, primary, secondary }: Spo
         {text ? <p className="text-body max-w-[36rem] text-[var(--color-muted)]">{text}</p> : null}
         <div className="flex flex-wrap items-center justify-center gap-[0.75rem]">
           {primary?.label ? (
-            <a className="btn btn--primary" href={primary.href || '#'} {...linkTarget(primary)}>
+            <a
+              className="btn btn--primary"
+              href={safeHref(primary.href) ?? '#'}
+              {...linkTarget(primary)}
+            >
               {primary.label}
             </a>
           ) : null}
           {secondary?.label ? (
             <a
               className="btn btn--secondary"
-              href={secondary.href || '#'}
+              href={safeHref(secondary.href) ?? '#'}
               {...linkTarget(secondary)}
             >
               {secondary.label}
