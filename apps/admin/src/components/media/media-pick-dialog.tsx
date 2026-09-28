@@ -15,6 +15,7 @@ import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
 import { readRecentMedia, rememberMedia } from '@/lib/media-recent'
 import { rejectReason } from '@/lib/upload'
+import MediaPickDetails from './media-pick-details'
 import MediaPickDropzone from './media-pick-dropzone'
 import MediaPickGrid from './media-pick-grid'
 import MediaPickRecent from './media-pick-recent'
@@ -198,10 +199,25 @@ export default function MediaPickDialog({
     handleUploadFiles(Array.from(e.target.files ?? []))
     if (e.target) e.target.value = ''
   }
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (fixedItems !== undefined || !Array.from(e.dataTransfer.types).includes('Files')) return
+    e.preventDefault()
+    setDragOver(true)
+  }
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false)
+  }
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    if (fixedItems !== undefined) return
     e.preventDefault()
     setDragOver(false)
     handleUploadFiles(Array.from(e.dataTransfer.files))
+  }
+  /** Alt text saved from the details pane: the lists and the eventual pick carry it. */
+  const handleAltSaved = (id: string, alt: string | null) => {
+    const patch = (list: MediaItem[]) => list.map((i) => (i.id === id ? { ...i, alt } : i))
+    setItems(patch)
+    setRecent(patch)
   }
   const handleUrlAdd = async () => {
     const url = urlValue.trim()
@@ -264,10 +280,16 @@ export default function MediaPickDialog({
   const showEmpty = !loading && results.length === 0 && queue.pending.length === 0
   const doneDisabled = selectedIds.length === 0
   const showRecent = !restricted && !needle && recent.length > 0
+  const lastPicked = selectedIds.at(-1)
+  const detail = lastPicked
+    ? ([...results, ...recent].find((i) => i.id === lastPicked) ?? null)
+    : null
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[85vh] w-full max-w-[64rem] flex-col gap-0 p-0">
+      {/* The kit dialog caps width at `sm:max-w-sm`; the library needs room for a grid and
+          the details pane, so the cap is set at the same breakpoint. */}
+      <DialogContent className="flex h-[min(90svh,48rem)] w-full flex-col gap-0 p-0 sm:max-w-[64rem]">
         <DialogHeader className="gap-3 border-b p-4">
           <DialogTitle className="text-base font-medium">{title ?? copy.title}</DialogTitle>
           <MediaPickToolbar
@@ -287,68 +309,95 @@ export default function MediaPickDialog({
           />
         </DialogHeader>
 
-        {!restricted ? (
-          <MediaPickDropzone
-            inputRef={inputRef}
-            dragOver={dragOver}
-            uploadDisabled={queue.pending.length > 0}
-            urlOpen={urlOpen}
-            urlValue={urlValue}
-            urlBusy={urlBusy}
-            onDragOver={() => setDragOver(true)}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onFileInput={handleFileInput}
-            onToggleUrl={() => setUrlOpen((v) => !v)}
-            onUrlValueChange={setUrlValue}
-            onUrlAdd={handleUrlAdd}
-          />
-        ) : null}
-
-        <div className="min-h-[20rem] flex-1 overflow-y-auto p-4">
-          {showRecent ? (
-            <MediaPickRecent
-              items={recent}
-              selectedIds={selectedIds}
-              onToggle={handleToggle}
-              onConfirm={handleConfirmOne}
-            />
-          ) : null}
-          {loading ? (
-            <div className="flex h-64 items-center justify-center text-muted-foreground">
-              <Loader2Icon className="size-5 animate-spin" aria-hidden />
-              <span className="sr-only">{copy.loading}</span>
-            </div>
-          ) : null}
-          {showEmpty ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-1 text-center">
-              <p className="text-body-strong">
-                {query || !restricted ? copy.noResults : (empty ?? copy.empty)}
-              </p>
-            </div>
-          ) : null}
-          {!loading && (results.length > 0 || queue.pending.length > 0) ? (
-            <MediaPickGrid
-              view={view}
-              pending={queue.pending}
-              results={results}
-              selectedIds={selectedIds}
-              multiple={Boolean(multiple)}
-              onToggle={handleToggle}
-              onConfirm={handleConfirmOne}
-            />
-          ) : null}
-          {!restricted ? <div ref={sentinelRef} className="h-1" /> : null}
-          {loadingMore ? (
-            <div className="flex justify-center py-3 text-muted-foreground">
-              <Loader2Icon className="size-4 animate-spin" aria-hidden />
-            </div>
-          ) : null}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: file drop target only; Upload files and From URL are the accessible routes. */}
+        <div
+          className="flex min-h-0 flex-1"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+            {!restricted ? (
+              <MediaPickDropzone
+                inputRef={inputRef}
+                dragOver={dragOver}
+                urlOpen={urlOpen}
+                urlValue={urlValue}
+                urlBusy={urlBusy}
+                onFileInput={handleFileInput}
+                onToggleUrl={() => setUrlOpen((v) => !v)}
+                onUrlValueChange={setUrlValue}
+                onUrlAdd={handleUrlAdd}
+              />
+            ) : null}
+            {showRecent ? (
+              <MediaPickRecent
+                items={recent}
+                selectedIds={selectedIds}
+                onToggle={handleToggle}
+                onConfirm={handleConfirmOne}
+              />
+            ) : null}
+            <section aria-label={copy.library} className="flex flex-col gap-2">
+              {!restricted ? (
+                <h3 className="text-caption font-medium text-muted-foreground">{copy.library}</h3>
+              ) : null}
+              {loading ? (
+                <div className="flex h-64 items-center justify-center text-muted-foreground">
+                  <Loader2Icon className="size-5 animate-spin" aria-hidden />
+                  <span className="sr-only">{copy.loading}</span>
+                </div>
+              ) : null}
+              {showEmpty ? (
+                <div className="flex h-48 flex-col items-center justify-center gap-1 text-center">
+                  <p className="text-body-strong">
+                    {query || !restricted ? copy.noResults : (empty ?? copy.empty)}
+                  </p>
+                </div>
+              ) : null}
+              {!loading && (results.length > 0 || queue.pending.length > 0) ? (
+                <MediaPickGrid
+                  view={view}
+                  pending={queue.pending}
+                  results={results}
+                  selectedIds={selectedIds}
+                  multiple={Boolean(multiple)}
+                  onToggle={handleToggle}
+                  onConfirm={handleConfirmOne}
+                  onRetry={queue.retry}
+                  onDismiss={queue.dismiss}
+                />
+              ) : null}
+              {!restricted ? <div ref={sentinelRef} className="h-1" /> : null}
+              {loadingMore ? (
+                <div className="flex justify-center py-3 text-muted-foreground">
+                  <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                </div>
+              ) : null}
+            </section>
+          </div>
+          {restricted ? null : (
+            <aside className="hidden w-72 shrink-0 overflow-y-auto border-l bg-muted/30 md:block">
+              <MediaPickDetails
+                key={detail?.id ?? 'none'}
+                item={detail}
+                onAltSaved={handleAltSaved}
+              />
+            </aside>
+          )}
         </div>
 
         <DialogFooter className="mx-0 mb-0 items-center gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:justify-between">
-          <span className="text-caption text-muted-foreground" aria-live="polite">
+          <span
+            className="flex items-center gap-2 text-caption text-muted-foreground"
+            aria-live="polite"
+          >
             {selectedIds.length > 0 ? copy.selectedCount(selectedIds.length) : null}
+            {selectedIds.length > 1 ? (
+              <Button type="button" variant="ghost" size="xs" onClick={() => setSelectedIds([])}>
+                {copy.clear}
+              </Button>
+            ) : null}
           </span>
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onClose}>

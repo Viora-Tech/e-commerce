@@ -76,7 +76,7 @@ export default function CustomerAccountsSettings() {
   const stale = loaded?.unavailable ?? []
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty && !none}
         message={settingsContent.general.unsaved}

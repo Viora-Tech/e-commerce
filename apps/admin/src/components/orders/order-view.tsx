@@ -170,6 +170,7 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
   return (
     <DetailLayout
       className="print:hidden"
+      stickySide
       header={
         <OrderHeader
           order={order}
@@ -231,9 +232,8 @@ export default function OrderView({ order, appCards = [] }: OrderViewProps) {
           <TagsCard orderId={order.id} tags={order.tags} onChanged={refresh} />
         </>
       }
+      mainFooter={<OrderActionBar action={nextAction} orderNumber={order.number} busy={busy} />}
     >
-      <OrderActionBar action={nextAction} orderNumber={order.number} busy={busy} />
-
       <PackingSlip order={order} />
       <RefundDialog
         payment={refunding}

@@ -148,7 +148,7 @@ export default function SetupWizard({ setup, onReload, onDone }: SetupWizardProp
               : copy.ready.body
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 py-2">
+    <div className="flex w-full flex-col gap-5 py-2">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3 text-caption text-muted-foreground">
           <span>{copy.progress(index + 1, STEPS.length)}</span>

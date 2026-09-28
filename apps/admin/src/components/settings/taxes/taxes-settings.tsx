@@ -85,7 +85,7 @@ export default function TaxesSettings() {
   const errors = form && view && attempted ? validateTaxes(form, view.numbering.lowest) : {}
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={copy.unsaved}

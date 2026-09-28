@@ -26,7 +26,7 @@ type ProductMainCardProps = {
 }
 
 /** Jump-nav targets land below the sticky page header instead of under it. */
-const SECTION = 'scroll-mt-44'
+const SECTION = 'scroll-mt-[calc(var(--detail-header-height,11rem)+1rem)]'
 
 /**
  * The product page main column head, after the Saleor Dashboard product page (BSD-3):

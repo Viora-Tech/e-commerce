@@ -87,7 +87,7 @@ export default function AppearanceSettings() {
   // Early returns
   if (!loaded) {
     return (
-      <div className="flex max-w-3xl flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <PageHeader
           title={copy.title}
           subtitle={copy.intro}
@@ -107,7 +107,7 @@ export default function AppearanceSettings() {
   const storeUnchanged = draft === (loaded.storeDefault ?? DEFAULT_ACCENT)
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.intro} icon={<Palette aria-hidden="true" />} />
       <Card size="form">
         <CardHeader>

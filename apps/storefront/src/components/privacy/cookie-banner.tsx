@@ -16,9 +16,15 @@ type CookieBannerProps = {
 
 const OPTIONAL = ['analytics', 'marketing'] as const
 
+/* `.btn` never wraps its label and `.btn--small` has a fixed height, so buttons grow to
+   share a row and drop to the next one when their labels do not fit side by side. */
+const BUTTON = 'btn btn--small min-w-fit grow basis-32'
+
 /**
  * The banner itself: equal weight for "Necessary only" and "Accept all", and a
- * category list where every optional box starts unticked.
+ * category list where every optional box starts unticked. On phones it spans the width
+ * above the safe area with a side gutter; from `sm` it is a compact card in the bottom-left
+ * corner (chat and cart buttons usually take the right).
  */
 export default function CookieBanner({
   message,
@@ -32,10 +38,10 @@ export default function CookieBanner({
 
   // Render logic
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-3 z-50 flex justify-center">
+    <div className="pointer-events-none fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex justify-center sm:inset-x-auto sm:bottom-5 sm:left-5 sm:justify-start">
       <section
         aria-label={copy.label}
-        className="pointer-events-auto flex max-h-[80dvh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-lg border border-line bg-surface p-5 text-ink shadow-lg"
+        className="pointer-events-auto flex max-h-[min(80dvh,36rem)] w-full min-w-0 flex-col gap-4 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface p-4 text-ink shadow-lg [overflow-wrap:anywhere] sm:w-[24rem] sm:p-5"
       >
         <div className="flex flex-col gap-1">
           <p className="text-base font-semibold">{copy.heading}</p>
@@ -48,10 +54,10 @@ export default function CookieBanner({
                 type="checkbox"
                 checked
                 disabled
-                className="mt-1"
+                className="mt-1 shrink-0"
                 aria-labelledby="c-necessary"
               />
-              <span className="flex flex-col">
+              <span className="flex min-w-0 flex-col">
                 <span id="c-necessary" className="text-sm font-semibold">
                   {copy.categories.necessary.label}
                 </span>
@@ -65,9 +71,9 @@ export default function CookieBanner({
                   type="checkbox"
                   checked={draft[key]}
                   onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.checked }))}
-                  className="mt-1"
+                  className="mt-1 shrink-0"
                 />
-                <label htmlFor={`c-${key}`} className="flex flex-col">
+                <label htmlFor={`c-${key}`} className="flex min-w-0 flex-col">
                   <span className="text-sm font-semibold">{copy.categories[key].label}</span>
                   <span className="text-sm text-muted">{copy.categories[key].body}</span>
                 </label>
@@ -75,11 +81,11 @@ export default function CookieBanner({
             ))}
           </ul>
         ) : null}
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap gap-2">
           {choosing ? (
             <button
               type="button"
-              className="btn btn--secondary btn--small"
+              className={`${BUTTON} btn--secondary`}
               onClick={() => onChoose(draft)}
             >
               {copy.save}
@@ -87,7 +93,7 @@ export default function CookieBanner({
           ) : (
             <button
               type="button"
-              className="btn btn--secondary btn--small"
+              className={`${BUTTON} btn--secondary`}
               onClick={() => setChoosing(true)}
             >
               {copy.customise}
@@ -95,14 +101,14 @@ export default function CookieBanner({
           )}
           <button
             type="button"
-            className="btn btn--secondary btn--small"
+            className={`${BUTTON} btn--secondary`}
             onClick={() => onChoose({ analytics: false, marketing: false })}
           >
             {copy.rejectAll}
           </button>
           <button
             type="button"
-            className="btn btn--primary btn--small"
+            className={`${BUTTON} btn--primary`}
             onClick={() => onChoose({ analytics: true, marketing: true })}
           >
             {copy.acceptAll}

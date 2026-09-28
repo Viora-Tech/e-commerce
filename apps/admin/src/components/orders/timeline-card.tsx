@@ -76,7 +76,7 @@ export default function TimelineCard({ order, onChanged }: TimelineCardProps) {
       <div className="mt-4 flex flex-col gap-5">
         {days.map((day) => (
           <section key={day.key}>
-            <p className="sticky top-14 z-10 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
+            <p className="sticky top-[var(--detail-header-height,0rem)] z-1 -mx-5 bg-card px-5 py-1 text-caption text-muted-foreground">
               {day.label}
             </p>
             <ol className="relative mt-2 flex flex-col gap-4 border-l border-border pl-6">

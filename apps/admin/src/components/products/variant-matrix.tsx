@@ -61,7 +61,7 @@ export default function VariantMatrix({
 
   return (
     <div className="overflow-x-auto">
-      <Table className="border-separate border-spacing-0">
+      <Table className="min-w-[44rem] border-separate border-spacing-0">
         <TableHeader className="[&_tr]:border-0">
           <TableRow className="hover:bg-transparent">
             <TableHead className={cn(HEAD, 'w-10')}>

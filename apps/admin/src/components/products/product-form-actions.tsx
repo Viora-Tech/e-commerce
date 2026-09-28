@@ -33,18 +33,18 @@ export default function ProductFormActions({
         <KitButton
           variant="secondary"
           href={`${storefrontOrigin}/products/${product.handle}`}
-          className="flex-1"
+          className="flex-auto"
         >
           {copy.preview}
           <ExternalLink className="size-4" aria-hidden="true" />
         </KitButton>
-        <KitButton variant="secondary" className="flex-1" onClick={onDuplicate} disabled={busy}>
+        <KitButton variant="secondary" className="flex-auto" onClick={onDuplicate} disabled={busy}>
           <Copy className="size-4" aria-hidden="true" />
           {copy.duplicate.action}
         </KitButton>
         <KitButton
           variant="secondary"
-          className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+          className="flex-auto border-destructive/40 text-destructive hover:bg-destructive/10"
           onClick={onDelete}
           disabled={busy}
         >

@@ -29,7 +29,7 @@ export default function ProductMoreSection({
 
   // Render logic
   return (
-    <section id="more" className="scroll-mt-44">
+    <section id="more" className="scroll-mt-[calc(var(--detail-header-height,11rem)+1rem)]">
       <Collapsible open={open} onOpenChange={onOpenChange}>
         <CollapsibleTrigger className="flex w-full items-center justify-between border-border border-b px-6 py-4 text-left hover:bg-muted/40">
           <span className="flex flex-col">

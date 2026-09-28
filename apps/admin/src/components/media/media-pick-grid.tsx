@@ -2,6 +2,7 @@
 
 import { Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import type { KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
@@ -23,6 +24,8 @@ type MediaPickGridProps = {
   multiple: boolean
   onToggle: (id: string) => void
   onConfirm: (id: string) => void
+  onRetry: (key: string) => void
+  onDismiss: (key: string) => void
 }
 
 const copy = mediaContent.picker
@@ -66,6 +69,8 @@ export default function MediaPickGrid({
   multiple,
   onToggle,
   onConfirm,
+  onRetry,
+  onDismiss,
 }: MediaPickGridProps) {
   // Event handlers
   const handleDoubleClick = (id: string) => {
@@ -114,24 +119,61 @@ export default function MediaPickGrid({
 
   return (
     <ul
-      className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6"
+      className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5"
       onKeyDown={(e) => handleTileKeys(e, true)}
     >
-      {pending.map((p) => (
-        <li key={p.key} className="flex flex-col gap-1">
-          <div className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-lg border bg-muted">
-            {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
-            <img
-              src={p.previewUrl}
-              alt=""
-              className="absolute inset-0 size-full object-contain p-2 opacity-60"
-            />
-            <span className="relative bg-card/90 px-2 py-1 text-center text-caption">
-              {p.error ? mediaContent.tile.failed : `${Math.round(p.progress * 100)}%`}
-            </span>
-          </div>
-        </li>
-      ))}
+      {pending.map((p) => {
+        const pct = Math.round(p.progress * 100)
+        return (
+          <li key={p.key} className="flex flex-col gap-1">
+            <div className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-lg border bg-muted">
+              {/* biome-ignore lint/performance/noImgElement: object URL preview while uploading. */}
+              <img
+                src={p.previewUrl}
+                alt=""
+                className="absolute inset-0 size-full object-contain p-2 opacity-50"
+              />
+              <div className="relative flex flex-col gap-1.5 bg-card/95 p-2">
+                {p.error ? (
+                  <span className="flex flex-wrap gap-1">
+                    <Button size="xs" variant="outline" onClick={() => onRetry(p.key)}>
+                      {copy.retry}
+                    </Button>
+                    <Button size="xs" variant="ghost" onClick={() => onDismiss(p.key)}>
+                      {copy.dismiss}
+                    </Button>
+                  </span>
+                ) : (
+                  <span
+                    role="progressbar"
+                    aria-label={copy.uploading(p.name, pct)}
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    className="h-1 overflow-hidden rounded-full bg-muted"
+                  >
+                    <span
+                      className="block h-full rounded-full bg-primary transition-[width] duration-150 motion-reduce:transition-none"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="px-0.5">
+              <p className="truncate text-caption text-foreground">{p.name}</p>
+              <p
+                className={cn(
+                  'text-caption tabular-nums',
+                  p.error ? 'text-destructive' : 'text-muted-foreground',
+                )}
+              >
+                {p.error ? mediaContent.tile.failed : `${pct}%`}
+              </p>
+            </div>
+          </li>
+        )
+      })}
       {results.map((item) => {
         const active = selectedIds.includes(item.id)
         return (
@@ -149,7 +191,16 @@ export default function MediaPickGrid({
               )}
             >
               <span className="absolute top-1.5 left-1.5 z-10">
-                <Checkbox checked={active} tabIndex={-1} />
+                {multiple && active ? (
+                  <span
+                    className="flex size-5 items-center justify-center rounded-md bg-primary text-caption font-semibold text-primary-foreground tabular-nums"
+                    title={copy.order(selectedIds.indexOf(item.id) + 1)}
+                  >
+                    {selectedIds.indexOf(item.id) + 1}
+                  </span>
+                ) : (
+                  <Checkbox checked={active} tabIndex={-1} />
+                )}
               </span>
               <MediaThumb item={item} className="object-contain" />
               {isVideoMedia(item.contentType) ? (

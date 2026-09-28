@@ -177,6 +177,26 @@ export const productFormContent = {
     remove: (name: string) => `Remove ${name}`,
     coverAlt: 'Cover image',
     empty: 'Drop an image here or browse for one.',
+    main: 'Main image',
+    reorderHint: 'Drag to reorder. The first image is the one shoppers see first.',
+    editAlt: (name: string) => `Edit alt text for ${name}`,
+    uploading: (percent: number) => `Uploading ${percent}%`,
+    retry: 'Retry',
+    dismiss: 'Dismiss',
+    dropToUpload: 'Drop to upload',
+    sort: {
+      instructions:
+        'Press space to pick up an image, arrow keys to move it, space again to drop it. The first image is the main image.',
+      handle: (name: string) => `Move ${name}`,
+      picked: (name: string) => `Picked up ${name}`,
+      moved: (name: string, position: number, total: number) =>
+        `${name} moved to position ${position} of ${total}`,
+      dropped: (name: string, position: number, total: number) =>
+        position === 1
+          ? `${name} is now the main image`
+          : `${name} dropped at position ${position} of ${total}`,
+      cancelled: (name: string) => `Move of ${name} cancelled`,
+    },
   },
   categories: {
     heading: 'Organisation',
