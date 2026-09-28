@@ -60,8 +60,8 @@ integrity/privacy harm needing staff access or unusual conditions; **Low** = def
 | S-27 | Low | Truecaller profile fetch followed redirects, no timeout or size cap | Fixed |
 | S-28 | Low | Deploy: nested `.env*` not in `.dockerignore`; release deploy job held `packages: write`; `init.sh` interpolated the password into SQL | Fixed |
 | S-29 | Low | Razorpay dedupe key from the unsigned event-id header | Fixed |
-| S-30..S-38 | Low | See "Smaller fixes" | Fixed |
-| D-01..D-12 | - | Owner decisions | Open |
+| S-30..S-37 | Low | See "Smaller fixes" | Fixed |
+| D-01..D-13 | - | Owner decisions and follow-ups | Open |
 
 ## Fixed
 
@@ -332,9 +332,32 @@ integrity/privacy harm needing staff access or unusual conditions; **Low** = def
 - **S-29** Razorpay dedupe key is `event:entityId` from the signed body. Test:
   `razorpay.test.ts`.
 
-### Smaller fixes (S-30 to S-38)
+### Smaller fixes (S-30 to S-37)
 
-See the PR description for the list; each has a test beside the change.
+- **S-30** `apps/worker/src/shipments-webhook.ts`: a courier webhook with a wrong or missing token
+  threw `CourierError('auth')` into a 500 the courier retried forever; now 401
+  (`courierAuthFailure`). Test: `apps/worker/src/shipments-webhook.test.ts`.
+- **S-31** `shipping-delhivery`: a payload without `StatusDateTime` got `Date.now()` in its event
+  id, so every retry was new and re-fetched tracking (API quota); the status stands in now. Test
+  in `delhivery.test.ts`.
+- **S-32** `shipping-rapidshyp` `mapRapidshypStatus`: free-text `UNDELIVERED` contained
+  `DELIVERED` and read as delivered. Test in `rapidshyp.test.ts`.
+- **S-33** `orders.collectPayment`: no longer records more than is still owed, and `method` is
+  `manual` or `cod` only (a gateway name read as automatic gateway money in "Payments by
+  method"). Tests: `api/test/input-guards.test.ts`, `orders-contact-payments.test.ts` (DB).
+- **S-34** `customer-session.ts`: the 90-day session cookie is `Secure` in production even when
+  the proxy omits `x-forwarded-proto`.
+- **S-35** `/api/search/suggest` skipped the password page (`/api/*` bypasses it) and listed a
+  locked store's products; it now answers `[]` without the pass or a preview (`lockedOut`). Test:
+  `apps/storefront/src/lib/lock-gate.test.ts`.
+- **S-36** Newsletter signup and gift-card code checks took the store id from a bound argument
+  the browser controls and had no rate limit (code guessing); both act only on the store the
+  hostname resolved to (`boundStoreId`) and are limited per IP. Test:
+  `apps/storefront/src/lib/bound-store.test.ts`.
+- **S-37** Predating this range, same shape as S-14: draft orders and gift cards accepted
+  another store's customer id, and a variant image another store's media id (foreign keys ignore
+  RLS, which then blocks that store from deleting its row). Checked under the store first
+  (`core/src/store-scope.ts`). Tests: `store-scope.test.ts` (pure), `order/drafts.test.ts` (DB).
 
 ## Owner decisions
 
@@ -351,6 +374,7 @@ See the PR description for the list; each has a test beside the change.
 | D-09 | Newsletter signups have no double opt-in (consent recorded for any typed email). | DPDP consent design. |
 | D-10 | Erasure still keeps return photos and their files, `shipment.tracking`/webhook payloads (may carry consignee name/phone), `customer_otp` rows keyed by destination hash, and back-in-stock signups (known). | Needs a decision on what the courier/returns records must keep. |
 | D-11 | Payment webhook routes answer `unknown store` / `provider not enabled` / `bad signature` separately (an existence oracle) and a non-UUID store id is a 500. | Low value; tie to D-01. |
+| D-13 | Other storefront server actions take the store id as a bound argument (`addLineAction`, `notifyMeAction`, `estimateDeliveryAction`, `retryPaymentAction`). RLS keeps each to the store it names and each only does what that store's own site allows, so it is not an escalation today; applying `boundStoreId` everywhere is a cheap follow-up. | Follow-up, not a vulnerability now. |
 | D-12 | Compose: the `internal` network blocks the worker's egress (payments, couriers, SES) and backups; `SHOPPER_*` env is missing from `x-app-env`. Functional, found during the review. | Infra change before the first deploy. |
 
 ## Reviewed and fine

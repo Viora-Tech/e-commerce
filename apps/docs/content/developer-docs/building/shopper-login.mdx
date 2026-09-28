@@ -126,9 +126,16 @@ Tests: `packages/core/src/shopper-login/tokens.test.ts` (pure) and `shopper-logi
    customer. The subject is the provider's id, never the email, so a changed Google email
    keeps the account.
 2. A signed-in shopper pressing **Connect** on their profile links to themselves (a
-   `conflict` if that identity already belongs to someone else).
+   `conflict` if that identity already belongs to someone else). The platform login domain
+   only checks for a conflict (`planConnect`) and mints a `connect` hand-off; the link is
+   written by `/account/login/complete` on the store's domain, after the browser check, for
+   the customer signed in there. A start link forwarded to someone else therefore links
+   nothing.
 3. A mobile the provider verified (Truecaller) links to the customer with that phone (blind
-   index), else creates a phone-only customer.
+   index), else creates a phone-only customer. Only a phone that was itself proven
+   (`customer.phone_verified_at`, set by a phone sign-in code or Truecaller) or a customer
+   with no email matches: a phone typed at checkout or on a profile proves nothing
+   (`accounts/phone-proof.ts`). Phone code sign-in follows the same rule.
 4. A **verified** email links to the customer with that email, else creates one.
 5. An **unverified** email never links and never creates a customer with that email (the
    real owner would later sign into it). The shopper confirms it with an email code first: the
@@ -138,6 +145,14 @@ Tests: `packages/core/src/shopper-login/tokens.test.ts` (pure) and `shopper-logi
 6. No email at all: refused (`no_email`).
 
 Erasing a customer (`anonymiseCustomer`) deletes their identities, passkeys and tickets.
+
+Return paths (`safeNextPath`) refuse control characters and backslashes anywhere and must
+resolve to the same origin, since browsers drop tab and CR (`/\t/evil.com` is `//evil.com`).
+Origins for emailed links come from a Host header that is a plain `host[:port]`
+(`parseHostHeader`); the proxy refuses anything else. Third-party tags never load under
+`/account/login`, whose URLs carry tokens. Sign-in codes: the code row is locked while it is
+checked, wrong guesses carry over resends for an hour, and limiter keys are the normalised
+address per store (`otpLimiterId`).
 
 ## Passkeys and domains
 
