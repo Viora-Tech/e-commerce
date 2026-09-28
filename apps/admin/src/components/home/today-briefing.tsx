@@ -1,5 +1,6 @@
 import { briefingSentence, greetingWord, homeContent } from '@/data/home'
-import { formatPaise } from '@/lib/money'
+import { getCopy, getLocale } from '@/lib/copy-server'
+import { formatters } from '@/lib/format'
 import TodaySparkline from './today-sparkline'
 
 type TodayBriefingProps = {
@@ -26,7 +27,7 @@ function istHour(now: Date): number {
  * One plain-language sentence, built from real data: "Good evening, Kuldeep.
  * 14 orders today worth ₹23,400, 3 need shipping." The home page's opening line.
  */
-export default function TodayBriefing({
+export default async function TodayBriefing({
   firstName,
   ordersToday,
   salesTodayPaise,
@@ -35,11 +36,16 @@ export default function TodayBriefing({
   todayHourly,
   yesterdayHourly,
 }: TodayBriefingProps) {
-  const sentence = briefingSentence({
-    greeting: greetingWord(istHour(now)),
+  // Render logic
+  const copy = await getCopy(homeContent)
+  const sentenceFor = await getCopy(briefingSentence)
+  const greetingFor = await getCopy(greetingWord)
+  const fmt = formatters(await getLocale())
+  const sentence = sentenceFor({
+    greeting: greetingFor(istHour(now)),
     firstName,
     ordersToday,
-    salesToday: formatPaise(salesTodayPaise),
+    salesToday: fmt.money(salesTodayPaise),
     toShip,
   })
   const hasHistory = todayHourly.some((v) => v > 0) || yesterdayHourly.some((v) => v > 0)
@@ -50,9 +56,7 @@ export default function TodayBriefing({
       {hasHistory ? (
         <div className="flex items-center gap-2">
           <TodaySparkline today={todayHourly} yesterday={yesterdayHourly} />
-          <span className="text-caption text-muted-foreground">
-            {homeContent.charts.todayVsYesterday}
-          </span>
+          <span className="text-caption text-muted-foreground">{copy.charts.todayVsYesterday}</span>
         </div>
       ) : null}
     </div>

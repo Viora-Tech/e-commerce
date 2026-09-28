@@ -5,6 +5,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import RichTextField from '@/components/fields/rich-text-field'
 import KitField from '@/components/kit/kit-field'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ProductBasicsSectionProps = {
   title: string
@@ -14,8 +15,6 @@ type ProductBasicsSectionProps = {
   onDescription: (value: RichTextValue) => void
 }
 
-const copy = productFormContent.details
-
 /** Frame 5:5117 and 5:5121: product name over a 155px description well. */
 export default function ProductBasicsSection({
   title,
@@ -24,6 +23,10 @@ export default function ProductBasicsSection({
   onTitle,
   onDescription,
 }: ProductBasicsSectionProps) {
+  // Hooks
+  const formCopy = useCopy(productFormContent)
+  const copy = formCopy.details
+
   // Render logic
   return (
     <div className="flex flex-col gap-4">
@@ -31,7 +34,7 @@ export default function ProductBasicsSection({
         label={copy.title}
         htmlFor="product-title"
         required
-        error={titleError ? productFormContent.errors.title : undefined}
+        error={titleError ? formCopy.errors.title : undefined}
       >
         <Input
           size="kit"

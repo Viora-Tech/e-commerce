@@ -46,15 +46,25 @@ const PAGE_TITLES: [prefix: string, title: string][] = [
   ['/settings/custom-data', 'Custom data'],
   ['/settings/domains', 'Domains'],
   ['/settings/invoices', 'Invoices'],
+  ['/settings/account', 'Account'],
   ['/dev', 'Developer'],
 ]
 
-export function pageTitleFor(pathname: string): string {
-  if (pathname === '/') return layoutContent.dashboard
+/** The route titles, for the test that checks Hindi page names only name real routes. */
+export const PAGE_TITLES_FOR_TESTS: readonly (readonly [string, string])[] = PAGE_TITLES
+
+/** The section route whose title the top bar shows for `pathname`, or null for the dashboard. */
+export function pagePrefixFor(pathname: string): string | null {
+  if (pathname === '/') return null
   const hit = PAGE_TITLES.filter(([p]) => under(pathname, p)).sort(
     (a, b) => b[0].length - a[0].length,
   )[0]
-  return hit?.[1] ?? layoutContent.dashboard
+  return hit?.[0] ?? null
+}
+
+export function pageTitleFor(pathname: string): string {
+  const prefix = pagePrefixFor(pathname)
+  return PAGE_TITLES.find(([p]) => p === prefix)?.[1] ?? layoutContent.dashboard
 }
 
 /**

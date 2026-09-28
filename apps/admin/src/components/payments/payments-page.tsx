@@ -5,7 +5,8 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { paymentsSetupContent as copy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import PaymentsOverview from './payments-overview'
 import SetupWizard from './setup-wizard'
@@ -20,6 +21,7 @@ type View = 'guide' | 'page'
  */
 export default function PaymentsPage() {
   // Hooks
+  const copy = useCopy(paymentsSetupContent)
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -45,7 +47,7 @@ export default function PaymentsPage() {
       else toast.error(message)
     }
     router.replace(pathname)
-  }, [params, pathname, router])
+  }, [params, pathname, router, copy])
 
   // Helpers
   const reload = async () => {

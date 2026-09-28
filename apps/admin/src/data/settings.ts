@@ -11,6 +11,7 @@ import {
   Truck,
   Undo,
   UserCog,
+  UserRound,
 } from '@commerce/ui/icons'
 
 export type SettingsSection = {
@@ -89,6 +90,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Appearance',
     body: 'Admin accent colour and light or dark mode.',
     icon: Palette,
+  },
+  {
+    href: '/settings/account',
+    title: 'Account',
+    body: 'Your own preferences, like the language this admin shows in.',
+    icon: UserRound,
   },
 ]
 

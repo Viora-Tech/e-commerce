@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import type { ComponentType, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { liveGlobeContent as copy } from '@/data/live-globe'
+import { useLocale } from '@/hooks/use-copy'
 import { useLiveGlobeData } from '@/hooks/use-live-globe-data'
 import { isWebglSupported } from '@/lib/webgl'
 import { buildGlobeData } from './build-globe-data'
@@ -37,6 +38,7 @@ function loadGlobe(): Promise<ComponentType<GlobeCanvasProps>> {
  */
 export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps) {
   // Hooks
+  const locale = useLocale()
   const { resolvedTheme } = useTheme()
   const reducedMotion = useReducedMotion()
   const data = useLiveGlobeData(initial)
@@ -73,7 +75,7 @@ export default function LiveGlobeHero({ initial, children }: LiveGlobeHeroProps)
   }, [])
 
   // Render logic
-  const { markers, arcs } = buildGlobeData(data)
+  const { markers, arcs } = buildGlobeData(data, locale)
   const dark = resolvedTheme === 'dark'
 
   return (

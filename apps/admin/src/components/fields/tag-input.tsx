@@ -5,6 +5,7 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type KeyboardEvent, useId, useState } from 'react'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type TagInputProps = {
   id?: string | undefined
@@ -21,6 +22,7 @@ const sameTag = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 /** Enter or comma adds the typed tag; Backspace on an empty box removes the last one. */
 export default function TagInput({ id, tags, suggestions, onChange, placeholder }: TagInputProps) {
   // Hooks
+  const { organisation: copy } = useCopy(productFormContent)
   const [draft, setDraft] = useState('')
   const listId = useId()
 
@@ -77,7 +79,7 @@ export default function TagInput({ id, tags, suggestions, onChange, placeholder 
                 type="button"
                 className="rounded-sm opacity-60 hover:opacity-100"
                 onClick={() => remove(tag)}
-                aria-label={productFormContent.organisation.removeTag(tag)}
+                aria-label={copy.removeTag(tag)}
               >
                 <X className="size-3" />
               </button>

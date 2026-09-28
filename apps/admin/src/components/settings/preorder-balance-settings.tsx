@@ -10,9 +10,8 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { paymentsSettingsContent } from '@/data/payments'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-
-const copy = paymentsSettingsContent.preorder
 
 const ACTIONS: UnpaidBalanceAction[] = ['none', 'cancel_refund', 'cancel_keep']
 
@@ -34,6 +33,7 @@ const parseReminders = (raw: string): number[] =>
 /** Settings › Payments › Pre-orders: balance request, reminders and the unpaid-balance rule. */
 export default function PreorderBalanceSettings() {
   // Hooks
+  const { preorder: copy } = useCopy(paymentsSettingsContent)
   const [form, setForm] = useState<PreorderStoreSettings | null>(null)
   const [reminders, setReminders] = useState('')
   const [saving, setSaving] = useState(false)
@@ -45,7 +45,7 @@ export default function PreorderBalanceSettings() {
         setReminders(s.reminderDays.join(', '))
       })
       .catch(() => toast.error(copy.saveFailed))
-  }, [])
+  }, [copy.saveFailed])
 
   // Helpers
   const patch = (next: Partial<PreorderStoreSettings>) =>

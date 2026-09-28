@@ -4,27 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/ca
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { productFormContent } from '@/data/products'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Adjustment = Awaited<ReturnType<typeof api.products.adjustments>>[number]
 
 type StockHistoryCardProps = { productId: string }
 
-const when = new Intl.DateTimeFormat('en-IN', {
+const WHEN_OPTIONS: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'short',
   hour: 'numeric',
   minute: '2-digit',
-})
-
-const copy = productFormContent.history
-const reasonLabels = Object.fromEntries(
-  productFormContent.inventory.reasons.map((r) => [r.value, r.label]),
-)
+}
 
 /** Recent stock movements, newest first, so a wrong count can be traced. */
 export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
   // Hooks
+  const formCopy = useCopy(productFormContent)
+  const fmt = useFormat()
   const [rows, setRows] = useState<Adjustment[] | null>(null)
 
   useEffect(() => {
@@ -39,6 +37,10 @@ export default function StockHistoryCard({ productId }: StockHistoryCardProps) {
   }, [productId])
 
   // Render logic
+  const copy = formCopy.history
+  const when = new Intl.DateTimeFormat(fmt.intl, WHEN_OPTIONS)
+  const reasonLabels = Object.fromEntries(formCopy.inventory.reasons.map((r) => [r.value, r.label]))
+
   return (
     <Card size="form">
       <CardHeader>

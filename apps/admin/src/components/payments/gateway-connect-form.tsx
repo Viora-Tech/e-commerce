@@ -8,7 +8,8 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { gatewayGuides, paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import GatewayGuide from './gateway-guide'
 import RazorpayWebhookFields from './razorpay-webhook-fields'
@@ -22,8 +23,6 @@ type GatewayConnectFormProps = {
 
 type Mode = 'test' | 'live'
 type TestResult = { status: 'idle' | 'testing' | 'ok' | 'error'; message?: string }
-
-const copy = setupCopy.connect
 
 /** A fresh webhook secret the merchant pastes into Razorpay. */
 function newSecret(): string {
@@ -72,6 +71,8 @@ export default function GatewayConnectForm({
   onConnected,
 }: GatewayConnectFormProps) {
   // Hooks
+  const { connect: copy } = useCopy(paymentsSetupContent)
+  const guides = useCopy(gatewayGuides)
   const [values, setValues] = useState<Record<string, string>>(() =>
     initialValues(providerId, setup.settings.providers[providerId] ?? {}),
   )
@@ -130,7 +131,7 @@ export default function GatewayConnectForm({
     setSaving(true)
     try {
       await api.payments.connect({ providerId, fields: fieldsToSend() })
-      toast.success(copy.saved(gatewayGuides[providerId].name))
+      toast.success(copy.saved(guides[providerId].name))
       onConnected()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.saveFailed)
@@ -140,7 +141,7 @@ export default function GatewayConnectForm({
   }
 
   // Render logic
-  const guide = gatewayGuides[providerId]
+  const guide = guides[providerId]
   const idKey = providerId === 'cashfree' ? 'appId' : 'keyId'
   const secretKey = providerId === 'cashfree' ? 'secretKey' : 'keySecret'
   const filled = !!values[idKey] && !!values[secretKey]

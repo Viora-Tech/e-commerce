@@ -23,6 +23,7 @@ import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { shippingRatesContent } from '@/data/shipping-rates'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { emptyZone, fromZone, type LoadedZone, toZoneInput, type ZoneFormState } from './form-state'
@@ -35,7 +36,6 @@ type ZoneFormProps = {
   zone: LoadedZone | null
 }
 
-const copy = shippingRatesContent.zone
 const LIST_HREF = '/settings/shipping?tab=section-rates'
 
 const initialForm = (zone: LoadedZone | null): ZoneFormState =>
@@ -44,6 +44,7 @@ const initialForm = (zone: LoadedZone | null): ZoneFormState =>
 /** Create or edit a shipping zone: its name, states, PIN code rules and rates. */
 export default function ZoneForm({ zone }: ZoneFormProps) {
   // Hooks
+  const { zone: copy } = useCopy(shippingRatesContent)
   const router = useRouter()
   const { hasPermission } = usePermissions()
   const [form, setForm] = useState<ZoneFormState>(() => initialForm(zone))

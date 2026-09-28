@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMoney, fromMinor, toMinor } from '../src/index'
+import { formatMoney, formatNumber, fromMinor, toMinor } from '../src/index'
 
 describe('formatMoney', () => {
   it('formats INR with Indian digit grouping', () => {
@@ -47,5 +47,34 @@ describe('toMinor / fromMinor', () => {
 
   it('rounds fractional paise', () => {
     expect(toMinor(1234.505, 'INR')).toBe(123451)
+  })
+})
+
+describe('Hindi (hi-IN)', () => {
+  const hi = { locale: 'hi-IN' }
+
+  it('keeps Indian lakh/crore digit grouping with Latin digits', () => {
+    expect(formatMoney(1_23_45_678_50, 'INR', hi)).toBe('₹1,23,45,678.50')
+    expect(formatNumber(12_34_567, hi)).toBe('12,34,567')
+  })
+
+  it('spells compact units out in the Indian system', () => {
+    expect(formatMoney(950_00, 'INR', { ...hi, compact: true })).toBe('₹950')
+    expect(formatMoney(12_345_00, 'INR', { ...hi, compact: true })).toBe('₹12.3 हज़ार')
+    expect(formatMoney(1_23_456_00, 'INR', { ...hi, compact: true })).toBe('₹1.2 लाख')
+    expect(formatMoney(1_23_45_678_00, 'INR', { ...hi, compact: true })).toBe('₹1.2 करोड़')
+    expect(formatNumber(2_50_000, { ...hi, compact: true })).toBe('2.5 लाख')
+  })
+
+  it('stays in crore instead of switching to arab', () => {
+    expect(formatMoney(1_23_45_67_890_00, 'INR', { ...hi, compact: true })).toBe('₹123.5 करोड़')
+  })
+
+  it('moves to the next unit when rounding reaches it', () => {
+    expect(formatMoney(99_990_00, 'INR', { ...hi, compact: true })).toBe('₹1 लाख')
+  })
+
+  it('puts the minus sign before the symbol', () => {
+    expect(formatMoney(-2_50_000_00, 'INR', { ...hi, compact: true })).toBe('-₹2.5 लाख')
   })
 })

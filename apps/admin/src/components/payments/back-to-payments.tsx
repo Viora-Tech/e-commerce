@@ -1,9 +1,13 @@
 import { ArrowLeft } from '@commerce/ui/icons'
 import Link from 'next/link'
-import { paymentsSetupContent as copy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 
 /** "← Payments": the plain way back to Settings → Payments (full page, never the guide). */
 export default function BackToPayments() {
+  // Hooks
+  const copy = useCopy(paymentsSetupContent)
+
   return (
     <Link
       href={PAYMENTS_PAGE_HREF}

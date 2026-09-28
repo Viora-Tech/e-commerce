@@ -14,6 +14,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { type ChangeEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Preview = Awaited<ReturnType<typeof api.products.previewImport>>
@@ -23,8 +24,6 @@ type ImportDialogProps = {
   onOpenChange: (open: boolean) => void
   onImported: () => void
 }
-
-const copy = productsListContent.importing
 
 function Count({ label, value }: { label: string; value: number }) {
   return (
@@ -38,6 +37,7 @@ function Count({ label, value }: { label: string; value: number }) {
 /** Upload a Shopify CSV, show what it would do, then write it. */
 export default function ImportDialog({ open, onOpenChange, onImported }: ImportDialogProps) {
   // Hooks
+  const { importing: copy } = useCopy(productsListContent)
   const [csv, setCsv] = useState<string | null>(null)
   const [filename, setFilename] = useState<string | null>(null)
   const [preview, setPreview] = useState<Preview | null>(null)

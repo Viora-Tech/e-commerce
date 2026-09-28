@@ -5,9 +5,8 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
-import { gatewayCatalogue, paymentsSetupContent as setupCopy } from '@/data/payments-setup'
-import { formatAgo } from '@/lib/format-date'
-import { formatPaise } from '@/lib/money'
+import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import GatewayLogo from './gateway-logo'
 import GatewayProblem from './gateway-problem'
 import type { GatewayStatus } from './types'
@@ -19,8 +18,6 @@ type MainGatewayCardProps = {
   onTurnOnUpi: () => void
 }
 
-const copy = setupCopy.main
-
 const monogramOf = (id: string) =>
   gatewayCatalogue.find((g) => g.id === id)?.monogram ?? id.slice(0, 2)
 
@@ -31,6 +28,10 @@ export default function MainGatewayCard({
   onChanged,
   onTurnOnUpi,
 }: MainGatewayCardProps) {
+  // Hooks
+  const { main: copy } = useCopy(paymentsSetupContent)
+  const fmt = useFormat()
+
   // Early returns
   if (!primary) {
     return (
@@ -100,7 +101,7 @@ export default function MainGatewayCard({
             <dt className="text-caption text-muted-foreground">{copy.lastPayment}</dt>
             <dd className="font-medium text-foreground">
               {primary.lastPayment
-                ? `${formatPaise(primary.lastPayment.amountPaise)} · ${formatAgo(primary.lastPayment.at)}`
+                ? `${fmt.money(primary.lastPayment.amountPaise)} · ${fmt.ago(primary.lastPayment.at)}`
                 : copy.noPaymentsYet}
             </dd>
           </div>

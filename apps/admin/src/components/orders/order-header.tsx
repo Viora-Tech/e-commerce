@@ -4,9 +4,9 @@ import { Clock, ShoppingBag } from '@commerce/ui/icons'
 import { type ReactNode, useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import StatusLabel from '@/components/status/status-label'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatWhen } from '@/lib/format-date'
 import { methodLabel, type OrderDetail } from './order-detail-types'
 
 /** Icon-badge tone for the order glyph square: what the header's own colour vocabulary reads. */
@@ -34,6 +34,8 @@ type OrderHeaderProps = {
  */
 export default function OrderHeader({ order, actions }: OrderHeaderProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
   const [neighbours, setNeighbours] = useState<Neighbours | null>(null)
 
   useEffect(() => {
@@ -60,14 +62,14 @@ export default function OrderHeader({ order, actions }: OrderHeaderProps) {
           <span className="flex flex-wrap items-center gap-x-2">
             <span className="flex items-center gap-1">
               <Clock className="size-3.5 text-muted-foreground" />
-              {copy.placed(formatWhen(order.placedAt))}
+              {copy.placed(fmt.when(order.placedAt))}
             </span>
             {order.paymentMethod ? (
               <>
                 <span aria-hidden="true">|</span>
                 <span>
                   {copy.paidVia}:{' '}
-                  <span className="text-foreground">{methodLabel(order.paymentMethod)}</span>
+                  <span className="text-foreground">{methodLabel(order.paymentMethod, copy)}</span>
                 </span>
               </>
             ) : null}

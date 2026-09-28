@@ -10,7 +10,8 @@ import {
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { shippingSettingsContent as setupCopy } from '@/data/shipping'
+import { shippingSettingsContent } from '@/data/shipping'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Settings = Awaited<ReturnType<typeof api.store.getShipping>>['settings']
@@ -23,8 +24,6 @@ type DemoCourierSectionProps = {
   onSaved: (next: Settings) => void
 }
 
-const copy = setupCopy.advanced
-
 /** Advanced, development only: switch the pretend courier on or off. Saves straight away. */
 export default function DemoCourierSection({
   settings,
@@ -33,6 +32,7 @@ export default function DemoCourierSection({
   onSaved,
 }: DemoCourierSectionProps) {
   // Hooks
+  const setupCopy = useCopy(shippingSettingsContent)
   const [saving, setSaving] = useState(false)
 
   // Event handlers
@@ -53,6 +53,7 @@ export default function DemoCourierSection({
   }
 
   // Render logic
+  const copy = setupCopy.advanced
   const on = settings.enabled.includes(demoId)
 
   return (

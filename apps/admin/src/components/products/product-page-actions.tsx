@@ -6,14 +6,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import KitButton from '@/components/kit/kit-button'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ProductPageActionsProps = {
   busy: boolean
   onPublish: () => void
   onSaveDraft: () => void
 }
-
-const copy = productFormContent
 
 /** Frame 5:5252 and 5:5104: product search, then publish, save to draft and a fresh form. */
 export default function ProductPageActions({
@@ -22,6 +21,7 @@ export default function ProductPageActions({
   onSaveDraft,
 }: ProductPageActionsProps) {
   // Hooks
+  const copy = useCopy(productFormContent)
   const router = useRouter()
   const [search, setSearch] = useState('')
 

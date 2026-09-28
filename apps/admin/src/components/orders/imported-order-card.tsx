@@ -1,6 +1,7 @@
 import DataCard from '@/components/layout/data-card'
-import { importedOrderContent as copy } from '@/data/orders'
-import { type OrderDetail, when } from './order-detail-types'
+import { importedOrderContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import type { OrderDetail } from './order-detail-types'
 
 type ImportedOrderCardProps = {
   order: OrderDetail
@@ -8,6 +9,10 @@ type ImportedOrderCardProps = {
 
 /** Says an order came from another platform and is kept as a read-only record. */
 export default function ImportedOrderCard({ order }: ImportedOrderCardProps) {
+  // Hooks
+  const copy = useCopy(importedOrderContent)
+  const fmt = useFormat()
+
   // Early returns
   if (!order.importedFrom) return null
 
@@ -18,7 +23,9 @@ export default function ImportedOrderCard({ order }: ImportedOrderCardProps) {
     [copy.financial, copy.status(meta?.financialStatus)],
     [copy.fulfillment, copy.status(meta?.fulfillmentStatus)],
     ...(meta?.paymentMethod ? [[copy.payment, meta.paymentMethod] as [string, string]] : []),
-    ...(meta?.cancelledAt ? [[copy.cancelled, when(meta.cancelledAt)] as [string, string]] : []),
+    ...(meta?.cancelledAt
+      ? [[copy.cancelled, fmt.dateTime(meta.cancelledAt)] as [string, string]]
+      : []),
   ]
 
   return (

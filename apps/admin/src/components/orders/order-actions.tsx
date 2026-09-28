@@ -29,12 +29,13 @@ import {
 import Link from 'next/link'
 import { useState } from 'react'
 import {
-  orderDetailContent as copy,
   type OrderFulfillmentStatus,
   type OrderMark,
   type OrderPaymentStatus,
   type OrderStatus,
+  orderDetailContent,
 } from '@/data/orders'
+import { useCopy } from '@/hooks/use-copy'
 
 type OrderActionsProps = {
   status: OrderStatus
@@ -68,6 +69,7 @@ const ON_ITS_WAY: ReadonlySet<OrderFulfillmentStatus> = new Set([
  * packing stays in the menu because the Unfulfilled section already offers it.
  */
 function nextStep(
+  copy: typeof orderDetailContent,
   status: OrderStatus,
   payment: OrderPaymentStatus,
   fulfilment: OrderFulfillmentStatus,
@@ -97,10 +99,11 @@ export default function OrderActions({
   nextId,
 }: OrderActionsProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
   const [confirmCancel, setConfirmCancel] = useState(false)
 
   // Render logic
-  const next = readOnly ? undefined : nextStep(status, paymentStatus, fulfillmentStatus)
+  const next = readOnly ? undefined : nextStep(copy, status, paymentStatus, fulfillmentStatus)
   const primary = next?.primary ? next : undefined
   const menuMove = next && !primary ? next : undefined
   // Once the parcel is in the shopper's hands, a cancel no longer undoes anything.

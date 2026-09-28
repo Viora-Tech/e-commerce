@@ -4,7 +4,8 @@ import { CheckIcon, Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { copyButtonContent as copy } from '@/data/common'
+import { copyButtonContent } from '@/data/common'
+import { useCopy } from '@/hooks/use-copy'
 
 type CodeBlockProps = {
   /** What is being copied, for the toast: "IAM policy", "CORS rule". */
@@ -15,6 +16,7 @@ type CodeBlockProps = {
 /** A read-only JSON/text block with an always-visible copy button, for policy and CORS snippets. */
 export default function CodeBlock({ what, code }: CodeBlockProps) {
   // Hooks
+  const copy = useCopy(copyButtonContent)
   const [done, setDone] = useState(false)
 
   // Event handlers

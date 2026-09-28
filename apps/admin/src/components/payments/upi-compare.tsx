@@ -8,12 +8,16 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from '@commerce/ui/shadcn/popover'
-import { paymentsSetupContent as setupCopy } from '@/data/payments-setup'
-
-const copy = setupCopy.upiOptions.compare
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 
 /** "What's this?" for the two UPI options: who marks the order paid, fake-payment risk, fee, payout. */
 export default function UpiCompare() {
+  // Hooks
+  const {
+    upiOptions: { compare: copy },
+  } = useCopy(paymentsSetupContent)
+
   return (
     <Popover>
       <PopoverTrigger className="inline-flex items-center gap-1 text-caption font-medium text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

@@ -1,4 +1,5 @@
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 
 type PackingSlipProps = {
@@ -7,12 +8,18 @@ type PackingSlipProps = {
 
 /** Hidden on screen; `window.print()` shows only this block (see globals.css). */
 export default function PackingSlip({ order }: PackingSlipProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
+
   const a = order.shippingAddress
   return (
     <section className="packing-slip hidden print:block">
       <h1 className="text-xl font-semibold">{copy.print.title}</h1>
       <p className="text-base font-medium">{copy.title(order.number)}</p>
-      <p className="text-sm">{copy.placed(new Date(order.placedAt).toLocaleDateString('en-IN'))}</p>
+      <p className="text-sm">
+        {copy.placed(new Date(order.placedAt).toLocaleDateString(fmt.intl))}
+      </p>
       {a ? (
         <address className="mt-4 not-italic text-sm">
           <p className="font-medium">{copy.print.shipTo}</p>

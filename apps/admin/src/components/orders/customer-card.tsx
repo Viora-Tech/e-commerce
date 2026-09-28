@@ -2,7 +2,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy } from '@/hooks/use-copy'
 import type { OrderDetail } from './order-detail-types'
 
 type CustomerCardProps = {
@@ -26,6 +27,9 @@ function ContactRow({ value, what, href }: { value: string; what: string; href: 
 
 /** Who ordered, how often they have, and where this one goes. */
 export default function CustomerCard({ order }: CustomerCardProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+
   // Render logic
   const a = order.shippingAddress
   const lines = a
@@ -111,6 +115,9 @@ type AddressBlockProps = {
 }
 
 function AddressBlock({ heading, lines, copyText, editHref }: AddressBlockProps) {
+  // Hooks
+  const copy = useCopy(orderDetailContent)
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">

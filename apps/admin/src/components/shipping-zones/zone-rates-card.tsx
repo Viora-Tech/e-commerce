@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { shippingRatesContent } from '@/data/shipping-rates'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { describeCondition, describeDelivery, describePrice, type RateDraft } from './form-state'
 import RateDialog from './rate-dialog'
 
@@ -22,11 +23,11 @@ type ZoneRatesCardProps = {
   disabled?: boolean
 }
 
-const copy = shippingRatesContent.zone.rates
-
 /** The rates of a zone: a table, with the add and edit dialog. */
 export default function ZoneRatesCard({ value, onChange, disabled }: ZoneRatesCardProps) {
   // Hooks
+  const ratesCopy = useCopy(shippingRatesContent)
+  const fmt = useFormat()
   const [editing, setEditing] = useState<RateDraft | null>(null)
   const [open, setOpen] = useState(false)
 
@@ -49,6 +50,9 @@ export default function ZoneRatesCard({ value, onChange, disabled }: ZoneRatesCa
   const handleRemove = (key: string) => {
     onChange(value.filter((r) => r.key !== key))
   }
+
+  // Render logic
+  const copy = ratesCopy.zone.rates
 
   return (
     <DataCard
@@ -87,15 +91,17 @@ export default function ZoneRatesCard({ value, onChange, disabled }: ZoneRatesCa
                     {r.name}
                   </button>
                   <div className="text-caption text-muted-foreground md:hidden">
-                    {describeCondition(r)}
+                    {describeCondition(ratesCopy, fmt, r)}
                   </div>
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {describeCondition(r)}
+                  {describeCondition(ratesCopy, fmt, r)}
                 </TableCell>
-                <TableCell className="whitespace-normal">{describePrice(r)}</TableCell>
+                <TableCell className="whitespace-normal">
+                  {describePrice(ratesCopy, fmt, r)}
+                </TableCell>
                 <TableCell className="hidden text-muted-foreground lg:table-cell">
-                  {describeDelivery(r)}
+                  {describeDelivery(ratesCopy, r)}
                 </TableCell>
                 <TableCell className="pr-5">
                   <div className="flex justify-end gap-1">

@@ -27,6 +27,10 @@ export function briefingSentence(input: {
 }
 
 export const homeContent = {
+  /** Stands in for the member's first name in the briefing when their account has none. */
+  briefing: {
+    fallbackName: 'there',
+  },
   /** Shared with `data/status.ts`'s generic stock badge (used outside the home page too). */
   bestSelling: {
     inStock: 'Stock',
@@ -120,6 +124,7 @@ export const homeContent = {
     inputHelp: 'Kept on this device for now.',
     inputError: 'Enter an amount between ₹1 and ₹1,00,00,000.',
     percentDone: (pct: number) => `${pct}% of the way there`,
+    progressOf: (done: string, goal: string) => `${done} of ${goal}`,
     daysLeft: (n: number) => (n === 1 ? '1 day left' : `${n} days left`),
     projected: (amount: string) => `On this pace, you will finish around ${amount}.`,
     noGoal: 'Set a goal to track this month against it.',
@@ -170,6 +175,14 @@ export const homeContent = {
     heatmapEmpty: 'A pattern will show up here once you have a few weeks of orders.',
     heatmapLegendLow: 'Fewer',
     heatmapLegendHigh: 'More',
+    /** "12 am" … "11 pm": the heatmap's hour names (IST). */
+    hourLabel: (h: number) => {
+      if (h === 0) return '12 am'
+      if (h < 12) return `${h} am`
+      if (h === 12) return '12 pm'
+      return `${h - 12} pm`
+    },
+    heatmapCell: (day: string, hour: string, count: number) => `${day}, ${hour}: ${count} orders`,
     days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     todayVsYesterday: 'Today vs yesterday',
   },

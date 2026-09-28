@@ -13,7 +13,8 @@ import {
   SomethingElse,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { onboardingContent as copy } from '@/data/onboarding'
+import { onboardingContent } from '@/data/onboarding'
+import { useCopy } from '@/hooks/use-copy'
 import ChoiceCard from './choice-card'
 
 type SellsWhatStepProps = {
@@ -35,6 +36,9 @@ const ICONS: Record<SellsWhat, IconComponent> = {
 
 /** Screen 2: picture cards for what the store sells; the answer picks its starter collections. */
 export default function SellsWhatStep({ value, onChange, onNext }: SellsWhatStepProps) {
+  // Hooks
+  const copy = useCopy(onboardingContent)
+
   // Render logic
   const starters = value ? starterCollections(value).map((c) => c.title) : []
 

@@ -14,9 +14,9 @@ import { Input } from '@commerce/ui/shadcn/input'
 import Link from 'next/link'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
 import type { OrderDetail } from './order-detail-types'
 
 type CollectPaymentDialogProps = {
@@ -45,6 +45,8 @@ export default function CollectPaymentDialog({
   onDone,
 }: CollectPaymentDialogProps) {
   // Hooks
+  const copy = useCopy(orderDetailContent)
+  const fmt = useFormat()
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -76,7 +78,7 @@ export default function CollectPaymentDialog({
           <DialogHeader>
             <DialogTitle>{copy.collectDialog.title}</DialogTitle>
             <DialogDescription>
-              {copy.collectDialog.body(formatPaise(balancePaise))}
+              {copy.collectDialog.body(fmt.money(balancePaise))}
               {gateway ? ` ${copy.collectDialog.gatewayNote}` : ''}
             </DialogDescription>
           </DialogHeader>

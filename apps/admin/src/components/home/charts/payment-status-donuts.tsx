@@ -10,6 +10,7 @@ import {
 import { Cell, Pie, PieChart } from 'recharts'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
+import { useCopy } from '@/hooks/use-copy'
 
 type PaymentStatusDonutsProps = {
   paymentMix: DashboardSummary['paymentMix']
@@ -32,8 +33,11 @@ type DonutProps = { title: string; slices: Slice[]; line: string | null; empty: 
 
 /** Two small donuts side by side: how customers pay, and where orders sit right now. */
 export default function PaymentStatusDonuts({ paymentMix, statusMix }: PaymentStatusDonutsProps) {
+  // Hooks
+  const copy = useCopy(homeContent)
+
   // Render logic
-  const c = homeContent.charts
+  const c = copy.charts
   const paymentSlices: Slice[] = paymentMix.map((m) => ({
     key: m.label,
     label: m.label,

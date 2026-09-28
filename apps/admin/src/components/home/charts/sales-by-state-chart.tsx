@@ -11,7 +11,7 @@ import { Bar, BarChart, Cell, XAxis, YAxis } from 'recharts'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
 import { INDIAN_STATES } from '@/data/india'
-import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 
 type SalesByStateChartProps = {
   salesByState: DashboardSummary['salesByState']
@@ -23,8 +23,12 @@ const config = { revenuePaise: { label: 'Revenue', color: 'var(--chart-3)' } } s
 
 /** Top states by revenue over the last 30 days, reusing the same rows as the order map. */
 export default function SalesByStateChart({ salesByState }: SalesByStateChartProps) {
+  // Hooks
+  const copy = useCopy(homeContent)
+  const fmt = useFormat()
+
   // Render logic
-  const c = homeContent.charts
+  const c = copy.charts
   const points = salesByState.map((s) => ({
     code: s.stateCode,
     label: stateName(s.stateCode),
@@ -50,7 +54,7 @@ export default function SalesByStateChart({ salesByState }: SalesByStateChartPro
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                tickFormatter={(v: number) => formatPaiseCompact(v)}
+                tickFormatter={(v: number) => fmt.moneyCompact(v)}
               />
               <YAxis
                 type="category"
@@ -66,7 +70,7 @@ export default function SalesByStateChart({ salesByState }: SalesByStateChartPro
                   <ChartTooltipContent
                     hideLabel
                     formatter={(v) => (
-                      <span className="font-bold tabular-nums">{formatPaise(Number(v))}</span>
+                      <span className="font-bold tabular-nums">{fmt.money(Number(v))}</span>
                     )}
                   />
                 }

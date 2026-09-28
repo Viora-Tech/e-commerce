@@ -18,6 +18,7 @@ import { useTheme } from 'next-themes'
 import { useSyncExternalStore } from 'react'
 import { commandContent } from '@/data/command-palette'
 import { navigationContent } from '@/data/navigation'
+import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
 import { openPalette } from '@/lib/palette-events'
 
@@ -48,6 +49,7 @@ function initials(name: string): string {
  */
 export default function TopBar({ user, storefrontUrl }: TopBarProps) {
   // Hooks
+  const navCopy = useCopy(navigationContent)
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   /* The theme lives in localStorage, so the server cannot know it. False while
@@ -70,7 +72,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 bg-sidebar px-4 md:pr-6 md:pl-0">
-      <SidebarTrigger className="-ml-1 md:hidden" aria-label={navigationContent.openMenu} />
+      <SidebarTrigger className="-ml-1 md:hidden" aria-label={navCopy.openMenu} />
       {/* The one search: a quiet field that opens the palette (records, actions, pages); ⌘K too. */}
       <div className="flex min-w-0 flex-1">
         <button
@@ -83,7 +85,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
           <span className="min-w-0 flex-1 truncate text-body text-muted-foreground">
             {commandContent.field}
           </span>
-          <Kbd className="hidden sm:inline-flex">{navigationContent.search.shortcut}</Kbd>
+          <Kbd className="hidden sm:inline-flex">{navCopy.search.shortcut}</Kbd>
         </button>
       </div>
 
@@ -93,22 +95,20 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
         rel="noreferrer"
         className="hidden h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-body font-medium text-ink-strong shadow-xs transition-colors hover:border-border-strong md:inline-flex"
       >
-        {navigationContent.viewStore}
+        {navCopy.viewStore}
         <ExternalLink className="size-3.5 text-muted-foreground" />
       </a>
       <div className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card py-1 pr-1 pl-1.5 shadow-xs dark:bg-secondary">
         <Popover>
           <PopoverTrigger
-            aria-label={navigationContent.notifications.label}
+            aria-label={navCopy.notifications.label}
             className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <Bell className="size-[1.125rem]" strokeWidth={1.6} />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-72">
-            <p className="text-body-strong">{navigationContent.notifications.label}</p>
-            <p className="mt-1 text-body text-muted-foreground">
-              {navigationContent.notifications.empty}
-            </p>
+            <p className="text-body-strong">{navCopy.notifications.label}</p>
+            <p className="mt-1 text-body text-muted-foreground">{navCopy.notifications.empty}</p>
           </PopoverContent>
         </Popover>
 
@@ -116,7 +116,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
           type="button"
           role="switch"
           aria-checked={dark}
-          aria-label={navigationContent.toggleTheme}
+          aria-label={navCopy.toggleTheme}
           onClick={() => setTheme(dark ? 'light' : 'dark')}
           className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 ring-1 ring-border transition-colors dark:bg-muted"
         >
@@ -130,7 +130,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label={navigationContent.account}
+            aria-label={navCopy.account}
             className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[0.625rem] dark:bg-input font-semibold tracking-tight text-foreground ring-1 ring-border transition-shadow hover:ring-border-strong"
           >
             {initials(user.name)}
@@ -147,7 +147,7 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="size-4" />
-              {navigationContent.signOut}
+              {navCopy.signOut}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

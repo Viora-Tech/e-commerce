@@ -5,6 +5,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import MoneyInput from '@/components/fields/money-input'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 /** Fields left blank are not touched; `skuPrefix` becomes PREFIX-VALUE-VALUE per row. */
 export type VariantBulkPatch = { price?: string; quantity?: string; skuPrefix?: string }
@@ -15,11 +16,10 @@ type VariantBulkBarProps = {
   onClear: () => void
 }
 
-const copy = productFormContent.variantBulk
-
 /** Set one price, quantity or SKU prefix across every selected variant row. */
 export default function VariantBulkBar({ count, onApply, onClear }: VariantBulkBarProps) {
   // Hooks
+  const { variantBulk: copy } = useCopy(productFormContent)
   const [price, setPrice] = useState('')
   const [quantity, setQuantity] = useState('')
   const [skuPrefix, setSkuPrefix] = useState('')

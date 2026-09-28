@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/pop
 import type { ReactTable, RowData } from '@tanstack/react-table'
 import type { ComponentProps, ReactNode } from 'react'
 import { tableContent } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 import type { ResourceTableFeatures } from './features'
 
 export type AppliedFilter = { key: string; label: string; onRemove: () => void }
@@ -50,6 +51,9 @@ export default function ResourceTableToolbar<T extends RowData>({
   onClearAll,
   columnTitles,
 }: ToolbarProps<T>) {
+  // Hooks
+  const tableCopy = useCopy(tableContent)
+
   // Render logic
   const hideable = table.getAllColumns().filter((c) => c.getCanHide())
   const sortable = table.getAllColumns().filter((c) => c.getCanSort())
@@ -64,8 +68,8 @@ export default function ResourceTableToolbar<T extends RowData>({
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder={tableContent.search(plural)}
-            aria-label={tableContent.search(plural)}
+            placeholder={tableCopy.search(plural)}
+            aria-label={tableCopy.search(plural)}
             className="min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground"
           />
         </label>
@@ -73,7 +77,7 @@ export default function ResourceTableToolbar<T extends RowData>({
           <Popover>
             <PopoverTrigger render={<ToolbarButton className="px-2.5" />} nativeButton>
               <SlidersHorizontal strokeWidth={1.6} />
-              {tableContent.filter}
+              {tableCopy.filter}
               {applied.length > 0 ? (
                 <span className="flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-[0.6875rem] font-semibold text-background tabular-nums">
                   {applied.length}
@@ -89,14 +93,14 @@ export default function ResourceTableToolbar<T extends RowData>({
           {sortable.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={<ToolbarButton aria-label={tableContent.sort} className="size-8" />}
+                render={<ToolbarButton aria-label={tableCopy.sort} className="size-8" />}
                 nativeButton
               >
                 <ArrowUpDown strokeWidth={1.6} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>{tableContent.sort}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{tableCopy.sort}</DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {sortable.map((column) => (
@@ -113,16 +117,14 @@ export default function ResourceTableToolbar<T extends RowData>({
           {hideable.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={
-                  <ToolbarButton aria-label={tableContent.toggleColumns} className="size-8" />
-                }
+                render={<ToolbarButton aria-label={tableCopy.toggleColumns} className="size-8" />}
                 nativeButton
               >
                 <Columns strokeWidth={1.6} />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>{tableContent.toggleColumns}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{tableCopy.toggleColumns}</DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {hideable.map((column) => (
@@ -151,7 +153,7 @@ export default function ResourceTableToolbar<T extends RowData>({
                 type="button"
                 onClick={f.onRemove}
                 className="flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
-                aria-label={tableContent.removeFilter(f.label)}
+                aria-label={tableCopy.removeFilter(f.label)}
               >
                 <X className="size-3" />
               </button>
@@ -162,7 +164,7 @@ export default function ResourceTableToolbar<T extends RowData>({
             onClick={onClearAll}
             className="ml-1 text-caption text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
-            {tableContent.clearFilters}
+            {tableCopy.clearFilters}
           </button>
         </div>
       ) : null}

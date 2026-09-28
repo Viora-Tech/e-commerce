@@ -11,6 +11,7 @@ import {
 import Link from 'next/link'
 import type { MenuLink } from '@/components/layout/card-menu'
 import { tableContent } from '@/data/table'
+import { useCopy } from '@/hooks/use-copy'
 
 export type RowIconLink = {
   label: string
@@ -37,6 +38,9 @@ function stop(e: { stopPropagation: () => void }) {
 
 /** Trailing icon cells for a ResourceTable row; clicks stay in the cell, not the row. */
 export default function RowIconCells({ links = [], menu }: RowIconCellsProps) {
+  // Hooks
+  const tableCopy = useCopy(tableContent)
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row's click-to-open; the controls inside are real links and buttons.
     // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard activation of the inner controls never reaches the row.
@@ -55,7 +59,7 @@ export default function RowIconCells({ links = [], menu }: RowIconCellsProps) {
       ))}
       {menu && menu.length > 0 ? (
         <DropdownMenu>
-          <DropdownMenuTrigger aria-label={tableContent.more} className={CELL}>
+          <DropdownMenuTrigger aria-label={tableCopy.more} className={CELL}>
             <MoreVertical aria-hidden="true" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

@@ -1,5 +1,9 @@
+'use client'
+
 import { cn } from '@commerce/ui/lib/utils'
 import { type StatusKind, type StatusTone, type StatusValue, statusEntry } from '@/data/status'
+import { useLocale } from '@/hooks/use-copy'
+import { localizeStatusLabel } from '@/lib/status-labels'
 
 type StatusLabelProps<K extends StatusKind> = {
   kind: K
@@ -57,9 +61,12 @@ export default function StatusLabel<K extends StatusKind>({
   label,
   className,
 }: StatusLabelProps<K>) {
+  // Hooks
+  const locale = useLocale()
+
   // Render logic
   const entry = statusEntry(kind, value)
-  const text = label ?? entry.label
+  const text = label ?? localizeStatusLabel(entry.label, locale)
   const Glyph = variant === 'glyph' ? entry.glyph : undefined
 
   if (variant === 'pill') {

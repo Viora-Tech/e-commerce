@@ -5,7 +5,9 @@ import { motion, useReducedMotion } from 'motion/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SETTINGS_HOME, SETTINGS_SECTIONS, settingsContent } from '@/data/settings'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { instant, pill } from '@/lib/motion'
+import { pageName } from '@/lib/page-names'
 import SettingsSearch from './settings-search'
 
 const FOCUS =
@@ -27,6 +29,8 @@ const TABS = [SETTINGS_HOME, ...SETTINGS_SECTIONS]
 /** Left rail of the settings area: search, then one tab per section, active by route. */
 export default function SettingsNav() {
   // Hooks
+  const copy = useCopy(settingsContent)
+  const locale = useLocale()
   const pathname = usePathname()
   const reduced = useReducedMotion()
 
@@ -35,7 +39,7 @@ export default function SettingsNav() {
 
   return (
     <nav
-      aria-label={settingsContent.nav.label}
+      aria-label={copy.nav.label}
       className="flex w-full flex-col gap-3 md:sticky md:top-6 md:w-56 md:shrink-0 md:self-start"
     >
       <SettingsSearch />
@@ -58,7 +62,9 @@ export default function SettingsNav() {
                   />
                 ) : null}
                 <section.icon />
-                <span className="min-w-0 truncate">{section.title}</span>
+                <span className="min-w-0 truncate">
+                  {pageName(section.href, section.title, locale)}
+                </span>
               </Link>
             </li>
           )

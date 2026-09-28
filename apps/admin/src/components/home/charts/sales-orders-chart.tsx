@@ -13,7 +13,8 @@ import { Area, Bar, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'rec
 import DataCard from '@/components/layout/data-card'
 import PillTabs from '@/components/layout/pill-tabs'
 import { homeContent } from '@/data/home'
-import { formatPaise, formatPaiseCompact } from '@/lib/money'
+import { useCopy, useFormat } from '@/hooks/use-copy'
+import { INTL_LOCALE, type Locale } from '@/lib/i18n'
 
 type SalesOrdersChartProps = {
   data: DashboardChartsData
@@ -23,15 +24,21 @@ type SalesOrdersChartProps = {
 type Metric = 'sales' | 'orders'
 
 const AXIS_TICK = { fontSize: 12, fill: 'var(--muted-foreground)' }
-const SHORT_DATE = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' })
+const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
+const SHORT_DATE: Record<Locale, Intl.DateTimeFormat> = {
+  en: new Intl.DateTimeFormat(INTL_LOCALE.en, SHORT_DATE_OPTIONS),
+  hi: new Intl.DateTimeFormat(INTL_LOCALE.hi, SHORT_DATE_OPTIONS),
+}
 
-function shortDay(iso: string): string {
-  return SHORT_DATE.format(new Date(`${iso}T00:00:00+05:30`))
+function shortDay(iso: string, locale: Locale): string {
+  return SHORT_DATE[locale].format(new Date(`${iso}T00:00:00+05:30`))
 }
 
 /** Total, and its percent change against the previous period; null when there is nothing to compare. */
-function changeLine(totals: { current: number; previous: number | null }): string | null {
-  const c = homeContent.charts
+function changeLine(
+  totals: { current: number; previous: number | null },
+  c: (typeof homeContent)['charts'],
+): string | null {
   if (totals.previous === null) return c.salesNoPrevious
   if (totals.previous === 0) return null
   const pct = ((totals.current - totals.previous) / totals.previous) * 100
@@ -46,12 +53,14 @@ function changeLine(totals: { current: number; previous: number | null }): strin
  */
 export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProps) {
   // Hooks
+  const copy = useCopy(homeContent)
+  const fmt = useFormat()
   const [metric, setMetric] = useState<Metric>('sales')
 
   // Render logic
-  const c = homeContent.charts
+  const c = copy.charts
   const points = data.days.map((day, i) => ({
-    label: shortDay(day),
+    label: shortDay(day, fmt.locale),
     sales: data.salesPaise[i] ?? 0,
     previousSales: data.previousSalesPaise?.[i] ?? null,
     orders: data.orders[i] ?? 0,
@@ -60,7 +69,7 @@ export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProp
   const previousTotalSales = data.previousSalesPaise
     ? data.previousSalesPaise.reduce((n, v) => n + v, 0)
     : null
-  const line = changeLine({ current: totalSales, previous: previousTotalSales })
+  const line = changeLine({ current: totalSales, previous: previousTotalSales }, c)
   const config = {
     sales: { label: c.salesToggle, color: 'var(--chart-1)' },
     orders: { label: c.ordersToggle, color: 'var(--chart-2)' },
@@ -112,7 +121,7 @@ export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProp
                 width={56}
                 tick={AXIS_TICK}
                 tickFormatter={(v: number) =>
-                  metric === 'sales' ? formatPaiseCompact(v) : String(v)
+                  metric === 'sales' ? fmt.moneyCompact(v) : String(v)
                 }
               />
               <ChartTooltip
@@ -129,7 +138,7 @@ export default function SalesOrdersChart({ data, loading }: SalesOrdersChartProp
                               : c.salesToggle}
                         </span>
                         <span className="font-bold tabular-nums">
-                          {name === 'orders' ? String(v) : formatPaise(Number(v))}
+                          {name === 'orders' ? String(v) : fmt.money(Number(v))}
                         </span>
                       </span>
                     )}

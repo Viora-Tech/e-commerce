@@ -29,9 +29,10 @@ import {
   ordersContent,
   PENDING_UPI,
 } from '@/data/orders'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import type { Formatters } from '@/lib/format'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
-import { formatPaise } from '@/lib/money'
 import { orderListFilter } from '@/lib/order-filter'
 import { usePrimaryAction } from '@/lib/primary-action'
 
@@ -66,7 +67,11 @@ function fetchOrders(q: Query) {
 
 /* Avatar + order number, the customer's name muted beneath: one column instead of two. */
 function OrderCell({ item }: { item: Item }) {
-  const who = item.customerName ?? item.email ?? ordersContent.guest
+  // Hooks
+  const copy = useCopy(ordersContent)
+
+  // Render logic
+  const who = item.customerName ?? item.email ?? copy.guest
   return (
     <span className="flex items-center gap-3 text-left">
       <CustomerAvatar name={item.customerName} email={item.email} />
@@ -82,6 +87,10 @@ function OrderCell({ item }: { item: Item }) {
 
 /* 32px thumb on a hairline, the first line title and a muted "+n more" under it. */
 function ProductCell({ item }: { item: Item }) {
+  // Hooks
+  const copy = useCopy(ordersContent)
+
+  // Render logic
   const extra = item.lineCount - 1
   return (
     <span className="flex items-center gap-3 text-left">
@@ -93,11 +102,11 @@ function ProductCell({ item }: { item: Item }) {
       </span>
       <span className="min-w-0">
         <span className="line-clamp-1 text-body text-foreground">
-          {item.firstLineTitle ?? ordersContent.guest}
+          {item.firstLineTitle ?? copy.guest}
         </span>
         {extra > 0 ? (
           <span className="block text-caption font-normal text-muted-foreground">
-            {ordersContent.moreLines(extra)}
+            {copy.moreLines(extra)}
           </span>
         ) : null}
       </span>
@@ -105,51 +114,53 @@ function ProductCell({ item }: { item: Item }) {
   )
 }
 
-const columns: ResourceColumnSpec<Item>[] = [
-  {
-    id: 'number',
-    title: ordersContent.columns.order,
-    sortValue: (o) => o.number,
-    hideable: false,
-    className: 'w-[15%] whitespace-normal',
-    render: (o) => <OrderCell item={o} />,
-  },
-  {
-    id: 'product',
-    title: ordersContent.columns.product,
-    align: 'start',
-    className: 'w-[30%] whitespace-normal',
-    render: (o) => <ProductCell item={o} />,
-  },
-  {
-    id: 'date',
-    title: ordersContent.columns.date,
-    sortValue: (o) => new Date(o.placedAt).getTime(),
-    render: (o) => <span className="tabular-nums">{formatDate(new Date(o.placedAt))}</span>,
-  },
-  {
-    id: 'total',
-    title: ordersContent.columns.total,
-    sortValue: (o) => o.totalPaise,
-    align: 'end',
-    render: (o) => <span className="tabular-nums">{formatPaise(o.totalPaise)}</span>,
-  },
-  {
-    id: 'payment',
-    title: ordersContent.columns.payment,
-    sortValue: (o) => o.paymentStatus,
-    render: (o) => <StatusLabel kind="orderPayment" value={o.paymentStatus} />,
-  },
-  {
-    id: 'status',
-    title: ordersContent.columns.status,
-    sortValue: (o) => `${o.status}:${o.fulfillmentStatus}`,
-    render: (o) => {
-      const stage = orderStage(o)
-      return <StatusLabel kind={stage.kind} value={stage.value} />
+function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColumnSpec<Item>[] {
+  return [
+    {
+      id: 'number',
+      title: copy.columns.order,
+      sortValue: (o) => o.number,
+      hideable: false,
+      className: 'w-[15%] whitespace-normal',
+      render: (o) => <OrderCell item={o} />,
     },
-  },
-]
+    {
+      id: 'product',
+      title: copy.columns.product,
+      align: 'start',
+      className: 'w-[30%] whitespace-normal',
+      render: (o) => <ProductCell item={o} />,
+    },
+    {
+      id: 'date',
+      title: copy.columns.date,
+      sortValue: (o) => new Date(o.placedAt).getTime(),
+      render: (o) => <span className="tabular-nums">{formatDate(new Date(o.placedAt))}</span>,
+    },
+    {
+      id: 'total',
+      title: copy.columns.total,
+      sortValue: (o) => o.totalPaise,
+      align: 'end',
+      render: (o) => <span className="tabular-nums">{fmt.money(o.totalPaise)}</span>,
+    },
+    {
+      id: 'payment',
+      title: copy.columns.payment,
+      sortValue: (o) => o.paymentStatus,
+      render: (o) => <StatusLabel kind="orderPayment" value={o.paymentStatus} />,
+    },
+    {
+      id: 'status',
+      title: copy.columns.status,
+      sortValue: (o) => `${o.status}:${o.fulfillmentStatus}`,
+      render: (o) => {
+        const stage = orderStage(o)
+        return <StatusLabel kind={stage.kind} value={stage.value} />
+      },
+    },
+  ]
+}
 
 type TabsProps = {
   value: OrderListFilter | null
@@ -159,15 +170,18 @@ type TabsProps = {
 }
 
 function StatusTabs({ value, allCount, pendingUpiCount, onChange }: TabsProps) {
+  // Hooks
+  const copy = useCopy(ordersContent)
+
   return (
     <PillTabs<OrderListFilter | null>
       value={value}
       onChange={onChange}
       tabs={[
-        { value: null, label: ordersContent.tabs.all, count: allCount },
+        { value: null, label: copy.tabs.all, count: allCount },
         ...ORDER_LIST_FILTERS.map((s) => ({
           value: s,
-          label: ordersContent.tabs[s],
+          label: copy.tabs[s],
           ...(s === PENDING_UPI ? { count: pendingUpiCount } : {}),
         })),
       ]}
@@ -177,22 +191,25 @@ function StatusTabs({ value, allCount, pendingUpiCount, onChange }: TabsProps) {
 
 /* Secondary menu first, the ink primary action last (PageHeader order). */
 function HeaderActions() {
+  // Hooks
+  const copy = useCopy(ordersContent)
+
   return (
     <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="outline" size="lg" className="pr-2" />}>
-          {ordersContent.moreActions}
+          {copy.moreActions}
           <MoreVertical className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem render={<Link href="/orders/drafts" />}>
-            {ordersContent.menu.drafts}
+            {copy.menu.drafts}
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/orders/abandoned-checkouts" />}>
-            {ordersContent.menu.abandoned}
+            {copy.menu.abandoned}
           </DropdownMenuItem>
           <DropdownMenuItem render={<Link href="/orders/returns" />}>
-            {ordersContent.menu.returns}
+            {copy.menu.returns}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -201,12 +218,12 @@ function HeaderActions() {
           render={
             <Button size="lg" render={<Link href="/orders/drafts" />} nativeButton={false}>
               <SquarePlus strokeWidth={1.6} />
-              {ordersContent.addOrder}
+              {copy.addOrder}
             </Button>
           }
         />
         <TooltipContent>
-          {ordersContent.addOrder} <Kbd>N</Kbd>
+          {copy.addOrder} <Kbd>N</Kbd>
         </TooltipContent>
       </Tooltip>
     </div>
@@ -215,6 +232,8 @@ function HeaderActions() {
 
 function OrdersContent({ initial }: { initial: OrdersInitial }) {
   // Hooks
+  const copy = useCopy(ordersContent)
+  const fmt = useFormat()
   usePrimaryAction('/orders/drafts')
   const [{ page, query, status }, setQ] = useQueryStates(
     {
@@ -249,20 +268,23 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
   const handleBulkSetStatus = async (ids: string[], mark: OrderMark, clear: () => void) => {
     try {
       await Promise.all(ids.map((id) => api.orders.setStatus({ id, status: mark })))
-      toast.success(ordersContent.bulk.updated(ids.length, ordersContent.marks[mark]))
+      toast.success(copy.bulk.updated(ids.length, copy.marks[mark]))
       clear()
       const r = await fetchOrders({ page, query, status })
       setItems(r.items)
       setTotal(r.total)
     } catch {
-      toast.error(ordersContent.bulk.failed)
+      toast.error(copy.bulk.failed)
     }
   }
 
+  // Render logic
+  const columns = orderColumns(copy, fmt)
+
   return (
-    <KitListPage title={ordersContent.heading} actions={<HeaderActions />}>
+    <KitListPage title={copy.heading} actions={<HeaderActions />}>
       <ResourceTable
-        resourceName={ordersContent.resource}
+        resourceName={copy.resource}
         columns={columns}
         items={items}
         getId={(o) => o.id}
@@ -273,18 +295,18 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
             <RowIconCells
               links={[
                 {
-                  label: ordersContent.row.openNewTab,
+                  label: copy.row.openNewTab,
                   icon: ExternalLink,
                   href: `/orders/${o.id}`,
                   newTab: true,
                 },
               ]}
               menu={[
-                { label: ordersContent.row.open, href: `/orders/${o.id}` },
+                { label: copy.row.open, href: `/orders/${o.id}` },
                 ...(o.email
                   ? [
                       {
-                        label: ordersContent.row.sameCustomer,
+                        label: copy.row.sameCustomer,
                         href: `/orders?query=${encodeURIComponent(o.email)}`,
                       },
                     ]
@@ -312,19 +334,19 @@ function OrdersContent({ initial }: { initial: OrdersInitial }) {
         bulkActions={(ids, clear) => (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              {ordersContent.bulk.markAs}
+              {copy.bulk.markAs}
               <ChevronDown />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {ORDER_MARKS.map((s) => (
                 <DropdownMenuItem key={s} onClick={() => handleBulkSetStatus(ids, s, clear)}>
-                  {ordersContent.marks[s]}
+                  {copy.marks[s]}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        empty={ordersContent.empty}
+        empty={copy.empty}
       />
     </KitListPage>
   )

@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 export type StockFilter = 'in' | 'out' | 'low'
 
@@ -27,7 +28,6 @@ type ProductFiltersProps = {
   onClear: () => void
 }
 
-const copy = productsListContent.filters
 const ANY = '__any'
 
 /** One select per facet; `__any` stands for no filter because Select needs a value. */
@@ -44,6 +44,10 @@ function FilterSelect({
   options: string[]
   onChange: (next: string | null) => void
 }) {
+  // Hooks
+  const { filters: copy } = useCopy(productsListContent)
+
+  // Render logic
   const items = Object.fromEntries([[ANY, copy.any], ...options.map((o) => [o, o])])
   return (
     <Field>
@@ -71,6 +75,9 @@ function FilterSelect({
 
 /** Contents of the filter popover on the product list. */
 export default function ProductFilters({ values, facets, onChange, onClear }: ProductFiltersProps) {
+  // Hooks
+  const { filters: copy } = useCopy(productsListContent)
+
   // Render logic
   const stockItems = Object.fromEntries([
     [ANY, copy.any],

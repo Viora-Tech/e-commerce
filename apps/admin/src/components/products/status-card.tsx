@@ -12,11 +12,8 @@ import SuggestInput from '@/components/fields/suggest-input'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { Facets } from './form-state'
-
-const copy = productFormContent
-
-const statusItems = Object.fromEntries(copy.status.options.map((o) => [o.value, o.label]))
 
 type StatusCardProps = {
   status: ProductStatus
@@ -37,7 +34,12 @@ export default function StatusCard({
   onChange,
   onVendor,
 }: StatusCardProps) {
+  // Hooks
+  const copy = useCopy(productFormContent)
+
   // Render logic
+  const statusItems = Object.fromEntries(copy.status.options.map((o) => [o.value, o.label]))
+
   return (
     <DataCard title={copy.status.heading}>
       <div className="flex flex-col gap-4">

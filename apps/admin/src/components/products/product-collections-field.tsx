@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@commerce/ui/shadcn/select'
-import { productCollectionsContent as copy } from '@/data/collections'
+import { productCollectionsContent } from '@/data/collections'
+import { useCopy } from '@/hooks/use-copy'
 
 export type CollectionOption = { id: string; title: string }
 
@@ -26,6 +27,9 @@ export default function ProductCollectionsField({
   value,
   onChange,
 }: ProductCollectionsFieldProps) {
+  // Hooks
+  const copy = useCopy(productCollectionsContent)
+
   // Event handlers
   const handleAdd = (id: unknown) => {
     const next = String(id)

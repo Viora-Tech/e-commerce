@@ -12,9 +12,10 @@ import ProviderSettingsForm, {
 } from '@/components/settings/provider-settings-form'
 import SettingsSection from '@/components/settings/settings-section'
 import UnpaidExpiryField from '@/components/settings/unpaid-expiry-field'
-import { paymentsSettingsContent as copy } from '@/data/payments'
+import { paymentsSettingsContent } from '@/data/payments'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Extra = {
@@ -26,11 +27,6 @@ type Extra = {
 }
 
 const DEFAULT_EXPIRY_MINUTES = 30
-
-const upiCopy = paymentsSetupContent.upiOptions
-
-/** Back to the main Payments page; `view=page` skips the first-time guide. */
-const BACK = { label: paymentsSetupContent.title, href: PAYMENTS_PAGE_HREF }
 
 /** Methods that confirm through the Razorpay webhook. */
 const RAZORPAY_WEBHOOK_METHODS = new Set(['razorpay', 'razorpay_upi'])
@@ -49,13 +45,12 @@ const save = (next: Parameters<typeof api.store.updatePayments>[0]) =>
   api.store.updatePayments(next)
 
 /** The plain-word helper line (and comparison) for the two UPI options. */
-const UPI_HELP: Record<string, string> = {
-  razorpay_upi: upiCopy.auto.help,
-  manual: upiCopy.manual.help,
-}
-
-function upiDescription(m: ProviderDef) {
-  const help = UPI_HELP[m.id]
+function upiDescription(upiCopy: typeof paymentsSetupContent.upiOptions, m: ProviderDef) {
+  const upiHelp: Record<string, string> = {
+    razorpay_upi: upiCopy.auto.help,
+    manual: upiCopy.manual.help,
+  }
+  const help = upiHelp[m.id]
   if (!help) return null
   return (
     <p className="flex flex-wrap items-center gap-x-2">
@@ -64,7 +59,7 @@ function upiDescription(m: ProviderDef) {
   )
 }
 
-function webhookHint(m: ProviderDef) {
+function webhookHint(copy: typeof paymentsSettingsContent, m: ProviderDef) {
   if (!RAZORPAY_WEBHOOK_METHODS.has(m.id)) return null
   return (
     <p className="text-caption text-muted-foreground">
@@ -91,8 +86,12 @@ function adjustmentFields(m: ProviderDef, extra: Extra, setExtra: (next: Extra) 
   )
 }
 
-function footer(extra: Extra, setExtra: (next: Extra) => void) {
-  const [, unpaid, preorders] = settingsContent.sections.payments
+function footer(
+  sections: typeof settingsContent.sections.payments,
+  extra: Extra,
+  setExtra: (next: Extra) => void,
+) {
+  const [, unpaid, preorders] = sections
   return (
     <>
       <SettingsSection id={unpaid?.id ?? 'section-unpaid'} className="flex flex-col gap-4">
@@ -114,6 +113,17 @@ function footer(extra: Extra, setExtra: (next: Extra) => void) {
 }
 
 export default function AdvancedPayments() {
+  // Hooks
+  const copy = useCopy(paymentsSettingsContent)
+  const setupCopy = useCopy(paymentsSetupContent)
+  const {
+    sections: { payments: sections },
+  } = useCopy(settingsContent)
+
+  // Render logic
+  /** Back to the main Payments page; `view=page` skips the first-time guide. */
+  const back = { label: setupCopy.title, href: PAYMENTS_PAGE_HREF }
+
   return (
     <div className="flex flex-col gap-3">
       <BackToPayments />
@@ -128,12 +138,12 @@ export default function AdvancedPayments() {
           expireUnpaidAfterMinutes: DEFAULT_EXPIRY_MINUTES,
           manualCancelAfterHours: 0,
         }}
-        renderHint={webhookHint}
-        renderDescription={upiDescription}
-        back={BACK}
+        renderHint={(m) => webhookHint(copy, m)}
+        renderDescription={(m) => upiDescription(setupCopy.upiOptions, m)}
+        back={back}
         renderExtra={adjustmentFields}
-        renderFooter={footer}
-        sections={settingsContent.sections.payments}
+        renderFooter={(extra, setExtra) => footer(sections, extra, setExtra)}
+        sections={sections}
       />
     </div>
   )

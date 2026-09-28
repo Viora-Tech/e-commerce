@@ -9,10 +9,9 @@ import {
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
 import Link from 'next/link'
-import { paymentsSetupContent as setupCopy } from '@/data/payments-setup'
+import { paymentsSetupContent } from '@/data/payments-setup'
+import { useCopy } from '@/hooks/use-copy'
 import UpiOptions from './upi-options'
-
-const copy = setupCopy.advanced
 
 /**
  * Advanced, closed by default: bank transfer / UPI QR, fees per method and
@@ -20,6 +19,9 @@ const copy = setupCopy.advanced
  * payments are captured when the shopper pays, so we say so instead.
  */
 export default function AdvancedSection() {
+  // Hooks
+  const { advanced: copy } = useCopy(paymentsSetupContent)
+
   return (
     <Collapsible>
       <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">

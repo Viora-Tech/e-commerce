@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
 import DashboardPage from '@/components/home/dashboard-page'
+import { homeContent } from '@/data/home'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getSession } from '@/lib/auth'
+import { getCopy } from '@/lib/copy-server'
 
 export default async function Home() {
   const context = await serverContext()
@@ -12,6 +14,7 @@ export default async function Home() {
     call(appRouter.dashboard.charts, { range: 30 }, { context }),
     getSession(),
   ])
-  const firstName = (session?.user.name ?? 'there').trim().split(/\s+/)[0] ?? 'there'
+  const { fallbackName } = (await getCopy(homeContent)).briefing
+  const firstName = (session?.user.name ?? fallbackName).trim().split(/\s+/)[0] ?? fallbackName
   return <DashboardPage summary={summary} charts={charts} firstName={firstName} />
 }

@@ -3,6 +3,7 @@
 import { cn } from '@commerce/ui/lib/utils'
 import { type MouseEvent, useEffect, useState } from 'react'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 
 type ProductSectionNavProps = {
   /** Only sections actually rendered for this product (e.g. "pricing" is hidden once it has variants). */
@@ -11,12 +12,11 @@ type ProductSectionNavProps = {
   onJump?: (id: string) => void
 }
 
-const LABEL: Record<string, string> = productFormContent.sectionNav.labels
-
 /** Compact jump-link row inside the sticky page header: Media, Details, Pricing… down to More,
  *  highlighting whichever section is in view. */
 export default function ProductSectionNav({ sections, onJump }: ProductSectionNavProps) {
   // Hooks
+  const { sectionNav: copy } = useCopy(productFormContent)
   const [active, setActive] = useState<string | undefined>(sections[0])
 
   useEffect(() => {
@@ -48,11 +48,10 @@ export default function ProductSectionNav({ sections, onJump }: ProductSectionNa
   }
 
   // Render logic
+  const labels: Record<string, string> = copy.labels
+
   return (
-    <nav
-      aria-label={productFormContent.sectionNav.label}
-      className="no-scrollbar -mx-1 -mb-2 flex gap-1 overflow-x-auto"
-    >
+    <nav aria-label={copy.label} className="no-scrollbar -mx-1 -mb-2 flex gap-1 overflow-x-auto">
       {sections.map((id) => (
         <a
           key={id}
@@ -65,7 +64,7 @@ export default function ProductSectionNav({ sections, onJump }: ProductSectionNa
               : 'text-muted-foreground hover:bg-muted hover:text-foreground',
           )}
         >
-          {LABEL[id] ?? id}
+          {labels[id] ?? id}
         </a>
       ))}
     </nav>

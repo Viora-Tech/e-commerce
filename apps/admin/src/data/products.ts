@@ -48,6 +48,7 @@ export const productsListContent = {
   inStock: (available: number) => `${available} in stock`,
   variants: (n: number) => `${n} variant${n === 1 ? '' : 's'}`,
   none: '',
+  priceRange: (min: string, max: string) => `${min} to ${max}`,
   preorderPill: 'Pre-order',
   launching: (date: Date) =>
     `Launching ${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
@@ -134,6 +135,13 @@ export const productFormContent = {
     title: 'Add a title',
     variantsBanner: 'Fix the variants before saving',
     required: 'Required',
+    /** Inline validation from `formErrors` in components/products/form-state.ts. */
+    optionNeedsValue: (option: string) => `Add at least one value to ${option}`,
+    newOption: 'the new option',
+    priceMissing: (variant: string) => `Price is missing for ${variant}`,
+    depositMissing: 'Enter a deposit amount',
+    depositTooHigh: 'The deposit must be less than the price',
+    depositPercent: 'Enter a percentage between 1 and 99',
   },
   /** Aria label for the money prefix so screen readers read the currency. */
   currency: 'Rupees',

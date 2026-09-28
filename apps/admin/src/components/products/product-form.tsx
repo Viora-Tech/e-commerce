@@ -25,6 +25,7 @@ import MetafieldsCard from '@/components/metaobjects/metafields-card'
 import StatusLabel from '@/components/status/status-label'
 import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent, productsListContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import {
   emptyForm,
@@ -61,8 +62,6 @@ type ProductFormProps = {
   storefrontOrigin: string
 }
 
-const copy = productFormContent
-
 /** Jump-nav targets in page order; pricing and inventory move into the variants table once options exist. */
 const SINGLE_SECTIONS = [
   'media',
@@ -91,6 +90,8 @@ function colourValues(options: OptionRow[]): string[] {
 
 export default function ProductForm({ product, facets, storefrontOrigin }: ProductFormProps) {
   // Hooks
+  const copy = useCopy(productFormContent)
+  const listCopy = useCopy(productsListContent)
   const router = useRouter()
   const [form, setForm] = useState<ProductFormState>(() => initialForm(product))
   const [saved, setSaved] = useState(() => snapshot(initialForm(product)))
@@ -132,7 +133,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
   const handleSave = async (status?: ProductStatus) => {
     setAttempted(true)
     const next = status ? { ...form, status } : form
-    const found = formErrors(next)
+    const found = formErrors(copy, next)
     if (found.preorderDeposit) setMoreOpen(true)
     if (Object.keys(found).length) return
     if (status) setForm(next)
@@ -197,7 +198,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
 
   // Render logic
   const isDirty = snapshot(form) !== saved
-  const errors = formErrors(form)
+  const errors = formErrors(copy, form)
   const showErrors = attempted
   const single = matrixOptions(form.options).length === 0
   const savedForm = JSON.parse(saved) as ProductFormState
@@ -228,7 +229,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
               product ? <StatusLabel kind="product" value={form.status} variant="pill" /> : null
             }
             breadcrumbs={[
-              { label: productsListContent.title, href: '/products' },
+              { label: listCopy.title, href: '/products' },
               { label: product ? product.title : copy.newTitle },
             ]}
             actions={

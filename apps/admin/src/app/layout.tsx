@@ -4,7 +4,10 @@ import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
 import './globals.css'
+import LocaleProvider from '@/components/layout/locale-provider'
 import { layoutContent } from '@/data/layout'
+import { localize } from '@/lib/copy'
+import { getLocale } from '@/lib/copy-server'
 
 export const metadata: Metadata = { title: 'Admin' }
 
@@ -16,9 +19,14 @@ const sans = Geist({
   fallback: ['system-ui', 'sans-serif'],
 })
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // The admin language comes from a cookie and is read here, on the server, so the first
+  // paint is already in it (no flash) and client components get it through LocaleProvider.
+  const locale = await getLocale()
+  const copy = localize(layoutContent, locale)
+
   return (
-    <html lang="en" className={sans.variable} suppressHydrationWarning>
+    <html lang={locale} className={sans.variable} suppressHydrationWarning>
       {/* Extensions such as Grammarly write attributes onto <body> before React hydrates
           (data-gr-ext-installed, an inline margin). This only silences <body>'s own
           attributes; everything inside it is still checked. */}
@@ -30,10 +38,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-card focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          {layoutContent.skipToContent}
+          {copy.skipToContent}
         </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <NuqsAdapter>{children}</NuqsAdapter>
+          <NuqsAdapter>
+            <LocaleProvider locale={locale}>{children}</LocaleProvider>
+          </NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>

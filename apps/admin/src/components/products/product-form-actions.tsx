@@ -4,6 +4,7 @@ import { Copy, ExternalLink, Trash2 } from '@commerce/ui/icons'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import KitButton from '@/components/kit/kit-button'
 import { productFormContent } from '@/data/products'
+import { useCopy } from '@/hooks/use-copy'
 import type { LoadedProduct } from './form-state'
 
 type ProductFormActionsProps = {
@@ -14,8 +15,6 @@ type ProductFormActionsProps = {
   onDelete: () => void
 }
 
-const copy = productFormContent
-
 /** Preview, duplicate and delete for a saved product; publishing lives on the frame's buttons. */
 export default function ProductFormActions({
   product,
@@ -24,6 +23,9 @@ export default function ProductFormActions({
   onDuplicate,
   onDelete,
 }: ProductFormActionsProps) {
+  // Hooks
+  const copy = useCopy(productFormContent)
+
   // Render logic
   return (
     <Card size="form" className="p-4">

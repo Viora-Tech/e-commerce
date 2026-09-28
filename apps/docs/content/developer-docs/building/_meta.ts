@@ -11,6 +11,7 @@ export default {
   'dynamic-sources': 'Dynamic sources',
   'custom-sections': 'Slots and custom sections',
   performance: 'Storefront performance',
+  'admin-languages': 'Admin languages (Hindi)',
   security: 'Security',
   conventions: 'Conventions',
   guardrails: 'Guardrails and sweeps',

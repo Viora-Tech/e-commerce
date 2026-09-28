@@ -3,17 +3,11 @@
 import type { DashboardSummary } from '@commerce/api'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
+import { useCopy } from '@/hooks/use-copy'
 
 type HoursHeatmapProps = {
   hoursHeatmap: DashboardSummary['hoursHeatmap']
 }
-
-const HOUR_LABELS = Array.from({ length: 24 }, (_, h) => {
-  if (h === 0) return '12 am'
-  if (h < 12) return `${h} am`
-  if (h === 12) return '12 pm'
-  return `${h - 12} pm`
-})
 
 type Peak = { weekday: number; fromHour: number; toHour: number } | null
 
@@ -43,15 +37,18 @@ function opacityFor(count: number, max: number): number {
 
 /** Orders by weekday x hour (IST, last 30 days), so the owner sees when people actually buy. */
 export default function HoursHeatmap({ hoursHeatmap }: HoursHeatmapProps) {
+  // Hooks
+  const copy = useCopy(homeContent)
+
   // Render logic
-  const c = homeContent.charts
+  const c = copy.charts
   const max = Math.max(0, ...hoursHeatmap.flat())
   const peak = findPeak(hoursHeatmap)
   const line = peak
     ? c.heatmapLine(
         c.days[peak.weekday] ?? '',
-        HOUR_LABELS[peak.fromHour] ?? '',
-        HOUR_LABELS[peak.toHour % 24] ?? '',
+        c.hourLabel(peak.fromHour),
+        c.hourLabel(peak.toHour % 24),
       )
     : null
 
@@ -78,7 +75,11 @@ export default function HoursHeatmap({ hoursHeatmap }: HoursHeatmapProps) {
                       <td key={`${weekday}-${hour}`} className="p-0">
                         <div
                           role="img"
-                          aria-label={`${c.days[weekday]}, ${HOUR_LABELS[hour]}: ${count} orders`}
+                          aria-label={c.heatmapCell(
+                            c.days[weekday] ?? '',
+                            c.hourLabel(hour),
+                            count,
+                          )}
                           className="size-[0.5625rem] rounded-[0.1875rem] sm:size-[0.75rem]"
                           style={{
                             backgroundColor: 'var(--chart-1)',

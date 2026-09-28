@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
-import { paymentsSettingsContent as copy } from '@/data/payments'
+import { paymentsSettingsContent } from '@/data/payments'
+import { useCopy } from '@/hooks/use-copy'
 
 type UnpaidExpiryFieldProps = {
   /** Minutes; 0 means never. */
@@ -22,6 +23,9 @@ const toMinutes = (raw: string): number => {
 
 /** Settings › Payments: how long an online order may stay unpaid before it is cancelled. */
 export default function UnpaidExpiryField({ value, onChange }: UnpaidExpiryFieldProps) {
+  // Hooks
+  const copy = useCopy(paymentsSettingsContent)
+
   return (
     <Card size="form">
       <CardHeader>

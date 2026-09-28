@@ -1,4 +1,4 @@
-import { orderDetailContent as copy } from '@/data/orders'
+import { orderDetailContent } from '@/data/orders'
 import type { StatusValue } from '@/data/status'
 import type { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
@@ -64,6 +64,7 @@ export function isOfflineMethod(method: string | null): boolean {
   return method !== null && OFFLINE_METHODS.has(method)
 }
 
-export function methodLabel(provider: string): string {
+/** `copy` is the caller's `useCopy(orderDetailContent)`; English when left out. */
+export function methodLabel(provider: string, copy = orderDetailContent): string {
   return copy.payment.method[provider] ?? cap(provider)
 }

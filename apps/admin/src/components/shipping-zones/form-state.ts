@@ -3,9 +3,9 @@ import type {
   ShippingRateCondition,
   ShippingZoneWrite,
 } from '@commerce/core/shipping-rates'
-import { shippingRatesContent } from '@/data/shipping-rates'
+import type { shippingRatesContent } from '@/data/shipping-rates'
 import type { api } from '@/lib/api-client'
-import { formatPaise } from '@/lib/money'
+import type { Formatters } from '@/lib/format'
 
 export type LoadedZone = NonNullable<Awaited<ReturnType<typeof api.shipping.zones.get>>>
 type LoadedRate = LoadedZone['rates'][number]
@@ -34,7 +34,8 @@ export type ZoneFormState = {
   rates: RateDraft[]
 }
 
-const copy = shippingRatesContent
+/** `shippingRatesContent` in the member's language, from `useCopy`. */
+type RatesCopy = typeof shippingRatesContent
 
 const rupees = (paise: number | null): string => (paise === null ? '' : String(paise / 100))
 const text = (n: number | null): string => (n === null ? '' : String(n))
@@ -108,6 +109,7 @@ function bounds(r: RateDraft): { minValue: number | null; maxValue: number | nul
 }
 
 export function rateErrors(
+  copy: RatesCopy,
   r: RateDraft,
 ): Partial<Record<'name' | 'price' | 'band' | 'transit', string>> {
   const errors: Partial<Record<'name' | 'price' | 'band' | 'transit', string>> = {}
@@ -147,12 +149,12 @@ export function toZoneInput(f: ZoneFormState): ShippingZoneWrite {
 }
 
 /** "Any order", "Order value ₹0 to ₹499", "Weight 500 g and up". */
-export function describeCondition(r: RateDraft): string {
+export function describeCondition(copy: RatesCopy, fmt: Formatters, r: RateDraft): string {
   const { minValue, maxValue } = bounds(r)
   if (r.condition === 'order_value') {
     return copy.zone.conditions.valueBand(
-      formatPaise(minValue ?? 0),
-      maxValue === null ? null : formatPaise(maxValue),
+      fmt.money(minValue ?? 0),
+      maxValue === null ? null : fmt.money(maxValue),
     )
   }
   if (r.condition === 'weight') {
@@ -163,19 +165,19 @@ export function describeCondition(r: RateDraft): string {
 }
 
 /** "₹49 · Free above ₹999 · COD fee ₹29" for a rate row. */
-export function describePrice(r: RateDraft): string {
+export function describePrice(copy: RatesCopy, fmt: Formatters, r: RateDraft): string {
   const input = toRateInput(r)
-  const parts = [input.pricePaise === 0 ? copy.zone.rates.free : formatPaise(input.pricePaise)]
+  const parts = [input.pricePaise === 0 ? copy.zone.rates.free : fmt.money(input.pricePaise)]
   if (input.freeAbovePaise !== null) {
-    parts.push(copy.zone.rates.freeAbove(formatPaise(input.freeAbovePaise)))
+    parts.push(copy.zone.rates.freeAbove(fmt.money(input.freeAbovePaise)))
   }
   if (input.codSurchargePaise !== null) {
-    parts.push(copy.zone.rates.codFee(formatPaise(input.codSurchargePaise)))
+    parts.push(copy.zone.rates.codFee(fmt.money(input.codSurchargePaise)))
   }
   return parts.join(' · ')
 }
 
-export function describeDelivery(r: RateDraft): string {
+export function describeDelivery(copy: RatesCopy, r: RateDraft): string {
   const lo = whole(r.minDays)
   const hi = whole(r.maxDays)
   if (lo === null || hi === null) return copy.zone.rates.courier
