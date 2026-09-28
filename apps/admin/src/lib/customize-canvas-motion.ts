@@ -14,7 +14,7 @@ import type { PuckAction } from '@puckeditor/core'
  * `.tsx` files.
  */
 
-// Subtle and quick (150–220 ms), easing out, never overshooting: the canvas
+// Subtle and quick (150 to 200 ms), easing out, never overshooting: the canvas
 // should feel responsive, not animated.
 const DURATION_MOVE = 200
 const DURATION_ENTER = 200
@@ -143,7 +143,7 @@ function installInsertRing(doc: Document): () => void {
   let known = new Set(components(doc).map(idOf))
 
   const ring = (el: HTMLElement) => {
-    el.style.animation = 'puck-insert-ring 220ms ease-out'
+    el.style.animation = 'puck-insert-ring 200ms ease-out'
     const clear = () => {
       el.style.animation = ''
       el.removeEventListener('animationend', clear)

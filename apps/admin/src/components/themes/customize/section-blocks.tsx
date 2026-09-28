@@ -10,6 +10,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { customizeContent } from '@/data/customize'
+import { CHROME_FOCUS, CHROME_ROW_HOVER, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import type { BlockList } from '@/lib/customize-insert'
 
 type SectionBlocksProps = {
@@ -21,8 +22,12 @@ type SectionBlocksProps = {
 
 const copy = customizeContent.tree
 
-const ADD_ROW =
-  'flex h-7 w-full items-center gap-2 rounded-md pl-2 text-left text-xs text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground data-[popup-open]:bg-muted motion-reduce:transition-none'
+const ADD_ROW = cn(
+  'flex h-8 w-full items-center gap-2 rounded-lg pl-2 text-left text-xs text-muted-foreground data-[popup-open]:bg-muted/60',
+  CHROME_ROW_HOVER,
+  CHROME_TRANSITION,
+  CHROME_FOCUS,
+)
 
 /**
  * The blocks nested under a section (its slides, columns, logos …), with
@@ -40,13 +45,14 @@ export default function SectionBlocks({ lists, onSelect, onAdd, onRemove }: Sect
     list.blocks.map((block) => ({ ...block, canRemove: list.canRemove })),
   )
   const addIcon = (
-    <span className="flex size-4 items-center justify-center rounded border border-dashed border-border-strong">
-      <Plus aria-hidden className="size-2.5" />
+    <span className="flex size-4 items-center justify-center rounded-sm text-muted-foreground">
+      <Plus aria-hidden className="size-3.5" />
     </span>
   )
 
   return (
-    <div className="ml-7 flex flex-col border-l border-border py-0.5 pl-1.5">
+    // The hairline on the left is the tree's indent guide, lined up under the parent's chevron.
+    <div className="ml-6 flex flex-col border-l border-border/80 py-0.5 pl-1.5">
       <AnimatePresence initial={false}>
         {rows.map((block) => (
           <motion.div
@@ -61,9 +67,14 @@ export default function SectionBlocks({ lists, onSelect, onAdd, onRemove }: Sect
               type="button"
               onClick={onSelect}
               aria-label={copy.selectBlock(block.title)}
-              className="flex h-7 w-full items-center gap-2 rounded-md pr-7 pl-2 text-left text-xs text-foreground/80 transition-colors duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
+              className={cn(
+                'flex h-8 w-full items-center gap-2 rounded-lg pr-8 pl-2 text-left text-[0.8125rem] text-foreground/80',
+                CHROME_ROW_HOVER,
+                CHROME_TRANSITION,
+                CHROME_FOCUS,
+              )}
             >
-              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-border-strong" />
+              <span aria-hidden className="size-1 shrink-0 rounded-full bg-muted-foreground/60" />
               <span className="truncate">{block.title}</span>
             </button>
             {block.canRemove ? (
@@ -72,9 +83,12 @@ export default function SectionBlocks({ lists, onSelect, onAdd, onRemove }: Sect
                 onClick={() => onRemove(block.key, block.index)}
                 aria-label={copy.removeBlock(block.title)}
                 title={copy.removeBlock(block.title)}
-                className="absolute top-1/2 right-1 hidden size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground group-hover/block:flex group-focus-within/block:flex hover:bg-card hover:text-foreground"
+                className={cn(
+                  'absolute top-1/2 right-1 hidden size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground group-hover/block:flex group-focus-within/block:flex hover:bg-muted hover:text-foreground',
+                  CHROME_FOCUS,
+                )}
               >
-                <X aria-hidden className="size-3" />
+                <X aria-hidden className="size-3.5" />
               </button>
             ) : null}
           </motion.div>
@@ -90,7 +104,7 @@ export default function SectionBlocks({ lists, onSelect, onAdd, onRemove }: Sect
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <button type="button" className={cn(ADD_ROW)}>
+              <button type="button" className={ADD_ROW}>
                 {addIcon}
                 {copy.addBlock}
               </button>

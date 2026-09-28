@@ -4,6 +4,7 @@ import { SECTION_CATEGORIES } from '@commerce/blocks/puck'
 import { GROUP_SECTIONS, type SectionGroup } from '@commerce/core/theme'
 import { SearchX } from '@commerce/ui/icons'
 import { customizeContent } from '@/data/customize'
+import { CHROME_GROUP_LABEL } from '@/lib/customize-chrome'
 import SectionCard from './section-card'
 
 type SectionsTabProps = {
@@ -52,8 +53,8 @@ export default function SectionsTab({
   if (categories.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-          <SearchX aria-hidden weight="light" className="size-4" />
+        <span className="flex size-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <SearchX aria-hidden className="size-4" />
         </span>
         <p className="text-[0.8125rem] font-medium text-foreground">{copy.empty}</p>
         <p className="text-xs text-muted-foreground">{copy.emptyHint}</p>
@@ -66,7 +67,9 @@ export default function SectionsTab({
     <>
       {categories.map((c) => (
         <div key={c.title} className="flex flex-col">
-          <p className="sticky top-0 z-10 bg-popover px-2 pt-3 pb-1 text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase">
+          <p
+            className={`sticky top-0 z-10 bg-[var(--add-surface,var(--popover))] px-2 pt-3 pb-1 ${CHROME_GROUP_LABEL}`}
+          >
             {c.title}
           </p>
           {c.types.map((type) => (

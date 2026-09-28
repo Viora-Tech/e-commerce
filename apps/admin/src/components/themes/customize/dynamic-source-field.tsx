@@ -96,7 +96,7 @@ export default function DynamicSourceField({
           onChange={() => setPicking(true)}
           onDisconnect={handleDisconnect}
         />
-        <p className="text-caption text-muted-foreground">{copy.fallbackNote}</p>
+        <p className="text-[0.6875rem] leading-4 text-muted-foreground">{copy.fallbackNote}</p>
         {picker}
       </FieldFrame>
     )
@@ -113,9 +113,9 @@ export default function DynamicSourceField({
         disabled={readOnly}
         aria-label={copy.connect}
         title={copy.connect}
-        className="absolute -top-1 right-0 text-muted-foreground hover:text-primary"
+        className="absolute -top-1 right-0 size-6 rounded-md text-muted-foreground hover:text-primary"
       >
-        <DynamicSource aria-hidden className="size-4" />
+        <DynamicSource aria-hidden className="size-3.5" />
       </Button>
       {picker}
     </div>

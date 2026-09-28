@@ -47,20 +47,23 @@ export default function CustomizeTopBar({
 }: CustomizeTopBarProps) {
   // Render logic
   return (
-    <header className="grid h-14 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 border-b border-border bg-card px-4">
+    <header className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 px-3">
       <div className="flex min-w-0 items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
+          className="rounded-lg"
           aria-label={editor.back}
           title={editor.back}
           nativeButton={false}
           render={<Link href="/online-store/themes" />}
         >
-          <ArrowLeft aria-hidden />
+          <ArrowLeft aria-hidden className="size-4" />
         </Button>
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-body font-semibold text-foreground">{name}</h1>
+          <h1 className="truncate text-[0.8125rem] leading-5 font-semibold tracking-tight text-foreground">
+            {name}
+          </h1>
           <Badge variant={live ? 'success' : 'neutral'}>{live ? editor.live : editor.draft}</Badge>
         </div>
       </div>
@@ -68,7 +71,7 @@ export default function CustomizeTopBar({
       <div className="flex items-center justify-end gap-3">
         <span
           role="status"
-          className="flex shrink-0 items-center gap-1.5 text-caption text-muted-foreground"
+          className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
           aria-live="polite"
         >
           {dirty ? (
@@ -79,8 +82,14 @@ export default function CustomizeTopBar({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="icon" aria-label={copy.more} title={copy.more}>
-                <MoreHorizontal aria-hidden />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-lg"
+                aria-label={copy.more}
+                title={copy.more}
+              >
+                <MoreHorizontal aria-hidden className="size-4" />
               </Button>
             }
           />
@@ -99,7 +108,12 @@ export default function CustomizeTopBar({
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="default" onClick={onSave} disabled={!dirty || saving}>
+        <Button
+          variant="default"
+          className="rounded-lg"
+          onClick={onSave}
+          disabled={!dirty || saving}
+        >
           {saving ? <Spinner /> : null}
           {copy.save}
         </Button>

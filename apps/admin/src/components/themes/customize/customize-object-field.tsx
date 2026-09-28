@@ -137,8 +137,8 @@ export default function CustomizeObjectField({
 
   return (
     <Collapsible className="rounded-lg border border-border">
-      <CollapsibleTrigger className="group flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-xs font-medium text-foreground/80 hover:bg-muted/60">
-        <Icon aria-hidden weight="light" className="size-3.5 shrink-0 text-muted-foreground" />
+      <CollapsibleTrigger className="group flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-xs font-medium text-foreground/80 transition-colors duration-150 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none focus-visible:ring-inset motion-reduce:transition-none">
+        <Icon aria-hidden weight="regular" className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="flex-1 truncate">{label}</span>
         <ChevronDown
           aria-hidden

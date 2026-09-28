@@ -52,8 +52,8 @@ export default function CustomizeArrayItem({
   const showMenu = canDuplicate || canDelete
 
   return (
-    <Collapsible className="rounded-xl border border-border bg-card">
-      <div className="flex items-center gap-2 px-1.5 py-1.5">
+    <Collapsible className="rounded-lg border border-border bg-card">
+      <div className="flex min-h-10 items-center gap-2 px-1.5 py-1">
         {handle}
         {thumbnail ? (
           <Image
@@ -65,7 +65,9 @@ export default function CustomizeArrayItem({
           />
         ) : null}
         <CollapsibleTrigger className="group flex min-w-0 flex-1 items-center gap-1.5 text-left">
-          <span className="truncate text-body-strong text-foreground">{title}</span>
+          <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
+            {title}
+          </span>
           <ChevronDown
             aria-hidden
             className="size-3.5 shrink-0 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180"
@@ -79,9 +81,9 @@ export default function CustomizeArrayItem({
                   type="button"
                   aria-label={copy.more(title)}
                   title={copy.more(title)}
-                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:outline-none motion-reduce:transition-none"
                 >
-                  <MoreHorizontal aria-hidden />
+                  <MoreHorizontal aria-hidden className="size-4" />
                 </button>
               }
             />

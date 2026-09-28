@@ -3,10 +3,10 @@
 import type { SectionGroup } from '@commerce/core/theme'
 import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { CHROME_FOCUS, CHROME_ROW_HOVER, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import AddSectionBrowser from './add-section-browser'
 
 type AddSectionPopoverProps = {
@@ -51,22 +51,26 @@ export default function AddSectionPopover({
           'focus-visible:[&>*]:opacity-100 data-[popup-open]:[&>*]:opacity-100 hover:[&>*]:opacity-100',
         )}
       >
-        <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-sm transition-opacity duration-150 motion-reduce:transition-none">
-          <Plus aria-hidden className="size-2.5" />
-        </span>
-        <span className="h-0.5 flex-1 rounded-full bg-primary opacity-0 transition-opacity duration-150 motion-reduce:transition-none" />
-      </button>
-    ) : (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="group/add h-8 w-full justify-start gap-2 rounded-lg pl-6 text-[0.8125rem] font-normal text-muted-foreground hover:text-foreground data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
-      >
-        <span className="flex size-5 items-center justify-center rounded-md border border-dashed border-border-strong transition-colors duration-150 group-hover/add:border-primary group-hover/add:text-primary">
+        <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-card text-primary opacity-0 ring-1 ring-primary transition-opacity duration-150 motion-reduce:transition-none">
           <Plus aria-hidden className="size-3" />
         </span>
+        <span className="h-px flex-1 bg-primary opacity-0 transition-opacity duration-150 motion-reduce:transition-none" />
+      </button>
+    ) : (
+      <button
+        type="button"
+        className={cn(
+          'group/add flex h-8 w-full items-center gap-2 rounded-lg pl-[1.375rem] text-left text-[0.8125rem] text-muted-foreground data-[popup-open]:bg-muted/60 data-[popup-open]:text-foreground',
+          CHROME_ROW_HOVER,
+          CHROME_TRANSITION,
+          CHROME_FOCUS,
+        )}
+      >
+        <span className="flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 group-hover/add:text-primary motion-reduce:transition-none">
+          <Plus aria-hidden className="size-4" />
+        </span>
         {copy.add}
-      </Button>
+      </button>
     )
 
   return (

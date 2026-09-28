@@ -52,7 +52,7 @@ export default function ResponsiveNumberField({
           <span key={key} className="relative flex items-center" title={copy.breakpoints[key]}>
             <Icon
               aria-hidden
-              weight="light"
+              weight="regular"
               className="pointer-events-none absolute left-2 size-3.5 text-muted-foreground"
             />
             <Input

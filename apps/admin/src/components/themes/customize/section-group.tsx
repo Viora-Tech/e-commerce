@@ -11,6 +11,7 @@ import { SortableList } from '@commerce/ui/sortable'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { customizeContent, sectionSortLabels } from '@/data/customize'
+import { CHROME_FOCUS, CHROME_GROUP_LABEL, CHROME_TRANSITION } from '@/lib/customize-chrome'
 import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import AddSectionPopover from './add-section-popover'
@@ -75,25 +76,28 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
   const count = sections.length
 
   return (
-    <section className="flex flex-col border-border px-2 py-2 not-first:border-t">
+    <section className="flex flex-col border-border px-2 py-2 not-first:border-t not-first:border-border/70">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={copy.groupToggle(title)}
-        className="flex h-7 items-center gap-2 rounded-md px-2 text-left text-[0.6875rem] font-semibold tracking-wider text-muted-foreground uppercase transition-colors duration-150 hover:text-foreground motion-reduce:transition-none"
+        className={cn(
+          'group/heading flex h-7 items-center gap-1.5 rounded-md px-2 text-left hover:text-foreground',
+          CHROME_GROUP_LABEL,
+          CHROME_TRANSITION,
+          CHROME_FOCUS,
+        )}
       >
-        <span className="flex-1">{title}</span>
-        <span className="rounded-full bg-muted px-1.5 text-[0.625rem] leading-4 font-medium tracking-normal tabular-nums">
-          {count}
-        </span>
         <ChevronDown
           aria-hidden
           className={cn(
-            'size-3.5 transition-transform duration-200 motion-reduce:transition-none',
+            'size-3 transition-transform duration-200 motion-reduce:transition-none',
             !open && '-rotate-90',
           )}
         />
+        <span className="flex-1 group-hover/heading:text-foreground">{title}</span>
+        <span className="min-w-4 text-right tabular-nums text-muted-foreground/80">{count}</span>
       </button>
       <AnimatePresence initial={false}>
         {open ? (
@@ -108,7 +112,7 @@ export default function SectionGroup({ title, zone, group, sections }: SectionGr
           >
             <div className="flex flex-col gap-0.5">
               {count === 0 ? (
-                <p className="px-2 py-1 text-xs text-muted-foreground">{copy.empty}</p>
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">{copy.empty}</p>
               ) : null}
               <SortableList
                 items={items}

@@ -68,7 +68,7 @@ one to add to.
 
 ## Motion
 
-All editor motion uses Motion (`motion/react`), 150 to 220 ms, easing out, never overshooting,
+All editor motion uses Motion (`motion/react`), 150 to 200 ms, easing out, never overshooting,
 and switches off under `prefers-reduced-motion` (`useReducedMotion`, or `motion-reduce:` utilities
 for CSS transitions):
 
@@ -81,6 +81,36 @@ for CSS transitions):
   outline in, eases sections pushed aside during a drag, and rings a new section once;
 - the inspector cross-fades when the selection changes, and the link picker slides between its
   top level and a drilled-in list.
+
+## Look and feel
+
+The chrome (rail, sidebars, inspector, top bar, canvas dock) follows one scale, written down once
+in `apps/admin/src/lib/customize-chrome.ts` so new panels pick it up instead of inventing sizes:
+
+| Token | Value |
+| --- | --- |
+| Body / label / meta | 13px (`0.8125rem`) / 12px / 11px, meta and counts `tabular-nums` |
+| Headings | 13px semibold, `tracking-tight`, sentence case; group headings 11px medium muted, never all caps |
+| Rows | 32px (`h-8`), 8px radius, hover `bg-muted/60`, selected `bg-primary/10` plus a 2px accent bar (`before:` pseudo-element) |
+| Panels | 12px radius (`rounded-xl`), hairline `border-border` |
+| Focus | `CHROME_FOCUS`, a 2px inset accent ring on every button and row |
+| Motion | colour transitions 150ms; heights and slides 150 to 200 ms; all off under reduced motion |
+
+Icons are one family: Phosphor at **regular** weight, 16px in the sidebar and 14px inline. Section
+glyphs come from `editorGlyphs` in `packages/ui/src/icons.tsx`; `SectionIcon` picks one per type
+(`sectionGlyph`) and, with `tile="sm" | "md"`, draws it on a small tile tinted by the section's
+kind (`lib/customize-section-kinds.ts`):
+
+| Kind | Tint | Examples |
+| --- | --- | --- |
+| layout | `info` | Header, Footer, Multicolumn, Group, Columns |
+| text | neutral | Rich text, FAQ, Testimonials |
+| media | `chart-4` | Hero, Image banner, Gallery, Video |
+| product | `success` | Product grid, Featured product, main product |
+| app | `chart-2` | any `<app-id>/<Name>` app block |
+
+Tints are a 12% wash of the token with the glyph in the full token colour, so light and dark read
+the same. The admin font stays Satoshi (from the Figma kit).
 
 ## Data shapes
 

@@ -22,7 +22,7 @@ type SectionOverlayProps = {
 const copy = customizeContent
 
 const TOOL =
-  'flex size-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:pointer-events-none disabled:opacity-30'
+  'flex size-7 shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:bg-neutral-100 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent,black)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30 motion-reduce:transition-none'
 
 /**
  * Puck's `componentOverlay` override: the accent outline itself is themed by
@@ -95,7 +95,7 @@ export default function SectionOverlay({
       >
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption font-medium shadow-md',
+            'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs leading-4 font-medium shadow-sm',
             isSelected
               ? // The admin's own accent (--admin-accent, written by preview-frame.tsx),
                 // not the storefront theme's --primary, which this iframe redefines.
@@ -116,7 +116,7 @@ export default function SectionOverlay({
               title={copy.overlay.moveUp(label)}
               className={TOOL}
             >
-              <ArrowUp aria-hidden weight="light" className="size-4" />
+              <ArrowUp aria-hidden weight="regular" className="size-3.5" />
             </button>
             <button
               type="button"
@@ -126,7 +126,7 @@ export default function SectionOverlay({
               title={copy.overlay.moveDown(label)}
               className={TOOL}
             >
-              <ArrowDown aria-hidden weight="light" className="size-4" />
+              <ArrowDown aria-hidden weight="regular" className="size-3.5" />
             </button>
             {locked ? null : (
               <>
@@ -138,7 +138,7 @@ export default function SectionOverlay({
                   title={copy.tree.duplicate(label)}
                   className={TOOL}
                 >
-                  <Copy aria-hidden weight="light" className="size-4" />
+                  <Copy aria-hidden weight="regular" className="size-3.5" />
                 </button>
                 <button
                   type="button"
@@ -147,7 +147,7 @@ export default function SectionOverlay({
                   title={copy.tree.remove(label)}
                   className={cn(TOOL, 'hover:bg-red-50 hover:text-red-600')}
                 >
-                  <Trash2 aria-hidden weight="light" className="size-4" />
+                  <Trash2 aria-hidden weight="regular" className="size-3.5" />
                 </button>
               </>
             )}
