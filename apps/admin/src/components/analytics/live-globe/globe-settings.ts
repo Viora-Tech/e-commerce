@@ -27,7 +27,12 @@ export type GlobeStyle = 'solid' | 'dotted'
 export type GlobeThemePreset = 'accent' | 'night' | 'ocean' | 'mono'
 
 export type GlobeLookSettings = {
+  /** Land: filled continents, or dots (drawn in the shader; `webgl/dot-layout.ts`). */
   style: GlobeStyle
+  /** Country borders (part of the "Country borders" layer, when that is on): the shader's
+   * line, or small dots along it (`webgl/border-points.ts`, `webgl/border-dot-stride.ts`).
+   * Coastlines are always the solid line either way. */
+  borderStyle: GlobeStyle
   theme: GlobeThemePreset
   /** Hex colours (e.g. "#1c2b4a"), or null to use the theme preset's own. */
   customLand: string | null
@@ -75,6 +80,7 @@ export function defaultGlobeSettings(prefersReducedMotion: boolean): GlobeSettin
     },
     look: {
       style: 'solid',
+      borderStyle: 'solid',
       theme: 'accent',
       customLand: null,
       customOcean: null,
@@ -132,6 +138,7 @@ function sanitize(raw: unknown, fallback: GlobeSettings): GlobeSettings {
     },
     look: {
       style: oneOf(lookRaw.style, STYLES, fallback.look.style),
+      borderStyle: oneOf(lookRaw.borderStyle, STYLES, fallback.look.borderStyle),
       theme: oneOf(lookRaw.theme, THEMES, fallback.look.theme),
       customLand: hexOrNull(lookRaw.customLand),
       customOcean: hexOrNull(lookRaw.customOcean),
@@ -143,7 +150,9 @@ function sanitize(raw: unknown, fallback: GlobeSettings): GlobeSettings {
       dayNightShadow: bool(dataRaw.dayNightShadow, fallback.data.dayNightShadow),
     },
     lastZoom:
-      typeof r.lastZoom === 'number' && Number.isFinite(r.lastZoom) ? r.lastZoom : fallback.lastZoom,
+      typeof r.lastZoom === 'number' && Number.isFinite(r.lastZoom)
+        ? r.lastZoom
+        : fallback.lastZoom,
   }
 }
 

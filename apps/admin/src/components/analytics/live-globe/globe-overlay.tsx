@@ -19,8 +19,10 @@ type GlobeOverlayProps = {
 
 /**
  * What sits over either globe's canvas: one focusable button per marker (moved into place
- * every frame by `positionOverlay`), the tooltip for the active one, and the zoom buttons in
- * the bottom-right corner.
+ * every frame by `positionOverlay`), the tooltip for the active one, and the control stack
+ * (gear, then zoom buttons) in the top-right corner — top, not bottom, so it is never cut off
+ * by the bottom of a tall Live view hero on a short viewport; the gear's popover opens
+ * downward and leftward from there, staying on screen too.
  */
 export default function GlobeOverlay({
   markers,
@@ -67,7 +69,7 @@ export default function GlobeOverlay({
           {active.tooltip}
         </div>
       ) : null}
-      <div className="absolute right-2 bottom-2 z-10 flex flex-col gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
+      <div className="absolute top-2 right-2 z-10 flex flex-row gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
         {settingsButton}
         {zoomButtons.map(({ label, icon: Icon, direction }) => (
           <Button

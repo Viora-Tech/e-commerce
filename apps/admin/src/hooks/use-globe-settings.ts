@@ -18,11 +18,9 @@ export function useGlobeSettings(prefersReducedMotion: boolean) {
   // Hooks
   const [settings, setSettings] = useState(() => defaultGlobeSettings(false))
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount, so a later reduced-motion change never overrides what the person already chose in the panel.
   useEffect(() => {
     setSettings(loadGlobeSettings(prefersReducedMotion))
-    // Only on mount: a later reduced-motion change should not silently override what the
-    // person already chose in the panel.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Helpers

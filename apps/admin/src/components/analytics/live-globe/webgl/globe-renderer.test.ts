@@ -69,7 +69,7 @@ describe('overlay points', () => {
       false,
     )
     expect(points).toHaveLength(14)
-    expect(points[3]).toBeCloseTo(points[7 + 3], 6)
+    expect(points[3]).toBeCloseTo(points[7 + 3] as number, 6)
   })
 
   it('with highlightBigOrders on, scales marker size with order value', () => {
@@ -105,6 +105,7 @@ describe('overlay points', () => {
     expect(points.length / 7).toBe(11)
     const glowColor = points.slice(0, 3) as unknown as [number, number, number]
     const markerColor = palette.marker
-    expect(glowColor[0]).toBeLessThan(markerColor[0])
+    // palette.marker is [0, 1, 0]; the glow point dims its green channel.
+    expect(glowColor[1]).toBeLessThan(markerColor[1])
   })
 })

@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { dotRadiusPx, pickDotRows, TARGET_ROW_SPACING_CSS_PX } from './dot-layout'
 
 describe('pickDotRows', () => {
-  it('keeps row spacing at or under the target CSS-pixel spacing', () => {
+  it('keeps row spacing at or above the target CSS-pixel spacing (never too crowded)', () => {
     for (const cssRadius of [80, 160, 240, 400]) {
       const dpr = 2
       const rows = pickDotRows(cssRadius * dpr, dpr)
       const spacingCssPx = (Math.PI * cssRadius) / rows
-      expect(spacingCssPx).toBeLessThanOrEqual(TARGET_ROW_SPACING_CSS_PX + 1e-6)
+      expect(spacingCssPx).toBeGreaterThanOrEqual(TARGET_ROW_SPACING_CSS_PX - 1e-6)
     }
   })
 

@@ -9,7 +9,11 @@ const GlobeMapRangeSchema = z.enum(['1h', '24h', '7d'])
 export const dashboardRouter = {
   /** Stat windows, weekly report, recent orders, top products, live visitors and quick lists for the home page. */
   summary: can(permissions.ANALYTICS_READ)
-    .input(z.object({ mapRange: GlobeMapRangeSchema.default('24h') }).default({}))
+    .input(
+      z
+        .object({ mapRange: GlobeMapRangeSchema.default('24h') })
+        .default(() => ({ mapRange: '24h' as const })),
+    )
     .handler(({ context, input }) =>
       dashboardSummary(context.tx, {
         storeId: context.scope.storeId,

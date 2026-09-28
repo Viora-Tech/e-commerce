@@ -16,6 +16,8 @@ import { readPalette } from './globe-palette'
 import { defaultGlobeSettings, saveLastZoom } from './globe-settings'
 import GlobeSettingsPanel from './globe-settings-panel'
 import type { GlobeCanvasProps } from './types'
+import { DASH_PERIOD_CSS_PX } from './webgl/border-dash'
+import { type BorderPoint, buildBorderStrokePoints, decodeBorderPoints } from './webgl/border-points'
 import { dotRadiusPx as dotRadius, pickDotRows } from './webgl/dot-layout'
 import { anglesFor, createGlobeRenderer, rotate, rotation, toVector } from './webgl/globe-renderer'
 import { buildArcPoints, buildMarkerPoints, markerVector } from './webgl/overlay-points'
@@ -36,12 +38,21 @@ const RADIUS = 0.4
  */
 const LAND_MAP_SRC = '/globe/globe-2048.png'
 
+/** "Look > Border style: Dotted"'s points, built offline by
+ * `scripts/globe/make-globe-borders.py` from the same India point-of-view data as the map
+ * above. Only fetched once it is actually selected. */
+const BORDERS_SRC = '/globe/borders.bin'
+
 /** The "Motion > Speed" setting, as a multiplier over the globes' shared base auto-rotate
  * speed (see `globe-controls.ts`). */
 const MOTION_SPEED_SCALE = { slow: 0.5, normal: 1, fast: 2 } as const
 
 /** How often (ms) the remembered zoom is written to localStorage while it keeps changing. */
 const ZOOM_SAVE_INTERVAL_MS = 1000
+
+/** "Start view: Whole world"'s default zoom: further out than the India/my-location default
+ * of 1, so the globe reads as a small planet rather than a close-up. */
+const WORLD_START_ZOOM = 0.65
 
 /**
  * Our own WebGL globe for the Live view (cobe stays on the Home card). Same props, markers,
@@ -87,11 +98,12 @@ export default function WebglGlobeCanvas({
     const target = anglesFor(focus.lat, focus.lng)
     const s = createMotion(target, reducedMotion, ZOOM_MAX)
     const initial = settingsRef.current
+    const defaultZoom = initial.motion.startView === 'world' ? WORLD_START_ZOOM : 1
     // A theme or focus change rebuilds the globe; keep the zoom the merchant asked for, or (on
     // first load, with "Remember last zoom" on) the one from their last visit.
     s.zoomTarget =
       motionRef.current?.zoomTarget ??
-      (initial.motion.rememberZoom ? clampZoom(initial.lastZoom, ZOOM_MAX) : 1)
+      (initial.motion.rememberZoom ? clampZoom(initial.lastZoom, ZOOM_MAX) : defaultZoom)
     motionRef.current = s
     let revealStartedAt = performance.now()
     let lastNewestId = markersRef.current.find((m) => m.isNewest)?.id ?? null
@@ -108,6 +120,28 @@ export default function WebglGlobeCanvas({
       .catch(() => {
         // No land map: the sphere, markers and arcs still draw.
       })
+
+    // Border dashes: fetched lazily, only once "Border style: Dashed" is actually picked (it
+    // may never be), and only the once even if the setting is flipped on and off again. The
+    // whole (dense) point set is uploaded once the fetch resolves; the dash on/off pattern
+    // itself is entirely the shader's job every frame (`DASH`/`DP` in `globe-renderer.ts`), so
+    // there is nothing to recompute here as the globe zooms.
+    let borderPoints: BorderPoint[] | null = null
+    let borderPointsRequested = false
+    let borderPointsUploaded = false
+    let uploadedBorderColorKey: string | null = null
+    const loadBorderPointsIfNeeded = () => {
+      if (borderPointsRequested) return
+      borderPointsRequested = true
+      fetch(BORDERS_SRC)
+        .then((res) => res.arrayBuffer())
+        .then((buffer) => {
+          if (alive) borderPoints = decodeBorderPoints(buffer)
+        })
+        .catch(() => {
+          // No border dashes this session; the solid border (if on) still draws.
+        })
+    }
 
     let rafId = 0
     const tick = () => {
@@ -167,6 +201,23 @@ export default function WebglGlobeCanvas({
         ? toVector(subsolarPoint(new Date()).lat, subsolarPoint(new Date()).lng)
         : null
 
+      // Dashed borders replace the shader's own border line (coastlines are unaffected either
+      // way); the "Country borders" layer toggle still gates both.
+      const dashedBorders = live.layers.borders && live.look.borderStyle === 'dotted'
+      if (dashedBorders) {
+        loadBorderPointsIfNeeded()
+        const colorKey = palette.borderDot.join(',')
+        if (borderPoints && (!borderPointsUploaded || colorKey !== uploadedBorderColorKey)) {
+          borderPointsUploaded = true
+          uploadedBorderColorKey = colorKey
+          renderer.setPoints(2, buildBorderStrokePoints(borderPoints, palette.borderDot))
+        }
+      } else if (borderPointsUploaded) {
+        borderPointsUploaded = false
+        uploadedBorderColorKey = null
+        renderer.setPoints(2, new Float32Array())
+      }
+
       renderer.draw({
         cx: cx * dpr,
         cy: cy * dpr,
@@ -177,11 +228,12 @@ export default function WebglGlobeCanvas({
         base: palette.base,
         ocean: palette.ocean,
         glow: palette.glow,
-        layers: live.layers,
+        layers: { ...live.layers, borders: live.layers.borders && !dashedBorders },
         style: live.look.style,
         dotRows,
         dotRadiusPx: dotRows > 0 ? dotRadius(dotRows, radiusDevicePx, dpr) : 0,
         sun,
+        dashPeriodPx: DASH_PERIOD_CSS_PX * dpr,
       })
 
       if (
@@ -235,7 +287,11 @@ export default function WebglGlobeCanvas({
   settingsRef.current = settings ?? defaultGlobeSettings(reducedMotion)
   const settingsButton =
     settings && onSettingsChange && onSettingsReset ? (
-      <GlobeSettingsPanel settings={settings} onChange={onSettingsChange} onReset={onSettingsReset} />
+      <GlobeSettingsPanel
+        settings={settings}
+        onChange={onSettingsChange}
+        onReset={onSettingsReset}
+      />
     ) : undefined
 
   return (

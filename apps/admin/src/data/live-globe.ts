@@ -47,6 +47,8 @@ export const globeSettingsContent = {
     heading: 'Look',
     style: 'Style',
     styles: { solid: 'Solid land', dotted: 'Dotted' } as const,
+    borderStyle: 'Border style',
+    borderStyles: { solid: 'Solid', dotted: 'Dashed' } as const,
     theme: 'Colours',
     themes: {
       accent: 'Store accent',

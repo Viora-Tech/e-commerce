@@ -186,6 +186,24 @@ export default function GlobeSettingsPanel({
               </SelectContent>
             </Select>
           </Row>
+          <Row label={copy.look.borderStyle}>
+            <Select
+              items={asItems(copy.look.borderStyles)}
+              value={settings.look.borderStyle}
+              onValueChange={(v) => v && setLook('borderStyle', v as (typeof STYLES)[number])}
+            >
+              <SelectTrigger size="sm" className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STYLES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {copy.look.borderStyles[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
           <ColorRow
             label={copy.look.customLand}
             value={settings.look.customLand}

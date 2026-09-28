@@ -44,6 +44,7 @@ export function buildArcPoints(arcs: GlobeArc[], palette: OverlayPalette): Float
         u * a[2] + v * control[2] + w * b[2],
         ARC_WIDTH,
         ...color,
+        0,
       )
     }
   }
@@ -92,17 +93,20 @@ export function buildMarkerPoints(
   const out: number[] = []
   for (const m of markers) {
     const value = m.valuePaise ?? 0
-    const scale =
-      highlightBigOrders && maxValue > 0 ? 0.75 + 0.65 * Math.sqrt(value / maxValue) : 1
+    const scale = highlightBigOrders && maxValue > 0 ? 0.75 + 0.65 * Math.sqrt(value / maxValue) : 1
     const baseSize = m.isNewest ? 0.09 * (0.6 + 0.4 * pulse) * reveal : 0.045
     const size = baseSize * scale * 1.25
     const color = m.isNewest ? palette.newest : palette.marker
     const point = markerVector(m)
     if (highlightBigOrders && maxValue > 0 && value >= bigThreshold) {
-      const glow: Rgb = [color[0] * GLOW_BRIGHTNESS, color[1] * GLOW_BRIGHTNESS, color[2] * GLOW_BRIGHTNESS]
-      out.push(...point, size * GLOW_SIZE_SCALE, ...glow)
+      const glow: Rgb = [
+        color[0] * GLOW_BRIGHTNESS,
+        color[1] * GLOW_BRIGHTNESS,
+        color[2] * GLOW_BRIGHTNESS,
+      ]
+      out.push(...point, size * GLOW_SIZE_SCALE, ...glow, 0)
     }
-    out.push(...point, size, ...color)
+    out.push(...point, size, ...color, 0)
   }
   return Float32Array.from(out)
 }

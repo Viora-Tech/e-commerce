@@ -40,6 +40,7 @@ describe('defaultGlobeSettings', () => {
     const d = defaultGlobeSettings(false)
     expect(d.look.theme).toBe('accent')
     expect(d.look.style).toBe('solid')
+    expect(d.look.borderStyle).toBe('solid')
     expect(d.data.timeRange).toBe('24h')
     expect(d.motion.startView).toBe('india')
     expect(d.layers).toEqual({

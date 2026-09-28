@@ -378,18 +378,19 @@ describe('dashboard.summary', () => {
     expect(s.dispatch).toEqual({ city: 'Bengaluru', state: 'Karnataka' })
   })
 
-  it('narrows mapOrders to the Live view globe\'s chosen time range, 24h by default', async () => {
+  it("narrows mapOrders to the Live view globe's chosen time range, 24h by default", async () => {
     const a = await merchant('a@example.com', 'store-a')
     const [addr] = await owner
       .insert(address)
       .values({
         storeId: a.storeId,
+        name: 'Test Customer',
         line1: '1 MG Road',
         city: 'Bengaluru',
-        state: 'Karnataka',
         stateCode: 'KA',
-        postalCode: '560001',
+        pincode: '560001',
         country: 'IN',
+        phone: '9999999999',
       })
       .returning()
     await owner.insert(order).values([

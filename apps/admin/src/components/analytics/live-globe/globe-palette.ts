@@ -10,12 +10,22 @@ export type GlobePalette = {
   glow: Rgb01
   arc: Rgb01
   arcNewest: Rgb01
+  /** "Border style: Dotted"'s dot colour: the same subtle tint as the shader's own solid
+   * border line (`globe-renderer.ts`'s `line`), computed the same way from `base`. */
+  borderDot: Rgb01
+}
+
+function clamp01(v: number): number {
+  return Math.min(1, Math.max(0, v))
 }
 
 /** Fixed land/ocean/accent colours for the non-"Store accent" theme presets — chosen to read
  * well in both light and dark mode (the WebGL globe still brightens land a little more in dark
  * mode on top of these, same as the default theme always has). */
-const THEME_COLORS: Record<Exclude<GlobeThemePreset, 'accent'>, { land: Rgb01; ocean: Rgb01; accent: Rgb01 }> = {
+const THEME_COLORS: Record<
+  Exclude<GlobeThemePreset, 'accent'>,
+  { land: Rgb01; ocean: Rgb01; accent: Rgb01 }
+> = {
   night: { land: [0.16, 0.19, 0.28], ocean: [0.04, 0.05, 0.1], accent: [0.42, 0.74, 0.98] },
   ocean: { land: [0.42, 0.5, 0.42], ocean: [0.06, 0.22, 0.4], accent: [0.35, 0.78, 0.92] },
   mono: { land: [0.5, 0.5, 0.5], ocean: [0.14, 0.14, 0.14], accent: [0.85, 0.85, 0.85] },
@@ -47,13 +57,21 @@ export function readPalette(dark: boolean, look?: GlobeLookColors): GlobePalette
         ]
       : [THEME_COLORS[theme].land, THEME_COLORS[theme].ocean, THEME_COLORS[theme].accent]
 
+  const resolvedBase = hexToRgb01(look?.customLand ?? '') ?? base
+  const borderDot: Rgb01 = dark
+    ? (resolvedBase.map((c) => clamp01(c * 2.3 + 0.2)) as Rgb01)
+    : (resolvedBase.map((c) => clamp01(c * 1.25 + 0.12)) as Rgb01)
+
   return {
-    base: hexToRgb01(look?.customLand ?? '') ?? base,
+    base: resolvedBase,
     ocean: hexToRgb01(look?.customOcean ?? '') ?? ocean,
     marker: hexToRgb01(look?.customAccent ?? '') ?? accent,
     glow: hexToRgb01(look?.customAccent ?? '') ?? accent,
     arc: hexToRgb01(look?.customAccent ?? '') ?? accent,
     arcNewest:
-      theme === 'accent' ? readCssColorVar('--chart-2', fallbackPrimary) : hexToRgb01(look?.customAccent ?? '') ?? accent,
+      theme === 'accent'
+        ? readCssColorVar('--chart-2', fallbackPrimary)
+        : (hexToRgb01(look?.customAccent ?? '') ?? accent),
+    borderDot,
   }
 }
