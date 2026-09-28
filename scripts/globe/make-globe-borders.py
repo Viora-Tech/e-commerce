@@ -46,7 +46,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 WIDTH, HEIGHT = 2048, 1024
 # How far inland an edge's midpoint must sit to count as a border rather than a coastline.
-EROSION_PX = 7
+EROSION_PX = 2
 RESAMPLE_KM = 3.5
 EARTH_RADIUS_KM = 6371.0
 # uint16 headroom: 65535 / 10000 = 6.55 radians ≈ 41,700 km along one run — comfortably more
