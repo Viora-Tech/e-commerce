@@ -86,12 +86,19 @@ export function createMotion(
 }
 
 /** One frame of motion: the ease onto `focus`, then auto-rotate plus drag inertia, then the
- * zoom ease. Reduced motion skips the ease and auto-rotate and snaps zoom. */
+ * zoom ease. Reduced motion skips the ease and auto-rotate and snaps zoom.
+ *
+ * `autoRotateSpeed` scales the idle spin once the ease-in is done (the Live view globe's
+ * "Auto-rotate" setting: 0 turns it off, 1 is the original speed both globes always had, other
+ * values are its slow/fast options); it defaults to 1 so cobe's call site is unaffected. Drag
+ * inertia (`s.velocity`) always still applies even at 0, same as reduced motion still lets a
+ * drag spin the globe. */
 export function stepMotion(
   s: GlobeMotion,
   now: number,
   focus: [phi: number, theta: number],
   reducedMotion: boolean,
+  autoRotateSpeed = 1,
 ) {
   if (!s.dragging) {
     if (!reducedMotion) {
@@ -100,7 +107,7 @@ export function stepMotion(
         s.phi = focus[0] * easeOutCubic(easeT)
         s.theta = focus[1] * easeOutCubic(easeT)
       } else {
-        s.phi += BASE_PHI_SPEED + s.velocity
+        s.phi += BASE_PHI_SPEED * autoRotateSpeed + s.velocity
       }
     }
     s.velocity *= 0.92

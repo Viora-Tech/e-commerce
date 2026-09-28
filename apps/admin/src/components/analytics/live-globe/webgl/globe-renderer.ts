@@ -20,6 +20,15 @@ export type Vec3 = [number, number, number]
 /** A 3x3 matrix, row-major. */
 export type Mat3 = [number, number, number, number, number, number, number, number, number]
 
+/** Which layers the sphere shader draws; independent of `style` (solid vs dotted land). */
+export type GlobeLayerFlags = {
+  borders: boolean
+  coastlines: boolean
+  grid: boolean
+  /** Halo outside the disc plus the rim light along its edge. */
+  glow: boolean
+}
+
 export type GlobeFrame = {
   /** Centre and radius of the globe, in canvas (device) pixels from the top-left. */
   cx: number
@@ -31,16 +40,37 @@ export type GlobeFrame = {
    * The radius itself at zoom 1; held there when zoomed in so markers do not balloon. */
   pointScale: number
   dark: boolean
+  /** Land colour. */
   base: Rgb
+  /** Ocean colour. Equal to `base` for the original look (the shader shades one colour into
+   * both), a separate colour for the other theme presets. */
+  ocean: Rgb
   glow: Rgb
+  layers: GlobeLayerFlags
+  /** "Dotted" draws land as dots straight from the land map's texel, in even rows of latitude
+   * (see `webgl/dot-layout.ts`); "solid" is the original filled-continent look. */
+  style: 'solid' | 'dotted'
+  /** Row count and per-dot radius (device px) for the dotted look; ignored otherwise. */
+  dotRows: number
+  dotRadiusPx: number
+  /** Subsolar point as a unit vector in the globe's own axes (`toVector`), or `null` to turn
+   * the day/night shadow off. */
+  sun: Vec3 | null
+  /** The border-stroke layer's dash period, device px (see `webgl/border-dash.ts`); the dash
+   * on/off pattern itself is computed in the shader from this and `radius`, every frame, so it
+   * keeps the same on-screen length at any zoom without ever rebuilding the point buffer. */
+  dashPeriodPx: number
 }
 
 export type GlobeRenderer = {
   /** The land map (white land on black sea, equirectangular, north up, -180 at the left). */
   setLandMap: (image: TexImageSource) => void
-  /** Arcs or markers (drawn in that order): `x, y, z, size (share of the radius), r, g, b`
-   * per point. Arcs change only with new orders; markers every frame, for the pulse. */
-  setPoints: (layer: 0 | 1, points: Float32Array) => void
+  /** Arcs, markers or border-stroke points (drawn in that order, layer 2 last): `x, y, z, size
+   * (share of the radius), r, g, b, arc` per point (`arc` is the border layer's distance along
+   * its run, radians; markers and arcs pass 0). Arcs and border points change only when their
+   * source data does (new orders; the border file, once loaded); markers every frame, for the
+   * pulse. */
+  setPoints: (layer: 0 | 1 | 2, points: Float32Array) => void
   draw: (frame: GlobeFrame) => void
   destroy: () => void
 }
@@ -49,43 +79,77 @@ const SPHERE_VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0,1);}'
 
 // V = centre xy (GL pixels, y up), radius, dark. M turns a view vector back to the globe's own
 // axes (y north, z at longitude 0, x at 90 E). T = land map, H = 1 once it has loaded.
+// L = layer toggles (borders, coastlines, grid, glow), each 0 or 1. D = style (0 solid / 1
+// dotted), row count. R = dot radius, device px. SUN = subsolar point, or the zero vector to
+// turn the day/night shadow off.
 // The longitude seam: atan jumps from +pi to -pi at 180°, which would make the mipmap pick its
 // blurriest level along that meridian. Two u's with seams half a turn apart are computed and
 // the one that is smooth at this pixel is used (Tarini's trick).
 const SPHERE_FS = `#extension GL_OES_standard_derivatives : enable
-precision highp float;uniform vec4 V;uniform vec3 C,G;uniform mat3 M;uniform sampler2D T;uniform float H;
+precision highp float;uniform vec4 V;uniform vec3 C,O,G,SUN;uniform mat3 M;uniform sampler2D T;
+uniform float H;uniform vec4 L;uniform vec2 D;uniform float R;
 float grid(float x){float w=fwidth(x);return 1.-min(abs(fract(x-.5)-.5)/max(w,1e-4),1.);}
 void main(){vec2 b=(gl_FragCoord.xy-V.xy)/V.z;float a=dot(b,b);
-if(a>1.){float r=sqrt(.3125/(a-1.));float f=smoothstep(.5,1.,r/(r+1.));gl_FragColor=vec4(f*G,f);return;}
+if(a>1.){float f=0.;if(L.w>.5){float r=sqrt(.3125/(a-1.));f=smoothstep(.5,1.,r/(r+1.));}
+gl_FragColor=vec4(f*G,f);return;}
 float i=sqrt(1.-a);vec3 w=M*vec3(b,i);
 float lat=asin(clamp(w.y,-1.,1.));float t=atan(w.x,w.z)/6.2831853;
 float u1=t+.5,u2=fract(t)+.5;float u=fwidth(u1)<=fwidth(u2)+1e-6?u1:u2;
 vec2 st=vec2(u,.5-lat/3.1415927);vec4 m=texture2D(T,st);
-float land=H*smoothstep(.3,.7,m.r);
-float coast=H*(1.-smoothstep(.6,1.4,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
+float land;
+if(D.x>.5){
+float rows=max(D.y,1.);float rowIdx=floor(st.y*rows);float rowV=(rowIdx+.5)/rows;
+float rowLat=(.5-rowV)*3.1415927;float ring=max(cos(rowLat),1e-3);
+float count=max(1.,floor(ring*rows*2.+.5));float offset=mod(rowIdx,2.)*.5/count;
+float slot=floor((u-offset)*count+.5);float nearestU=slot/count+offset;
+vec4 dm=texture2D(T,vec2(nearestU,rowV));float dotLand=H*smoothstep(.3,.7,dm.r);
+float du=u-nearestU;du-=floor(du+.5);float dv=st.y-rowV;
+float pxU=max(fwidth(u),1e-5);float pxV=max(fwidth(st.y),1e-5);
+float distPx=length(vec2(du/pxU,dv/pxV));
+land=dotLand*(1.-smoothstep(R-1.,R+1.,distPx));
+}else{land=H*smoothstep(.3,.7,m.r);}
+float coast=L.y*H*(1.-smoothstep(.4,1.8,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
 float px=max(fwidth(st.x*2048.),1e-4);float bd=1.4*sqrt(-2.*log(max(m.g,1e-3)))/px;
-float border=H*step(.03,m.g)*(1.-smoothstep(.2,.8,bd));
-vec3 ocean=C*(pow(i,.4)*(1.-V.w)+.1)+pow(1.-i,4.)*G;
-vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+pow(1.-i,4.)*G;
+float border=L.x*H*step(.03,m.g)*(1.-smoothstep(.05,1.2,bd));
+vec3 ocean=O*(pow(i,.4)*(1.-V.w)+.1)+L.w*pow(1.-i,4.)*G;
+vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+L.w*pow(1.-i,4.)*G;
 vec3 col=mix(ocean,ground,land*smoothstep(0.,.18,i));
-vec3 line=mix(C*1.25+.12,C*2.3+.2,V.w);float rim=smoothstep(0.,.3,i);
-col=mix(col,line,coast*rim*.8);col=mix(col,line,border*rim*.4);
+vec3 line=mix(C*1.1+.07,C*1.9+.14,V.w);float rim=smoothstep(0.,.3,i);
+col=mix(col,line,coast*rim*.65);col=mix(col,line,border*rim*.35);
 float g1=grid(degrees(lat)/15.);float lx=u*24.;float g2=grid(lx)*smoothstep(.97,.88,abs(w.y));
-float g=max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
+float g=L.z*max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
 col=mix(col,G*.9+C*.3,g);
+if(dot(SUN,SUN)>.01){float sun=dot(w,SUN);float night=smoothstep(-.12,.12,-sun);col*=mix(1.,.42,night);}
 gl_FragColor=vec4(col,1)*.97;}`
 
-// Marker/arc points carry their size as a share of the radius (p.w) and Z is the radius.
-const POINT_VS = `attribute vec4 p,c;uniform mat3 M;uniform vec2 S,R;uniform float Z;
-varying vec4 v;varying float f;
-void main(){vec3 q=p.xyz*M;v=c;f=q.z;
+// Marker/arc/border points carry their size as a share of the radius (p.w) and Z is the
+// radius. `g` is a border point's distance (radians) along its own run; markers and arcs pass
+// 0, unused.
+const POINT_VS = `attribute vec4 p,c;attribute float g;uniform mat3 M;uniform vec2 S,R;uniform float Z;
+varying vec4 v;varying float f,arc;
+void main(){vec3 q=p.xyz*M;v=c;f=q.z;arc=g;
 if(q.z<0.&&dot(q.xy,q.xy)<1.){gl_Position=vec4(2,2,2,1);gl_PointSize=0.;return;}
 gl_Position=vec4(S+q.xy*R,0,1);gl_PointSize=p.w*Z;}`
 
-// Flat round sprites with a one-pixel-ish soft edge.
-const POINT_FS = `precision highp float;varying vec4 v;varying float f;
+// Flat round sprites with a one-pixel-ish soft edge, fading out as they approach the globe's
+// own rim (f, the view-space depth from POINT_VS) rather than popping out of view at it — most
+// noticeable for the border dashes, which run along the whole visible edge of a country.
+// DASH (0/1) is set once per draw call, true only for the border-stroke layer: when on, most
+// points are discarded so the ones left read as a dashed line rather than a solid one. DP.x is
+// the globe's current on-screen radius, DP.y the dash period, both device px, so the dash
+// keeps the same on-screen length at any zoom (see `webgl/border-dash.ts`, which mirrors this
+// same maths for its unit tests; the shader fades each dash out between 0.48 and 0.62 of the period so its ends don't pop, averaging the 0.55 duty cycle kept there).
+const POINT_FS = `precision highp float;varying vec4 v;varying float f,arc;
+uniform float DASH;uniform vec2 DP;
 void main(){float d=length(gl_PointCoord*2.-1.);if(d>1.)discard;
-gl_FragColor=vec4(v.rgb,1.-smoothstep(.8,1.,d));}`
+float a=1.-smoothstep(.35,1.,d);
+// Dashes: a soft round falloff over a sprite big enough to cover whole pixels, at low
+// opacity, so sub-pixel motion while the globe turns does not make them flicker.
+if(DASH>.5){float phase=fract(arc*DP.x/DP.y);if(phase>.62)discard;
+a=exp(-d*d*2.5)*.8*(1.-smoothstep(.48,.62,phase))*smoothstep(-.04,.1,f);
+gl_FragColor=vec4(v.rgb*a,1);return;}
+float rim=smoothstep(-.04,.1,f);
+gl_FragColor=vec4(v.rgb,a*rim);}`
 
 /** Rotation for spin `phi` then tilt `theta`, row-major. */
 export function rotation(phi: number, theta: number): Mat3 {
@@ -137,6 +201,10 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
   const gl = canvas.getContext('webgl', { alpha: true, antialias: true, depth: false })
   // fwidth() for the soft coast, grid lines and the seam fix; supported on all current GPUs.
   if (gl && !gl.getExtension('OES_standard_derivatives')) return null
+  // Border dashes are many overlapping soft sprites; drawing them with MAX blending keeps each
+  // pixel at the brightest sprite instead of adding them up (which read as a glowing, shiny
+  // line). Supported everywhere WebGL 1 is; without it dashes fall back to normal blending.
+  const minmax = gl?.getExtension('EXT_blend_minmax') ?? null
   const sphere = gl && program(gl, SPHERE_VS, SPHERE_FS)
   const dots = gl && program(gl, POINT_VS, POINT_FS)
   if (!gl || !sphere || !dots) return null
@@ -144,12 +212,13 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
   const tri = gl.createBuffer()
   gl.bindBuffer(gl.ARRAY_BUFFER, tri)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
-  const layers = [gl.createBuffer(), gl.createBuffer()] as const
-  const counts: [number, number] = [0, 0]
+  const layers = [gl.createBuffer(), gl.createBuffer(), gl.createBuffer()] as const
+  const counts: [number, number, number] = [0, 0, 0]
   const landMap = gl.createTexture()
   let hasLand = false
   const aPos = dots.a('p')
   const aColor = dots.a('c')
+  const aArc = dots.a('g')
 
   const upload = (buffer: WebGLBuffer | null, data: Float32Array, usage: number) => {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
@@ -170,7 +239,7 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
     },
     setPoints: (layer, data) => {
       upload(layers[layer], data, gl.DYNAMIC_DRAW)
-      counts[layer] = data.length / 7
+      counts[layer] = data.length / 8
     },
     draw: (f) => {
       const { width: w, height: h } = canvas
@@ -186,7 +255,18 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       gl.vertexAttribPointer(sphere.a('a'), 2, gl.FLOAT, false, 0, 0)
       gl.uniform4f(sphere.u('V'), f.cx, h - f.cy, f.radius, f.dark ? 1 : 0)
       gl.uniform3fv(sphere.u('C'), f.base)
+      gl.uniform3fv(sphere.u('O'), f.ocean)
       gl.uniform3fv(sphere.u('G'), f.glow)
+      gl.uniform4f(
+        sphere.u('L'),
+        f.layers.borders ? 1 : 0,
+        f.layers.coastlines ? 1 : 0,
+        f.layers.grid ? 1 : 0,
+        f.layers.glow ? 1 : 0,
+      )
+      gl.uniform2f(sphere.u('D'), f.style === 'dotted' ? 1 : 0, f.dotRows)
+      gl.uniform1f(sphere.u('R'), f.dotRadiusPx)
+      gl.uniform3fv(sphere.u('SUN'), f.sun ?? [0, 0, 0])
       // Row-major upload read as column-major is the transpose: the inverse rotation.
       gl.uniformMatrix3fv(sphere.u('M'), false, f.rotation)
       gl.activeTexture(gl.TEXTURE0)
@@ -201,14 +281,20 @@ export function createGlobeRenderer(canvas: HTMLCanvasElement): GlobeRenderer | 
       gl.uniform2f(dots.u('S'), (2 * f.cx) / w - 1, 1 - (2 * f.cy) / h)
       gl.uniform2f(dots.u('R'), (2 * f.radius) / w, (2 * f.radius) / h)
       gl.uniform1f(dots.u('Z'), f.pointScale)
-      for (const layer of [0, 1] as const) {
+      gl.uniform2f(dots.u('DP'), f.radius, f.dashPeriodPx)
+      for (const layer of [0, 1, 2] as const) {
         if (counts[layer] === 0) continue
+        gl.uniform1f(dots.u('DASH'), layer === 2 ? 1 : 0)
+        if (layer === 2 && minmax) gl.blendEquation(minmax.MAX_EXT)
         gl.bindBuffer(gl.ARRAY_BUFFER, layers[layer])
         gl.enableVertexAttribArray(aPos)
-        gl.vertexAttribPointer(aPos, 4, gl.FLOAT, false, 28, 0)
+        gl.vertexAttribPointer(aPos, 4, gl.FLOAT, false, 32, 0)
         gl.enableVertexAttribArray(aColor)
-        gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 28, 16)
+        gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 32, 16)
+        gl.enableVertexAttribArray(aArc)
+        gl.vertexAttribPointer(aArc, 1, gl.FLOAT, false, 32, 28)
         gl.drawArrays(gl.POINTS, 0, counts[layer])
+        if (layer === 2 && minmax) gl.blendEquation(gl.FUNC_ADD)
       }
     },
     destroy: () => {

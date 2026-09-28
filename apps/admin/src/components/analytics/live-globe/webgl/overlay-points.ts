@@ -44,27 +44,69 @@ export function buildArcPoints(arcs: GlobeArc[], palette: OverlayPalette): Float
         u * a[2] + v * control[2] + w * b[2],
         ARC_WIDTH,
         ...color,
+        0,
       )
     }
   }
   return new Float32Array(out)
 }
 
-/** Markers as point sprites. The newest pulses (`pulse`, 0..1) and grows in on arrival
- * (`reveal`, 0..1); sizes are cobe's (0.045, newest up to 0.09) as a diameter over the radius. */
+/** A big-order glow marker is drawn this much larger than its own marker, at this much of its
+ * brightness, so it reads as a soft halo behind it rather than a second solid dot. */
+const GLOW_SIZE_SCALE = 2.6
+const GLOW_BRIGHTNESS = 0.4
+
+/** What share of the shown markers "Highlight big orders" treats as big enough for the soft
+ * glow: the top 10%, at least one when there is any spread in value at all. */
+const BIG_ORDER_SHARE = 0.1
+
+/** The value at (and above) which a marker counts as "big": the smallest value among the top
+ * `BIG_ORDER_SHARE` of `values`, so exactly that many (rounded, floor 1) qualify. */
+function bigOrderThreshold(values: number[]): number {
+  if (values.length === 0) return Number.POSITIVE_INFINITY
+  const count = Math.max(1, Math.round(values.length * BIG_ORDER_SHARE))
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.max(0, sorted.length - count)] ?? Number.POSITIVE_INFINITY
+}
+
+/**
+ * Markers as point sprites. The newest pulses (`pulse`, 0..1) and grows in on arrival
+ * (`reveal`, 0..1); sizes are cobe's (0.045, newest up to 0.09) as a diameter over the radius.
+ *
+ * With `highlightBigOrders` on, size also scales with `valuePaise` (square-root, so it reads
+ * as area rather than diameter) and the top 10% by value get an extra, larger, dimmer point
+ * drawn just behind theirs as a soft glow (the point sprite format carries no per-vertex alpha,
+ * so the "soft" comes from size and dimness rather than transparency).
+ */
 export function buildMarkerPoints(
   markers: GlobeMarker[],
   palette: OverlayPalette,
   pulse: number,
   reveal: number,
+  highlightBigOrders = false,
 ): Float32Array {
-  const out = new Float32Array(markers.length * 7)
-  markers.forEach((m, i) => {
-    const size = m.isNewest ? 0.09 * (0.6 + 0.4 * pulse) * reveal : 0.045
-    out.set(
-      [...markerVector(m), size * 1.25, ...(m.isNewest ? palette.newest : palette.marker)],
-      i * 7,
-    )
-  })
-  return out
+  const values = markers.map((m) => m.valuePaise ?? 0)
+  const maxValue = Math.max(0, ...values)
+  const bigThreshold =
+    highlightBigOrders && maxValue > 0 ? bigOrderThreshold(values) : Number.POSITIVE_INFINITY
+
+  const out: number[] = []
+  for (const m of markers) {
+    const value = m.valuePaise ?? 0
+    const scale = highlightBigOrders && maxValue > 0 ? 0.75 + 0.65 * Math.sqrt(value / maxValue) : 1
+    const baseSize = m.isNewest ? 0.09 * (0.6 + 0.4 * pulse) * reveal : 0.045
+    const size = baseSize * scale * 1.25
+    const color = m.isNewest ? palette.newest : palette.marker
+    const point = markerVector(m)
+    if (highlightBigOrders && maxValue > 0 && value >= bigThreshold) {
+      const glow: Rgb = [
+        color[0] * GLOW_BRIGHTNESS,
+        color[1] * GLOW_BRIGHTNESS,
+        color[2] * GLOW_BRIGHTNESS,
+      ]
+      out.push(...point, size * GLOW_SIZE_SCALE, ...glow, 0)
+    }
+    out.push(...point, size, ...color, 0)
+  }
+  return Float32Array.from(out)
 }
