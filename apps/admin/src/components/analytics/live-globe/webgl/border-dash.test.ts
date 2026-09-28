@@ -29,14 +29,14 @@ describe('isDashVisible', () => {
     }
   })
 
-  it('gives roughly a 4-5 px dash with a ~3 px gap at an 8 px period', () => {
+  it('gives a short ~2.5-3 px dash with a ~2 px gap at a 5 px period', () => {
     const radiusPx = 1
     const onLengthPx = DASH_DUTY_CYCLE * DASH_PERIOD_CSS_PX
     const offLengthPx = (1 - DASH_DUTY_CYCLE) * DASH_PERIOD_CSS_PX
-    expect(onLengthPx).toBeGreaterThanOrEqual(4)
-    expect(onLengthPx).toBeLessThanOrEqual(5)
-    expect(offLengthPx).toBeGreaterThanOrEqual(3)
-    expect(offLengthPx).toBeLessThanOrEqual(4)
+    expect(onLengthPx).toBeGreaterThanOrEqual(2.5)
+    expect(onLengthPx).toBeLessThanOrEqual(3)
+    expect(offLengthPx).toBeGreaterThanOrEqual(2)
+    expect(offLengthPx).toBeLessThanOrEqual(2.5)
     // Sanity-check against the actual function at a few points along one period.
     for (let px = 0; px < DASH_PERIOD_CSS_PX; px += 0.5) {
       expect(isDashVisible(px, radiusPx)).toBe(px <= onLengthPx)

@@ -12,7 +12,7 @@
  */
 
 /** A dash-plus-gap's length on screen, device px. */
-export const DASH_PERIOD_CSS_PX = 8
+export const DASH_PERIOD_CSS_PX = 5
 
 /** How much of one period is "on" (drawn) rather than "off" (the gap). */
 export const DASH_DUTY_CYCLE = 0.55
