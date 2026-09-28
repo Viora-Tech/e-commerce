@@ -235,13 +235,13 @@ moves. Then select **Save and turn on**.
 
 ### Turn on payment updates
 
-Under **Payment updates** on the Connect page you'll find three things. In your Decentro
+Under **Payment updates** on the Connect page there are two things to copy. In your Decentro
 dashboard open **Configurations → Callback configurations** and paste them in:
 
 - **Callback URL**: the address Decentro sends each payment update to.
-- **Header name**: `x-webhook-token`.
-- **Header value**: your secret. Copy it before you save; after that it is hidden, and you'd
-  make a new one. Updates without it are refused.
+- **Headers**: a ready-made block, `{ "x-webhook-token": "<your secret>" }`. Paste it whole into
+  the headers box. Copy it before you save: after that the secret is hidden, and you'd make a new
+  one. Updates without it are refused.
 
 Your shop must be on a public web address for Decentro to reach it. Without payment updates,
 orders still turn paid: the shopper's order page checks with Decentro every few seconds, and
@@ -271,7 +271,7 @@ A developer can add others as a plugin (see the [Plugins SDK](/developer-docs/bu
 | Checkout shows only cash on delivery | Every online way to pay is off, or no payment company is connected. | Switch UPI (or another) on under **Shoppers can pay with**. |
 | "These look like Live keys, but Test is picked" | The keys and the Test/Live switch don't match. | Pick the mode that matches your keys. |
 | Auto-confirmed UPI orders never get paid | The QR events aren't ticked. | Tick `qr_code.credited` and `qr_code.closed` on the Razorpay webhook. |
-| Decentro payments are confirmed late | Decentro isn't sending payment updates yet, or sends the wrong secret. | Paste the **Callback URL**, header name and secret from **Apps → Decentro → Connect → Payment updates** into Decentro's **Configurations → Callback configurations**. |
+| Decentro payments are confirmed late | Decentro isn't sending payment updates yet, or sends the wrong secret. | Paste the **Callback URL** and **Headers** block from **Apps → Decentro → Connect → Payment updates** into Decentro's **Configurations → Callback configurations**. |
 | Decentro **Test connection** says the keys are wrong | Test keys used in Live (or the other way round), or a typo. | Match **Test**/**Live** to the keys Decentro sent, and paste them again. |
 | An order was cancelled but the shopper paid | They paid after the unpaid-order window. | The order shows **Refund needed**; refund that payment, or place a fresh order for them. |
 | COD fee isn't showing at checkout | Cash on delivery is off, or Type is **None**. | Switch **Cash on delivery** on under **Shoppers can pay with**, and set **Fixed amount (₹)** under **Advanced**. |

@@ -58,18 +58,19 @@ export const decentroAppContent = {
     callback: {
       heading: 'Payment updates',
       intro:
-        'Decentro tells your store the moment a shopper pays. Copy these three into Decentro: Configurations, then Callback configurations.',
+        'Decentro tells your store the moment a shopper pays. Copy these two into Decentro: Configurations, then Callback configurations.',
       urlLabel: 'Callback URL',
       urlHelp:
         'Your store must be on a public web address for Decentro to reach it; localhost does not work.',
-      headerLabel: 'Header name',
       headerName: 'x-webhook-token',
-      headerHelp: 'In Decentro, add a custom header with this name.',
-      secretLabel: 'Header value (your secret)',
-      secretHelp: 'Paste this as the header value. Updates without it are refused.',
+      headersLabel: 'Headers',
+      headersHelp:
+        'Paste this whole block into the headers box. The long code is your secret: updates without it are refused.',
       secretCopyNow: 'Copy it now: once saved, it is hidden.',
       secretSaved:
-        'It is saved and hidden. Lost it? Make a new one, save, and paste it into Decentro again.',
+        'The secret is saved and hidden. Lost it? Make a new one, save, and paste the new block into Decentro.',
+      /** Stands in for the hidden secret once saved. */
+      secretHidden: 'your saved secret',
       newSecret: 'Make a new secret',
     },
     advanced: {
