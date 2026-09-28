@@ -119,7 +119,7 @@ describe('media', () => {
         enabled: ['r2'],
         providers: {
           r2: {
-            accountId: 'acct',
+            accountId: '0123456789abcdef0123456789abcdef',
             accessKeyId: 'ak',
             secretAccessKey: 'super-secret',
             bucket: 'b',

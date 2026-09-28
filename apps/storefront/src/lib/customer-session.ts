@@ -29,7 +29,9 @@ export async function writeCustomerToken(
   ;(await cookies()).set(CUSTOMER_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: proto === 'https',
+    // Secure in production whatever the proxy forwards: a missing x-forwarded-proto must
+    // never send a 90-day session cookie over plain http.
+    secure: proto === 'https' || process.env.NODE_ENV === 'production',
     path: '/',
     ...(persistent ? { expires: expiresAt } : {}),
   })

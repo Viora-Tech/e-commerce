@@ -54,3 +54,13 @@ describe('store.current', () => {
     expect(shown).toMatchObject({ id: 's1', name: 'Waimers' })
   })
 })
+
+describe('orders.collectPayment method', () => {
+  const collect = inputOf(appRouter.orders.collectPayment)
+  const base = { orderId: '0190a0a0-0000-7000-8000-000000000000', amountPaise: 100 }
+
+  it('records hand-collected money as manual or COD only, never as a gateway', () => {
+    expect(collect.safeParse({ ...base, method: 'cod' }).success).toBe(true)
+    expect(collect.safeParse({ ...base, method: 'razorpay' }).success).toBe(false)
+  })
+})

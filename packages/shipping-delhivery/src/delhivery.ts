@@ -597,7 +597,12 @@ export class DelhiveryProvider implements ShippingProvider {
       if (!waybill) continue
       const r = item as Record<string, unknown>
       const shipment = (r.Shipment ?? r.shipment ?? r) as Record<string, unknown>
-      const stamp = shipment.StatusDateTime ?? shipment.statusDateTime ?? Date.now()
+      // A retry of the same scan must dedupe: without a timestamp the status stands in,
+      // never the clock (each retry would otherwise re-fetch tracking, using up API quota).
+      const status = shipment.Status as Record<string, unknown> | string | undefined
+      const statusName =
+        typeof status === 'string' ? status : (status?.Status ?? status?.StatusType)
+      const stamp = shipment.StatusDateTime ?? shipment.statusDateTime ?? String(statusName ?? '')
       notices.push({ waybill, eventId: `${waybill}:${stamp}` })
     }
     return notices

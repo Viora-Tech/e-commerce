@@ -15,7 +15,7 @@ export type SignFn = (
  * `text/html` (or SVG) under a key presigned for `image/png`, and the bucket would serve it
  * as a page from the media domain.
  */
-export const PRESIGN_SIGNED_HEADERS = new Set(['content-type', 'content-length'])
+const PRESIGN_SIGNED_HEADERS = new Set(['content-type', 'content-length'])
 
 export const defaultSign: SignFn = (client, command, expiresIn) =>
   getSignedUrl(client, command, { expiresIn, signableHeaders: PRESIGN_SIGNED_HEADERS })

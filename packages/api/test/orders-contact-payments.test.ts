@@ -156,6 +156,19 @@ describe('orders.collectPayment with how it was paid', () => {
     expect(p?.checkoutSession).toMatchObject({ ...session, collected: { method: 'upi' } })
   })
 
+  it('refuses to record more than is left to pay', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const { orderId } = await seedOrder(a.storeId)
+    await expect(
+      call(
+        appRouter.orders.collectPayment,
+        { orderId, amountPaise: 10_000_000, paidWith: 'cash' },
+        { context: a.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    expect(await owner.select().from(payment).where(eq(payment.orderId, orderId))).toEqual([])
+  })
+
   it('rejects a date that is not a real day', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const { orderId } = await seedOrder(a.storeId)

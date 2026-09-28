@@ -13,6 +13,7 @@ import {
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { customer, order, payment } from '@commerce/db'
+import { ORPCError } from '@orpc/server'
 import { and, asc, count, desc, eq, gt, inArray, lt, lte, ne } from 'drizzle-orm'
 
 /** The orders either side of this one by number, for the header's arrows. */
@@ -151,6 +152,13 @@ export async function collectOrderPayment(
     })
     await stampCollection(tx, input, 'order', first.id)
   } else {
+    // Never more than is still owed: an over-recorded order reads as paid twice over.
+    const { balancePaise } = await orderBalance(tx, storeId, input.orderId, current.totalPaise)
+    if (input.amountPaise > balancePaise) {
+      throw new ORPCError('BAD_REQUEST', {
+        message: 'That is more than is left to pay on this order.',
+      })
+    }
     await tx.insert(payment).values({
       storeId,
       orderId: input.orderId,

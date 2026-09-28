@@ -11,7 +11,7 @@ export type PhoneSignInCandidate = {
  * the row was proven before, or when the row has no email: a phone-only customer exists
  * only through phone sign-in or a phone-only checkout, so the phone is all it has.
  */
-export function mayUsePhoneForSignIn(row: PhoneSignInCandidate): boolean {
+function mayUsePhoneForSignIn(row: PhoneSignInCandidate): boolean {
   return row.phoneVerifiedAt !== null || row.email === null
 }
 

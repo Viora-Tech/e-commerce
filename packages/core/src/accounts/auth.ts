@@ -21,7 +21,7 @@ export const LOGIN_CODE_RESEND_MS = 30 * 1000
  * Wrong guesses count for this long across resends: a new code does not hand out five
  * fresh guesses, or requesting one every 30 seconds would allow unlimited guessing.
  */
-export const LOGIN_CODE_ATTEMPT_WINDOW_MS = 60 * 60 * 1000
+const LOGIN_CODE_ATTEMPT_WINDOW_MS = 60 * 60 * 1000
 
 /** Wrong guesses a newly minted code inherits from the one it replaces. */
 export function attemptsCarriedOver(

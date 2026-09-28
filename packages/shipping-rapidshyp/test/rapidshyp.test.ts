@@ -272,6 +272,11 @@ describe('mapRapidshypStatus', () => {
     expect(mapRapidshypStatus(undefined, 'READY_TO_SHIP')).toBe('created')
     expect(mapRapidshypStatus(undefined, 'something unrecognised')).toBe('in_transit')
   })
+
+  it('never reads an undelivered attempt as delivered', () => {
+    expect(mapRapidshypStatus(undefined, 'UNDELIVERED')).toBe('in_transit')
+    expect(mapRapidshypStatus(undefined, 'NOT DELIVERED')).toBe('in_transit')
+  })
 })
 
 describe('RapidshypProvider track', () => {

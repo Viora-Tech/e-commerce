@@ -28,7 +28,6 @@ import {
 import { LogSmsChannel } from '../providers/log-sms-channel'
 import {
   customerForSession,
-  LOGIN_CODE_ATTEMPT_WINDOW_MS,
   LOGIN_CODE_MAX_ATTEMPTS,
   requestLoginCode,
   verifyLoginCode,
@@ -40,6 +39,9 @@ import {
   requestPhoneLoginCode,
   verifyPhoneLoginCode,
 } from './otp'
+
+/** Wrong guesses carry over resends for an hour (`attemptsCarriedOver`). */
+const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -209,7 +211,7 @@ describe('phone sign-in', () => {
         requestPhoneLoginCode(ctx, '9876543210', 'whatsapp', new Date(later.getTime() + 60_000)),
       ),
     ).toEqual({ ok: false, reason: 'too_soon' })
-    const afterWindow = new Date(later.getTime() + LOGIN_CODE_ATTEMPT_WINDOW_MS)
+    const afterWindow = new Date(later.getTime() + ATTEMPT_WINDOW_MS)
     const third = await run(storeId, (ctx) =>
       requestPhoneLoginCode(ctx, '9876543210', 'whatsapp', afterWindow),
     )

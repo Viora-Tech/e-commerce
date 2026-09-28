@@ -1,6 +1,9 @@
 /** SOURCE OF TRUTH: sign-in code limit tests — limiter keys per store on the normalised address, and wrong guesses carried across resends */
 import { describe, expect, it } from 'vitest'
-import { attemptsCarriedOver, LOGIN_CODE_ATTEMPT_WINDOW_MS, otpLimiterId } from './auth'
+import { attemptsCarriedOver, otpLimiterId } from './auth'
+
+/** Wrong guesses carry over resends for an hour (`attemptsCarriedOver`). */
+const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
 
 describe('otpLimiterId', () => {
   it('gives every spelling of one email or mobile the same bucket', () => {
@@ -29,7 +32,7 @@ describe('attemptsCarriedOver', () => {
   })
 
   it('starts again once the window has passed, or for a first code', () => {
-    const later = new Date(t0.getTime() + LOGIN_CODE_ATTEMPT_WINDOW_MS)
+    const later = new Date(t0.getTime() + ATTEMPT_WINDOW_MS)
     expect(attemptsCarriedOver({ createdAt: t0, attempts: 5 }, later)).toBe(0)
     expect(attemptsCarriedOver(undefined, t0)).toBe(0)
   })

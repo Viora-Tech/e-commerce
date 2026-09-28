@@ -10,8 +10,25 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
+import { CourierError } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
+
+/**
+ * A wrong or missing webhook token (`CourierError` of kind `auth` from `parseWebhook`) is the
+ * sender's fault: answered 401, never a 500 the courier keeps retrying. Anything else rethrows.
+ */
+export function courierAuthFailure(err: unknown): {
+  ok: false
+  reason: string
+  applied: []
+  status: 401
+} {
+  if (err instanceof CourierError && err.kind === 'auth') {
+    return { ok: false, reason: 'unauthorised', applied: [], status: 401 }
+  }
+  throw err
+}
 
 /** A courier can retry the same scan several times; generous and per IP, like the payment webhook. */
 const WEBHOOK_IP_RULE = { limit: 120, windowMs: 60_000 }
@@ -61,11 +78,14 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
       if (!provider)
         return { ok: false as const, reason: 'provider not enabled for store', applied: [] }
       return handleShipmentWebhook({ storeId, tx }, provider, { rawBody, headers })
-    })
+    }).catch(courierAuthFailure)
 
     if (!outcome.ok) {
       console.warn(`[shipment-webhook] ${providerId}/${storeId} rejected: ${outcome.reason}`)
-      return c.json({ ok: false, reason: outcome.reason }, 400)
+      return c.json(
+        { ok: false, reason: outcome.reason },
+        'status' in outcome ? outcome.status : 400,
+      )
     }
     console.log(`[shipment-webhook] ${providerId} applied ${outcome.applied.length} notice(s)`)
     return c.json(outcome)

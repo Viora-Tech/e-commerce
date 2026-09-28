@@ -229,5 +229,6 @@ export const giftCardFieldContent = {
     expired: 'This gift card has expired.',
     empty: 'This gift card has no balance left.',
     not_allowed: 'Gift cards cannot be used on this order.',
+    rate_limited: 'Too many tries. Wait a minute, then try again.',
   } as Record<string, string>,
 } as const

@@ -272,6 +272,8 @@ export function mapRapidshypStatus(
     return 'in_transit'
   }
   const s = (shipmentStatus ?? '').toUpperCase()
+  // "UNDELIVERED" and "NOT DELIVERED" contain "DELIVERED"; they are attempts, not delivery.
+  if (/UNDELIVERED|NOT[\s_]DELIVERED/.test(s)) return 'in_transit'
   if (s.includes('DELIVERED')) return 'delivered'
   if (s.includes('RTO')) return 'rto'
   if (s.includes('CANCEL')) return 'cancelled'

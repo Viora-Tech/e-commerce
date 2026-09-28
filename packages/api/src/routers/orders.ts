@@ -145,7 +145,9 @@ export const ordersRouter = {
       z.object({
         orderId: z.uuid(),
         amountPaise: z.number().int().positive(),
-        method: z.string().trim().max(40).optional(),
+        // Money collected by hand is `manual` or `cod`; a gateway's name here would make it
+        // read as automatic gateway money in "Payments by method".
+        method: z.enum(['manual', 'cod']).optional(),
         /** How the merchant was paid: shown on the timeline and in "Payments by method". */
         paidWith: z.enum(MANUAL_PAYMENT_METHODS).optional(),
         /** UTR, cheque number or bank reference. */
