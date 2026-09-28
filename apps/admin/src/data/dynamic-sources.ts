@@ -17,6 +17,7 @@ export const dynamicSourcesContent = {
     richtext: 'Show text from your store instead of typing it.',
     image: 'Show an image from your store instead of uploading one.',
     link: 'Link to a page from your store.',
+    url: 'Link to a page from your store.',
     number: 'Use a number from your store.',
     color: 'Use a colour saved in your store.',
   } satisfies Record<SettingKind, string>,
