@@ -107,7 +107,7 @@ export default function CustomerAccountsSettings() {
   const hidden = loaded?.needsSetup ?? []
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty && !none}
         message={settingsContent.general.unsaved}

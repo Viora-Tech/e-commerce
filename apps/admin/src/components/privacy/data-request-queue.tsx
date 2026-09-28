@@ -56,7 +56,7 @@ export default function DataRequestQueue() {
   const now = new Date()
 
   return (
-    <div className="flex max-w-4xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title}
         subtitle={copy.subtitle}

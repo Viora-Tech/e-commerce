@@ -76,7 +76,7 @@ const SINGLE_SECTIONS = [
 const MATRIX_SECTIONS = ['media', 'details', 'variants', 'shipping', 'seo', 'more'] as const
 
 /** Jump-nav targets land below the sticky page header instead of under it. */
-const SECTION = 'scroll-mt-44'
+const SECTION = 'scroll-mt-[calc(var(--detail-header-height,11rem)+1rem)]'
 
 function initialForm(product: LoadedProduct | null): ProductFormState {
   return product ? fromProduct(product) : emptyForm()

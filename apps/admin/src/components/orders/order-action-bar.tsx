@@ -45,7 +45,7 @@ export default function OrderActionBar({ action, orderNumber, busy }: OrderActio
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 12 }}
           transition={slide}
-          className="sticky bottom-4 z-30 mx-auto flex w-full max-w-2xl items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3 shadow-popover print:hidden"
+          className="sticky bottom-4 z-30 mx-auto mb-4 flex w-[calc(100%-2rem)] max-w-2xl items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3 shadow-popover print:hidden"
         >
           <p className="text-body font-medium">{copy.title(orderNumber)}</p>
           <Button size="sm" onClick={action.onClick} disabled={busy}>

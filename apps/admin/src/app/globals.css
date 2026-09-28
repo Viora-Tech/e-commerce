@@ -12,7 +12,7 @@
 @import "@commerce/ui/styles.css";
 
 /* Monorepo: tell Tailwind to scan shared packages for class names */
-@source "../../../../packages/ui/src/**/*.tsx";
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/blocks/src/**/*.tsx";
 
 /* Admin-only variables. */

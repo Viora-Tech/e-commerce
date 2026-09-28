@@ -141,7 +141,7 @@ export default function PolicyEditor({
   const live = policy?.published === true
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={settingsContent.general.unsaved}

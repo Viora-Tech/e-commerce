@@ -167,6 +167,23 @@ export default [
       remove: (name) => `${name} हटाएं`,
       coverAlt: 'कवर फ़ोटो',
       empty: 'फ़ोटो यहाँ छोड़ें या चुनें।',
+      main: 'मुख्य फ़ोटो',
+      reorderHint: 'क्रम बदलने के लिए खींचें। पहली फ़ोटो ग्राहकों को सबसे पहले दिखती है।',
+      editAlt: (name) => `${name} का ऑल्ट टेक्स्ट बदलें`,
+      uploading: (percent) => `अपलोड हो रहा है ${percent}%`,
+      retry: 'फिर कोशिश करें',
+      dismiss: 'हटाएं',
+      dropToUpload: 'अपलोड करने के लिए छोड़ें',
+      sort: {
+        instructions:
+          'फ़ोटो उठाने के लिए स्पेस दबाएं, खिसकाने के लिए ऐरो की, रखने के लिए फिर स्पेस। पहली फ़ोटो मुख्य फ़ोटो है।',
+        handle: (name) => `${name} खिसकाएं`,
+        picked: (name) => `${name} उठाई`,
+        moved: (name, position, total) => `${name} अब ${total} में से ${position} पर`,
+        dropped: (name, position, total) =>
+          position === 1 ? `${name} अब मुख्य फ़ोटो है` : `${name} ${total} में से ${position} पर रखी`,
+        cancelled: (name) => `${name} को खिसकाना रद्द`,
+      },
     },
     categories: {
       heading: 'कैटेगरी और टैग',

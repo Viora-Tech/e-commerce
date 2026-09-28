@@ -102,7 +102,7 @@ export default function CustomerPrivacySettings() {
   const officerSet = Boolean(officer?.name && (officer.email || officer.phone))
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <SaveBar
         open={dirty}
         message={settingsContent.general.unsaved}

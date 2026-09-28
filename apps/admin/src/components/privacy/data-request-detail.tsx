@@ -56,7 +56,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
 
   // Early returns
   if (failed) return <p className="text-body text-muted-foreground">{copy.loadFailed}</p>
-  if (!detail) return <Skeleton className="h-96 w-full max-w-4xl rounded-2xl" />
+  if (!detail) return <Skeleton className="h-96 w-full rounded-2xl" />
 
   // Render logic
   const r = detail.request
@@ -69,7 +69,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
   const cu = r.customer
 
   return (
-    <div className="flex max-w-4xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <PageHeader
         title={copy.title(r.number)}
         subtitle={KIND_LABEL[r.kind]}
