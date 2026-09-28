@@ -108,14 +108,14 @@ float pxU=max(fwidth(u),1e-5);float pxV=max(fwidth(st.y),1e-5);
 float distPx=length(vec2(du/pxU,dv/pxV));
 land=dotLand*(1.-smoothstep(R-1.,R+1.,distPx));
 }else{land=H*smoothstep(.3,.7,m.r);}
-float coast=L.y*H*(1.-smoothstep(.6,1.4,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
+float coast=L.y*H*(1.-smoothstep(.4,1.8,abs(m.r-.5)/max(fwidth(m.r),1e-4)));
 float px=max(fwidth(st.x*2048.),1e-4);float bd=1.4*sqrt(-2.*log(max(m.g,1e-3)))/px;
-float border=L.x*H*step(.03,m.g)*(1.-smoothstep(.2,.8,bd));
+float border=L.x*H*step(.03,m.g)*(1.-smoothstep(.05,1.2,bd));
 vec3 ocean=O*(pow(i,.4)*(1.-V.w)+.1)+L.w*pow(1.-i,4.)*G;
 vec3 ground=mix(C*.42,C*1.9+.08,V.w)*(pow(i,.5)*.85+.15)+L.w*pow(1.-i,4.)*G;
 vec3 col=mix(ocean,ground,land*smoothstep(0.,.18,i));
-vec3 line=mix(C*1.25+.12,C*2.3+.2,V.w);float rim=smoothstep(0.,.3,i);
-col=mix(col,line,coast*rim*.8);col=mix(col,line,border*rim*.4);
+vec3 line=mix(C*1.1+.07,C*1.9+.14,V.w);float rim=smoothstep(0.,.3,i);
+col=mix(col,line,coast*rim*.65);col=mix(col,line,border*rim*.35);
 float g1=grid(degrees(lat)/15.);float lx=u*24.;float g2=grid(lx)*smoothstep(.97,.88,abs(w.y));
 float g=L.z*max(g1,g2)*smoothstep(0.,.25,i)*(.1+.08*V.w);
 col=mix(col,G*.9+C*.3,g);
@@ -138,13 +138,14 @@ gl_Position=vec4(S+q.xy*R,0,1);gl_PointSize=p.w*Z;}`
 // points are discarded so the ones left read as a dashed line rather than a solid one. DP.x is
 // the globe's current on-screen radius, DP.y the dash period, both device px, so the dash
 // keeps the same on-screen length at any zoom (see `webgl/border-dash.ts`, which mirrors this
-// same maths for its unit tests — keep the 0.55 duty cycle in sync with that file).
+// same maths for its unit tests; the shader fades each dash out between 0.48 and 0.62 of the period so its ends don't pop, averaging the 0.55 duty cycle kept there).
 const POINT_FS = `precision highp float;varying vec4 v;varying float f,arc;
 uniform float DASH;uniform vec2 DP;
 void main(){float d=length(gl_PointCoord*2.-1.);if(d>1.)discard;
-if(DASH>.5){float phase=fract(arc*DP.x/DP.y);if(phase>.55)discard;}
+float a=1.-smoothstep(.35,1.,d);
+if(DASH>.5){float phase=fract(arc*DP.x/DP.y);if(phase>.62)discard;a*=.7*(1.-smoothstep(.48,.62,phase));}
 float rim=smoothstep(-.04,.1,f);
-gl_FragColor=vec4(v.rgb,(1.-smoothstep(.8,1.,d))*rim);}`
+gl_FragColor=vec4(v.rgb,a*rim);}`
 
 /** Rotation for spin `phi` then tilt `theta`, row-major. */
 export function rotation(phi: number, theta: number): Mat3 {
