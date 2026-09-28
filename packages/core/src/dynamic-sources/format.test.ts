@@ -167,6 +167,7 @@ describe('coerceValue: one case per source type', () => {
     expect(coerceValue('image', 'file', { url: 'javascript:alert(1)' }, undefined)).toBeUndefined()
     expect(coerceValue('link', 'url', 'javascript:alert(1)', undefined)).toBeUndefined()
     expect(coerceValue('link', 'url', '//evil.example', undefined)).toBeUndefined()
+    expect(coerceValue('url', 'url', '/\\evil.example', undefined)).toBeUndefined()
   })
 
   it('links from urls and product or collection references keep the button label', () => {

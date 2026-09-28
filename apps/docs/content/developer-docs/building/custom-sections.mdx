@@ -99,7 +99,8 @@ text, image, link, number, colour) get **Connect dynamic source** through the sa
 `sanitizeEmbedHtml` runs [sanitize-html](https://github.com/apostrophecms/sanitize-html) (MIT)
 with a strict allow-list: formatting, lists, tables, links (`http(s)`, `mailto`, `tel`, site
 paths), `https` images and iframes. Removed: `<script>`, `<style>`, `<svg>`, forms, `on*`
-handlers, every `style` attribute (no CSS exfiltration), `id` (no DOM clobbering),
+handlers, every `style` attribute (no CSS exfiltration), every `class` attribute (storefront
+utilities such as `fixed inset-0` would let pasted HTML cover the page), `id` (no DOM clobbering),
 `javascript:`/`data:` and protocol-relative URLs. Iframes are kept only for
 `https://www.youtube.com/embed/…`, `www.youtube-nocookie.com/embed/…`,
 `player.vimeo.com/video/…` and `www.instagram.com/p|reel|tv/…/embed`, and always get

@@ -1,4 +1,5 @@
 import type { Fields } from '@puckeditor/core'
+import { safeColour } from './element-style'
 
 /** Layout / spacing / style / advanced settings every section can carry. */
 export type ContentWidth = 'narrow' | 'normal' | 'wide' | 'full'
@@ -89,6 +90,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** Same shape as a theme scheme id (`packages/core/src/theme/schema.ts`); it becomes a class name. */
+const SCHEME_ID = /^[a-z0-9-]{1,40}$/
+/** Becomes the section's `id`, so only a plain slug. */
+const ANCHOR_ID = /^[a-z][a-z0-9-]{0,40}$/i
+
+const schemeOr = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && SCHEME_ID.test(value) ? value : fallback
+
+const anchorOr = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && ANCHOR_ID.test(value) ? value : fallback
+
 function isResponsivePadding(value: unknown): value is Partial<ResponsivePadding> {
   return isPlainObject(value)
 }
@@ -124,8 +136,11 @@ function mergeSettings(
       ),
     },
     style: {
-      colorScheme: s.style?.colorScheme ?? base.style.colorScheme,
-      backgroundColor: s.style?.backgroundColor ?? base.style.backgroundColor,
+      colorScheme: schemeOr(s.style?.colorScheme, base.style.colorScheme),
+      backgroundColor:
+        s.style?.backgroundColor === undefined
+          ? base.style.backgroundColor
+          : (safeColour(s.style.backgroundColor) ?? ''),
       backgroundImage: {
         url: s.style?.backgroundImage?.url ?? base.style.backgroundImage.url,
         alt: s.style?.backgroundImage?.alt ?? base.style.backgroundImage.alt,
@@ -148,7 +163,7 @@ function mergeSettings(
           ? s.advanced.showOnDesktop
           : base.advanced.showOnDesktop,
       entranceAnimation: s.advanced?.entranceAnimation ?? base.advanced.entranceAnimation,
-      anchorId: s.advanced?.anchorId ?? base.advanced.anchorId,
+      anchorId: anchorOr(s.advanced?.anchorId, ''),
     },
   }
 }
@@ -168,7 +183,7 @@ function mergeSettings(
  * `normalizeDoc` — renders old docs correctly too.
  */
 export function migrateSectionSettings(props: LegacySectionProps): SectionSettingsValue {
-  const legacyScheme = typeof props.scheme === 'string' ? props.scheme : undefined
+  const legacyScheme = schemeOr(props.scheme, '') || undefined
   const legacyPadTop = typeof props.padTop === 'number' ? props.padTop : undefined
   const legacyPadBottom = typeof props.padBottom === 'number' ? props.padBottom : undefined
   const base = defaultSectionSettings({

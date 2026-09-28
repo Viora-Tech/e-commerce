@@ -5,6 +5,7 @@
 import { useEffect, useRef } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import type { Image } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import { useReducedMotion } from '../../use-reduced-motion'
 
 type Logo = { image: Image; alt: string; href: string }
@@ -18,6 +19,7 @@ function Track({ logos }: { logos: Logo[] }) {
     <div className="flex shrink-0 items-center gap-[3rem] px-[1.5rem]">
       {logos.map((logo, i) => {
         const key = `${logo.image?.url ?? logo.alt}-${i}`
+        const href = safeHref(logo.href)
         const content = logo.image?.url ? (
           <img
             src={logo.image.url}
@@ -32,8 +34,8 @@ function Track({ logos }: { logos: Logo[] }) {
         )
         return (
           <div key={key}>
-            {logo.href ? (
-              <a href={logo.href} aria-label={logo.alt}>
+            {href ? (
+              <a href={href} aria-label={logo.alt}>
                 {content}
               </a>
             ) : (

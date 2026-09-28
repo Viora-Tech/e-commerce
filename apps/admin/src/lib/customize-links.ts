@@ -118,7 +118,9 @@ export function parseHref(href: string | null | undefined): ParsedHref {
 export function normalisePastedUrl(input: string): string | null {
   const value = input.trim()
   if (!value) return null
-  if (value.startsWith('/') && !value.startsWith('//')) return value
+  // `/\host` is another site to a browser, like `//host`.
+  if (/^\/(?![/\\])/.test(value)) return value
+  if (value.startsWith('/\\')) return null
   if (value.startsWith('#')) return value
   if (/^(mailto|tel):/i.test(value)) return value
   const withScheme = value.startsWith('//')

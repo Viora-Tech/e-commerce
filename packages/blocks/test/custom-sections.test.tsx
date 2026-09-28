@@ -190,6 +190,25 @@ describe('element style', () => {
     expect(safeColour('url(https://evil.example/x)')).toBeNull()
     expect(colourValue({ token: 'inherit', custom: '' })).toBeNull()
   })
+
+  it('ignores alignments, sizes and weights it does not know', () => {
+    const { style } = elementStyle({
+      typography: {
+        align: 'left;position:fixed' as never,
+        size: 'constructor' as never,
+        weight: 'bold' as never,
+      },
+      corners: { radius: 'constructor' as never, shadow: '__proto__' as never },
+      colour: { text: { token: 'constructor' as never, custom: '' } },
+    })
+    expect(style).toEqual({})
+    expect(
+      elementStyle({ typography: { weight: '1000' as never } }).style.fontWeight,
+    ).toBeUndefined()
+    expect(
+      elementStyle({ typography: { align: 'center', weight: '600', size: 'lg' } }).style,
+    ).toMatchObject({ textAlign: 'center', fontWeight: 600, fontSize: '1.125rem' })
+  })
 })
 
 describe('column widths', () => {

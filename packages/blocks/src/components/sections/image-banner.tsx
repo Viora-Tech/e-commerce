@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import Picture from '../picture'
 
 type Props = {
@@ -50,7 +51,7 @@ export default function ImageBanner({
         {button.label ? (
           <a
             className="btn btn--primary"
-            href={button.href || '/collections/all'}
+            href={safeHref(button.href) ?? '/collections/all'}
             {...linkTarget(button)}
           >
             {button.label}
