@@ -210,9 +210,9 @@ For pre-orders that take a deposit at checkout, **Advanced → Pre-orders** cont
 ## UPI with Decentro
 
 [Decentro](https://decentro.tech) is an Indian payments company. The **Decentro** app takes UPI
-payments only: the shopper scans a QR code for the exact amount (or taps a link that opens their
-UPI app on a phone), and the order is marked paid on its own when Decentro confirms it. Cards and
-netbanking still need Razorpay or Cashfree.
+payments only. On a computer the shopper scans a QR code for the exact amount; on a phone they
+tap **Google Pay**, **PhonePe**, **Paytm** or **Other UPI app**. The order is marked paid on its
+own when Decentro confirms it. Cards and netbanking still need Razorpay or Cashfree.
 
 <Steps>
 
@@ -235,10 +235,17 @@ moves. Then select **Save and turn on**.
 
 ### Turn on payment updates
 
-Open **Advanced** and copy the **Callback secret** and the **Payment updates address**. Email
-both to Decentro support at `pgsupport@decentro.tech` and ask them to send the secret in the
-`x-webhook-token` header of every payment update. Updates without the secret are refused. Copy
-the secret before you save: after that it is hidden, and you'd make a new one.
+Under **Payment updates** on the Connect page you'll find three things. In your Decentro
+dashboard open **Configurations → Callback configurations** and paste them in:
+
+- **Callback URL**: the address Decentro sends each payment update to.
+- **Header name**: `x-webhook-token`.
+- **Header value**: your secret. Copy it before you save; after that it is hidden, and you'd
+  make a new one. Updates without it are refused.
+
+Your shop must be on a public web address for Decentro to reach it. Without payment updates,
+orders still turn paid: the shopper's order page checks with Decentro every few seconds, and
+they can tap **I've paid**.
 
 </Steps>
 
@@ -249,8 +256,6 @@ Good to know:
 - **Refund** sends the money back to the shopper's UPI ID through Decentro. Partial refunds work.
 - A payment Decentro can't confirm yet ("deemed") stays **Unpaid** until Decentro settles it,
   usually within 3 days.
-- In **Advanced**, **How shoppers pay** switches between the QR code (best on computers) and a
-  link that opens the shopper's UPI app (best on phones).
 
 ## More payment companies
 
@@ -266,7 +271,7 @@ A developer can add others as a plugin (see the [Plugins SDK](/developer-docs/bu
 | Checkout shows only cash on delivery | Every online way to pay is off, or no payment company is connected. | Switch UPI (or another) on under **Shoppers can pay with**. |
 | "These look like Live keys, but Test is picked" | The keys and the Test/Live switch don't match. | Pick the mode that matches your keys. |
 | Auto-confirmed UPI orders never get paid | The QR events aren't ticked. | Tick `qr_code.credited` and `qr_code.closed` on the Razorpay webhook. |
-| Decentro payments are confirmed late | Decentro isn't sending payment updates yet, or sends the wrong secret. | Send the **Payment updates address** and **Callback secret** from **Apps → Decentro → Connect → Advanced** to `pgsupport@decentro.tech`. |
+| Decentro payments are confirmed late | Decentro isn't sending payment updates yet, or sends the wrong secret. | Paste the **Callback URL**, header name and secret from **Apps → Decentro → Connect → Payment updates** into Decentro's **Configurations → Callback configurations**. |
 | Decentro **Test connection** says the keys are wrong | Test keys used in Live (or the other way round), or a typo. | Match **Test**/**Live** to the keys Decentro sent, and paste them again. |
 | An order was cancelled but the shopper paid | They paid after the unpaid-order window. | The order shows **Refund needed**; refund that payment, or place a fresh order for them. |
 | COD fee isn't showing at checkout | Cash on delivery is off, or Type is **None**. | Switch **Cash on delivery** on under **Shoppers can pay with**, and set **Fixed amount (₹)** under **Advanced**. |

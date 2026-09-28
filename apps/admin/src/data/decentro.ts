@@ -3,7 +3,7 @@ export const decentroAppContent = {
   connect: {
     title: 'Connect Decentro',
     intro:
-      'Take UPI payments through Decentro. Shoppers scan a QR code or tap a UPI link, and the order is marked paid on its own.',
+      'Take UPI payments through Decentro. Shoppers scan a QR code on a computer or tap their UPI app on a phone, and the order is marked paid on its own.',
     signupUrl: 'https://decentro.tech/signup/',
     supportEmail: 'pgsupport@decentro.tech',
     openSignup: 'Open Decentro sign-up',
@@ -19,7 +19,7 @@ export const decentroAppContent = {
       },
       three: {
         title: 'Turn on payment updates',
-        body: 'Email Decentro support with the payment updates address and the secret from "Advanced" below. Ask them to send the secret in the x-webhook-token header. Until they do, payments are confirmed more slowly, when we next check with Decentro.',
+        body: 'In your Decentro dashboard, open Configurations, then Callback configurations. Paste the address, the header name and the secret from "Payment updates" below. Without this, orders still turn paid, just a little slower.',
       },
     },
     mode: {
@@ -55,35 +55,33 @@ export const decentroAppContent = {
     saveFailed: 'Could not save',
     unsaved: 'Unsaved changes',
     discard: 'Discard',
+    callback: {
+      heading: 'Payment updates',
+      intro:
+        'Decentro tells your store the moment a shopper pays. Copy these three into Decentro: Configurations, then Callback configurations.',
+      urlLabel: 'Callback URL',
+      urlHelp:
+        'Your store must be on a public web address for Decentro to reach it; localhost does not work.',
+      headerLabel: 'Header name',
+      headerName: 'x-webhook-token',
+      headerHelp: 'In Decentro, add a custom header with this name.',
+      secretLabel: 'Header value (your secret)',
+      secretHelp: 'Paste this as the header value. Updates without it are refused.',
+      secretCopyNow: 'Copy it now: once saved, it is hidden.',
+      secretSaved:
+        'It is saved and hidden. Lost it? Make a new one, save, and paste it into Decentro again.',
+      newSecret: 'Make a new secret',
+    },
     advanced: {
       trigger: 'Advanced',
-      flowLabel: 'How shoppers pay',
-      flows: {
-        qr: 'Show a QR code (best on computers)',
-        link: "Open the shopper's UPI app (best on phones)",
-      },
-      flowHelp:
-        'The QR code is shown on the order page after checkout. Either way the order is marked paid on its own.',
-      webhookSecretLabel: 'Callback secret',
-      webhookSecretHelp:
-        'Decentro must send this in the x-webhook-token header of every payment update. Updates without it are refused.',
-      webhookSecretCopyNow: 'Copy it now: once saved, it is hidden.',
-      webhookSecretSaved:
-        'It is saved and hidden. Lost it? Make a new one, save, and send it to Decentro again.',
-      newSecret: 'Make a new secret',
-      webhookUrlLabel: 'Payment updates address',
-      webhookUrlHelp:
-        'Send this address to Decentro support. It only works once your store is on a public domain; Decentro cannot reach localhost.',
       payoutUrnLabel: 'Payouts consumer URN (optional)',
       payoutUrnHelp:
         'Only if Decentro gave you a separate code for payouts. Used to send a refund to a UPI ID when a normal refund is not possible.',
-      copy: 'Copy',
-      copied: 'Copied',
     },
   },
   overview: {
     title: 'Decentro',
-    subtitle: 'UPI payments by QR code or UPI link, with refunds back to UPI.',
+    subtitle: 'UPI payments by QR code or UPI app, with refunds back to UPI.',
     notConnected: 'Not connected yet. Add your Decentro keys to start taking UPI payments.',
     connectCta: 'Connect your account',
     connected: 'Connected',
@@ -93,7 +91,7 @@ export const decentroAppContent = {
     paymentsCta: 'Open Settings → Payments',
     capabilitiesHeading: 'What this app can do',
     capabilities: [
-      'Show a UPI QR code for the exact order amount, or open the shopper’s UPI app',
+      'Show a UPI QR code on computers, and Google Pay, PhonePe and Paytm buttons on phones',
       'Mark the order paid on its own when Decentro confirms the payment',
       'Check Decentro for the latest status when an update is late',
       'Refund all or part of a payment back to the shopper’s UPI ID',

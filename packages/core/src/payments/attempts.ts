@@ -345,6 +345,41 @@ export async function settleExpiredQrAttempt(
   )
 }
 
+/**
+ * The shopper is still looking at an open UPI QR: ask the gateway whether it
+ * was paid, so the order turns paid without waiting for the webhook (late, or
+ * not set up yet). Only a capture is recorded; anything else leaves the QR
+ * open until it closes. Null when there is nothing to ask or the gateway
+ * could not be asked.
+ */
+export async function syncOpenQrAttempt(
+  db: Db,
+  storeId: string,
+  orderId: string,
+  provider: PaymentProvider,
+): Promise<AppliedPayment | null> {
+  const latest = await withStore(db, storeId, async (tx) => {
+    const attempts = await paymentAttempts({ storeId, tx }, orderId)
+    return attempts.find((a) => a.purpose === 'order')
+  })
+  if (!latest || latest.provider !== provider.id) return null
+  if (!(OPEN_ATTEMPT_STATUSES as readonly string[]).includes(latest.status)) return null
+  if (sessionOf(latest)?.kind !== 'upi_qr') return null
+  let truth: Awaited<ReturnType<PaymentProvider['fetchStatus']>>
+  try {
+    truth = await provider.fetchStatus(latest.providerRef)
+  } catch {
+    return null
+  }
+  if (truth.status !== 'captured') return null
+  return withStore(db, storeId, (tx) =>
+    applyPaymentStatus(
+      { storeId, tx },
+      { paymentId: latest.id, status: 'captured', providerPaymentId: truth.providerPaymentId },
+    ),
+  )
+}
+
 /** `retryPayment`, committed, then the new attempt started with the gateway. */
 export async function retryAndStartPayment(
   db: Db,

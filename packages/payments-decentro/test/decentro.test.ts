@@ -8,7 +8,6 @@ import {
   decentroFactory,
   decentroReferenceId,
   decentroStatus,
-  qrImageSrc,
 } from '../src/decentro'
 import { payoutReferenceId, payoutStatusOf } from '../src/payouts'
 
@@ -17,7 +16,6 @@ const config: DecentroConfig = {
   clientSecret: 'dc_secret',
   consumerUrn: 'URN123',
   mode: 'test',
-  flow: 'qr',
   webhookSecret: 'hooksecret123',
 }
 
@@ -134,20 +132,27 @@ describe('createPayment', () => {
     returnUrl: 'https://shop.example/thanks',
   }
 
-  it('creates a dynamic QR with auth headers and returns a upi_qr session', async () => {
+  it('creates a UPI payment link with auth headers and returns a upi_qr session', async () => {
     const { fetch, calls } = fakeFetch(
       jsonResponse(200, {
         decentro_txn_id: 'DTX1',
         api_status: 'SUCCESS',
-        data: { dynamic_qr_image: 'https://img.example/qr.png', transaction_status: 'PENDING' },
-        response_key: 'success_payment_qr_created',
+        data: {
+          upi_uris: {
+            common_uri: 'upi://pay?pa=x@y&am=26.99',
+            gpay_uri: 'tez://upi/pay?pa=x@y',
+            phonepe_uri: 'phonepe://pay?pa=x@y',
+          },
+          transaction_status: 'PENDING',
+        },
+        response_key: 'success_payment_link_created',
       }),
     )
     const now = new Date('2026-09-26T10:00:00Z')
     const p = new DecentroProvider(config, fetch, () => now)
     const r = await p.createPayment(input)
 
-    expect(calls[0]?.url).toBe('https://staging.api.decentro.tech/v3/payments/upi/qr')
+    expect(calls[0]?.url).toBe('https://staging.api.decentro.tech/v3/payments/upi/link')
     const headers = calls[0]?.init.headers as Record<string, string>
     expect(headers.client_id).toBe('dc_client')
     expect(headers.client_secret).toBe('dc_secret')
@@ -158,7 +163,7 @@ describe('createPayment', () => {
       purpose_message: 'Order 7',
       expiry_time: 30,
       redirect_url: 'https://shop.example/thanks',
-      generate_custom_qr_image: false,
+      generate_psp_uri: true,
     })
     expect(r).toEqual({
       providerRef: 'DTX1',
@@ -168,7 +173,11 @@ describe('createPayment', () => {
         provider: 'decentro',
         providerRef: 'DTX1',
         qr: {
-          imageUrl: 'https://img.example/qr.png',
+          upiUri: 'upi://pay?pa=x@y&am=26.99',
+          apps: [
+            { id: 'gpay', uri: 'tez://upi/pay?pa=x@y' },
+            { id: 'phonepe', uri: 'phonepe://pay?pa=x@y' },
+          ],
           amountPaise: 2699,
           expiresAt: '2026-09-26T10:30:00.000Z',
         },
@@ -176,7 +185,7 @@ describe('createPayment', () => {
     })
   })
 
-  it('uses the live host and a payment link when set up that way', async () => {
+  it('uses the live host in live mode', async () => {
     const { fetch, calls } = fakeFetch(
       jsonResponse(200, {
         decentro_txn_id: 'DTX2',
@@ -184,16 +193,21 @@ describe('createPayment', () => {
         data: { upi_uris: { common_uri: 'upi://pay?pa=x@y' }, transaction_status: 'PENDING' },
       }),
     )
-    const p = new DecentroProvider({ ...config, mode: 'live', flow: 'link' }, fetch)
+    const p = new DecentroProvider({ ...config, mode: 'live' }, fetch)
     const r = await p.createPayment(input)
     expect(calls[0]?.url).toBe('https://api.decentro.tech/v3/payments/upi/link')
-    expect(bodyOf(calls[0]?.init ?? {}).generate_psp_uri).toBe(false)
-    expect(r.session).toEqual({
-      kind: 'redirect',
-      provider: 'decentro',
-      providerRef: 'DTX2',
-      url: 'upi://pay?pa=x@y',
+    expect(r.session).toMatchObject({
+      kind: 'upi_qr',
+      qr: { upiUri: 'upi://pay?pa=x@y', apps: [] },
     })
+  })
+
+  it('errors when Decentro returns no UPI link', async () => {
+    const { fetch } = fakeFetch(
+      jsonResponse(200, { decentro_txn_id: 'DTX3', api_status: 'SUCCESS', data: {} }),
+    )
+    const p = new DecentroProvider(config, fetch)
+    await expect(p.createPayment(input)).rejects.toThrow('did not return a UPI link')
   })
 
   it('refuses amounts under ₹5 without calling Decentro', async () => {
@@ -436,26 +450,6 @@ describe('refundViaPayout', () => {
   })
 })
 
-describe('qrImageSrc', () => {
-  it('turns bare base64 into a PNG data URI', () => {
-    expect(qrImageSrc('iVBORw0KGgoAAAANS\nUhEUg==')).toBe(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==',
-    )
-  })
-  it('keeps URLs and data URIs as they are', () => {
-    expect(qrImageSrc('https://img.example/qr.png')).toBe('https://img.example/qr.png')
-    expect(qrImageSrc('data:image/png;base64,abc')).toBe('data:image/png;base64,abc')
-  })
-  it('spots JPEG and SVG base64', () => {
-    expect(qrImageSrc('/9j/4AAQ')).toBe('data:image/jpeg;base64,/9j/4AAQ')
-    expect(qrImageSrc('PHN2ZyB4bWxucz0')).toBe('data:image/svg+xml;base64,PHN2ZyB4bWxucz0')
-  })
-  it('is null when missing', () => {
-    expect(qrImageSrc(undefined)).toBeNull()
-    expect(qrImageSrc('  ')).toBeNull()
-  })
-})
-
 describe('testConnection', () => {
   it('passes when Decentro finds no such transaction', async () => {
     const { fetch, calls } = fakeFetch(
@@ -468,7 +462,9 @@ describe('testConnection', () => {
     const r = await new DecentroProvider(config, fetch).testConnection()
     expect(r.ok).toBe(true)
     expect(calls[0]?.init.method).toBe('GET')
-    expect(calls[0]?.url).toMatch(/\/v3\/payments\/transaction\/status\?reference_id=conntest[0-9a-f]{12}$/)
+    expect(calls[0]?.url).toMatch(
+      /\/v3\/payments\/transaction\/status\?reference_id=conntest[0-9a-f]{12}$/,
+    )
   })
 
   it('passes when Decentro answers "Invalid Reference ID" for the made-up reference', async () => {
@@ -511,7 +507,7 @@ describe('decentroFactory', () => {
     expect(secret).toEqual(['clientSecret', 'webhookSecret'])
   })
 
-  it('validates required keys and defaults to test + QR', () => {
+  it('validates required keys and defaults to test mode', () => {
     expect(decentroFactory.validateConfig({})).toEqual({
       ok: false,
       errors: ['clientId is required', 'clientSecret is required', 'consumerUrn is required'],
@@ -529,7 +525,6 @@ describe('decentroFactory', () => {
         clientSecret: 'b',
         consumerUrn: 'c',
         mode: 'test',
-        flow: 'qr',
         webhookSecret: undefined,
         payoutConsumerUrn: undefined,
       },

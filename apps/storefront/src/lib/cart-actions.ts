@@ -25,6 +25,7 @@ import {
   ShippingUnavailable,
   setCartAttribution,
   setLineQuantity,
+  syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
 import { order, payment } from '@commerce/db'
@@ -49,6 +50,8 @@ import { inStore } from './store-context'
 const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
 const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
 const PAYMENT_RETRY_IP_RULE = { limit: 20, windowMs: 60_000 }
+/** The QR page checks every 15 s; a tap on "I've paid" adds a few more. */
+const QR_CHECK_ORDER_RULE = { limit: 8, windowMs: 60_000 }
 
 /** Server actions for the cart. The store id comes from the page's route param, never the client. */
 
@@ -319,6 +322,37 @@ export async function retryPaymentAction(storeId: string, orderNumber: number) {
   // transaction as the capture (applyPaymentStatus, via startPaymentAttempt).
   if (started?.becameCaptured) await nudgeOutbox(storeId)
   redirectAfterCheckout({ session: started?.session ?? null, orderNumber, orderId: oid })
+}
+
+/**
+ * The UPI QR page asks: has this QR been paid? Checks the gateway directly, so
+ * the order turns paid even when its webhook is late or not set up. True once
+ * paid; the page then refreshes to the paid state.
+ */
+export async function checkQrPaymentAction(storeId: string, orderNumber: number) {
+  const limited = await rateLimited(
+    'qr-check:order',
+    `${storeId}:${orderNumber}`,
+    QR_CHECK_ORDER_RULE,
+  )
+  if (!limited.ok) return false
+  const target = await inStore(storeId, async (tx) => {
+    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
+    if (!o) return null
+    const [latest] = await tx
+      .select({ provider: payment.provider })
+      .from(payment)
+      .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
+      .orderBy(desc(payment.attempt), desc(payment.id))
+      .limit(1)
+    const providers = await storePaymentProviders(tx, storeId)
+    const provider = providers.find((p) => p.id === latest?.provider)
+    return provider ? { orderId: o.id, provider } : null
+  })
+  if (!target) return false
+  const applied = await syncOpenQrAttempt(db(), storeId, target.orderId, target.provider)
+  if (applied?.becameCaptured) await nudgeOutbox(storeId)
+  return applied?.payment.status === 'captured'
 }
 
 /** Browser posts the gateway's confirmation after a client-side checkout. */

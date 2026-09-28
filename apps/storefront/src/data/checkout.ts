@@ -80,6 +80,13 @@ export const upiQrContent = {
   closesIn: (clock: string) => `This QR closes in ${clock}.`,
   help: 'Scan with Google Pay, PhonePe, Paytm or any UPI app. The amount is filled in for you.',
   open: 'Open in UPI app',
+  /** Phone buttons, one per app Decentro-style gateways return a link for. */
+  payWith: 'Pay with',
+  apps: { gpay: 'Google Pay', phonepe: 'PhonePe', paytm: 'Paytm', cred: 'CRED' },
+  otherApp: 'Other UPI app',
+  paid: "I've paid",
+  checking: 'Checking…',
+  notYet: 'Not received yet. It can take a minute; this page updates on its own.',
   expired: 'This QR has closed. Your order is still saved; get a new QR to pay.',
   renew: 'Get a new QR',
 } as const
