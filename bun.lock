@@ -224,6 +224,7 @@
       "devDependencies": {
         "@types/node": "^22.20.4",
         "dotenv": "^18.0.1",
+        "fflate": "^0.8.3",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
       },
@@ -312,6 +313,7 @@
         "@simplewebauthn/server": "13.3.3",
         "better-auth": "1.7.6",
         "drizzle-orm": "^0.45.2",
+        "fflate": "^0.8.3",
         "jose": "6.2.12",
         "sharp": "^0.35.4",
         "thumbhash": "^0.1.1",

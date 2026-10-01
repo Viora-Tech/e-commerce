@@ -130,7 +130,9 @@ export const marketingRouter = {
 
     create: can(permissions.MARKETING_WRITE)
       .input(CampaignInputSchema)
-      .handler(({ context, input }) => createCampaign(context.tx, context.scope.storeId, input)),
+      .handler(({ context, input }) =>
+        surface(() => createCampaign(context.tx, context.scope.storeId, input)),
+      ),
 
     update: can(permissions.MARKETING_WRITE)
       .input(z.object({ id: z.uuid(), data: CampaignInputSchema }))

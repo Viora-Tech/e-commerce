@@ -1,4 +1,4 @@
-import { decryptSecret, encryptSecret, isEncrypted } from '../secrets'
+import { decryptSecret, encryptSecret, isEncrypted, reencryptSecret } from '../secrets'
 
 /**
  * Shared by every "enabled providers + per-provider config" settings blob
@@ -43,14 +43,29 @@ const mapProviders = <S extends ProviderSettings>(
   return { ...s, providers }
 }
 
+/**
+ * A stored secret written under a retired key, moved onto the current one. Lazy key
+ * rotation: every save of a settings blob brings its untouched secrets forward too. A
+ * blob no key in the ring opens is kept as it is (the merchant types that secret again).
+ */
+function underCurrentKey(blob: string, secret: string, previousSecrets: string[]): string {
+  try {
+    return reencryptSecret(blob, { current: secret, previous: previousSecrets })
+  } catch {
+    return blob
+  }
+}
+
 export function encryptProviderSettings<S extends ProviderSettings>(
   s: S,
   secret: string,
   fieldsOf?: SecretFieldLookup,
+  previousSecrets: string[] = [],
 ): S {
-  return mapProviders(s, (id, k, v) =>
-    isSecretField(fieldsOf, id, k) && v && !isEncrypted(v) ? encryptSecret(v, secret) : v,
-  )
+  return mapProviders(s, (id, k, v) => {
+    if (isEncrypted(v)) return underCurrentKey(v, secret, previousSecrets)
+    return isSecretField(fieldsOf, id, k) && v ? encryptSecret(v, secret) : v
+  })
 }
 
 export function decryptProviderSettings<S extends ProviderSettings>(

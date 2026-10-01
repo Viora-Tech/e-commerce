@@ -296,6 +296,11 @@ export async function addOrderNote(
   storeId: string,
   input: { orderId: string; body: string; author: string },
 ) {
+  // The order must be this store's: RLS hides other stores' orders from this read, but the
+  // foreign key check on insert does not, so a note could otherwise hang off another
+  // store's order id (found by the cross-store leak guardrail).
+  const [own] = await tx.select({ id: order.id }).from(order).where(eq(order.id, input.orderId))
+  if (!own) return null
   const [row] = await tx
     .insert(orderNote)
     .values({ storeId, orderId: input.orderId, body: input.body, author: input.author })

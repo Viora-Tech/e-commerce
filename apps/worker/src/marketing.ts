@@ -9,9 +9,11 @@ import { registriesForStore } from '@commerce/core/registries'
 import { type Db, type StoreTx, storesWithMarketingWork, withStore } from '@commerce/db'
 import {
   ABANDONED_SWEEP_QUEUE,
+  fairProcessor,
   type IORedis,
   MARKETING_SEND_QUEUE,
   MARKETING_TICK_QUEUE,
+  QUEUE_LIMITS,
   Queue,
   Worker,
 } from '@commerce/queue'
@@ -98,7 +100,7 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
 
   const send = new Worker<SendJob>(
     MARKETING_SEND_QUEUE,
-    async (job) => {
+    fairProcessor(connection, MARKETING_SEND_QUEUE, QUEUE_LIMITS.marketingSend, async (job) => {
       const { storeId, campaignId } = job.data
       let sent = 0
       let failed = 0
@@ -112,8 +114,8 @@ export function createMarketingWorker(connection: IORedis, db: Db, opts: Opts) {
       }
       console.log(`[marketing] campaign ${campaignId}: ${sent} sent, ${failed} failed`)
       return { sent, failed }
-    },
-    { connection, concurrency: 2 },
+    }),
+    { connection, concurrency: QUEUE_LIMITS.marketingSend.concurrency },
   )
 
   return { tickQueue, sendQueue, tick, send }

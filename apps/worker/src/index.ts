@@ -21,6 +21,7 @@ import { createConnection, createHeartbeat } from './queues'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
+import { createStoreExportWorker } from './store-export'
 
 /* The local storage provider writes relative to the admin app, which serves
    the folder; point this process at the same place for generated files. */
@@ -65,6 +66,7 @@ const backInStock = createBackInStockWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,
 })
+const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -85,6 +87,7 @@ reportWorkerFailures(marketing.send, 'marketing-send', reportError)
 reportWorkerFailures(outboxRelay.worker, 'outbox-relay', reportError)
 reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
 reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
+reportWorkerFailures(storeExport.worker, 'store-export', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -170,6 +173,8 @@ const shutdown = async () => {
   await outboxRelay.queue.close()
   await backInStock.worker.close()
   await backInStock.queue.close()
+  await storeExport.worker.close()
+  await storeExport.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

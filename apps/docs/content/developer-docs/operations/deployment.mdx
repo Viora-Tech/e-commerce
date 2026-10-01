@@ -225,12 +225,11 @@ Always restore into a scratch database first to verify the backup, per
 
 ## 10. Key rotation
 
-Follow `docs/security/data-protection.md`'s "Key rotation runbook" exactly — it's written
-against Coolify/Dokploy environment variables already. In short: set the new
+Follow [Key rotation](/developer-docs/operations/key-rotation). In short: set the new
 `SETTINGS_SECRET`/`SETTINGS_SECRET_PREVIOUS` pair in Dokploy's environment, redeploy, run
-`scripts/rotate-secrets.ts --apply` and `scripts/backfill-phone-encryption.ts --apply` from the
-tasks image (same `docker run` pattern as Restore above), confirm zero old-key rows remain,
-then remove `SETTINGS_SECRET_PREVIOUS` and redeploy once more.
+`bun run rotate-secrets --apply` from the tasks image (same `docker run` pattern as Restore
+above; it covers settings, gift cards, Shopify tokens and customer phones), confirm a dry run
+reports zero values left, then remove `SETTINGS_SECRET_PREVIOUS` and redeploy once more.
 
 ## 11. Monitoring
 

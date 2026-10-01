@@ -14,7 +14,13 @@ import {
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import type { Attachment, TemplateId } from '@commerce/notifications'
-import { type IORedis, type MediaProcessQueue, Worker } from '@commerce/queue'
+import {
+  fairProcessor,
+  type IORedis,
+  type MediaProcessQueue,
+  QUEUE_LIMITS,
+  Worker,
+} from '@commerce/queue'
 
 type AppOpts = {
   settingsSecret: string
@@ -75,23 +81,27 @@ export function appDeps(db: Db, opts: AppOpts): DispatchDeps {
  */
 export function createAppEventWorker(connection: IORedis, db: Db, opts: AppOpts) {
   const deps = appDeps(db, opts)
+  const { concurrency, perStore } = QUEUE_LIMITS.appEvents
   return new Worker<AppEventJob>(
     APP_EVENTS_QUEUE,
-    async (job) => dispatchAppEvent(deps, job.data),
-    {
-      connection,
-      concurrency: 3,
-    },
+    fairProcessor(connection, APP_EVENTS_QUEUE, { perStore }, async (job) =>
+      dispatchAppEvent(deps, job.data),
+    ),
+    { connection, concurrency },
   )
 }
 
 /** Runs jobs apps queued for themselves: PDF renders, email batches. */
 export function createAppJobWorker(connection: IORedis, db: Db, opts: AppOpts) {
   const deps = appDeps(db, opts)
-  return new Worker<AppJobData>(APP_JOBS_QUEUE, async (job) => dispatchAppJob(deps, job.data), {
-    connection,
-    concurrency: 3,
-  })
+  const { concurrency, perStore } = QUEUE_LIMITS.appJobs
+  return new Worker<AppJobData>(
+    APP_JOBS_QUEUE,
+    fairProcessor(connection, APP_JOBS_QUEUE, { perStore }, async (job) =>
+      dispatchAppJob(deps, job.data),
+    ),
+    { connection, concurrency },
+  )
 }
 
 /** Links and attachments installed apps add to one order email. */

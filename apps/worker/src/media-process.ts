@@ -3,16 +3,18 @@ import { DecompressionBombError, processImage } from '@commerce/core/media-pipel
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, media, withStore } from '@commerce/db'
 import {
+  fairProcessor,
   type IORedis,
   MEDIA_PROCESS_QUEUE,
   type MediaProcessJob,
+  QUEUE_LIMITS,
   Queue,
   Worker,
 } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
-/** Two jobs at once, at most: the whole point of this pipeline (see docs/) is to protect a small 2-vCPU box, not to race through a backlog. */
-export const MEDIA_PROCESS_CONCURRENCY = 2
+/** Two jobs at once, at most: the whole point of this pipeline (see docs/) is to protect a small 2-vCPU box, not to race through a backlog. One store gets one of them (`QUEUE_LIMITS`). */
+export const MEDIA_PROCESS_CONCURRENCY = QUEUE_LIMITS.mediaProcess.concurrency
 
 /**
  * One job per confirmed image upload (or Shopify-import media row): loads
@@ -43,7 +45,7 @@ export function createMediaProcessWorker(
   const queue = new Queue<MediaProcessJob>(MEDIA_PROCESS_QUEUE, { connection })
   const worker = new Worker<MediaProcessJob>(
     MEDIA_PROCESS_QUEUE,
-    async (job) => {
+    fairProcessor(connection, MEDIA_PROCESS_QUEUE, QUEUE_LIMITS.mediaProcess, async (job) => {
       const { storeId, mediaId } = job.data
       await withStore(db, storeId, async (tx) => {
         const [row] = await tx.select().from(media).where(eq(media.id, mediaId))
@@ -91,7 +93,7 @@ export function createMediaProcessWorker(
           thumbhash: result.thumbhash,
         })
       })
-    },
+    }),
     { connection, concurrency: MEDIA_PROCESS_CONCURRENCY },
   )
 

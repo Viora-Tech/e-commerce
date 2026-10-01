@@ -11,7 +11,7 @@ import {
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, storeProcedure } from '../procedures'
+import { can, heavy, storeProcedure } from '../procedures'
 import {
   customerOverview,
   customerStats,
@@ -113,6 +113,7 @@ export const customersRouter = {
 
   /** Rows for a CSV export of the current filter; the browser builds the file. */
   export: can(permissions.CUSTOMERS_READ)
+    .use(heavy('export'))
     .input(FiltersSchema)
     .handler(({ context, input }) => listAllCustomers(context.tx, input, secret())),
 
@@ -212,6 +213,7 @@ export const customersRouter = {
     .handler(({ context, input }) => deleteCustomer(context.tx, input.id)),
 
   tagMany: can(permissions.CUSTOMERS_WRITE)
+    .use(heavy('bulk'))
     .input(
       z.object({
         ids: z.array(z.uuid()).min(1).max(200),

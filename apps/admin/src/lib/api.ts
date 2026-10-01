@@ -10,6 +10,7 @@ import {
   mediaProcessQueue,
   notificationQueue,
   sharedRedis,
+  storeExportQueue,
 } from '@commerce/queue'
 import { call } from '@orpc/server'
 import { headers } from 'next/headers'
@@ -26,6 +27,7 @@ export function apiHost() {
     appEvents: appEventQueue(loadEnv(process.env).REDIS_URL),
     appJobs: appJobQueue(loadEnv(process.env).REDIS_URL),
     mediaProcess: mediaProcessQueue(loadEnv(process.env).REDIS_URL),
+    storeExport: storeExportQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

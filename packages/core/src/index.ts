@@ -163,13 +163,18 @@ export * from './returns/policy'
 export * from './returns/resolve'
 export * from './returns/rto'
 export * from './returns/service'
+export * from './secret-rotation'
 export {
   decryptSecret,
   encryptSecret,
   isEncrypted as isEncryptedSecret,
   isLegacyEncrypted,
+  isUnderCurrentKey,
+  type Keyring,
   keyId as secretKeyId,
   parsePreviousSecrets,
+  previousSecretsFromEnv,
+  reencryptSecret,
 } from './secrets'
 export * from './sender-email/channels'
 export * from './sender-email/client'
@@ -197,6 +202,10 @@ export * from './shopper-login/providers'
 export * from './shopper-login/tickets'
 export * from './shopper-login/tokens'
 export * from './shopper-login/truecaller'
+export * from './store-data/delete'
+export * from './store-data/export'
+export * from './store-data/service'
+export * from './store-data/tables'
 export * from './tax/gst'
 export * from './tax/gstin'
 export * from './tax/settings'

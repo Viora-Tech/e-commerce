@@ -75,7 +75,22 @@ function values(storeId: string, input: CampaignInput) {
   }
 }
 
+/**
+ * A segment id from the request must be one of this store's segments. RLS hides other
+ * stores' rows from the lookup, but a foreign key check does not, so without this a
+ * campaign could be saved pointing at another store's segment.
+ */
+async function assertOwnSegment(tx: StoreTx, segmentId: string | null): Promise<void> {
+  if (!segmentId) return
+  const [seg] = await tx
+    .select({ id: customerSegment.id })
+    .from(customerSegment)
+    .where(eq(customerSegment.id, segmentId))
+  if (!seg) throw new CampaignNotReady(['the chosen segment no longer exists'])
+}
+
 export async function createCampaign(tx: StoreTx, storeId: string, input: CampaignInput) {
+  await assertOwnSegment(tx, input.segmentId)
   const [row] = await tx.insert(marketingCampaign).values(values(storeId, input)).returning()
   return row ?? null
 }
@@ -95,6 +110,7 @@ export async function updateCampaign(
   const current = await getCampaign(tx, id)
   if (!current) return null
   if (current.status !== 'draft') throw new CampaignLocked(current.status)
+  await assertOwnSegment(tx, input.segmentId)
   const [row] = await tx
     .update(marketingCampaign)
     .set({ ...values(storeId, input), kind: current.kind, updatedAt: new Date() })

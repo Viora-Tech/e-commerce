@@ -14,8 +14,14 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
  *
  * Rotation: set `SETTINGS_SECRET_PREVIOUS` to the old value(s)
  * (comma-separated) alongside a new `SETTINGS_SECRET`. New writes use the new
- * key; old ciphertext keeps decrypting via the previous keys until
- * `scripts/rotate-secrets.ts --apply` re-encrypts it.
+ * key; old ciphertext keeps decrypting via the previous keys. Settings blobs
+ * are re-encrypted lazily the next time they are saved
+ * (`encryptProviderSettings`), and `bun run rotate-secrets --apply`
+ * (`./secret-rotation.ts`) re-encrypts everything else in one pass.
+ *
+ * `decryptSecret` also tries the keys in `SETTINGS_SECRET_PREVIOUS` from the
+ * environment, after any the caller passes, so every read path (gift cards, import tokens,
+ * phones) keeps working during a rotation without threading the list through.
  */
 
 function deriveKey(secret: string): Buffer {
@@ -34,6 +40,28 @@ export function parsePreviousSecrets(raw: string | undefined): string[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
+}
+
+/** The retired keys from the environment; empty outside a rotation. */
+export function previousSecretsFromEnv(): string[] {
+  return parsePreviousSecrets(process.env.SETTINGS_SECRET_PREVIOUS)
+}
+
+/** The current key plus any retired ones still allowed to decrypt. */
+export type Keyring = { current: string; previous: string[] }
+
+/** True when `blob` is a `v2` ciphertext stamped with the current key's id. */
+export function isUnderCurrentKey(blob: string, secret: string): boolean {
+  return blob.startsWith(`v2.${keyId(secret)}.`)
+}
+
+/**
+ * Re-encrypts `blob` under the keyring's current key. A blob already under it is
+ * returned unchanged (same string), so callers can compare to see if anything moved.
+ */
+export function reencryptSecret(blob: string, keyring: Keyring): string {
+  if (isUnderCurrentKey(blob, keyring.current)) return blob
+  return encryptSecret(decryptSecret(blob, keyring.current, keyring.previous), keyring.current)
 }
 
 function gcmDecrypt(key: Buffer, ivB64: string, tagB64: string, ctB64: string): string {
@@ -74,11 +102,12 @@ export function decryptSecret(
 ): string {
   const parts = blob.split('.')
   const version = parts[0]
+  // The caller's list first, then whatever the environment adds; never the same key twice.
+  const candidates = [...new Set([secret, ...previousSecrets, ...previousSecretsFromEnv()])]
 
   if (version === 'v2') {
     const [, kid, iv, tag, enc] = parts
     if (!kid || !iv || !tag || !enc) throw new Error('unrecognised secret format')
-    const candidates = [secret, ...previousSecrets]
     const match = candidates.find((s) => keyId(s) === kid)
     if (match) return gcmDecrypt(deriveKey(match), iv, tag, enc)
     // Key id didn't match anything in the keyring; try them all anyway (auth will fail cleanly).
@@ -95,7 +124,7 @@ export function decryptSecret(
   if (version === 'v1') {
     const [, iv, tag, enc] = parts
     if (!iv || !tag || !enc) throw new Error('unrecognised secret format')
-    for (const s of [secret, ...previousSecrets]) {
+    for (const s of candidates) {
       try {
         return gcmDecrypt(deriveKey(s), iv, tag, enc)
       } catch {
@@ -111,6 +140,6 @@ export function decryptSecret(
 export const isEncrypted = (v: unknown): v is string =>
   typeof v === 'string' && (v.startsWith('v1.') || v.startsWith('v2.'))
 
-/** True only for the current-format (`v2`) blobs — used by the rotation script to find stale ciphertext. */
+/** True only for legacy `v1` blobs (no key id); they still decrypt, and rotation rewrites them as `v2`. */
 export const isLegacyEncrypted = (v: unknown): v is string =>
   typeof v === 'string' && v.startsWith('v1.')

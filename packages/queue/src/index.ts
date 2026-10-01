@@ -10,9 +10,13 @@ import {
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
   type NotificationQueue,
+  STORE_EXPORT_QUEUE,
+  type StoreExportJob,
+  type StoreExportQueue,
 } from '@commerce/core'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
+import type { QueueLimits } from './fair'
 
 export const HEARTBEAT_QUEUE = '{system}-heartbeat'
 /** Repeat job that polls open shipments. Braces keep every key on one slot. */
@@ -35,6 +39,25 @@ export const MARKETING_TICK_QUEUE = '{marketing}-tick'
 export const MARKETING_SEND_QUEUE = '{marketing}-send'
 /** One job per confirmed image upload (or Shopify-import media row); runs the upload-time pipeline. */
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
+
+/**
+ * Worker concurrency and the per-store cap for every queue that carries store jobs (see
+ * `./fair.ts`). The cap is what keeps one store's import, campaign or restock blast from
+ * taking every slot: the rest stay free for other stores. Raising `concurrency` without
+ * raising `perStore` gives other stores more room; raising `perStore` lets one busy store
+ * go faster when it is alone. Documented in developer docs, Architecture, section 3.
+ */
+export const QUEUE_LIMITS = {
+  notifications: { concurrency: 5, perStore: 3 },
+  appEvents: { concurrency: 3, perStore: 2 },
+  /** Shopify import runs and invoice PDF batches: one store's import never blocks its own PDFs. */
+  appJobs: { concurrency: 4, perStore: 2 },
+  marketingSend: { concurrency: 2, perStore: 1 },
+  /** Two at once at most to protect a small 2-vCPU box, so one store gets one. */
+  mediaProcess: { concurrency: 2, perStore: 1 },
+  backInStock: { concurrency: 2, perStore: 1 },
+  storeExport: { concurrency: 2, perStore: 1 },
+} as const satisfies Record<string, QueueLimits>
 
 export function createConnection(redisUrl: string): IORedis {
   return new IORedis(redisUrl, { maxRetriesPerRequest: null })
@@ -123,6 +146,23 @@ export function mediaProcessQueue(redisUrl: string): MediaProcessQueue {
   return g.__mediaProcessQueue
 }
 
+export type { StoreExportJob, StoreExportQueue }
+
+export function createStoreExportQueue(
+  connection: IORedis,
+): Queue<StoreExportJob> & StoreExportQueue {
+  return new Queue<StoreExportJob>(STORE_EXPORT_QUEUE, { connection })
+}
+
+/** Process-wide full-store-export queue, cached like the others. */
+export function storeExportQueue(redisUrl: string): StoreExportQueue {
+  const g = globalThis as { __storeExportQueue?: StoreExportQueue }
+  if (!g.__storeExportQueue) {
+    g.__storeExportQueue = createStoreExportQueue(createConnection(redisUrl))
+  }
+  return g.__storeExportQueue
+}
+
 /** Process-wide app jobs queue. */
 export function appJobQueue(redisUrl: string): AppJobQueue {
   const g = globalThis as { __appJobQueue?: AppJobQueue }
@@ -147,4 +187,5 @@ export function sharedRedis(redisUrl: string): IORedis {
 export { Queue, Worker } from 'bullmq'
 export type { default as IORedis } from 'ioredis'
 export * from './cache'
+export * from './fair'
 export * from './visitors'

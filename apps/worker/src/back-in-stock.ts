@@ -9,7 +9,7 @@ import {
   type RestockJob,
   sendRestockAlerts,
 } from '@commerce/plugin-back-in-stock'
-import { type IORedis, Queue, Worker } from '@commerce/queue'
+import { fairProcessor, type IORedis, QUEUE_LIMITS, Queue, Worker } from '@commerce/queue'
 import { eq } from 'drizzle-orm'
 
 export type BackInStockOpts = {
@@ -30,7 +30,7 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
   const quota = loadPlatformQuota(process.env)
   const worker = new Worker<RestockJob>(
     BACK_IN_STOCK_QUEUE,
-    async (job) => {
+    fairProcessor(connection, BACK_IN_STOCK_QUEUE, QUEUE_LIMITS.backInStock, async (job) => {
       const { storeId, variantId } = job.data
       const [settings, all] = await withStore(db, storeId, async (tx) => {
         const registries = await registriesForStore(tx, storeId)
@@ -90,8 +90,8 @@ export function createBackInStockWorker(connection: IORedis, db: Db, opts: BackI
         storeId,
         variantId,
       )
-    },
-    { connection },
+    }),
+    { connection, concurrency: QUEUE_LIMITS.backInStock.concurrency },
   )
   return { queue, worker }
 }

@@ -24,7 +24,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
 import {
   inventoryFacets,
   inventoryHistory,
@@ -103,6 +103,7 @@ export const inventoryRouter = {
 
   /** Every matching row, for CSV export. Capped so one request stays small. */
   exportRows: can(permissions.INVENTORY_READ)
+    .use(heavy('export'))
     .input(listInput.omit({ page: true, perPage: true }))
     .handler(async ({ context, input }) => {
       const { rows } = await listInventory(context.tx, { ...input, page: 1, perPage: 5000 })
@@ -124,6 +125,7 @@ export const inventoryRouter = {
 
   /** Same edit across selected rows; all or nothing. */
   bulkEdit: can(permissions.INVENTORY_WRITE)
+    .use(heavy('bulk'))
     .input(BulkStockEditSchema)
     .handler(({ context, input }) =>
       friendly(async () => {
