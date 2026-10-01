@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: order contact edits — WHAT: changing an order's email, phone and shipping address from admin / WHY: one place that snapshots the new address, syncs the customer's book on request and logs the change */
 import { address, customer, customerAddress, order, orderNote } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { createAddress, listAddresses, updateAddress } from '../accounts/addresses'
 import { AddressInputSchema, fieldErrors, normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
@@ -54,6 +54,14 @@ const oneLine = (a: Pick<AddressRow, 'line1' | 'line2' | 'city' | 'stateCode' | 
 
 const same = (a: string | null | undefined, b: string | null | undefined) =>
   (a ?? '').trim() === (b ?? '').trim()
+
+/**
+ * How the contact-change notes this module writes begin. They quote the old and new
+ * email, phone, name and address, so erasing a customer (`anonymiseCustomer`) blanks
+ * notes that start this way.
+ */
+export const CONTACT_NOTE_PATTERN =
+  '^(Email changed from|Phone changed from|Name changed from|Name set to|Shipping address changed from|Shipping address set to)'
 
 /**
  * Change who an order is for and where it goes, from the order page. The old
@@ -150,6 +158,18 @@ export async function updateOrderContact(ctx: StoreContext, input: OrderContactI
     .update(order)
     .set({ email, phone, shippingAddressId })
     .where(eq(order.id, input.orderId))
+  if (before && shippingAddressId !== before.id) {
+    // The old snapshot is no one's any more (orders are its only reference, and invoices
+    // copy the address when they are issued); left behind it would outlive an erasure.
+    await ctx.tx
+      .delete(address)
+      .where(
+        and(
+          eq(address.id, before.id),
+          sql`not exists (select 1 from ${order} where ${order.shippingAddressId} = ${before.id})`,
+        ),
+      )
+  }
 
   if (input.alsoUpdateCustomer && saved && o.customerId) {
     await saveToAddressBook(ctx, o.customerId, saved)

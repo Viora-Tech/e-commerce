@@ -331,6 +331,17 @@ describe('DelhiveryProvider pickup, NDR and webhook', () => {
     expect(notices).toEqual([{ waybill: 'WB123', eventId: 'WB123:2026-09-25T00:00:00' }])
   })
 
+  it('gives a retried scan without a timestamp the same event id', async () => {
+    const p = new DelhiveryProvider({ ...config, webhookSecret: 'shh' })
+    const body = JSON.stringify({ Shipment: { AWB: 'WB9', Status: { Status: 'In Transit' } } })
+    const parse = () => p.parseWebhook({ rawBody: body, headers: { 'x-webhook-token': 'shh' } })
+    const [a] = await parse()
+    await new Promise((r) => setTimeout(r, 5))
+    const [b] = await parse()
+    expect(a?.eventId).toBe(b?.eventId)
+    expect(a?.eventId).toBe('WB9:In Transit')
+  })
+
   it('fails closed: refuses any webhook call when no secret is configured', async () => {
     const p = new DelhiveryProvider(config)
     await expect(p.parseWebhook({ rawBody: '{}', headers: {} })).rejects.toMatchObject({
@@ -387,3 +398,24 @@ if (live) {
       }),
   })
 }
+
+describe('delhiveryFactory base URL', () => {
+  it('only accepts the courier own https hosts, since the stored token is sent there', () => {
+    expect(
+      delhiveryFactory.validateConfig({
+        ...config,
+        baseUrl: 'https://staging-express.delhivery.com',
+      }),
+    ).toMatchObject({ ok: true })
+    expect(
+      delhiveryFactory.validateConfig({ ...config, baseUrl: 'https://attacker.example' }),
+    ).toMatchObject({
+      ok: false,
+    })
+    expect(
+      delhiveryFactory.validateConfig({ ...config, baseUrl: 'https://10.0.0.5' }),
+    ).toMatchObject({
+      ok: false,
+    })
+  })
+})

@@ -106,10 +106,10 @@ async function quietCart(
 }
 
 /** A customer who said yes to email and WhatsApp marketing. */
-async function consenting(storeId: string, email = 'asha@x.in') {
+async function consenting(storeId: string, email = 'asha@x.in', phone: string | null = null) {
   const [c] = await owner
     .insert(customer)
-    .values({ storeId, email, acceptsMarketing: true, acceptsWhatsapp: true })
+    .values({ storeId, email, phone, acceptsMarketing: true, acceptsWhatsapp: true })
     .returning()
   return c?.id as string
 }
@@ -150,7 +150,7 @@ describe('abandoned checkout sequence', () => {
     const cartId = await quietCart(storeId, variantId, 61, {
       email: 'asha@x.in',
       phone: '9876543210',
-      customerId: await consenting(storeId),
+      customerId: await consenting(storeId, 'asha@x.in', '+91 98765 43210'),
     })
     const id = await activate(storeId, 'abandoned_checkout')
     const { sent, deps } = recorder()
@@ -285,6 +285,81 @@ describe('consent', () => {
     expect(
       await withStore(app, storeId, (tx) => enrolSubscriber(tx, storeId, 'in@x.in', TEST_SECRET)),
     ).toBe(0)
+  })
+})
+
+describe('recipient', () => {
+  it("never sends under a subscriber's consent to a phone or email that is not theirs", async () => {
+    const { storeId, variantId } = await seedStore('rm')
+    await consenting(storeId, 'sub@x.in', '9000000001')
+    // A stranger types the subscriber's email and a victim's phone at checkout.
+    await quietCart(storeId, variantId, 61, { email: 'sub@x.in', phone: '9111111111' })
+    // A signed-in customer's basket carrying someone else's email.
+    await quietCart(storeId, variantId, 61, {
+      email: 'other@x.in',
+      customerId: await consenting(storeId, 'own@x.in'),
+    })
+    const id = await activate(storeId, 'abandoned_checkout', [
+      {
+        id: 'w1',
+        type: 'whatsapp',
+        template: { name: 'checkout_recovery', language: 'en', variables: [] },
+      },
+      {
+        id: 'e1',
+        type: 'email',
+        subject: 'Hi',
+        previewText: '',
+        blocks: [{ id: 't', type: 'text', text: 'Hi', align: 'left' }],
+      },
+    ])
+    const { sent, deps } = recorder()
+    await tick(storeId, deps, new Date())
+    expect(sent).toEqual([expect.objectContaining({ kind: 'email', to: { email: 'sub@x.in' } })])
+    const skipped = await owner
+      .select()
+      .from(marketingMessage)
+      .where(eq(marketingMessage.automationId, id))
+    expect(
+      skipped
+        .filter((m) => m.error === 'recipient_mismatch')
+        .map((m) => m.to)
+        .sort(),
+    ).toEqual(['919111111111', 'other@x.in'])
+  })
+
+  it('treats only the first COD WhatsApp as an order update, not later steps', async () => {
+    const { storeId } = await seedStore('cod2')
+    const [cu] = await owner
+      .insert(customer)
+      .values({ storeId, email: 'n@x.in', phone: '9876500001', acceptsWhatsapp: false })
+      .returning()
+    await activate(storeId, 'cod_confirmation', [
+      {
+        id: 'w1',
+        type: 'whatsapp',
+        template: { name: 'cod_confirmation', language: 'en', variables: [] },
+      },
+      { id: 'w2', type: 'whatsapp', template: { name: 'promo', language: 'en', variables: [] } },
+    ])
+    const [o] = await owner
+      .insert(order)
+      .values({
+        storeId,
+        number: 1,
+        customerId: cu?.id,
+        phone: '9876500001',
+        paymentMethod: 'cod',
+        subtotalPaise: 100,
+        totalPaise: 100,
+      })
+      .returning()
+    await withStore(app, storeId, (tx) => onOrderPlaced(tx, storeId, o?.id as string))
+    const { sent, deps } = recorder()
+    await tick(storeId, deps, new Date())
+    expect(sent.map((m) => (m.kind === 'whatsapp_template' ? m.template.name : m.kind))).toEqual([
+      'cod_confirmation',
+    ])
   })
 })
 

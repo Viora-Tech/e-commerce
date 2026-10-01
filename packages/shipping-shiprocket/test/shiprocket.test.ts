@@ -481,3 +481,24 @@ if (live) {
       }),
   })
 }
+
+describe('shiprocketFactory base URL', () => {
+  it('only accepts the courier own https hosts, since the stored token is sent there', () => {
+    expect(
+      shiprocketFactory.validateConfig({
+        ...config,
+        baseUrl: 'https://apiv2.shiprocket.in/v1/external',
+      }),
+    ).toMatchObject({ ok: true })
+    expect(
+      shiprocketFactory.validateConfig({ ...config, baseUrl: 'https://attacker.example' }),
+    ).toMatchObject({
+      ok: false,
+    })
+    expect(
+      shiprocketFactory.validateConfig({ ...config, baseUrl: 'https://10.0.0.5' }),
+    ).toMatchObject({
+      ok: false,
+    })
+  })
+})

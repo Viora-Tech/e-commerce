@@ -79,6 +79,7 @@ import {
   type CreateShipmentInput,
   type CreateShipmentResult,
   type CredentialCheck,
+  courierBaseUrlProblem,
   courierFetch,
   courierJson,
   isValidPincode,
@@ -271,6 +272,8 @@ export function mapRapidshypStatus(
     return 'in_transit'
   }
   const s = (shipmentStatus ?? '').toUpperCase()
+  // "UNDELIVERED" and "NOT DELIVERED" contain "DELIVERED"; they are attempts, not delivery.
+  if (/UNDELIVERED|NOT[\s_]DELIVERED/.test(s)) return 'in_transit'
   if (s.includes('DELIVERED')) return 'delivered'
   if (s.includes('RTO')) return 'rto'
   if (s.includes('CANCEL')) return 'cancelled'
@@ -888,8 +891,8 @@ export const rapidshypFactory: ShippingProviderFactory<RapidshypConfig> = {
     if (!r.storeName?.trim()) errors.push('store name is required')
     if (!r.pickupAddressName?.trim()) errors.push('pickup location nickname is required')
     if (!isValidPincode(r.originPincode?.trim())) errors.push('origin PIN code must be 6 digits')
-    if (r.baseUrl?.trim() && !/^https:\/\//.test(r.baseUrl.trim()))
-      errors.push('base URL must start with https://')
+    const baseUrlProblem = courierBaseUrlProblem(r.baseUrl, ['rapidshyp.com'])
+    if (baseUrlProblem) errors.push(baseUrlProblem)
     if (errors.length) return { ok: false, errors }
     return {
       ok: true,

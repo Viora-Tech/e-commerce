@@ -36,6 +36,7 @@ import {
   type CreateShipmentInput,
   type CreateShipmentResult,
   type CredentialCheck,
+  courierBaseUrlProblem,
   courierFetch,
   courierJson,
   isValidPincode,
@@ -596,7 +597,12 @@ export class DelhiveryProvider implements ShippingProvider {
       if (!waybill) continue
       const r = item as Record<string, unknown>
       const shipment = (r.Shipment ?? r.shipment ?? r) as Record<string, unknown>
-      const stamp = shipment.StatusDateTime ?? shipment.statusDateTime ?? Date.now()
+      // A retry of the same scan must dedupe: without a timestamp the status stands in,
+      // never the clock (each retry would otherwise re-fetch tracking, using up API quota).
+      const status = shipment.Status as Record<string, unknown> | string | undefined
+      const statusName =
+        typeof status === 'string' ? status : (status?.Status ?? status?.StatusType)
+      const stamp = shipment.StatusDateTime ?? shipment.statusDateTime ?? String(statusName ?? '')
       notices.push({ waybill, eventId: `${waybill}:${stamp}` })
     }
     return notices
@@ -692,8 +698,8 @@ export const delhiveryFactory: ShippingProviderFactory<DelhiveryConfig> = {
     if (!r.clientName?.trim()) errors.push('client name is required')
     if (!r.pickupLocationName?.trim()) errors.push('pickup location name is required')
     if (!isValidPincode(r.originPincode?.trim())) errors.push('origin PIN code must be 6 digits')
-    if (r.baseUrl?.trim() && !/^https:\/\//.test(r.baseUrl.trim()))
-      errors.push('base URL must start with https://')
+    const baseUrlProblem = courierBaseUrlProblem(r.baseUrl, ['delhivery.com'])
+    if (baseUrlProblem) errors.push(baseUrlProblem)
     if (errors.length) return { ok: false, errors }
     return {
       ok: true,

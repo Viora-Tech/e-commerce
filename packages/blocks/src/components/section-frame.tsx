@@ -24,6 +24,9 @@ type SectionFrameProps = {
 const join = (...classes: (string | false | undefined | null)[]) =>
   classes.filter(Boolean).join(' ')
 
+/** Stored legacy `scheme` becomes a class name, so only a theme scheme id passes. */
+const SCHEME_ID = /^[a-z0-9-]{1,40}$/
+
 const WIDTH_CLASS: Record<ContentWidth, string> = {
   narrow: 'max-w-[48rem]',
   normal: '',
@@ -75,7 +78,7 @@ export default function SectionFrame({
   if (!settings) {
     const classes = join(
       'section-frame',
-      scheme !== 'scheme-1' ? `color-${scheme}` : undefined,
+      scheme !== 'scheme-1' && SCHEME_ID.test(scheme) ? `color-${scheme}` : undefined,
       className,
     )
     return (

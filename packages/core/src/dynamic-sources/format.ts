@@ -338,7 +338,7 @@ const asRecord = (v: unknown): Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
 
 const safeUrl = (s: unknown): string | null =>
-  typeof s === 'string' && (/^https?:\/\//i.test(s) || /^\/(?!\/)/.test(s)) ? s : null
+  typeof s === 'string' && (/^https?:\/\//i.test(s) || /^\/(?![/\\])/.test(s)) ? s : null
 
 const referenceHref = (type: SourceType, v: unknown): string | null => {
   const handle = asRecord(v).handle

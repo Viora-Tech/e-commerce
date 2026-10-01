@@ -3,6 +3,7 @@
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import Picture from '../picture'
 
 type SplitHeroProps = {
@@ -41,7 +42,7 @@ export default function SplitHero({
         {button?.label ? (
           <a
             className="btn btn--primary mt-[1.5rem] inline-flex"
-            href={button.href || '#'}
+            href={safeHref(button.href) ?? '#'}
             {...linkTarget(button)}
           >
             {button.label}

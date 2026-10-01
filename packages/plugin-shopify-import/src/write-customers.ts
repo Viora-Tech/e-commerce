@@ -1,6 +1,6 @@
 import { encryptCustomerPhone, phoneBlindIndex } from '@commerce/core'
 import { customer, type StoreTx } from '@commerce/db'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { customerAddress } from './address'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { NCustomer } from './types'
@@ -83,6 +83,8 @@ export async function writeCustomer(ctx: ImportContext, c: NCustomer): Promise<s
           .update(customer)
           .set({
             ...fields,
+            // An imported number is not proven; a proof only covers the number it was for.
+            phoneVerifiedAt: sql`case when ${customer.phoneIndex} is not distinct from ${fields.phoneIndex} then ${customer.phoneVerifiedAt} else null end`,
             email: current?.email ?? c.email,
             tags: mergeTags(current?.tags ?? [], c.tags),
           })

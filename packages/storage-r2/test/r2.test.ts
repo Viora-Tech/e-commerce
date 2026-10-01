@@ -74,7 +74,13 @@ describe('R2StorageProvider', () => {
       ok: false,
     })
     expect(r2Factory.validateConfig({ ...config, bucket: '' })).toMatchObject({ ok: false })
-    expect(r2Factory.validateConfig(config).ok).toBe(true)
+    expect(r2Factory.validateConfig({ ...config, accountId: 'a'.repeat(32) }).ok).toBe(true)
+  })
+
+  it('refuses an account id that would move the endpoint to another host', () => {
+    for (const accountId of ['acct', 'evil.example#', 'evil.example/', '10.0.0.5:8443/x?']) {
+      expect(r2Factory.validateConfig({ ...config, accountId }).ok, accountId).toBe(false)
+    }
   })
 })
 

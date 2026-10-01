@@ -609,6 +609,13 @@ export const customer = pgTable(
     phone: text('phone'),
     /** HMAC-SHA256 blind index of the normalised phone, for equality lookup without decrypting. */
     phoneIndex: text('phone_index'),
+    /**
+     * When this phone was proven to be the customer's: a sign-in code sent to it, or
+     * Truecaller. Checkout, the profile form and staff edits set a phone without proof, so
+     * they leave this null; phone sign-in only matches a customer whose phone is proven
+     * (or who has no email, i.e. was created by phone sign-in itself).
+     */
+    phoneVerifiedAt: timestamp('phone_verified_at', { withTimezone: true }),
     name: text('name'),
     /** Snapshot of the address from the latest order, so the profile card needs no join. */
     defaultAddress: jsonb('default_address').$type<CustomerAddress>(),

@@ -16,10 +16,14 @@ if [ -z "${APP_DB_PASSWORD:-}" ]; then
   exit 1
 fi
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+# The password and database name go in as psql variables (:'pw' quotes a literal, :"db" an
+# identifier), so a quote in either can never end the statement early. The heredoc is quoted
+# ('EOSQL') so the shell does not expand anything inside it.
+psql -v ON_ERROR_STOP=1 -v pw="$APP_DB_PASSWORD" -v db="$POSTGRES_DB" \
+  --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-'EOSQL'
   -- Table/sequence/function grants are not here: migration 0001_rls.sql grants them per
   -- object as it creates the RLS policies, the same as dev (docker/postgres/init.sql).
-  CREATE ROLE app LOGIN PASSWORD '$APP_DB_PASSWORD' NOBYPASSRLS;
-  GRANT CONNECT ON DATABASE "$POSTGRES_DB" TO app;
+  CREATE ROLE app LOGIN PASSWORD :'pw' NOBYPASSRLS;
+  GRANT CONNECT ON DATABASE :"db" TO app;
   GRANT USAGE ON SCHEMA public TO app;
 EOSQL

@@ -15,11 +15,14 @@ import {
   giftCard,
   marketingAutomationRun,
   marketingMessage,
+  notification,
   order,
+  orderNote,
   returnRequest,
 } from '@commerce/db'
-import { and, eq, inArray, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { CONTACT_NOTE_PATTERN } from '../order/contact'
 import { type PrivacyActor, recordPrivacyEvent } from './audit'
 import { DataRequestError } from './requests'
 
@@ -118,6 +121,16 @@ export async function anonymiseCustomer(
       // The courier phone on the delivery snapshot is not invoice data.
       await tx.update(address).set({ phone: '' }).where(inArray(address.id, snapshotIds))
     }
+    const orderIds = orders.map((o) => o.id)
+    // Staff contact edits quote the old and new email, phone and address on the timeline.
+    await tx
+      .update(orderNote)
+      .set({ body: ERASED })
+      .where(
+        and(inArray(orderNote.orderId, orderIds), sql`${orderNote.body} ~ ${CONTACT_NOTE_PATTERN}`),
+      )
+    // Who each order message went to.
+    await tx.update(notification).set({ to: ERASED }).where(inArray(notification.orderId, orderIds))
     await tx
       .update(returnRequest)
       .set({ customerNote: null })
@@ -143,10 +156,13 @@ export async function anonymiseCustomer(
   }
 
   // Copies of the contact details elsewhere.
+  // Their carts, including guest ones that only carry their email.
   await tx
     .update(cart)
     .set({ email: null, phone: null, customerName: null, attribution: null })
-    .where(eq(cart.customerId, id))
+    .where(
+      cu.email ? or(eq(cart.customerId, id), eq(cart.email, cu.email)) : eq(cart.customerId, id),
+    )
   await tx.update(discountUsage).set({ email: null }).where(eq(discountUsage.customerId, id))
   await tx
     .update(marketingAutomationRun)
@@ -181,6 +197,7 @@ export async function anonymiseCustomer(
       email: null,
       phone: null,
       phoneIndex: null,
+      phoneVerifiedAt: null,
       name: null,
       defaultAddress: null,
       tags: [],

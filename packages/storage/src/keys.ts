@@ -14,8 +14,6 @@
  */
 export const IMAGE_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 export const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024
-/** @deprecated Use `maxUploadBytesFor(contentType)`; kept only for external code checking a ceiling. */
-export const MAX_UPLOAD_BYTES = VIDEO_MAX_UPLOAD_BYTES
 
 /**
  * What the media library accepts. Videos are mp4 only; browsers and CDNs

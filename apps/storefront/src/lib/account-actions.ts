@@ -12,6 +12,7 @@ import {
   getCart,
   linkIdentity,
   openToken,
+  otpLimiterId,
   reorderLines,
   requestLoginCode,
   revokeCustomerSession,
@@ -69,7 +70,7 @@ export async function requestCodeAction(email: string): Promise<CodeRequestState
   const copy = accountContent.login.errors
   const ip = clientIp(await headers())
   const [byEmail, byIp] = await Promise.all([
-    rateLimited('login-code-send:email', email.toLowerCase(), OTP_SEND_EMAIL_RULE),
+    rateLimited('login-code-send:email', otpLimiterId(sid, 'email', email), OTP_SEND_EMAIL_RULE),
     rateLimited('login-code-send:ip', ip, OTP_SEND_IP_RULE),
   ])
   if (!byEmail.ok || !byIp.ok) return { ok: false, error: copy.rateLimited }
@@ -106,7 +107,11 @@ export async function verifyCodeAction(
   const sid = await storeId()
   const ip = clientIp(await headers())
   const [byEmail, byIp] = await Promise.all([
-    rateLimited('login-code-verify:email', email.toLowerCase(), OTP_VERIFY_EMAIL_RULE),
+    rateLimited(
+      'login-code-verify:email',
+      otpLimiterId(sid, 'email', email),
+      OTP_VERIFY_EMAIL_RULE,
+    ),
     rateLimited('login-code-verify:ip', ip, OTP_VERIFY_IP_RULE),
   ])
   if (!byEmail.ok || !byIp.ok) return { error: accountContent.login.errors.rateLimited }

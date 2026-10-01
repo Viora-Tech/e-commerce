@@ -16,6 +16,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { StoreContext } from '../context'
 import { CommerceError, OutOfStock } from '../errors'
+import { assertCustomerInStore } from '../store-scope'
 import { recomputeOrderStatuses } from './recompute'
 
 /**
@@ -171,6 +172,7 @@ function totals(lines: { quantity: number; unitPricePaise: number }[], input: Dr
 }
 
 export async function createDraft(ctx: StoreContext, input: DraftInput) {
+  await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
   const number = await nextNumber(ctx)
   const shippingAddressId = await writeAddress(ctx, input)
   const [o] = await ctx.tx
@@ -204,6 +206,7 @@ export async function updateDraft(ctx: StoreContext, id: string, input: DraftInp
   const [existing] = await ctx.tx.select().from(order).where(eq(order.id, id))
   if (!existing) return null
   if (existing.status !== 'draft') throw new DraftNotEditable(id, ctx.storeId)
+  await assertCustomerInStore(ctx.tx, input.customerId, ctx.storeId)
   const shippingAddressId = input.shipping
     ? await writeAddress(ctx, input)
     : existing.shippingAddressId

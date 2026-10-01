@@ -350,12 +350,23 @@ export class RazorpayProvider implements PaymentProvider {
     } catch {
       return { ok: false, reason: 'invalid json' }
     }
-    const eventId =
-      input.headers['x-razorpay-event-id'] ??
-      `${body.event}:${body.payload?.payment?.entity?.id ?? body.payload?.refund?.entity?.id ?? body.payload?.qr_code?.entity?.id ?? 'unknown'}`
+    // Deduplicated on what the signature covers (event + entity id). The event-id header is
+    // not signed, so a replayed body with a new header would otherwise count as new.
+    const entityId =
+      body.payload?.payment?.entity?.id ??
+      body.payload?.refund?.entity?.id ??
+      body.payload?.qr_code?.entity?.id
+    const eventId = entityId
+      ? `${body.event}:${entityId}`
+      : (input.headers['x-razorpay-event-id'] ?? `${body.event}:unknown`)
     return { ok: true, eventId, event: this.normalise(body) }
   }
 
+  /**
+   * Checkout payments always belong to a Razorpay order we created (`providerRef`); one
+   * without an order was made outside our checkout (anyone can open Checkout with the
+   * public key id and put an attempt's `idempotencyKey` in its notes), so it is ignored.
+   */
   private normalise(body: RzpWebhookBody): WebhookEvent {
     const pay = body.payload?.payment?.entity
     const qr = body.payload?.qr_code?.entity
@@ -387,7 +398,7 @@ export class RazorpayProvider implements PaymentProvider {
           raw: body,
         }
       case 'payment.captured':
-        if (!pay) break
+        if (!pay?.order_id) break
         return {
           type: 'payment.captured',
           providerRef: pay.order_id ?? '',
@@ -398,7 +409,7 @@ export class RazorpayProvider implements PaymentProvider {
           raw: body,
         }
       case 'payment.authorized':
-        if (!pay) break
+        if (!pay?.order_id) break
         return {
           type: 'payment.authorized',
           providerRef: pay.order_id ?? '',
@@ -409,7 +420,7 @@ export class RazorpayProvider implements PaymentProvider {
           raw: body,
         }
       case 'payment.failed':
-        if (!pay) break
+        if (!pay?.order_id) break
         return {
           type: 'payment.failed',
           providerRef: pay.order_id ?? '',

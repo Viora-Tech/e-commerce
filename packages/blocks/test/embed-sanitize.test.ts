@@ -123,3 +123,10 @@ describe('isAllowedEmbedSrc', () => {
     expect(isAllowedEmbedSrc(src)).toBe(ok)
   })
 })
+
+describe('sanitizeEmbedHtml: no class names', () => {
+  it('drops class so storefront utilities cannot position pasted HTML', () => {
+    expect(sanitizeEmbedHtml('<div class="fixed inset-0 z-50">x</div>')).toBe('<div>x</div>')
+    expect(sanitizeEmbedHtml('<a class="fixed inset-0" href="/x">y</a>')).not.toContain('class')
+  })
+})

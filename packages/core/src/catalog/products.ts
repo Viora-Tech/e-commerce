@@ -17,6 +17,7 @@ import { CommerceError } from '../errors'
 import { adjustStock, setStock } from '../inventory/levels'
 import { setProductMedia } from '../media/service'
 import { validateDepositAgainstPrice } from '../preorder/settings'
+import { mediaInStore, withKnownMedia } from '../store-scope'
 import type { InventoryReason, ProductWrite } from './schemas'
 import { slugify } from './slug'
 import {
@@ -138,7 +139,19 @@ export async function createProduct(tx: StoreTx, storeId: string, write: Product
   const id = newId()
   const handle = await uniqueHandle(tx, write.handle ?? write.title)
   await tx.insert(product).values({ id, storeId, handle, ...productRow(write) })
-  await setOptionsAndVariants(tx, storeId, id, write.options, write.variants, write.inventoryReason)
+  // A variant image must be this store's media; a foreign or stale id is dropped.
+  const known = await mediaInStore(
+    tx,
+    write.variants.flatMap((v) => (v.mediaId ? [v.mediaId] : [])),
+  )
+  await setOptionsAndVariants(
+    tx,
+    storeId,
+    id,
+    write.options,
+    withKnownMedia(write.variants, known),
+    write.inventoryReason,
+  )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   return id
 }
@@ -153,7 +166,19 @@ export async function updateProduct(tx: StoreTx, storeId: string, id: string, wr
     .update(product)
     .set({ ...productRow(write), ...(handle ? { handle } : {}) })
     .where(eq(product.id, id))
-  await setOptionsAndVariants(tx, storeId, id, write.options, write.variants, write.inventoryReason)
+  // A variant image must be this store's media; a foreign or stale id is dropped.
+  const known = await mediaInStore(
+    tx,
+    write.variants.flatMap((v) => (v.mediaId ? [v.mediaId] : [])),
+  )
+  await setOptionsAndVariants(
+    tx,
+    storeId,
+    id,
+    write.options,
+    withKnownMedia(write.variants, known),
+    write.inventoryReason,
+  )
   if (write.mediaIds) await setProductMedia(tx, storeId, id, write.mediaIds)
   return id
 }

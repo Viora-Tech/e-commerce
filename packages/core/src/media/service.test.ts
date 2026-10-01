@@ -4,7 +4,9 @@ import { MemoryStorageProvider } from '@commerce/storage/testing'
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProduct, updateProduct } from '../catalog/products'
+import { listRoles, seedSystemRoles, upsertMember } from '../permissions/service'
 import {
+  authorizeLocalUpload,
   checkStorageQuota,
   confirmUpload,
   createUploadIntent,
@@ -78,6 +80,20 @@ async function readyUpload(storeId: string, provider: MemoryStorageProvider, fil
 }
 
 describe('createUploadIntent / confirmUpload', () => {
+  it('refuses and deletes an object stored with another type than the one presigned', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const ticket = await withStore(app, storeId, (tx) =>
+      createUploadIntent(tx, storeId, provider, png),
+    )
+    const key = signedKey(provider)
+    await provider.put({ key, body: new Uint8Array(100), contentType: 'text/html' })
+    await expect(
+      withStore(app, storeId, (tx) => confirmUpload(tx, ticket.mediaId, provider)),
+    ).rejects.toBeInstanceOf(InvalidUpload)
+    expect(provider.deleted).toContain(key)
+  })
+
   it('signs a per-store key, stores a pending row, and confirm queues an image for processing', async () => {
     const storeId = await seedStore()
     const provider = new MemoryStorageProvider()
@@ -362,5 +378,33 @@ describe('storage settings', () => {
       S3_BUCKET: 'b2',
     })
     expect(both.enabled).toEqual(['r2'])
+  })
+})
+
+describe('authorizeLocalUpload', () => {
+  it('only lets a content writer PUT to a pending upload key with its announced type', async () => {
+    const storeId = await seedStore()
+    const provider = new MemoryStorageProvider()
+    const ownerId = 'user-owner'
+    await withStore(app, storeId, async (tx) => {
+      await seedSystemRoles(tx, storeId)
+      const owner = (await listRoles(tx, storeId)).find((r) => r.slug === 'owner')
+      if (!owner) throw new Error('owner role')
+      await upsertMember(tx, { storeId, userId: ownerId, roleId: owner.id })
+    })
+    await withStore(app, storeId, (tx) => createUploadIntent(tx, storeId, provider, png))
+    const key = signedKey(provider)
+    const check = (userId: string, k: string, contentType = 'image/png') =>
+      withStore(app, storeId, (tx) =>
+        authorizeLocalUpload(tx, { storeId, userId, key: k, contentType }),
+      )
+
+    expect(await check(ownerId, key)).toMatchObject({ ok: true })
+    expect(await check('not-a-member', key)).toEqual({ ok: false, status: 403 })
+    expect(await check(ownerId, `stores/${storeId}/private/invoices/x.pdf`)).toEqual({
+      ok: false,
+      status: 403,
+    })
+    expect(await check(ownerId, key, 'text/html')).toEqual({ ok: false, status: 415 })
   })
 })

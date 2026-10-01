@@ -23,9 +23,11 @@ import type {
   TemplateData,
   TemplateId,
 } from '@commerce/notifications'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { phoneBlindIndex } from '../customers/phone-crypto'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
+import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
 import { manualCancelAt } from '../payments/manual-followup'
 import { parsePaymentSettings } from '../payments/settings'
 import { balanceOwed } from '../preorder/balance'
@@ -341,6 +343,57 @@ export async function buildCartTemplateData(
   }
 }
 
+/** Why a manual recovery skipped a channel: a known customer there has not consented. */
+export const RECOVERY_NO_CONSENT = 'no_consent'
+
+/**
+ * Whether the manual recovery may use this address. The customers the store
+ * knows for it (the basket's signed-in customer, and whoever owns that email
+ * or phone) must all have said yes on the channel; a guest nobody knows may
+ * get the one nudge. Phone channels are held to WhatsApp consent, as in
+ * `marketing/send.ts`. See `mayNudgeKnownContact`.
+ */
+async function recoveryConsented(
+  ctx: StoreContext,
+  cartId: string,
+  requires: 'email' | 'phone',
+  to: string,
+  secret: string,
+): Promise<boolean> {
+  const [c] = await ctx.tx
+    .select({ customerId: cart.customerId })
+    .from(cart)
+    .where(eq(cart.id, cartId))
+  const variants = requires === 'phone' ? phoneLookupVariants(to) : []
+  const owns =
+    requires === 'email'
+      ? eq(customer.email, to.trim().toLowerCase())
+      : variants.length > 0
+        ? or(
+            inArray(
+              customer.phoneIndex,
+              variants.map((v) => phoneBlindIndex(v, secret)),
+            ),
+            inArray(customer.phone, variants),
+          )
+        : undefined
+  const who = [c?.customerId ? eq(customer.id, c.customerId) : undefined, owns].filter(
+    (x) => x !== undefined,
+  )
+  if (who.length === 0) return true
+  const known = await ctx.tx
+    .select({
+      acceptsMarketing: customer.acceptsMarketing,
+      acceptsWhatsapp: customer.acceptsWhatsapp,
+      acceptsSms: customer.acceptsSms,
+      unsubscribedAt: customer.unsubscribedAt,
+      anonymisedAt: customer.anonymisedAt,
+    })
+    .from(customer)
+    .where(or(...who))
+  return mayNudgeKnownContact(known, requires === 'email' ? 'email' : 'whatsapp')
+}
+
 /**
  * Ask a shopper to come back to an abandoned basket. Recorded against the
  * cart, so the same basket is never nudged twice by two code paths.
@@ -364,6 +417,10 @@ export async function deliverCartRecovery(
   for (const channel of channels) {
     const to = built.to[channel.requires]
     if (!to || sent.has(channel.id)) continue
+    if (!(await recoveryConsented(ctx, input.cartId, channel.requires, to, opts.settingsSecret))) {
+      results.push({ channel: channel.id, to, ok: false, error: RECOVERY_NO_CONSENT })
+      continue
+    }
     const r = await channel.send({ to: built.to, template, data: built.data })
     await ctx.tx
       .insert(notification)

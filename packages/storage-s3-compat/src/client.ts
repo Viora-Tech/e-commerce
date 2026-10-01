@@ -10,8 +10,15 @@ export type SignFn = (
   expiresIn: number,
 ) => Promise<string>
 
+/**
+ * `content-type` is signed as well as `content-length`: unsigned, the browser could PUT
+ * `text/html` (or SVG) under a key presigned for `image/png`, and the bucket would serve it
+ * as a page from the media domain.
+ */
+const PRESIGN_SIGNED_HEADERS = new Set(['content-type', 'content-length'])
+
 export const defaultSign: SignFn = (client, command, expiresIn) =>
-  getSignedUrl(client, command, { expiresIn })
+  getSignedUrl(client, command, { expiresIn, signableHeaders: PRESIGN_SIGNED_HEADERS })
 
 export type S3CompatDeps = {
   /** Injected in tests; production builds a real client. */

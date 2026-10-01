@@ -57,4 +57,35 @@ describe('scrubPii', () => {
     scrubPii(event)
     expect(event.user.email).toBe('asha@example.com')
   })
+
+  it('redacts credential keys however they are spelled', () => {
+    const out = scrubPii({
+      extra: {
+        secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+        clientSecret: 'GOCSPX-abc/def',
+        accessToken: 'shpat_12345',
+        privateKey: '-----BEGIN PRIVATE KEY-----',
+        otp: '123456',
+        orderId: 'o_1',
+      },
+      request: { headers: { 'X-Api-Key': 'k', 'x-client-secret': 's', Cookie: 'wc_customer=1' } },
+    })
+    expect(out.extra).toEqual({
+      secretAccessKey: '[redacted]',
+      clientSecret: '[redacted]',
+      accessToken: '[redacted]',
+      privateKey: '[redacted]',
+      otp: '[redacted]',
+      orderId: 'o_1',
+    })
+    expect(out.request.headers).toEqual({
+      'X-Api-Key': '[redacted]',
+      'x-client-secret': '[redacted]',
+      Cookie: '[redacted]',
+    })
+  })
+
+  it('redacts a UPI id inside a message', () => {
+    expect(scrubPii({ message: 'Paid from asha.rao@okaxis today' }).message).not.toContain('okaxis')
+  })
 })

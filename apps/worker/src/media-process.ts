@@ -31,8 +31,9 @@ export const MEDIA_PROCESS_CONCURRENCY = 2
  *
  * `DecompressionBombError` and any other pipeline error mark the row
  * `failed` after BullMQ's own retries (5, exponential backoff — see
- * `enqueueMediaProcess`) are exhausted, rather than looping forever; the
- * admin media library shows a failed row and lets the merchant delete it.
+ * `enqueueMediaProcess`) are exhausted, rather than looping forever, and delete
+ * the unprocessed object; the admin media library shows a failed row and lets the
+ * merchant delete it.
  */
 export function createMediaProcessWorker(
   connection: IORedis,
@@ -104,7 +105,17 @@ export function createMediaProcessWorker(
         ? err.message
         : String(err)
     try {
-      await withStore(db, job.data.storeId, (tx) => markMediaFailed(tx, job.data.mediaId, message))
+      await withStore(db, job.data.storeId, async (tx) => {
+        // The unprocessed original (GPS and all, or bytes that were never an image) must
+        // not stay public at its URL: the row stays, failed, for the merchant to delete.
+        const [row] = await tx.select().from(media).where(eq(media.id, job.data.mediaId))
+        if (row?.key) {
+          const { storage } = await registriesForStore(tx, job.data.storeId)
+          const provider = await storageForStore(tx, job.data.storeId, storage, opts.settingsSecret)
+          await provider.delete(row.key).catch(() => undefined)
+        }
+        await markMediaFailed(tx, job.data.mediaId, message)
+      })
     } catch (markErr) {
       console.error(`[media] could not mark ${job.data.mediaId} failed`, markErr)
     }

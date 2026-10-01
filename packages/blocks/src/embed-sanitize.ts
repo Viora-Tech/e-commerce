@@ -9,7 +9,7 @@ import sanitizeHtml from 'sanitize-html'
  *
  * What survives: text formatting, lists, tables, links, images and iframes
  * from YouTube, Vimeo and Instagram. What never does: `<script>`, `<style>`,
- * `<svg>`, forms, `on*` handlers, `style` attributes (no CSS-based data
+ * `<svg>`, forms, `on*` handlers, `class` and `style` attributes (no CSS-based data
  * exfiltration), `javascript:`/`data:` URLs, protocol-relative URLs and ids
  * (no DOM clobbering). Every iframe is sandboxed and lazy.
  */
@@ -96,7 +96,8 @@ const OPTIONS: sanitizeHtml.IOptions = {
   nonTextTags: ['script', 'style', 'textarea', 'option', 'noscript', 'svg', 'math', 'template'],
   disallowedTagsMode: 'discard',
   allowedAttributes: {
-    '*': ['class', 'title', 'lang', 'dir', 'aria-label', 'aria-hidden'],
+    // No `class`: storefront utilities (`fixed inset-0 z-50`) would let pasted HTML cover the page.
+    '*': ['title', 'lang', 'dir', 'aria-label', 'aria-hidden'],
     a: ['href', 'target', 'rel'],
     img: ['src', 'alt', 'width', 'height', 'loading', 'decoding'],
     iframe: [

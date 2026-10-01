@@ -7,8 +7,10 @@ dist
 coverage
 .git
 .data
-.env
-.env.local
+# Every env file at any depth (.env, .env.production, apps/*/.env.local): an image
+# built from a local checkout must never carry SETTINGS_SECRET or database passwords.
+**/.env*
+!**/.env.example
 *.tsbuildinfo
 apps/docs/public/_pagefind
 .claude/worktrees

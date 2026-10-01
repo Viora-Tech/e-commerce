@@ -98,8 +98,12 @@ unsubscribe link withdraws every channel.
   gift card recipient names; sets `anonymised_at`. Orders inside the eight-year retention period
   keep buyer name, delivery address, GSTIN and business name (GST invoice data); email, phone,
   the order note and attribution go. Issued invoices (the GST app's frozen snapshots) are never
-  touched. The API's `anonymise` also completes the request it answers. Needs
-  `customers.delete`.
+  touched. Also blanked: order timeline notes written by contact edits (they quote the old and
+  new email, phone and address), order message recipients (`notification.to`) and guest carts
+  carrying the customer's email. A contact edit deletes the address snapshot it replaced. The
+  API's `anonymise` also completes the request it answers, only when that request is this
+  store's and for the same customer (`requestAnsweredFor`); a customer linked to a request is
+  loaded under the store first. Needs `customers.delete`.
 
 ## Sign-in methods
 

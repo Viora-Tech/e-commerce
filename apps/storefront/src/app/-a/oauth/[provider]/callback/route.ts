@@ -3,6 +3,7 @@ import {
   finishSignIn,
   mintHandoff,
   openToken,
+  planConnect,
   resolveShopperIdentity,
   type ShopperIdentity,
   type StartPayload,
@@ -79,7 +80,25 @@ async function handle(request: NextRequest, provider: string, input: CallbackInp
   const found = identity
   const token = await inStore(start.s, async (tx) => {
     const ctx = { tx, storeId: start.s }
-    const resolved = await resolveShopperIdentity(ctx, found, { secret, linkTo: start.c })
+    const connectTo = start.c
+    if (connectTo) {
+      // Never linked here: the store's domain links it after checking the browser.
+      if ((await planConnect(ctx, found, connectTo)) === 'conflict') return 'conflict'
+      return mintHandoff(
+        ctx,
+        {
+          status: 'connect',
+          customerId: connectTo,
+          identity: found,
+          returnUrl,
+          browserHash: start.b,
+          nextPath: start.x,
+          remember: start.m,
+        },
+        secret,
+      )
+    }
+    const resolved = await resolveShopperIdentity(ctx, found, { secret })
     if (resolved.kind === 'no_email' || resolved.kind === 'conflict') return resolved.kind
     return mintHandoff(
       ctx,

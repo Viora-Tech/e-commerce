@@ -1,6 +1,8 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import Script from 'next/script'
+import { trackingAllowedOn } from '@/lib/tracking-paths'
 
 type TrackingTagsProps = {
   /** Ids already validated against their formats (G-…, GTM-…, digits) and cleared by consent. */
@@ -13,9 +15,16 @@ type TrackingTagsProps = {
  * Google Analytics 4, Tag Manager and the Meta pixel. Rendered only with ids the
  * consent banner allows; the ids match strict patterns, so inlining them is safe.
  * `lazyOnload`: they are injected once the page has loaded and the browser is idle,
- * so they never compete with the hero image (LCP) or the first tap (INP).
+ * so they never compete with the hero image (LCP) or the first tap (INP). Never on
+ * sign-in pages, whose URLs carry single-use tokens (`trackingAllowedOn`).
  */
 export default function TrackingTags({ ga4, gtm, metaPixel }: TrackingTagsProps) {
+  // Hooks
+  const pathname = usePathname()
+
+  // Early returns
+  if (!trackingAllowedOn(pathname)) return null
+
   // Render logic
   return (
     <>

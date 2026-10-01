@@ -123,3 +123,40 @@ describe('shouldAnimateEntrance — reduced motion disables animation', () => {
     expect(shouldAnimateEntrance('none', false)).toBe(false)
   })
 })
+
+describe('migrateSectionSettings — unsafe stored values', () => {
+  it('drops a background colour that is not plainly a colour', () => {
+    const migrated = migrateSectionSettings({
+      settings: {
+        style: { backgroundColor: 'red;position:fixed;inset:0;background:url(https://evil/b)' },
+      },
+    })
+    expect(migrated.style.backgroundColor).toBe('')
+    expect(
+      migrateSectionSettings({ settings: { style: { backgroundColor: '#ff0088' } } }).style
+        .backgroundColor,
+    ).toBe('#ff0088')
+    expect(
+      migrateSectionSettings({ settings: { style: { backgroundColor: 'red' } } }).style
+        .backgroundColor,
+    ).toBe('red')
+  })
+
+  it('keeps only slug anchor ids', () => {
+    const anchor = (anchorId: unknown) =>
+      migrateSectionSettings({ settings: { advanced: { anchorId } } }).advanced.anchorId
+    expect(anchor('faq-2')).toBe('faq-2')
+    expect(anchor('x" onclick="y')).toBe('')
+    expect(anchor('1abc')).toBe('')
+    expect(anchor(42)).toBe('')
+  })
+
+  it('falls back to the default scheme for anything that is not a scheme id', () => {
+    const scheme = (colorScheme: unknown) =>
+      migrateSectionSettings({ settings: { style: { colorScheme } } }).style.colorScheme
+    expect(scheme('scheme-3')).toBe('scheme-3')
+    expect(scheme('scheme-1 fixed inset-0 z-50')).toBe('scheme-1')
+    expect(scheme(7)).toBe('scheme-1')
+    expect(migrateSectionSettings({ scheme: 'x fixed' }).style.colorScheme).toBe('scheme-1')
+  })
+})

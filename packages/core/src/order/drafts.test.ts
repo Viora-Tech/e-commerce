@@ -1,5 +1,6 @@
 import {
   createDb,
+  customer,
   inventoryLevel,
   order,
   orderLine,
@@ -76,6 +77,28 @@ describe('draft orders', () => {
     )
     expect(listed.total).toBe(1)
     expect(listed.items[0]?.lineCount).toBe(2)
+  })
+
+  it("refuses another store's customer on a draft", async () => {
+    const { storeId, variantId } = await seed()
+    const [other] = await owner.insert(store).values({ slug: 'other', name: 'Other' }).returning()
+    const [foreign] = await owner
+      .insert(customer)
+      .values({ storeId: other?.id as string, email: 'x@example.in' })
+      .returning()
+    await expect(
+      withStore(app, storeId, (tx) =>
+        createDraft(
+          { storeId, tx },
+          {
+            customerId: foreign?.id,
+            lines: [{ variantId, quantity: 1 }],
+            discountPaise: 0,
+            shippingPaise: 0,
+          },
+        ),
+      ),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
   it('replaces the lines on update', async () => {

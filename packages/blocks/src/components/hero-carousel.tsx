@@ -5,6 +5,7 @@ import { HERO, remToPx } from '../data/motion'
 import { type FocalPoint, focalStyle } from '../focal-point'
 import { loadMotion } from '../lazy-motion'
 import { linkTarget } from '../link'
+import { safeHref } from '../slot-types'
 import type { MediaImage } from '../types'
 import { useReducedMotion } from '../use-reduced-motion'
 import Icon from './icon'
@@ -150,13 +151,17 @@ export default function HeroCarousel({
                   {s.cta || s.cta2 ? (
                     <div className="hero-carousel__ctas">
                       {s.cta ? (
-                        <a href={s.cta.href} {...linkTarget(s.cta)} className="btn btn--primary">
+                        <a
+                          href={safeHref(s.cta.href) ?? '#'}
+                          {...linkTarget(s.cta)}
+                          className="btn btn--primary"
+                        >
                           {s.cta.label}
                         </a>
                       ) : null}
                       {s.cta2 ? (
                         <a
-                          href={s.cta2.href}
+                          href={safeHref(s.cta2.href) ?? '#'}
                           {...linkTarget(s.cta2)}
                           className="btn btn--secondary hero-carousel__cta-secondary"
                         >

@@ -98,7 +98,7 @@ export function codDecision(
   rules: CodRules,
   order: { pincode: string; orderValuePaise: number },
 ): CodDecision {
-  if (rules.blockedPincodes.includes(order.pincode.trim())) {
+  if (rules.blockedPincodes.includes(checkoutPincode(order.pincode) ?? order.pincode.trim())) {
     return { allowed: false, reason: 'blocked_pincode' }
   }
   if (rules.maxOrderPaise > 0 && order.orderValuePaise > rules.maxOrderPaise) {
@@ -147,8 +147,19 @@ export type CheckoutContact = {
 }
 
 export type CheckoutFieldErrors = Partial<
-  Record<'email' | 'phone' | 'gstin' | 'businessName' | 'note', string>
+  Record<'email' | 'phone' | 'gstin' | 'businessName' | 'note' | 'pincode', string>
 >
+
+/**
+ * The PIN code a checkout is judged and stored by: six digits, spaces and dashes dropped.
+ * Null when it is not one. Every rule (COD blocks, shipping zones) compares this form, so
+ * `110-001` cannot slip past a block on `110001`.
+ */
+export function checkoutPincode(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const cleaned = raw.replace(/[\s-]/g, '')
+  return PINCODE_PATTERN.test(cleaned) ? cleaned : null
+}
 
 const EMAIL = z.string().email()
 

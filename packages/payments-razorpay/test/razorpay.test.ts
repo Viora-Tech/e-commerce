@@ -65,7 +65,37 @@ describe('razorpay specifics', () => {
       amountPaise: 269900,
       orderId: '01a0-order',
     })
-    expect(r.ok && r.eventId).toBe('evt_1')
+    expect(r.ok && r.eventId).toBe('payment.captured:pay_123')
+  })
+
+  it('dedupes on the signed body, not the unsigned event-id header', () => {
+    const parse = (eventHeader: string) =>
+      p.parseWebhook({
+        rawBody: capturedBody,
+        headers: { 'x-razorpay-signature': sign(capturedBody), 'x-razorpay-event-id': eventHeader },
+      })
+    const a = parse('evt_1')
+    const b = parse('evt_replayed')
+    expect(a.ok && b.ok && a.eventId === b.eventId).toBe(true)
+  })
+
+  it('ignores a payment made outside our checkout (no Razorpay order)', () => {
+    const body = JSON.stringify({
+      event: 'payment.captured',
+      payload: {
+        payment: {
+          entity: {
+            id: 'pay_rogue',
+            order_id: null,
+            amount: 100,
+            status: 'captured',
+            notes: { idempotencyKey: '01a0-order:1' },
+          },
+        },
+      },
+    })
+    const r = p.parseWebhook({ rawBody: body, headers: { 'x-razorpay-signature': sign(body) } })
+    expect(r.ok && r.event.type).toBe('ignored')
   })
 
   it('marks unknown events as ignored rather than failing', () => {

@@ -75,3 +75,37 @@ export function maskProviderSettings<S extends ProviderSettings>(
 
 export const isMaskedSecret = (v: unknown): v is string =>
   typeof v === 'string' && v.startsWith('••••')
+
+/**
+ * Connector fields that decide where requests (and so the stored secrets) are sent: the
+ * couriers' `baseUrl`, R2's `accountId` (it is the endpoint's host), a storage `bucket`
+ * (a store on the platform's default R2 keys must not point them at another bucket), a
+ * generic `endpoint`.
+ */
+const DESTINATION_KEYS = new Set(['baseUrl', 'endpoint', 'host', 'accountId', 'bucket'])
+
+/**
+ * Fill masked secrets (`••••1234`, "unchanged") from the stored values. Refused when a
+ * masked secret is kept while a destination field (`baseUrl`, `endpoint`, …) moves: the
+ * stored token would otherwise go to whatever address the caller typed, without the caller
+ * ever having seen it. Changing the address means typing the secret again.
+ */
+export function mergeMaskedSecrets(
+  stored: Record<string, string | undefined>,
+  raw: Record<string, string>,
+): { ok: true; merged: Record<string, string> } | { ok: false; field: string } {
+  const keepsStoredSecret = Object.entries(raw).some(([k, v]) => isMaskedSecret(v) && stored[k])
+  if (keepsStoredSecret) {
+    const keys = new Set([...Object.keys(raw), ...Object.keys(stored)])
+    for (const key of keys) {
+      if (!DESTINATION_KEYS.has(key) || isMaskedSecret(raw[key])) continue
+      const before = (stored[key] ?? '').trim()
+      const after = (key in raw ? (raw[key] ?? '') : before).trim()
+      if (before !== after) return { ok: false, field: key }
+    }
+  }
+  const merged = Object.fromEntries(
+    Object.entries(raw).map(([k, v]) => [k, (isMaskedSecret(v) && stored[k]) || v]),
+  )
+  return { ok: true, merged }
+}

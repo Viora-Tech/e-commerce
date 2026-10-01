@@ -1,3 +1,4 @@
+export { courierBaseUrlProblem } from './base-url'
 export {
   ASSUMED_WEIGHT_GRAMS,
   COURIER_TIMEOUT_MS,

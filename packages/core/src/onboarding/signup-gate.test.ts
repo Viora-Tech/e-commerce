@@ -68,8 +68,10 @@ describe('signup invites', () => {
     const invite = await createSignupInvite(app, 'once@example.com')
     expect(await findLiveSignupInvite(app, 'once@example.com')).not.toBeNull()
 
-    await consumeSignupInvite(app, invite.id)
+    expect(await consumeSignupInvite(app, invite.id)).toBe(true)
     expect(await findLiveSignupInvite(app, 'once@example.com')).toBeNull()
+    // A second, parallel "Create store" cannot ride the same invite.
+    expect(await consumeSignupInvite(app, invite.id)).toBe(false)
   })
 
   it('inviting the same email again cancels the older invite', async () => {

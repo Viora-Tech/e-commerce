@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: shopper one-time codes by phone and for account deletion — WHAT: mint, deliver and check six digit codes sent by SMS or WhatsApp to sign in with a mobile number, and codes that confirm a signed-in shopper deleting their account (which opens a deletion request and signs them out everywhere) / WHY: Settings → Customer accounts lets merchants offer phone sign-in, and self-service deletion must prove it is really the account holder; email sign-in keeps its own flow in `auth.ts` */
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto'
 import { customer, customerOtp } from '@commerce/db'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, isNull } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import type { LoginMethod } from '../customer-accounts/client'
 import { type LoginChannelDeps, loginChannels } from '../customer-accounts/service'
@@ -13,12 +13,14 @@ import {
 import { recordPrivacyEvent } from '../privacy/audit'
 import { createDataRequest } from '../privacy/requests'
 import {
+  attemptsCarriedOver,
   LOGIN_CODE_MAX_ATTEMPTS,
   LOGIN_CODE_RESEND_MS,
   LOGIN_CODE_TTL_MS,
   revokeAllCustomerSessions,
   startCustomerSession,
 } from './auth'
+import { phoneSignInMatch } from './phone-proof'
 import { normaliseMobile } from './schemas'
 
 type OtpPurpose = 'login' | 'delete_account'
@@ -45,18 +47,20 @@ async function mintCode(
 ): Promise<MintResult> {
   const destHash = destinationHash(ctx.storeId, input.purpose, input.destination)
   const [existing] = await ctx.tx
-    .select({ createdAt: customerOtp.createdAt })
+    .select({ createdAt: customerOtp.createdAt, attempts: customerOtp.attempts })
     .from(customerOtp)
     .where(and(eq(customerOtp.purpose, input.purpose), eq(customerOtp.destinationHash, destHash)))
   if (existing && now.getTime() - existing.createdAt.getTime() < LOGIN_CODE_RESEND_MS) {
     return { ok: false, reason: 'too_soon' }
   }
+  const attempts = attemptsCarriedOver(existing, now)
+  if (attempts >= LOGIN_CODE_MAX_ATTEMPTS) return { ok: false, reason: 'too_soon' }
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0')
   const values = {
     channel: input.channel,
     customerId: input.customerId ?? null,
     codeHash: codeHash(ctx.storeId, input.purpose, input.destination, code),
-    attempts: 0,
+    attempts,
     expiresAt: new Date(now.getTime() + LOGIN_CODE_TTL_MS),
     createdAt: now,
   }
@@ -82,10 +86,12 @@ async function checkCode(
   const code = typeof input.code === 'string' ? input.code.replace(/\s/g, '') : ''
   if (!/^\d{6}$/.test(code)) return { ok: false, reason: 'invalid' }
   const destHash = destinationHash(ctx.storeId, input.purpose, input.destination)
+  // Locked, so parallel guesses queue here and each sees the count the last one wrote.
   const [row] = await ctx.tx
     .select()
     .from(customerOtp)
     .where(and(eq(customerOtp.purpose, input.purpose), eq(customerOtp.destinationHash, destHash)))
+    .for('update')
   if (!row) return { ok: false, reason: 'invalid' }
   if (row.expiresAt.getTime() <= now.getTime()) return { ok: false, reason: 'expired' }
   if (row.attempts >= LOGIN_CODE_MAX_ATTEMPTS) return { ok: false, reason: 'locked' }
@@ -191,14 +197,20 @@ export async function verifyPhoneLoginCode(
   )
   if (!checked.ok) return checked
   const index = phoneBlindIndex(mobile, secret)
-  const [found] = await ctx.tx
-    .select({ id: customer.id })
-    .from(customer)
-    .where(eq(customer.phoneIndex, index))
-    .orderBy(desc(customer.updatedAt))
-    .limit(1)
+  // Only a customer whose phone was proven (or who has no email) matches: a phone typed at
+  // checkout or on a profile proves nothing (`phone-proof.ts`).
+  const found = phoneSignInMatch(
+    await ctx.tx
+      .select({ id: customer.id, email: customer.email, phoneVerifiedAt: customer.phoneVerifiedAt })
+      .from(customer)
+      .where(and(eq(customer.phoneIndex, index), isNull(customer.anonymisedAt)))
+      .orderBy(desc(customer.updatedAt))
+      .limit(20),
+  )
   let customerId = found?.id
-  if (!customerId) {
+  if (customerId) {
+    await ctx.tx.update(customer).set({ phoneVerifiedAt: now }).where(eq(customer.id, customerId))
+  } else {
     const [row] = await ctx.tx
       .insert(customer)
       .values({
@@ -206,6 +218,7 @@ export async function verifyPhoneLoginCode(
         email: null,
         phone: encryptCustomerPhone(mobile, secret).cipher,
         phoneIndex: index,
+        phoneVerifiedAt: now,
       })
       .returning({ id: customer.id })
     customerId = row?.id as string

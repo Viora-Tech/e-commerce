@@ -12,6 +12,7 @@ import {
   deliverCustomerCode,
   encodeConsent,
   loadCustomerPrivacySettings,
+  otpLimiterId,
   recordCookieConsent,
   requestAccountDeletionCode,
   requestPhoneLoginCode,
@@ -125,9 +126,8 @@ export async function requestPhoneCodeAction(
   if (!isPhoneMethod(method)) return { ok: false, error: copy.invalidPhone }
   const { methods } = await storeSignIn(sid)
   if (!methods.includes(method)) return { ok: false, error: copy.noPhone }
-  const digits = phone.replace(/\D/g, '')
   const [byPhone, byIp] = await Promise.all([
-    rateLimited('phone-code-send:phone', digits, PHONE_SEND_RULE),
+    rateLimited('phone-code-send:phone', otpLimiterId(sid, 'phone', phone), PHONE_SEND_RULE),
     rateLimited('phone-code-send:ip', clientIp(await headers()), IP_SEND_RULE),
   ])
   if (!byPhone.ok || !byIp.ok) return { ok: false, error: copy.rateLimited }
@@ -166,7 +166,7 @@ export async function verifyPhoneCodeAction(
 ): Promise<{ error: string } | undefined> {
   const sid = await storeId()
   const [byPhone, byIp] = await Promise.all([
-    rateLimited('phone-code-verify:phone', mobile, PHONE_VERIFY_RULE),
+    rateLimited('phone-code-verify:phone', otpLimiterId(sid, 'phone', mobile), PHONE_VERIFY_RULE),
     rateLimited('phone-code-verify:ip', clientIp(await headers()), IP_VERIFY_RULE),
   ])
   if (!byPhone.ok || !byIp.ok) return { error: accountContent.login.errors.rateLimited }

@@ -18,7 +18,7 @@ afterAll(async () => {
 
 /** A provider whose webhook parsing is scripted, so the pipeline is tested without a gateway. */
 function scripted(
-  events: Record<string, { eventId: string; providerRef: string }>,
+  events: Record<string, { eventId: string; providerRef: string; amountPaise?: number }>,
 ): PaymentProvider {
   return {
     id: 'scripted',
@@ -46,7 +46,7 @@ function scripted(
           type: 'payment.captured',
           providerRef: e.providerRef,
           providerPaymentId: 'pay_1',
-          amountPaise: 100,
+          amountPaise: e.amountPaise ?? 100,
           orderId: null,
           raw: { rawBody },
         },
@@ -127,6 +127,19 @@ describe('payment webhooks', () => {
     const outbox = await owner.select().from(outboxEvent).where(eq(outboxEvent.storeId, storeId))
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ type: 'order.paid', payload: { orderId } })
+  })
+
+  it('keeps an order unpaid when the gateway reports less than the attempt', async () => {
+    const { storeId, orderId } = await seedOrder()
+    const p = scripted({ short: { eventId: 'evt_s', providerRef: 'ref_1', amountPaise: 1 } })
+    const r = await withStore(app, storeId, (tx) =>
+      handlePaymentWebhook({ storeId, tx }, p, { rawBody: 'short', headers: { sig: 'good' } }),
+    )
+    expect(r).toMatchObject({ ok: true, applied: false, capturedOrderId: null })
+    const [o] = await owner.select().from(order).where(eq(order.id, orderId))
+    expect(o?.paymentStatus).not.toBe('paid')
+    const [ev] = await owner.select().from(paymentEvent)
+    expect(ev?.error).toMatch(/amount mismatch/)
   })
 
   it('acknowledges an event for an unknown reference without applying anything', async () => {

@@ -21,6 +21,7 @@ import { CommerceError } from '../errors'
 import { recomputeOrderStatuses } from '../order/recompute'
 import { decryptSecret, encryptSecret } from '../secrets'
 import { storeNotificationChannels } from '../sender-email/channels'
+import { customerInStore } from '../store-scope'
 import {
   addMonths,
   dateInZone,
@@ -125,6 +126,9 @@ export async function issueGiftCard(
     input.valuePaise > GIFT_CARD_MAX_VALUE_PAISE
   ) {
     throw new GiftCardError('invalid', 'Enter a gift card value between ₹1 and ₹2,00,000')
+  }
+  if (input.customerId && !(await customerInStore(ctx.tx, input.customerId))) {
+    throw new GiftCardError('invalid', 'Customer not found')
   }
   let code = generateGiftCardCode()
   if (input.code?.trim()) {
@@ -363,6 +367,9 @@ export async function updateGiftCard(
   const set: Partial<typeof giftCard.$inferInsert> = { updatedAt: new Date() }
   if (patch.expiresOn !== undefined) set.expiresOn = patch.expiresOn
   if (patch.note !== undefined) set.note = patch.note?.trim() || null
+  if (patch.customerId && !(await customerInStore(ctx.tx, patch.customerId))) {
+    throw new GiftCardError('invalid', 'Customer not found')
+  }
   if (patch.customerId !== undefined) set.customerId = patch.customerId
   if (patch.recipientEmail !== undefined) {
     set.recipientEmail = patch.recipientEmail?.trim().toLowerCase() || null

@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react'
 import { loadMotion } from '../../lazy-motion'
 import { linkTarget } from '../../link'
 import type { Link } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import { useReducedMotion } from '../../use-reduced-motion'
 
 type CtaBannerProps = {
@@ -63,14 +64,18 @@ export default function CtaBanner({ heading, text, button, secondaryButton }: Ct
           {text ? <p className="text-body text-[var(--color-muted)]">{text}</p> : null}
           <div className="flex flex-wrap items-center justify-center gap-[0.75rem]">
             {button?.label ? (
-              <a className="btn btn--primary" href={button.href || '#'} {...linkTarget(button)}>
+              <a
+                className="btn btn--primary"
+                href={safeHref(button.href) ?? '#'}
+                {...linkTarget(button)}
+              >
                 {button.label}
               </a>
             ) : null}
             {secondaryButton?.label ? (
               <a
                 className="btn btn--secondary"
-                href={secondaryButton.href || '#'}
+                href={safeHref(secondaryButton.href) ?? '#'}
                 {...linkTarget(secondaryButton)}
               >
                 {secondaryButton.label}

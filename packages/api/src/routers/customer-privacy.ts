@@ -20,6 +20,7 @@ import {
   PRIVACY_LIMITS,
   type PrivacyActor,
   permissions,
+  requestAnsweredFor,
   STAFF_REQUEST_SOURCES,
   saveCustomerPrivacySettings,
   setMarketingConsent,
@@ -155,15 +156,20 @@ export const customerPrivacyRouter = {
         dataRequestId: z.uuid().nullable().optional(),
       }),
     )
-    .handler(async ({ context, input }) => {
-      const file = await exportCustomerData(ctxOf(context), {
-        ...input,
-        secret: secret(),
-        actor: staffOf(context),
-      })
-      if (!file) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
-      return file
-    }),
+    .handler(({ context, input }) =>
+      guard(async () => {
+        if (input.dataRequestId) {
+          await requestAnsweredFor(ctxOf(context), input.dataRequestId, input.customerId)
+        }
+        const file = await exportCustomerData(ctxOf(context), {
+          ...input,
+          secret: secret(),
+          actor: staffOf(context),
+        })
+        if (!file) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
+        return file
+      }),
+    ),
 
   /**
    * Erase a customer's personal data, keeping what invoices need, and close
@@ -175,10 +181,12 @@ export const customerPrivacyRouter = {
       guard(async () => {
         const ctx = ctxOf(context)
         const actor = staffOf(context)
+        const request = input.dataRequestId
+          ? await requestAnsweredFor(ctx, input.dataRequestId, input.customerId)
+          : null
         const result = await anonymiseCustomer(ctx, { ...input, actor })
-        if (input.dataRequestId) {
-          const request = await getDataRequest(ctx, input.dataRequestId)
-          if (request && (request.status === 'open' || request.status === 'in_progress')) {
+        if (input.dataRequestId && request) {
+          if (request.status === 'open' || request.status === 'in_progress') {
             await updateDataRequest(ctx, input.dataRequestId, { status: 'completed' }, actor)
           }
         }

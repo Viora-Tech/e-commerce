@@ -1,8 +1,37 @@
+/**
+ * A Host header is a DNS name with an optional numeric port, nothing else. Anything more
+ * (`shop.in:1@evil.com`, spaces, slashes) is refused: pages build absolute links from the
+ * Host, and `new URL('https://shop.in:1@evil.com').origin` is `https://evil.com`.
+ */
+const HOST_HEADER =
+  /^([a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*)(?::(\d{1,5}))?$/
+
+/** Hostname and port from a Host header: lowercased, null if it is not a plain host[:port]. */
+export function parseHostHeader(host: string | null): { hostname: string; port: string } | null {
+  const match = HOST_HEADER.exec(host?.trim().toLowerCase() ?? '')
+  if (!match?.[1] || match[1].length > 253) return null
+  return { hostname: match[1], port: match[2] ?? '' }
+}
+
 /** Hostname from a Host header: lowercased, port stripped, null if unusable. */
 export function hostnameFromHeader(host: string | null): string | null {
-  if (!host) return null
-  const name = host.split(':')[0]?.trim().toLowerCase() ?? ''
-  return name.length > 0 ? name : null
+  return parseHostHeader(host)?.hostname ?? null
+}
+
+/**
+ * The public origin for a validated Host header. `https` unless the proxy said `http`
+ * (or, in dev with no header, `http`). Null when the Host is not a plain host[:port].
+ */
+export function originFromHost(
+  host: string | null,
+  forwardedProto: string | null,
+  dev: boolean,
+): { origin: string; hostname: string } | null {
+  const parsed = parseHostHeader(host)
+  if (!parsed) return null
+  const proto = (forwardedProto ?? (dev ? 'http' : 'https')) === 'http' ? 'http' : 'https'
+  const port = parsed.port ? `:${parsed.port}` : ''
+  return { origin: `${proto}://${parsed.hostname}${port}`, hostname: parsed.hostname }
 }
 
 export type StoreResolverOptions<T> = {

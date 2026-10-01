@@ -272,6 +272,11 @@ describe('mapRapidshypStatus', () => {
     expect(mapRapidshypStatus(undefined, 'READY_TO_SHIP')).toBe('created')
     expect(mapRapidshypStatus(undefined, 'something unrecognised')).toBe('in_transit')
   })
+
+  it('never reads an undelivered attempt as delivered', () => {
+    expect(mapRapidshypStatus(undefined, 'UNDELIVERED')).toBe('in_transit')
+    expect(mapRapidshypStatus(undefined, 'NOT DELIVERED')).toBe('in_transit')
+  })
 })
 
 describe('RapidshypProvider track', () => {
@@ -542,3 +547,21 @@ if (live) {
       }),
   })
 }
+
+describe('rapidshypFactory base URL', () => {
+  it('only accepts the courier own https hosts, since the stored token is sent there', () => {
+    expect(
+      rapidshypFactory.validateConfig({ ...config, baseUrl: 'https://api.rapidshyp.com' }),
+    ).toMatchObject({ ok: true })
+    expect(
+      rapidshypFactory.validateConfig({ ...config, baseUrl: 'https://attacker.example' }),
+    ).toMatchObject({
+      ok: false,
+    })
+    expect(
+      rapidshypFactory.validateConfig({ ...config, baseUrl: 'https://10.0.0.5' }),
+    ).toMatchObject({
+      ok: false,
+    })
+  })
+})

@@ -22,7 +22,7 @@ export async function updateProfile(
   const parsed = ProfileInputSchema.safeParse(raw)
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) }
   const [current] = await ctx.tx
-    .select({ tags: customer.tags })
+    .select({ tags: customer.tags, phoneIndex: customer.phoneIndex })
     .from(customer)
     .where(eq(customer.id, customerId))
   if (!current) return { ok: false, errors: { form: 'Account not found' } }
@@ -32,12 +32,15 @@ export async function updateProfile(
     acceptsMarketing && !current.tags.includes(NEWSLETTER_TAG)
       ? [...current.tags, NEWSLETTER_TAG]
       : current.tags
+  const phoneIndex = phone ? phoneBlindIndex(phone, secret) : null
   await ctx.tx
     .update(customer)
     .set({
       name: name || null,
       phone: phone ? encryptCustomerPhone(phone, secret).cipher : phone,
-      phoneIndex: phone ? phoneBlindIndex(phone, secret) : null,
+      phoneIndex,
+      // A number typed on the profile is not proven; the old proof only covered the old number.
+      ...(phoneIndex !== current.phoneIndex ? { phoneVerifiedAt: null } : {}),
       tags,
       updatedAt: new Date(),
     })

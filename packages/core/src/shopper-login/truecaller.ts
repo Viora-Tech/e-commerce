@@ -4,6 +4,7 @@ import { customerLoginTicket } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 import { normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
+import { readCapped } from '../net/safe-fetch'
 import { resolveShopperIdentity } from './identities'
 import { safeEqual, safeNextPath, sha256Hex } from './tokens'
 
@@ -144,7 +145,10 @@ export type TruecallerCallback = {
 export type TruecallerDeps = {
   secret: string
   /** `fetch`; tests inject a fake. Never called for an endpoint outside truecaller.com. */
-  fetch: (url: string, init: { headers: Record<string, string> }) => Promise<Response>
+  fetch: (
+    url: string,
+    init: { headers: Record<string, string>; redirect: 'error'; signal: AbortSignal },
+  ) => Promise<Response>
 }
 
 /**
@@ -184,11 +188,16 @@ export async function completeTruecaller(
   if (typeof body.accessToken !== 'string' || !isTruecallerEndpoint(body.endpoint)) return fail()
   let profile: TruecallerProfile
   try {
+    // No redirects (a truecaller.com URL must not bounce us elsewhere), 5 s, 64 KB.
     const res = await deps.fetch(body.endpoint, {
       headers: { Authorization: `Bearer ${body.accessToken}`, 'Cache-Control': 'no-cache' },
+      redirect: 'error',
+      signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) return fail()
-    profile = (await res.json()) as TruecallerProfile
+    const raw = await readCapped(res, 64 * 1024)
+    if (!raw) return fail()
+    profile = JSON.parse(new TextDecoder().decode(raw)) as TruecallerProfile
   } catch {
     return fail()
   }

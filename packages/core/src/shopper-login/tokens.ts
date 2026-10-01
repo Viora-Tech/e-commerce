@@ -148,9 +148,17 @@ export function checkHandoffToken(
   return { ok: true, jti: p.j }
 }
 
-/** Same-site path only, never another origin (`//evil.com`, `/\\evil.com`). */
+/**
+ * Same-site path only, never another origin (`//evil.com`, `/\\evil.com`). Control
+ * characters and backslashes are refused anywhere: browsers drop tab, CR and LF while
+ * parsing, so `/\t/evil.com` would otherwise be followed as `//evil.com`.
+ */
 export function safeNextPath(raw: unknown): string {
-  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return '/account'
-  if (raw.startsWith('/\\') || /[\r\n]/.test(raw) || raw.length > 512) return '/account'
-  return raw
+  if (typeof raw !== 'string' || raw.length > 512) return '/account'
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/account'
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: refusing them is the point
+  if (/[\u0000-\u001f\u007f\\]/.test(raw)) return '/account'
+  const base = 'https://same-site.invalid'
+  const url = new URL(raw, base)
+  return url.origin === base ? raw : '/account'
 }

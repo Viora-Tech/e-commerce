@@ -1,5 +1,5 @@
 import { loadEnv } from '@commerce/config'
-import { customerForSession, type SignedInCustomer } from '@commerce/core'
+import { customerForSession, type SignedInCustomer, safeNextPath } from '@commerce/core'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
@@ -29,7 +29,9 @@ export async function writeCustomerToken(
   ;(await cookies()).set(CUSTOMER_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: proto === 'https',
+    // Secure in production whatever the proxy forwards: a missing x-forwarded-proto must
+    // never send a 90-day session cookie over plain http.
+    secure: proto === 'https' || process.env.NODE_ENV === 'production',
     path: '/',
     ...(persistent ? { expires: expiresAt } : {}),
   })
@@ -59,7 +61,5 @@ export async function requireCustomer(
 
 /** Only same-site paths are followed after sign-in, never another origin. */
 export function safeReturnTo(raw: unknown): string {
-  if (typeof raw !== 'string' || !raw.startsWith('/') || raw.startsWith('//')) return '/account'
-  if (raw.startsWith('/\\') || raw.includes('\n')) return '/account'
-  return raw
+  return safeNextPath(raw)
 }

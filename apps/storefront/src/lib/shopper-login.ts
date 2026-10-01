@@ -20,6 +20,7 @@ import { cookies, headers } from 'next/headers'
 import { accountsOrigin } from './accounts-host'
 import { writeCustomerToken } from './customer-session'
 import { inStore } from './store-context'
+import { originFromHost } from './store-resolver'
 
 /*
  * Shared by the store-domain sign-in routes and actions and the platform login domain
@@ -65,10 +66,11 @@ export const oauthCallbackUrl = (provider: LoginProvider): string =>
 export async function requestOrigin(): Promise<{ origin: string; hostname: string }> {
   const h = await headers()
   // The Host header, as the proxy used to pick the store (never x-forwarded-host).
-  const host = h.get('host') ?? ''
-  const proto = h.get('x-forwarded-proto') ?? (isDev() ? 'http' : 'https')
-  const url = new URL(`${proto === 'https' ? 'https' : 'http'}://${host}`)
-  return { origin: url.origin, hostname: url.hostname.toLowerCase() }
+  // The proxy already refused a Host that is not a plain host[:port]; checked again here
+  // because this origin goes into emailed sign-in links.
+  const parsed = originFromHost(h.get('host'), h.get('x-forwarded-proto'), isDev())
+  if (!parsed) throw new Error('Unusable Host header')
+  return parsed
 }
 
 export const cookieSecure = async (): Promise<boolean> =>

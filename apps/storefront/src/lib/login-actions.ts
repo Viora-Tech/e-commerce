@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto'
 import {
   deliverLoginLink,
   openToken,
+  otpLimiterId,
   passkeyLoginOptions,
   passkeyRegistrationOptions,
   pollTruecaller,
@@ -87,7 +88,11 @@ export async function requestMagicLinkAction(
   const sid = await storeId()
   const { settings } = await storeLoginSetup(sid)
   if (!settings.magicLink) return { ok: false, error: errors.noEmail }
-  const byEmail = await rateLimited('magic-link:email', email.toLowerCase(), LINK_EMAIL_RULE)
+  const byEmail = await rateLimited(
+    'magic-link:email',
+    otpLimiterId(sid, 'email', email),
+    LINK_EMAIL_RULE,
+  )
   if (!byEmail.ok || !(await ipAllowed('magic-link:ip'))) {
     return { ok: false, error: errors.rateLimited }
   }

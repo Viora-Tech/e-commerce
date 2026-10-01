@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: customer privacy service tests — settings and banner versions, cookie consent proof, data requests and their audit trail (append only), export content, anonymisation that keeps invoice data, consent history and the send-path consent gate */
 import {
   address,
+  cart,
   cookieConsent,
   createDb,
   customer,
@@ -9,8 +10,10 @@ import {
   dataRequest,
   marketingConsentEvent,
   marketingMessage,
+  notification,
   order,
   orderLine,
+  orderNote,
   privacyAuditEvent,
   product,
   type StoreTx,
@@ -35,6 +38,7 @@ import {
   DataRequestError,
   dataRequestCounts,
   listDataRequests,
+  requestAnsweredFor,
   updateDataRequest,
 } from './requests'
 import {
@@ -256,6 +260,27 @@ describe('data requests', () => {
     ])
   })
 
+  it("never links another store's customer, nor answers one customer's request for another", async () => {
+    const a = await makeStore('a')
+    const b = await makeStore('b')
+    const mine = await makeCustomer(a, 'x@example.com')
+    const other = await makeCustomer(a, 'y@example.com')
+    const foreign = await makeCustomer(b, 'z@example.com')
+    const req = await run(a, (ctx) =>
+      createDataRequest(ctx, { kind: 'delete', source: 'email', actor: STAFF, at: NOW }),
+    )
+    await expect(
+      run(a, (ctx) => updateDataRequest(ctx, req.request.id, { customerId: foreign }, STAFF)),
+    ).rejects.toMatchObject({ reason: 'not_found' })
+    await run(a, (ctx) => updateDataRequest(ctx, req.request.id, { customerId: other }, STAFF))
+    await expect(
+      run(a, (ctx) => requestAnsweredFor(ctx, req.request.id, mine)),
+    ).rejects.toMatchObject({ reason: 'bad_status' })
+    await expect(
+      run(b, (ctx) => requestAnsweredFor(ctx, req.request.id, foreign)),
+    ).rejects.toMatchObject({ reason: 'not_found' })
+  })
+
   it('keeps the audit trail append only for the app role', async () => {
     const storeId = await makeStore()
     await run(storeId, (ctx) => askConsentAgain(ctx, STAFF))
@@ -357,6 +382,32 @@ describe('export', () => {
 })
 
 describe('anonymise', () => {
+  it('erases contact-change notes, message recipients and guest carts too', async () => {
+    const storeId = await makeStore()
+    const customerId = await makeCustomer(storeId)
+    const { orderId } = await makeOrder(storeId, customerId, NOW, 1)
+    await owner.insert(orderNote).values([
+      { storeId, orderId, body: 'Email changed from asha@example.com to a2@example.com' },
+      { storeId, orderId, body: 'Packed with extra bubble wrap' },
+    ])
+    await owner.insert(notification).values({
+      storeId,
+      orderId,
+      channel: 'email',
+      template: 'order_placed',
+      to: 'asha@example.com',
+    })
+    await owner.insert(cart).values({ storeId, email: 'asha@example.com', phone: '9876543210' })
+    await run(storeId, (ctx) => anonymiseCustomer(ctx, { customerId, actor: STAFF, now: NOW }))
+
+    const notes = (await owner.select().from(orderNote)).map((n) => n.body).sort()
+    expect(notes).toEqual(['Erased', 'Packed with extra bubble wrap'])
+    expect((await owner.select().from(notification))[0]?.to).toBe('Erased')
+    expect(await owner.select({ email: cart.email, phone: cart.phone }).from(cart)).toEqual([
+      { email: null, phone: null },
+    ])
+  })
+
   it('erases personal data and keeps what invoices need', async () => {
     const storeId = await makeStore()
     const customerId = await makeCustomer(storeId)

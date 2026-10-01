@@ -27,7 +27,8 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'apps/admin/src/components/themes/customize/section-live-preview.tsx',
-    reason: 'injects a <style> tag for the live theme preview iframe',
+    reason:
+      "injects a <style> into the admin's own document (no iframe), every rule scoped under [data-section-live-preview]: themeToCss() of the theme settings being edited",
   },
   {
     file: 'apps/storefront/src/app/-p/[storeId]/layout.tsx',
@@ -35,11 +36,11 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'apps/storefront/src/app/-s/[storeId]/blogs/[blog]/[article]/page.tsx',
-    reason: 'renders sanitised rich text via packages/richtext',
+    reason: 'JSON-LD article structured data via jsonLd(), which escapes `<`',
   },
   {
     file: 'apps/storefront/src/app/-s/[storeId]/blogs/[blog]/page.tsx',
-    reason: 'renders sanitised rich text via packages/richtext',
+    reason: 'JSON-LD blog structured data via jsonLd(), which escapes `<`',
   },
   {
     file: 'apps/storefront/src/app/-s/[storeId]/layout.tsx',
@@ -55,11 +56,12 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'apps/storefront/src/components/collections/main-collection.tsx',
-    reason: 'renders sanitised rich text via packages/richtext',
+    reason: 'JSON-LD collection structured data via jsonLd(), which escapes `<`',
   },
   {
     file: 'apps/storefront/src/components/search/main-search.tsx',
-    reason: 'renders a search-match highlight built from our own escaping, not raw user input',
+    reason:
+      'JSON-LD search results structured data, JSON.stringify with every `<` replaced by \\u003c',
   },
   {
     file: 'packages/blocks/src/components/icon.tsx',

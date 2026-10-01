@@ -12,6 +12,8 @@ export type Delivery = {
   type: 'payment.captured' | 'payment.failed'
   providerRef: string
   idempotencyKey?: string
+  /** What the gateway says was paid; defaults to what that gateway order was created for. */
+  amountPaise?: number
 }
 
 /**
@@ -47,6 +49,14 @@ export class GatewayDouble implements PaymentProvider {
       },
     }
   }
+  /** Like a real gateway: a payment on one of its orders is for that order's amount. */
+  private amountFor(providerRef: string, idempotencyKey: string | undefined): number {
+    const n = Number(providerRef.replace(/^order_/, ''))
+    const byRef = Number.isInteger(n) ? this.created[n - 1] : undefined
+    const byKey = this.created.find((c) => c.idempotencyKey === idempotencyKey)
+    return (byRef ?? byKey)?.amountPaise ?? Number.MAX_SAFE_INTEGER
+  }
+
   async confirm() {
     return { status: 'pending' as const, providerPaymentId: null }
   }
@@ -73,7 +83,7 @@ export class GatewayDouble implements PaymentProvider {
             providerRef: d.providerRef,
             idempotencyKey: d.idempotencyKey ?? null,
             providerPaymentId: `pay_${d.eventId}`,
-            amountPaise: 100,
+            amountPaise: d.amountPaise ?? this.amountFor(d.providerRef, d.idempotencyKey),
             orderId: null,
             raw: d,
           }

@@ -3,6 +3,7 @@
 import { focalStyle } from '../../focal-point'
 import { linkTarget } from '../../link'
 import type { Image, Link } from '../../sections/framed'
+import { safeHref } from '../../slot-types'
 import Picture from '../picture'
 
 type GalleryImage = { image: Image; caption: string; link: Link }
@@ -58,11 +59,12 @@ export default function Gallery({ heading, layout, images }: GalleryProps) {
               ) : null}
             </figure>
           )
+          const href = safeHref(item.link?.href)
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: merchant-edited rows carry no id and never reorder between renders.
             <div key={`${item.image?.url ?? item.caption}-${i}`}>
-              {item.link?.href ? (
-                <a href={item.link.href} {...linkTarget(item.link)}>
+              {href ? (
+                <a href={href} {...linkTarget(item.link)}>
                   {figure}
                 </a>
               ) : (

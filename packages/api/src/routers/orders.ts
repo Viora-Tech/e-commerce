@@ -120,7 +120,11 @@ export const ordersRouter = {
         lines: z.array(z.object({ lineId: z.uuid(), quantity: z.number().int().min(0) })).min(1),
         courier: z.string().trim().max(60).optional(),
         trackingNumber: z.string().trim().max(60).optional(),
-        trackingUrl: z.url().max(500).optional(),
+        // Shown as a link to the shopper and in emails: web links only, never javascript: or data:.
+        trackingUrl: z
+          .url({ protocol: /^https?$/ })
+          .max(500)
+          .optional(),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -141,7 +145,9 @@ export const ordersRouter = {
       z.object({
         orderId: z.uuid(),
         amountPaise: z.number().int().positive(),
-        method: z.string().trim().max(40).optional(),
+        // Money collected by hand is `manual` or `cod`; a gateway's name here would make it
+        // read as automatic gateway money in "Payments by method".
+        method: z.enum(['manual', 'cod']).optional(),
         /** How the merchant was paid: shown on the timeline and in "Payments by method". */
         paidWith: z.enum(MANUAL_PAYMENT_METHODS).optional(),
         /** UTR, cheque number or bank reference. */
@@ -203,6 +209,10 @@ export const ordersRouter = {
       }),
     )
     .handler(async ({ context, input }) => {
+      // Rewriting the customer's saved address is a customer edit, not an order edit.
+      if (input.alsoUpdateCustomer && !context.scope.can(permissions.CUSTOMERS_WRITE)) {
+        throw new ORPCError('FORBIDDEN', { message: 'Your role does not allow write customers' })
+      }
       await assertNotImported(context.tx, { orderId: input.orderId })
       try {
         return await updateOrderContact(

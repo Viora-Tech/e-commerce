@@ -159,6 +159,30 @@ describe('nested blocks in saved templates', () => {
     expect(JSON.stringify(data)).not.toContain('onclick')
   })
 
+  it('sanitises the typed-in fallback of a Custom HTML bound to a dynamic source', () => {
+    const data = sanitizeTemplateEmbeds({
+      root: { props: {} },
+      content: [
+        {
+          type: 'CustomHtml',
+          props: {
+            id: 'e',
+            html: {
+              $source: 'product.metafields.custom.blurb',
+              kind: 'text',
+              fallback: '<p>Hi</p><script>alert(1)</script>',
+            },
+          },
+        },
+      ] as never,
+    })
+    expect(data.content[0]?.props.html).toEqual({
+      $source: 'product.metafields.custom.blurb',
+      kind: 'text',
+      fallback: '<p>Hi</p>',
+    })
+  })
+
   it('strips resolveData output from nested blocks before comparing drafts', () => {
     const data = stripResolved({ root: { props: {} }, content: [group()] as never })
     expect(JSON.stringify(data)).not.toContain('resolved')

@@ -20,7 +20,11 @@ import {
   loadCustomerAccountSettings,
   saveCustomerAccountSettings,
 } from '../customer-accounts/service'
-import { decryptCustomerPhone } from '../customers/phone-crypto'
+import {
+  decryptCustomerPhone,
+  encryptCustomerPhone,
+  phoneBlindIndex,
+} from '../customers/phone-crypto'
 import { LogSmsChannel } from '../providers/log-sms-channel'
 import {
   customerForSession,
@@ -35,6 +39,9 @@ import {
   requestPhoneLoginCode,
   verifyPhoneLoginCode,
 } from './otp'
+
+/** Wrong guesses carry over resends for an hour (`attemptsCarriedOver`). */
+const ATTEMPT_WINDOW_MS = 60 * 60 * 1000
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -198,21 +205,46 @@ describe('phone sign-in', () => {
       await run(storeId, (ctx) => verifyPhoneLoginCode(ctx, '9876543210', wrong, SECRET, later)),
     ).toEqual({ ok: false, reason: 'locked' })
 
+    // A resent code does not reset the wrong guesses; they clear after the window.
+    expect(
+      await run(storeId, (ctx) =>
+        requestPhoneLoginCode(ctx, '9876543210', 'whatsapp', new Date(later.getTime() + 60_000)),
+      ),
+    ).toEqual({ ok: false, reason: 'too_soon' })
+    const afterWindow = new Date(later.getTime() + ATTEMPT_WINDOW_MS)
     const third = await run(storeId, (ctx) =>
-      requestPhoneLoginCode(ctx, '9876543210', 'whatsapp', new Date(later.getTime() + 60_000)),
+      requestPhoneLoginCode(ctx, '9876543210', 'whatsapp', afterWindow),
     )
     if (!third.ok) throw new Error(third.reason)
     const back = await run(storeId, (ctx) =>
-      verifyPhoneLoginCode(
-        ctx,
-        '9876543210',
-        third.code,
-        SECRET,
-        new Date(later.getTime() + 60_000),
-      ),
+      verifyPhoneLoginCode(ctx, '9876543210', third.code, SECRET, afterWindow),
     )
     expect(back).toMatchObject({ ok: true, customerId: signedUp.customerId, created: false })
     expect(await owner.select().from(customer)).toHaveLength(1)
+  })
+
+  it('never signs in as a customer whose phone was only typed at checkout', async () => {
+    const storeId = await makeStore()
+    // What a guest checkout with the victim's email and the attacker's mobile leaves behind.
+    const [victim] = await owner
+      .insert(customer)
+      .values({
+        storeId,
+        email: 'victim@example.com',
+        phone: encryptCustomerPhone('9876543210', SECRET).cipher,
+        phoneIndex: phoneBlindIndex('9876543210', SECRET),
+      })
+      .returning()
+    const req = await run(storeId, (ctx) =>
+      requestPhoneLoginCode(ctx, '9876543210', 'whatsapp', NOW),
+    )
+    if (!req.ok) throw new Error(req.reason)
+    const res = await run(storeId, (ctx) =>
+      verifyPhoneLoginCode(ctx, '9876543210', req.code, SECRET, NOW),
+    )
+    expect(res).toMatchObject({ ok: true, created: true })
+    if (!res.ok) throw new Error('sign-in')
+    expect(res.customerId).not.toBe(victim?.id)
   })
 
   it('rejects numbers that are not Indian mobiles', async () => {

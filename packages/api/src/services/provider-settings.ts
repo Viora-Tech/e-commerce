@@ -2,8 +2,8 @@ import {
   decryptProviderSettings,
   encryptProviderSettings,
   isEncryptedSecret,
-  isMaskedSecret,
   maskProviderSettings,
+  mergeMaskedSecrets,
   type ProviderSettings,
 } from '@commerce/core'
 import type { ProviderField } from '@commerce/payments'
@@ -69,13 +69,13 @@ export function prepareProviderSettings<S extends ProviderSettings>(
 ): S {
   const merged = { ...input, providers: { ...input.providers } }
   for (const [id, cfg] of Object.entries(merged.providers)) {
-    const prev = current.providers[id] ?? {}
-    merged.providers[id] = Object.fromEntries(
-      Object.entries(cfg).map(([k, v]) => [
-        k,
-        isMaskedSecret(v) && (isEncryptedSecret(prev[k]) || prev[k]) ? (prev[k] as string) : v,
-      ]),
-    )
+    const kept = mergeMaskedSecrets(current.providers[id] ?? {}, cfg)
+    if (!kept.ok) {
+      throw new ORPCError('BAD_REQUEST', {
+        message: `Type the secret again to change "${kept.field}": a saved secret is not reused for a new address.`,
+      })
+    }
+    merged.providers[id] = kept.merged
   }
   for (const id of merged.enabled) {
     const f = registry.get(id)
