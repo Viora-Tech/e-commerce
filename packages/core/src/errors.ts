@@ -1,3 +1,5 @@
+import { formatMoney } from '@commerce/money'
+
 export class CommerceError extends Error {
   readonly code: string
   readonly storeId: string | undefined
@@ -92,7 +94,7 @@ export class BalanceDue extends CommerceError {
   constructor(orderId: string, balancePaise: number, storeId?: string) {
     super(
       'BALANCE_DUE',
-      `Order ${orderId} cannot be fulfilled until its ₹${(balancePaise / 100).toFixed(2)} balance is paid`,
+      `Order ${orderId} cannot be fulfilled until its ${formatMoney(balancePaise, 'INR', { showZeroDecimals: true })} balance is paid`,
       { storeId },
     )
   }

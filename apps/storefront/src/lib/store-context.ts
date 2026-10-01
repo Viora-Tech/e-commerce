@@ -1,3 +1,4 @@
+import 'server-only'
 import { type StoreTx, withStore } from '@commerce/db'
 import { db } from './db'
 

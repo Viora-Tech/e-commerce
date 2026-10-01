@@ -1,3 +1,4 @@
+import 'server-only'
 import { builtInRedirect, findRedirect, hasRedirects, normaliseRedirectPath } from '@commerce/core'
 import { withStore } from '@commerce/db'
 import { db } from './db'

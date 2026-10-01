@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { newsletterSignupForToken } from '@commerce/core'
 import type { Metadata } from 'next'
 import { newsletterConfirmContent as copy } from '@/data/marketing'
@@ -17,7 +17,7 @@ export default async function NewsletterConfirmPage({ params }: Props) {
   // Hooks
   const { storeId, token } = await params
   const signup = await inStore(storeId, (tx) =>
-    newsletterSignupForToken(tx, storeId, token, loadEnv(process.env).SETTINGS_SECRET),
+    newsletterSignupForToken(tx, storeId, token, settingsSecret()),
   )
 
   // Early returns

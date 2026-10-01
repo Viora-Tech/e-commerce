@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { TriangleAlert } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -9,7 +10,7 @@ import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { returnDetailContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
-import { type ReturnDetail, toPaise, toRupees } from './return-types'
+import { type ReturnDetail, toRupees } from './return-types'
 
 type RtoCardProps = { detail: ReturnDetail; onChanged: () => void }
 
@@ -27,7 +28,7 @@ export default function RtoCard({ detail: r, onChanged }: RtoCardProps) {
   const handleSave = async () => {
     setBusy(true)
     try {
-      const paise = cost.trim() === '' ? null : toPaise(cost)
+      const paise = parseRupees(cost)
       await api.returns.setCourierCost({ id: r.id, paise })
       toast.success(copy.costSaved)
       onChanged()

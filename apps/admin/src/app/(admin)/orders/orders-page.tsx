@@ -32,6 +32,7 @@ import {
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import { formatNumericDate } from '@/lib/format-date'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { orderListFilter } from '@/lib/order-filter'
 import { usePrimaryAction } from '@/lib/primary-action'
@@ -49,10 +50,6 @@ export type OrdersInitial = {
 }
 
 const PER_PAGE = LIST_PER_PAGE
-
-/* Frame 5:2617 writes dates as 01-01-2025. */
-const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const formatDate = (d: Date) => date.format(d).replaceAll('/', '-')
 
 type Query = ListQuery<OrderListFilter>
 
@@ -135,7 +132,7 @@ function orderColumns(copy: typeof ordersContent, fmt: Formatters): ResourceColu
       id: 'date',
       title: copy.columns.date,
       sortValue: (o) => new Date(o.placedAt).getTime(),
-      render: (o) => <span className="tabular-nums">{formatDate(new Date(o.placedAt))}</span>,
+      render: (o) => <span className="tabular-nums">{formatNumericDate(o.placedAt)}</span>,
     },
     {
       id: 'total',

@@ -3,8 +3,8 @@ import type {
   AutomationTemplateId,
   AutomationTrigger,
   ConditionField,
+  MarketingRunStatus,
 } from '@commerce/core/marketing'
-import type { MarketingRunStatus } from '@commerce/db'
 
 /** Copy for Marketing > Automations: the list, the templates and the editor. */
 export const automationsContent = {

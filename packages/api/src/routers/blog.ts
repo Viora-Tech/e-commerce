@@ -21,7 +21,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can } from '../procedures'
 
 async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
   try {
@@ -36,7 +36,7 @@ async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
 
 const read = () => can(permissions.CONTENT_READ)
 const write = () => can(permissions.CONTENT_WRITE)
-const ids = z.object({ ids: z.array(z.uuid()).min(1).max(200) })
+const ids = z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) })
 
 export const blogRouter = {
   /** Blogs with post counts; creates "News" the first time a store has none. */

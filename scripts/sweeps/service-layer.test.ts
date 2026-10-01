@@ -21,9 +21,26 @@ const ALLOWED_ROOTS = [
   'scripts/',
 ]
 
+/**
+ * One entry per file since 2026-10-01 (folder entries were replaced, so a new file in an
+ * already listed folder fails too). Prefix entries (`exact` unset) still work if ever needed.
+ */
 type AllowEntry = { path: string; exact?: boolean; reason: string }
 
+const STOREFRONT_PAGE =
+  'storefront RSC page/route reads the db directly — move behind a core service'
+const STOREFRONT_LIB =
+  'storefront lib helper or server action reads the db directly — move behind a core service'
+const WORKER = 'worker job reads/writes the db directly; not yet routed through core services'
+const PLUGIN = 'plugin owns its own schema/queries; not yet routed through packages/core'
+
 const ALLOWLIST: AllowEntry[] = [
+  {
+    path: 'apps/admin/src/app/api/health/route.ts',
+    exact: true,
+    reason:
+      'infra liveness/readiness probe (Docker HEALTHCHECK) — deliberately a raw connectivity check, not a service call',
+  },
   {
     path: 'apps/admin/src/app/api/uploads/route.ts',
     exact: true,
@@ -34,52 +51,123 @@ const ALLOWLIST: AllowEntry[] = [
     exact: true,
     reason: 'creates the Db connection for the admin app request context',
   },
+  { path: 'apps/storefront/src/app/-p/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
   {
-    path: 'apps/admin/src/app/api/health/route.ts',
+    path: 'apps/storefront/src/app/-s/[storeId]/account/(signed-in)/orders/[number]/page.tsx',
     exact: true,
-    reason:
-      'infra liveness/readiness probe (Docker HEALTHCHECK) — deliberately a raw connectivity check, not a service call',
+    reason: STOREFRONT_PAGE,
   },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/checkout/balance/[token]/page.tsx',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/checkout/pay/[number]/page.tsx',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/checkout/thank-you/[number]/page.tsx',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/documents/[id]/route.ts',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  { path: 'apps/storefront/src/app/-s/[storeId]/layout.tsx', exact: true, reason: STOREFRONT_PAGE },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/llms.txt/route.ts',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  { path: 'apps/storefront/src/app/-s/[storeId]/page.tsx', exact: true, reason: STOREFRONT_PAGE },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/pages/[handle]/page.tsx',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  {
+    path: 'apps/storefront/src/app/-s/[storeId]/products/[handle]/page.tsx',
+    exact: true,
+    reason: STOREFRONT_PAGE,
+  },
+  { path: 'apps/storefront/src/app/api/health/route.ts', exact: true, reason: STOREFRONT_PAGE },
+  { path: 'apps/storefront/src/lib/account.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/back-in-stock-context.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/balance-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/cart-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/catalog.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/collections.ts', exact: true, reason: STOREFRONT_LIB },
   {
     path: 'apps/storefront/src/lib/db.ts',
     exact: true,
     reason: 'creates the Db connection for the storefront app request context',
   },
+  { path: 'apps/storefront/src/lib/emi-offers.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/login-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/media-lookup.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/password-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/payments.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/preorder.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/privacy-actions.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/redirects.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/seo-files.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/shipping.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/store-context.ts', exact: true, reason: STOREFRONT_LIB },
+  { path: 'apps/storefront/src/lib/storefront-gate.ts', exact: true, reason: STOREFRONT_LIB },
   {
     path: 'apps/storefront/src/proxy.ts',
     exact: true,
     reason: 'resolves the store from the db in middleware — move behind a core service',
   },
-  {
-    path: 'apps/storefront/src/app/',
-    reason: 'storefront RSC pages/routes read the db directly — move behind a core service',
-  },
-  {
-    path: 'apps/storefront/src/lib/',
-    reason:
-      'storefront lib helpers and server actions read the db directly — move behind a core service',
-  },
-  {
-    path: 'apps/worker/src/',
-    reason: 'worker jobs read/write the db directly; not yet routed through core services',
-  },
+  { path: 'apps/worker/src/app-events.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/back-in-stock.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/index.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/marketing.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/media-process.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/media-reprocess.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/notifications.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/outbox-relay.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/payments-expiry.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/payments.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/preorder-balance.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/shipments-webhook.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/shipping.ts', exact: true, reason: WORKER },
+  { path: 'apps/worker/src/store-export.ts', exact: true, reason: WORKER },
   {
     path: 'packages/api/src/procedures/store.ts',
     exact: true,
     reason: 'resolves the store from the db in an oRPC procedure — not yet a service',
   },
-  {
-    path: 'packages/plugin-back-in-stock/src/',
-    reason: 'plugin owns its own schema/queries; not yet routed through packages/core',
-  },
-  {
-    path: 'packages/plugin-gst-invoices/src/',
-    reason: 'plugin owns its own schema/queries; not yet routed through packages/core',
-  },
-  {
-    path: 'packages/plugin-shopify-import/src/',
-    reason: 'plugin owns its own schema/queries; not yet routed through packages/core',
-  },
+  { path: 'packages/plugin-back-in-stock/src/eligibility.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/notify.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/quota.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/settings.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/signups.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-back-in-stock/src/stock.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/issue.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/links.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/periods.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/plugin.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/queue.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/render.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/reports.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-gst-invoices/src/vouchers.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/connection.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/media.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/run.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/runtime.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/schema.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/service.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/write-content.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/write-customers.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/write-orders.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/write-products.ts', exact: true, reason: PLUGIN },
   {
     path: 'packages/plugin-shopify-import/test/helpers.ts',
     exact: true,

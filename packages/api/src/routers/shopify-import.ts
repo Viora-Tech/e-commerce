@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { enqueueAppJob, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -24,11 +24,9 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
-import { can, heavy } from '../procedures'
+import { can, heavy, PAGE_MAX, PAGE_SIZE_MAX } from '../procedures'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
 import { storageProviderFor } from '../services/media.service'
-
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 type Ctx = ApiContext & { tx: StoreTx; scope: { storeId: string } }
 
@@ -75,7 +73,7 @@ const RunId = z.object({ id: z.uuid() })
 export const shopifyImportRouter = {
   connection: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
     await requireInstalled(context)
-    return getConnection(context.tx, secret())
+    return getConnection(context.tx, settingsSecret())
   }),
 
   connect: can(permissions.APPS_MANAGE)
@@ -100,13 +98,15 @@ export const shopifyImportRouter = {
             clientId: input.clientId ?? '',
             clientSecret: input.clientSecret ?? '',
           }
-      return connect(context.tx, context.scope.storeId, connectInput, secret()).catch(asOrpc)
+      return connect(context.tx, context.scope.storeId, connectInput, settingsSecret()).catch(
+        asOrpc,
+      )
     }),
 
   /** Shop name plus which of the import's scopes the saved token actually has. */
   testConnection: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
     await requireInstalled(context)
-    return testConnection(context.tx, secret()).catch(asOrpc)
+    return testConnection(context.tx, settingsSecret()).catch(asOrpc)
   }),
 
   disconnect: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
@@ -132,7 +132,7 @@ export const shopifyImportRouter = {
         context.tx,
         context.scope.storeId,
         storage,
-        secret(),
+        settingsSecret(),
       )
       const run = await createCsvRun(context.tx, context.scope.storeId, provider, {
         ...input,
@@ -148,7 +148,7 @@ export const shopifyImportRouter = {
     .input(z.object({ resources: z.array(z.enum(IMPORT_RESOURCES)).min(1) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const connection = await getConnection(context.tx, secret())
+      const connection = await getConnection(context.tx, settingsSecret())
       if (!connection) {
         throw new ORPCError('BAD_REQUEST', { message: 'Connect your Shopify store first' })
       }
@@ -174,8 +174,8 @@ export const shopifyImportRouter = {
   runs: can(permissions.APPS_MANAGE)
     .input(
       z.object({
-        page: z.number().int().min(1).max(10_000).default(1),
-        perPage: z.number().int().min(1).max(100).default(20),
+        page: z.number().int().min(1).max(PAGE_MAX).default(1),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(20),
       }),
     )
     .handler(async ({ context, input }) => {
@@ -194,8 +194,8 @@ export const shopifyImportRouter = {
     .input(
       z.object({
         runId: z.uuid(),
-        page: z.number().int().min(1).max(10_000).default(1),
-        perPage: z.number().int().min(1).max(100).default(50),
+        page: z.number().int().min(1).max(PAGE_MAX).default(1),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(50),
         resource: z.enum(IMPORT_RESOURCES).optional(),
       }),
     )

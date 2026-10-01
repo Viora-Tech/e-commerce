@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import {
   type Db,
+  isUniqueViolation,
   type StoreTx,
   storeDomain,
   storesWithPendingDomains,
@@ -62,16 +63,6 @@ export async function getDomain(tx: StoreTx, id: string): Promise<DomainRow | nu
 }
 
 const newToken = () => `waimers-verify=${randomBytes(16).toString('hex')}`
-
-/** Postgres unique violation, however the driver wrapped it. */
-function isUniqueViolation(err: unknown): boolean {
-  let e: unknown = err
-  for (let i = 0; i < 3 && e; i++) {
-    if ((e as { code?: unknown }).code === '23505') return true
-    e = (e as { cause?: unknown }).cause
-  }
-  return false
-}
 
 export type ConnectInput = {
   hostname: string

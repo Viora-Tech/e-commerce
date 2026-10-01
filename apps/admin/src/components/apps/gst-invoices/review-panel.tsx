@@ -1,5 +1,6 @@
 'use client'
 
+import { dayKey } from '@commerce/dates'
 import { ArrowDown, ArrowUp } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -23,8 +24,7 @@ const copy = gstInvoicesContent.queue
 
 /** yyyy-mm-dd of an instant in IST. */
 function istDay(at: Date | string): string {
-  const d = new Date(new Date(at).getTime() + 330 * 60 * 1000)
-  return d.toISOString().slice(0, 10)
+  return dayKey(new Date(at))
 }
 
 /** Midday IST on a day, so a date never slips across midnight. */

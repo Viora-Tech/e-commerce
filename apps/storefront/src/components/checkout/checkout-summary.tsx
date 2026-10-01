@@ -2,6 +2,7 @@
 
 import { formatPaise } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
+import { formatSignedMoney } from '@commerce/money'
 import type { ReactNode } from 'react'
 import DiscountCodeField from '@/components/cart/discount-code-field'
 import GiftCardField from '@/components/checkout/gift-card-field'
@@ -37,10 +38,6 @@ type CheckoutSummaryProps = {
   submitDisabled: boolean
   submitLabel: string
 }
-
-/** "+₹49.00" / "−₹99.98" for the summary row; the option row uses the compact "+₹49" / "−2%". */
-const formatSigned = (paise: number): string =>
-  `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
 
 function shippingValue(row: ShippingRow): string {
   if (row.kind === 'pending') return content.shippingPending
@@ -117,7 +114,7 @@ export default function CheckoutSummary({
         {adjustmentPaise !== 0 ? (
           <div className="cart-summary__row">
             <span>{adjustmentLabel}</span>
-            <span>{formatSigned(adjustmentPaise)}</span>
+            <span>{formatSignedMoney(adjustmentPaise)}</span>
           </div>
         ) : null}
         <div className="cart-summary__row cart-summary__row--total">

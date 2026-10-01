@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac } from 'node:crypto'
 import type {
   ClientConfirmation,
   ConnectionTestResult,
@@ -11,6 +11,7 @@ import type {
   WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
+import { safeEqual } from '@commerce/payments'
 import Razorpay from 'razorpay'
 import { refreshOAuthConfig } from './oauth'
 
@@ -167,12 +168,6 @@ const RAZORPAY_STATUS: Record<string, PaymentStatus> = {
 
 function hmacHex(secret: string, body: string): string {
   return createHmac('sha256', secret).update(body).digest('hex')
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a)
-  const bb = Buffer.from(b)
-  return ab.length === bb.length && timingSafeEqual(ab, bb)
 }
 
 export type RzpPayment = {

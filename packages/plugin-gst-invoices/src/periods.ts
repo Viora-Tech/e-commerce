@@ -1,8 +1,7 @@
+import { formatInZone, IST_OFFSET_MS } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import { and, eq, gte, inArray, lt, ne } from 'drizzle-orm'
 import { invoice, invoicePeriod } from './schema'
-
-const IST_OFFSET_MS = 330 * 60 * 1000
 
 /** `2026-09`: the IST calendar month an instant falls in, which is its GST return period. */
 export function periodOf(at: Date): string {
@@ -29,11 +28,7 @@ export class PeriodError extends Error {
 
 const label = (period: string) => {
   const { from } = periodRange(period)
-  return new Intl.DateTimeFormat('en-IN', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Kolkata',
-  }).format(new Date(from.getTime() + 86_400_000))
+  return formatInZone(from.getTime() + 86_400_000, { month: 'long', year: 'numeric' })
 }
 
 export async function getPeriod(tx: StoreTx, storeId: string, period: string) {

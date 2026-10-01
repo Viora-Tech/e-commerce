@@ -2,8 +2,8 @@
  * Sweep: `Intl.NumberFormat(...)` call sites outside the canonical money module
  * (`packages/money`, `@commerce/money`). `formatMoney`/`formatNumber` there are the
  * one place this repo should call `Intl.NumberFormat` for money or locale-grouped
- * numbers — everything else on this list is either a percentage formatter (a
- * different unit, not money) or the animated counter's internal digit regrouping.
+ * numbers (`formatPercent` there covers percentages) — everything else on this list is the
+ * animated counter's internal digit regrouping.
  * Naming it "money-format" (not "intl-number-format") is deliberate, so it's easy to
  * re-point future formatters at that module.
  *
@@ -16,21 +16,9 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
-    file: 'apps/admin/src/components/abandoned/abandoned-tiles.tsx',
-    reason: 'percentage formatter (style: "percent") — not money, no shared module for it',
-  },
-  {
-    file: 'apps/admin/src/components/home/insights-list.tsx',
-    reason: 'percentage formatter (style: "percent") — not money, no shared module for it',
-  },
-  {
     file: 'apps/admin/src/components/layout/count-up.tsx',
     reason:
       'regroups digits per animation frame for whatever string it was given (money, percent, plain) — a generic animation helper, not a money formatter itself',
-  },
-  {
-    file: 'apps/admin/src/lib/analytics-range.ts',
-    reason: 'percentage formatter (style: "percent") for analytics deltas — not money',
   },
 ]
 

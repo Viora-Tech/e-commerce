@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   createAddress,
   customerExists,
@@ -11,7 +11,7 @@ import {
 import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, heavy, storeProcedure } from '../procedures'
+import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX, storeProcedure } from '../procedures'
 import {
   customerOverview,
   customerStats,
@@ -30,7 +30,7 @@ import {
 } from '../services/customer.service'
 
 const FiltersSchema = z.object({
-  search: z.string().trim().max(200).optional(),
+  search: z.string().trim().max(SEARCH_MAX).optional(),
   segment: z.enum(['new', 'returning', 'subscribed']).optional(),
   stateCode: z.string().trim().length(2).optional(),
   minSpentPaise: z.number().int().min(0).optional(),
@@ -53,8 +53,6 @@ const RulesSchema = z.object({
     .max(20)
     .default([]),
 })
-
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 const AddressSchema = z.object({
   name: z.string().max(120),
@@ -93,11 +91,11 @@ export const customersRouter = {
     .input(
       FiltersSchema.extend({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sort: z.enum(['recent', 'name', 'orders', 'spent']).optional(),
       }),
     )
-    .handler(({ context, input }) => listCustomers(context.tx, input, secret())),
+    .handler(({ context, input }) => listCustomers(context.tx, input, settingsSecret())),
 
   stats: can(permissions.CUSTOMERS_READ).handler(({ context }) => customerStats(context.tx)),
 
@@ -115,12 +113,12 @@ export const customersRouter = {
   export: can(permissions.CUSTOMERS_READ)
     .use(heavy('export'))
     .input(FiltersSchema)
-    .handler(({ context, input }) => listAllCustomers(context.tx, input, secret())),
+    .handler(({ context, input }) => listAllCustomers(context.tx, input, settingsSecret())),
 
   get: can(permissions.CUSTOMERS_READ)
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
-      const found = await getCustomer(context.tx, input.id, secret())
+      const found = await getCustomer(context.tx, input.id, settingsSecret())
       if (!found) return null
       const ctx = { tx: context.tx, storeId: context.scope.storeId }
       return { ...found, addresses: await listAddresses(ctx, input.id) }
@@ -205,7 +203,7 @@ export const customersRouter = {
           },
         )
       }
-      return updateCustomer(context.tx, id, patch, secret())
+      return updateCustomer(context.tx, id, patch, settingsSecret())
     }),
 
   delete: can(permissions.CUSTOMERS_DELETE)
@@ -216,7 +214,7 @@ export const customersRouter = {
     .use(heavy('bulk'))
     .input(
       z.object({
-        ids: z.array(z.uuid()).min(1).max(200),
+        ids: z.array(z.uuid()).min(1).max(BULK_MAX),
         tag: z.string().trim().min(1).max(40),
         action: z.enum(['add', 'remove']),
       }),
@@ -224,7 +222,7 @@ export const customersRouter = {
     .handler(({ context, input }) => tagCustomers(context.tx, input)),
 
   segments: can(permissions.CUSTOMERS_READ).handler(({ context }) =>
-    listSegments(context.tx, secret()),
+    listSegments(context.tx, settingsSecret()),
   ),
 
   segment: can(permissions.CUSTOMERS_READ)
@@ -251,7 +249,7 @@ export const customersRouter = {
   previewSegment: can(permissions.CUSTOMERS_READ)
     .input(z.object({ rules: RulesSchema }))
     .handler(async ({ context, input }) => {
-      const matches = await listSegmentCustomers(context.tx, input.rules, secret())
+      const matches = await listSegmentCustomers(context.tx, input.rules, settingsSecret())
       return { total: matches.length, sample: matches.slice(0, 5) }
     }),
 }

@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { verifyThemePreviewToken } from '@commerce/core'
 import { headers } from 'next/headers'
 
@@ -15,7 +15,7 @@ export async function verifyThemePreview(token: string): Promise<boolean> {
   if (typeof token !== 'string' || token.length > 200) return false
   const storeId = (await headers()).get('x-store-id')
   if (!storeId) return false
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   if (!secret) return false
   return verifyThemePreviewToken({ secret, storeId, token })
 }

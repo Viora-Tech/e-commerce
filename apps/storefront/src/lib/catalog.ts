@@ -1,3 +1,4 @@
+import 'server-only'
 import type { CardProduct, ProductDetail } from '@commerce/blocks'
 import {
   computeDepositFromSettings,

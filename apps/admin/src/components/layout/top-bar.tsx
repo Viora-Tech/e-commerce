@@ -20,6 +20,7 @@ import { commandContent } from '@/data/command-palette'
 import { navigationContent } from '@/data/navigation'
 import { useCopy } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
+import { initials } from '@/lib/initials'
 import { openPalette } from '@/lib/palette-events'
 
 type TopBarProps = {
@@ -30,17 +31,6 @@ type TopBarProps = {
 
 /* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
 const noSubscription = () => () => {}
-
-function initials(name: string): string {
-  return (
-    name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'U'
-  )
-}
 
 /**
  * A slim, quiet header at the top of the white content panel (Saleor keeps chrome light):

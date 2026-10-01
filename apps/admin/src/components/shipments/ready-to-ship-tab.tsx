@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
+import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import BookShipmentsPanel from './book-shipments-panel'
 import CourierCompareTable from './courier-compare-table'
@@ -30,8 +31,6 @@ type ReadyToShipTabProps = {
 const copy = shipmentsContent.readyToShip
 const PER_PAGE = 25
 
-const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short' })
-
 const COLUMNS: ResourceColumnSpec<Row>[] = [
   {
     id: 'order',
@@ -47,7 +46,7 @@ const COLUMNS: ResourceColumnSpec<Row>[] = [
   {
     id: 'date',
     title: copy.columns.date,
-    render: (r) => date.format(new Date(r.placedAt)),
+    render: (r) => formatPattern(r.placedAt, { day: '2-digit', month: 'short' }),
     sortValue: (r) => new Date(r.placedAt).getTime(),
     className: 'w-24',
   },

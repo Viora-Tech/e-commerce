@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   availableLoginMethods,
   CustomerAccountSettingsSchema,
@@ -34,7 +34,7 @@ async function available(context: Ctx) {
   const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
   return availableLoginMethods(ctxOf(context), {
     registry: notifications,
-    settingsSecret: loadEnv(process.env).SETTINGS_SECRET,
+    settingsSecret: settingsSecret(),
     // The console log channels reach nobody on a live store.
     allowDevChannels: process.env.NODE_ENV !== 'production',
   })

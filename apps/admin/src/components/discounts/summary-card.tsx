@@ -1,6 +1,7 @@
 import { describeDiscountValue } from '@commerce/core/discounts'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { discountFormContent } from '@/data/discounts'
+import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import type { DiscountFormState, LoadedDiscount } from './form-state'
 import { toInput } from './form-state'
@@ -11,16 +12,13 @@ type SummaryCardProps = {
 }
 
 const copy = discountFormContent.summary
-const dateFmt = new Intl.DateTimeFormat('en-IN', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-})
 
 function fmt(s: string): string | null {
   if (!s) return null
   const d = new Date(s)
-  return Number.isNaN(d.getTime()) ? null : dateFmt.format(d)
+  return Number.isNaN(d.getTime())
+    ? null
+    : formatPattern(d, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /** Sentences describing the discount as the merchant builds it, like Shopify's side card. */

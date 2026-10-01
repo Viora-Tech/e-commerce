@@ -1,5 +1,6 @@
 'use client'
 
+import { formatCountdown, formatInZone, msUntil } from '@commerce/dates'
 import {
   parseRichText,
   plainTextToRichText,
@@ -30,21 +31,6 @@ function defaultVariant(product: ProductDetail) {
 }
 
 /** Milliseconds until `launchAt`, clamped to zero; used for the "Launching in…" label and countdown. */
-function msUntilLaunch(launchAt: string | null | undefined): number {
-  if (!launchAt) return 0
-  return Math.max(0, new Date(launchAt).getTime() - Date.now())
-}
-
-function formatCountdown(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  if (days > 0) return `${days}d ${hours}h`
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
-}
-
 function slideFor(product: ProductDetail, variant: ProductDetail['variants'][number] | undefined) {
   return Math.max(
     0,
@@ -84,7 +70,7 @@ export default function ProductView({
   const [variantId, setVariantId] = useState(defaultVariant(product)?.id)
   const [slide, setSlide] = useState(() => slideFor(product, defaultVariant(product)))
   const [expanded, setExpanded] = useState(false)
-  const [countdown, setCountdown] = useState(() => msUntilLaunch(product.launchAt))
+  const [countdown, setCountdown] = useState(() => msUntil(product.launchAt))
   const reduceMotion = useReducedMotion()
 
   useEffect(() => {
@@ -92,7 +78,7 @@ export default function ProductView({
     // A minute-granularity label doesn't need a per-second tick; this also
     // keeps the interval trivial to skip under reduced motion (it still
     // needs to run so the button unlocks at launch, just with no animation).
-    const id = setInterval(() => setCountdown(msUntilLaunch(product.launchAt)), 30_000)
+    const id = setInterval(() => setCountdown(msUntil(product.launchAt)), 30_000)
     return () => clearInterval(id)
   }, [countdown, product.launchAt])
 
@@ -240,19 +226,15 @@ export default function ProductView({
                 aria-live="polite"
               >
                 Launches{' '}
-                {new Date(product.launchAt as string).toLocaleString('en-IN', {
+                {formatInZone(product.launchAt as string, {
                   dateStyle: 'medium',
                   timeStyle: 'short',
-                  timeZone: 'Asia/Kolkata',
                 })}
               </p>
             ) : null}
             {isPreorder && product.preorder?.shipDate ? (
               <p className="product-info__preorder-ship text-small">
-                Expected to ship{' '}
-                {new Date(product.preorder.shipDate).toLocaleDateString('en-IN', {
-                  dateStyle: 'medium',
-                })}
+                Expected to ship {formatInZone(product.preorder.shipDate, { dateStyle: 'medium' })}
               </p>
             ) : null}
             {isPreorder && product.preorder?.depositPreview ? (

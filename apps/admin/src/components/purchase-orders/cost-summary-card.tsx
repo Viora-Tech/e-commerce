@@ -1,11 +1,12 @@
 'use client'
 
 import { purchaseOrderTotals } from '@commerce/core/inventory'
+import { parseRupees } from '@commerce/money'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { purchaseOrderFormContent } from '@/data/inventory'
 import { formatPaise } from '@/lib/money'
-import { lineNumbers, type PoForm, toPaise } from './form-state'
+import { lineNumbers, type PoForm } from './form-state'
 
 type CostSummaryCardProps = {
   form: PoForm
@@ -18,7 +19,11 @@ const copy = purchaseOrderFormContent.cost
 /** Subtotal from the lines, plus shipping and taxes typed here, to the order total. */
 export default function CostSummaryCard({ form, disabled, onChange }: CostSummaryCardProps) {
   // Render logic
-  const totals = purchaseOrderTotals(lineNumbers(form), toPaise(form.shipping), toPaise(form.tax))
+  const totals = purchaseOrderTotals(
+    lineNumbers(form),
+    parseRupees(form.shipping) ?? 0,
+    parseRupees(form.tax) ?? 0,
+  )
 
   return (
     <Card size="form">

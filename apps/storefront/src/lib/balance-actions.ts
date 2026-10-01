@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   BalanceNotPayable,
   balanceProvider,
@@ -45,7 +45,7 @@ export async function payBalanceAction(orderNumber: number): Promise<void> {
   // fallback (untokened) link is fine — the page 404s on it either way.
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   const back = (busy = false): never =>
     redirect(
       `${thankYouPath(orderNumber, orderViewToken(oid, secret))}${busy ? '&balance=busy' : ''}`,

@@ -21,6 +21,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { staffContent as copy } from '@/data/staff'
 import { api } from '@/lib/api-client'
+import { initials } from '@/lib/initials'
 
 export type StaffMemberRow = {
   id: string
@@ -48,11 +49,6 @@ type MembersCardProps = {
 
 const ROW =
   'grid grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_2.5rem] items-center gap-3 px-4'
-
-function initials(name: string | null, email: string | null): string {
-  const source = name?.trim() || email?.trim() || '?'
-  return source.slice(0, 2).toUpperCase()
-}
 
 /** The team table: who is in the store, on what role, since when. */
 export default function MembersCard({

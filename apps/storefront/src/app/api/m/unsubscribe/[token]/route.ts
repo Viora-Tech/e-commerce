@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { unsubscribeCustomer, verifyUnsubscribeToken } from '@commerce/core'
 import { headers } from 'next/headers'
 import { inStore } from '@/lib/store-context'
@@ -13,7 +13,7 @@ type Params = { params: Promise<{ token: string }> }
 export async function POST(_request: Request, { params }: Params) {
   const { token } = await params
   const storeId = (await headers()).get('x-store-id')
-  const v = verifyUnsubscribeToken(token, loadEnv(process.env).SETTINGS_SECRET)
+  const v = verifyUnsubscribeToken(token, settingsSecret())
   if (!v || !storeId || v.storeId !== storeId) return new Response(null, { status: 404 })
   await inStore(storeId, (tx) => unsubscribeCustomer(tx, v.customerId))
   return new Response(null, { status: 200 })

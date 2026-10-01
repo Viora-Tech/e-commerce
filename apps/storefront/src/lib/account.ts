@@ -1,3 +1,4 @@
+import 'server-only'
 import { type StoreTx, store } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 

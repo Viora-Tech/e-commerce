@@ -7,6 +7,7 @@ import {
   UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
+import { dayKey, startOfMonth, wallClock, startOfDay as zoneStartOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -250,22 +251,14 @@ export type DashboardChartsData = {
   }[]
 }
 
-const IST_OFFSET_MS = 5.5 * 3_600_000
-
 /** Midnight `daysAgo` days before `now` in Indian Standard Time (fixed +05:30, no DST). */
 function startOfDay(now: Date, daysAgo: number): Date {
-  const shifted = new Date(now.getTime() + IST_OFFSET_MS)
-  const utcMidnight = Date.UTC(
-    shifted.getUTCFullYear(),
-    shifted.getUTCMonth(),
-    shifted.getUTCDate() - daysAgo,
-  )
-  return new Date(utcMidnight - IST_OFFSET_MS)
+  return zoneStartOfDay(now, undefined, -daysAgo)
 }
 
 /** ISO date of an instant, read in IST. */
 function isoDate(d: Date): string {
-  return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10)
+  return dayKey(d)
 }
 
 /** Day index of `at` counted from `from` (IST midnight), or -1 when outside `days`. */
@@ -280,12 +273,12 @@ function zeros(n: number): number[] {
 
 /** Hour of the day (0-23) that `at` falls in, read in IST. */
 function istHour(at: Date): number {
-  return new Date(at.getTime() + IST_OFFSET_MS).getUTCHours()
+  return wallClock(at).getUTCHours()
 }
 
 /** Day of the week (0 = Sunday) that `at` falls on, read in IST. */
 function istWeekday(at: Date): number {
-  return new Date(at.getTime() + IST_OFFSET_MS).getUTCDay()
+  return wallClock(at).getUTCDay()
 }
 
 /** Order counts per hour (0-23, IST) for rows placed in `[from, to)`. */
@@ -780,14 +773,12 @@ export async function dashboardSummary(
   const bestSeller = topRows[0] ? { title: topRows[0].title, units: topRows[0].units } : null
 
   /* This month, in IST: sales-goal ring and a streak line. */
-  const shifted = new Date(now.getTime() + IST_OFFSET_MS)
+  const shifted = wallClock(now)
   const dayOfMonth = shifted.getUTCDate()
   const daysInMonth = new Date(
     Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() + 1, 0),
   ).getUTCDate()
-  const monthStart = new Date(
-    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) - IST_OFFSET_MS,
-  )
+  const monthStart = startOfMonth(now)
   const monthToDatePaise = sumPaise(live(recentRows.filter((r) => r.placedAt >= monthStart)))
   const projectedPaise =
     dayOfMonth > 0 ? Math.round((monthToDatePaise / dayOfMonth) * daysInMonth) : 0
@@ -813,9 +804,7 @@ export async function dashboardSummary(
     if ((byDay.get(day) ?? 0) > 0) streakDays++
     else break
   }
-  const lastMonthStart = new Date(
-    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth() - 1, 1) - IST_OFFSET_MS,
-  )
+  const lastMonthStart = startOfMonth(now, undefined, -1)
   const lastMonthSalesPaise = revenueRows
     .filter((r) => r.placedAt >= lastMonthStart && r.placedAt < monthStart)
     .reduce((n, r) => n + r.totalPaise, 0)

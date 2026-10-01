@@ -1,3 +1,4 @@
+import { ALLOWED_CONTENT_TYPES, maxUploadBytesFor } from '@commerce/storage/keys'
 import { mediaContent } from '@/data/media'
 import { api } from '@/lib/api-client'
 
@@ -10,13 +11,13 @@ export type UploadedMedia = {
 
 export type UploadProgress = (fraction: number) => void
 
-const ACCEPTED = new Set(mediaContent.accept.split(','))
-const MAX_BYTES = 25 * 1024 * 1024
+const MB = 1024 * 1024
 
-/** Client-side gate so a wrong file fails before any network call. */
+/** Client-side gate so a wrong file fails before any network call; same limits as the server. */
 export function rejectReason(file: File): string | null {
-  if (!ACCEPTED.has(file.type)) return mediaContent.errors.type(file.name)
-  if (file.size > MAX_BYTES) return mediaContent.errors.size(file.name)
+  if (!ALLOWED_CONTENT_TYPES.has(file.type)) return mediaContent.errors.type(file.name)
+  const limit = maxUploadBytesFor(file.type)
+  if (file.size > limit) return mediaContent.errors.size(file.name, Math.round(limit / MB))
   return null
 }
 

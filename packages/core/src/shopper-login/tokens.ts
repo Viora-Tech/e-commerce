@@ -1,5 +1,7 @@
 /** SOURCE OF TRUTH: shopper login hand-off tokens — WHAT: HMAC-signed short-lived payloads (the sign-in start request, the single-use hand-off token back to the store's domain, pending-link and passkey-challenge cookies), their checks (tampered, expired, wrong store, wrong return URL) and the return URL allow-list / WHY: social sign-in runs on one platform login domain while stores live on many domains, so the session must come back to exactly the store and URL that asked for it, never to a foreign host */
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+
+import { createHash, createHmac, randomBytes } from 'node:crypto'
+import { safeEqual } from '@commerce/payments'
 
 /*
  * Pure (no database). Keys are derived from SETTINGS_SECRET per purpose, so a token
@@ -34,13 +36,6 @@ const keyFor = (secret: string, purpose: TokenPurpose): Buffer =>
 
 const mac = (key: Buffer, body: string): string =>
   createHmac('sha256', key).update(body).digest('base64url')
-
-/** Constant-time string equality (length leaks only). */
-export function safeEqual(a: string, b: string): boolean {
-  const x = Buffer.from(a)
-  const y = Buffer.from(b)
-  return x.length === y.length && timingSafeEqual(x, y)
-}
 
 /** `base64url(json).signature`, expiring at `e` (ms since epoch). */
 export function signToken<T extends { e: number }>(

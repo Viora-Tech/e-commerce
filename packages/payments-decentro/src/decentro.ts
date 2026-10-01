@@ -13,7 +13,7 @@
  * webhooks. The callback's `consumer_urn` must also be this merchant's.
  */
 
-import { randomBytes, timingSafeEqual } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import type {
   ClientConfirmation,
   ConnectionTestResult,
@@ -29,6 +29,7 @@ import type {
   WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
+import { safeEqual } from '@commerce/payments'
 import {
   DecentroApiError,
   type DecentroCredentials,
@@ -182,12 +183,6 @@ function upiApps(uris: LinkData['upi_uris']): UpiApp[] {
 function isUnknownReference(err: DecentroApiError): boolean {
   const key = err.responseKey ?? ''
   return /reference/i.test(key) || /invalid reference id/i.test(err.message)
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a)
-  const bb = Buffer.from(b)
-  return ab.length === bb.length && timingSafeEqual(ab, bb)
 }
 
 /** Attempt-level outcomes that send the money back instead of keeping it. */

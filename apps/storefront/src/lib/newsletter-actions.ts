@@ -3,7 +3,7 @@
 import 'server-only'
 
 import type { NewsletterState } from '@commerce/blocks/puck'
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { confirmNewsletterSignup, enrolSubscriber, requestNewsletterSignup } from '@commerce/core'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
@@ -51,7 +51,7 @@ export async function subscribeAction(
  */
 export async function confirmNewsletterAction(token: string): Promise<void> {
   const storeId = await requestStoreId()
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   await inStore(storeId, async (tx) => {
     const confirmed = await confirmNewsletterSignup(tx, storeId, token, secret)
     if (confirmed.ok && !confirmed.alreadyConfirmed) {

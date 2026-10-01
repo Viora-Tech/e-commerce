@@ -3,7 +3,13 @@ import type { PaymentStatus } from '@commerce/payments'
 
 export type { PaymentRowStatus }
 
-/** Attempts that may still turn into money: not yet asked, or waiting on the shopper or the bank. */
+/**
+ * SOURCE OF TRUTH KEYWORDS: OPEN_ATTEMPT_STATUSES, open payment attempt
+ * WHAT:  Attempts that may still turn into money: not yet asked, or waiting on the shopper or the bank.
+ * WHY:   Expiry, follow-ups, fulfilment and the storefront's "awaiting payment" state must agree on
+ *        what "still open" means; the storefront had two hand-copied sets.
+ * WHERE: Core payments/preorder/order services; clients via `@commerce/core/order-status`.
+ */
 export const OPEN_ATTEMPT_STATUSES = ['created', 'pending', 'authorized'] as const
 
 const RANK: Record<PaymentRowStatus, number> = {

@@ -1,3 +1,4 @@
+import 'server-only'
 import { loadEnv } from '@commerce/config'
 import { enqueueNotification, type NotificationJob } from '@commerce/core'
 import { notificationQueue } from '@commerce/queue'

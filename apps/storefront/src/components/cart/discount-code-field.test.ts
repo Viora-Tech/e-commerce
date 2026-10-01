@@ -15,11 +15,7 @@ describe('DiscountCodeField', () => {
   // hydration error #418 on /checkout.
   it('renders no form of its own, so it can sit inside the checkout form', () => {
     const html = renderToStaticMarkup(
-      createElement(
-        'form',
-        null,
-        createElement(DiscountCodeField, { storeId: 's', discount: null }),
-      ),
+      createElement('form', null, createElement(DiscountCodeField, { discount: null })),
     )
     expect(html.match(/<form/g)).toHaveLength(1)
     expect(html).toContain('<input')

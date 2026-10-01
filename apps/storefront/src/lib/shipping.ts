@@ -1,3 +1,4 @@
+import 'server-only'
 import { loadEnv } from '@commerce/config'
 import {
   type DeliveryEstimate,

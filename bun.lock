@@ -44,6 +44,7 @@
         "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/editor": "workspace:*",
         "@commerce/invoices": "workspace:*",
@@ -143,6 +144,7 @@
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
         "@commerce/shipping": "workspace:*",
+        "@commerce/storage": "workspace:*",
         "@puckeditor/core": "^0.23.0",
         "@react-pdf/renderer": "^4.9.0",
         "@sentry/nextjs": "^11.0.0",
@@ -202,6 +204,7 @@
         "@commerce/auth": "workspace:*",
         "@commerce/config": "workspace:*",
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/invoices": "workspace:*",
         "@commerce/notifications": "workspace:*",
@@ -260,6 +263,7 @@
       "name": "@commerce/blocks",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/dates": "workspace:*",
         "@commerce/money": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -303,6 +307,7 @@
       "dependencies": {
         "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
@@ -332,6 +337,16 @@
       },
       "peerDependencies": {
         "react": "^19.0.0",
+      },
+    },
+    "packages/dates": {
+      "name": "@commerce/dates",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
       },
     },
     "packages/db": {
@@ -388,6 +403,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/money": "workspace:*",
         "@react-pdf/renderer": "^4.9.0",
         "fflate": "^0.8.3",
@@ -577,6 +593,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/invoices": "workspace:*",
         "@commerce/notifications": "workspace:*",
@@ -634,6 +651,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "bullmq": "^5.81.5",
         "ioredis": "^5.10.1",
       },
@@ -665,6 +683,9 @@
     "packages/shipping": {
       "name": "@commerce/shipping",
       "version": "0.0.0",
+      "dependencies": {
+        "@commerce/payments": "workspace:*",
+      },
       "devDependencies": {
         "@commerce/config": "workspace:*",
         "@types/node": "^22.20.4",
@@ -1000,6 +1021,8 @@
     "@commerce/config": ["@commerce/config@workspace:packages/config"],
 
     "@commerce/core": ["@commerce/core@workspace:packages/core"],
+
+    "@commerce/dates": ["@commerce/dates@workspace:packages/dates"],
 
     "@commerce/db": ["@commerce/db@workspace:packages/db"],
 

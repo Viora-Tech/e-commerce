@@ -1,6 +1,6 @@
+import { settingsSecret } from '@commerce/config'
 import { completeTruecaller, storeFromTruecallerNonce } from '@commerce/core'
 import { NextResponse } from 'next/server'
-import { settingsSecret } from '@/lib/shopper-login'
 import { inStore } from '@/lib/store-context'
 
 /**

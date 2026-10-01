@@ -1,14 +1,9 @@
-import { timingSafeEqual } from 'node:crypto'
+import { safeEqual } from '@commerce/payments'
 
 /**
- * Constant-time string comparison for webhook secrets and signatures — same
- * pattern as `packages/payments-razorpay/src/razorpay.ts`'s `safeEqual`,
- * pulled out here so every courier adapter (Delhivery, Shiprocket, ...)
- * shares one implementation instead of each hand-rolling `!==`, which leaks
- * timing information about how much of the secret an attacker has guessed.
+ * Constant-time string comparison for courier webhook secrets and signatures. The one
+ * implementation is `safeEqual` in `@commerce/payments`; this keeps the courier-facing
+ * name so every courier adapter (Delhivery, Shiprocket, ...) imports it from its own
+ * contract package instead of hand-rolling `!==`.
  */
-export function timingSafeEqualString(a: string, b: string): boolean {
-  const ab = Buffer.from(a)
-  const bb = Buffer.from(b)
-  return ab.length === bb.length && timingSafeEqual(ab, bb)
-}
+export const timingSafeEqualString: (a: string, b: string) => boolean = safeEqual

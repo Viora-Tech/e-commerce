@@ -1,7 +1,7 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { permissions } from '@commerce/core'
 import { z } from 'zod'
-import { can, heavy } from '../procedures'
+import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   actOnNdr,
@@ -21,8 +21,6 @@ import {
   schedulePickupForStore,
 } from '../services/shipments-workspace.service'
 
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
-
 const ndrAction = z.enum(['reattempt', 'change_address', 'rto'])
 
 /**
@@ -36,8 +34,8 @@ export const shipmentsRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
-        search: z.string().trim().max(200).optional(),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         status: z.array(z.string()).optional(),
         ndrStatus: z.array(z.string()).optional(),
         provider: z.string().optional(),
@@ -50,8 +48,8 @@ export const shipmentsRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
-        search: z.string().trim().max(200).optional(),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listReadyToShip(context.tx, input)),
@@ -64,7 +62,7 @@ export const shipmentsRouter = {
     .use(heavy('bulk'))
     .input(
       z.object({
-        orderIds: z.array(z.uuid()).min(1).max(200),
+        orderIds: z.array(z.uuid()).min(1).max(BULK_MAX),
         weightGrams: z.number().int().min(1).optional(),
         dimensionsCm: z
           .object({
@@ -80,7 +78,7 @@ export const shipmentsRouter = {
     )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return bulkBookShipments(context.tx, context.scope.storeId, shipping, secret(), input)
+      return bulkBookShipments(context.tx, context.scope.storeId, shipping, settingsSecret(), input)
     }),
 
   /** The bulk-book panel's rate comparison table: every connected courier's price and ETA
@@ -98,7 +96,7 @@ export const shipmentsRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.orderIds,
         input.weightGrams,
       )
@@ -115,7 +113,13 @@ export const shipmentsRouter = {
     )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return schedulePickupForStore(context.tx, context.scope.storeId, shipping, secret(), input)
+      return schedulePickupForStore(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input,
+      )
     }),
 
   listPickups: can(permissions.ORDERS_READ).handler(({ context }) =>
@@ -135,7 +139,13 @@ export const shipmentsRouter = {
     )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return createManifestForStore(context.tx, context.scope.storeId, shipping, secret(), input)
+      return createManifestForStore(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input,
+      )
     }),
 
   listManifests: can(permissions.ORDERS_READ).handler(({ context }) =>
@@ -159,13 +169,13 @@ export const shipmentsRouter = {
     )
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return actOnNdr(context.tx, context.scope.storeId, shipping, secret(), input)
+      return actOnNdr(context.tx, context.scope.storeId, shipping, settingsSecret(), input)
     }),
 
   /** One card per connected courier - each has its own account and balance. */
   wallets: can(permissions.ORDERS_READ).handler(async ({ context }) => {
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-    return listWalletCards(context.tx, context.scope.storeId, shipping, secret())
+    return listWalletCards(context.tx, context.scope.storeId, shipping, settingsSecret())
   }),
 
   refreshWallet: can(permissions.ORDERS_FULFIL)
@@ -181,7 +191,7 @@ export const shipmentsRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.providerId,
         input.lowBalanceThresholdPaise,
       )
@@ -195,7 +205,7 @@ export const shipmentsRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.providerId,
         input.balancePaise,
       )

@@ -2,6 +2,7 @@
  * Server-side twin of the analytics range parsers, so `page.tsx` can run the
  * first query on the server and hand the client a filled page.
  */
+import { formatPercent } from '@commerce/money'
 import type { SearchParams } from './list-query'
 
 export type RangeKey = 'today' | '7d' | '30d' | '90d' | 'custom'
@@ -51,11 +52,6 @@ export function formatDay(iso: string): string {
   return shortDate.format(new Date(`${iso}T00:00:00`))
 }
 
-const percent = new Intl.NumberFormat('en-IN', {
-  style: 'percent',
-  maximumFractionDigits: 1,
-})
-
 export function formatRate(value: number): string {
-  return percent.format(value)
+  return formatPercent(value, { maximumFractionDigits: 1 })
 }

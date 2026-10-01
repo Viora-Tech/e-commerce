@@ -14,6 +14,17 @@
  * lists and types through `@commerce/core/order-status`.
  */
 
+export { OPEN_ATTEMPT_STATUSES } from '../payments/transitions'
+
+/**
+ * SOURCE OF TRUTH KEYWORDS: ORDER_MARKS, OrderMark, mark order paid/fulfilled/delivered/cancelled
+ * WHAT:  The hand moves a merchant can make on an order (one order or in bulk).
+ * WHY:   The API's input enum and the admin's buttons and labels must list the same moves.
+ * WHERE: `orders.setStatus`/bulk router input; admin orders list, order actions, copy.
+ */
+export const ORDER_MARKS = ['paid', 'fulfilled', 'delivered', 'cancelled'] as const
+export type OrderMark = (typeof ORDER_MARKS)[number]
+
 export const ORDER_LIFECYCLE_STATUSES = ['draft', 'open', 'completed', 'cancelled'] as const
 export type OrderLifecycleStatus = (typeof ORDER_LIFECYCLE_STATUSES)[number]
 

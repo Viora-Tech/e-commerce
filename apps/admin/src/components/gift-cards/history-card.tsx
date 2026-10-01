@@ -1,3 +1,4 @@
+import { formatSignedMoney } from '@commerce/money'
 import { cn } from '@commerce/ui/lib/utils'
 import { Card } from '@commerce/ui/shadcn/card'
 import {
@@ -10,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { formatPattern } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 
 type Transaction = {
@@ -27,15 +29,13 @@ type Transaction = {
 type HistoryCardProps = { transactions: Transaction[] }
 
 const copy = giftCardDetailContent.history
-const when = new Intl.DateTimeFormat('en-IN', {
+const WHEN = {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
   hour: 'numeric',
   minute: '2-digit',
-})
-
-const signed = (paise: number) => `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
+} as const
 
 /** Every balance movement, newest first, with the order it came from and who made it. */
 export default function HistoryCard({ transactions }: HistoryCardProps) {
@@ -56,7 +56,7 @@ export default function HistoryCard({ transactions }: HistoryCardProps) {
             {transactions.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="pl-5 align-top text-muted-foreground tabular-nums">
-                  {when.format(new Date(t.createdAt))}
+                  {formatPattern(t.createdAt, WHEN)}
                 </TableCell>
                 <TableCell className="whitespace-normal">
                   <span className="flex flex-col">
@@ -84,7 +84,7 @@ export default function HistoryCard({ transactions }: HistoryCardProps) {
                     t.amountPaise < 0 ? 'text-foreground' : 'text-success',
                   )}
                 >
-                  {signed(t.amountPaise)}
+                  {formatSignedMoney(t.amountPaise)}
                 </TableCell>
                 <TableCell className="pr-5 text-right align-top tabular-nums">
                   {formatPaise(t.balanceAfterPaise)}

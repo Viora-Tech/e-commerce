@@ -6,6 +6,8 @@
  * handle with nothing but `Image Src`. We fold a group back into one product,
  * so the parser is pure and the caller decides whether to write anything.
  */
+
+import { parseRupees } from '@commerce/money'
 import type { ProductStatus } from './schemas'
 import { variantTitle } from './variants'
 
@@ -123,10 +125,8 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((cell) => cell.trim() !== ''))
 }
 
-function toPaise(value: string): number | null {
-  const n = Number(value.replace(/[^0-9.-]/g, ''))
-  return value.trim() === '' || Number.isNaN(n) ? null : Math.round(n * 100)
-}
+/** "₹1,299.00" → 129900; the rupee sign and grouping a spreadsheet adds are dropped first. */
+const csvPaise = (value: string): number | null => parseRupees(value.replace(/[^0-9.-]/g, ''))
 
 function toInt(value: string): number | null {
   const n = Number(value.replace(/[^0-9.-]/g, ''))
@@ -187,9 +187,9 @@ function readVariant(row: Row, names: string[]): ImportVariant {
     optionValues: optionValues(row, names.length),
     sku: row.get('variant sku').trim() || null,
     barcode: row.get('variant barcode').trim() || null,
-    pricePaise: toPaise(row.get('variant price')) ?? 0,
-    mrpPaise: toPaise(row.get('variant compare at price')),
-    costPaise: toPaise(row.get('variant cost') || row.get('cost per item')),
+    pricePaise: csvPaise(row.get('variant price')) ?? 0,
+    mrpPaise: csvPaise(row.get('variant compare at price')),
+    costPaise: csvPaise(row.get('variant cost') || row.get('cost per item')),
     taxable: toBool(row.get('variant taxable'), true),
     trackInventory: row.get('variant inventory tracker').trim().toLowerCase() !== 'not tracked',
     weightGrams: grams,

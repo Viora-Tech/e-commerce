@@ -1,5 +1,7 @@
 import { formatPaise } from '@commerce/blocks'
+import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import type { order, orderLine, payment } from '@commerce/db'
+import { formatSignedMoney } from '@commerce/money'
 import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
 import { thankYouContent as content } from '@/data/checkout'
@@ -22,12 +24,8 @@ type ThankYouTemplateProps = {
   payPath: string
 }
 
-/** "+₹49.00" / "−₹99.98" for the fee or discount row. */
-const formatSigned = (paise: number): string =>
-  `${paise < 0 ? '−' : '+'}${formatPaise(Math.abs(paise))}`
-
 /** Attempts still waiting on the shopper or the gateway. */
-const OPEN_STATUSES: ReadonlySet<string> = new Set(['created', 'pending', 'authorized'])
+const OPEN_STATUSES: ReadonlySet<string> = new Set(OPEN_ATTEMPT_STATUSES)
 
 function statusLine(
   method: string | null,
@@ -109,7 +107,7 @@ export default function ThankYouTemplate({
               <span>
                 {o.paymentAdjustmentLabel ?? content.adjustmentFallback(o.paymentAdjustmentPaise)}
               </span>
-              <span>{formatSigned(o.paymentAdjustmentPaise)}</span>
+              <span>{formatSignedMoney(o.paymentAdjustmentPaise)}</span>
             </li>
           ) : null}
           <li className="cart-summary__row cart-summary__row--total">

@@ -13,7 +13,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import {
   collectionStats,
   getCollection,
@@ -48,10 +48,10 @@ export const collectionsRouter = {
     .input(
       z.object({
         collectionId: z.uuid().optional(),
-        search: z.string().trim().max(200).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         tab: z.enum(['all', 'featured', 'onSale', 'outOfStock']).optional(),
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(10),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(10),
       }),
     )
     .handler(({ context, input }) => listCollectionProducts(context.tx, input)),
@@ -60,7 +60,7 @@ export const collectionsRouter = {
   searchProducts: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
-        search: z.string().trim().max(200).default(''),
+        search: z.string().trim().max(SEARCH_MAX).default(''),
         limit: z.number().int().min(1).max(50).default(20),
       }),
     )

@@ -54,8 +54,6 @@ export type DeliveryResult = {
   error?: string | undefined
 }
 
-const inr = (paise: number) => formatMoney(paise, 'INR')
-
 /** Human label for the order's payment_method id; adapters own the real label, this is the fallback. */
 const PAYMENT_LABELS: Record<string, string> = {
   cod: 'Cash on delivery',
@@ -95,8 +93,8 @@ function balanceData(
   const owed = balanceOwed(o)
   const payBy = balancePayBy(settings, o.balanceRequestedAt)
   return {
-    dueLabel: inr(owed),
-    depositLabel: inr(o.totalPaise - owed),
+    dueLabel: formatMoney(owed),
+    depositLabel: formatMoney(o.totalPaise - owed),
     payByLabel: payBy
       ? payBy.toLocaleDateString('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' })
       : undefined,
@@ -115,17 +113,17 @@ const isGst = (v: unknown): v is GstBreakdown =>
 function taxLines(o: typeof order.$inferSelect): TemplateData['taxBreakdown'] {
   const t = o.taxBreakdown
   if (!isGst(t) || t.taxPaise <= 0) return undefined
-  const taxableLabel = inr(o.totalPaise - t.taxPaise)
+  const taxableLabel = formatMoney(o.totalPaise - t.taxPaise)
   if (t.interState) {
     return [
       { label: 'Taxable value', amount: taxableLabel },
-      { label: `IGST (${t.ratePercent}%)`, amount: inr(t.igstPaise) },
+      { label: `IGST (${t.ratePercent}%)`, amount: formatMoney(t.igstPaise) },
     ]
   }
   return [
     { label: 'Taxable value', amount: taxableLabel },
-    { label: `CGST (${t.ratePercent / 2}%)`, amount: inr(t.cgstPaise) },
-    { label: `SGST (${t.ratePercent / 2}%)`, amount: inr(t.sgstPaise) },
+    { label: `CGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.cgstPaise) },
+    { label: `SGST (${t.ratePercent / 2}%)`, amount: formatMoney(t.sgstPaise) },
   ]
 }
 
@@ -157,7 +155,7 @@ async function refundTemplateData(
   const provider = p?.provider ?? ''
   return {
     refund: {
-      amountLabel: inr(r.amountPaise),
+      amountLabel: formatMoney(r.amountPaise),
       methodLabel: refundMethodLabel(provider),
       etaLabel: refundEtaLabel(provider),
     },
@@ -259,13 +257,13 @@ export async function buildTemplateData(
       storeName: s?.name ?? '',
       orderNumber: o.number,
       customerName: cu?.name || 'there',
-      totalLabel: inr(o.totalPaise),
+      totalLabel: formatMoney(o.totalPaise),
       lines: lines.map((l) => ({
         title: [l.title, l.variantTitle !== 'Default' ? l.variantTitle : null]
           .filter(Boolean)
           .join(' / '),
         quantity: l.quantity,
-        priceLabel: inr(l.quantity * l.unitPricePaise),
+        priceLabel: formatMoney(l.quantity * l.unitPricePaise),
         imageUrl:
           l.variantImage ?? images.find((i) => i.productId === l.productId)?.url ?? undefined,
       })),
@@ -390,13 +388,13 @@ export async function buildCartTemplateData(
     data: {
       storeName: s?.name ?? '',
       customerName: c.customerName || 'there',
-      totalLabel: inr(subtotal),
+      totalLabel: formatMoney(subtotal),
       lines: lines.map((l) => ({
         title: [l.productTitle, l.variantTitle !== 'Default' ? l.variantTitle : null]
           .filter(Boolean)
           .join(' / '),
         quantity: l.quantity,
-        priceLabel: inr(l.quantity * l.unitPricePaise),
+        priceLabel: formatMoney(l.quantity * l.unitPricePaise),
       })),
       paymentMethodLabel: '',
       actionUrl,

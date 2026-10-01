@@ -6,6 +6,7 @@ import {
   orderViewToken,
   verifyOrderViewToken,
 } from '@commerce/core'
+import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { getRegistries } from '@commerce/core/registries'
 import { giftCard, order, orderLine, payment, withStore } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
@@ -19,7 +20,8 @@ import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
 
 /** Balance attempts still waiting on the shopper or the gateway. */
-const OPEN_STATUSES: ReadonlySet<string> = new Set(['created', 'pending', 'authorized'])
+/** Attempts still waiting on the shopper or the gateway. */
+const OPEN_STATUSES: ReadonlySet<string> = new Set(OPEN_ATTEMPT_STATUSES)
 
 type Params = {
   params: Promise<{ storeId: string; number: string }>

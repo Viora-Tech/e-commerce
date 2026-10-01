@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { recordMessageOpen, verifyMessageToken } from '@commerce/core'
 import { headers } from 'next/headers'
 import { inStore } from '@/lib/store-context'
@@ -16,7 +16,7 @@ const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBR
 export async function GET(_request: Request, { params }: Params) {
   const { token } = await params
   const storeId = (await headers()).get('x-store-id')
-  const payload = verifyMessageToken(token, loadEnv(process.env).SETTINGS_SECRET)
+  const payload = verifyMessageToken(token, settingsSecret())
   if (payload && storeId && payload.storeId === storeId) {
     try {
       await inStore(storeId, (tx) => recordMessageOpen(tx, payload.messageId))

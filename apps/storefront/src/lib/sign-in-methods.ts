@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   appFor,
   availableLoginMethods,
@@ -25,7 +25,7 @@ export const devChannels = (): boolean => process.env.NODE_ENV !== 'production'
 export async function codeChannelDeps(tx: StoreTx, storeId: string): Promise<LoginChannelDeps> {
   return {
     registry: (await registriesForStore(tx, storeId)).notifications,
-    settingsSecret: loadEnv(process.env).SETTINGS_SECRET,
+    settingsSecret: settingsSecret(),
     allowDevChannels: devChannels(),
   }
 }

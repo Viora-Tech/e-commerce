@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -30,9 +31,9 @@ const copy = giftCardProductsContent.dialog
 const DEFAULT_PAISE = GIFT_CARD_PRODUCT_DEFAULTS.map((r) => r * 100)
 
 /** Rupees typed in the field to whole paise; null when it is not a positive amount. */
-function toPaise(raw: string): number | null {
-  const n = Math.round(Number(raw) * 100)
-  return Number.isFinite(n) && n > 0 ? n : null
+function positivePaise(text: string): number | null {
+  const paise = parseRupees(text)
+  return paise && paise > 0 ? paise : null
 }
 
 /** Title and denominations for a new gift card product; opens the product once created. */
@@ -57,7 +58,7 @@ export default function GiftCardProductDialog({
 
   // Event handlers
   const handleAdd = () => {
-    const paise = toPaise(draft)
+    const paise = positivePaise(draft)
     if (!paise) return
     setValues((prev) => [...new Set([...prev, paise])].sort((a, b) => a - b))
     setDraft('')
@@ -126,7 +127,7 @@ export default function GiftCardProductDialog({
             </div>
             <form className="flex gap-2" onSubmit={handleAddSubmit}>
               <MoneyInput id="gc-product-value" value={draft} onChange={setDraft} />
-              <Button type="submit" variant="outline" disabled={!toPaise(draft)}>
+              <Button type="submit" variant="outline" disabled={!positivePaise(draft)}>
                 {copy.add}
               </Button>
             </form>

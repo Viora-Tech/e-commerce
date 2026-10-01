@@ -6,6 +6,7 @@
   "description": "Storage provider contract, registry, key helpers and conformance suite for uploaded media. No runtime dependencies.",
   "exports": {
     ".": "./src/index.ts",
+    "./keys": "./src/keys.ts",
     "./testing": "./src/testing.ts"
   },
   "scripts": {

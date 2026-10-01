@@ -4,7 +4,7 @@ export const mediaContent = {
   dropzone: {
     idle: 'Drop images or videos here, or click to choose',
     active: 'Release to upload',
-    hint: 'JPG, PNG, WebP, GIF, AVIF or MP4. Up to 25 MB each.',
+    hint: 'JPG, PNG, WebP, GIF or AVIF up to 10 MB, MP4 up to 100 MB.',
     button: 'Add files',
   },
   tile: {
@@ -32,7 +32,7 @@ export const mediaContent = {
   },
   errors: {
     type: (name: string) => `${name} is not an image or MP4 video.`,
-    size: (name: string) => `${name} is over 25 MB.`,
+    size: (name: string, mb: number) => `${name} is over ${mb} MB.`,
     upload: (name: string) => `Could not upload ${name}. Check the storage settings and try again.`,
     generic: 'Something went wrong with the upload.',
   },
@@ -77,7 +77,7 @@ export const mediaContent = {
     dropTitle: 'Drop files to upload',
     dropActive: 'Release to upload',
     dropOr: 'or',
-    dropTypes: 'JPG, PNG, WebP, GIF, AVIF or MP4, up to 25 MB each.',
+    dropTypes: 'JPG, PNG, WebP, GIF or AVIF up to 10 MB, MP4 up to 100 MB.',
     library: 'Library',
     uploading: (name: string, pct: number) => `Uploading ${name}, ${pct}%`,
     retry: 'Retry',

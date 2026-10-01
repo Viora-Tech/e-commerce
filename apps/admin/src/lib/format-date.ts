@@ -1,71 +1,49 @@
+import { DEFAULT_TIME_ZONE, formatInZone, wallClock, dayKey as zoneDayKey } from '@commerce/dates'
 import { datesContent } from '@/data/dates'
 import { localize } from '@/lib/copy'
 import { INTL_LOCALE, type Locale } from '@/lib/i18n'
 
 const DAY_MS = 86_400_000
 /**
- * Every formatter here is pinned to Asia/Kolkata (the store's own timezone, per
- * docs/guardrails.md multi-currency notes — this platform is India-only today). Without an
+ * Every formatter here is pinned to the store's zone (`DEFAULT_TIME_ZONE`, Asia/Kolkata —
+ * this platform is India-only today) through `formatInZone` in `@commerce/dates`. Without an
  * explicit zone, `Intl.DateTimeFormat` falls back to the runtime's own default, which can
  * differ between the Next.js server process and the browser (e.g. a server on UTC, a browser
  * on IST) and produce a server/client text mismatch — a React hydration error.
  */
 
-const TIME_ZONE = 'Asia/Kolkata'
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
-
-type DateFormats = {
-  time: Intl.DateTimeFormat
-  dayMonth: Intl.DateTimeFormat
-  dayMonthYear: Intl.DateTimeFormat
-  full: Intl.DateTimeFormat
-  medium: Intl.DateTimeFormat
+/** Any `Intl` date pattern, in the member's language and the store's zone. */
+export function formatPattern(
+  value: Date | string | number,
+  options: Intl.DateTimeFormatOptions,
+  locale: Locale = 'en',
+): string {
+  return formatInZone(value, options, { locale: INTL_LOCALE[locale], timeZone: DEFAULT_TIME_ZONE })
 }
 
 /**
  * Hindi spells the month out ("12 सितंबर"): hi-IN's short months carry an abbreviation
  * mark ("सित॰") that reads worse than the full word.
  */
-function buildFormats(locale: Locale): DateFormats {
-  const tag = INTL_LOCALE[locale]
-  const month = locale === 'hi' ? 'long' : 'short'
+const monthStyle = (locale: Locale) => (locale === 'hi' ? 'long' : 'short')
+
+function formats(locale: Locale) {
+  const month = monthStyle(locale)
+  const as = (options: Intl.DateTimeFormatOptions) => ({
+    format: (d: Date) => formatPattern(d, options, locale),
+  })
   return {
-    time: new Intl.DateTimeFormat(tag, {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: TIME_ZONE,
-    }),
-    dayMonth: new Intl.DateTimeFormat(tag, { day: 'numeric', month, timeZone: TIME_ZONE }),
-    dayMonthYear: new Intl.DateTimeFormat(tag, {
-      day: 'numeric',
-      month,
-      year: 'numeric',
-      timeZone: TIME_ZONE,
-    }),
-    full: new Intl.DateTimeFormat(tag, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      timeZone: TIME_ZONE,
-    }),
-    medium: new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeZone: TIME_ZONE }),
+    time: as({ hour: 'numeric', minute: '2-digit', hour12: true }),
+    dayMonth: as({ day: 'numeric', month }),
+    dayMonthYear: as({ day: 'numeric', month, year: 'numeric' }),
+    full: as({ dateStyle: 'medium', timeStyle: 'short' }),
+    medium: as({ dateStyle: 'medium' }),
   }
-}
-
-const formatsByLocale = new Map<Locale, DateFormats>()
-
-function formats(locale: Locale): DateFormats {
-  let built = formatsByLocale.get(locale)
-  if (!built) {
-    built = buildFormats(locale)
-    formatsByLocale.set(locale, built)
-  }
-  return built
 }
 
 /** The date shifted so its UTC getters read as IST wall-clock time. */
 function toIst(d: Date): Date {
-  return new Date(d.getTime() + IST_OFFSET_MS)
+  return wallClock(d)
 }
 
 /** IST calendar day as a sortable/comparable number, independent of the runtime's own timezone. */
@@ -134,8 +112,21 @@ export function formatDate(value: Date | string, locale: Locale = 'en'): string 
   return formats(locale).medium.format(new Date(value))
 }
 
+/** "01-10-2026": the numeric day the list frames show (frame 5:2617). */
+export function formatNumericDate(value: Date | string): string {
+  return formatPattern(value, { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll(
+    '/',
+    '-',
+  )
+}
+
 /** Sort key that groups everything placed on the same IST calendar day. */
 export function dayKey(value: Date | string): string {
   const ist = toIst(new Date(value))
   return `${ist.getUTCFullYear()}-${ist.getUTCMonth() + 1}-${ist.getUTCDate()}`
+}
+
+/** Today in the store's zone as `YYYY-MM-DD`, what a date field starts on. */
+export function todayKey(now: Date = new Date()): string {
+  return zoneDayKey(now)
 }

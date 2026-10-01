@@ -1,5 +1,6 @@
 'use client'
 
+import { slugify } from '@commerce/core/catalog'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -29,12 +30,6 @@ type CreateMenuDialogProps = {
 }
 
 const copy = menusContent.create
-
-const slugify = (title: string) =>
-  title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
 
 export default function CreateMenuDialog({ open, onOpenChange }: CreateMenuDialogProps) {
   // Hooks

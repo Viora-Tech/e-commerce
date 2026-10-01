@@ -1,15 +1,16 @@
 import type {
   OrderFulfillmentStatus,
   OrderLifecycleStatus,
+  OrderMark,
   OrderPaymentStatus,
   OrderStatus,
 } from '@commerce/core/order-status'
 
+/** The order moves live in core (`ORDER_MARKS`); re-exported for the admin's order screens. */
+export { ORDER_MARKS, type OrderMark } from '@commerce/core/order-status'
 export type { OrderFulfillmentStatus, OrderPaymentStatus, OrderStatus }
 
 /** What "Mark as" records, on the detail page and in the list's bulk menu. */
-export const ORDER_MARKS = ['paid', 'fulfilled', 'delivered', 'cancelled'] as const
-export type OrderMark = (typeof ORDER_MARKS)[number]
 
 /** Open manual UPI / bank transfer orders, waiting for the merchant to mark them paid. */
 export const PENDING_UPI = 'pending_upi'

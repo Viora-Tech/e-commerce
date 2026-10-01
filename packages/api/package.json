@@ -15,6 +15,7 @@
     "@commerce/auth": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
+    "@commerce/dates": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/invoices": "workspace:*",
     "@commerce/notifications": "workspace:*",

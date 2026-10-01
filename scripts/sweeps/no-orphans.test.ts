@@ -45,12 +45,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the slot store behind fairProcessor, exported for its unit test',
   },
   {
-    file: 'packages/core/src/onboarding/signup-gate.ts',
-    names: ['createSignupInvite'],
-    reason:
-      'used by scripts/platform-invite.ts (bun run platform:invite); scripts/ is outside this sweep',
-  },
-  {
     file: 'packages/core/src/media/service.ts',
     names: ['DEFAULT_STORAGE_QUOTA_BYTES', 'storageUsageBytes', 'checkStorageQuota'],
     reason:
@@ -69,14 +63,8 @@ const ALLOWLIST: AllowEntry[] = [
       'from #180; used in this file only, exported for inspection, investigate before removing',
   },
   {
-    file: 'packages/storage/src/keys.ts',
-    names: ['IMAGE_MAX_UPLOAD_BYTES', 'VIDEO_MAX_UPLOAD_BYTES'],
-    reason:
-      'from #182; used by packages/storage/test/keys.test.ts and maxUploadBytesFor in this file',
-  },
-  {
     file: 'packages/api/src/services/analytics-buckets.ts',
-    names: ['IST_OFFSET_MS', 'DEFAULT_RANGE', 'istDayStart'],
+    names: ['DEFAULT_RANGE', 'istDayStart'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -121,14 +109,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/accounts/auth.ts',
-    names: [
-      'LOGIN_CODE_TTL_MS',
-      'LOGIN_CODE_MAX_ATTEMPTS',
-      'LOGIN_CODE_RESEND_MS',
-      'CUSTOMER_SESSION_TTL_MS',
-      'normaliseLoginEmail',
-      'hashSessionToken',
-    ],
+    names: ['CUSTOMER_SESSION_TTL_MS', 'hashSessionToken'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -344,7 +325,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/metaobjects/storefront.ts',
-    names: ['metaobjectsByType', 'metaobjectByHandle', 'metafieldsFor'],
+    names: ['metaobjectsByType', 'metafieldsFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -442,13 +423,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/payments/settings.ts',
-    names: [
-      'defaultPaymentSettings',
-      'encryptPaymentSettings',
-      'decryptPaymentSettings',
-      'maskPaymentSettings',
-      'builtInPaymentRegistry',
-    ],
+    names: ['maskPaymentSettings', 'builtInPaymentRegistry'],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -687,11 +662,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/invoices/src/templates/index.tsx',
-    names: ['TEMPLATES'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/invoices/src/words.ts',
     names: ['indianNumberInWords'],
     reason: 'no external importer today — investigate before removing',
@@ -851,11 +821,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/richtext/src/html.tsx',
-    names: ['richTextToHtml'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/shipping/src/delivery-date.ts',
     names: [
       'isCivilDate',
@@ -873,51 +838,8 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/storage/src/keys.ts',
-    names: ['ALLOWED_CONTENT_TYPES', 'isImageContentType', 'safeFilename'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/ui/src/components/global/mode-toggle/index.tsx',
     names: ['ModeToggle'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
-    file: 'packages/ui/src/icons.tsx',
-    names: [
-      'Package_',
-      'Users_',
-      'FolderOpen_',
-      'Megaphone_',
-      'Gift_',
-      'Newspaper_',
-      'FileText_',
-      'ClipboardList',
-      'Radio_',
-      'CreditCard_',
-      'TrendingUp',
-      'BellDot',
-      'Sun_',
-      'Moon_',
-      'ArrowUp_',
-      'ArrowDown_',
-      'ArrowLeft_',
-      'ArrowRight_',
-      'Plus_',
-      'Minus_',
-      'Filter',
-      'Columns_',
-      'SquareTerminal',
-      'Video_',
-      'Upload_',
-      'Printer_',
-      'Copy_',
-      'Eye_',
-      'X_',
-      'Truck_',
-      'PackageX',
-      'MapPinLineIcon',
-    ],
     reason: 'no external importer today — investigate before removing',
   },
   {
@@ -1038,6 +960,7 @@ async function findViolations(): Promise<Violation[]> {
   return violations
 }
 
+// Walks every import in the repo twice; slow under a parallel sweep run, so 2 minutes per test.
 describe('sweep: no-orphans', () => {
   it('every exported value in packages/*/src has an importer, or is allow-listed', async () => {
     const violations = await findViolations()
@@ -1046,5 +969,15 @@ describe('sweep: no-orphans', () => {
       unlisted,
       `orphaned exports (no importer found):\n${unlisted.map((v) => `${v.file}:${v.line} ${v.name}`).join('\n')}`,
     ).toEqual([])
-  })
+  }, 120_000)
+
+  it('the allow-list has no stale entries (each name is still an orphan)', async () => {
+    const violations = await findViolations()
+    const stale = ALLOWLIST.flatMap((e) =>
+      e.names
+        .filter((n) => !violations.some((v) => v.file === e.file && v.name === n))
+        .map((n) => `${e.file}: ${n}`),
+    )
+    expect(stale, 'now imported (or deleted): remove from ALLOWLIST').toEqual([])
+  }, 120_000)
 })

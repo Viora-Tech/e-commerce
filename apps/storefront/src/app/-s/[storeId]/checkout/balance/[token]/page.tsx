@@ -1,5 +1,6 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { orderViewToken, thankYouPath, verifyBalanceToken } from '@commerce/core'
+import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { and, desc, eq, inArray } from 'drizzle-orm'
@@ -19,7 +20,7 @@ type Params = { params: Promise<{ storeId: string; token: string }> }
  */
 export default async function PayBalancePage({ params }: Params) {
   const { storeId, token } = await params
-  const verified = verifyBalanceToken(token, loadEnv(process.env).SETTINGS_SECRET)
+  const verified = verifyBalanceToken(token, settingsSecret())
   const data = verified.ok
     ? await inStore(storeId, async (tx) => {
         const [o] = await tx.select().from(order).where(eq(order.id, verified.orderId))
@@ -31,7 +32,7 @@ export default async function PayBalancePage({ params }: Params) {
             and(
               eq(payment.orderId, o.id),
               eq(payment.purpose, 'balance'),
-              inArray(payment.status, ['created', 'pending', 'authorized']),
+              inArray(payment.status, [...OPEN_ATTEMPT_STATUSES]),
             ),
           )
           .orderBy(desc(payment.attempt))
@@ -46,7 +47,7 @@ export default async function PayBalancePage({ params }: Params) {
     : null
 
   if (data && !data.balance) {
-    const secret = loadEnv(process.env).SETTINGS_SECRET
+    const secret = settingsSecret()
     redirect(thankYouPath(data.number, orderViewToken(data.orderId, secret)))
   }
 

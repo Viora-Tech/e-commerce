@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { CreditCard } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -8,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
 import { shipmentsContent } from '@/data/shipments'
+import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Wallet = Awaited<ReturnType<typeof api.shipments.wallets>>[number]
@@ -15,13 +17,13 @@ type Wallet = Awaited<ReturnType<typeof api.shipments.wallets>>[number]
 type WalletCardProps = { wallet: Wallet; onChanged: () => void }
 
 const copy = shipmentsContent.wallet
-const rupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`
 
 /** One courier's balance card: manual entry for a courier with no live balance API (Delhivery),
  *  refresh for one that has it (Shiprocket). A multi-courier store shows one of these per
  *  connected courier. */
 export default function WalletCard({ wallet, onChanged }: WalletCardProps) {
   // Hooks
+  const format = useFormat()
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -39,13 +41,13 @@ export default function WalletCard({ wallet, onChanged }: WalletCardProps) {
   }
 
   const handleSave = async () => {
-    const rupeesValue = Number.parseFloat(input)
-    if (!Number.isFinite(rupeesValue) || rupeesValue < 0) return
+    const balancePaise = parseRupees(input)
+    if (balancePaise === null) return
     setBusy(true)
     try {
       await api.shipments.recordWalletBalance({
         providerId: wallet.provider,
-        balancePaise: Math.round(rupeesValue * 100),
+        balancePaise,
       })
       onChanged()
       setInput('')
@@ -69,9 +71,11 @@ export default function WalletCard({ wallet, onChanged }: WalletCardProps) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-caption text-muted-foreground">{copy.balance}</p>
-          <p className="text-heading-3 font-bold text-ink-strong">{rupees(wallet.balancePaise)}</p>
+          <p className="text-heading-3 font-bold text-ink-strong">
+            {format.money(wallet.balancePaise)}
+          </p>
           <p className="text-caption text-muted-foreground">
-            {copy.threshold} {rupees(wallet.lowBalanceThresholdPaise)}
+            {copy.threshold} {format.money(wallet.lowBalanceThresholdPaise)}
           </p>
         </div>
         <div className="flex items-end gap-2">

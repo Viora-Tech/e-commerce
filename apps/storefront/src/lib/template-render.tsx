@@ -1,3 +1,4 @@
+import 'server-only'
 import { Reveal } from '@commerce/blocks'
 import { createBlocksConfig, type PageData, type SectionMetadata } from '@commerce/blocks/puck'
 import { renderBlock } from '@commerce/blocks/slots'

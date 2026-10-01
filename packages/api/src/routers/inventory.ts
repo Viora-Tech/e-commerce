@@ -24,7 +24,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, heavy } from '../procedures'
+import { can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import {
   inventoryFacets,
   inventoryHistory,
@@ -53,7 +53,7 @@ async function friendly<T>(fn: () => Promise<T>): Promise<T> {
 
 const listInput = z.object({
   locationId: z.uuid(),
-  search: z.string().trim().max(200).optional(),
+  search: z.string().trim().max(SEARCH_MAX).optional(),
   stock: z.enum(['all', 'in', 'low', 'out']).optional(),
   vendor: z.string().max(200).optional(),
   productType: z.string().max(200).optional(),
@@ -140,7 +140,7 @@ export const inventoryRouter = {
   searchVariants: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
-        search: z.string().trim().max(200).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         locationId: z.uuid().optional(),
         limit: z.number().int().min(1).max(50).default(20),
       }),
@@ -157,9 +157,9 @@ export const purchaseOrdersRouter = {
         status: z
           .enum(['all', 'draft', 'ordered', 'partially_received', 'received', 'closed'])
           .optional(),
-        search: z.string().trim().max(200).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
       }),
     )
     .handler(({ context, input }) => listPurchaseOrders(context.tx, input)),
@@ -204,9 +204,9 @@ export const transfersRouter = {
     .input(
       z.object({
         status: z.enum(['all', 'draft', 'in_transit', 'received']).optional(),
-        search: z.string().trim().max(200).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
       }),
     )
     .handler(({ context, input }) => listTransfers(context.tx, input)),

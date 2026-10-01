@@ -8,6 +8,7 @@ import {
   order,
   type StoreTx,
 } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import { and, asc, desc, eq, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { recoveryUrl } from '../cart/abandoned'
@@ -30,7 +31,6 @@ import { applyMergeTags, type EmailCartLine, type MergeValues } from './email'
 import { RECIPIENT_MISMATCH, recipientIsCustomers } from './recipient'
 import {
   firstName,
-  inr,
   type MarketingDeps,
   marketingChannels,
   sendMarketingEmail,
@@ -549,7 +549,7 @@ async function cartFacts(tx: StoreTx, cartId: string) {
       .filter(Boolean)
       .join(' / '),
     quantity: l.quantity,
-    priceLabel: inr(l.quantity * l.unit_price_paise),
+    priceLabel: formatMoney(l.quantity * l.unit_price_paise),
     imageUrl: l.image_url,
   }))
   return { status: c?.status ?? null, totalPaise: total, lines: emailLines }
@@ -660,7 +660,7 @@ export async function processDueRuns(
       checkout_url: run.cartId
         ? recoveryUrl(run.cartId, deps.settingsSecret, deps.storefrontUrl)
         : deps.storefrontUrl,
-      cart_total: cartInfo ? inr(cartInfo.totalPaise) : o ? inr(o.totalPaise) : '',
+      cart_total: cartInfo ? formatMoney(cartInfo.totalPaise) : o ? formatMoney(o.totalPaise) : '',
       order_number: o ? `#${o.number}` : '',
     }
 
@@ -711,7 +711,7 @@ export async function processDueRuns(
               blocks: step.blocks,
               merge: stepMerge,
               cart: cartInfo
-                ? { lines: cartInfo.lines, totalLabel: inr(cartInfo.totalPaise) }
+                ? { lines: cartInfo.lines, totalLabel: formatMoney(cartInfo.totalPaise) }
                 : undefined,
               utmCampaign: `automation-${ctx.automation.template}`,
             })
