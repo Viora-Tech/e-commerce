@@ -1,0 +1,181 @@
+/**
+ * Notes series: a shelf of small cards, each a link to one note.
+ *
+ * The theme drew these as ruled notebook pages and then re-skinned them as the
+ * store's own cards (same ground, line and radius as a product card, the series
+ * label in the brand colour, "Read" that lights up on hover). Only the final
+ * look is ported here; the notebook-page layer it painted over is dropped.
+ */
+.section-notes-series {
+  width: 100%;
+}
+
+.notes-series__empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.notes-series__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+/* The small tracked line above a section's title (the theme's shared .eyebrow). */
+.notes-series__eyebrow {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+.notes-series__heading {
+  margin: 0;
+}
+
+.notes-series__text {
+  margin: var(--space-3) 0 0;
+  max-width: 52ch;
+  color: var(--color-muted);
+}
+
+.notes-series__text > :first-child {
+  margin-top: 0;
+}
+
+.notes-series__text > :last-child {
+  margin-bottom: 0;
+}
+
+@media screen and (max-width: 749px) {
+  .notes-series__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* The shelf: a scroll-snap row on phones, a 4-up grid from tablet. Rows share
+   the tallest card's height. */
+.notes-series__shelf {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: min(72vw, 17.5rem);
+  grid-auto-rows: 1fr;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0 0 var(--space-3);
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.notes-series__shelf::-webkit-scrollbar {
+  display: none;
+}
+
+.notes-series__item {
+  display: flex;
+  scroll-snap-align: start;
+}
+
+@media screen and (min-width: 750px) {
+  .notes-series__shelf {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: auto;
+    overflow: visible;
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .notes-series__shelf {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* One card. */
+.note-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 13.75rem;
+  padding: var(--space-5);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: color-mix(in srgb, var(--color-ink) 3%, var(--color-bg));
+  color: var(--color-ink);
+  text-decoration: none;
+  line-height: 1.5;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.note-card:hover,
+.note-card:focus-visible {
+  transform: translateY(-0.25rem);
+  border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
+  box-shadow: 0 1rem 2rem -1.125rem rgb(0 0 0 / 45%);
+}
+
+.note-card__series {
+  margin: 0;
+  color: var(--color-brand);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+/* Title and excerpt are clamped so one long note cannot stretch the whole shelf. */
+.note-card__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: var(--color-ink);
+  text-transform: uppercase;
+}
+
+.note-card__excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+/* "Read" stays pinned to the bottom of the card. */
+.note-card__read {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  color: var(--color-ink);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .note-card__read {
+    transition: letter-spacing 0.3s ease, color 0.3s ease;
+  }
+
+  .note-card:hover .note-card__read {
+    color: var(--color-brand);
+    letter-spacing: 0.03em;
+  }
+}

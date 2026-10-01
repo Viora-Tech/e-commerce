@@ -1,0 +1,313 @@
+/**
+ * Promo bento (sections/promo-bento.liquid): a merchant-composed mosaic where
+ * each tile carries its own span. The grid is 4 columns on desktop with
+ * `grid-auto-flow: dense`, so a small tile will backfill a hole left by a
+ * larger one rather than the row breaking - which is what makes an arbitrary
+ * mix of sizes still read as a deliberate composition.
+ *
+ * Copy sits over the image in the lower-left corner, protected by a gradient
+ * scrim rather than a flat overlay: a scrim keeps the top of the photograph
+ * untouched while still guaranteeing contrast where the text actually is.
+ */
+.section-promo-bento {
+  width: 100%;
+}
+
+/* Panel ground: a soft field behind the mosaic, inset to page-width and
+   rounded. Product photography is mostly shot on white, so on a white page the
+   tiles lose their edges and the grid stops reading as a grid; the card is
+   what gives each tile a boundary without outlining every one of them.
+
+   A scheme on this section therefore colours the CARD, not the band: the Puck
+   section frame stays unpainted (this selector beats the single-class
+   .color-<id> rule) and .promo-bento__inner takes the scheme's --color-bg.
+   .promo-bento__head deliberately sits outside the card. */
+.section-frame[class*='color-scheme-']:has(.section-promo-bento) {
+  background-color: transparent;
+  color: inherit;
+}
+
+.section-frame[class*='color-scheme-']:has(.section-promo-bento) .promo-bento__inner {
+  padding: var(--space-7);
+  border-radius: calc(var(--radius-m) * 2);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+@media screen and (max-width: 749px) {
+  .section-frame[class*='color-scheme-']:has(.section-promo-bento) .promo-bento__inner {
+    padding: var(--space-4);
+  }
+}
+
+.promo-bento__empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.promo-bento__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.promo-bento__heading {
+  margin: 0;
+}
+
+.promo-bento__subheading {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--color-muted);
+}
+
+.promo-bento__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+/* Tile */
+.promo-tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  /* --color-surface, not --color-bg: a tile sits INSIDE the scheme's card, so
+     reading the scheme's ground would tint it with the card's own colour. */
+  background-color: var(--color-surface);
+  text-decoration: none;
+  color: inherit;
+  /* Single-column default; the desktop grid overrides this per size. */
+  aspect-ratio: 4 / 3;
+}
+
+.promo-tile__media {
+  position: absolute;
+  inset: 0;
+}
+
+.promo-tile__image,
+.promo-tile__placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Product photography is shot on white and framed tightly, so filling the tile
+   slices the top and bottom off the product. `contain` shows the whole thing;
+   the inset keeps it off the tile's own edges. */
+.promo-tile--fit-contain .promo-tile__image {
+  object-fit: contain;
+  padding: var(--space-6);
+}
+
+.promo-tile--fit-contain .promo-tile__media {
+  background-color: color-mix(in srgb, var(--color-line) 26%, var(--color-surface));
+}
+
+.promo-tile__placeholder {
+  background-color: var(--color-line);
+}
+
+/* The scrim only exists on tiles that carry copy, so a pure-image mosaic stays
+   exactly as bright as the photographs the merchant uploaded. It hangs off the
+   COPY, not the media: three lines of copy occupy a seventh of a tall tile and
+   half a small one, so a gradient sized to the tile covered them unevenly.
+   Anchored to the copy box (plus a --space-7 tail for the fade), every tile
+   size gets identical coverage, and a tile that hides its copy hides the scrim.
+
+   z-index MUST be negative: .promo-tile__copy is a stacking context of its own
+   (positioned, z-index: 1), so -1 puts the wash behind the type while the whole
+   context still paints above the media. */
+.promo-tile__copy::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  top: calc(var(--space-7) * -1);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.promo-tile--text-light .promo-tile__copy::before {
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 85%) 0%,
+    rgb(0 0 0 / 62%) 62%,
+    rgb(0 0 0 / 0%) 100%
+  );
+}
+
+/* Light images take a white wash instead, so black type has something to sit on. */
+.promo-tile--text-dark .promo-tile__copy::before {
+  background: linear-gradient(
+    to top,
+    rgb(255 255 255 / 94%) 0%,
+    rgb(255 255 255 / 74%) 62%,
+    rgb(255 255 255 / 0%) 100%
+  );
+}
+
+.promo-tile__copy {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  /* Above the media AND its scrim. */
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-5);
+}
+
+.promo-tile--text-light .promo-tile__copy {
+  color: #fff;
+}
+
+.promo-tile--text-dark .promo-tile__copy {
+  color: var(--color-ink);
+}
+
+/* Inherits the tile's text colour rather than the accent: it was low-contrast
+   on pale product shots. Opacity does the hierarchy instead. */
+.promo-tile__eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.promo-tile__title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.25rem, 2.2vw, 1.875rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.promo-tile__subtitle {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  opacity: 0.82;
+}
+
+/* Hover belongs to linked tiles only - a plain image tile isn't clickable and
+   shouldn't pretend otherwise. The edge goes to ink rather than purple so it
+   does not tint the image it frames. */
+a.promo-tile:hover {
+  border-color: var(--color-ink);
+}
+
+a.promo-tile:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.1875rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .promo-tile__image {
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  a.promo-tile:hover .promo-tile__image,
+  a.promo-tile:focus-visible .promo-tile__image {
+    transform: scale(1.04);
+  }
+
+  .promo-tile {
+    transition: border-color 200ms ease;
+  }
+}
+
+/* Tablet: 2 columns - wide/large go full width, tall keeps its height */
+@media screen and (min-width: 750px) {
+  .promo-bento__grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 16.25rem;
+    grid-auto-flow: dense;
+  }
+
+  .promo-tile {
+    aspect-ratio: auto;
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  .promo-tile--wide,
+  .promo-tile--large {
+    grid-column: span 2;
+  }
+
+  .promo-tile--tall,
+  .promo-tile--large {
+    grid-row: span 2;
+  }
+}
+
+/* Desktop: the real 4-column mosaic */
+@media screen and (min-width: 990px) {
+  .promo-bento__grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 18.75rem;
+  }
+
+  .promo-tile--wide {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .promo-tile--tall {
+    grid-column: span 1;
+    grid-row: span 2;
+  }
+
+  .promo-tile--large {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+}
+
+/* Hover reveal (section setting "Tile text: On hover").
+
+   Opacity and a small lift, never `display` or `visibility`: the copy stays in
+   the accessibility tree, so a screen reader still announces where the tile
+   links to. The scrim comes with it - it is a child of the box being faded.
+   `:focus-within` makes it reachable by keyboard. */
+.promo-tile--reveal-hover .promo-tile__copy {
+  opacity: 0;
+  transform: translateY(var(--space-2));
+}
+
+.promo-tile--reveal-hover:hover .promo-tile__copy,
+.promo-tile--reveal-hover:focus-within .promo-tile__copy {
+  opacity: 1;
+  transform: none;
+}
+
+/* Touch has no hover: without this the copy would be permanently invisible on a
+   phone, because the tap that would reveal it is the tap that follows the link. */
+@media (hover: none) {
+  .promo-tile--reveal-hover .promo-tile__copy {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .promo-tile--reveal-hover .promo-tile__copy {
+    transition: opacity 240ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* A tile video fills its tile the way the image does. */
+.promo-tile__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

@@ -1,0 +1,382 @@
+/**
+ * Discord CTA: full-bleed dark community block.
+ *
+ * Three painted layers sit under the copy, in this order:
+ *   .discord-cta::before  the "aurora" ground — layered radial gradients in
+ *                         the brand purple over --discord-ground. This is
+ *                         the shipped default; it is hidden behind a merchant
+ *                         upload when one exists rather than being replaced,
+ *                         so removing the image restores it untouched.
+ *   .discord-cta__bg      the merchant's image, object-fit: cover.
+ *   .discord-cta__scrim   image only — a dark wash at the merchant's chosen
+ *                         opacity, so the copy stays legible over any upload.
+ *   .discord-cta::after   a fine grain that keeps the large flat gradients
+ *                         from banding on wide screens.
+ * The content then sits at z-index 4 inside an isolated stacking context.
+ *
+ * Every colour is derived from --color-brand / --discord-ground /
+ * --discord-ink via color-mix, so re-theming the brand purple in theme
+ * settings re-themes this section with it.
+ */
+/* The section follows the PAGE rather than being a permanently dark island:
+   --discord-ground/--discord-ink are the only two colours the whole block
+   reads, and they resolve to --color-bg/--color-ink, which flip with the
+   theme. The one exception is the button, whose label sits on brand purple
+   in both schemes and therefore stays --color-bg.
+
+   The aurora needs different strengths per scheme rather than the same mix:
+   pools built to read as "lights in a dark room" bloom into a flat purple
+   wash on a white page, and the near-white specular pool disappears
+   entirely. --discord-glow-* carry those, overridden for dark below. */
+.discord-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--discord-ground);
+  color: var(--discord-ink);
+  --discord-overlay: 0;
+  --discord-ground: var(--color-bg);
+  --discord-ink: var(--color-ink);
+  --discord-glow-a: 24%;
+  --discord-glow-a-mid: 12%;
+  --discord-glow-b: 20%;
+  --discord-glow-b-mid: 9%;
+  --discord-spec: 0%;
+}
+
+/* Dark: the original recipe, which was designed against a dark ground. */
+:root[data-theme='dark'] .discord-cta {
+  --discord-glow-a: 78%;
+  --discord-glow-a-mid: 45%;
+  --discord-glow-b: 62%;
+  --discord-glow-b-mid: 26%;
+  --discord-spec: 10%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .discord-cta {
+    --discord-glow-a: 78%;
+    --discord-glow-a-mid: 45%;
+    --discord-glow-b: 62%;
+    --discord-glow-b-mid: 26%;
+    --discord-spec: 10%;
+  }
+}
+
+/* The ground. Off-centre, unequal-sized pools of light rather than a
+   corner-to-corner linear ramp: the brightest pool sits off the top-left
+   edge, a deeper, cooler one bleeds up from the bottom-right, and a small
+   near-white highlight gives the surface a specular direction. Each stop
+   fades to `transparent` well before the edge so the surface token still
+   shows through and the whole thing stays a dark room with lights in it. */
+.discord-cta::before {
+  content: '';
+  position: absolute;
+  inset: -10%;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--discord-ground);
+  background-image:
+    radial-gradient(
+      55% 60% at 12% 0%,
+      color-mix(in oklab, var(--color-brand) var(--discord-glow-a), transparent) 0%,
+      color-mix(in oklab, var(--color-brand) var(--discord-glow-a-mid), transparent) 42%,
+      transparent 72%
+    ),
+    radial-gradient(
+      60% 75% at 88% 108%,
+      color-mix(in oklab, var(--color-brand) var(--discord-glow-b), transparent) 0%,
+      color-mix(in oklab, var(--color-brand) var(--discord-glow-b-mid), transparent) 45%,
+      transparent 75%
+    ),
+    radial-gradient(
+      30% 40% at 72% 8%,
+      color-mix(in srgb, var(--discord-ink) var(--discord-spec), transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      90% 120% at 50% 50%,
+      transparent 40%,
+      color-mix(in srgb, var(--discord-ground) 60%, transparent) 100%
+    );
+  background-size: 140% 140%;
+  background-position: 50% 50%;
+}
+
+/* The flat variant keeps the same copy treatment on a plain dark ground —
+   for merchants who find the aurora too much, or who want the section to sit
+   quietly next to a loud one above it. */
+.discord-cta--ink::before {
+  background-image: radial-gradient(
+    80% 110% at 50% 0%,
+    color-mix(in oklab, var(--color-brand) 18%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* A very slow, very small drift. Large soft gradients are the one thing that
+   can be animated at this scale without reading as movement — it registers
+   as the light breathing rather than as an effect. */
+@media (prefers-reduced-motion: no-preference) {
+  .discord-cta--aurora::before {
+    animation: discord-aurora-drift 34s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes discord-aurora-drift {
+  from {
+    background-position: 42% 44%;
+  }
+  to {
+    background-position: 58% 56%;
+  }
+}
+
+.discord-cta__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Scrim over a merchant upload only; opacity comes straight from the
+   section setting so the merchant tunes it against their own artwork. */
+.discord-cta__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-color: var(--discord-ground);
+  opacity: var(--discord-overlay);
+}
+
+/* Grain. An inline feTurbulence tile at low alpha, blended rather than
+   layered so it reads as film grain instead of a grey haze; it costs no
+   request and survives any merchant upload, so both the gradients and a
+   photograph stop banding on wide screens. */
+.discord-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+}
+
+.discord-cta__inner {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.discord-cta__mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-pill);
+  border: 0.0625rem solid color-mix(in srgb, var(--discord-ink) 18%, transparent);
+  background-color: color-mix(in srgb, var(--discord-ink) 8%, transparent);
+  color: var(--discord-ink);
+  /* The same soft purple bloom as the button, so the icon and the CTA read
+     as the two lit points of the composition. */
+  box-shadow: 0 0.75rem 2.5rem -0.875rem color-mix(in oklab, var(--color-brand) 90%, transparent);
+}
+
+/* Discord's presence dot, quoted verbatim: green, bottom-right, cut out of
+   the avatar by a ring of the surface behind it. It is the one element here
+   that means something to the people being invited - "the room is live" -
+   which is community energy at the cost of ten pixels. The breathe is the
+   same tempo as the roadmap's in-progress marker: both mark the live thing. */
+.discord-cta__mark-status {
+  position: absolute;
+  right: 0.0625rem;
+  bottom: 0.0625rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-success);
+  box-shadow: 0 0 0 0.1875rem var(--discord-ground);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .discord-cta__mark-status {
+    animation: discord-presence 2.6s ease-in-out infinite;
+  }
+
+  @keyframes discord-presence {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+.discord-cta__eyebrow {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--color-brand) 35%, var(--discord-ink));
+}
+
+.discord-cta__heading {
+  margin: 0;
+  max-width: 18ch;
+}
+
+.discord-cta__text {
+  max-width: 52ch;
+  color: color-mix(in srgb, var(--discord-ink) 72%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Perks                                                               */
+/* ------------------------------------------------------------------ */
+.discord-cta__perks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5) var(--space-6);
+  width: 100%;
+  max-width: 65rem;
+  margin-block: var(--space-7) var(--space-6);
+}
+
+/* Deliberately NOT cards. Four bordered, frosted boxes of identical weight,
+   each with a coloured icon disc, is the single most generic block on the web
+   right now - and because every box carries the same emphasis, nothing is
+   actually being said. The copy was never the problem; the container was.
+
+   What replaces them is a spec strip: no boxes, no fills, no blur, just items
+   sitting under a hairline. It reads as a specification rather than as
+   marketing, which is the register the rest of this store is written in.
+
+   The rule goes ABOVE each item rather than between columns. A divider
+   between columns has to know which item is first in its row, and the column
+   count here is auto-fit - it changes with the viewport AND with how many
+   perks the merchant wrote. A top rule needs no such knowledge: the items in
+   a row line their rules up into one continuous stroke at any count, and a
+   row that wraps simply gets another. */
+.discord-cta__perk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  /* Left-aligned: centred text inside a box is what makes a feature grid feel
+     like a brochure. Ragged-right text on a baseline reads as information. */
+  text-align: start;
+  padding-top: var(--space-4);
+  border-top: 0.0625rem solid color-mix(in srgb, var(--discord-ink) 18%, transparent);
+}
+
+/* The glyph sits inline with the title at text size instead of inside a purple
+   disc. A disc turns every perk into a badge competing for attention; at text
+   weight the icon just marks the line. */
+.discord-cta__perk-icon {
+  display: inline-flex;
+  color: var(--color-brand);
+}
+
+.discord-cta__perk-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.discord-cta__perk-text {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--discord-ink) 65%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Call to action                                                      */
+/* ------------------------------------------------------------------ */
+/* The button keeps .btn--primary's mechanics (including the cursor-origin
+   fill from base.css) and only adds the bloom underneath it. On a dark
+   ground an ink-filled button would disappear, so the resting fill is the
+   brand purple and the hover fill inverts to white.
+
+   This one was already an inversion, and it is the clearest illustration of
+   what the rule does and does not touch: purple STAYS as the resting colour
+   of the button and of the bloom, because purple is still the theme's accent.
+   It is only the hover that stopped being purple, and here it never was.
+
+   --btn-fill-edge is pinned off. .btn--primary now sets an ink hairline for
+   the white-on-white case; a white button on this near-black panel has all
+   the contrast it needs, and an ink ring inside it would read as a second
+   border nobody asked for.
+
+   The bloom is a local property because .btn--primary:hover now carries a
+   box-shadow of its own (the inset ring), which outranks this rule's plain
+   .discord-cta__btn and would drop the bloom for as long as the cursor was
+   on the button. Naming it once and restating the reference is what keeps
+   the two shadows from being two copies of one value. */
+.discord-cta__btn {
+  margin-top: var(--space-2);
+  background-color: var(--color-brand);
+  border-color: var(--color-brand);
+  color: var(--color-bg);
+  --discord-btn-bloom: 0 1.125rem 3.125rem -1rem color-mix(in oklab, var(--color-brand) 92%, transparent);
+  box-shadow: var(--discord-btn-bloom);
+  --btn-fill-color: var(--color-bg);
+  --btn-fill-edge: transparent;
+}
+
+.discord-cta__btn:hover {
+  background-color: var(--color-brand);
+  border-color: var(--color-bg);
+  color: var(--color-ink);
+  box-shadow: var(--discord-btn-bloom);
+}
+
+.discord-cta__footnote {
+  color: color-mix(in srgb, var(--discord-ink) 50%, transparent);
+}
+
+@media screen and (min-width: 46.875rem) {
+  .discord-cta__perks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (min-width: 61.875rem) {
+  .discord-cta__inner {
+    padding-block: var(--space-10);
+  }
+
+  .discord-cta__perks {
+    grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
+  }
+}
+
+/* Starfield (assets/discord-stars.js): above the scrim, under the copy. */
+.discord-cta__stars {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

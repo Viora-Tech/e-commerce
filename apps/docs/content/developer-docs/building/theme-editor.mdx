@@ -75,6 +75,27 @@ field's `defaultItemProps` (`withBlockAdded`), and a remove button (`withBlockRe
 single `replace` action. A section with several array fields gets a small menu to choose which
 one to add to.
 
+### Inline editing
+
+Text drawn on the canvas is declared with the helpers in
+`packages/blocks/src/sections/inline-fields.ts`: `inlineText` and `inlineTextarea` set Puck's
+`contentEditable`, and `inlineRichtext` is a Puck `richtext` field (Tiptap, stored as HTML) with
+only the marks our storefront allows. Puck applies them inside `array` items too.
+
+- While editing, Puck passes those props as React nodes, not strings. A section only renders
+  them; anything that needs a string (alt text, `aria-label`, splitting a heading into words) is
+  a separate plain `text` field.
+- Body copy is drawn with `RichCopy` (`components/rich-copy.tsx`). On the storefront the value is
+  the stored string and goes through `richtextHtml` (`richtext-html.ts`): older plain strings are
+  escaped into paragraphs, HTML runs through a small sanitize-html allow-list.
+- The admin frames the `richtext` field like our Lexical `custom` field
+  (`customize-overrides.tsx`), and `canvas-action-bar.tsx` keeps Puck's inline B/I/U menu while
+  `SectionOverlay` keeps the label, move, duplicate and delete actions.
+
+The Glide theme sections (`sections/glide.tsx`, one config per section in `sections/glide/`) all
+use these helpers; `test/glide-sections.test.tsx` renders each one with its copy swapped for React
+nodes to catch string handling. Inventory: `docs/design/glide-theme-port.md`.
+
 ## Motion
 
 All editor motion uses Motion (`motion/react`), 150 to 200 ms, easing out, never overshooting,

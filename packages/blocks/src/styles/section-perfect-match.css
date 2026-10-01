@@ -1,0 +1,343 @@
+/**
+ * Find your perfect match: a centred headline with up to 6 circular product
+ * tiles orbiting it on a true circle. The ring is pure CSS trig, not
+ * per-breakpoint coordinates - each .perfect-match__slot gets --i (its
+ * 1-based position) and --total (how many slots resolved) inline from
+ * Liquid, and `cos()`/`sin()` turn that into a position as a single,
+ * uniform --radius offset from the ring's centre.
+ *
+ * Getting an actual circle (not an ellipse) out of that math needs two
+ * things: the box the percentages are relative to must be square
+ * (.perfect-match__stage is aspect-ratio: 1, not the old 16/11), and every
+ * tile must use the SAME --radius - the previous version varied radius and
+ * tile size per nth-child for an "organic" look, which is exactly what put
+ * tile centres at different distances from the centre instead of on one
+ * circle. Every tile is now also forced square itself (aspect-ratio: 1,
+ * one --tile-size token, border-radius: 50%) with its image object-fit:
+ * cover so it fills the circle without letterboxing.
+ *
+ * Below 750px the ring is abandoned for a static 2-col grid (the slots'
+ * relative DOM order already puts them before the heading, which is
+ * exactly the mobile order) - the tiles stay circular there too via the
+ * same aspect-ratio: 1.
+ *
+ * Orbit: .perfect-match__ring (the positioned box the cos()/sin() math
+ * above is relative to) slowly rotates as a whole; each slot's own
+ * .perfect-match__slot-media counter-rotates the same amount the other
+ * way so the product image stays upright while its position drifts around
+ * the ring. Both are plain `rotate:` keyframe animations, same 60s/linear
+ * timing, so they can't drift out of sync with each other - no JS involved.
+ * .perfect-match__ring has pointer-events: none and only
+ * .perfect-match__slot (the actual clickable products) has it back on, so
+ * :hover only matches - and only then pauses the orbit - when the pointer
+ * is over a product itself, not empty ring space or the headline sitting
+ * on top of it.
+ */
+.section-perfect-match {
+  padding-block: var(--space-9);
+}
+
+.perfect-match__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 53.75rem;
+  margin-inline: auto;
+}
+
+.perfect-match__ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .perfect-match__ring {
+    animation: perfect-match-orbit 60s linear infinite;
+  }
+
+  /* Hover/focus pause is deliberate (lets a visitor stop the ring to read a
+     product); .is-paused is the off-screen pause set by perfect-match.js. */
+  .perfect-match__ring:hover,
+  .perfect-match__ring:focus-within,
+  .perfect-match__ring.is-paused {
+    animation-play-state: paused;
+  }
+
+  @keyframes perfect-match-orbit {
+    from { rotate: 0deg; }
+    to { rotate: 360deg; }
+  }
+}
+
+.perfect-match__slot {
+  /* Single --radius (a % of the now-square .perfect-match__stage, so it's
+     the same physical distance on both axes) and a single --tile-size,
+     shared by every slot with no nth-child override, is what makes every
+     tile's centre land on one true circle instead of an ellipse. */
+  position: absolute;
+  top: calc(50% + sin(var(--angle)) * var(--radius));
+  left: calc(50% + cos(var(--angle)) * var(--radius));
+  --angle: calc((360deg / var(--total)) * (var(--i) - 1) - 90deg);
+  --radius: 40%;
+  --tile-size: clamp(6.5rem, 10vw, 10.5rem);
+  /* The standalone `translate:` property, not `transform:` - this element
+     also carries [data-reveal] (assets/reveal.js), and base.css's
+     `html.js [data-reveal].is-revealed` rule sets `transform: translateY(0)`
+     with higher specificity than a single class selector can win against,
+     which was silently overwriting a `transform: translate(-50%, -50%)`
+     centering transform here and positioning every tile by its top-left
+     corner instead of its centre - the actual cause of "not a perfect
+     circle." `translate:` is a different property entirely, so the two
+     coexist instead of one clobbering the other. */
+  translate: -50% -50%;
+  display: block;
+  width: var(--tile-size);
+  text-decoration: none;
+  color: inherit;
+  pointer-events: auto;
+}
+
+.perfect-match__slot-media {
+  display: block;
+  width: var(--tile-size);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  /* The theme's usual product-media well (component-product-card.css) -
+     without it, a transparent product cutout (most of the catalogue - see
+     the section comment above) leaves nothing filling the circle edge to
+     edge, so the circular crop itself is invisible against the page and
+     the tile just reads as a floating silhouette instead of a rounded
+     tile. Products with edge-to-edge photography (glasspads) already show
+     the circle fine without this; this is what makes cutouts show it too. */
+  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
+}
+
+.perfect-match__slot-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .perfect-match__slot-media {
+    transition: scale 0.25s ease;
+  }
+
+  /* Every slot matches exactly one nth-child(3n+1/2/3) group below, each
+     pairing the shared 60s counter-orbit with that group's own float
+     timing - two independent `animation-name`s so the standalone `rotate`
+     (counter-orbit) and `translate` (float) properties they drive don't
+     clobber each other, and the hover `scale:` above composes with both
+     the same way. */
+
+  .perfect-match__ring:hover .perfect-match__slot-media,
+  .perfect-match__ring:focus-within .perfect-match__slot-media,
+  .perfect-match__ring.is-paused .perfect-match__slot-media {
+    animation-play-state: paused;
+  }
+
+  @keyframes perfect-match-counter-orbit {
+    from { rotate: 0deg; }
+    to { rotate: -360deg; }
+  }
+
+  .perfect-match__slot:nth-child(3n + 1) .perfect-match__slot-media {
+    animation-name: perfect-match-counter-orbit, perfect-match-float-a;
+    animation-duration: 60s, 8s;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+  }
+
+  .perfect-match__slot:nth-child(3n + 2) .perfect-match__slot-media {
+    animation-name: perfect-match-counter-orbit, perfect-match-float-b;
+    animation-duration: 60s, 10s;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+  }
+
+  .perfect-match__slot:nth-child(3n + 3) .perfect-match__slot-media {
+    animation-name: perfect-match-counter-orbit, perfect-match-float-c;
+    animation-duration: 60s, 6s;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+  }
+
+  @keyframes perfect-match-float-a {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -0.375rem; }
+  }
+
+  @keyframes perfect-match-float-b {
+    0%, 100% { translate: 0 -0.1875rem; }
+    50% { translate: 0 0.25rem; }
+  }
+
+  @keyframes perfect-match-float-c {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -0.25rem; }
+  }
+}
+
+.perfect-match__slot:hover .perfect-match__slot-media {
+  scale: 1.04;
+}
+
+.perfect-match__center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  max-width: 420px;
+  text-align: center;
+}
+
+.perfect-match__heading {
+  margin: 0;
+}
+
+.perfect-match__highlight {
+  display: inline-block;
+  padding-inline: var(--space-2);
+  background-color: var(--color-brand);
+  color: var(--color-bg);
+  rotate: -1deg;
+}
+
+/* The marker draws itself in as the heading enters the viewport - the
+   reference animates its heading underlines the same way. The ink layer is
+   a background-size sweep scrubbed by a view() timeline over a short entry
+   window, so it reads as one confident stroke, not a scroll-linked crawl.
+   Browsers without scroll-driven animations, and reduced-motion visitors,
+   keep the static filled marker above. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .perfect-match__highlight {
+      background-color: transparent;
+      background-image: linear-gradient(var(--color-brand), var(--color-brand));
+      background-repeat: no-repeat;
+      background-size: 0% 100%;
+      animation: marker-sweep linear both;
+      animation-timeline: view();
+      animation-range: entry 30% entry 90%;
+    }
+
+    @keyframes marker-sweep {
+      from {
+        background-size: 0% 100%;
+      }
+      to {
+        background-size: 100% 100%;
+      }
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile fallback: the ring can't hold its shape at phone width without   */
+/* either overlapping the headline or shrinking products to nothing, so   */
+/* below 750px it becomes a plain 2-col grid with the heading/CTA below.  */
+/* ------------------------------------------------------------------ */
+@media screen and (max-width: 749px) {
+  .perfect-match__stage {
+    display: grid;
+    /* One product per row on phones (owner's call): two 170px tiles made
+       every product too small to read. */
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: var(--space-6) var(--space-4);
+    aspect-ratio: auto;
+    max-width: 420px;
+  }
+
+  /* display: contents drops the ring wrapper's own box entirely, so its
+     .perfect-match__slot children become direct items of the stage grid
+     above instead of being laid out (or orbiting) inside an absolutely
+     positioned ring that no longer makes sense at this width. */
+  .perfect-match__ring {
+    display: contents;
+  }
+
+  .perfect-match__slot {
+    position: static;
+    /* Cancel the desktop ring's centering offset, not `transform` (that's
+       base.css's [data-reveal] fade/slide animation's property - leave it
+       alone so the reveal-in motion still plays on mobile). */
+    translate: none;
+    /* Re-scaled against the grid cell (roughly half the 420px stage),
+       not the desktop clamp's vw basis - at this width the two-col grid
+       cell, not the viewport, is what the circle actually has to fit. */
+    --tile-size: clamp(11.25rem, 68vw, 17.5rem);
+    width: auto;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .perfect-match__ring {
+      animation: none;
+    }
+
+    .perfect-match__slot .perfect-match__slot-media {
+      animation: none;
+    }
+  }
+
+  .perfect-match__center {
+    grid-column: 1 / -1;
+    max-width: none;
+    margin-top: var(--space-4);
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .section-perfect-match {
+    padding-block: var(--space-10);
+  }
+}
+
+
+/* The eyebrow above the heading (the theme's .eyebrow). */
+.perfect-match__eyebrow {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+/* Word rotate: the highlighted word cycles, the old one rolling up and out as the new one
+   rolls in (the theme's .word-rotate). */
+.word-rotate {
+  display: inline-grid;
+  vertical-align: bottom;
+  overflow: hidden;
+}
+
+.word-rotate__word {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .word-rotate__word {
+    transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.6s ease;
+  }
+}
+
+.word-rotate__word.is-in {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.word-rotate__word.is-out {
+  transform: translateY(-100%);
+  opacity: 0;
+}

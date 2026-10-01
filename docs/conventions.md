@@ -127,6 +127,23 @@ from the pure subpaths that exist for this: `@commerce/core/catalog`, `/permissi
 `/segments`, `/navigation`, `/adjustments`, `/emi` and so on. If the value you need has no pure
 subpath yet, move it into one rather than importing the barrel.
 
+## Storefront theme CSS (the Glide port exception)
+
+New code uses Tailwind. The one exception is `packages/blocks/src/styles/`: the storefront
+sections are ports of our own Shopify theme (Glide, the owner's `Shopify/theme` repo), and their BEM
+stylesheets are ported alongside them (`section-<name>.css`, imported by `styles/index.css`) so
+the rebuild stays pixel-faithful and a theme change can be diffed against the original file.
+Those files still follow the other rules: rem sizes, colours from the theme's CSS variables,
+never hardcoded. Inventory and status of the port: `docs/design/glide-theme-port.md`.
+
+## Inline editing in theme sections
+
+Text drawn on the canvas uses the field helpers in `packages/blocks/src/sections/inline-fields.ts`
+(`inlineText`, `inlineTextarea`, `inlineRichtext`), so merchants click it in Customize and type.
+In the editor Puck passes those props as React nodes, so a section only renders them, never
+calls string methods on them or puts them in attributes. Body copy is Puck `richtext` (HTML) drawn
+with `components/rich-copy.tsx`, which also reads older plain-string values.
+
 ## Code from other projects
 
 Adapting open-source code is fine when its licence allows it and we keep its notice. Follow the

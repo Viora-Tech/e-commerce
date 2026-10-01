@@ -1,0 +1,854 @@
+/**
+ * Drop reveal (sections/drop-reveal.liquid).
+ *
+ * Two completely separate looks live in this file:
+ *
+ * 1. THE DEFAULT (no attribute on the host). A plain, readable row of linked
+ *    product cards that scrolls horizontally with snap points when it runs out
+ *    of room. This is what renders with JS disabled, under
+ *    prefers-reduced-motion, and below 46.875rem. Nothing here depends on JS.
+ *
+ * 2. THE SCRUB (.drop-reveal[data-mode='scrub'], set by drop-reveal-scrub.tsx
+ *    only on >=46.875rem with prefers-reduced-motion: no-preference). The section
+ *    pins for ~2.2 extra viewport heights and every transform below is derived
+ *    from a single custom property `--p` (0 -> 1) written on the host once per
+ *    animation frame. Nothing transitions - the transforms ARE the scroll
+ *    position, which is what makes scrubbing backwards exact.
+ *
+ * Per-phase progress is cut out of --p with clamp() and then eased with a
+ * polynomial chosen per phase (see the timeline block), so the whole thing is
+ * pure CSS math. Transitions cannot be used - the transforms ARE the scroll
+ * position - so every easing here is written as a polynomial in e rather than
+ * as a cubic-bezier. The curves are the polynomial equivalents of the theme's
+ * expo-out feel, not different intentions.
+ *
+ * The only per-element values JS supplies are --dx/--dy (each product's pixel
+ * offset from its final slot to the inside of the card), measured once on
+ * mount and on debounced resize. Everything else per product (--fan, --afan,
+ * --hero, --jit, --z) is written into the markup by Liquid and never changes.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Default / final frame (no JS, reduced motion, mobile)               */
+/* ------------------------------------------------------------------ */
+.drop-reveal {
+  display: block;
+}
+
+.drop-reveal__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-block: var(--space-9);
+}
+
+.drop-reveal__copy {
+  max-width: 45rem;
+}
+
+.drop-reveal__heading {
+  margin-bottom: var(--space-3);
+}
+
+.drop-reveal__sub {
+  color: var(--color-muted);
+}
+
+/* The card is decorative scenery for the scrub only. */
+.drop-reveal__card {
+  display: none;
+}
+
+.drop-reveal__products {
+  display: flex;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0 0 var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+  overscroll-behavior-x: contain;
+}
+
+.drop-reveal__products::-webkit-scrollbar {
+  height: 0.375rem;
+}
+
+.drop-reveal__products::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drop-reveal__products::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: var(--radius-pill);
+}
+
+.drop-reveal__item {
+  flex: 1 0 11.25rem;
+  min-width: 11.25rem;
+  max-width: 20rem;
+  scroll-snap-align: start;
+}
+
+.drop-reveal__product {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: inherit;
+}
+
+.drop-reveal__media {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+.drop-reveal__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.drop-reveal__image--placeholder svg {
+  width: 100%;
+  height: 100%;
+}
+
+.drop-reveal__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.drop-reveal__title {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+
+.drop-reveal__product:hover .drop-reveal__title,
+.drop-reveal__product:focus-visible .drop-reveal__title {
+  text-decoration: underline;
+  text-underline-offset: 0.125rem;
+}
+
+.drop-reveal__cta {
+  display: flex;
+}
+
+/* Entry fade-up for the static layout (JS sets [data-entry], then .is-in). */
+.drop-reveal[data-entry] .drop-reveal__copy,
+.drop-reveal[data-entry] .drop-reveal__item,
+.drop-reveal[data-entry] .drop-reveal__cta {
+  opacity: 0;
+  transform: translateY(1rem);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drop-reveal[data-entry] .drop-reveal__copy,
+  .drop-reveal[data-entry] .drop-reveal__item,
+  .drop-reveal[data-entry] .drop-reveal__cta {
+    transition: opacity 500ms ease-out, transform 500ms ease-out;
+    transition-delay: calc(var(--i, 0) * 60ms);
+  }
+}
+
+.drop-reveal[data-entry].is-in .drop-reveal__copy,
+.drop-reveal[data-entry].is-in .drop-reveal__item,
+.drop-reveal[data-entry].is-in .drop-reveal__cta {
+  opacity: 1;
+  transform: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrub mode                                                          */
+/* ------------------------------------------------------------------ */
+.drop-reveal[data-mode='scrub'] {
+  --p: 0;
+  --pin: 2.2;
+  /* One value for the box's height, read by three things that have to agree
+     about it: the card itself, the deal tag that parks half way up it, and
+     the cap on the scene below. */
+  --card-h: clamp(12.5rem, 27svh, 18.125rem);
+}
+
+[data-mode='scrub'] .drop-reveal__track {
+  position: relative;
+  height: calc(100svh * (1 + var(--pin)));
+}
+
+[data-mode='scrub'] .drop-reveal__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  align-items: center;
+  /* Clips the card as it slides down out of frame in the last phase. */
+  overflow: hidden;
+}
+
+[data-mode='scrub'] .drop-reveal__inner {
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  gap: var(--space-5);
+  padding-block: var(--space-6);
+}
+
+/* Timeline. Declared on the host (so the copy and the CTA, which live outside
+   the scene, inherit it) and again on the scene, so the :has() focus escape
+   below can re-declare --p there and have every phase recompute from it. */
+.drop-reveal[data-mode='scrub'],
+[data-mode='scrub'] .drop-reveal__scene {
+  /* Phases deliberately OVERLAP. Every boundary except one is a cross-fade:
+     the subheading starts while the last headline words are still arriving,
+     the flap starts lifting before the box has finished settling, the first
+     product leaves the slot while the lid is still swinging, and the row
+     starts un-twisting before the last product has landed.
+
+       head    0.00 - 0.14
+       sub     0.08 - 0.22
+       focus   0.06 - 0.28   box arrives
+       open    0.24 - 0.48   lid
+       rise    0.40 - 0.70   products launch (per-item delay inside this)
+       settle  0.62 - 0.84   rotation damps out into the composition
+       exit    0.84 - 1.00   box falls away
+       meta    0.86 - 1.00   titles + prices + CTA
+
+     The one hard cut is exit: it may not start before settle has finished,
+     because the box must not leave until the products are actually placed. */
+  --ph-head: clamp(0, calc(var(--p) / 0.14), 1);
+  --ph-sub: clamp(0, calc((var(--p) - 0.08) / 0.14), 1);
+  --ph-focus: clamp(0, calc((var(--p) - 0.06) / 0.22), 1);
+  --ph-open: clamp(0, calc((var(--p) - 0.24) / 0.24), 1);
+  --ph-rise: clamp(0, calc((var(--p) - 0.4) / 0.3), 1);
+  --ph-settle: clamp(0, calc((var(--p) - 0.62) / 0.22), 1);
+  --ph-exit: clamp(0, calc((var(--p) - 0.84) / 0.16), 1);
+  --ph-meta: clamp(0, calc((var(--p) - 0.86) / 0.14), 1);
+
+  /* smoothstep e2(3-2e) - symmetric ease-in-out. Right for copy, which has no
+     mass and should just appear and disappear evenly. */
+  --e-sub: calc(var(--ph-sub) * var(--ph-sub) * (3 - 2 * var(--ph-sub)));
+  --e-meta: calc(var(--ph-meta) * var(--ph-meta) * (3 - 2 * var(--ph-meta)));
+  --e-settle: calc(var(--ph-settle) * var(--ph-settle) * (3 - 2 * var(--ph-settle)));
+
+  /* cubic-out 1-(1-e)^3 - the box is PLACED: it arrives fast and then spends
+     most of the phase easing the last few pixels. Same shape family as the
+     theme's cubic-bezier(0.16, 1, 0.3, 1). */
+  --_f: calc(1 - var(--ph-focus));
+  --e-focus: calc(1 - var(--_f) * var(--_f) * var(--_f));
+
+  /* smootherstep 6e^5-15e^4+10e^3 plus a damped overshoot term e^3(1-e).
+     A lid has mass: it resists at first (smootherstep starts flatter than
+     smoothstep - that reads as inertia), tips through the middle quickly, then
+     swings ~5deg past its stop and rocks back. The overshoot term is zero at
+     both ends by construction, so it cannot leave the lid mis-parked. */
+  --e-open: calc(
+    var(--ph-open) * var(--ph-open) * var(--ph-open) *
+      (var(--ph-open) * (var(--ph-open) * 6 - 15) + 10) + 0.9 * var(--ph-open) * var(--ph-open) *
+      var(--ph-open) * (1 - var(--ph-open))
+  );
+
+  /* quadratic-in e^2 - literal free fall. The box does not slide off a rail,
+     it lets go and accelerates. */
+  --e-fall: calc(var(--ph-exit) * var(--ph-exit));
+}
+
+/* Keyboard escape hatch: if a product link inside the scene takes focus, the
+   scene jumps to its final frame so the focused link is actually visible and
+   not buried inside the box. Re-declaring --p here re-runs every phase above
+   for this subtree. Plain :focus rather than :focus-visible on purpose - the
+   links are still clickable mid-animation (the card is pointer-events: none),
+   and a mouse click that lands on one should reveal it too. */
+[data-mode='scrub'] .drop-reveal__scene:has(a:focus) {
+  --p: 1;
+}
+
+/* Copy ------------------------------------------------------------- */
+[data-mode='scrub'] .drop-reveal__copy {
+  flex: 0 0 auto;
+  margin-inline: auto;
+  text-align: center;
+}
+
+/* Port note: the theme staggered each word of the heading. The heading is inline-editable here
+   (a node, not a string), so it can't be split into words; it rises as one line instead. */
+[data-mode='scrub'] .drop-reveal__heading {
+  opacity: var(--ph-head);
+  transform: translate3d(0, calc((1 - var(--ph-head)) * 0.6em), 0);
+}
+
+[data-mode='scrub'] .drop-reveal__sub {
+  opacity: var(--e-sub);
+  transform: translate3d(0, calc((1 - var(--e-sub)) * 1.25rem), 0);
+}
+
+/* Scene ------------------------------------------------------------ */
+[data-mode='scrub'] .drop-reveal__scene {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Capped, because nothing in here is in flow. The product row is absolutely
+     positioned against the scene's top edge and the box against its bottom,
+     so the scene has no content height of its own and `flex: 1 1 auto` handed
+     it every spare pixel of the pinned 100svh stage. Those pixels landed
+     between the row and the box as an empty band that grew with the window -
+     the row cannot fall further than its own height and the box is clamped at
+     --card-h, so neither of them ever takes the extra room back.
+
+     The cap is what the scene actually holds: a row of 12.5rem cards plus their
+     titles and prices, then the box under it. Past that the surplus goes back
+     to .drop-reveal__inner's `justify-content: center`, which spreads it above
+     and below the copy/scene/CTA group instead of pooling it in one place.
+     Nothing about the reveal changes - drop-reveal.js measures --dx/--dy from
+     real layout, so the products still launch from wherever the slot ends up. */
+  max-height: calc(20rem + var(--card-h));
+}
+
+[data-mode='scrub'] .drop-reveal__products {
+  position: absolute;
+  inset-inline: 0;
+  top: 6%;
+  z-index: 2;
+  justify-content: center;
+  gap: clamp(var(--space-3), 2vw, var(--space-5));
+  overflow: visible;
+  padding: 0;
+  scroll-snap-type: none;
+}
+
+[data-mode='scrub'] .drop-reveal__item {
+  /* Even division of the row rather than a fixed basis: the scrubbed row has
+     no scroll container to fall back on, so with 8 products on a 46.875rem-wide
+     desktop a fixed basis would overflow the section. */
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 12.5rem;
+  position: relative;
+  /* Centre-most card on top, so the outer cards read as sitting behind it. */
+  z-index: var(--z, 1);
+  transform-origin: 50% 50%;
+
+  /* --- the settled composition ------------------------------------- *
+     An arc, not a row: the centre card is the hero (bigger, highest, on
+     top), each step outward is smaller, a little lower and turned a little
+     further out. --comp collapses all three to zero at narrower widths. */
+  --comp: 1;
+  --rest-scale: calc(1 - 0.05 * var(--afan) * var(--comp) + 0.08 * var(--hero) * var(--comp));
+  --rest-y: calc((var(--afan) * 0.75rem - var(--hero) * 0.875rem) * var(--comp));
+  --rest-rot: calc(var(--fan) * 1.4deg * var(--comp));
+
+  /* --- the launch --------------------------------------------------- *
+     Each product gets its own slice of the rise phase: outer products leave
+     later than the hero, and --jit adds a repeating 3-item nudge on top so
+     the delays are not a clean symmetric sweep either. */
+  --d: calc(var(--afan) * 0.055 + var(--jit) * 1.6);
+  --er: clamp(0, calc((var(--ph-rise) - var(--d)) / (1 - var(--d))), 1);
+  /* quart-out 1-(1-e)^4: nearly half the travel happens in the first fifth of
+     the launch and the rest is deceleration - thrown out of the slot rather
+     than slid along it. */
+  --_r: calc(1 - var(--er));
+  --u: calc(1 - var(--_r) * var(--_r) * var(--_r) * var(--_r));
+  /* Parabola peaking mid-flight: the outward bulge that makes them fan. */
+  --arc: calc(var(--er) * (1 - var(--er)) * 4);
+  /* Throw rotation, damped out by the settle phase into --rest-rot. */
+  --spin: calc(var(--fan) * 7deg + var(--jit) * 70deg);
+
+  /* While they are still inside the box, the products have to ride the card's
+     own entrance transform - otherwise the card shrinks and drops away from
+     underneath them and their corners poke out over the pocket. Both terms are
+     zero from p 0.28 on, i.e. before anything starts rising. */
+  --ride-y: calc((1 - var(--e-focus)) * 5.625rem);
+  --ride-scale: calc(1 - 0.18 * (1 - var(--e-focus)));
+
+  transform: translate3d(
+      calc(var(--dx, 0) * (1 - var(--u)) + var(--fan) * var(--arc) * 1.25rem),
+      calc(
+        var(--dy, 0) * (1 - var(--u)) + var(--rest-y) * var(--u) + var(--ride-y) - var(--arc) *
+          1.125rem
+      ),
+      0
+    )
+    rotate(calc(var(--rest-rot) + (var(--spin) - var(--rest-rot)) * (1 - var(--e-settle))))
+    scale(calc((0.55 + (var(--rest-scale) - 0.55) * var(--u)) * var(--ride-scale)));
+}
+
+/* The composition needs room to breathe. Under 68.75rem the cards are narrow
+   enough that scaling and dropping them starts to read as a mistake rather
+   than as depth, so the arc flattens back to the even row. */
+@media (max-width: 68.6875rem) {
+  [data-mode='scrub'] .drop-reveal__item {
+    --comp: 0;
+  }
+}
+
+/* Depth cue that costs nothing per frame: a static shadow, heavier on the
+   hero. It never changes with --p, so it is resolved once. */
+[data-mode='scrub'] .drop-reveal__media {
+  box-shadow: 0 calc(0.5rem + var(--hero, 0) * 0.5rem) calc(1.25rem + var(--hero, 0) * 1.125rem) -0.875rem
+    rgba(31, 31, 33, 0.4);
+}
+
+[data-mode='scrub'] .drop-reveal__meta {
+  opacity: var(--e-meta);
+  transform: translate3d(0, calc((1 - var(--e-meta)) * 0.625rem), 0);
+}
+
+[data-mode='scrub'] .drop-reveal__cta {
+  flex: 0 0 auto;
+  justify-content: center;
+  opacity: var(--e-meta);
+  transform: translate3d(0, calc((1 - var(--e-meta)) * 1rem), 0);
+}
+
+/* Box --------------------------------------------------------------- */
+/* ARTWORK NOTE: everything below is drawn with CSS so the section ships with
+   no image assets. To swap in real artwork later, replace the background of
+   .drop-reveal__panel--back / .drop-reveal__cavity (shell + interior),
+   .drop-reveal__panel--pocket / .drop-reveal__lip (front wall + its thickness)
+   and the two flap faces - or put an <img> inside each. Keep the element
+   boxes, the z-index of the two .drop-reveal__card wrappers and the flap's
+   transform-origin, and drop-reveal.js needs no change.
+
+   LIGHT SOURCE: one key light, high and to the LEFT, slightly in front. Every
+   surface below obeys it - top edges and left edges are lit, bottom and right
+   edges fall away. Gradients run at 152-160deg for that reason; if you change
+   the angle, change all of them.
+
+   NEUTRALS: derived from --color-line and --color-ink with color-mix so the
+   box tracks the theme rather than sitting next to it in an arbitrary grey.
+   BRAND: only ever on interior surfaces (cavity, flap lining, spill). */
+[data-mode='scrub'] .drop-reveal__scene {
+  /* One camera for the whole box. Perspective lives here rather than on the
+     card so the tilt and the lid share a single vanishing point. Children with
+     a flat z=0 transform (the products) project as identity, so this does not
+     touch the row. */
+  perspective: 93.75rem;
+
+  --box-0: color-mix(in srgb, var(--color-line) 26%, var(--color-bg));
+  --box-1: color-mix(in srgb, var(--color-line) 62%, var(--color-bg));
+  --box-2: var(--color-line);
+  --box-3: color-mix(in srgb, var(--color-line) 86%, var(--color-ink));
+  --box-4: color-mix(in srgb, var(--color-line) 68%, var(--color-ink));
+
+  --box-in-deep: color-mix(in srgb, var(--color-brand) 58%, #140d1c);
+  --box-in: color-mix(in srgb, var(--color-brand) 88%, #140d1c);
+  --box-in-lit: color-mix(in srgb, var(--color-brand) 72%, #ffffff);
+}
+
+[data-mode='scrub'] .drop-reveal__card {
+  display: block;
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: clamp(16.25rem, 24vw, 21.25rem);
+  height: var(--card-h);
+  pointer-events: none;
+  transform-style: preserve-3d;
+  /* Both wrappers carry the identical transform so back and front read as one
+     physical object, with the products sandwiched between them. The card never
+     changes opacity: a translucent front wall would show the products through
+     the box and destroy the occlusion the whole effect rests on. */
+  --card-y: calc((1 - var(--e-focus)) * 5.625rem + var(--e-fall) * 130svh);
+  --card-scale: calc(0.82 + 0.18 * var(--e-focus));
+  /* A dead-on rectangle reads as paper. 7deg of rotateX tips the top away from
+     the camera so you catch the box from very slightly above - enough for the
+     lip and the cavity to have visible depth. The Z rotation is the fall: it
+     lets go from one corner rather than dropping perfectly level. */
+  transform: translate3d(-50%, var(--card-y), 0) scale(var(--card-scale))
+    rotate(calc(var(--e-fall) * 7deg)) rotateX(7deg);
+}
+
+[data-mode='scrub'] .drop-reveal__card--back {
+  z-index: 1;
+}
+
+[data-mode='scrub'] .drop-reveal__card--front {
+  z-index: 3;
+}
+
+/* Contact shadow. Grounds the box to the page - without it the whole thing
+   floats, which is most of why it read as a flat panel. Painted first inside
+   the back wrapper so it sits under the shell. */
+.drop-reveal__ground {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -1rem;
+  height: 2.875rem;
+  background: radial-gradient(
+    52% 50% at 50% 50%,
+    rgba(31, 31, 33, 0.34),
+    rgba(31, 31, 33, 0.14) 55%,
+    rgba(31, 31, 33, 0) 76%
+  );
+}
+
+.drop-reveal__panel {
+  position: absolute;
+}
+
+/* The shell: the outer body of the box. Only its top band is ever visible
+   (the front wall covers the rest), and that band is what reads as the rim
+   around the mouth - so it carries real wall thickness, not a 0.0625rem border. */
+.drop-reveal__panel--back {
+  inset: 0;
+  border-radius: var(--radius-m);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 22%),
+    linear-gradient(90deg, rgba(31, 31, 33, 0) 68%, rgba(31, 31, 33, 0.09)),
+    linear-gradient(158deg, var(--box-0) 0%, var(--box-1) 46%, var(--box-3) 100%);
+  /* The 0.0625rem inset ring is the box's silhouette. On a white page a near-white
+     box with no edge simply dissolves, which is the failure mode this whole
+     block exists to avoid. */
+  box-shadow:
+    inset 0 0 0 0.0625rem var(--box-3),
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.9),
+    0 1.375rem 2.5rem -1.625rem rgba(31, 31, 33, 0.35);
+}
+
+/* The interior. Inset from the shell on three sides so a neutral rim of box
+   wall stays visible around it - that rim is the thickness of the carton, and
+   it is the reason the purple reads as "inside" rather than "painted on".
+   Runs off the bottom of the box; everything below the lip is covered. */
+.drop-reveal__cavity {
+  position: absolute;
+  inset: 0.5625rem 0.6875rem 0 0.6875rem;
+  border-radius: 0.1875rem 0.1875rem 0 0;
+  background:
+    radial-gradient(120% 78% at 50% 116%, var(--box-in-lit) 0%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, var(--box-in-deep) 0%, var(--box-in) 60%, var(--box-in-lit) 100%);
+  box-shadow:
+    inset 0 1rem 1.25rem -0.625rem rgba(0, 0, 0, 0.62),
+    inset 0.8125rem 0 1.125rem -0.875rem rgba(0, 0, 0, 0.7),
+    inset -0.8125rem 0 1.125rem -0.875rem rgba(0, 0, 0, 0.55);
+}
+
+/* The front wall. Same light: lit down its left edge and across its top,
+   falling off to the bottom right. */
+.drop-reveal__panel--pocket {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64%;
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 18%),
+    linear-gradient(90deg, rgba(31, 31, 33, 0) 62%, rgba(31, 31, 33, 0.1)),
+    linear-gradient(160deg, var(--box-1) 0%, var(--box-2) 52%, var(--box-4) 100%);
+  box-shadow: inset 0 0 0 0.0625rem var(--box-3);
+}
+
+/* The lip: the top edge of the front wall given actual thickness. It hangs
+   0.0625rem proud of the wall on both sides because the wall is the nearest surface
+   to the camera, and it casts a hairline down onto the wall below it. */
+.drop-reveal__lip {
+  position: absolute;
+  left: -0.0625rem;
+  right: -0.0625rem;
+  top: 0;
+  height: 0.4375rem;
+  border-radius: 0.125rem 0.125rem 0 0;
+  background: linear-gradient(180deg, var(--box-0) 0%, var(--box-2) 55%, var(--box-4) 100%);
+  box-shadow:
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.95),
+    0 0.125rem 0.25rem -0.0625rem rgba(31, 31, 33, 0.4);
+}
+
+/* Debossed mark on the front wall. Neutral: nothing outside the box is brand
+   coloured - a cut line plus a lit lower edge, which is what an emboss die
+   actually leaves. */
+.drop-reveal__mark {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  width: clamp(11.875rem, 64%, 25rem);
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+}
+
+/* Printed in full colour, like real packaging. Two things keep it sitting ON
+   the board rather than floating above it: multiply, so the panel's own
+   shading and the light falloff still pass through the ink, and a very slight
+   white drop-shadow below for the raised edge. Opacity stays high enough for
+   the colour to read - this is print, not a watermark. */
+.drop-reveal__mark-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.92;
+  filter: saturate(1.05) drop-shadow(0 0.0625rem 0 rgba(255, 255, 255, 0.6));
+  mix-blend-mode: multiply;
+}
+
+/* Shadow the mouth throws up over the products as they pass through it. Lives
+   above the products (front wrapper) and fades in with the lid. */
+.drop-reveal__slot-shadow {
+  position: absolute;
+  left: 0.125rem;
+  right: 0.125rem;
+  bottom: 64%;
+  height: 2.125rem;
+  opacity: calc(var(--e-open) * (1 - var(--ph-exit)));
+  background: linear-gradient(
+    to top,
+    rgba(31, 31, 33, 0.34),
+    rgba(31, 31, 33, 0.12) 45%,
+    rgba(31, 31, 33, 0) 100%
+  );
+}
+
+/* Brand bounce light. The interior is purple, so light coming back out of the
+   open box is purple - it catches the lower edge of each product on the way
+   up. Deliberately weak and confined to the width of the mouth: it should
+   read as spill, not as a purple wash over the products. */
+.drop-reveal__spill {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 62%;
+  height: 6rem;
+  opacity: calc(var(--e-open) * (1 - var(--ph-exit)));
+  background: radial-gradient(
+    64% 100% at 50% 100%,
+    color-mix(in srgb, var(--color-brand) 34%, transparent) 0%,
+    color-mix(in srgb, var(--color-brand) 14%, transparent) 40%,
+    rgba(255, 255, 255, 0) 74%
+  );
+}
+
+.drop-reveal__flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 36%;
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  /* Stops just past vertical rather than folding all the way back: a fully
+     folded flap ends up lying flat ABOVE the box, right across the path the
+     products fly through, and reads as a grey slab pasted over them. Edge-on
+     it still reads as an opened lid and stays out of their way. -100deg (down
+     from -104) buys back a few px of clearance for the overshoot in --e-open,
+     which peaks around -105 before rocking back. */
+  transform: rotateX(calc(var(--e-open) * -100deg));
+}
+
+.drop-reveal__flap-face,
+.drop-reveal__flap-lining {
+  position: absolute;
+  inset: 0;
+  border: 0.0625rem solid var(--box-3);
+  border-bottom-color: transparent;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  backface-visibility: hidden;
+}
+
+/* Outside of the lid. Same neutrals and same light as the shell, so closed
+   the box is one continuous object. */
+.drop-reveal__flap-face {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 20%),
+    linear-gradient(90deg, rgba(31, 31, 33, 0) 66%, rgba(31, 31, 33, 0.08)),
+    linear-gradient(152deg, var(--box-0) 0%, var(--box-1) 58%, var(--box-3) 100%);
+  box-shadow:
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.95),
+    0 0.125rem 0.1875rem -0.0625rem rgba(31, 31, 33, 0.18);
+}
+
+/* Underside of the lid: the second purple surface. Opening the box is the
+   only moment the brand colour appears, and this is half of it. Darker at the
+   fold, lighter at the free edge where the light reaches. */
+.drop-reveal__flap-lining {
+  transform: rotateX(180deg);
+  border-color: var(--box-in-deep);
+  border-bottom-color: transparent;
+  background:
+    radial-gradient(90% 70% at 50% 100%, var(--box-in-lit) 0%, rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, var(--box-in-deep) 0%, var(--box-in) 78%);
+  box-shadow: inset 0 0.625rem 0.875rem -0.5rem rgba(0, 0, 0, 0.55);
+}
+
+/* Compositor hints only while the section is actually being scrubbed. */
+[data-mode='scrub'][data-active] .drop-reveal__card,
+[data-mode='scrub'][data-active] .drop-reveal__flap,
+[data-mode='scrub'][data-active] .drop-reveal__item {
+  will-change: transform;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Gift ribbon                                                         */
+/* ------------------------------------------------------------------ */
+/* Scenery for the scrub only, like the card itself. */
+.drop-reveal__ribbon,
+.drop-reveal__tag {
+  display: none;
+}
+
+/* Fills the card it lives inside, so it inherits the card's transform rather
+   than repeating it - the card's --card-y / --card-scale are declared on the
+   card element itself and are NOT readable from a sibling. */
+[data-mode='scrub'] .drop-reveal__ribbon {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  /* Unties ahead of the lid (which starts at 0.24): the bow is undone and the
+     bands are off before the flap moves, which is the real order of events and
+     keeps the ribbon clear of the products entirely.
+
+     Eased with 1-(1-e)^3 (cubic-out): the knot gives way quickly and the rest
+     drifts off, rather than everything sliding at one constant speed. */
+  --u-raw: clamp(0, calc((var(--p) - 0.1) / 0.13), 1);
+  --u-inv: calc(1 - var(--u-raw));
+  --e-untie: calc(1 - var(--u-inv) * var(--u-inv) * var(--u-inv));
+  /* Parts stay fully opaque while they move and only fade at the very end -
+     fading them out early would hide the motion we just built. */
+  --untie-fade: clamp(0, calc((var(--e-untie) - 0.55) / 0.45), 1);
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-band,
+[data-mode='scrub'] .drop-reveal__ribbon-knot,
+[data-mode='scrub'] .drop-reveal__ribbon-loop,
+[data-mode='scrub'] .drop-reveal__ribbon-tail {
+  position: absolute;
+  opacity: calc(1 - var(--untie-fade));
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--color-brand) 78%, #000) 0%,
+    var(--color-brand) 42%,
+    color-mix(in srgb, var(--color-brand) 62%, #fff) 58%,
+    var(--color-brand) 78%
+  );
+}
+
+/* The two bands. The vertical one runs over the lid, the horizontal one sits
+   just above the mouth so it reads as holding the box shut. */
+[data-mode='scrub'] .drop-reveal__ribbon-band--v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 13%;
+  margin-left: -6.5%;
+  /* Slides up and off the lid, the direction it would actually be pulled. */
+  transform: translate3d(0, calc(var(--e-untie) * -118%), 0);
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-band--hl,
+[data-mode='scrub'] .drop-reveal__ribbon-band--hr {
+  top: 30%;
+  height: 11%;
+  width: 50%;
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-band--hl {
+  left: 0;
+  transform: translate3d(calc(var(--e-untie) * -128%), 0, 0);
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-band--hr {
+  right: 0;
+  transform: translate3d(calc(var(--e-untie) * 128%), 0, 0);
+}
+
+/* Bow: two loops, a knot over the crossing, two tails falling from it. */
+[data-mode='scrub'] .drop-reveal__ribbon-loop {
+  top: 20%;
+  width: 24%;
+  height: 22%;
+  border-radius: 50% 50% 45% 45%;
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-loop--l {
+  left: 22%;
+  transform-origin: 100% 50%;
+  transform: rotate(calc(-24deg - var(--e-untie) * 46deg))
+    translate3d(calc(var(--e-untie) * -34%), 0, 0)
+    scaleX(calc(1 - var(--e-untie) * 0.75));
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-loop--r {
+  right: 22%;
+  transform-origin: 0% 50%;
+  transform: rotate(calc(24deg + var(--e-untie) * 46deg))
+    translate3d(calc(var(--e-untie) * 34%), 0, 0)
+    scaleX(calc(1 - var(--e-untie) * 0.75));
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-tail {
+  top: 33%;
+  width: 9%;
+  height: 20%;
+  border-radius: 0 0 40% 40%;
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-tail--l {
+  left: 40%;
+  transform-origin: 50% 0;
+  transform: rotate(calc(-14deg - var(--e-untie) * 26deg))
+    translate3d(calc(var(--e-untie) * -18%), calc(var(--e-untie) * 46%), 0);
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-tail--r {
+  right: 40%;
+  transform-origin: 50% 0;
+  transform: rotate(calc(14deg + var(--e-untie) * 26deg))
+    translate3d(calc(var(--e-untie) * 18%), calc(var(--e-untie) * 46%), 0);
+}
+
+[data-mode='scrub'] .drop-reveal__ribbon-knot {
+  top: 28%;
+  left: 50%;
+  width: 13%;
+  height: 10%;
+  margin-left: -6.5%;
+  border-radius: var(--radius-s);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.25);
+  /* The knot is what gives way, so it leads: its own progress runs slightly
+     ahead of the shared curve. */
+  transform: scale(calc(1 - var(--e-untie) * 0.9))
+    rotate(calc(var(--e-untie) * 34deg));
+  opacity: calc(1 - var(--e-untie));
+}
+
+/* Deal tag. Sits beside the bow rather than on it - text on top of a 13%
+   wide band would be unreadable at any box size. */
+[data-mode='scrub'] .drop-reveal__tag {
+  display: block;
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--card-h) * 0.5);
+  z-index: 5;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-bg);
+  background-color: var(--color-brand);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0.375rem 1.125rem color-mix(in srgb, var(--color-brand) 32%, transparent);
+  /* Fallback on --card-y matters: this element sits OUTSIDE the card (it must
+     stay in the accessibility tree, and the card is aria-hidden), so if the
+     variable is ever unreadable the whole transform would be dropped and the
+     tag would jump out of position rather than degrade. */
+  transform: translate3d(-50%, var(--card-y, 0), 0) rotate(-4deg);
+  opacity: calc(1 - clamp(0, calc((var(--p) - 0.16) / 0.1), 1));
+}
+
+/* Reduced motion / no JS never reach scrub mode, so the ribbon and tag simply
+   never render there - the static layout is a product row with no box. */
