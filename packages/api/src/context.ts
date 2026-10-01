@@ -5,6 +5,7 @@ import type {
   MediaProcessQueue,
   NotificationQueue,
   RateLimitStore,
+  StoreExportQueue,
 } from '@commerce/core'
 import type { Db } from '@commerce/db'
 import type { ErrorReporter } from '@commerce/observability'
@@ -22,6 +23,8 @@ export type ApiContext = {
   appJobs?: AppJobQueue | undefined
   /** Upload-time image pipeline job (worker). Absent in tests that do not exercise media confirm; the row is then left `processing` for the backfill script to pick up. */
   mediaProcess?: MediaProcessQueue | undefined
+  /** Full store exports, built by the worker. Absent in tests: the export is then built in the request. */
+  storeExport?: StoreExportQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */

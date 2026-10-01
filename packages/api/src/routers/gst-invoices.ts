@@ -41,7 +41,7 @@ import {
 } from '@commerce/plugin-gst-invoices/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
 import {
   createEmailBatch,
@@ -422,6 +422,7 @@ export const gstInvoicesRouter = {
 
   /** A zip of PDFs, one per selected document. */
   bulkDownload: can(permissions.ORDERS_READ)
+    .use(heavy('bulk'))
     .input(Selection)
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
@@ -435,6 +436,7 @@ export const gstInvoicesRouter = {
 
   /** One merged PDF for the printer. */
   bulkPrint: can(permissions.ORDERS_READ)
+    .use(heavy('bulk'))
     .input(Selection)
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
@@ -447,6 +449,7 @@ export const gstInvoicesRouter = {
 
   /** Queue an email of each document to its buyer; poll `batch` for progress. */
   bulkEmail: can(permissions.ORDERS_WRITE)
+    .use(heavy('bulk'))
     .input(Selection)
     .handler(async ({ context, input }) => {
       await requireInstalled(context)

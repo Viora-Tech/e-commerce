@@ -1,7 +1,9 @@
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3'
@@ -92,6 +94,40 @@ export abstract class S3CompatProvider implements StorageProvider {
   async delete(key: string): Promise<void> {
     // S3 semantics: deleting a missing key is a 204, so this is idempotent for free.
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: this.fullKey(key) }))
+  }
+
+  /**
+   * Lists the prefix a page at a time (1,000 keys, S3's ceiling for both calls) and
+   * deletes each page in one `DeleteObjects` request. A refused prefix that does not end
+   * in `/` would also match a sibling folder (`stores/ab` and `stores/abc`), so it is not
+   * allowed.
+   */
+  async deletePrefix(prefix: string): Promise<number> {
+    if (!prefix.endsWith('/') || prefix === '/') throw new Error(`refusing prefix ${prefix}`)
+    let deleted = 0
+    let token: string | undefined
+    do {
+      const page = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: this.fullKey(prefix),
+          ContinuationToken: token,
+          MaxKeys: 1000,
+        }),
+      )
+      const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []))
+      if (keys.length > 0) {
+        await this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: keys, Quiet: true },
+          }),
+        )
+        deleted += keys.length
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined
+    } while (token)
+    return deleted
   }
 
   async head(key: string): Promise<{ size: number; contentType?: string } | null> {

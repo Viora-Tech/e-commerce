@@ -8,6 +8,7 @@ export default defineConfig({
     './src/marketing-schema.ts',
     './src/privacy-schema.ts',
     './src/shopper-login-schema.ts',
+    './src/store-data-schema.ts',
     // Installable apps that own tables. Their migrations join the one chain here.
     '../plugin-gst-invoices/src/schema.ts',
     '../plugin-shopify-import/src/schema.ts',

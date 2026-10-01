@@ -25,6 +25,7 @@ import { taxesContent } from '@/data/taxes'
 import { api } from '@/lib/api-client'
 import GeneralCompletion, { detailsDone } from './general-completion'
 import GeneralTextField from './general-text-field'
+import StoreDataSection from './store-data-section'
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof api.store.getGeneral>>>
 type Errors = Partial<Record<string, string>>
@@ -58,8 +59,8 @@ function LoadingCards() {
 /**
  * Settings › General in three cards (store details, business address,
  * currency and time), each with a help line, plus how many details are done
- * and a prompt when the business address is still empty. Taxes moved to
- * Settings › Taxes & GST; `#tax` keeps a pointer there and redirects.
+ * and a prompt when the business address is still empty, then the store's data
+ * (export, delete). Taxes moved to Settings › Taxes & GST; `#tax` redirects there.
  */
 export default function GeneralSettings() {
   // Hooks
@@ -290,6 +291,7 @@ export default function GeneralSettings() {
               </div>
             </CardContent>
           </Card>
+          <StoreDataSection />
         </>
       )}
     </div>

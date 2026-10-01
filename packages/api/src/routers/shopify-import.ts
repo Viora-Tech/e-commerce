@@ -24,7 +24,7 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import type { ApiContext } from '../context'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
 import { storageProviderFor } from '../services/media.service'
 
@@ -117,6 +117,7 @@ export const shopifyImportRouter = {
 
   /** Upload one Shopify CSV export; the preview runs straight away. */
   createCsvRun: can(permissions.APPS_MANAGE)
+    .use(heavy('import'))
     .input(
       z.object({
         resource: z.enum(CSV_RESOURCES),
@@ -143,6 +144,7 @@ export const shopifyImportRouter = {
 
   /** Preview an API import of the chosen resources. */
   createApiRun: can(permissions.APPS_MANAGE)
+    .use(heavy('import'))
     .input(z.object({ resources: z.array(z.enum(IMPORT_RESOURCES)).min(1) }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
@@ -160,6 +162,7 @@ export const shopifyImportRouter = {
 
   /** Import for real after a preview, or run a finished import again. */
   start: can(permissions.APPS_MANAGE)
+    .use(heavy('import'))
     .input(RunId)
     .handler(async ({ context, input }) => {
       await requireInstalled(context)

@@ -1,7 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import { permissions } from '@commerce/core'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   actOnNdr,
@@ -61,6 +61,7 @@ export const shipmentsRouter = {
     .handler(({ context, input }) => resolveOrderNumbers(context.tx, input.numbers)),
 
   bulkBook: can(permissions.ORDERS_FULFIL)
+    .use(heavy('bulk'))
     .input(
       z.object({
         orderIds: z.array(z.uuid()).min(1).max(200),

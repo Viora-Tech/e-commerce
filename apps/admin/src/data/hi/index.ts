@@ -13,6 +13,7 @@ import products from './products'
 import settings from './settings'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
+import storeData from './store-data'
 import table from './table'
 
 /**
@@ -35,5 +36,6 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...settings,
   ...shipping,
   ...shippingRates,
+  ...storeData,
   ...table,
 ]

@@ -35,12 +35,14 @@ import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
 import { staffRouter } from './staff'
 import { storeRouter } from './store'
+import { storeDataRouter } from './store-data'
 import { taxesRouter } from './taxes'
 import { themesRouter } from './themes'
 
 export const appRouter = {
   me: protectedProcedure.handler(({ context }) => context.session),
   store: storeRouter,
+  storeData: storeDataRouter,
   appearance: appearanceRouter,
   themes: themesRouter,
   products: productsRouter,

@@ -65,6 +65,12 @@ export type StorageProvider = {
   publicUrl(key: string): string
   /** Idempotent: deleting a missing key resolves. */
   delete(key: string): Promise<void>
+  /**
+   * Deletes every object whose key starts with `prefix` (always a store folder,
+   * `stores/<storeId>/`, when a store is closed) and resolves how many went. Optional:
+   * a provider without it gets its files deleted one known key at a time instead.
+   */
+  deletePrefix?(prefix: string): Promise<number>
   /** Used by the admin settings page to tell the merchant their keys work. */
   verifyCredentials(): Promise<CredentialCheck>
 }

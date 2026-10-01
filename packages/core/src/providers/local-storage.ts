@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import type {
   CredentialCheck,
@@ -129,6 +129,23 @@ export class LocalStorageProvider implements StorageProvider {
 
   async delete(key: string): Promise<void> {
     await rm(this.pathOf(key), { force: true })
+  }
+
+  /** Removes the folder `prefix` names (a store's `stores/<id>/`) and everything in it. */
+  async deletePrefix(prefix: string): Promise<number> {
+    if (!prefix.endsWith('/') || prefix === '/') throw new Error(`refusing prefix ${prefix}`)
+    const folder = this.pathOf(prefix.slice(0, -1))
+    let files: string[] = []
+    try {
+      files = (await readdir(folder, { recursive: true, withFileTypes: true }))
+        .filter((e) => e.isFile())
+        .map((e) => e.name)
+    } catch (err) {
+      if ((err as { code?: string }).code === 'ENOENT') return 0
+      throw err
+    }
+    await rm(folder, { recursive: true, force: true })
+    return files.length
   }
 
   async head(key: string): Promise<{ size: number } | null> {

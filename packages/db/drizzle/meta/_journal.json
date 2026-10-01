@@ -526,6 +526,13 @@
       "when": 1791070000000,
       "tag": "0077_customer_phone_verified",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1791080000000,
+      "tag": "0078_store_data",
+      "breakpoints": true
     }
   ]
 }

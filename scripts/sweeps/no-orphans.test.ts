@@ -24,6 +24,27 @@ const ALLOWLIST: AllowEntry[] = [
       'used by scripts/build-pincode-directory.ts (builds the PIN code data file); scripts/ is outside this sweep',
   },
   {
+    file: 'packages/core/src/secret-rotation.ts',
+    names: ['rotateStoreSecrets'],
+    reason:
+      'used by scripts/rotate-secrets.ts (bun run rotate-secrets); scripts/ is outside this sweep',
+  },
+  {
+    file: 'packages/core/src/store-data/export.ts',
+    names: ['ENCRYPTED_PLACEHOLDER', 'REDACTED_PLACEHOLDER', 'redactRow'],
+    reason: 'redaction rule behind buildStoreExport, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/store-data/service.ts',
+    names: ['purgeExpiredExports'],
+    reason: 'run by runStoreExport after each build, exported for its unit test',
+  },
+  {
+    file: 'packages/queue/src/fair.ts',
+    names: ['fairnessKey', 'storeSlots'],
+    reason: 'the slot store behind fairProcessor, exported for its unit test',
+  },
+  {
     file: 'packages/core/src/onboarding/signup-gate.ts',
     names: ['createSignupInvite'],
     reason:

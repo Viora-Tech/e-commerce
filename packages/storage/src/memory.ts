@@ -57,6 +57,12 @@ export class MemoryStorageProvider implements StorageProvider {
     this.objects.delete(key)
   }
 
+  async deletePrefix(prefix: string): Promise<number> {
+    const keys = [...this.objects.keys()].filter((k) => k.startsWith(prefix))
+    for (const key of keys) await this.delete(key)
+    return keys.length
+  }
+
   async verifyCredentials() {
     return { ok: true, message: 'In-memory storage needs no credentials.' }
   }

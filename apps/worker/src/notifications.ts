@@ -9,7 +9,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
-import { type IORedis, Worker } from '@commerce/queue'
+import { fairProcessor, type IORedis, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { appEmailExtras } from './app-events'
 
 /**
@@ -27,9 +27,10 @@ export function createNotificationWorker(
     appEvents?: AppEventQueue | undefined
   },
 ) {
+  const { concurrency, perStore } = QUEUE_LIMITS.notifications
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
-    async (job) => {
+    fairProcessor(connection, NOTIFICATIONS_QUEUE, { perStore }, async (job) => {
       const { storeId, orderId, template, key, returnId, refundId } = job.data
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app
@@ -79,7 +80,7 @@ export function createNotificationWorker(
         throw new Error(failed.map((r) => `${r.channel}: ${r.error}`).join('; '))
       }
       return results
-    },
-    { connection, concurrency: 5 },
+    }),
+    { connection, concurrency },
   )
 }

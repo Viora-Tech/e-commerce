@@ -18,7 +18,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
 import {
   getProduct,
   listProductHandles,
@@ -111,6 +111,7 @@ export const productsRouter = {
 
   /** One action over many products: status, tags or delete. */
   bulk: can(permissions.PRODUCTS_WRITE)
+    .use(heavy('bulk'))
     .input(
       z.object({
         ids: z.array(z.uuid()).min(1).max(200),
@@ -134,6 +135,7 @@ export const productsRouter = {
 
   /** Rows for the CSV the browser downloads, honouring the current filter. */
   exportRows: can(permissions.PRODUCTS_READ)
+    .use(heavy('export'))
     .input(ListFiltersSchema)
     .handler(async ({ context, input }) =>
       exportRows(context.tx, await listProductIds(context.tx, { ...input, page: 1, perPage: 1 })),
@@ -141,6 +143,7 @@ export const productsRouter = {
 
   /** Dry run: parse the file and say what would change, writing nothing. */
   previewImport: can(permissions.PRODUCTS_IMPORT)
+    .use(heavy('import'))
     .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
     .handler(async ({ context, input }) => {
       const parsed = parseProductCsv(input.csv)
@@ -159,6 +162,7 @@ export const productsRouter = {
     }),
 
   import: can(permissions.PRODUCTS_IMPORT)
+    .use(heavy('import'))
     .input(z.object({ csv: z.string().min(1).max(8_000_000) }))
     .handler(({ context, input }) =>
       invalidToBadRequest(() =>

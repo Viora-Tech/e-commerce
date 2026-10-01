@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./test": "./test/reset.ts",
+    "./test/seed": "./test/seed-every-table.ts",
     "./migrate": "./src/migrate.ts"
   },
   "scripts": {

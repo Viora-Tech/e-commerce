@@ -54,3 +54,51 @@ describe('S3CompatProvider', () => {
     expect(client.send).toHaveBeenCalledOnce()
   })
 })
+
+describe('S3CompatProvider.deletePrefix', () => {
+  it('lists the prefix page by page and deletes each page in one request', async () => {
+    const pages = [
+      {
+        Contents: [{ Key: 'media/stores/s1/a.png' }, { Key: 'media/stores/s1/b.png' }],
+        IsTruncated: true,
+        NextContinuationToken: 't2',
+      },
+      { Contents: [{ Key: 'media/stores/s1/c.png' }], IsTruncated: false },
+    ]
+    const sent: { name: string; input: Record<string, unknown> }[] = []
+    const client = {
+      send: vi.fn(
+        async (cmd: { constructor: { name: string }; input: Record<string, unknown> }) => {
+          sent.push({ name: cmd.constructor.name, input: cmd.input })
+          return cmd.constructor.name === 'ListObjectsV2Command' ? pages.shift() : {}
+        },
+      ),
+    } as unknown as S3Client
+    const provider = new FakeProvider(
+      client,
+      { bucket: 'bucket', publicBaseUrl: 'https://cdn.example.test', keyPrefix: 'media' },
+      { client },
+    )
+    expect(await provider.deletePrefix('stores/s1/')).toBe(3)
+    expect(sent.map((s) => s.name)).toEqual([
+      'ListObjectsV2Command',
+      'DeleteObjectsCommand',
+      'ListObjectsV2Command',
+      'DeleteObjectsCommand',
+    ])
+    // The deployment key prefix is applied once, and the second page follows the token.
+    expect(sent[0]?.input.Prefix).toBe('media/stores/s1/')
+    expect(sent[2]?.input.ContinuationToken).toBe('t2')
+    expect(sent[1]?.input.Delete).toEqual({
+      Objects: [{ Key: 'media/stores/s1/a.png' }, { Key: 'media/stores/s1/b.png' }],
+      Quiet: true,
+    })
+  })
+
+  it('refuses a prefix that is not a folder, so stores/ab never matches stores/abc', async () => {
+    const { provider, client } = fake()
+    await expect(provider.deletePrefix('stores/ab')).rejects.toThrow()
+    await expect(provider.deletePrefix('/')).rejects.toThrow()
+    expect(client.send).not.toHaveBeenCalled()
+  })
+})
