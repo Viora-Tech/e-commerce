@@ -1,7 +1,7 @@
 'use client'
 
 import type { BusinessGstView, LocationBillingView } from '@commerce/core'
-import { MapPinLineIcon, TriangleAlert } from '@commerce/ui/icons'
+import { MapPinLineIcon, Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -14,6 +14,9 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import PageHeader from '@/components/layout/page-header'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
@@ -26,10 +29,15 @@ type LocationsSettingsProps = {
 export default function LocationsSettings({ view }: LocationsSettingsProps) {
   // Hooks
   const { locations: copy } = useCopy(businessGstContent)
+  const router = useRouter()
+  const [adding, setAdding] = useState(false)
 
   // Helpers
   const gstinOf = (l: LocationBillingView) =>
     view.registrations.find((r) => r.id === l.gstRegistrationId)?.gstin ?? null
+
+  // Event handlers
+  const handleCreated = () => router.refresh()
 
   return (
     <div className="flex flex-col gap-4">
@@ -37,6 +45,12 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
         title={copy.title}
         subtitle={copy.intro}
         icon={<MapPinLineIcon aria-hidden="true" />}
+        actions={
+          <Button onClick={() => setAdding(true)}>
+            <Plus aria-hidden="true" />
+            {copy.add}
+          </Button>
+        }
       />
       <Card className="gap-0 p-0">
         <CardHeader className="px-4 pt-4 pb-3">
@@ -89,6 +103,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
           </TableBody>
         </Table>
       </Card>
+      <AddLocationDialog open={adding} onOpenChange={setAdding} onCreated={handleCreated} />
     </div>
   )
 }

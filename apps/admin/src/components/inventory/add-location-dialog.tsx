@@ -11,8 +11,16 @@ import {
 } from '@commerce/ui/shadcn/dialog'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { INDIAN_STATES } from '@/data/india'
 import { locationsContent as copy } from '@/data/inventory'
 import { api } from '@/lib/api-client'
 import type { StoreLocation } from './location-select'
@@ -30,9 +38,11 @@ const EMPTY: Draft = { name: '', line1: '', city: '', stateCode: '', pincode: ''
 const FIELDS = [
   { key: 'line1', label: copy.line1, span: true },
   { key: 'city', label: copy.city, span: false },
-  { key: 'stateCode', label: copy.stateCode, span: false },
   { key: 'pincode', label: copy.pincode, span: false },
 ] as const
+
+/** The state decides which GST number the location can bill under, so it is picked, not typed. */
+const STATE_ITEMS = INDIAN_STATES.map((s) => ({ value: s.code, label: s.name }))
 
 /** Name and address of a new stock location; it does not sell online by default. */
 export default function AddLocationDialog({
@@ -100,6 +110,25 @@ export default function AddLocationDialog({
               />
             </Field>
           ))}
+          <Field className="col-span-2">
+            <FieldLabel htmlFor="location-state">{copy.stateCode}</FieldLabel>
+            <Select
+              items={STATE_ITEMS}
+              value={draft.stateCode || null}
+              onValueChange={(code) => code && setDraft({ ...draft, stateCode: String(code) })}
+            >
+              <SelectTrigger id="location-state" className="w-full">
+                <SelectValue placeholder={copy.statePlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {STATE_ITEMS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
