@@ -150,11 +150,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
               product={product}
               onAddToCart={addLineAction}
               UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
-              belowBuy={
-                s.showDeliveryEstimate === false ? undefined : (
-                  <DeliveryEstimateWidget />
-                )
-              }
+              belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
               NotifyMe={bis.installed ? NotifyMeForm : undefined}
               notifyMeProps={bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : undefined}
             />

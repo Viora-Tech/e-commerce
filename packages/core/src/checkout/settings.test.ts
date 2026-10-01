@@ -237,12 +237,18 @@ describe('checkoutRuleSubtotalPaise (D-07)', () => {
     }
     // ₹800 of shoes plus a ₹5,000 card: still ₹200 short of a ₹1,000 minimum.
     expect(() =>
-      checkCheckoutRules(rules, { ...order, ruleSubtotalPaise: checkoutRuleSubtotalPaise([shoes, card], 0) }),
+      checkCheckoutRules(rules, {
+        ...order,
+        ruleSubtotalPaise: checkoutRuleSubtotalPaise([shoes, card], 0),
+      }),
     ).toThrow(expect.objectContaining({ rule: 'minimum_order', amountPaise: 20_000 }))
     // ₹1,200 of shoes plus the card: COD stays open under a ₹1,500 limit.
     const more = { ...shoes, quantity: 3 }
     expect(() =>
-      checkCheckoutRules(rules, { ...order, ruleSubtotalPaise: checkoutRuleSubtotalPaise([more, card], 0) }),
+      checkCheckoutRules(rules, {
+        ...order,
+        ruleSubtotalPaise: checkoutRuleSubtotalPaise([more, card], 0),
+      }),
     ).not.toThrow()
   })
 })

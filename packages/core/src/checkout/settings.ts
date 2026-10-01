@@ -127,7 +127,10 @@ export function checkoutRuleSubtotalPaise(
   lines: readonly { giftCard: boolean; quantity: number; unitPricePaise: number }[],
   discountPaise: number,
 ): number {
-  const goods = lines.reduce((sum, l) => (l.giftCard ? sum : sum + l.quantity * l.unitPricePaise), 0)
+  const goods = lines.reduce(
+    (sum, l) => (l.giftCard ? sum : sum + l.quantity * l.unitPricePaise),
+    0,
+  )
   return Math.max(0, goods - Math.max(0, discountPaise))
 }
 

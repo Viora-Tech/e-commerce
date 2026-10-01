@@ -13,7 +13,10 @@ import { inStore } from './store-context'
  * is checked against the store the request's hostname resolves to, so a link
  * from one store can never change a customer of another.
  */
-async function withToken(token: string, fn: (storeId: string, customerId: string) => Promise<unknown>) {
+async function withToken(
+  token: string,
+  fn: (storeId: string, customerId: string) => Promise<unknown>,
+) {
   const storeId = await requestStoreId()
   const v = verifyUnsubscribeToken(token, loadEnv(process.env).SETTINGS_SECRET)
   if (!v || v.storeId !== storeId) return

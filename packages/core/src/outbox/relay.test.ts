@@ -156,7 +156,7 @@ describe('relayStoreOutbox', () => {
       storeId: string
       orderId: string
       template: string
-      signupId?: string
+      signupId?: string | undefined
     }>()
     const outcome = await relayStoreOutbox(
       { db: app, plugins, notifications: notifications.queue },

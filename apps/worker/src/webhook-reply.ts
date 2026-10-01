@@ -35,9 +35,7 @@ export function rejectWebhook(
 export function peerAddress(c: Context): string | null {
   // Bun passes its server as the second `fetch` argument, which Hono exposes as `c.env`.
   // (`hono/bun`'s getConnInfo does the same but needs the Bun global at import time.)
-  const server = c.env as
-    | { requestIP?: (req: Request) => { address?: string } | null }
-    | undefined
+  const server = c.env as { requestIP?: (req: Request) => { address?: string } | null } | undefined
   try {
     return server?.requestIP?.(c.req.raw)?.address ?? null
   } catch {

@@ -79,9 +79,7 @@ export default function ThankYouTemplate({
           {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
         </p>
         {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={due} /> : null}
-        {qr ? (
-          <UpiQrPayment orderNumber={o.number} qr={qr} amountLabel={due} />
-        ) : null}
+        {qr ? <UpiQrPayment orderNumber={o.number} qr={qr} amountLabel={due} /> : null}
         {balance}
         <ul className="cart-items__list thank-you__lines">
           {lines.map((l) => (

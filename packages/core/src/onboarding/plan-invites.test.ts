@@ -131,7 +131,9 @@ describe('refunded or cancelled plan orders lose their invite (D-05)', () => {
     await owner.update(signupInvite).set({ usedAt: new Date() })
     await createSignupInvite(app, 'someone@else.in')
     await owner.update(order).set({ paymentStatus: 'refunded' })
-    expect(await revokePlanInvitesForOrder(app, { storeId, orderId, salesStoreId: storeId })).toEqual({
+    expect(
+      await revokePlanInvitesForOrder(app, { storeId, orderId, salesStoreId: storeId }),
+    ).toEqual({
       revoked: 0,
       alreadyUsed: 1,
     })

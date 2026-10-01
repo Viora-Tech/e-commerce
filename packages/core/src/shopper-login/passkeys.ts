@@ -204,7 +204,11 @@ export async function verifyPasskeyLogin(
   input: PasskeyContext & { response: unknown; challenge: unknown },
   now: Date = new Date(),
 ): Promise<{ ok: true; customerId: string } | { ok: false; reason: 'invalid' }> {
-  const kept = await takeChallenge(ctx, input.challenge, { kind: 'passkey_login', rpId: input.rpId, now })
+  const kept = await takeChallenge(ctx, input.challenge, {
+    kind: 'passkey_login',
+    rpId: input.rpId,
+    now,
+  })
   const response = input.response as AuthenticationResponseJSON | null
   if (!kept || !response || typeof response.id !== 'string') {
     return { ok: false, reason: 'invalid' }

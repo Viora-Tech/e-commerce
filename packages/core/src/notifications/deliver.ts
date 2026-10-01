@@ -351,7 +351,12 @@ export async function deliverNewsletterConfirm(
       providerRef: r.ok ? r.providerRef : null,
       error: r.ok ? null : r.error,
     })
-    results.push({ channel: channel.id, to: signup.email, ok: r.ok, error: r.ok ? undefined : r.error })
+    results.push({
+      channel: channel.id,
+      to: signup.email,
+      ok: r.ok,
+      error: r.ok ? undefined : r.error,
+    })
   }
   return results
 }

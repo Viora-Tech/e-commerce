@@ -9,13 +9,12 @@ import {
   storeDomain,
   withStore,
 } from '@commerce/db'
-import type { NotificationChannel } from '@commerce/notifications'
 import { resetDb } from '@commerce/db/test'
+import type { NotificationChannel } from '@commerce/notifications'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { deliverNewsletterConfirm } from '../notifications/deliver'
 import {
   confirmNewsletterSignup,
-  grantNewsletterConsent,
   newsletterConfirmToken,
   newsletterSignupForToken,
   requestNewsletterSignup,
@@ -55,7 +54,7 @@ function fakeEmail() {
   return { sent, channel }
 }
 
-const tokenFor = async (storeId: string, email: string) => {
+const tokenFor = async (_storeId: string, email: string) => {
   const [row] = await owner.select().from(newsletterSignup)
   if (!row || row.email !== email) throw new Error('no signup')
   return newsletterConfirmToken(row, SECRET)
@@ -65,7 +64,9 @@ describe('newsletter double opt-in (D-09)', () => {
   it('a signup records nothing on a customer and queues one confirm email through the outbox', async () => {
     const storeId = await makeStore()
     expect(
-      await inStore(storeId, (tx) => requestNewsletterSignup(tx, storeId, ' Asha@Example.com ', NOW)),
+      await inStore(storeId, (tx) =>
+        requestNewsletterSignup(tx, storeId, ' Asha@Example.com ', NOW),
+      ),
     ).toBe('sent')
     expect(await owner.select().from(customer)).toHaveLength(0)
     const [signup] = await owner.select().from(newsletterSignup)
@@ -153,7 +154,9 @@ describe('newsletter double opt-in (D-09)', () => {
       await inStore(other, (tx) => confirmNewsletterSignup(tx, other, token, SECRET, NOW)),
     ).toEqual({ ok: false })
     expect(
-      await inStore(storeId, (tx) => confirmNewsletterSignup(tx, storeId, `${token}x`, SECRET, NOW)),
+      await inStore(storeId, (tx) =>
+        confirmNewsletterSignup(tx, storeId, `${token}x`, SECRET, NOW),
+      ),
     ).toEqual({ ok: false })
     const late = new Date(NOW.getTime() + 8 * 24 * 60 * 60 * 1000)
     expect(
@@ -170,7 +173,9 @@ describe('newsletter double opt-in (D-09)', () => {
       acceptsMarketing: false,
       unsubscribedAt: new Date('2026-01-01'),
     })
-    await inStore(storeId, (tx) => grantNewsletterConsent(tx, storeId, 'gone@example.com', NOW))
+    await inStore(storeId, (tx) => requestNewsletterSignup(tx, storeId, 'gone@example.com', NOW))
+    const token = await tokenFor(storeId, 'gone@example.com')
+    await inStore(storeId, (tx) => confirmNewsletterSignup(tx, storeId, token, SECRET, NOW))
     const [c] = await owner.select().from(customer)
     expect(c).toMatchObject({
       acceptsMarketing: true,

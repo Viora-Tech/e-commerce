@@ -544,7 +544,11 @@ describe('Truecaller', () => {
     expect(await owner.select().from(customerLoginTicket)).toHaveLength(0)
     // Linked now: the next Truecaller sign-in is one tap again.
     const again = await run(storeId, (ctx) =>
-      startTruecaller(ctx, { secret: SECRET, random: Buffer.alloc(12, 4), nextPath: '/', remember: false }, later),
+      startTruecaller(
+        ctx,
+        { secret: SECRET, random: Buffer.alloc(12, 4), nextPath: '/', remember: false },
+        later,
+      ),
     )
     expect(await callback(again)).toBe('ready')
   })
@@ -631,7 +635,11 @@ describe('other sign-in pieces', () => {
     const forHost = await fresh()
     expect(
       await run(storeId, (ctx) =>
-        verifyPasskeyLogin(ctx, { ...px, rpId: 'evil.in', response: forged, challenge: forHost }, NOW),
+        verifyPasskeyLogin(
+          ctx,
+          { ...px, rpId: 'evil.in', response: forged, challenge: forHost },
+          NOW,
+        ),
       ),
     ).toEqual({ ok: false, reason: 'invalid' })
     const late = await fresh()

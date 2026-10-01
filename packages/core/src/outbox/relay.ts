@@ -109,7 +109,8 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       orderId: payload.orderId,
       salesStoreId: deps.salesStoreId,
     })
-    if (r.revoked > 0) deps.log?.(`plan order ${payload.orderId}: ${r.revoked} signup invite(s) expired`)
+    if (r.revoked > 0)
+      deps.log?.(`plan order ${payload.orderId}: ${r.revoked} signup invite(s) expired`)
     if (r.alreadyUsed > 0) {
       deps.log?.(`plan order ${payload.orderId}: refunded or cancelled after its invite was used`)
     }

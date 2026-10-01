@@ -67,7 +67,10 @@ const run = <T>(storeId: string, fn: (ctx: { storeId: string; tx: StoreTx }) => 
 async function storeWithPasskey() {
   const [s] = await owner.insert(store).values({ slug: 'waimers', name: 'Waimers' }).returning()
   const storeId = s?.id as string
-  const [c] = await owner.insert(customer).values({ storeId, email: 'asha@example.com' }).returning()
+  const [c] = await owner
+    .insert(customer)
+    .values({ storeId, email: 'asha@example.com' })
+    .returning()
   const customerId = c?.id as string
   await owner.insert(customerPasskey).values({
     storeId,
@@ -87,7 +90,11 @@ describe('passkey sign-in challenges', () => {
     expect(options.userVerification).toBe('required')
     expect(challenge).not.toContain(options.challenge)
     const [row] = await owner.select().from(customerLoginTicket)
-    expect(row).toMatchObject({ kind: 'passkey_login', challenge: options.challenge, returnUrl: PX.rpId })
+    expect(row).toMatchObject({
+      kind: 'passkey_login',
+      challenge: options.challenge,
+      returnUrl: PX.rpId,
+    })
     expect(row?.tokenHash).not.toBe(challenge)
   })
 

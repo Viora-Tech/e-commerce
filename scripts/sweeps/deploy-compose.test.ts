@@ -50,7 +50,10 @@ describe('sweep: deploy-compose', () => {
   it('passes every app setting from env.ts to the apps', () => {
     const block = appEnvBlock()
     const missing = schemaKeys().filter((k) => !(k in NOT_FOR_APPS) && !block.includes(`${k}:`))
-    expect(missing, `add to x-app-env in deploy/docker-compose.prod.yml: ${missing.join(', ')}`).toEqual([])
+    expect(
+      missing,
+      `add to x-app-env in deploy/docker-compose.prod.yml: ${missing.join(', ')}`,
+    ).toEqual([])
   })
 
   it('documents every app setting in deploy/env.production.example', () => {

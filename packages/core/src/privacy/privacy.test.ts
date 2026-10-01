@@ -696,9 +696,7 @@ describe('marketing consent', () => {
     expect(cu?.unsubscribedAt).not.toBeNull()
 
     // Signing up again is a fresh opt in once the confirm link is used (double opt-in).
-    await withStore(app, storeId, (tx) =>
-      requestNewsletterSignup(tx, storeId, 'asha@example.com'),
-    )
+    await withStore(app, storeId, (tx) => requestNewsletterSignup(tx, storeId, 'asha@example.com'))
     ;[cu] = await owner.select().from(customer).where(eq(customer.id, customerId))
     expect(cu?.acceptsMarketing).toBe(false)
     const [signup] = await owner.select().from(newsletterSignup)

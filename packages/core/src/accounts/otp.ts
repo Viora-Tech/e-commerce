@@ -185,7 +185,11 @@ export async function checkPhoneLoginCode(
   rawCode: unknown,
   now: Date = new Date(),
 ): Promise<{ ok: true } | { ok: false; reason: 'invalid' | 'expired' | 'locked' }> {
-  const checked = await checkCode(ctx, { purpose: 'login', destination: mobile, code: rawCode }, now)
+  const checked = await checkCode(
+    ctx,
+    { purpose: 'login', destination: mobile, code: rawCode },
+    now,
+  )
   return checked.ok ? { ok: true } : checked
 }
 

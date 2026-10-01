@@ -21,7 +21,7 @@ const RESEND_AFTER_MS = 2 * 60 * 1000
  * does. Only for an address that proved it is the shopper's: the confirm link (double
  * opt-in, security audit D-09). Returns the customer id, or null for an invalid email.
  */
-export async function grantNewsletterConsent(
+async function grantNewsletterConsent(
   tx: StoreTx,
   storeId: string,
   rawEmail: unknown,
@@ -162,8 +162,13 @@ export async function confirmNewsletterSignup(
     .where(and(eq(newsletterSignup.id, found.id), eq(newsletterSignup.status, 'pending')))
     .returning({ id: newsletterSignup.id })
   if (!claimed) {
-    const [c] = await tx.select({ id: customer.id }).from(customer).where(eq(customer.email, found.email))
-    return c ? { ok: true, email: found.email, customerId: c.id, alreadyConfirmed: true } : { ok: false }
+    const [c] = await tx
+      .select({ id: customer.id })
+      .from(customer)
+      .where(eq(customer.email, found.email))
+    return c
+      ? { ok: true, email: found.email, customerId: c.id, alreadyConfirmed: true }
+      : { ok: false }
   }
   const customerId = await grantNewsletterConsent(tx, storeId, found.email, now)
   if (!customerId) return { ok: false }

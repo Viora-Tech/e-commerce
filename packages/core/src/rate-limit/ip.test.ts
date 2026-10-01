@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: client IP tests (security audit D-01) — which forwarded header is believed under TRUSTED_PROXY, peer fallback, junk values */
 import { describe, expect, it } from 'vitest'
 import { clientIp } from './ip'
 
@@ -28,9 +29,9 @@ describe('clientIp (security audit D-01)', () => {
   })
 
   it('ignores junk in the header and unwraps IPv4-mapped peers', () => {
-    expect(clientIp(headers({ 'cf-connecting-ip': 'a b; drop' }), { trustedProxy: 'cloudflare' })).toBe(
-      'unknown',
-    )
+    expect(
+      clientIp(headers({ 'cf-connecting-ip': 'a b; drop' }), { trustedProxy: 'cloudflare' }),
+    ).toBe('unknown')
     expect(clientIp(headers({}), { trustedProxy: 'none', peer: '::ffff:203.0.113.7' })).toBe(
       '203.0.113.7',
     )

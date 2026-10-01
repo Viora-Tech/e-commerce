@@ -38,8 +38,6 @@ import { accountContent } from '@/data/account'
 import { currentCustomer } from './customer-session'
 import { devOtpEnabled, rememberDevOtp } from './dev-otp'
 import { clientIp, rateLimited } from './rate-limit'
-import { truecallerStartAllowed } from './sign-in-buttons'
-import { codeChannelDeps, devChannels, storeSignIn } from './sign-in-methods'
 import {
   cookieSecure,
   ONE_TAP_COOKIE,
@@ -52,6 +50,8 @@ import {
   TRUECALLER_COOKIE,
   takeCookie,
 } from './shopper-login'
+import { truecallerStartAllowed } from './sign-in-buttons'
+import { codeChannelDeps, devChannels, storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
 
 /*

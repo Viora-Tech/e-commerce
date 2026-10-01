@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { listFiles, toRel } from './walk'
 
-const STORE_PARAM = /^export\s+async\s+function\s+(\w+)\s*\(\s*(storeId|_storeId|bound|store)\s*[:,)]/gm
+const STORE_PARAM =
+  /^export\s+async\s+function\s+(\w+)\s*\(\s*(storeId|_storeId|bound|store)\s*[:,)]/gm
 
 function offenders(source: string): string[] {
   return [...source.matchAll(STORE_PARAM)].map((m) => `${m[1]}(${m[2]})`)
@@ -17,12 +18,12 @@ function offenders(source: string): string[] {
 
 describe('sweep: storefront-action-store', () => {
   it('spots an action whose first parameter is a store id', () => {
-    expect(offenders("export async function addLineAction(\n  storeId: string,\n  id: string,\n) {}")).toEqual([
-      'addLineAction(storeId)',
-    ])
-    expect(offenders('export async function subscribeAction(bound: string, form: FormData) {}')).toEqual([
-      'subscribeAction(bound)',
-    ])
+    expect(
+      offenders('export async function addLineAction(\n  storeId: string,\n  id: string,\n) {}'),
+    ).toEqual(['addLineAction(storeId)'])
+    expect(
+      offenders('export async function subscribeAction(bound: string, form: FormData) {}'),
+    ).toEqual(['subscribeAction(bound)'])
     expect(offenders('export async function addLineAction(variantId: string) {}')).toEqual([])
   })
 

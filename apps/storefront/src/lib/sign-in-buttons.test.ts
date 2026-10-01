@@ -53,7 +53,10 @@ describe('quick sign-in buttons (enabled methods only)', () => {
   it('shows passkeys only where the browser supports them', () => {
     expect(quickSignInButtons({ ...base, passkeys: true }, phone)).toEqual([{ kind: 'passkey' }])
     expect(
-      quickSignInButtons({ ...base, passkeys: true }, { android: true, webauthn: false, topLevel: true }),
+      quickSignInButtons(
+        { ...base, passkeys: true },
+        { android: true, webauthn: false, topLevel: true },
+      ),
     ).toEqual([])
   })
 

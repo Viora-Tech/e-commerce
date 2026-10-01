@@ -1,6 +1,6 @@
 import { createMemoryRateLimitStore } from '@commerce/core'
 import type { Db } from '@commerce/db'
-import type { Context } from 'hono'
+import type { Context, Hono } from 'hono'
 import { describe, expect, it, vi } from 'vitest'
 import { paymentWebhooks } from './payments'
 import { shipmentWebhooks } from './shipments-webhook'
@@ -22,13 +22,14 @@ const emptyDb = {
     }),
 } as unknown as Db
 
-async function answer(app: { request: (path: string, init: RequestInit) => Promise<Response> }, path: string) {
+async function answer(app: Hono, path: string) {
   const res = await app.request(path, { method: 'POST', body: '{}' })
   return { status: res.status, body: await res.text() }
 }
 
 describe('peerAddress (D-01)', () => {
-  const ctx = (env: unknown) => ({ env, req: { raw: new Request('http://w/') } }) as unknown as Context
+  const ctx = (env: unknown) =>
+    ({ env, req: { raw: new Request('http://w/') } }) as unknown as Context
 
   it('reads the socket address Bun hands the app', () => {
     expect(peerAddress(ctx({ requestIP: () => ({ address: '203.0.113.9' }) }))).toBe('203.0.113.9')
