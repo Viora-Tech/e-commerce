@@ -92,15 +92,33 @@ export const customerPasskey = pgTable(
   ],
 )
 
-const LOGIN_TICKET_KINDS = ['handoff', 'truecaller', 'magic_link'] as const
-const LOGIN_TICKET_STATUSES = ['pending', 'ready', 'verify_email', 'failed'] as const
+const LOGIN_TICKET_KINDS = [
+  'handoff',
+  'truecaller',
+  'magic_link',
+  'passkey_register',
+  'passkey_login',
+] as const
+const LOGIN_TICKET_STATUSES = [
+  'pending',
+  'ready',
+  'verify_email',
+  'verify_phone',
+  'phone_code_sent',
+  'failed',
+] as const
 
 /**
  * A login in flight. `handoff`: minted on the platform login domain after a provider
  * sign-in, redeemed once on the store's domain. `truecaller`: created when the shopper
  * taps the button, filled in by Truecaller's server callback, redeemed once by the
- * browser that started it. `magic_link`: a sign-in link emailed to `email`, spent on first
- * use. Only the token's hash is stored; rows live minutes.
+ * browser that started it; when the number belongs to an existing customer who never
+ * used Truecaller here, it waits on a phone code first (`verify_phone`, then
+ * `phone_code_sent`; security audit D-03). `magic_link`: a sign-in link emailed to
+ * `email`, spent on first use. `passkey_register` / `passkey_login`: the WebAuthn
+ * `challenge` for the browser whose cookie hashes to `token_hash` (and `customer_id` when
+ * registering), on the rpID kept in `return_url`; spent on first use (D-04). Only the
+ * token's hash is stored; rows live minutes.
  */
 export const customerLoginTicket = pgTable(
   'customer_login_ticket',
@@ -123,6 +141,8 @@ export const customerLoginTicket = pgTable(
     subject: text('subject'),
     email: text('email'),
     name: text('name'),
+    /** The WebAuthn challenge a passkey ticket waits for. */
+    challenge: text('challenge'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: createdAt(),
   },
@@ -131,11 +151,11 @@ export const customerLoginTicket = pgTable(
     index('customer_login_ticket_expires').on(t.storeId, t.expiresAt),
     check(
       'customer_login_ticket_kind_check',
-      sql`${t.kind} in ('handoff', 'truecaller', 'magic_link')`,
+      sql`${t.kind} in ('handoff', 'truecaller', 'magic_link', 'passkey_register', 'passkey_login')`,
     ),
     check(
       'customer_login_ticket_status_check',
-      sql`${t.status} in ('pending', 'ready', 'verify_email', 'failed')`,
+      sql`${t.status} in ('pending', 'ready', 'verify_email', 'verify_phone', 'phone_code_sent', 'failed')`,
     ),
   ],
 )

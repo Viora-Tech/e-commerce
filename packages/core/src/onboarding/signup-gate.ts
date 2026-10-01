@@ -31,7 +31,7 @@ async function cancelLiveInvite(db: Db, email: string): Promise<void> {
 export async function createSignupInvite(
   db: Db,
   email: string,
-  opts: { expiresInMs?: number } = {},
+  opts: { expiresInMs?: number; planOrderId?: string } = {},
 ): Promise<SignupInviteRecord> {
   await cancelLiveInvite(db, email)
   const expiresInMs = opts.expiresInMs ?? 14 * 24 * 60 * 60 * 1000
@@ -42,6 +42,7 @@ export async function createSignupInvite(
       email: norm(email),
       token: newId(),
       expiresAt: new Date(Date.now() + expiresInMs),
+      planOrderId: opts.planOrderId ?? null,
     })
     .returning()
   if (!row) throw new Error('signup invite insert failed')

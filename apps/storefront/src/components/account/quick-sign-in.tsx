@@ -22,12 +22,17 @@ const copy = accountContent.login
 export default function QuickSignIn({ options, returnTo, remember }: QuickSignInProps) {
   // Hooks
   // Before hydration nothing device-specific shows, so server and client markup agree.
-  const [device, setDevice] = useState<DeviceHints>({ android: false, webauthn: false })
+  const [device, setDevice] = useState<DeviceHints>({
+    android: false,
+    webauthn: false,
+    topLevel: false,
+  })
 
   useEffect(() => {
     setDevice({
       android: /Android/i.test(navigator.userAgent),
       webauthn: typeof window.PublicKeyCredential === 'function',
+      topLevel: window.top === window.self,
     })
   }, [])
 

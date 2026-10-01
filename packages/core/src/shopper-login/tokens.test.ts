@@ -204,10 +204,10 @@ describe('linking rule', () => {
     })
   })
 
-  it('links a verified mobile (Truecaller) by phone', () => {
+  it('links a verified mobile (Truecaller) to an existing customer only after a phone code', () => {
     const tc = identity({ provider: 'truecaller', subject: '9876543210', mobile: '9876543210' })
     expect(decideLink(tc, { ...none, byPhone: 'c3' })).toEqual({
-      action: 'link',
+      action: 'verify_phone',
       customerId: 'c3',
     })
     expect(decideLink(tc, none)).toEqual({ action: 'create' })

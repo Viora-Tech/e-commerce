@@ -30,6 +30,10 @@ const sha256 = (value: string): string => createHash('sha256').update(value).dig
 const destinationHash = (storeId: string, purpose: OtpPurpose, destination: string) =>
   sha256(`${storeId}:${purpose}:${destination}`)
 
+/** The `customer_otp` key of a phone sign-in code for this mobile (erasure removes it). */
+export const phoneLoginOtpKey = (storeId: string, mobile: string): string =>
+  destinationHash(storeId, 'login', mobile)
+
 const codeHash = (storeId: string, purpose: OtpPurpose, destination: string, code: string) =>
   sha256(`${storeId}:${purpose}:${destination}:${code}`)
 
@@ -168,6 +172,21 @@ export async function requestPhoneLoginCode(
     now,
   )
   return minted.ok ? { ok: true, mobile, code: minted.code } : minted
+}
+
+/**
+ * Check and spend a phone sign-in code without signing anyone in. Truecaller's first link
+ * to an existing customer waits on this (security audit D-03); the same attempt limits
+ * and lockout as a phone sign-in apply, since it is the same code row.
+ */
+export async function checkPhoneLoginCode(
+  ctx: StoreContext,
+  mobile: string,
+  rawCode: unknown,
+  now: Date = new Date(),
+): Promise<{ ok: true } | { ok: false; reason: 'invalid' | 'expired' | 'locked' }> {
+  const checked = await checkCode(ctx, { purpose: 'login', destination: mobile, code: rawCode }, now)
+  return checked.ok ? { ok: true } : checked
 }
 
 export type PhoneVerifyResult =

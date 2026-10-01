@@ -2,7 +2,7 @@ import { type Db, outboxEvent, withStore } from '@commerce/db'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
-import { inviteForPaidPlanOrder } from '../onboarding/plan-invites'
+import { inviteForPaidPlanOrder, revokePlanInvitesForOrder } from '../onboarding/plan-invites'
 import { type AppEventQueue, enqueueAppEvent, installedApps } from '../plugins/events'
 import {
   OUTBOX_APP_EVENT,
@@ -97,6 +97,22 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       salesStoreId: deps.salesStoreId,
     })
     if (r.invited) deps.log?.(`plan order ${payload.orderId}: signup invite for ${r.email}`)
+  }
+  if (
+    (type === 'refund.created' || type === 'order.cancelled') &&
+    deps.salesStoreId &&
+    row.storeId === deps.salesStoreId &&
+    payload.orderId
+  ) {
+    const r = await revokePlanInvitesForOrder(deps.db, {
+      storeId: row.storeId,
+      orderId: payload.orderId,
+      salesStoreId: deps.salesStoreId,
+    })
+    if (r.revoked > 0) deps.log?.(`plan order ${payload.orderId}: ${r.revoked} signup invite(s) expired`)
+    if (r.alreadyUsed > 0) {
+      deps.log?.(`plan order ${payload.orderId}: refunded or cancelled after its invite was used`)
+    }
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(

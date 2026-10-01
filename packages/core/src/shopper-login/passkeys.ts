@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: shopper passkeys — WHAT: add a passkey to a signed-in shopper's account, sign in with one (WebAuthn, discoverable credentials), list and remove them; passkeys are registered on the store's own hostname (rpID) / WHY: a passkey is bound to one domain, so it must live on the domain the shopper actually uses, and a challenge that could be replayed or answered for another store would let the wrong person in */
 
-import { customer, customerPasskey } from '@commerce/db'
+import { customer, customerLoginTicket, customerPasskey } from '@commerce/db'
 import {
   type AuthenticationResponseJSON,
   type AuthenticatorTransportFuture,
@@ -12,16 +12,23 @@ import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, lt } from 'drizzle-orm'
 import type { StoreContext } from '../context'
-import { openToken, signToken } from './tokens'
+import { randomToken, sha256Hex } from './tokens'
 
 /*
  * @simplewebauthn/server 13 (MIT), the library Better Auth's passkey plugin
  * (`@better-auth/passkey`, https://www.better-auth.com/docs/plugins/passkey) is built on.
  * We call it directly because that plugin stores passkeys against Better Auth's global
- * users, and shoppers are per-store customers. Same defaults as the plugin: no
- * attestation, resident key required (usernameless sign-in), user verification preferred.
+ * users, and shoppers are per-store customers. Like the plugin: no attestation, resident
+ * key required (usernameless sign-in). Unlike its default, user verification is REQUIRED
+ * (security audit D-04): a passkey is the whole sign-in, so the authenticator must check
+ * the shopper (fingerprint, face, PIN), not only that a key is present.
+ *
+ * Challenges live server-side (security audit D-04): a `customer_login_ticket` row per
+ * ceremony (`passkey_register` / `passkey_login`) holding the challenge, the rpID and, when
+ * registering, the customer; the browser only keeps a random cookie whose hash finds the
+ * row. Verifying deletes the row first (single use), and it lives five minutes.
  *
  * rpID decision: the store's own hostname, the one the shopper is on. A passkey made on
  * `shop.example.in` works only there; if the store moves to another domain, the shopper
@@ -31,40 +38,66 @@ import { openToken, signToken } from './tokens'
 /** A challenge is good for 5 minutes. */
 const CHALLENGE_TTL_MS = 5 * 60 * 1000
 
-type ChallengePayload = {
-  /** The challenge the browser must sign. */
-  c: string
-  k: 'register' | 'login'
-  /** Store id and the hostname (rpID) the ceremony runs on. */
-  s: string
-  h: string
-  /** For register: the signed-in customer. */
-  u?: string | undefined
-  e: number
-}
+/** What the browser's cookie holds: the random handle of one challenge row. */
+const HANDLE = /^[A-Za-z0-9_-]{40,60}$/
+
+type CeremonyKind = 'passkey_register' | 'passkey_login'
 
 export type PasskeyContext = {
   /** The store hostname, used as rpID. */
   rpId: string
   /** The page origin, e.g. `https://shop.example.in` (`http://…:3100` in development). */
   origin: string
-  secret: string
 }
 
-const sealChallenge = (p: ChallengePayload, secret: string) => signToken(p, secret, 'passkey')
-
-function openChallenge(
-  token: unknown,
-  expect: { kind: ChallengePayload['k']; storeId: string; rpId: string; secret: string; now: Date },
-): ChallengePayload | null {
-  const opened = openToken<ChallengePayload>(token, expect.secret, 'passkey', expect.now)
-  if (!opened.ok) return null
-  const p = opened.payload
-  if (p.k !== expect.kind || p.s !== expect.storeId || p.h !== expect.rpId) return null
-  return p
+/** Keep a challenge for this browser; returns the handle the caller puts in a cookie. */
+async function storeChallenge(
+  ctx: StoreContext,
+  input: { kind: CeremonyKind; challenge: string; rpId: string; customerId?: string | undefined },
+  now: Date,
+): Promise<string> {
+  const handle = randomToken()
+  // Housekeeping: this store's dead tickets go with each new one.
+  await ctx.tx.delete(customerLoginTicket).where(lt(customerLoginTicket.expiresAt, now))
+  await ctx.tx.insert(customerLoginTicket).values({
+    storeId: ctx.storeId,
+    kind: input.kind,
+    tokenHash: sha256Hex(handle),
+    status: 'pending',
+    customerId: input.customerId ?? null,
+    returnUrl: input.rpId,
+    challenge: input.challenge,
+    expiresAt: new Date(now.getTime() + CHALLENGE_TTL_MS),
+    createdAt: now,
+  })
+  return handle
 }
 
-/** Options for adding a passkey, and the sealed challenge the caller keeps in a cookie. */
+/**
+ * Spend the challenge behind a cookie handle: deleted in the same statement that reads it,
+ * so a second answer (or a replay) finds nothing. Only this store's rows are visible (RLS).
+ */
+async function takeChallenge(
+  ctx: StoreContext,
+  handle: unknown,
+  expect: { kind: CeremonyKind; rpId: string; now: Date },
+): Promise<{ challenge: string; customerId: string | null } | null> {
+  if (typeof handle !== 'string' || !HANDLE.test(handle)) return null
+  const [row] = await ctx.tx
+    .delete(customerLoginTicket)
+    .where(
+      and(
+        eq(customerLoginTicket.tokenHash, sha256Hex(handle)),
+        eq(customerLoginTicket.kind, expect.kind),
+      ),
+    )
+    .returning()
+  if (!row?.challenge || row.returnUrl !== expect.rpId) return null
+  if (row.expiresAt.getTime() <= expect.now.getTime()) return null
+  return { challenge: row.challenge, customerId: row.customerId }
+}
+
+/** Options for adding a passkey, and the challenge handle the caller keeps in a cookie. */
 export async function passkeyRegistrationOptions(
   ctx: StoreContext,
   customerId: string,
@@ -91,18 +124,12 @@ export async function passkeyRegistrationOptions(
       id: c.credentialId,
       transports: c.transports as AuthenticatorTransportFuture[],
     })),
-    authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+    authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
   })
-  const challenge = sealChallenge(
-    {
-      c: options.challenge,
-      k: 'register',
-      s: ctx.storeId,
-      h: input.rpId,
-      u: customerId,
-      e: now.getTime() + CHALLENGE_TTL_MS,
-    },
-    input.secret,
+  const challenge = await storeChallenge(
+    ctx,
+    { kind: 'passkey_register', challenge: options.challenge, rpId: input.rpId, customerId },
+    now,
   )
   return { options, challenge }
 }
@@ -114,22 +141,20 @@ export async function verifyPasskeyRegistration(
   input: PasskeyContext & { response: unknown; challenge: unknown; name?: string | undefined },
   now: Date = new Date(),
 ): Promise<{ ok: true } | { ok: false; reason: 'invalid' }> {
-  const sealed = openChallenge(input.challenge, {
-    kind: 'register',
-    storeId: ctx.storeId,
+  const kept = await takeChallenge(ctx, input.challenge, {
+    kind: 'passkey_register',
     rpId: input.rpId,
-    secret: input.secret,
     now,
   })
-  if (!sealed || sealed.u !== customerId) return { ok: false, reason: 'invalid' }
+  if (!kept || kept.customerId !== customerId) return { ok: false, reason: 'invalid' }
   let result: Awaited<ReturnType<typeof verifyRegistrationResponse>>
   try {
     result = await verifyRegistrationResponse({
       response: input.response as RegistrationResponseJSON,
-      expectedChallenge: sealed.c,
+      expectedChallenge: kept.challenge,
       expectedOrigin: input.origin,
       expectedRPID: input.rpId,
-      requireUserVerification: false,
+      requireUserVerification: true,
     })
   } catch {
     return { ok: false, reason: 'invalid' }
@@ -157,23 +182,18 @@ export async function verifyPasskeyRegistration(
 
 /** Options for signing in with any passkey saved on this device for this store. */
 export async function passkeyLoginOptions(
-  storeId: string,
+  ctx: StoreContext,
   input: PasskeyContext,
   now: Date = new Date(),
 ): Promise<{ options: PublicKeyCredentialRequestOptionsJSON; challenge: string }> {
   const options = await generateAuthenticationOptions({
     rpID: input.rpId,
-    userVerification: 'preferred',
+    userVerification: 'required',
   })
-  const challenge = sealChallenge(
-    {
-      c: options.challenge,
-      k: 'login',
-      s: storeId,
-      h: input.rpId,
-      e: now.getTime() + CHALLENGE_TTL_MS,
-    },
-    input.secret,
+  const challenge = await storeChallenge(
+    ctx,
+    { kind: 'passkey_login', challenge: options.challenge, rpId: input.rpId },
+    now,
   )
   return { options, challenge }
 }
@@ -184,15 +204,9 @@ export async function verifyPasskeyLogin(
   input: PasskeyContext & { response: unknown; challenge: unknown },
   now: Date = new Date(),
 ): Promise<{ ok: true; customerId: string } | { ok: false; reason: 'invalid' }> {
-  const sealed = openChallenge(input.challenge, {
-    kind: 'login',
-    storeId: ctx.storeId,
-    rpId: input.rpId,
-    secret: input.secret,
-    now,
-  })
+  const kept = await takeChallenge(ctx, input.challenge, { kind: 'passkey_login', rpId: input.rpId, now })
   const response = input.response as AuthenticationResponseJSON | null
-  if (!sealed || !response || typeof response.id !== 'string') {
+  if (!kept || !response || typeof response.id !== 'string') {
     return { ok: false, reason: 'invalid' }
   }
   const [row] = await ctx.tx
@@ -212,7 +226,7 @@ export async function verifyPasskeyLogin(
   try {
     result = await verifyAuthenticationResponse({
       response,
-      expectedChallenge: sealed.c,
+      expectedChallenge: kept.challenge,
       expectedOrigin: input.origin,
       expectedRPID: input.rpId,
       credential: {
@@ -221,7 +235,7 @@ export async function verifyPasskeyLogin(
         counter: row.counter,
         transports: row.transports as AuthenticatorTransportFuture[],
       },
-      requireUserVerification: false,
+      requireUserVerification: true,
     })
   } catch {
     return { ok: false, reason: 'invalid' }

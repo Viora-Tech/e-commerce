@@ -4,6 +4,9 @@ import 'server-only'
 
 import { randomBytes } from 'node:crypto'
 import {
+  channelPhone,
+  confirmTruecallerPhone,
+  deliverCustomerCode,
   deliverLoginLink,
   openToken,
   otpLimiterId,
@@ -15,6 +18,7 @@ import {
   removeCustomerIdentity,
   removeCustomerPasskey,
   requestMagicLink,
+  requestPhoneLoginCode,
   resolveShopperIdentity,
   safeNextPath,
   signToken,
@@ -25,13 +29,17 @@ import {
   verifyPasskeyRegistration,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
+import { store } from '@commerce/db'
+import { eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { accountContent } from '@/data/account'
 import { currentCustomer } from './customer-session'
-import { devOtpEnabled } from './dev-otp'
+import { devOtpEnabled, rememberDevOtp } from './dev-otp'
 import { clientIp, rateLimited } from './rate-limit'
+import { truecallerStartAllowed } from './sign-in-buttons'
+import { codeChannelDeps, devChannels, storeSignIn } from './sign-in-methods'
 import {
   cookieSecure,
   ONE_TAP_COOKIE,
@@ -135,15 +143,18 @@ export async function redeemMagicLinkAction(token: string): Promise<ActionResult
 
 async function passkeyContext() {
   const { origin, hostname } = await requestOrigin()
-  return { rpId: hostname, origin, secret: settingsSecret() }
+  return { rpId: hostname, origin }
 }
 
-/** Start a passkey sign-in: options for the browser, challenge sealed in a cookie. */
+/** Start a passkey sign-in: options for the browser, the challenge kept server-side. */
 export async function passkeyLoginOptionsAction() {
   const sid = await storeId()
   const { settings } = await storeLoginSetup(sid)
   if (!settings.passkeys || !(await ipAllowed('passkey:ip'))) return null
-  const { options, challenge } = await passkeyLoginOptions(sid, await passkeyContext())
+  const px = await passkeyContext()
+  const { options, challenge } = await inStore(sid, (tx) =>
+    passkeyLoginOptions({ tx, storeId: sid }, px),
+  )
   await setShortCookie(PASSKEY_COOKIE, challenge, 300)
   return options
 }
@@ -230,6 +241,11 @@ export async function startTruecallerAction(
   const sid = await storeId()
   const app = await storeLoginApp(sid, 'truecaller')
   if (!app) return { ok: false, error: errors.unavailable }
+  // Only the store's own page gets a deep link (D-03).
+  const { origin } = await requestOrigin()
+  if (!truecallerStartAllowed((await headers()).get('origin'), origin)) {
+    return { ok: false, error: errors.unavailable }
+  }
   if (!(await ipAllowed('truecaller:ip'))) return { ok: false, error: errors.rateLimited }
   const secret = settingsSecret()
   const nonce = await inStore(sid, (tx) =>
@@ -239,7 +255,6 @@ export async function startTruecallerAction(
     ),
   )
   await setShortCookie(TRUECALLER_COOKIE, nonce, 600)
-  const { origin } = await requestOrigin()
   return {
     ok: true,
     link: truecallerDeepLink({
@@ -252,16 +267,80 @@ export async function startTruecallerAction(
   }
 }
 
+export type TruecallerPollResult =
+  | { state: 'pending' }
+  | { state: 'failed'; error?: string }
+  | { state: 'ready'; next: string }
+  /** The number is an existing customer's: enter the code sent to it (the number is never shown). */
+  | { state: 'verify_phone'; error?: string }
+
 /** The page asks every few seconds; a ready answer signs this browser in. */
-export async function pollTruecallerAction(): Promise<
-  { state: 'pending' } | { state: 'failed' } | { state: 'ready'; next: string }
-> {
+export async function pollTruecallerAction(): Promise<TruecallerPollResult> {
   const sid = await storeId()
   const nonce = (await cookies()).get(TRUECALLER_COOKIE)?.value ?? null
   const r = await inStore(sid, (tx) => pollTruecaller({ tx, storeId: sid }, nonce))
+  if (r.state === 'verify_phone') {
+    if (r.sendTo && !(await sendTruecallerCode(sid, r.sendTo))) {
+      await takeCookie(TRUECALLER_COOKIE)
+      return { state: 'failed', error: errors.truecallerNeedsCode }
+    }
+    return { state: 'verify_phone' }
+  }
   if (r.state !== 'ready') {
     if (r.state === 'failed') await takeCookie(TRUECALLER_COOKIE)
     return r
+  }
+  await takeCookie(TRUECALLER_COOKIE)
+  await signInCustomer(sid, r.customerId, r.remember)
+  revalidatePath('/', 'layout')
+  return { state: 'ready', next: r.nextPath }
+}
+
+/**
+ * The phone code for a Truecaller number that already belongs to a customer (D-03), by the
+ * store's own phone sign-in channel (WhatsApp first, then SMS). False when the store has
+ * no phone channel: Truecaller then cannot open that account, the shopper signs in another way.
+ */
+async function sendTruecallerCode(sid: string, mobile: string): Promise<boolean> {
+  const { methods } = await storeSignIn(sid)
+  const method = methods.includes('whatsapp') ? 'whatsapp' : methods.includes('sms') ? 'sms' : null
+  if (!method) return false
+  const r = await inStore(sid, (tx) => requestPhoneLoginCode({ tx, storeId: sid }, mobile, method))
+  if (!r.ok) return r.reason === 'too_soon'
+  const sent = await inStore(sid, async (tx) => {
+    const [s] = await tx.select({ name: store.name }).from(store).where(eq(store.id, sid))
+    return deliverCustomerCode(
+      { tx, storeId: sid },
+      {
+        method,
+        code: r.code,
+        storeName: s?.name ?? '',
+        to: { phone: channelPhone(r.mobile) },
+        template: 'login_code',
+      },
+      await codeChannelDeps(tx, sid),
+    )
+  })
+  if (devOtpEnabled() || devChannels()) {
+    console.log(`[account] Truecaller ${method} code for ${r.mobile}: ${r.code}`)
+    rememberDevOtp(sid, r.mobile, r.code)
+    return true
+  }
+  return sent > 0
+}
+
+/** The code for a Truecaller number of an existing customer: right, and this browser is in. */
+export async function confirmTruecallerCodeAction(code: string): Promise<TruecallerPollResult> {
+  const sid = await storeId()
+  if (!(await ipAllowed('truecaller-code:ip'))) {
+    return { state: 'failed', error: errors.rateLimited }
+  }
+  const nonce = (await cookies()).get(TRUECALLER_COOKIE)?.value ?? null
+  const r = await inStore(sid, (tx) => confirmTruecallerPhone({ tx, storeId: sid }, nonce, code))
+  if (!r.ok) {
+    if (r.reason === 'invalid') return { state: 'verify_phone', error: errors.truecallerCode }
+    await takeCookie(TRUECALLER_COOKIE)
+    return { state: 'failed', error: errors[r.reason === 'failed' ? 'expired' : r.reason] }
   }
   await takeCookie(TRUECALLER_COOKIE)
   await signInCustomer(sid, r.customerId, r.remember)

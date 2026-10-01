@@ -50,6 +50,9 @@ export const accountContent = {
       passkeyFailed: 'That passkey did not work here. Try again or use another way.',
       unavailable: 'That way to sign in is not available right now. Try another way.',
       failed: 'We could not sign you in. Please try again.',
+      truecallerCode: 'That code is not right. Check the message on your phone and try again.',
+      truecallerNeedsCode:
+        'This number already has an account here. Sign in with your mobile number or email instead.',
     },
     /** `?error=` after a Google, Apple or Facebook sign-in, keyed by `LoginError`. */
     providerErrors: {
@@ -78,6 +81,9 @@ export const accountContent = {
     truecallerWaiting: 'Confirm in the Truecaller app',
     truecallerMissing: 'Truecaller did not open. Use another way to sign in.',
     truecallerFailed: 'Truecaller sign-in did not finish. Use another way to sign in.',
+    truecallerCodeTitle: 'One more step',
+    truecallerCodeIntro:
+      'This number already has an account here. We sent a six digit code to it. Enter it to sign in.',
     confirmTitle: 'Confirm your email',
     confirmIntro: (email: string) =>
       `To finish signing in, we need to check that ${email} is yours. We will send a code to it.`,

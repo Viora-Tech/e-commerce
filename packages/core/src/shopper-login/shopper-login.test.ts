@@ -38,7 +38,12 @@ import {
   requestMagicLink,
 } from './tickets'
 import { sha256Hex } from './tokens'
-import { completeTruecaller, pollTruecaller, startTruecaller } from './truecaller'
+import {
+  completeTruecaller,
+  confirmTruecallerPhone,
+  pollTruecaller,
+  startTruecaller,
+} from './truecaller'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -489,29 +494,74 @@ describe('Truecaller', () => {
     })
   })
 
-  it('links the number to an existing phone customer', async () => {
+  it('asks for a phone code before linking the number to an existing customer (D-03)', async () => {
     const storeId = await makeStore()
+    const { requestPhoneLoginCode, verifyPhoneLoginCode } = await import('../accounts/otp')
     // An existing phone-code customer.
-    await run(storeId, async (ctx) => {
-      const { requestPhoneLoginCode, verifyPhoneLoginCode } = await import('../accounts/otp')
+    const existing = await run(storeId, async (ctx) => {
       const r = await requestPhoneLoginCode(ctx, '9876543210', 'sms', NOW)
       if (!r.ok) throw new Error('code')
-      await verifyPhoneLoginCode(ctx, '9876543210', r.code, SECRET, NOW)
+      const v = await verifyPhoneLoginCode(ctx, '9876543210', r.code, SECRET, NOW)
+      if (!v.ok) throw new Error('verify')
+      return v.customerId
     })
+    const later = new Date(NOW.getTime() + 60_000)
+    const callback = (nonce: string) =>
+      run(storeId, (ctx) =>
+        completeTruecaller(
+          ctx,
+          { requestId: nonce, accessToken: 't', endpoint: 'https://p.truecaller.com/x' },
+          { secret: SECRET, fetch: profileFetch({ phoneNumbers: ['+91 98765 43210'] }).fetch },
+          later,
+        ),
+      )
+    const nonce = await run(storeId, (ctx) =>
+      startTruecaller(ctx, { secret: SECRET, random, nextPath: '/cart', remember: true }, later),
+    )
+    expect(await callback(nonce)).toBe('verify_phone')
+    // The polling browser is told to ask for a code, never signed in; the number goes to
+    // the caller (to send the code) exactly once.
+    expect(await run(storeId, (ctx) => pollTruecaller(ctx, nonce, later))).toEqual({
+      state: 'verify_phone',
+      sendTo: '9876543210',
+    })
+    expect(await run(storeId, (ctx) => pollTruecaller(ctx, nonce, later))).toEqual({
+      state: 'verify_phone',
+      sendTo: null,
+    })
+    const sent = await run(storeId, (ctx) => requestPhoneLoginCode(ctx, '9876543210', 'sms', later))
+    if (!sent.ok) throw new Error('code')
+    const wrong = sent.code === '000000' ? '111111' : '000000'
+    expect(await run(storeId, (ctx) => confirmTruecallerPhone(ctx, nonce, wrong, later))).toEqual({
+      ok: false,
+      reason: 'invalid',
+    })
+    expect(await owner.select().from(customerIdentity)).toHaveLength(0)
+    expect(
+      await run(storeId, (ctx) => confirmTruecallerPhone(ctx, nonce, sent.code, later)),
+    ).toEqual({ ok: true, customerId: existing, nextPath: '/cart', remember: true })
+    expect(await owner.select().from(customer).where(eq(customer.storeId, storeId))).toHaveLength(1)
+    expect(await owner.select().from(customerLoginTicket)).toHaveLength(0)
+    // Linked now: the next Truecaller sign-in is one tap again.
+    const again = await run(storeId, (ctx) =>
+      startTruecaller(ctx, { secret: SECRET, random: Buffer.alloc(12, 4), nextPath: '/', remember: false }, later),
+    )
+    expect(await callback(again)).toBe('ready')
+  })
+
+  it('never signs in through a code for another ticket, a spent ticket or a made-up nonce', async () => {
+    const storeId = await makeStore()
+    expect(
+      await run(storeId, (ctx) => confirmTruecallerPhone(ctx, 'x'.repeat(59), '123456', NOW)),
+    ).toEqual({ ok: false, reason: 'failed' })
     const nonce = await run(storeId, (ctx) =>
       startTruecaller(ctx, { secret: SECRET, random, nextPath: '/', remember: false }, NOW),
     )
-    const f = profileFetch({ phoneNumbers: ['+91 98765 43210'] })
-    await run(storeId, (ctx) =>
-      completeTruecaller(
-        ctx,
-        { requestId: nonce, accessToken: 't', endpoint: 'https://p.truecaller.com/x' },
-        { secret: SECRET, fetch: f.fetch },
-        NOW,
-      ),
-    )
-    expect(await owner.select().from(customer).where(eq(customer.storeId, storeId))).toHaveLength(1)
-    expect(await owner.select().from(customerLoginTicket)).toHaveLength(1)
+    // Still pending: no code was ever asked for.
+    expect(await run(storeId, (ctx) => confirmTruecallerPhone(ctx, nonce, '123456', NOW))).toEqual({
+      ok: false,
+      reason: 'failed',
+    })
   })
 })
 
@@ -560,8 +610,10 @@ describe('other sign-in pieces', () => {
 
   it('refuses a passkey answer without a valid challenge', async () => {
     const storeId = await makeStore()
-    const px = { rpId: 'shop.example.in', origin: 'https://shop.example.in', secret: SECRET }
-    const { challenge } = await passkeyLoginOptions(storeId, px, NOW)
+    const px = { rpId: 'shop.example.in', origin: 'https://shop.example.in' }
+    const fresh = async () =>
+      (await run(storeId, (ctx) => passkeyLoginOptions(ctx, px, NOW))).challenge
+    const challenge = await fresh()
     const other = await makeStore('b')
     const forged = {
       id: 'cred',
@@ -576,23 +628,26 @@ describe('other sign-in pieces', () => {
         verifyPasskeyLogin(ctx, { ...px, response: forged, challenge }, NOW),
       ),
     ).toEqual({ ok: false, reason: 'invalid' })
+    const forHost = await fresh()
     expect(
       await run(storeId, (ctx) =>
-        verifyPasskeyLogin(ctx, { ...px, rpId: 'evil.in', response: forged, challenge }, NOW),
+        verifyPasskeyLogin(ctx, { ...px, rpId: 'evil.in', response: forged, challenge: forHost }, NOW),
       ),
     ).toEqual({ ok: false, reason: 'invalid' })
+    const late = await fresh()
     expect(
       await run(storeId, (ctx) =>
         verifyPasskeyLogin(
           ctx,
-          { ...px, response: forged, challenge },
+          { ...px, response: forged, challenge: late },
           new Date(NOW.getTime() + 6 * 60_000),
         ),
       ),
     ).toEqual({ ok: false, reason: 'invalid' })
+    const unknown = await fresh()
     expect(
       await run(storeId, (ctx) =>
-        verifyPasskeyLogin(ctx, { ...px, response: forged, challenge }, NOW),
+        verifyPasskeyLogin(ctx, { ...px, response: forged, challenge: unknown }, NOW),
       ),
     ).toEqual({ ok: false, reason: 'invalid' })
     const someone = await makeCustomer(storeId)

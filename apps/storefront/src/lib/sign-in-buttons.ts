@@ -11,19 +11,31 @@ export type DeviceHints = {
   android: boolean
   /** The browser can use passkeys (`PublicKeyCredential` exists). */
   webauthn: boolean
+  /** The sign-in page is the top window, not framed inside another site's page. */
+  topLevel: boolean
 }
 
 /**
  * The buttons the sign-in card shows, in order: only methods the store switched on and
  * set up, and only what this device can use. Truecaller first on Android (one tap, no
- * code), then providers in the store's order, then passkeys.
+ * code), then providers in the store's order, then passkeys. Truecaller only on the
+ * store's own page, never inside a frame (security audit D-03).
  */
 export function quickSignInButtons(options: SignInOptions, device: DeviceHints): QuickButton[] {
   const out: QuickButton[] = []
-  if (options.truecaller && device.android) out.push({ kind: 'truecaller' })
+  if (options.truecaller && device.android && device.topLevel) out.push({ kind: 'truecaller' })
   for (const provider of options.social) out.push({ kind: 'social', provider })
   if (options.passkeys && device.webauthn) out.push({ kind: 'passkey' })
   return out
+}
+
+/**
+ * Whether a Truecaller start came from the store's own page: the browser's `Origin` must be
+ * exactly the origin this request was served on (scheme, host and port). A request
+ * without one (a script, not a browser) gets no deep link either.
+ */
+export function truecallerStartAllowed(originHeader: string | null, storeOrigin: string): boolean {
+  return originHeader !== null && originHeader === storeOrigin
 }
 
 /** The store-domain URL that starts a provider sign-in. */

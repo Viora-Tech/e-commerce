@@ -212,3 +212,31 @@ export const marketingMessage = pgTable(
     index('marketing_message_campaign').on(t.campaignId, t.status),
   ],
 )
+
+/**
+ * A storefront newsletter signup waiting for its confirm link (double opt-in, security
+ * audit D-09). Nothing is recorded on a customer until the link is opened: then the
+ * customer is created or tagged and gets email marketing consent. One row per email per
+ * store; signing up again sends a fresh link. Confirmed rows stay as the proof of when
+ * the address was confirmed; erasure deletes them.
+ */
+export const newsletterSignup = pgTable(
+  'newsletter_signup',
+  {
+    id: id(),
+    storeId: storeId(),
+    email: text('email').notNull(),
+    status: text('status', { enum: ['pending', 'confirmed'] })
+      .notNull()
+      .default('pending'),
+    /** The link stops working after this; a new signup sends a new one. */
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('newsletter_signup_store_email').on(t.storeId, t.email),
+    check('newsletter_signup_status_check', sql`${t.status} in ('pending', 'confirmed')`),
+  ],
+)
