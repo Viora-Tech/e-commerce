@@ -23,7 +23,9 @@ export const aiContent = {
     photos: (n: number) => {
       const used = Math.min(n, 3)
       if (used === 0) return 'No photos yet. Add a few first for a much better description.'
-      return used === 1 ? 'It will look at your photo.' : `It will look at your first ${used} photos.`
+      return used === 1
+        ? 'It will look at your photo.'
+        : `It will look at your first ${used} photos.`
     },
     optionsSummary: (tone: string, language: string) => `${tone} tone, in ${language}`,
     change: 'Change',
