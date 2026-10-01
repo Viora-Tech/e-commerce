@@ -104,7 +104,12 @@ export default function TaxesSettings() {
         <LoadingCards />
       ) : (
         <>
-          <RegistrationCard form={form} errors={errors} onPatch={patch} />
+          <RegistrationCard
+            form={form}
+            errors={errors}
+            onPatch={patch}
+            managed={view.gstinManaged}
+          />
           <ChargingCard form={form} errors={errors} onPatch={patch} />
           <NumberingCard
             numbering={form.numbering}

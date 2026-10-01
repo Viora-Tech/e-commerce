@@ -1,4 +1,6 @@
 import {
+  adoptStoreGstin,
+  defaultRegistrationGstin,
   gstinStateOf,
   parseStoreTax,
   type TaxesForm,
@@ -56,6 +58,8 @@ export type TaxesView = {
   }
   /** Numbered invoices come from the GST invoices app; without it, numbering waits. */
   invoicesAppInstalled: boolean
+  /** Settings › Business and GST owns the GSTIN (the store has a default registration). */
+  gstinManaged: boolean
 }
 
 export class TaxesError extends Error {}
@@ -98,6 +102,7 @@ export async function getTaxes(tx: StoreTx, storeId: string): Promise<TaxesView 
       pad: series?.pad ?? 4,
     },
     invoicesAppInstalled: apps.installed.includes(GST_INVOICES_ID),
+    gstinManaged: (await defaultRegistrationGstin(tx)) !== null,
   }
 }
 
@@ -133,6 +138,8 @@ export async function saveTaxes(
 ): Promise<TaxesView | null> {
   const [s] = await tx.select({ apps: store.apps }).from(store).where(eq(store.id, storeId))
   if (!s) return null
+  // Business and GST owns the GSTIN once the store has one (see adoptStoreGstin).
+  await adoptStoreGstin(tx, storeId, input.gstin, input.legalName)
   await tx
     .update(store)
     .set({

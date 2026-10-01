@@ -422,6 +422,102 @@ export const variantOptionValue = pgTable('variant_option_value', {
 })
 
 /**
+ * SOURCE OF TRUTH: business, BUSINESS_PAYOUT_MODES, BUSINESS_ROUTE_STATUSES — WHAT one legal
+ * entity (one PAN) selling through this store / WHY GST is registered per PAN per state, and a
+ * warehouse may belong to a different legal business than the store's main one. Exactly one
+ * `is_primary` business per store (`business_one_primary`). Payout columns are for a later
+ * phase (Razorpay Route linked accounts) and are not read yet. Rules: @commerce/core
+ * tax/registrations.ts.
+ */
+const BUSINESS_PAYOUT_MODES = ['main', 'razorpay_route'] as const
+/** A check constraint's `in (...)` list, from the same array the column's enum uses. */
+const oneOf = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(', '))
+const BUSINESS_ROUTE_STATUSES = [
+  'none',
+  'created',
+  'under_review',
+  'activated',
+  'suspended',
+] as const
+
+export const business = pgTable(
+  'business',
+  {
+    id: id(),
+    storeId: storeId(),
+    /** Name on the PAN card. */
+    legalName: text('legal_name').notNull(),
+    /** Shop name, when the business trades under another name. */
+    tradeName: text('trade_name'),
+    pan: text('pan').notNull(),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    payoutMode: text('payout_mode', { enum: BUSINESS_PAYOUT_MODES }).notNull().default('main'),
+    razorpayAccountId: text('razorpay_account_id'),
+    routeStatus: text('route_status', { enum: BUSINESS_ROUTE_STATUSES }).notNull().default('none'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('business_store_pan').on(t.storeId, t.pan),
+    uniqueIndex('business_one_primary').on(t.storeId).where(sql`${t.isPrimary}`),
+    check('business_payout_mode_check', sql`${t.payoutMode} in (${oneOf(BUSINESS_PAYOUT_MODES)})`),
+    check(
+      'business_route_status_check',
+      sql`${t.routeStatus} in (${oneOf(BUSINESS_ROUTE_STATUSES)})`,
+    ),
+  ],
+)
+
+/**
+ * SOURCE OF TRUTH: gst_registration, gstRegistration, GST_REGISTRATION_TYPES — WHAT one GSTIN a business holds in one
+ * state / WHY invoices must come from the dispatching state's GSTIN, so a store can hold many.
+ * `state_code` is generated from the GSTIN's first two digits so it can never disagree. The
+ * one `is_default` row is mirrored into `store.gstin` for code that predates registrations.
+ * Rules (PAN must match the business, one default): @commerce/core tax/registrations.ts.
+ */
+const GST_REGISTRATION_TYPES = ['regular', 'composition'] as const
+
+export const gstRegistration = pgTable(
+  'gst_registration',
+  {
+    id: id(),
+    storeId: storeId(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => business.id),
+    gstin: text('gstin').notNull(),
+    /** GST's two-digit state code, e.g. '06' for Haryana. Always the GSTIN's first two characters. */
+    stateCode: text('state_code').notNull().generatedAlwaysAs(sql`left(gstin, 2)`),
+    registrationType: text('registration_type', { enum: GST_REGISTRATION_TYPES })
+      .notNull()
+      .default('regular'),
+    /** Principal place of business in this state: { line1, line2, city, pincode }. */
+    legalAddress: jsonb('legal_address'),
+    tradeName: text('trade_name'),
+    email: text('email'),
+    phone: text('phone'),
+    /** Up to 5 characters printed before invoice numbers from this GSTIN (used from phase 3). */
+    invoicePrefix: text('invoice_prefix'),
+    effectiveFrom: date('effective_from'),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
+    isDefault: boolean('is_default').notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('gst_registration_store_gstin').on(t.storeId, t.gstin),
+    uniqueIndex('gst_registration_one_default').on(t.storeId).where(sql`${t.isDefault}`),
+    index('gst_registration_business').on(t.businessId),
+    check(
+      'gst_registration_type_check',
+      sql`${t.registrationType} in (${oneOf(GST_REGISTRATION_TYPES)})`,
+    ),
+    check(
+      'gst_registration_invoice_prefix_check',
+      sql`${t.invoicePrefix} is null or char_length(${t.invoicePrefix}) <= 5`,
+    ),
+  ],
+)
+
+/**
  * Where stock physically sits. Every store has exactly one default location,
  * created with the store (or by the inventory_level insert trigger), and it is
  * the one that fulfils online orders.
@@ -443,6 +539,8 @@ export const location = pgTable(
     active: boolean('active').notNull().default(true),
     /** Stock here is what the storefront sells and orders reserve. */
     fulfilsOnlineOrders: boolean('fulfils_online_orders').notNull().default(false),
+    /** The GSTIN goods dispatched from here are billed under. Null: not chosen yet. */
+    gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('location_one_default').on(t.storeId).where(sql`${t.isDefault}`)],

@@ -16,7 +16,7 @@ The commerce core, from `packages/db/src/schema.ts`. Money is always integer pai
 (`price_paise`, `total_paise`), ids are UUIDv7 generated in the app, and every table here also
 has `store_id` (left off the diagrams to keep them readable).
 
-<Tabs items={['Orders and money', 'Catalogue', 'Themes']}>
+<Tabs items={['Orders and money', 'Catalogue', 'Themes', 'Businesses and GST']}>
 <Tabs.Tab>
 
 ```mermaid
@@ -154,6 +154,60 @@ erDiagram
     jsonb draft "unsaved editor changes"
   }
 ```
+
+</Tabs.Tab>
+<Tabs.Tab>
+
+GST is registered per PAN per state, so one store can hold several GSTINs, and a warehouse may
+belong to a different legal business. Added in migration `0080_gst_registrations` (phase 1:
+recorded and linked only; tax and invoices still read `store.gstin`). Rules:
+`packages/core/src/tax/registrations.ts`.
+
+```mermaid
+erDiagram
+  store ||--o{ business : "sells as"
+  business ||--o{ gst_registration : "one GSTIN per state"
+  gst_registration |o--o{ location : "bills for"
+
+  business {
+    uuid id PK
+    text legal_name
+    text pan "unique per store"
+    bool is_primary "exactly one per store"
+    text payout_mode "main, razorpay_route (later phase)"
+    text route_status "none ... activated (later phase)"
+  }
+  gst_registration {
+    uuid id PK
+    uuid business_id FK
+    text gstin "unique per store; chars 3-12 = business.pan"
+    text state_code "generated: left(gstin, 2)"
+    text registration_type "regular, composition"
+    jsonb legal_address
+    text invoice_prefix "up to 5 chars"
+    timestamptz cancelled_at
+    bool is_default "exactly one per store; mirrored to store.gstin"
+  }
+  location {
+    uuid id PK
+    text state_code "two letters, e.g. HR"
+    uuid gst_registration_id FK "nullable"
+  }
+```
+
+- **PAN must match.** A GSTIN's characters 3 to 12 are the holder's PAN; the service refuses a
+  GSTIN whose PAN is not its business's (`PAN_MISMATCH`). The database cannot check this across
+  tables, so only `addRegistration` inserts rows.
+- **`store.gstin` is a mirror.** It always equals the default registration's GSTIN, written only
+  by `mirrorStoreGstin`. Settings → Taxes & GST and Settings → General go through
+  `adoptStoreGstin`: with no registration yet a GSTIN saved there becomes the first one; after
+  that a different GSTIN is refused (`MANAGED_ELSEWHERE`).
+- **A location bills under its own state's GSTIN** (`STATE_MISMATCH` otherwise). Cancelling a
+  registration unlinks its locations and hands the default to the oldest active GSTIN of the
+  main business.
+- **Backfill.** 0080 creates one primary business and one default registration for each store
+  whose `store.gstin` is well formed (legal name and address from the GST invoices app's seller
+  block, else the store). Stores without a GSTIN get neither: a business needs a PAN.
 
 </Tabs.Tab>
 </Tabs>
