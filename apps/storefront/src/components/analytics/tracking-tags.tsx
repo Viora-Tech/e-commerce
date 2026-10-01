@@ -11,7 +11,9 @@ type TrackingTagsProps = {
   metaPixel: string | null
   /**
    * The request's script CSP nonce (`lib/csp.ts`). The inline loaders need it; the scripts
-   * they load (gtag.js, gtm.js, fbevents.js) are then trusted through `strict-dynamic`.
+   * they load (gtag.js, gtm.js, fbevents.js) are then trusted through `strict-dynamic`. The
+   * Tag Manager loader is Google's nonce-aware snippet: it copies the nonce onto gtm.js, so
+   * Tag Manager can hand it to the merchant's Custom HTML tags (inline code still needs it).
    */
   nonce?: string | undefined
 }
@@ -48,7 +50,7 @@ export default function TrackingTags({ ga4, gtm, metaPixel, nonce }: TrackingTag
       ) : null}
       {gtm ? (
         <Script id="gtm-init" strategy="lazyOnload" nonce={nonce}>
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');`}
+          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;var n=d.querySelector('[nonce]');n&&j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'));j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtm}');`}
         </Script>
       ) : null}
       {metaPixel ? (

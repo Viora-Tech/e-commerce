@@ -37,7 +37,20 @@ to know:
   inline script must carry the nonce (`headers().get('x-nonce')`); report-only in development.
   The admin now has a `proxy.ts`.
 - **Dev OTP readback** (`/api/dev/otp`) is 404 in any production build.
+- **CSP checked in production builds** (headless Chromium, both apps, throwaway DB): storefront
+  home, collections, product, cart, checkout, thank-you, sign-in, search, policies, 404 (store
+  and root), newsletter confirm, unsubscribe, theme preview framed by the admin (bridge posts
+  `theme-preview:ready`); GA4, Tag Manager and Meta pixel load under the nonce, and Razorpay,
+  Cashfree and Google sign-in scripts load through `strict-dynamic`. Admin: login, home, orders,
+  order, products, product, customers, analytics, themes, theme editor (a section dragged in and
+  one added), settings pages, Apps (Delhivery, Shiprocket, RapidShyp), content, discounts. No
+  violations. Fixed on the way: courier constants come from each package's `/client` entry (the
+  adapter root pulled Node polyfills whose `Function()` probe tripped the policy; the
+  `client-imports-server` sweep now covers RapidShyp too), Zod `jitless` in both
+  `instrumentation-client.ts`, the storefront root `not-found` renders per request, and the
+  Tag Manager loader copies the nonce onto `gtm.js` (merchant step for inline Custom HTML tags:
+  merchant guide, Online Store → Preferences).
 
-**Open**: D-08 (RapidShyp RTO codes) waits on RapidShyp's status table. The CSP has unit tests
-but was not checked in a production build in a browser; check GTM custom-HTML tags (they need
-GTM's nonce variable) before go-live.
+**Open**: D-08 (RapidShyp RTO codes) waits on RapidShyp's status table. The storefront checkout
+page throws React hydration error #418 in production with or without the CSP (not caused by
+it); it needs its own look.
