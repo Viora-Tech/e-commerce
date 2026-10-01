@@ -12,9 +12,14 @@
  */
 const g = globalThis as unknown as { __devOtp?: Map<string, string> }
 
-/** Whether a code may be read back, by anyone, at all. */
+/**
+ * Whether a code may be read back, by anyone, at all. A production build answers no before
+ * any flag is read: Next inlines `process.env.NODE_ENV` at build time, so in a production
+ * bundle this is `return false` and the readback code is dead.
+ */
 export function devOtpEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' && process.env.DEV_LOGIN_OTP === '1'
+  if (process.env.NODE_ENV === 'production') return false
+  return process.env.DEV_LOGIN_OTP === '1'
 }
 
 /**

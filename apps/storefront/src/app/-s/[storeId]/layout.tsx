@@ -31,6 +31,7 @@ import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
+import { NONCE_HEADER } from '@/lib/csp'
 import { themeFontVariables } from '@/lib/fonts'
 import { mediaByUrl } from '@/lib/media-lookup'
 import { heightForWidth } from '@/lib/section-images'
@@ -133,6 +134,8 @@ export default async function StoreLayout({ children, params }: Props) {
   const privacy = parseCustomerPrivacySettings(current.preferences)
   const officer = grievanceOfficerOf(current.preferences)
   const adminOrigin = new URL(loadEnv(process.env).ADMIN_URL).origin
+  // The script CSP's nonce for this request (`proxy.ts`); the tracking tags carry it.
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
 
   // Which menus to render comes from the store setting; the menus themselves are
   // rows. A handle that points at nothing renders nothing rather than a broken link.
@@ -214,6 +217,7 @@ export default async function StoreLayout({ children, params }: Props) {
             bannerMessage={privacy.bannerMessage}
             bannerVersion={privacy.bannerVersion}
             initial={decodeConsent(jar.get(CONSENT_COOKIE)?.value)}
+            nonce={nonce}
           />
         )}
         {footer}

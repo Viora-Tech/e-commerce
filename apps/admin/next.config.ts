@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
+import { ADMIN_FRAME_ANCESTORS } from './src/lib/csp'
 
 // Monorepo root, two levels up from apps/admin — lets `output: 'standalone'`
 // trace workspace packages (packages/*) correctly instead of only this app's
@@ -9,9 +10,9 @@ const monorepoRoot = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
  * Baseline security headers, same set on both apps (see storefront's
- * `next.config.ts`). No script CSP yet — the block list of inline
- * scripts/styles both apps would need is real work; tracked as a follow-up,
- * not silently skipped.
+ * `next.config.ts`). The script Content-Security-Policy is per request (a fresh
+ * nonce each time), so `src/proxy.ts` sets it on pages (`src/lib/csp.ts`); it
+ * repeats the frame-ancestors below, which this file keeps for every route.
  */
 const SECURITY_HEADERS = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -55,7 +56,7 @@ const config: NextConfig = {
           // Legacy fallback for browsers that ignore frame-ancestors; SAMEORIGIN
           // matches the CSP's 'self' below (DENY would be stricter and wrong).
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+          { key: 'Content-Security-Policy', value: ADMIN_FRAME_ANCESTORS },
         ],
       },
     ]

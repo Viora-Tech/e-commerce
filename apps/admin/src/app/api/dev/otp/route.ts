@@ -10,6 +10,8 @@ import { devOtpEnabled, devOtpHostAllowed, recallDevOtp } from '@/lib/dev-otp'
  * explicitly allowed host, `DEV_OTP_ALLOWED_HOSTS`) — see `devOtpHostAllowed`.
  */
 export async function GET(request: Request) {
+  // Hard stop for production builds, whatever DEV_LOGIN_OTP / DEV_OTP_ALLOWED_HOSTS say.
+  if (process.env.NODE_ENV === 'production') return new Response(null, { status: 404 })
   if (!devOtpEnabled() || !devOtpHostAllowed(request.headers.get('host'))) {
     return new Response(null, { status: 404 })
   }

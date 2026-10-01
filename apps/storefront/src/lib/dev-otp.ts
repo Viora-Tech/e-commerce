@@ -7,8 +7,13 @@
  */
 const g = globalThis as unknown as { __storefrontDevOtp?: Map<string, string> }
 
+/**
+ * A production build answers no before any flag is read: Next inlines `process.env.NODE_ENV`
+ * at build time, so in a production bundle this is `return false` and the readback is dead code.
+ */
 export function devOtpEnabled(): boolean {
-  return process.env.NODE_ENV !== 'production' && process.env.DEV_LOGIN_OTP === '1'
+  if (process.env.NODE_ENV === 'production') return false
+  return process.env.DEV_LOGIN_OTP === '1'
 }
 
 /**
