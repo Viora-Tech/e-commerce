@@ -29,7 +29,7 @@ import type { parseShippingSettings } from './settings'
 type LocationRow = typeof location.$inferSelect
 
 /** PICKUP_NEEDS_ADDRESS: what a courier needs to find the place. */
-export function hasPickupAddress(
+function hasPickupAddress(
   l: Pick<LocationRow, 'line1' | 'city' | 'stateCode' | 'pincode'>,
 ): boolean {
   return Boolean(l.line1?.trim() && l.city?.trim() && l.stateCode?.trim() && l.pincode?.trim())

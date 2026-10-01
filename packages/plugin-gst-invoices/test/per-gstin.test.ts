@@ -1,9 +1,6 @@
-import {
-  addRegistration,
-  cancelRegistration,
-  documentRegistration,
-  gstinCheckChar,
-} from '@commerce/core'
+import { addRegistration, cancelRegistration } from '@commerce/core/gst-registration-service'
+import { gstinCheckChar } from '@commerce/core/gstin'
+import { documentRegistration } from '@commerce/core/tax-origin'
 import {
   address,
   createDb,
@@ -21,7 +18,8 @@ import { resetDb } from '@commerce/db/test'
 import { DocumentSnapshotSchema } from '@commerce/invoices'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { issueCreditNote, loadSettings, saveSettings, takeNumber } from '../src/issue'
+import { issueCreditNote, loadSettings, saveSettings } from '../src/issue'
+import { takeNumber } from '../src/numbers'
 import { listPeriods, markFiled, setClosed } from '../src/periods'
 import { enqueueOrder, issueDrafts, peekNext } from '../src/queue'
 import { orderIssuer } from '../src/registration'

@@ -887,6 +887,12 @@ const ALLOWLIST: AllowEntry[] = [
     names: ['connectDecision'],
     reason: 'pure rule behind planConnect (security audit 2026-09), exported for its unit test',
   },
+  {
+    file: 'packages/core/src/tax/origin.ts',
+    names: ['pickTaxOrigin'],
+    reason:
+      'pure ORIGIN_FALLBACK behind resolveTaxOrigin (GST phase 3), exported so origin.test.ts covers every branch without a database',
+  },
 ]
 
 function allowlistedNames(file: string): Set<string> {

@@ -8,8 +8,8 @@ import {
   loadSettings,
   orderSnapshot,
   seriesContextOf,
-  takeNumber,
 } from './issue'
+import { takeNumber } from './numbers'
 import { assertPeriodOpen } from './periods'
 import { documentIssuer, orderIssuer } from './registration'
 import { invoice } from './schema'

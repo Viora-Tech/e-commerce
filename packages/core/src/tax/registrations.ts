@@ -7,7 +7,7 @@
  *        business's PAN (PAN_MUST_MATCH_BUSINESS). `store.gstin` predates registrations and is
  *        still read by invoices and checkout; it mirrors the one default registration
  *        (ONE_DEFAULT_REGISTRATION) and is written here only through `mirrorStoreGstin`.
- *        Phase 1: nothing here changes how tax is charged or invoices are numbered.
+ *        Which GSTIN an order bills from: tax/origin.ts; numbering per GSTIN: the GST invoices app.
  * WHERE: api router `businessGst`; Taxes & GST and General saves call `adoptStoreGstin`.
  *        Every call runs inside `withStore`, so RLS scopes each statement to the store.
  */

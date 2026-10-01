@@ -20,10 +20,10 @@ import {
   loadSettings,
   orderSnapshot,
   seriesContextOf,
-  takeNumber,
   totalsColumns,
   writeLines,
 } from './issue'
+import { takeNumber } from './numbers'
 import { assertPeriodOpen, PeriodError } from './periods'
 import { gstToken, orderIssuer, sameRegistration } from './registration'
 import { invoice, invoiceSequence } from './schema'

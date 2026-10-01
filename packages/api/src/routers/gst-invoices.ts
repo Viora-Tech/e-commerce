@@ -541,7 +541,10 @@ export const gstInvoicesRouter = {
         name: `${name}.csv`,
         bytes: enc.encode(body),
       }))
-      return file(zipFiles(files), 'gstr1.zip', 'application/zip')
+      // Named after the GSTIN it is for: a store with several files one GSTR-1 each.
+      const issuer = await documentIssuer(context.tx, gst)
+      const name = issuer ? `gstr1-${issuer.gstin}.zip` : 'gstr1.zip'
+      return file(zipFiles(files), name, 'application/zip')
     }),
 
   /** One document with its status, for the invoice page. */

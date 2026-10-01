@@ -495,7 +495,7 @@ export const gstRegistration = pgTable(
     tradeName: text('trade_name'),
     email: text('email'),
     phone: text('phone'),
-    /** Up to 5 characters printed before invoice numbers from this GSTIN (used from phase 3). */
+    /** Up to 5 characters; `{GST}` in a numbering series prints it on this GSTIN's invoices. */
     invoicePrefix: text('invoice_prefix'),
     effectiveFrom: date('effective_from'),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),

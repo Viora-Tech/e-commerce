@@ -20,6 +20,20 @@ type TaxBreakdown = {
   interState: boolean
 }
 
+/** "Haryana · 06AAPFU0939F1ZV": the GST number the order is billed from, when it had one. */
+function billedFrom(order: OrderDetail, copy: typeof orderDetailContent): TotalRow[] {
+  const origin = order.taxOrigin
+  if (!origin?.gstin) return []
+  const place = origin.stateName ?? origin.stateCode
+  return [
+    {
+      label: copy.items.billedFrom,
+      value: place ? `${place} · ${origin.gstin}` : origin.gstin,
+      muted: true,
+    },
+  ]
+}
+
 function taxRows(order: OrderDetail, copy: typeof orderDetailContent, fmt: Formatters): TotalRow[] {
   const tax = order.taxBreakdown as TaxBreakdown | null
   if (!tax || tax.taxPaise <= 0) return []
@@ -27,11 +41,13 @@ function taxRows(order: OrderDetail, copy: typeof orderDetailContent, fmt: Forma
   if (tax.interState) {
     return [
       { label: copy.items.igst(tax.ratePercent), value: fmt.money(tax.igstPaise), muted: true },
+      ...billedFrom(order, copy),
     ]
   }
   return [
     { label: copy.items.cgst(tax.ratePercent), value: fmt.money(tax.cgstPaise), muted: true },
     { label: copy.items.sgst(tax.ratePercent), value: fmt.money(tax.sgstPaise), muted: true },
+    ...billedFrom(order, copy),
   ]
 }
 

@@ -9,7 +9,7 @@
  *        exactly what they printed before).
  * WHERE: issue.ts, queue.ts, vouchers.ts (issuing); periods.ts and reports.ts (scoping).
  */
-import { documentRegistration, type SellerRegistration } from '@commerce/core'
+import { documentRegistration, type SellerRegistration } from '@commerce/core/tax-origin'
 import { order, type StoreTx } from '@commerce/db'
 import { type InvoiceSettings, type Party, placeOf, sellerParty } from '@commerce/invoices'
 import { eq, isNull, type SQL } from 'drizzle-orm'

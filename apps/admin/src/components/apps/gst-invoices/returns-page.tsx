@@ -17,6 +17,7 @@ import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
+import GstNumberPicker from './gst-number-picker'
 import { saveFile } from './save-file'
 
 type Period = Awaited<ReturnType<typeof api.gstInvoices.periods.list>>[number]
@@ -53,17 +54,25 @@ export default function ReturnsPage() {
   // Hooks
   const [periods, setPeriods] = useState<Period[]>([])
   const [busy, setBusy] = useState<string | null>(null)
+  // GSTR-1 is filed per GST number; undefined is the store's main one.
+  const [gst, setGst] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    api.gstInvoices.periods.list().then(setPeriods)
-  }, [])
+    let cancelled = false
+    api.gstInvoices.periods.list({ gstRegistrationId: gst }).then((p) => {
+      if (!cancelled) setPeriods(p)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [gst])
 
   // Helpers
   const run = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key)
     try {
       await fn()
-      setPeriods(await api.gstInvoices.periods.list())
+      setPeriods(await api.gstInvoices.periods.list({ gstRegistrationId: gst }))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.failed)
     } finally {
@@ -73,18 +82,28 @@ export default function ReturnsPage() {
 
   // Event handlers
   const handleExport = (period: string) =>
-    run(`x-${period}`, async () => saveFile(await api.gstInvoices.gstr1(monthRange(period))))
+    run(`x-${period}`, async () =>
+      saveFile(await api.gstInvoices.gstr1({ ...monthRange(period), gstRegistrationId: gst })),
+    )
   const handleFiled = (period: string, filed: boolean) =>
-    run(`f-${period}`, () => api.gstInvoices.periods.setFiled({ period, filed }))
+    run(`f-${period}`, () =>
+      api.gstInvoices.periods.setFiled({ period, filed, gstRegistrationId: gst }),
+    )
   const handleClosed = (period: string, closed: boolean) =>
-    run(`c-${period}`, () => api.gstInvoices.periods.setClosed({ period, closed }))
+    run(`c-${period}`, () =>
+      api.gstInvoices.periods.setClosed({ period, closed, gstRegistrationId: gst }),
+    )
 
   // Render logic
   const byPeriod = new Map(periods.map((p) => [p.period, p]))
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={<GstNumberPicker value={gst} onChange={setGst} />}
+      />
       <DataCard title={copy.title} flush>
         <Table>
           <TableHeader>
