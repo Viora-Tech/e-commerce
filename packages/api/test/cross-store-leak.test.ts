@@ -73,6 +73,8 @@ const SKIP: Record<string, string> = {
   'shopifyImport.connect': 'Shopify API',
   'shopifyImport.testConnection': 'Shopify API',
   'shopifyImport.createApiRun': 'Shopify API',
+  'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
+  'ai.ask': 'AI model provider (a dev .env key would reach the real gateway)',
   'domains.connect': 'DNS and certificate provider',
   'domains.verify': 'DNS and certificate provider',
   'onboarding.create': 'creates another store and switches the session to it',

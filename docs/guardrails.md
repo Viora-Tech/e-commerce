@@ -50,7 +50,7 @@ its neighbours are listed.
 A `'use client'` module must not VALUE-import anything from a server-only package —
 `@commerce/core`, `@commerce/db`, `@commerce/auth`, `@commerce/storage`(`-r2`),
 `@commerce/payments`(`-razorpay`), `@commerce/shipping`(`-delhivery`/`-shiprocket`),
-`@commerce/api`. `import type` is always fine. `@commerce/core`/`@commerce/db` are already
+`@commerce/api`, `@commerce/ai` (its root reads the platform AI keys; use `@commerce/ai/client`). `import type` is always fine. `@commerce/core`/`@commerce/db` are already
 enforced as part of `bun run lint` by `scripts/check-components.ts` — this sweep re-asserts
 that and extends it to the rest of the server-only surface (see "server-only" below).
 
@@ -306,6 +306,10 @@ handlers, deliberately:
   self-scoped (keyed on `scope.userId`), not store-wide.
 - `staff.me` — every member may read their own resolved role/permissions; same reasoning,
   it drives which controls the admin renders for the caller and touches no one else's data.
+- `ai.status` — every member may read which AI buttons *they* see: three booleans (AI
+  configured, and each feature on for the store and allowed by the caller's own role). Same
+  reasoning as `staff.me`; usage, plan and the switches themselves sit behind
+  `can(SETTINGS_READ)` / `can(SETTINGS_MANAGE)` (`ai.settings`, `ai.saveSettings`).
 
 `appearance.setStoreDefault` is the one store-wide mutation in that router; it stays on
 bare `storeProcedure` with an explicit `if (!context.scope.isOwner) throw ...` check rather

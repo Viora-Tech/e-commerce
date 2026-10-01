@@ -1,5 +1,6 @@
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
+  AiIcon,
   Bell,
   Braces,
   ClipboardList,
@@ -132,6 +133,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Domains',
     body: 'The addresses your storefront answers on.',
     icon: Globe,
+  },
+  {
+    href: '/settings/ai',
+    title: 'AI',
+    body: 'Write with AI and Ask your store: what you used this month, and turning them on or off.',
+    icon: AiIcon,
   },
   {
     href: '/settings/appearance',

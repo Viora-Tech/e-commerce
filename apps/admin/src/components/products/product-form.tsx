@@ -27,6 +27,7 @@ import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent, productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import AiWriterButton from './ai-writer-button'
 import {
   emptyForm,
   type Facets,
@@ -60,6 +61,8 @@ type ProductFormProps = {
   product: LoadedProduct | null
   facets: Facets
   storefrontOrigin: string
+  /** Show "Write with AI": AI is configured, on for the store, and the member may edit products. */
+  aiWriter?: boolean
 }
 
 /** Jump-nav targets in page order; pricing and inventory move into the variants table once options exist. */
@@ -88,7 +91,12 @@ function colourValues(options: OptionRow[]): string[] {
   return option ? option.values.filter((v) => v.trim()) : []
 }
 
-export default function ProductForm({ product, facets, storefrontOrigin }: ProductFormProps) {
+export default function ProductForm({
+  product,
+  facets,
+  storefrontOrigin,
+  aiWriter = false,
+}: ProductFormProps) {
   // Hooks
   const copy = useCopy(productFormContent)
   const listCopy = useCopy(productsListContent)
@@ -264,6 +272,7 @@ export default function ProductForm({ product, facets, storefrontOrigin }: Produ
             onPatch={patch}
             onVariant={(vp) => patchVariant(0, vp)}
             onReason={(inventoryReason) => patch({ inventoryReason })}
+            detailsAction={aiWriter ? <AiWriterButton form={form} onApply={patch} /> : undefined}
             media={
               <ProductImageCard
                 items={form.media}

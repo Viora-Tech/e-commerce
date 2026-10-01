@@ -12,4 +12,5 @@ export default {
   'customer-privacy': 'Customer privacy',
   'customer-accounts': 'Customer accounts',
   'store-data': 'Download your data or delete your store',
+  ai: 'AI features',
 }

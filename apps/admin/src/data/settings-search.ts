@@ -242,6 +242,19 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     keywords: ['domain', 'website address', 'url', 'dns', 'www', '.com', '.in'],
   },
   {
+    title: 'AI',
+    where: 'Settings',
+    href: '/settings/ai',
+    keywords: [
+      'ai',
+      'artificial intelligence',
+      'write with ai',
+      'ask your store',
+      'usage',
+      'quota',
+    ],
+  },
+  {
     title: 'Appearance',
     where: 'Settings',
     href: '/settings/appearance',

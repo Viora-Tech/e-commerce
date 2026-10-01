@@ -7,6 +7,9 @@ export const base = os.$context<ApiContext>()
 type SessionUser = { id: string; email: string; name: string }
 type Session = { user: SessionUser; activeOrganizationId: string | null }
 
+/** What a handler behind `protectedProcedure` sees. */
+export type SessionContext = ApiContext & { session: Session }
+
 /** Requires a signed-in merchant. Adds `session` to the context. */
 export const protectedProcedure = base.use(async ({ context, next }) => {
   const s = await context.auth.api.getSession({ headers: context.headers })
