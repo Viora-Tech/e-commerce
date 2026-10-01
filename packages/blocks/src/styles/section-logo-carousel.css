@@ -1,0 +1,311 @@
+/**
+ * Brand logo carousel (sections/logo-carousel.liquid). Same duplicated-
+ * track marquee technique as the announcement bar's marquee mode
+ * (assets/section-announcement.css) - the track holds two identical runs
+ * of every logo, and animating by exactly -50% of the track's width scrolls
+ * through one full run with no visible seam.
+ *
+ * The shape is a CREDIT RAIL: the heading sits as a small centred label
+ * breaking a hairline rule - film-credit typography, not a banner - and the
+ * moving row fades out at both edges instead of guillotining logos against
+ * the container. Someone else's mark deserves to dissolve, not be cut. The
+ * fade is a mask, so it works over any background without baking a colour
+ * in, and it only applies while the marquee actually moves: the
+ * reduced-motion state is a static centred wrap, where fading the outermost
+ * logos would just make two brands look broken.
+ *
+ * assets/marquee-motion.js pauses the animation while the row is off screen
+ * and reacts to scroll speed; both are enhancement only.
+ */
+/* The credit line: label centred in a hairline rule. The rule halves are
+   flex siblings via ::before/::after, so the label needs no background to
+   knock a hole in a single line - it works over any surface. */
+.logo-carousel__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+}
+
+.logo-carousel__heading::before,
+.logo-carousel__heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-line);
+}
+
+.logo-carousel {
+  overflow: hidden;
+}
+
+/* Edge dissolve, only while scrolling (see the reduced-motion note above).
+   The gradient's colour channel is ignored by masking - only alpha matters -
+   so the keywords here are not painted colours. */
+@media (prefers-reduced-motion: no-preference) {
+  .logo-carousel {
+    -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  }
+}
+
+.logo-carousel__track {
+  display: flex;
+  width: max-content;
+}
+
+.logo-carousel__run {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: var(--space-8);
+  padding-inline-end: var(--space-8);
+}
+
+.logo-carousel__logo {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* Logos mode: transparent marks, greyed until hovered                 */
+/* ------------------------------------------------------------------ */
+.logo-carousel--logos .logo-carousel__logo img {
+  display: block;
+  height: var(--logo-height, 2.25rem);
+  width: auto;
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.logo-carousel--logos .logo-carousel__logo:hover img,
+.logo-carousel--logos .logo-carousel__logo:focus-visible img {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tiles mode: a brand's collection image, cropped square, name below  */
+/* ------------------------------------------------------------------ */
+/* Photographs, not marks - so no greyscale wash here (it would just make
+   real product photography look broken rather than restrained). */
+.logo-carousel--tiles .logo-carousel__logo {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  width: 12.5rem;
+}
+
+.logo-carousel--tiles .logo-carousel__media {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+.logo-carousel--tiles .logo-carousel__logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-carousel--tiles .logo-carousel__name {
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--color-ink);
+}
+
+/* The tile's frame goes to ink rather than purple: the tile holds a brand's
+   own logo, and a purple frame around someone else's mark read as ours.
+   The soft shadow joins it so the tile lifts like every other card in the
+   theme; the translate itself is gated with the transitions below. */
+.logo-carousel--tiles .logo-carousel__logo:hover .logo-carousel__media,
+.logo-carousel--tiles .logo-carousel__logo:focus-visible .logo-carousel__media {
+  border-color: var(--color-ink);
+  box-shadow: 0 0.875rem 1.875rem -1.125rem color-mix(in srgb, var(--color-ink) 30%, transparent);
+}
+
+.logo-carousel--tiles .logo-carousel__logo:hover .logo-carousel__name,
+.logo-carousel--tiles .logo-carousel__logo:focus-visible .logo-carousel__name {
+  text-decoration: underline;
+  text-underline-offset: 0.1875rem;
+}
+
+@media screen and (max-width: 749px) {
+  .logo-carousel--tiles .logo-carousel__logo {
+    width: 9.375rem;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-carousel--logos .logo-carousel__logo img {
+    transition: filter 200ms ease, opacity 200ms ease;
+  }
+
+  .logo-carousel--tiles .logo-carousel__media {
+    transition: border-color 200ms ease, box-shadow 200ms ease, transform 250ms ease;
+  }
+
+  .logo-carousel--tiles .logo-carousel__logo:hover .logo-carousel__media,
+  .logo-carousel--tiles .logo-carousel__logo:focus-visible .logo-carousel__media {
+    transform: translateY(-0.125rem);
+  }
+
+  .logo-carousel--tiles .logo-carousel__name {
+    transition: color 200ms ease;
+  }
+
+  .logo-carousel__track {
+    animation: logo-carousel-scroll var(--marquee-duration, 30s) linear infinite;
+  }
+
+  .logo-carousel--pause-on-hover:hover .logo-carousel__track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes logo-carousel-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Reduced motion: static row, wrapped instead of scrolling - the duplicate
+   run exists purely to make the scroll seamless, so it's just noise once
+   there's no scroll to seam. */
+@media (prefers-reduced-motion: reduce) {
+  .logo-carousel__track {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    transform: none;
+  }
+
+  .logo-carousel__run {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-inline-end: 0;
+  }
+
+  .logo-carousel__run[aria-hidden='true'] {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Press mode: a static "as seen in" row - no track, no seam to mask   */
+/* ------------------------------------------------------------------ */
+/* Overrides the marquee's edge fade and clipping: press mode wraps
+   instead of scrolling, so there is nothing running off either edge for
+   the mask to dissolve, and clipping would just cut a wrapped row short. */
+.logo-carousel--press {
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-8) var(--space-10);
+}
+
+.logo-carousel__press-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 13.75rem;
+  text-align: center;
+}
+
+.logo-carousel--press .logo-carousel__logo {
+  display: inline-flex;
+}
+
+.logo-carousel--press .logo-carousel__media img {
+  display: block;
+  height: var(--logo-height, 2.25rem);
+  width: auto;
+}
+
+/* Greyscale-until-hovered is opt-out (press_grayscale), same interaction
+   as the plain "Logos only" display - a press mark deserves the same
+   restraint as a brand's own. */
+.logo-carousel--press-grayscale .logo-carousel__media img {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+
+.logo-carousel--press-grayscale .logo-carousel__logo:hover .logo-carousel__media img,
+.logo-carousel--press-grayscale .logo-carousel__logo:focus-visible .logo-carousel__media img {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+.logo-carousel__quote {
+  margin: 0;
+  max-width: 32ch;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-carousel--press-grayscale .logo-carousel__media img {
+    transition: filter 200ms ease, opacity 200ms ease;
+  }
+}
+
+/* Progressive blur at the edges (pick "8"): logos soften into the sides
+   instead of being cut off, on top of the existing fade mask. */
+.logo-carousel:not(.logo-carousel--press) {
+  position: relative;
+}
+
+.logo-carousel:not(.logo-carousel--press)::before,
+.logo-carousel:not(.logo-carousel--press)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 14%;
+  -webkit-backdrop-filter: blur(0.3125rem);
+  backdrop-filter: blur(0.3125rem);
+  pointer-events: none;
+}
+
+.logo-carousel:not(.logo-carousel--press)::before {
+  left: 0;
+  -webkit-mask-image: linear-gradient(90deg, #000, transparent);
+  mask-image: linear-gradient(90deg, #000, transparent);
+}
+
+.logo-carousel:not(.logo-carousel--press)::after {
+  right: 0;
+  -webkit-mask-image: linear-gradient(-90deg, #000, transparent);
+  mask-image: linear-gradient(-90deg, #000, transparent);
+}
+
+/* Shown while no brand has a picture yet. */
+.logo-carousel__empty {
+  margin: 0;
+  text-align: center;
+  color: var(--color-muted);
+}

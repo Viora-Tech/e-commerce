@@ -1,0 +1,760 @@
+/**
+ * Reviews showcase (port of sections/reviews-showcase.liquid): the site's section
+ * heading with the live rating, then two slow rows of real review cards.
+ * Styled in the site's own card language - hairline border, the standard
+ * radius, ink text, brand used only for small accents - so it reads as part
+ * of the page rather than a widget.
+ */
+.reviews-showcase {
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------- head */
+.reviews-showcase__head {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-7);
+  text-align: center;
+}
+
+.reviews-showcase__eyebrow {
+  margin: 0 0 var(--space-2);
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-pill);
+  background-color: color-mix(in srgb, var(--color-brand) 14%, transparent);
+  color: var(--color-brand);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reviews-showcase__score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.reviews-showcase__number {
+  font-size: clamp(4rem, 10vw, 7.5rem);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, var(--color-ink) 30%, var(--color-brand));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.reviews-showcase__out-of {
+  color: var(--color-muted);
+  font-size: clamp(1.375rem, 3vw, 2.125rem);
+}
+
+/* Stars filled to the exact average: a base row in the line colour and the
+   same row in gold on top, clipped to --fill. */
+.reviews-showcase__stars {
+  position: relative;
+  display: inline-block;
+  font-size: 1.625rem;
+  letter-spacing: 0.25rem;
+  line-height: 1;
+}
+
+.reviews-showcase__stars-base {
+  color: var(--color-line);
+}
+
+.reviews-showcase__stars-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 100%);
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--color-star, #f5b301);
+}
+
+.reviews-showcase__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.reviews-showcase__verified-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.reviews-showcase__check {
+  display: inline-grid;
+  place-items: center;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  font-size: 0.5625rem;
+  line-height: 1;
+  background-color: var(--color-success, #1a9e5c);
+  color: var(--color-on-dark-band, #fff);
+}
+
+.reviews-showcase__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.reviews-showcase__actions:empty {
+  display: none;
+}
+
+@media screen and (max-width: 749px) {
+  .reviews-showcase__head {
+    margin-bottom: var(--space-6);
+  }
+
+  .reviews-showcase__actions .btn {
+    width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------- rows */
+.reviews-showcase__rows {
+  display: grid;
+  gap: var(--space-4);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+}
+
+.reviews-showcase__row {
+  overflow: hidden;
+}
+
+.reviews-showcase__track {
+  display: flex;
+  width: max-content;
+}
+
+/* Two identical groups, each carrying its own trailing gap, so sliding by
+   -50% lands exactly on the start of the copy. */
+.reviews-showcase__group {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reviews-showcase__track {
+    animation: rs-slide var(--rs-speed, 70s) linear infinite;
+  }
+
+  .reviews-showcase__row--reverse .reviews-showcase__track {
+    animation-direction: reverse;
+    animation-duration: calc(var(--rs-speed, 70s) * 1.15);
+  }
+
+  .reviews-showcase__row:hover .reviews-showcase__track,
+  .reviews-showcase__row:focus-within .reviews-showcase__track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes rs-slide {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviews-showcase__row {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .reviews-showcase__group[aria-hidden='true'] {
+    display: none;
+  }
+
+  .rs-card {
+    scroll-snap-align: start;
+  }
+}
+
+/* ---------------------------------------------------------------- card */
+.rs-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(78vw, 20rem);
+  padding: var(--space-5);
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rs-card {
+    transition: border-color 0.25s ease, transform 0.3s ease;
+  }
+
+  .rs-card:hover {
+    transform: translateY(-0.125rem);
+  }
+}
+
+.rs-card:hover {
+  border-color: var(--color-ink);
+}
+
+.rs-card__photo {
+  width: calc(100% + 2 * var(--space-5));
+  max-width: none;
+  height: 10rem;
+  margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) 0;
+  object-fit: cover;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.rs-card__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.rs-card__body {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.rs-card__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-line);
+}
+
+.rs-card__avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rs-card__who {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.rs-card__name {
+  overflow: hidden;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rs-card__verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.rs-card__check {
+  color: var(--color-brand);
+}
+
+.rs-card__product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.7813rem;
+  text-decoration: none;
+}
+
+.rs-card__product img {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-s, 0.375rem);
+  object-fit: cover;
+  background-color: var(--color-bg);
+}
+
+.rs-card__product span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rs-card__product:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+
+/* ================================================================== */
+/* Stage: browser slideshow + 3D review columns (after Magic UI's      */
+/* Safari mockup and Marquee 3D)                                       */
+/* ================================================================== */
+.rs-stage {
+  display: grid;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+@media screen and (min-width: 990px) {
+  .rs-stage {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-8);
+    margin-bottom: 0;
+  }
+
+  .rs-stage--no-photos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Desktop shows the 3D columns; the flat rows are the phone layout. */
+  .reviews-showcase__rows {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- browser */
+.rs-browser {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 0.875rem;
+  background-color: var(--color-bg);
+  box-shadow: 0 1.875rem 3.75rem -2.1875rem rgb(0 0 0 / 55%);
+}
+
+.rs-browser__bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  height: 2.75rem;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+  background-color: color-mix(in srgb, var(--color-ink) 4%, var(--color-bg));
+}
+
+.rs-browser__dots {
+  display: flex;
+  gap: 0.4375rem;
+}
+
+.rs-browser__dots i {
+  width: 0.6875rem;
+  height: 0.6875rem;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
+}
+
+.rs-browser__url {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  justify-self: center;
+  width: min(100%, 20rem);
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background-color: color-mix(in srgb, var(--color-ink) 7%, transparent);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.rs-browser__count {
+  min-width: 2.75rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.rs-browser__screen {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background-color: var(--color-card-media, rgb(0 0 0 / 4%));
+  cursor: pointer;
+}
+
+.rs-browser__slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.rs-browser__slide.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.rs-browser__slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rs-browser__caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--space-3);
+  padding: 3rem var(--space-5) var(--space-4);
+  background: linear-gradient(transparent, rgb(0 0 0 / 72%));
+  color: var(--color-on-dark-band, #fff);
+  font-size: 0.875rem;
+}
+
+.rs-browser__caption-stars {
+  color: var(--color-star, #f5b301);
+  letter-spacing: 0.125rem;
+}
+
+.rs-browser__caption-name {
+  font-weight: 700;
+}
+
+.rs-browser__caption-product {
+  flex-basis: 100%;
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 0.1875rem;
+}
+
+.rs-browser__progress {
+  height: 0.1875rem;
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.rs-browser__progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background-color: var(--color-brand);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rs-browser__slide {
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+
+  .rs-browser__slide.is-active img {
+    animation: rs-kenburns 6s ease-out both;
+  }
+
+  .rs-browser__progress span.is-running {
+    animation: rs-progress var(--rs-slide, 4.5s) linear both;
+  }
+}
+
+@keyframes rs-kenburns {
+  from {
+    transform: scale(1.08);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes rs-progress {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------- 3D */
+.rs-3d {
+  display: none;
+}
+
+@media screen and (min-width: 990px) {
+  .rs-3d {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 35rem;
+    overflow: hidden;
+    perspective: 56.25rem;
+  }
+
+  .rs-3d__plane {
+    display: flex;
+    gap: var(--space-4);
+    transform: translateX(-2.5rem) translateZ(-5rem) rotateX(18deg) rotateY(-10deg) rotateZ(16deg);
+    transform-style: preserve-3d;
+  }
+
+  .rs-3d__col {
+    height: 55rem;
+    overflow: hidden;
+  }
+
+  .rs-3d__track {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rs-3d__group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-bottom: var(--space-4);
+  }
+
+  .rs-3d .rs-card {
+    width: 14.375rem;
+    padding: var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .rs-3d .rs-card__photo {
+    width: calc(100% + 2 * var(--space-4));
+    height: 6.875rem;
+    margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
+  }
+
+  .rs-3d .rs-card__body {
+    -webkit-line-clamp: 4;
+    font-size: 0.8125rem;
+  }
+
+  .rs-3d .rs-card__product {
+    display: none;
+  }
+
+  /* Soft edges on all four sides as a MASK, not painted overlays: painted
+     gradients have to match the page colour exactly and showed as a darker
+     box when they did not. A mask just makes the edges transparent. */
+  .rs-3d {
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent),
+      linear-gradient(to right, transparent, black 14%, black 86%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent),
+      linear-gradient(to right, transparent, black 14%, black 86%, transparent);
+    mask-composite: intersect;
+  }
+
+  .rs-3d__fade {
+    display: none;
+  }
+
+  .rs-3d__fade--top,
+  .rs-3d__fade--bottom {
+    inset-inline: 0;
+    height: 22%;
+  }
+
+  .rs-3d__fade--top {
+    top: 0;
+    background: linear-gradient(var(--color-bg), transparent);
+  }
+
+  .rs-3d__fade--bottom {
+    bottom: 0;
+    background: linear-gradient(transparent, var(--color-bg));
+  }
+
+  .rs-3d__fade--left,
+  .rs-3d__fade--right {
+    inset-block: 0;
+    width: 18%;
+  }
+
+  .rs-3d__fade--left {
+    left: 0;
+    background: linear-gradient(90deg, var(--color-bg), transparent);
+  }
+
+  .rs-3d__fade--right {
+    right: 0;
+    background: linear-gradient(-90deg, var(--color-bg), transparent);
+  }
+}
+
+@media screen and (min-width: 990px) and (prefers-reduced-motion: no-preference) {
+  .rs-3d__track {
+    animation: rs-rise var(--rs-speed, 60s) linear infinite;
+  }
+
+  .rs-3d__col--reverse .rs-3d__track {
+    animation-direction: reverse;
+  }
+
+  .rs-3d__col--slow .rs-3d__track {
+    animation-duration: calc(var(--rs-speed, 60s) * 1.3);
+  }
+
+  .rs-3d:hover .rs-3d__track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes rs-rise {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* ---------------------------------------------------------------- avatars */
+/* The latest reviewers as overlapping initials; hover or focus one for who and what. */
+.rs-avatars {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.rs-avatars__item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: -0.5rem;
+  border: 2px solid var(--color-bg);
+  border-radius: 50%;
+  background: hsl(var(--hue, 270) 45% 45%);
+  color: var(--color-on-dark-band, #fff);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: default;
+}
+
+.rs-avatars__item:first-child {
+  margin-left: 0;
+}
+
+.rs-avatars__item--more {
+  background: color-mix(in srgb, var(--color-ink) 18%, var(--color-bg));
+  color: var(--color-ink);
+  font-size: 0.75rem;
+}
+
+.rs-avatars__tip {
+  position: absolute;
+  bottom: calc(100% + 0.625rem);
+  left: 50%;
+  z-index: 3;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  translate: -50% 0.375rem;
+}
+
+.rs-avatars__tip b {
+  display: block;
+  font-size: 0.8125rem;
+}
+
+.rs-avatars__item:hover,
+.rs-avatars__item:focus-visible {
+  z-index: 2;
+}
+
+.rs-avatars__item:hover .rs-avatars__tip,
+.rs-avatars__item:focus-visible .rs-avatars__tip {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rs-avatars__item {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .rs-avatars__item:hover {
+    transform: translateY(-0.25rem) scale(1.08);
+  }
+
+  .rs-avatars__tip {
+    transition: opacity 0.2s ease, translate 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+/* ---------------------------------------------------------------- card stars */
+/* Filled stars in the brand colour, empty ones in the line colour (the theme's rating row). */
+.rs-card__stars {
+  display: inline-flex;
+  gap: 0.125rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.rs-card__star {
+  color: var(--color-brand);
+}
+
+.rs-card__star--empty {
+  color: var(--color-line);
+}
+
+/* The slideshow progress bar holds still while the pointer is over the frame. */
+.rs-browser__progress span.is-paused {
+  animation-play-state: paused;
+}

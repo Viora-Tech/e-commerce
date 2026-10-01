@@ -1,0 +1,221 @@
+/**
+ * Brand lab: full-bleed dark surface, the page's second dark moment
+ * after the newsletter. Heading + intro + CTA on the left/top, a grid of
+ * linked brand blocks on the right/bottom with 1px translucent dividers
+ * rather than boxed cards. Stacks to a single column on mobile.
+ *
+ * "A dark surface" is a constant, so the ground is --color-dark-band and the
+ * type --color-on-dark-band. Written as --color-ink/--color-bg it meant "the
+ * opposite of the page": in dark mode the whole band flipped to a pale slab,
+ * and the hard-coded white body copy and dividers stayed white on it - the
+ * heading survived only because it inherits the band's own type colour.
+ * Every tint here is a color-mix percentage of the band's type colour, so
+ * nothing depends on the ground happening to be dark.
+ */
+.brand-lab {
+  padding-block: var(--space-9);
+  background-color: var(--color-dark-band);
+  color: var(--color-on-dark-band);
+}
+
+.brand-lab__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.brand-lab__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 35rem;
+}
+
+.brand-lab__heading {
+  margin: 0;
+}
+
+/* .rte hardcodes ink/muted colours for a light surface - overridden here for
+   this dark context rather than touching the shared component. */
+.brand-lab__text.rte {
+  color: color-mix(in srgb, var(--color-on-dark-band) 70%, transparent);
+}
+
+.brand-lab__text.rte a {
+  color: var(--color-on-dark-band);
+}
+
+.brand-lab__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.brand-lab__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-top: 1px solid color-mix(in srgb, var(--color-on-dark-band) 12%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-lab__logo {
+  display: block;
+  height: 1.75rem;
+}
+
+.brand-lab__logo img {
+  height: 100%;
+  width: auto;
+  filter: grayscale(1);
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brand-lab__logo img {
+    transition: filter 0.2s ease, opacity 0.2s ease;
+  }
+}
+
+.brand-lab__brand:hover .brand-lab__logo img {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+.brand-lab__brand-name {
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.brand-lab__brand-description {
+  color: color-mix(in srgb, var(--color-on-dark-band) 65%, transparent);
+}
+
+/* Mobile: 2-column divided grid. Left border on the 2nd column only, no
+   top border on the first row. */
+.brand-lab__grid > .brand-lab__brand:nth-child(-n + 2) {
+  border-top: none;
+}
+
+.brand-lab__grid > .brand-lab__brand:nth-child(2n) {
+  border-left: 1px solid color-mix(in srgb, var(--color-on-dark-band) 12%, transparent);
+}
+
+@media screen and (min-width: 750px) {
+  .brand-lab {
+    padding-block: var(--space-10);
+  }
+
+  .brand-lab__inner {
+    flex-direction: row;
+    /* Centred rather than top-aligned: the intro column (heading, copy,
+       button) is taller than a single row of brands, so aligning to the
+       top left an obvious pocket of dead space under the brand row. */
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  .brand-lab__intro {
+    flex: 0 0 20rem;
+  }
+
+  .brand-lab__grid {
+    flex: 1;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* 4-column divided grid: reset the mobile 2-col rules, then re-apply for
+     4 columns - no top border on row 1, left border on columns 2-4. */
+  .brand-lab__grid > .brand-lab__brand:nth-child(-n + 2) {
+    border-top: 1px solid color-mix(in srgb, var(--color-on-dark-band) 12%, transparent);
+  }
+
+  .brand-lab__grid > .brand-lab__brand:nth-child(2n) {
+    border-left: none;
+  }
+
+  .brand-lab__grid > .brand-lab__brand:nth-child(-n + 4) {
+    border-top: none;
+  }
+
+  .brand-lab__grid > .brand-lab__brand:not(:nth-child(4n + 1)) {
+    border-left: 1px solid color-mix(in srgb, var(--color-on-dark-band) 12%, transparent);
+  }
+}
+
+/* Five brands. Two columns leave the fifth alone on a third row, four columns
+   leave it alone on a second, and in both cases it sits under a full set of
+   dividers with three empty cells beside it - which reads as a block that
+   failed to render rather than as a fifth brand. It takes the whole last row
+   instead.
+
+   Span-to-fill rather than shop-by-spec's 3 + 2 pyramid, and the difference
+   is this grid's own CSS: there is no gap here, the structure IS the hairline
+   between cells, so a last row divided differently from the one above it
+   shows as dividers that do not line up. A five-column row was the other
+   option and is worse: the brand column already shares its width with a fixed
+   20rem intro, and five cells of it cannot hold a name plus a description.
+
+   Both breakpoints' border rules already produce the right edges for a
+   full-width fifth cell - it is the 5th child, so it keeps its top border and
+   takes no left border under either the 2n or the 4n + 1 rule - so only the
+   span is stated here. */
+.brand-lab__grid > :first-child:nth-last-child(5) ~ :nth-child(5) {
+  grid-column: 1 / -1;
+}
+
+/* Phones: one brand per row, everything centred. Two columns of 10.625rem
+   squeezed each brand's line to three words a row, and the left-aligned
+   intro sat off-centre above a centred page. */
+@media screen and (max-width: 749px) {
+  .brand-lab__intro {
+    align-items: center;
+    max-width: none;
+    text-align: center;
+  }
+
+  .brand-lab__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .brand-lab__brand {
+    align-items: center;
+    text-align: center;
+  }
+
+  .brand-lab__grid > .brand-lab__brand:nth-child(-n + 2) {
+    border-top: 1px solid color-mix(in srgb, var(--color-on-dark-band) 12%, transparent);
+  }
+
+  .brand-lab__grid > .brand-lab__brand:first-child {
+    border-top: none;
+  }
+
+  .brand-lab__grid > .brand-lab__brand:nth-child(2n) {
+    border-left: none;
+  }
+}
+
+/* Focus cards: hovering one brand dims the rest (from Glide's base.css). */
+@media (hover: hover) {
+  .brand-lab__grid:hover .brand-lab__brand:not(:hover) {
+    filter: blur(0.125rem);
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brand-lab__brand {
+    transition:
+      filter 0.35s ease,
+      opacity 0.35s ease;
+  }
+}
+
+/* Shown while no brand has a name yet. */
+.brand-lab__empty {
+  margin: 0;
+  color: color-mix(in srgb, var(--color-on-dark-band) 70%, transparent);
+}

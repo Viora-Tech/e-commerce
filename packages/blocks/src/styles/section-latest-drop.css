@@ -2,8 +2,8 @@
  * Latest drop: single-product spotlight. Two columns at >=990px
  * (image ~58% / content ~42%), stacked on mobile. Image side sits in a
  * light-gray well with a CSS-only cross-fade to the product's second image
- * on hover; content side carries kicker, title, price, blurb, spec chips,
- * an optional countdown, and CTAs.
+ * on hover and a 3D tilt that follows the pointer; content side carries
+ * kicker, title, price, blurb, spec chips, an optional countdown, and CTAs.
  */
 .section-latest-drop {
   padding-block: var(--space-9);
@@ -15,6 +15,10 @@
   gap: var(--space-6);
 }
 
+.latest-drop__media-wrap {
+  perspective: 62.5rem;
+}
+
 .latest-drop__media {
   position: relative;
   aspect-ratio: 1 / 1;
@@ -22,6 +26,14 @@
   background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
   border-radius: calc(var(--radius-m) * 2);
   padding: var(--space-7);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .latest-drop__media {
+    transition: transform 0.2s ease-out;
+  }
 }
 
 .latest-drop__image {
@@ -38,6 +50,8 @@
 .latest-drop__image--hover {
   position: absolute;
   inset: var(--space-7);
+  width: calc(100% - var(--space-7) * 2);
+  height: calc(100% - var(--space-7) * 2);
   z-index: 2;
   opacity: 0;
 }
@@ -87,7 +101,7 @@
 .latest-drop__spec {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-m);
@@ -101,7 +115,7 @@
 
 .latest-drop__spec-value {
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--color-ink);
 }
 
@@ -113,12 +127,16 @@
   gap: var(--space-3);
 }
 
+.latest-drop__countdown[hidden] {
+  display: none;
+}
+
 .latest-drop__countdown-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-1);
-  min-width: 48px;
+  min-width: 3rem;
   padding: var(--space-2);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-m);
@@ -126,7 +144,7 @@
 
 .latest-drop__countdown-value {
   font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--color-ink);
@@ -148,17 +166,24 @@
 
 .latest-drop__secondary-link {
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: var(--color-muted);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-underline-offset: 0.125rem;
 }
 
 .latest-drop__secondary-link:hover {
   color: var(--color-ink);
+}
+
+.latest-drop__empty {
+  margin: 0;
+  padding-block: var(--space-6);
+  text-align: center;
+  color: var(--color-muted);
 }
 
 @media screen and (min-width: 990px) {
@@ -172,7 +197,7 @@
     gap: var(--space-8);
   }
 
-  .latest-drop__media {
+  .latest-drop__media-wrap {
     flex: 0 0 58%;
   }
 

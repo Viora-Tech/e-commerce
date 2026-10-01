@@ -1,0 +1,626 @@
+/**
+ * Social wall (sections/social-wall.liquid). A curated grid of Instagram / X /
+ * YouTube posts. Tiles are a fixed 4:5 portrait crop regardless of what gets
+ * uploaded, because social stills arrive in wildly different shapes and a grid
+ * that changes height per row stops reading as a grid.
+ *
+ * The rhythm that makes it read as a FEED rather than a thumbnail sheet: the
+ * first tile is a 2x2 feature from tablet up (and a second feature sits
+ * deeper in the wall on desktop), the way every social profile leads with a
+ * pinned post. Feature positions are nth-child, so they are stable
+ * regardless of platform filtering; grid-auto-flow: dense backfills the
+ * holes a feature leaves so the wall stays solid whatever combination of
+ * tiles a filter hides. Featured tiles drop their aspect-ratio and let the
+ * spanned grid area size them - the media inside is absolutely positioned
+ * and covers whatever box it gets.
+ *
+ * Tiles reveal with the same capped stagger as the theme's card grids, and
+ * hover speaks twice at low volume: the still zooms (below) and the platform
+ * badge inverts to ink - a white pill you're about to leave through.
+ */
+.social-wall__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.social-wall__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.social-wall__heading {
+  margin: 0;
+}
+
+.social-wall__subheading {
+  margin: 0;
+  max-width: 55ch;
+  color: var(--color-muted);
+}
+
+.social-wall__follow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.social-wall__follow-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-ink);
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-pill);
+}
+
+/* A 2.5rem circle with a glyph in it - the same object as [data-icon-close] -
+   so it inverts the same way: the circle fills with ink and the glyph goes
+   to the page background. */
+/* The ink arrives as the theme's cursor-origin sweep rather than a snap -
+   the same fill every other control uses, with the contract written at the
+   top of assets/motion.js: a ::before at z-index -1, circle(0%) at rest,
+   circle(150%) under html.has-cursor-fill .is-hover-fill, and a transition
+   on BOTH rules (the resting one is the way back out). Icon timing, because
+   these are 2.5rem circles standing in a row, where a 3s sweep would leave
+   each trailing the last. The arrows further down share it. */
+.social-wall__follow-link,
+.social-wall__arrow {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: border-color 160ms ease, color 160ms ease, opacity 0.2s ease;
+}
+
+.social-wall__follow-link::before,
+.social-wall__arrow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--color-ink);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+html.has-cursor-fill .social-wall__follow-link.is-hover-fill::before,
+html.has-cursor-fill .social-wall__arrow.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-wall__follow-link::before,
+  .social-wall__arrow::before {
+    transition: clip-path var(--icon-close-fill-out) var(--icon-close-fill-out-ease);
+  }
+
+  html.has-cursor-fill .social-wall__follow-link.is-hover-fill::before,
+  html.has-cursor-fill .social-wall__arrow.is-hover-fill::before {
+    transition: clip-path var(--icon-close-fill-in) var(--icon-close-fill-in-ease);
+  }
+}
+
+/* No pointer to sweep from - keyboard focus, touch - so it just fills. */
+html:not(.has-cursor-fill) .social-wall__follow-link:hover::before,
+.social-wall__follow-link:focus-visible::before,
+html:not(.has-cursor-fill) .social-wall__arrow:not(:disabled):hover::before,
+.social-wall__arrow:not(:disabled):focus-visible::before {
+  clip-path: circle(150% at 50% 50%);
+}
+
+.social-wall__follow-link:hover,
+.social-wall__follow-link:focus-visible,
+.social-wall__arrow:not(:disabled):hover,
+.social-wall__arrow:not(:disabled):focus-visible {
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.social-wall__follow-link:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.125rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Platform tabs - pill row                                            */
+/* ------------------------------------------------------------------ */
+/*
+ * The same pill language as tabbed-products, deliberately: one tab treatment
+ * across the site, not two. Transparent with a 0.0625rem outline at rest, solid
+ * --color-ink when selected, cursor-origin fill on hover driven by
+ * assets/motion.js (which lists .social-wall__tab alongside .btn and
+ * .tabbed-products__tab in its hover-target selector).
+ *
+ * The no-JS contract lives here too: the row is display:none until `html.js`
+ * confirms JS is running, because a filter that cannot filter is worse than
+ * no filter. Nothing server-side is ever rendered hidden, so without JS the
+ * wall simply shows every post.
+ */
+.social-wall__tabs {
+  display: block;
+  margin-bottom: var(--space-6);
+  /* Scrolls rather than wraps on a narrow screen: a second row of pills would
+     push the grid down the page every time the merchant adds a platform. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-padding-inline: var(--space-4);
+  /* The pills carry an outline and a focus ring, so the scroll box needs a
+     little vertical air rather than clipping them. */
+  padding-block: var(--space-1);
+}
+
+.social-wall__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.social-wall__tablist {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.social-wall__tab {
+  position: relative;
+  /* Contains the fill layer: without it the negative z-index below can escape
+     behind an ancestor's background instead of staying inside the pill. */
+  isolation: isolate;
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+  background-color: transparent;
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  white-space: nowrap;
+
+  /* The four timing values now live on :root in base.css, so the rules
+     below read --btn-fill-* directly instead of keeping the third literal
+     copy of them. Only the fill COLOUR stays local. Same shape as
+     section-tabbed-products.css, which is the same control in another row. */
+  --sw-fill-color: var(--color-ink);
+}
+
+/* z-index MUST be negative, not 0: within a stacking context, positioned
+   boxes at z-index 0/auto paint ABOVE inline content, so a 0 here would sweep
+   the fill straight over the label. See the same note in base.css for .btn. */
+.social-wall__tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--sw-fill-color);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.social-wall__tab > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* circle() percentages resolve against sqrt((w²+h²)/2), so 150% reaches the
+   farthest corner from any origin point. */
+html.has-cursor-fill .social-wall__tab.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+/* Entry slower than exit, matching every other button on the site: the sweep
+   is meant to be watched, but un-sweeping stays quick so running the cursor
+   along the row doesn't leave a trail of half-filled pills. */
+@media (prefers-reduced-motion: no-preference) {
+  .social-wall__tab::before {
+    transition: clip-path var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  html.has-cursor-fill .social-wall__tab.is-hover-fill::before {
+    transition: clip-path var(--btn-fill-in) var(--btn-fill-in-ease);
+  }
+}
+
+.social-wall__tab:hover {
+  border-color: var(--color-ink);
+}
+
+/* The label has to invert or it ends up ink-on-ink once the fill covers it,
+   on the fill's own duration AND easing in both directions - duration alone
+   still desyncs against the fill's ease-in exit. */
+html.has-cursor-fill .social-wall__tab:hover {
+  color: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-wall__tab {
+    transition: color var(--btn-fill-out) var(--btn-fill-out-ease),
+      background-color var(--btn-fill-out) var(--btn-fill-out-ease),
+      border-color var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  .social-wall__tab:hover {
+    transition-duration: var(--btn-fill-in);
+    transition-timing-function: var(--btn-fill-in-ease);
+  }
+}
+
+/* Without JS driving the sweep (reduced motion, or motion.js not running) the
+   pill still needs a hover state, so fall back to the instant swap. */
+html:not(.has-cursor-fill) .social-wall__tab:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+/* The selected pill is the only filled surface in the row at rest, which is
+   what makes the selection readable at a glance without a second cue. */
+.social-wall__tab[aria-selected='true'] {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+  /* Hovering it sweeps nothing: it is already solid ink, so the fill would be
+     black-on-black. motion.js has no notion of selection and still adds
+     .is-hover-fill; a transparent fill colour is what makes that a no-op. */
+  --sw-fill-color: transparent;
+}
+
+/* Pins the selected pill's colours against the generic :hover rules above,
+   which would otherwise repaint its border on the way past. */
+html.has-cursor-fill .social-wall__tab[aria-selected='true']:hover,
+html:not(.has-cursor-fill) .social-wall__tab[aria-selected='true']:hover {
+  background-color: var(--color-ink);
+  border-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.social-wall__tab:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.125rem;
+}
+
+.social-wall__panel:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.25rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Grid                                                                */
+/* ------------------------------------------------------------------ */
+/* Filtered-out tiles are hidden with the `hidden` attribute. Stated
+   explicitly because `hidden`'s UA display:none loses to any author rule that
+   sets a display on .social-tile, and a grid item that ignores `hidden` would
+   silently break the filter rather than fail loudly. */
+.social-tile[hidden] {
+  display: none;
+}
+.social-wall__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* dense: a 2x2 feature plus an arbitrary filter can leave holes; dense
+     backfills them with later tiles. Strict source order matters less on a
+     wall than the wall having no gaps. */
+  grid-auto-flow: dense;
+  gap: var(--space-4);
+}
+
+/* Per-tile entrance, same capped stagger as base.css's card grids - after
+   the 4th the reader is scrolling and each tile re-earns its own reveal. */
+@media (prefers-reduced-motion: no-preference) {
+  .social-wall__grid > .social-tile:nth-child(2) {
+    transition-delay: 80ms;
+  }
+
+  .social-wall__grid > .social-tile:nth-child(3) {
+    transition-delay: 160ms;
+  }
+
+  .social-wall__grid > .social-tile:nth-child(4) {
+    transition-delay: 240ms;
+  }
+}
+
+@media screen and (min-width: 46.875rem) {
+  .social-wall__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* The pinned post. aspect-ratio: auto lets the spanned area (two rows
+     sized by the 4:5 singles beside it, plus the gap) set its height. */
+  .social-wall__grid > .social-tile:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+    aspect-ratio: auto;
+  }
+
+  .social-wall__grid > .social-tile:first-child .social-tile__caption {
+    font-size: 0.875rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+
+@media screen and (min-width: 61.875rem) {
+  .social-wall__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  /* A second feature deep in the wall, so a full 12-tile grid reads as a
+     feed with beats rather than one big tile and a residue. */
+  .social-wall__grid > .social-tile:nth-child(8) {
+    grid-column: span 2;
+    grid-row: span 2;
+    aspect-ratio: auto;
+  }
+
+  .social-wall__grid > .social-tile:nth-child(8) .social-tile__caption {
+    font-size: 0.875rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Tile                                                                */
+/* ------------------------------------------------------------------ */
+.social-tile {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+/* The frame wakes with the still's zoom - one gesture, two cues. */
+.social-tile:hover,
+.social-tile:focus-within {
+  border-color: color-mix(in srgb, var(--color-ink) 25%, var(--color-line));
+}
+
+.social-tile__link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.social-tile__media {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.social-tile__image,
+.social-tile__placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-tile__placeholder {
+  background-color: var(--color-line);
+  fill: var(--color-muted);
+}
+
+/* Platform badge. White pill so it stays readable over any still, including
+   the very light product photography this store mostly shoots. */
+.social-tile__badge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  /* Literal: the pill is a fixed white plate over the still, so its glyph
+     cannot follow --color-ink - near-white in dark mode, i.e. a glyph the
+     colour of its own plate. Scheme 1's ink value, so light is unchanged. */
+  color: #1f1f21;
+  background-color: rgb(255 255 255 / 92%);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0.125rem 0.5rem rgb(0 0 0 / 12%);
+}
+
+.social-tile__play {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-bg);
+  pointer-events: none;
+}
+
+.social-tile__play svg {
+  padding: 0.875rem 0.75rem 0.875rem 1rem;
+  background-color: color-mix(in srgb, var(--color-ink) 72%, transparent);
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(0.125rem);
+}
+
+/* Caption sits on a scrim rather than a solid bar so the still stays visible
+   behind it. */
+.social-tile__caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 2;
+  display: block;
+  padding: var(--space-6) var(--space-3) var(--space-3);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #fff;
+  background: linear-gradient(to top, rgb(0 0 0 / 72%) 0%, rgb(0 0 0 / 0%) 100%);
+  /* Two lines maximum: a long caption would otherwise cover the whole still. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.social-tile__link:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: -0.125rem;
+}
+
+/* The player replaces the anchor entirely, so the badge/play/caption go with
+   it - nothing is left floating over a playing video. */
+.social-tile__iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Badge inverts on hover: the white pill goes to ink, a small "you're about
+   to leave through this platform" acknowledgement. Outside any media query
+   because it is a paint swap either way; only its transition is gated. */
+.social-tile__link:hover .social-tile__badge,
+.social-tile__link:focus-visible .social-tile__badge {
+  color: #fff;
+  background-color: #1f1f21;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-tile {
+    transition: border-color 200ms ease;
+  }
+
+  .social-tile__badge {
+    transition: color 200ms ease, background-color 200ms ease;
+  }
+
+  .social-tile__image {
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .social-tile__link:hover .social-tile__image,
+  .social-tile__link:focus-visible .social-tile__image {
+    transform: scale(1.05);
+  }
+
+  .social-tile__play svg {
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .social-tile__link:hover .social-tile__play svg {
+    transform: scale(1.08);
+  }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Carousel of reels: portrait cards in a scroll-snap row with arrows.   */
+/* ------------------------------------------------------------------ */
+.social-wall__grid--carousel {
+  display: flex;
+  grid-auto-flow: unset;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  padding-bottom: var(--space-2);
+  scrollbar-width: none;
+}
+
+.social-wall__grid--carousel::-webkit-scrollbar { display: none; }
+
+.social-wall__grid--carousel > .social-tile {
+  flex: 0 0 clamp(12.5rem, 22vw, 17.5rem);
+  aspect-ratio: 9 / 16;
+  scroll-snap-align: start;
+  border-radius: calc(var(--radius-m) * 1.2);
+}
+
+/* No featured tile in the row: every reel is the same size. */
+.social-wall__grid--carousel > .social-tile:first-child,
+.social-wall__grid--carousel > .social-tile:nth-child(n) {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.social-wall__grid--carousel > .social-tile .social-tile__caption {
+  font-size: 0.875rem;
+}
+
+.social-wall__arrows {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.social-wall__arrow {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0.0625rem solid var(--color-line);
+  border-radius: 50%;
+  background: none;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.social-wall__arrow:disabled { opacity: 0.35; cursor: default; }
+.social-wall__arrow[data-carousel-prev] svg { transform: rotate(180deg); }
+
+@media screen and (max-width: 46.8125rem) {
+  .social-wall__grid--carousel > .social-tile { flex-basis: 62vw; }
+  .social-wall__arrows { display: none; }
+}
+
+
+/* Marquee: the row scrolls by itself, the second run makes it seamless.
+   Same technique as the brand row (section-logo-carousel.css). */
+.social-wall__grid--marquee {
+  overflow: hidden;
+  scroll-snap-type: none;
+  width: max-content;
+  max-width: none;
+}
+
+.social-wall__grid--marquee > .social-tile { scroll-snap-align: none; }
+
+.social-wall__panel:has(.social-wall__grid--marquee),
+[data-panel]:has(.social-wall__grid--marquee) { overflow: hidden; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-wall__grid--marquee {
+    animation: social-wall-scroll var(--marquee-duration, 40s) linear infinite;
+  }
+  .social-wall__grid--marquee:hover { animation-play-state: paused; }
+}
+
+@keyframes social-wall-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.social-wall__grid--marquee ~ .social-wall__arrows,
+.social-wall__grid--marquee + .social-wall__arrows { display: none; }
+
+.social-tile__clip {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.social-wall__empty {
+  padding-block: var(--space-6);
+  text-align: center;
+  color: var(--color-muted);
+}

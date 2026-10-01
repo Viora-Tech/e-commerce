@@ -18,6 +18,11 @@ const ALLOWLIST: AllowEntry[] = [
       'merchant Custom HTML, rendered only after sanitizeEmbedHtml (sanitize-html allow-list: no scripts, handlers, styles or foreign iframes); also sanitised on save',
   },
   {
+    file: 'packages/blocks/src/components/rich-copy.tsx',
+    reason:
+      'section body copy from a Puck richtext field, rendered only after richtextHtml (legacy plain text escaped; HTML through a sanitize-html allow-list of inline marks, paragraphs, lists and links)',
+  },
+  {
     file: 'apps/admin/src/components/layout/accent-style.tsx',
     reason: 'injects a <style> tag of computed CSS variables, not user input',
   },

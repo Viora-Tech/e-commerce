@@ -1,0 +1,385 @@
+/**
+ * Featured carousel (sections/featured-carousel.liquid).
+ *
+ * Each slide is a featured lockup (snippets/featured-lockup.liquid, styled by
+ * section-featured-product.css and component-gallery.css in the theme): the
+ * product's pictures on one side, its title, price and ways on the other. They
+ * are written here as .featured-lockup* so they cannot collide with the
+ * Featured product section's own classes. The frame around them pages between
+ * slides: viewport, track, arrows, dots.
+ *
+ * Without JS the viewport is a scroll-snapping scroller, so every slide is
+ * still reachable. Once hydrated the component adds .featured-carousel--ready,
+ * and from there the track is moved by --fc-index and the scroller turned off.
+ */
+.featured-carousel__head {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.featured-carousel__heading {
+  margin: 0;
+}
+
+.featured-carousel__empty {
+  margin: 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.featured-carousel__viewport {
+  /* No-JS fallback: a snapping scroller. */
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.featured-carousel__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.featured-carousel--ready .featured-carousel__viewport {
+  overflow: hidden;
+}
+
+.featured-carousel__track {
+  display: flex;
+  min-width: 100%;
+}
+
+.featured-carousel--ready .featured-carousel__track {
+  transform: translateX(calc(var(--fc-index, 0) * -100%));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-carousel--ready .featured-carousel__track {
+    transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+.featured-carousel__slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+}
+
+/* A slide that is not current is inert, so it takes no pointer events and
+   no tab stops; this only stops it from being read while it slides past. */
+.featured-carousel--ready .featured-carousel__slide:not(.is-current) {
+  visibility: hidden;
+}
+
+.featured-carousel--ready .featured-carousel__slide.is-current {
+  visibility: visible;
+}
+
+.featured-carousel__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.featured-carousel__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-carousel__arrow {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+}
+
+/* The label inverts as the ink fills in, and the edge meets the fill. */
+.featured-carousel__arrow:hover {
+  border-color: var(--color-ink);
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.featured-carousel__arrow svg {
+  transform: rotate(180deg);
+}
+
+.featured-carousel__arrow--next svg {
+  transform: none;
+}
+
+.featured-carousel__dots {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.featured-carousel__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-carousel__dot {
+    transition:
+      width 200ms ease,
+      background-color 200ms ease;
+  }
+}
+
+/* The current dot lengthens rather than changing colour, so the row stays
+   one colour and the section keeps a single accent. */
+.featured-carousel__dot.is-current {
+  width: 1.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-brand);
+}
+
+.featured-carousel__arrow:focus-visible,
+.featured-carousel__dot:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ */
+/* The lockup: one product, sold here                                  */
+/* ------------------------------------------------------------------ */
+.featured-lockup {
+  display: grid;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+@media screen and (min-width: 990px) {
+  .featured-lockup {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+
+  .featured-lockup--flip .featured-lockup__media {
+    order: 2;
+  }
+}
+
+/* The picture side stands on the page's own ground at full size: the stamp
+   gets a row above the gallery rather than being pinned into a corner. */
+.featured-lockup__media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.featured-lockup__stamp {
+  flex: none;
+  width: 5.5rem;
+  height: 5.5rem;
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-lockup__stamp {
+    animation: featured-lockup-spin 18s linear infinite;
+  }
+}
+
+.featured-lockup__stamp-text {
+  font-family: var(--font-heading);
+  font-size: 0.71875rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  fill: currentColor;
+}
+
+@keyframes featured-lockup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Gallery: the main picture over a single row of thumbnails. */
+.featured-lockup__gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.featured-lockup__stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: calc(var(--radius-m) * 1.5);
+}
+
+.featured-lockup__stage-link {
+  position: absolute;
+  inset: 4%;
+  display: block;
+}
+
+.featured-lockup__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.featured-lockup__thumbs {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+  /* Room for the selected thumbnail's ring, which overflow would clip. */
+  padding: 0.1875rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.featured-lockup__thumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.featured-lockup__thumb {
+  flex: 0 0 auto;
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  background-color: var(--color-line);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .featured-lockup__thumb {
+    transition:
+      opacity 150ms ease,
+      border-color 150ms ease;
+  }
+}
+
+.featured-lockup__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.featured-lockup__thumb:hover {
+  opacity: 1;
+  border-color: var(--color-ink);
+}
+
+/* One ring for the showing picture; hover stays ink so the two cannot be mistaken. */
+.featured-lockup__thumb.is-active {
+  opacity: 1;
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--color-brand);
+}
+
+.featured-lockup__thumb:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* The information side. */
+.featured-lockup__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+  max-width: 35rem;
+}
+
+.featured-lockup__eyebrow {
+  margin: 0 0 var(--space-2);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.featured-lockup__title {
+  margin: 0;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.featured-lockup__buy {
+  align-self: flex-start;
+}
+
+/* Share and "need help" share one line, pushed apart. */
+.featured-lockup__aside {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.featured-lockup__share {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  color: var(--color-muted);
+}
+
+.featured-lockup__share a {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.featured-lockup__share a:hover {
+  color: var(--color-brand);
+}
+
+.featured-lockup__help {
+  color: var(--color-muted);
+  text-decoration: underline;
+}
+
+.featured-lockup__help:hover {
+  color: var(--color-ink);
+}
+
+/* The way through to the full page: a full-width row with the arrow at the
+   far end, under a rule - a footer to the block rather than a loose link. */
+.featured-lockup__full-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-line);
+  color: var(--color-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.featured-lockup__full-link:hover {
+  text-decoration: underline;
+}
