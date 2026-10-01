@@ -31,6 +31,9 @@ export type IconName =
   | 'discord'
   | 'youtube'
   | 'play'
+  | 'question'
+  | 'facebook'
+  | 'telegram'
 
 const paths: Record<IconName, { viewBox: string; body: string }> = {
   search: {
@@ -156,6 +159,18 @@ const paths: Record<IconName, { viewBox: string; body: string }> = {
   play: {
     viewBox: '0 0 24 24',
     body: '<path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.5-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14Z"/>',
+  },
+  question: {
+    viewBox: '0 0 24 24',
+    body: '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.3 2.4c-.6.2-.9.7-.9 1.3v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="16.6" r="0.9" fill="currentColor"/>',
+  },
+  facebook: {
+    viewBox: '0 0 7.69044 15.9687',
+    body: '<path d="M4.69278 3.80232C4.69278 3.96607 4.69278 4.49979 4.69278 5.25804H7.29978L7.01712 7.582H4.69278C4.69278 11.166 4.69278 15.9687 4.69278 15.9687H1.60759C1.60759 15.9687 1.60759 11.2296 1.60759 7.582H0V5.25804H1.60759C1.60759 4.33641 1.60759 3.68107 1.60759 3.4986C1.60759 2.62922 1.54209 2.21672 1.9115 1.54304C2.28109 0.86938 3.32359 -0.0210577 5.12669 0.000379838C6.93022 0.0225986 7.69044 0.196099 7.69044 0.196099L7.29978 2.67288C7.29978 2.67288 6.14812 2.36879 5.58284 2.47716C5.01831 2.58557 4.69278 2.93332 4.69278 3.80232Z" fill="currentColor"/>',
+  },
+  telegram: {
+    viewBox: '0 0 24 24',
+    body: '<path d="M21.4 3.4L2.6 10.7C1.85 10.99 1.89 12.06 2.66 12.29L7.4 13.71L17.1 7.3C17.32 7.16 17.55 7.45 17.36 7.63L9.9 14.6L9.55 18.9C9.48 19.72 10.47 20.17 11.04 19.58L13.1 17.44L17.9 20.86C18.5 21.29 19.35 20.96 19.5 20.24L22.6 4.5C22.75 3.74 22.02 3.13 21.4 3.4Z" fill="currentColor"/>',
   },
 }
 

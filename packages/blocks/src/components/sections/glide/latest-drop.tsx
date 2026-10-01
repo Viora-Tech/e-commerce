@@ -5,10 +5,10 @@ import { latestDropContent as copy } from '../../../data/glide/latest-drop'
 import Card3dContainer from '../../../effects/card-3d-container'
 import { safeHref } from '../../../slot-types'
 import type { CardProduct } from '../../../types'
+import CountdownTiles from '../../countdown-tiles'
 import Picture from '../../picture'
 import Price from '../../price'
 import RichCopy from '../../rich-copy'
-import LatestDropCountdown from './latest-drop-countdown'
 
 type LatestDropProps = {
   product: CardProduct | null
@@ -20,6 +20,13 @@ type LatestDropProps = {
   secondaryHref: string
   deadline: string
   specs: { label: ReactNode; value: ReactNode }[]
+}
+
+const COUNTDOWN = {
+  root: 'latest-drop__countdown',
+  tile: 'latest-drop__countdown-tile',
+  value: 'latest-drop__countdown-value',
+  label: 'latest-drop__countdown-label',
 }
 
 export default function LatestDrop({
@@ -98,7 +105,9 @@ export default function LatestDrop({
             </div>
           ) : null}
 
-          {deadline ? <LatestDropCountdown deadline={deadline} /> : null}
+          {deadline ? (
+            <CountdownTiles deadline={deadline} labels={copy.countdown} classes={COUNTDOWN} />
+          ) : null}
 
           <div className="latest-drop__actions">
             {ctaLabel ? (

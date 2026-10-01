@@ -10,6 +10,7 @@ import type { CardProduct } from '../../../types'
 import Icon from '../../icon'
 import Picture from '../../picture'
 import Price from '../../price'
+import RichCopy from '../../rich-copy'
 
 type FeaturedCarouselSlideProps = {
   product: CardProduct
@@ -23,6 +24,10 @@ type FeaturedCarouselSlideProps = {
   helpHref: string
   /** The site's address, known only in the browser; the share links wait for it. */
   origin: string
+  /** A short pitch under the price (the Featured product section's older `text`). */
+  text?: ReactNode
+  /** Replaces "Shop now" on the buy button. */
+  buttonLabel?: ReactNode
 }
 
 // Port of snippets/featured-lockup.liquid: one product's pictures (main + thumbnail strip) on one
@@ -39,6 +44,8 @@ export default function FeaturedCarouselSlide({
   showHelp,
   helpHref,
   origin,
+  text,
+  buttonLabel,
 }: FeaturedCarouselSlideProps) {
   // Hooks
   const [shown, setShown] = useState(0)
@@ -120,8 +127,9 @@ export default function FeaturedCarouselSlide({
         {eyebrow ? <p className="featured-lockup__eyebrow text-caption">{eyebrow}</p> : null}
         <h2 className="featured-lockup__title h2">{product.title}</h2>
         <Price pricePaise={product.pricePaise} mrpPaise={product.mrpPaise} />
+        <RichCopy value={text} className="featured-lockup__text text-body" />
         <a href={productPath} className="btn btn--primary featured-lockup__buy">
-          {copy.shopNow}
+          {buttonLabel || copy.shopNow}
         </a>
 
         {sharing || showHelp ? (

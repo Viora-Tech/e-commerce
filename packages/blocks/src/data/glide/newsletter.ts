@@ -1,0 +1,41 @@
+/** Default copy, field labels and fixed UI strings for the email signup (Zero Drift `newsletter`). */
+export const newsletterContent = {
+  eyebrow: 'Newsletter',
+  heading: 'Get to know about the latest drops early!',
+  text: '<p>Restock alerts, early access to drops, and subscriber-only offers.</p>',
+  reassurance: 'About two emails a month. Unsubscribe any time.',
+  interestsLegend: 'Tell me about',
+  interests: [
+    { label: 'Mice', tag: 'restock-mice' },
+    { label: 'Keyboards', tag: 'restock-keyboards' },
+    { label: 'Glasspads', tag: 'restock-glasspads' },
+    { label: 'Cloth pads', tag: 'restock-cloth-pads' },
+  ],
+  reasons: [
+    { icon: 'stock', text: 'Restock alerts on sold-out gear' },
+    { icon: 'star', text: 'Early access to every drop' },
+    { icon: 'guaranteed', text: 'Subscriber-only offers' },
+  ],
+  interestFallback: 'Interest',
+  reasonFallback: 'Reason',
+  iconOptions: [
+    { label: 'Box', value: 'stock' },
+    { label: 'Badge', value: 'guaranteed' },
+    { label: 'Star', value: 'star' },
+    { label: 'Delivery', value: 'delivery' },
+    { label: 'Heart', value: 'heart' },
+  ],
+  fields: {
+    eyebrow: 'Small heading above',
+    heading: 'Heading',
+    text: 'Text',
+    button: 'Button label',
+    reassurance: 'Small print under the field',
+    interests: 'Interests (up to 4)',
+    interestLabel: 'Label',
+    interestTag: 'Tag',
+    reasons: 'Reasons to sign up (up to 4)',
+    reasonIcon: 'Icon',
+    reasonText: 'Text',
+  },
+} as const

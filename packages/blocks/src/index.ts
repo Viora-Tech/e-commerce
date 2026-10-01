@@ -28,12 +28,15 @@ export { default as Icon } from './components/icon'
 export { default as Price } from './components/price'
 export { default as ProductCard } from './components/product-card'
 export { default as TabbedProducts } from './components/product-grid'
+export { default as ProductRecommendations } from './components/product-recommendations'
 export { default as ProductView } from './components/product-view'
 export { default as Reveal } from './components/reveal'
 export { default as RichTextBlock, type RichTextBlockProps } from './components/rich-text'
 export { default as SectionFrame } from './components/section-frame'
 export { default as SectionHeading } from './components/section-heading'
+export { default as GlideCookieBanner } from './components/sections/glide/cookie-banner'
 export { default as ThemeToggle } from './components/theme-toggle'
+export { type MenuCollection, type SearchShortcut, searchShortcuts } from './header-menu'
 export { formatPaise } from './money'
 export {
   defaultSectionSettings,
@@ -42,4 +45,8 @@ export {
   sectionVisibilityClassName,
   shouldAnimateEntrance,
 } from './section-settings'
+export { type CookieBannerSettings, cookieBannerSettings } from './sections/glide/cookie-banner'
+export { footerSettings } from './sections/glide/footer'
+export { headerSettings } from './sections/glide/header'
+export { type MainProductSettings, mainProductSettings } from './sections/main-product-settings'
 export * from './types'

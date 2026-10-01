@@ -2,6 +2,12 @@ import type { ComponentConfig, Fields } from '@puckeditor/core'
 import type { ReactNode } from 'react'
 import type { NewsletterAction } from '../components/sections/newsletter'
 import { sectionsContent } from '../data/sections'
+import type { ProductDetail } from '../types'
+import { cookieBannerDef } from './glide/cookie-banner'
+import { footerDef } from './glide/footer'
+import { headerDef } from './glide/header'
+import { inlineText } from './inline-fields'
+import { mainProductDefaults, mainProductFields, showHide as yesNo } from './main-product-settings'
 
 /**
  * Sections bound to what the shopper is looking at: the header and footer (store
@@ -13,6 +19,7 @@ import { sectionsContent } from '../data/sections'
 export const DYNAMIC_SECTIONS = [
   'Header',
   'Footer',
+  'CookieBanner',
   'MainProduct',
   'MainCollection',
   'MainPage',
@@ -41,38 +48,34 @@ export type SectionMetadata = {
    * it wants, e.g. "Notify me" added outside a product page.
    */
   appBlockContext?: Record<string, unknown> | undefined
+  /**
+   * The product being viewed, on a product template (the storefront product route, or
+   * the Customize canvas previewing a product). Product sections (tabs, specs, size
+   * guide...) read it; without one they render nothing, or a hint in the editor.
+   */
+  product?: ProductDetail | undefined
+  /**
+   * Actions on `product` the storefront binds for product sections: the sticky add-to-cart
+   * bar adds the selected variant with `addToCart`. Unset in the Customize canvas, where
+   * those buttons stay inert.
+   */
+  productActions?:
+    | { addToCart?: ((variantId: string, quantity: number) => Promise<void>) | undefined }
+    | undefined
 }
-
-const yesNo = (label: string) =>
-  ({
-    type: 'radio',
-    label,
-    options: [
-      { label: 'Show', value: true },
-      { label: 'Hide', value: false },
-    ],
-  }) as const
 
 type Def = { label: string; fields: Fields; defaultProps: SectionSettings }
 
 const DEFS: Record<DynamicSection, Def> = {
-  Header: {
-    label: 'Header',
-    fields: { menu: { type: 'text', label: 'Menu handle (blank uses Navigation)' } },
-    defaultProps: { menu: '' },
-  },
-  Footer: {
-    label: 'Footer',
-    fields: { tagline: { type: 'textarea', label: 'Tagline' } },
-    defaultProps: { tagline: sectionsContent.footer.tagline },
-  },
+  Header: headerDef,
+  Footer: footerDef,
+  CookieBanner: cookieBannerDef,
   MainProduct: {
     label: 'Product information',
-    fields: {
-      showEmiHint: yesNo('EMI hint under the price'),
-      showDeliveryEstimate: yesNo('Delivery estimate'),
-    },
-    defaultProps: { showEmiHint: true, showDeliveryEstimate: true },
+    // Gallery and buy box settings: ./main-product-settings.ts (old docs saved only the
+    // first two, showEmiHint and showDeliveryEstimate; the rest read as their defaults).
+    fields: mainProductFields,
+    defaultProps: mainProductDefaults(),
   },
   MainCollection: {
     label: 'Product grid',
@@ -101,7 +104,7 @@ const DEFS: Record<DynamicSection, Def> = {
   RelatedProducts: {
     label: 'Related products',
     fields: {
-      heading: { type: 'text', label: 'Heading' },
+      heading: inlineText('Heading'),
       limit: { type: 'number', label: 'Products', min: 2, max: 8 },
     },
     defaultProps: { heading: sectionsContent.related.heading, limit: 4 },
@@ -109,7 +112,7 @@ const DEFS: Record<DynamicSection, Def> = {
   RecentlyViewed: {
     label: 'Recently viewed',
     fields: {
-      heading: { type: 'text', label: 'Heading' },
+      heading: inlineText('Heading'),
       limit: { type: 'number', label: 'Products', min: 2, max: 8 },
     },
     defaultProps: { heading: sectionsContent.recentlyViewed.heading, limit: 4 },

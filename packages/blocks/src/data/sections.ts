@@ -1,6 +1,5 @@
 /** Default copy the section library starts a new section with, and the strings it shows. */
 export const sectionsContent = {
-  announcement: { text: 'Free shipping on prepaid orders above Rs 999', linkLabel: 'Shop now' },
   imageBanner: {
     heading: 'Built for the grind',
     text: 'Glass pads, skates and grips tuned by players.',
@@ -20,7 +19,6 @@ export const sectionsContent = {
     ],
   },
   collectionList: { heading: 'Shop by collection', empty: 'Pick collections in the editor.' },
-  featuredProduct: { kicker: 'Featured', button: 'View product', empty: 'Pick a product.' },
   testimonials: {
     heading: 'Loved by players',
     items: [
@@ -42,8 +40,7 @@ export const sectionsContent = {
   },
   video: { heading: '', empty: 'Add a YouTube, Vimeo or MP4 link.' },
   newsletter: {
-    heading: 'Join the list',
-    text: 'Drops, restocks and the occasional discount. No spam.',
+    sectionLabel: 'Email signup',
     button: 'Subscribe',
     placeholder: 'Email address',
     label: 'Email',
@@ -52,5 +49,4 @@ export const sectionsContent = {
   },
   related: { heading: 'You may also like' },
   recentlyViewed: { heading: 'Recently viewed' },
-  footer: { tagline: 'Gaming peripherals built for the grind.' },
 } as const

@@ -1,0 +1,200 @@
+/* Ported from Glide assets/section-image-comparison.css (px to rem; custom elements to classes). */
+/**
+ * Image comparison (sections/image-comparison.liquid).
+ *
+ * Two stacked images, the top one clipped at --divider. Neither image ever
+ * moves or scales - that is what keeps the two halves lined up into one
+ * continuous object across the seam.
+ */
+.image-comparison__heading {
+  margin: 0 0 var(--space-6);
+}
+
+.image-comparison {
+  /* Over-photography colours stay fixed in both schemes (the theme writes them as
+     literals); named once here so the rules below read tokens. */
+  --comparison-white: #fff;
+  --comparison-ink-fixed: #1f1f21;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background-color: var(--color-line);
+  /* A fixed ratio, so the frame does not change height as the divider moves
+     and the page below it never shifts. */
+  aspect-ratio: var(--comparison-ratio, 16 / 10);
+  max-height: 45rem;
+  margin-inline: auto;
+  /* The grab cursor belongs to the whole frame, because the range underneath
+     accepts a click anywhere - not just on the handle. */
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.image-comparison__media {
+  position: absolute;
+  inset: 0;
+}
+
+.image-comparison__media img,
+.image-comparison__placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-comparison__placeholder {
+  background-color: var(--color-line);
+  fill: var(--color-muted);
+}
+
+/* The TOP layer is the clipped one, so the untouched image is underneath and
+   there is never a frame where the box is empty mid-drag.
+
+   inset() from the right rather than a width: the image keeps its full size
+   and only its visible region changes. Animating width would rescale the
+   photograph and the halves would stop meeting at the seam. */
+.image-comparison__media--before {
+  clip-path: inset(0 calc(100% - var(--divider, 50%)) 0 0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Divider and handle                                                   */
+/* ------------------------------------------------------------------ */
+.image-comparison__divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--divider, 50%);
+  z-index: 2;
+  width: 0.125rem;
+  margin-left: -1px;
+  background-color: var(--comparison-white);
+  /* Drawn, not interactive: the range input underneath is the real control,
+     and letting this swallow pointer events would break click-to-jump. */
+  pointer-events: none;
+  box-shadow: 0 0 0.75rem rgb(0 0 0 / 30%);
+}
+
+.image-comparison__grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--comparison-white);
+  /* Literal, matching the white grip it sits on: --color-ink is near-white
+     in dark mode, which left the arrows invisible on their own handle. */
+  color: var(--comparison-ink-fixed);
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 26%);
+}
+
+/* ------------------------------------------------------------------ */
+/* The range: present and operable, visually replaced by the divider    */
+/* ------------------------------------------------------------------ */
+/* Stretched over the whole frame and made transparent rather than hidden.
+   opacity 0 keeps it focusable, hit-testable and announced; display:none or
+   visibility:hidden would remove it from the accessibility tree and from the
+   tab order, taking the entire interaction with it. */
+.image-comparison__range {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+/* The thumb is given real width so the pointer has something to grab across
+   the full height of the frame, matching the visible handle. */
+.image-comparison__range::-webkit-slider-thumb {
+  appearance: none;
+  width: 2.75rem;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.image-comparison__range::-moz-range-thumb {
+  width: 2.75rem;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  cursor: ew-resize;
+}
+
+/* Focus is shown on the drawn handle, since the input itself is invisible. A
+   keyboard user would otherwise have no idea the slider was focused. */
+.image-comparison__range:focus-visible {
+  outline: none;
+}
+
+.image-comparison__range:focus-visible ~ .image-comparison__divider .image-comparison__grip {
+  outline: 0.1875rem solid var(--color-brand);
+  outline-offset: 0.1875rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Labels                                                               */
+/* ------------------------------------------------------------------ */
+.image-comparison__label {
+  position: absolute;
+  top: var(--space-4);
+  z-index: 2;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: rgb(0 0 0 / 62%);
+  color: var(--comparison-white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.image-comparison__label--before {
+  left: var(--space-4);
+}
+
+.image-comparison__label--after {
+  right: var(--space-4);
+}
+
+@media screen and (max-width: 749px) {
+  .image-comparison {
+    aspect-ratio: var(--comparison-ratio, 4 / 3);
+  }
+}
+
+/* The divider is dragged, so it must track the pointer exactly - a transition
+   here would make it lag behind the finger. Only the grip's focus ring and
+   hover get one. */
+@media (prefers-reduced-motion: no-preference) {
+  .image-comparison__grip {
+    transition: scale 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .image-comparison:hover .image-comparison__grip {
+    scale: 1.08;
+  }
+}
+
+
+/* A quarter turn for shots taken pointing up: both images rotate about the
+   frame's centre, so the halves stay aligned with each other. */
+.image-comparison--rotate-left img,
+.image-comparison--rotate-right img {
+  transform-origin: 50% 50%;
+}
+.image-comparison img { transform: scale(var(--comparison-zoom, 1)); transform-origin: 50% 50%; }
+.image-comparison--rotate-left img { transform: rotate(-90deg) scale(var(--comparison-zoom, 1)); }
+.image-comparison--rotate-right img { transform: rotate(90deg) scale(var(--comparison-zoom, 1)); }

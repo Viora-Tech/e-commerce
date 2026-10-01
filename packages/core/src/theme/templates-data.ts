@@ -58,11 +58,28 @@ export const MAIN_SECTION: Partial<Record<TemplateKind, string>> = {
 /** Sections that belong in a group rather than a template. */
 export const GROUP_SECTIONS: Record<SectionGroup, readonly string[]> = {
   header: ['AnnouncementBar', 'Header'],
-  footer: ['Footer', 'Newsletter', 'RichText', 'Multicolumn', 'LogoList'],
+  footer: [
+    'Footer',
+    'Newsletter',
+    'RichText',
+    'Multicolumn',
+    'LogoList',
+    'MobileDock',
+    'CookieBanner',
+    'SignupPopup',
+  ],
 }
 
-/** Sections allowed only once on a template (the resource's main section, the groups' anchors). */
-export const SINGLE_SECTIONS = new Set([...Object.values(MAIN_SECTION), 'Header', 'Footer'])
+/**
+ * Sections allowed only once on a template (the resource's main section, the groups'
+ * anchors, and the cookie banner: there is one consent question, never two).
+ */
+export const SINGLE_SECTIONS = new Set([
+  ...Object.values(MAIN_SECTION),
+  'Header',
+  'Footer',
+  'CookieBanner',
+])
 
 const section = (type: string, id = type.toLowerCase()): TemplateSection => ({
   type,
@@ -75,14 +92,56 @@ const data = (content: TemplateSection[]): TemplateData => ({
   zones: {},
 })
 
+/** One of Glide's three signup popups, as `sections/footer-group.json` sets it up. */
+const popup = (id: string, props: Record<string, unknown>): TemplateSection => ({
+  type: 'SignupPopup',
+  props: { id, ...props },
+})
+
+/**
+ * Glide's footer group (`sections/footer-group.json`), in its order: the newsletter card,
+ * the footer, the phone dock, the cookie banner and the three signup popups (one shows per
+ * visit at most). Anything not set here takes the blocks' defaults, which are the theme's;
+ * product handles are left out because they name the theme store's own products.
+ */
+const FOOTER_GROUP: TemplateSection[] = [
+  { type: 'Newsletter', props: { id: 'newsletter', reasons: [] } },
+  section('Footer', 'footer'),
+  section('MobileDock', 'mobile-dock'),
+  section('CookieBanner', 'cookie-banner'),
+  popup('popup-corner', { style: 'corner', trigger: 'engaged', delay: 20, delayMobile: 30 }),
+  popup('popup-figure', {
+    style: 'figure',
+    trigger: 'exit',
+    kicker: 'Waimers list',
+    text: '',
+  }),
+  popup('popup-feed', {
+    style: 'feed',
+    where: 'collections',
+    collections: 'preorder, holidays-sale',
+    trigger: 'soon',
+    delay: 10,
+    delayMobile: 15,
+    kicker: 'Live on Waimers',
+    heading: 'Never miss a [drop]',
+    text: '',
+    buttonLabel: 'Alert me',
+  }),
+]
+
 /**
  * What a template renders before a merchant edits it. Resource templates are
  * just their main section, so a store without template rows looks exactly as it
  * did before templates existed.
  */
 export function defaultTemplate(key: TemplateKey): TemplateData {
-  if (key === 'header') return data([section('Header', 'header')])
-  if (key === 'footer') return data([section('Footer', 'footer')])
+  // Glide's header group (`sections/header-group.json`): the announcement bar over the
+  // header. Both take their settings from the blocks' defaults, which are the theme's.
+  if (key === 'header') {
+    return data([section('AnnouncementBar', 'announcement-bar'), section('Header', 'header')])
+  }
+  if (key === 'footer') return data(FOOTER_GROUP)
   if (key === 'home') {
     return data([
       section('Hero', 'hero'),
