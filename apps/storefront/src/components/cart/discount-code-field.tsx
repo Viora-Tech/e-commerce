@@ -13,6 +13,8 @@ type DiscountCodeFieldProps = {
 /**
  * Code entry for the cart and checkout summaries. A working code shows as a
  * chip with a remove button; an automatic offer shows as a chip without one.
+ * No <form> of its own: the checkout summary sits inside the checkout form, and a nested
+ * form is invalid HTML (the browser drops it, so hydration fails). Enter applies the code.
  */
 export default function DiscountCodeField({ storeId, discount }: DiscountCodeFieldProps) {
   // Hooks
@@ -21,8 +23,7 @@ export default function DiscountCodeField({ storeId, discount }: DiscountCodeFie
   const [pending, start] = useTransition()
 
   // Event handlers
-  const handleApply = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleApply = () => {
     const trimmed = code.trim()
     if (!trimmed) return
     setError(null)
@@ -34,6 +35,13 @@ export default function DiscountCodeField({ storeId, discount }: DiscountCodeFie
       }
       setCode('')
     })
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Enter applies the code instead of submitting the whole checkout.
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    handleApply()
   }
 
   const handleRemove = () => {
@@ -63,13 +71,14 @@ export default function DiscountCodeField({ storeId, discount }: DiscountCodeFie
         </div>
       ) : null}
       {!applied?.code ? (
-        <form className="discount-field__form" onSubmit={handleApply}>
+        <div className="discount-field__form">
           <label className="field discount-field__input">
             <span className="field__label text-small">{content.label}</span>
             <input
               className="field__input"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyDown={handleKeyDown}
               placeholder={content.placeholder}
               autoComplete="off"
               autoCapitalize="characters"
@@ -77,13 +86,14 @@ export default function DiscountCodeField({ storeId, discount }: DiscountCodeFie
             />
           </label>
           <button
-            type="submit"
+            type="button"
             className="btn btn--secondary btn--small discount-field__apply"
+            onClick={handleApply}
             disabled={pending || !code.trim()}
           >
             {content.apply}
           </button>
-        </form>
+        </div>
       ) : null}
       {error ? (
         <p className="discount-field__error text-small" role="alert">
