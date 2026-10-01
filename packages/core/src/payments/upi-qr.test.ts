@@ -21,7 +21,7 @@ import type {
 import { asc, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { placeOrderAndPay } from '../order/place-order'
-import { retryAndStartPayment } from './attempts'
+import { retryAndStartPayment, syncOpenQrAttempt } from './attempts'
 import { handlePaymentWebhook } from './webhook'
 
 /*
@@ -280,6 +280,25 @@ describe('auto-confirmed UPI QR', () => {
     expect(out).toMatchObject({ status: 'captured', becameCaptured: true })
     expect(qr.created).toHaveLength(1)
     expect(await orderStatus(r.orderId)).toBe('paid')
+  })
+
+  it('an open QR paid without a webhook turns paid when the shopper page checks', async () => {
+    const shop = await seedStore('a')
+    const qr = new QrDouble()
+    const r = await placeQrOrder(shop, qr)
+
+    // Not paid yet: nothing changes and the QR stays open.
+    expect(await syncOpenQrAttempt(app, shop.storeId, r.orderId, qr)).toBeNull()
+    expect((await attempts(r.orderId)).map((a) => a.status)).toEqual(['pending'])
+
+    qr.status.set('qr_1', 'captured')
+    const out = await syncOpenQrAttempt(app, shop.storeId, r.orderId, qr)
+    expect(out).toMatchObject({ becameCaptured: true })
+    expect(await orderStatus(r.orderId)).toBe('paid')
+    expect(await paidEvents(r.orderId)).toHaveLength(1)
+
+    // A second check after the capture is a no-op.
+    expect(await syncOpenQrAttempt(app, shop.storeId, r.orderId, qr)).toBeNull()
   })
 
   it("never applies one store's QR webhook to another store's order", async () => {

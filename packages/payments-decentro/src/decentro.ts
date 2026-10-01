@@ -1,6 +1,5 @@
 /**
  * Decentro UPI collections adapter (v3 Payment Aggregator stack). Official docs used:
- * - Generate Dynamic QR:  https://docs.decentro.tech/reference/payments_api-collectionsv3-dynamicqr
  * - Generate Payment Link: https://docs.decentro.tech/reference/payments_api-collectionsv3-paymentlink
  * - Get Transaction Status (Advance): https://docs.decentro.tech/reference/get-transaction-status-advance
  * - Get Transaction Status (Basic):   https://docs.decentro.tech/reference/get-transaction-status-basic
@@ -26,6 +25,7 @@ import type {
   PayoutRefundInput,
   PayoutRefundResult,
   RefundContext,
+  UpiApp,
   WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
@@ -47,8 +47,6 @@ export type DecentroConfig = {
   /** Issued by Decentro at onboarding; identifies the merchant on every collection. */
   consumerUrn: string
   mode: DecentroMode
-  /** Checkout style: a QR on the order page (default), or a UPI link that opens the shopper's app. */
-  flow: 'qr' | 'link'
   /** Shared secret Decentro sends back in the `x-webhook-token` header of each callback. */
   webhookSecret?: string | undefined
   /** Consumer URN for payouts, when Decentro gave a separate one; defaults to `consumerUrn`. */
@@ -72,8 +70,24 @@ const MIN_AMOUNT_PAISE = 500
 /** `purpose_message`: under 50 characters; refunds need 5 to 50. */
 const PURPOSE_MAX = 49
 
-type QrData = { dynamic_qr_image?: string; transaction_status?: string }
-type LinkData = { upi_uris?: { common_uri?: string }; transaction_status?: string }
+type LinkData = {
+  upi_uris?: {
+    common_uri?: string
+    gpay_uri?: string
+    phonepe_uri?: string
+    paytm_uri?: string
+    cred_uri?: string
+  }
+  transaction_status?: string
+}
+
+/** Decentro's app-specific link fields, in the order the buttons show. */
+const PSP_URIS = [
+  ['gpay', 'gpay_uri'],
+  ['phonepe', 'phonepe_uri'],
+  ['paytm', 'paytm_uri'],
+  ['cred', 'cred_uri'],
+] as const
 
 type AdvanceStatusData = {
   transaction_description?: {
@@ -156,6 +170,20 @@ export function attemptFromReference(ref: string | undefined): {
   return { idempotencyKey: `${orderId}:${ref.slice(cut + 1)}`, orderId }
 }
 
+/** The app-specific links Decentro returned, skipping any it left out. */
+function upiApps(uris: LinkData['upi_uris']): UpiApp[] {
+  return PSP_URIS.flatMap(([id, key]) => {
+    const uri = uris?.[key]?.trim()
+    return uri ? [{ id, uri }] : []
+  })
+}
+
+/** Decentro's "this reference id matches nothing" answer, however it phrases it. */
+function isUnknownReference(err: DecentroApiError): boolean {
+  const key = err.responseKey ?? ''
+  return /reference/i.test(key) || /invalid reference id/i.test(err.message)
+}
+
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a)
   const bb = Buffer.from(b)
@@ -212,26 +240,15 @@ export class DecentroProvider implements PaymentProvider {
     }
     if (input.returnUrl?.startsWith('https://')) body.redirect_url = input.returnUrl
 
-    if (this.config.flow === 'link') {
-      const res = await this.call<LinkData>('POST', '/v3/payments/upi/link', {
-        ...body,
-        generate_psp_uri: false,
-      })
-      const url = res.data?.upi_uris?.common_uri
-      if (!res.decentro_txn_id || !url) throw new Error('Decentro did not return a payment link.')
-      return {
-        providerRef: res.decentro_txn_id,
-        status: 'pending',
-        session: { kind: 'redirect', provider: this.id, providerRef: res.decentro_txn_id, url },
-      }
-    }
-
-    const res = await this.call<QrData>('POST', '/v3/payments/upi/qr', {
+    // The payment link API, not the QR one: its `upi://pay` link works on both screens. On a
+    // computer the storefront draws it as a QR; on a phone it opens the shopper's UPI app. The
+    // QR API only returns a link to Decentro's own web page, which can't sit in an <img>.
+    const res = await this.call<LinkData>('POST', '/v3/payments/upi/link', {
       ...body,
-      generate_custom_qr_image: false,
+      generate_psp_uri: true,
     })
-    const imageUrl = res.data?.dynamic_qr_image
-    if (!res.decentro_txn_id || !imageUrl) throw new Error('Decentro did not return a QR code.')
+    const upiUri = res.data?.upi_uris?.common_uri?.trim()
+    if (!res.decentro_txn_id || !upiUri) throw new Error('Decentro did not return a UPI link.')
     return {
       providerRef: res.decentro_txn_id,
       status: 'pending',
@@ -239,7 +256,12 @@ export class DecentroProvider implements PaymentProvider {
         kind: 'upi_qr',
         provider: this.id,
         providerRef: res.decentro_txn_id,
-        qr: { imageUrl, amountPaise: input.amountPaise, expiresAt: expiresAt.toISOString() },
+        qr: {
+          upiUri,
+          apps: upiApps(res.data?.upi_uris),
+          amountPaise: input.amountPaise,
+          expiresAt: expiresAt.toISOString(),
+        },
       },
     }
   }
@@ -411,7 +433,8 @@ export class DecentroProvider implements PaymentProvider {
    * exist. Good keys get "no transaction found"; bad keys an auth error.
    */
   async testConnection(): Promise<ConnectionTestResult> {
-    const probe = `connection-test-${randomBytes(4).toString('hex')}`
+    // Letters and digits only: Decentro rejects some punctuation in reference ids.
+    const probe = `conntest${randomBytes(6).toString('hex')}`
     const ok: ConnectionTestResult = {
       ok: true,
       message: 'Connected. Decentro accepted these keys.',
@@ -428,7 +451,16 @@ export class DecentroProvider implements PaymentProvider {
               "Decentro didn't accept these keys. Check the Client ID and Client secret, and that Test or Live matches the keys.",
           }
         }
-        if (err.responseKey === 'error_no_transaction_found' || err.status === 404) return ok
+        // A made-up reference can't match a transaction. Decentro answers that either as
+        // "no transaction found" or as "Invalid Reference ID" (seen on staging); both mean
+        // the keys were accepted and the request reached the payments API.
+        if (
+          err.responseKey === 'error_no_transaction_found' ||
+          err.status === 404 ||
+          isUnknownReference(err)
+        ) {
+          return ok
+        }
       }
       const message = err instanceof Error ? err.message : String(err)
       return { ok: false, message: `Could not reach Decentro: ${message}` }
@@ -449,12 +481,6 @@ export const decentroFactory: PaymentProviderFactory<DecentroConfig> = {
       help: "'test' uses Decentro's staging, 'live' takes real money",
       hidden: true,
     },
-    {
-      key: 'flow',
-      label: 'Checkout style',
-      help: "'qr' shows a QR code on the order page; 'link' opens the shopper's UPI app",
-      hidden: true,
-    },
     { key: 'webhookSecret', label: 'Callback secret', secret: true },
     { key: 'payoutConsumerUrn', label: 'Payouts consumer URN' },
   ],
@@ -473,7 +499,6 @@ export const decentroFactory: PaymentProviderFactory<DecentroConfig> = {
         clientSecret: (r.clientSecret as string).trim(),
         consumerUrn: (r.consumerUrn as string).trim(),
         mode: r.mode === 'live' ? 'live' : 'test',
-        flow: r.flow === 'link' ? 'link' : 'qr',
         webhookSecret: r.webhookSecret?.trim() || undefined,
         payoutConsumerUrn: r.payoutConsumerUrn?.trim() || undefined,
       },
