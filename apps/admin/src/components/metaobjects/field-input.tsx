@@ -42,7 +42,7 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
   // Hooks
   const id = useId()
   const copy = useCopy(fieldInputContent)
-  const required = useCopy(entryFormContent).required
+  const { required } = useCopy(entryFormContent)
 
   // Helpers
   const setItem = (items: unknown[], index: number, next: unknown) =>

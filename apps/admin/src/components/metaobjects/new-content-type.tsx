@@ -47,7 +47,7 @@ export default function NewContentType() {
   // Hooks
   const copy = useCopy(newContentTypeContent)
   const cards = useCopy(presetContent)
-  const types = useCopy(fieldTypeContent).types
+  const { types } = useCopy(fieldTypeContent)
   const router = useRouter()
   const [preset, setPreset] = useState<PresetKey | null>(null)
   const [name, setName] = useState('')

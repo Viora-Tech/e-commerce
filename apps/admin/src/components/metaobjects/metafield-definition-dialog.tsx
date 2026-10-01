@@ -85,8 +85,7 @@ export default function MetafieldDefinitionDialog({
   onSaved,
 }: MetafieldDefinitionDialogProps) {
   // Hooks
-  const content = useCopy(customDataContent)
-  const copy = content.dialog
+  const { dialog: copy, owners } = useCopy(customDataContent)
   const fieldCopy = useCopy(fieldDialogContent)
   const [draft, setDraft] = useState<Draft>(() => toDraft(definition))
   const [busy, setBusy] = useState(false)
@@ -134,7 +133,7 @@ export default function MetafieldDefinitionDialog({
   }
 
   // Render logic
-  const owner = content.owners[ownerType]
+  const owner = owners[ownerType]
   const locked = definition !== null
   const keyValid = KEY_PATTERN.test(draft.key) && KEY_PATTERN.test(draft.namespace)
   const problems = [

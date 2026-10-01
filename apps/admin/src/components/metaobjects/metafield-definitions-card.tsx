@@ -41,7 +41,7 @@ export default function MetafieldDefinitionsCard({
 }: MetafieldDefinitionsCardProps) {
   // Hooks
   const copy = useCopy(customDataContent)
-  const types = useCopy(fieldTypeContent).types
+  const { types } = useCopy(fieldTypeContent)
   const [editing, setEditing] = useState<MetafieldDefinitionRow | 'new' | null>(null)
   const [removing, setRemoving] = useState<MetafieldDefinitionRow | null>(null)
   const [busy, setBusy] = useState(false)

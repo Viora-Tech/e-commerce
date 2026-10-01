@@ -24,7 +24,7 @@ type FieldTypeSelectProps = {
 export default function FieldTypeSelect({ id, value, disabled, onChange }: FieldTypeSelectProps) {
   // Hooks
   const copy = useCopy(fieldTypeContent)
-  const placeholder = useCopy(fieldDialogContent).typePlaceholder
+  const { typePlaceholder: placeholder } = useCopy(fieldDialogContent)
 
   // Render logic
   const items = Object.fromEntries(Object.entries(copy.types).map(([type, c]) => [type, c.label]))

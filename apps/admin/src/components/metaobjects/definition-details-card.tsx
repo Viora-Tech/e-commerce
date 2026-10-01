@@ -32,7 +32,7 @@ export default function DefinitionDetailsCard({
   onTypeEdited,
 }: DefinitionDetailsCardProps) {
   // Hooks
-  const copy = useCopy(definitionFormContent).details
+  const { details: copy } = useCopy(definitionFormContent)
 
   // Event handlers
   const handleName = (next: string) =>

@@ -1,5 +1,6 @@
+/** SOURCE OF TRUTH: content type preset tests — every preset passes the definition checks */
 import { describe, expect, it } from 'vitest'
-import { METAOBJECT_PRESETS, PRESET_KEYS, PresetKeySchema, presetDefinition } from './presets'
+import { FromPresetInputSchema, METAOBJECT_PRESETS, PRESET_KEYS, presetDefinition } from './presets'
 import { MetaobjectDefinitionWriteSchema } from './schemas'
 import { definitionProblems } from './validate'
 
@@ -37,6 +38,6 @@ describe('METAOBJECT_PRESETS', () => {
   })
 
   it('refuses keys that are not presets', () => {
-    expect(PresetKeySchema.safeParse('blog').success).toBe(false)
+    expect(FromPresetInputSchema.safeParse({ preset: 'blog' }).success).toBe(false)
   })
 })

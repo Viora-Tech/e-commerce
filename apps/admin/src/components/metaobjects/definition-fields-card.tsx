@@ -30,8 +30,8 @@ export default function DefinitionFieldsCard({
   onChange,
 }: DefinitionFieldsCardProps) {
   // Hooks
-  const copy = useCopy(definitionFormContent).fields
-  const types = useCopy(fieldTypeContent).types
+  const { fields: copy } = useCopy(definitionFormContent)
+  const { types } = useCopy(fieldTypeContent)
   const [editing, setEditing] = useState<number | 'new' | null>(null)
 
   // Event handlers
