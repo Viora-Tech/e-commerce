@@ -1,0 +1,88 @@
+/**
+ * Ships today: one line of three facts, separated by hairline dots.
+ * A strip, not a band: it sits under the trust bar and takes one row.
+ */
+.section-ships-today {
+  width: 100%;
+}
+
+.ships-today {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2) var(--space-6);
+  padding: var(--space-3) 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.ships-today > p {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.ships-today > p + p::before {
+  content: '';
+  width: 0.25rem;
+  height: 0.25rem;
+  margin-right: var(--space-4);
+  border-radius: 50%;
+  background-color: var(--color-line);
+}
+
+.ships-today svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--color-brand);
+  flex: none;
+}
+
+.ships-today__lead {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.ships-today.is-after-cutoff .ships-today__lead {
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.ships-today__count a {
+  color: var(--color-ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ships-today__count a:hover {
+  text-decoration: underline;
+}
+
+@media screen and (max-width: 749px) {
+  .ships-today {
+    justify-content: flex-start;
+    gap: var(--space-2) var(--space-4);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .ships-today::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ships-today > p + p::before {
+    margin-right: var(--space-3);
+  }
+}
+
+/* The hairlines run edge to edge on the section's own full-width frame, not on
+   the strip inside the page width: there they stopped at the content column and
+   read as a box someone forgot to finish. The frame is the Puck section frame. */
+.section-frame:has(.section-ships-today) {
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+}

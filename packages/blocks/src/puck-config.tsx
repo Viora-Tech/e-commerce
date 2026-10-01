@@ -15,6 +15,7 @@ import {
 } from './section-settings'
 import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
+import { GLIDE_SECTIONS, type GlideProps, glideSections } from './sections/glide'
 import { type HeroProps, heroBlock } from './sections/hero-block'
 import {
   type CollectionLoader,
@@ -49,6 +50,7 @@ export {
   type SectionRenderer,
   type SectionSettings,
 } from './sections/dynamic'
+export { GLIDE_SECTIONS, type GlideProps } from './sections/glide'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
 export type { ModernProps } from './sections/modern'
 export type { SectionSource } from './sections/sources'
@@ -136,6 +138,7 @@ export type BlockProps = {
   RichText: RichTextProps
   BlogPosts: BlogPostsProps
 } & LibraryProps &
+  GlideProps &
   ModernProps &
   CustomProps &
   Record<DynamicSection, SectionSettings>
@@ -145,6 +148,8 @@ export type BlockProps = {
  * footer are placed by their template or group, never added from here.
  */
 export const SECTION_CATEGORIES = {
+  // Rebuilt from our own Shopify theme; see ./sections/glide.tsx.
+  glide: { title: 'Glide theme', components: GLIDE_SECTIONS },
   banners: {
     title: 'Banners',
     components: [
@@ -232,6 +237,7 @@ export function createBlocksConfig(
   return {
     appBlockOwners: appBlocks.owners,
     categories: {
+      glide: { ...SECTION_CATEGORIES.glide, components: [...SECTION_CATEGORIES.glide.components] },
       banners: {
         ...SECTION_CATEGORIES.banners,
         components: [...SECTION_CATEGORIES.banners.components],
@@ -266,6 +272,12 @@ export function createBlocksConfig(
         loadCollections: options.loadCollections,
         loadProduct: options.loadProduct,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof LibraryProps>),
+      ...(glideSections({
+        loadProducts,
+        loadCollections: options.loadCollections,
+        loadProduct: options.loadProduct,
+        loadArticles: options.loadArticles,
+      }) as unknown as Pick<Config<BlockProps>['components'], keyof GlideProps>),
       ...(modernSections() as unknown as Pick<Config<BlockProps>['components'], keyof ModernProps>),
       ...(customSections({
         RichTextEditor: options.RichTextEditor,

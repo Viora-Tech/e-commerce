@@ -2,8 +2,10 @@
 
 import { gstinStateOf } from '@commerce/core/tax-settings'
 import { MapPinLineIcon } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from '@commerce/ui/shadcn/field'
+import Link from 'next/link'
 import GeneralTextField from '@/components/settings/general-text-field'
 import { taxesContent } from '@/data/taxes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
@@ -12,12 +14,19 @@ type RegistrationCardProps = {
   form: TaxesFormState
   errors: TaxesErrors
   onPatch: (p: Partial<TaxesFormState>) => void
+  /** Business and GST owns the GSTIN: show it, do not edit it here. */
+  managed: boolean
 }
 
 const copy = taxesContent.registration
 
 /** GSTIN (with the state its first two digits name), legal name and registered address. */
-export default function RegistrationCard({ form, errors, onPatch }: RegistrationCardProps) {
+export default function RegistrationCard({
+  form,
+  errors,
+  onPatch,
+  managed,
+}: RegistrationCardProps) {
   // Helpers
   const patchAddress = (p: Partial<TaxesFormState['address']>) =>
     onPatch({ address: { ...form.address, ...p } })
@@ -34,14 +43,25 @@ export default function RegistrationCard({ form, errors, onPatch }: Registration
       <CardContent>
         <FieldGroup>
           <div className="flex flex-col gap-2">
-            <GeneralTextField
-              id="tax-gstin"
-              label={copy.gstin}
-              value={form.gstin}
-              onChange={(gstin) => onPatch({ gstin: gstin.toUpperCase().replace(/\s/g, '') })}
-              error={errors.gstin}
-              help={copy.gstinHelp}
-            />
+            {managed ? (
+              <div className="flex flex-col items-start gap-1">
+                <span className="text-body-strong text-ink-strong">{copy.gstin}</span>
+                <span className="font-mono text-body">{form.gstin}</span>
+                <span className="text-caption text-muted-foreground">{copy.managed}</span>
+                <Button variant="outline" size="sm" render={<Link href="/settings/business" />}>
+                  {copy.manage}
+                </Button>
+              </div>
+            ) : (
+              <GeneralTextField
+                id="tax-gstin"
+                label={copy.gstin}
+                value={form.gstin}
+                onChange={(gstin) => onPatch({ gstin: gstin.toUpperCase().replace(/\s/g, '') })}
+                error={errors.gstin}
+                help={copy.gstinHelp}
+              />
+            )}
             {state ? (
               <p
                 aria-live="polite"

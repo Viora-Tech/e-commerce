@@ -173,7 +173,7 @@ describe('definitions', () => {
     expect(ruleProblems('U', 'url', { choices: ['a'] })).toHaveLength(1)
     expect(ruleProblems('U', 'url', { metaobjectDefinitionId: ID })).toHaveLength(1)
     expect(ruleProblems('M', 'metaobject_reference', {})).toEqual([
-      'M: pick which metaobject it references',
+      'M: pick which content type it links to',
     ])
     expect(ruleProblems('M', 'metaobject_reference', { metaobjectDefinitionId: ID })).toEqual([])
     expect(ruleProblems('X', 'url', undefined)).toEqual([])

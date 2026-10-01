@@ -12,9 +12,9 @@ import {
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { FieldError } from '@commerce/ui/shadcn/field'
+import ChoiceCard from '@/components/layout/choice-card'
 import { onboardingContent } from '@/data/onboarding'
 import { useCopy } from '@/hooks/use-copy'
-import ChoiceCard from './choice-card'
 
 type SellsOnStepProps = {
   value: SellsOn | null

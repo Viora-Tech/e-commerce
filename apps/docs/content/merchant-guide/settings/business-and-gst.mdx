@@ -1,0 +1,60 @@
+---
+title: Business and GST
+description: Your business and PAN, a GST number for each state you sell from, the default GST number, and what to do when a warehouse belongs to another business.
+---
+
+# Business and GST
+
+**Settings → Business and GST** holds your business (the name and PAN on your PAN card) and
+your **GST numbers**. In India you get one GST number for each state where you have a shop or
+warehouse. If you send orders from Haryana and from Delhi, you have two GST numbers, and both
+belong to the same PAN.
+
+## What this is for
+
+- Keeping every GST number your business holds in one place.
+- Choosing your **default** GST number: the one your shop uses today.
+- Saying which GST number each warehouse bills under (see [Locations](/merchant-guide/settings/locations)).
+
+Right now this page only records your GST numbers. Your invoices and the GST charged on orders
+work exactly as before, from your default GST number. Billing from the warehouse that sends
+each order comes in a later update.
+
+## How it works
+
+- **Your business** shows your legal name and PAN. You do not type the PAN for your first GST
+  number: we read it from the GST number itself (characters 3 to 12 of a GST number are the PAN).
+- **GST numbers** lists each number with its state. We read the state from the first two
+  digits, so you never pick it. The default one has a **Default** badge.
+- **Add GST number** asks for the 15-character number from your GST certificate. As you type,
+  the page shows "Registered in Haryana" (or your state). The other fields are optional: an
+  invoice prefix such as `HR`, and the address on the certificate.
+- If the number belongs to a different PAN, you see: *"This GST number belongs to a different
+  PAN. Is it another business?"* Check for a typo first. If it really is another business, use
+  **Add it as another business**.
+- **Make default** (from the ⋮ menu) switches your default GST number. **Mark as cancelled** is
+  only for a number the GST department has cancelled; old invoices keep showing it.
+
+### More than one business
+
+Open **Advanced: more than one business** only if a warehouse belongs to a different legal
+business (a different PAN), for example a partner's stock you sell.
+
+> Selling stock owned by another business makes you an e-commerce operator. Talk to your CA
+> first.
+
+### Settings → Taxes & GST
+
+Before this page existed, your GST number lived on **Settings → Taxes & GST**. It still shows
+there. Once you have a GST number here, Taxes & GST shows it read-only with a **Manage GST
+numbers** button that brings you here. If you have no GST number yet, typing one on Taxes & GST
+adds it here as your first.
+
+## Try it
+
+1. Open **Settings → Business and GST**.
+2. Click **Add GST number**, type your GST number and check the state it shows.
+3. Add a second one for another state, then use **⋮ → Make default** to switch.
+4. Open **Settings → Locations** and pick which GST number each location bills under.
+
+Only owners and administrators can change this page. Staff cannot open it.

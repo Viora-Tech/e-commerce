@@ -5,6 +5,7 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { definitionFormContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 
 type DetailsPatch = { name?: string; type?: string; description?: string }
 
@@ -20,9 +21,7 @@ type DefinitionDetailsCardProps = {
   onTypeEdited: () => void
 }
 
-const copy = definitionFormContent.details
-
-/** Name, type handle and description of a metaobject definition. */
+/** Name, handle and description of a content type (a metaobject definition). */
 export default function DefinitionDetailsCard({
   name,
   type,
@@ -32,6 +31,9 @@ export default function DefinitionDetailsCard({
   onChange,
   onTypeEdited,
 }: DefinitionDetailsCardProps) {
+  // Hooks
+  const { details: copy } = useCopy(definitionFormContent)
+
   // Event handlers
   const handleName = (next: string) =>
     onChange(

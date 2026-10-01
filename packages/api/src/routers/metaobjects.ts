@@ -1,10 +1,12 @@
 import {
   createDefinition,
+  createDefinitionFromPreset,
   createEntry,
   createMetafieldDefinition,
   deleteDefinition,
   deleteEntries,
   deleteMetafieldDefinition,
+  FromPresetInputSchema,
   getDefinition,
   getEntry,
   getMetafields,
@@ -46,7 +48,7 @@ const read = () => can(permissions.CONTENT_READ)
 const write = () => can(permissions.CONTENT_WRITE)
 const id = z.object({ id: z.uuid() })
 
-/** Metaobject definitions and entries (Content → Metaobjects). */
+/** Metaobject definitions and entries (Content → Content types in the admin). */
 export const metaobjectsRouter = {
   definitions: read().handler(({ context }) => listDefinitions(context.tx)),
 
@@ -54,7 +56,11 @@ export const metaobjectsRouter = {
     .input(z.union([z.object({ id: z.uuid() }), z.object({ type: z.string().max(64) })]))
     .handler(async ({ context, input }) => {
       const row = await getDefinition(context.tx, input)
-      if (!row) throw new ORPCError('NOT_FOUND', { message: 'This metaobject no longer exists' })
+      if (!row) {
+        throw new ORPCError('NOT_FOUND', {
+          message: 'This content type no longer exists. Go back to Content types and open another',
+        })
+      }
       return row
     }),
 
@@ -62,6 +68,15 @@ export const metaobjectsRouter = {
     .input(MetaobjectDefinitionWriteSchema)
     .handler(({ context, input }) =>
       invalidToBadRequest(() => createDefinition(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** A ready-made content type (Size guide, FAQ, ...) from `METAOBJECT_PRESETS`. */
+  fromPreset: write()
+    .input(FromPresetInputSchema)
+    .handler(({ context, input }) =>
+      invalidToBadRequest(() =>
+        createDefinitionFromPreset(context.tx, context.scope.storeId, input),
+      ),
     ),
 
   updateDefinition: write()
@@ -94,7 +109,11 @@ export const metaobjectsRouter = {
     .input(id)
     .handler(async ({ context, input }) => {
       const row = await getEntry(context.tx, input.id)
-      if (!row) throw new ORPCError('NOT_FOUND', { message: 'This entry no longer exists' })
+      if (!row) {
+        throw new ORPCError('NOT_FOUND', {
+          message: 'This entry was deleted. Go back to the list and open another',
+        })
+      }
       return row
     }),
 
@@ -128,7 +147,7 @@ export const metaobjectsRouter = {
     )
     .handler(({ context, input }) => referenceOptions(context.tx, input)),
 
-  /* Product and collection metafields (Settings → Custom data, and the product/collection forms). */
+  /* Product and collection metafields ("Extra fields": Settings → Custom data, and the product/collection forms). */
 
   metafieldDefinitions: can(permissions.PRODUCTS_READ)
     .input(z.object({ ownerType: MetafieldOwnerTypeSchema }))

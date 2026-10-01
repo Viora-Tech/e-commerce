@@ -78,6 +78,19 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     href: '/settings/taxes#e-invoice',
     keywords: ['e-invoice', 'einvoice', 'irn', 'irp', 'qr code', 'e invoice'],
   },
+  // Business and GST, Locations
+  {
+    title: 'Business and GST numbers',
+    where: 'Settings',
+    href: '/settings/business',
+    keywords: ['pan', 'gst numbers', 'another state', 'second gstin', 'business', 'warehouse gst'],
+  },
+  {
+    title: 'Locations',
+    where: 'Settings',
+    href: '/settings/locations',
+    keywords: ['warehouse', 'godown', 'location', 'bills under', 'dispatch from'],
+  },
   // Payments
   {
     title: 'Payments',
@@ -220,7 +233,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     title: 'Custom data',
     where: 'Settings',
     href: '/settings/custom-data',
-    keywords: ['metafields', 'metaobjects', 'custom fields', 'extra fields'],
+    keywords: ['metafields', 'metaobjects', 'custom fields', 'extra fields', 'content types'],
   },
   {
     title: 'Domains',

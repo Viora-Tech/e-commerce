@@ -12,7 +12,8 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
-import { fieldInputContent as copy } from '@/data/metaobjects'
+import { fieldInputContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 
 type ScalarInputProps = {
   id: string
@@ -42,6 +43,9 @@ export default function ScalarInput({
   invalid,
   onChange,
 }: ScalarInputProps) {
+  // Hooks
+  const copy = useCopy(fieldInputContent)
+
   // Early returns
   if (type === 'boolean') {
     return (

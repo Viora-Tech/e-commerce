@@ -35,6 +35,7 @@ export function iconForField(field: FieldLike): IconComponent {
     case 'array':
       return FieldList
     case 'custom':
+    case 'richtext':
       return FieldRichText
     case 'object':
       if (isImageField(field)) return ImageIcon

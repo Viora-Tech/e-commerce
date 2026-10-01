@@ -7,6 +7,7 @@ import {
   Globe,
   Home,
   Images,
+  MapPinLineIcon,
   Palette,
   ReceiptIcon,
   ShieldCheck,
@@ -67,6 +68,18 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     icon: ReceiptIcon,
   },
   {
+    href: '/settings/business',
+    title: 'Business and GST',
+    body: 'Your business and PAN, and a GST number for each state you sell from.',
+    icon: Store,
+  },
+  {
+    href: '/settings/locations',
+    title: 'Locations',
+    body: 'Where you keep stock, and which GST number each place bills under.',
+    icon: MapPinLineIcon,
+  },
+  {
     href: '/settings/returns',
     title: 'Returns',
     body: 'How many days customers have to return, which reasons you accept, restock and refunds.',
@@ -111,7 +124,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     href: '/settings/custom-data',
     title: 'Custom data',
-    body: 'Metafields on products and collections, and metaobject definitions.',
+    body: 'Extra fields on products and collections, and your content types.',
     icon: Braces,
   },
   {

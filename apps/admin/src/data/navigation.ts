@@ -94,7 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
         permission: permissions.CONTENT_READ,
         children: [
           { href: '/content/files', label: 'Files' },
-          { href: '/content/metaobjects', label: 'Metaobjects' },
+          { href: '/content/metaobjects', label: 'Content types' },
           { href: '/content/menus', label: 'Menus' },
           { href: '/content/blog-posts', label: 'Blog posts' },
         ],

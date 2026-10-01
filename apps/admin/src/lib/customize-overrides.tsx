@@ -1,5 +1,6 @@
 import type { Overrides } from '@puckeditor/core'
 import type { ComponentProps, ComponentType } from 'react'
+import CanvasActionBar from '@/components/themes/customize/canvas-action-bar'
 import CustomizeArrayField from '@/components/themes/customize/customize-array-field'
 import CustomizeNumberField from '@/components/themes/customize/customize-number-field'
 import CustomizeObjectField from '@/components/themes/customize/customize-object-field'
@@ -25,8 +26,9 @@ type FieldOverride<C extends ComponentType<any>> = ComponentProps<C>
 export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   iframe: ({ children, document }) => <PreviewFrame document={document}>{children}</PreviewFrame>,
   componentOverlay: (props) => <SectionOverlay {...props} />,
-  // Puck's own label + duplicate/delete action bar is replaced by SectionOverlay above.
-  actionBar: () => <></>,
+  // Puck's own label + duplicate/delete action bar is replaced by SectionOverlay above;
+  // only its inline rich-text (B/I/U) menu is kept, while body copy is being edited.
+  actionBar: ({ children }) => <CanvasActionBar>{children}</CanvasActionBar>,
   // Puck's own field label can't tell field types apart (it only gets the label
   // text), so it's suppressed here: every fieldTypes override below renders its
   // own icon + label through FieldFrame instead.
@@ -55,6 +57,10 @@ export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
     ),
     object: (props) => (
       <CustomizeObjectField {...(props as FieldOverride<typeof CustomizeObjectField>)} />
+    ),
+    // Puck's own Tiptap editor for `richtext` body copy (inline editing on the canvas too).
+    richtext: (props) => (
+      <CustomizeRichTextField {...(props as FieldOverride<typeof CustomizeRichTextField>)} />
     ),
     custom: (props: {
       field: unknown

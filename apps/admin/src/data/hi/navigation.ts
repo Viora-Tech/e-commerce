@@ -24,7 +24,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/customers/segments': { title: 'सेगमेंट' },
   '/content': { title: 'कंटेंट' },
   '/content/files': { title: 'फ़ाइलें' },
-  '/content/metaobjects': { title: 'मेटाऑब्जेक्ट' },
+  '/content/metaobjects': { title: 'कंटेंट टाइप' },
   '/content/menus': { title: 'मेन्यू' },
   '/content/menus/redirects': { title: 'URL रीडायरेक्ट' },
   '/content/blog-posts': { title: 'ब्लॉग पोस्ट' },
@@ -57,6 +57,14 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'शिपिंग',
     body: 'कूरियर, शिपिंग रेट, डिलीवरी का अनुमान और डिस्पैच पॉलिसी।',
   },
+  '/settings/business': {
+    title: 'बिज़नेस और GST',
+    body: 'आपका बिज़नेस और PAN, और जिस-जिस राज्य से आप बेचते हैं वहाँ का GST नंबर।',
+  },
+  '/settings/locations': {
+    title: 'लोकेशन',
+    body: 'आपका स्टॉक कहाँ रखा है, और हर जगह किस GST नंबर से बिल बनता है।',
+  },
   '/settings/returns': {
     title: 'रिटर्न',
     body: 'ग्राहक कितने दिन में रिटर्न कर सकते हैं, कौन से कारण मंज़ूर हैं, रीस्टॉक और रिफ़ंड।',
@@ -75,7 +83,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   },
   '/settings/custom-data': {
     title: 'कस्टम डेटा',
-    body: 'प्रोडक्ट और कलेक्शन के मेटाफ़ील्ड, और मेटाऑब्जेक्ट की परिभाषाएं।',
+    body: 'प्रोडक्ट और कलेक्शन के एक्स्ट्रा फ़ील्ड, और आपके कंटेंट टाइप।',
   },
   '/settings/domains': {
     title: 'डोमेन',

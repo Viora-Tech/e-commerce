@@ -4,6 +4,7 @@ import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
 import { blogRouter } from './blog'
+import { businessGstRouter } from './business-gst'
 import { checkoutSettingsRouter } from './checkout-settings'
 import { collectionsRouter } from './collections'
 import { customerAccountsRouter } from './customer-accounts'
@@ -72,6 +73,7 @@ export const appRouter = {
   apps: appsRouter,
   gstInvoices: gstInvoicesRouter,
   taxes: taxesRouter,
+  businessGst: businessGstRouter,
   shopifyImport: shopifyImportRouter,
   backInStock: backInStockRouter,
   emi: emiRouter,

@@ -3,6 +3,8 @@ import type { IconComponent } from '@commerce/ui/icons'
 type ChoiceCardProps = {
   icon: IconComponent
   label: string
+  /** A short line under the label, for picture cards that need a hint. */
+  description?: string | undefined
   selected: boolean
   onSelect: () => void
   /** `tile`: icon above the label, for picture grids. `row`: icon beside it, for lists. */
@@ -13,10 +15,14 @@ type ChoiceCardProps = {
 const BASE =
   'flex rounded-xl border bg-card text-left text-body text-foreground transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-60'
 
-/** One tappable answer in an onboarding question: a toggle button that looks like a card. */
+/**
+ * One tappable answer to a one-question screen (onboarding, "What do you want to make?"):
+ * a toggle button that looks like a card.
+ */
 export default function ChoiceCard({
   icon: Icon,
   label,
+  description,
   selected,
   onSelect,
   layout,
@@ -40,7 +46,12 @@ export default function ChoiceCard({
       className={`${BASE} ${shape} ${state}`}
     >
       <Icon className={`size-6 shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
-      <span className="font-medium">{label}</span>
+      <span className="flex flex-col gap-0.5">
+        <span className="font-medium">{label}</span>
+        {description ? (
+          <span className="text-caption text-muted-foreground">{description}</span>
+        ) : null}
+      </span>
     </button>
   )
 }

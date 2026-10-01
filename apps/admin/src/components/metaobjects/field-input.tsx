@@ -7,7 +7,8 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { useId } from 'react'
 import RichTextField from '@/components/fields/rich-text-field'
-import { fieldInputContent as copy, entryFormContent } from '@/data/metaobjects'
+import { entryFormContent, fieldInputContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import ReferencePicker from './reference-picker'
 import type { ReferenceKind } from './reference-search-dialog'
 import ScalarInput from './scalar-input'
@@ -40,6 +41,8 @@ function asItems(value: unknown): unknown[] {
 export default function FieldInput({ rule, value, error, onChange }: FieldInputProps) {
   // Hooks
   const id = useId()
+  const copy = useCopy(fieldInputContent)
+  const { required } = useCopy(entryFormContent)
 
   // Helpers
   const setItem = (items: unknown[], index: number, next: unknown) =>
@@ -69,9 +72,7 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
       <FieldLabel htmlFor={id}>
         {rule.name}
         {rule.required ? (
-          <span className="text-caption font-normal text-muted-foreground">
-            {entryFormContent.required}
-          </span>
+          <span className="text-caption font-normal text-muted-foreground">{required}</span>
         ) : null}
       </FieldLabel>
       {isReferenceType(rule.type) ? (
