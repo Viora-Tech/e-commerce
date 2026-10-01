@@ -21,6 +21,12 @@ export type MerchantAuthOptions = {
   sendInvite?: SendInvite
   /** Extra origins allowed to call the auth API (the storefront, dev hosts). */
   trustedOrigins?: string[]
+  /**
+   * `TRUSTED_PROXY`: which client-IP header Better Auth may believe for its own rate limits
+   * and session IPs. `none` (default) turns IP tracking off rather than trust a header any
+   * client can send (security audit D-01).
+   */
+  trustedProxy?: 'cloudflare' | 'none'
 }
 
 /**
@@ -35,6 +41,12 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
     trustedOrigins: opts.trustedOrigins ?? [],
     database: drizzleAdapter(opts.db, { provider: 'pg' }),
     emailAndPassword: { enabled: false },
+    advanced: {
+      ipAddress:
+        opts.trustedProxy === 'cloudflare'
+          ? { ipAddressHeaders: ['cf-connecting-ip'] }
+          : { disableIpTracking: true },
+    },
     session: {
       expiresIn: 60 * 60 * 24 * 30,
       updateAge: 60 * 60 * 24,

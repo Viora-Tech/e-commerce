@@ -13,19 +13,20 @@ import { type Db, store, withStore } from '@commerce/db'
 import { CourierError } from '@commerce/shipping'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { isStoreId, peerAddress, rejectWebhook } from './webhook-reply'
 
 /**
  * A wrong or missing webhook token (`CourierError` of kind `auth` from `parseWebhook`) is the
- * sender's fault: answered 401, never a 500 the courier keeps retrying. Anything else rethrows.
+ * sender's fault: rejected with the same generic answer as any other bad call
+ * (`webhook-reply.ts`), never a 500 the courier keeps retrying. Anything else rethrows.
  */
 export function courierAuthFailure(err: unknown): {
   ok: false
   reason: string
   applied: []
-  status: 401
 } {
   if (err instanceof CourierError && err.kind === 'auth') {
-    return { ok: false, reason: 'unauthorised', applied: [], status: 401 }
+    return { ok: false, reason: 'unauthorised', applied: [] }
   }
   throw err
 }
@@ -45,7 +46,7 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
   const app = new Hono()
   app.post('/webhooks/shipments/:provider/:storeId', async (c) => {
     const { provider: providerId, storeId } = c.req.param()
-    const ip = clientIp(c.req.raw.headers)
+    const ip = clientIp(c.req.raw.headers, { peer: peerAddress(c) })
     const limit = await checkRateLimit(
       rateLimitStore,
       rateLimitKey('shipment-webhook:ip', ip),
@@ -55,6 +56,10 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
       return c.json({ ok: false, reason: 'rate limited' }, 429, {
         'retry-after': String(retryAfterSeconds(limit)),
       })
+    }
+    const where = { providerId, storeId }
+    if (!isStoreId(storeId)) {
+      return rejectWebhook(c, 'shipment-webhook', where, 'store id is not a uuid')
     }
     const rawBody = await c.req.text()
     const headers: Record<string, string | undefined> = {}
@@ -81,11 +86,7 @@ export function shipmentWebhooks(db: Db, settingsSecret: string, rateLimitStore:
     }).catch(courierAuthFailure)
 
     if (!outcome.ok) {
-      console.warn(`[shipment-webhook] ${providerId}/${storeId} rejected: ${outcome.reason}`)
-      return c.json(
-        { ok: false, reason: outcome.reason },
-        'status' in outcome ? outcome.status : 400,
-      )
+      return rejectWebhook(c, 'shipment-webhook', where, outcome.reason ?? 'rejected')
     }
     console.log(`[shipment-webhook] ${providerId} applied ${outcome.applied.length} notice(s)`)
     return c.json(outcome)

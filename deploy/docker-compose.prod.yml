@@ -37,6 +37,26 @@ x-app-env: &app-env
   STOREFRONT_A_RECORD: ${STOREFRONT_A_RECORD:-}
   STOREFRONT_CNAME_TARGET: ${STOREFRONT_CNAME_TARGET:-}
   PLATFORM_DOMAINS: ${PLATFORM_DOMAINS:-}
+  PLATFORM_STORE_DOMAIN: ${PLATFORM_STORE_DOMAIN:-}
+  MERCHANT_SIGNUP_MODE: ${MERCHANT_SIGNUP_MODE:-invite}
+  PLATFORM_SALES_STORE_ID: ${PLATFORM_SALES_STORE_ID:-}
+  # Which proxy's client-IP header to believe for per-IP rate limits. `cloudflare` only when the
+  # origin is firewalled to Cloudflare's IP ranges (see the deployment runbook); `none` ignores
+  # every forwarded header.
+  TRUSTED_PROXY: ${TRUSTED_PROXY:-none}
+  # Shopper sign-in: the platform login domain and the platform's own provider apps. Unset turns
+  # the matching "Continue with …" button off; merchants can still add their own apps.
+  ACCOUNTS_URL: ${ACCOUNTS_URL:-}
+  SHOPPER_GOOGLE_CLIENT_ID: ${SHOPPER_GOOGLE_CLIENT_ID:-}
+  SHOPPER_GOOGLE_CLIENT_SECRET: ${SHOPPER_GOOGLE_CLIENT_SECRET:-}
+  SHOPPER_APPLE_SERVICES_ID: ${SHOPPER_APPLE_SERVICES_ID:-}
+  SHOPPER_APPLE_TEAM_ID: ${SHOPPER_APPLE_TEAM_ID:-}
+  SHOPPER_APPLE_KEY_ID: ${SHOPPER_APPLE_KEY_ID:-}
+  SHOPPER_APPLE_PRIVATE_KEY: ${SHOPPER_APPLE_PRIVATE_KEY:-}
+  SHOPPER_FACEBOOK_APP_ID: ${SHOPPER_FACEBOOK_APP_ID:-}
+  SHOPPER_FACEBOOK_APP_SECRET: ${SHOPPER_FACEBOOK_APP_SECRET:-}
+  SHOPPER_TRUECALLER_PARTNER_KEY: ${SHOPPER_TRUECALLER_PARTNER_KEY:-}
+  SHOPPER_TRUECALLER_PARTNER_NAME: ${SHOPPER_TRUECALLER_PARTNER_NAME:-}
   RAZORPAY_OAUTH_CLIENT_ID: ${RAZORPAY_OAUTH_CLIENT_ID:-}
   RAZORPAY_OAUTH_CLIENT_SECRET: ${RAZORPAY_OAUTH_CLIENT_SECRET:-}
   R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
@@ -260,7 +280,9 @@ services:
       retries: 3
     mem_limit: 384m
     mem_reservation: 192m
-    networks: [internal]
+    # `internal` reaches Postgres and Dragonfly; `egress` lets it call payment gateways, couriers,
+    # SES and WhatsApp. Nothing on `egress` publishes a port, so it adds no inbound route.
+    networks: [internal, egress]
     # No `web`/Traefik labels: the worker's webhook endpoints are reachable only through the
     # storefront/admin's NEXT_PUBLIC_WORKER_URL if you choose to expose them — most stores route
     # payment/shipment webhooks straight to the worker's own domain if needed; add labels here
@@ -288,11 +310,17 @@ services:
       postgres:
         condition: service_healthy
     mem_limit: 256m
-    networks: [internal]
+    # `egress` for the upload to R2/S3; `internal` for Postgres.
+    networks: [internal, egress]
 
 networks:
+  # No route out of the host: Postgres, Dragonfly and migrate live only here.
   internal:
     internal: true
+  # An ordinary bridge with outbound internet, joined only by the services that must call out
+  # and are not on `web` already: worker and backup. admin and storefront go out through `web`.
+  egress:
+    driver: bridge
   web:
     # Dokploy creates and attaches its own Traefik network to every app it manages, named
     # `dokploy-network` by default — confirm the exact name for your install with

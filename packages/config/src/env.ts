@@ -69,6 +69,13 @@ const schema = z.object({
   /** Hostname a subdomain's CNAME must point at. */
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
   PLATFORM_DOMAINS: platformDomains,
+  /**
+   * Whose client-IP header per-IP rate limits believe (`@commerce/core` `clientIp`).
+   * `none` (default): no forwarded header, only the peer address the server sees.
+   * `cloudflare`: `cf-connecting-ip`, and only safe when the origin is firewalled to
+   * Cloudflare's IP ranges (deployment runbook, "Lock the origin to Cloudflare").
+   */
+  TRUSTED_PROXY: z.enum(['cloudflare', 'none']).default('none'),
   /** Dev seed: this email becomes owner of the seeded Waimers store. */
   SEED_OWNER_EMAIL: z.string().email().optional(),
   /**
