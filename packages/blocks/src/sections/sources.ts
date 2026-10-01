@@ -12,4 +12,13 @@ export const SECTION_SOURCES: Record<string, SectionSource> = {
   FaqAccordion: { name: 'shadcnblocks', href: 'https://www.shadcnblocks.com' },
   CtaBanner: { name: 'Magic UI', href: 'https://magicui.design' },
   Gallery: { name: 'shadcnblocks', href: 'https://www.shadcnblocks.com' },
+  // Zero Drift theme sections built on a shared UI-kit effect (`../effects/`).
+  ReviewsShowcase: { name: 'Magic UI and Aceternity UI', href: 'https://magicui.design' },
+  LatestDrop: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
+  BrandLab: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
+  Newsletter: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
+  // Marquee mode of the announcement bar.
+  AnnouncementBar: { name: 'Magic UI', href: 'https://magicui.design' },
+  // Lens zoom on the product gallery.
+  MainProduct: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
 }

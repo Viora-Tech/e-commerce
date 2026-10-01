@@ -37,8 +37,14 @@ export type TemplateOptions = {
   renderers?: SectionMetadata['renderers']
   /** Data and bound actions app blocks need beyond their own settings (a product, a subscribe action). */
   appBlockContext?: SectionMetadata['appBlockContext']
+  /** The product being viewed, for the product page sections (tabs, specs, size guide...). */
+  product?: SectionMetadata['product']
+  /** Actions bound to `product` (the sticky add-to-cart bar's add to cart). */
+  productActions?: SectionMetadata['productActions']
   /** The page's own product or collection, for settings connected to its dynamic sources. */
   sources?: { productId?: string | undefined; collectionId?: string | undefined }
+  /** Told which section types this request draws (hidden ones left out), before they render. */
+  onSections?: ((types: ReadonlySet<string>) => void) | undefined
 }
 
 /** Whether this request is a verified theme preview (Customize, or the Preview button). */
@@ -120,9 +126,12 @@ export async function renderTemplate(
       ...options.renderers,
     },
     appBlockContext: options.appBlockContext,
+    product: options.product,
+    productActions: options.productActions,
     newsletterAction: subscribeAction,
   }
   const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)
+  options.onSections?.(new Set(resolved.content.map((item) => String(item.type))))
   const components = config.components as unknown as Record<string, ComponentConfig | undefined>
   const puck = { metadata, isEditing: false, renderDropZone: () => null, dragRef: null }
   // Sections below the first rise in on scroll. Not the header and footer groups, and

@@ -1,7 +1,6 @@
-import type { ProductDetail } from '@commerce/blocks'
+import { type ProductDetail, ProductRecommendations } from '@commerce/blocks'
 import { listCardProducts } from '@/lib/catalog'
 import { inStore } from '@/lib/store-context'
-import ProductRow from './product-row'
 
 type RelatedProductsProps = {
   storeId: string
@@ -24,5 +23,5 @@ export default async function RelatedProducts({
 
   // Render logic
   const products = candidates.filter((p) => p.id !== product.id).slice(0, limit)
-  return <ProductRow heading={heading} products={products} />
+  return <ProductRecommendations heading={heading} products={products} />
 }

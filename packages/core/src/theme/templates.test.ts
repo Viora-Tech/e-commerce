@@ -55,7 +55,7 @@ describe('theme templates', () => {
     const product = await inStore(storeId, (tx) => loadTemplate(tx, main.id, 'product'))
     expect(product).toMatchObject({ stored: false, draft: false, suffix: '' })
     expect(types(product.data)).toEqual(['MainProduct'])
-    expect(types(defaultTemplate('header'))).toEqual(['Header'])
+    expect(types(defaultTemplate('header'))).toEqual(['AnnouncementBar', 'Header'])
   })
 
   it('keeps edits in a draft that only the preview sees until Save', async () => {

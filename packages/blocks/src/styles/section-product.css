@@ -531,7 +531,9 @@ html.has-cursor-fill .variant-picker__pill.is-hover-fill:not(.variant-picker__sw
   text-decoration: none;
 }
 
-.whatsapp-ask svg {
+.whatsapp-ask svg,
+.assurance__link .assurance__icon,
+.trust-badges__item--ask .trust-badges__icon {
   color: #25d366;
 }
 .whatsapp-ask:hover span {
@@ -1245,6 +1247,15 @@ html.js .share-row:not(.is-copy-fallback) .share-row__fallback {
   display: none;
 }
 
+/* The React port marks the row ready once it has hydrated, in place of html.js. */
+.share-row.is-ready:not(.is-copy-fallback) .share-row__copy {
+  display: inline-flex;
+}
+
+.share-row.is-ready:not(.is-copy-fallback) .share-row__fallback {
+  display: none;
+}
+
 /* Cursor-origin hover fill, the same sweep .btn and .product-tabs__tab run.
    assets/motion.js sets --fill-x/--fill-y from where the pointer entered and
    toggles .is-hover-fill; the four things that file's contract requires are
@@ -1562,4 +1573,163 @@ html:not(.has-cursor-fill) .share-row__copy:hover {
 .product-info__preorder-deposit {
   margin: 0 0 var(--space-2);
   color: var(--color-ink-light);
+}
+
+/* ------------------------------------------------------------------ */
+/* Assurance list (theme block `assurance`)                            */
+/*                                                                     */
+/* The reassurance tier: short rows under the buy button in place of a */
+/* returns line, a WhatsApp link and a five-tile trust grid.           */
+/* ------------------------------------------------------------------ */
+.assurance {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-4) 0 0;
+  border-top: 0.0625rem solid var(--color-line);
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.assurance__item,
+.assurance__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.assurance__icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-muted);
+}
+
+.assurance__link {
+  color: var(--color-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.assurance__link svg:last-child {
+  transition: transform 200ms ease;
+}
+
+.assurance__link:hover svg:last-child {
+  transform: translateX(0.1875rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assurance__link svg:last-child {
+    transition: none;
+  }
+}
+
+/* An odd count leaves the last cell alone on its row; it runs the full width instead. */
+.trust-badges__item:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  border-right: none;
+}
+
+/* The "Ask us" cell is the grid's one link. */
+.trust-badges__item--ask {
+  color: var(--color-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.trust-badges__item--ask > svg:last-child {
+  margin-left: auto;
+  transition: transform 200ms ease;
+}
+
+.trust-badges__item--ask:hover > svg:last-child {
+  transform: translateX(0.1875rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trust-badges__item--ask > svg:last-child {
+    transition: none;
+  }
+}
+
+/* Rating under the title: stars filled to the merchant's figure. */
+.product-info__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.product-info__rating-stars {
+  display: inline-flex;
+  gap: 0.125rem;
+  color: var(--color-ink);
+}
+
+.product-info__rating-star--empty {
+  color: color-mix(in srgb, var(--color-ink) 22%, transparent);
+}
+
+/* Title, stars and price are one group, not three separate blocks. */
+.product-layout__info > .product-info__rating + .product-info__price,
+.product-layout__info > .product-info__title + .product-info__price {
+  margin-top: -0.5rem;
+}
+
+/* The "In stock" chip sits in the stock bar's place, in the same flow. */
+.stock-status {
+  margin: 0;
+}
+
+.stock-status[hidden] {
+  display: none;
+}
+
+/* The UPI line belongs to the price above it. */
+.product-layout__info .payment-signals {
+  margin-top: calc(-1 * var(--space-4));
+}
+
+/* A one-line note (dispatch promise, returns) beside the delivery icon. */
+.delivery-estimate__text {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.delivery-estimate__text p {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Status chip (snippets/status-chip.liquid)                           */
+/* ------------------------------------------------------------------ */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-ink);
+  background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.status-chip__dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  flex: none;
+  border-radius: 50%;
+  background-color: currentcolor;
+}
+
+.status-chip--in {
+  color: var(--color-success);
+  background-color: color-mix(in srgb, var(--color-success) 14%, transparent);
 }

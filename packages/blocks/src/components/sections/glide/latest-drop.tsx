@@ -1,13 +1,14 @@
-// Port of sections/latest-drop.liquid (+ countdown.js, the data-tilt effect): single-product spotlight with hover image swap, specs, countdown and CTAs
+// Port of sections/latest-drop.liquid (+ countdown.js): single-product spotlight with hover image swap, specs, countdown and CTAs.
+// The panel's tilt is Aceternity UI's 3D Card (`effects/card-3d-container.tsx`), not the theme's [data-tilt] script.
 import type { ReactNode } from 'react'
 import { latestDropContent as copy } from '../../../data/glide/latest-drop'
+import Card3dContainer from '../../../effects/card-3d-container'
 import { safeHref } from '../../../slot-types'
 import type { CardProduct } from '../../../types'
+import CountdownTiles from '../../countdown-tiles'
 import Picture from '../../picture'
 import Price from '../../price'
 import RichCopy from '../../rich-copy'
-import LatestDropCountdown from './latest-drop-countdown'
-import LatestDropMedia from './latest-drop-media'
 
 type LatestDropProps = {
   product: CardProduct | null
@@ -19,6 +20,13 @@ type LatestDropProps = {
   secondaryHref: string
   deadline: string
   specs: { label: ReactNode; value: ReactNode }[]
+}
+
+const COUNTDOWN = {
+  root: 'latest-drop__countdown',
+  tile: 'latest-drop__countdown-tile',
+  value: 'latest-drop__countdown-value',
+  label: 'latest-drop__countdown-label',
 }
 
 export default function LatestDrop({
@@ -48,7 +56,10 @@ export default function LatestDrop({
   return (
     <div className="section-latest-drop page-width">
       <div className="latest-drop">
-        <LatestDropMedia>
+        <Card3dContainer
+          containerClassName="latest-drop__media-wrap"
+          className="latest-drop__media"
+        >
           {main?.url ? (
             <Picture
               image={main}
@@ -72,7 +83,7 @@ export default function LatestDrop({
               sizes="(min-width: 990px) 55vw, 100vw"
             />
           ) : null}
-        </LatestDropMedia>
+        </Card3dContainer>
 
         <div className="latest-drop__content">
           {kicker ? <p className="latest-drop__kicker text-caption">{kicker}</p> : null}
@@ -94,7 +105,9 @@ export default function LatestDrop({
             </div>
           ) : null}
 
-          {deadline ? <LatestDropCountdown deadline={deadline} /> : null}
+          {deadline ? (
+            <CountdownTiles deadline={deadline} labels={copy.countdown} classes={COUNTDOWN} />
+          ) : null}
 
           <div className="latest-drop__actions">
             {ctaLabel ? (

@@ -1,28 +1,10 @@
 /**
- * The Customize section library: announcement bar, image banner, image with
+ * The Customize section library: image banner, image with
  * text, multicolumn, collection list, featured product, testimonials, logo list,
  * FAQ, video and email signup. Ported from the Glide sections' layout and
  * spacing, drawn only with the theme's custom properties so every colour scheme
  * and dark mode apply unchanged.
  */
-
-.announcement-bar {
-  background-color: var(--color-brand);
-  color: var(--color-on-brand);
-  text-align: center;
-  padding: 0.5rem var(--page-margin);
-}
-
-.announcement-bar__message {
-  margin: 0;
-}
-
-.announcement-bar__link {
-  color: inherit;
-  margin-inline-start: 0.5rem;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
 
 /* Image banner */
 .image-banner {
@@ -235,41 +217,6 @@
   transform: scale(1.04);
 }
 
-/* Featured product */
-.featured-product {
-  display: grid;
-  gap: 2rem;
-  align-items: center;
-}
-
-.featured-product__media {
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  padding: 2.5rem;
-  border-radius: calc(var(--radius-m) * 2);
-  background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
-}
-
-.featured-product__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.featured-product__content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-@media (min-width: 62rem) {
-  .featured-product {
-    grid-template-columns: 7fr 5fr;
-    gap: 4rem;
-  }
-}
-
 /* FAQ */
 .faq {
   max-width: 50rem;
@@ -327,27 +274,4 @@
   border: 0;
 }
 
-/* Email signup */
-.newsletter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  max-width: 40rem;
-  text-align: center;
-}
-
-.newsletter__form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.newsletter__input {
-  flex: 1 1 14rem;
-}
-
-.newsletter__message {
-  margin: 0;
-}
+/* Email signup: section-newsletter.css (the Glide newsletter card). */

@@ -376,6 +376,14 @@ html:not(.has-cursor-fill) .footer__social-link:hover {
     grid-column: span 2;
   }
 
+  /* Tablet: five or six columns would squeeze each list to a word per
+     line, so it wraps at three until there is room for the setting. */
+  @media (max-width: 1099px) {
+    .footer__top {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   /* Desktop columns read as static, always-expanded lists: the toggle is
      locked non-interactive and the panel is forced open regardless of the
      `open` attribute, so the accordion still defaults collapsed on mobile
@@ -446,4 +454,245 @@ html:not(.js) .footer__theme {
   .footer__theme-toggle {
     transition: border-color 200ms ease;
   }
+}
+
+/* The logo over the brand blurb. */
+.footer__logo {
+  display: inline-flex;
+  justify-self: start;
+  margin-bottom: var(--space-4);
+}
+
+.footer__logo-image {
+  width: auto;
+  height: 2.25rem;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .footer__logo {
+    transition: opacity 0.2s ease;
+  }
+
+  .footer__logo:hover {
+    opacity: 0.8;
+  }
+}
+
+@media screen and (max-width: 749px) {
+  .footer {
+    padding-top: var(--space-7);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Help cards, brand column, legal row, back to top                    */
+/* ------------------------------------------------------------------ */
+.footer__help {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-bottom: var(--space-7);
+  margin-bottom: var(--space-2);
+}
+
+@media screen and (min-width: 750px) {
+  .footer__help {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+.footer__help-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--ft-line);
+  border-radius: var(--radius-m);
+  color: var(--ft-ink);
+  text-decoration: none;
+}
+
+.footer__help-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--color-brand) 14%, transparent);
+  color: var(--color-brand);
+}
+
+.footer__help-copy {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.footer__help-title {
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.footer__help-text {
+  color: var(--ft-muted);
+  font-size: 0.8125rem;
+}
+
+.footer__help-arrow {
+  display: inline-flex;
+  margin-left: auto;
+  color: var(--ft-muted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .footer__help-card {
+    transition:
+      border-color 0.25s ease,
+      transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.25s ease;
+  }
+
+  .footer__help-arrow {
+    transition:
+      transform 0.25s ease,
+      color 0.25s ease;
+  }
+
+  .footer__help-card:hover .footer__help-arrow {
+    transform: translateX(0.25rem);
+  }
+
+  .footer__help-card:hover {
+    transform: translateY(-0.125rem);
+  }
+}
+
+.footer__help-card:hover {
+  border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
+  background-color: color-mix(in srgb, var(--color-brand) 5%, transparent);
+}
+
+.footer__help-card:hover .footer__help-arrow {
+  color: var(--color-brand);
+}
+
+/* Social icons inside the brand column sit under its text. */
+.footer__block--text .footer__social {
+  margin-top: var(--space-4);
+}
+
+/* Link headings: a touch more presence than the links under them. */
+.footer__block--menu .footer__heading {
+  letter-spacing: 0.08em;
+}
+
+.footer__menu-list {
+  gap: var(--space-3);
+}
+
+/* One-colour payment marks (components/payment-icon.tsx) in the footer's muted ink. */
+.footer__payment {
+  color: var(--ft-muted);
+}
+
+.footer__payment-icon {
+  display: block;
+  height: 1.5rem;
+}
+
+/* The legal row reads as links, not as a whisper: one size up, the
+   footer's own muted ink, dots between them. */
+.footer__policies {
+  gap: var(--space-2) 0;
+}
+
+.footer__policies li + li::before {
+  content: "\00B7";
+  margin-inline: var(--space-3);
+  color: var(--ft-muted);
+}
+
+.footer__policy-link {
+  font-size: 0.8125rem;
+  color: var(--ft-muted);
+  text-decoration: none;
+}
+
+.footer__policy-link:hover {
+  color: var(--ft-ink);
+  text-decoration: underline;
+}
+
+.footer__top-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--ft-muted);
+  text-decoration: none;
+}
+
+.footer__top-icon {
+  display: inline-flex;
+  rotate: -90deg;
+}
+
+.footer__top-link:hover {
+  color: var(--ft-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .footer__top-icon {
+    transition: translate 0.25s ease;
+  }
+
+  .footer__top-link:hover .footer__top-icon {
+    translate: 0 -0.1875rem;
+  }
+}
+
+/* Phones: bigger tap rows in the link accordions. */
+@media screen and (max-width: 749px) {
+  .footer__menu-link {
+    display: inline-block;
+    padding-block: 0.375rem;
+  }
+}
+
+/* Full-bleed dividers: the content keeps the page width, but the line under
+   the help cards and the line above the legal row run edge to edge. Each
+   line is drawn 100vw wide from the centre of its (centred) box; the footer
+   clips the overflow so it never adds a horizontal scrollbar. */
+.footer {
+  overflow-x: clip;
+}
+
+.footer__help,
+.footer__bottom {
+  position: relative;
+  border-top-color: transparent;
+}
+
+.footer__help::after,
+.footer__bottom::before {
+  content: "";
+  position: absolute;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  height: 1px;
+  background-color: var(--ft-line);
+  pointer-events: none;
+}
+
+.footer__help::after {
+  bottom: -1px;
+}
+
+.footer__bottom::before {
+  top: -1px;
 }

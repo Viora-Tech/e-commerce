@@ -30,6 +30,15 @@ describe('safeHref', () => {
   })
 })
 
+const barProps = {
+  displayMode: 'rotate',
+  autorotate: false,
+  autorotateSpeed: 5,
+  marqueeSpeed: 30,
+  scheme: 'scheme-1',
+} as const
+const noSocials: { platform: string; url: string }[] = []
+
 describe('section links render through safeHref', () => {
   it('never draws a data: or backslash href', () => {
     const banner = renderToStaticMarkup(
@@ -47,7 +56,11 @@ describe('section links render through safeHref', () => {
     expect(banner).toContain('href="/collections/all"')
 
     const bar = renderToStaticMarkup(
-      <AnnouncementBar text="Hi" link={{ label: 'Go', href: '/\\evil.com' }} />,
+      <AnnouncementBar
+        {...barProps}
+        socials={noSocials}
+        announcements={[{ text: 'Hi', link: '/\\evil.com' }]}
+      />,
     )
     expect(bar).not.toContain('evil.com')
     expect(bar).not.toContain('<a')
@@ -55,7 +68,11 @@ describe('section links render through safeHref', () => {
 
   it('keeps a site path', () => {
     const bar = renderToStaticMarkup(
-      <AnnouncementBar text="Hi" link={{ label: 'Go', href: '/policies/shipping-policy' }} />,
+      <AnnouncementBar
+        {...barProps}
+        socials={noSocials}
+        announcements={[{ text: 'Hi', link: '/policies/shipping-policy' }]}
+      />,
     )
     expect(bar).toContain('href="/policies/shipping-policy"')
   })

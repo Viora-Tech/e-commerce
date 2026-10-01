@@ -1,6 +1,6 @@
 'use client'
 
-import { formatPaise, Icon } from '@commerce/blocks'
+import { formatPaise, Icon, type SearchShortcut } from '@commerce/blocks'
 import { useEffect, useRef, useState } from 'react'
 import { PREDICTIVE_DEBOUNCE_MS, searchContent } from '@/data/search'
 import type { Suggestion } from '@/lib/suggestion'
@@ -8,6 +8,9 @@ import type { Suggestion } from '@/lib/suggestion'
 type PredictiveSearchProps = {
   /** Accessible name of the header icon. */
   label: string
+  /** Pills shown before the shopper types: popular terms and brands (Header section settings). */
+  popular?: SearchShortcut[] | undefined
+  brands?: SearchShortcut[] | undefined
 }
 
 const copy = searchContent
@@ -18,7 +21,11 @@ const LIST_ID = 'predictive-search-results'
  * so it opens and submits without JavaScript. With it, results appear as the
  * shopper types (debounced, stale requests aborted); Escape closes it.
  */
-export default function PredictiveSearch({ label }: PredictiveSearchProps) {
+export default function PredictiveSearch({
+  label,
+  popular = [],
+  brands = [],
+}: PredictiveSearchProps) {
   // Hooks
   const [q, setQ] = useState('')
   const [results, setResults] = useState<Suggestion[] | null>(null)
@@ -82,9 +89,17 @@ export default function PredictiveSearch({ label }: PredictiveSearchProps) {
   // Render logic
   const term = q.trim()
   const open = results !== null && term.length >= 2
+  const shortcuts = [
+    { key: 'popular', heading: copy.predictive.popular, items: popular },
+    { key: 'brands', heading: copy.predictive.brands, items: brands },
+  ].filter((group) => group.items.length > 0)
 
   return (
-    <details ref={detailsRef} onToggle={handleToggle} className="predictive-search">
+    <details
+      ref={detailsRef}
+      onToggle={handleToggle}
+      className="predictive-search header__search-details"
+    >
       <summary
         className="header__icon-btn list-none [&::-webkit-details-marker]:hidden"
         aria-label={label}
@@ -121,6 +136,22 @@ export default function PredictiveSearch({ label }: PredictiveSearchProps) {
               <Icon name="close" size={24} />
             </button>
           </form>
+          {!open && term.length < 2 && shortcuts.length > 0 ? (
+            <div className="search-overlay__columns pb-2">
+              {shortcuts.map((group) => (
+                <div key={group.key} className="search-overlay__column">
+                  <p className="search-overlay__heading">{group.heading}</p>
+                  <div className="search-overlay__pills">
+                    {group.items.map((item) => (
+                      <a key={item.href} href={item.href} className="search-overlay__pill">
+                        {item.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           {open ? (
             <div className="flex flex-col gap-2 pb-2" aria-live="polite">
               {results.length === 0 ? (

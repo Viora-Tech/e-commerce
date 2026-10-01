@@ -19,6 +19,9 @@ export const searchContent = {
     viewAll: (q: string) => `Search for "${q}"`,
     empty: (q: string) => `No products match "${q}"`,
     loading: 'Searching',
+    /** Shown before the shopper types (the Header section's search settings). */
+    popular: 'Popular searches',
+    brands: 'Shop by brand',
   },
 } as const
 

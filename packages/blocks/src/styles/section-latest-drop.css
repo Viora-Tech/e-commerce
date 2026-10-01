@@ -15,9 +15,7 @@
   gap: var(--space-6);
 }
 
-.latest-drop__media-wrap {
-  perspective: 62.5rem;
-}
+/* The tilt (perspective, preserve-3d, transform transition) comes from effects/card-3d-container.tsx. */
 
 .latest-drop__media {
   position: relative;
@@ -26,14 +24,6 @@
   background-color: color-mix(in srgb, var(--color-ink) 4%, transparent);
   border-radius: calc(var(--radius-m) * 2);
   padding: var(--space-7);
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .latest-drop__media {
-    transition: transform 0.2s ease-out;
-  }
 }
 
 .latest-drop__image {
