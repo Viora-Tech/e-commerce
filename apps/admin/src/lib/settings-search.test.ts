@@ -14,6 +14,11 @@ describe('searchSettings', () => {
     expect(first('whatsapp')?.where).toBe('Notifications')
   })
 
+  it('finds Business and GST and Locations', () => {
+    expect(first('PAN')?.href).toBe('/settings/business')
+    expect(first('godown')?.href).toBe('/settings/locations')
+  })
+
   it('finds Policies and Checkout', () => {
     expect(first('refund policy')?.href).toBe('/settings/policies')
     expect(first('grievance')?.href).toBe('/settings/policies#grievance')

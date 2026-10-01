@@ -7,6 +7,7 @@ import {
   Globe,
   Home,
   Images,
+  MapPinLineIcon,
   Palette,
   ReceiptIcon,
   ShieldCheck,
@@ -65,6 +66,18 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: 'Taxes & GST',
     body: 'Your GSTIN, whether prices include GST, default rate and HSN, and invoice numbers.',
     icon: ReceiptIcon,
+  },
+  {
+    href: '/settings/business',
+    title: 'Business and GST',
+    body: 'Your business and PAN, and a GST number for each state you sell from.',
+    icon: Store,
+  },
+  {
+    href: '/settings/locations',
+    title: 'Locations',
+    body: 'Where you keep stock, and which GST number each place bills under.',
+    icon: MapPinLineIcon,
   },
   {
     href: '/settings/returns',

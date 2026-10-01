@@ -18,6 +18,7 @@
     "./gstin": "./src/tax/gstin.ts",
     "./gst": "./src/tax/gst.ts",
     "./tax-settings": "./src/tax/settings.ts",
+    "./gst-registrations": "./src/tax/registration-schemas.ts",
     "./segments": "./src/customers/segments.ts",
     "./permissions": "./src/permissions/client.ts",
     "./collections": "./src/collections/client.ts",

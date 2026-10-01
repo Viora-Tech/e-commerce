@@ -1,4 +1,4 @@
-import { parseNavigationSettings } from '@commerce/core'
+import { adoptStoreGstin, parseNavigationSettings } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { store } from '@commerce/db'
 import { eq, sql } from 'drizzle-orm'
@@ -100,6 +100,8 @@ export type StoreGeneralPatch = {
 }
 
 export async function updateStoreGeneral(tx: StoreTx, storeId: string, patch: StoreGeneralPatch) {
+  // Business and GST owns the GSTIN once the store has one (see adoptStoreGstin).
+  if (patch.gstin !== undefined) await adoptStoreGstin(tx, storeId, patch.gstin)
   const [s] = await tx.update(store).set(patch).where(eq(store.id, storeId)).returning()
   return s ?? null
 }

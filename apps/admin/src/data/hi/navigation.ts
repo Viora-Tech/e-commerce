@@ -57,6 +57,14 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     title: 'शिपिंग',
     body: 'कूरियर, शिपिंग रेट, डिलीवरी का अनुमान और डिस्पैच पॉलिसी।',
   },
+  '/settings/business': {
+    title: 'बिज़नेस और GST',
+    body: 'आपका बिज़नेस और PAN, और जिस-जिस राज्य से आप बेचते हैं वहाँ का GST नंबर।',
+  },
+  '/settings/locations': {
+    title: 'लोकेशन',
+    body: 'आपका स्टॉक कहाँ रखा है, और हर जगह किस GST नंबर से बिल बनता है।',
+  },
   '/settings/returns': {
     title: 'रिटर्न',
     body: 'ग्राहक कितने दिन में रिटर्न कर सकते हैं, कौन से कारण मंज़ूर हैं, रीस्टॉक और रिफ़ंड।',

@@ -1,4 +1,4 @@
-import { permissions } from '@commerce/core'
+import { GstRegistrationError, permissions } from '@commerce/core'
 import { InvoiceError } from '@commerce/plugin-gst-invoices/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -17,7 +17,11 @@ export const taxesRouter = {
       try {
         return await saveTaxes(context.tx, context.scope.storeId, input)
       } catch (err) {
-        if (err instanceof TaxesError || err instanceof InvoiceError) {
+        if (
+          err instanceof TaxesError ||
+          err instanceof InvoiceError ||
+          err instanceof GstRegistrationError
+        ) {
           throw new ORPCError('BAD_REQUEST', { message: err.message })
         }
         if (err instanceof z.ZodError) {

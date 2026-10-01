@@ -5,6 +5,7 @@ import {
   enqueueAppJob,
   ensureMainTheme,
   GstinSchema,
+  GstRegistrationError,
   liveThemeSettings,
   loadStoreStorageSettings,
   NotificationSettingsSchema,
@@ -118,6 +119,11 @@ export const storeRouter = {
           ? {}
           : { gstRatePercent: Math.round(input.gstRatePercent) }),
         timezone: input.timezone,
+      }).catch((err: unknown) => {
+        if (err instanceof GstRegistrationError) {
+          throw new ORPCError('BAD_REQUEST', { message: err.message, data: { code: err.code } })
+        }
+        throw err
       })
       return s ? presentStoreGeneral(s) : null
     }),
