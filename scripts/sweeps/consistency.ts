@@ -126,6 +126,9 @@ export const HELPER_OWNERS: Record<string, string[]> = {
   redisRateLimiter: ['packages/queue/src/rate-limit.ts'],
   todayIst: [],
   IST_OFFSET_MS: ['packages/dates/src/index.ts'],
+  IST_MS: [],
+  msUntil: ['packages/dates/src/index.ts'],
+  formatCountdown: ['packages/dates/src/index.ts'],
   readTestedFlag: ['apps/admin/src/components/apps/shared/provider-settings.ts'],
 }
 
@@ -154,6 +157,19 @@ export async function inlineSettingsSecretReads(): Promise<string[]> {
   return files
     .filter((f) => !toRel(f).startsWith('packages/config/'))
     .filter((f) => /loadEnv\(process\.env\)\.SETTINGS_SECRET\b/.test(readFileSync(f, 'utf8')))
+    .map(toRel)
+}
+
+/** The IST offset written out (`330 * 60 * 1000`, `5.5 * 3_600_000`, `19_800_000`, ...). */
+const IST_LITERAL =
+  /\b330\s*\*\s*60\s*\*\s*1_?000\b|\b5\.5\s*\*\s*(?:3_?600_?000|60\s*\*\s*60\s*\*\s*1_?000)\b|\b19_?800_?000\b/
+
+/** Source files (not tests) that spell the IST offset out instead of importing it. */
+export async function inlineIstOffsets(): Promise<string[]> {
+  const files = await listFiles(SOURCE_ROOTS, { includeTests: false })
+  return files
+    .filter((f) => !toRel(f).startsWith('packages/dates/'))
+    .filter((f) => IST_LITERAL.test(readFileSync(f, 'utf8')))
     .map(toRel)
 }
 

@@ -70,6 +70,7 @@
     "@commerce/blocks": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/db": "workspace:*",
+    "@commerce/dates": "workspace:*",
     "@commerce/money": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/notifications-ses": "workspace:*",

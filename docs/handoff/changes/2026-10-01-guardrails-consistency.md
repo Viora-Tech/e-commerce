@@ -35,7 +35,9 @@ one bug fix (admin upload size gate). What a new session needs to know:
   file-size; hardcoded-colours also catches Tailwind palette classes; service-layer is per
   file; no-orphans has a stale-entry check (49 stale names removed).
 
-**Left for follow-ups** (areas parallel builds were changing): IST offset copies in
-`packages/invoices` and `plugin-gst-invoices`, the GST invoices returns page date formatter,
-`msUntilLaunch` copies and money wrappers in `packages/blocks`, metaobjects/gst-invoices router
-limits, theme editor overlay palette classes. Each is an allow-list entry with that reason.
+**Follow-ups now done** (after #220–#224 merged): the IST offset copies in `packages/invoices`,
+`plugin-gst-invoices` and the admin GST screens, `msUntilLaunch`/`formatCountdown` copies in
+`packages/blocks` (now `msUntil`/`formatCountdown` in `@commerce/dates`, since blocks cannot
+import core), the date formatters in the GST, theme and blocks code, and the metaobjects /
+gst-invoices router limits. What remains is on the sweep allow-lists with real reasons
+(e.g. GST search box and register paging stay shorter than the shared limits).

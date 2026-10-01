@@ -68,7 +68,7 @@ const PALETTE_ALLOWLIST: AllowEntry[] = [
   {
     file: 'apps/admin/src/components/themes/customize/section-overlay.tsx',
     reason:
-      'editor overlay drawn over the merchant storefront preview, whose own theme tokens differ from the admin; theme rebuild in progress — revisit after it merges',
+      'theme editor overlay drawn on top of the merchant storefront preview iframe, where the admin theme tokens do not exist; give it its own overlay tokens',
   },
 ]
 

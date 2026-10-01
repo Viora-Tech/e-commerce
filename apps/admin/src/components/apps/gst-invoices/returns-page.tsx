@@ -1,5 +1,6 @@
 'use client'
 
+import { formatInZone, IST_OFFSET_MS } from '@commerce/dates'
 import { Download } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
@@ -21,12 +22,11 @@ import { saveFile } from './save-file'
 type Period = Awaited<ReturnType<typeof api.gstInvoices.periods.list>>[number]
 
 const copy = gstInvoicesContent.returns
-const IST_MS = 330 * 60 * 1000
 const MONTHS_SHOWN = 12
 
 /** The last twelve `YYYY-MM` months, newest first, in IST. */
 function recentMonths(now = new Date()): string[] {
-  const ist = new Date(now.getTime() + IST_MS)
+  const ist = new Date(now.getTime() + IST_OFFSET_MS)
   return Array.from({ length: MONTHS_SHOWN }, (_, i) => {
     const d = new Date(Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth() - i, 1))
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
@@ -36,14 +36,16 @@ function recentMonths(now = new Date()): string[] {
 function monthRange(period: string) {
   const [y, m] = period.split('-').map(Number) as [number, number]
   return {
-    from: new Date(Date.UTC(y, m - 1, 1) - IST_MS),
-    to: new Date(Date.UTC(y, m, 1) - IST_MS),
+    from: new Date(Date.UTC(y, m - 1, 1) - IST_OFFSET_MS),
+    to: new Date(Date.UTC(y, m, 1) - IST_OFFSET_MS),
   }
 }
 
 const monthLabel = (period: string) =>
-  new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+  formatInZone(
     monthRange(period).to.getTime() - 86_400_000,
+    { month: 'long', year: 'numeric' },
+    { timeZone: 'UTC' },
   )
 
 /** GSTR-1 per month, with the filed and closed switches that lock a period. */

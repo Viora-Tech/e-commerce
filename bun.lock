@@ -263,6 +263,7 @@
       "name": "@commerce/blocks",
       "version": "0.0.0",
       "dependencies": {
+        "@commerce/dates": "workspace:*",
         "@commerce/money": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -306,6 +307,7 @@
       "dependencies": {
         "@commerce/blocks": "workspace:*",
         "@commerce/config": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/money": "workspace:*",
         "@commerce/notifications": "workspace:*",
@@ -401,6 +403,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/money": "workspace:*",
         "@react-pdf/renderer": "^4.9.0",
         "fflate": "^0.8.3",
@@ -590,6 +593,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@commerce/core": "workspace:*",
+        "@commerce/dates": "workspace:*",
         "@commerce/db": "workspace:*",
         "@commerce/invoices": "workspace:*",
         "@commerce/notifications": "workspace:*",

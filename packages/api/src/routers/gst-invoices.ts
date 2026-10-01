@@ -41,7 +41,7 @@ import {
 } from '@commerce/plugin-gst-invoices/server'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, heavy } from '../procedures'
+import { BULK_MAX, can, heavy } from '../procedures'
 import { getStoreApps, storeRegistries } from '../services/apps.service'
 import {
   createEmailBatch,
@@ -108,7 +108,7 @@ const Filter = z.object({
 
 /** Rows or "everything matching the filter", capped so one click cannot render the year. */
 const Selection = z.union([
-  z.object({ ids: z.array(z.uuid()).min(1).max(200) }),
+  z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }),
   z.object({ filter: Filter }),
 ])
 
@@ -250,7 +250,7 @@ export const gstInvoicesRouter = {
         }
       }),
     remove: can(permissions.ORDERS_WRITE)
-      .input(z.object({ ids: z.array(z.uuid()).min(1).max(200) }))
+      .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
         return { removed: await removeFromQueue(context.tx, input.ids) }

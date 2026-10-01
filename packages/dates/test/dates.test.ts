@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   dayKey,
   dayStart,
+  formatCountdown,
   formatInZone,
   IST_OFFSET_MS,
+  msUntil,
   startOfDay,
   startOfMonth,
   wallClock,
@@ -45,5 +47,20 @@ describe('formatInZone', () => {
     expect(formatInZone(lateUtc, { day: 'numeric', month: 'short' }, { timeZone: 'UTC' })).toBe(
       '30 Sept',
     )
+  })
+})
+
+describe('launch countdown', () => {
+  const now = new Date('2026-10-01T00:00:00.000Z')
+  it('counts down to an instant or ISO string, 0 once passed or unset', () => {
+    expect(msUntil('2026-10-01T01:00:00.000Z', now)).toBe(3_600_000)
+    expect(msUntil(new Date('2026-09-30T00:00:00.000Z'), now)).toBe(0)
+    expect(msUntil(null, now)).toBe(0)
+  })
+
+  it('reads as days+hours, hours+minutes or minutes', () => {
+    expect(formatCountdown(2 * 86_400_000 + 5 * 3_600_000)).toBe('2d 5h')
+    expect(formatCountdown(5 * 3_600_000 + 20 * 60_000)).toBe('5h 20m')
+    expect(formatCountdown(20 * 60_000)).toBe('20m')
   })
 })

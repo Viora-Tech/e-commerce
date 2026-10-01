@@ -1,3 +1,4 @@
+import { startOfDay } from '@commerce/dates'
 import { order, orderLine, type StoreTx } from '@commerce/db'
 import {
   counterYear,
@@ -372,12 +373,8 @@ async function latestIssuedDate(
   return row?.at ?? null
 }
 
-const IST_OFFSET_MS = 330 * 60 * 1000
 function startOfIstDay(at: Date): Date {
-  const ist = new Date(at.getTime() + IST_OFFSET_MS)
-  return new Date(
-    Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - IST_OFFSET_MS,
-  )
+  return startOfDay(at)
 }
 
 /**

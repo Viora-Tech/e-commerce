@@ -19,11 +19,8 @@ const ADMIN_LIB = 'admin lib/copy formatter — build it on formatPattern in lib
 const CORE =
   'server-built text for emails, messages or exports — move to formatInZone from @commerce/dates'
 const STOREFRONT = 'storefront date text — move to formatInZone with the store timezone'
-const PARALLEL =
-  'area rebuilt by a parallel build (theme, GST invoices, blocks) — move to @commerce/dates after it merges'
 
 const ALLOWLIST: AllowEntry[] = [
-  { file: 'apps/admin/src/components/apps/gst-invoices/returns-page.tsx', reason: PARALLEL },
   { file: 'apps/admin/src/components/apps/shopify-import/connect-page.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/apps/shopify-import/imports-page.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/home/charts/sales-orders-chart.tsx', reason: ADMIN },
@@ -31,7 +28,6 @@ const ALLOWLIST: AllowEntry[] = [
   { file: 'apps/admin/src/components/notifications/sender-email-card.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/orders/packing-slip.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/products/stock-history-card.tsx', reason: ADMIN },
-  { file: 'apps/admin/src/components/themes/customize/add-section-my-tab.tsx', reason: PARALLEL },
   { file: 'apps/admin/src/data/hi/products.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/data/products.ts', reason: ADMIN_LIB },
   { file: 'apps/admin/src/lib/analytics-range.ts', reason: ADMIN_LIB },
@@ -39,15 +35,12 @@ const ALLOWLIST: AllowEntry[] = [
   { file: 'apps/storefront/src/components/checkout/balance-due.tsx', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/account.ts', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/policies.ts', reason: STOREFRONT },
-  { file: 'packages/blocks/src/components/product-view.tsx', reason: PARALLEL },
   { file: 'packages/core/src/blog/text.ts', reason: CORE },
   { file: 'packages/core/src/dynamic-sources/format.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/client.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/service.ts', reason: CORE },
   { file: 'packages/core/src/notifications/deliver.ts', reason: CORE },
   { file: 'packages/core/src/payments/manual-followup.ts', reason: CORE },
-  { file: 'packages/invoices/src/templates/view.ts', reason: PARALLEL },
-  { file: 'packages/plugin-gst-invoices/src/periods.ts', reason: PARALLEL },
   {
     file: 'packages/shipping/src/delivery-date.ts',
     reason:

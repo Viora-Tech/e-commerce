@@ -14,6 +14,7 @@ import {
   CHROME_TRANSITION,
 } from '@/lib/customize-chrome'
 import { deleteMySection, useMySections } from '@/lib/customize-my-sections'
+import { formatPattern } from '@/lib/format-date'
 import SectionIcon from './section-icon'
 
 type MySectionsTabProps = {
@@ -23,8 +24,7 @@ type MySectionsTabProps = {
 
 const copy = customizeContent.mySections
 
-const dateLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+const dateLabel = (iso: string) => formatPattern(iso, { day: 'numeric', month: 'short' })
 
 /**
  * The Add panel's "My sections" tab: the store's saved sections, newest

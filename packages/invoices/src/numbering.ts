@@ -1,5 +1,6 @@
+import { IST_OFFSET_MS } from '@commerce/dates'
+
 /** IST is a fixed +05:30; Indian financial years run 1 April to 31 March in IST. */
-const IST_OFFSET_MS = 330 * 60 * 1000
 
 export type FinancialYear = {
   /** Calendar year the FY starts in: 2025 for 1 April 2025 to 31 March 2026. */

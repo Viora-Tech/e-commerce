@@ -27,7 +27,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { BULK_MAX, can, PAGE_MAX, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 
 /** Validation failures answer 400 with per-field messages the forms show inline. */
 async function invalidToBadRequest<T>(fn: () => Promise<T>): Promise<T> {
@@ -98,9 +98,9 @@ export const metaobjectsRouter = {
     .input(
       z.object({
         definitionId: z.uuid(),
-        page: z.number().int().min(1).max(10_000).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
-        query: z.string().trim().max(200).optional(),
+        page: z.number().int().min(1).max(PAGE_MAX).default(1),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        query: z.string().trim().max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listEntries(context.tx, input)),
@@ -130,7 +130,7 @@ export const metaobjectsRouter = {
     ),
 
   deleteEntries: write()
-    .input(z.object({ ids: z.array(z.uuid()).min(1).max(200) }))
+    .input(z.object({ ids: z.array(z.uuid()).min(1).max(BULK_MAX) }))
     .handler(async ({ context, input }) => ({
       deleted: await deleteEntries(context.tx, input.ids),
     })),
@@ -140,7 +140,7 @@ export const metaobjectsRouter = {
     .input(
       z.object({
         kind: z.enum(['product', 'collection', 'metaobject', 'file']),
-        query: z.string().trim().max(200).optional(),
+        query: z.string().trim().max(SEARCH_MAX).optional(),
         ids: z.array(z.uuid()).max(250).optional(),
         definitionId: z.uuid().optional(),
       }),

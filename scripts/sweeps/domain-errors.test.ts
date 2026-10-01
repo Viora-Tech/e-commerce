@@ -48,7 +48,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     site: 'packages/core/src/metaobjects/schemas.ts: InvalidMetaobject',
-    reason: 'CMS area is being changed by a parallel build — move after it merges',
+    reason: MOVE,
   },
   { site: 'packages/core/src/privacy/requests.ts: DataRequestError', reason: MOVE },
   { site: 'packages/core/src/shipping/pickup.ts: PickupNotSupported', reason: MOVE },

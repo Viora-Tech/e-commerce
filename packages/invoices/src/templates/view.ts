@@ -1,4 +1,5 @@
 import { COMPOSITION_NOTE } from '@commerce/core/tax-settings'
+import { formatInZone } from '@commerce/dates'
 import { formatRate } from '../money'
 import type { DocumentConfig, DocumentFields, InvoiceSettings, LabelKey } from '../settings'
 import type { DocumentKind, DocumentSnapshot } from '../snapshot'
@@ -67,13 +68,7 @@ export type TemplateView = {
   endorsement: string | null
 }
 
-const date = (iso: string) =>
-  new Intl.DateTimeFormat('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Kolkata',
-  }).format(new Date(iso))
+const date = (iso: string) => formatInZone(iso, { day: '2-digit', month: 'short', year: 'numeric' })
 
 export function templateView({ doc, settings }: TemplateProps): TemplateView {
   const config = settings.documents[doc.kind]

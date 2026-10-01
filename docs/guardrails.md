@@ -211,11 +211,12 @@ share 85% or more of their lines are a copy that will drift. **Fix**: one owner 
 `HELPER_OWNERS` in `consistency.ts` names each single-home helper and its owner file:
 `settingsSecret` (@commerce/config), `safeEqual` (@commerce/payments), `isUniqueViolation`
 (@commerce/db), `parseRupees`/`formatSignedMoney`/`formatPercent` (@commerce/money),
-`IST_OFFSET_MS` (@commerce/dates), `slugify`/`msUntilLaunch` (core), `initials` (admin lib),
+`IST_OFFSET_MS`/`msUntil`/`formatCountdown` (@commerce/dates), `slugify`/`msUntilLaunch` (core), `initials` (admin lib),
 `sentryOptions` (@commerce/observability), `redisRateLimiter` (@commerce/queue), ... A
 function or const with one of those names declared anywhere else fails; names with no owner
 (`toPaise`, `inr`, `todayIst`, `formatSigned`) were folded into an owner and must not come
-back. A third test forbids `loadEnv(process.env).SETTINGS_SECRET` outside @commerce/config.
+back. Two more tests forbid `loadEnv(process.env).SETTINGS_SECRET` outside @commerce/config
+and the IST offset spelled out (`330 * 60 * 1000`, `5.5 * 3_600_000`) outside @commerce/dates.
 **Fix**: import the owner. **Add a helper**: give it an owner note and a `HELPER_OWNERS` row.
 
 ### o. `date-format` (`scripts/sweeps/date-format.test.ts`)

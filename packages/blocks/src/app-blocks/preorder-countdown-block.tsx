@@ -1,5 +1,6 @@
 'use client'
 
+import { formatCountdown, msUntil } from '@commerce/dates'
 import { useEffect, useState } from 'react'
 
 /**
@@ -21,21 +22,6 @@ type PreorderCountdownBlockProps = {
 
 /** Milliseconds until `launchAt`, clamped to zero. Mirrors ProductView's own (duplicated
  *  rather than shared, since packages/blocks does not depend on @commerce/core). */
-function msUntilLaunch(launchAt: string | null | undefined): number {
-  if (!launchAt) return 0
-  return Math.max(0, new Date(launchAt).getTime() - Date.now())
-}
-
-function formatCountdown(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  if (days > 0) return `${days}d ${hours}h`
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
-}
-
 /**
  * App block version of the launch countdown (Add panel → Apps), for
  * merchants who want it somewhere other than under the buy box, e.g. a
@@ -48,11 +34,11 @@ export default function PreorderCountdownBlock({
   context,
 }: PreorderCountdownBlockProps) {
   // Hooks
-  const [ms, setMs] = useState(() => msUntilLaunch(context?.launchAt))
+  const [ms, setMs] = useState(() => msUntil(context?.launchAt))
 
   useEffect(() => {
     if (ms <= 0) return
-    const id = setInterval(() => setMs(msUntilLaunch(context?.launchAt)), 30_000)
+    const id = setInterval(() => setMs(msUntil(context?.launchAt)), 30_000)
     return () => clearInterval(id)
   }, [ms, context?.launchAt])
 

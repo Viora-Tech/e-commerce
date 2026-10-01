@@ -12,8 +12,6 @@ import { routerMagicLimits } from './consistency'
 
 type AllowEntry = { site: string; reason: string }
 
-const PARALLEL =
-  'router changed by a parallel build (CMS / GST) — use the shared limits after it merges'
 const SMALL = 'a picker/preview that deliberately shows fewer rows than a list page'
 
 const ALLOWLIST: AllowEntry[] = [
@@ -23,20 +21,30 @@ const ALLOWLIST: AllowEntry[] = [
     site: 'packages/api/src/routers/collections.ts: productIds.max(500)',
     reason: 'a manual collection may hold more products than one bulk action carries',
   },
-  { site: 'packages/api/src/routers/gst-invoices.ts: ids.max(200)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/gst-invoices.ts: orderIds.max(100)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/gst-invoices.ts: page.max(1000)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/gst-invoices.ts: q.max(100)', reason: PARALLEL },
+  {
+    site: 'packages/api/src/routers/gst-invoices.ts: orderIds.max(100)',
+    reason: 'invoicing orders by hand is capped lower: each order is issued (numbered, PDF) inline',
+  },
+  {
+    site: 'packages/api/src/routers/gst-invoices.ts: page.max(1000)',
+    reason:
+      'invoice register paging stops earlier than lists; fold into PAGE_MAX in a behaviour change',
+  },
+  {
+    site: 'packages/api/src/routers/gst-invoices.ts: q.max(100)',
+    reason:
+      'invoice search box is shorter than SEARCH_MAX; fold into SEARCH_MAX in a behaviour change',
+  },
   { site: 'packages/api/src/routers/inventory.ts: limit.max(50)', reason: SMALL },
   {
     site: 'packages/api/src/routers/inventory.ts: perPage.max(250)',
     reason: 'stock levels page shows up to 250 variants so a whole product family fits',
   },
-  { site: 'packages/api/src/routers/metaobjects.ts: ids.max(200)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/metaobjects.ts: ids.max(250)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/metaobjects.ts: page.max(10_000)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/metaobjects.ts: perPage.max(100)', reason: PARALLEL },
-  { site: 'packages/api/src/routers/metaobjects.ts: query.max(200)', reason: PARALLEL },
+  {
+    site: 'packages/api/src/routers/metaobjects.ts: ids.max(250)',
+    reason:
+      'labels for the ids a reference field already holds — deliberately above BULK_MAX, it is a read, not a bulk write',
+  },
   { site: 'packages/api/src/routers/products.ts: limit.max(100)', reason: SMALL },
   { site: 'packages/api/src/routers/products.ts: limit.max(50)', reason: SMALL },
   {

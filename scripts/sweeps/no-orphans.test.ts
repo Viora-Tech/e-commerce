@@ -960,6 +960,7 @@ async function findViolations(): Promise<Violation[]> {
   return violations
 }
 
+// Walks every import in the repo twice; slow under a parallel sweep run, so 2 minutes per test.
 describe('sweep: no-orphans', () => {
   it('every exported value in packages/*/src has an importer, or is allow-listed', async () => {
     const violations = await findViolations()
@@ -968,7 +969,7 @@ describe('sweep: no-orphans', () => {
       unlisted,
       `orphaned exports (no importer found):\n${unlisted.map((v) => `${v.file}:${v.line} ${v.name}`).join('\n')}`,
     ).toEqual([])
-  })
+  }, 120_000)
 
   it('the allow-list has no stale entries (each name is still an orphan)', async () => {
     const violations = await findViolations()
@@ -978,5 +979,5 @@ describe('sweep: no-orphans', () => {
         .map((n) => `${e.file}: ${n}`),
     )
     expect(stale, 'now imported (or deleted): remove from ALLOWLIST').toEqual([])
-  })
+  }, 120_000)
 })

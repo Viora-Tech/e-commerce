@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/dates": "workspace:*",
     "@commerce/money": "workspace:*",
     "@commerce/plugins": "workspace:*",
     "@commerce/richtext": "workspace:*",

@@ -1,3 +1,5 @@
+import { msUntil } from '@commerce/dates'
+
 /**
  * Launch countdown. `launchAt` is stored timezone-aware (UTC in the column,
  * Asia/Kolkata is only how the admin form and storefront display it), so the
@@ -9,6 +11,5 @@ export function isLaunched(launchAt: Date | null, now: Date = new Date()): boole
 }
 
 export function msUntilLaunch(launchAt: Date | null, now: Date = new Date()): number {
-  if (!launchAt) return 0
-  return Math.max(0, launchAt.getTime() - now.getTime())
+  return msUntil(launchAt, now)
 }

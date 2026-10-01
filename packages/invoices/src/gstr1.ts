@@ -1,3 +1,4 @@
+import { wallClock } from '@commerce/dates'
 import { summariseByHsn } from './document'
 import type { DocumentLine, DocumentSnapshot, HsnRow, TaxRow } from './snapshot'
 
@@ -82,7 +83,7 @@ const amount = (paise: number) => (paise / 100).toFixed(2)
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 /** `05-Sep-2026` in IST, the offline tool's format. Built by hand: ICU prints `Sept` for en-GB. */
 const date = (d: Date) => {
-  const ist = new Date(d.getTime() + 330 * 60 * 1000)
+  const ist = wallClock(d)
   const day = String(ist.getUTCDate()).padStart(2, '0')
   return `${day}-${MONTHS[ist.getUTCMonth()]}-${ist.getUTCFullYear()}`
 }
