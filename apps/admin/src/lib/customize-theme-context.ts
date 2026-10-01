@@ -19,3 +19,21 @@ export const PreviewModeContext = createContext<'light' | 'dark'>('light')
 export function usePreviewMode(): 'light' | 'dark' {
   return useContext(PreviewModeContext)
 }
+
+/** An imported Shopify theme's page head for the canvas (stylesheets, CSS variables, fonts). */
+export type LiquidHead = {
+  head: string
+  beforeHeader: string
+  fontsHref: string | null
+  htmlAttrs: Record<string, string>
+}
+
+/**
+ * Set while Customize edits an imported theme: the canvas paints the theme's own head
+ * instead of our theme CSS. Context for the same reason as `PreviewModeContext`.
+ */
+export const LiquidHeadContext = createContext<LiquidHead | null>(null)
+
+export function useLiquidHead(): LiquidHead | null {
+  return useContext(LiquidHeadContext)
+}

@@ -10,11 +10,13 @@ import {
 import { loadEnv } from '@commerce/config'
 import {
   CONSENT_COOKIE,
+  currentConsent,
   decodeConsent,
   getCart,
   getTheme,
   grievanceOfficerOf,
   liveThemeSettings,
+  mainThemeId,
   parseCustomerPrivacySettings,
   parseNavigationSettings,
   parsePreferences,
@@ -33,6 +35,7 @@ import type { ReactNode } from 'react'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import PreviewBar from '@/components/theme/preview-bar'
+import LiquidHtml from '@/components/theme/liquid-html'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
@@ -42,6 +45,8 @@ import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
 import { themeFontVariables } from '@/lib/fonts'
+import { liquidContextFor, liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
+import { liquidShim } from '@/lib/liquid-shim'
 import { mediaByUrl } from '@/lib/media-lookup'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
@@ -133,6 +138,14 @@ export default async function StoreLayout({ children, params }: Props) {
 
   if (!current) notFound()
 
+  // An imported Shopify theme draws its own page shell (`layout/theme.liquid`): its
+  // stylesheets, icon sprites, cart drawer and scripts around our <main>.
+  const liquid = await inStore(storeId, async (tx) => {
+    const themeId = preview?.themeId ?? (await mainThemeId(tx))
+    const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
+    return ctx ? liquidLayoutFor(ctx) : null
+  })
+
   const cartId = await readCartId()
   const cartCount = cartId
     ? await inStore(storeId, async (tx) => (await getCart({ storeId, tx }, cartId))?.itemCount ?? 0)
@@ -213,7 +226,8 @@ export default async function StoreLayout({ children, params }: Props) {
       // The mobile dock's cart count.
       appBlockContext: { cartCount },
       onSections: (types) => {
-        themedConsent = types.has('CookieBanner')
+        // The theme's own cookie banner (ours or an imported one) replaces the standalone one.
+        themedConsent = types.has('CookieBanner') || types.has('LiquidSection:cookie-banner')
       },
       renderers: {
         Footer: (s) => (
@@ -245,6 +259,32 @@ export default async function StoreLayout({ children, params }: Props) {
       },
     }),
   )
+
+  if (liquid) {
+    return (
+      <html lang="en" {...reactAttrs(liquid.htmlAttrs)} suppressHydrationWarning>
+        <head>
+          {liquid.fontsHref ? <link rel="stylesheet" href={liquid.fontsHref} /> : null}
+          {theme.brand.favicon ? <link rel="icon" href={theme.brand.favicon.url} /> : null}
+        </head>
+        <body {...reactAttrs(liquid.bodyAttrs)} suppressHydrationWarning>
+          <LiquidHtml
+            html={`<script${nonce ? ` nonce="${nonce}"` : ''}>${liquidShim({ askConsent: currentConsent(consent.initial, consent.bannerVersion) === null })}</script>${liquid.head}`}
+          />
+          {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
+          <LiquidHtml html={liquid.beforeHeader} />
+          {header}
+          <main id="MainContent" role="main" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
+            {children}
+          </main>
+          {footer}
+          <LiquidHtml html={liquid.afterFooter} />
+          <ThemePreviewBridge adminOrigin={adminOrigin} />
+          {preview ? null : <ConsentManager {...consent} themeBanner={themedConsent} />}
+        </body>
+      </html>
+    )
+  }
 
   return (
     <html

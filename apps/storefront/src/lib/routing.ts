@@ -43,7 +43,13 @@ export function routeForAccounts(pathname: string): Route {
 }
 
 /** Headers the proxy derives. Stripped from every incoming request so a client cannot forge them. */
-export const DERIVED_HEADERS = ['x-store-id', 'x-visitor-country', 'x-theme-preview'] as const
+export const DERIVED_HEADERS = [
+  'x-store-id',
+  'x-visitor-country',
+  'x-theme-preview',
+  'x-form-posted',
+  'x-pathname',
+] as const
 
 export type PrimaryRedirectInput = {
   /** Request hostname, lower case, no port. */

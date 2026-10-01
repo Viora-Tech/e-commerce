@@ -3,6 +3,7 @@ import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
+import { copyThemeImport } from '../theme-import/bundle-store'
 import { copyTemplates } from './templates'
 
 /**
@@ -37,6 +38,8 @@ export type ThemeLibraryErrorCode =
   | 'THEME_SOURCE_INVALID'
   /** A "My sections" entry breaks a rule (name, size, how many). */
   | 'THEME_SECTION_INVALID'
+  /** An uploaded Shopify theme zip that cannot be imported. */
+  | 'THEME_IMPORT_INVALID'
 
 export class ThemeLibraryError extends CommerceError {
   declare readonly code: ThemeLibraryErrorCode
@@ -220,6 +223,7 @@ export async function duplicateTheme(
     .returning()
   if (!created) throw new Error('theme insert returned nothing')
   await copyTemplates(tx, storeId, source.id, created.id)
+  await copyThemeImport(tx, storeId, source.id, created.id)
   return toRecord(created)
 }
 

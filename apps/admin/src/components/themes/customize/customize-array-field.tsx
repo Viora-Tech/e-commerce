@@ -7,11 +7,13 @@ import { SortableList } from '@commerce/ui/sortable'
 import type { Field } from '@puckeditor/core'
 import { arrayItemSortLabels, customizeContent } from '@/data/customize'
 import { type FieldLike, isImageField } from '@/lib/customize-field-shape'
+import { isLiquidBlocks, liquidItemFields, liquidItemTitle } from '@/lib/customize-liquid-blocks'
 import CustomizeArrayItem from './customize-array-item'
 import FieldFrame from './field-frame'
 
 type ArrayFieldLike = {
   label?: string
+  metadata?: unknown
   arrayFields: Record<string, Field>
   defaultItemProps?: Record<string, unknown> | ((index: number) => Record<string, unknown>)
   getItemSummary?: (item: Record<string, unknown>, index?: number) => string
@@ -56,7 +58,9 @@ export default function CustomizeArrayField({
 }: CustomizeArrayFieldProps) {
   // Helpers
   const titleOf = (item: Record<string, unknown>, index: number) =>
-    field.getItemSummary?.(item, index) || copy.itemFallback(index)
+    field.getItemSummary?.(item, index) ||
+    liquidItemTitle(field, item) ||
+    copy.itemFallback(index)
 
   // Event handlers
   const handleReorder = (rows: Row[]) => onChange(rows.map((r) => r.item))
@@ -86,6 +90,8 @@ export default function CustomizeArrayField({
   const items = value ?? []
   const label = field.label ?? name
   const rows: Row[] = items.map((item, index) => ({ id: `${name}-${index}`, item, index }))
+  // An imported section's blocks are copied or removed, not added blank (their type is unknown).
+  const liquid = isLiquidBlocks(field.arrayFields)
   const atMax = field.max !== undefined && items.length >= field.max
   const canDelete = items.length > (field.min ?? 0)
 
@@ -103,7 +109,7 @@ export default function CustomizeArrayField({
               item={row.item}
               title={titleOf(row.item, row.index)}
               thumbnail={thumbnailOf(row.item, field.arrayFields)}
-              arrayFields={field.arrayFields}
+              arrayFields={liquidItemFields(field.arrayFields, row.item)}
               handle={handle}
               canDuplicate={!atMax}
               canDelete={canDelete}
@@ -114,7 +120,7 @@ export default function CustomizeArrayField({
             />
           )}
         />
-        {readOnly || atMax ? null : (
+        {readOnly || atMax || liquid ? null : (
           <Button type="button" variant="outline" size="sm" onClick={handleAdd}>
             <Plus aria-hidden />
             {copy.addItem}

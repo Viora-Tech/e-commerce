@@ -4,7 +4,7 @@ import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
 import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
-import { usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
+import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import CanvasInsertLine from './canvas-insert-line'
 
 type PreviewFrameProps = {
@@ -25,9 +25,11 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   // Hooks
   const theme = useThemePreview()
   const mode = usePreviewMode()
+  const liquid = useLiquidHead()
   const reducedMotion = useReducedMotion()
   useEffect(() => {
-    if (!document || !theme) return
+    // An imported Shopify theme brings its own CSS (below); ours would fight it.
+    if (!document || !theme || liquid) return
     const style = document.createElement('style')
     style.textContent = themeToCss(theme)
     document.head.appendChild(style)
@@ -36,7 +38,30 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
       root.setAttribute(name, value)
     root.setAttribute('data-theme', mode)
     return () => style.remove()
-  }, [document, theme, mode])
+  }, [document, theme, mode, liquid])
+
+  // An imported Shopify theme: its stylesheets, CSS variables and fonts in the frame's
+  // head, its icon sprite at the top of the body, its <html> attributes on the root.
+  useEffect(() => {
+    if (!document || !liquid) return
+    const holder = document.createElement('template')
+    const fonts = liquid.fontsHref ? `<link rel="stylesheet" href="${liquid.fontsHref}">` : ''
+    holder.innerHTML = `${fonts}${liquid.head}`
+    const added = Array.from(holder.content.childNodes)
+    for (const node of added) document.head.appendChild(node)
+    const sprite = document.createElement('div')
+    sprite.style.display = 'contents'
+    sprite.innerHTML = liquid.beforeHeader
+    document.body.prepend(sprite)
+    const root = document.documentElement
+    const attrs = Object.entries(liquid.htmlAttrs).filter(([k]) => !k.startsWith('on'))
+    for (const [name, value] of attrs) root.setAttribute(name, value)
+    return () => {
+      for (const node of added) node.parentNode?.removeChild(node)
+      sprite.remove()
+      for (const [name] of attrs) root.removeAttribute(name)
+    }
+  }, [document, liquid])
 
   // The storefront theme above redefines --primary/--primary-soft inside this
   // iframe, so canvas chrome that wants the admin's own accent (the canvas

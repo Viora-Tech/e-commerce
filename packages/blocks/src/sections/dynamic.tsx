@@ -38,7 +38,13 @@ export type SectionRenderer = (settings: SectionSettings) => ReactNode
 
 /** What the storefront hands every rendered template. */
 export type SectionMetadata = {
-  renderers?: Partial<Record<DynamicSection, SectionRenderer>> | undefined
+  /** `LiquidSection` draws an imported Shopify section (see `./liquid.tsx`). */
+  renderers?: Partial<Record<DynamicSection | 'LiquidSection', SectionRenderer>> | undefined
+  /**
+   * Imported Shopify theme: editor fields per section type, generated from each
+   * section's `{% schema %}`. Only Customize sets it.
+   */
+  liquid?: { fields: Record<string, Fields> } | undefined
   newsletterAction?: NewsletterAction | undefined
   /**
    * Data and bound actions app blocks need beyond their own settings (the

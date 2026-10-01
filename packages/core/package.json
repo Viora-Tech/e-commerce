@@ -27,6 +27,7 @@
     "./navigation-tree": "./src/navigation/tree.ts",
     "./theme": "./src/theme/client.ts",
     "./theme-preview": "./src/theme/preview-messages.ts",
+    "./theme-import": "./src/theme-import/client.ts",
     "./preferences": "./src/online-store/preferences.ts",
     "./consent": "./src/online-store/consent.ts",
     "./blog": "./src/blog/client.ts",
@@ -83,6 +84,7 @@
     "drizzle-orm": "^0.45.2",
     "fflate": "^0.8.3",
     "jose": "6.2.12",
+    "liquidjs": "10.30.0",
     "sharp": "^0.35.4",
     "thumbhash": "^0.1.1",
     "zod": "^4.6.5"

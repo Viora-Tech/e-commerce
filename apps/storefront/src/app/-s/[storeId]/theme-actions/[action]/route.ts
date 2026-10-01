@@ -1,0 +1,99 @@
+import type { NewsletterState } from '@commerce/blocks/puck'
+import { addLineAction, cartCountAction } from '@/lib/cart-actions'
+import { renderStaticLiquidSection } from '@/lib/liquid-theme'
+import { subscribeAction } from '@/lib/newsletter-actions'
+import { inStore } from '@/lib/store-context'
+
+type Params = { params: Promise<{ storeId: string; action: string }> }
+
+/**
+ * Where an imported Shopify theme's forms and scripts land (the behaviour swap, see
+ * `lib/liquid-shim.ts` and the swap table in `@commerce/core` theme-import). Each
+ * action runs on our own feature: our cart, our subscriber list, our section renderer.
+ * Nothing here emulates Shopify's API; the theme only keeps its look.
+ */
+
+const notFound = () => new Response('Not found', { status: 404 })
+
+/** Back to the page the form was on (same origin only), with Shopify's `form_posted` flag. */
+function backTo(req: Request, posted: string | null): Response {
+  const referer = req.headers.get('referer')
+  const self = new URL(req.url)
+  let target = new URL('/', self)
+  if (referer) {
+    const from = new URL(referer)
+    if (from.host === req.headers.get('host')) target = new URL(from.pathname + from.search, self)
+  }
+  if (posted) target.searchParams.set('form_posted', posted)
+  return new Response(null, { status: 303, headers: { location: target.pathname + target.search } })
+}
+
+const wantsJson = (req: Request) => (req.headers.get('accept') ?? '').includes('application/json')
+
+/** `id` + `quantity` from a theme's product form, or `{ items: [...] }` JSON from its script. */
+async function cartLines(req: Request): Promise<{ id: string; quantity: number }[]> {
+  const type = req.headers.get('content-type') ?? ''
+  if (type.includes('application/json')) {
+    const body = (await req.json().catch(() => null)) as {
+      id?: unknown
+      quantity?: unknown
+      items?: { id?: unknown; quantity?: unknown }[]
+    } | null
+    const items = body?.items ?? (body ? [body] : [])
+    return items.flatMap((i) =>
+      typeof i.id === 'string' || typeof i.id === 'number'
+        ? [{ id: String(i.id), quantity: Number(i.quantity) || 1 }]
+        : [],
+    )
+  }
+  const form = await req.formData().catch(() => null)
+  const id = form?.get('id')
+  return typeof id === 'string' && id ? [{ id, quantity: Number(form?.get('quantity')) || 1 }] : []
+}
+
+export async function POST(req: Request, { params }: Params) {
+  const { action } = await params
+  if (action === 'cart-add') {
+    const lines = await cartLines(req)
+    if (lines.length === 0) return new Response('Choose a product', { status: 422 })
+    try {
+      for (const line of lines.slice(0, 20)) await addLineAction(line.id, Math.min(line.quantity, 99))
+    } catch {
+      return wantsJson(req)
+        ? Response.json({ status: 422, description: 'Could not add this item' }, { status: 422 })
+        : backTo(req, null)
+    }
+    return wantsJson(req)
+      ? Response.json({ ok: true })
+      : new Response(null, { status: 303, headers: { location: '/cart' } })
+  }
+  if (action === 'newsletter') {
+    const form = await req.formData().catch(() => null)
+    const email = form?.get('contact[email]') ?? form?.get('email')
+    const data = new FormData()
+    if (typeof email === 'string') data.set('email', email)
+    const result = await subscribeAction({ status: 'idle' } as NewsletterState, data)
+    return backTo(req, result.status === 'done' ? 'customer' : null)
+  }
+  // Contact messages have no home here yet (the report says so); localization is India only.
+  if (action === 'contact' || action === 'localization') return backTo(req, null)
+  return notFound()
+}
+
+export async function GET(req: Request, { params }: Params) {
+  const { storeId, action } = await params
+  if (action === 'cart') return Response.json(await cartCountAction())
+  if (action === 'section') {
+    const url = new URL(req.url)
+    const type = url.searchParams.get('section_id') ?? ''
+    const path = url.searchParams.get('path') ?? '/'
+    if (!/^[a-z0-9_-]{1,80}$/i.test(type)) return notFound()
+    const html = await inStore(storeId, (tx) => renderStaticLiquidSection(tx, storeId, type, path))
+    if (html === null) return notFound()
+    // `?sections=` asks for JSON keyed by section; `?section_id=` for the HTML itself.
+    return url.searchParams.get('sections')
+      ? Response.json({ [type]: html })
+      : new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
+  }
+  return notFound()
+}
