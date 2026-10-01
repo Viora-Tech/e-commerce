@@ -25,6 +25,7 @@ export default async function Page({ params }: Props) {
   if (!definition || !entry || entry.definitionId !== definition.id) notFound()
   return (
     <EntryForm
+      key={entry.id}
       definition={definition}
       entry={entry}
       title={entryDisplayName(definition.displayNameKey, entry.fields, entry.handle)}
