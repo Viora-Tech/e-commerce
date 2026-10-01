@@ -9,6 +9,7 @@ import {
 import {
   CHECKOUT_LIMITS,
   type CheckoutSettings,
+  checkoutRuleSubtotalPaise,
   codDecision,
   minimumOrderShortfall,
 } from '@commerce/core/checkout-settings'
@@ -29,7 +30,6 @@ import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 import { checkoutShippingAction } from '@/lib/shipping-actions'
 
 type CheckoutFormProps = {
-  storeId: string
   cart: CartView
   methods: CheckoutMethod[]
   /** Discount in force for this cart, resolved on the server. */
@@ -153,7 +153,6 @@ function shippingRow(
 }
 
 export default function CheckoutForm({
-  storeId,
   cart,
   methods,
   discount,
@@ -196,7 +195,7 @@ export default function CheckoutForm({
     setShipping(null)
     if (isDigitalOnly(cart) || !isFullPincode(pincode)) return
     startCheck(async () => {
-      const next = await checkoutShippingAction(storeId, { pincode, stateCode })
+      const next = await checkoutShippingAction({ pincode, stateCode })
       setShipping(next)
       // Keep the shopper's pick when it is still offered, else the cheapest.
       const options = next?.rates.kind === 'rates' ? next.rates.options : []
@@ -241,7 +240,7 @@ export default function CheckoutForm({
   /* Save the contact as soon as it is typed, so a basket left here can be recovered. */
   const handleContactBlur = () => {
     if (!form.email.includes('@') && form.phone.replace(/\D/g, '').length < 10) return
-    void captureContactAction(storeId, {
+    void captureContactAction({
       email: form.email,
       phone: form.phone,
       name: form.name,
@@ -252,7 +251,7 @@ export default function CheckoutForm({
     e.preventDefault()
     setError(null)
     start(async () => {
-      const r = await checkoutAction(storeId, {
+      const r = await checkoutAction({
         ...form,
         payment,
         giftCards: giftCards.map((c) => c.code),
@@ -284,9 +283,14 @@ export default function CheckoutForm({
   const rates = shipping?.rates.kind === 'rates' ? shipping.rates.options : []
   const rate = rates.find((r) => r.id === rateId)
   const delivery = shipping?.delivery
-  // Settings → Checkout's COD limits, previewed here; placeOrder enforces them.
+  // Settings → Checkout's COD limit and minimum, previewed here; placeOrder enforces them.
+  // Both judge only the lines that are not gift cards.
+  const ruleSubtotal = checkoutRuleSubtotalPaise(cart.lines, discountPaise)
   const orderValuePaise = discounted + (digitalOnly ? 0 : (rate?.pricePaise ?? 0))
-  const codRule = codDecision(settings.cod, { pincode: form.pincode, orderValuePaise })
+  const codRule = codDecision(settings.cod, {
+    pincode: form.pincode,
+    orderValuePaise: ruleSubtotal + (digitalOnly ? 0 : (rate?.pricePaise ?? 0)),
+  })
   const codBlocked =
     (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
     (giftCards.length > 0 && !coveredByCardsBefore(giftCards, orderValuePaise)) ||
@@ -306,7 +310,7 @@ export default function CheckoutForm({
   const { rows: cardRows, duePaise } = spendCards(giftCards, totalPaise)
   const coveredByCards = giftCards.length > 0 && duePaise === 0
 
-  const shortfall = digitalOnly ? 0 : minimumOrderShortfall(settings, discounted)
+  const shortfall = digitalOnly ? 0 : minimumOrderShortfall(settings, ruleSubtotal)
   const codNote = codRule.allowed
     ? null
     : codRule.reason === 'blocked_pincode'
@@ -405,7 +409,6 @@ export default function CheckoutForm({
         </div>
 
         <CheckoutSummary
-          storeId={storeId}
           cart={cart}
           discount={discount}
           digitalOnly={digitalOnly}

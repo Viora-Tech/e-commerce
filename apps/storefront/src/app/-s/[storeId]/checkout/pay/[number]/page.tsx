@@ -49,7 +49,6 @@ export default async function PayPage({ params, searchParams }: Params) {
   if (session?.kind !== 'client') redirect(thankYou)
   return (
     <PayClient
-      storeId={storeId}
       orderNumber={data.order.number}
       session={session}
       amountPaise={data.payment.amountPaise}

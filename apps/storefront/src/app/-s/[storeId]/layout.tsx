@@ -207,7 +207,7 @@ export default async function StoreLayout({ children, params }: Props) {
         {header}
         <main id="MainContent">{children}</main>
         <CursorFill />
-        <ThemePreviewBridge storeId={storeId} adminOrigin={adminOrigin} />
+        <ThemePreviewBridge adminOrigin={adminOrigin} />
         {preview ? null : (
           <ConsentManager
             tracking={prefs.tracking}

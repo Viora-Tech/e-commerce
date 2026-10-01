@@ -5,10 +5,6 @@ import { useState, useTransition } from 'react'
 import { deliveryEstimateContent as content } from '@/data/product'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 
-type DeliveryEstimateProps = {
-  storeId: string
-}
-
 /** What the widget says once it has an answer; the ordering is the persuasion order. */
 function lines(r: DeliveryEstimate): string[] {
   if (!r.ok) return [r.error]
@@ -24,7 +20,7 @@ function lines(r: DeliveryEstimate): string[] {
 }
 
 /** PIN code → honest delivery window under the add-to-cart button. */
-export default function DeliveryEstimateWidget({ storeId }: DeliveryEstimateProps) {
+export default function DeliveryEstimateWidget() {
   // Hooks
   const [pincode, setPincode] = useState('')
   const [result, setResult] = useState<DeliveryEstimate | null>(null)
@@ -33,7 +29,7 @@ export default function DeliveryEstimateWidget({ storeId }: DeliveryEstimateProp
   // Event handlers
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    start(async () => setResult(await estimateDeliveryAction(storeId, pincode)))
+    start(async () => setResult(await estimateDeliveryAction(pincode)))
   }
 
   const handleChange = () => setResult(null)

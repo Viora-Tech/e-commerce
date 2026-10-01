@@ -90,7 +90,6 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
   const payToken = token ?? orderViewToken(data.order.id, env.SETTINGS_SECRET)
   return (
     <ThankYouTemplate
-      storeId={storeId}
       order={data.order}
       lines={data.lines}
       payment={data.pay}

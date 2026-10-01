@@ -42,6 +42,7 @@ import { formatPaise } from './money'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
+import { requestStoreId } from './request-store'
 import { estimateForPincode } from './shipping'
 import { storeSignIn } from './sign-in-methods'
 import { inStore } from './store-context'
@@ -50,9 +51,10 @@ const CHECKOUT_CART_RULE = { limit: 10, windowMs: 60_000 }
 const CHECKOUT_IP_RULE = { limit: 30, windowMs: 60_000 }
 const PAYMENT_RETRY_IP_RULE = { limit: 20, windowMs: 60_000 }
 
-/** Server actions for the cart. The store id comes from the page's route param, never the client. */
+/** Server actions for the cart. The store id comes from the request's hostname, never the client. */
 
-export async function addLineAction(storeId: string, variantId: string, quantity: number) {
+export async function addLineAction(variantId: string, quantity: number) {
+  const storeId = await requestStoreId()
   const existing = await readCartId()
   const attribution = await readAttribution()
   const cartId = await inStore(storeId, async (tx) => {
@@ -70,7 +72,8 @@ export async function addLineAction(storeId: string, variantId: string, quantity
   revalidatePath('/', 'layout')
 }
 
-export async function setQuantityAction(storeId: string, lineId: string, quantity: number) {
+export async function setQuantityAction(lineId: string, quantity: number) {
+  const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return
   await inStore(storeId, (tx) => setLineQuantity({ storeId, tx }, cartId, lineId, quantity))
@@ -106,10 +109,12 @@ export type CheckoutResult = { error: string } | undefined
  * that is left behind is anonymous and cannot be recovered; with it the
  * merchant can email the shopper their basket back.
  */
-export async function captureContactAction(
-  storeId: string,
-  contact: { email?: string; phone?: string; name?: string },
-) {
+export async function captureContactAction(contact: {
+  email?: string
+  phone?: string
+  name?: string
+}) {
+  const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return
   await inStore(storeId, (tx) => captureCartContact({ storeId, tx }, cartId, contact))
@@ -120,10 +125,8 @@ export async function captureContactAction(
  * unserviceable PIN code, COD where the courier will not collect); throws
  * for everything else; redirects on success.
  */
-export async function checkoutAction(
-  storeId: string,
-  submitted: CheckoutForm,
-): Promise<CheckoutResult> {
+export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutResult> {
+  const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) redirect('/cart')
   const ip = clientIp(await headers())
@@ -275,7 +278,8 @@ function redirectAfterCheckout(
  * with the same amount and gateway, then back to the gateway. Two taps make
  * one attempt; the order and its stock are untouched.
  */
-export async function retryPaymentAction(storeId: string, orderNumber: number) {
+export async function retryPaymentAction(orderNumber: number) {
+  const storeId = await requestStoreId()
   // Looked up before the rate-limit check too, so every exit (including a
   // rate-limited one) can still land on a validly-tokened thank-you link.
   const orderId = await inStore(storeId, async (tx) => {
@@ -322,11 +326,8 @@ export async function retryPaymentAction(storeId: string, orderNumber: number) {
 }
 
 /** Browser posts the gateway's confirmation after a client-side checkout. */
-export async function confirmPaymentAction(
-  storeId: string,
-  providerRef: string,
-  confirmation: ClientConfirmation,
-) {
+export async function confirmPaymentAction(providerRef: string, confirmation: ClientConfirmation) {
+  const storeId = await requestStoreId()
   const applied = await inStore(storeId, async (tx) => {
     const [p] = await tx.select().from(payment).where(eq(payment.providerRef, providerRef))
     if (!p) return null

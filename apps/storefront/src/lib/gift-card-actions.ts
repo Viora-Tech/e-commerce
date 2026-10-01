@@ -4,7 +4,6 @@ import 'server-only'
 
 import { findRedeemableGiftCard, GiftCardError } from '@commerce/core'
 import { headers } from 'next/headers'
-import { boundStoreId } from './bound-store'
 import { clientIp, rateLimited } from './rate-limit'
 import { inStore } from './store-context'
 
@@ -16,9 +15,9 @@ export type AppliedGiftCard = { code: string; lastCharacters: string; balancePai
 export type GiftCardCheck = { ok: true; card: AppliedGiftCard } | { ok: false; reason: string }
 
 /** Check a typed code and report its balance. Says why a card cannot be used, never whose it is. */
-export async function checkGiftCardAction(bound: string, code: string): Promise<GiftCardCheck> {
+export async function checkGiftCardAction(code: string): Promise<GiftCardCheck> {
   const h = await headers()
-  const storeId = boundStoreId(bound, h.get('x-store-id'))
+  const storeId = h.get('x-store-id')
   if (!storeId) return { ok: false, reason: 'not_found' }
   // Codes are guessable only by trying them: a handful of checks per minute is plenty.
   const limit = await rateLimited('gift-card-check:ip', clientIp(h), GIFT_CARD_CHECK_RULE)

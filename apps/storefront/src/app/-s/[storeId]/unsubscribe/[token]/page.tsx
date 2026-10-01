@@ -48,7 +48,7 @@ export default async function UnsubscribePage({ params }: Props) {
       <div className="flex flex-wrap justify-center gap-3">
         {subscribed ? (
           <>
-            <form action={unsubscribeAction.bind(null, storeId, token)}>
+            <form action={unsubscribeAction.bind(null, token)}>
               <button type="submit" className="btn btn--primary">
                 {copy.confirm}
               </button>
@@ -59,7 +59,7 @@ export default async function UnsubscribePage({ params }: Props) {
           </>
         ) : (
           <>
-            <form action={resubscribeAction.bind(null, storeId, token)}>
+            <form action={resubscribeAction.bind(null, token)}>
               <button type="submit" className="btn btn--secondary">
                 {copy.resubscribe}
               </button>

@@ -23,6 +23,7 @@ import {
   type CheckoutContact,
   checkCheckoutRules,
   checkoutPincode,
+  checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
 import type { StoreContext } from '../context'
@@ -328,7 +329,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
       .from(store)
       .where(eq(store.id, ctx.storeId))
     const settings = parseCheckoutSettings(s?.preferences)
-    const { discountedSubtotalPaise, shippingPaise } = applyDiscount(
+    const { discountPaise, shippingPaise } = applyDiscount(
       sumPaise(lines),
       shipping?.pricePaise ?? 0,
       applied,
@@ -338,7 +339,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
         checkout: input.checkout ?? null,
         paymentProviderId: input.paymentProvider.id,
         giftCardsOnly: lines.every((l) => l.giftCard),
-        discountedSubtotalPaise,
+        ruleSubtotalPaise: checkoutRuleSubtotalPaise(lines, discountPaise),
         shippingPaise,
         storeId: ctx.storeId,
       }),

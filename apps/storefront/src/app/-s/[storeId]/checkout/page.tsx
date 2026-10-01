@@ -23,7 +23,7 @@ export default async function CheckoutPage({ params }: Params) {
   }
   const [methods, discount, me, depositDays, settings, policies] = await Promise.all([
     inStore(storeId, (tx) => storeCheckoutMethods(tx, storeId)),
-    cartDiscountView(storeId, cart.id, cart.discountCode),
+    cartDiscountView(cart.id, cart.discountCode),
     currentCustomer(storeId),
     inStore(storeId, (tx) => nonRefundableDepositDays(tx, storeId, cart.id)),
     inStore(storeId, (tx) => storeCheckoutSettings({ tx, storeId })),
@@ -33,7 +33,6 @@ export default async function CheckoutPage({ params }: Params) {
   const addresses = me ? await inStore(storeId, (tx) => listAddresses({ storeId, tx }, me.id)) : []
   return (
     <CheckoutForm
-      storeId={storeId}
       cart={cart}
       methods={methods}
       discount={discount}

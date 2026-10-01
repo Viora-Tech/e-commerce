@@ -6,7 +6,6 @@ import type { CartDiscountView } from '@/lib/discount-actions'
 import { applyDiscountAction, removeDiscountAction } from '@/lib/discount-actions'
 
 type DiscountCodeFieldProps = {
-  storeId: string
   discount: CartDiscountView | null
 }
 
@@ -14,7 +13,7 @@ type DiscountCodeFieldProps = {
  * Code entry for the cart and checkout summaries. A working code shows as a
  * chip with a remove button; an automatic offer shows as a chip without one.
  */
-export default function DiscountCodeField({ storeId, discount }: DiscountCodeFieldProps) {
+export default function DiscountCodeField({ discount }: DiscountCodeFieldProps) {
   // Hooks
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +26,7 @@ export default function DiscountCodeField({ storeId, discount }: DiscountCodeFie
     if (!trimmed) return
     setError(null)
     start(async () => {
-      const r = await applyDiscountAction(storeId, trimmed)
+      const r = await applyDiscountAction(trimmed)
       if (!r.ok) {
         setError(content.errors[r.reason] ?? content.errors.invalid ?? null)
         return
@@ -38,7 +37,7 @@ export default function DiscountCodeField({ storeId, discount }: DiscountCodeFie
 
   const handleRemove = () => {
     setError(null)
-    start(() => removeDiscountAction(storeId))
+    start(() => removeDiscountAction())
   }
 
   // Render logic

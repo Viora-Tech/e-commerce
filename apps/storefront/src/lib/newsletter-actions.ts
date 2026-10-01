@@ -6,7 +6,6 @@ import type { NewsletterState } from '@commerce/blocks/puck'
 import { loadEnv } from '@commerce/config'
 import { enrolSubscriber, subscribeToNewsletter } from '@commerce/core'
 import { headers } from 'next/headers'
-import { boundStoreId } from './bound-store'
 import { clientIp, rateLimited } from './rate-limit'
 import { inStore } from './store-context'
 
@@ -19,13 +18,12 @@ const NEWSLETTER_IP_RULE = { limit: 10, windowMs: 10 * 60_000 }
  * welcome automation, once per customer.
  */
 export async function subscribeAction(
-  bound: string,
   _state: NewsletterState,
   form: FormData,
 ): Promise<NewsletterState> {
-  // A signup cannot be aimed at another store's list (`boundStoreId`).
+  // The store the hostname resolved to: a signup cannot be aimed at another store's list.
   const h = await headers()
-  const storeId = boundStoreId(bound, h.get('x-store-id'))
+  const storeId = h.get('x-store-id')
   if (!storeId) return { status: 'error' }
   const limit = await rateLimited('newsletter:ip', clientIp(h), NEWSLETTER_IP_RULE)
   if (!limit.ok) return { status: 'error' }
