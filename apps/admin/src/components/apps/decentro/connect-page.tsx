@@ -17,6 +17,7 @@ import type { ProviderState } from '@/components/settings/provider-settings-form
 import { decentroAppContent as appCopy } from '@/data/decentro'
 import { api } from '@/lib/api-client'
 import ConnectAdvancedFields from './connect-advanced-fields'
+import ConnectCallbackFields from './connect-callback-fields'
 import ConnectGuide from './connect-guide'
 
 type Blob = ProviderState & Record<string, unknown>
@@ -36,7 +37,6 @@ const emptyValues: FieldValues = {
   clientSecret: '',
   consumerUrn: '',
   mode: 'test',
-  flow: 'qr',
   webhookSecret: '',
   payoutConsumerUrn: '',
 }
@@ -60,7 +60,7 @@ const setTestedFlag = (on: boolean) => {
 const filled = (v: string | undefined) => (v ?? '').trim().length > 0
 
 /** The Decentro app's credentials screen: a 3-step guide, Test/Live, a read-only
- *  "Test connection", and the callback and payout settings under Advanced. */
+ *  "Test connection", the payment updates (callback) settings, and payouts under Advanced. */
 export default function ConnectPage() {
   // Hooks
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -88,7 +88,7 @@ export default function ConnectPage() {
   // Helpers
   const setField = (key: string, value: string) => {
     setValues((v) => ({ ...v, [key]: value }))
-    if (key === 'flow' || key === 'payoutConsumerUrn' || key === 'webhookSecret') return
+    if (key === 'payoutConsumerUrn' || key === 'webhookSecret') return
     setTest({ status: 'idle' })
     setTestedFlag(false)
   }
@@ -275,13 +275,15 @@ export default function ConnectPage() {
                 <p className="text-caption text-muted-foreground">{copy.testHint}</p>
               </div>
 
-              <ConnectAdvancedFields
-                flow={values.flow === 'link' ? 'link' : 'qr'}
+              <ConnectCallbackFields
                 webhookSecret={values.webhookSecret ?? ''}
-                payoutConsumerUrn={values.payoutConsumerUrn ?? ''}
                 webhookUrl={webhookUrl}
-                onField={setField}
                 onNewSecret={handleNewSecret}
+              />
+
+              <ConnectAdvancedFields
+                payoutConsumerUrn={values.payoutConsumerUrn ?? ''}
+                onField={setField}
                 open={advancedOpen}
                 onOpenChange={setAdvancedOpen}
               />

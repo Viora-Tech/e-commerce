@@ -98,11 +98,16 @@ export type CheckoutSession =
     }
   | { kind: 'none'; provider: string; providerRef: string }
 
+/** A UPI app's own payment link, e.g. `tez://upi/pay?...` for Google Pay. */
+export type UpiApp = { id: 'gpay' | 'phonepe' | 'paytm' | 'cred'; uri: string }
+
 export type UpiQr = {
-  /** Hosted QR image from the gateway. */
-  imageUrl: string
+  /** Hosted QR image from the gateway; without one the storefront draws the QR from `upiUri`. */
+  imageUrl?: string | undefined
   /** `upi://pay?...` intent to open a UPI app on the same phone, when the gateway returns one. */
   upiUri?: string | undefined
+  /** App-specific links (Google Pay, PhonePe…) for phones, when the gateway returns them. */
+  apps?: UpiApp[] | undefined
   amountPaise: number
   /** ISO time the QR closes; after it the shopper asks for a new one (a new attempt). */
   expiresAt: string
