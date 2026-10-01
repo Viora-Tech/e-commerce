@@ -11,6 +11,7 @@ import {
 } from '@commerce/db'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/slug'
+import { type FromPresetInput, presetDefinition } from './presets'
 import {
   type FieldDefinition,
   InvalidMetaobject,
@@ -84,15 +85,16 @@ export async function referenceProblems(
     if (problems[use.source]) continue
     if (use.type === 'metaobject_reference') {
       const def = entryDefinition.get(use.id)
-      if (!def) problems[use.source] = 'references an entry that no longer exists'
+      if (!def) problems[use.source] = 'links to an entry that was deleted. Pick another one'
       else if (use.definitionId && def !== use.definitionId) {
-        problems[use.source] = 'references an entry of a different metaobject'
+        problems[use.source] =
+          'links to an entry of a different content type. Pick one from the list'
       }
     } else if (!found[use.type].has(use.id)) {
       problems[use.source] =
         use.type === 'file'
-          ? 'references a file that no longer exists'
-          : 'references a missing item'
+          ? 'uses a file that was deleted. Pick another file'
+          : 'links to something that was deleted. Pick another one'
     }
   }
   return problems
@@ -107,7 +109,9 @@ async function checkDefinitionTargets(tx: StoreTx, ids: string[]): Promise<strin
     .from(metaobjectDefinition)
     .where(inArray(metaobjectDefinition.id, unique))
   const have = new Set(rows.map((r) => r.id))
-  return unique.filter((id) => !have.has(id)).map(() => 'A referenced metaobject no longer exists')
+  return unique
+    .filter((id) => !have.has(id))
+    .map(() => 'A field links to a content type that was deleted. Pick another one in that field')
 }
 
 export type ReferenceOption = {
@@ -272,7 +276,7 @@ async function uniqueDefinitionType(tx: StoreTx, base: string, exceptId?: string
 async function assertDefinitionValid(tx: StoreTx, write: MetaobjectDefinitionWrite) {
   const problems = definitionProblems(write.fields, write.displayNameKey)
   if (write.type && RESERVED_TYPES.includes(write.type))
-    problems.push(`The type ${write.type} is reserved`)
+    problems.push(`The handle ${write.type} is used by the admin. Pick a different handle`)
   problems.push(
     ...(await checkDefinitionTargets(
       tx,
@@ -332,7 +336,9 @@ export async function createDefinition(
       .from(metaobjectDefinition)
       .where(eq(metaobjectDefinition.type, write.type))
     if (clash)
-      throw new InvalidMetaobject([`A metaobject with the type ${write.type} already exists`])
+      throw new InvalidMetaobject([
+        `Another content type already uses the handle ${write.type}. Pick a different handle`,
+      ])
   }
   const type = write.type ?? (await uniqueDefinitionType(tx, write.name))
   const id = newId()
@@ -350,6 +356,15 @@ export async function createDefinition(
   return { id, type }
 }
 
+/** A definition from a ready-made preset (`METAOBJECT_PRESETS`), through the same checks as a blank one. */
+export function createDefinitionFromPreset(
+  tx: StoreTx,
+  storeId: string,
+  input: FromPresetInput,
+): Promise<{ id: string; type: string }> {
+  return createDefinition(tx, storeId, presetDefinition(input))
+}
+
 /**
  * Update a definition. The type handle is what templates read, so it only
  * changes while the definition has no entries. Removing a field keeps old
@@ -361,19 +376,26 @@ export async function updateDefinition(
   write: MetaobjectDefinitionWrite,
 ): Promise<{ type: string }> {
   const current = await getDefinition(tx, { id })
-  if (!current) throw new InvalidMetaobject(['This metaobject definition no longer exists'])
+  if (!current)
+    throw new InvalidMetaobject([
+      'This content type was deleted. Go back to Content types and open another',
+    ])
   await assertDefinitionValid(tx, write)
   let type = current.type
   if (write.type && write.type !== current.type) {
     if (current.entries > 0) {
-      throw new InvalidMetaobject(['The type cannot change once the definition has entries'])
+      throw new InvalidMetaobject([
+        'The handle cannot change once the content type has entries. Make a new content type instead',
+      ])
     }
     const [clash] = await tx
       .select({ id: metaobjectDefinition.id })
       .from(metaobjectDefinition)
       .where(eq(metaobjectDefinition.type, write.type))
     if (clash)
-      throw new InvalidMetaobject([`A metaobject with the type ${write.type} already exists`])
+      throw new InvalidMetaobject([
+        `Another content type already uses the handle ${write.type}. Pick a different handle`,
+      ])
     type = write.type
   }
   await tx
@@ -405,9 +427,11 @@ export async function deleteDefinition(tx: StoreTx, id: string): Promise<void> {
     .select({ name: metafieldDefinition.name, ownerType: metafieldDefinition.ownerType })
     .from(metafieldDefinition)
     .where(sql`${metafieldDefinition.validations}->>'metaobjectDefinitionId' = ${id}`)
-  blocking.push(...metafields.map((m) => `${m.ownerType} metafield ${m.name}`))
+  blocking.push(...metafields.map((m) => `${m.ownerType} extra field ${m.name}`))
   if (blocking.length) {
-    throw new InvalidMetaobject([`Still referenced by ${blocking.join(', ')}. Remove those first`])
+    throw new InvalidMetaobject([
+      `Still used by ${blocking.join(', ')}. Remove those fields first, then delete it`,
+    ])
   }
   await tx.delete(metaobject).where(eq(metaobject.definitionId, id))
   await tx.delete(metaobjectDefinition).where(eq(metaobjectDefinition.id, id))
@@ -514,7 +538,10 @@ export async function createEntry(
   write: MetaobjectWrite,
 ): Promise<{ id: string; handle: string }> {
   const def = await getDefinition(tx, { id: write.definitionId })
-  if (!def) throw new InvalidMetaobject(['This metaobject definition no longer exists'])
+  if (!def)
+    throw new InvalidMetaobject([
+      'This content type was deleted. Go back to Content types and open another',
+    ])
   const values = await validEntryValues(tx, def.fields, write.fields)
   const base = write.handle || entryDisplayName(def.displayNameKey, values, def.name)
   const handle = await uniqueEntryHandle(tx, def.id, base)
@@ -537,10 +564,13 @@ export async function updateEntry(
 ): Promise<{ handle: string }> {
   const current = await getEntry(tx, id)
   if (!current || current.definitionId !== write.definitionId) {
-    throw new InvalidMetaobject(['This entry no longer exists'])
+    throw new InvalidMetaobject(['This entry was deleted. Go back to the list and open another'])
   }
   const def = await getDefinition(tx, { id: current.definitionId })
-  if (!def) throw new InvalidMetaobject(['This metaobject definition no longer exists'])
+  if (!def)
+    throw new InvalidMetaobject([
+      'This content type was deleted. Go back to Content types and open another',
+    ])
   const values = await validEntryValues(tx, def.fields, write.fields)
   const handle =
     write.handle && slugify(write.handle) !== current.handle
@@ -650,7 +680,10 @@ export async function updateMetafieldDefinition(
     .select()
     .from(metafieldDefinition)
     .where(eq(metafieldDefinition.id, id))
-  if (!current) throw new InvalidMetaobject(['This metafield definition no longer exists'])
+  if (!current)
+    throw new InvalidMetaobject([
+      'This extra field was deleted. Reload the page to see the current list',
+    ])
   if (
     current.ownerType !== write.ownerType ||
     current.type !== write.type ||
@@ -659,7 +692,7 @@ export async function updateMetafieldDefinition(
     write.namespace !== current.namespace
   ) {
     throw new InvalidMetaobject([
-      'The key and type of a metafield cannot change after it is created',
+      'The key and type of an extra field cannot change after it is made. Make a new extra field instead',
     ])
   }
   await assertMetafieldRules(tx, write)
@@ -721,7 +754,7 @@ export async function setMetafields(
   for (const [definitionId, raw] of Object.entries(input.values)) {
     const def = byId.get(definitionId)
     if (!def) {
-      fieldErrors[definitionId] = 'This metafield is no longer defined'
+      fieldErrors[definitionId] = 'This extra field was deleted. Reload the page and save again'
       continue
     }
     const r = validateFieldValue({ ...def, required: false }, raw)

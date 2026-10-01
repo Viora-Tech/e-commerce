@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { InvalidMetaobject, type MetaobjectDefinitionWrite } from './schemas'
 import {
   createDefinition,
+  createDefinitionFromPreset,
   createEntry,
   createMetafieldDefinition,
   deleteDefinition,
@@ -90,7 +91,7 @@ describe('metaobject definitions', () => {
     await inStore(s, (tx) => createDefinition(tx, s, { ...author, type: 'author' }))
     await expectInvalid(
       inStore(s, (tx) => createDefinition(tx, s, { ...author, type: 'author' })),
-      /already exists/,
+      /already uses the handle author/,
     )
     await expectInvalid(
       inStore(s, (tx) =>
@@ -108,7 +109,7 @@ describe('metaobject definitions', () => {
           ],
         }),
       ),
-      /no longer exists/,
+      /content type that was deleted/,
     )
   })
 
@@ -149,6 +150,43 @@ describe('metaobject definitions', () => {
     await inStore(s, (tx) => deleteDefinition(tx, book.id))
     await inStore(s, (tx) => deleteDefinition(tx, a.id))
     expect(await inStore(s, (tx) => getDefinition(tx, { id: a.id }))).toBeNull()
+  })
+})
+
+describe('content type presets', () => {
+  it('creates a ready-made definition with a unique type, and its entries save', async () => {
+    const s = await seedStore()
+    const first = await inStore(s, (tx) =>
+      createDefinitionFromPreset(tx, s, { preset: 'size_guide' }),
+    )
+    const second = await inStore(s, (tx) =>
+      createDefinitionFromPreset(tx, s, { preset: 'size_guide', name: 'Kids sizes' }),
+    )
+    expect([first.type, second.type]).toEqual(['size_guide', 'kids_sizes'])
+    const def = await inStore(s, (tx) => getDefinition(tx, { id: first.id }))
+    expect([def?.name, def?.displayNameKey, def?.fields.map((f) => f.key)]).toEqual([
+      'Size guide',
+      'title',
+      ['title', 'unit', 'rows', 'how_to_measure', 'image'],
+    ])
+    const entry = await inStore(s, (tx) =>
+      createEntry(tx, s, {
+        definitionId: first.id,
+        status: 'active',
+        fields: { title: 'Tops', unit: 'cm', rows: ['S | 36', 'M | 38'] },
+      }),
+    )
+    expect(entry.handle).toBe('tops')
+    await expectInvalid(
+      inStore(s, (tx) =>
+        createEntry(tx, s, {
+          definitionId: first.id,
+          status: 'active',
+          fields: { title: 'Tops', unit: 'feet' },
+        }),
+      ),
+      /must be one of cm, inches/,
+    )
   })
 })
 
@@ -232,7 +270,7 @@ describe('entries', () => {
         }),
       ),
     )
-    expect(cross.fieldErrors.products).toMatch(/missing/)
+    expect(cross.fieldErrors.products).toMatch(/was deleted/)
     const wrongDef = await expectInvalid(
       inStore(a, (tx) =>
         createEntry(tx, a, {
@@ -242,7 +280,7 @@ describe('entries', () => {
         }),
       ),
     )
-    expect(wrongDef.fieldErrors.by).toMatch(/different metaobject/)
+    expect(wrongDef.fieldErrors.by).toMatch(/different content type/)
     const ok = await inStore(a, (tx) =>
       createEntry(tx, a, {
         definitionId: guide.id,
@@ -410,7 +448,7 @@ describe('metafields', () => {
         setMetafields(tx, s, { ownerType: 'product', ownerId: p, values: { [designer.id]: p } }),
       ),
     )
-    expect(bad.fieldErrors[designer.id]).toMatch(/no longer exists/)
+    expect(bad.fieldErrors[designer.id]).toMatch(/was deleted/)
     await expectInvalid(
       inStore(s, (tx) => setMetafields(tx, s, { ownerType: 'collection', ownerId: p, values: {} })),
       /collection no longer exists/,
