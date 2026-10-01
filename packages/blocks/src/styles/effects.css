@@ -1,0 +1,54 @@
+/*
+ * Keyframes the UI-kit effects in `src/effects/` ship with their registry items (shadcn
+ * registry `css` blocks), kept here because Tailwind's `animate-[...]` utilities need named
+ * keyframes. Only motion lives here; every look is Tailwind in the component.
+ *   marquee, marquee-vertical: Magic UI Marquee (MIT), `effects/marquee.tsx`
+ *   meteor-effect, fade-in:     Aceternity UI Meteors, `effects/meteors.tsx`
+ * Reduced motion: the components never start these animations (see each file).
+ */
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes meteor-effect {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(215deg) translateX(-31.25rem);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

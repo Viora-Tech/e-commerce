@@ -1,3 +1,4 @@
+import { cookieBannerSettings } from '@commerce/blocks'
 import { decodeConsent, encodeConsent } from '@commerce/core/preferences'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -73,6 +74,35 @@ describe('consent gating on the storefront', () => {
     expect(html).toContain('aria-label="Cookie consent"')
     // A cookie from before banner versions existed also counts as no answer.
     expect(render('a1m1')).toContain('aria-label="Cookie consent"')
+  })
+})
+
+describe('the theme CookieBanner section', () => {
+  const appearance = cookieBannerSettings({ position: 'right', acceptLabel: 'Yes please' })
+  const themed = (cookie: string | null) =>
+    renderToStaticMarkup(
+      createElement(ConsentManager, {
+        tracking,
+        bannerMessage: '',
+        bannerVersion: 1,
+        initial: decodeConsent(cookie),
+        appearance,
+      }),
+    )
+
+  it('asks in the section look, with the same gating, and only once', () => {
+    const html = themed(null)
+    expect(html).toContain('cookie-banner--right')
+    expect(html).toContain('Yes please')
+    expect(html.match(/aria-label="Cookie consent"/g)).toHaveLength(1)
+    expect(html).not.toContain('data-testid="beacon"')
+    expect(html).toContain('data-ga4="" data-gtm="" data-pixel=""')
+  })
+
+  it('stays away once the shopper has answered', () => {
+    const html = themed(encodeConsent({ analytics: true, marketing: false }, 1, AT))
+    expect(html).not.toContain('aria-label="Cookie consent"')
+    expect(html).toContain('data-testid="beacon"')
   })
 })
 

@@ -1,213 +1,257 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { HERO, remToPx } from '../data/motion'
-import { type FocalPoint, focalStyle } from '../focal-point'
-import { loadMotion } from '../lazy-motion'
-import { linkTarget } from '../link'
-import { safeHref } from '../slot-types'
-import type { MediaImage } from '../types'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { heroCarouselContent as copy, HERO_CAROUSEL } from '../data/glide/hero-carousel'
 import { useReducedMotion } from '../use-reduced-motion'
+import HeroSlideView, { type HeroSlide } from './hero-slide-view'
 import Icon from './icon'
-import Picture from './picture'
+import { useHeroAutoplay } from './use-hero-autoplay'
+import { useHeroEnhancements } from './use-hero-enhancements'
+import { useHeroEntrance } from './use-hero-entrance'
 
-export type HeroSlide = {
-  heading: string
-  subheading?: string | undefined
-  image: {
-    url: string
-    alt: string
-    focal?: FocalPoint | undefined
-    /** Filled in by the storefront from the media library; see `attachImageMedia`. */
-    variants?: MediaImage['variants']
-    thumbhash?: MediaImage['thumbhash']
-  }
-  cta?: { label: string; href: string; newTab?: boolean } | undefined
-  cta2?: { label: string; href: string; newTab?: boolean } | undefined
-  textPosition?: 'left' | 'center' | 'right' | undefined
+export type { HeroSlide } from './hero-slide-view'
+
+type HeroCarouselProps = {
+  slides: HeroSlide[]
+  /** Seconds per slide; 0 turns autoplay off (how slides saved before the Glide refresh say it). */
+  autoplaySeconds?: number | undefined
+  /** Slide height as a share of the screen. */
+  heightVh?: number | undefined
+  heightMobileVh?: number | undefined
+  heightMode?: 'fixed' | 'viewport' | undefined
+  frame?: 'full' | 'inset' | undefined
+  pin?: boolean | undefined
+  showArrows?: boolean | undefined
+  showDots?: boolean | undefined
+  dotProgress?: boolean | undefined
+  headingScale?: number | undefined
+  showCounter?: boolean | undefined
+  scrimOpacity?: number | undefined
+  scrimTint?: boolean | undefined
+  grain?: boolean | undefined
+  zoom?: boolean | undefined
+  entrance?: boolean | undefined
+  wordEntrance?: boolean | undefined
+  parallax?: boolean | undefined
+  scrollCue?: boolean | undefined
+  /** A string in storage but a React node while editing on the canvas. */
+  scrollCueText?: ReactNode
+  lowStockThreshold?: number | undefined
 }
 
-// Port of sections/hero-carousel.liquid + hero-carousel.js: a CSS scroll-snap
-// track, dots that reflect the snapped slide, prev/next, optional autoplay.
-// Motion plays the slide entrance (copy rising in sequence) each time a slide
-// becomes active, and a slow Ken Burns on its image. The first slide's copy is
-// never hidden: it is the LCP element and paints with the server HTML. Motion
-// itself is fetched after hydration (`loadMotion`), never with the page.
+const SECOND = 1000
+const PERCENT = 100
+
+/** Left scroll offset that snaps `slide` into place, honouring the inset frame's peek padding. */
+function slideLeft(track: HTMLElement, slide: HTMLElement): number {
+  const pad = Number.parseFloat(getComputedStyle(track).scrollPaddingInlineStart) || 0
+  return slide.offsetLeft - track.offsetLeft - pad
+}
+
+// Port of sections/hero-carousel.liquid + assets/hero-carousel.js: a CSS scroll-snap track of
+// picture and video slides with arrows, progress dots, autoplay that pauses like a video, a loop
+// copy of slide one so the wrap keeps moving forward, and Motion for each slide's entrance. The
+// first slide's copy is never hidden: it is the LCP element and paints with the server HTML, and
+// Motion itself is fetched after hydration (`loadMotion`), never with the page.
 export default function HeroCarousel({
   slides,
   autoplaySeconds = 5,
   heightVh = 72,
-}: {
-  slides: HeroSlide[]
-  autoplaySeconds?: number
-  heightVh?: number
-}) {
+  heightMobileVh = 70,
+  heightMode = 'fixed',
+  frame = 'full',
+  pin = false,
+  showArrows = true,
+  showDots = true,
+  dotProgress = true,
+  headingScale = 100,
+  showCounter = false,
+  scrimOpacity = 55,
+  scrimTint = true,
+  grain = false,
+  zoom = true,
+  entrance = true,
+  wordEntrance = false,
+  parallax = false,
+  scrollCue = false,
+  scrollCueText,
+  lowStockThreshold = 5,
+}: HeroCarouselProps) {
   // Hooks
   const reduce = useReducedMotion()
   const [active, setActive] = useState(0)
+  const [cloneActive, setCloneActive] = useState(false)
+  const root = useRef<HTMLDivElement>(null)
   const track = useRef<HTMLDivElement>(null)
-  const entered = useRef(false)
+  const cancelReset = useRef<() => void>(() => {})
+  const autoplay = useHeroAutoplay(
+    root,
+    autoplaySeconds > 0 && slides.length > 1 && !reduce,
+    autoplaySeconds * SECOND,
+    () => handleGo(active + 1),
+  )
+  useHeroEnhancements(root, track, { viewport: heightMode === 'viewport', parallax, pin })
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scheduleLoopReset only touches refs and state setters.
   useEffect(() => {
     const el = track.current
-    if (!el) return
-    const onScroll = () => setActive(Math.round(el.scrollLeft / el.clientWidth))
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [])
-  useEffect(() => {
-    const slide = track.current?.children[active]
-    if (!slide || reduce) return
-    // The copy already on screen at first paint stays put; later slides make an entrance.
-    const enter = entered.current
-    entered.current = true
-    let live = true
-    let zoom: { stop(): void } | null = null
-    loadMotion()
-      .then(({ animate, stagger }) => {
-        if (!live) return
-        const image = slide.querySelector('.hero-carousel__image')
-        zoom = image
-          ? animate(
-              image,
-              { scale: [1, HERO.zoomScale] },
-              { duration: HERO.zoomSeconds, ease: 'easeOut' },
-            )
-          : null
-        if (enter) {
-          animate(
-            slide.querySelectorAll('.hero-carousel__content > *'),
-            { opacity: [0, 1], y: [remToPx(HERO.riseRem), 0] },
-            { ...HERO.enter, delay: stagger(HERO.step) },
-          )
+    const total = slides.length
+    if (!el || total < 2) return
+    const children = Array.from(el.children)
+    const seen = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting || entry.intersectionRatio <= 0.5) continue
+          const index = children.indexOf(entry.target)
+          if (index === total) {
+            setActive(0)
+            scheduleLoopReset()
+          } else if (index >= 0) setActive(index)
         }
-      })
-      .catch(() => {})
-    return () => {
-      live = false
-      zoom?.stop()
+      },
+      { root: el, threshold: [0.5] },
+    )
+    for (const child of children) seen.observe(child)
+    return () => seen.disconnect()
+  }, [slides.length])
+  useEffect(() => () => cancelReset.current(), [])
+  useHeroEntrance(track, active, entrance && !reduce)
+
+  // Helpers
+  /** Once the wrap has scrolled onto the loop copy, jump back to the real slide one unseen. */
+  const scheduleLoopReset = () => {
+    const el = track.current
+    cancelReset.current()
+    if (!el) return
+    const done = () => {
+      cancelReset.current()
+      const first = el.children[0] as HTMLElement | undefined
+      if (!first) return
+      const previous = el.style.scrollBehavior
+      el.style.scrollBehavior = 'auto'
+      el.scrollTo({ left: slideLeft(el, first), behavior: 'instant' })
+      el.style.scrollBehavior = previous
+      setCloneActive(false)
     }
-  }, [active, reduce])
-  useEffect(() => {
-    if (!autoplaySeconds || slides.length < 2) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const id = setInterval(() => handleGo((active + 1) % slides.length), autoplaySeconds * 1000)
-    return () => clearInterval(id)
-  })
+    const timer = window.setTimeout(done, HERO_CAROUSEL.loopResetMs)
+    el.addEventListener('scrollend', done, { once: true })
+    cancelReset.current = () => {
+      window.clearTimeout(timer)
+      el.removeEventListener('scrollend', done)
+      cancelReset.current = () => {}
+    }
+  }
 
   // Event handlers
-  const handleGo = (i: number) => {
+  const handleGo = (index: number) => {
     const el = track.current
-    if (!el) return
-    el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' })
+    const total = slides.length
+    if (!el || total === 0) return
+    const target = ((index % total) + total) % total
+    const wrap = total > 1 && index >= total
+    const destination = el.children[wrap ? total : target] as HTMLElement | undefined
+    if (!destination) return
+    el.scrollTo({ left: slideLeft(el, destination), behavior: reduce ? 'instant' : 'smooth' })
+    if (wrap) {
+      setCloneActive(true)
+      scheduleLoopReset()
+    }
+    autoplay.restart()
+    setActive(target)
   }
+  const handleScrollCue = () => {
+    let next = root.current?.closest('.hero-carousel-frame')?.nextElementSibling
+    while (next && next.getBoundingClientRect().height === 0) next = next.nextElementSibling
+    next?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  }
+
+  // Render logic
+  const total = slides.length
+  const progress = dotProgress && autoplaySeconds > 0 && total > 1
+  const style = {
+    '--hero-height': `${heightVh}vh`,
+    '--hero-height-mobile': `${heightMobileVh}vh`,
+    '--hero-interval': `${autoplaySeconds}s`,
+    '--hero-heading-scale': headingScale / PERCENT,
+    '--hero-scrim-alpha': scrimOpacity / PERCENT,
+  } as React.CSSProperties
+  const slideProps = { total, showCounter, wordEntrance, lowStockThreshold }
 
   return (
     <div className="section-frame hero-carousel-frame">
       <div
-        className="hero-carousel hero-carousel--full"
-        data-scrim-tint="true"
-        style={
-          {
-            '--hero-height': `${heightVh}vh`,
-            '--hero-height-mobile': '70vh',
-            '--hero-interval': `${autoplaySeconds}s`,
-            '--hero-heading-scale': 1,
-            '--hero-scrim-alpha': 0.55,
-          } as React.CSSProperties
-        }
+        ref={root}
+        className={`hero-carousel hero-carousel--${frame}${pin ? ' hero-carousel--pinned' : ''}${autoplay.paused ? ' is-paused' : ''}`}
+        data-zoom={zoom}
+        data-height-mode={heightMode}
+        data-scrim-tint={scrimTint}
+        data-parallax={parallax}
+        data-grain={grain}
+        style={style}
       >
         <div className="hero-carousel__track" ref={track}>
-          {slides.map((s, i) => {
-            const pos = s.textPosition ?? 'left'
-            return (
-              <div
-                key={s.heading}
-                className={`hero-carousel__slide hero-carousel__slide--full_bleed${i === active ? ' is-active' : ''}`}
-              >
-                <div className="hero-carousel__media">
-                  {s.image?.url ? (
-                    <Picture
-                      image={s.image}
-                      alt={s.image.alt}
-                      className="hero-carousel__image"
-                      style={focalStyle(s.image.focal)}
-                      fill
-                      loading={i === 0 ? 'eager' : 'lazy'}
-                      fetchPriority={i === 0 ? 'high' : undefined}
-                      sizes="100vw"
-                    />
-                  ) : null}
-                  <div className={`hero-carousel__scrim hero-carousel__scrim--${pos}`} />
-                </div>
-                <div className={`hero-carousel__content hero-carousel__content--${pos}`}>
-                  {i === 0 ? (
-                    <h1 className="hero-carousel__heading h1">{s.heading}</h1>
-                  ) : (
-                    <h2 className="hero-carousel__heading h1">{s.heading}</h2>
-                  )}
-                  {s.subheading ? (
-                    <p className="hero-carousel__subheading text-body">{s.subheading}</p>
-                  ) : null}
-                  {s.cta || s.cta2 ? (
-                    <div className="hero-carousel__ctas">
-                      {s.cta ? (
-                        <a
-                          href={safeHref(s.cta.href) ?? '#'}
-                          {...linkTarget(s.cta)}
-                          className="btn btn--primary"
-                        >
-                          {s.cta.label}
-                        </a>
-                      ) : null}
-                      {s.cta2 ? (
-                        <a
-                          href={safeHref(s.cta2.href) ?? '#'}
-                          {...linkTarget(s.cta2)}
-                          className="btn btn--secondary hero-carousel__cta-secondary"
-                        >
-                          {s.cta2.label}
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            )
-          })}
+          {slides.map((slide, i) => (
+            <HeroSlideView
+              // biome-ignore lint/suspicious/noArrayIndexKey: slides are an ordered list with no ids; their copy may be a React node.
+              key={i}
+              slide={slide}
+              index={i}
+              active={i === active}
+              {...slideProps}
+            />
+          ))}
+          {total > 1 && slides[0] ? (
+            <HeroSlideView slide={slides[0]} index={0} active={cloneActive} clone {...slideProps} />
+          ) : null}
         </div>
-        {slides.length > 1 ? (
+        {showArrows && total > 1 ? (
           <>
             <button
               type="button"
               className="hero-carousel__control hero-carousel__control--prev"
-              aria-label="Previous slide"
-              onClick={() => handleGo((active - 1 + slides.length) % slides.length)}
+              aria-label={copy.previous}
+              onClick={() => handleGo(active - 1)}
             >
               <Icon name="arrow" size={16} />
             </button>
             <button
               type="button"
               className="hero-carousel__control hero-carousel__control--next"
-              aria-label="Next slide"
-              onClick={() => handleGo((active + 1) % slides.length)}
+              aria-label={copy.next}
+              onClick={() => handleGo(active + 1)}
             >
               <Icon name="arrow" size={16} />
             </button>
-            <div className="hero-carousel__dots">
-              {slides.map((s, i) => (
-                <button
-                  key={s.heading}
-                  type="button"
-                  className={`hero-carousel__dot${i === active ? ' is-active' : ''}`}
-                  aria-label={`Go to slide ${i + 1}`}
-                  aria-current={i === active}
-                  onClick={() => handleGo(i)}
-                >
-                  <span className="hero-carousel__dot-fill" />
-                </button>
-              ))}
-            </div>
           </>
+        ) : null}
+        {showDots && total > 1 ? (
+          <div className={`hero-carousel__dots${progress ? ' hero-carousel__dots--progress' : ''}`}>
+            {slides.map((_, i) => (
+              <button
+                // biome-ignore lint/suspicious/noArrayIndexKey: one dot per slide position.
+                key={i}
+                type="button"
+                className={`hero-carousel__dot${i === active ? ' is-active' : ''}`}
+                aria-label={copy.goTo(i + 1)}
+                aria-current={i === active}
+                onClick={() => handleGo(i)}
+              >
+                {progress ? (
+                  <span
+                    key={i === active ? autoplay.run : 'idle'}
+                    className={`hero-carousel__dot-fill${autoplay.running && i === active ? ' is-running' : ''}`}
+                  />
+                ) : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {scrollCue ? (
+          <button type="button" className="hero-carousel__scroll-cue" onClick={handleScrollCue}>
+            <span className="hero-carousel__scroll-cue-label text-caption">
+              {scrollCueText || copy.scrollCue}
+            </span>
+            <Icon name="arrow-down" size={16} />
+          </button>
         ) : null}
       </div>
     </div>

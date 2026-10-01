@@ -33,7 +33,7 @@
    default and painted the panel on every section - including the one Waimers
    had deliberately left plain. Same test, and same reason, as base.css's
    section-crest list. */
-.product-specs-frame[class*="color-scheme-"] .section-product-specs {
+.section-frame[class*="color-scheme-"] .section-product-specs {
   padding: var(--space-6) var(--space-7);
   border-radius: calc(var(--radius-m) * 2);
   background-color: var(--color-bg);
@@ -41,7 +41,7 @@
 }
 
 @media screen and (max-width: 749px) {
-  .product-specs-frame[class*="color-scheme-"] .section-product-specs {
+  .section-frame[class*="color-scheme-"] .section-product-specs {
     padding: var(--space-5) var(--space-4);
     border-radius: var(--radius-m);
   }
@@ -56,7 +56,7 @@
    below, which sets --font-heading and comes later in the file - so source
    order decided and the figures stayed in Unbounded. Caught by reading the
    computed font rather than trusting the cascade. */
-.product-specs-frame[class*="color-scheme-"]
+.section-frame[class*="color-scheme-"]
   .section-product-specs
   .product-specs__body
   .product-specs__value {
@@ -67,7 +67,7 @@
 /* Tiles lose their boxes on the panel. A bordered card inside a dark panel is
    the same generic move again, one layer down - the hairline between columns
    is enough separation when the ground is already doing the containing. */
-.product-specs-frame[class*="color-scheme-"]
+.section-frame[class*="color-scheme-"]
   .section-product-specs
   .product-specs__body--tiles
   .product-specs__row {
@@ -76,18 +76,18 @@
   border-inline-end: 1px solid var(--color-line);
 }
 
-.product-specs-frame[class*="color-scheme-"]
+.section-frame[class*="color-scheme-"]
   .section-product-specs
   .product-specs__body--tiles
   .product-specs__row:last-child {
   border-inline-end: 0;
 }
 
-.product-specs-frame[class*="color-scheme-"] .section-product-specs .product-specs__body--tiles {
+.section-frame[class*="color-scheme-"] .section-product-specs .product-specs__body--tiles {
   gap: var(--space-5);
 }
 
-.product-specs-frame[class*="color-scheme-"]
+.section-frame[class*="color-scheme-"]
   .section-product-specs
   .product-specs__body--tiles
   .product-specs__value {

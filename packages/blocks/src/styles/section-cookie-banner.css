@@ -1,0 +1,287 @@
+/**
+ * Cookie banner (sections/cookie-banner.liquid, components/sections/glide/cookie-banner.tsx).
+ *
+ * Three positions off one card: a full-width bar across the bottom, or a
+ * card in either bottom corner. The outer element is the fixed layer and the
+ * card inside it is what gets painted.
+ *
+ * Not a modal: there is no backdrop and no scroll lock. The page stays
+ * usable while the question is on screen, because holding a storefront
+ * hostage until someone answers is the pattern consent rules exist to
+ * prevent.
+ *
+ * The section's delay is a CSS one: the banner is in the server HTML (nothing
+ * optional loads before an answer either way) and fades in after
+ * --cookie-delay, so no script has to run before it can appear.
+ */
+.cookie-banner {
+  position: fixed;
+  z-index: 60;
+  display: block;
+  /* The element is only the positioning layer; nothing about it should
+     intercept a click aimed at the page underneath, outside the card. */
+  pointer-events: none;
+  animation: cookie-banner-in 0.3s ease-out var(--cookie-delay, 0s) both;
+}
+
+@keyframes cookie-banner-in {
+  from {
+    visibility: hidden;
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+
+  to {
+    visibility: visible;
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cookie-banner {
+    animation-duration: 0.01s;
+  }
+}
+
+/* The Customize canvas: drawn in the page flow, so it never covers the
+   footer the merchant is editing. */
+.cookie-banner--static {
+  position: relative;
+  inset: auto;
+  width: auto;
+  margin: var(--space-4) auto;
+  max-width: var(--page-width, 100%);
+  padding-inline: var(--page-margin);
+  pointer-events: auto;
+  animation: none;
+}
+
+.cookie-banner__card {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-5);
+  padding: var(--space-5);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 0.5rem 2rem color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+
+.cookie-banner__card:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: -0.25rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Positions                                                           */
+/* ------------------------------------------------------------------ */
+.cookie-banner--bar {
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* The bar spans the window, so its own rounding would fight the window's
+   edges; only the top corners are eased. */
+.cookie-banner--bar .cookie-banner__card {
+  justify-content: space-between;
+  border-inline: none;
+  border-bottom: none;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  padding-inline: var(--page-margin);
+}
+
+.cookie-banner--static.cookie-banner--bar .cookie-banner__card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-m);
+}
+
+.cookie-banner--left,
+.cookie-banner--right {
+  bottom: var(--space-5);
+  width: min(26.25rem, calc(100vw - 2 * var(--space-4)));
+}
+
+.cookie-banner--left {
+  left: var(--space-5);
+}
+
+.cookie-banner--right {
+  right: var(--space-5);
+}
+
+.cookie-banner--left .cookie-banner__card,
+.cookie-banner--right .cookie-banner__card {
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: var(--radius-m);
+}
+
+.cookie-banner--static.cookie-banner--left,
+.cookie-banner--static.cookie-banner--right {
+  width: min(26.25rem, 100%);
+}
+
+.cookie-banner--static.cookie-banner--left {
+  margin-left: 0;
+}
+
+.cookie-banner--static.cookie-banner--right {
+  margin-right: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Copy                                                                */
+/* ------------------------------------------------------------------ */
+.cookie-banner__copy {
+  flex: 1 1 20rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.cookie-banner__message {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.cookie-banner__message p {
+  margin: 0;
+}
+
+.cookie-banner__policy {
+  align-self: flex-start;
+  font-size: 0.8125rem;
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Actions                                                             */
+/* ------------------------------------------------------------------ */
+/* Accept and Decline are the same size and the same shape. A greyed-out
+   decline beside a solid accept is the single thing that gets a consent
+   banner rejected, and it is not what an honest question looks like. */
+.cookie-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.cookie-banner__button {
+  height: 2.75rem;
+  padding-inline: var(--space-5);
+  white-space: nowrap;
+}
+
+.cookie-banner__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.cookie-banner__link:hover {
+  color: var(--color-ink);
+}
+
+.cookie-banner__link:focus-visible,
+.cookie-banner__policy:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Preferences panel                                                   */
+/* ------------------------------------------------------------------ */
+/* Takes a whole row in the bar layout: a pair of labelled checkboxes
+   squeezed between the message and the buttons is unreadable at any
+   width. */
+.cookie-banner__panel {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+}
+
+.cookie-banner__choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.cookie-banner__choice input {
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  accent-color: var(--color-ink);
+}
+
+.cookie-banner__choice-name {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+}
+
+.cookie-banner__choice-help {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.cookie-banner__save {
+  align-self: flex-start;
+  height: 2.5rem;
+  padding-inline: var(--space-4);
+}
+
+@media screen and (max-width: 749px) {
+  /* Both corner cards become the same full-width sheet: 420px of card
+     beside 30px of page is not a corner, it is a bar with a gap. */
+  .cookie-banner--left,
+  .cookie-banner--right {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: max(var(--space-3), env(safe-area-inset-bottom));
+    width: auto;
+  }
+
+  .cookie-banner__card {
+    flex-direction: column;
+    align-items: stretch;
+    max-height: min(80dvh, 36rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: var(--space-4);
+  }
+
+  .cookie-banner__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .cookie-banner__button {
+    width: 100%;
+  }
+
+  .cookie-banner__link {
+    align-self: center;
+  }
+}

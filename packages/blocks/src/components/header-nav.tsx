@@ -10,10 +10,19 @@ import {
 } from 'react'
 import { flushSync } from 'react-dom'
 import { MENU_CLOSE_DELAY_MS, MENU_OPEN_DELAY_MS, navigationContent } from '../data/navigation'
+import type { MenuCard } from '../header-menu'
 import type { NavLink } from '../types'
+import { useNavIndicator } from '../use-nav-indicator'
+import HeaderMenuPanel from './header-menu-panel'
 import Icon from './icon'
 
-type HeaderNavProps = { links: NavLink[] }
+type HeaderNavProps = {
+  links: NavLink[]
+  /** Each top-level item's dropdown cards, by its id (`header-menu.ts`). */
+  cards?: Record<string, MenuCard[]> | undefined
+  /** The hover indicator: a glowing underline or a sliding pill. */
+  menuHover?: 'underline' | 'pill' | undefined
+}
 
 const copy = navigationContent
 
@@ -38,20 +47,29 @@ function isHoverIntentSuppressed(): boolean {
 /**
  * The desktop menu. A top-level item with children opens on hover (with a short
  * intent delay), click or keyboard: a dropdown for two levels, the full-width
- * mega menu with grouped columns for three. Arrow keys walk the open panel,
- * Escape closes it and returns focus to its trigger.
+ * panel for three levels or when the item has cards (grouped columns or a list on
+ * the left, cards on the right). Arrow keys walk the open panel, Escape closes it
+ * and returns focus to its trigger. An underline or pill follows the pointer.
  */
-export default function HeaderNav({ links }: HeaderNavProps) {
+export default function HeaderNav({ links, cards = {}, menuHover = 'underline' }: HeaderNavProps) {
   // Hooks
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navRef = useRef<HTMLElement>(null)
+  const { indicatorRef, moveTo, hide } = useNavIndicator(menuHover)
 
   useEffect(() => {
     return () => {
       if (timer.current) clearTimeout(timer.current)
     }
   }, [])
+
+  // The indicator rests on the open item, and leaves with the pointer once nothing is open.
+  useEffect(() => {
+    const list = navRef.current?.querySelector('.header__menu-list')
+    if (openIndex !== null) moveTo(list?.querySelector(`[data-item="${openIndex}"]`))
+    else if (!list?.matches(':hover')) hide()
+  }, [openIndex, moveTo, hide])
 
   // Helpers
   const schedule = (next: number | null, delay: number) => {
@@ -68,9 +86,10 @@ export default function HeaderNav({ links }: HeaderNavProps) {
     navRef.current?.querySelector<HTMLButtonElement>(`[data-trigger="${index}"]`)?.focus()
 
   // Event handlers
-  const handlePointerEnter = (index: number | null, event: PointerEvent) => {
+  const handlePointerEnter = (index: number | null, event: PointerEvent<HTMLLIElement>) => {
     // Touch fires pointerenter too; there, the click that follows is the intent.
     if (event.pointerType !== 'mouse') return
+    moveTo(event.currentTarget)
     if (index !== null && isHoverIntentSuppressed()) return
     const opening = index !== null && openIndex === null
     schedule(index, opening ? MENU_OPEN_DELAY_MS : 0)
@@ -78,6 +97,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
 
   const handlePointerLeave = (event: PointerEvent) => {
     if (event.pointerType !== 'mouse') return
+    if (openIndex === null) hide()
     schedule(null, MENU_CLOSE_DELAY_MS)
   }
 
@@ -132,7 +152,8 @@ export default function HeaderNav({ links }: HeaderNavProps) {
       onBlur={handleBlur}
       onKeyDown={handlePanelKeyDown}
     >
-      <ul className="header__menu-list">
+      <ul className={`header__menu-list ${menuHover === 'pill' ? 'has-nav-pill' : 'has-nav-line'}`}>
+        <li ref={indicatorRef} className="header__menu-pill" aria-hidden="true" />
         {links.map((link, index) => {
           const children = link.children ?? []
           if (children.length === 0) {
@@ -141,6 +162,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
                 key={link.id}
                 className="header__menu-item"
                 onPointerEnter={(event) => handlePointerEnter(null, event)}
+                onFocus={(event) => moveTo(event.currentTarget)}
               >
                 <a href={link.href} className="header__menu-link">
                   {link.label}
@@ -149,15 +171,19 @@ export default function HeaderNav({ links }: HeaderNavProps) {
             )
           }
           const mega = isMega(link)
+          const itemCards = cards[link.id] ?? []
+          const wide = mega || itemCards.length > 0
           const open = openIndex === index
           const panelId = `header-menu-${index}`
           return (
             <li
               key={link.id}
+              data-item={index}
               className={
-                mega ? 'header__menu-item' : 'header__menu-item header__menu-item--dropdown'
+                wide ? 'header__menu-item' : 'header__menu-item header__menu-item--dropdown'
               }
               onPointerEnter={(event) => handlePointerEnter(index, event)}
+              onFocus={(event) => moveTo(event.currentTarget)}
             >
               <button
                 type="button"
@@ -171,7 +197,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
                 {link.label}
                 <Icon name="chevron-down" size={12} />
               </button>
-              {mega ? (
+              {wide ? (
                 <div
                   id={panelId}
                   data-panel={index}
@@ -179,30 +205,7 @@ export default function HeaderNav({ links }: HeaderNavProps) {
                 >
                   <div className="header__expansion-panel-inner">
                     <div className="page-width">
-                      <div className="header__mega-columns">
-                        {children.map((column) => (
-                          <div key={column.id} className="header__mega-column">
-                            <a href={column.href} className="header__mega-heading">
-                              {column.label}
-                            </a>
-                            {column.children?.length ? (
-                              <ul className="header__expansion-sublist">
-                                {column.children.map((leaf) => (
-                                  <li key={leaf.id}>
-                                    <a href={leaf.href}>{leaf.label}</a>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                      <a href={link.href} className="header__expansion-all">
-                        <span className="header__expansion-all-text">
-                          {copy.viewAll(link.label)}
-                        </span>
-                        <Icon name="arrow" size={16} />
-                      </a>
+                      <HeaderMenuPanel link={link} columns={mega} cards={itemCards} />
                     </div>
                   </div>
                 </div>

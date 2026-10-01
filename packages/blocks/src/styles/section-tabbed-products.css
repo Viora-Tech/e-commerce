@@ -1,3 +1,4 @@
+/* Ported from Glide assets/section-tabbed-products.css (px to rem; custom elements to classes). */
 /**
  * Tabbed products (sections/tabbed-products.liquid).
  *
@@ -80,7 +81,7 @@
   display: none;
 }
 
-html.js .tabbed-products__tabs {
+.tabbed-products__tabs {
   display: block;
 }
 
@@ -97,7 +98,7 @@ html.js .tabbed-products__tabs {
   flex: 0 0 auto;
   padding: var(--space-3) var(--space-5);
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--color-ink);
@@ -125,7 +126,7 @@ html.js .tabbed-products__tabs {
    the fill straight over the label. -1 keeps it above the pill's own
    background but below its text. See the same note in base.css for .btn. */
 .tabbed-products__tab::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
@@ -180,8 +181,7 @@ html.has-cursor-fill .tabbed-products__tab:hover {
 
 @media (prefers-reduced-motion: no-preference) {
   .tabbed-products__tab {
-    transition:
-      color var(--btn-fill-out) var(--btn-fill-out-ease),
+    transition: color var(--btn-fill-out) var(--btn-fill-out-ease),
       background-color var(--btn-fill-out) var(--btn-fill-out-ease),
       border-color var(--btn-fill-out) var(--btn-fill-out-ease);
   }
@@ -204,7 +204,7 @@ html:not(.has-cursor-fill) .tabbed-products__tab:hover {
 /* The selected pill is the only filled surface in the row at rest, which is
    what makes the selection readable at a glance without a second cue. White on
    #1f1f21 is 16.45:1 - far past AAA - so the label stays 14px/600. */
-.tabbed-products__tab[aria-selected="true"] {
+.tabbed-products__tab[aria-selected='true'] {
   background-color: var(--color-ink);
   border-color: var(--color-ink);
   color: var(--color-bg);
@@ -217,14 +217,14 @@ html:not(.has-cursor-fill) .tabbed-products__tab:hover {
    no second meaning to carry here.
    motion.js has no notion of selection and still adds .is-hover-fill; a
    transparent fill colour is what makes that a no-op. */
-.tabbed-products__tab[aria-selected="true"] {
+.tabbed-products__tab[aria-selected='true'] {
   --tp-fill-color: transparent;
 }
 
 /* Pins the selected pill's own colours against the generic :hover rules above,
    which would otherwise repaint its border on the way past. */
-html.has-cursor-fill .tabbed-products__tab[aria-selected="true"]:hover,
-html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected="true"]:hover {
+html.has-cursor-fill .tabbed-products__tab[aria-selected='true']:hover,
+html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected='true']:hover {
   background-color: var(--color-ink);
   border-color: var(--color-ink);
   color: var(--color-bg);
@@ -234,8 +234,8 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected="true"]:hover {
    purple - it sits on the page background across the 2px gap, distinct from
    both the outlined and the ink-filled states. */
 .tabbed-products__tab:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.125rem;
 }
 
 /* Information scent on the control: each pill carries its collection's
@@ -246,7 +246,7 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected="true"]:hover {
    a second label. */
 .tabbed-products__tab-count {
   margin-left: var(--space-1);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -256,7 +256,7 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected="true"]:hover {
 
 /* On the selected pill the count firms up: the chosen instrument states its
    reading plainly. */
-.tabbed-products__tab[aria-selected="true"] .tabbed-products__tab-count {
+.tabbed-products__tab[aria-selected='true'] .tabbed-products__tab-count {
   opacity: 0.8;
 }
 
@@ -264,12 +264,12 @@ html:not(.has-cursor-fill) .tabbed-products__tab[aria-selected="true"]:hover {
 /* Panels                                                              */
 /* ------------------------------------------------------------------ */
 .tabbed-products__panel:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 4px;
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.25rem;
 }
 
 /* Each panel names itself only when the tablist isn't there to do it. */
-html.js .tabbed-products__panel-heading {
+.tabbed-products__panel-heading {
   display: none;
 }
 
@@ -280,7 +280,7 @@ html.js .tabbed-products__panel-heading {
 /* Panels after the first are pre-marked by the section so that, with JS on,
    they never flash into view before <tab-group> upgrades. Without JS the
    attribute is simply never honoured and every panel stays visible. */
-html.js .tabbed-products__panel[data-inactive] {
+.tabbed-products__panel[data-inactive] {
   display: none;
 }
 
@@ -288,7 +288,7 @@ html.js .tabbed-products__panel[data-inactive] {
   margin-top: var(--space-8);
 }
 
-html.js .tabbed-products__panel + .tabbed-products__panel {
+.tabbed-products__panel + .tabbed-products__panel {
   margin-top: 0;
 }
 
@@ -301,14 +301,14 @@ html.js .tabbed-products__panel + .tabbed-products__panel {
    otherwise the old content flashes at full opacity for a frame before the
    animation takes hold. */
 @media (prefers-reduced-motion: no-preference) {
-  html.js .tabbed-products__panel {
+  .tabbed-products__panel {
     animation: tp-panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 
   @keyframes tp-panel-in {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(0.75rem);
     }
   }
 }
@@ -326,7 +326,9 @@ html.js .tabbed-products__panel + .tabbed-products__panel {
    around, never into. */
 .tabbed-products__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* One card per row on phones (shopper feedback): two 170px cards could
+     not show a glasspad's artwork or a full product name. */
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: 1fr;
   gap: var(--space-5) var(--space-4);
 }
@@ -368,8 +370,100 @@ html.js .tabbed-products__panel + .tabbed-products__panel {
   }
 }
 
+/* Switching tab: every showing after the first used to be instant, so a
+   click swapped the grid with no sense of anything arriving. Now the new
+   tab's cards rise in one after another - the same entrance the header's
+   product previews make - on every switch. tabbed-products.js re-adds
+   .is-entering (after a forced reflow) so the animation restarts each time. */
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__panel.is-entering .tabbed-products__grid > * {
+    animation: tabbed-products-card-in 1300ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(2) { animation-delay: 160ms; }
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(3) { animation-delay: 320ms; }
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(4) { animation-delay: 480ms; }
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(5) { animation-delay: 640ms; }
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(6) { animation-delay: 800ms; }
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(7) { animation-delay: 960ms; }
+  .tabbed-products__panel.is-entering .tabbed-products__grid > :nth-child(n + 8) { animation-delay: 1120ms; }
+}
+
+@keyframes tabbed-products-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(2.75rem) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .tabbed-products__foot {
   display: flex;
   justify-content: center;
   margin-top: var(--space-7);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sliding selection                                                   */
+/*                                                                     */
+/* tabbed-products.js adds one ink pill under the tabs and moves it to */
+/* the selected tab, so a click reads as the highlight travelling      */
+/* rather than one pill switching off and another on. With the pill in */
+/* place the selected tab's own fill steps aside; without JS nothing   */
+/* here applies and the tab fills itself as before.                    */
+/* ------------------------------------------------------------------ */
+.tabbed-products__tablist.has-indicator {
+  position: relative;
+}
+
+.tabbed-products__indicator {
+  position: absolute;
+  top: var(--ind-top, 0);
+  left: 0;
+  width: var(--ind-width, 0);
+  height: var(--ind-height, 0);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ink);
+  transform: translateX(var(--ind-left, 0));
+  pointer-events: none;
+}
+
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true'],
+.tabbed-products__tablist.has-indicator .tabbed-products__tab[aria-selected='true']:hover {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__tablist.is-ready .tabbed-products__indicator {
+    transition: transform 420ms cubic-bezier(0.3, 1.25, 0.5, 1), width 420ms cubic-bezier(0.3, 1.25, 0.5, 1);
+  }
+
+  .tabbed-products__tablist.has-indicator .tabbed-products__tab {
+    transition: color 250ms ease;
+  }
+}
+
+/* A tab whose cards are still on their way holds roughly a row's height,
+   with a soft shimmer, so the section does not collapse and jump. */
+.tabbed-products__grid[aria-busy='true'] {
+  min-height: 22.5rem;
+  border-radius: var(--radius-m);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-ink) 5%, transparent), transparent) 0 0 / 200% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tabbed-products__grid[aria-busy='true'] {
+    animation: tabbed-products-shimmer 1.2s linear infinite;
+  }
+}
+
+@keyframes tabbed-products-shimmer {
+  to {
+    background-position: -200% 0;
+  }
 }

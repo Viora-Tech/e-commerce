@@ -1,0 +1,130 @@
+/**
+ * Size table (sections/product-size-table.liquid, assets/component-size-table.css).
+ * A free-form table that scrolls sideways on phones, header row and first column pinned,
+ * with a mm / cm / in pill switcher above it.
+ */
+.section-size-table {
+  margin-top: var(--space-9);
+}
+
+.size-table__heading {
+  margin: 0 0 var(--space-5);
+  color: var(--color-muted);
+}
+
+.size-units {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.size-units__label {
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.size-units__buttons {
+  display: inline-flex;
+  padding: 0.125rem;
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-pill);
+}
+
+.size-units__button {
+  padding: 0.25rem var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .size-units__button {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
+  }
+}
+
+.size-units__button:hover {
+  color: var(--color-ink);
+}
+
+.size-units__button.is-active {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.size-units__button:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.125rem;
+}
+
+.size-table__scroll {
+  overflow-x: auto;
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-m);
+  -webkit-overflow-scrolling: touch;
+}
+
+.size-table__scroll:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.125rem;
+}
+
+.size-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.size-table th,
+.size-table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.size-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: color-mix(in srgb, var(--color-line) 35%, var(--color-bg));
+  color: var(--color-muted);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.size-table tbody tr + tr th,
+.size-table tbody tr + tr td {
+  border-top: 0.0625rem solid var(--color-line);
+}
+
+.size-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  background-color: var(--color-bg);
+  font-weight: 600;
+}
+
+.size-table tbody td {
+  color: var(--color-ink);
+}
+
+.size-table__note {
+  max-width: 62ch;
+  margin: var(--space-4) 0 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}

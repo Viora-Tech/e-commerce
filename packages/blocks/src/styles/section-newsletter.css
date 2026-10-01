@@ -1,0 +1,439 @@
+/**
+ * Newsletter banner (sections/newsletter.liquid, components/sections/newsletter.tsx):
+ * rounded card, headline + reasons on the left, interests and the email
+ * capture on the right. Stacks to a single column below 750px. The meteors
+ * behind the copy are Aceternity's (effects/meteors.tsx), not Glide's script.
+ *
+ * The card's palette is a handful of local custom properties (--nl-*)
+ * rather than hard-coded colours; they track the section frame's
+ * --color-bg/--color-ink, so the card reads correctly whichever of the
+ * theme's colour schemes the merchant assigns to this section.
+ */
+.newsletter {
+  --nl-surface: var(--color-bg);
+  --nl-ink: var(--color-ink);
+  --nl-muted: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  --nl-faint: color-mix(in srgb, var(--color-ink) 50%, transparent);
+  --nl-field-bg: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  --nl-field-border: color-mix(in srgb, var(--color-ink) 20%, transparent);
+  --nl-btn-bg: var(--color-ink);
+  --nl-btn-ink: var(--color-bg);
+  --nl-accent: color-mix(in oklab, var(--color-brand) 35%, var(--color-ink));
+  /* Hover inverts: the fill IS the button's resting ink and the label IS its
+     resting background, swapped, so it is right in every scheme. */
+  --nl-btn-fill: var(--nl-btn-ink);
+  --nl-btn-fill-ink: var(--nl-btn-bg);
+  --nl-btn-fill-edge: var(--nl-btn-bg);
+
+  width: 100%;
+  text-align: start;
+}
+
+/* The frame element itself stays unpainted: a scheme on this section colours
+   the rounded card, not the band. The frame's local --color-bg/--color-ink
+   survive, which is exactly what --nl-surface/--nl-ink read to paint the card. */
+.section-frame:has(> * > .newsletter),
+.section-frame:has(> .newsletter) {
+  background-color: transparent;
+  color: inherit;
+}
+
+.newsletter__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-7) var(--space-8);
+  border-radius: var(--radius-m);
+  background-color: var(--nl-surface);
+  color: var(--nl-ink);
+}
+
+.newsletter__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 35rem;
+}
+
+.newsletter__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nl-accent);
+}
+
+/* The drop list is a live feed, and the dot says so. */
+.newsletter__eyebrow-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--nl-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .newsletter__eyebrow-dot {
+    animation: newsletter-signal 2.6s ease-in-out infinite;
+  }
+
+  @keyframes newsletter-signal {
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
+
+.newsletter__heading {
+  margin: 0;
+}
+
+.newsletter__text {
+  color: var(--nl-muted);
+}
+
+.newsletter__text p {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reasons to subscribe                                                */
+/* ------------------------------------------------------------------ */
+/* Not a bullet list: a manifest. Each reason is a hairline-ruled ledger row
+   led by an index numeral, with the merchant's icon closing the line. */
+.newsletter__reasons {
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.newsletter__reason {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--nl-field-border);
+  font-size: 0.875rem;
+  color: var(--nl-muted);
+}
+
+.newsletter__reason:last-child {
+  border-bottom: 1px solid var(--nl-field-border);
+}
+
+.newsletter__reason-num {
+  flex: 0 0 auto;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nl-accent);
+}
+
+.newsletter__reason-text {
+  min-width: 0;
+}
+
+.newsletter__reason-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--nl-faint);
+}
+
+/* ------------------------------------------------------------------ */
+/* Form                                                                */
+/* ------------------------------------------------------------------ */
+/* Sized to fit a long address next to the button, and allowed to grow into
+   the space the copy column leaves. */
+.newsletter__form-wrapper {
+  flex: 1 1 26.25rem;
+  width: 100%;
+  max-width: 35rem;
+}
+
+.newsletter__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Input and submit share one pill: the border lives on the wrapper so the
+   focus ring can wrap both. */
+.newsletter__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background-color: var(--nl-field-bg);
+  border: 1px solid var(--nl-field-border);
+}
+
+.newsletter__field:focus-within {
+  border-color: var(--nl-ink);
+  box-shadow: 0 0 0 0.1875rem color-mix(in srgb, var(--nl-ink) 18%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .newsletter__field {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+}
+
+.newsletter__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 3rem;
+  padding-inline: var(--space-4);
+  border: none;
+  background: none;
+  color: var(--nl-ink);
+  font-family: var(--font-body);
+  /* 16px minimum: anything smaller makes iOS Safari zoom the page on focus. */
+  font-size: 1rem;
+}
+
+.newsletter__input:focus {
+  outline: none;
+}
+
+.newsletter__input::placeholder {
+  color: var(--nl-faint);
+}
+
+/* Chrome paints autofilled fields with its own pale background, ignoring
+   `background: none`; an inset shadow covers it. */
+.newsletter__input:-webkit-autofill,
+.newsletter__input:-webkit-autofill:hover,
+.newsletter__input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--nl-ink);
+  -webkit-box-shadow: inset 0 0 0 100px var(--nl-field-bg);
+  caret-color: var(--nl-ink);
+  transition: background-color 100000s ease-in-out 0s;
+}
+
+/* Deliberately not a .btn: it shares a rounded container with the input and
+   follows the card's scheme, but borrows the shared fill MECHANISM below
+   (same ::before, same :root timings). */
+.newsletter__submit {
+  flex: 0 0 auto;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 3rem;
+  padding-inline: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--nl-btn-bg);
+  color: var(--nl-btn-ink);
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.newsletter__submit:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* z-index MUST be negative, not 0: positioned boxes at z-index 0/auto paint
+   above inline content. */
+.newsletter__submit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--nl-btn-fill);
+  box-shadow: inset 0 0 0 1px var(--nl-btn-fill-edge);
+  clip-path: circle(0% at var(--fill-x, 50%) var(--fill-y, 50%));
+  pointer-events: none;
+}
+
+.newsletter__submit > * {
+  position: relative;
+  z-index: 1;
+}
+
+html.has-cursor-fill .newsletter__submit.is-hover-fill::before {
+  clip-path: circle(150% at var(--fill-x, 50%) var(--fill-y, 50%));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .newsletter__submit::before {
+    transition: clip-path var(--btn-fill-out) var(--btn-fill-out-ease);
+  }
+
+  html.has-cursor-fill .newsletter__submit.is-hover-fill::before {
+    transition: clip-path var(--btn-fill-in) var(--btn-fill-in-ease);
+  }
+}
+
+html.has-cursor-fill .newsletter__submit:hover {
+  color: var(--nl-btn-fill-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .newsletter__submit {
+    transition:
+      opacity 0.15s ease,
+      color 0.15s ease;
+  }
+
+  html.has-cursor-fill .newsletter__submit {
+    transition-duration: var(--btn-fill-out);
+    transition-timing-function: var(--btn-fill-out-ease);
+  }
+
+  html.has-cursor-fill .newsletter__submit:hover {
+    transition-duration: var(--btn-fill-in);
+    transition-timing-function: var(--btn-fill-in-ease);
+  }
+}
+
+/* Without the cursor-fill script the button still needs a hover state. */
+html:not(.has-cursor-fill) .newsletter__submit:hover {
+  opacity: 0.85;
+}
+
+.newsletter__reassurance {
+  margin: 0;
+  color: var(--nl-faint);
+}
+
+/* ------------------------------------------------------------------ */
+/* Posted states                                                       */
+/* ------------------------------------------------------------------ */
+.newsletter__message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.newsletter__message svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.newsletter__message--success {
+  background-color: color-mix(in oklab, var(--color-success) 18%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-success) 55%, transparent);
+  color: var(--nl-ink);
+}
+
+/* The danger token is a mid-red: the text is mixed toward the card's own ink
+   so it stays legible on a dark scheme too. */
+.newsletter__message--error {
+  background-color: color-mix(in oklab, var(--color-danger) 18%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-danger) 55%, transparent);
+  color: color-mix(in oklab, var(--color-danger) 30%, var(--nl-ink));
+}
+
+/* Interests: what to be told about, as chips above the email field. */
+.newsletter__interests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-1);
+  padding: 0;
+  border: 0;
+}
+
+.newsletter__interests-legend {
+  width: 100%;
+  margin-bottom: var(--space-2);
+  padding: 0;
+  color: var(--nl-muted);
+}
+
+.newsletter__interest {
+  position: relative;
+}
+
+.newsletter__interest input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.newsletter__interest span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--nl-field-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .newsletter__interest span {
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+}
+
+.newsletter__interest input:checked + span {
+  border-color: var(--color-brand);
+  background-color: color-mix(in srgb, var(--color-brand) 14%, transparent);
+}
+
+.newsletter__interest input:focus-visible + span {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media screen and (max-width: 749px) {
+  .newsletter__card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .newsletter__copy,
+  .newsletter__form-wrapper {
+    max-width: none;
+  }
+
+  /* At the narrowest widths the pill unwraps into two stacked controls. */
+  .newsletter__field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-m);
+  }
+
+  .newsletter__submit {
+    width: 100%;
+  }
+}

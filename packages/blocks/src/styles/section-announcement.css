@@ -1,0 +1,237 @@
+/**
+ * Announcement bar, ported from the Glide theme's assets/section-announcement.css.
+ * Two display modes (components/sections/announcement-bar.tsx):
+ * - rotate: one message at a time. The theme drove this with per-instance CSS keyframes
+ *   plus header.js's prev/next; here `announcement-rotator.tsx` moves `.is-active` on a
+ *   timer and on prev/next, so the theme's "manual mode" transition is the only one.
+ * - marquee: every message scrolling in one row. The track is Magic UI's Marquee
+ *   (effects/marquee.tsx) instead of the theme's two-run CSS ticker; each copy of the
+ *   messages is an `.announcement-bar__marquee-run`.
+ */
+
+.announcement-bar {
+  position: relative;
+}
+
+/* Hairline on the default ground only: a bar on an explicit scheme paints its own
+   edge-to-edge ground and never had one. */
+.announcement-bar:not([class*="color-scheme-"]) {
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* The bar's ground continues behind the header by one radius, so the header's rounded
+   top corners have the bar's colour to reveal. */
+.announcement-bar::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  height: var(--section-radius);
+  background-color: inherit;
+  pointer-events: none;
+}
+
+/* Pinned to the viewport's left edge, on an opaque backdrop in the bar's own colour so
+   the scrolling messages vanish behind the icons instead of running through them. */
+.announcement-bar__social {
+  position: absolute;
+  inset-inline-start: var(--space-5);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 100%;
+  padding-inline-end: var(--space-5);
+  background-color: var(--color-bg);
+}
+
+.announcement-bar__social-link {
+  display: inline-flex;
+  color: currentcolor;
+  opacity: 0.7;
+}
+
+.announcement-bar__social-link:hover,
+.announcement-bar__social-link:focus-visible {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .announcement-bar__social-link {
+    transition:
+      opacity 150ms ease,
+      scale 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .announcement-bar__social-link:hover,
+  .announcement-bar__social-link:focus-visible {
+    scale: 1.18;
+  }
+
+  .announcement-bar__social-link:active {
+    scale: 0.92;
+    transition-duration: 90ms;
+    transition-timing-function: ease-out;
+  }
+}
+
+.announcement-bar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 2.25rem;
+  padding-block: var(--space-1);
+}
+
+.announcement-bar__control {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: currentcolor;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.announcement-bar__control:hover,
+.announcement-bar__control:focus-visible {
+  opacity: 1;
+}
+
+.announcement-bar__control--prev svg {
+  transform: rotate(180deg);
+}
+
+.announcement-bar__track {
+  position: relative;
+  flex: 1 1 auto;
+  display: grid;
+  min-height: 1.25rem;
+}
+
+/* Every message occupies the same grid cell; `.is-active` decides which one shows. */
+.announcement-bar__item {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(0.375rem);
+}
+
+.announcement-bar__item.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .announcement-bar__item {
+    transition:
+      opacity 350ms ease,
+      transform 350ms ease;
+  }
+}
+
+.announcement-bar__text,
+.announcement-bar__link {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.announcement-bar__text p,
+.announcement-bar__link p {
+  margin: 0;
+}
+
+/* Underline only on hover/focus, plus a small trailing arrow. */
+.announcement-bar__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: currentcolor;
+  text-decoration: none;
+}
+
+.announcement-bar__link:hover,
+.announcement-bar__link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.1875rem;
+}
+
+.announcement-bar__link svg {
+  flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------------ */
+/* Marquee mode                                                        */
+/* ------------------------------------------------------------------ */
+.announcement-bar--marquee .announcement-bar__inner {
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.announcement-bar__marquee {
+  width: 100%;
+}
+
+.announcement-bar__marquee-run {
+  align-items: center;
+}
+
+.announcement-bar__marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding-inline-start: var(--space-7);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.announcement-bar__marquee-item .announcement-bar__text,
+.announcement-bar__marquee-item .announcement-bar__link {
+  font-size: inherit;
+  letter-spacing: inherit;
+}
+
+/* A decorative ✦ between messages, suffixed onto each one. */
+.announcement-bar__marquee-item::after {
+  content: "\2726" / "";
+  font-size: 0.625rem;
+  color: color-mix(in srgb, var(--color-ink) 50%, transparent);
+}
+
+/* Reduced motion: the first message alone, centred, rather than a motionless row. */
+@media (prefers-reduced-motion: reduce) {
+  .announcement-bar--marquee .announcement-bar__inner {
+    justify-content: center;
+  }
+
+  .announcement-bar__marquee {
+    justify-content: center;
+  }
+
+  .announcement-bar__marquee-run[aria-hidden="true"] {
+    display: none;
+  }
+
+  .announcement-bar__marquee-item:not(:first-child) {
+    display: none;
+  }
+
+  .announcement-bar__marquee-item::after {
+    content: none;
+  }
+}

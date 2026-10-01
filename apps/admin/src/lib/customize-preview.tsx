@@ -1,14 +1,21 @@
 import {
+  cookieBannerSettings,
   Footer,
+  footerSettings,
+  GlideCookieBanner,
   Header,
+  headerSettings,
+  mainProductSettings,
   type NavLink,
   type ProductDetail,
+  ProductRecommendations,
   ProductView,
   RichTextBlock,
   SectionFrame,
   TabbedProducts,
 } from '@commerce/blocks'
 import type { CardProduct, SectionMetadata } from '@commerce/blocks/puck'
+import { isValidElement } from 'react'
 import { customizeContent } from '@/data/customize'
 
 /** Store data the preview header and footer draw from (`themes.templates.previewContext`). */
@@ -52,13 +59,13 @@ const pickFirst = placeholder
 
 const count = (value: unknown) => (typeof value === 'number' ? value : 4)
 
-const row = (heading: string, products: CardProduct[]) => (
-  <SectionFrame padTop={48} padBottom={48}>
-    <TabbedProducts heading={heading} tabs={[{ label: heading, products }]} />
-  </SectionFrame>
+/** The heading arrives as Puck's inline editor (a node) on the canvas; anything else is dropped. */
+const row = (heading: unknown, products: CardProduct[]) => (
+  <ProductRecommendations
+    heading={typeof heading === 'string' || isValidElement(heading) ? heading : ''}
+    products={products}
+  />
 )
-
-const text = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
 
 /**
  * Renderers for the dynamic sections inside the Customize preview. The storefront
@@ -73,7 +80,7 @@ export function previewMetadata({
 }: PreviewOptions): SectionMetadata {
   return {
     renderers: {
-      Header: () => (
+      Header: (s) => (
         <Header
           storeName={context?.storeName ?? ''}
           links={context?.navLinks ?? []}
@@ -81,18 +88,23 @@ export function previewMetadata({
           showThemeToggle={false}
           cartCount={0}
           logo={logo}
+          settings={headerSettings(s)}
         />
       ),
       Footer: (s) => (
         <Footer
+          {...footerSettings(s)}
           storeName={context?.storeName ?? ''}
-          tagline={text(s.tagline)}
           columns={context?.footerColumns ?? []}
+          cookieSettings={{ label: copy.preview.cookieSettings, href: '#' }}
+          logo={logo}
         />
       ),
-      MainProduct: () =>
+      // The live banner only runs on the storefront; here it is a still picture to edit.
+      CookieBanner: (s) => <GlideCookieBanner {...cookieBannerSettings(s)} />,
+      MainProduct: (s) =>
         resource?.kind === 'product' ? (
-          <ProductView product={resource.product} />
+          <ProductView product={resource.product} settings={mainProductSettings(s)} />
         ) : (
           pickFirst(copy.templates.names.product)
         ),
@@ -133,10 +145,13 @@ export function previewMetadata({
             c.id !== current?.id &&
             (!current?.productType || c.productType === current.productType),
         )
-        return row(text(s.heading), related.slice(0, count(s.limit)))
+        // An empty row would vanish from the canvas; other products keep it selectable.
+        return row(s.heading, (related.length ? related : cards).slice(0, count(s.limit)))
       },
       // The shopper's history is unknown here; the first products stand in for it.
-      RecentlyViewed: (s) => row(text(s.heading), cards.slice(0, count(s.limit))),
+      RecentlyViewed: (s) => row(s.heading, cards.slice(0, count(s.limit))),
     },
+    // Product page sections (tabs, specs, size guide...) draw from the previewed product.
+    product: resource?.kind === 'product' ? resource.product : undefined,
   }
 }

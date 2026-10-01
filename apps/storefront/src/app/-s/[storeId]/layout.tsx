@@ -1,4 +1,12 @@
-import { CursorFill, Footer, Header } from '@commerce/blocks'
+import {
+  CursorFill,
+  cookieBannerSettings,
+  Footer,
+  footerSettings,
+  Header,
+  headerSettings,
+  searchShortcuts,
+} from '@commerce/blocks'
 import { loadEnv } from '@commerce/config'
 import {
   CONSENT_COOKIE,
@@ -30,6 +38,7 @@ import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
+import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
 import { themeFontVariables } from '@/lib/fonts'
@@ -149,17 +158,76 @@ export default async function StoreLayout({ children, params }: Props) {
 
   // The header and footer are the theme's section groups: announcement bars and
   // signups sit around the Header and Footer sections, which draw the store's menus.
-  const header = await inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'header', {
+  // The store's collections give the menu its card images and the search its brand pills.
+  const header = await inStore(storeId, async (tx) => {
+    const collections = await listCollections(tx)
+    return renderTemplate(tx, storeId, 'header', {
       renderers: {
-        Header: (s) => (
-          <Header
+        Header: (s) => {
+          const hs = headerSettings(s)
+          const links = menuLinks(menusByHandle, hs.menu, settings.main)
+          const { popular, brands } = searchShortcuts(
+            hs.popularTerms,
+            hs.brandCollections,
+            links,
+            collections,
+          )
+          return (
+            <Header
+              storeName={current.name}
+              links={links}
+              themeMode={mode}
+              showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
+              cartCount={cartCount}
+              search={
+                <PredictiveSearch label={searchContent.title} popular={popular} brands={brands} />
+              }
+              logo={
+                theme.brand.logo
+                  ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
+                  : null
+              }
+              settings={hs}
+              collections={collections}
+            />
+          )
+        },
+      },
+    })
+  })
+  // The consent banner and the tags it gates. Never in a theme preview, where nobody is
+  // being tracked. When the footer group holds a CookieBanner section, that section draws
+  // it in the theme's look; otherwise the standalone one below does, so there is always
+  // exactly one.
+  const consent = {
+    tracking: prefs.tracking,
+    bannerMessage: privacy.bannerMessage,
+    bannerVersion: privacy.bannerVersion,
+    initial: decodeConsent(jar.get(CONSENT_COOKIE)?.value),
+    nonce,
+  }
+  let themedConsent = false
+  let consentDrawn = false
+  const footer = await inStore(storeId, (tx) =>
+    renderTemplate(tx, storeId, 'footer', {
+      // The mobile dock's cart count.
+      appBlockContext: { cartCount },
+      onSections: (types) => {
+        themedConsent = types.has('CookieBanner')
+      },
+      renderers: {
+        Footer: (s) => (
+          <Footer
+            {...footerSettings(s)}
             storeName={current.name}
-            links={menuLinks(menusByHandle, s.menu, settings.main)}
-            themeMode={mode}
-            showThemeToggle={theme.darkMode.enabled && theme.darkMode.togglePosition === 'header'}
-            cartCount={cartCount}
-            search={<PredictiveSearch label={searchContent.title} />}
+            columns={footerColumns}
+            policies={policies.map((p) => ({ label: p.title, href: p.href }))}
+            // Reopens the cookie banner, so a choice can be changed any time.
+            cookieSettings={{ label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH }}
+            grievance={officer ? policyPageContent.grievance(officer) : null}
+            themeToggle={
+              theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
+            }
             logo={
               theme.brand.logo
                 ? { url: theme.brand.logo.url, width: theme.brand.logoWidth, height: logoHeight }
@@ -167,28 +235,13 @@ export default async function StoreLayout({ children, params }: Props) {
             }
           />
         ),
-      },
-    }),
-  )
-  const footer = await inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'footer', {
-      renderers: {
-        Footer: (s) => (
-          <Footer
-            storeName={current.name}
-            tagline={typeof s.tagline === 'string' ? s.tagline : ''}
-            columns={footerColumns}
-            policies={[
-              ...policies.map((p) => ({ label: p.title, href: p.href })),
-              // Reopens the cookie banner, so a choice can be changed any time.
-              { label: privacyContent.cookieSettings, href: COOKIE_SETTINGS_HASH },
-            ]}
-            grievance={officer ? policyPageContent.grievance(officer) : null}
-            themeToggle={
-              theme.darkMode.enabled && theme.darkMode.togglePosition === 'footer' ? mode : null
-            }
-          />
-        ),
+        CookieBanner: (s) => {
+          // A second CookieBanner section (it is single in Customize, but saved data is data)
+          // must not ask twice.
+          if (preview || consentDrawn) return null
+          consentDrawn = true
+          return <ConsentManager {...consent} appearance={cookieBannerSettings(s)} />
+        },
       },
     }),
   )
@@ -211,15 +264,7 @@ export default async function StoreLayout({ children, params }: Props) {
         <main id="MainContent">{children}</main>
         <CursorFill />
         <ThemePreviewBridge adminOrigin={adminOrigin} />
-        {preview ? null : (
-          <ConsentManager
-            tracking={prefs.tracking}
-            bannerMessage={privacy.bannerMessage}
-            bannerVersion={privacy.bannerVersion}
-            initial={decodeConsent(jar.get(CONSENT_COOKIE)?.value)}
-            nonce={nonce}
-          />
-        )}
+        {preview || themedConsent ? null : <ConsentManager {...consent} />}
         {footer}
       </body>
     </html>

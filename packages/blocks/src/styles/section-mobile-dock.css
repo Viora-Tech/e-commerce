@@ -1,0 +1,98 @@
+/**
+ * Mobile dock, ported from the Glide theme's assets/section-mobile-dock.css
+ * (components/sections/glide/mobile-dock.tsx).
+ *
+ * A fixed bottom bar under 750px, hidden above. Its height is one custom property
+ * (safe-area inclusive) so the bar, the body padding that keeps it off the page's last
+ * lines and the lift for the sticky add-to-cart bar stay in step. `body:has(.mobile-dock)`
+ * scopes that padding to the dock being on the page: remove the section and the padding
+ * goes with it. The header hides its own search and cart on phones under the same
+ * condition (section-header.css, "Mobile: the dock owns the icons").
+ */
+:root {
+  --mobile-dock-height: calc(3.625rem + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-dock {
+  display: none;
+}
+
+@media screen and (max-width: 749px) {
+  .mobile-dock {
+    display: block;
+    position: fixed;
+    inset-block-end: 0;
+    inset-inline: 0;
+    z-index: 45;
+    height: var(--mobile-dock-height);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background-color: var(--color-bg);
+    border-top: 1px solid var(--color-line);
+  }
+
+  body:has(.mobile-dock) {
+    padding-bottom: var(--mobile-dock-height);
+  }
+
+  body:has(.mobile-dock) .sticky-atc {
+    inset-block-end: var(--mobile-dock-height);
+  }
+
+  .mobile-dock__list {
+    display: flex;
+    align-items: stretch;
+    height: 3.625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .mobile-dock__item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .mobile-dock__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    height: 100%;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+
+  .mobile-dock__link[aria-current="page"] {
+    color: var(--color-brand);
+  }
+
+  .mobile-dock__icon {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .mobile-dock__label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  .mobile-dock__cart-count {
+    position: absolute;
+    top: -0.3125rem;
+    right: -0.5625rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding-inline: 0.25rem;
+    border-radius: var(--radius-pill);
+    background-color: var(--color-brand);
+    color: var(--color-bg);
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1rem;
+    text-align: center;
+  }
+}

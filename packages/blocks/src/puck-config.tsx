@@ -16,6 +16,12 @@ import {
 import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
 import { GLIDE_SECTIONS, type GlideProps, glideSections } from './sections/glide'
+import { type ProductGridProps, tabbedProductsSection } from './sections/glide/tabbed-products'
+import {
+  GLIDE_PRODUCT_SECTIONS,
+  type GlideProductProps,
+  glideProductSections,
+} from './sections/glide-product'
 import { type HeroProps, heroBlock } from './sections/hero-block'
 import {
   type CollectionLoader,
@@ -51,6 +57,8 @@ export {
   type SectionSettings,
 } from './sections/dynamic'
 export { GLIDE_SECTIONS, type GlideProps } from './sections/glide'
+export type { ProductGridProps } from './sections/glide/tabbed-products'
+export { GLIDE_PRODUCT_SECTIONS, type GlideProductProps } from './sections/glide-product'
 export type { CollectionLoader, LibraryProps, SingleProductLoader } from './sections/library'
 export type { ModernProps } from './sections/modern'
 export type { SectionSource } from './sections/sources'
@@ -81,14 +89,6 @@ const SCHEMES = [
 export const frameFields = { settings: sectionSettingsField(SCHEMES) } as const
 
 export type Frame = { settings: SectionSettingsValue }
-
-export type ProductGridProps = Frame & {
-  heading: string
-  tabs: { label: string; productType: string; limit: number }[]
-  columns: number
-  /** Filled by resolveData; not edited directly. */
-  resolved?: { label: string; products: CardProduct[] }[]
-}
 
 export type FeaturedProductsProps = Frame & {
   kicker: string
@@ -139,6 +139,7 @@ export type BlockProps = {
   BlogPosts: BlogPostsProps
 } & LibraryProps &
   GlideProps &
+  GlideProductProps &
   ModernProps &
   CustomProps &
   Record<DynamicSection, SectionSettings>
@@ -148,8 +149,8 @@ export type BlockProps = {
  * footer are placed by their template or group, never added from here.
  */
 export const SECTION_CATEGORIES = {
-  // Rebuilt from our own Shopify theme; see ./sections/glide.tsx.
-  glide: { title: 'Glide theme', components: GLIDE_SECTIONS },
+  // Rebuilt from our own Shopify theme (Zero Drift, formerly Glide); see ./sections/glide.tsx.
+  glide: { title: 'Zero Drift theme', components: GLIDE_SECTIONS },
   banners: {
     title: 'Banners',
     components: [
@@ -188,6 +189,8 @@ export const SECTION_CATEGORIES = {
       'CollectionList',
       'RelatedProducts',
       'RecentlyViewed',
+      // The Zero Drift theme's product-page sections; see ./sections/glide-product.tsx.
+      ...GLIDE_PRODUCT_SECTIONS,
     ],
   },
   media: { title: 'Media', components: ['Video', 'Gallery'] },
@@ -283,50 +286,18 @@ export function createBlocksConfig(
         RichTextEditor: options.RichTextEditor,
         loadProduct: options.loadProduct,
       }) as unknown as Pick<Config<BlockProps>['components'], keyof CustomProps>),
+      ...(glideProductSections() as unknown as Pick<
+        Config<BlockProps>['components'],
+        keyof GlideProductProps
+      >),
       ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
-      Hero: heroBlock(),
+      Hero: heroBlock({ loadProduct: options.loadProduct }),
 
-      ProductGrid: {
-        label: 'Tabbed product grid',
-        fields: {
-          heading: { type: 'text', label: 'Heading' },
-          tabs: {
-            type: 'array',
-            label: 'Tabs',
-            getItemSummary: (t) => t.label || 'Tab',
-            arrayFields: {
-              label: { type: 'text', label: 'Tab label' },
-              productType: { type: 'text', label: 'Product type (blank = all)' },
-              limit: { type: 'number', label: 'Products', min: 1, max: 24 },
-            },
-          },
-          columns: { type: 'number', label: 'Columns', min: 2, max: 5 },
-          ...frameFields,
-        },
-        defaultProps: {
-          heading: 'Shop the range',
-          tabs: [{ label: 'All', productType: '', limit: 8 }],
-          columns: 4,
-          settings: defaultSectionSettings({ scheme: 'scheme-5', padTop: 56, padBottom: 56 }),
-        },
-        resolveData: async ({ props }) => {
-          const resolved = await Promise.all(
-            (props.tabs ?? []).map(async (t) => ({
-              label: t.label,
-              products: await loadProducts({
-                productType: t.productType || undefined,
-                limit: t.limit,
-              }),
-            })),
-          )
-          return { props: { resolved }, readOnly: { resolved: true } }
-        },
-        render: ({ heading, columns, resolved, ...props }) => (
-          <SectionFrame settings={migrateSectionSettings(props)}>
-            <TabbedProducts heading={heading} columns={columns} tabs={resolved ?? []} />
-          </SectionFrame>
-        ),
-      },
+      // Glide's tabbed-products section; config in ./sections/glide/tabbed-products.tsx.
+      ProductGrid: tabbedProductsSection({
+        loadProducts,
+        loadCollections: options.loadCollections,
+      }) as unknown as Config<BlockProps>['components']['ProductGrid'],
 
       FeaturedProducts: {
         label: 'Featured products',

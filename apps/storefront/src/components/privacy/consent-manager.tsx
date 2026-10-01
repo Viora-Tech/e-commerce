@@ -1,5 +1,6 @@
 'use client'
 
+import { type CookieBannerSettings, GlideCookieBanner } from '@commerce/blocks'
 import {
   allowedTags,
   CONSENT_COOKIE,
@@ -14,6 +15,7 @@ import { useEffect, useState } from 'react'
 import TrackingTags from '@/components/analytics/tracking-tags'
 import VisitBeacon from '@/components/analytics/visit-beacon'
 import CookieBanner from '@/components/privacy/cookie-banner'
+import { consentContent } from '@/data/online-store'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { recordConsentAction } from '@/lib/privacy-actions'
 
@@ -26,6 +28,11 @@ type ConsentManagerProps = {
   initial: StoredConsent | null
   /** This request's script CSP nonce; the tracking tags need it to run. */
   nonce?: string | undefined
+  /**
+   * The footer group's CookieBanner section (its look and labels), when the theme has one.
+   * Only the banner changes: the cookie, the version check and what each answer loads do not.
+   */
+  appearance?: CookieBannerSettings | undefined
 }
 
 function remember(consent: Consent, version: number): void {
@@ -47,6 +54,7 @@ export default function ConsentManager({
   bannerVersion,
   initial,
   nonce,
+  appearance,
 }: ConsentManagerProps) {
   // Hooks
   const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
@@ -75,15 +83,27 @@ export default function ConsentManager({
 
   // Render logic
   const tags = allowedTags({ tracking }, consent)
+  const asking = consent === null || reopened
+  const current = consent ?? { analytics: false, marketing: false }
 
   return (
     <>
       {consent?.analytics ? <VisitBeacon /> : null}
       <TrackingTags {...tags} nonce={nonce} />
-      {consent === null || reopened ? (
+      {asking && appearance ? (
+        <GlideCookieBanner
+          {...appearance}
+          storeMessage={bannerMessage}
+          initial={current}
+          startChoosing={reopened}
+          onChoose={handleChoose}
+          labels={{ save: consentContent.save, categories: consentContent.categories }}
+        />
+      ) : null}
+      {asking && !appearance ? (
         <CookieBanner
           message={bannerMessage}
-          initial={consent ?? { analytics: false, marketing: false }}
+          initial={current}
           startChoosing={reopened}
           onChoose={handleChoose}
         />

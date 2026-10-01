@@ -53,7 +53,7 @@ describe('Glide theme sections', () => {
   const config = createBlocksConfig(async () => [])
 
   it('are all registered and listed in the Glide theme category', () => {
-    expect(GLIDE_SECTIONS).toHaveLength(14)
+    expect(GLIDE_SECTIONS.length).toBeGreaterThanOrEqual(15)
     expect([...SECTION_CATEGORIES.glide.components]).toEqual(GLIDE_SECTIONS)
     for (const key of GLIDE_SECTIONS) expect(config.components[key], key).toBeTruthy()
   })

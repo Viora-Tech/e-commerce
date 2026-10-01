@@ -1,4 +1,4 @@
-import { ProductView } from '@commerce/blocks'
+import { mainProductSettings, ProductView } from '@commerce/blocks'
 import {
   depositIsNonRefundable,
   type PreorderStoreSettings,
@@ -124,6 +124,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
     renderTemplate(tx, storeId, 'product', {
       suffix: product.templateSuffix,
       sources: { productId: product.id },
+      product,
+      productActions: { addToCart: addLineAction },
       view,
       appBlockContext: {
         notifyMe:
@@ -149,6 +151,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
             <ProductView
               product={product}
               onAddToCart={addLineAction}
+              settings={mainProductSettings(s)}
               UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
               belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
               NotifyMe={bis.installed ? NotifyMeForm : undefined}

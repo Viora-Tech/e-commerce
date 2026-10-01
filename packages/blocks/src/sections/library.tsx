@@ -1,28 +1,19 @@
 import type { ComponentConfig } from '@puckeditor/core'
-import AnnouncementBar from '../components/sections/announcement-bar'
 import CollectionList from '../components/sections/collection-list'
 import Faq from '../components/sections/faq'
-import FeaturedProduct from '../components/sections/featured-product'
 import ImageBanner from '../components/sections/image-banner'
 import ImageWithText from '../components/sections/image-with-text'
 import LogoList from '../components/sections/logo-list'
 import Multicolumn from '../components/sections/multicolumn'
-import Newsletter from '../components/sections/newsletter'
 import Testimonials from '../components/sections/testimonials'
 import Video from '../components/sections/video'
 import { sectionsContent as copy } from '../data/sections'
 import { defaultSectionSettings } from '../section-settings'
 import type { CardCollection, CardProduct } from '../types'
-import {
-  type Frame,
-  framed,
-  type Image,
-  imageField,
-  type Link,
-  linkField,
-  noImage,
-  SCHEMES,
-} from './framed'
+import { type Frame, framed, type Image, imageField, type Link, linkField, noImage } from './framed'
+import { type AnnouncementBarProps, announcementBarSection } from './glide/announcement-bar'
+import { type FeaturedProductProps, featuredProductSection } from './glide/featured-product'
+import { type NewsletterProps, newsletterSection } from './glide/newsletter'
 
 /** Collections for the collection list section, in the order the handles were given. */
 export type CollectionLoader = (handles: string[]) => Promise<CardCollection[]>
@@ -31,7 +22,7 @@ export type CollectionLoader = (handles: string[]) => Promise<CardCollection[]>
 export type SingleProductLoader = (handle: string) => Promise<CardProduct | null>
 
 export type LibraryProps = {
-  AnnouncementBar: { text: string; link: Link; scheme: string }
+  AnnouncementBar: AnnouncementBarProps
   ImageBanner: Frame & {
     image: Image
     heading: string
@@ -57,13 +48,7 @@ export type LibraryProps = {
     handles: { handle: string }[]
     resolved?: CardCollection[]
   }
-  FeaturedProduct: Frame & {
-    kicker: string
-    handle: string
-    text: string
-    button: string
-    resolved?: CardProduct | null
-  }
+  FeaturedProduct: FeaturedProductProps
   Testimonials: Frame & {
     heading: string
     items: { quote: string; author: string; role: string }[]
@@ -71,7 +56,7 @@ export type LibraryProps = {
   LogoList: Frame & { heading: string; logos: { image: Image; href: string }[] }
   Faq: Frame & { heading: string; items: { question: string; answer: string }[] }
   Video: Frame & { heading: string; url: string; poster: Image }
-  Newsletter: Frame & { heading: string; text: string; button: string }
+  Newsletter: NewsletterProps
 }
 
 type Loaders = {
@@ -85,24 +70,7 @@ const heading = { type: 'text', label: 'Heading' } as const
 
 export function librarySections(loaders: Loaders): LibraryConfig {
   return {
-    AnnouncementBar: {
-      label: 'Announcement bar',
-      fields: {
-        text: { type: 'text', label: 'Text' },
-        link: linkField('Link'),
-        scheme: { type: 'select', label: 'Colour scheme', options: SCHEMES },
-      },
-      defaultProps: {
-        text: copy.announcement.text,
-        link: { label: copy.announcement.linkLabel, href: '/collections/all' },
-        scheme: 'scheme-3',
-      },
-      render: ({ text, link, scheme }) => (
-        <div className={scheme !== 'scheme-1' ? `color-${scheme}` : undefined}>
-          <AnnouncementBar text={text} link={link} />
-        </div>
-      ),
-    },
+    AnnouncementBar: announcementBarSection(),
 
     ImageBanner: framed<LibraryProps['ImageBanner']>(
       'Image banner',
@@ -235,39 +203,8 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       },
     ),
 
-    FeaturedProduct: framed<LibraryProps['FeaturedProduct']>(
-      'Featured product',
-      {
-        kicker: { type: 'text', label: 'Kicker' },
-        handle: { type: 'text', label: 'Product handle' },
-        text: { type: 'textarea', label: 'Text' },
-        button: { type: 'text', label: 'Button label' },
-      },
-      {
-        kicker: copy.featuredProduct.kicker,
-        handle: '',
-        text: '',
-        button: copy.featuredProduct.button,
-      },
-      (p) => (
-        <FeaturedProduct
-          kicker={p.kicker}
-          text={p.text}
-          button={p.button}
-          product={p.resolved ?? null}
-          empty={copy.featuredProduct.empty}
-        />
-      ),
-      {
-        resolveData: async ({ props }) => ({
-          props: {
-            resolved:
-              props.handle && loaders.loadProduct ? await loaders.loadProduct(props.handle) : null,
-          },
-          readOnly: { resolved: true },
-        }),
-      },
-    ),
+    // Glide's featured-product section; config in ./glide/featured-product.tsx.
+    FeaturedProduct: featuredProductSection(loaders),
 
     Testimonials: framed<LibraryProps['Testimonials']>(
       'Testimonials',
@@ -335,26 +272,6 @@ export function librarySections(loaders: Loaders): LibraryConfig {
       (p) => <Video heading={p.heading} url={p.url} poster={p.poster} empty={copy.video.empty} />,
     ),
 
-    Newsletter: framed<LibraryProps['Newsletter']>(
-      'Email signup',
-      {
-        heading,
-        text: { type: 'textarea', label: 'Text' },
-        button: { type: 'text', label: 'Button label' },
-      },
-      {
-        heading: copy.newsletter.heading,
-        text: copy.newsletter.text,
-        button: copy.newsletter.button,
-      },
-      (p, meta) => (
-        <Newsletter
-          heading={p.heading}
-          text={p.text}
-          button={p.button}
-          action={meta.newsletterAction}
-        />
-      ),
-    ),
+    Newsletter: newsletterSection(),
   }
 }

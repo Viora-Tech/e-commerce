@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { safeHref } from '../slot-types'
 
 // Port of snippets/section-heading.liquid.
@@ -6,8 +7,9 @@ export default function SectionHeading({
   heading,
   viewAll,
 }: {
-  kicker?: string
-  heading: string
+  /** Strings in storage, React nodes while a section's copy is edited on the canvas. */
+  kicker?: ReactNode
+  heading: ReactNode
   viewAll?: { href: string; label: string }
 }) {
   // Render logic

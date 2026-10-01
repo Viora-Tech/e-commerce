@@ -307,6 +307,7 @@ export const customizeContent = {
   preview: {
     mainPlaceholder: (name: string) => `${name} appear here`,
     pickResource: 'Choose what to preview from the bar above.',
+    cookieSettings: 'Cookie settings',
   },
   array: {
     addItem: 'Add item',

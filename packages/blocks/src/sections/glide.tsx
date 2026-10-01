@@ -5,14 +5,18 @@ import { type DiscordCtaProps, discordCtaSection } from './glide/discord-cta'
 import { type DropRevealProps, dropRevealSection } from './glide/drop-reveal'
 import { type DropsTeaserProps, dropsTeaserSection } from './glide/drops-teaser'
 import { type FeaturedCarouselProps, featuredCarouselSection } from './glide/featured-carousel'
+import { type ImageComparisonProps, imageComparisonSection } from './glide/image-comparison'
 import { type LatestDropProps, latestDropSection } from './glide/latest-drop'
 import type { GlideLoaders } from './glide/loaders'
 import { type LogoCarouselProps, logoCarouselSection } from './glide/logo-carousel'
+import { type MobileDockProps, mobileDockSection } from './glide/mobile-dock'
 import { type NotesSeriesProps, notesSeriesSection } from './glide/notes-series'
 import { type PerfectMatchProps, perfectMatchSection } from './glide/perfect-match'
 import { type PromoBentoProps, promoBentoSection } from './glide/promo-bento'
+import { type ReviewsProps, reviewsSection } from './glide/reviews'
 import { type ReviewsShowcaseProps, reviewsShowcaseSection } from './glide/reviews-showcase'
 import { type ShipsTodayProps, shipsTodaySection } from './glide/ships-today'
+import { type SignupPopupProps, signupPopupSection } from './glide/signup-popup'
 import { type SocialWallProps, socialWallSection } from './glide/social-wall'
 
 /**
@@ -41,6 +45,10 @@ export type GlideProps = {
   NotesSeries: NotesSeriesProps
   SocialWall: SocialWallProps
   DiscordCta: DiscordCtaProps
+  Reviews: ReviewsProps
+  ImageComparison: ImageComparisonProps
+  MobileDock: MobileDockProps
+  SignupPopup: SignupPopupProps
 }
 
 const BUILDERS: { [K in keyof GlideProps]: (loaders: GlideLoaders) => ComponentConfig } = {
@@ -58,6 +66,10 @@ const BUILDERS: { [K in keyof GlideProps]: (loaders: GlideLoaders) => ComponentC
   NotesSeries: notesSeriesSection,
   SocialWall: socialWallSection,
   DiscordCta: discordCtaSection,
+  Reviews: reviewsSection,
+  ImageComparison: imageComparisonSection,
+  MobileDock: mobileDockSection,
+  SignupPopup: signupPopupSection,
 }
 
 /** Every Glide section key, in the theme home page's order. */
