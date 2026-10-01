@@ -13,9 +13,9 @@ import {
   SomethingElse,
 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
+import ChoiceCard from '@/components/layout/choice-card'
 import { onboardingContent } from '@/data/onboarding'
 import { useCopy } from '@/hooks/use-copy'
-import ChoiceCard from './choice-card'
 
 type SellsWhatStepProps = {
   value: SellsWhat | null

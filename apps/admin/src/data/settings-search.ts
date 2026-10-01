@@ -220,7 +220,7 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     title: 'Custom data',
     where: 'Settings',
     href: '/settings/custom-data',
-    keywords: ['metafields', 'metaobjects', 'custom fields', 'extra fields'],
+    keywords: ['metafields', 'metaobjects', 'custom fields', 'extra fields', 'content types'],
   },
   {
     title: 'Domains',

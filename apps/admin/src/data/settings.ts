@@ -111,7 +111,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     href: '/settings/custom-data',
     title: 'Custom data',
-    body: 'Metafields on products and collections, and metaobject definitions.',
+    body: 'Extra fields on products and collections, and your content types.',
     icon: Braces,
   },
   {

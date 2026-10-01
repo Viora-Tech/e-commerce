@@ -3,7 +3,8 @@
 import { Plus, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
-import { fieldInputContent as copy } from '@/data/metaobjects'
+import { fieldInputContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ReferenceSearchDialog, {
   type ReferenceKind,
@@ -28,6 +29,7 @@ export default function ReferencePicker({
   onChange,
 }: ReferencePickerProps) {
   // Hooks
+  const copy = useCopy(fieldInputContent)
   const [known, setKnown] = useState<Record<string, ReferenceOption | null>>({})
   const [picking, setPicking] = useState(false)
 

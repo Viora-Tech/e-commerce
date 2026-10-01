@@ -24,7 +24,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   '/customers/segments': { title: 'सेगमेंट' },
   '/content': { title: 'कंटेंट' },
   '/content/files': { title: 'फ़ाइलें' },
-  '/content/metaobjects': { title: 'मेटाऑब्जेक्ट' },
+  '/content/metaobjects': { title: 'कंटेंट टाइप' },
   '/content/menus': { title: 'मेन्यू' },
   '/content/menus/redirects': { title: 'URL रीडायरेक्ट' },
   '/content/blog-posts': { title: 'ब्लॉग पोस्ट' },
@@ -75,7 +75,7 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
   },
   '/settings/custom-data': {
     title: 'कस्टम डेटा',
-    body: 'प्रोडक्ट और कलेक्शन के मेटाफ़ील्ड, और मेटाऑब्जेक्ट की परिभाषाएं।',
+    body: 'प्रोडक्ट और कलेक्शन के एक्स्ट्रा फ़ील्ड, और आपके कंटेंट टाइप।',
   },
   '/settings/domains': {
     title: 'डोमेन',

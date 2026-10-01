@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@commerce/ui/s
 import { Input } from '@commerce/ui/shadcn/input'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
-import { fieldInputContent as copy } from '@/data/metaobjects'
+import { fieldInputContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ReferenceThumb from './reference-thumb'
 
@@ -36,6 +37,7 @@ export default function ReferenceSearchDialog({
   onPick,
 }: ReferenceSearchDialogProps) {
   // Hooks
+  const copy = useCopy(fieldInputContent)
   const [query, setQuery] = useState('')
   const [options, setOptions] = useState<ReferenceOption[] | null>(null)
 

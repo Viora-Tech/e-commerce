@@ -4,8 +4,11 @@ import { notFound } from 'next/navigation'
 import EntryForm from '@/components/metaobjects/entry-form'
 import { metaobjectListContent } from '@/data/metaobjects'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { getCopy } from '@/lib/copy-server'
 
-export const metadata: Metadata = { title: metaobjectListContent.heading }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getCopy(metaobjectListContent)).heading }
+}
 
 type Props = { params: Promise<{ type: string; id: string }> }
 

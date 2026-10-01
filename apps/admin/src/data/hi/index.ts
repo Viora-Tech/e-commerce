@@ -4,6 +4,7 @@ import common from './common'
 import dates from './dates'
 import home from './home'
 import layout from './layout'
+import metaobjects from './metaobjects'
 import navigation from './navigation'
 import onboarding from './onboarding'
 import orders from './orders'
@@ -27,6 +28,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...dates,
   ...home,
   ...layout,
+  ...metaobjects,
   ...navigation,
   ...onboarding,
   ...orders,

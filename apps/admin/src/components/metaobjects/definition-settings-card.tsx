@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { definitionFormContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import ToggleField from './toggle-field'
 
 type DefinitionSettingsCardProps = {
@@ -19,7 +20,6 @@ type DefinitionSettingsCardProps = {
   onChange: (patch: { displayNameKey?: string | null; storefrontAccess?: boolean }) => void
 }
 
-const copy = definitionFormContent
 const NONE = '__handle'
 
 /** Which field names an entry, and whether the storefront may read the entries. */
@@ -29,6 +29,9 @@ export default function DefinitionSettingsCard({
   storefrontAccess,
   onChange,
 }: DefinitionSettingsCardProps) {
+  // Hooks
+  const copy = useCopy(definitionFormContent)
+
   // Render logic
   const textFields = fields.filter(
     (f) => !f.list && ['single_line_text', 'number_integer', 'number_decimal'].includes(f.type),

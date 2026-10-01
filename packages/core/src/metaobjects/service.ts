@@ -356,13 +356,19 @@ export async function createDefinition(
   return { id, type }
 }
 
-/** A definition from a ready-made preset (`METAOBJECT_PRESETS`), through the same checks as a blank one. */
-export function createDefinitionFromPreset(
+/**
+ * A definition from a ready-made preset (`METAOBJECT_PRESETS`), through the same checks as a
+ * blank one. The handle follows the merchant's name, or the preset key when the name has no
+ * Latin letters or digits to build one from (a Hindi name like "साइज़ गाइड").
+ */
+export async function createDefinitionFromPreset(
   tx: StoreTx,
   storeId: string,
   input: FromPresetInput,
 ): Promise<{ id: string; type: string }> {
-  return createDefinition(tx, storeId, presetDefinition(input))
+  const write = presetDefinition(input)
+  const base = /[a-z0-9]/i.test(write.name) ? write.name : input.preset
+  return createDefinition(tx, storeId, { ...write, type: await uniqueDefinitionType(tx, base) })
 }
 
 /**

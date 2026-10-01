@@ -12,7 +12,8 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useId } from 'react'
-import { fieldDialogContent as copy } from '@/data/metaobjects'
+import { fieldDialogContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 
 type FieldRulesProps = {
   type: FieldType
@@ -55,6 +56,7 @@ export default function FieldRules({
   onChange,
 }: FieldRulesProps) {
   // Hooks
+  const copy = useCopy(fieldDialogContent)
   const id = useId()
 
   // Helpers

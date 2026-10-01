@@ -162,7 +162,14 @@ describe('content type presets', () => {
     const second = await inStore(s, (tx) =>
       createDefinitionFromPreset(tx, s, { preset: 'size_guide', name: 'Kids sizes' }),
     )
-    expect([first.type, second.type]).toEqual(['size_guide', 'kids_sizes'])
+    const hindi = await inStore(s, (tx) =>
+      createDefinitionFromPreset(tx, s, { preset: 'size_guide', name: 'साइज़ गाइड' }),
+    )
+    expect([first.type, second.type, hindi.type]).toEqual([
+      'size_guide',
+      'kids_sizes',
+      'size_guide_2',
+    ])
     const def = await inStore(s, (tx) => getDefinition(tx, { id: first.id }))
     expect([def?.name, def?.displayNameKey, def?.fields.map((f) => f.key)]).toEqual([
       'Size guide',

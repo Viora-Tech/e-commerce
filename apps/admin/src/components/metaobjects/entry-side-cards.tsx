@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { entryFormContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 
 type EntrySideCardsProps = {
   status: MetaobjectStatus
@@ -19,11 +20,13 @@ type EntrySideCardsProps = {
   onChange: (patch: { status?: MetaobjectStatus; handle?: string }) => void
 }
 
-const copy = entryFormContent
 const STATUSES: MetaobjectStatus[] = ['active', 'draft']
 
 /** Status and handle of an entry, in the side rail like a product's status card. */
 export default function EntrySideCards({ status, handle, onChange }: EntrySideCardsProps) {
+  // Hooks
+  const copy = useCopy(entryFormContent)
+
   // Render logic
   const items = { active: copy.status.active, draft: copy.status.draft }
 

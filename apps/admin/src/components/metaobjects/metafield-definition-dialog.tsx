@@ -29,6 +29,7 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { customDataContent, fieldDialogContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import FieldRules from './field-rules'
 import FieldTypeSelect from './field-type-select'
@@ -60,8 +61,6 @@ type Draft = {
   storefrontAccess: boolean
 }
 
-const copy = customDataContent.dialog
-
 function toDraft(d: MetafieldDefinitionRow | null): Draft {
   return {
     name: d?.name ?? '',
@@ -86,6 +85,9 @@ export default function MetafieldDefinitionDialog({
   onSaved,
 }: MetafieldDefinitionDialogProps) {
   // Hooks
+  const content = useCopy(customDataContent)
+  const copy = content.dialog
+  const fieldCopy = useCopy(fieldDialogContent)
   const [draft, setDraft] = useState<Draft>(() => toDraft(definition))
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
@@ -132,15 +134,15 @@ export default function MetafieldDefinitionDialog({
   }
 
   // Render logic
-  const owner = customDataContent.owners[ownerType]
+  const owner = content.owners[ownerType]
   const locked = definition !== null
   const keyValid = KEY_PATTERN.test(draft.key) && KEY_PATTERN.test(draft.namespace)
   const problems = [
-    ...(draft.name.trim() ? [] : [fieldDialogContent.nameRequired]),
-    ...(keyValid ? [] : [fieldDialogContent.keyHelp]),
+    ...(draft.name.trim() ? [] : [fieldCopy.nameRequired]),
+    ...(keyValid ? [] : [fieldCopy.keyHelp]),
     ...(draft.type
       ? ruleProblems(draft.name, draft.type, draft.validations)
-      : [fieldDialogContent.typeRequired]),
+      : [fieldCopy.typeRequired]),
   ]
   const listable = draft.type !== null && !NO_LIST_TYPES.includes(draft.type)
 
@@ -187,7 +189,7 @@ export default function MetafieldDefinitionDialog({
             <FieldDescription>{copy.namespaceKeyHelp}</FieldDescription>
           </Field>
           <Field>
-            <FieldLabel htmlFor="metafield-type">{fieldDialogContent.type}</FieldLabel>
+            <FieldLabel htmlFor="metafield-type">{fieldCopy.type}</FieldLabel>
             <FieldTypeSelect
               id="metafield-type"
               value={draft.type}
@@ -215,8 +217,8 @@ export default function MetafieldDefinitionDialog({
           {listable ? (
             <ToggleField
               id="metafield-list"
-              label={fieldDialogContent.list}
-              help={fieldDialogContent.listHelp}
+              label={fieldCopy.list}
+              help={fieldCopy.listHelp}
               checked={draft.list}
               disabled={locked}
               onChange={(list) => patch({ list })}
@@ -233,7 +235,7 @@ export default function MetafieldDefinitionDialog({
             <>
               <FieldSeparator />
               <FieldDescription className="text-body-strong text-foreground">
-                {fieldDialogContent.rules}
+                {fieldCopy.rules}
               </FieldDescription>
               <FieldRules
                 type={draft.type}
