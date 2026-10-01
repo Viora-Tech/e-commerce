@@ -1,6 +1,6 @@
-# Glide theme port: inventory and plan
+# Zero Drift theme port: inventory and plan
 
-Inventory of the Glide 2.0.0 Shopify theme (Viora Tech, the owner's own theme, read-only at
+Inventory of the Zero Drift Shopify theme (formerly Glide 2.0.0; its `settings_schema.json` still says Glide; Viora Tech, the owner's own theme, read-only at
 `E:\Dev\Shopify\theme`) against our storefront blocks, plus the phased plan for porting it into Puck
 sections. Written 2026-10-01 alongside phase 1. Nothing in the theme repo is edited.
 
@@ -8,8 +8,8 @@ sections. Written 2026-10-01 alongside phase 1. Nothing in the theme repo is edi
 
 | Phase | Scope | State |
 | --- | --- | --- |
-| 1 | The 14 home-page sections not yet in our repo (ships-today through discord-cta). Files go in `packages/blocks/src/components/sections/glide/`. | This PR |
-| 2 | Header and footer groups (announcement-bar, header, footer, newsletter, mobile-dock, cookie-banner, signup-popup) and the product page. | Proposed |
+| 1 | The 14 home-page sections not yet in our repo (ships-today through discord-cta). Files go in `packages/blocks/src/components/sections/glide/`. | Done (#221) |
+| 2 | Rest of the home page, header and footer groups, the product page, and the UI-kit effects swapped to the originals (`packages/blocks/src/effects/`). | This PR |
 | 3 | Collection, cart, search, account, blog/article/notes, guides, pages. | Proposed |
 | 4 | Sections no template uses (see the end of this doc). Only if wanted. | Backlog |
 
@@ -21,7 +21,8 @@ Status legend (used in the tables):
 | `changed since our port` | We have a port or a generic equivalent, but the theme file changed after our port or its settings and blocks are richer than our fields. A generic equivalent that was never a line-for-line Glide port is marked as such in the notes. |
 | `missing` | Nothing equivalent in our repo (or only a different generic block). |
 | `not needed` | Shopify-only, app-specific, a Section Rendering API helper, or the page already exists natively in our storefront. The notes say why. |
-| `ported (phase 1)` | Being ported in this PR. |
+| `ported (phase 1)` | Ported in phase 1 (#221). |
+| `ported (phase 2)` | Ported or refreshed in phase 2. |
 
 Dates were compared with `git log -1 --format=%cs` on both repos. Our repo's dates come from a
 rebased history, so treat a gap of a day or two as noise; the settings comparison decides.
@@ -34,7 +35,7 @@ leaves out colour scheme and padding, which every section has.
 
 | Section file | Purpose | Used by | Key settings / blocks | Our equivalent | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `announcement-bar.liquid` | Top strip of rotating or scrolling announcements with social links | header-group | show_social, display_mode, autorotate, autorotate_speed, marquee_speed; blocks: announcement | `packages/blocks/src/components/sections/announcement-bar.tsx` (AnnouncementBar) | changed since our port | Ours is one message plus link; Glide has multiple announcement blocks, autorotate, marquee, socials. |
+| `announcement-bar.liquid` | Top strip of rotating or scrolling announcements with social links | header-group | show_social, display_mode, autorotate, autorotate_speed, marquee_speed; blocks: announcement | `sections/glide/announcement-bar.tsx` (AnnouncementBar, refreshed in place) | ported (phase 2) | Announcement blocks, autorotate, Magic UI Marquee mode, socials as section settings. Old `{text, link}` data still renders. |
 | `apps.liquid` | Shopify app block host | page.reviews (off) | anchor; blocks: @app | - | not needed | Shopify-only. Our app blocks come from plugins (app-blocks.tsx). |
 | `article-series.liquid` | Related posts from the same Notes series, under an article | article.notes | heading, series_tag | - | missing | Needed for notes articles (phase 3). |
 | `banner-mosaic.liquid` | Tilted mosaic of collection images behind a banner message | none | tagline, heading, text, button_label, button_link +8 more; blocks: tile | - | missing | Not on any template; add in a later pass if wanted. |
@@ -51,7 +52,7 @@ leaves out colour scheme and padding, which every section has.
 | `complete-setup.liquid` | Pick products to build a complete setup, with bundle total | none | kicker, heading; blocks: product | - | missing |  |
 | `concierge-form.liquid` | Help-me-choose request form on guide pages | page.find-your-match, page.guide-keyboard, page.guide-mouse, page.guide-pad | heading, intro, category_preset; blocks: category | - | missing | Needs a form-submission route. |
 | `contact-form.liquid` | Contact page: form plus support details | page.contact | heading, intro, details_heading, response_time, support_hours +3 more | - | missing | Needs a form-submission route. |
-| `cookie-banner.liquid` | Cookie consent bar | footer-group | position, message, policy_link, policy_label, accept_label +5 more | - | missing | Native banner exists (apps/storefront/src/components/privacy/cookie-banner.tsx); Glide look and settings not ported. |
+| `cookie-banner.liquid` | Cookie consent bar | footer-group | position, message, policy_link, policy_label, accept_label +5 more | `components/sections/glide/cookie-banner.tsx` (CookieBanner, dynamic section) | ported (phase 2) | Look and labels live in the footer group; consent logic stays in the storefront ConsentManager. One banner only. |
 | `countdown-timer.liquid` | Countdown to a date with call to action | none | kicker, heading, subtext, end_at, expired_text +2 more | - | missing | Pre-order launch timer is a planned core feature. |
 | `custom-section.liquid` | Blank section holding any theme blocks | none | background_image; blocks: @theme | `packages/blocks/src/sections/custom-layout.tsx` (Group, Columns, Grid) | not needed | Covered by our Layout and Elements blocks. |
 | `discord-cta.liquid` | Community call to action (Discord or other) with perks | index, page.about | platform, eyebrow, heading, text, button_label +5 more; blocks: perk | `packages/blocks/src/components/sections/glide/discord-cta.tsx` | ported (phase 1) |  |
@@ -60,11 +61,11 @@ leaves out colour scheme and padding, which every section has.
 | `feature-scroller.liquid` | Pinned scroll panel swapping images and copy per step | none | heading, media_position, product, low_stock_threshold; blocks: entry | - | missing | Not on any template. |
 | `featured-carousel.liquid` | Carousel of featured products, each a full buy box | index | eyebrow, heading, image_side, autoplay, autoplay_interval +6 more; blocks: slide | `packages/blocks/src/components/sections/glide/featured-carousel.tsx` | ported (phase 1) | Glide lazy-loads slides through featured-lockup-remote; we render directly. |
 | `featured-lockup-remote.liquid` | One featured-carousel slide fetched on demand (Section Rendering API) | none | none (helper) | - | not needed | Shopify rendering helper; our React renders slides itself. |
-| `featured-product.liquid` | One product, large image and buy box | index (off) | product, image_side, eyebrow, show_stamp, stamp_text +4 more | `packages/blocks/src/components/sections/featured-product.tsx` (FeaturedProduct) | changed since our port | Glide added stamp, payment button, share, help link. Disabled on home. |
+| `featured-product.liquid` | One product, large image and buy box | index (off) | product, image_side, eyebrow, show_stamp, stamp_text +4 more | `components/sections/glide/featured-product.tsx` (FeaturedProduct, refreshed in place) | ported (phase 2) | Stamp, share and help link added; old saved props still render. |
 | `featured-products.liquid` | Product grid from a collection | none | collection, kicker, heading, products_to_show, columns_desktop +1 more | `packages/blocks/src/puck-config.tsx` (FeaturedProducts) | changed since our port | Generic equivalent, not a Glide port. |
 | `fit-explorer.liquid` | Dark panel to flip between sizes or shapes of a product line | none | heading, intro; blocks: option | - | missing | Not on any template. |
-| `footer-group.json` | Footer section group: newsletter, footer, dock, cookie banner, popups | none | section group | `packages/core/src/theme/templates.ts` (footer group) | changed since our port | Our group holds Footer, Newsletter, RichText, Multicolumn, LogoList; Glide adds mobile-dock, cookie-banner, 3 signup popups. |
-| `footer.liquid` | Site footer: help cards, columns, socials, payment icons, policies, localisation | footer-group | columns, show_payment_icons, show_policies, show_localization; blocks: help_card (max 3), text, column, social | `packages/blocks/src/components/footer.tsx` (Footer) | changed since our port | Theme changed 2026-09-29, after our port. |
+| `footer-group.json` | Footer section group: newsletter, footer, dock, cookie banner, popups | none | section group | `packages/core/src/theme/templates-data.ts` (footer group) | ported (phase 2) | Default group follows the theme: newsletter, footer, mobile dock, cookie banner, signup popups. |
+| `footer.liquid` | Site footer: help cards, columns, socials, payment icons, policies, localisation | footer-group | columns, show_payment_icons, show_policies, show_localization; blocks: help_card (max 3), text, column, social | `components/footer.tsx` (Footer, dynamic, refreshed) | ported (phase 2) | Help cards, text, socials, payment icons, policies toggles. Old `{tagline}` still renders. |
 | `guide-entry.liquid` | Guides hub entry cards | page.find-your-match | eyebrow, heading, text; blocks: guide | - | missing |  |
 | `guide-essentials.liquid` | Key points block on a buying guide | page.guide-keyboard, page.guide-mouse, page.guide-pad | heading, intro; blocks: point | - | missing |  |
 | `guide-fit.liquid` | Fit profile to recommended products | none | heading, intro; blocks: fit | - | missing | Not on any template. |
@@ -73,10 +74,10 @@ leaves out colour scheme and padding, which every section has.
 | `guide-results.liquid` | Quiz results render target (Section Rendering API) | none | none (helper) | - | not needed | Helper for guide-quiz; replaced by our own result component when the quiz is ported. |
 | `guide-tiles.liquid` | Category tiles into guides | none | categories_heading; blocks: category | - | missing | Not on any template. |
 | `hall-of-fame.liquid` | Showcase of notable customers or builds from a collection | page.hall-of-fame | collection, eyebrow, heading, body, intro_full_width | - | missing |  |
-| `header-group.json` | Header section group: announcement bar and header | none | section group | `packages/core/src/theme/templates.ts` (header group) | changed since our port | Our group is already AnnouncementBar + Header; Glide content is richer. |
-| `header.liquid` | Site header: logo, mega menu, search overlay, wishlist, cart | header-group | menu, logo_position, sticky, show_wishlist, show_menu_images +7 more; blocks: feature_card | `packages/blocks/src/components/header.tsx` (Header) | changed since our port | Theme changed 2026-09-30. Search popular terms, brand collections, feature cards not ported. |
-| `hero-carousel.liquid` | Full-bleed hero carousel with image and video slides | index | frame, pin, autoplay, autoplay_interval, show_arrows +17 more; blocks: image_slide, video_slide | `packages/blocks/src/components/hero-carousel.tsx` (Hero, sections/hero-block.tsx) | changed since our port | Theme changed 2026-09-29. Ours: heading, subheading, 2 CTAs, autoplay, height. No video slides, dots, counter, scrim. |
-| `image-comparison.liquid` | Before/after image slider | index (off) | heading, image_before, image_after, product_before, product_before_image +8 more | - | missing | Disabled on home (glass_vs_cloth). |
+| `header-group.json` | Header section group: announcement bar and header | none | section group | `packages/core/src/theme/templates-data.ts` (header group) | ported (phase 2) | Default group: AnnouncementBar (theme announcements) + Header. |
+| `header.liquid` | Site header: logo, mega menu, search overlay, wishlist, cart | header-group | menu, logo_position, sticky, show_wishlist, show_menu_images +7 more; blocks: feature_card | `components/header.tsx` (Header, dynamic, refreshed) | ported (phase 2) | Mega menu with images, search overlay with popular terms, brand pills, feature cards, sticky, wishlist link. The wishlist page is phase 3. |
+| `hero-carousel.liquid` | Full-bleed hero carousel with image and video slides | index | frame, pin, autoplay, autoplay_interval, show_arrows +17 more; blocks: image_slide, video_slide | `sections/hero-block.tsx` + `components/hero-carousel.tsx` (Hero, refreshed in place) | ported (phase 2) | Image and video slides, dots, counter, scrim, pin, autoplay. Old slides still render. |
+| `image-comparison.liquid` | Before/after image slider | index (off) | heading, image_before, image_after, product_before, product_before_image +8 more | `components/sections/glide/image-comparison.tsx` (ImageComparison) | ported (phase 2) | Keyboard-accessible range slider; optional product images. |
 | `image-gallery.liquid` | Image grid or masonry with lightbox | page.about | heading, subheading, layout, columns, gap +1 more; blocks: image | `packages/blocks/src/components/sections/gallery.tsx` (Gallery) | changed since our port | Generic equivalent, not a Glide port. |
 | `image-with-text.liquid` | Two columns: media and copy | page.about | image, media_side, image_fit, media_panel, heading +4 more | `packages/blocks/src/components/sections/image-with-text.tsx` (ImageWithText) | changed since our port | Glide adds media panel, image fit, button style. |
 | `latest-drop.liquid` | Spotlight on the latest drop product with deadline and specs | index | product, kicker, blurb, deadline, cta_label +2 more; blocks: spec | `packages/blocks/src/components/sections/glide/latest-drop.tsx` | ported (phase 1) |  |
@@ -96,11 +97,11 @@ leaves out colour scheme and padding, which every section has.
 | `main-customers-reset-password.liquid` | Reset password | customers/reset_password | heading | - | not needed | OTP sign-in, no passwords. |
 | `main-list-collections.liquid` | All collections, brands and drops lists | list-collections.brands, list-collections.drops, list-collections | show_collections, heading, columns_desktop, per_page | - | missing | Storefront has a collections route; no Puck section for it. |
 | `main-page.liquid` | Generic page body | page, page.reviews | none (helper) | `packages/blocks/src/sections/dynamic.tsx` (MainPage) | changed since our port | Generic equivalent; show-title only. |
-| `main-product.liquid` | Product page: gallery, buy box, accordions, EMI, delivery, WhatsApp ask | product | none (helper) | `packages/blocks/src/components/product-view.tsx` (MainProduct dynamic) | changed since our port | Glide has about 20 buy-box block types (2127 lines). Ours: two switches. |
+| `main-product.liquid` | Product page: gallery, buy box, accordions, EMI, delivery, WhatsApp ask | product | none (helper) | `components/product-view.tsx` + `product-*.tsx` (MainProduct, dynamic) | ported (phase 2) | Gallery with Aceternity Lens; buy-box blocks are section settings (promise blocks start off). Rating needs a reviews source; metafield-driven spec cells not ported. |
 | `main-search.liquid` | Search results page | search | none (helper) | `packages/blocks/src/sections/dynamic.tsx` (MainSearch) | changed since our port | Generic equivalent; filters and sort switches. |
-| `mobile-dock.liquid` | Mobile bottom navigation bar | footer-group | blocks: link | - | missing |  |
+| `mobile-dock.liquid` | Mobile bottom navigation bar | footer-group | blocks: link | `components/sections/glide/mobile-dock.tsx` (MobileDock) | ported (phase 2) | Link blocks with icons. |
 | `multicolumn.liquid` | Row of icon, image and text columns | none | heading, subheading, columns, alignment; blocks: column | `packages/blocks/src/components/sections/multicolumn.tsx` (Multicolumn) | changed since our port | Glide has alignment, column count and richer column blocks. |
-| `newsletter.liquid` | Newsletter signup with interests and reasons | footer-group | eyebrow, heading, text, reassurance; blocks: interest (max 4), reason (max 4) | `packages/blocks/src/components/sections/newsletter.tsx` (Newsletter) | changed since our port | Theme changed 2026-10-01. Interest and reason blocks not ported. |
+| `newsletter.liquid` | Newsletter signup with interests and reasons | footer-group | eyebrow, heading, text, reassurance; blocks: interest (max 4), reason (max 4) | `components/sections/newsletter.tsx` (Newsletter, refreshed in place) | ported (phase 2) | Interests, reasons, reassurance; Aceternity Meteors on the card. |
 | `notes-series.liquid` | Latest posts from the Notes series | index | eyebrow, heading, text, blog, series_tag +3 more | `packages/blocks/src/components/sections/glide/notes-series.tsx` | ported (phase 1) |  |
 | `order-tracking.liquid` | Order tracking lookup page | page.tracking | heading, intro, orders_to_show, show_shipment_items, preorder_link +4 more; blocks: faq | - | missing |  |
 | `overlay-banner.liquid` | Image or video banner with overlaid text | none | image, mobile_image, video_url, height, tint_opacity +10 more | `packages/blocks/src/components/sections/image-banner.tsx` (ImageBanner) | missing | ImageBanner is our Dawn-style block, not a port of this section. |
@@ -108,14 +109,14 @@ leaves out colour scheme and padding, which every section has.
 | `perfect-match.liquid` | Pick a category, see a matching product pair | index | heading, highlight_words, collection, cta_label, cta_link; blocks: slot (max 6), category | `packages/blocks/src/components/sections/glide/perfect-match.tsx` | ported (phase 1) |  |
 | `preorder-updates.liquid` | Pre-order batch timeline page | page.preorder-updates | heading, intro; blocks: month, batch | - | missing |  |
 | `product-bundle.liquid` | Bundle of products with savings text | none | kicker, heading, savings_text; blocks: product | - | missing |  |
-| `product-features.liquid` | Alternating image and text rows from product metaobjects | none | none (helper) | - | missing |  |
-| `product-reviews.liquid` | Product reviews app block host | none | heading; blocks: @app | - | not needed | App host. Reviews come from our reviews feature, not a theme section. |
-| `product-size-guide.liquid` | Size guide from product tags and dimensions | product | heading, measure_label, measure_unit, dims_label, tags_label +2 more | - | missing | Product page (phase 2). |
-| `product-size-table.liquid` | Size table on product page | product | heading, show_units, note | - | missing | Product page (phase 2). |
-| `product-spec-strip.liquid` | Strip of key product specs | none | heading; blocks: spec | - | missing |  |
-| `product-specs.liquid` | Product specification groups, accordion | product | heading, open_first | - | missing | Product page (phase 2). |
+| `product-features.liquid` | Alternating image and text rows from product metaobjects | none | none (helper) | `components/sections/glide/product-features.tsx` (ProductFeatures) | ported (phase 2) | Typed rows. |
+| `product-reviews.liquid` | Product reviews app block host | none | heading; blocks: @app | `components/sections/glide/product-reviews.tsx` (ProductReviews) | ported (phase 2) | Placeholder: no reviews data source yet. |
+| `product-size-guide.liquid` | Size guide from product tags and dimensions | product | heading, measure_label, measure_unit, dims_label, tags_label +2 more | `components/sections/glide/product-size-guide.tsx` (ProductSizeGuide) | ported (phase 2) | Rows can be connected to a product metafield. |
+| `product-size-table.liquid` | Size table on product page | product | heading, show_units, note | `components/sections/glide/product-size-table.tsx` (ProductSizeTable) | ported (phase 2) | Rows can be connected to a product metafield; mm/cm/in switch. |
+| `product-spec-strip.liquid` | Strip of key product specs | none | heading; blocks: spec | `components/sections/glide/product-spec-strip.tsx` (ProductSpecStrip) | ported (phase 2) | Up to 6 items. |
+| `product-specs.liquid` | Product specification groups, accordion | product | heading, open_first | `components/sections/glide/product-specs.tsx` (ProductSpecs) | ported (phase 2) | Spec groups; rows can be connected to a multi-line metafield. |
 | `product-spotlight.liquid` | One product told as a story, stats and image | none | product, image, image_side, eyebrow, heading +4 more | - | missing |  |
-| `product-tabs.liquid` | Tabs under the product: description, add-ons, more | product | layout; blocks: _tab | - | missing | Product page (phase 2). |
+| `product-tabs.liquid` | Tabs under the product: description, add-ons, more | product | layout; blocks: _tab | `components/sections/glide/product-tabs.tsx` (ProductTabs) | ported (phase 2) | Description, text and spec tabs. Add-ons, recommendations and Judge.me tabs not ported. |
 | `product.liquid` | Dawn stub product section | none | none (helper) | - | not needed | Unused leftover; main-product replaces it. |
 | `promo-banners.liquid` | Row of promo banners | none | heading; blocks: banner | `packages/blocks/src/components/sections/cta-banner.tsx` (CtaBanner) | missing | CtaBanner is generic; different layout. |
 | `promo-bento.liquid` | Promo bento tiles with text reveal | index | heading, subheading, text_reveal; blocks: tile | `packages/blocks/src/components/sections/glide/promo-bento.tsx` | ported (phase 1) |  |
@@ -124,24 +125,24 @@ leaves out colour scheme and padding, which every section has.
 | `quick-view-card.liquid` | Quick view dialog content (Section Rendering API) | none | none (helper) | - | not needed | Helper; quick view is built natively when the cart drawer is ported. |
 | `recently-viewed-card.liquid` | Recently viewed row content (Section Rendering API) | none | none (helper) | `packages/blocks/src/sections/dynamic.tsx` (RecentlyViewed) | not needed | Helper. Our RecentlyViewed section covers the feature. |
 | `related-collections.liquid` | Related collections on a collection page | collection | heading; blocks: collection | - | missing | Collection page (phase 3). |
-| `related-products.liquid` | Related products on a product page | product | heading, products_to_show, recommendation_intent | `packages/blocks/src/sections/dynamic.tsx` (RelatedProducts) | changed since our port | Generic equivalent: heading and count. Glide has recommendation intent. |
+| `related-products.liquid` | Related products on a product page | product | heading, products_to_show, recommendation_intent | `components/product-recommendations.tsx` (RelatedProducts, refreshed) | ported (phase 2) | Theme look; recommendation intent needs a recommendations source. |
 | `restock-alerts.liquid` | Back-in-stock alert signup by category | none | eyebrow, heading, text, button_label; blocks: category | - | missing | Back-in-stock API exists (apps/storefront/src/app/api/back-in-stock); no section. |
 | `review-stack.liquid` | Stacked review cards with link | page.about | kicker, heading, link_label, link | - | missing |  |
 | `reviews-showcase.liquid` | Auto-scrolling reviews wall with ratings and photos | index, page.reviews | eyebrow, heading, min_rating, max_reviews, speed +6 more | `packages/blocks/src/components/sections/glide/reviews-showcase.tsx` | ported (phase 1) |  |
-| `reviews.liquid` | Reviews list with aggregate rating | index (off), page.reviews | kicker, heading, body_lines, aggregate_rating, aggregate_text +2 more; blocks: review, @app | - | missing | Disabled on home; used on page.reviews. |
+| `reviews.liquid` | Reviews list with aggregate rating | index (off), page.reviews | kicker, heading, body_lines, aggregate_rating, aggregate_text +2 more; blocks: review, @app | `components/sections/glide/reviews.tsx` (Reviews) | ported (phase 2) | Merchant-typed reviews; no reviews data source. |
 | `rich-text.liquid` | Heading, text, button with drop cap option | none | kicker, heading, drop_cap, body, width +4 more | `packages/blocks/src/puck-config.tsx` (RichText) | changed since our port | Generic equivalent; no kicker, drop cap, button. |
 | `roadmap-timeline.liquid` | Roadmap timeline from entries | page.about, page.roadmap | heading, intro, source, disclaimer; blocks: entry | - | missing |  |
 | `scrolling-text.liquid` | Scrolling text ticker | none | text, size, motion, direction, link | - | missing |  |
 | `ships-today.liquid` | Ships-today cutoff countdown with items | index | cutoff_hour, tz_offset, collection; blocks: item | `packages/blocks/src/components/sections/glide/ships-today.tsx` | ported (phase 1) |  |
 | `shop-by-spec.liquid` | Spec chips linking to filtered collections | none | heading, subheading; blocks: shortcut | - | missing |  |
 | `shop-the-look.liquid` | Image with product hotspots | none | kicker, heading, image; blocks: hotspot | - | missing |  |
-| `signup-popup.liquid` | Signup popup in 3 styles (corner, figure, feed) | footer-group | style, image, figure_image, figure_product, feed_products +19 more | - | missing | Three instances in the footer group. |
+| `signup-popup.liquid` | Signup popup in 3 styles (corner, figure, feed) | footer-group | style, image, figure_image, figure_product, feed_products +19 more | `components/sections/glide/signup-popup.tsx` (SignupPopup) | ported (phase 2) | Corner, figure and feed styles; shown inline while editing. |
 | `social-wall.liquid` | Social posts wall with tabs and autoscroll | index | layout, autoscroll, scroll_speed, heading, subheading +1 more; blocks: post | `packages/blocks/src/components/sections/glide/social-wall.tsx` | ported (phase 1) |  |
 | `software-index.liquid` | Software downloads list from a collection | page.software | heading, intro, collection, empty_text, footnote | - | missing |  |
 | `stat-counter.liquid` | Animated number stats | page.about | kicker; blocks: stat | `packages/blocks/src/components/sections/stats-counter.tsx` (StatsCounter) | changed since our port | Generic equivalent, not a Glide port. |
-| `sticky-atc.liquid` | Sticky add-to-cart bar | product | placement | - | missing | Product page (phase 2). |
+| `sticky-atc.liquid` | Sticky add-to-cart bar | product | placement | `components/sticky-atc.tsx` (StickyAtc) | ported (phase 2) | Follows the selected variant through a `variant:changed` event. |
 | `tab-panel-cards.liquid` | Tab product cards (Section Rendering API) | none | none (helper) | - | not needed | Helper for tabbed-products. |
-| `tabbed-products.liquid` | Tabbed product grid | index | heading, heading_alignment, show_tab_counts, heading_follows_tab, columns +1 more; blocks: tab | `packages/blocks/src/components/product-grid.tsx` (ProductGrid) | changed since our port | Theme changed 2026-09-29. Ours: tabs by product type; no tab counts or heading-follows-tab. |
+| `tabbed-products.liquid` | Tabbed product grid | index | heading, heading_alignment, show_tab_counts, heading_follows_tab, columns +1 more; blocks: tab | `sections/glide/tabbed-products.tsx` (ProductGrid, refreshed in place) | ported (phase 2) | Tab counts, heading alignment, heading follows tab. Old tabs still render. |
 | `trust-bar.liquid` | Strip of trust claims under the hero | none | gst_note; blocks: claim | - | missing |  |
 | `video-scroll.liquid` | Scroll-scrubbed video | none | video, video_url, poster, scroll_length | - | missing |  |
 | `video-story.liquid` | Scroll-driven video with captions | none | video, video_url, poster, tint_opacity, scroll_length; blocks: caption | - | missing |  |
@@ -159,10 +160,11 @@ generic blocks.
 | Status | Sections |
 | --- | --- |
 | identical | 3 |
-| changed since our port | 24 |
-| missing | 54 |
-| not needed | 19 |
+| changed since our port | 13 |
+| missing | 42 |
+| not needed | 18 |
 | ported (phase 1) | 14 |
+| ported (phase 2) | 24 |
 | **Total** | **114** |
 
 ## Home page map (`templates/index.json`)
@@ -342,3 +344,28 @@ comparison-table, complete-setup, countdown-timer, feature-scroller, featured-pr
 guide-fit, guide-tiles, multicolumn, overlay-banner, product-bundle, product-features,
 product-spec-strip, product-spotlight, promo-banners, promo-popup, quick-order-list, restock-alerts,
 rich-text, scrolling-text, shop-by-spec, shop-the-look, trust-bar, video, video-scroll, video-story.
+
+## Phase 2: UI-kit effects
+
+Where the theme re-implemented a Magic UI or Aceternity UI effect in its own JS or CSS, phase 2 uses
+the original component instead, adapted once in `packages/blocks/src/effects/` (theme colours, rem,
+reduced motion, fine-pointer guards; provenance comment in each file):
+
+| Effect | Source | Used by |
+| --- | --- | --- |
+| Marquee, 3D Marquee demo, Safari | Magic UI (MIT) | Reviews showcase, announcement bar marquee |
+| Lens | Aceternity UI (free) | Product gallery |
+| 3D Card | Aceternity UI (free) | Latest drop |
+| Meteors | Aceternity UI (free) | Newsletter |
+| Animated Tooltip | Aceternity UI (free) | Reviews showcase avatars |
+| Focus Cards | Aceternity UI (free) | Brand lab |
+
+Not swapped: category panels keep the theme's hover-widening row. The theme calls it its Aceternity
+"expandable cards" pick, but the free Aceternity Expandable Card is a click-to-open modal list, and no
+free original of the hover row exists; it needs the owner's Pro file or a decision. Tracing beam and
+card stack belong to phase 3 sections (roadmap, review stack).
+
+Not ported in phase 2 (phase 2b or later): product reviews data (sections show typed reviews or a
+placeholder), related-products recommendation intent, product-tabs add-ons / recommendations /
+Judge.me tabs, metafield-driven spec cells in the buy box, a wishlist page, and changing the default
+product template to the theme's section order.
