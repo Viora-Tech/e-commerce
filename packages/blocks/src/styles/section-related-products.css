@@ -1,0 +1,24 @@
+/**
+ * Related products and Recently viewed (sections/related-products.liquid,
+ * assets/section-related-products.css): two cards abreast on phones, four from 750px.
+ */
+.related-products-frame {
+  padding-block: var(--space-9);
+}
+
+.section-related-products__heading {
+  margin: 0 0 var(--space-5);
+}
+
+.related-products__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media screen and (min-width: 750px) {
+  .related-products__grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-5);
+  }
+}

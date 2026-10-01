@@ -1,0 +1,188 @@
+/**
+ * Size guide (sections/product-size-guide.liquid, assets/section-product-size-guide.css).
+ * A measurement slider over one card per size; the nearest size lifts and gets a badge.
+ */
+.section-size-guide {
+  margin-top: var(--space-9);
+}
+
+.size-guide__heading {
+  margin: 0 0 var(--space-5);
+  color: var(--color-muted);
+}
+
+.size-guide__control {
+  max-width: 28.75rem;
+  margin: 0 auto var(--space-7);
+  padding: var(--space-5) var(--space-6);
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-m);
+  text-align: center;
+}
+
+.size-guide__control-label {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.size-guide__readout {
+  display: block;
+  margin-block: var(--space-2) var(--space-4);
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.size-guide__unit {
+  margin-left: 0.25rem;
+  color: var(--color-muted);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.size-guide__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.25rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-line);
+  cursor: pointer;
+}
+
+.size-guide__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 0.125rem solid var(--color-bg);
+  border-radius: 50%;
+  background-color: var(--color-brand);
+  box-shadow: 0 0.0625rem 0.25rem color-mix(in srgb, var(--color-ink) 25%, transparent);
+  cursor: grab;
+}
+
+.size-guide__slider::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 0.125rem solid var(--color-bg);
+  border-radius: 50%;
+  background-color: var(--color-brand);
+  box-shadow: 0 0.0625rem 0.25rem color-mix(in srgb, var(--color-ink) 25%, transparent);
+  cursor: grab;
+}
+
+.size-guide__slider:focus-visible {
+  outline: 0.125rem solid var(--color-brand);
+  outline-offset: 0.25rem;
+}
+
+.size-guide__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.size-guide__card {
+  position: relative;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+}
+
+.size-guide__card dl {
+  margin: 0;
+}
+
+@media screen and (prefers-reduced-motion: no-preference) {
+  .size-guide__card {
+    transition:
+      border-color 240ms ease,
+      transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.size-guide__card.is-match {
+  border-color: var(--color-ink);
+  transform: translateY(-0.25rem);
+}
+
+.size-guide__badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% -50%;
+  padding: 0.25rem var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+  font-family: var(--font-heading);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.size-guide__name {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.size-guide__field {
+  padding-block: var(--space-3);
+  border-top: 0.0625rem solid var(--color-line);
+}
+
+.size-guide__label {
+  margin-bottom: 0.125rem;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.size-guide__value {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.size-guide__grips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.size-guide__grip {
+  padding: 0.125rem var(--space-3);
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.size-guide__note {
+  max-width: 62ch;
+  margin: var(--space-5) auto 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  text-align: center;
+}

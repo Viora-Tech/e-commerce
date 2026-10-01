@@ -1,8 +1,8 @@
+import { ProductRecommendations } from '@commerce/blocks'
 import { cookies } from 'next/headers'
 import { listCardProducts } from '@/lib/catalog'
 import { parseRecentlyViewed, RECENTLY_VIEWED_COOKIE } from '@/lib/recently-viewed'
 import { inStore } from '@/lib/store-context'
-import ProductRow from './product-row'
 
 type RecentlyViewedProps = {
   storeId: string
@@ -27,5 +27,5 @@ export default async function RecentlyViewed({
   const products = await inStore(storeId, (tx) => listCardProducts(tx, limit, undefined, handles))
 
   // Render logic
-  return <ProductRow heading={heading} products={products} />
+  return <ProductRecommendations heading={heading} products={products} />
 }

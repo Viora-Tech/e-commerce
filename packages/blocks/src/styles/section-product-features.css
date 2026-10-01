@@ -1,0 +1,69 @@
+/**
+ * Product features (sections/product-features.liquid, assets/section-product-features.css).
+ * Image and copy split 50/50 from 750px, alternating sides; stacked on phones.
+ */
+.section-product-features {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-feature {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-feature__media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-line);
+}
+
+.product-feature__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-feature__content {
+  padding: var(--space-6) var(--page-margin);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+.product-feature__heading {
+  margin: 0;
+}
+
+.product-feature__text {
+  color: var(--color-muted);
+  max-width: 50ch;
+}
+
+@media screen and (min-width: 750px) {
+  .product-feature {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .product-feature--image-right {
+    flex-direction: row-reverse;
+  }
+
+  .product-feature__media,
+  .product-feature__content {
+    flex: 1 1 50%;
+  }
+
+  /* The theme let the image's own height set the row; a fill image needs a floor. */
+  .product-feature__media {
+    aspect-ratio: auto;
+    min-height: 20rem;
+  }
+
+  .product-feature__content {
+    padding: var(--space-8) calc(var(--page-margin) * 2);
+  }
+}

@@ -1,0 +1,59 @@
+/**
+ * Product reviews (sections/product-reviews.liquid, assets/section-product-reviews.css).
+ * A big brand-tinted quote mark beside the heading, the reviews in a bordered panel.
+ */
+.section-product-reviews {
+  padding-block: var(--space-9);
+  scroll-margin-top: var(--space-9);
+}
+
+.section-product-reviews__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 0.0625rem solid var(--color-line);
+}
+
+.section-product-reviews__mark {
+  font-family: var(--font-heading);
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 0.6;
+  color: color-mix(in srgb, var(--color-brand) 40%, transparent);
+  user-select: none;
+}
+
+.section-product-reviews__heading {
+  margin: 0;
+}
+
+.section-product-reviews__widget {
+  padding: var(--space-5);
+  border: 0.0625rem solid var(--color-line);
+  border-radius: var(--radius-m);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.section-product-reviews__empty {
+  color: var(--color-muted);
+  text-align: center;
+}
+
+@media screen and (min-width: 750px) {
+  .section-product-reviews__mark {
+    font-size: 3.5rem;
+  }
+
+  .section-product-reviews__widget {
+    padding: var(--space-6);
+  }
+}
+
+@media screen and (min-width: 990px) {
+  .section-product-reviews {
+    padding-block: var(--space-10);
+  }
+}
