@@ -1,33 +1,24 @@
 'use client'
 
-import { CircleAlert, CircleCheck, Truck } from '@commerce/ui/icons'
-import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
-import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
-import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Spinner } from '@commerce/ui/shadcn/spinner'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
-import SaveBar from '@/components/layout/save-bar'
-import type { ProviderDef, ProviderState } from '@/components/settings/provider-settings-form'
+import { Truck } from '@commerce/ui/icons'
+import ConnectFields, { type ConnectFieldSpec } from '@/components/apps/shared/connect-fields'
+import CourierConnectGuide from '@/components/apps/shared/courier-connect-guide'
+import ProviderConnectPage, {
+  type ConnectContext,
+  type TestOutcome,
+} from '@/components/apps/shared/provider-connect-page'
+import type { FieldValues } from '@/components/apps/shared/provider-settings'
+import { courierConnectContent } from '@/data/courier-apps'
 import { shiprocketAppContent as appCopy } from '@/data/shiprocket'
 import { api } from '@/lib/api-client'
 import ConnectAdvancedFields from './connect-advanced-fields'
-import ConnectGuide from './connect-guide'
 
-type Blob = ProviderState & Record<string, unknown>
-type FieldValues = Record<string, string>
-type TestResult = { status: 'idle' | 'testing' | 'ok' | 'error'; message?: string }
+type Ctx = ConnectContext<TestOutcome>
 
 const copy = appCopy.connect
 const PROVIDER_ID = 'shiprocket'
 
-/** localStorage flag: only cosmetic (which shows the tested badge on Overview), never trusted for
- *  anything that matters. Cleared whenever the saved credentials change, so it can't go stale. */
-const TESTED_FLAG_KEY = 'shiprocket-connect-tested'
+const pageCopy = { ...copy, ...courierConnectContent }
 
 const emptyValues: FieldValues = {
   email: '',
@@ -38,241 +29,64 @@ const emptyValues: FieldValues = {
   webhookSecret: '',
 }
 
-const markTested = () => {
-  try {
-    localStorage.setItem(TESTED_FLAG_KEY, 'true')
-  } catch {
-    // Private browsing / blocked storage: the Overview badge just won't show. Not fatal.
-  }
-}
+const fieldSpecs: ConnectFieldSpec[] = [
+  { key: 'email', type: 'email', ...copy.fields.email },
+  { key: 'password', type: 'password', ...copy.fields.password },
+  { key: 'pickupLocationName', ...copy.fields.pickupLocationName },
+  { key: 'originPincode', inputMode: 'numeric', ...copy.fields.originPincode },
+]
 
-const clearTested = () => {
-  try {
-    localStorage.removeItem(TESTED_FLAG_KEY)
-  } catch {
-    // Same as above.
-  }
-}
+const testConnection = (values: FieldValues) =>
+  api.store.testShiprocketConnection({ fields: values })
 
-/** The Shiprocket app's own credentials screen: a 3-step guide, a read-only "Test connection"
- *  check, and the rarely-touched fields under Advanced. */
-export default function ConnectPage() {
-  // Hooks
-  const [provider, setProvider] = useState<ProviderDef | null>(null)
-  const [blob, setBlob] = useState<Blob | null>(null)
-  const [values, setValues] = useState<FieldValues>(emptyValues)
-  const [snapshot, setSnapshot] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [openedDashboard, setOpenedDashboard] = useState(false)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [test, setTest] = useState<TestResult>({ status: 'idle' })
+const filled = (v: string | undefined) => (v ?? '').trim().length > 0
 
-  useEffect(() => {
-    api.store.getShipping().then((r) => {
-      const def = r.available.find((p) => p.id === PROVIDER_ID) ?? null
-      const saved = { ...emptyValues, ...(r.settings.providers[PROVIDER_ID] ?? {}) }
-      setProvider(def)
-      setBlob(r.settings as Blob)
-      setValues(saved)
-      setSnapshot(JSON.stringify(saved))
-    })
-  }, [])
-
-  // Helpers
-  const setField = (key: string, value: string) => {
-    setValues((v) => ({ ...v, [key]: value }))
-    setTest({ status: 'idle' })
-    clearTested()
-  }
-
-  // Event handlers
-  const handleOpenDashboard = () => setOpenedDashboard(true)
-
-  const handleTest = async () => {
-    setTest({ status: 'testing' })
-    try {
-      const result = await api.store.testShiprocketConnection({ fields: values })
-      if (result.ok) {
-        setTest({ status: 'ok', message: result.message })
-        markTested()
-      } else {
-        setTest({ status: 'error', message: result.message })
-      }
-    } catch (err) {
-      setTest({
-        status: 'error',
-        message: err instanceof Error ? err.message : copy.rateLimited,
-      })
-    }
-  }
-
-  const handleSave = async () => {
-    if (!blob) return
-    setBusy(true)
-    setError(null)
-    try {
-      const next: Blob = {
-        ...blob,
-        enabled: [...new Set([...blob.enabled, PROVIDER_ID])],
-        providers: { ...blob.providers, [PROVIDER_ID]: values },
-      }
-      const result = (await api.store.updateShipping(next)) as Blob | null
-      const saved = { ...emptyValues, ...(result?.providers[PROVIDER_ID] ?? values) }
-      if (result) setBlob(result)
-      setValues(saved)
-      setSnapshot(JSON.stringify(saved))
-      toast.success('Settings saved')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleDiscard = () => {
-    if (snapshot) setValues(JSON.parse(snapshot) as FieldValues)
-    setError(null)
-  }
-
-  // Render logic
-  const dirty = snapshot !== null && JSON.stringify(values) !== snapshot
-  const step2Done =
-    (values.email ?? '').trim().length > 0 && (values.password ?? '').trim().length > 0
-  const step3Done =
-    step2Done &&
-    (values.pickupLocationName ?? '').trim().length > 0 &&
-    /^\d{6}$/.test((values.originPincode ?? '').trim())
-
+const renderGuide = ({ values, opened, onOpen }: Ctx) => {
+  const step2Done = filled(values.email) && filled(values.password)
   return (
-    <div className="flex flex-col gap-4">
-      <SaveBar
-        open={dirty}
-        message="Unsaved changes"
-        saveLabel="Save and connect"
-        discardLabel="Discard"
-        onSave={handleSave}
-        onDiscard={handleDiscard}
-        saving={busy}
-      />
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Truck aria-hidden="true" />} />
-      {error ? (
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>Could not save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+    <CourierConnectGuide
+      copy={copy}
+      openedDashboard={opened}
+      onOpenDashboard={onOpen}
+      step2Done={step2Done}
+      step3Done={
+        step2Done &&
+        filled(values.pickupLocationName) &&
+        /^\d{6}$/.test((values.originPincode ?? '').trim())
+      }
+    />
+  )
+}
 
-      {provider === null ? (
-        <Card className="gap-4 p-6">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </Card>
-      ) : (
-        <>
-          <ConnectGuide
-            openedDashboard={openedDashboard}
-            onOpenDashboard={handleOpenDashboard}
-            step2Done={step2Done}
-            step3Done={step3Done}
-          />
+const renderFields = ({ values, setField }: Ctx) => (
+  <ConnectFields providerId={PROVIDER_ID} specs={fieldSpecs} values={values} onField={setField} />
+)
 
-          <Card size="form">
-            <CardContent className="flex flex-col gap-5">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="shiprocket-email">{copy.fields.email.label}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="shiprocket-email"
-                    type="email"
-                    autoComplete="off"
-                    value={values.email}
-                    onChange={(e) => setField('email', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.email.help}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="shiprocket-password">
-                    {copy.fields.password.label}
-                  </FieldLabel>
-                  <Input
-                    size="lg"
-                    id="shiprocket-password"
-                    type="password"
-                    autoComplete="off"
-                    value={values.password}
-                    onChange={(e) => setField('password', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.password.help}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="shiprocket-pickupLocationName">
-                    {copy.fields.pickupLocationName.label}
-                  </FieldLabel>
-                  <Input
-                    size="lg"
-                    id="shiprocket-pickupLocationName"
-                    autoComplete="off"
-                    value={values.pickupLocationName}
-                    onChange={(e) => setField('pickupLocationName', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.pickupLocationName.help}</FieldDescription>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="shiprocket-originPincode">
-                    {copy.fields.originPincode.label}
-                  </FieldLabel>
-                  <Input
-                    size="lg"
-                    id="shiprocket-originPincode"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={values.originPincode}
-                    onChange={(e) => setField('originPincode', e.target.value)}
-                  />
-                  <FieldDescription>{copy.fields.originPincode.help}</FieldDescription>
-                </Field>
-              </FieldGroup>
+const renderExtras = ({ values, setField, advancedOpen, onAdvancedOpenChange }: Ctx) => (
+  <ConnectAdvancedFields
+    baseUrl={values.baseUrl ?? ''}
+    webhookSecret={values.webhookSecret ?? ''}
+    onField={setField}
+    open={advancedOpen}
+    onOpenChange={onAdvancedOpenChange}
+  />
+)
 
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-fit"
-                  onClick={handleTest}
-                  disabled={test.status === 'testing'}
-                >
-                  {test.status === 'testing' ? <Spinner /> : null}
-                  {test.status === 'testing' ? copy.testing : copy.testConnection}
-                </Button>
-                {test.status === 'ok' ? (
-                  <p className="flex items-center gap-1.5 text-body font-medium text-success">
-                    <CircleCheck aria-hidden="true" className="size-4" />
-                    {test.message}
-                  </p>
-                ) : test.status === 'error' ? (
-                  <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                    <CircleAlert aria-hidden="true" className="size-4" />
-                    {test.message}
-                  </p>
-                ) : null}
-                <p className="text-caption text-muted-foreground">{copy.testHint}</p>
-              </div>
-
-              <ConnectAdvancedFields
-                baseUrl={values.baseUrl ?? ''}
-                webhookSecret={values.webhookSecret ?? ''}
-                onField={setField}
-                open={advancedOpen}
-                onOpenChange={setAdvancedOpen}
-              />
-            </CardContent>
-          </Card>
-        </>
-      )}
-    </div>
+/** `/apps/shiprocket/connect`: a 3-step guide, a read-only "Test connection" check, and the
+ *  rarely-touched fields under Advanced. */
+export default function ConnectPage() {
+  return (
+    <ProviderConnectPage
+      providerId={PROVIDER_ID}
+      kind="shipping"
+      icon={<Truck aria-hidden="true" />}
+      copy={pageCopy}
+      emptyValues={emptyValues}
+      test={testConnection}
+      waitForListing
+      guide={renderGuide}
+      fields={renderFields}
+      extras={renderExtras}
+    />
   )
 }
