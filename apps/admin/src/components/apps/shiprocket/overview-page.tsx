@@ -1,6 +1,6 @@
 'use client'
 
-import { SHIPROCKET_CAPABILITIES } from '@commerce/shipping-shiprocket'
+import { SHIPROCKET_CAPABILITIES } from '@commerce/shipping-shiprocket/client'
 import { CircleCheck, Truck } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'

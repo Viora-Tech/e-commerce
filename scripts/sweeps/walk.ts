@@ -31,6 +31,7 @@ export const SERVER_ONLY_PACKAGES = new Set([
   '@commerce/payments-razorpay',
   '@commerce/shipping',
   '@commerce/shipping-delhivery',
+  '@commerce/shipping-rapidshyp',
   '@commerce/shipping-shiprocket',
   '@commerce/api',
 ])

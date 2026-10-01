@@ -1,6 +1,6 @@
 'use client'
 
-import { DELHIVERY_STAGING_URL } from '@commerce/shipping-delhivery'
+import { DELHIVERY_STAGING_URL } from '@commerce/shipping-delhivery/client'
 import { CircleAlert, CircleCheck, Truck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'

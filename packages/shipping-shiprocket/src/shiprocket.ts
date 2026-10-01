@@ -62,7 +62,6 @@ import {
   type Serviceability,
   type ServiceabilityQuery,
   type ShipmentStatus,
-  type ShippingCapability,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
@@ -72,6 +71,7 @@ import {
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
+import { SHIPROCKET_CAPABILITIES } from './client'
 
 export const SHIPROCKET_BASE_URL = 'https://apiv2.shiprocket.in/v1/external'
 
@@ -698,21 +698,6 @@ const fields: ProviderField[] = [
       'Paste the same value into the custom header field when registering the tracking ' +
       'webhook in Shiprocket (Settings > API > Webhooks), so we can tell a genuine call from a stray one.',
   },
-]
-
-/** What this adapter can do today. Manifest and insurance are left off: manifest generation is
- *  implemented in code (`/manifests/generate`) but not exposed as a capability until the workspace
- *  wires a "generate manifest" action for it; insurance has no endpoint confirmed. */
-export const SHIPROCKET_CAPABILITIES: ShippingCapability[] = [
-  'serviceability',
-  'rates',
-  'create_shipment',
-  'label',
-  'tracking',
-  'webhook',
-  'ndr',
-  'wallet',
-  'reverse_pickup',
 ]
 
 export const shiprocketFactory: ShippingProviderFactory<ShiprocketConfig> = {
