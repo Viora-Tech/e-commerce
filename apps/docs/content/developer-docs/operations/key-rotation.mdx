@@ -1,0 +1,100 @@
+---
+title: Key rotation
+description: Rotate SETTINGS_SECRET, the key every store's stored secrets are encrypted under, without downtime.
+---
+
+# Rotating `SETTINGS_SECRET`
+
+`SETTINGS_SECRET` encrypts (AES-256-GCM, `packages/core/src/secrets.ts`) every store's:
+
+- provider credentials: payments, shipping, notifications, storage and shopper sign-in apps
+  (`store.payments`, `.shipping`, `.notifications`, `.storage`, `.login_providers`);
+- gift card codes (`gift_card.code_cipher`);
+- Shopify importer tokens (`shopify_import_connection.access_token`);
+- customer phone numbers (`customer.phone`), whose search index `customer.phone_index` is an
+  HMAC keyed by the same secret.
+
+Rotate it when it may have leaked (a laptop lost, a log that printed the environment, a
+departing admin), and as routine once a year.
+
+## How rotation works
+
+- **Key ids.** Every ciphertext written today is `v2.<keyId>.<iv>.<tag>.<ct>`, where `keyId`
+  is the first 8 hex characters of `sha256(key)`. Decryption picks the matching key straight
+  away. Old `v1.<iv>.<tag>.<ct>` ciphertexts (before key ids) have no id; they are tried
+  against every key and keep decrypting.
+- **Keyring.** `SETTINGS_SECRET` is the current key: every new write uses it.
+  `SETTINGS_SECRET_PREVIOUS` is an optional comma-separated list of retired keys that may
+  still decrypt. `decryptSecret` reads it from the environment itself, so every read path
+  (checkout, webhooks, the worker, the storefront) keeps working during a rotation.
+- **Lazy re-encryption.** Whenever a settings blob is saved (a merchant edits Settings →
+  Payments, for example), every secret in it that is still under a retired key is
+  re-encrypted under the current one, untouched secrets included.
+- **One-off re-encryption.** `bun run rotate-secrets` moves everything else in one pass,
+  one transaction per store (`rotateStoreSecrets` in `packages/core/src/secret-rotation.ts`).
+  It also recomputes `customer.phone_index` under the new key.
+
+## Runbook
+
+<Steps>
+
+### Generate a new key
+
+```sh filename="Terminal"
+openssl rand -hex 32
+```
+
+Keep it in the deployment's secret store (Dokploy environment), never in the repo.
+
+### Deploy with both keys
+
+Set `SETTINGS_SECRET_PREVIOUS` to the **current** value and `SETTINGS_SECRET` to the new one,
+then redeploy the admin, storefront and worker. Both keys decrypt; only the new one encrypts.
+If an earlier rotation is still in flight, list both retired keys, comma-separated.
+
+### See what will move
+
+From the tasks image (the same `docker run` pattern as
+[Deployment, Restore](/developer-docs/operations/deployment)):
+
+```sh filename="Terminal"
+bun run rotate-secrets
+```
+
+The dry run prints, per store, how many settings secrets, gift card codes, Shopify tokens and
+customer phones are still under an old key, and how many values **no key opens** (normally
+zero).
+
+### Re-encrypt
+
+```sh filename="Terminal"
+bun run rotate-secrets --apply
+```
+
+Run it soon after the deploy: until it runs, phone search and phone sign-in cannot find a
+customer whose phone index is still under the old key (the index is keyed by the secret).
+Everything else works throughout. The command is idempotent: a second run reports zero.
+It exits with status 1 if any value could not be decrypted with any key; fix
+`SETTINGS_SECRET_PREVIOUS` and run it again.
+
+### Retire the old key
+
+When a dry run reports zero values left to move, remove `SETTINGS_SECRET_PREVIOUS` and
+redeploy. Anything still under the retired key would now fail to decrypt, so do not skip the
+previous step.
+
+</Steps>
+
+## Plaintext phones from before encryption
+
+`bun run backfill-phone-encryption` is a different job: it encrypts `customer.phone` values
+that are still **plaintext** (rows from before phone encryption existed). Run it once after
+the migration that added `phone_index`; `rotate-secrets` handles phones that are already
+encrypted.
+
+## Adding a new encrypted column
+
+Use `encryptSecret` / `decryptSecret`. If the column lives in core, add it to
+`CORE_CIPHER_COLUMNS` in `packages/core/src/secret-rotation.ts`; if a plugin owns the table,
+add it to `PLUGIN_COLUMNS` in `scripts/rotate-secrets.ts`. Settings blobs that go through
+`encryptProviderSettings` are covered already.

@@ -1,0 +1,85 @@
+---
+title: Download your data or delete your store
+description: Get a copy of everything your store holds, and close your store for good when you need to.
+---
+
+# Download your data or delete your store
+
+Both are at the bottom of **Settings → General**.
+
+## Download your data
+
+Your store's data is yours. You can take a full copy at any time: products, variants, stock,
+collections, orders, customers, discounts, gift cards, pages, blog posts, menus, settings and
+the rest.
+
+<Steps>
+
+### Start the export
+
+In **Settings → General**, under **Download your data**, press **Export all data**. You can
+keep working; the file is prepared in the background. A small store takes a few seconds, a
+large one a few minutes.
+
+### Download the file
+
+When the export shows **Ready**, press **Download**. You get one zip file named after your
+store and the date.
+
+</Steps>
+
+What is in the zip:
+
+- `store.json`: your store's own settings.
+- `tables/…ndjson`: one file per kind of record (`product.ndjson`, `order.ndjson`,
+  `customer.ndjson` and so on), one record per line. Open them in a text editor, or load
+  them in a spreadsheet or database tool that reads "JSON lines".
+- `manifest.json`: how many records each file has, and when the export was made.
+
+What is not in the zip:
+
+- **Photos, videos and invoice PDFs.** Each one is listed with its web address (in
+  `media.ndjson` and the invoice records), so you can download them separately.
+- **Passwords, payment and courier keys, gift card codes and sign-in codes.** These show as
+  `[encrypted]` or `[redacted]`. Customer phone numbers are included, readable.
+
+Each file can be downloaded for 7 days, then it is removed. Make a new export whenever you
+need a fresh copy.
+
+<Callout type="info">
+Exporting needs the **Manage settings** permission. The store owner and admins have it.
+</Callout>
+
+## Delete your store
+
+Deleting your store closes it for good:
+
+- your website goes offline;
+- every product, order, customer, photo, page, discount and setting is deleted;
+- your staff lose access.
+
+**This cannot be undone.** Download your data first if you may need it later, for example
+for your accounts or GST records.
+
+<Steps>
+
+### Open the danger zone
+
+At the very bottom of **Settings → General**, under **Delete store**, press
+**Delete store**. Only the store owner can do this; for anyone else the button is greyed
+out.
+
+### Type the store name
+
+The box asks you to type your store's name exactly as shown (capital letters do not
+matter). This makes sure nobody deletes the wrong store by accident.
+
+### Confirm
+
+Press **Delete store**. When it is done you go back to the admin home, where you can pick
+another store you belong to or create a new one.
+
+</Steps>
+
+Your sign-in account itself is not deleted, only the store. If the deletion fails part way,
+nothing is deleted and you can try again.

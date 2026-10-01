@@ -139,6 +139,35 @@ the original value. See `docs/security/data-protection.md` for what this feeds i
 (encryption, masking, rotation) and why the field flag is the source of truth, not just
 the name regex.
 
+## Cross-store leak test (DB-backed, in `bun run test`)
+
+`packages/api/test/cross-store-leak.test.ts`. Not a static sweep: it runs against Postgres
+with the api suite, but it is a guardrail in the same spirit, and it covers new code without
+anyone editing it.
+
+1. **Two stores, every table.** `seedEveryTable` (`packages/db/test/seed-every-table.ts`,
+   exported as `@commerce/db/test/seed`) reads the catalogue and puts rows in every table
+   that has a `store_id`, for store A and store B, parents before children, values shaped to
+   pass each column's type and `in (...)` checks. A table added next month is seeded
+   automatically; the test fails if the seeder cannot fill one.
+2. **Walk the whole router.** Signed in as store A's owner, it calls every procedure in
+   `appRouter` twice, with an input built from the procedure's own Zod schema
+   (`test/support/sample-input.ts`): once with store A's ids, once with store B's ids as a
+   probe. It then calls every exported loader in `apps/storefront/src/lib` whose first
+   argument is `tx`, inside store A's `withStore`, with A's and B's handles.
+3. **It fails when** a response (or an error message) holds any id or seeded value of store
+   B other than an id the call itself passed in; when any of store B's rows changed; or when
+   any of store A's rows now holds one of store B's ids (A linked B's data into its own, which
+   RLS does not stop because foreign-key checks bypass it).
+
+**Fix a finding** in the service: read the referenced row under RLS before writing a
+reference to it (see `addOrderNote` and `assertOwnSegment` in campaigns, the two this test
+found when it was added). **SKIP** (top of the file) is only for procedures that reach an
+outside service (gateway, courier, mailer, Shopify, DNS) or that would end the walk (switch
+or delete the store under test), each with its reason. The test also asserts a coverage
+floor (60% of callable procedures answer at least one call without an error) so a broken
+input generator cannot pass silently, and it checks its own detector on a planted leak.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

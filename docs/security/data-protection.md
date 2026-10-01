@@ -96,20 +96,21 @@ documents the variable names, not real values.
 2. Deploy with `SETTINGS_SECRET_PREVIOUS` set to the **current** (soon-to-be-old) value,
    and `SETTINGS_SECRET` set to the new one. Both keys now work for decryption; only the
    new key is used for new writes.
-3. Run `bun scripts/rotate-secrets.ts` (dry run) to see what it would touch, then
-   `bun scripts/rotate-secrets.ts --apply`. It walks every store's provider settings, gift
-   card codes and Shopify import connection tokens, re-encrypting anything still under an
-   old key. It does **not** currently touch `customer.phone` — see the next step.
-4. Run `bun scripts/backfill-phone-encryption.ts` (dry run), then `--apply`, if you also
-   need to re-encrypt customer phones under the new key (it treats "already-encrypted,
-   just under an old key" the same as fresh plaintext: pass the old key via
-   `SETTINGS_SECRET_PREVIOUS` and it decrypts-then-re-encrypts). Idempotent either way.
-5. Once both scripts report zero remaining old-key rows, remove `SETTINGS_SECRET_PREVIOUS`
-   and redeploy. Anything still encrypted under the retired key would now fail to decrypt,
-   so don't skip step 3/4.
+3. Run `bun run rotate-secrets` (dry run) to see what it would touch, then
+   `bun run rotate-secrets --apply`. It walks every store's provider settings, gift card
+   codes, Shopify import connection tokens and customer phones, re-encrypting anything
+   still under an old key and recomputing `customer.phone_index` under the new key. Run it
+   soon after the deploy: phone search cannot find a customer whose index is still under
+   the old key. Settings blobs are also re-encrypted whenever they are saved (lazy rotation).
+4. Once a dry run reports zero values left, remove `SETTINGS_SECRET_PREVIOUS` and redeploy.
+   Anything still encrypted under the retired key would now fail to decrypt, so don't skip
+   step 3.
 
-Both scripts are dry-run by default, update one store per transaction, and are safe to
-run more than once (a row already under the current key is left alone).
+The script is dry-run by default, updates one store per transaction, exits 1 if any value
+opens under no key, and is safe to run more than once (a value already under the current
+key is left alone). `scripts/backfill-phone-encryption.ts` is only for phones still in
+**plaintext** (rows from before phone encryption). Full runbook: developer docs, Operations,
+Key rotation (`apps/docs/content/developer-docs/operations/key-rotation.mdx`).
 
 ## Backups
 

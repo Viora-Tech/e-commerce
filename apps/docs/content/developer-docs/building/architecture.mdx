@@ -152,6 +152,70 @@ AES-256-GCM encrypted at rest under `SETTINGS_SECRET` and masked in the API.
    `withStore` transaction.
 5. IDs are UUIDv7 generated in the app, never database sequences, except
    per-store counters (`store.next_order_number` → `order.number`) that are explicitly scoped.
+6. A reference written from a request (`orderId`, `segmentId`, …) is read under RLS before
+   it is stored. Foreign-key checks bypass RLS, so the database alone would accept another
+   store's id. The cross-store leak test (`docs/guardrails.md`) catches a missed one.
+
+### Noisy neighbours: per-store fairness
+
+One store's big job (a Shopify import with 5,000 images, a 50,000-recipient campaign, a
+restock blast) must not make every other store wait. Two layers:
+
+**Worker queues.** Every queue that carries store jobs has a worker `concurrency` and a
+lower `perStore` cap, both in `QUEUE_LIMITS` (`packages/queue/src/index.ts`):
+
+| Queue | Concurrency | Per store |
+|---|---|---|
+| notifications | 5 | 3 |
+| app events | 3 | 2 |
+| app jobs (imports, PDF batches) | 4 | 2 |
+| marketing send | 2 | 1 |
+| media processing | 2 | 1 |
+| back in stock | 2 | 1 |
+| store export | 2 | 1 |
+
+`fairProcessor` (`packages/queue/src/fair.ts`) wraps each processor. Before a job runs it
+takes a slot for the job's `storeId` in a Redis sorted set `fair:<queue>:<storeId>` (one
+member per running job, scored by lease expiry; MULTI/EXEC, no Lua, so it works on
+Dragonfly). A job whose store is at its cap is moved back to the delayed set for 1.5–3 s
+(`moveToDelayed` + `DelayedError`: no attempt is used up) and the worker takes the next
+job, usually another store's. When the deferred job comes back it joins the end of the
+queue, so busy stores take turns with everyone else: rough round-robin, without BullMQ
+Pro's groups. Slots are leases renewed by the running job, so a crashed worker's slot
+lapses after a minute instead of blocking that store. The cap is shared by every worker
+process, so it holds with several replicas.
+
+Trade-off: the caps are not work-conserving. A store alone on the platform still runs at
+most `perStore` jobs at once on a queue (one image at a time, for example). That is the
+price of a hard guarantee; raise `perStore` for a queue if a lone store's speed matters more.
+
+**Heavy admin actions.** Imports, bulk edits, exports and the full store export / delete
+are rate-limited per store (`heavy(action)` middleware, `packages/api/src/procedures/heavy.ts`,
+on the existing Dragonfly sliding-window store). Each kind is one budget per store, shared by
+every button of that kind: import 20 an hour (a preview and a run count separately), bulk 60
+per 10 minutes, export 30 per 10 minutes, full store data 5 an hour. Over budget the API
+answers `TOO_MANY_REQUESTS` with a plain "try again in N minutes".
+
+### Store export and offboarding
+
+Settings → General → "Download your data" builds a zip of every table with a `store_id`
+(one NDJSON file each, found from the catalogue, so new tables are included) plus the store
+row, in the worker (`{store}-export` queue), into the store's own storage under
+`stores/<id>/private/exports/` with a random suffix, downloadable through the API for 7 days.
+Secrets are redacted; customer phones are decrypted. "Delete store" (owner only, store name
+typed to confirm) deletes the store's files (`deletePrefix('stores/<id>/')` on each storage
+it used), then every `store_id` row in foreign-key order (`deletionOrder`, children first,
+read from `pg_constraint`), then the store row and its Better Auth organization, in one
+transaction. Both write to `platform_audit_event`, a platform table the app role can insert
+into but never read, so the record outlives the store. Code: `packages/core/src/store-data/`.
+
+### Secrets keys
+
+Provider credentials, gift card codes, import tokens and customer phones are AES-256-GCM
+under `SETTINGS_SECRET`. Ciphertexts carry the key id (`v2.<keyId>.…`; legacy `v1.…` has
+none and still decrypts), retired keys go in `SETTINGS_SECRET_PREVIOUS`, settings blobs are
+re-encrypted under the current key whenever they are saved, and `bun run rotate-secrets`
+moves everything else. Runbook: [Key rotation](/developer-docs/operations/key-rotation).
 
 ## 4. Modules and plugins
 
@@ -213,7 +277,8 @@ Ordered by leverage and dependency. Effort: S ≤ 2 days, M ≤ 1 week, L > 1 we
 ### d. Rate limiting and per-store quotas — **S**
 
 - *They do:* Shopify's leaky bucket per app/shop ([docs](https://shopify.dev/docs/api/usage/rate-limits)).
-- *We have:* nothing beyond Cloudflare defaults.
+- *We have:* a Dragonfly sliding-window limiter on OTPs, checkout, webhooks and the heavy
+  admin actions (per store), and per-store worker caps (section 3, "Noisy neighbours").
 - *Change:* Cloudflare WAF rate rules on `/checkout`, `/api/rpc`, `/webhooks`;
   in-app token bucket in Dragonfly keyed by store + IP for server actions and
   oRPC, returning 429 with `Retry-After`. Quotas per plan later.

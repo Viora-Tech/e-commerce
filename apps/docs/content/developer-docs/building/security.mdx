@@ -67,19 +67,16 @@ Keep all three in the deployment's secret store, never in the repo.
 Set `SETTINGS_SECRET_PREVIOUS` to the current value and `SETTINGS_SECRET` to the new one. Both
 decrypt; only the new one encrypts.
 
-### Re-encrypt settings
+### Re-encrypt everything
 
-`bun scripts/rotate-secrets.ts` (dry run), then `--apply`. Covers provider settings, gift card
-codes and Shopify import tokens, one store per transaction.
-
-### Re-encrypt phones
-
-`bun scripts/backfill-phone-encryption.ts`, then `--apply`. `rotate-secrets.ts` does not touch
-`customer.phone`.
+`bun run rotate-secrets` (dry run), then `--apply`. Covers provider settings, gift card codes,
+Shopify import tokens and customer phones (with their search index), one store per
+transaction. Settings blobs are also re-encrypted on their own whenever they are saved.
 
 ### Retire the old key
 
-When both scripts report zero old-key rows, remove `SETTINGS_SECRET_PREVIOUS` and redeploy.
+When a dry run reports zero values left, remove `SETTINGS_SECRET_PREVIOUS` and redeploy.
+Full runbook: [Key rotation](/developer-docs/operations/key-rotation).
 
 </Steps>
 
