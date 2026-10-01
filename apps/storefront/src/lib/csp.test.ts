@@ -74,4 +74,18 @@ describe('storefront script CSP', () => {
     expect(scripts).toHaveLength(4)
     for (const tag of scripts) expect(tag).toContain('nonce="n0nce"')
   })
+
+  it('hands the nonce on to gtm.js, so Tag Manager can give it to Custom HTML tags', async () => {
+    const { default: TrackingTags } = await import('@/components/analytics/tracking-tags')
+    const html = renderToStaticMarkup(
+      createElement(TrackingTags, {
+        ga4: null,
+        gtm: 'GTM-ABC123',
+        metaPixel: null,
+        nonce: 'n0nce',
+      }),
+    )
+    // Google's nonce-aware snippet: copy the loader's nonce onto the gtm.js element it creates.
+    expect(html).toContain("j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'))")
+  })
 })

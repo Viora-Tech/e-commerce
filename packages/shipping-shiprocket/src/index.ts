@@ -1,8 +1,8 @@
+export { SHIPROCKET_CAPABILITIES } from './client'
 export { shiprocketPlugin } from './plugin'
 export {
   mapShiprocketStatus,
   SHIPROCKET_BASE_URL,
-  SHIPROCKET_CAPABILITIES,
   type ShiprocketConfig,
   ShiprocketProvider,
   shiprocketFactory,

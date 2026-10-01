@@ -1,6 +1,6 @@
 'use client'
 
-import { SHIPROCKET_CAPABILITIES } from '@commerce/shipping-shiprocket'
+import { SHIPROCKET_CAPABILITIES } from '@commerce/shipping-shiprocket/client'
 import { Truck } from '@commerce/ui/icons'
 import CourierShipmentsLink from '@/components/apps/shared/courier-shipments-link'
 import ProviderOverviewPage, {

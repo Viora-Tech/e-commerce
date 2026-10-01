@@ -109,7 +109,13 @@ Full runbook: [Key rotation](/developer-docs/operations/key-rotation).
   `apps/*/src/lib/csp.ts`), enforced in production and report-only in development. Next's
   scripts, the theme script and the GA4 / Tag Manager / Meta loaders carry the nonce (read it
   with `headers().get('x-nonce')`); scripts those load, and gateway checkout scripts added at
-  runtime, are trusted through `'strict-dynamic'`. A new inline script needs the nonce.
+  runtime, are trusted through `'strict-dynamic'`. A new inline script needs the nonce. The
+  Tag Manager loader copies the nonce onto `gtm.js` (Google's nonce-aware snippet); merchants'
+  inline Custom HTML tags still need `nonce="{{nonce}}"` (merchant guide, Online Store →
+  Preferences). Client components import courier constants from each package's `/client`
+  entry, never the adapter root: its Node polyfills probe `Function()`, which the policy refuses.
+  Both apps set Zod `jitless` in `instrumentation-client.ts` for the same reason, and every
+  `not-found` renders per request so its scripts carry the nonce.
 - **Dev sign-in codes**: `/api/dev/otp` answers 404 in any production build, whatever
   `DEV_LOGIN_OTP` says.
 - **CI**: every action in `.github/workflows` is pinned to a commit SHA with the release as a

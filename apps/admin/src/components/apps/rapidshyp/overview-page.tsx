@@ -1,6 +1,6 @@
 'use client'
 
-import { RAPIDSHYP_CAPABILITIES } from '@commerce/shipping-rapidshyp'
+import { RAPIDSHYP_CAPABILITIES } from '@commerce/shipping-rapidshyp/client'
 import { Truck } from '@commerce/ui/icons'
 import CourierShipmentsLink from '@/components/apps/shared/courier-shipments-link'
 import ProviderOverviewPage, {

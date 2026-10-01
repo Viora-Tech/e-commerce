@@ -1,6 +1,6 @@
 'use client'
 
-import { DELHIVERY_STAGING_URL } from '@commerce/shipping-delhivery'
+import { DELHIVERY_STAGING_URL } from '@commerce/shipping-delhivery/client'
 import { Truck } from '@commerce/ui/icons'
 import ConnectFields, { type ConnectFieldSpec } from '@/components/apps/shared/connect-fields'
 import type { ModeSwitch } from '@/components/apps/shared/connect-mode-switch'
