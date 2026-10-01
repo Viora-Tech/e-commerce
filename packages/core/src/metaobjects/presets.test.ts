@@ -31,7 +31,8 @@ describe('METAOBJECT_PRESETS', () => {
     )
     expect(presetDefinition({ preset: 'faq', name: '   ' }).name).toBe('FAQ')
     const a = presetDefinition({ preset: 'size_guide' })
-    a.fields[0]!.name = 'Changed'
+    const [first] = a.fields
+    if (first) first.name = 'Changed'
     expect(METAOBJECT_PRESETS.size_guide.fields[0]?.name).toBe('Title')
   })
 
