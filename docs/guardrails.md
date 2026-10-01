@@ -7,7 +7,9 @@ files. They run in CI (`.github/workflows/ci.yml`) after `bun run lint` and
 
 Shared walking/parsing code lives in `scripts/sweeps/walk.ts` (lists `.ts`/`.tsx` files
 under given repo-relative roots, parses imports/exports with the TypeScript compiler
-API — the same approach `scripts/check-components.ts` already uses).
+API — the same approach `scripts/check-components.ts` already uses). The finders behind the
+consistency sweeps (m–t below) live in `scripts/sweeps/consistency.ts`, so one can be run on
+its own when rebuilding an allow-list.
 
 ## The ratchet pattern
 
@@ -21,8 +23,7 @@ violation is on the list. It fails the moment someone adds a **new** one that is
   shrink over time.
 - **Allow-listing** a new, deliberate exception means adding an entry with a real reason —
   not just to make the sweep pass. If you can't explain why in one line, fix it instead.
-- Two sweeps (`service-layer`, `client-imports-server`, `dangerous-html`, `money-format`,
-  `hardcoded-colours`) also assert the allow-list has **no stale entries** — if you fix a
+- Every ratchet sweep also asserts its allow-list has **no stale entries** — if you fix a
   violation but forget to delete its allow-list row, that test fails too, so the list stays
   honest.
 
@@ -39,9 +40,10 @@ else (app routes, the worker, plugin packages) should go through a core service 
 instead of touching the db client directly.
 
 **Fix a violation**: move the query into a `packages/core` (or `packages/api/src/services`)
-function and call that instead. **Allow-list**: add a folder or file entry with a reason
-(grouped by folder where a whole area — e.g. `apps/worker/src/`, a plugin package's `src/`
-— hasn't been routed through the service layer yet).
+function and call that instead. **Allow-list**: one entry per file (`exact: true`) with a
+reason. Since 2026-10-01 there are no folder entries for `apps/` or the plugins, so a new
+file in the storefront, the worker or a plugin that reads the db directly fails even though
+its neighbours are listed.
 
 ### b. `client-imports-server` (`scripts/sweeps/client-imports-server.test.ts`)
 
@@ -65,7 +67,9 @@ individually tracked.
 
 **Fix**: wire the export up, or delete it. **Allow-list**: add `{ file, names, reason }` —
 usually `'no external importer today — investigate before removing'` is enough; a more
-specific reason is better if you know one (e.g. "kept for an upcoming PR").
+specific reason is better if you know one (e.g. "kept for an upcoming PR"). A listed name
+that gains an importer (or whose file becomes a consumed package entry) is stale and fails
+the second test, so remove it.
 
 ### d. `dead-code` (`scripts/sweeps/dead-code.test.ts`)
 
@@ -87,15 +91,14 @@ without going through `packages/richtext` (or equivalent) sanitisation first.
 
 ### f. `money-format` (`scripts/sweeps/money-format.test.ts`)
 
-Every `Intl.NumberFormat(...)` call site outside a canonical money module is on the
-allow-list. Today there are ~6 independent INR money helpers (`apps/admin/src/lib/money.ts`,
-`apps/storefront/src/lib/money.ts`, `packages/blocks/src/money.ts`,
-`packages/invoices/src/money.ts`, …) plus ~20 admin components formatting INR inline.
-
-A follow-up PR adds a shared, currency-aware money module (INR/EUR/USD). Once it lands,
-new formatting should import from it — the sweep is named `money-format`, not
-`intl-number-format`, specifically so it's easy to re-point at that module instead of
-`Intl.NumberFormat` directly.
+Every `Intl.NumberFormat(...)` call site outside `@commerce/money` (`packages/money`) is on
+the allow-list. That module is the one currency-aware home (INR/EUR/USD): `formatMoney`,
+`formatNumber`, `formatSignedMoney` ("+₹49" / "−₹99.98"), `formatPercent` and `parseRupees`
+(typed rupees → paise). The admin reaches it through `useFormat()` (`lib/format.ts`) and
+`lib/money.ts`; the storefront and blocks through `formatPaise` in `packages/blocks/src/money.ts`.
+Today the only allow-listed site is the animated counter's digit regrouping (`count-up.tsx`).
+Hand-built `₹${...}` strings are caught by review and the duplicate-helpers sweep (`inr`,
+`formatSigned`, `toPaise` must not come back), not by this one.
 
 ### g. `hardcoded-colours` (`scripts/sweeps/hardcoded-colours.test.ts`)
 
@@ -110,6 +113,12 @@ instead (e.g. `product-categories-card.tsx`, `gst-invoices/look-group.tsx`).
 **Fix**: replace the hex literal with a CSS variable / token. **Allow-list**: only for UI
 that inherently renders a user- or merchant-chosen raw colour (a swatch picker, an email
 preview of someone else's inline styles).
+
+The same scope is also checked for **Tailwind palette classes** (`bg-red-500`,
+`text-neutral-700`, `ring-gray-200/50`): they are raw colours that only look like utilities.
+Use the tokens (`bg-primary`, `text-muted-foreground`, `border-border`, `text-destructive`).
+Own allow-list: `PALETTE_ALLOWLIST` (today the printed packing slip and the theme editor's
+preview overlay).
 
 ### h. `source-of-truth-header` (`scripts/sweeps/source-of-truth-header.test.ts`)
 
@@ -190,6 +199,66 @@ the store id as its first parameter (`storeId`, `store`, `bound`): every server 
 endpoint the browser can call with any arguments, so the store comes from the hostname
 (`requestStoreId()` / `x-store-id`, set by `proxy.ts`). Security audit D-13.
 
+### m. `near-duplicate-files` (`scripts/sweeps/near-duplicate-files.test.ts`)
+
+Two source files over 40 normalised lines (trimmed, no blanks, imports or comments) that
+share 85% or more of their lines are a copy that will drift. **Fix**: one owner with options
+(find, extend, then create), as the courier connect/overview pages now share
+`components/apps/shared`. **Allow-list**: `{ pair: 'a <-> b', reason }`.
+
+### n. `duplicate-helpers` (`scripts/sweeps/duplicate-helpers.test.ts`)
+
+`HELPER_OWNERS` in `consistency.ts` names each single-home helper and its owner file:
+`settingsSecret` (@commerce/config), `safeEqual` (@commerce/payments), `isUniqueViolation`
+(@commerce/db), `parseRupees`/`formatSignedMoney`/`formatPercent` (@commerce/money),
+`IST_OFFSET_MS` (@commerce/dates), `slugify`/`msUntilLaunch` (core), `initials` (admin lib),
+`sentryOptions` (@commerce/observability), `redisRateLimiter` (@commerce/queue), ... A
+function or const with one of those names declared anywhere else fails; names with no owner
+(`toPaise`, `inr`, `todayIst`, `formatSigned`) were folded into an owner and must not come
+back. A third test forbids `loadEnv(process.env).SETTINGS_SECRET` outside @commerce/config.
+**Fix**: import the owner. **Add a helper**: give it an owner note and a `HELPER_OWNERS` row.
+
+### o. `date-format` (`scripts/sweeps/date-format.test.ts`)
+
+`Intl.DateTimeFormat`, `toLocaleDateString`, `toLocaleTimeString` and
+`toLocaleString(locale, options)` outside `@commerce/dates`. Without a pinned zone the
+server (UTC) and the browser (IST) disagree on the day and the text — a hydration error.
+**Fix**: `formatInZone` (store timezone) from `@commerce/dates`; in admin components
+`useFormat()` (`date`, `dateTime`, `when`, `pattern`) or `lib/format-date.ts`
+(`formatPattern`, `formatNumericDate`, `todayKey`). Day maths (`dayKey`, `startOfDay`,
+`startOfMonth`, `wallClock`) lives there too. **Allow-list**: per file with a reason.
+
+### p. `server-only-guard` (`scripts/sweeps/server-only-guard.test.ts`)
+
+See `server-only` below: app `lib/` modules that value-import a server package or
+`@commerce/config` must start with `import 'server-only'`. Not allow-listed today.
+
+### q. `status-literals` (`scripts/sweeps/status-literals.test.ts`)
+
+UI code (admin, storefront, blocks) must not restate one of core's status lists
+(order lifecycle/payment/fulfilment, `ORDER_MARKS`, `OPEN_ATTEMPT_STATUSES`,
+`PURCHASE_ORDER_STATUSES`, `TRANSFER_STATUSES`) as a literal array, and must not import a
+`...Status` type from `@commerce/db`. **Fix**: import from `@commerce/core/order-status`,
+`@commerce/core/inventory`, `@commerce/core/marketing`. Not allow-listed today.
+
+### r. `domain-errors` (`scripts/sweeps/domain-errors.test.ts`)
+
+A new `class X extends Error` in core, the API or a plugin must extend `CommerceError`
+(`packages/core/src/errors.ts`: a stable `code` the admin narrows on). Routers may not add a
+bare `throw new Error(...)`: the per-file count in `ROUTER_THROWS` may only go down.
+
+### s. `router-magic-limits` (`scripts/sweeps/router-magic-limits.test.ts`)
+
+`.max(<number>)` on a `perPage`/`page`/`limit`/`search`/`query`/`q`/`ids`-style router input.
+**Fix**: `PAGE_SIZE_MAX`, `PAGE_MAX`, `SEARCH_MAX`, `BULK_MAX` from `../procedures`
+(`packages/api/src/procedures/limits.ts`). **Allow-list**: a deliberately different
+ceiling (a 12-row picker, a 100-order courier batch), with why.
+
+### t. `file-size` (`scripts/sweeps/file-size.test.ts`)
+
+A `.ts` module (not tests or migrations) over 500 lines. Listed files may grow by at most 50
+lines past their recorded size; one that drops under 500 must leave the list.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
@@ -203,11 +272,15 @@ that touches them.
 
 So `server-only` is used only where it's safe: **app-level Next modules**, where Next
 correctly sets the export condition either way (empty module server-side, hard error if a
-client bundle ever pulls it in):
+client bundle ever pulls it in). Every module under `apps/admin/src/lib` and
+`apps/storefront/src/lib` that value-imports a server package (or `@commerce/config`) starts
+with `import 'server-only'`; the `server-only-guard` sweep (p) enforces it.
 
-- `apps/admin/src/lib/db.ts`, `auth.ts`, `api.ts`, `rate-limit.ts`
-- `apps/storefront/src/lib/db.ts`, `rate-limit.ts`, and all 11 `'use server'` action files
-  (`*-actions.ts`)
+Tests that import those modules (the storefront's own vitest suite, and the api suite's
+cross-store leak test, which walks every storefront loader) alias `server-only` to an empty
+stub in their `vitest.config.ts` (`apps/storefront/test/server-only.ts`,
+`packages/api/test/support/server-only.ts`). Without it the leak test would silently skip
+every guarded loader (it `continue`s on import errors).
 
 For the shared packages themselves (`packages/core`, `packages/db`, `packages/auth`,
 storage/payments/shipping connectors, `packages/api`), the guardrail is **static, not

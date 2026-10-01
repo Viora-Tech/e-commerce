@@ -1,6 +1,6 @@
-import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { settingsSecret } from '@commerce/config'
 import { orderViewToken, thankYouPath, verifyBalanceToken } from '@commerce/core'
+import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { and, desc, eq, inArray } from 'drizzle-orm'

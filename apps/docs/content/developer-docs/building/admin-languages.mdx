@@ -117,8 +117,10 @@ cycle breaks at module load. A test enforces this.
 grouping and Latin digits (`₹1,23,456`), through `@commerce/money` with `en-IN` or `hi-IN`.
 Compact amounts differ: English `₹1.2L` / `₹1.2Cr`, Hindi `₹1.2 लाख` / `₹1.2 करोड़` (the
 package spells the units out and stays in crore instead of hi-IN's own `अरब`). Dates use
-`hi-IN` with full month names (`12 सितंबर 2026`), still pinned to Asia/Kolkata; relative days
-(`आज`, `कल`, `5 मिनट पहले`) come from `data/dates.ts`.
+`hi-IN` with full month names (`12 सितंबर 2026`), still pinned to the store's zone
+(Asia/Kolkata) through `formatInZone` in `@commerce/dates`; relative days (`आज`, `कल`,
+`5 मिनट पहले`) come from `data/dates.ts`. Need another pattern? `useFormat().pattern(value,
+{ ... })`, never a hand-built `Intl.DateTimeFormat` (the `date-format` sweep fails on one).
 
 ## Page names and status badges
 

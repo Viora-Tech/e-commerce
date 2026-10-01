@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { loadEnv, settingsSecret } from '@commerce/config'
+import { loadEnv } from '@commerce/config'
 import {
   appFor,
   type CustomerAccountSettings,

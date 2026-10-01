@@ -11,8 +11,14 @@
  * reading a token instead.
  *
  * Ratchet: a NEW hex colour in scope outside the allow-list fails the sweep.
+ *
+ * Second check, same scope: Tailwind palette classes (`bg-red-500`, `text-neutral-700`,
+ * `ring-gray-200/50`) are raw colours too, they just look like utilities. Use the theme
+ * tokens (`bg-primary`, `text-muted-foreground`, `border-border`, `text-destructive`) instead.
+ * Same ratchet, own allow-list (`PALETTE_ALLOWLIST`).
  */
 import { describe, expect, it } from 'vitest'
+import { findPaletteClasses } from './consistency'
 import { findHexColours, listFiles, loadSourceFile, toRel } from './walk'
 
 const SCOPE_ROOTS = [
@@ -53,11 +59,26 @@ const ALLOWLIST: AllowEntry[] = [
   },
 ]
 
+const PALETTE_ALLOWLIST: AllowEntry[] = [
+  {
+    file: 'apps/admin/src/components/orders/packing-slip.tsx',
+    reason:
+      'printed packing slip: fixed neutral ink on paper, deliberately not the screen theme (dark mode must not print grey on white)',
+  },
+  {
+    file: 'apps/admin/src/components/themes/customize/section-overlay.tsx',
+    reason:
+      'editor overlay drawn over the merchant storefront preview, whose own theme tokens differ from the admin; theme rebuild in progress — revisit after it merges',
+  },
+]
+
 function isAllowlisted(file: string): boolean {
   return ALLOWLIST.some((e) => e.file === file)
 }
 
-async function findViolations(): Promise<string[]> {
+async function findViolations(
+  find: (sf: ReturnType<typeof loadSourceFile>) => number[] = findHexColours,
+): Promise<string[]> {
   const files = await listFiles(SCOPE_ROOTS, { includeTests: false })
   const out: string[] = []
   for (const f of files) {
@@ -65,7 +86,7 @@ async function findViolations(): Promise<string[]> {
     if (!rel.endsWith('.tsx')) continue
     if (rel.startsWith('packages/ui/src/components/shadcn/')) continue
     const sf = loadSourceFile(f)
-    if (findHexColours(sf).length > 0) out.push(rel)
+    if (find(sf).length > 0) out.push(rel)
   }
   return out
 }
@@ -81,5 +102,16 @@ describe('sweep: hardcoded-colours', () => {
     const violations = await findViolations()
     const stale = ALLOWLIST.filter((e) => !violations.includes(e.file))
     expect(stale).toEqual([])
+  })
+
+  it('every Tailwind palette class in scope is allow-listed with a reason', async () => {
+    const violations = await findViolations(findPaletteClasses)
+    const unlisted = violations.filter((v) => !PALETTE_ALLOWLIST.some((e) => e.file === v))
+    expect(unlisted, `use a theme token, not a palette class:\n${unlisted.join('\n')}`).toEqual([])
+  })
+
+  it('the palette allow-list has no stale entries', async () => {
+    const violations = await findViolations(findPaletteClasses)
+    expect(PALETTE_ALLOWLIST.filter((e) => !violations.includes(e.file))).toEqual([])
   })
 })

@@ -1,5 +1,9 @@
-import type { CampaignProblem, EmailBlockType, MergeTag } from '@commerce/core/marketing'
-import type { MarketingCampaignStatus } from '@commerce/core/marketing'
+import type {
+  CampaignProblem,
+  EmailBlockType,
+  MarketingCampaignStatus,
+  MergeTag,
+} from '@commerce/core/marketing'
 
 /** Copy for Marketing > Campaigns: the list, the email and WhatsApp editors and the report. */
 export const campaignsContent = {

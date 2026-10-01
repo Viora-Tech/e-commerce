@@ -1,5 +1,4 @@
 import { customer, marketingMessage, type StoreTx, store } from '@commerce/db'
-import { formatMoney } from '@commerce/money'
 import type { NotificationChannel, NotificationRegistry, SendResult } from '@commerce/notifications'
 import { eq } from 'drizzle-orm'
 import { type ConsentChannel, hasMarketingConsent } from '../privacy/client'
