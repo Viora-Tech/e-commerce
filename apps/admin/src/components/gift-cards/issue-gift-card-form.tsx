@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -15,6 +16,7 @@ import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import { giftCardIssueContent as copy, GIFT_CARD_PRESETS } from '@/data/gift-cards'
+import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import CodeRevealDialog, { type IssuedCard } from './code-reveal-dialog'
 import CustomerPicker, { type PickedCustomer } from './customer-picker'
@@ -24,15 +26,17 @@ type IssueGiftCardFormProps = {
   today: string
 }
 
-const toPaise = (rupees: string): number | null => {
-  const n = Math.round(Number(rupees) * 100)
-  return Number.isFinite(n) && n > 0 ? n : null
+/** Rupees typed in the field to whole paise; null when it is not a positive amount. */
+function positivePaise(text: string): number | null {
+  const paise = parseRupees(text)
+  return paise && paise > 0 ? paise : null
 }
 
 /** Shopify's "Create gift card": value, code, expiry, customer or recipient, optional email. */
 export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
   // Hooks
   const router = useRouter()
+  const format = useFormat()
   const [value, setValue] = useState(String(GIFT_CARD_PRESETS[1]))
   const [code, setCode] = useState('')
   const [expires, setExpires] = useState(false)
@@ -48,7 +52,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
 
   // Event handlers
   const handleSave = async () => {
-    const valuePaise = toPaise(value)
+    const valuePaise = positivePaise(value)
     if (!valuePaise) return
     setBusy(true)
     try {
@@ -72,7 +76,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
   }
 
   // Render logic
-  const valuePaise = toPaise(value)
+  const valuePaise = positivePaise(value)
   const hasEmail = Boolean(customer?.email || recipientEmail.trim())
   const canSave = !busy && valuePaise !== null && (!expires || expiresOn >= today)
 
@@ -110,7 +114,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
                     variant={value === String(p) ? 'default' : 'outline'}
                     onClick={() => setValue(String(p))}
                   >
-                    ₹{p.toLocaleString('en-IN')}
+                    {format.money(p * 100)}
                   </Button>
                 ))}
               </div>

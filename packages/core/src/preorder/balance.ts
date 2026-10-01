@@ -77,10 +77,8 @@ async function lockOwingOrder(ctx: StoreContext, orderId: string) {
   return { o, owed }
 }
 
-const inr = (paise: number) => formatMoney(paise, 'INR', { showZeroDecimals: true })
-
 export const BALANCE_REQUESTED_NOTE = (owedPaise: number, automatic: boolean) =>
-  `${automatic ? 'Balance requested automatically' : 'Balance requested'}: ${inr(owedPaise)} due.`
+  `${automatic ? 'Balance requested automatically' : 'Balance requested'}: ${formatMoney(owedPaise, 'INR', { showZeroDecimals: true })} due.`
 
 /**
  * Ask the shopper for the balance. Writes `order.balance_requested` (the

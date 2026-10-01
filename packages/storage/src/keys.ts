@@ -1,6 +1,11 @@
 /**
- * Object keys and upload limits. Kept pure so the API, the admin and every
- * adapter agree on what a valid upload is without sharing runtime code.
+ * SOURCE OF TRUTH KEYWORDS: IMAGE_MAX_UPLOAD_BYTES, VIDEO_MAX_UPLOAD_BYTES, maxUploadBytesFor,
+ *   RETURN_PHOTO_MAX_BYTES, ALLOWED_CONTENT_TYPES, upload limits
+ * WHAT:  Object keys and upload limits.
+ * WHY:   Kept pure (and exported as `@commerce/storage/keys`) so the API, the admin's client-side
+ *        gate and every adapter agree on what a valid upload is; the admin once allowed 25 MB
+ *        while the server refused images over 10 MB.
+ * WHERE: Core media service, Shopify import, admin `lib/upload.ts`, storefront return photos.
  */
 
 /**
@@ -14,6 +19,9 @@
  */
 export const IMAGE_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 export const VIDEO_MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+
+/** A shopper's return photo (JPG, PNG or WebP), checked in the browser and in the server action. */
+export const RETURN_PHOTO_MAX_BYTES = 5 * 1024 * 1024
 
 /**
  * What the media library accepts. Videos are mp4 only; browsers and CDNs

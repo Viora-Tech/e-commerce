@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   appFor,
   type CustomerAccountSettings,
@@ -53,10 +53,6 @@ export type OAuthState = {
 }
 
 export const isDev = (): boolean => process.env.NODE_ENV !== 'production'
-
-export function settingsSecret(): string {
-  return loadEnv(process.env).SETTINGS_SECRET
-}
 
 /** The provider's redirect URI: one per provider for every store. */
 export const oauthCallbackUrl = (provider: LoginProvider): string =>

@@ -1,3 +1,4 @@
+import 'server-only'
 import { appSettingsOf, parseAppsSettings, parsePaymentSettings } from '@commerce/core'
 import { type StoreTx, store } from '@commerce/db'
 import {

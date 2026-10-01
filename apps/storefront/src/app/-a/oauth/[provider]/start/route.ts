@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import {
   authorizationUrl,
   checkReturnUrl,
@@ -15,7 +16,6 @@ import {
   OAUTH_COOKIE,
   type OAuthState,
   oauthCallbackUrl,
-  settingsSecret,
   storeLoginApp,
 } from '@/lib/shopper-login'
 import { inStore } from '@/lib/store-context'

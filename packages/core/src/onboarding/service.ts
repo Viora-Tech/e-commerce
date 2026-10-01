@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import {
   collection,
   type Db,
+  isUniqueViolation,
   type StoreTx,
   seedWaimersShipping,
   store,
@@ -57,16 +58,6 @@ export type CreateStoreResult = {
   slug: string
   /** False when this call found a store already made (double-submit) instead of making one. */
   created: boolean
-}
-
-/** Postgres unique violation, however the driver wrapped it. */
-function isUniqueViolation(err: unknown): boolean {
-  let e: unknown = err
-  for (let i = 0; i < 3 && e; i++) {
-    if ((e as { code?: unknown }).code === '23505') return true
-    e = (e as { cause?: unknown }).cause
-  }
-  return false
 }
 
 /**

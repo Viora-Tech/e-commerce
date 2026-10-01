@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import { shipmentsContent } from '@/data/shipments'
+import { useFormat } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
 type CompareRow = Awaited<ReturnType<typeof api.shipments.compareRates>>[number]
@@ -29,7 +30,6 @@ type CourierCompareTableProps = {
 
 const copy = shipmentsContent.book.compare
 const STORE_DEFAULT = '__default'
-const rupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`
 
 function transitLabel(min: number | null, max: number | null): string {
   if (min === null || max === null) return copy.noEta
@@ -55,6 +55,10 @@ export default function CourierCompareTable({
   overrides,
   onOverrideChange,
 }: CourierCompareTableProps) {
+  // Hooks
+  const format = useFormat()
+
+  // Render logic
   return (
     <Table>
       <TableHeader>
@@ -95,7 +99,7 @@ export default function CourierCompareTable({
               </TableCell>
               <TableCell>
                 {picked?.pricePaise !== null && picked?.pricePaise !== undefined
-                  ? rupees(picked.pricePaise)
+                  ? format.money(picked.pricePaise)
                   : copy.noPrice}
               </TableCell>
               <TableCell>

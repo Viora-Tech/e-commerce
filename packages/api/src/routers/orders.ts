@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   DraftInputSchema,
@@ -7,6 +7,7 @@ import {
   isIsoDay,
   MANUAL_PAYMENT_METHODS,
   ORDER_FULFILLMENT_STATUSES,
+  ORDER_MARKS,
   ORDER_PAYMENT_STATUSES,
   OrderNotFound,
   permissions,
@@ -17,7 +18,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   convertStoreDraft,
@@ -56,11 +57,10 @@ import {
   refreshShipmentTracking,
 } from '../services/shipping.service'
 
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 const storefrontUrl = () => loadEnv(process.env).STOREFRONT_URL
 
 /** What "Mark as" on the order page records; the statuses are then derived. */
-const change = z.enum(['paid', 'fulfilled', 'delivered', 'cancelled'])
+const change = z.enum(ORDER_MARKS)
 
 /** Imported historical orders are read-only; every state-changing route refuses them. */
 async function assertNotImported(
@@ -80,8 +80,8 @@ export const ordersRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
-        search: z.string().trim().max(200).optional(),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         /** The list tab. */
         view: z.enum(ORDER_VIEWS).optional(),
         status: z.enum(['open', 'completed', 'cancelled']).optional(),
@@ -289,7 +289,13 @@ export const ordersRouter = {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
       // Booking packs what is left; the recompute writes order.fulfilled only
       // if this is what completed the packing.
-      return bookShipment(context.tx, context.scope.storeId, shipping, secret(), input.orderId)
+      return bookShipment(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.orderId,
+      )
     }),
 
   refreshTracking: can(permissions.ORDERS_READ)
@@ -300,7 +306,7 @@ export const ordersRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.shipmentId,
       )
     }),
@@ -313,7 +319,7 @@ export const ordersRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.shipmentId,
       )
     }),
@@ -361,7 +367,7 @@ export const ordersRouter = {
           context.tx,
           context.scope.storeId,
           payments,
-          secret(),
+          settingsSecret(),
           input,
         )
         // Failed gateway refunds returned no money, so there is nothing to credit.
@@ -398,8 +404,8 @@ export const ordersRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
-        search: z.string().trim().max(200).optional(),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
@@ -448,7 +454,7 @@ export const ordersRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         sinceDays: z.number().int().min(1).max(90).default(30),
       }),
     )
@@ -465,7 +471,7 @@ export const ordersRouter = {
       return sendRecovery(context.tx, context.scope.storeId, {
         cartId: input.cartId,
         registry: notifications,
-        settingsSecret: secret(),
+        settingsSecret: settingsSecret(),
         storefrontUrl: storefrontUrl(),
       })
     }),

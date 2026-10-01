@@ -1,8 +1,8 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { permissions, RETURN_REASONS, RETURN_STATUSES } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   approveStoreReturn,
@@ -26,8 +26,6 @@ import {
   updateStoreReturnPolicy,
 } from '../services/returns.service'
 
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
-
 const pickup = z.discriminatedUnion('method', [
   z.object({ method: z.literal('courier'), providerId: z.string().min(1).max(60) }),
   z.object({ method: z.literal('customer') }),
@@ -44,10 +42,10 @@ export const returnsRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
         status: z.array(z.enum(RETURN_STATUSES)).max(7).optional(),
         kind: z.enum(['return', 'rto']).optional(),
-        search: z.string().trim().max(200).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
       }),
     )
     .handler(({ context, input }) => listStoreReturns(context.tx, context.scope.storeId, input)),
@@ -60,7 +58,7 @@ export const returnsRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return returnDetail(context.tx, context.scope.storeId, shipping, secret(), input.id)
+      return returnDetail(context.tx, context.scope.storeId, shipping, settingsSecret(), input.id)
     }),
 
   /** The order page's Returns card: what can still go back and every return so far. */
@@ -93,7 +91,7 @@ export const returnsRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.id,
         input.pickup,
       )
@@ -107,7 +105,7 @@ export const returnsRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         input.id,
         input.pickup,
       )
@@ -150,7 +148,7 @@ export const returnsRouter = {
         context.tx,
         context.scope.storeId,
         payments,
-        secret(),
+        settingsSecret(),
         input.id,
         input.amountPaise,
       )
@@ -164,7 +162,7 @@ export const returnsRouter = {
         context.tx,
         context.scope.storeId,
         notifications,
-        secret(),
+        settingsSecret(),
         input.id,
         input.amountPaise,
         context.session.user.email,
@@ -195,7 +193,13 @@ export const returnsRouter = {
     .input(z.object({ id: z.uuid() }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return reshipStoreReturn(context.tx, context.scope.storeId, shipping, secret(), input.id)
+      return reshipStoreReturn(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.id,
+      )
     }),
 
   setCourierCost: can(permissions.ORDERS_WRITE)

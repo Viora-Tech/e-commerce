@@ -13,6 +13,7 @@ import PageHeader from '@/components/layout/page-header'
 import StatusLabel from '@/components/status/status-label'
 import { campaignsContent, campaignReportContent as copy } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { formatDateTime } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
 import EmailPreview from './email-preview'
 import type { LoadedCampaign } from './form-state'
@@ -26,7 +27,6 @@ type CampaignReportProps = {
 
 type StatProps = { label: string; value: string; detail?: string | undefined }
 
-const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 const POLL_MS = 5000
 
 function Stat({ label, value, detail }: StatProps) {
@@ -41,10 +41,10 @@ function Stat({ label, value, detail }: StatProps) {
 
 function headline(c: LoadedCampaign): string {
   if (c.status === 'scheduled' && c.scheduledAt) {
-    return copy.scheduledFor(dateTime.format(new Date(c.scheduledAt)))
+    return copy.scheduledFor(formatDateTime(c.scheduledAt))
   }
   if (c.status === 'sending') return copy.sendingNow
-  if (c.finishedAt) return copy.sentOn(dateTime.format(new Date(c.finishedAt)))
+  if (c.finishedAt) return copy.sentOn(formatDateTime(c.finishedAt))
   return ''
 }
 

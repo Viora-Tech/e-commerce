@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import {
   checkReturnUrl,
   finishSignIn,
@@ -7,9 +8,9 @@ import {
   resolveShopperIdentity,
   type ShopperIdentity,
   type StartPayload,
-  safeEqual,
   storeLoginHosts,
 } from '@commerce/core'
+import { safeEqual } from '@commerce/payments'
 import { type NextRequest, NextResponse } from 'next/server'
 import { accountsContent } from '@/data/accounts-domain'
 import {
@@ -17,7 +18,6 @@ import {
   OAUTH_COOKIE,
   type OAuthState,
   oauthCallbackUrl,
-  settingsSecret,
   storeLoginApp,
 } from '@/lib/shopper-login'
 import { inStore } from '@/lib/store-context'

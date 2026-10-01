@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   changeGiftCardBalance,
   createGiftCardProduct,
@@ -19,10 +19,8 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
-
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 const STATES = ['active', 'disabled', 'expired', 'empty'] as const
@@ -49,10 +47,10 @@ export const giftCardsRouter = {
   list: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
-        q: z.string().trim().max(200).optional(),
+        q: z.string().trim().max(SEARCH_MAX).optional(),
         state: z.enum(STATES).optional(),
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(50),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(50),
       }),
     )
     .handler(({ context, input }) =>
@@ -101,14 +99,14 @@ export const giftCardsRouter = {
         const r = await issueGiftCard(
           ctx,
           { ...rest, createdBy: context.session.user.email },
-          secret(),
+          settingsSecret(),
         )
         if (!r) throw new Error('gift card was not issued')
         let delivery: Awaited<ReturnType<typeof deliverGiftCard>> = []
         if (send) {
           const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
-          const channels = await giftCardChannels(ctx, notifications, secret())
-          delivery = await deliverGiftCard(ctx, r.card.id, { channels, secret: secret() })
+          const channels = await giftCardChannels(ctx, notifications, settingsSecret())
+          delivery = await deliverGiftCard(ctx, r.card.id, { channels, secret: settingsSecret() })
         }
         return { id: r.card.id, code: r.code, delivery }
       }),
@@ -173,8 +171,8 @@ export const giftCardsRouter = {
       surface(async () => {
         const ctx = { storeId: context.scope.storeId, tx: context.tx }
         const { notifications } = await storeRegistries(context.tx, context.scope.storeId)
-        const channels = await giftCardChannels(ctx, notifications, secret())
-        return deliverGiftCard(ctx, input.id, { channels, secret: secret(), to: input.to })
+        const channels = await giftCardChannels(ctx, notifications, settingsSecret())
+        return deliverGiftCard(ctx, input.id, { channels, secret: settingsSecret(), to: input.to })
       }),
     ),
 

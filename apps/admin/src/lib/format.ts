@@ -1,5 +1,12 @@
 import { formatNumber } from '@commerce/money'
-import { formatAgo, formatDate, formatDateTime, formatDay, formatWhen } from '@/lib/format-date'
+import {
+  formatAgo,
+  formatDate,
+  formatDateTime,
+  formatDay,
+  formatPattern,
+  formatWhen,
+} from '@/lib/format-date'
 import { INTL_LOCALE, type Locale } from '@/lib/i18n'
 import { formatCompact, formatPaise, formatPaiseCompact } from '@/lib/money'
 
@@ -21,6 +28,8 @@ export type Formatters = {
   day: (value: Date | string, now?: Date) => string
   dateTime: (value: Date | string) => string
   date: (value: Date | string) => string
+  /** Any other `Intl` date pattern, in the store's zone; never build a formatter in a component. */
+  pattern: (value: Date | string | number, options: Intl.DateTimeFormatOptions) => string
 }
 
 function build(locale: Locale): Formatters {
@@ -36,6 +45,7 @@ function build(locale: Locale): Formatters {
     day: (value, now) => formatDay(value, now, locale),
     dateTime: (value) => formatDateTime(value, locale),
     date: (value) => formatDate(value, locale),
+    pattern: (value, options) => formatPattern(value, options, locale),
   }
 }
 

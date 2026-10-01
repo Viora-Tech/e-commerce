@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import {
   HANDOFF_RETURN_PATH,
   randomToken,
@@ -16,7 +17,6 @@ import {
   cookieSecure,
   LOGIN_BROWSER_COOKIE,
   requestOrigin,
-  settingsSecret,
   storeLoginApp,
 } from '@/lib/shopper-login'
 

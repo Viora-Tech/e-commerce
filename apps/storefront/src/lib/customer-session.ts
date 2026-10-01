@@ -1,4 +1,5 @@
-import { loadEnv } from '@commerce/config'
+import 'server-only'
+import { settingsSecret } from '@commerce/config'
 import { customerForSession, type SignedInCustomer, safeNextPath } from '@commerce/core'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -45,7 +46,7 @@ export async function clearCustomerToken(): Promise<void> {
 export const currentCustomer = cache(async (storeId: string): Promise<SignedInCustomer | null> => {
   const token = await readCustomerToken()
   if (!token) return null
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   return inStore(storeId, (tx) => customerForSession({ storeId, tx }, token, secret))
 })
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -11,7 +12,7 @@ import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import ChoiceList from './choice-list'
 import RestockButton from './restock-button'
-import { type ReturnDetail, toPaise, toRupees } from './return-types'
+import { type ReturnDetail, toRupees } from './return-types'
 
 type Outcome = 'refund' | 'credit' | 'exchange' | 'reship' | 'close'
 
@@ -56,13 +57,15 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
 
   const handleConfirm = () =>
     act(async () => {
+      // Confirm is disabled until the amount parses (`validAmount`), so null never gets here.
+      const amountPaise = paise ?? 0
       if (outcome === 'refund') {
-        await api.returns.refund({ id: r.id, amountPaise: paise })
-        return copy.refunded(formatPaise(paise))
+        await api.returns.refund({ id: r.id, amountPaise })
+        return copy.refunded(formatPaise(amountPaise))
       }
       if (outcome === 'credit') {
-        await api.returns.storeCredit({ id: r.id, amountPaise: paise })
-        return copy.credited(formatPaise(paise))
+        await api.returns.storeCredit({ id: r.id, amountPaise })
+        return copy.credited(formatPaise(amountPaise))
       }
       if (outcome === 'exchange') {
         const ex = await api.returns.exchange({ id: r.id })
@@ -78,10 +81,10 @@ export default function ReturnResolveCard({ detail: r, onChanged }: ReturnResolv
 
   // Render logic
   const rto = r.kind === 'rto'
-  const paise = toPaise(amount)
+  const paise = parseRupees(amount)
   const needsAmount = outcome === 'refund' || outcome === 'credit'
   const maxPaise = outcome === 'refund' ? r.refundablePaise : 20_000_000
-  const validAmount = Number.isInteger(paise) && paise > 0 && paise <= maxPaise
+  const validAmount = paise !== null && paise > 0 && paise <= maxPaise
   const suggestion = r.suggestedRefundPaise ?? 0
   const choices = [
     ...(r.refundablePaise > 0

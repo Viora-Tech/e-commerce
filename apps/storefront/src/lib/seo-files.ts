@@ -1,9 +1,10 @@
+import 'server-only'
 import { blogSitemapEntries } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { collection, page, product, variant } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import { and, asc, eq, isNotNull, isNull, min } from 'drizzle-orm'
 import { LLMS_PRODUCT_LIMIT, ROBOTS_DISALLOW, seoContent } from '@/data/seo'
-import { formatPaise } from './money'
 
 /** One indexable URL on the store's host. */
 export type IndexEntry = { path: string; title?: string; updatedAt?: Date | null }
@@ -157,7 +158,7 @@ export function llmsTxt(
     ),
     ...section(copy.products, [
       ...shown.map((p) =>
-        bullet(origin, p, p.fromPaise === null ? undefined : copy.price(formatPaise(p.fromPaise))),
+        bullet(origin, p, p.fromPaise === null ? undefined : copy.price(formatMoney(p.fromPaise))),
       ),
       ...(hidden > 0 ? [copy.more(hidden)] : []),
     ]),

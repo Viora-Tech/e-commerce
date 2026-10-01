@@ -1,4 +1,5 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac } from 'node:crypto'
+import { safeEqual } from '@commerce/payments'
 
 /**
  * Signed tokens for links inside marketing messages: the open pixel, tracked
@@ -16,12 +17,6 @@ function mac(body: string, secret: string): string {
     .slice(0, MAC_LENGTH)
 }
 
-function equal(a: string, b: string): boolean {
-  const x = Buffer.from(a)
-  const y = Buffer.from(b)
-  return x.length === y.length && timingSafeEqual(x, y)
-}
-
 export type MessageTokenPayload = { storeId: string; messageId: string }
 
 /** `<storeId>.<messageId>.<mac>`: identifies one sent message (opens, unsubscribe). */
@@ -34,7 +29,7 @@ export function verifyMessageToken(token: string, secret: string): MessageTokenP
   const parts = token.split('.')
   if (parts.length !== 3) return null
   const [storeId, messageId, sig] = parts as [string, string, string]
-  if (!storeId || !messageId || !equal(sig, mac(`${storeId}.${messageId}`, secret))) return null
+  if (!storeId || !messageId || !safeEqual(sig, mac(`${storeId}.${messageId}`, secret))) return null
   return { storeId, messageId }
 }
 
@@ -53,7 +48,7 @@ export function verifyClickToken(
   const payload = verifyMessageToken(parts.slice(0, 3).join('.'), secret)
   if (!payload) return null
   const expected = mac(`${payload.storeId}.${payload.messageId}|${url}`, secret)
-  return equal(parts[3] as string, expected) ? payload : null
+  return safeEqual(parts[3] as string, expected) ? payload : null
 }
 
 /**
@@ -73,7 +68,7 @@ export function verifyUnsubscribeToken(
   if (parts.length !== 3) return null
   const [storeId, customerId, sig] = parts as [string, string, string]
   if (!storeId || !customerId) return null
-  return equal(sig, mac(`u.${storeId}.${customerId}`, secret)) ? { storeId, customerId } : null
+  return safeEqual(sig, mac(`u.${storeId}.${customerId}`, secret)) ? { storeId, customerId } : null
 }
 
 const base = (storefrontUrl: string) => storefrontUrl.replace(/\/$/, '')

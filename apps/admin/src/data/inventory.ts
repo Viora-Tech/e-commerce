@@ -1,6 +1,12 @@
 /** Copy for Products > Inventory, Purchase orders and Transfers. */
-import { PURCHASE_ORDER_STATUSES, type PurchaseOrderStatus } from '@commerce/core/inventory'
+import {
+  PURCHASE_ORDER_STATUSES,
+  type PurchaseOrderStatus,
+  type TransferStatus,
+} from '@commerce/core/inventory'
 
+/** Transfer statuses live in core (`TRANSFER_STATUSES`); re-exported for the transfers screens. */
+export { TRANSFER_STATUSES, type TransferStatus } from '@commerce/core/inventory'
 export type { PurchaseOrderStatus }
 export { PURCHASE_ORDER_STATUSES }
 
@@ -256,9 +262,6 @@ export const purchaseOrderFormContent = {
     failed: 'Could not receive items',
   },
 } as const
-
-export const TRANSFER_STATUSES = ['draft', 'in_transit', 'received'] as const
-export type TransferStatus = (typeof TRANSFER_STATUSES)[number]
 
 export const transfersContent = {
   heading: 'Transfers',

@@ -18,7 +18,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, heavy } from '../procedures'
+import { BULK_MAX, can, heavy, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import {
   getProduct,
   listProductHandles,
@@ -33,7 +33,7 @@ import {
 } from '../services/product.service'
 
 const ListFiltersSchema = z.object({
-  search: z.string().trim().max(200).optional(),
+  search: z.string().trim().max(SEARCH_MAX).optional(),
   status: ProductStatusSchema.optional(),
   vendor: z.string().trim().max(100).optional(),
   productType: z.string().trim().max(100).optional(),
@@ -57,7 +57,7 @@ export const productsRouter = {
     .input(
       ListFiltersSchema.extend({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
       }),
     )
     .handler(({ context, input }) => listProducts(context.tx, input)),
@@ -80,7 +80,7 @@ export const productsRouter = {
   searchVariants: can(permissions.PRODUCTS_READ)
     .input(
       z.object({
-        search: z.string().trim().max(200).optional(),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         limit: z.number().int().min(1).max(50).default(20),
       }),
     )
@@ -114,7 +114,7 @@ export const productsRouter = {
     .use(heavy('bulk'))
     .input(
       z.object({
-        ids: z.array(z.uuid()).min(1).max(200),
+        ids: z.array(z.uuid()).min(1).max(BULK_MAX),
         action: z.discriminatedUnion('kind', [
           z.object({ kind: z.literal('status'), status: ProductStatusSchema }),
           z.object({ kind: z.literal('addTag'), tag: z.string().trim().min(1).max(50) }),

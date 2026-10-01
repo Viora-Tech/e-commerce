@@ -92,6 +92,26 @@ export function toMinor(major: number, currency: Currency = DEFAULT_CURRENCY): n
   return Math.round(major * 10 ** minorUnit)
 }
 
+/** Plain decimal rupees: "499", "12.5", ".75". No sign, exponent, grouping or symbol. */
+const RUPEES_TEXT = /^(\d+\.?\d*|\.\d+)$/
+
+/**
+ * SOURCE OF TRUTH KEYWORDS: parseRupees, toPaise, rupees to paise, amount field
+ * WHAT:  Rupees a merchant typed → whole paise, rounded to the nearest paisa; null for
+ *        empty, junk or negative text. Zero is a valid amount (callers that need > 0 check).
+ * WHY:   Eight admin forms each had their own `toPaise` (NaN vs 0 vs null for junk,
+ *        parseFloat accepting "12abc"). One rule here. Rounds via the decimal string
+ *        (`"1.005e2"`) so 1.005 → 101 paise, not 100 from float drift.
+ * WHERE: Admin amount fields (orders, refunds, returns, drafts, gift cards, purchase
+ *        orders, settings, products) and the catalog CSV import; duplicate-helpers sweep.
+ */
+export function parseRupees(text: string): number | null {
+  const t = text.trim()
+  if (!RUPEES_TEXT.test(t)) return null
+  const paise = Math.round(Number(`${t.endsWith('.') ? t.slice(0, -1) : t}e2`))
+  return Number.isSafeInteger(paise) ? paise : null
+}
+
 /** Convert integer minor units to a major-unit amount. Does not format. */
 export function fromMinor(minor: number, currency: Currency = DEFAULT_CURRENCY): number {
   return minorToMajor(minor, currency)
@@ -154,4 +174,33 @@ export function formatNumber(
     maximumFractionDigits: opts.compact ? 1 : opts.maximumFractionDigits,
     minimumFractionDigits: opts.compact ? undefined : opts.minimumFractionDigits,
   }).format(n)
+}
+
+/**
+ * "+₹49" / "−₹99.98": a fee or discount row. The minus is U+2212 so it lines up with the
+ * plus in a column of figures.
+ */
+export function formatSignedMoney(
+  minor: number,
+  currency: Currency = DEFAULT_CURRENCY,
+  opts: FormatMoneyOptions = {},
+): string {
+  return `${minor < 0 ? '−' : '+'}${formatMoney(Math.abs(minor), currency, opts)}`
+}
+
+/**
+ * SOURCE OF TRUTH KEYWORDS: formatPercent, style percent, conversion rate
+ * WHAT:  A ratio (0.256) as a percentage ("26%") in the locale's digits.
+ * WHY:   Percent formatters were hand-built per screen (and allow-listed by the
+ *        money-format sweep); this is the one `Intl.NumberFormat` percent call.
+ * WHERE: Admin analytics deltas, insights, abandoned-cart tiles.
+ */
+export function formatPercent(
+  ratio: number,
+  opts: { locale?: string; maximumFractionDigits?: number } = {},
+): string {
+  return new Intl.NumberFormat(opts.locale ?? CURRENCIES[DEFAULT_CURRENCY].defaultLocale, {
+    style: 'percent',
+    maximumFractionDigits: opts.maximumFractionDigits ?? 0,
+  }).format(ratio)
 }

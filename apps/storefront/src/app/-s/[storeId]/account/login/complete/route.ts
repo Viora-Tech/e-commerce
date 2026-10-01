@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import { linkIdentity, redeemHandoff, signToken } from '@commerce/core'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -15,7 +16,6 @@ import {
   LOGIN_BROWSER_COOKIE,
   PENDING_LINK_COOKIE,
   requestOrigin,
-  settingsSecret,
   signInCustomer,
   takeCookie,
 } from '@/lib/shopper-login'

@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { enqueueAppJob, permissions } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
@@ -53,8 +53,6 @@ import {
 } from '../services/gst-invoices.service'
 import { storageProviderFor } from '../services/media.service'
 
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
-
 type Ctx = { tx: StoreTx; scope: { storeId: string } }
 
 /** Every procedure here needs the store to have installed the app. */
@@ -72,7 +70,7 @@ function renderDeps(context: Ctx): RenderDeps {
     inStore: (fn) => fn(context.tx),
     storage: async () => {
       const { storage } = await storeRegistries(context.tx, context.scope.storeId)
-      return storageProviderFor(context.tx, context.scope.storeId, storage, secret())
+      return storageProviderFor(context.tx, context.scope.storeId, storage, settingsSecret())
     },
   }
 }

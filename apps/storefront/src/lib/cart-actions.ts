@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   addToCart,
   CheckoutRuleViolation,
@@ -29,6 +29,7 @@ import {
   thankYouPath,
 } from '@commerce/core'
 import { order, payment } from '@commerce/db'
+import { formatMoney } from '@commerce/money'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
@@ -39,7 +40,6 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
-import { formatPaise } from './money'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -192,7 +192,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
         paymentProvider: provider,
         giftCardIds,
         shippingRateId: form.shippingRate || null,
-        secret: loadEnv(process.env).SETTINGS_SECRET,
+        secret: settingsSecret(),
         checkout: {
           name: form.name,
           email: form.email,
@@ -259,11 +259,11 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
     case 'contact':
       return Object.values(err.fields)[0] ?? e.contact
     case 'minimum_order':
-      return e.minimumOrder(formatPaise(err.amountPaise ?? 0))
+      return e.minimumOrder(formatMoney(err.amountPaise ?? 0))
     case 'cod_blocked_pincode':
       return e.codUnavailable
     case 'cod_over_limit':
-      return e.codOverLimit(formatPaise(err.amountPaise ?? 0))
+      return e.codOverLimit(formatMoney(err.amountPaise ?? 0))
     case 'state_mismatch':
       return e.stateMismatch(pincode)
   }
@@ -273,7 +273,7 @@ function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): strin
 function redirectAfterCheckout(
   result: Pick<PlaceOrderResult, 'session' | 'orderNumber' | 'orderId'>,
 ): never {
-  const token = orderViewToken(result.orderId, loadEnv(process.env).SETTINGS_SECRET)
+  const token = orderViewToken(result.orderId, settingsSecret())
   if (result.session?.kind === 'client') redirect(payPath(result.orderNumber, token))
   if (result.session?.kind === 'redirect') redirect(result.session.url)
   redirect(thankYouPath(result.orderNumber, token))
@@ -297,7 +297,7 @@ export async function retryPaymentAction(orderNumber: number) {
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
   const backToThankYou = (): never =>
-    redirect(thankYouPath(orderNumber, orderViewToken(oid, loadEnv(process.env).SETTINGS_SECRET)))
+    redirect(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
   const ip = clientIp(await headers())
   const [byIp, byOrder] = await Promise.all([
     rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
@@ -318,7 +318,7 @@ export async function retryPaymentAction(orderNumber: number) {
     return provider ?? null
   })
   if (!target) {
-    redirect(thankYouPath(orderNumber, orderViewToken(oid, loadEnv(process.env).SETTINGS_SECRET)))
+    redirect(thankYouPath(orderNumber, orderViewToken(oid, settingsSecret())))
   }
   const started = await retryAndStartPayment(db(), storeId, oid, target).catch((err: unknown) => {
     // Paid or cancelled meanwhile: the thank-you page shows where the order stands.

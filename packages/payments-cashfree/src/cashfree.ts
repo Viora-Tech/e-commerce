@@ -21,7 +21,7 @@
  * replay window below is ours.
  */
 
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import type {
   ClientConfirmation,
   ConnectionTestResult,
@@ -35,6 +35,7 @@ import type {
   WebhookEvent,
   WebhookVerification,
 } from '@commerce/payments'
+import { safeEqual } from '@commerce/payments'
 
 export type CashfreeConfig = {
   appId: string
@@ -133,12 +134,6 @@ function idempotencyUuid(key: string): string {
   const h = createHash('sha256').update(key).digest('hex')
   const variant = ((Number.parseInt(h.slice(16, 18), 16) & 0x3f) | 0x80).toString(16)
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(18, 20)}-${h.slice(20, 32)}`
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a)
-  const bb = Buffer.from(b)
-  return ab.length === bb.length && timingSafeEqual(ab, bb)
 }
 
 type CfOrderResponse = {

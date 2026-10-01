@@ -1,5 +1,6 @@
 'use server'
 
+import { settingsSecret } from '@commerce/config'
 import 'server-only'
 
 import { randomBytes } from 'node:crypto'
@@ -43,7 +44,6 @@ import {
   ONE_TAP_COOKIE,
   PASSKEY_COOKIE,
   requestOrigin,
-  settingsSecret,
   signInCustomer,
   storeLoginApp,
   storeLoginSetup,

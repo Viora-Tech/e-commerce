@@ -1,3 +1,4 @@
+import 'server-only'
 import type { CardProduct } from '@commerce/blocks'
 import type { CollectionSort } from '@commerce/core/collections'
 import type { StoreTx } from '@commerce/db'

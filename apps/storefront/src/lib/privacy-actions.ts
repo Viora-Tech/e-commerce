@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   CONSENT_COOKIE,
   CONSENT_MAX_AGE,
@@ -170,7 +170,7 @@ export async function verifyPhoneCodeAction(
     rateLimited('phone-code-verify:ip', clientIp(await headers()), IP_VERIFY_RULE),
   ])
   if (!byPhone.ok || !byIp.ok) return { error: accountContent.login.errors.rateLimited }
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   const life = await lifetimeFor(sid, remember)
   const r = await inStore(sid, (tx) =>
     verifyPhoneLoginCode({ tx, storeId: sid }, mobile, code, secret, new Date(), life.ttlMs),
@@ -213,7 +213,7 @@ export async function requestDeletionCodeAction(): Promise<DeletionCodeState> {
   if (!me) redirect('/account/login?return_to=/account/privacy')
   const limited = await rateLimited('account-delete:customer', me.id, DELETE_RULE)
   if (!limited.ok) return { ok: false, error: copy.rateLimited }
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   const name = await storeName(sid)
   const result = await inStore(sid, async (tx) => {
     const ctx = { tx, storeId: sid }

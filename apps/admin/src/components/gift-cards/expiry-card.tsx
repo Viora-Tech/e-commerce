@@ -1,5 +1,6 @@
 'use client'
 
+import { dayStart } from '@commerce/dates'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -7,6 +8,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { giftCardDetailContent } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
+import { formatPattern } from '@/lib/format-date'
 
 type ExpiryCardProps = {
   card: { id: string; expiresOn: string | null; today: string }
@@ -14,7 +16,6 @@ type ExpiryCardProps = {
 }
 
 const copy = giftCardDetailContent.expiry
-const long = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
 
 /** Expiry date with inline edit; clearing it makes the card never expire. */
 export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
@@ -46,7 +47,9 @@ export default function ExpiryCard({ card, onChanged }: ExpiryCardProps) {
 
   // Render logic
   const label = card.expiresOn
-    ? copy.on(long.format(new Date(`${card.expiresOn}T00:00:00`)))
+    ? copy.on(
+        formatPattern(dayStart(card.expiresOn), { day: 'numeric', month: 'long', year: 'numeric' }),
+      )
     : copy.never
 
   return (

@@ -1,4 +1,5 @@
 import type { PurchaseOrderInput } from '@commerce/core/inventory'
+import { parseRupees } from '@commerce/money'
 import type { api } from '@/lib/api-client'
 
 export type LoadedPurchaseOrder = NonNullable<Awaited<ReturnType<typeof api.purchaseOrders.get>>>
@@ -30,11 +31,6 @@ export type PoForm = {
 }
 
 const rupees = (paise: number) => (paise === 0 ? '' : String(paise / 100))
-
-export function toPaise(text: string): number {
-  const n = Number.parseFloat(text)
-  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0
-}
 
 export function toCount(text: string): number {
   const n = Number.parseInt(text, 10)
@@ -83,7 +79,7 @@ export function lineNumbers(form: PoForm) {
   return form.lines.map((l) => ({
     variantId: l.variantId,
     quantity: toCount(l.quantity),
-    unitCostPaise: toPaise(l.unitCost),
+    unitCostPaise: parseRupees(l.unitCost) ?? 0,
     received: l.received,
   }))
 }
@@ -96,8 +92,8 @@ export function toInput(form: PoForm, id: string | undefined): PurchaseOrderInpu
     supplierPhone: form.supplierPhone.trim() || undefined,
     locationId: form.locationId,
     expectedAt: form.expectedAt ? new Date(form.expectedAt) : null,
-    shippingPaise: toPaise(form.shipping),
-    taxPaise: toPaise(form.tax),
+    shippingPaise: parseRupees(form.shipping) ?? 0,
+    taxPaise: parseRupees(form.tax) ?? 0,
     note: form.note.trim() || undefined,
     lines: lineNumbers(form)
       .filter((l) => l.quantity > 0)

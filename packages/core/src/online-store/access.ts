@@ -1,4 +1,5 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
+import { safeEqual } from '@commerce/payments'
 
 /**
  * The storefront password page's pass. Entering the password sets a signed cookie
@@ -18,16 +19,10 @@ const sign = (secret: string, storeId: string, password: string, exp: number): s
     .update(`${PURPOSE}:${storeId}:${digest(password)}:${exp}`)
     .digest('base64url')
 
-const same = (a: string, b: string): boolean => {
-  const x = Buffer.from(a)
-  const y = Buffer.from(b)
-  return x.length === y.length && timingSafeEqual(x, y)
-}
-
 /** Whether a typed password matches the store's, compared in constant time. */
 export function checkStorefrontPassword(expected: string, given: string): boolean {
   if (!expected.trim()) return false
-  return same(digest(expected), digest(given))
+  return safeEqual(digest(expected), digest(given))
 }
 
 export function signStorefrontAccess(opts: {
@@ -52,5 +47,5 @@ export function verifyStorefrontAccess(opts: {
   const exp = Number(expRaw)
   if (!sig || !Number.isInteger(exp)) return false
   if (exp * 1000 <= (opts.now ?? Date.now())) return false
-  return same(sign(opts.secret, opts.storeId, opts.password, exp), sig)
+  return safeEqual(sign(opts.secret, opts.storeId, opts.password, exp), sig)
 }

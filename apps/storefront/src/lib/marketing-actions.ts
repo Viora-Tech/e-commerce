@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { resubscribeCustomer, unsubscribeCustomer, verifyUnsubscribeToken } from '@commerce/core'
 import { revalidatePath } from 'next/cache'
 import { requestStoreId } from './request-store'
@@ -18,7 +18,7 @@ async function withToken(
   fn: (storeId: string, customerId: string) => Promise<unknown>,
 ) {
   const storeId = await requestStoreId()
-  const v = verifyUnsubscribeToken(token, loadEnv(process.env).SETTINGS_SECRET)
+  const v = verifyUnsubscribeToken(token, settingsSecret())
   if (!v || v.storeId !== storeId) return
   await fn(storeId, v.customerId)
   revalidatePath(`/unsubscribe/${token}`)

@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   CommerceError,
   getCustomerOrder,
@@ -11,6 +11,7 @@ import {
   storageForStore,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
+import { RETURN_PHOTO_MAX_BYTES } from '@commerce/storage/keys'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -32,7 +33,6 @@ const PHOTO_TYPES: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
 }
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 const PHOTO_RULE = { limit: 12, windowMs: 10 * 60 * 1000 }
 const REQUEST_RULE = { limit: 10, windowMs: 10 * 60 * 1000 }
 
@@ -64,7 +64,8 @@ export async function uploadReturnPhotoAction(form: FormData): Promise<PhotoUplo
   if (!(file instanceof File)) return { ok: false, error: copy.photoFailed }
   const ext = PHOTO_TYPES[file.type.toLowerCase()]
   if (!ext) return { ok: false, error: copy.photoType }
-  if (file.size <= 0 || file.size > MAX_PHOTO_BYTES) return { ok: false, error: copy.photoSize }
+  if (file.size <= 0 || file.size > RETURN_PHOTO_MAX_BYTES)
+    return { ok: false, error: copy.photoSize }
   const env = loadEnv(process.env)
   try {
     const provider = await inStore(sid, async (tx) =>
@@ -113,7 +114,7 @@ export async function submitReturnAction(
         tx,
         sid,
         (await registriesForStore(tx, sid)).storage,
-        loadEnv(process.env).SETTINGS_SECRET,
+        settingsSecret(),
       )
       const prefix = storage.publicUrl(`stores/${sid}/returns/`)
       const photos = input.photos.filter((u) => u.startsWith(prefix) && !u.includes('..'))

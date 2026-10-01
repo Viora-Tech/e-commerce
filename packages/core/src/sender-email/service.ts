@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: sender email lifecycle — WHAT: claim, verify, re-check and remove a store's sender domain / WHY: one store = one sender domain, never another store's */
 import {
   type Db,
+  isUniqueViolation,
   type StoreTx,
   senderEmail,
   storesWithSenderEmailChecks,
@@ -67,16 +68,6 @@ async function domainTaken(tx: StoreTx, domain: string, storeId: string): Promis
     sql`select sender_domain_taken(${domain}, ${storeId}::uuid) as taken`,
   )
   return r?.taken === true
-}
-
-/** Postgres unique violation, however the driver wrapped it. */
-function isUniqueViolation(err: unknown): boolean {
-  let e: unknown = err
-  for (let i = 0; i < 3 && e; i++) {
-    if ((e as { code?: unknown }).code === '23505') return true
-    e = (e as { cause?: unknown }).cause
-  }
-  return false
 }
 
 /** The row's columns that mirror what the provider reported. */

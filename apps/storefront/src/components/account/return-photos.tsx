@@ -1,5 +1,6 @@
 'use client'
 
+import { RETURN_PHOTO_MAX_BYTES } from '@commerce/storage/keys'
 import { useState } from 'react'
 import { returnsContent } from '@/data/returns'
 import { uploadReturnPhotoAction } from '@/lib/return-actions'
@@ -12,7 +13,6 @@ type ReturnPhotosProps = {
 
 const copy = returnsContent.form
 const MAX_PHOTOS = 3
-const MAX_BYTES = 5 * 1024 * 1024
 const TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 /** Up to three photos, each uploaded as soon as it is picked. */
@@ -29,7 +29,7 @@ export default function ReturnPhotos({ photos, onChange, disabled }: ReturnPhoto
     setError(null)
     if (photos.length >= MAX_PHOTOS) return setError(copy.errors.photoLimit)
     if (!TYPES.includes(file.type)) return setError(copy.errors.photoType)
-    if (file.size > MAX_BYTES) return setError(copy.errors.photoSize)
+    if (file.size > RETURN_PHOTO_MAX_BYTES) return setError(copy.errors.photoSize)
     setUploading(true)
     try {
       const form = new FormData()

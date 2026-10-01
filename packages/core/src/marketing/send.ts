@@ -74,11 +74,6 @@ export async function storeSender(tx: StoreTx, storeId: string): Promise<StoreSe
   return { storeName: s?.name ?? '', storeAddress: address || undefined }
 }
 
-/** Formats paise as INR for marketing email/WhatsApp merge tags. */
-export function inr(paise: number): string {
-  return formatMoney(paise, 'INR')
-}
-
 /** First name for `{first_name}`; "there" reads naturally in "Hi there". */
 export function firstName(name: string | null | undefined): string {
   return name?.trim().split(/\s+/)[0] || 'there'

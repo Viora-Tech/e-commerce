@@ -8,11 +8,6 @@ export type PickupChoice =
   | { method: 'customer' }
   | { method: 'later' }
 
-/** Rupees typed by the merchant to paise; NaN for junk. */
-export function toPaise(rupees: string): number {
-  return Math.round(Number.parseFloat(rupees) * 100)
-}
-
 /** Paise to the rupee string an amount field shows. */
 export function toRupees(paise: number): string {
   return String(paise / 100)

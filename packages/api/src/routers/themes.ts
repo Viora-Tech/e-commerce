@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   commitTemplateDrafts,
   createTemplateAlternate,
@@ -37,7 +37,6 @@ import { z } from 'zod'
 import { can } from '../procedures'
 import { themePreviewContext } from '../services/theme-preview.service'
 
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 const IdInput = z.object({ id: z.string().uuid() })
 
 const TemplateKeyInput = z.enum([...TEMPLATE_KINDS, ...SECTION_GROUPS])
@@ -203,7 +202,7 @@ async function libraryErrors<T>(fn: () => Promise<T>): Promise<T> {
 function present(storeId: string, t: ThemeRecord) {
   return {
     ...t,
-    previewToken: signThemePreviewToken({ secret: secret(), storeId, themeId: t.id }),
+    previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId, themeId: t.id }),
   }
 }
 

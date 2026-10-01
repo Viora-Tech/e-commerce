@@ -1,4 +1,5 @@
 import type { DashboardSummary } from '@commerce/api'
+import { formatPercent } from '@commerce/money'
 import { Sparkle } from '@commerce/ui/icons'
 import DataCard from '@/components/layout/data-card'
 import { homeContent } from '@/data/home'
@@ -11,12 +12,6 @@ type InsightsListProps = {
   streakDays: number
 }
 
-const PERCENT_OPTIONS = { style: 'percent', maximumFractionDigits: 0 } as const
-const PERCENT: Record<Locale, Intl.NumberFormat> = {
-  en: new Intl.NumberFormat(INTL_LOCALE.en, PERCENT_OPTIONS),
-  hi: new Intl.NumberFormat(INTL_LOCALE.hi, PERCENT_OPTIONS),
-}
-
 /** Plain sentences built from real numbers: sales trend, best seller, low stock, streak. */
 function buildLines(
   input: InsightsListProps,
@@ -25,7 +20,7 @@ function buildLines(
 ): string[] {
   const lines: string[] = []
   if (input.insight.salesChange !== null) {
-    const pct = PERCENT[locale].format(Math.abs(input.insight.salesChange))
+    const pct = formatPercent(Math.abs(input.insight.salesChange), { locale: INTL_LOCALE[locale] })
     if (input.insight.salesChange > 0.02) lines.push(c.salesUp(pct, c.comparedToLastWeek))
     else if (input.insight.salesChange < -0.02) lines.push(c.salesDown(pct, c.comparedToLastWeek))
     else lines.push(c.salesFlat)

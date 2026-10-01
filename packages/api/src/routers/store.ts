@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   checkRateLimit,
   createMemoryRateLimitStore,
@@ -64,7 +64,6 @@ import {
   updateStorePreorder,
 } from '../services/store.service'
 
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 const previousSecrets = () => parsePreviousSecrets(loadEnv(process.env).SETTINGS_SECRET_PREVIOUS)
 
 /**
@@ -132,7 +131,7 @@ export const storeRouter = {
     const main = await ensureMainTheme(context.tx, storeId)
     return {
       theme: main.settings,
-      previewToken: signThemePreviewToken({ secret: secret(), storeId }),
+      previewToken: signThemePreviewToken({ secret: settingsSecret(), storeId }),
     }
   }),
 
@@ -165,7 +164,7 @@ export const storeRouter = {
     return {
       settings: presentProviderSettings(
         parsePaymentSettings(s?.payments),
-        secret(),
+        settingsSecret(),
         payments,
         previousSecrets(),
       ),
@@ -184,12 +183,18 @@ export const storeRouter = {
         (await getStore(context.tx, context.scope.storeId))?.payments,
       )
       const { payments } = await storeRegistries(context.tx, context.scope.storeId)
-      const next = prepareProviderSettings(input, current, payments, secret(), 'payment provider')
+      const next = prepareProviderSettings(
+        input,
+        current,
+        payments,
+        settingsSecret(),
+        'payment provider',
+      )
       const saved = await updateStorePayments(context.tx, context.scope.storeId, next)
       return saved
         ? presentProviderSettings(
             parsePaymentSettings(saved.payments),
-            secret(),
+            settingsSecret(),
             payments,
             previousSecrets(),
           )
@@ -216,7 +221,7 @@ export const storeRouter = {
     return {
       settings: presentProviderSettings(
         parseNotificationSettings(s?.notifications),
-        secret(),
+        settingsSecret(),
         notifications,
         previousSecrets(),
       ),
@@ -235,14 +240,14 @@ export const storeRouter = {
         input,
         current,
         notifications,
-        secret(),
+        settingsSecret(),
         'notification channel',
       )
       const saved = await updateStoreNotifications(context.tx, context.scope.storeId, next)
       return saved
         ? presentProviderSettings(
             parseNotificationSettings(saved.notifications),
-            secret(),
+            settingsSecret(),
             notifications,
             previousSecrets(),
           )
@@ -256,7 +261,7 @@ export const storeRouter = {
     return {
       settings: presentProviderSettings(
         parseShippingSettings(s?.shipping),
-        secret(),
+        settingsSecret(),
         shipping,
         previousSecrets(),
       ),
@@ -271,12 +276,12 @@ export const storeRouter = {
         (await getStore(context.tx, context.scope.storeId))?.shipping,
       )
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      const next = prepareProviderSettings(input, current, shipping, secret(), 'courier')
+      const next = prepareProviderSettings(input, current, shipping, settingsSecret(), 'courier')
       const saved = await updateStoreShipping(context.tx, context.scope.storeId, next)
       return saved
         ? presentProviderSettings(
             parseShippingSettings(saved.shipping),
-            secret(),
+            settingsSecret(),
             shipping,
             previousSecrets(),
           )
@@ -288,12 +293,18 @@ export const storeRouter = {
     .input(z.object({ pincode: z.string().trim().max(10) }))
     .handler(async ({ context, input }) => {
       const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-      return tryEstimate(context.tx, context.scope.storeId, shipping, secret(), input.pincode)
+      return tryEstimate(
+        context.tx,
+        context.scope.storeId,
+        shipping,
+        settingsSecret(),
+        input.pincode,
+      )
     }),
 
   verifyShipping: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { shipping } = await storeRegistries(context.tx, context.scope.storeId)
-    return verifyShippingCredentials(context.tx, context.scope.storeId, shipping, secret())
+    return verifyShippingCredentials(context.tx, context.scope.storeId, shipping, settingsSecret())
   }),
 
   /**
@@ -319,7 +330,7 @@ export const storeRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         'delhivery',
         input.fields,
       )
@@ -344,7 +355,7 @@ export const storeRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         'shiprocket',
         input.fields,
       )
@@ -369,7 +380,7 @@ export const storeRouter = {
         context.tx,
         context.scope.storeId,
         shipping,
-        secret(),
+        settingsSecret(),
         'rapidshyp',
         input.fields,
       )
@@ -398,7 +409,7 @@ export const storeRouter = {
         context.tx,
         context.scope.storeId,
         payments,
-        { secret: secret(), previousSecrets: previousSecrets() },
+        { secret: settingsSecret(), previousSecrets: previousSecrets() },
         'decentro',
         input.fields,
       )
@@ -410,7 +421,7 @@ export const storeRouter = {
     return {
       settings: presentProviderSettings(
         await loadStorageSettings(context.tx, context.scope.storeId),
-        secret(),
+        settingsSecret(),
         storage,
         previousSecrets(),
       ),
@@ -423,12 +434,18 @@ export const storeRouter = {
     .handler(async ({ context, input }) => {
       const current = await loadStorageSettings(context.tx, context.scope.storeId)
       const { storage } = await storeRegistries(context.tx, context.scope.storeId)
-      const next = prepareProviderSettings(input, current, storage, secret(), 'storage provider')
+      const next = prepareProviderSettings(
+        input,
+        current,
+        storage,
+        settingsSecret(),
+        'storage provider',
+      )
       const saved = await updateStoreStorage(context.tx, context.scope.storeId, next)
       return saved
         ? presentProviderSettings(
             await loadStorageSettings(context.tx, context.scope.storeId),
-            secret(),
+            settingsSecret(),
             storage,
             previousSecrets(),
           )
@@ -437,7 +454,7 @@ export const storeRouter = {
 
   verifyStorage: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
     const { storage } = await storeRegistries(context.tx, context.scope.storeId)
-    return verifyStorageCredentials(context.tx, context.scope.storeId, storage, secret())
+    return verifyStorageCredentials(context.tx, context.scope.storeId, storage, settingsSecret())
   }),
 
   /**
@@ -463,7 +480,7 @@ export const storeRouter = {
         context.tx,
         context.scope.storeId,
         storage,
-        secret(),
+        settingsSecret(),
         input.providerId,
         input.fields,
       )

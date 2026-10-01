@@ -1,3 +1,4 @@
+import 'server-only'
 import { parseAppsSettings, parseNotificationSettings } from '@commerce/core'
 import { type StoreTx, store } from '@commerce/db'
 import { BACK_IN_STOCK_ID, loadStoreSettings } from '@commerce/plugin-back-in-stock/server'

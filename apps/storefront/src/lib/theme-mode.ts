@@ -1,3 +1,4 @@
+import 'server-only'
 import { type Theme, type ThemeMode, themeColorVars } from '@commerce/core'
 import type { Viewport } from 'next'
 

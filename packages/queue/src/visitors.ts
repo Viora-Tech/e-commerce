@@ -1,3 +1,4 @@
+import { dayKey } from '@commerce/dates'
 import type IORedis from 'ioredis'
 
 /**
@@ -10,7 +11,6 @@ export const LIVE_MINUTES = 30
 const KEY_TTL_SECONDS = 2 * 3600
 /** Daily uniques feed the analytics section, so they outlive the live window. */
 const DAY_TTL_SECONDS = 90 * 86_400
-const IST_OFFSET_MS = 5.5 * 3_600_000
 
 export type LiveVisitors = {
   /** Unique visitors across the last 30 minutes. */
@@ -27,7 +27,7 @@ export const EMPTY_LIVE_VISITORS: LiveVisitors = {
 const minuteOf = (now: Date) => Math.floor(now.getTime() / 60_000)
 
 /** ISO date of an instant read in IST, matching how the reports bucket days. */
-const istDay = (now: Date) => new Date(now.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10)
+const istDay = (now: Date) => dayKey(now)
 
 export const visitorsKey = (storeId: string, minute: number) => `{visitors}:${storeId}:${minute}`
 

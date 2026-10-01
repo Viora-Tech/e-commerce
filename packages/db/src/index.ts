@@ -1,6 +1,7 @@
 export * as authSchema from './auth-schema'
 export { createDb, type Db } from './client'
 export { seedWaimersShipping } from './default-shipping'
+export { isUniqueViolation } from './errors'
 export * from './marketing-schema'
 export * from './privacy-schema'
 export {

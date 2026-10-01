@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { recordMessageClick, verifyClickToken } from '@commerce/core'
 import { headers } from 'next/headers'
 import { type NextRequest, NextResponse } from 'next/server'
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   const storeId = (await headers()).get('x-store-id')
   const target = request.nextUrl.searchParams.get('u') ?? ''
   const home = new URL('/', request.url)
-  const payload = verifyClickToken(token, target, loadEnv(process.env).SETTINGS_SECRET)
+  const payload = verifyClickToken(token, target, settingsSecret())
   if (!payload || !storeId || payload.storeId !== storeId || !/^https?:\/\//i.test(target)) {
     return NextResponse.redirect(home)
   }

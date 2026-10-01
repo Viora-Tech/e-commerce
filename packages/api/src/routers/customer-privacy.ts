@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   anonymiseCustomer,
   askConsentAgain,
@@ -32,8 +32,6 @@ import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { can } from '../procedures'
-
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 type Ctx = {
   tx: StoreTx
@@ -165,7 +163,7 @@ export const customerPrivacyRouter = {
         }
         const file = await exportCustomerData(ctxOf(context), {
           ...input,
-          secret: secret(),
+          secret: settingsSecret(),
           actor: staffOf(context),
         })
         if (!file) throw new ORPCError('NOT_FOUND', { message: 'Customer not found' })
@@ -189,12 +187,12 @@ export const customerPrivacyRouter = {
         // Return photos are deleted through the store's storage; a broken connection must
         // not block the erasure, it only leaves the files to remove by hand (counted).
         const storage = await registriesForStore(ctx.tx, ctx.storeId)
-          .then((r) => storageForStore(ctx.tx, ctx.storeId, r.storage, secret()))
+          .then((r) => storageForStore(ctx.tx, ctx.storeId, r.storage, settingsSecret()))
           .catch(() => null)
         const result = await anonymiseCustomer(ctx, {
           ...input,
           actor,
-          secret: secret(),
+          secret: settingsSecret(),
           storage,
         })
         if (input.dataRequestId && request) {

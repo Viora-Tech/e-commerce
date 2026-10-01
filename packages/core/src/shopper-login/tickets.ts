@@ -1,5 +1,7 @@
 /** SOURCE OF TRUTH: shopper login tickets — WHAT: mint and redeem the single-use hand-off from the platform login domain to the store's domain (bound to the store, the exact return URL and the starting browser), and emailed magic links / WHY: a hand-off token that could be replayed, used on another store, sent to another host or planted in someone else's browser would sign the wrong person in */
+
 import { customer, customerLoginTicket } from '@commerce/db'
+import { safeEqual } from '@commerce/payments'
 import { and, desc, eq, gt, isNull, lt } from 'drizzle-orm'
 import { normaliseLoginEmail } from '../accounts/auth'
 import type { StoreContext } from '../context'
@@ -9,7 +11,6 @@ import {
   HANDOFF_TTL_MS,
   type HandoffPayload,
   randomToken,
-  safeEqual,
   safeNextPath,
   sha256Hex,
   signToken,

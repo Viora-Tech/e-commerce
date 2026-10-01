@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Trash2 } from '@commerce/ui/icons'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -8,7 +9,7 @@ import KitIconButton from '@/components/kit/kit-icon-button'
 import KitThumb from '@/components/kit/kit-thumb'
 import { purchaseOrderFormContent } from '@/data/inventory'
 import { formatPaise } from '@/lib/money'
-import { type PoLine, toCount, toPaise } from './form-state'
+import { type PoLine, toCount } from './form-state'
 
 type PoLinesCardProps = {
   lines: PoLine[]
@@ -112,7 +113,7 @@ export default function PoLinesCard({
                 <span className="text-right text-body tabular-nums">
                   {showReceived
                     ? `${line.received} / ${toCount(line.quantity)}`
-                    : formatPaise(toCount(line.quantity) * toPaise(line.unitCost))}
+                    : formatPaise(toCount(line.quantity) * (parseRupees(line.unitCost) ?? 0))}
                 </span>
                 {locked ? (
                   <span />

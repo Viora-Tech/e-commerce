@@ -1,4 +1,4 @@
-import type { MarketingRunStatus } from '@commerce/db'
+import type { MarketingRunStatus } from '@commerce/core/marketing'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import RelativeTime from '@/components/layout/relative-time'
 import { automationEditorContent } from '@/data/marketing-automations'

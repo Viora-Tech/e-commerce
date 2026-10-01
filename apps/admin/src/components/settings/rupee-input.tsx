@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   InputGroup,
@@ -21,12 +22,6 @@ type RupeeInputProps = {
 
 const toText = (paise: number): string => (paise > 0 ? String(paise / 100) : '0')
 
-/** A whole-rupee amount the merchant types; stored as paise, never negative. */
-const toPaise = (text: string): number => {
-  const n = Number(text)
-  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0
-}
-
 /** One rupee amount with a ₹ prefix and a plain hint. */
 export default function RupeeInput({ id, label, hint, paise, onChange }: RupeeInputProps) {
   // Hooks
@@ -35,7 +30,7 @@ export default function RupeeInput({ id, label, hint, paise, onChange }: RupeeIn
   // Event handlers
   const handleChange = (next: string) => {
     setText(next)
-    onChange(toPaise(next))
+    onChange(parseRupees(next) ?? 0)
   }
 
   return (

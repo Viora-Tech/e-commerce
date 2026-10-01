@@ -1,10 +1,12 @@
 'use client'
 
+import { dayStart } from '@commerce/dates'
 import { useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
 import type { ChartPoint } from '@/components/layout/chart-config'
 import StatTabs from '@/components/layout/stat-tabs'
 import { customersContent } from '@/data/customers'
+import { formatPattern } from '@/lib/format-date'
 import { formatCompact } from '@/lib/money'
 import type { CustomerOverview } from './customer-tiles'
 
@@ -19,14 +21,12 @@ const METRICS: readonly Metric[] = [
   'conversionRate',
 ]
 
-const weekday = new Intl.DateTimeFormat('en-IN', { weekday: 'short' })
-
 const percent = (n: number) => `${n.toFixed(1)}%`
 const percentOrDash = (n: number | null) => (n === null ? '—' : percent(n))
 
 function toPoints(series: Series, metric: Metric): ChartPoint[] {
   return series.days.map((date, i) => ({
-    label: weekday.format(new Date(`${date}T00:00:00`)),
+    label: formatPattern(dayStart(date), { weekday: 'short' }),
     value: series[metric][i] ?? 0,
   }))
 }

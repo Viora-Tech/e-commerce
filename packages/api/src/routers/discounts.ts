@@ -1,7 +1,7 @@
 import { DiscountInputSchema, permissions } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import {
   createDiscount,
   DiscountCodeTaken,
@@ -29,8 +29,8 @@ export const discountsRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(25),
-        search: z.string().trim().max(200).optional(),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(25),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         lifecycle: z.enum(LIFECYCLES).optional(),
       }),
     )

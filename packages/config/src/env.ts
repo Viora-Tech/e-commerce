@@ -140,6 +140,18 @@ export function loadEnv(source: Record<string, string | undefined>): Env {
   return result.data
 }
 
+/**
+ * SOURCE OF TRUTH KEYWORDS: settingsSecret, SETTINGS_SECRET
+ * WHAT:  The current SETTINGS_SECRET (signs links/tokens, encrypts provider settings).
+ * WHY:   One reader instead of a `const secret = () => loadEnv(process.env).SETTINGS_SECRET`
+ *        per router; read per call, not cached, so tests can swap the env. Rotation
+ *        (SETTINGS_SECRET_PREVIOUS) stays with the callers that decrypt.
+ * WHERE: API routers, storefront pages/actions; guarded by the duplicate-helpers sweep.
+ */
+export function settingsSecret(): string {
+  return loadEnv(process.env).SETTINGS_SECRET
+}
+
 const platformEmailSchema = z.object({ ...platformEmailShape, PLATFORM_DOMAINS: platformDomains })
 
 export type PlatformEmailEnv = z.infer<typeof platformEmailSchema>

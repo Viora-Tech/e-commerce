@@ -2,7 +2,7 @@
 
 import 'server-only'
 
-import { loadEnv } from '@commerce/config'
+import { loadEnv, settingsSecret } from '@commerce/config'
 import {
   addToCart,
   createAddress,
@@ -37,7 +37,7 @@ import {
 import { devOtpEnabled, rememberDevOtp } from './dev-otp'
 import type { PendingLink } from './login-errors'
 import { clientIp, rateLimited } from './rate-limit'
-import { lifetimeFor, PENDING_LINK_COOKIE, settingsSecret, takeCookie } from './shopper-login'
+import { lifetimeFor, PENDING_LINK_COOKIE, takeCookie } from './shopper-login'
 import { inStore } from './store-context'
 
 /**
@@ -194,7 +194,7 @@ export async function saveProfileAction(input: Record<string, unknown>): Promise
   const sid = await storeId()
   const c = await me(sid)
   const r = await inStore(sid, (tx) =>
-    updateProfile({ storeId: sid, tx }, c.id, input, loadEnv(process.env).SETTINGS_SECRET),
+    updateProfile({ storeId: sid, tx }, c.id, input, settingsSecret()),
   )
   if (!r.ok) return r
   revalidatePath('/account', 'layout')

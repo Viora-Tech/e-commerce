@@ -1,5 +1,5 @@
 import { createMerchantAuth } from '@commerce/auth'
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   applyThemePreset,
   defaultPreferences,
@@ -74,7 +74,7 @@ describe('store theme', () => {
     expect(first.theme).toEqual(defaultTheme)
     expect(
       verifyThemePreviewToken({
-        secret: loadEnv(process.env).SETTINGS_SECRET,
+        secret: settingsSecret(),
         storeId: m.storeId,
         token: first.previewToken,
       }),
@@ -149,7 +149,7 @@ describe('theme library', () => {
     expect(bold).toMatchObject({ role: 'unpublished', name: 'Bold' })
     expect(
       readThemePreviewToken({
-        secret: loadEnv(process.env).SETTINGS_SECRET,
+        secret: settingsSecret(),
         storeId: m.storeId,
         token: bold.previewToken,
       }),

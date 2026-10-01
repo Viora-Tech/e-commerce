@@ -1,3 +1,4 @@
+import { wallClock } from '@commerce/dates'
 import { briefingSentence, greetingWord, homeContent } from '@/data/home'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatters } from '@/lib/format'
@@ -15,12 +16,7 @@ type TodayBriefingProps = {
 
 /** The hour of the day in the store's clock (India runs one timezone: IST). */
 function istHour(now: Date): number {
-  const formatted = new Intl.DateTimeFormat('en-IN', {
-    hour: 'numeric',
-    hour12: false,
-    timeZone: 'Asia/Kolkata',
-  }).format(now)
-  return Number(formatted) % 24
+  return wallClock(now).getUTCHours()
 }
 
 /**

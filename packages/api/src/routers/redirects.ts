@@ -8,16 +8,16 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_MAX, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 
 /** URL redirects: Content → Menus → URL redirects. Served by the storefront proxy. */
 export const redirectsRouter = {
   list: can(permissions.ONLINE_STORE_READ)
     .input(
       z.object({
-        page: z.number().int().min(1).max(10_000).default(1),
-        perPage: z.number().int().min(1).max(100).default(50),
-        query: z.string().trim().max(200).optional(),
+        page: z.number().int().min(1).max(PAGE_MAX).default(1),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(50),
+        query: z.string().trim().max(SEARCH_MAX).optional(),
         sort: z.enum(['path', 'newest']).default('newest'),
       }),
     )

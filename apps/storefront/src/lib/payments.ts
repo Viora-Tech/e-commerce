@@ -1,4 +1,5 @@
-import { loadEnv } from '@commerce/config'
+import 'server-only'
+import { settingsSecret } from '@commerce/config'
 import {
   checkoutMethodsOf,
   gatewayOffersEmi,
@@ -32,7 +33,7 @@ async function loadSettings(tx: StoreTx, storeId: string) {
 /** Providers the store has enabled and configured, in checkout order. */
 export async function storePaymentProviders(tx: StoreTx, storeId: string) {
   const { payments } = await registriesForStore(tx, storeId)
-  const secret = loadEnv(process.env).SETTINGS_SECRET
+  const secret = settingsSecret()
   // Renew a gateway's OAuth token before it is used; a no-op unless one is due.
   const refreshed = await refreshPaymentCredentials({ storeId, tx }, payments, secret)
   for (const r of refreshed) {

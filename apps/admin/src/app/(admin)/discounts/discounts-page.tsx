@@ -15,6 +15,7 @@ import StatusLabel from '@/components/status/status-label'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { DISCOUNT_LIFECYCLES, type DiscountLifecycle, discountsContent } from '@/data/discounts'
 import { api } from '@/lib/api-client'
+import { formatNumericDate } from '@/lib/format-date'
 import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
 
@@ -33,10 +34,6 @@ type Query = ListQuery<DiscountLifecycle>
 
 const PER_PAGE = LIST_PER_PAGE
 
-/* Frame 5:2617 writes dates as 01-01-2025. */
-const date = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const formatDate = (d: Date | string) => date.format(new Date(d)).replaceAll('/', '-')
-
 function fetchDiscounts(q: Query) {
   return api.discounts.list({
     page: q.page,
@@ -48,8 +45,8 @@ function fetchDiscounts(q: Query) {
 
 function datesLabel(item: Item): string {
   if (!item.startsAt && !item.endsAt) return discountsContent.always
-  const from = item.startsAt ? formatDate(item.startsAt) : ''
-  const to = item.endsAt ? formatDate(item.endsAt) : discountsContent.noEnd
+  const from = item.startsAt ? formatNumericDate(item.startsAt) : ''
+  const to = item.endsAt ? formatNumericDate(item.endsAt) : discountsContent.noEnd
   return from ? `${from} to ${to}` : to
 }
 

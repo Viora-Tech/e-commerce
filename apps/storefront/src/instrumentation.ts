@@ -1,6 +1,6 @@
 import { loadEnv } from '@commerce/config'
+import { sentryOptions } from '@commerce/observability'
 import * as Sentry from '@sentry/nextjs'
-import { sentryOptions } from '@/lib/sentry-options'
 
 /**
  * Runs once per server/edge runtime on boot. Error tracking (GlitchTip via

@@ -1,3 +1,4 @@
+import { settingsSecret } from '@commerce/config'
 import { openToken } from '@commerce/core'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
@@ -6,7 +7,7 @@ import SignIn from '@/components/account/sign-in'
 import { accountContent } from '@/data/account'
 import { currentCustomer, safeReturnTo } from '@/lib/customer-session'
 import { type PendingLink, parseLoginError } from '@/lib/login-errors'
-import { PENDING_LINK_COOKIE, settingsSecret } from '@/lib/shopper-login'
+import { PENDING_LINK_COOKIE } from '@/lib/shopper-login'
 import { storeSignIn } from '@/lib/sign-in-methods'
 
 type LoginPageProps = {

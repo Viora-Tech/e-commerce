@@ -1,5 +1,6 @@
 'use client'
 
+import { formatPaise } from '@commerce/blocks'
 import type { CartView, SavedAddress, SignedInCustomer } from '@commerce/core'
 import {
   applyPaymentAdjustment,
@@ -24,7 +25,6 @@ import { checkoutContent as content } from '@/data/checkout'
 import { captureContactAction, checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
 import type { CartDiscountView } from '@/lib/discount-actions'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
-import { formatPaise } from '@/lib/money'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
 import { checkoutShippingAction } from '@/lib/shipping-actions'

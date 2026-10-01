@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { getCart, verifyRecoveryToken } from '@commerce/core'
 import { type NextRequest, NextResponse } from 'next/server'
 import { CART_COOKIE } from '@/lib/cart-cookie'
@@ -16,7 +16,7 @@ const CART_MAX_AGE = 60 * 60 * 24 * 30
 export async function GET(request: NextRequest, { params }: Params) {
   const { storeId, token } = await params
   const home = new URL('/', request.url)
-  const verified = verifyRecoveryToken(token, loadEnv(process.env).SETTINGS_SECRET)
+  const verified = verifyRecoveryToken(token, settingsSecret())
   if (!verified.ok) return NextResponse.redirect(home)
 
   const cart = await inStore(storeId, (tx) => getCart({ storeId, tx }, verified.cartId))

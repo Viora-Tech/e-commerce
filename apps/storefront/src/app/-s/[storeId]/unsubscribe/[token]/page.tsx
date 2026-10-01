@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import { customerSubscription, verifyUnsubscribeToken } from '@commerce/core'
 import type { Metadata } from 'next'
 import { unsubscribeContent as copy } from '@/data/marketing'
@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: copy.title, robots: { index: false } 
 export default async function UnsubscribePage({ params }: Props) {
   // Hooks
   const { storeId, token } = await params
-  const verified = verifyUnsubscribeToken(token, loadEnv(process.env).SETTINGS_SECRET)
+  const verified = verifyUnsubscribeToken(token, settingsSecret())
   const state =
     verified && verified.storeId === storeId
       ? await inStore(storeId, (tx) => customerSubscription(tx, verified.customerId))

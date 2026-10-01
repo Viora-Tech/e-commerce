@@ -1,6 +1,7 @@
 'use client'
 
 import { MANUAL_PAYMENT_METHODS, type ManualPaymentMethod } from '@commerce/core/manual-payments'
+import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -19,6 +20,7 @@ import { toast } from 'sonner'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { todayKey } from '@/lib/format-date'
 import type { OrderDetail } from './order-detail-types'
 
 type CollectPaymentDialogProps = {
@@ -30,16 +32,6 @@ type CollectPaymentDialogProps = {
   payHref: string
   onClose: () => void
   onDone: () => void
-}
-
-/** Rupees typed by the merchant → paise; NaN for junk. */
-function toPaise(rupees: string): number {
-  return Math.round(Number.parseFloat(rupees) * 100)
-}
-
-/** Today in India as `YYYY-MM-DD`, what the date field starts on. */
-function todayIst(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
 }
 
 /** Cash for cash on delivery, UPI for everything else: the most likely answer first. */
@@ -102,10 +94,10 @@ export default function CollectPaymentDialog({
   }
 
   // Render logic
-  const paise = amount.trim() === '' ? balancePaise : toPaise(amount)
+  const paise = amount.trim() === '' ? balancePaise : parseRupees(amount)
   const paidWith = method ?? likelyMethod(order)
-  const day = receivedOn || todayIst()
-  const valid = Number.isInteger(paise) && paise > 0 && day <= todayIst()
+  const day = receivedOn || todayKey()
+  const valid = paise !== null && paise > 0 && day <= todayKey()
   const c = copy.collectDialog
 
   return (
@@ -169,7 +161,7 @@ export default function CollectPaymentDialog({
               <Input
                 id="collect-received"
                 type="date"
-                max={todayIst()}
+                max={todayKey()}
                 value={day}
                 onChange={(e) => setReceivedOn(e.target.value)}
               />

@@ -1,6 +1,7 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { giftCardDetailContent, giftCardsContent } from '@/data/gift-cards'
+import { formatPattern } from '@/lib/format-date'
 
 type DetailsCardProps = {
   card: {
@@ -15,13 +16,13 @@ type DetailsCardProps = {
 }
 
 const copy = giftCardDetailContent.details
-const when = new Intl.DateTimeFormat('en-IN', {
+const WHEN = {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
   hour: 'numeric',
   minute: '2-digit',
-})
+} as const
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -37,7 +38,7 @@ export default function DetailsCard({ card }: DetailsCardProps) {
   return (
     <Card className="gap-3 p-5">
       <p className="text-card-title text-foreground">{copy.heading}</p>
-      <Row label={copy.issued}>{when.format(new Date(card.createdAt))}</Row>
+      <Row label={copy.issued}>{formatPattern(card.createdAt, WHEN)}</Row>
       {card.createdBy ? <Row label={copy.by}>{card.createdBy}</Row> : null}
       <Row label={copy.source}>
         {card.source === 'purchase' && card.orderId ? (
@@ -49,7 +50,7 @@ export default function DetailsCard({ card }: DetailsCardProps) {
         )}
       </Row>
       <Row label={copy.delivered}>
-        {card.deliveredAt ? when.format(new Date(card.deliveredAt)) : copy.notDelivered}
+        {card.deliveredAt ? formatPattern(card.deliveredAt, WHEN) : copy.notDelivered}
       </Row>
       {card.message ? <Row label={copy.message}>{card.message}</Row> : null}
     </Card>

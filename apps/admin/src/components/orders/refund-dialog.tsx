@@ -1,5 +1,6 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Dialog,
@@ -28,11 +29,6 @@ type RefundDialogProps = {
 }
 
 const OFFLINE = new Set(['cod', 'manual'])
-
-/** Rupees typed by the merchant → paise; NaN for junk. */
-function toPaise(rupees: string): number {
-  return Math.round(Number.parseFloat(rupees) * 100)
-}
 
 export default function RefundDialog({
   payment,
@@ -70,8 +66,8 @@ export default function RefundDialog({
   }
 
   // Render logic
-  const paise = toPaise(amount)
-  const valid = Number.isInteger(paise) && paise > 0 && paise <= remainingPaise
+  const paise = parseRupees(amount)
+  const valid = paise !== null && paise > 0 && paise <= remainingPaise
   const offline = payment ? OFFLINE.has(payment.provider) : false
 
   return (

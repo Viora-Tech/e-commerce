@@ -3,10 +3,11 @@
  * no clock of its own: every function takes what it needs, so the report
  * numbers can be tested directly.
  *
- * Days are Indian Standard Time (fixed +05:30, no DST), matching the dashboard.
+ * Days are Indian Standard Time (fixed +05:30, no DST), matching the dashboard; the day
+ * maths itself lives in `@commerce/dates`.
  */
+import { dayKey, dayStart, startOfDay } from '@commerce/dates'
 
-export const IST_OFFSET_MS = 5.5 * 3_600_000
 export const DAY_MS = 86_400_000
 
 /** Ranges the picker offers; `custom` carries its own from/to. */
@@ -44,23 +45,17 @@ const MAX_CUSTOM_DAYS = 365
 
 /** Midnight `daysAgo` days before `now`, in IST. */
 export function startOfIstDay(now: Date, daysAgo = 0): Date {
-  const shifted = new Date(now.getTime() + IST_OFFSET_MS)
-  const midnight = Date.UTC(
-    shifted.getUTCFullYear(),
-    shifted.getUTCMonth(),
-    shifted.getUTCDate() - daysAgo,
-  )
-  return new Date(midnight - IST_OFFSET_MS)
+  return startOfDay(now, undefined, -daysAgo)
 }
 
 /** ISO date of an instant, read in IST. */
 export function istIsoDate(d: Date): string {
-  return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10)
+  return dayKey(d)
 }
 
 /** IST midnight that opens the given ISO date. */
 export function istDayStart(iso: string): Date {
-  return new Date(new Date(`${iso}T00:00:00.000Z`).getTime() - IST_OFFSET_MS)
+  return dayStart(iso)
 }
 
 function listDays(from: Date, count: number): string[] {

@@ -1,13 +1,15 @@
 /** SOURCE OF TRUTH: Truecaller shopper sign-in — WHAT: the Truecaller web SDK flow for mobile browsers (signed request nonce naming the store, the `truecallersdk://` deep link, the server-to-server callback that fetches the verified number, and the one-time pick-up by the browser that started it; an existing customer's number links only after a phone code) / WHY: Indian shoppers on Android can sign in with the number Truecaller already verified, without waiting for an SMS, and a callback must never be trusted to name the store or to point our server at an arbitrary URL */
+
 import { createHmac } from 'node:crypto'
 import { customer, customerLoginTicket } from '@commerce/db'
+import { safeEqual } from '@commerce/payments'
 import { and, eq, isNull } from 'drizzle-orm'
 import { checkPhoneLoginCode } from '../accounts/otp'
 import { normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
 import { readCapped } from '../net/safe-fetch'
 import { linkIdentity, resolveShopperIdentity } from './identities'
-import { safeEqual, safeNextPath, sha256Hex } from './tokens'
+import { safeNextPath, sha256Hex } from './tokens'
 
 /*
  * Truecaller SDK for mobile websites ("Truecaller web SDK"), as documented at

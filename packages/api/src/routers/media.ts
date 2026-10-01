@@ -1,4 +1,4 @@
-import { loadEnv } from '@commerce/config'
+import { settingsSecret } from '@commerce/config'
 import {
   confirmUpload,
   createUploadIntent,
@@ -12,11 +12,9 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import { storageProviderFor } from '../services/media.service'
-
-const secret = () => loadEnv(process.env).SETTINGS_SECRET
 
 export const mediaRouter = {
   /** Step 1 of an upload: reserve the row and get a presigned request for the browser. */
@@ -28,7 +26,7 @@ export const mediaRouter = {
         context.tx,
         context.scope.storeId,
         storage,
-        secret(),
+        settingsSecret(),
       )
       try {
         return await createUploadIntent(context.tx, context.scope.storeId, provider, input)
@@ -59,7 +57,7 @@ export const mediaRouter = {
         context.tx,
         context.scope.storeId,
         storage,
-        secret(),
+        settingsSecret(),
       )
       try {
         const row = await confirmUpload(context.tx, id, provider, dims)
@@ -81,8 +79,8 @@ export const mediaRouter = {
     .input(
       z.object({
         page: z.number().int().min(1).default(1),
-        perPage: z.number().int().min(1).max(100).default(40),
-        search: z.string().trim().max(200).optional(),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(40),
+        search: z.string().trim().max(SEARCH_MAX).optional(),
         sort: z.enum(['newest', 'oldest', 'name', 'size']).optional(),
         fileType: z.enum(['image', 'video']).optional(),
         size: z.enum(['small', 'medium', 'large']).optional(),
@@ -103,7 +101,7 @@ export const mediaRouter = {
         context.tx,
         context.scope.storeId,
         storage,
-        secret(),
+        settingsSecret(),
       )
       await deleteMedia(context.tx, input.id, provider)
       return { ok: true }

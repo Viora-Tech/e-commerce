@@ -1,3 +1,4 @@
+import { formatPercent } from '@commerce/money'
 import StatCard from '@/components/layout/stat-card'
 import { abandonedContent as copy } from '@/data/drafts'
 import { formatPaise } from '@/lib/money'
@@ -10,8 +11,6 @@ export type AbandonedStats = {
 }
 
 type AbandonedTilesProps = { stats: AbandonedStats }
-
-const percent = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 0 })
 
 /** Four tiles above the table, same rhythm as the order list (frame 5:2511). */
 export default function AbandonedTiles({ stats }: AbandonedTilesProps) {
@@ -32,7 +31,7 @@ export default function AbandonedTiles({ stats }: AbandonedTilesProps) {
       <StatCard
         title={copy.tiles.rate}
         period={copy.tiles.period}
-        value={percent.format(stats.recoveryRate)}
+        value={formatPercent(stats.recoveryRate)}
       />
     </div>
   )

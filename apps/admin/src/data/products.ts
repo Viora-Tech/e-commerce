@@ -1,4 +1,5 @@
 import type { ProductStatus } from '@commerce/core/catalog'
+import { parseRupees } from '@commerce/money'
 
 export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
 
@@ -423,10 +424,7 @@ export const productFormContent = {
 /** Rupees ↔ paise helpers for form fields. */
 export const rupees = {
   toField: (paise: number | null | undefined) => (paise == null ? '' : (paise / 100).toString()),
-  toPaise: (field: string): number | null => {
-    const n = Number(field)
-    return field.trim() === '' || Number.isNaN(n) ? null : Math.round(n * 100)
-  },
+  toPaise: parseRupees,
 }
 
 /** Sub-sections under Products that have no records yet. */
