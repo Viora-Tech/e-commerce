@@ -79,6 +79,18 @@ unsubscribed or erased (`hasMarketingConsent`). Otherwise the message row become
 checkout contact) is never sent marketing. The only bypass is `transactional: true`, used by
 the COD order confirmation (an update about the shopper's own order).
 
+**Newsletter signups are double opt-in** (security audit D-09, `customers/newsletter.ts`).
+The signup section writes a pending `newsletter_signup` row and a
+`newsletter.confirm_requested` outbox row, nothing on a customer. The relay queues the
+`newsletter_confirm` email (email only, cannot be switched off) with a signed link to
+`/newsletter/confirm/<token>` on the store's primary domain, valid 7 days. Opening the page
+changes nothing (mail scanners open links); the shopper presses "Yes, subscribe me", and only
+then does `grantNewsletterConsent` create or tag the customer, record consent (source
+`newsletter`) and start the welcome automation. Signing up again within two minutes sends
+nothing more, each address gets at most three confirm emails a day, and the form answers the
+same way either way. Tests: `customers/newsletter.test.ts`, the newsletter case in
+`outbox/relay.test.ts`.
+
 Automations' old `audience: 'all'` no longer widens anything; the admin selector is gone. Every
 consent write goes through `setMarketingConsent` (newsletter, unsubscribe link, account
 profile, admin customer page), which writes the flag and a `marketing_consent_event`. The

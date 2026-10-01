@@ -18,11 +18,14 @@ import {
   withStore,
 } from '@commerce/db'
 import type { CheckoutSession, PaymentProvider } from '@commerce/payments'
+import { loadPincodeDirectory } from '@commerce/shipping/pincode-directory'
 import { and, desc, eq, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { stateMatchesPincode } from '../checkout/pincode-state'
 import {
   type CheckoutContact,
   checkCheckoutRules,
   checkoutPincode,
+  checkoutRuleSubtotalPaise,
   parseCheckoutSettings,
 } from '../checkout/settings'
 import type { StoreContext } from '../context'
@@ -328,7 +331,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
       .from(store)
       .where(eq(store.id, ctx.storeId))
     const settings = parseCheckoutSettings(s?.preferences)
-    const { discountedSubtotalPaise, shippingPaise } = applyDiscount(
+    const { discountPaise, shippingPaise } = applyDiscount(
       sumPaise(lines),
       shipping?.pricePaise ?? 0,
       applied,
@@ -338,7 +341,7 @@ const enforceCheckoutRules: WorkflowStep<State> = {
         checkout: input.checkout ?? null,
         paymentProviderId: input.paymentProvider.id,
         giftCardsOnly: lines.every((l) => l.giftCard),
-        discountedSubtotalPaise,
+        ruleSubtotalPaise: checkoutRuleSubtotalPaise(lines, discountPaise),
         shippingPaise,
         storeId: ctx.storeId,
       }),
@@ -907,6 +910,16 @@ async function lockCartOrReplay(
   }
 }
 
+/** The India Post directory's state for a PIN code, when the directory file is installed. */
+async function directoryState(pincode: string): Promise<string | null> {
+  try {
+    return (await loadPincodeDirectory())?.lookup(pincode)?.stateCode ?? null
+  } catch {
+    // A broken directory file must not stop checkout; the PIN prefix table still applies.
+    return null
+  }
+}
+
 /**
  * Place an order from an open cart. Must run inside `withStore`; the caller's
  * transaction rolls back on throw. Reserves stock, creates the order and
@@ -928,6 +941,15 @@ export async function placeOrder(
       throw new CheckoutRuleViolation('contact', {
         storeId: ctx.storeId,
         fields: { pincode: 'Enter a valid 6-digit PIN code' },
+      })
+    }
+    // The state picks the shipping zone and the GST split, so it must agree with the PIN.
+    if (
+      !stateMatchesPincode(pincode, input.checkout.address.stateCode, await directoryState(pincode))
+    ) {
+      throw new CheckoutRuleViolation('state_mismatch', {
+        storeId: ctx.storeId,
+        fields: { stateCode: 'The state does not match this PIN code' },
       })
     }
     input = {

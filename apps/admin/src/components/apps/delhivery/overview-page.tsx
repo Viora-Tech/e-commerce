@@ -1,6 +1,6 @@
 'use client'
 
-import { DELHIVERY_CAPABILITIES } from '@commerce/shipping-delhivery'
+import { DELHIVERY_CAPABILITIES } from '@commerce/shipping-delhivery/client'
 import { CircleCheck, Truck } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'

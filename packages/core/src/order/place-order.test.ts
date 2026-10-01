@@ -19,7 +19,13 @@ import { resetDb } from '@commerce/db/test'
 import type { CheckoutSession } from '@commerce/payments'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { CartEmpty, CartNotOpen, DiscountUnavailable, OutOfStock } from '../errors'
+import {
+  CartEmpty,
+  CartNotOpen,
+  CheckoutRuleViolation,
+  DiscountUnavailable,
+  OutOfStock,
+} from '../errors'
 import { setCartAttribution } from '../marketing/sessions'
 import { FakePaymentProvider, type PaymentProvider } from '../providers/payment'
 import { placeOrder, placeOrderAndPay } from './place-order'
@@ -340,6 +346,31 @@ describe('placeOrder', () => {
     expect(r).toMatchObject({ paymentStatus: 'created', session: null })
     const [pay] = await owner.select().from(payment).where(eq(payment.orderId, r.orderId))
     expect(pay).toMatchObject({ status: 'created', gatewayRequestedAt: null })
+  })
+
+  it('refuses a state that does not match the PIN code, before anything is reserved (D-06)', async () => {
+    const { storeId, cartId, variantId } = await seed({ onHand: 5, quantity: 1 })
+    const provider = new FakePaymentProvider({ mode: 'capture' })
+    const run = placeOrderAndPay(app, storeId, {
+      cartId,
+      paymentProvider: provider,
+      checkout: {
+        name: 'Asha',
+        email: 'asha@example.com',
+        phone: '9999999999',
+        // A Bengaluru PIN with Delhi's state would take Delhi's zone and the wrong GST split.
+        address: { line1: '12 MG Road', city: 'Bengaluru', stateCode: 'DL', pincode: '560001' },
+      },
+    })
+    await expect(run).rejects.toBeInstanceOf(CheckoutRuleViolation)
+    await expect(run).rejects.toMatchObject({ rule: 'state_mismatch' })
+    expect(await owner.select().from(order)).toEqual([])
+    const [inv] = await owner
+      .select()
+      .from(inventoryLevel)
+      .where(eq(inventoryLevel.variantId, variantId))
+    expect(inv?.reserved).toBe(0)
+    expect(provider.calls).toEqual([])
   })
 
   it('rejects a cart that is not open', async () => {

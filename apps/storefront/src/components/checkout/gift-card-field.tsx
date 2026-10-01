@@ -7,7 +7,6 @@ import { giftCardFieldContent as content } from '@/data/checkout'
 import { type AppliedGiftCard, checkGiftCardAction } from '@/lib/gift-card-actions'
 
 type GiftCardFieldProps = {
-  storeId: string
   applied: AppliedGiftCard[]
   onApply: (card: AppliedGiftCard) => void
   onRemove: (code: string) => void
@@ -18,7 +17,7 @@ type GiftCardFieldProps = {
  * their balance; the amount each covers is worked out by the summary, and the
  * server re-checks every code when the order is placed.
  */
-export default function GiftCardField({ storeId, applied, onApply, onRemove }: GiftCardFieldProps) {
+export default function GiftCardField({ applied, onApply, onRemove }: GiftCardFieldProps) {
   // Hooks
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +34,7 @@ export default function GiftCardField({ storeId, applied, onApply, onRemove }: G
       return
     }
     start(async () => {
-      const r = await checkGiftCardAction(storeId, typed)
+      const r = await checkGiftCardAction(typed)
       if (!r.ok) {
         setError(content.errors[r.reason] ?? content.errors.not_found ?? null)
         return

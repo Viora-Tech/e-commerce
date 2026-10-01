@@ -1,6 +1,7 @@
 import {
   type AppEventQueue,
   appEventForTemplate,
+  deliverNewsletterConfirm,
   deliverNotification,
   enqueueAppEvent,
   fulfilGiftCardsForOrder,
@@ -31,7 +32,31 @@ export function createNotificationWorker(
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     fairProcessor(connection, NOTIFICATIONS_QUEUE, { perStore }, async (job) => {
-      const { storeId, orderId, template, key, returnId, refundId } = job.data
+      const { storeId, orderId, template, key, returnId, refundId, signupId } = job.data
+      // The one message without an order: the newsletter confirm link (double opt-in).
+      if (template === 'newsletter_confirm') {
+        if (!signupId || !opts.storefrontUrl) return []
+        const storefrontUrl = opts.storefrontUrl
+        const sent = await withStore(db, storeId, async (tx) =>
+          deliverNewsletterConfirm(
+            { storeId, tx },
+            { signupId },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+              storefrontUrl,
+            },
+          ),
+        )
+        for (const r of sent) {
+          console.log(
+            `[notification] newsletter_confirm ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
+          )
+        }
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
       const event = appEventForTemplate(template)
       // Queued before delivery: a channel failure retries this job, and the app
       // event's own job id makes the repeat a no-op.

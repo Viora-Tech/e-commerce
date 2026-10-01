@@ -1,7 +1,5 @@
+export { DELHIVERY_BASE_URL, DELHIVERY_CAPABILITIES, DELHIVERY_STAGING_URL } from './client'
 export {
-  DELHIVERY_BASE_URL,
-  DELHIVERY_CAPABILITIES,
-  DELHIVERY_STAGING_URL,
   type DelhiveryConfig,
   DelhiveryProvider,
   delhiveryFactory,

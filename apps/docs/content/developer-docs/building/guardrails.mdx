@@ -34,6 +34,9 @@ fails the moment someone adds a **new** violation that isn't on the list.
 | `money-format` | Every `Intl.NumberFormat(...)` call site outside the canonical money module is on the allow-list. |
 | `hardcoded-colours` | Hex colour literals in UI `.tsx` files outside the allow-list — use CSS variables/tokens instead. |
 | `source-of-truth-header` | New files under `packages/core/src` and `packages/plugins/src` must start with a `SOURCE OF TRUTH` header comment. |
+| `pinned-actions` | Every `uses:` in `.github/workflows` is pinned to a full commit SHA with a `# vX.Y.Z` comment. No exceptions. |
+| `deploy-compose` | `deploy/docker-compose.prod.yml` passes every app setting from `packages/config/src/env.ts` to the apps (and `deploy/env.production.example` documents it), and only worker and backup get outbound internet besides the web-facing apps. |
+| `storefront-action-store` | No storefront server action takes a store id from its caller; the store comes from the hostname (`requestStoreId`). |
 
 ## Cross-store leak test
 

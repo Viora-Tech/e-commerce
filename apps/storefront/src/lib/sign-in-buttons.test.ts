@@ -1,6 +1,6 @@
 import type { SignInOptions } from '@commerce/core/customer-accounts'
 import { describe, expect, it } from 'vitest'
-import { quickSignInButtons, socialStartHref } from './sign-in-buttons'
+import { quickSignInButtons, socialStartHref, truecallerStartAllowed } from './sign-in-buttons'
 
 const base: SignInOptions = {
   codes: ['email'],
@@ -11,7 +11,7 @@ const base: SignInOptions = {
   passkeys: false,
   rememberDevice: false,
 }
-const phone = { android: true, webauthn: true }
+const phone = { android: true, webauthn: true, topLevel: true }
 
 describe('quick sign-in buttons (enabled methods only)', () => {
   it('shows nothing extra when only codes are on', () => {
@@ -31,15 +31,32 @@ describe('quick sign-in buttons (enabled methods only)', () => {
       { kind: 'truecaller' },
       { kind: 'social', provider: 'apple' },
     ])
-    expect(quickSignInButtons(o, { android: false, webauthn: true })).toEqual([
+    expect(quickSignInButtons(o, { android: false, webauthn: true, topLevel: true })).toEqual([
       { kind: 'social', provider: 'apple' },
     ])
+  })
+
+  it('never offers Truecaller inside a frame (D-03)', () => {
+    const o = { ...base, truecaller: true }
+    expect(quickSignInButtons(o, { ...phone, topLevel: false })).toEqual([])
+  })
+
+  it('starts Truecaller only from the store’s own origin (D-03)', () => {
+    const store = 'https://shop.example.in'
+    expect(truecallerStartAllowed('https://shop.example.in', store)).toBe(true)
+    expect(truecallerStartAllowed('https://evil.example', store)).toBe(false)
+    expect(truecallerStartAllowed('http://shop.example.in', store)).toBe(false)
+    expect(truecallerStartAllowed('https://shop.example.in:8443', store)).toBe(false)
+    expect(truecallerStartAllowed(null, store)).toBe(false)
   })
 
   it('shows passkeys only where the browser supports them', () => {
     expect(quickSignInButtons({ ...base, passkeys: true }, phone)).toEqual([{ kind: 'passkey' }])
     expect(
-      quickSignInButtons({ ...base, passkeys: true }, { android: true, webauthn: false }),
+      quickSignInButtons(
+        { ...base, passkeys: true },
+        { android: true, webauthn: false, topLevel: true },
+      ),
     ).toEqual([])
   })
 

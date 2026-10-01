@@ -36,6 +36,7 @@ export type LinkDecision =
   | { action: 'link'; customerId: string }
   | { action: 'create' }
   | { action: 'verify_email'; email: string }
+  | { action: 'verify_phone'; customerId: string }
   | { action: 'no_email' }
   | { action: 'conflict' }
 
@@ -45,6 +46,11 @@ export type LinkDecision =
  * (Truecaller) or a verified email. An unverified email never links and never creates
  * a customer carrying that email (the real owner would later sign in to it); the
  * shopper confirms it with an email code first.
+ *
+ * A Truecaller number that belongs to an existing customer links only after a phone code
+ * (`verify_phone`, security audit D-03): Truecaller's consent screen can be opened on
+ * someone else's request (the nonce belongs to whoever started it, not to the phone), so a
+ * phishing page could otherwise walk into an existing account with one tap.
  */
 export function decideLink(identity: ShopperIdentity, facts: LinkFacts): LinkDecision {
   if (facts.byIdentity) {
@@ -53,7 +59,9 @@ export function decideLink(identity: ShopperIdentity, facts: LinkFacts): LinkDec
   }
   if (facts.linkTo) return { action: 'link', customerId: facts.linkTo }
   if (identity.mobile) {
-    return facts.byPhone ? { action: 'link', customerId: facts.byPhone } : { action: 'create' }
+    return facts.byPhone
+      ? { action: 'verify_phone', customerId: facts.byPhone }
+      : { action: 'create' }
   }
   if (identity.email && identity.emailVerified) {
     return facts.byEmail ? { action: 'link', customerId: facts.byEmail } : { action: 'create' }
@@ -98,6 +106,8 @@ export async function planConnect(
 export type ResolveResult =
   | { kind: 'signed_in'; customerId: string; created: boolean }
   | { kind: 'verify_email'; email: string }
+  /** A provider-verified mobile of an existing customer: link only after a phone code. */
+  | { kind: 'verify_phone'; customerId: string }
   | { kind: 'no_email' }
   | { kind: 'conflict' }
 
@@ -224,13 +234,15 @@ export async function resolveShopperIdentity(
       }
       await linkIdentity(ctx, decision.customerId, identity, now)
       if (identity.mobile && decision.customerId === byPhone) {
-        // Truecaller proved this number belongs to the shopper now signing in.
+        // The signed-in shopper connected Truecaller for the number on their account.
         await ctx.tx
           .update(customer)
           .set({ phoneVerifiedAt: now })
           .where(eq(customer.id, decision.customerId))
       }
       return { kind: 'signed_in', customerId: decision.customerId, created: false }
+    case 'verify_phone':
+      return { kind: 'verify_phone', customerId: decision.customerId }
     case 'create': {
       const values = identity.mobile
         ? {

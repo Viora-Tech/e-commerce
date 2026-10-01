@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./blocks": "./src/blocks.tsx"
+    "./blocks": "./src/blocks.tsx",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "test": "vitest run",

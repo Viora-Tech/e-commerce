@@ -16,6 +16,7 @@ export function auth(): MerchantAuth {
       baseURL: env.ADMIN_URL,
       secret: env.AUTH_SECRET,
       trustedOrigins: [env.ADMIN_URL],
+      trustedProxy: env.TRUSTED_PROXY,
       // Dev delivery: print the code, and hand it to the readback route so the
       // login page can show it when DEV_LOGIN_OTP is on. Production sends mail
       // through the notification channels instead.

@@ -116,6 +116,24 @@ export function minimumOrderShortfall(
   return Math.max(0, settings.minimumOrderPaise - subtotalAfterDiscountPaise)
 }
 
+/**
+ * The amount the minimum order and the COD limit judge (security audit D-07): lines that are
+ * not gift cards, less the order discount. Gift cards are prepaid vouchers, not goods that
+ * ship, so they neither help reach a minimum nor push an order over the COD limit. The whole
+ * discount comes off the goods (it never makes the judged amount larger), on the server and in
+ * the checkout preview alike.
+ */
+export function checkoutRuleSubtotalPaise(
+  lines: readonly { giftCard: boolean; quantity: number; unitPricePaise: number }[],
+  discountPaise: number,
+): number {
+  const goods = lines.reduce(
+    (sum, l) => (l.giftCard ? sum : sum + l.quantity * l.unitPricePaise),
+    0,
+  )
+  return Math.max(0, goods - Math.max(0, discountPaise))
+}
+
 /** "+91 98765 43210" → "+919876543210"; null when it is not an Indian mobile number. */
 export function e164IndianMobile(raw: string): string | null {
   const local = normaliseMobile(raw)
@@ -223,7 +241,8 @@ export function checkCheckoutRules(
     checkout: (CheckoutContactInput & { address: { pincode: string } }) | null
     paymentProviderId: string
     giftCardsOnly: boolean
-    discountedSubtotalPaise: number
+    /** `checkoutRuleSubtotalPaise`: items that are not gift cards, after the discount. */
+    ruleSubtotalPaise: number
     shippingPaise: number
     storeId?: string
   },
@@ -240,14 +259,14 @@ export function checkCheckoutRules(
   // Gift cards are vouchers, not goods: a minimum order is about what ships.
   const shortfall = order.giftCardsOnly
     ? 0
-    : minimumOrderShortfall(settings, order.discountedSubtotalPaise)
+    : minimumOrderShortfall(settings, order.ruleSubtotalPaise)
   if (shortfall > 0) {
     throw new CheckoutRuleViolation('minimum_order', { storeId, amountPaise: shortfall })
   }
   if (order.paymentProviderId === 'cod' && order.checkout) {
     const cod = codDecision(settings.cod, {
       pincode: order.checkout.address.pincode,
-      orderValuePaise: order.discountedSubtotalPaise + order.shippingPaise,
+      orderValuePaise: order.ruleSubtotalPaise + order.shippingPaise,
     })
     if (!cod.allowed) {
       throw new CheckoutRuleViolation(

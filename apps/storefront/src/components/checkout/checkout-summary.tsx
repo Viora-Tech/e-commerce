@@ -15,7 +15,6 @@ export type ShippingRow =
   | { kind: 'pending' }
 
 type CheckoutSummaryProps = {
-  storeId: string
   cart: CartView
   discount: CartDiscountView | null
   digitalOnly: boolean
@@ -50,7 +49,6 @@ function shippingValue(row: ShippingRow): string {
 
 /** The checkout's right column: lines, codes, the price rows and the submit button. */
 export default function CheckoutSummary({
-  storeId,
   cart,
   discount,
   digitalOnly,
@@ -86,10 +84,9 @@ export default function CheckoutSummary({
             <span>{formatPaise(l.linePaise)}</span>
           </div>
         ))}
-        {digitalOnly ? null : <DiscountCodeField storeId={storeId} discount={discount} />}
+        {digitalOnly ? null : <DiscountCodeField discount={discount} />}
         {digitalOnly ? null : (
           <GiftCardField
-            storeId={storeId}
             applied={giftCards}
             onApply={onGiftCardApply}
             onRemove={onGiftCardRemove}

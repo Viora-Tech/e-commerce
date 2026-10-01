@@ -6,17 +6,22 @@ import {
   createDb,
   customer,
   customerAddress,
+  customerOtp,
   customerSession,
   dataRequest,
   marketingConsentEvent,
   marketingMessage,
+  newsletterSignup,
   notification,
   order,
   orderLine,
   orderNote,
   privacyAuditEvent,
   product,
+  returnRequest,
   type StoreTx,
+  shipment,
+  shipmentWebhookEvent,
   store,
   variant,
   withStore,
@@ -25,7 +30,12 @@ import { resetDb } from '@commerce/db/test'
 import type { MarketingSend, NotificationChannel } from '@commerce/notifications'
 import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import { subscribeToNewsletter } from '../customers/newsletter'
+import { phoneLoginOtpKey } from '../accounts/otp'
+import {
+  confirmNewsletterSignup,
+  newsletterConfirmToken,
+  requestNewsletterSignup,
+} from '../customers/newsletter'
 import { encryptCustomerPhone } from '../customers/phone-crypto'
 import { sendMarketingEmail, sendMarketingWhatsapp } from '../marketing/send'
 import { unsubscribeCustomer } from '../marketing/tracking'
@@ -408,6 +418,117 @@ describe('anonymise', () => {
     ])
   })
 
+  it('erases return photos, courier payloads, phone codes and back-in-stock signups (D-10)', async () => {
+    const storeId = await makeStore()
+    const customerId = await makeCustomer(storeId)
+    const { orderId } = await makeOrder(storeId, customerId, NOW, 1)
+    const base = 'https://media.example/'
+    const mine = `${base}stores/${storeId}/returns/a1.jpg`
+    const missing = `${base}stores/${storeId}/returns/gone.jpg`
+    const foreign = 'https://elsewhere.example/x.jpg'
+    await owner.insert(returnRequest).values({
+      storeId,
+      orderId,
+      number: 1,
+      reason: 'damaged',
+      customerNote: 'Box was crushed',
+      photos: [mine, missing, foreign],
+    })
+    await owner.insert(shipment).values({
+      storeId,
+      orderId,
+      provider: 'delhivery',
+      waybill: 'AWB1',
+      tracking: {
+        waybill: 'AWB1',
+        status: 'delivered',
+        consignee: { name: 'Asha Rao', phone: '9876543210' },
+        events: [
+          { at: '2026-09-26T10:00:00Z', status: 'delivered', description: 'Delivered to Asha Rao' },
+        ],
+      },
+    })
+    await owner.insert(shipmentWebhookEvent).values({
+      storeId,
+      provider: 'delhivery',
+      eventId: 'e1',
+      waybill: 'AWB1',
+      payload: { waybill: 'AWB1', eventId: 'e1', consignee: 'Asha Rao, 9876543210' },
+    })
+    const otp = {
+      storeId,
+      purpose: 'login' as const,
+      channel: 'sms' as const,
+      codeHash: 'c'.repeat(64),
+      expiresAt: new Date(NOW.getTime() + 600_000),
+    }
+    await owner.insert(customerOtp).values([
+      { ...otp, destinationHash: phoneLoginOtpKey(storeId, '9876543210') },
+      { ...otp, destinationHash: phoneLoginOtpKey(storeId, '9000000000') },
+    ])
+    const [p] = await owner.select({ id: product.id }).from(product)
+    const [v] = await owner.select({ id: variant.id }).from(variant)
+    for (const [i, contact] of [
+      { email: 'Asha@Example.com', phone: null },
+      { email: null, phone: '919876543210' },
+      { email: 'someone@example.com', phone: null },
+    ].entries()) {
+      await owner.execute(sql`
+        insert into back_in_stock_signup (id, store_id, variant_id, product_id, email, phone, status, unsubscribe_token)
+        values (gen_random_uuid(), ${storeId}, ${v?.id}, ${p?.id}, ${contact.email}, ${contact.phone},
+          ${i === 1 ? 'confirmed' : 'pending_confirmation'}, ${`u${i}`})`)
+    }
+    const [cu] = await owner.select({ email: customer.email }).from(customer)
+    await owner.insert(newsletterSignup).values([
+      { storeId, email: cu?.email as string, status: 'confirmed', expiresAt: NOW },
+      { storeId, email: 'someone@example.com', status: 'pending', expiresAt: NOW },
+    ])
+    const deleted: string[] = []
+    const storage = {
+      publicUrl: (key: string) => `${base}${key}`,
+      delete: async (key: string) => {
+        if (key.endsWith('gone.jpg')) throw new Error('storage down')
+        deleted.push(key)
+      },
+    }
+
+    const result = await run(storeId, (ctx) =>
+      anonymiseCustomer(ctx, { customerId, actor: STAFF, now: NOW, secret: SECRET, storage }),
+    )
+
+    // Only this store's returns folder is touched; the rest is counted as not deleted.
+    expect(deleted).toEqual([`stores/${storeId}/returns/a1.jpg`])
+    expect(result).toMatchObject({ returnPhotosDeleted: 1, returnPhotosFailed: 2 })
+    expect(
+      await owner
+        .select({ photos: returnRequest.photos, note: returnRequest.customerNote })
+        .from(returnRequest),
+    ).toEqual([{ photos: [], note: null }])
+    const [s] = await owner.select({ tracking: shipment.tracking }).from(shipment)
+    expect(JSON.stringify(s?.tracking)).not.toMatch(/Asha|9876543210/)
+    expect(s?.tracking).toMatchObject({
+      waybill: 'AWB1',
+      status: 'delivered',
+      events: [{ at: '2026-09-26T10:00:00Z', status: 'delivered' }],
+    })
+    const [w] = await owner
+      .select({ payload: shipmentWebhookEvent.payload })
+      .from(shipmentWebhookEvent)
+    expect(w?.payload).toEqual({ waybill: 'AWB1', eventId: 'e1' })
+    // Their phone sign-in code goes; someone else's stays.
+    expect(
+      (await owner.select({ d: customerOtp.destinationHash }).from(customerOtp)).map((r) => r.d),
+    ).toEqual([phoneLoginOtpKey(storeId, '9000000000')])
+    const signups = await owner.execute(sql`select email from back_in_stock_signup`)
+    expect(signups.map((r) => r.email)).toEqual(['someone@example.com'])
+    // Their newsletter signup (the opt-in record) goes; someone else's stays.
+    expect(
+      (await owner.select({ email: newsletterSignup.email }).from(newsletterSignup)).map(
+        (r) => r.email,
+      ),
+    ).toEqual(['someone@example.com'])
+  })
+
   it('erases personal data and keeps what invoices need', async () => {
     const storeId = await makeStore()
     const customerId = await makeCustomer(storeId)
@@ -465,6 +586,8 @@ describe('anonymise', () => {
       ordersErased: 1,
       addressesDeleted: 1,
       sessionsEnded: 1,
+      returnPhotosDeleted: 0,
+      returnPhotosFailed: 0,
     })
 
     const [cu] = await owner.select().from(customer).where(eq(customer.id, customerId))
@@ -572,7 +695,13 @@ describe('marketing consent', () => {
     expect(cu).toMatchObject({ acceptsMarketing: false, acceptsWhatsapp: false })
     expect(cu?.unsubscribedAt).not.toBeNull()
 
-    await withStore(app, storeId, (tx) => subscribeToNewsletter(tx, storeId, 'asha@example.com'))
+    // Signing up again is a fresh opt in once the confirm link is used (double opt-in).
+    await withStore(app, storeId, (tx) => requestNewsletterSignup(tx, storeId, 'asha@example.com'))
+    ;[cu] = await owner.select().from(customer).where(eq(customer.id, customerId))
+    expect(cu?.acceptsMarketing).toBe(false)
+    const [signup] = await owner.select().from(newsletterSignup)
+    const token = newsletterConfirmToken(signup as typeof newsletterSignup.$inferSelect, SECRET)
+    await withStore(app, storeId, (tx) => confirmNewsletterSignup(tx, storeId, token, SECRET))
     ;[cu] = await owner.select().from(customer).where(eq(customer.id, customerId))
     expect(cu).toMatchObject({
       acceptsMarketing: true,

@@ -15,13 +15,20 @@ import {
   giftCard,
   marketingAutomationRun,
   marketingMessage,
+  newsletterSignup,
   notification,
   order,
   orderNote,
   returnRequest,
+  shipment,
+  shipmentWebhookEvent,
 } from '@commerce/db'
+import type { StorageProvider } from '@commerce/storage'
 import { and, eq, inArray, lt, or, sql } from 'drizzle-orm'
+import { phoneLoginOtpKey } from '../accounts/otp'
+import { normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
+import { decryptCustomerPhone } from '../customers/phone-crypto'
 import { CONTACT_NOTE_PATTERN } from '../order/contact'
 import { type PrivacyActor, recordPrivacyEvent } from './audit'
 import { DataRequestError } from './requests'
@@ -44,6 +51,36 @@ export type AnonymiseResult = {
   ordersErased: number
   addressesDeleted: number
   sessionsEnded: number
+  /** Return photo files removed from storage. */
+  returnPhotosDeleted: number
+  /** Return photo files storage could not remove (the links on the returns are gone either way). */
+  returnPhotosFailed: number
+}
+
+/** What erasure needs from the store's storage connection: removing return photos. */
+export type ErasureStorage = Pick<StorageProvider, 'delete' | 'publicUrl'>
+
+/** Courier tracking reduced to what the merchant needs: where the parcel stands, and when. */
+function scrubTracking(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw ?? null
+  const t = raw as { waybill?: unknown; status?: unknown; events?: unknown; expectedDate?: unknown }
+  const events = Array.isArray(t.events)
+    ? t.events.map((e) => {
+        const ev = (e ?? {}) as { at?: unknown; status?: unknown }
+        return { at: ev.at, status: ev.status, description: ERASED }
+      })
+    : []
+  return { waybill: t.waybill, status: t.status, events, expectedDate: t.expectedDate }
+}
+
+/** A public photo URL back to its storage key, only for this store's returns folder. */
+function returnPhotoKey(url: string, storeId: string, storage: ErasureStorage): string | null {
+  const folder = `stores/${storeId}/returns/`
+  const prefix = storage.publicUrl(folder)
+  if (!url.startsWith(prefix)) return null
+  const rest = url.slice(prefix.length).split(/[?#]/)[0] ?? ''
+  if (!rest || rest.includes('..') || rest.includes('/')) return null
+  return `${folder}${rest}`
 }
 
 function retentionCutoff(now: Date): Date {
@@ -63,7 +100,10 @@ function retentionCutoff(now: Date): Date {
  * invoice's "billed to"). Issued GST invoices are never touched: they are
  * frozen documents. Removed from those orders: email, phone, the shopper's
  * note and marketing attribution. Orders older than the retention period
- * lose the name, address and GSTIN too.
+ * lose the name, address and GSTIN too. Also gone: return photos (links and,
+ * through `storage`, the files), courier tracking text and webhook payloads
+ * (each scan keeps only its status and time), phone sign-in codes for their
+ * number (needs `secret`) and back-in-stock signups for their email or number.
  */
 export async function anonymiseCustomer(
   ctx: StoreContext,
@@ -72,24 +112,36 @@ export async function anonymiseCustomer(
     actor: PrivacyActor
     dataRequestId?: string | null | undefined
     now?: Date | undefined
+    /** SETTINGS_SECRET: reads the stored phone so codes and alerts sent to it go too. */
+    secret?: string | undefined
+    /** The store's storage connection: return photo files are deleted through it. */
+    storage?: ErasureStorage | null | undefined
   },
 ): Promise<AnonymiseResult> {
   const now = input.now ?? new Date()
   const { tx } = ctx
   const id = input.customerId
   const [cu] = await tx
-    .select({ email: customer.email, anonymisedAt: customer.anonymisedAt })
+    .select({ email: customer.email, phone: customer.phone, anonymisedAt: customer.anonymisedAt })
     .from(customer)
     .where(eq(customer.id, id))
   if (!cu) throw new DataRequestError('not_found', 'Customer not found')
   if (cu.anonymisedAt) throw new DataRequestError('anonymised', 'Already erased')
+  const rawPhone = input.secret ? decryptCustomerPhone(cu.phone, input.secret) : null
+  const mobile = rawPhone ? normaliseMobile(rawPhone) : null
 
-  // Sign-in: sessions, pending codes.
+  // Sign-in: sessions, pending codes (account deletion codes carry the customer id; phone
+  // sign-in codes are keyed by the number only).
   const sessions = await tx
     .delete(customerSession)
     .where(eq(customerSession.customerId, id))
     .returning({ id: customerSession.id })
   await tx.delete(customerOtp).where(eq(customerOtp.customerId, id))
+  if (mobile) {
+    await tx
+      .delete(customerOtp)
+      .where(eq(customerOtp.destinationHash, phoneLoginOtpKey(ctx.storeId, mobile)))
+  }
   // Every way back in goes too: provider links, passkeys and login tickets in flight.
   await tx.delete(customerIdentity).where(eq(customerIdentity.customerId, id))
   await tx.delete(customerPasskey).where(eq(customerPasskey.customerId, id))
@@ -111,6 +163,7 @@ export async function anonymiseCustomer(
   const cutoff = retentionCutoff(now)
   const kept = orders.filter((o) => o.placedAt >= cutoff)
   const old = orders.filter((o) => o.placedAt < cutoff)
+  const photoUrls: string[] = []
   if (orders.length > 0) {
     await tx
       .update(order)
@@ -131,15 +184,39 @@ export async function anonymiseCustomer(
       )
     // Who each order message went to.
     await tx.update(notification).set({ to: ERASED }).where(inArray(notification.orderId, orderIds))
+    // Returns: the shopper's note and their photos (rows and files).
+    const returns = await tx
+      .select({ photos: returnRequest.photos })
+      .from(returnRequest)
+      .where(inArray(returnRequest.orderId, orderIds))
+    photoUrls.push(...returns.flatMap((r) => r.photos))
     await tx
       .update(returnRequest)
-      .set({ customerNote: null })
-      .where(
-        inArray(
-          returnRequest.orderId,
-          orders.map((o) => o.id),
-        ),
-      )
+      .set({ customerNote: null, photos: [] })
+      .where(inArray(returnRequest.orderId, orderIds))
+    // Courier tracking and webhook payloads may carry the consignee's name, phone and
+    // address; the merchant keeps only each scan's status and time.
+    const shipments = await tx
+      .select({ id: shipment.id, waybill: shipment.waybill, tracking: shipment.tracking })
+      .from(shipment)
+      .where(inArray(shipment.orderId, orderIds))
+    for (const s of shipments) {
+      if (s.tracking) {
+        await tx
+          .update(shipment)
+          .set({ tracking: scrubTracking(s.tracking) })
+          .where(eq(shipment.id, s.id))
+      }
+    }
+    const waybills = [...new Set(shipments.map((s) => s.waybill))]
+    if (waybills.length > 0) {
+      await tx
+        .update(shipmentWebhookEvent)
+        .set({
+          payload: sql`jsonb_build_object('waybill', ${shipmentWebhookEvent.waybill}, 'eventId', ${shipmentWebhookEvent.eventId})`,
+        })
+        .where(inArray(shipmentWebhookEvent.waybill, waybills))
+    }
   }
   if (old.length > 0) {
     await tx
@@ -190,6 +267,22 @@ export async function anonymiseCustomer(
     .update(dataRequest)
     .set({ contactEmail: null, contactPhone: null, note: null })
     .where(eq(dataRequest.customerId, id))
+  // Back-in-stock "notify me" signups for their email or number. The table belongs to the
+  // back-in-stock app but is created by the core migrations (0060) and is under RLS, so it
+  // is cleared here by name rather than making core depend on the plugin package.
+  const contacts = [
+    cu.email ? sql`lower(email) = ${cu.email.toLowerCase()}` : null,
+    mobile ? sql`right(phone, 10) = ${mobile}` : null,
+  ].filter((c) => c !== null)
+  if (contacts.length > 0) {
+    await tx.execute(
+      sql`delete from back_in_stock_signup where store_id = ${ctx.storeId} and (${sql.join(contacts, sql` or `)})`,
+    )
+  }
+  // Newsletter signups (pending or confirmed) for their email: the proof of opt-in goes too.
+  if (cu.email) {
+    await tx.delete(newsletterSignup).where(eq(newsletterSignup.email, cu.email.toLowerCase()))
+  }
 
   await tx
     .update(customer)
@@ -212,12 +305,32 @@ export async function anonymiseCustomer(
     })
     .where(eq(customer.id, id))
 
+  // Return photo files. A missing object is fine (delete is idempotent); a storage error
+  // is counted, not thrown: the returns no longer link to the file either way.
+  let returnPhotosDeleted = 0
+  let returnPhotosFailed = 0
+  for (const url of new Set(photoUrls)) {
+    const key = input.storage ? returnPhotoKey(url, ctx.storeId, input.storage) : null
+    if (!key || !input.storage) {
+      returnPhotosFailed += 1
+      continue
+    }
+    try {
+      await input.storage.delete(key)
+      returnPhotosDeleted += 1
+    } catch {
+      returnPhotosFailed += 1
+    }
+  }
+
   const result: AnonymiseResult = {
     customerId: id,
     ordersKept: kept.length,
     ordersErased: old.length,
     addressesDeleted: addresses.length,
     sessionsEnded: sessions.length,
+    returnPhotosDeleted,
+    returnPhotosFailed,
   }
   await recordPrivacyEvent(ctx, {
     action: 'customer.anonymised',
@@ -229,6 +342,8 @@ export async function anonymiseCustomer(
       ordersErased: result.ordersErased,
       addressesDeleted: result.addressesDeleted,
       sessionsEnded: result.sessionsEnded,
+      returnPhotosDeleted,
+      returnPhotosFailed,
       retentionYears: INVOICE_RETENTION_YEARS,
     },
     at: now,

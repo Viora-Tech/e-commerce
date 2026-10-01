@@ -5,12 +5,12 @@ import type { CartLineView } from '@commerce/core'
 import { useTransition } from 'react'
 import { setQuantityAction } from '@/lib/cart-actions'
 
-export default function CartLines({ storeId, lines }: { storeId: string; lines: CartLineView[] }) {
+export default function CartLines({ lines }: { lines: CartLineView[] }) {
   // Hooks
   const [pending, start] = useTransition()
 
   // Helpers
-  const set = (lineId: string, qty: number) => start(() => setQuantityAction(storeId, lineId, qty))
+  const set = (lineId: string, qty: number) => start(() => setQuantityAction(lineId, qty))
 
   return (
     <ul className="cart-items__list" aria-busy={pending}>

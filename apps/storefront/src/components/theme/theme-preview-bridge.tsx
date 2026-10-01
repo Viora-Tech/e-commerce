@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 import { verifyThemePreview } from '@/lib/theme-preview-actions'
 
 type ThemePreviewBridgeProps = {
-  storeId: string
   /** The admin's origin; the only sender whose messages are applied. */
   adminOrigin: string
 }
@@ -64,7 +63,7 @@ function paint(
  * the page was opened with a preview token the server verifies for this store, and
  * even then it only applies messages from the admin origin that parse as a theme.
  */
-export default function ThemePreviewBridge({ storeId, adminOrigin }: ThemePreviewBridgeProps) {
+export default function ThemePreviewBridge({ adminOrigin }: ThemePreviewBridgeProps) {
   // Hooks
   useEffect(() => {
     const token = readToken()
@@ -80,7 +79,7 @@ export default function ThemePreviewBridge({ storeId, adminOrigin }: ThemePrevie
       paint(theme, parsed.data, event.data.mode === 'dark' ? 'dark' : 'light')
     }
 
-    verifyThemePreview(storeId, token).then(async (ok) => {
+    verifyThemePreview(token).then(async (ok) => {
       if (!ok || !active) return
       theme = await loadTheme()
       if (!active) return
@@ -93,7 +92,7 @@ export default function ThemePreviewBridge({ storeId, adminOrigin }: ThemePrevie
       active = false
       window.removeEventListener('message', handleMessage)
     }
-  }, [storeId, adminOrigin])
+  }, [adminOrigin])
 
   // Render logic
   return null

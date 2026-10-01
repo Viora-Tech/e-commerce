@@ -8,7 +8,6 @@ import ManualPaymentInstructions from './manual-payment-instructions'
 import UpiQrPayment from './upi-qr-payment'
 
 type ThankYouTemplateProps = {
-  storeId: string
   order: typeof order.$inferSelect
   lines: (typeof orderLine.$inferSelect)[]
   /** The latest gateway, COD or transfer attempt; undefined when gift cards paid everything. */
@@ -48,7 +47,6 @@ function statusLine(
 }
 
 export default function ThankYouTemplate({
-  storeId,
   order: o,
   lines,
   payment: pay,
@@ -81,9 +79,7 @@ export default function ThankYouTemplate({
           {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
         </p>
         {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={due} /> : null}
-        {qr ? (
-          <UpiQrPayment storeId={storeId} orderNumber={o.number} qr={qr} amountLabel={due} />
-        ) : null}
+        {qr ? <UpiQrPayment orderNumber={o.number} qr={qr} amountLabel={due} /> : null}
         {balance}
         <ul className="cart-items__list thank-you__lines">
           {lines.map((l) => (
@@ -133,7 +129,7 @@ export default function ThankYouTemplate({
           </a>
         ))}
         {failed ? (
-          <form action={retryPaymentAction.bind(null, storeId, o.number)}>
+          <form action={retryPaymentAction.bind(null, o.number)}>
             <button type="submit" className="btn btn--primary">
               {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
             </button>

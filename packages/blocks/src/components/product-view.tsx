@@ -74,11 +74,9 @@ export default function ProductView({
    * installed for this store. Follows variant switching (keyed by variant id,
    * so its own state resets when the shopper picks a different one).
    */
-  NotifyMe?:
-    | ComponentType<{ variantId: string; storeId: string; whatsappEnabled: boolean }>
-    | undefined
+  NotifyMe?: ComponentType<{ variantId: string; whatsappEnabled: boolean }> | undefined
   /** Server-resolved data `NotifyMe` needs beyond the selected variant id. */
-  notifyMeProps?: { storeId: string; whatsappEnabled: boolean } | undefined
+  notifyMeProps?: { whatsappEnabled: boolean } | undefined
 }) {
   // Hooks
   const [pending, startTransition] = useTransition()

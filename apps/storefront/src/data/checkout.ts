@@ -180,6 +180,8 @@ export const checkoutContent = {
       `Your order is below this shop's minimum. Add ${missing} more and try again.`,
     codOverLimit: (limit: string) =>
       `Cash on delivery is available on orders up to ${limit}. Please pay online.`,
+    stateMismatch: (pincode: string) =>
+      `The state you picked does not match PIN code ${pincode}. Check the state and the PIN code, then try again.`,
   },
 } as const
 

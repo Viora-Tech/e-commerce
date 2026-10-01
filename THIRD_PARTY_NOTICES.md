@@ -70,6 +70,13 @@ third-party copy was substituted. To add it:
 
 Until then checkout works as before: shoppers type city and state.
 
+**PIN prefix → state check** (security audit D-06, `packages/core/src/checkout/pincode-state.ts`):
+until the directory is installed, `placeOrder` checks the typed state against a small table of
+the first two digits of a PIN code and the states each can belong to. It was written by hand
+from India Post's public PIN code allocation (the "Postal Index Number" zones published by the
+Department of Posts, indiapost.gov.in). These are public facts; no dataset or text was copied,
+so there is no licence to carry. Credit: Department of Posts, Government of India.
+
 ## Adding an entry
 
 Before copying or closely adapting code from another project:

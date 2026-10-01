@@ -24,6 +24,8 @@ type ConsentManagerProps = {
   bannerVersion: number
   /** The choice read from the cookie on the server; null until the shopper decides. */
   initial: StoredConsent | null
+  /** This request's script CSP nonce; the tracking tags need it to run. */
+  nonce?: string | undefined
 }
 
 function remember(consent: Consent, version: number): void {
@@ -44,6 +46,7 @@ export default function ConsentManager({
   bannerMessage,
   bannerVersion,
   initial,
+  nonce,
 }: ConsentManagerProps) {
   // Hooks
   const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
@@ -76,7 +79,7 @@ export default function ConsentManager({
   return (
     <>
       {consent?.analytics ? <VisitBeacon /> : null}
-      <TrackingTags {...tags} />
+      <TrackingTags {...tags} nonce={nonce} />
       {consent === null || reopened ? (
         <CookieBanner
           message={bannerMessage}

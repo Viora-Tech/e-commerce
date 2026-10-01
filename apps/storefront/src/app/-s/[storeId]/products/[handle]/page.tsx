@@ -108,7 +108,6 @@ export default async function ProductPage({ params, searchParams }: Params) {
     : await inStore(storeId, (tx) => storeOffersEmi(tx, storeId))
   const UnderPrice = emiApp.config ? EmiOffers : legacyEmi ? EmiHint : undefined
   const bis = await inStore(storeId, (tx) => backInStockContext(tx, storeId))
-  const add = addLineAction.bind(null, storeId)
   const variant = defaultVariant(product)
   const isPreorder = Boolean(product.preorder?.enabled) && (!variant || variant.available <= 0)
   const schema = productGraph(
@@ -134,14 +133,14 @@ export default async function ProductPage({ params, searchParams }: Params) {
                 available: variant.available,
                 isPreorder,
                 whatsappEnabled: bis.whatsappEnabled,
-                action: notifyMeAction.bind(null, storeId),
+                action: notifyMeAction,
               }
             : undefined,
         preorderCountdown: {
           enabled: Boolean(product.preorder?.enabled),
           launchAt: product.launchAt ?? null,
         },
-        deliveryChecker: { estimate: estimateDeliveryAction.bind(null, storeId) },
+        deliveryChecker: { estimate: estimateDeliveryAction },
         emiOffers: emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
       },
       renderers: {
@@ -149,17 +148,11 @@ export default async function ProductPage({ params, searchParams }: Params) {
           const view = (
             <ProductView
               product={product}
-              onAddToCart={add}
+              onAddToCart={addLineAction}
               UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
-              belowBuy={
-                s.showDeliveryEstimate === false ? undefined : (
-                  <DeliveryEstimateWidget storeId={storeId} />
-                )
-              }
+              belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
               NotifyMe={bis.installed ? NotifyMeForm : undefined}
-              notifyMeProps={
-                bis.installed ? { storeId, whatsappEnabled: bis.whatsappEnabled } : undefined
-              }
+              notifyMeProps={bis.installed ? { whatsappEnabled: bis.whatsappEnabled } : undefined}
             />
           )
           return (

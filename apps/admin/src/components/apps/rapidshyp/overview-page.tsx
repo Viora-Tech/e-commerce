@@ -1,6 +1,6 @@
 'use client'
 
-import { RAPIDSHYP_CAPABILITIES } from '@commerce/shipping-rapidshyp'
+import { RAPIDSHYP_CAPABILITIES } from '@commerce/shipping-rapidshyp/client'
 import { CircleCheck, Truck } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'

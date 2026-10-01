@@ -47,7 +47,7 @@ export const sectionsContent = {
     button: 'Subscribe',
     placeholder: 'Email address',
     label: 'Email',
-    done: 'Thanks, you are on the list.',
+    done: 'Almost done. Check your inbox and tap the link we sent to confirm.',
     failed: 'Enter a valid email address.',
   },
   related: { heading: 'You may also like' },

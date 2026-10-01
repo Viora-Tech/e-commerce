@@ -10,6 +10,7 @@ import {
 } from '@commerce/core'
 import { revalidatePath } from 'next/cache'
 import { readCartId } from './cart-cookie'
+import { requestStoreId } from './request-store'
 import { inStore } from './store-context'
 
 export type DiscountActionResult = { ok: true } | { ok: false; reason: CodeRejection }
@@ -25,10 +26,8 @@ export type CartDiscountView = {
 }
 
 /** Try a code against the cart and keep it when it works. Never reveals why a code is unknown. */
-export async function applyDiscountAction(
-  storeId: string,
-  code: string,
-): Promise<DiscountActionResult> {
+export async function applyDiscountAction(code: string): Promise<DiscountActionResult> {
+  const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return { ok: false, reason: 'invalid' }
   const result = await inStore(storeId, async (tx) => {
@@ -43,7 +42,8 @@ export async function applyDiscountAction(
   return { ok: true }
 }
 
-export async function removeDiscountAction(storeId: string): Promise<void> {
+export async function removeDiscountAction(): Promise<void> {
+  const storeId = await requestStoreId()
   const cartId = await readCartId()
   if (!cartId) return
   await inStore(storeId, (tx) => setCartDiscountCode({ storeId, tx }, cartId, null))
@@ -53,10 +53,10 @@ export async function removeDiscountAction(storeId: string): Promise<void> {
 
 /** Server-side read used by the cart and checkout pages to render the summary. */
 export async function cartDiscountView(
-  storeId: string,
   cartId: string,
   code: string | null,
 ): Promise<CartDiscountView | null> {
+  const storeId = await requestStoreId()
   const { outcome, codeRejected } = await inStore(storeId, (tx) =>
     resolveCartDiscount({ storeId, tx }, cartId, code),
   )

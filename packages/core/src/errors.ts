@@ -104,7 +104,13 @@ export class BalanceDue extends CommerceError {
  * `placeOrder` before anything is reserved, whatever the storefront showed.
  */
 export class CheckoutRuleViolation extends CommerceError {
-  readonly rule: 'contact' | 'minimum_order' | 'cod_blocked_pincode' | 'cod_over_limit'
+  readonly rule:
+    | 'contact'
+    | 'minimum_order'
+    | 'cod_blocked_pincode'
+    | 'cod_over_limit'
+    /** The address's state cannot be right for its PIN code (`checkout/pincode-state.ts`). */
+    | 'state_mismatch'
   readonly fields: Readonly<Record<string, string>>
   /** Minimum order: what is still missing. COD limit: the limit. In paise. */
   readonly amountPaise: number | null

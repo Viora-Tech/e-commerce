@@ -6,6 +6,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { SEO_FILES } from './data/seo'
 import { accountsHostname } from './lib/accounts-host'
 import { analyticsAllowed } from './lib/consent-cookie'
+import { forwardNonce, newNonce, scriptCsp, storefrontFrameAncestors } from './lib/csp'
 import { db } from './lib/db'
 import { redirectFor } from './lib/redirects'
 import {
@@ -37,7 +38,23 @@ function visitorCountry(request: NextRequest): string | null {
   return c && /^[A-Z]{2}$/.test(c) ? c : null
 }
 
+/**
+ * Every answer carries the script Content-Security-Policy with a fresh nonce
+ * (`lib/csp.ts`); the forwarded request carries the same nonce for the page to use.
+ */
 export async function proxy(request: NextRequest) {
+  const nonce = newNonce()
+  const csp = scriptCsp({
+    nonce,
+    dev: process.env.NODE_ENV !== 'production',
+    frameAncestors: storefrontFrameAncestors(process.env.ADMIN_URL),
+  })
+  const response = await routeRequest(request, (headers) => forwardNonce(headers, nonce, csp))
+  response.headers.set(csp.name, csp.value)
+  return response
+}
+
+async function routeRequest(request: NextRequest, withNonce: (headers: Headers) => void) {
   const host = request.headers.get('host')
   const hostname = hostnameFromHeader(host)
   // The platform login domain (ACCOUNTS_URL) is no store: it serves provider sign-in only.
@@ -46,6 +63,7 @@ export async function proxy(request: NextRequest) {
     if (route.kind === 'forbidden') return new NextResponse('Not found', { status: 404 })
     const headers = new Headers(request.headers)
     for (const h of DERIVED_HEADERS) headers.delete(h)
+    withNonce(headers)
     if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
     const url = request.nextUrl.clone()
     url.pathname = route.path
@@ -81,6 +99,7 @@ export async function proxy(request: NextRequest) {
   // Never trust routing headers from the client; set only what the proxy derived.
   const headers = new Headers(request.headers)
   for (const h of DERIVED_HEADERS) headers.delete(h)
+  withNonce(headers)
   headers.set('x-store-id', storeId)
   const country = visitorCountry(request)
   if (country) headers.set('x-visitor-country', country)

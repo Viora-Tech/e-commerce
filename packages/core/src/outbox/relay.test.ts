@@ -144,4 +144,29 @@ describe('relayStoreOutbox', () => {
     expect(outcome).toEqual({ claimed: 1, dispatched: 1, failed: 0 })
     expect(notifications.calls).toHaveLength(0)
   })
+
+  it('queues the newsletter confirm email with the signup, one job per signup row (D-09)', async () => {
+    const storeId = await seedStore('relay-newsletter')
+    const signupId = crypto.randomUUID()
+    await withStore(app, storeId, async (tx) => {
+      await insertOutboxEvent(tx, storeId, 'newsletter.confirm_requested', { signupId })
+      await insertOutboxEvent(tx, storeId, 'newsletter.confirm_requested', { signupId })
+    })
+    const notifications = fakeQueue<{
+      storeId: string
+      orderId: string
+      template: string
+      signupId?: string | undefined
+    }>()
+    const outcome = await relayStoreOutbox(
+      { db: app, plugins, notifications: notifications.queue },
+      storeId,
+    )
+    expect(outcome).toEqual({ claimed: 2, dispatched: 2, failed: 0 })
+    expect(notifications.calls.map((c) => c.data)).toEqual([
+      expect.objectContaining({ template: 'newsletter_confirm', signupId, orderId: '' }),
+      expect.objectContaining({ template: 'newsletter_confirm', signupId, orderId: '' }),
+    ])
+    expect(new Set(notifications.calls.map((c) => c.jobId)).size).toBe(2)
+  })
 })

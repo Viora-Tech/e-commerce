@@ -19,7 +19,6 @@ declare global {
 }
 
 type PayClientProps = {
-  storeId: string
   orderNumber: number
   session: Extract<CheckoutSession, { kind: 'client' }>
   amountPaise: number
@@ -49,7 +48,6 @@ const COPY: Record<State, string> = {
  * gets the shopper to the thank-you page quickly when the gateway confirms.
  */
 export default function PayClient({
-  storeId,
   orderNumber,
   session,
   amountPaise,
@@ -79,7 +77,7 @@ export default function PayClient({
   // Helpers
   const confirm = async (response: Record<string, string>) => {
     setState('confirming')
-    const status = await confirmPaymentAction(storeId, session.providerRef, response)
+    const status = await confirmPaymentAction(session.providerRef, response)
     if (status === 'captured' || status === 'pending') {
       router.push(thankYouPath)
     } else {

@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import { sectionsContent } from '../../data/sections'
 
-/** The storefront's signup action: stores the email as a customer who accepted marketing. */
+/** The storefront's signup action: sends a confirm link; consent starts when it is opened. */
 export type NewsletterAction = (state: NewsletterState, form: FormData) => Promise<NewsletterState>
 
 export type NewsletterState = { status: 'idle' | 'done' | 'error' }

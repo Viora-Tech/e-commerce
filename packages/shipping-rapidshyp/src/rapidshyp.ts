@@ -92,12 +92,12 @@ import {
   type Serviceability,
   type ServiceabilityQuery,
   type ShipmentStatus,
-  type ShippingCapability,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
   type TrackingEvent,
 } from '@commerce/shipping'
+import { RAPIDSHYP_CAPABILITIES } from './client'
 
 export const RAPIDSHYP_BASE_URL = 'https://api.rapidshyp.com'
 
@@ -863,20 +863,6 @@ const fields: ProviderField[] = [
     label: 'API base URL',
     help: 'Leave blank for production.',
   },
-]
-
-/** What this adapter can do today, confirmed against RapidShyp's own docs (see the file header's
- *  verified-against-docs table). Wallet balance stays manual - no endpoint documented; webhooks are
- *  not documented either, so tracking updates come from the shared poll job, not a push. */
-export const RAPIDSHYP_CAPABILITIES: ShippingCapability[] = [
-  'serviceability',
-  'rates',
-  'create_shipment',
-  'label',
-  'tracking',
-  'cancel',
-  'ndr',
-  'reverse_pickup',
 ]
 
 export const rapidshypFactory: ShippingProviderFactory<RapidshypConfig> = {

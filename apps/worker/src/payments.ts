@@ -12,6 +12,7 @@ import { registriesForStore } from '@commerce/core/registries'
 import { type Db, store, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { isStoreId, peerAddress, rejectWebhook } from './webhook-reply'
 
 /**
  * Generous and per IP only (not per store): a gateway can legitimately retry
@@ -29,7 +30,7 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
   const app = new Hono()
   app.post('/webhooks/payments/:provider/:storeId', async (c) => {
     const { provider: providerId, storeId } = c.req.param()
-    const ip = clientIp(c.req.raw.headers)
+    const ip = clientIp(c.req.raw.headers, { peer: peerAddress(c) })
     const limit = await checkRateLimit(
       rateLimitStore,
       rateLimitKey('payment-webhook:ip', ip),
@@ -39,6 +40,9 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
       return c.json({ ok: false, reason: 'rate limited' }, 429, {
         'retry-after': String(retryAfterSeconds(limit)),
       })
+    }
+    if (!isStoreId(storeId)) {
+      return rejectWebhook(c, 'webhook', { providerId, storeId }, 'store id is not a uuid')
     }
     const rawBody = await c.req.text()
     const headers: Record<string, string | undefined> = {}
@@ -69,10 +73,7 @@ export function paymentWebhooks(db: Db, settingsSecret: string, rateLimitStore: 
       return { ...handled, ack: provider.webhookAck }
     })
 
-    if (!outcome.ok) {
-      console.warn(`[webhook] ${providerId}/${storeId} rejected: ${outcome.reason}`)
-      return c.json({ ok: false, reason: outcome.reason }, 400)
-    }
+    if (!outcome.ok) return rejectWebhook(c, 'webhook', { providerId, storeId }, outcome.reason)
     console.log(
       `[webhook] ${providerId} ${outcome.eventId} applied=${outcome.applied} duplicate=${outcome.duplicate}`,
     )

@@ -8,7 +8,6 @@ import { upiQrContent as content, UPI_QR_SIZE } from '@/data/checkout'
 import { checkQrPaymentAction, retryPaymentAction } from '@/lib/cart-actions'
 
 type UpiQrPaymentProps = {
-  storeId: string
   orderNumber: number
   qr: UpiQr
   amountLabel: string
@@ -37,7 +36,7 @@ function clock(ms: number): string {
  * webhook lands, and asks the gateway directly every so often (and on "I've
  * paid") in case it doesn't. Once closed, the shopper asks for a new QR.
  */
-export default function UpiQrPayment({ storeId, orderNumber, qr, amountLabel }: UpiQrPaymentProps) {
+export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaymentProps) {
   // Hooks
   const router = useRouter()
   const [now, setNow] = useState(() => Date.now())
@@ -98,7 +97,7 @@ export default function UpiQrPayment({ storeId, orderNumber, qr, amountLabel }: 
         {expired ? (
           <>
             <p className="text-body">{content.expired}</p>
-            <form action={retryPaymentAction.bind(null, storeId, orderNumber)}>
+            <form action={retryPaymentAction.bind(null, orderNumber)}>
               <button type="submit" className="btn btn--primary">
                 {content.renew}
               </button>

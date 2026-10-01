@@ -20,23 +20,9 @@ import {
 
 type AllowEntry = { file: string; specifier: string; reason: string }
 
-const ALLOWLIST: AllowEntry[] = [
-  {
-    file: 'apps/admin/src/components/apps/delhivery/connect-page.tsx',
-    specifier: '@commerce/shipping-delhivery',
-    reason: 'imports only a public constant (DELHIVERY_STAGING_URL), no server code runs',
-  },
-  {
-    file: 'apps/admin/src/components/apps/delhivery/overview-page.tsx',
-    specifier: '@commerce/shipping-delhivery',
-    reason: 'imports only a public constant (DELHIVERY_CAPABILITIES), no server code runs',
-  },
-  {
-    file: 'apps/admin/src/components/apps/shiprocket/overview-page.tsx',
-    specifier: '@commerce/shipping-shiprocket',
-    reason: 'imports only a public constant (SHIPROCKET_CAPABILITIES), no server code runs',
-  },
-]
+// Empty: the courier connect/overview pages read their constants from each package's
+// `/client` entry, which carries no adapter code.
+const ALLOWLIST: AllowEntry[] = []
 
 function isAllowlisted(file: string, specifier: string): boolean {
   return ALLOWLIST.some((e) => e.file === file && e.specifier === specifier)

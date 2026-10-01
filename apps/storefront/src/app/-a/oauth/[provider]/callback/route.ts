@@ -100,6 +100,8 @@ async function handle(request: NextRequest, provider: string, input: CallbackInp
     }
     const resolved = await resolveShopperIdentity(ctx, found, { secret })
     if (resolved.kind === 'no_email' || resolved.kind === 'conflict') return resolved.kind
+    // Only Truecaller carries a verified mobile, and it never comes through OAuth.
+    if (resolved.kind === 'verify_phone') return 'conflict'
     return mintHandoff(
       ctx,
       {

@@ -49,7 +49,6 @@ import {
   type Serviceability,
   type ServiceabilityQuery,
   type ShipmentStatus,
-  type ShippingCapability,
   type ShippingProvider,
   type ShippingProviderFactory,
   type Tracking,
@@ -58,10 +57,7 @@ import {
   type WebhookNotice,
   type WebhookRequest,
 } from '@commerce/shipping'
-
-/** Production. Staging is https://staging-express.delhivery.com for test keys. */
-export const DELHIVERY_BASE_URL = 'https://track.delhivery.com'
-export const DELHIVERY_STAGING_URL = 'https://staging-express.delhivery.com'
+import { DELHIVERY_BASE_URL, DELHIVERY_CAPABILITIES, DELHIVERY_STAGING_URL } from './client'
 
 export type DelhiveryConfig = {
   apiToken: string
@@ -668,22 +664,6 @@ const fields: ProviderField[] = [
       'Paste the same value into the extra header field when you register the tracking ' +
       'webhook in the Delhivery Merchant Portal (API → Webhooks), so we can tell a genuine call from a stray one.',
   },
-]
-
-/** What this adapter can do today; the admin greys out anything not listed. Rates: Delhivery has
- *  no quote endpoint, checkout prices shipping from the merchant's own zones instead. Manifest and
- *  wallet: no confirmed public API (see delhivery.ts and the courier app's wallet card), so both are
- *  left off rather than guessed at. */
-export const DELHIVERY_CAPABILITIES: ShippingCapability[] = [
-  'serviceability',
-  'create_shipment',
-  'label',
-  'pickup',
-  'tracking',
-  'webhook',
-  'cancel',
-  'ndr',
-  'reverse_pickup',
 ]
 
 export const delhiveryFactory: ShippingProviderFactory<DelhiveryConfig> = {

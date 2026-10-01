@@ -24,8 +24,10 @@ import {
   STAFF_REQUEST_SOURCES,
   saveCustomerPrivacySettings,
   setMarketingConsent,
+  storageForStore,
   updateDataRequest,
 } from '@commerce/core'
+import { registriesForStore } from '@commerce/core/registries'
 import type { StoreTx } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
@@ -184,7 +186,17 @@ export const customerPrivacyRouter = {
         const request = input.dataRequestId
           ? await requestAnsweredFor(ctx, input.dataRequestId, input.customerId)
           : null
-        const result = await anonymiseCustomer(ctx, { ...input, actor })
+        // Return photos are deleted through the store's storage; a broken connection must
+        // not block the erasure, it only leaves the files to remove by hand (counted).
+        const storage = await registriesForStore(ctx.tx, ctx.storeId)
+          .then((r) => storageForStore(ctx.tx, ctx.storeId, r.storage, secret()))
+          .catch(() => null)
+        const result = await anonymiseCustomer(ctx, {
+          ...input,
+          actor,
+          secret: secret(),
+          storage,
+        })
         if (input.dataRequestId && request) {
           if (request.status === 'open' || request.status === 'in_progress') {
             await updateDataRequest(ctx, input.dataRequestId, { status: 'completed' }, actor)

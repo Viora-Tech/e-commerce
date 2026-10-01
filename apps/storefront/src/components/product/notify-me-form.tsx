@@ -5,7 +5,6 @@ import { backInStockContent as content } from '@/data/back-in-stock'
 import { type NotifyMeState, notifyMeAction } from '@/lib/back-in-stock-actions'
 
 type NotifyMeFormProps = {
-  storeId: string
   variantId: string
   whatsappEnabled: boolean
 }
@@ -13,10 +12,10 @@ type NotifyMeFormProps = {
 const idle: NotifyMeState = { status: 'idle' }
 
 /** Sold-out variant, not on pre-order: ask for an email (and optionally WhatsApp) alert. */
-export default function NotifyMeForm({ storeId, variantId, whatsappEnabled }: NotifyMeFormProps) {
+export default function NotifyMeForm({ variantId, whatsappEnabled }: NotifyMeFormProps) {
   // Hooks
   const [state, submit, pending] = useActionState(
-    (s: NotifyMeState, form: FormData) => notifyMeAction(storeId, variantId, s, form),
+    (s: NotifyMeState, form: FormData) => notifyMeAction(variantId, s, form),
     idle,
   )
 

@@ -62,6 +62,7 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   { id: 'login_code', group: 'account', trigger: 'always', channels: EMAIL },
   { id: 'account_deletion_code', group: 'account', trigger: 'always', channels: EMAIL },
   { id: 'login_link', group: 'account', trigger: 'always', channels: EMAIL },
+  { id: 'newsletter_confirm', group: 'account', trigger: 'always', channels: EMAIL },
   { id: 'gift_card_issued', group: 'account', trigger: 'always', channels: EMAIL },
   {
     id: 'back_in_stock_confirm',

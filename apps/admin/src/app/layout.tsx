@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import { headers } from 'next/headers'
 import { ThemeProvider } from 'next-themes'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
@@ -8,6 +9,7 @@ import LocaleProvider from '@/components/layout/locale-provider'
 import { layoutContent } from '@/data/layout'
 import { localize } from '@/lib/copy'
 import { getLocale } from '@/lib/copy-server'
+import { NONCE_HEADER } from '@/lib/csp'
 
 export const metadata: Metadata = { title: 'Admin' }
 
@@ -24,6 +26,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   // paint is already in it (no flash) and client components get it through LocaleProvider.
   const locale = await getLocale()
   const copy = localize(layoutContent, locale)
+  // The script CSP's nonce for this request (`proxy.ts`): next-themes' no-flash script needs it.
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
 
   return (
     <html lang={locale} className={sans.variable} suppressHydrationWarning>
@@ -40,7 +44,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         >
           {copy.skipToContent}
         </a>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem nonce={nonce}>
           <NuqsAdapter>
             <LocaleProvider locale={locale}>{children}</LocaleProvider>
           </NuqsAdapter>

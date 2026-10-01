@@ -5,6 +5,7 @@ import {
   CheckoutSettingsSchema,
   checkCheckoutRules,
   checkoutPincode,
+  checkoutRuleSubtotalPaise,
   codDecision,
   defaultCheckoutSettings,
   e164IndianMobile,
@@ -209,12 +210,55 @@ describe('validateCheckoutContact', () => {
   })
 })
 
+describe('checkoutRuleSubtotalPaise (D-07)', () => {
+  const shoes = { giftCard: false, quantity: 2, unitPricePaise: 40_000 }
+  const card = { giftCard: true, quantity: 1, unitPricePaise: 500_000 }
+
+  it('leaves gift-card lines out', () => {
+    expect(checkoutRuleSubtotalPaise([shoes, card], 0)).toBe(80_000)
+    expect(checkoutRuleSubtotalPaise([card], 0)).toBe(0)
+  })
+
+  it('takes the whole discount off the goods, never below zero', () => {
+    expect(checkoutRuleSubtotalPaise([shoes, card], 10_000)).toBe(70_000)
+    expect(checkoutRuleSubtotalPaise([shoes, card], 200_000)).toBe(0)
+  })
+
+  it('a gift card neither reaches the minimum nor trips the COD limit', () => {
+    const rules = settings({
+      minimumOrderPaise: 100_000,
+      cod: { maxOrderPaise: 150_000, blockedPincodes: [] },
+    })
+    const order = {
+      checkout,
+      paymentProviderId: 'cod',
+      giftCardsOnly: false,
+      shippingPaise: 5_000,
+    }
+    // ₹800 of shoes plus a ₹5,000 card: still ₹200 short of a ₹1,000 minimum.
+    expect(() =>
+      checkCheckoutRules(rules, {
+        ...order,
+        ruleSubtotalPaise: checkoutRuleSubtotalPaise([shoes, card], 0),
+      }),
+    ).toThrow(expect.objectContaining({ rule: 'minimum_order', amountPaise: 20_000 }))
+    // ₹1,200 of shoes plus the card: COD stays open under a ₹1,500 limit.
+    const more = { ...shoes, quantity: 3 }
+    expect(() =>
+      checkCheckoutRules(rules, {
+        ...order,
+        ruleSubtotalPaise: checkoutRuleSubtotalPaise([more, card], 0),
+      }),
+    ).not.toThrow()
+  })
+})
+
 describe('checkCheckoutRules (placeOrder, server side)', () => {
   const base = {
     checkout,
     paymentProviderId: 'razorpay',
     giftCardsOnly: false,
-    discountedSubtotalPaise: 100_000,
+    ruleSubtotalPaise: 100_000,
     shippingPaise: 5_000,
   }
 
@@ -262,7 +306,7 @@ describe('checkCheckoutRules (placeOrder, server side)', () => {
       checkCheckoutRules(cod, {
         ...base,
         paymentProviderId: 'cod',
-        discountedSubtotalPaise: 1_000,
+        ruleSubtotalPaise: 1_000,
         checkout: { ...checkout, address: { ...checkout.address, pincode: '560001' } },
       })
       expect.unreachable()

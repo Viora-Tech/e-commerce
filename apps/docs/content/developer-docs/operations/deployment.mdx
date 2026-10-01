@@ -175,6 +175,32 @@ Dokploy → Settings → Git Providers → **GitHub** → install the Dokploy Gi
 4. Cloudflare Page Rules/Rulesets: none required to start; add caching/security rules later as
    needed.
 
+### Lock the origin to Cloudflare (required)
+
+Per-IP rate limits (sign-in codes, checkout, gift card checks, newsletter, webhooks) key on the
+client IP. Behind Cloudflare the real IP is in `cf-connecting-ip`, but anyone who reaches the
+server directly can send that header with any value and get a fresh limit per request. So:
+
+1. In the Lightsail console, **Networking → IPv4 (and IPv6) firewall**: allow 80 and 443 only
+   from [Cloudflare's published ranges](https://www.cloudflare.com/ips/) (`ips-v4` and
+   `ips-v6`). Keep 22 for your own IP. Recheck the list when Cloudflare announces changes.
+2. Set `TRUSTED_PROXY=cloudflare` in the environment (it is in
+   `deploy/env.production.example`). The apps then read `cf-connecting-ip` and nothing else.
+
+`TRUSTED_PROXY=none` (the default, and right for local development) believes no forwarded
+header at all: `cf-connecting-ip`, `x-forwarded-for` and `x-real-ip` are ignored. The worker
+then uses the socket's peer address; a Next.js server action has none, so all of its requests
+share one bucket (limits get tighter, never bypassable). Production logs a warning once if it
+runs like that. Better Auth's own IP tracking (admin sign-in) follows the same setting.
+
+### Outbound network
+
+Postgres, Dragonfly and `migrate` sit only on the `internal` network, which has no route out.
+`worker` (payment gateways, couriers, SES, WhatsApp) and `backup` (R2/S3) also join `egress`,
+an ordinary bridge network that publishes no ports. `admin` and `storefront` reach the internet
+through Dokploy's `web` network. `scripts/sweeps/deploy-compose.test.ts` keeps it that way and
+checks every app setting in `packages/config/src/env.ts` reaches the apps.
+
 ## 7. Deploy order (migrate-then-roll) and zero downtime
 
 `migrate` always runs to completion before any app container starts or restarts — this is what

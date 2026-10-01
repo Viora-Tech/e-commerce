@@ -153,6 +153,10 @@ export const notificationsSettingsContent = {
       name: 'Sign-in link',
       when: 'When a customer asks for a sign-in link instead of a code.',
     },
+    newsletter_confirm: {
+      name: 'Confirm newsletter signup',
+      when: 'When someone signs up for your emails. They only get marketing after they confirm.',
+    },
     gift_card_issued: {
       name: 'Gift card',
       when: 'When a gift card is bought or you send one. Carries the code.',

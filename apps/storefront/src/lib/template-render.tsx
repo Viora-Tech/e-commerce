@@ -119,7 +119,7 @@ export async function renderTemplate(
       ...options.renderers,
     },
     appBlockContext: options.appBlockContext,
-    newsletterAction: subscribeAction.bind(null, storeId),
+    newsletterAction: subscribeAction,
   }
   const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)
   const components = config.components as unknown as Record<string, ComponentConfig | undefined>

@@ -1531,12 +1531,19 @@ export const signupInvite = pgTable(
     token: text('token').notNull().unique(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     usedAt: timestamp('used_at', { withTimezone: true }),
+    /**
+     * The paid plan order on the platform's sales store this invite came from; null for
+     * invites issued by hand. A refund or cancellation of that order expires the invite
+     * (security audit D-05). No foreign key: orders sit under store RLS, invites do not.
+     */
+    planOrderId: uuid('plan_order_id'),
     createdAt: createdAt(),
   },
   (t) => [
     // One live (unused) invite per email at a time; a fresh invite is issued
     // by first cancelling or letting the old one expire.
     uniqueIndex('signup_invite_email_unused').on(t.email).where(sql`used_at is null`),
+    index('signup_invite_plan_order').on(t.planOrderId),
   ],
 )
 

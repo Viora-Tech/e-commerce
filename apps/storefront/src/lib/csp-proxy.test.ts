@@ -1,0 +1,37 @@
+import { NextRequest } from 'next/server'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+// No database: every hostname is unknown, so the proxy answers its own 404.
+vi.mock('@commerce/db', async (original) => ({
+  ...(await original<typeof import('@commerce/db')>()),
+  resolveHost: async () => null,
+}))
+vi.mock('./db', () => ({ db: () => ({}) }))
+
+const nonceOf = (value: string | null) => value?.match(/'nonce-([^']+)'/)?.[1] ?? null
+
+describe('storefront proxy CSP', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('sends the policy with a fresh nonce on every answer, even its own 404', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('ADMIN_URL', 'https://admin.waimers.in')
+    // Placeholders for the env loader; nothing connects (resolveHost is mocked above).
+    vi.stubEnv('DATABASE_URL', 'postgres://x:x@127.0.0.1:1/none')
+    vi.stubEnv('DATABASE_URL_OWNER', 'postgres://x:x@127.0.0.1:1/none')
+    vi.stubEnv('REDIS_URL', 'redis://127.0.0.1:1')
+    vi.stubEnv('ACCOUNTS_URL', 'https://accounts.waimers.store')
+    const { proxy } = await import('../proxy')
+    const ask = () =>
+      proxy(new NextRequest('https://unknown.example/', { headers: { host: 'unknown.example' } }))
+    const [a, b] = await Promise.all([ask(), ask()])
+    expect(a.status).toBe(404)
+    const policy = a.headers.get('content-security-policy')
+    expect(policy).toContain("'strict-dynamic'")
+    expect(policy).toContain("frame-ancestors 'self' https://admin.waimers.in")
+    expect(nonceOf(policy)).toBeTruthy()
+    expect(nonceOf(policy)).not.toBe(nonceOf(b.headers.get('content-security-policy')))
+  }, 60_000)
+})

@@ -285,6 +285,19 @@ Your header and footer menus are under **Content → Menus**, not Online Store.
 title and meta description, a social sharing image, **Password protection** (useful before
 launch), the cookie banner and your Google Analytics 4, Google Tag Manager and Meta pixel IDs.
 
+**Custom HTML tags in Tag Manager.** Your store only runs scripts it trusts, to keep shoppers
+safe. Tags that load a script file work as they are. A **Custom HTML** tag with code written
+inside it needs one extra step in Tag Manager, once:
+
+1. In Tag Manager, open **Variables → New** and choose **DOM Element**.
+2. Set **Selection Method** to **CSS Selector**, **Element Selector** to `script[nonce]` and
+   **Attribute Name** to `nonce`. Name the variable `nonce` and save.
+3. In each Custom HTML tag, change `<script>` to `<script nonce="{{nonce}}">`, then publish
+   your container.
+
+Google explains the same steps in
+[Using Google Tag Manager with a Content Security Policy](https://developers.google.com/tag-platform/security/guides/csp).
+
 <Callout type="info">
   **Tip.** Before a big sale, **Duplicate** your Live theme, make the sale changes on the copy,
   and **Publish** it on the morning of the sale. After the sale, publish your old theme again.

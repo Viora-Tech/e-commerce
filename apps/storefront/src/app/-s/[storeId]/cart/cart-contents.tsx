@@ -39,7 +39,7 @@ export default async function CartContents({ storeId }: CartContentsProps) {
   }
 
   // Render logic
-  const discount = await cartDiscountView(storeId, cart.id, cart.discountCode)
+  const discount = await cartDiscountView(cart.id, cart.discountCode)
   const discountPaise = discount?.amountPaise ?? 0
   const total = Math.max(0, cart.subtotalPaise - discountPaise)
   const hint = await inStore(storeId, (tx) => cartShippingHint(tx))
@@ -51,12 +51,12 @@ export default async function CartContents({ storeId }: CartContentsProps) {
       <h1 className="cart-page__title h2">{content.title}</h1>
       <div className="cart-layout">
         <div className="cart-layout__lines">
-          <CartLines storeId={storeId} lines={lines} />
+          <CartLines lines={lines} />
         </div>
         <aside className="cart-layout__summary">
           <div className="cart-summary">
             <h2 className="cart-summary__heading h4">{content.summary}</h2>
-            <DiscountCodeField storeId={storeId} discount={discount} />
+            <DiscountCodeField discount={discount} />
             <div className="cart-summary__row">
               <span>{content.subtotal}</span>
               <span>{formatPaise(cart.subtotalPaise)}</span>

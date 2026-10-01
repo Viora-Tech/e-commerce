@@ -28,6 +28,8 @@ export type TemplateId =
   | 'account_deletion_code'
   /** A one-time sign-in link (magic link) for a storefront shopper. Email only, sent straight away. */
   | 'login_link'
+  /** Confirm a newsletter signup (double opt-in); `actionUrl` is the confirm page. Email only. */
+  | 'newsletter_confirm'
   /** A gift card was issued (bought or sent by the merchant); carries the code. Email only. */
   | 'gift_card_issued'
   /** A deposit pre-order's balance is due; carries the pay-balance link. */

@@ -1,11 +1,12 @@
-/** SOURCE OF TRUTH: Truecaller shopper sign-in — WHAT: the Truecaller web SDK flow for mobile browsers (signed request nonce naming the store, the `truecallersdk://` deep link, the server-to-server callback that fetches the verified number, and the one-time pick-up by the browser that started it) / WHY: Indian shoppers on Android can sign in with the number Truecaller already verified, without waiting for an SMS, and a callback must never be trusted to name the store or to point our server at an arbitrary URL */
+/** SOURCE OF TRUTH: Truecaller shopper sign-in — WHAT: the Truecaller web SDK flow for mobile browsers (signed request nonce naming the store, the `truecallersdk://` deep link, the server-to-server callback that fetches the verified number, and the one-time pick-up by the browser that started it; an existing customer's number links only after a phone code) / WHY: Indian shoppers on Android can sign in with the number Truecaller already verified, without waiting for an SMS, and a callback must never be trusted to name the store or to point our server at an arbitrary URL */
 import { createHmac } from 'node:crypto'
-import { customerLoginTicket } from '@commerce/db'
-import { and, eq } from 'drizzle-orm'
+import { customer, customerLoginTicket } from '@commerce/db'
+import { and, eq, isNull } from 'drizzle-orm'
+import { checkPhoneLoginCode } from '../accounts/otp'
 import { normaliseMobile } from '../accounts/schemas'
 import type { StoreContext } from '../context'
 import { readCapped } from '../net/safe-fetch'
-import { resolveShopperIdentity } from './identities'
+import { linkIdentity, resolveShopperIdentity } from './identities'
 import { safeEqual, safeNextPath, sha256Hex } from './tokens'
 
 /*
@@ -161,7 +162,7 @@ export async function completeTruecaller(
   body: TruecallerCallback,
   deps: TruecallerDeps,
   now: Date = new Date(),
-): Promise<'ready' | 'failed' | 'ignored'> {
+): Promise<'ready' | 'verify_phone' | 'failed' | 'ignored'> {
   const nonce = body.requestId
   if (typeof nonce !== 'string' || storeFromTruecallerNonce(nonce, deps.secret) !== ctx.storeId) {
     return 'ignored'
@@ -218,6 +219,20 @@ export async function completeTruecaller(
     },
     { secret: deps.secret, now },
   )
+  if (resolved.kind === 'verify_phone') {
+    // An existing customer's number, never used with Truecaller here: a phone code first (D-03).
+    await ctx.tx
+      .update(customerLoginTicket)
+      .set({
+        status: 'verify_phone',
+        customerId: resolved.customerId,
+        provider: 'truecaller',
+        subject: mobile,
+        name: `${first} ${last}`.trim() || null,
+      })
+      .where(eq(customerLoginTicket.id, ticket.id))
+    return 'verify_phone'
+  }
   if (resolved.kind !== 'signed_in') return fail()
   await ctx.tx
     .update(customerLoginTicket)
@@ -230,6 +245,12 @@ export type TruecallerPoll =
   | { state: 'pending' }
   | { state: 'failed' }
   | { state: 'ready'; customerId: string; nextPath: string; remember: boolean }
+  /**
+   * The number belongs to an existing customer: the browser must enter the code sent to
+   * it. `sendTo` is set once, on the poll that should send the code (the caller sends it
+   * and never shows the number to the browser, which may not be the phone's owner).
+   */
+  | { state: 'verify_phone'; sendTo: string | null }
 
 /** The starting browser asks whether Truecaller answered. A ready ticket is spent here. */
 export async function pollTruecaller(
@@ -246,6 +267,16 @@ export async function pollTruecaller(
   if (!ticket || ticket.expiresAt.getTime() <= now.getTime() || ticket.status === 'failed') {
     return { state: 'failed' }
   }
+  if (ticket.status === 'phone_code_sent') return { state: 'verify_phone', sendTo: null }
+  if (ticket.status === 'verify_phone') {
+    // Only one poll wins the switch, so the code goes out once.
+    const [claimed] = await ctx.tx
+      .update(customerLoginTicket)
+      .set({ status: 'phone_code_sent' })
+      .where(and(where, eq(customerLoginTicket.status, 'verify_phone')))
+      .returning({ subject: customerLoginTicket.subject })
+    return { state: 'verify_phone', sendTo: claimed?.subject ?? null }
+  }
   if (ticket.status !== 'ready' || !ticket.customerId) return { state: 'pending' }
   const [spent] = await ctx.tx.delete(customerLoginTicket).where(where).returning()
   if (!spent?.customerId) return { state: 'failed' }
@@ -254,5 +285,67 @@ export async function pollTruecaller(
     customerId: spent.customerId,
     nextPath: safeNextPath(spent.nextPath),
     remember: spent.remember,
+  }
+}
+
+export type TruecallerPhoneConfirm =
+  | { ok: true; customerId: string; nextPath: string; remember: boolean }
+  | { ok: false; reason: 'invalid' | 'expired' | 'locked' | 'failed' }
+
+/**
+ * The code sent to the Truecaller number of an existing customer (D-03). Right: Truecaller
+ * is linked to that customer (so later Truecaller sign-ins are one tap), the phone counts
+ * as proven, and the ticket is spent. A lockout or an expired request ends the ticket; the
+ * shopper starts again or signs in another way.
+ */
+export async function confirmTruecallerPhone(
+  ctx: StoreContext,
+  nonce: unknown,
+  code: unknown,
+  now: Date = new Date(),
+): Promise<TruecallerPhoneConfirm> {
+  if (typeof nonce !== 'string' || !NONCE.test(nonce)) return { ok: false, reason: 'failed' }
+  const where = and(
+    eq(customerLoginTicket.tokenHash, sha256Hex(nonce)),
+    eq(customerLoginTicket.kind, 'truecaller'),
+  )
+  const [ticket] = await ctx.tx.select().from(customerLoginTicket).where(where).for('update')
+  if (ticket?.status !== 'phone_code_sent' || !ticket.customerId || !ticket.subject) {
+    return { ok: false, reason: 'failed' }
+  }
+  if (ticket.expiresAt.getTime() <= now.getTime()) {
+    await ctx.tx.delete(customerLoginTicket).where(where)
+    return { ok: false, reason: 'expired' }
+  }
+  const checked = await checkPhoneLoginCode(ctx, ticket.subject, code, now)
+  if (!checked.ok) {
+    if (checked.reason !== 'invalid') await ctx.tx.delete(customerLoginTicket).where(where)
+    return checked
+  }
+  await ctx.tx.delete(customerLoginTicket).where(where)
+  const [cu] = await ctx.tx
+    .select({ id: customer.id })
+    .from(customer)
+    .where(and(eq(customer.id, ticket.customerId), isNull(customer.anonymisedAt)))
+  if (!cu) return { ok: false, reason: 'failed' }
+  await linkIdentity(
+    ctx,
+    cu.id,
+    {
+      provider: 'truecaller',
+      subject: ticket.subject,
+      mobile: ticket.subject,
+      email: null,
+      emailVerified: false,
+      name: ticket.name,
+    },
+    now,
+  )
+  await ctx.tx.update(customer).set({ phoneVerifiedAt: now }).where(eq(customer.id, cu.id))
+  return {
+    ok: true,
+    customerId: cu.id,
+    nextPath: safeNextPath(ticket.nextPath),
+    remember: ticket.remember,
   }
 }

@@ -7,7 +7,15 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
  * (a hand-off). Single use is enforced by the ticket row (`tickets.ts`), not here.
  */
 
-export type TokenPurpose = 'start' | 'oauth' | 'handoff' | 'pending-link' | 'passkey' | 'one-tap'
+export type TokenPurpose =
+  | 'start'
+  | 'oauth'
+  | 'handoff'
+  | 'pending-link'
+  | 'passkey'
+  | 'one-tap'
+  /** A newsletter confirm link (`customers/newsletter.ts`). */
+  | 'newsletter'
 
 /** A sign-in start request is good for 10 minutes: time to pick an account at the provider. */
 export const START_TTL_MS = 10 * 60 * 1000
