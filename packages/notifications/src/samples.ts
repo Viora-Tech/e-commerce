@@ -89,6 +89,14 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     totalLabel: '',
     actionUrl: 'https://waimers.example/account/login/link?token=sample',
   },
+  newsletter_confirm: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    actionUrl: 'https://waimers.example/newsletter/confirm/sample',
+  },
   gift_card_issued: {
     ...base,
     orderNumber: undefined,

@@ -5,6 +5,7 @@ export const NOTIFICATIONS_QUEUE = '{notifications}-send'
 
 export type NotificationJob = {
   storeId: string
+  /** Empty for the one message without an order (`newsletter_confirm`, see `signupId`). */
   orderId: string
   template: TemplateId
   /**
@@ -17,6 +18,8 @@ export type NotificationJob = {
   returnId?: string | undefined
   /** For refund_issued: which refund the message reports. */
   refundId?: string | undefined
+  /** For newsletter_confirm: the pending `newsletter_signup`. */
+  signupId?: string | undefined
 }
 
 /**

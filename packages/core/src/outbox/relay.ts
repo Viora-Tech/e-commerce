@@ -114,6 +114,17 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       deps.log?.(`plan order ${payload.orderId}: refunded or cancelled after its invite was used`)
     }
   }
+  if (type === 'newsletter.confirm_requested' && payload.signupId) {
+    // No order to hang it on: the job carries the signup, keyed by this row so a second
+    // signup (a new link) is its own job.
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'newsletter_confirm',
+      key: row.id,
+      signupId: payload.signupId,
+    })
+  }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(
       'restocked',

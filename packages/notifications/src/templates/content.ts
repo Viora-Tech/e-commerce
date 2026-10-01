@@ -330,6 +330,15 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `Sign in to ${d.storeName}: ${d.actionUrl ?? ''} (works once, expires in 15 minutes).`,
   },
+  newsletter_confirm: {
+    subject: (d) => `Confirm your ${d.storeName} newsletter signup`,
+    heading: () => 'Please confirm your email',
+    intro: (d) =>
+      `Someone, hopefully you, asked to get emails from ${d.storeName} at this address. Tap the button to confirm.`,
+    outro: () =>
+      'The link works for 7 days. If you did not sign up, ignore this email and you will not hear from us.',
+    whatsapp: (d) => `Confirm your ${d.storeName} newsletter signup: ${d.actionUrl ?? ''}`,
+  },
   gift_card_issued: {
     subject: (d) => `${d.storeName}: your ${d.giftCard?.balanceLabel ?? ''} gift card`,
     heading: (d) => `Hi ${d.customerName}, here is your gift card`,

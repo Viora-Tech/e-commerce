@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clientIp, trustedProxyFrom } from './ip'
+import { clientIp } from './ip'
 
 const headers = (h: Record<string, string>) => new Headers(h)
 
@@ -38,9 +38,18 @@ describe('clientIp (security audit D-01)', () => {
   })
 
   it('reads TRUSTED_PROXY, treating anything unknown as none', () => {
-    expect(trustedProxyFrom({})).toBe('none')
-    expect(trustedProxyFrom({ TRUSTED_PROXY: 'cloudflare' })).toBe('cloudflare')
-    expect(trustedProxyFrom({ TRUSTED_PROXY: ' Cloudflare ' })).toBe('cloudflare')
-    expect(trustedProxyFrom({ TRUSTED_PROXY: 'traefik' })).toBe('none')
+    const cf = headers({ 'cf-connecting-ip': '198.51.100.1' })
+    const before = process.env.TRUSTED_PROXY
+    try {
+      delete process.env.TRUSTED_PROXY
+      expect(clientIp(cf)).toBe('unknown')
+      process.env.TRUSTED_PROXY = ' Cloudflare '
+      expect(clientIp(cf)).toBe('198.51.100.1')
+      process.env.TRUSTED_PROXY = 'traefik'
+      expect(clientIp(cf)).toBe('unknown')
+    } finally {
+      if (before === undefined) delete process.env.TRUSTED_PROXY
+      else process.env.TRUSTED_PROXY = before
+    }
   })
 })

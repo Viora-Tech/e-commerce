@@ -51,6 +51,8 @@ export type OutboxEventType =
    * told by a more specific message (unpaid transfer cancel has its own). Off by default when the
    * caller passes `notifyCustomer: false` to `cancelOrder`. */
   | 'order.cancel_notice'
+  /** A newsletter signup waits for its confirm link (double opt-in); no order. */
+  | 'newsletter.confirm_requested'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -66,6 +68,8 @@ export type OutboxPayload = {
   locationId?: string | undefined
   /** The return a `return.*` or `order.rto` event is about. */
   returnId?: string | undefined
+  /** The `newsletter_signup` a `newsletter.confirm_requested` event is about. */
+  signupId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -116,6 +120,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'shipment.out_for_delivery': 'out_for_delivery',
   'order.delivered': 'delivered',
   'order.cancel_notice': 'order_cancelled',
+  // No order: the relay queues `newsletter_confirm` with the signup id itself (`dispatchRow`).
+  'newsletter.confirm_requested': null,
 }
 
 /**
@@ -164,4 +170,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'shipment.out_for_delivery': null,
   'order.delivered': null,
   'order.cancel_notice': null,
+  'newsletter.confirm_requested': null,
 }

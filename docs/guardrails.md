@@ -168,6 +168,28 @@ or delete the store under test), each with its reason. The test also asserts a c
 floor (60% of callable procedures answer at least one call without an error) so a broken
 input generator cannot pass silently, and it checks its own detector on a planted leak.
 
+### j. `pinned-actions` (`scripts/sweeps/pinned-actions.test.ts`)
+
+Not a ratchet. Every `uses:` in `.github/workflows/*.yml` must be `owner/repo@<40-hex SHA> # vX.Y.Z`
+(security audit D-02): a tag can be moved by whoever controls the action's repository, and the
+release job holds a GHCR write token. **Fix**: look up the release's commit
+(`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`) and pin it with the tag as a comment.
+
+### k. `deploy-compose` (`scripts/sweeps/deploy-compose.test.ts`)
+
+Not a ratchet. Every key in `packages/config/src/env.ts` reaches the apps through `x-app-env`
+in `deploy/docker-compose.prod.yml` and is documented in `deploy/env.production.example`, except
+a short `NOT_FOR_APPS` list with reasons (dev-only and backup-only keys). Postgres, Dragonfly
+and migrate stay on the `internal` network only; worker and backup also join `egress`
+(security audit D-12).
+
+### l. `storefront-action-store` (`scripts/sweeps/storefront-action-store.test.ts`)
+
+Not a ratchet. No exported function of a `'use server'` file under `apps/storefront/src` may take
+the store id as its first parameter (`storeId`, `store`, `bound`): every server action is an
+endpoint the browser can call with any arguments, so the store comes from the hostname
+(`requestStoreId()` / `x-store-id`, set by `proxy.ts`). Security audit D-13.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

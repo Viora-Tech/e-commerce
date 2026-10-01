@@ -3,6 +3,7 @@ import {
   cartLine,
   customer,
   media,
+  newsletterSignup,
   notification,
   order,
   orderLine,
@@ -12,6 +13,7 @@ import {
   refund,
   shipment,
   store,
+  storeDomain,
   variant,
 } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
@@ -25,6 +27,7 @@ import type {
 } from '@commerce/notifications'
 import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
+import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
@@ -297,6 +300,60 @@ async function messageOn(ctx: StoreContext, template: TemplateId): Promise<boole
     .from(store)
     .where(eq(store.id, ctx.storeId))
   return isMessageOn(parseNotificationSettings(s?.notifications), template)
+}
+
+/**
+ * The newsletter confirm email (double opt-in, security audit D-09): one email to the
+ * address that signed up, with the link to the confirm page. Nothing goes out for a signup
+ * that was confirmed or expired meanwhile. Email channels only; never marketing, so no
+ * consent check (it is the request for consent) and the merchant cannot switch it off.
+ */
+export async function deliverNewsletterConfirm(
+  ctx: StoreContext,
+  input: { signupId: string },
+  opts: DeliverOptions & { storefrontUrl: string },
+  now: Date = new Date(),
+): Promise<DeliveryResult[]> {
+  const [signup] = await ctx.tx
+    .select()
+    .from(newsletterSignup)
+    .where(eq(newsletterSignup.id, input.signupId))
+  if (signup?.status !== 'pending' || signup.expiresAt.getTime() <= now.getTime()) return []
+  const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
+  // The confirm page checks the store its hostname resolves to, so the link goes to the
+  // store's own primary domain (the platform storefront URL in development).
+  const [primary] = await ctx.tx
+    .select({ hostname: storeDomain.hostname })
+    .from(storeDomain)
+    .where(and(eq(storeDomain.isPrimary, true), eq(storeDomain.status, 'active')))
+  const dev = /(^|\.)localhost$/.test(new URL(opts.storefrontUrl).hostname)
+  const base = primary && !dev ? `https://${primary.hostname}` : opts.storefrontUrl
+  const token = newsletterConfirmToken(signup, opts.settingsSecret)
+  const data: TemplateData = {
+    storeName: s?.name ?? '',
+    customerName: '',
+    totalLabel: '',
+    lines: [],
+    paymentMethodLabel: '',
+    actionUrl: newsletterConfirmUrl(base, token),
+  }
+  const template: TemplateId = 'newsletter_confirm'
+  const results: DeliveryResult[] = []
+  for (const channel of await channelsFor(ctx, opts)) {
+    if (channel.requires !== 'email') continue
+    const r = await channel.send({ to: { email: signup.email }, template, data })
+    await ctx.tx.insert(notification).values({
+      storeId: ctx.storeId,
+      channel: channel.id,
+      template,
+      to: signup.email,
+      status: r.ok ? 'sent' : 'failed',
+      providerRef: r.ok ? r.providerRef : null,
+      error: r.ok ? null : r.error,
+    })
+    results.push({ channel: channel.id, to: signup.email, ok: r.ok, error: r.ok ? undefined : r.error })
+  }
+  return results
 }
 
 /**

@@ -24,7 +24,7 @@ export type ClientIpOptions = {
 }
 
 /** `TRUSTED_PROXY` from an environment; anything but `cloudflare` means `none`. */
-export function trustedProxyFrom(env: Record<string, string | undefined>): TrustedProxy {
+function trustedProxyFrom(env: Record<string, string | undefined>): TrustedProxy {
   return env.TRUSTED_PROXY?.trim().toLowerCase() === 'cloudflare' ? 'cloudflare' : 'none'
 }
 

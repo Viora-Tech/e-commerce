@@ -219,7 +219,8 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
       if (err instanceof ShippingRateUnavailable)
         return { error: checkoutContent.errors.rateChanged }
       // Settings → Checkout, re-checked by placeOrder whatever the form showed.
-      if (err instanceof CheckoutRuleViolation) return { error: checkoutRuleMessage(err) }
+      if (err instanceof CheckoutRuleViolation)
+        return { error: checkoutRuleMessage(err, form.pincode) }
       throw err
     })
   if ('error' in placed) return { error: placed.error }
@@ -249,7 +250,7 @@ export async function checkoutAction(submitted: CheckoutForm): Promise<CheckoutR
 }
 
 /** The shopper-facing reason a checkout rule refused the order. */
-function checkoutRuleMessage(err: CheckoutRuleViolation): string {
+function checkoutRuleMessage(err: CheckoutRuleViolation, pincode: string): string {
   const e = checkoutContent.errors
   switch (err.rule) {
     case 'contact':
@@ -260,6 +261,8 @@ function checkoutRuleMessage(err: CheckoutRuleViolation): string {
       return e.codUnavailable
     case 'cod_over_limit':
       return e.codOverLimit(formatPaise(err.amountPaise ?? 0))
+    case 'state_mismatch':
+      return e.stateMismatch(pincode)
   }
 }
 

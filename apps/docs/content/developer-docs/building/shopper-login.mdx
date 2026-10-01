@@ -169,9 +169,13 @@ custom domain cannot use an rpID of `waimers.store`. Consequences:
   (`/.well-known/webauthn`) could let one rpID serve a store's domains; browser support is
   still partial.
 
-Challenges are sealed (HMAC, 5 minutes, bound to store and hostname) in a `wc_pk` cookie and
-cleared after one use. No attestation, resident key required (usernameless sign-in), user
-verification preferred: the same defaults as Better Auth's passkey plugin.
+Challenges live on the server: each ceremony writes a `customer_login_ticket` row
+(`passkey_register` or `passkey_login`) with the challenge, the rpID and, when adding a passkey,
+the signed-in customer. The `wc_pk` cookie holds only a random handle whose hash finds the row.
+Verifying deletes the row first, so a challenge works once; it lives 5 minutes and only on the
+host and store it was made for. No attestation and resident key required (usernameless
+sign-in), like Better Auth's passkey plugin, but **user verification is required** (fingerprint,
+face or screen lock), because a passkey is the whole sign-in. Security audit D-04.
 
 ## Google One Tap
 
@@ -195,10 +199,22 @@ Android only). Flow:
    If the page keeps focus, the app is not there and the shopper picks another way.
 3. Truecaller's server POSTs `{ requestId, accessToken, endpoint }` to
    `<ACCOUNTS_URL>/truecaller/callback`. We fetch the profile only from `https://*.truecaller.com`
-   (SSRF guard), take the verified number and link or create the customer by phone. A profile
+   (SSRF guard) and take the verified number. A number seen with Truecaller before signs in;
+   a new number becomes a new customer. A number that belongs to an **existing customer who
+   never used Truecaller here** waits on a phone code (ticket status `verify_phone`). A profile
    email is never used (Truecaller does not verify it).
 4. The page polls `pollTruecallerAction`; the ready ticket is spent by the browser holding the
-   cookie.
+   cookie. For `verify_phone`, the first poll sends a sign-in code to that number through the
+   store's WhatsApp or SMS sign-in channel (status `phone_code_sent`) and the page asks for it;
+   the polling browser never sees the number. `confirmTruecallerCodeAction` checks the code
+   (same attempt limits as phone sign-in), links Truecaller to the customer and signs in. A store
+   without a phone channel cannot finish this step, and the shopper signs in another way.
+
+Why the code (security audit D-03): the nonce belongs to whoever started the request, not to
+the phone that consents, so a page could show someone the deep link for its own request and
+walk into their account with one tap. The button is also offered only on the store's own page:
+never inside a frame (`quickSignInButtons`, `topLevel`), and `startTruecallerAction` refuses a
+request whose `Origin` is not exactly the store origin (`truecallerStartAllowed`).
 
 Terms: a Truecaller developer account and partner key are required, the consent screen is
 Truecaller's, and profile data may only be used to sign the shopper in. The docs host was
