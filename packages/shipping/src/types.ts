@@ -72,6 +72,11 @@ export type CreateShipmentInput = {
   to: ShipmentAddress
   /** Where the parcel goes back to on RTO. */
   from: ShipmentAddress
+  /**
+   * The pickup location (warehouse) name registered on the courier for the location the
+   * parcel leaves from. Absent: the courier account's own pickup location, as configured.
+   */
+  pickupLocationName?: string | undefined
   lines: ShipmentLine[]
   paymentMode: 'prepaid' | 'cod'
   /** Amount to collect on delivery, in paise. 0 for prepaid. */

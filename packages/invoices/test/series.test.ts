@@ -82,3 +82,39 @@ describe('composition scheme on documents', () => {
     expect(view.endorsement).toBeNull()
   })
 })
+
+describe('{GST} in a series pattern', () => {
+  const fy = financialYear(new Date('2026-10-02T12:00:00+05:30'))
+  const parse = (pattern: string) =>
+    InvoiceSettingsSchema.safeParse({
+      series: DEFAULT_SERIES.map((s) => (s.id === 'inv' ? { ...s, pattern } : s)),
+    })
+
+  it('prints the issuing GST number’s prefix where the pattern asks for it', () => {
+    const series = { ...inv, pattern: '{GST}/{FY}/' }
+    expect(formatSeriesNumber(series, fy, 7, 'BLR')).toBe('BLR/26-27/0007')
+    expect(formatSeriesNumber(series, fy, 7, 'HR')).toBe('HR/26-27/0007')
+    // A pattern without {GST} ignores it, so single-GSTIN numbers do not change.
+    expect(formatSeriesNumber(inv, fy, 7, 'BLR')).toBe('INV/26-27/0007')
+  })
+
+  it('a blank {GST} takes one separator with it', () => {
+    expect(formatSeriesNumber({ ...inv, pattern: '{GST}/{FY}/' }, fy, 1)).toBe('26-27/0001')
+    expect(formatSeriesNumber({ ...inv, pattern: 'INV-{GST}/' }, fy, 1)).toBe('INV-0001')
+  })
+
+  it('accepts {GST} and {FY} once each in any order, lower case too', () => {
+    expect(parse('{GST}/{FY}/').success).toBe(true)
+    expect(parse('{fy}{gst}/').success).toBe(true)
+    expect(parse('{GST}{GST}/').success).toBe(false)
+    expect(parse('{STATE}/').success).toBe(false)
+  })
+
+  it('counts {GST} as 5 characters against the 16-character limit', () => {
+    // INV/ + 5 + / + 26-27 + / + 0001 = 20: refused before a long prefix can overflow.
+    const long = parse('INV/{GST}/{FY}/')
+    expect(long.success).toBe(false)
+    expect(long.error?.issues[0]?.message).toMatch(/16/)
+    expect(parse('{GST}/{FY}/').success).toBe(true)
+  })
+})

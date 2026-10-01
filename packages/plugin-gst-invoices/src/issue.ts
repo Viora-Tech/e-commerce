@@ -31,10 +31,10 @@ import {
   pickSeries,
   placeOf,
   type SeriesContext,
-  sellerParty,
 } from '@commerce/invoices'
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { assertPeriodOpen } from './periods'
+import { documentIssuer, gstToken, type Issuer, orderIssuer, sellerFor } from './registration'
 import { invoice, invoiceLine, invoiceSequence, invoiceSettings } from './schema'
 
 export type InvoiceRow = typeof invoice.$inferSelect
@@ -105,10 +105,11 @@ export async function saveSettings(
 }
 
 /**
- * Take the next number in a series. The upsert locks the sequence row until
- * the surrounding transaction ends, so a concurrent issuer waits and then
- * gets the following number; a rollback returns the number unused. Numbers
- * therefore never repeat and never skip (rule 46(b)).
+ * Take the next number in a series of the issuing GSTIN. The upsert locks the
+ * sequence row until the surrounding transaction ends, so a concurrent issuer
+ * waits and then gets the following number; a rollback returns the number
+ * unused. Numbers therefore never repeat and never skip (rule 46(b)), and
+ * each GSTIN counts on its own.
  */
 export async function takeNumber(
   tx: StoreTx,
@@ -117,26 +118,47 @@ export async function takeNumber(
   at: Date,
   settings: InvoiceSettings,
   ctx: SeriesContext,
-): Promise<{ number: string; seq: number; fyStartYear: number; seriesId: string }> {
+  issuer: Issuer,
+): Promise<{
+  number: string
+  seq: number
+  fyStartYear: number
+  seriesId: string
+  gstRegistrationId: string | null
+}> {
   const series = pickSeries(settings.series, kind, ctx)
   if (!series)
     throw new InvoiceError('invalid', `No ${kind.replace('_', ' ')} series matches this order`)
   const fy = financialYear(at)
+  const gstRegistrationId = issuer?.id ?? null
   const [row] = await tx
     .insert(invoiceSequence)
-    .values({ storeId, kind, seriesId: series.id, fyStartYear: counterYear(series, fy), next: 2 })
+    .values({
+      storeId,
+      gstRegistrationId,
+      kind,
+      seriesId: series.id,
+      fyStartYear: counterYear(series, fy),
+      next: 2,
+    })
     .onConflictDoUpdate({
-      target: [invoiceSequence.storeId, invoiceSequence.seriesId, invoiceSequence.fyStartYear],
+      target: [
+        invoiceSequence.storeId,
+        invoiceSequence.gstRegistrationId,
+        invoiceSequence.seriesId,
+        invoiceSequence.fyStartYear,
+      ],
       set: { next: sql`${invoiceSequence.next} + 1` },
     })
     .returning({ next: invoiceSequence.next })
   if (!row) throw new Error('sequence upsert returned nothing')
   const seq = row.next - 1
   return {
-    number: formatSeriesNumber(series, fy, seq),
+    number: formatSeriesNumber(series, fy, seq, gstToken(issuer, settings)),
     seq,
     fyStartYear: fy.startYear,
     seriesId: series.id,
+    gstRegistrationId,
   }
 }
 
@@ -159,6 +181,8 @@ export async function orderSnapshot(
   buyerGstin: string | null | undefined,
   /** Shipping bill and currency details already entered on the draft, kept on rebuild. */
   prior?: ExportSupply | null,
+  /** The GSTIN issuing it; undefined resolves the order's (see registration.ts). */
+  issuer?: Issuer,
 ): Promise<DocumentSnapshot> {
   const [o] = await tx.select().from(order).where(eq(order.id, orderId))
   if (!o) throw new InvoiceError('order_not_found', `order ${orderId} not found`)
@@ -246,7 +270,11 @@ export async function orderSnapshot(
       hsn: l.lineHsn ?? l.variantHsn,
       ratePercent: l.rate,
     })),
-    seller: sellerParty(settings.seller, s?.name ?? ''),
+    seller: sellerFor(
+      settings,
+      issuer === undefined ? await orderIssuer(tx, orderId) : issuer,
+      s?.name ?? '',
+    ),
     buyer,
     // Billing and delivery are the same address at checkout; ship-to prints only when they differ.
     shipTo: null,
@@ -291,6 +319,8 @@ export async function insertDocument(
   doc: DocumentSnapshot,
   extra: {
     refundId?: string | null
+    /** The issuing GSTIN; null in a store without a registration. */
+    gstRegistrationId: string | null
     seq?: number | null
     fyStartYear?: number | null
     status?: InvoiceRow['status']
@@ -306,6 +336,7 @@ export async function insertDocument(
       storeId,
       orderId: doc.order.id,
       refundId: extra.refundId ?? null,
+      gstRegistrationId: extra.gstRegistrationId,
       kind: doc.kind,
       number: doc.number,
       seq: extra.seq ?? null,
@@ -405,8 +436,20 @@ export async function issueDocument(
   const again = await existing(tx, orderId, kind)
   if (again) return { row: again, created: false }
   const at = opts.at ?? new Date()
-  const doc = await orderSnapshot(tx, storeId, orderId, kind, null, at, settings, opts.buyerGstin)
-  const row = await insertDocument(tx, storeId, doc, {})
+  const issuer = await orderIssuer(tx, orderId)
+  const doc = await orderSnapshot(
+    tx,
+    storeId,
+    orderId,
+    kind,
+    null,
+    at,
+    settings,
+    opts.buyerGstin,
+    null,
+    issuer,
+  )
+  const row = await insertDocument(tx, storeId, doc, { gstRegistrationId: issuer?.id ?? null })
   if (!row) throw new Error('invoice insert raced past the advisory lock')
   return { row, created: true }
 }
@@ -445,6 +488,11 @@ export async function regenerateDocument(
   }
   const prior = DocumentSnapshotSchema.parse(row.snapshot)
   const settings = await loadSettings(tx, storeId)
+  // A queued draft follows the order's GSTIN as it is now; an issued document keeps its own.
+  const issuer =
+    row.status === 'draft'
+      ? await orderIssuer(tx, row.orderId, row.gstRegistrationId)
+      : await documentIssuer(tx, row.gstRegistrationId)
   let doc: DocumentSnapshot
   if (row.kind === 'credit_note') {
     // A credit note mirrors its invoice; only the buyer block can change.
@@ -460,12 +508,14 @@ export async function regenerateDocument(
       settings,
       opts.buyerGstin === undefined ? prior.buyer.gstin : opts.buyerGstin,
       prior.exportSupply ? { ...prior.exportSupply, ...opts.exportDetails } : null,
+      issuer,
     )
   }
   const [updated] = await tx
     .update(invoice)
     .set({
       snapshot: doc,
+      gstRegistrationId: row.status === 'draft' ? (issuer?.id ?? null) : row.gstRegistrationId,
       ...totalsColumns(doc),
       pdfStatus: 'pending',
       pdfError: null,
@@ -516,7 +566,8 @@ export async function issueCreditNote(
   const [again] = await tx.select().from(invoice).where(eq(invoice.refundId, refundId))
   if (again) return { row: again, created: false }
   const at = opts.at ?? new Date()
-  await assertPeriodOpen(tx, storeId, at)
+  // A credit note comes from the GSTIN that issued the invoice it corrects.
+  await assertPeriodOpen(tx, storeId, at, original.gstRegistrationId)
   const cutoff = creditNoteCutoff(original.invoiceDate ?? original.issuedAt, settings.gstr9FiledOn)
   if (at.getTime() > cutoff.getTime()) {
     throw new InvoiceError(
@@ -525,7 +576,15 @@ export async function issueCreditNote(
     )
   }
   const invoiceDoc = DocumentSnapshotSchema.parse(original.snapshot)
-  const n = await takeNumber(tx, storeId, 'credit_note', at, settings, seriesContextOf(invoiceDoc))
+  const n = await takeNumber(
+    tx,
+    storeId,
+    'credit_note',
+    at,
+    settings,
+    seriesContextOf(invoiceDoc),
+    await documentIssuer(tx, original.gstRegistrationId),
+  )
   const doc = buildCreditNote({
     invoice: invoiceDoc,
     number: n.number,
@@ -535,6 +594,7 @@ export async function issueCreditNote(
   })
   const row = await insertDocument(tx, storeId, doc, {
     refundId,
+    gstRegistrationId: original.gstRegistrationId,
     seq: n.seq,
     fyStartYear: n.fyStartYear,
     seriesId: n.seriesId,

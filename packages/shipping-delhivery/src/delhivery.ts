@@ -314,7 +314,7 @@ export class DelhiveryProvider implements ShippingProvider {
             .map((l) => `${l.title} x${l.quantity}`)
             .join(', ')
             .slice(0, 250),
-          pickup_location: this.config.pickupLocationName,
+          pickup_location: input.pickupLocationName || this.config.pickupLocationName,
           waybill,
           return_name: input.from.name,
           return_add: address(input.from),
@@ -326,7 +326,7 @@ export class DelhiveryProvider implements ShippingProvider {
           seller_name: this.config.clientName,
         },
       ],
-      pickup_location: { name: this.config.pickupLocationName },
+      pickup_location: { name: input.pickupLocationName || this.config.pickupLocationName },
     }
   }
 

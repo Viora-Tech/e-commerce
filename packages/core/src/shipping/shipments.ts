@@ -9,6 +9,7 @@ import { recordRtoForShipment } from '../returns/rto'
 import { syncNdrFromTracking } from './ndr'
 import { effectiveWeightGrams, resolveParcelPackage, resolveParcelWeightGrams } from './parcel'
 import { defaultBoxPreset, parseShippingSettings } from './settings'
+import { shipFromFor } from './ship-from'
 
 export type ShipmentRow = typeof shipment.$inferSelect
 
@@ -75,7 +76,12 @@ export async function createShipmentForOrder(
     .from(orderLine)
     .leftJoin(variant, eq(variant.id, orderLine.variantId))
     .where(eq(orderLine.orderId, orderId))
-  const w = settings.policy.warehouse
+  // The location the goods sell from when it has courier pickup on, else Settings › Shipping.
+  const shipFrom = await shipFromFor(ctx.tx, {
+    taxOrigin: o.taxOrigin,
+    settings,
+    storeName: s?.name ?? '',
+  })
   const boxWeightGrams = defaultBoxPreset(settings)?.weightGrams ?? ASSUMED_WEIGHT_GRAMS
   /* A product/variant's own package (custom dims, or one of the store's named boxes) is used
      when every sellable line agrees on one; its volumetric weight is compared against the
@@ -110,16 +116,8 @@ export async function createShipmentForOrder(
       country: to.country,
       phone: to.phone,
     },
-    from: {
-      name: w.name || s?.name || '',
-      line1: w.line1,
-      line2: w.line2 || undefined,
-      city: w.city,
-      state: w.state,
-      pincode: settings.policy.originPincode,
-      country: 'IN',
-      phone: w.phone,
-    },
+    from: shipFrom.address,
+    ...(shipFrom.pickupLocationName ? { pickupLocationName: shipFrom.pickupLocationName } : {}),
     lines: lines.map((l) => ({
       title: [l.title, l.variantTitle !== 'Default' ? l.variantTitle : null]
         .filter(Boolean)

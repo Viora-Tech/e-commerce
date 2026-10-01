@@ -356,7 +356,7 @@ export class ShiprocketProvider implements ShippingProvider {
     return {
       order_id: input.orderId,
       order_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      pickup_location: this.config.pickupLocationName,
+      pickup_location: input.pickupLocationName || this.config.pickupLocationName,
       billing_customer_name: input.to.name,
       billing_last_name: '',
       billing_address: input.to.line1,

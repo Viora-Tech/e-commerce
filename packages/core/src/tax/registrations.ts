@@ -11,7 +11,15 @@
  * WHERE: api router `businessGst`; Taxes & GST and General saves call `adoptStoreGstin`.
  *        Every call runs inside `withStore`, so RLS scopes each statement to the store.
  */
-import { business, gstRegistration, location, newId, type StoreTx, store } from '@commerce/db'
+import {
+  business,
+  gstRegistration,
+  type LocationCourierPickup,
+  location,
+  newId,
+  type StoreTx,
+  store,
+} from '@commerce/db'
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { listLocations } from '../inventory/levels'
@@ -64,6 +72,9 @@ export type LocationBillingView = {
   gstRegistrationId: string | null
   /** No active GST number in this location's state. */
   stateUnregistered: boolean
+  phone: string | null
+  /** Couriers collect from here (shipping/ship-from.ts); null uses Settings › Shipping. */
+  courierPickup: LocationCourierPickup | null
 }
 
 export type BusinessGstView = {
@@ -132,6 +143,8 @@ export async function listBusinessGst(tx: StoreTx, storeId: string): Promise<Bus
         isDefault: l.isDefault,
         gstRegistrationId: l.gstRegistrationId,
         stateUnregistered: stateCode !== null && !registeredStates.has(stateCode),
+        phone: l.phone,
+        courierPickup: l.courierPickup ?? null,
       }
     }),
   }

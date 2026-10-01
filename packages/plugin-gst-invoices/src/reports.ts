@@ -7,6 +7,7 @@ import {
   gstr1Invoice,
 } from '@commerce/invoices'
 import { and, desc, eq, gte, ilike, inArray, lt, ne, or, type SQL } from 'drizzle-orm'
+import { sameRegistration } from './registration'
 import { invoice } from './schema'
 
 export type ListFilter = {
@@ -23,6 +24,8 @@ export type ListFilter = {
   /** Inclusive start and exclusive end, as instants. */
   from?: Date | undefined
   to?: Date | undefined
+  /** One GSTIN's documents (null: a store without a registration); undefined: every GSTIN. */
+  gstRegistrationId?: string | null | undefined
 }
 
 function where(filter: ListFilter): SQL | undefined {
@@ -30,6 +33,9 @@ function where(filter: ListFilter): SQL | undefined {
   // Drafts live in the queue, not in the issued list.
   return and(
     ne(invoice.status, 'draft'),
+    filter.gstRegistrationId === undefined
+      ? undefined
+      : sameRegistration(invoice.gstRegistrationId, filter.gstRegistrationId),
     filter.kind ? eq(invoice.kind, filter.kind) : undefined,
     filter.status ? eq(invoice.status, filter.status) : undefined,
     filter.from ? gte(invoice.invoiceDate, filter.from) : undefined,
@@ -106,15 +112,23 @@ export async function documentsByIds(tx: StoreTx, ids: readonly string[]) {
 }
 
 /**
- * GSTR-1 CSVs for documents issued in [from, to). Credit notes are paired with
- * their invoice even when it was issued in an earlier period.
+ * One GSTIN's GSTR-1 CSVs for documents issued in [from, to): GSTR-1 is filed
+ * per GSTIN. Credit notes are paired with their invoice even when it was
+ * issued in an earlier period. `gstRegistrationId` null is a store without a
+ * registration.
  */
-export async function gstr1ForPeriod(tx: StoreTx, from: Date, to: Date): Promise<Gstr1Export> {
+export async function gstr1ForPeriod(
+  tx: StoreTx,
+  from: Date,
+  to: Date,
+  gstRegistrationId: string | null,
+): Promise<Gstr1Export> {
   const inPeriod = await tx
     .select()
     .from(invoice)
     .where(
       and(
+        sameRegistration(invoice.gstRegistrationId, gstRegistrationId),
         inArray(invoice.kind, ['tax_invoice', 'credit_note', 'receipt_voucher', 'refund_voucher']),
         inArray(invoice.status, ['issued', 'cancelled']),
         gte(invoice.invoiceDate, from),

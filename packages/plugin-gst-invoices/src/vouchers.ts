@@ -11,6 +11,7 @@ import {
   takeNumber,
 } from './issue'
 import { assertPeriodOpen } from './periods'
+import { documentIssuer, orderIssuer } from './registration'
 import { invoice } from './schema'
 
 /**
@@ -51,7 +52,8 @@ export async function issueReceiptVoucher(
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`gst-invoices:rv:${orderId}`}))`)
   const again = await existing(tx, orderId, 'receipt_voucher')
   if (again) return { row: again, created: false }
-  await assertPeriodOpen(tx, storeId, at)
+  const issuer = await orderIssuer(tx, orderId)
+  await assertPeriodOpen(tx, storeId, at, issuer?.id ?? null)
   const base = await orderSnapshot(
     tx,
     storeId,
@@ -61,8 +63,18 @@ export async function issueReceiptVoucher(
     at,
     settings,
     undefined,
+    null,
+    issuer,
   )
-  const n = await takeNumber(tx, storeId, 'receipt_voucher', at, settings, seriesContextOf(base))
+  const n = await takeNumber(
+    tx,
+    storeId,
+    'receipt_voucher',
+    at,
+    settings,
+    seriesContextOf(base),
+    issuer,
+  )
   const doc = buildVoucher({
     base,
     kind: 'receipt_voucher',
@@ -71,6 +83,7 @@ export async function issueReceiptVoucher(
     amountPaise: (await advanceReceived(tx, orderId)) || base.totals.totalPaise,
   })
   const row = await insertDocument(tx, storeId, doc, {
+    gstRegistrationId: n.gstRegistrationId,
     seq: n.seq,
     fyStartYear: n.fyStartYear,
     seriesId: n.seriesId,
@@ -101,9 +114,18 @@ export async function issueRefundVoucher(
   await tx.execute(
     sql`select pg_advisory_xact_lock(hashtext(${`gst-invoices:refund:${refundId}`}))`,
   )
-  await assertPeriodOpen(tx, storeId, at)
+  // The GSTIN that took the advance pays it back.
+  await assertPeriodOpen(tx, storeId, at, receipt.gstRegistrationId)
   const base = DocumentSnapshotSchema.parse(receipt.snapshot)
-  const n = await takeNumber(tx, storeId, 'refund_voucher', at, settings, seriesContextOf(base))
+  const n = await takeNumber(
+    tx,
+    storeId,
+    'refund_voucher',
+    at,
+    settings,
+    seriesContextOf(base),
+    await documentIssuer(tx, receipt.gstRegistrationId),
+  )
   const doc = buildVoucher({
     base,
     kind: 'refund_voucher',
@@ -115,6 +137,7 @@ export async function issueRefundVoucher(
   })
   const row = await insertDocument(tx, storeId, doc, {
     refundId,
+    gstRegistrationId: receipt.gstRegistrationId,
     seq: n.seq,
     fyStartYear: n.fyStartYear,
     seriesId: n.seriesId,

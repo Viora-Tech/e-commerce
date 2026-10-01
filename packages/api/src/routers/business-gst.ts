@@ -5,6 +5,7 @@ import {
   cancelRegistration,
   createBusiness,
   GstRegistrationError,
+  LocationPickupInputSchema,
   LocationRegistrationSchema,
   linkLocationRegistration,
   listBusinessGst,
@@ -13,6 +14,7 @@ import {
   RegistrationInputSchema,
   RegistrationUpdateSchema,
   setDefaultRegistration,
+  setLocationCourierPickup,
   updateBusiness,
   updateRegistration,
 } from '@commerce/core'
@@ -83,5 +85,12 @@ export const businessGstRouter = {
     .input(LocationRegistrationSchema)
     .handler(({ context, input }) =>
       refusing(() => linkLocationRegistration(context.tx, context.scope.storeId, input)),
+    ),
+
+  /** Couriers collect from this location's address (Settings › Locations), or not. */
+  setLocationPickup: can(permissions.SETTINGS_MANAGE)
+    .input(LocationPickupInputSchema)
+    .handler(({ context, input }) =>
+      refusing(() => setLocationCourierPickup(context.tx, context.scope.storeId, input)),
     ),
 }

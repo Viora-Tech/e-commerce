@@ -25,7 +25,21 @@ export type SeriesKind = (typeof SERIES_KINDS)[number]
 export const SERIES_RULES = ['export', 'b2b', 'domestic'] as const
 export type SeriesRule = (typeof SERIES_RULES)[number]
 
-const PATTERN = /^[A-Za-z0-9/-]*(\{FY\}[A-Za-z0-9/-]*)?$/
+const PLAIN = /^[A-Za-z0-9/-]*$/
+
+/** Letters, digits, / and -, with `{FY}` and `{GST}` each at most once. */
+function patternOk(v: string): boolean {
+  const tokens = v.match(/\{[^}]*\}/g) ?? []
+  if (tokens.some((t) => t !== '{FY}' && t !== '{GST}')) return false
+  if (tokens.length !== new Set(tokens).size) return false
+  return PLAIN.test(v.replaceAll('{FY}', '').replaceAll('{GST}', ''))
+}
+
+/**
+ * The longest text `{GST}` can print: a registration's invoice prefix is at most 5
+ * characters (`gst_registration_invoice_prefix_check`), and the fallback state letters 2.
+ */
+const GST_TOKEN_WIDEST = 'XXXXX'
 
 export const SeriesSchema = z.object({
   /** Stable id stored on the counter and on every document; never reuse one. */
@@ -36,13 +50,16 @@ export const SeriesSchema = z.object({
   name: z.string().trim().min(1).max(40),
   kind: z.enum(SERIES_KINDS),
   rule: z.enum(SERIES_RULES),
-  /** Text before the running number; `{FY}` becomes `26-27`. E.g. `INV/{FY}/`. */
+  /**
+   * Text before the running number; `{FY}` becomes `26-27` and `{GST}` the issuing GST
+   * number's invoice prefix (Settings › Business and GST), or its state letters, e.g. `HR`.
+   * E.g. `INV/{FY}/` or `{GST}/{FY}/`.
+   */
   pattern: z
     .string()
     .trim()
     .toUpperCase()
-    .refine((v) => PATTERN.test(v), 'Use letters, digits, / and - with an optional {FY}')
-    .transform((v) => v.replace('{fy}', '{FY}')),
+    .refine(patternOk, 'Use letters, digits, / and - with an optional {FY} and {GST}'),
   /** Minimum digits of the running number: 4 gives 0001. It grows past this rather than wrapping. */
   pad: z.coerce.number().int().min(1).max(8).default(4),
   /**
@@ -81,17 +98,28 @@ export const DEFAULT_SERIES: Series[] = [
   s('erfv', 'Export refund vouchers', 'refund_voucher', 'export', 'ERF/{FY}/'),
 ]
 
+/**
+ * A document number from its series. `gst` is what `{GST}` prints for the issuing
+ * registration (see `gstToken` in the GST invoices app); a pattern without `{GST}` ignores
+ * it, and a blank one leaves no doubled `/` or `-` behind.
+ */
 export function formatSeriesNumber(
   series: Pick<Series, 'pattern' | 'pad'>,
   fy: FinancialYear,
   seq: number,
+  gst = '',
 ) {
-  return `${series.pattern.replace('{FY}', fy.label)}${String(seq).padStart(series.pad, '0')}`
+  const withYear = series.pattern.replace('{FY}', fy.label)
+  // A blank `{GST}` takes one neighbouring separator with it: `{GST}/INV/` prints `INV/`.
+  const prefix = gst
+    ? withYear.replace('{GST}', gst)
+    : withYear.replace(/\{GST\}[/-]?|[/-]\{GST\}$/, '')
+  return `${prefix}${String(seq).padStart(series.pad, '0')}`
 }
 
 /** The longest number the series can print before its digits outgrow `pad`. */
 export function widestSeriesNumber(series: Pick<Series, 'pattern' | 'pad'>, at = new Date()) {
-  return formatSeriesNumber(series, financialYear(at), 10 ** series.pad - 1)
+  return formatSeriesNumber(series, financialYear(at), 10 ** series.pad - 1, GST_TOKEN_WIDEST)
 }
 
 /**
