@@ -61,7 +61,8 @@ integrity/privacy harm needing staff access or unusual conditions; **Low** = def
 | S-28 | Low | Deploy: nested `.env*` not in `.dockerignore`; release deploy job held `packages: write`; `init.sh` interpolated the password into SQL | Fixed |
 | S-29 | Low | Razorpay dedupe key from the unsigned event-id header | Fixed |
 | S-30..S-37 | Low | See "Smaller fixes" | Fixed |
-| D-01..D-13 | - | Owner decisions and follow-ups | Open |
+| D-01..D-13 | - | Owner decisions and follow-ups | Resolved 1 Oct 2026 (migration 0079), D-08 skipped |
+| X-01, X-02 | - | Script CSP; dev sign-in code route in production | Resolved 1 Oct 2026 |
 
 ## Fixed
 
@@ -352,8 +353,8 @@ integrity/privacy harm needing staff access or unusual conditions; **Low** = def
   `apps/storefront/src/lib/lock-gate.test.ts`.
 - **S-36** Newsletter signup and gift-card code checks took the store id from a bound argument
   the browser controls and had no rate limit (code guessing); both act only on the store the
-  hostname resolved to (`boundStoreId`) and are limited per IP. Test:
-  `apps/storefront/src/lib/bound-store.test.ts`.
+  hostname resolved to and are limited per IP. (The `boundStoreId` check this added was
+  replaced by D-13: no storefront action takes a store id at all.)
 - **S-37** Predating this range, same shape as S-14: draft orders and gift cards accepted
   another store's customer id, and a variant image another store's media id (foreign keys ignore
   RLS, which then blocks that store from deleting its row). Checked under the store first
@@ -376,6 +377,29 @@ integrity/privacy harm needing staff access or unusual conditions; **Low** = def
 | D-11 | Payment webhook routes answer `unknown store` / `provider not enabled` / `bad signature` separately (an existence oracle) and a non-UUID store id is a 500. | Low value; tie to D-01. |
 | D-13 | Other storefront server actions take the store id as a bound argument (`addLineAction`, `notifyMeAction`, `estimateDeliveryAction`, `retryPaymentAction`). RLS keeps each to the store it names and each only does what that store's own site allows, so it is not an escalation today; applying `boundStoreId` everywhere is a cheap follow-up. | Follow-up, not a vulnerability now. |
 | D-12 | Compose: the `internal` network blocks the worker's egress (payments, couriers, SES) and backups; `SHOPPER_*` env is missing from `x-app-env`. Functional, found during the review. | Infra change before the first deploy. |
+
+### Resolution (1 October 2026, `fix/security-owner-decisions`)
+
+The owner approved D-01 to D-13 except D-08, plus two leftovers (X-01, X-02). Migration
+`0079_security_owner_decisions` (numbered after #219's `0078_store_data`).
+
+| ID | Status | What changed | Tests |
+|---|---|---|---|
+| D-01 | Resolved | `TRUSTED_PROXY=cloudflare\|none` (default `none`). `clientIp` reads `cf-connecting-ip` only with `cloudflare` and never `x-forwarded-for` / `x-real-ip`; otherwise the socket peer (the worker passes `peerAddress`) or one shared `unknown` bucket (Next server actions have no peer; production logs a warning once). Better Auth follows the same setting (`ipAddressHeaders: ['cf-connecting-ip']` or IP tracking off). Deployment runbook, "Lock the origin to Cloudflare": Lightsail firewall to Cloudflare's ranges, then `TRUSTED_PROXY=cloudflare`. | `core/src/rate-limit/ip.test.ts`, `apps/worker/src/webhook-reply.test.ts` |
+| D-02 | Resolved | Every action in `ci.yml` and `release.yml` pinned to a commit SHA with the release as a comment (`actions/checkout` v4.4.0, `oven-sh/setup-bun` v2.2.0, `docker/setup-buildx-action` v3.12.0, `docker/login-action` v3.7.0, `docker/build-push-action` v6.19.2). | sweep `pinned-actions` |
+| D-03 | Resolved | A Truecaller number that belongs to an existing customer with no Truecaller link yet waits on a phone code (`verify_phone` → `phone_code_sent`): the first poll sends the code by the store's WhatsApp or SMS sign-in, the polling browser never sees the number, `confirmTruecallerPhone` links and signs in. No phone channel: the shopper signs in another way. Truecaller is offered only top-level (never framed) and `startTruecallerAction` refuses an `Origin` other than the store's own. Residual: a brand-new number still becomes a new account on one tap (no existing data to take). | `shopper-login.test.ts` (Truecaller cases), `tokens.test.ts` `decideLink`, `apps/storefront/src/lib/sign-in-buttons.test.ts` |
+| D-04 | Resolved | WebAuthn challenges stored in `customer_login_ticket` (`passkey_register` / `passkey_login`, `challenge`, rpID in `return_url`, customer when registering); the cookie holds a random handle only; verify deletes the row first (single use), 5 minutes. `userVerification: 'required'` and `requireUserVerification: true`. | `shopper-login/passkeys.test.ts`, `shopper-login.test.ts` |
+| D-05 | Resolved | `signup_invite.plan_order_id`; `refund.created` / `order.cancelled` on the sales store expire the order's unused invites once the order is cancelled or fully refunded (`revokePlanInvitesForOrder`); a partial refund keeps them; an invite already used is logged, never undone. | `onboarding/plan-invites.test.ts` |
+| D-06 | Resolved | `placeOrder` refuses an address whose state cannot belong to its PIN (`state_mismatch`, plain-English message) before zones, GST or stock: the India Post directory when installed (`@commerce/shipping/pincode-directory`), else a PIN-prefix table written from India Post's public allocation (`core/src/checkout/pincode-state.ts`, no dataset copied). Shared prefixes allow each state; Army Postal Service and unallocated prefixes are never refused. | `checkout/pincode-state.test.ts`, `order/place-order.test.ts` |
+| D-07 | Resolved | The minimum order and the COD limit judge only lines that are not gift cards, less the whole discount (`checkoutRuleSubtotalPaise`), in `placeOrder` and the checkout preview alike. | `checkout/settings.test.ts` |
+| D-08 | Skipped | TODO: waiting on RapidShyp's status code table; `mapRapidshypStatus` still treats any `RTO*` code as RTO received. | - |
+| D-09 | Resolved | Newsletter double opt-in: a signup writes a pending `newsletter_signup` and a `newsletter.confirm_requested` outbox row; the relay queues `newsletter_confirm` (email only, always on) with a signed link to `/newsletter/confirm/<token>` on the store's primary domain, 7 days. Opening the page changes nothing; the button grants consent, tags the customer and starts the welcome automation. Two-minute resend guard and three confirm emails per address per day. | `customers/newsletter.test.ts`, `outbox/relay.test.ts`, `privacy.test.ts` |
+| D-10 | Resolved | Erasure also removes return photos (links, and files under `stores/<id>/returns/` through storage; failures counted in the audit entry), cuts `shipment.tracking` to waybill, status, expected date and each scan's time and status, replaces `shipment_webhook_event.payload` with `{ waybill, eventId }`, deletes `customer_otp` rows (by customer and by the phone sign-in key), back-in-stock signups and newsletter signups for their email or number. | `privacy/privacy.test.ts` "erases return photos, courier payloads, phone codes and back-in-stock signups (D-10)" |
+| D-11 | Resolved | Payment and courier webhooks give one `400 {"ok":false}` for a malformed or unknown store id, a provider not enabled, and a bad signature or token (`apps/worker/src/webhook-reply.ts`); the reason goes to the log only; a non-uuid store id never reaches the database. | `apps/worker/src/webhook-reply.test.ts`, `shipments-webhook.test.ts` |
+| D-12 | Resolved | Worker and backup join an `egress` bridge network (Postgres, Dragonfly, migrate stay `internal` only); `x-app-env` and `deploy/env.production.example` gain `SHOPPER_*`, `ACCOUNTS_URL`, `TRUSTED_PROXY`, `PLATFORM_STORE_DOMAIN`, `MERCHANT_SIGNUP_MODE`, `PLATFORM_SALES_STORE_ID`. | sweep `deploy-compose` |
+| D-13 | Resolved | No storefront server action takes a store id from its caller: cart, discount, shipping, back-in-stock, marketing, newsletter, gift-card and theme-preview actions resolve it from the hostname (`requestStoreId`); `boundStoreId` (S-36) is gone. | sweep `storefront-action-store` |
+| X-01 | Resolved | Script CSP (left over from the 25 September review): storefront and admin send a per-request nonce policy from `proxy.ts` (`script-src 'self' 'nonce-…' 'strict-dynamic'`, `object-src 'none'`, `base-uri 'self'`; `https:` and `'unsafe-inline'` only as fallbacks old browsers use), enforced in production, report-only plus `'unsafe-eval'` in development. Next's scripts, the next-themes script and the GA4 / Tag Manager / Meta loaders carry the nonce; gateway and One Tap scripts load through `'strict-dynamic'`. frame-ancestors unchanged. Not yet checked in a production build in a browser. | `apps/storefront/src/lib/csp.test.ts`, `csp-proxy.test.ts`, `apps/admin/src/lib/csp.test.ts` |
+| X-02 | Resolved | `/api/dev/otp` answers 404 in any production build whatever `DEV_LOGIN_OTP` says; `devOtpEnabled()` is false first thing in production (Next inlines `NODE_ENV`, so the readback is dead code there). | `apps/*/src/lib/dev-otp.test.ts` |
 
 ## Reviewed and fine
 
