@@ -66,7 +66,7 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
     }, POLL_MS)
     const ask = setInterval(() => {
       if (msLeft(qr.expiresAt, Date.now()) === 0) return
-      checkQrPaymentAction(storeId, orderNumber).then((paid) => {
+      checkQrPaymentAction(orderNumber).then((paid) => {
         if (paid) router.refresh()
       })
     }, GATEWAY_CHECK_MS)
@@ -74,12 +74,12 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
       clearInterval(poll)
       clearInterval(ask)
     }
-  }, [qr.expiresAt, router, storeId, orderNumber])
+  }, [qr.expiresAt, router, orderNumber])
 
   // Event handlers
   const handlePaid = () =>
     startCheck(async () => {
-      const paid = await checkQrPaymentAction(storeId, orderNumber)
+      const paid = await checkQrPaymentAction(orderNumber)
       setNotYet(!paid)
       if (paid) router.refresh()
     })

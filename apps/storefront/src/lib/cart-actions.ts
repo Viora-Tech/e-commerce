@@ -336,7 +336,8 @@ export async function retryPaymentAction(orderNumber: number) {
  * the order turns paid even when its webhook is late or not set up. True once
  * paid; the page then refreshes to the paid state.
  */
-export async function checkQrPaymentAction(storeId: string, orderNumber: number) {
+export async function checkQrPaymentAction(orderNumber: number) {
+  const storeId = await requestStoreId()
   const limited = await rateLimited(
     'qr-check:order',
     `${storeId}:${orderNumber}`,
