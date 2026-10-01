@@ -1,6 +1,10 @@
 'use client'
 
 // Port of sections/category-panels.liquid: a row of tall category panels; the one under the pointer widens, the others narrow to slivers.
+// The theme calls this its Aceternity "expandable cards" pick, but Aceternity's free Expandable Card is a
+// click-to-open modal list, not this hover row, and no free original of the row exists. Until the owner
+// supplies the Pro original (or picks the free modal pattern), the theme's own behaviour stays: one
+// open index and CSS widths, no script ported from the theme.
 import { type ReactNode, type SyntheticEvent, useState } from 'react'
 import { categoryPanelsContent as copy } from '../../../data/glide/category-panels'
 import { type FocalPoint, focalStyle } from '../../../focal-point'

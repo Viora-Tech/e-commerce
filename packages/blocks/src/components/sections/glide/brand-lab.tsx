@@ -1,6 +1,8 @@
-// Port of sections/brand-lab.liquid: dark editorial band with an intro and a divided grid of linked brands
+// Port of sections/brand-lab.liquid: dark editorial band with an intro and a divided grid of linked brands.
+// The hover dimming is Aceternity UI's Focus Cards (`effects/focus-cards.tsx`), not the theme's CSS.
 import type { ReactNode } from 'react'
 import { brandLabContent as copy } from '../../../data/glide/brand-lab'
+import FocusCards from '../../../effects/focus-cards'
 import { safeHref } from '../../../slot-types'
 import Picture from '../../picture'
 import RichCopy from '../../rich-copy'
@@ -80,12 +82,12 @@ export default function BrandLab({ heading, intro, ctaLabel, ctaHref, brands }: 
           ) : null}
         </div>
 
-        <div className="brand-lab__grid">
+        <FocusCards className="brand-lab__grid">
           {named.map((brand, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: brand blocks have no id and keep their order.
             <BrandCell key={i} brand={brand} />
           ))}
-        </div>
+        </FocusCards>
       </div>
     </div>
   )

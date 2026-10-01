@@ -1,5 +1,8 @@
-// Port of sections/reviews-showcase.liquid (+ the assets it uses): a big score over a moving wall of review cards
+// Port of sections/reviews-showcase.liquid: a big score over a moving wall of review cards. The UI-kit
+// effects are the originals, not the theme's re-implementations: reviewer avatars are Aceternity UI's
+// Animated Tooltip, the photo slideshow sits in Magic UI's Safari, the wall is Magic UI's (3D) Marquee.
 import { reviewsShowcaseContent as copy } from '../../../data/glide/reviews-showcase'
+import AnimatedTooltip from '../../../effects/animated-tooltip'
 import { linkTarget } from '../../../link'
 import type { Link } from '../../../sections/framed'
 import { safeHref } from '../../../slot-types'
@@ -75,7 +78,7 @@ export default function ReviewsShowcase({
           productHref: r.productHref,
         }))
     : []
-  const speedVar = { '--rs-speed': `${speed || copy.speed}s` } as React.CSSProperties
+  const speedSeconds = Number(speed) || copy.speed
 
   return (
     <div className="reviews-showcase">
@@ -102,27 +105,17 @@ export default function ReviewsShowcase({
           ) : null}
         </p>
         {avatars.length > 0 ? (
-          <div className="rs-avatars">
-            {avatars.map((r, i) => (
-              <span
-                // biome-ignore lint/suspicious/noArrayIndexKey: avatars mirror the first reviews and never reorder between renders.
-                key={`${r.name}-${i}`}
-                className="rs-avatars__item"
-                style={{ '--hue': ((i + 1) * AVATAR_HUE_STEP) % HUE_TURN } as React.CSSProperties}
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard focus shows the same who-and-what tooltip as hover.
-                tabIndex={0}
-              >
-                {r.name.charAt(0).toUpperCase()}
-                <span className="rs-avatars__tip">
-                  <b>{r.name}</b>
-                  {copy.tipDetail(r.rating, r.productName)}
-                </span>
-              </span>
-            ))}
-            {more > 0 ? (
-              <span className="rs-avatars__item rs-avatars__item--more">{copy.more(more)}</span>
-            ) : null}
-          </div>
+          <AnimatedTooltip
+            className="mt-[0.5rem]"
+            items={avatars.map((r, i) => ({
+              id: `${i}`,
+              name: r.name,
+              designation: copy.tipDetail(r.rating, r.productName),
+              initials: r.name.charAt(0).toUpperCase(),
+              hue: ((i + 1) * AVATAR_HUE_STEP) % HUE_TURN,
+            }))}
+            more={more > 0 ? copy.more(more) : null}
+          />
         ) : null}
         <div className="reviews-showcase__actions">
           <ActionLink link={allButton} variant="secondary" />
@@ -130,17 +123,22 @@ export default function ReviewsShowcase({
         </div>
       </div>
 
-      <div
-        className={`rs-stage page-width${slides.length > 0 ? '' : ' rs-stage--no-photos'}`}
-        style={speedVar}
-      >
+      <div className={`rs-stage page-width${slides.length > 0 ? '' : ' rs-stage--no-photos'}`}>
         {slides.length > 0 ? <ReviewsBrowser slides={slides} label={browserLabel} /> : null}
-        <ReviewsWall reviews={reviews} showProduct={showProduct} layout="columns" />
+        <ReviewsWall
+          reviews={reviews}
+          showProduct={showProduct}
+          layout="columns"
+          speedSeconds={speedSeconds}
+        />
       </div>
 
-      <div className="reviews-showcase__rows" style={speedVar}>
-        <ReviewsWall reviews={reviews} showProduct={showProduct} layout="rows" />
-      </div>
+      <ReviewsWall
+        reviews={reviews}
+        showProduct={showProduct}
+        layout="rows"
+        speedSeconds={speedSeconds}
+      />
     </div>
   )
 }

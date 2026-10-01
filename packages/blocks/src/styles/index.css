@@ -1,4 +1,5 @@
 @import "./base.css";
+@import "./effects.css";
 @import "./component-app-blocks.css";
 @import "./component-article-card.css";
 @import "./component-breadcrumbs.css";
@@ -12,7 +13,9 @@
 @import "./rich-text.css";
 @import "./section-collection.css";
 @import "./section-footer.css";
+@import "./section-announcement.css";
 @import "./section-header.css";
+@import "./section-mobile-dock.css";
 @import "./section-hero-carousel.css";
 @import "./section-latest-drop.css";
 @import "./section-product.css";

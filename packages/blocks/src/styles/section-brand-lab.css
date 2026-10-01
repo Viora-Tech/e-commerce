@@ -198,21 +198,7 @@
   }
 }
 
-/* Focus cards: hovering one brand dims the rest (from Glide's base.css). */
-@media (hover: hover) {
-  .brand-lab__grid:hover .brand-lab__brand:not(:hover) {
-    filter: blur(0.125rem);
-    opacity: 0.45;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .brand-lab__brand {
-    transition:
-      filter 0.35s ease,
-      opacity 0.35s ease;
-  }
-}
+/* Focus cards (hover one brand, the rest blur): effects/focus-cards.tsx, Aceternity UI. */
 
 /* Shown while no brand has a name yet. */
 .brand-lab__empty {

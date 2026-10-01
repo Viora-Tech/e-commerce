@@ -12,4 +12,8 @@ export const SECTION_SOURCES: Record<string, SectionSource> = {
   FaqAccordion: { name: 'shadcnblocks', href: 'https://www.shadcnblocks.com' },
   CtaBanner: { name: 'Magic UI', href: 'https://magicui.design' },
   Gallery: { name: 'shadcnblocks', href: 'https://www.shadcnblocks.com' },
+  // Glide theme sections built on a shared UI-kit effect (`../effects/`).
+  ReviewsShowcase: { name: 'Magic UI and Aceternity UI', href: 'https://magicui.design' },
+  LatestDrop: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
+  BrandLab: { name: 'Aceternity UI', href: 'https://ui.aceternity.com' },
 }
