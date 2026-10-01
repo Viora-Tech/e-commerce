@@ -129,11 +129,11 @@ function validateItem(
     case 'boolean': {
       if (typeof v === 'boolean') return { ok: true, value: v }
       if (v === 'true' || v === 'false') return { ok: true, value: v === 'true' }
-      return { ok: false, error: 'must be true or false' }
+      return { ok: false, error: 'must be yes or no' }
     }
     case 'date': {
       if (typeof v !== 'string' || !isRealDate(v.trim())) {
-        return { ok: false, error: 'must be a date (YYYY-MM-DD)' }
+        return { ok: false, error: 'needs a date, like 2026-01-31' }
       }
       const s = v.trim()
       if (typeof rules?.min === 'string' && s < rules.min)
@@ -287,23 +287,23 @@ export function ruleProblems(
     }
   }
   if (typeof rules.min === 'number' && typeof rules.max === 'number' && rules.min > rules.max) {
-    problems.push(`${name}: the minimum is above the maximum`)
+    problems.push(`${name}: make the minimum smaller than the maximum`)
   }
   if (
     rules.minLength !== undefined &&
     rules.maxLength !== undefined &&
     rules.minLength > rules.maxLength
   ) {
-    problems.push(`${name}: the minimum length is above the maximum`)
+    problems.push(`${name}: make the minimum length smaller than the maximum`)
   }
   if (rules.choices?.length && type !== 'single_line_text') {
-    problems.push(`${name}: only single line text can have choices`)
+    problems.push(`${name}: only short text can have preset choices`)
   }
   if (rules.metaobjectDefinitionId && type !== 'metaobject_reference') {
-    problems.push(`${name}: only metaobject references can name a definition`)
+    problems.push(`${name}: only an "Another entry" field can name a content type`)
   }
   if (type === 'metaobject_reference' && !rules.metaobjectDefinitionId) {
-    problems.push(`${name}: pick which metaobject it references`)
+    problems.push(`${name}: pick which content type it links to`)
   }
   return problems
 }

@@ -17,7 +17,8 @@ import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
 import SettingsSection from '@/components/settings/settings-section'
-import { customDataContent as copy } from '@/data/metaobjects'
+import { customDataContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { type DefinitionSummary, entriesPath } from './form-state'
@@ -29,8 +30,6 @@ type Loaded = {
   collection: MetafieldDefinitionRow[]
   metaobjects: DefinitionSummary[]
 }
-
-const TABS = [copy.tabs.products, copy.tabs.collections, copy.tabs.metaobjects]
 
 async function load(): Promise<Loaded> {
   const [product, collection, metaobjects] = await Promise.all([
@@ -44,6 +43,7 @@ async function load(): Promise<Loaded> {
 /** Settings → Custom data: product and collection metafields, and metaobject definitions. */
 export default function CustomDataSettings() {
   // Hooks
+  const copy = useCopy(customDataContent)
   const { hasPermission } = usePermissions()
   const [data, setData] = useState<Loaded | null>(null)
 
@@ -55,7 +55,7 @@ export default function CustomDataSettings() {
     return () => {
       live = false
     }
-  }, [])
+  }, [copy.loadFailed])
 
   // Helpers
   const reload = () => {
@@ -65,13 +65,14 @@ export default function CustomDataSettings() {
   }
 
   // Render logic
+  const tabs = [copy.tabs.products, copy.tabs.collections, copy.tabs.metaobjects]
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const targets = (data?.metaobjects ?? []).map((d) => ({ id: d.id, name: d.name }))
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.intro} icon={<Braces aria-hidden="true" />} />
-      <SectionTabs tabs={TABS}>
+      <SectionTabs tabs={tabs}>
         <SettingsSection id={copy.tabs.products.id}>
           <MetafieldDefinitionsCard
             ownerType="product"

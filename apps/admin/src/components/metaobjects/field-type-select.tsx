@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { FIELD_TYPE_GROUPS, fieldDialogContent, fieldTypeContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 
 type FieldTypeSelectProps = {
   id: string
@@ -19,33 +20,35 @@ type FieldTypeSelectProps = {
   onChange: (type: FieldType) => void
 }
 
-const ITEMS = Object.fromEntries(
-  Object.entries(fieldTypeContent).map(([type, c]) => [type, c.label]),
-)
-
-/** Field type picker, grouped the way Shopify groups them, with a hint per type. */
+/** "What goes in it" picker: field types in plain words, grouped, with a hint per type. */
 export default function FieldTypeSelect({ id, value, disabled, onChange }: FieldTypeSelectProps) {
+  // Hooks
+  const copy = useCopy(fieldTypeContent)
+  const { typePlaceholder: placeholder } = useCopy(fieldDialogContent)
+
   // Render logic
+  const items = Object.fromEntries(Object.entries(copy.types).map(([type, c]) => [type, c.label]))
+
   return (
     <Select
-      items={ITEMS}
+      items={items}
       value={value}
       disabled={disabled}
       onValueChange={(v) => v !== null && onChange(v as FieldType)}
     >
       <SelectTrigger id={id} className="w-full">
-        <SelectValue placeholder={fieldDialogContent.typePlaceholder} />
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {FIELD_TYPE_GROUPS.map((group) => (
-          <SelectGroup key={group.label}>
-            <SelectLabel>{group.label}</SelectLabel>
+          <SelectGroup key={group.id}>
+            <SelectLabel>{copy.groups[group.id]}</SelectLabel>
             {group.types.map((type) => (
               <SelectItem key={type} value={type}>
                 <span className="flex flex-col">
-                  <span>{fieldTypeContent[type].label}</span>
+                  <span>{copy.types[type].label}</span>
                   <span className="text-caption text-muted-foreground">
-                    {fieldTypeContent[type].help}
+                    {copy.types[type].help}
                   </span>
                 </span>
               </SelectItem>

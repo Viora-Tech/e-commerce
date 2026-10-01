@@ -16,6 +16,7 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { customDataContent, fieldTypeContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConfirmDelete from './confirm-delete'
 import MetafieldDefinitionDialog, {
@@ -30,8 +31,6 @@ type MetafieldDefinitionsCardProps = {
   onChanged: () => void
 }
 
-const copy = customDataContent
-
 /** One owner type's metafield definitions, with add, edit and delete. */
 export default function MetafieldDefinitionsCard({
   ownerType,
@@ -41,6 +40,8 @@ export default function MetafieldDefinitionsCard({
   onChanged,
 }: MetafieldDefinitionsCardProps) {
   // Hooks
+  const copy = useCopy(customDataContent)
+  const { types } = useCopy(fieldTypeContent)
   const [editing, setEditing] = useState<MetafieldDefinitionRow | 'new' | null>(null)
   const [removing, setRemoving] = useState<MetafieldDefinitionRow | null>(null)
   const [busy, setBusy] = useState(false)
@@ -101,11 +102,8 @@ export default function MetafieldDefinitionsCard({
                     <span className="font-mono">
                       {d.namespace}.{d.key}
                     </span>{' '}
-                    ·{' '}
-                    {d.list
-                      ? copy.metafields.listOf(fieldTypeContent[d.type].label)
-                      : fieldTypeContent[d.type].label}{' '}
-                    · {copy.metafields.values(d.values)}
+                    · {d.list ? copy.metafields.listOf(types[d.type].label) : types[d.type].label} ·{' '}
+                    {copy.metafields.values(d.values)}
                   </span>
                 </div>
                 {canManage ? (

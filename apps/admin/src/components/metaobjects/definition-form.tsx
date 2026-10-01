@@ -10,7 +10,8 @@ import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { definitionFormContent as copy } from '@/data/metaobjects'
+import { definitionFormContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConfirmDelete from './confirm-delete'
 import DefinitionDetailsCard from './definition-details-card'
@@ -35,6 +36,7 @@ const NAMEABLE = ['single_line_text', 'number_integer', 'number_decimal']
 /** Create or edit a metaobject definition: its handle, fields, display name and access. */
 export default function DefinitionForm({ definition, targets }: DefinitionFormProps) {
   // Hooks
+  const copy = useCopy(definitionFormContent)
   const router = useRouter()
   const [form, setForm] = useState<DefinitionFormState>(() => definitionForm(definition))
   const [saved, setSaved] = useState(() => JSON.stringify(definitionForm(definition)))

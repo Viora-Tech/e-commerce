@@ -1,6 +1,7 @@
 'use client'
 
 import { type FieldDefinition, validateFields } from '@commerce/core/metaobjects'
+import { Copy } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { FieldGroup } from '@commerce/ui/shadcn/field'
@@ -11,7 +12,8 @@ import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
-import { entryFormContent as copy, entryListContent } from '@/data/metaobjects'
+import { entryFormContent, entryListContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConfirmDelete from './confirm-delete'
 import EntrySideCards from './entry-side-cards'
@@ -31,9 +33,14 @@ type EntryFormProps = {
   title: string | null
 }
 
-/** Create or edit one metaobject entry: an input per field, its status and handle. */
+/**
+ * Create or edit one entry of a content type: an input per field (stacked, one column on phones),
+ * its status and handle. New entries keep the save bar on screen; saved ones can be duplicated.
+ */
 export default function EntryForm({ definition, entry, title }: EntryFormProps) {
   // Hooks
+  const copy = useCopy(entryFormContent)
+  const listCopy = useCopy(entryListContent)
   const router = useRouter()
   const [form, setForm] = useState<EntryFormState>(() => entryForm(entry))
   const [saved, setSaved] = useState(() => JSON.stringify(entryForm(entry)))
@@ -87,6 +94,24 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
     }
   }
 
+  const handleDuplicate = async () => {
+    if (!entry) return
+    setBusy(true)
+    try {
+      /* The saved version, as a draft; the server derives a fresh unique handle. */
+      const { id } = await api.metaobjects.createEntry({
+        definitionId: definition.id,
+        status: 'draft',
+        fields: entry.fields,
+      })
+      toast.success(copy.duplicated)
+      router.push(`${entriesPath(definition.type)}/${id}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : copy.failed)
+      setBusy(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (!entry) return
     setConfirmDelete(false)
@@ -106,9 +131,9 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
   const dirty = JSON.stringify(form) !== saved
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
+    <PageBody width="narrow" className="kit-form gap-4 pb-24">
       <SaveBar
-        open={dirty}
+        open={dirty || !entry}
         message={copy.unsaved}
         saveLabel={busy ? copy.saving : copy.save}
         discardLabel={copy.discard}
@@ -122,16 +147,22 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       <PageHeader
         title={title ?? copy.newTitle(definition.name)}
         breadcrumbs={[
-          { label: entryListContent.back, href: '/content/metaobjects' },
+          { label: listCopy.back, href: '/content/metaobjects' },
           { label: definition.name, href: entriesPath(definition.type) },
         ]}
         actions={
           entry ? (
-            <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
-              {copy.delete}
-            </Button>
+            <>
+              <Button variant="outline" onClick={handleDuplicate} disabled={busy}>
+                <Copy />
+                {copy.duplicate}
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>
+                {copy.delete}
+              </Button>
+            </>
           ) : (
-            <Button onClick={handleSave} disabled={busy}>
+            <Button className="max-sm:hidden" onClick={handleSave} disabled={busy}>
               {busy ? copy.saving : copy.save}
             </Button>
           )
@@ -166,10 +197,10 @@ export default function EntryForm({ definition, entry, title }: EntryFormProps) 
       <ConfirmDelete
         open={confirmDelete}
         busy={busy}
-        title={entryListContent.bulk.confirmTitle(1)}
-        body={entryListContent.bulk.confirmBody}
-        confirm={entryListContent.bulk.confirm}
-        cancel={entryListContent.bulk.cancel}
+        title={listCopy.bulk.confirmTitle(1)}
+        body={listCopy.bulk.confirmBody}
+        confirm={listCopy.bulk.confirm}
+        cancel={listCopy.bulk.cancel}
         onOpenChange={setConfirmDelete}
         onConfirm={handleDelete}
       />

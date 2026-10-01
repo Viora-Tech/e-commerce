@@ -15,7 +15,8 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { metafieldsCardContent as copy } from '@/data/metaobjects'
+import { metafieldsCardContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import FieldInput from './field-input'
 import { fieldErrorsOf } from './form-state'
@@ -37,6 +38,7 @@ const TAB: Record<MetafieldOwnerType, string> = { product: '', collection: '?tab
  */
 export default function MetafieldsCard({ ownerType, ownerId }: MetafieldsCardProps) {
   // Hooks
+  const copy = useCopy(metafieldsCardContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [values, setValues] = useState<Record<string, unknown>>({})
   const [saved, setSaved] = useState('{}')

@@ -12,7 +12,8 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import RelativeTime from '@/components/layout/relative-time'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { entryListContent as copy } from '@/data/metaobjects'
+import { entryListContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { LIST_PER_PAGE } from '@/lib/list-query'
 import ConfirmDelete from './confirm-delete'
@@ -28,7 +29,9 @@ type EntriesPageProps = {
 
 type Pending = { ids: string[]; clear: () => void }
 
-const columns: ResourceColumnSpec<EntryRow>[] = [
+type ListCopy = typeof entryListContent
+
+const columnsFor = (copy: ListCopy): ResourceColumnSpec<EntryRow>[] => [
   {
     id: 'name',
     title: copy.columns.name,
@@ -60,9 +63,10 @@ const columns: ResourceColumnSpec<EntryRow>[] = [
   },
 ]
 
-/** Entries of one metaobject definition, searchable, with bulk delete. */
+/** Entries of one content type (metaobject definition), searchable, with bulk delete. */
 export default function EntriesPage({ definition, initial }: EntriesPageProps) {
   // Hooks
+  const copy = useCopy(entryListContent)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [result, setResult] = useState(initial)
@@ -117,6 +121,7 @@ export default function EntriesPage({ definition, initial }: EntriesPageProps) {
   }
 
   // Render logic
+  const columns = columnsFor(copy)
   const base = entriesPath(definition.type)
   const hasFields = definition.fields.length > 0
   const addHref = `${base}/new`

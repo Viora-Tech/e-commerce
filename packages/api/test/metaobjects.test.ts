@@ -80,6 +80,26 @@ describe('metaobjects', () => {
     expect(byType.entries).toBe(1)
   })
 
+  it('creates a content type from a preset, and refuses an unknown preset', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const ctx = { context: a.ctx }
+    const faq = await call(appRouter.metaobjects.fromPreset, { preset: 'faq' }, ctx)
+    const named = await call(
+      appRouter.metaobjects.fromPreset,
+      { preset: 'faq', name: 'Shipping questions' },
+      ctx,
+    )
+    expect([faq.type, named.type]).toEqual(['faq', 'shipping_questions'])
+    const def = await call(appRouter.metaobjects.definition, { id: faq.id }, ctx)
+    expect(def.fields.map((f) => f.key)).toEqual(['question', 'answer', 'topic'])
+    const err = await call(
+      appRouter.metaobjects.fromPreset,
+      { preset: 'recipes' as 'faq' },
+      ctx,
+    ).catch((e: unknown) => e)
+    expect(err).toMatchObject({ code: 'BAD_REQUEST' })
+  })
+
   it('keeps each store to its own definitions', async () => {
     const a = await merchant('a@example.com', 'store-a')
     const b = await merchant('b@example.com', 'store-b')

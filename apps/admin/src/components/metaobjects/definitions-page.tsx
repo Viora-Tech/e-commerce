@@ -12,13 +12,16 @@ import KitListPage from '@/components/kit/kit-list-page'
 import EmptyState from '@/components/layout/empty-state'
 import RelativeTime from '@/components/layout/relative-time'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { metaobjectListContent as copy } from '@/data/metaobjects'
+import { metaobjectListContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import { usePrimaryAction } from '@/lib/primary-action'
 import { type DefinitionSummary, entriesPath } from './form-state'
 
 type DefinitionsPageProps = { definitions: DefinitionSummary[] }
 
-const columns: ResourceColumnSpec<DefinitionSummary>[] = [
+type ListCopy = typeof metaobjectListContent
+
+const columnsFor = (copy: ListCopy): ResourceColumnSpec<DefinitionSummary>[] => [
   {
     id: 'name',
     title: copy.columns.name,
@@ -64,13 +67,15 @@ const columns: ResourceColumnSpec<DefinitionSummary>[] = [
   },
 ]
 
-/** Content → Metaobjects: every definition, or a real empty state that explains them. */
+/** Content → Content types: every metaobject definition, or an empty state that starts the guided flow. */
 export default function DefinitionsPage({ definitions }: DefinitionsPageProps) {
   // Hooks
+  const copy = useCopy(metaobjectListContent)
   usePrimaryAction('/content/metaobjects/new')
   const [query, setQuery] = useState('')
 
   // Render logic
+  const columns = columnsFor(copy)
   const q = query.trim().toLowerCase()
   const shown = q
     ? definitions.filter((d) => d.name.toLowerCase().includes(q) || d.type.includes(q))

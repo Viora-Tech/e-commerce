@@ -7,6 +7,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { definitionFormContent, fieldTypeContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import FieldDialog from './field-dialog'
 
 type DefinitionFieldsCardProps = {
@@ -14,8 +15,6 @@ type DefinitionFieldsCardProps = {
   targets: { id: string; name: string }[]
   onChange: (fields: FieldDefinition[]) => void
 }
-
-const copy = definitionFormContent.fields
 
 function move<T>(items: T[], from: number, to: number): T[] {
   const next = [...items]
@@ -31,6 +30,8 @@ export default function DefinitionFieldsCard({
   onChange,
 }: DefinitionFieldsCardProps) {
   // Hooks
+  const { fields: copy } = useCopy(definitionFormContent)
+  const { types } = useCopy(fieldTypeContent)
   const [editing, setEditing] = useState<number | 'new' | null>(null)
 
   // Event handlers
@@ -66,7 +67,7 @@ export default function DefinitionFieldsCard({
                     {f.list ? <Badge variant="outline">{copy.list}</Badge> : null}
                   </span>
                   <span className="truncate text-caption text-muted-foreground">
-                    {fieldTypeContent[f.type].label} · {f.key}
+                    {types[f.type].label} · {f.key}
                   </span>
                 </div>
                 <Button

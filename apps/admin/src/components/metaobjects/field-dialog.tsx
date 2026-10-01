@@ -26,7 +26,8 @@ import {
 } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
-import { fieldDialogContent as copy } from '@/data/metaobjects'
+import { fieldDialogContent } from '@/data/metaobjects'
+import { useCopy } from '@/hooks/use-copy'
 import FieldRules from './field-rules'
 import FieldTypeSelect from './field-type-select'
 import ToggleField from './toggle-field'
@@ -76,6 +77,7 @@ export default function FieldDialog({
   onSave,
 }: FieldDialogProps) {
   // Hooks
+  const copy = useCopy(fieldDialogContent)
   const [draft, setDraft] = useState<Draft>(() => toDraft(field))
   const [attempted, setAttempted] = useState(false)
 
