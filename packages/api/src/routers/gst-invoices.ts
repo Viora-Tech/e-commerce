@@ -1,19 +1,11 @@
-import { settingsSecret } from '@commerce/config'
-import { enqueueAppJob, permissions } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
-import {
-  counterYear,
-  DOCUMENT_KINDS,
-  DocumentSnapshotSchema,
-  financialYear,
-  formatSeriesNumber,
-  InvoiceSettingsSchema,
-} from '@commerce/invoices'
+import { enqueueAppJob, listGstNumbers, permissions } from '@commerce/core'
+import { DOCUMENT_KINDS, DocumentSnapshotSchema, InvoiceSettingsSchema } from '@commerce/invoices'
 import { mergePdfs, zipFiles } from '@commerce/invoices/render'
 import {
   cancelInvoice,
   defaultInvoiceDate,
   documentIds,
+  documentIssuer,
   documentsByIds,
   documentsForOrder,
   enqueueOrder,
@@ -28,11 +20,8 @@ import {
   listQueue,
   loadSettings,
   markFiled,
-  PeriodError,
   pdfBytes,
   pdfFilename,
-  peekNext,
-  type RenderDeps,
   regenerateDocument,
   removeFromQueue,
   renderAndStore,
@@ -42,7 +31,6 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy } from '../procedures'
-import { getStoreApps, storeRegistries } from '../services/apps.service'
 import {
   createEmailBatch,
   emailBatch,
@@ -51,42 +39,16 @@ import {
   orderRefunds,
   storeName,
 } from '../services/gst-invoices.service'
-import { storageProviderFor } from '../services/media.service'
-
-type Ctx = { tx: StoreTx; scope: { storeId: string } }
-
-/** Every procedure here needs the store to have installed the app. */
-async function requireInstalled(context: Ctx) {
-  const apps = await getStoreApps(context.tx, context.scope.storeId)
-  if (!apps.installed.includes(GST_INVOICES_ID)) {
-    throw new ORPCError('PRECONDITION_FAILED', { message: 'Install the GST invoices app first' })
-  }
-}
-
-/** Render deps bound to the request's own store-scoped transaction. */
-function renderDeps(context: Ctx): RenderDeps {
-  return {
-    storeId: context.scope.storeId,
-    inStore: (fn) => fn(context.tx),
-    storage: async () => {
-      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
-      return storageProviderFor(context.tx, context.scope.storeId, storage, settingsSecret())
-    },
-  }
-}
-
-function asOrpc(err: unknown): never {
-  if (err instanceof PeriodError) throw new ORPCError('BAD_REQUEST', { message: err.message })
-  if (err instanceof InvoiceError) {
-    const code =
-      err.code === 'not_found' || err.code === 'order_not_found' ? 'NOT_FOUND' : 'BAD_REQUEST'
-    throw new ORPCError(code, { message: err.message })
-  }
-  if (err instanceof z.ZodError) {
-    throw new ORPCError('BAD_REQUEST', { message: err.issues[0]?.message ?? 'Invalid settings' })
-  }
-  throw err
-}
+import {
+  asOrpc,
+  type Ctx,
+  Gst,
+  gstScope,
+  nextNumbers,
+  Period,
+  renderDeps,
+  requireInstalled,
+} from './gst-invoices-context'
 
 const IssueBatch = z.object({
   items: z
@@ -95,15 +57,14 @@ const IssueBatch = z.object({
     .max(200),
 })
 
-/** A GST return month, 2026-09. */
-const Period = z.string().regex(/^20[0-9]{2}-(0[1-9]|1[0-2])$/)
-
 const Filter = z.object({
   q: z.string().max(100).optional(),
   kind: z.enum(DOCUMENT_KINDS).optional(),
   status: z.enum(['issued', 'cancelled']).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  /** One GST number's documents; omitted lists every GST number's. */
+  gstRegistrationId: Gst,
 })
 
 /** Rows or "everything matching the filter", capped so one click cannot render the year. */
@@ -120,6 +81,13 @@ const file = (bytes: Uint8Array, name: string, type = 'application/pdf') =>
   new File([bytes as Uint8Array<ArrayBuffer>], name, { type })
 
 export const gstInvoicesRouter = {
+  /** The store's GST numbers for the picker at the top of the app, and which one is the default. */
+  gstNumbers: can(permissions.ORDERS_READ).handler(async ({ context }) => {
+    await requireInstalled(context)
+    const numbers = await listGstNumbers(context.tx)
+    return { numbers, defaultId: numbers.find((n) => n.isDefault)?.id ?? null }
+  }),
+
   settings: {
     get: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
       await requireInstalled(context)
@@ -206,7 +174,14 @@ export const gstInvoicesRouter = {
 
   queue: {
     list: can(permissions.ORDERS_READ)
-      .input(z.object({ from: z.coerce.date().optional(), to: z.coerce.date().optional() }))
+      .input(
+        z.object({
+          from: z.coerce.date().optional(),
+          to: z.coerce.date().optional(),
+          /** One GST number's drafts; omitted lists every GST number's. */
+          gstRegistrationId: Gst,
+        }),
+      )
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
         const rows = await listQueue(context.tx, input)
@@ -312,39 +287,41 @@ export const gstInvoicesRouter = {
       }
     }),
 
+  /** GST return months, filed and closed per GST number (GSTR-1 is filed per GSTIN). */
   periods: {
-    list: can(permissions.ORDERS_READ).handler(async ({ context }) => {
-      await requireInstalled(context)
-      return listPeriods(context.tx, context.scope.storeId)
-    }),
-    setFiled: can(permissions.SETTINGS_MANAGE)
-      .input(z.object({ period: Period, filed: z.boolean() }))
+    list: can(permissions.ORDERS_READ)
+      .input(z.object({ gstRegistrationId: Gst }).optional())
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
-        await markFiled(context.tx, context.scope.storeId, input.period, input.filed)
+        const gst = await gstScope(context, input?.gstRegistrationId)
+        return listPeriods(context.tx, context.scope.storeId, gst)
+      }),
+    setFiled: can(permissions.SETTINGS_MANAGE)
+      .input(z.object({ period: Period, filed: z.boolean(), gstRegistrationId: Gst }))
+      .handler(async ({ context, input }) => {
+        await requireInstalled(context)
+        const gst = await gstScope(context, input.gstRegistrationId)
+        await markFiled(context.tx, context.scope.storeId, input.period, input.filed, gst)
         return { ok: true }
       }),
     setClosed: can(permissions.SETTINGS_MANAGE)
-      .input(z.object({ period: Period, closed: z.boolean() }))
+      .input(z.object({ period: Period, closed: z.boolean(), gstRegistrationId: Gst }))
       .handler(async ({ context, input }) => {
         await requireInstalled(context)
-        await setClosed(context.tx, context.scope.storeId, input.period, input.closed)
+        const gst = await gstScope(context, input.gstRegistrationId)
+        await setClosed(context.tx, context.scope.storeId, input.period, input.closed, gst)
         return { ok: true }
       }),
   },
 
   /** The next number each series will print this financial year, for the settings preview. */
-  seriesNext: can(permissions.SETTINGS_READ).handler(async ({ context }) => {
-    await requireInstalled(context)
-    const settings = await loadSettings(context.tx, context.scope.storeId)
-    const fy = financialYear(new Date())
-    const out: Record<string, string> = {}
-    for (const series of settings.series) {
-      const next = await peekNext(context.tx, series.id, counterYear(series, fy))
-      out[series.id] = formatSeriesNumber(series, fy, next)
-    }
-    return out
-  }),
+  seriesNext: can(permissions.SETTINGS_READ)
+    .input(z.object({ gstRegistrationId: Gst }).optional())
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const settings = await loadSettings(context.tx, context.scope.storeId)
+      return nextNumbers(context, settings, await gstScope(context, input?.gstRegistrationId))
+    }),
 
   regenerate: can(permissions.ORDERS_WRITE)
     .input(
@@ -482,18 +459,22 @@ export const gstInvoicesRouter = {
       }
     }),
 
-  /** GSTR-1 CSVs for [from, to) as a zip, one file per table. */
+  /** One GST number's GSTR-1 CSVs for [from, to) as a zip, one file per table. */
   gstr1: can(permissions.ORDERS_READ)
-    .input(z.object({ from: z.coerce.date(), to: z.coerce.date() }))
+    .input(z.object({ from: z.coerce.date(), to: z.coerce.date(), gstRegistrationId: Gst }))
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
-      const out = await gstr1ForPeriod(context.tx, input.from, input.to)
+      const gst = await gstScope(context, input.gstRegistrationId)
+      const out = await gstr1ForPeriod(context.tx, input.from, input.to, gst)
       const enc = new TextEncoder()
       const files = Object.entries(out).map(([name, body]) => ({
         name: `${name}.csv`,
         bytes: enc.encode(body),
       }))
-      return file(zipFiles(files), 'gstr1.zip', 'application/zip')
+      // Named after the GSTIN it is for: a store with several files one GSTR-1 each.
+      const issuer = await documentIssuer(context.tx, gst)
+      const name = issuer ? `gstr1-${issuer.gstin}.zip` : 'gstr1.zip'
+      return file(zipFiles(files), name, 'application/zip')
     }),
 
   /** One document with its status, for the invoice page. */

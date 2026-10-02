@@ -314,7 +314,7 @@ describe('invoice queue', () => {
       )
     await expect(issue('2025-06-01T06:00:00Z')).rejects.toThrow(/go back past the last issued/)
     await expect(issue('2025-07-09T06:00:00Z')).rejects.toThrow(/future/)
-    await inStore(storeId, (tx) => setClosed(tx, storeId, '2025-06', true))
+    await inStore(storeId, (tx) => setClosed(tx, storeId, '2025-06', true, null))
     await expect(issue('2025-06-20T06:00:00Z')).rejects.toThrow(/closed/)
     const ok = await issue('2025-07-01T06:00:00Z')
     expect(ok[0]?.number).toBe('INV/25-26/0002')
@@ -436,7 +436,7 @@ describe('series', () => {
         'SUPPLY MEANT FOR EXPORT UNDER LETTER OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX',
     })
     const out = await inStore(storeId, (tx) =>
-      gstr1ForPeriod(tx, d('2026-08-31T18:30:00Z'), d('2026-09-30T18:30:00Z')),
+      gstr1ForPeriod(tx, d('2026-08-31T18:30:00Z'), d('2026-09-30T18:30:00Z'), null),
     )
     expect(out.exp.split(NL)[1]).toBe(
       'WOPAY,EXP/26-27/0001,12-Sep-2026,2050.00,INBOM4,1234567,11-Sep-2026,0,2050.00,0.00',
@@ -463,7 +463,7 @@ describe('cancellation, credit notes and GSTR-1', () => {
     const { storeId, variantId } = await seedStore()
     const orderId = await seedOrder(storeId, variantId, 1)
     const inv = await issueOn(storeId, orderId, d('2025-06-01T10:00:00Z'))
-    await inStore(storeId, (tx) => markFiled(tx, storeId, '2025-06', true))
+    await inStore(storeId, (tx) => markFiled(tx, storeId, '2025-06', true, null))
     await expect(inStore(storeId, (tx) => cancelInvoice(tx, inv.row.id, 'late'))).rejects.toThrow(
       /reported in GSTR-1 for 2025-06\. Issue a credit note instead/,
     )
@@ -534,7 +534,7 @@ describe('cancellation, credit notes and GSTR-1', () => {
       issueCreditNote(tx, storeId, refundId, { at: d('2026-09-05T06:00:00Z') }),
     )
     const out = await inStore(storeId, (tx) =>
-      gstr1ForPeriod(tx, d('2026-08-31T18:30:00Z'), d('2026-09-30T18:30:00Z')),
+      gstr1ForPeriod(tx, d('2026-08-31T18:30:00Z'), d('2026-09-30T18:30:00Z'), null),
     )
     expect(out.b2b.split(NL).filter(Boolean)).toHaveLength(2)
     expect(out.cdnr.split(NL)[1]).toContain('CN/26-27/0001')

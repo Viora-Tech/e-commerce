@@ -16,9 +16,24 @@ belong to the same PAN.
 - Choosing your **default** GST number: the one your shop uses today.
 - Saying which GST number each warehouse bills under (see [Locations](/merchant-guide/settings/locations)).
 
-Right now this page only records your GST numbers. Your invoices and the GST charged on orders
-work exactly as before, from your default GST number. Billing from the warehouse that sends
-each order comes in a later update.
+## GST per state
+
+Each order is billed from the GST number of the warehouse its products sell from (you choose
+it per location on [Locations](/merchant-guide/settings/locations)). If that warehouse has no
+GST number chosen, the order is billed from your default GST number.
+
+Your prices already include GST, so this never changes what the shopper pays. It only changes
+how the tax is split on the invoice:
+
+| Warehouse in | Shopper in | Tax on the order |
+| --- | --- | --- |
+| Haryana | Haryana | CGST + SGST |
+| Haryana | Karnataka | IGST |
+| Karnataka | Karnataka | CGST + SGST |
+
+The order page shows which GST number it was billed from, for example **Billed from:
+Haryana · 06AAPFU0939F1ZV**. Each GST number also numbers its own invoices and files its own
+GSTR-1 (see [GST invoices](/merchant-guide/money/gst-invoices#more-than-one-gst-number)).
 
 ## How it works
 
@@ -28,7 +43,8 @@ each order comes in a later update.
   digits, so you never pick it. The default one has a **Default** badge.
 - **Add GST number** asks for the 15-character number from your GST certificate. As you type,
   the page shows "Registered in Haryana" (or your state). The other fields are optional: an
-  invoice prefix such as `HR`, and the address on the certificate.
+  invoice prefix such as `HR` (printed where your numbering uses `{GST}`), and the address on
+  the certificate, which invoices from this GST number print as your address.
 - If the number belongs to a different PAN, you see: *"This GST number belongs to a different
   PAN. Is it another business?"* Check for a typo first. If it really is another business, use
   **Add it as another business**.

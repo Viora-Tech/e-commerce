@@ -6,7 +6,7 @@ import {
   type PreorderStoreSettings,
   parsePreorderStoreSettings,
 } from '@commerce/core'
-import { resolvePreorderSettings } from '@commerce/core/preorder'
+import { computeDepositFromSettings, resolvePreorderSettings } from '@commerce/core/preorder'
 import { cartLine, type order, product, type StoreTx, store, variant } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
 
@@ -18,29 +18,51 @@ export async function storePreorderPolicy(
   return parsePreorderStoreSettings(s?.preorder)
 }
 
+/** A cart's deposit pre-orders, as the checkout summary shows them before the shopper pays. */
+export type CartDepositTerms = {
+  /** The balance the deposit lines leave for later; 0 when nothing is deferred. */
+  laterPaise: number
+  /** Days to pay the balance before the deposit is kept, when the store keeps it. */
+  nonRefundableDays: number | null
+}
+
 /**
- * Days after the balance request within which the balance must be paid, when
- * the cart has a deposit pre-order and the store keeps unpaid deposits. The
- * checkout says so before the shopper pays. Null otherwise.
+ * What a deposit pre-order defers, worked out per line the way `placeOrder` does
+ * (each line's own deposit rule on its list price), and whether the store keeps
+ * unpaid deposits. Preview only: `placeOrder` decides what is charged.
  */
-export async function nonRefundableDepositDays(
+export async function cartDepositTerms(
   tx: StoreTx,
   storeId: string,
   cartId: string,
-): Promise<number | null> {
-  const policy = await storePreorderPolicy(tx, storeId)
-  if (!depositIsNonRefundable(policy)) return null
+): Promise<CartDepositTerms> {
   const rows = await tx
-    .select({ p: product, override: variant.preorderOverride })
+    .select({
+      p: product,
+      override: variant.preorderOverride,
+      quantity: cartLine.quantity,
+      unitPricePaise: cartLine.unitPricePaise,
+    })
     .from(cartLine)
     .innerJoin(variant, eq(variant.id, cartLine.variantId))
     .innerJoin(product, eq(product.id, variant.productId))
     .where(and(eq(cartLine.cartId, cartId), eq(cartLine.preorder, true)))
-  const deposit = rows.some((r) => {
+  let laterPaise = 0
+  for (const r of rows) {
     const s = resolvePreorderSettings(r.p, r.override)
-    return s.enabled && s.paymentMode !== 'full'
-  })
-  return deposit ? policy.payWithinDays : null
+    if (!s.enabled || s.paymentMode === 'full') continue
+    laterPaise += computeDepositFromSettings(
+      r.quantity * r.unitPricePaise,
+      s,
+      r.quantity,
+    ).balancePaise
+  }
+  if (laterPaise === 0) return { laterPaise: 0, nonRefundableDays: null }
+  const policy = await storePreorderPolicy(tx, storeId)
+  return {
+    laterPaise,
+    nonRefundableDays: depositIsNonRefundable(policy) ? policy.payWithinDays : null,
+  }
 }
 
 export type BalanceView = {

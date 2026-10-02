@@ -79,6 +79,27 @@ export const LocationRegistrationSchema = z.object({
 })
 export type LocationRegistration = z.infer<typeof LocationRegistrationSchema>
 
+/**
+ * A location's courier pickup (Settings › Locations): couriers collect from the location's own
+ * address. `pickupName` is the pickup location (warehouse) name registered with the courier.
+ */
+export const LocationCourierPickupSchema = z.object({
+  pickupName: z.string().trim().max(80).default(''),
+  contactName: z.string().trim().max(80).default(''),
+  phone: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || /^[0-9+ -]{8,20}$/.test(v), 'Enter a phone number')
+    .default(''),
+})
+
+export const LocationPickupInputSchema = z.object({
+  locationId: z.uuid(),
+  /** Null: couriers use the store's return address in Settings › Shipping. */
+  pickup: LocationCourierPickupSchema.nullable(),
+})
+export type LocationPickupInput = z.input<typeof LocationPickupInputSchema>
+
 /** Why a Business and GST change was refused. The admin narrows on these, never on text. */
 export const GST_REGISTRATION_ERROR_CODES = [
   'NOT_FOUND',
@@ -90,5 +111,6 @@ export const GST_REGISTRATION_ERROR_CODES = [
   'CANCELLED',
   'STATE_MISMATCH',
   'MANAGED_ELSEWHERE',
+  'ADDRESS_INCOMPLETE',
 ] as const
 export type GstRegistrationErrorCode = (typeof GST_REGISTRATION_ERROR_CODES)[number]

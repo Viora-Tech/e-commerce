@@ -234,6 +234,7 @@ export default [
       cgst: (rate) => `CGST ${rate / 2}%`,
       sgst: (rate) => `SGST ${rate / 2}%`,
       igst: (rate) => `IGST ${rate}%`,
+      billedFrom: 'बिल कहाँ से',
       taxIncluded: 'ऊपर की कीमतों में शामिल',
       paidByCustomer: 'ग्राहक ने दिया',
       balance: 'बैलेंस',

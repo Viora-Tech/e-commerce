@@ -21,6 +21,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import GstNumberPicker from './gst-number-picker'
 import ReviewPanel from './review-panel'
 
 export type QueueRow = Awaited<ReturnType<typeof api.gstInvoices.queue.list>>[number]
@@ -48,6 +49,7 @@ export default function QueuePage() {
   const [reviewing, setReviewing] = useState<QueueRow[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [gstin, setGstin] = useState<string | null | undefined>(undefined)
+  const [gst, setGst] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     api.gstInvoices.settings
@@ -58,17 +60,25 @@ export default function QueuePage() {
 
   useEffect(() => {
     let cancelled = false
-    api.gstInvoices.queue.list({ from: istStart(range.from), to: istEnd(range.to) }).then((r) => {
-      if (!cancelled) setRows(r)
-    })
+    api.gstInvoices.queue
+      .list({ from: istStart(range.from), to: istEnd(range.to), gstRegistrationId: gst })
+      .then((r) => {
+        if (!cancelled) setRows(r)
+      })
     return () => {
       cancelled = true
     }
-  }, [range])
+  }, [range, gst])
 
   // Helpers
   const reload = async () => {
-    setRows(await api.gstInvoices.queue.list({ from: istStart(range.from), to: istEnd(range.to) }))
+    setRows(
+      await api.gstInvoices.queue.list({
+        from: istStart(range.from),
+        to: istEnd(range.to),
+        gstRegistrationId: gst,
+      }),
+    )
     setPicked(new Set())
   }
 
@@ -105,6 +115,10 @@ export default function QueuePage() {
       setBusy(false)
     }
   }
+  const handleGst = (id: string | undefined) => {
+    setGst(id)
+    setPicked(new Set())
+  }
   const handleIssued = async (n: number) => {
     toast.success(copy.issued(n))
     setReviewing(null)
@@ -124,7 +138,11 @@ export default function QueuePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
+      />
       {gstin === null ? (
         <SetupChecklist
           heading={copy.setup.heading}

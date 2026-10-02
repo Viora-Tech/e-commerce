@@ -1,32 +1,51 @@
 'use client'
 
 import { formatPaise } from '@commerce/blocks'
-import type { CartView, SavedAddress, SignedInCustomer } from '@commerce/core'
-import {
-  applyPaymentAdjustment,
-  formatPaymentAdjustment,
-  type PaymentAdjustmentValue,
-} from '@commerce/core/adjustment-math'
+import type { CartView, CheckoutLook, SavedAddress, SignedInCustomer } from '@commerce/core'
 import {
   CHECKOUT_LIMITS,
   type CheckoutSettings,
-  checkoutRuleSubtotalPaise,
-  codDecision,
-  minimumOrderShortfall,
+  stateForPincode,
 } from '@commerce/core/checkout-settings'
+import { lowestEmiPaise } from '@commerce/core/emi'
 import type { PolicyLink } from '@commerce/core/policies'
 import { useEffect, useState, useTransition } from 'react'
 import CheckoutAddressFields from '@/components/checkout/checkout-address-fields'
-import CheckoutAgreement from '@/components/checkout/checkout-agreement'
 import CheckoutContactFields from '@/components/checkout/checkout-contact-fields'
-import CheckoutSummary, { type ShippingRow } from '@/components/checkout/checkout-summary'
-import ShippingRateOptions from '@/components/checkout/shipping-rate-options'
+import CheckoutPayFooter from '@/components/checkout/checkout-pay-footer'
+import CheckoutSection from '@/components/checkout/checkout-section'
+import CheckoutShell from '@/components/checkout/checkout-shell'
+import CheckoutSummary from '@/components/checkout/checkout-summary'
+import DeliveryMethod from '@/components/checkout/delivery-method'
+import ExpressPay from '@/components/checkout/express-pay'
+import PaymentMethods from '@/components/checkout/payment-methods'
+import SummaryDisclosure from '@/components/checkout/summary-disclosure'
+import { accountContent } from '@/data/account'
 import { checkoutContent as content } from '@/data/checkout'
-import { captureContactAction, checkoutAction, type CheckoutForm as Form } from '@/lib/cart-actions'
+import { captureContactAction, checkoutAction } from '@/lib/cart-actions'
+import { CK_INPUT, CK_LABEL, CK_LINK } from '@/lib/checkout-classes'
+import { type CheckoutFormState, NEW_ADDRESS, prefillCheckout } from '@/lib/checkout-form-state'
+import {
+  checkoutTotals,
+  deliveryLine,
+  isDigitalOnly,
+  offeredMethods,
+  shippingRow,
+  takesUpi,
+  trustMethodNames,
+} from '@/lib/checkout-preview'
+import {
+  type CheckoutFieldKey,
+  checkoutFieldErrors,
+  cleanPincode,
+  fieldId,
+  fieldOrder,
+} from '@/lib/checkout-validation'
 import type { CartDiscountView } from '@/lib/discount-actions'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
-import type { CheckoutRate, CheckoutShipping } from '@/lib/shipping'
+import type { CartDepositTerms } from '@/lib/preorder'
+import type { CheckoutShipping } from '@/lib/shipping'
 import { checkoutShippingAction } from '@/lib/shipping-actions'
 
 type CheckoutFormProps = {
@@ -38,142 +57,59 @@ type CheckoutFormProps = {
   customer?: SignedInCustomer | null
   /** Their saved addresses, default first. */
   addresses?: SavedAddress[]
-  /** Set when the cart has a deposit pre-order and the store keeps unpaid deposits. */
-  nonRefundableDepositDays?: number | null
+  /** Deposit pre-orders: the balance left for later and the store's deposit terms. */
+  deposit?: CartDepositTerms
   /** Settings → Checkout; the server re-checks every rule on submit. */
   settings: CheckoutSettings
   /** Published store policies, linked above the button. */
   policies?: PolicyLink[]
+  /** Settings → Checkout → Branding, the store name and logo. */
+  look: CheckoutLook
+  /** The smallest amount the store offers EMI on; null when it offers none. */
+  emiMinPaise?: number | null
 }
 
 type ChangeHandler = (
   e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
 ) => void
 
-type FormState = Form & { gstin: string; businessName: string; note: string }
+const NO_DEPOSIT: CartDepositTerms = { laterPaise: 0, nonRefundableDays: null }
 
-const EMPTY_FORM: Omit<FormState, 'payment'> = {
-  name: '',
-  email: '',
-  phone: '',
-  line1: '',
-  line2: '',
-  city: '',
-  stateCode: 'HR',
-  pincode: '',
-  gstin: '',
-  businessName: '',
-  note: '',
-}
-
-const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(v)
-
-/** Contact and address fields from the account, so a returning shopper types nothing. */
-function prefill(
-  customer: SignedInCustomer | null,
-  address: SavedAddress | undefined,
-): Omit<FormState, 'payment'> {
-  return {
-    ...EMPTY_FORM,
-    name: address?.name ?? customer?.name ?? '',
-    email: customer?.email ?? '',
-    phone: address?.phone ?? customer?.phone ?? '',
-    ...(address
-      ? {
-          line1: address.line1,
-          line2: address.line2 ?? '',
-          city: address.city,
-          stateCode: address.stateCode,
-          pincode: address.pincode,
-        }
-      : {}),
-  }
-}
-
-const NEW_ADDRESS = 'new'
-
-/** How much each applied card covers, in order, and what is left to pay. Preview only. */
-function spendCards(cards: AppliedGiftCard[], totalPaise: number) {
-  let left = totalPaise
-  const rows = cards.map((c) => {
-    const amountPaise = Math.min(c.balancePaise, left)
-    left -= amountPaise
-    return { ...c, amountPaise }
-  })
-  return { rows, duePaise: left }
-}
-
-/** Whether the applied cards cover the order before any payment fee; enough to decide COD, preview only. */
-const coveredByCardsBefore = (cards: AppliedGiftCard[], goodsPaise: number): boolean =>
-  cards.reduce((sum, c) => sum + c.balancePaise, 0) >= goodsPaise
-
-/** A basket of only gift cards: emailed, so no delivery check, and paid online. */
-const isDigitalOnly = (cart: CartView): boolean =>
-  cart.lines.length > 0 && cart.lines.every((l) => l.giftCard)
-
-/** Methods on offer for this basket; COD never pays for gift cards. */
-const offeredMethods = (cart: CartView, methods: CheckoutMethod[]): CheckoutMethod[] =>
-  isDigitalOnly(cart) ? methods.filter((m) => m.id !== 'cod') : methods
-
-/** One line under the PIN code field: the promise, or why the address will not work. */
-function deliveryLine(s: CheckoutShipping | null, checking: boolean): string | null {
-  if (checking) return content.delivery.checking
-  const d = s?.delivery
-  if (!d?.ok) return null
-  if (!d.serviceable) return content.delivery.unserviceable(d.pincode)
-  if (s?.rates.kind === 'none') return content.delivery.noRates(d.pincode)
-  // Several rates carry their own dates on the options below.
-  if (s?.rates.kind === 'rates' && s.rates.options.length > 1) return null
-  const own = s?.rates.kind === 'rates' ? s.rates.options[0]?.dateRange : null
-  return content.delivery.estimate(own ?? d.dateRange)
-}
+const isFullPincode = (v: string) => /^[1-9]\d{5}$/.test(cleanPincode(v))
 
 /**
- * The payment fee the order will carry: a rate's own COD fee replaces the
- * store's, as `placeOrder` does. Preview only; the server decides.
+ * The locked checkout: the order summary on the left, the steps on the right (contact,
+ * delivery, delivery method, payment) on one page, UPI first. Every amount here is a
+ * preview; `checkoutAction` and `placeOrder` re-check and re-price everything.
  */
-function previewAdjustment(
-  method: CheckoutMethod | undefined,
-  rate: CheckoutRate | undefined,
-): PaymentAdjustmentValue | undefined {
-  if (method?.id !== 'cod' || rate?.codSurchargePaise == null) return method?.adjustment
-  return { type: 'fixed', value: rate.codSurchargePaise, label: method.adjustment?.label }
-}
-
-/** The summary's shipping row: nothing to ship, not checked yet, or the picked rate. */
-function shippingRow(
-  digitalOnly: boolean,
-  s: CheckoutShipping | null,
-  rate: CheckoutRate | undefined,
-): ShippingRow | null {
-  if (digitalOnly) return null
-  if (s?.rates.kind === 'free') return { kind: 'price', paise: 0, name: null }
-  if (!rate) return { kind: 'pending' }
-  return { kind: 'price', paise: rate.pricePaise, name: rate.name }
-}
-
 export default function CheckoutForm({
   cart,
   methods,
   discount,
   customer = null,
   addresses = [],
-  nonRefundableDepositDays = null,
+  deposit = NO_DEPOSIT,
   settings,
   policies = [],
+  look,
+  emiMinPaise = null,
 }: CheckoutFormProps) {
   // Hooks
   const [pending, start] = useTransition()
   const [checking, startCheck] = useTransition()
-  const [form, setForm] = useState<FormState>(() => ({
-    ...prefill(customer, addresses[0]),
+  const [form, setForm] = useState<CheckoutFormState>(() => ({
+    ...prefillCheckout(customer, addresses[0]),
     payment: offeredMethods(cart, methods)[0]?.id ?? 'cod',
   }))
   const [savedId, setSavedId] = useState<string>(addresses[0]?.id ?? NEW_ADDRESS)
+  const [business, setBusiness] = useState(false)
   const [shipping, setShipping] = useState<CheckoutShipping | null>(null)
   const [rateId, setRateId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [giftCards, setGiftCards] = useState<AppliedGiftCard[]>([])
+  const [touched, setTouched] = useState<Partial<Record<CheckoutFieldKey, true>>>({})
+  const [attempted, setAttempted] = useState(false)
+  const [expressNote, setExpressNote] = useState<string | null>(null)
   // A prefilled PIN code gets the same courier check a typed one does.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, for the address the page opened with.
   useEffect(() => {
@@ -187,12 +123,15 @@ export default function CheckoutForm({
 
   // Helpers
   const set =
-    (k: keyof FormState): ChangeHandler =>
+    (k: keyof CheckoutFormState): ChangeHandler =>
     (e) =>
       setForm((prev) => ({ ...prev, [k]: e.target.value }))
+  const touch = (k: CheckoutFieldKey) =>
+    setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }))
   /** Ask the courier as soon as six digits are in; the server re-checks on submit regardless. */
-  const checkPincode = (pincode: string, stateCode: string = form.stateCode) => {
+  const checkPincode = (raw: string, stateCode: string = form.stateCode) => {
     setShipping(null)
+    const pincode = cleanPincode(raw)
     if (isDigitalOnly(cart) || !isFullPincode(pincode)) return
     startCheck(async () => {
       const next = await checkoutShippingAction({ pincode, stateCode })
@@ -210,13 +149,17 @@ export default function CheckoutForm({
       }
     })
   }
+  /** A PIN code whose prefix allows one state fills it in, unless the shopper picked one. */
   const setPincode = (pincode: string) => {
-    setForm((prev) => ({ ...prev, pincode }))
-    checkPincode(pincode)
+    const guess = touched.stateCode ? null : stateForPincode(cleanPincode(pincode))
+    const stateCode = guess ?? form.stateCode
+    setForm((prev) => ({ ...prev, pincode, stateCode }))
+    checkPincode(pincode, stateCode)
   }
   /** Zones can be drawn by state, so a new state re-prices shipping. */
   const setStateCode = (stateCode: string) => {
     setForm((prev) => ({ ...prev, stateCode }))
+    touch('stateCode')
     checkPincode(form.pincode, stateCode)
   }
   /** PIN code first: the directory's city and state, still editable; shipping re-quotes for the state. */
@@ -224,41 +167,64 @@ export default function CheckoutForm({
     setForm((prev) => ({ ...prev, city: place.city, stateCode: place.stateCode }))
     if (place.stateCode !== form.stateCode) checkPincode(pincode, place.stateCode)
   }
-
-  // Event handlers
-  const handlePickAddress = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = e.target.value
-    setSavedId(id)
-    const picked = addresses.find((a) => a.id === id)
-    const next = picked
-      ? prefill(customer, picked)
-      : { ...prefill(customer, undefined), name: form.name, phone: form.phone }
-    setForm((prev) => ({ ...prev, ...next }))
-    checkPincode(next.pincode, next.stateCode)
-  }
-
-  /* Save the contact as soon as it is typed, so a basket left here can be recovered. */
-  const handleContactBlur = () => {
-    if (!form.email.includes('@') && form.phone.replace(/\D/g, '').length < 10) return
-    void captureContactAction({
-      email: form.email,
-      phone: form.phone,
-      name: form.name,
-    })
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  /** Place the order with this way to pay, or point at the first field that needs fixing. */
+  const submit = (paymentId: string): boolean => {
+    const wrong = fieldOrder(settings.pincodeFirst).filter((k) => fieldErrors[k])
+    setAttempted(true)
+    if (wrong.length > 0) {
+      setError(null)
+      document.getElementById(fieldId(wrong[0] as CheckoutFieldKey))?.focus()
+      return false
+    }
     setError(null)
     start(async () => {
       const r = await checkoutAction({
         ...form,
-        payment,
+        pincode: cleanPincode(form.pincode),
+        payment: paymentId,
         giftCards: giftCards.map((c) => c.code),
         ...(rateId ? { shippingRate: rateId } : {}),
       })
       if (r?.error) setError(r.error)
     })
+    return true
+  }
+
+  // Event handlers
+  const handlePickAddress = (id: string) => {
+    setSavedId(id)
+    const picked = addresses.find((a) => a.id === id)
+    const next = picked
+      ? prefillCheckout(customer, picked)
+      : { ...prefillCheckout(customer, undefined), name: form.name, phone: form.phone }
+    setForm((prev) => ({ ...prev, ...next }))
+    checkPincode(next.pincode, next.stateCode)
+  }
+
+  /* Leaving a field shows its check; leaving the contact saves it, so a basket left here can be recovered. */
+  const handleLeave = (key: CheckoutFieldKey) => {
+    touch(key)
+    if (key !== 'email' && key !== 'phone') return
+    if (!form.email.includes('@') && form.phone.replace(/\D/g, '').length < 10) return
+    void captureContactAction({ email: form.email, phone: form.phone, name: form.name })
+  }
+
+  const handleBusiness = (on: boolean) => {
+    setBusiness(on)
+    if (!on) setForm((prev) => ({ ...prev, gstin: '', businessName: '' }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setExpressNote(null)
+    submit(payment)
+  }
+
+  /* Express UPI: pick the UPI method and pay at once when the details are in. */
+  const handleExpress = () => {
+    if (!upi) return
+    setForm((prev) => ({ ...prev, payment: upi.id }))
+    setExpressNote(submit(upi.id) ? null : content.express.needDetails)
   }
 
   /* COD cannot collect what a gift card leaves; move to the first online method. */
@@ -276,175 +242,224 @@ export default function CheckoutForm({
   }
 
   // Render logic
-  const digitalOnly = isDigitalOnly(cart)
-  const offered = offeredMethods(cart, methods)
-  const discountPaise = discount?.amountPaise ?? 0
-  const discounted = Math.max(0, cart.subtotalPaise - discountPaise)
+  const fieldErrors = checkoutFieldErrors(form, {
+    emailRequired: settings.email === 'required' || Boolean(customer?.email),
+    gstin: business,
+  })
+  const shownErrors = attempted
+    ? fieldErrors
+    : Object.fromEntries(
+        Object.entries(fieldErrors).filter(([k]) => touched[k as CheckoutFieldKey]),
+      )
   const rates = shipping?.rates.kind === 'rates' ? shipping.rates.options : []
   const rate = rates.find((r) => r.id === rateId)
-  const delivery = shipping?.delivery
-  // Settings → Checkout's COD limit and minimum, previewed here; placeOrder enforces them.
-  // Both judge only the lines that are not gift cards.
-  const ruleSubtotal = checkoutRuleSubtotalPaise(cart.lines, discountPaise)
-  const orderValuePaise = discounted + (digitalOnly ? 0 : (rate?.pricePaise ?? 0))
-  const codRule = codDecision(settings.cod, {
+  const totals = checkoutTotals({
+    cart,
+    methods,
+    settings,
+    discountPaise: discount?.amountPaise ?? 0,
+    shipping,
+    rate,
+    giftCards,
+    picked: form.payment,
     pincode: form.pincode,
-    orderValuePaise: ruleSubtotal + (digitalOnly ? 0 : (rate?.pricePaise ?? 0)),
+    laterPaise: deposit.laterPaise,
   })
-  const codBlocked =
-    (delivery?.ok === true && delivery.serviceable && !delivery.codAvailable) ||
-    (giftCards.length > 0 && !coveredByCardsBefore(giftCards, orderValuePaise)) ||
-    !codRule.allowed
-  // A blocked COD pick moves to the first online method rather than failing on submit.
-  const payment =
-    form.payment === 'cod' && codBlocked
-      ? (offered.find((m) => m.id !== 'cod')?.id ?? form.payment)
-      : form.payment
-  // Preview only: placeOrder recomputes the discount and adjustment server-side.
-  const selected = methods.find((m) => m.id === payment)
-  const adjustment = previewAdjustment(selected, rate)
-  const { adjustmentPaise, totalPaise: goodsPaise } = applyPaymentAdjustment(discounted, adjustment)
-  const totalPaise = goodsPaise + (digitalOnly ? 0 : (rate?.pricePaise ?? 0))
-  const shippingSummary = shippingRow(digitalOnly, shipping, rate)
-
-  const { rows: cardRows, duePaise } = spendCards(giftCards, totalPaise)
-  const coveredByCards = giftCards.length > 0 && duePaise === 0
-
-  const shortfall = digitalOnly ? 0 : minimumOrderShortfall(settings, ruleSubtotal)
-  const codNote = codRule.allowed
-    ? null
-    : codRule.reason === 'blocked_pincode'
-      ? content.codRules.blockedPincode
-      : content.codRules.overLimit(formatPaise(codRule.limitPaise ?? 0))
+  const { digitalOnly, offered, payment, coveredByCards, payNowPaise, codBlocked } = totals
+  const shortfall = totals.shortfallPaise
+  const payNow = formatPaise(payNowPaise)
+  const delivery = shipping?.delivery
   const unserviceable =
     (delivery?.ok === true && !delivery.serviceable) || shipping?.rates.kind === 'none'
   const deliveryText = deliveryLine(shipping, checking)
+  const upi = offered.find(takesUpi)
+  const updating = checking && !digitalOnly
+  const emiMonthly =
+    emiMinPaise !== null && payNowPaise >= emiMinPaise && payNowPaise > 0
+      ? formatPaise(lowestEmiPaise(payNowPaise))
+      : null
+  const payLabel = coveredByCards
+    ? content.placeOrder
+    : payment === 'cod'
+      ? content.placeOrderAmount(payNow)
+      : content.pay(payNow)
+  const steps = digitalOnly ? 3 : 4
+  const contactDone = !fieldErrors.email && !fieldErrors.phone
+  const addressKeys: CheckoutFieldKey[] = ['pincode', 'name', 'line1', 'city', 'stateCode', 'gstin']
+  const addressDone = addressKeys.every((k) => !fieldErrors[k])
+  const toFix = attempted
+    ? fieldOrder(settings.pincodeFirst).filter((k) => fieldErrors[k]).length
+    : 0
+  const methodDone = !unserviceable && (shipping?.rates.kind === 'free' || rate !== undefined)
 
   return (
-    <section className="section-cart page-width">
-      <h1 className="cart-page__title h2">{content.title}</h1>
-      <form className="cart-layout" onSubmit={handleSubmit}>
-        <div className="cart-layout__lines">
+    <CheckoutShell
+      look={look}
+      backHref="/cart"
+      backLabel={content.backToCart}
+      summary={
+        <SummaryDisclosure totalLabel={payNow} updating={updating}>
+          <CheckoutSummary
+            cart={cart}
+            discount={discount}
+            digitalOnly={digitalOnly}
+            giftCards={giftCards}
+            onGiftCardApply={handleGiftCardApply}
+            onGiftCardRemove={handleGiftCardRemove}
+            adjustmentPaise={totals.adjustmentPaise}
+            adjustmentLabel={
+              totals.adjustment?.label || content.adjustmentFallback(totals.adjustmentPaise)
+            }
+            shipping={shippingRow(digitalOnly, shipping, rate)}
+            totalPaise={totals.totalPaise}
+            cardRows={totals.cardRows}
+            duePaise={totals.duePaise}
+            laterPaise={deposit.laterPaise}
+            payNowPaise={payNowPaise}
+            emiMonthly={emiMonthly}
+            notice={
+              deposit.nonRefundableDays
+                ? content.depositNonRefundable(deposit.nonRefundableDays)
+                : null
+            }
+            updating={updating}
+          />
+        </SummaryDisclosure>
+      }
+    >
+      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h1 className="sr-only">{content.title}</h1>
+        {upi && !coveredByCards ? (
+          <ExpressPay
+            amountLabel={payNow}
+            pending={pending}
+            disabled={updating || unserviceable || shortfall > 0}
+            message={expressNote}
+            onPay={handleExpress}
+          />
+        ) : null}
+
+        <CheckoutSection
+          id="checkout-contact"
+          step={1}
+          steps={steps}
+          title={content.contact}
+          done={contactDone}
+          aside={
+            customer ? null : (
+              <a href="/account/login?return_to=%2Fcheckout" className={CK_LINK}>
+                {accountContent.checkout.signIn}
+              </a>
+            )
+          }
+        >
           <CheckoutContactFields
             values={form}
+            errors={shownErrors}
             customer={customer}
             emailOptional={settings.email === 'optional'}
-            gstinEnabled={settings.gstin}
             onField={set}
-            onContactBlur={handleContactBlur}
+            onLeave={handleLeave}
           />
+        </CheckoutSection>
 
+        <CheckoutSection
+          id="checkout-delivery"
+          step={2}
+          steps={steps}
+          title={digitalOnly ? content.giftCardAddress : content.address}
+          done={addressDone}
+        >
           <CheckoutAddressFields
             values={form}
+            errors={shownErrors}
             digitalOnly={digitalOnly}
             pincodeFirst={settings.pincodeFirst}
+            gstinEnabled={settings.gstin}
+            business={business}
             addresses={addresses}
             savedId={savedId}
             newAddressId={NEW_ADDRESS}
-            deliveryText={deliveryText}
-            unserviceable={unserviceable}
+            deliveryText={unserviceable ? null : deliveryText}
+            checking={checking}
             onPickAddress={handlePickAddress}
             onField={set}
+            onLeave={handleLeave}
             onPincode={setPincode}
             onState={setStateCode}
+            onBusiness={handleBusiness}
             onPlace={setPlace}
           />
+        </CheckoutSection>
 
-          {rates.length > 1 ? (
-            <ShippingRateOptions options={rates} selectedId={rateId} onSelect={setRateId} />
-          ) : null}
+        {digitalOnly ? null : (
+          <CheckoutSection
+            id="checkout-method"
+            step={3}
+            steps={steps}
+            title={content.deliveryMethod}
+            done={methodDone}
+          >
+            <DeliveryMethod
+              shipping={shipping}
+              rates={rates}
+              selectedId={rateId}
+              checking={checking}
+              unserviceable={unserviceable}
+              estimate={deliveryText}
+              onSelect={setRateId}
+            />
+          </CheckoutSection>
+        )}
 
-          <fieldset className="checkout__group">
-            <legend className="h4">{content.payment}</legend>
-            {offered.map((m) => (
-              <label
-                key={m.id}
-                className={`checkout__option${m.id === 'cod' && codBlocked ? ' is-disabled' : ''}`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value={m.id}
-                  checked={payment === m.id}
-                  disabled={m.id === 'cod' && codBlocked}
-                  onChange={set('payment')}
-                />
-                <span className="checkout__option-label">
-                  {m.methods?.length ? content.payOnline : m.label}
-                  {m.methods?.length ? (
-                    <span className="checkout__option-meta text-small">
-                      {m.methods.map((id) => content.onlineMethodNames[id]).join(' · ')}
-                    </span>
-                  ) : null}
-                </span>
-                {m.id === 'cod' && giftCards.length > 0 && !coveredByCards ? (
-                  <span className="checkout__adjustment text-small">{content.codWithGiftCard}</span>
-                ) : m.id === 'cod' && codNote ? (
-                  <span className="checkout__adjustment text-small">{codNote}</span>
-                ) : null}
-                {m.adjustment && m.adjustment.value !== 0 ? (
-                  <span
-                    className={`checkout__adjustment text-small${m.adjustment.value < 0 ? ' checkout__adjustment--discount' : ''}`}
-                  >
-                    {formatPaymentAdjustment(m.adjustment)}
-                  </span>
-                ) : null}
-              </label>
-            ))}
-          </fieldset>
-
+        <CheckoutSection id="checkout-payment" step={steps} steps={steps} title={content.payment}>
+          {coveredByCards ? (
+            <p className="text-[0.875rem] text-ck-muted">{content.paidByGiftCard}</p>
+          ) : (
+            <PaymentMethods
+              methods={offered}
+              selected={payment}
+              codBlocked={codBlocked}
+              codNote={totals.codNote}
+              onSelect={(id) => setForm((prev) => ({ ...prev, payment: id }))}
+            />
+          )}
           {settings.orderNotes ? (
-            <label className="field">
-              <span className="field__label text-small">{content.fields.note}</span>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="checkout-note" className={CK_LABEL}>
+                {content.fields.note}
+              </label>
               <textarea
-                className="field__input"
+                id="checkout-note"
+                className={`${CK_INPUT} min-h-[5.5rem] resize-y py-3`}
                 rows={3}
                 maxLength={CHECKOUT_LIMITS.note}
                 placeholder={content.fields.notePlaceholder}
                 value={form.note}
                 onChange={set('note')}
               />
-            </label>
+            </div>
           ) : null}
-        </div>
+        </CheckoutSection>
 
-        <CheckoutSummary
-          cart={cart}
-          discount={discount}
-          digitalOnly={digitalOnly}
-          giftCards={giftCards}
-          onGiftCardApply={handleGiftCardApply}
-          onGiftCardRemove={handleGiftCardRemove}
-          adjustmentPaise={adjustmentPaise}
-          adjustmentLabel={adjustment?.label || content.adjustmentFallback(adjustmentPaise)}
-          shipping={shippingSummary}
-          totalPaise={totalPaise}
-          cardRows={cardRows}
-          duePaise={duePaise}
-          error={error}
-          notice={
-            nonRefundableDepositDays ? content.depositNonRefundable(nonRefundableDepositDays) : null
+        <CheckoutPayFooter
+          error={error ?? (toFix > 0 ? content.validation.fixFields(toFix) : null)}
+          shortfall={
+            shortfall > 0
+              ? content.minimumOrder(
+                  formatPaise(settings.minimumOrderPaise),
+                  formatPaise(shortfall),
+                )
+              : null
           }
-          footnote={
-            <>
-              {shortfall > 0 ? (
-                <p className="checkout__error text-small" role="status">
-                  {content.minimumOrder(
-                    formatPaise(settings.minimumOrderPaise),
-                    formatPaise(shortfall),
-                  )}
-                </p>
-              ) : null}
-              <CheckoutAgreement policies={policies} />
-            </>
-          }
+          payLabel={payLabel}
           pending={pending}
-          submitDisabled={pending || checking || unserviceable || shortfall > 0}
-          submitLabel={
-            payment === 'cod' || coveredByCards ? content.placeOrder : content.continueToPayment
-          }
+          updating={updating}
+          disabled={unserviceable || shortfall > 0}
+          policies={policies}
+          trust={look.branding.trustBadges ? trustMethodNames(offered) : null}
         />
       </form>
-    </section>
+    </CheckoutShell>
   )
 }

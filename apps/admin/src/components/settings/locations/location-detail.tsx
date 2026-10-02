@@ -15,6 +15,7 @@ import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import LocationPickupCard from './location-pickup-card'
 
 type LocationDetailProps = {
   location: LocationBillingView
@@ -132,6 +133,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
           )}
         </CardContent>
       </Card>
+      <LocationPickupCard location={location} canManage={canManage} />
     </div>
   )
 }

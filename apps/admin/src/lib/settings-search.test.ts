@@ -24,7 +24,7 @@ describe('searchSettings', () => {
     expect(first('grievance')?.href).toBe('/settings/policies#grievance')
     expect(first('minimum order')?.href).toBe('/settings/checkout#minimum')
     expect(first('block pincode')?.href).toBe('/settings/checkout#cod')
-    expect(first('business buyer')?.href).toBe('/settings/checkout#gstin')
+    expect(first('business buyer')?.href).toBe('/settings/checkout?tab=branding#gstin')
   })
 
   it('offers both Shipping and Apps for "courier"', () => {
