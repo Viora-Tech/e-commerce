@@ -8,6 +8,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Connection = NonNullable<Awaited<ReturnType<typeof api.shopifyImport.connect>>>
@@ -16,12 +17,10 @@ type AppCredentialsFormProps = {
   onConnected: (connection: Connection) => void
 }
 
-const copy = shopifyImportContent.connect
-const appCopy = copy.app
-
 /** Guides the merchant through making a Dev Dashboard app, then saves its client ID/secret. */
 export default function AppCredentialsForm({ onConnected }: AppCredentialsFormProps) {
   // Hooks
+  const copy = useCopy(shopifyImportContent.connect)
   const [shopDomain, setShopDomain] = useState('')
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
@@ -51,22 +50,22 @@ export default function AppCredentialsForm({ onConnected }: AppCredentialsFormPr
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>{appCopy.stepsHeading}</CardTitle>
+          <CardTitle>{copy.app.stepsHeading}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <p className="text-body text-muted-foreground">{appCopy.intro}</p>
+          <p className="text-body text-muted-foreground">{copy.app.intro}</p>
           <ol className="flex list-decimal flex-col gap-2 pl-5 text-body text-muted-foreground">
-            {appCopy.steps.map((step) => (
+            {copy.app.steps.map((step) => (
               <li key={step}>{step}</li>
             ))}
           </ol>
           <a
-            href={appCopy.docsLink}
+            href={copy.app.docsLink}
             target="_blank"
             rel="noreferrer"
             className="text-body font-medium text-foreground underline underline-offset-2"
           >
-            {appCopy.docsLabel}
+            {copy.app.docsLabel}
           </a>
         </CardContent>
       </Card>
@@ -86,35 +85,35 @@ export default function AppCredentialsForm({ onConnected }: AppCredentialsFormPr
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="shopify-client-id">{appCopy.clientId}</FieldLabel>
+                <FieldLabel htmlFor="shopify-client-id">{copy.app.clientId}</FieldLabel>
                 <Input
                   id="shopify-client-id"
                   size="lg"
                   value={clientId}
-                  placeholder={appCopy.clientIdPlaceholder}
+                  placeholder={copy.app.clientIdPlaceholder}
                   onChange={(e) => setClientId(e.target.value)}
                   autoComplete="off"
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="shopify-client-secret">{appCopy.clientSecret}</FieldLabel>
+                <FieldLabel htmlFor="shopify-client-secret">{copy.app.clientSecret}</FieldLabel>
                 <Input
                   id="shopify-client-secret"
                   size="lg"
                   type="password"
                   value={clientSecret}
-                  placeholder={appCopy.clientSecretPlaceholder}
+                  placeholder={copy.app.clientSecretPlaceholder}
                   onChange={(e) => setClientSecret(e.target.value)}
                   autoComplete="off"
                 />
-                <FieldDescription>{appCopy.clientSecretHelp}</FieldDescription>
+                <FieldDescription>{copy.app.clientSecretHelp}</FieldDescription>
               </Field>
             </FieldGroup>
-            <p className="text-caption text-muted-foreground">{appCopy.oauthNote}</p>
+            <p className="text-caption text-muted-foreground">{copy.app.oauthNote}</p>
             <div className="flex justify-end">
               <Button type="submit" disabled={!ready}>
                 {busy ? <Spinner /> : null}
-                {appCopy.submit}
+                {copy.app.submit}
               </Button>
             </div>
           </form>

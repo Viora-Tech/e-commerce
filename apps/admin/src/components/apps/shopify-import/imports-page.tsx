@@ -8,65 +8,65 @@ import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/page-header'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import type { Formatters } from '@/lib/format'
 import RunStatusLabel from './run-status-label'
 import { type RunListItem, totals } from './types'
 
-const copy = shopifyImportContent.home
 const base = shopifyImportContent.base
 const PER_PAGE = 20
 
-const columns: ResourceColumnSpec<RunListItem>[] = [
+const columnsFor = (
+  all: typeof shopifyImportContent,
+  fmt: Formatters,
+): ResourceColumnSpec<RunListItem>[] => [
   {
     id: 'started',
-    title: copy.columns.started,
+    title: all.home.columns.started,
     hideable: false,
     render: (r) => (
-      <span className="font-medium text-ink-strong tabular-nums">
-        {new Date(r.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-      </span>
+      <span className="font-medium text-ink-strong tabular-nums">{fmt.dateTime(r.createdAt)}</span>
     ),
   },
   {
     id: 'source',
-    title: copy.columns.source,
+    title: all.home.columns.source,
     render: (r) => (
       <span className="text-muted-foreground">
-        {r.mode === 'csv' ? copy.source.csv(r.fileName) : copy.source.api}
+        {r.mode === 'csv' ? all.home.source.csv(r.fileName) : all.home.source.api}
       </span>
     ),
   },
   {
     id: 'what',
-    title: copy.columns.what,
+    title: all.home.columns.what,
     align: 'start',
     // The list can be long ("Products, Collections, …"); let it wrap instead of running
     // under the Status column.
     className: 'min-w-[14rem] max-w-[24rem] whitespace-normal',
     render: (r) => (
-      <span className="line-clamp-2">
-        {r.resources.map((x) => shopifyImportContent.resources[x]).join(', ')}
-      </span>
+      <span className="line-clamp-2">{r.resources.map((x) => all.resources[x]).join(', ')}</span>
     ),
   },
   {
     id: 'status',
-    title: copy.columns.status,
+    title: all.home.columns.status,
     className: 'whitespace-nowrap',
     render: (r) => <RunStatusLabel status={r.status} preview={r.dryRun} />,
   },
   {
     id: 'result',
-    title: copy.columns.result,
+    title: all.home.columns.result,
     align: 'end',
     render: (r) => {
       const t = totals(r.progress)
       return (
         <span className="line-clamp-2 text-muted-foreground tabular-nums">
           {r.status === 'completed'
-            ? copy.result(t.created, t.updated, t.failed)
+            ? all.home.result(t.created, t.updated, t.failed)
             : r.status === 'failed'
-              ? (r.error ?? copy.failedNoReason)
+              ? (r.error ?? all.home.failedNoReason)
               : null}
         </span>
       )
@@ -77,6 +77,8 @@ const columns: ResourceColumnSpec<RunListItem>[] = [
 /** App root: the two ways in, and every import so far. */
 export default function ImportsPage() {
   // Hooks
+  const all = useCopy(shopifyImportContent)
+  const fmt = useFormat()
   const [page, setPage] = useState(1)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
   const [shop, setShop] = useState<string | null>(null)
@@ -106,6 +108,8 @@ export default function ImportsPage() {
   }, [])
 
   // Render logic
+  const copy = all.home
+  const columns = columnsFor(all, fmt)
   const ways = [
     {
       icon: Upload,

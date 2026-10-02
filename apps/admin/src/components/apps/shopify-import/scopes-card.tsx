@@ -8,15 +8,15 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type Check = Awaited<ReturnType<typeof api.shopifyImport.testConnection>>
 
-const copy = shopifyImportContent.connect
-
 /** Runs a real Shopify call and shows the shop name plus which import scopes the token has. */
 export default function ScopesCard() {
   // Hooks
+  const copy = useCopy(shopifyImportContent.connect)
   const [check, setCheck] = useState<Check | null>(null)
   const [busy, setBusy] = useState(false)
 

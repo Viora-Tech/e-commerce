@@ -19,6 +19,7 @@ import products from './products'
 import settings from './settings'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
+import shopifyImport from './shopify-import'
 import storeData from './store-data'
 import table from './table'
 import themeImport from './theme-import'
@@ -49,6 +50,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...settings,
   ...shipping,
   ...shippingRates,
+  ...shopifyImport,
   ...storeData,
   ...table,
   ...themeImport,

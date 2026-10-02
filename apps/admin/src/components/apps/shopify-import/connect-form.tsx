@@ -4,6 +4,7 @@ import { Badge } from '@commerce/ui/shadcn/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@commerce/ui/shadcn/tabs'
 import { useState } from 'react'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 import AppCredentialsForm from './app-credentials-form'
 import LegacyTokenForm from './legacy-token-form'
@@ -14,11 +15,10 @@ type ConnectFormProps = {
   onConnected: (connection: Connection) => void
 }
 
-const copy = shopifyImportContent.connect
-
 /** The two ways to connect: a Dev Dashboard app (recommended) or an existing custom-app token. */
 export default function ConnectForm({ onConnected }: ConnectFormProps) {
   // Hooks
+  const copy = useCopy(shopifyImportContent.connect)
   const [mode, setMode] = useState<'app' | 'token'>('app')
 
   // Render logic

@@ -10,14 +10,17 @@ import {
 import KitProgress from '@/components/kit/kit-progress'
 import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import type { RunDetail } from './types'
 
 type RunProgressCardProps = { run: RunDetail }
 
-const copy = shopifyImportContent.run
-
 /** Counters per resource: a bar while it runs, then new, updated, skipped and failed. */
 export default function RunProgressCard({ run }: RunProgressCardProps) {
+  // Hooks
+  const copy = useCopy(shopifyImportContent.run)
+  const resources = useCopy(shopifyImportContent.resources)
+
   // Render logic
   const rows = IMPORT_RESOURCES.filter((r) => run.resources.includes(r)).map((resource) => ({
     resource,
@@ -48,9 +51,7 @@ export default function RunProgressCard({ run }: RunProgressCardProps) {
         <TableBody>
           {rows.map(({ resource, p }) => (
             <TableRow key={resource}>
-              <TableCell className="font-medium">
-                {shopifyImportContent.resources[resource]}
-              </TableCell>
+              <TableCell className="font-medium">{resources[resource]}</TableCell>
               <TableCell>
                 <span className="flex items-center gap-3">
                   <KitProgress value={p.total ? p.processed / p.total : 0} className="max-w-40" />

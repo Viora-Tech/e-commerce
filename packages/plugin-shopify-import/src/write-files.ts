@@ -1,0 +1,137 @@
+/**
+ * Shopify Files → our media library, through the same media host as product
+ * images: one download per source URL, images queued for the optimising
+ * pipeline, mp4 video stored as is. What the library cannot hold yet (PDFs and
+ * other documents, YouTube links, 3D models, videos over the limit) stays in
+ * Shopify and is listed in the report.
+ */
+import { isAllowedContentType } from '@commerce/storage'
+import type { LeftBehindReason } from './client'
+import { mediaSourceKey } from './media'
+import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
+import type { NFile } from './types'
+
+/** What a Shopify file becomes: our media id, or why it stays behind. */
+export type HostedFile =
+  | { ok: true; mediaId: string }
+  | { ok: false; reason: LeftBehindReason; detail?: string | undefined; message: string }
+
+/** Plain name for a content type in the report: `application/pdf` → `PDF`. */
+function fileKindName(mimeType: string | null): string {
+  if (!mimeType) return 'other'
+  const sub = mimeType.split('/')[1] ?? mimeType
+  if (sub === 'pdf') return 'PDF'
+  if (mimeType.startsWith('image/')) return `${sub.replace(/\+xml$/, '').toUpperCase()} image`
+  if (mimeType.startsWith('video/')) return `${sub.toUpperCase()} video`
+  return sub.replace(/^vnd\.|^x-/, '').slice(0, 40)
+}
+
+/** Why a file cannot be copied, before downloading anything. Null when it can. */
+function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
+  if (f.status !== 'READY') {
+    return {
+      ok: false,
+      reason: 'file_not_ready',
+      message: `Shopify has not finished processing this file (${f.status.toLowerCase()})`,
+    }
+  }
+  if (f.kind === 'external_video') {
+    return {
+      ok: false,
+      reason: 'external_video',
+      message: `A YouTube or Vimeo link (${f.url ?? 'no address'}); add it to a section by its link`,
+    }
+  }
+  if (f.kind === 'model_3d') {
+    return { ok: false, reason: 'model_3d', message: '3D models are not supported yet' }
+  }
+  if (f.kind === 'video' && !f.url) {
+    return f.mimeType && f.mimeType !== 'video/mp4'
+      ? {
+          ok: false,
+          reason: 'file_type',
+          detail: fileKindName(f.mimeType),
+          message: `Shopify has no mp4 copy of this ${fileKindName(f.mimeType)}`,
+        }
+      : {
+          ok: false,
+          reason: 'video_too_large',
+          message: 'Every mp4 copy of this video is over the 100 MB limit',
+        }
+  }
+  if (!f.url) {
+    return { ok: false, reason: 'file_not_ready', message: 'Shopify gave no address for this file' }
+  }
+  if (f.kind === 'file' && !(f.mimeType && isAllowedContentType(f.mimeType))) {
+    return {
+      ok: false,
+      reason: 'file_type',
+      detail: fileKindName(f.mimeType),
+      message: `${fileKindName(f.mimeType)} files are not supported in Files yet. Download it from ${f.url}`,
+    }
+  }
+  return null
+}
+
+/** Our media id for a Shopify file, copying it once. Throws when the download fails. */
+export async function hostShopifyFile(ctx: ImportContext, f: NFile): Promise<HostedFile> {
+  const why = whyNotHostable(f)
+  if (why) return why
+  const existing = await ctx.inStore((tx) => findMapping(tx, 'files', f.sourceId))
+  if (existing) {
+    const url = await ctx.media.urlOf(existing)
+    if (url) return { ok: true, mediaId: existing }
+  }
+  const mediaId = await ctx.media.host(f.url as string, f.alt)
+  if (!mediaId) throw new Error('the file could not be copied')
+  await ctx.inStore((tx) => saveMapping(tx, ctx.storeId, 'files', f.sourceId, mediaId))
+  return { ok: true, mediaId }
+}
+
+async function alreadyImported(ctx: ImportContext, f: NFile): Promise<boolean> {
+  return ctx.inStore(async (tx) => {
+    if (await findMapping(tx, 'files', f.sourceId)) return true
+    return f.url ? Boolean(await findMapping(tx, 'media', mediaSourceKey(f.url))) : false
+  })
+}
+
+export async function writeFile(ctx: ImportContext, f: NFile): Promise<string | null> {
+  const ref =
+    f.alt ||
+    (f.url ? mediaSourceKey(f.url).split('/').pop() : null) ||
+    `File ${f.sourceId.split('/').pop()} (no name in Shopify)`
+  const why = whyNotHostable(f)
+  if (why) {
+    ctx.report.count('files', 'skipped')
+    ctx.report.leave('files', why.reason, 1, why.detail)
+    ctx.report.issue({ resource: 'files', ref, message: why.message })
+    return null
+  }
+  try {
+    const existed = await alreadyImported(ctx, f)
+    if (ctx.dryRun) {
+      ctx.report.count('files', existed ? 'updated' : 'created')
+      ctx.report.sample({
+        resource: 'files',
+        key: f.sourceId,
+        title: ref,
+        action: existed ? 'update' : 'create',
+        detail: f.kind === 'video' ? 'Video' : fileKindName(f.mimeType),
+      })
+      return null
+    }
+    const hosted = await hostShopifyFile(ctx, f)
+    if (!hosted.ok) {
+      ctx.report.count('files', 'skipped')
+      ctx.report.leave('files', hosted.reason, 1, hosted.detail)
+      ctx.report.issue({ resource: 'files', ref, message: hosted.message })
+      return null
+    }
+    ctx.report.count('files', existed ? 'updated' : 'created')
+    return hosted.mediaId
+  } catch (err) {
+    ctx.report.count('files', 'failed')
+    ctx.report.issue({ resource: 'files', ref, message: `Not copied: ${errorMessage(err)}` })
+    return null
+  }
+}

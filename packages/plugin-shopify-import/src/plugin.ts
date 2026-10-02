@@ -7,7 +7,8 @@ const RunJob = z.object({ runId: z.uuid() })
 
 /**
  * Move a store from Shopify: products, customers and orders from Shopify's CSV
- * exports, or everything (collections, pages, blog posts, menus and redirects
+ * exports, or everything (collections, pages, blog posts, menus, redirects,
+ * files, content types, extra fields, discounts and gift card balances
  * too) over the Admin API with a custom-app token. Every run can be previewed
  * first and repeated safely. Historical orders arrive read-only: no stock,
  * messages, invoices or app hooks.
@@ -19,7 +20,7 @@ export const shopifyImportPlugin = definePlugin({
   kind: 'builtin',
   category: 'migration',
   description:
-    'Bring products, collections, customers, orders, pages, blog posts, menus and redirects over from Shopify.',
+    'Bring products, collections, customers, orders, pages, blog posts, menus, redirects, files, content types, extra fields, discounts and gift card balances over from Shopify.',
   provides: {},
   jobs: {
     run: async (ctx, data) => {

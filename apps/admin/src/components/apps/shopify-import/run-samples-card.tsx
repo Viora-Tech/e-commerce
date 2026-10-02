@@ -9,13 +9,16 @@ import {
 } from '@commerce/ui/shadcn/table'
 import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 
 type RunSamplesCardProps = { samples: PreviewSample[] }
 
-const copy = shopifyImportContent.run
-
 /** The first few records of each type and what the import would do with them. */
 export default function RunSamplesCard({ samples }: RunSamplesCardProps) {
+  // Hooks
+  const copy = useCopy(shopifyImportContent.run)
+  const resources = useCopy(shopifyImportContent.resources)
+
   return (
     <DataCard title={copy.sampleHeading} flush>
       <Table>
@@ -30,9 +33,7 @@ export default function RunSamplesCard({ samples }: RunSamplesCardProps) {
         <TableBody>
           {samples.map((s) => (
             <TableRow key={`${s.resource}-${s.key}`}>
-              <TableCell className="text-muted-foreground">
-                {shopifyImportContent.resources[s.resource]}
-              </TableCell>
+              <TableCell className="text-muted-foreground">{resources[s.resource]}</TableCell>
               <TableCell className="font-medium">{s.title}</TableCell>
               <TableCell className="text-muted-foreground">{s.detail ?? ''}</TableCell>
               <TableCell className="text-right">{copy.sampleAction[s.action]}</TableCell>

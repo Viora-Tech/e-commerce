@@ -15,6 +15,11 @@ export const IMPORT_RESOURCES = [
   'articles',
   'menus',
   'redirects',
+  'files',
+  'metaobjects',
+  'metafields',
+  'discounts',
+  'gift_cards',
 ] as const
 export type ImportResource = (typeof IMPORT_RESOURCES)[number]
 
@@ -25,6 +30,53 @@ export type CsvResource = (typeof CSV_RESOURCES)[number]
 export const RUN_STATUSES = ['queued', 'running', 'completed', 'failed'] as const
 export type RunStatus = (typeof RUN_STATUSES)[number]
 
+/**
+ * Why something stays in Shopify (or arrives changed). Stored as a code so the
+ * admin can say it in the merchant's language; `detail` carries the Shopify
+ * type or owner the reason is about.
+ */
+export const LEFT_BEHIND_REASONS = [
+  /** Extra fields on something we have no extra fields for yet (variants, customers…). */
+  'metafield_owner',
+  /** A Shopify field type with no match here (money, rating, JSON…). */
+  'field_type',
+  /** A link to an entry whose content type is unknown here. */
+  'reference_target',
+  /** A value that did not fit its field (a broken link, a product that was not imported). */
+  'field_value',
+  /** Date and time fields keep the date only. */
+  'time_dropped',
+  /** Link fields keep the address, not the link text. */
+  'link_label',
+  /** Files the media library cannot hold yet (PDFs and other documents). */
+  'file_type',
+  'video_too_large',
+  'external_video',
+  'model_3d',
+  /** Shopify was still processing the file, or it failed there. */
+  'file_not_ready',
+  'buy_x_get_y',
+  'app_discount',
+  'customer_specific',
+  'minimum_quantity',
+  'variant_specific',
+  'per_item_amount',
+  'shipping_rules',
+  'code_characters',
+  'items_not_imported',
+  /** Shopify never shares full gift card codes; the card got a new code. */
+  'gift_card_code',
+  'gift_card_no_customer',
+  'gift_card_empty',
+  'gift_card_over_limit',
+  'gift_card_currency',
+  'gift_card_used_here',
+] as const
+export type LeftBehindReason = (typeof LEFT_BEHIND_REASONS)[number]
+
+/** One line of "what stays in Shopify": a reason, how many, and what it is about. */
+export type LeftBehind = { reason: LeftBehindReason; detail?: string | undefined; count: number }
+
 /** Counters per resource, updated while the job runs. */
 export type ResourceProgress = {
   total: number
@@ -33,6 +85,8 @@ export type ResourceProgress = {
   updated: number
   skipped: number
   failed: number
+  /** What was not brought over (or arrived changed), summed by reason. */
+  left?: LeftBehind[] | undefined
 }
 
 /** One sample row the dry run shows: what it is and what would happen to it. */
@@ -57,6 +111,11 @@ export const REQUIRED_SCOPES: Record<ImportResource, string> = {
   articles: 'read_content',
   menus: 'read_online_store_navigation',
   redirects: 'read_online_store_navigation',
+  files: 'read_files',
+  metaobjects: 'read_metaobject_definitions, read_metaobjects',
+  metafields: 'read_products (read_metaobjects for linked entries)',
+  discounts: 'read_discounts',
+  gift_cards: 'read_gift_cards',
 }
 
 /** The same scopes as handles, for checking what a token actually has. */
@@ -68,6 +127,11 @@ export const ALL_SCOPE_HANDLES = [
   'read_all_orders',
   'read_content',
   'read_online_store_navigation',
+  'read_files',
+  'read_metaobject_definitions',
+  'read_metaobjects',
+  'read_discounts',
+  'read_gift_cards',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
 

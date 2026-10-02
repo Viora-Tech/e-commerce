@@ -261,7 +261,6 @@ const ALLOWLIST: AllowEntry[] = [
     names: [
       'generateGiftCardCode',
       'hashGiftCardCode',
-      'storeToday',
       'issueGiftCardsForOrder',
       'undeliveredGiftCards',
       'giftCardPaymentsFor',
@@ -788,9 +787,14 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/plugin-shopify-import/src/media.ts',
-    names: ['mediaSourceKey'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/plugin-shopify-import/src/api-files.ts',
+    names: ['mapFile'],
+    reason: 'Shopify file → our file shape (best mp4 pick), exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/field-values.ts',
+    names: ['shopifyRichText', 'parseShopifyValue'],
+    reason: 'Shopify field value readers, exported for their unit tests',
   },
   {
     file: 'packages/plugin-shopify-import/src/service.ts',

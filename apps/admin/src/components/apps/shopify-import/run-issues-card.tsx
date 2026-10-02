@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { IssueItem } from './types'
 
@@ -23,12 +24,13 @@ type RunIssuesCardProps = {
   version: string
 }
 
-const copy = shopifyImportContent.run
 const PER_PAGE = 50
 
 /** Every row or record that could not be imported, with the reason. */
 export default function RunIssuesCard({ runId, count, version }: RunIssuesCardProps) {
   // Hooks
+  const copy = useCopy(shopifyImportContent.run)
+  const resources = useCopy(shopifyImportContent.resources)
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<IssueItem[]>([])
 
@@ -75,9 +77,8 @@ export default function RunIssuesCard({ runId, count, version }: RunIssuesCardPr
               <TableCell className="whitespace-nowrap text-muted-foreground">
                 {i.row
                   ? copy.line(i.row)
-                  : (shopifyImportContent.resources[
-                      i.resource as keyof typeof shopifyImportContent.resources
-                    ] ?? i.resource)}
+                  : (resources[i.resource as keyof typeof shopifyImportContent.resources] ??
+                    i.resource)}
               </TableCell>
               <TableCell className="max-w-56 truncate font-medium">{i.ref ?? ''}</TableCell>
               <TableCell className="whitespace-normal">{i.message}</TableCell>

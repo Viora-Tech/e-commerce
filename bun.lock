@@ -640,6 +640,7 @@
       "dependencies": {
         "@commerce/core": "workspace:*",
         "@commerce/db": "workspace:*",
+        "@commerce/money": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/storage": "workspace:*",
         "drizzle-orm": "^0.45.2",

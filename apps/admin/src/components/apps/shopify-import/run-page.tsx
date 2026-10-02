@@ -9,18 +9,19 @@ import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RunIssuesCard from './run-issues-card'
+import RunLeftCard from './run-left-card'
 import RunProgressCard from './run-progress-card'
 import RunSamplesCard from './run-samples-card'
 import RunStatusLabel from './run-status-label'
 import type { RunDetail } from './types'
 
-const copy = shopifyImportContent.run
 const base = shopifyImportContent.base
 const POLL_MS = 2000
 
-function message(run: RunDetail): string {
+function message(copy: (typeof shopifyImportContent)['run'], run: RunDetail): string {
   if (run.status === 'queued') return copy.waiting
   if (run.status === 'running') return copy.running
   if (run.status === 'failed') return run.error ? `${copy.failed} ${run.error}` : copy.failed
@@ -30,6 +31,8 @@ function message(run: RunDetail): string {
 /** One import: live progress while it runs, then counts, a sample and every problem. */
 export default function RunPage({ params }: AppPageProps) {
   // Hooks
+  const copy = useCopy(shopifyImportContent.run)
+  const home = useCopy(shopifyImportContent.home)
   const [run, setRun] = useState<RunDetail | null | undefined>(undefined)
   const [busy, setBusy] = useState(false)
 
@@ -83,10 +86,7 @@ export default function RunPage({ params }: AppPageProps) {
       : run.dryRun
         ? copy.importNow
         : copy.runAgain
-  const source =
-    run.mode === 'csv'
-      ? shopifyImportContent.home.source.csv(run.fileName)
-      : shopifyImportContent.home.source.api
+  const source = run.mode === 'csv' ? home.source.csv(run.fileName) : home.source.api
 
   return (
     <div className="flex flex-col gap-4">
@@ -107,10 +107,11 @@ export default function RunPage({ params }: AppPageProps) {
         <CardContent className="flex flex-wrap items-center gap-3">
           <RunStatusLabel status={run.status} preview={run.dryRun} />
           {finished ? null : <Spinner className="size-4 text-muted-foreground" />}
-          <p className="text-body text-muted-foreground">{message(run)}</p>
+          <p className="text-body text-muted-foreground">{message(copy, run)}</p>
         </CardContent>
       </Card>
       <RunProgressCard run={run} />
+      <RunLeftCard run={run} />
       {run.dryRun && run.preview.length > 0 ? <RunSamplesCard samples={run.preview} /> : null}
       <RunIssuesCard
         runId={run.id}
