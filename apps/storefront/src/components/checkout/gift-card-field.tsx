@@ -3,7 +3,9 @@
 import { formatPaise } from '@commerce/blocks'
 import { normaliseGiftCardCode } from '@commerce/core/gift-card-code'
 import { useState, useTransition } from 'react'
-import { giftCardFieldContent as content } from '@/data/checkout'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CodeEntry from '@/components/checkout/code-entry'
+import { checkoutContent, giftCardFieldContent as content } from '@/data/checkout'
 import { type AppliedGiftCard, checkGiftCardAction } from '@/lib/gift-card-actions'
 
 type GiftCardFieldProps = {
@@ -44,58 +46,44 @@ export default function GiftCardField({ applied, onApply, onRemove }: GiftCardFi
     })
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Enter applies the card instead of submitting the whole checkout.
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-    handleApply()
-  }
+  // Render logic
+  const chips =
+    applied.length > 0 ? (
+      <ul className="flex flex-col gap-2">
+        {applied.map((c) => (
+          <li key={c.code} className="flex items-center justify-between gap-3 text-[0.875rem]">
+            <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-ck-summary-line px-3 py-1 font-medium">
+              <CheckoutIcon name="gift" className="size-3.5" />
+              <span className="truncate">
+                {content.applied(c.lastCharacters)} · {content.balance(formatPaise(c.balancePaise))}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => onRemove(c.code)}
+              disabled={pending}
+              className="shrink-0 rounded-sm bg-transparent! p-0! text-[0.8125rem]! text-ck-summary-ink! underline underline-offset-4 opacity-70 outline-none hover:opacity-100 focus-visible:[box-shadow:0_0_0_3px_var(--ck-ring)] disabled:opacity-40"
+            >
+              {content.remove}
+            </button>
+          </li>
+        ))}
+      </ul>
+    ) : null
 
   return (
-    <div className="discount-field">
-      {applied.map((c) => (
-        <div key={c.code} className="discount-field__chip text-small">
-          <span>
-            {content.applied(c.lastCharacters)} · {content.balance(formatPaise(c.balancePaise))}
-          </span>
-          <button
-            type="button"
-            className="discount-field__remove"
-            onClick={() => onRemove(c.code)}
-            disabled={pending}
-          >
-            {content.remove}
-          </button>
-        </div>
-      ))}
-      <div className="discount-field__form">
-        <label className="field discount-field__input">
-          <span className="field__label text-small">{content.label}</span>
-          <input
-            className="field__input"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onKeyDown={handleKeyDown}
-            placeholder={content.placeholder}
-            autoComplete="off"
-            autoCapitalize="characters"
-            disabled={pending}
-          />
-        </label>
-        <button
-          type="button"
-          className="btn btn--secondary btn--small discount-field__apply"
-          onClick={handleApply}
-          disabled={pending || !code.trim()}
-        >
-          {content.apply}
-        </button>
-      </div>
-      {error ? (
-        <p className="discount-field__error text-small" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    <CodeEntry
+      icon="gift"
+      openLabel={checkoutContent.codes.giftCard}
+      inputLabel={content.label}
+      placeholder={content.placeholder}
+      applyLabel={content.apply}
+      code={code}
+      pending={pending}
+      error={error}
+      chips={chips}
+      onCode={setCode}
+      onApply={handleApply}
+    />
   )
 }

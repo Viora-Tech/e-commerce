@@ -13,7 +13,7 @@ export default function CheckoutAgreement({ policies }: CheckoutAgreementProps) 
   if (policies.length === 0) return null
 
   return (
-    <p className="text-small text-muted">
+    <p className="text-center text-[0.75rem] leading-relaxed text-ck-muted">
       {content.agreement}{' '}
       {policies.map((p, i) => (
         <span key={p.type}>
@@ -22,7 +22,7 @@ export default function CheckoutAgreement({ policies }: CheckoutAgreementProps) 
             href={p.href}
             target="_blank"
             rel="noreferrer"
-            className="underline underline-offset-4"
+            className="text-ck-muted! underline decoration-ck-line underline-offset-[3px] hover:text-ck-ink!"
           >
             {p.title}
           </a>

@@ -30,6 +30,7 @@ import type { Metadata, Viewport } from 'next'
 import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
+import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
 import PreviewBar from '@/components/theme/preview-bar'
@@ -260,12 +261,14 @@ export default async function StoreLayout({ children, params }: Props) {
       </head>
       <body>
         {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
-        {header}
+        <StoreChrome>{header}</StoreChrome>
         <main id="MainContent">{children}</main>
-        <CursorFill />
+        <StoreChrome>
+          <CursorFill />
+        </StoreChrome>
         <ThemePreviewBridge adminOrigin={adminOrigin} />
         {preview || themedConsent ? null : <ConsentManager {...consent} />}
-        {footer}
+        <StoreChrome>{footer}</StoreChrome>
       </body>
     </html>
   )

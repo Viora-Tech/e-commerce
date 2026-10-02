@@ -4,7 +4,11 @@ import { formatPaise } from '@commerce/blocks'
 import type { CheckoutSession } from '@commerce/payments'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
+import StatusMark from '@/components/checkout/status-mark'
+import { payClientContent as content } from '@/data/checkout'
 import { confirmPaymentAction } from '@/lib/cart-actions'
+import { CK_BUTTON_PRIMARY, CK_HEADING } from '@/lib/checkout-classes'
 
 type RazorpayCheckout = new (options: Record<string, unknown>) => { open(): void }
 type CashfreeResult = { error?: unknown; redirect?: boolean; paymentDetails?: unknown }
@@ -33,14 +37,6 @@ const SCRIPTS: Record<string, string> = {
 }
 
 type State = 'loading' | 'ready' | 'confirming' | 'failed' | 'dismissed'
-
-const COPY: Record<State, string> = {
-  loading: 'Opening secure payment.',
-  ready: 'Complete the payment in the window.',
-  confirming: 'Confirming your payment.',
-  failed: 'The payment could not be verified. You can try again.',
-  dismissed: 'Payment window closed. Your order is saved; pay when ready.',
-}
 
 /**
  * Opens the gateway's client checkout for a `client` session and posts the
@@ -115,19 +111,41 @@ export default function PayClient({
     checkout.open()
   }
 
+  // Render logic
+  const stopped = state === 'failed' || state === 'dismissed'
+  const busy = state === 'loading' || state === 'confirming'
+
   return (
-    <section className="section-cart page-width">
-      <div className="cart-empty">
-        <h1 className="cart-empty__heading h2">Order #{orderNumber}</h1>
-        <p className="cart-empty__text text-body">
-          {COPY[state]} {state === 'ready' ? `Amount: ${formatPaise(amountPaise)}.` : ''}
-        </p>
-        {state === 'failed' || state === 'dismissed' ? (
-          <button type="button" className="btn btn--primary" onClick={handleOpen}>
-            Try again
-          </button>
-        ) : null}
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-5">
+        <StatusMark tone={state === 'failed' ? 'failed' : 'pending'} />
+        <div className="flex flex-col gap-2">
+          <p className="text-[0.875rem] font-medium text-ck-muted">
+            {content.heading(orderNumber)}
+          </p>
+          <h1 className={`${CK_HEADING} text-[2.25rem]! tabular-nums`}>
+            {formatPaise(amountPaise)}
+          </h1>
+          <p role="status" className="flex items-center gap-2 text-[1rem] text-ck-muted">
+            {busy ? (
+              <CheckoutIcon
+                name="spinner"
+                className="size-4 animate-spin motion-reduce:animate-none"
+              />
+            ) : null}
+            {content.state[state]}
+          </p>
+        </div>
       </div>
-    </section>
+      {stopped ? (
+        <button type="button" className={CK_BUTTON_PRIMARY} onClick={handleOpen}>
+          {content.tryAgain}
+        </button>
+      ) : null}
+      <p className="flex items-center gap-2 text-[0.8125rem] text-ck-muted">
+        <CheckoutIcon name="lock" className="size-3.5" />
+        {content.secure}
+      </p>
+    </div>
   )
 }

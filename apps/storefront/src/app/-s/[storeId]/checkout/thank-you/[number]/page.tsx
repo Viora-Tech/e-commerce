@@ -4,22 +4,23 @@ import {
   GIFT_CARD_PROVIDER,
   installedApps,
   orderViewToken,
+  storeCheckoutLook,
+  variantImageUrls,
   verifyOrderViewToken,
 } from '@commerce/core'
 import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { getRegistries } from '@commerce/core/registries'
-import { giftCard, order, orderLine, payment, withStore } from '@commerce/db'
+import { address, giftCard, order, orderLine, payment, withStore } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { eq, inArray } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
-import BalanceDue from '@/components/checkout/balance-due'
+import CheckoutBalance from '@/components/checkout/checkout-balance'
 import ThankYouTemplate from '@/components/checkout/thank-you'
 import { currentCustomer } from '@/lib/customer-session'
 import { db } from '@/lib/db'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
 
-/** Balance attempts still waiting on the shopper or the gateway. */
 /** Attempts still waiting on the shopper or the gateway. */
 const OPEN_STATUSES: ReadonlySet<string> = new Set(OPEN_ATTEMPT_STATUSES)
 
@@ -71,7 +72,23 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     const balanceAttempt = pays
       .filter((p) => p.purpose === 'balance' && OPEN_STATUSES.has(p.status))
       .sort(newest)[0]
-    return { order: o, lines, pay, giftCards, balance, balanceAttempt }
+    const variantIds = lines.flatMap((l) => (l.variantId ? [l.variantId] : []))
+    const images = await variantImageUrls({ storeId, tx }, variantIds)
+    const look = await storeCheckoutLook({ storeId, tx })
+    const [shipTo] = o.shippingAddressId
+      ? await tx.select().from(address).where(eq(address.id, o.shippingAddressId))
+      : []
+    return {
+      order: o,
+      lines,
+      pay,
+      giftCards,
+      balance,
+      balanceAttempt,
+      images,
+      look,
+      shipTo: shipTo ?? null,
+    }
   })
 
   if (!data) notFound()
@@ -98,9 +115,12 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
       giftCards={data.giftCards}
       links={links}
       payPath={buildPayPath(data.order.number, payToken)}
+      look={data.look}
+      images={data.images}
+      shipTo={data.shipTo}
       balance={
         data.balance ? (
-          <BalanceDue
+          <CheckoutBalance
             orderNumber={data.order.number}
             balance={data.balance}
             session={data.balanceAttempt?.checkoutSession as CheckoutSession | null | undefined}

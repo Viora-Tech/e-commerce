@@ -4,27 +4,23 @@ import type { CheckoutSettingsView, PaymentAdjustment } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
 import { ShoppingCart } from '@commerce/ui/icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
+import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
+import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
+import CheckoutToggleRow from '@/components/settings/checkout-toggle-row'
 import CodRulesCard from '@/components/settings/cod-rules-card'
 import RupeeInput from '@/components/settings/rupee-input'
-import { checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import SectionTabs from '@/components/settings/section-tabs'
+import SettingsSection from '@/components/settings/settings-section'
+import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data/checkout-settings'
 import { settingsContent } from '@/data/settings'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-
-type ToggleRowProps = {
-  id: string
-  label: string
-  hint: string
-  checked: boolean
-  onChange: (on: boolean) => void
-}
 
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
 
@@ -32,9 +28,14 @@ type Loaded = CheckoutSettingsView & { pincodeDirectory: boolean }
 
 const formOf = (v: Loaded): Form => ({ settings: v.settings, codFee: v.codFee })
 
-/** Settings → Checkout: one card per decision, cash on delivery rules only when COD is on. */
+/**
+ * Settings → Checkout, in two tabs: the form (contact, address, minimum order, cash on
+ * delivery rules, the last only when COD is on) and Branding (the locked checkout's look,
+ * with a live preview). One save covers both.
+ */
 export default function CheckoutSettings() {
   // Hooks
+  const brandingCopy = useCopy(checkoutBrandingContent)
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [form, setForm] = useState<Form | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
@@ -52,6 +53,10 @@ export default function CheckoutSettings() {
   // Helpers
   const patch = (p: Partial<Settings>) =>
     setForm((f) => (f ? { ...f, settings: { ...f.settings, ...p } } : f))
+  const patchBranding = (p: Partial<Settings['branding']>) =>
+    setForm((f) =>
+      f ? { ...f, settings: { ...f.settings, branding: { ...f.settings.branding, ...p } } } : f,
+    )
 
   // Event handlers
   const handleSave = async () => {
@@ -99,121 +104,91 @@ export default function CheckoutSettings() {
       {!form || !s || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
-        <>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.contact.heading}</CardTitle>
-              <CardDescription>
-                {copy.contact.phone}. {copy.contact.phoneHint}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Field>
-                <FieldLabel>{copy.contact.email}</FieldLabel>
-                <ChoiceList
-                  name="checkout-email"
-                  value={s.email}
-                  onChange={(v) => patch({ email: v === 'optional' ? 'optional' : 'required' })}
-                  choices={[
-                    { value: 'required', ...copy.contact.emailChoices.required },
-                    { value: 'optional', ...copy.contact.emailChoices.optional },
-                  ]}
+        <SectionTabs tabs={[brandingCopy.tabs.form, brandingCopy.tabs.branding]}>
+          <SettingsSection id={brandingCopy.tabs.form.id} className="flex flex-col gap-4">
+            <Card size="form">
+              <CardHeader>
+                <CardTitle>{copy.contact.heading}</CardTitle>
+                <CardDescription>
+                  {copy.contact.phone}. {copy.contact.phoneHint}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Field>
+                  <FieldLabel>{copy.contact.email}</FieldLabel>
+                  <ChoiceList
+                    name="checkout-email"
+                    value={s.email}
+                    onChange={(v) => patch({ email: v === 'optional' ? 'optional' : 'required' })}
+                    choices={[
+                      { value: 'required', ...copy.contact.emailChoices.required },
+                      { value: 'optional', ...copy.contact.emailChoices.optional },
+                    ]}
+                  />
+                </Field>
+              </CardContent>
+            </Card>
+
+            <Card size="form">
+              <CardHeader>
+                <CardTitle>{copy.address.heading}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FieldGroup>
+                  <CheckoutToggleRow
+                    id="checkout-pincode-first"
+                    label={copy.address.pincodeFirst}
+                    hint={copy.address.pincodeFirstHint}
+                    checked={s.pincodeFirst}
+                    onChange={(pincodeFirst) => patch({ pincodeFirst })}
+                  />
+                  {s.pincodeFirst && !loaded.pincodeDirectory ? (
+                    <p className="text-caption text-muted-foreground">
+                      {copy.address.directoryMissing}
+                    </p>
+                  ) : null}
+                </FieldGroup>
+              </CardContent>
+            </Card>
+
+            <Card size="form" id="minimum">
+              <CardHeader>
+                <CardTitle>{copy.minimum.heading}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RupeeInput
+                  key={`min-${codKey}`}
+                  id="checkout-minimum"
+                  label={copy.minimum.label}
+                  hint={copy.minimum.hint}
+                  paise={s.minimumOrderPaise}
+                  onChange={(minimumOrderPaise) => patch({ minimumOrderPaise })}
                 />
-              </Field>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.address.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <ToggleRow
-                  id="checkout-pincode-first"
-                  label={copy.address.pincodeFirst}
-                  hint={copy.address.pincodeFirstHint}
-                  checked={s.pincodeFirst}
-                  onChange={(pincodeFirst) => patch({ pincodeFirst })}
-                />
-                {s.pincodeFirst && !loaded.pincodeDirectory ? (
-                  <p className="text-caption text-muted-foreground">
-                    {copy.address.directoryMissing}
-                  </p>
-                ) : null}
-              </FieldGroup>
-            </CardContent>
-          </Card>
-
-          <Card size="form" id="gstin">
-            <CardHeader>
-              <CardTitle>{copy.gstin.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ToggleRow
-                id="checkout-gstin"
-                label={copy.gstin.toggle}
-                hint={copy.gstin.hint}
-                checked={s.gstin}
-                onChange={(gstin) => patch({ gstin })}
-              />
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.notes.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ToggleRow
-                id="checkout-notes"
-                label={copy.notes.toggle}
-                hint={copy.notes.hint}
-                checked={s.orderNotes}
-                onChange={(orderNotes) => patch({ orderNotes })}
-              />
-            </CardContent>
-          </Card>
-
-          <Card size="form" id="minimum">
-            <CardHeader>
-              <CardTitle>{copy.minimum.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RupeeInput
-                key={`min-${codKey}`}
-                id="checkout-minimum"
-                label={copy.minimum.label}
-                hint={copy.minimum.hint}
-                paise={s.minimumOrderPaise}
-                onChange={(minimumOrderPaise) => patch({ minimumOrderPaise })}
-              />
-            </CardContent>
-          </Card>
-
-          <CodRulesCard
-            key={`cod-${codKey}`}
-            codEnabled={loaded.codEnabled}
-            rules={s.cod}
-            fee={form.codFee}
-            onRules={(cod) => patch({ cod })}
-            onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
-          />
-        </>
+            <CodRulesCard
+              key={`cod-${codKey}`}
+              codEnabled={loaded.codEnabled}
+              rules={s.cod}
+              fee={form.codFee}
+              onRules={(cod) => patch({ cod })}
+              onFee={(codFee) => setForm((f) => (f ? { ...f, codFee } : f))}
+            />
+          </SettingsSection>
+          <SettingsSection id={brandingCopy.tabs.branding.id}>
+            <CheckoutBrandingSettings
+              branding={s.branding}
+              gstin={s.gstin}
+              orderNotes={s.orderNotes}
+              storeName={loaded.storeName}
+              onBranding={patchBranding}
+              onGstin={(gstin) => patch({ gstin })}
+              onOrderNotes={(orderNotes) => patch({ orderNotes })}
+            />
+          </SettingsSection>
+        </SectionTabs>
       )}
     </div>
-  )
-}
-
-/* A yes/no setting: label and hint on the left, switch on the right. */
-function ToggleRow({ id, label, hint, checked, onChange }: ToggleRowProps) {
-  return (
-    <Field orientation="horizontal" className="items-start justify-between">
-      <div className="flex flex-col gap-0.5">
-        <FieldLabel htmlFor={id}>{label}</FieldLabel>
-        <FieldDescription>{hint}</FieldDescription>
-      </div>
-      <Switch id={id} checked={checked} onCheckedChange={onChange} />
-    </Field>
   )
 }

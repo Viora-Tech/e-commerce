@@ -3,6 +3,11 @@ import { z } from 'zod'
 import { MOBILE_PATTERN, normaliseMobile, PINCODE_PATTERN } from '../accounts/schemas'
 import { CheckoutRuleViolation } from '../errors'
 import { validateGstin } from '../tax/gstin'
+import { CheckoutBrandingSchema } from './branding'
+
+export * from './branding'
+/** The browser checks the state against the PIN code as the shopper types; `placeOrder` re-checks. */
+export { stateForPincode, stateMatchesPincode } from './pincode-state'
 
 /*
  * Pure: `@commerce/core/checkout-settings`. The cash on delivery fee is not
@@ -44,6 +49,8 @@ export const CheckoutSettingsSchema = z.object({
   /** Smallest order (items after discount, before shipping) the store accepts; 0 means none. */
   minimumOrderPaise: z.number().int().min(0).default(0),
   cod: CodRulesSchema.prefault({}),
+  /** Settings → Checkout → Branding: the checkout's own look, never the theme's. */
+  branding: CheckoutBrandingSchema.prefault({}),
 })
 export type CheckoutSettings = z.infer<typeof CheckoutSettingsSchema>
 export type CheckoutSettingsInput = z.input<typeof CheckoutSettingsSchema>

@@ -1,13 +1,18 @@
 ---
 title: Checkout
-description: Choose what shoppers fill in at checkout, set a minimum order value, let business buyers add a GSTIN, and limit cash on delivery.
+description: Choose what shoppers fill in at checkout, brand the checkout with your logo and colours, set a minimum order value, let business buyers add a GSTIN, and limit cash on delivery.
 ---
 
 # Checkout
 
-**Settings → Checkout** decides what shoppers fill in when they order and when cash on
-delivery is offered. Every rule is checked again on our side when the order is placed, so a
-shopper cannot get around it.
+**Settings → Checkout** decides what shoppers fill in when they order, when cash on delivery is
+offered, and how the checkout looks. Every rule is checked again on our side when the order is
+placed, so a shopper cannot get around it.
+
+The page has two tabs: **Checkout form** (the rules below) and **Branding** (the look).
+
+Your checkout is locked, like Shopify's. Themes, imported themes and sections you build never
+change it, so it always works and always looks finished. You make it yours in **Branding**.
 
 ## What this is for
 
@@ -33,17 +38,6 @@ then fill in from it, and the shopper can still change them. The page tells you 
 code lookup data is not installed on your server yet; until it is, shoppers type city and
 state themselves.
 
-### Business buyers
-
-**Let buyers add a GSTIN** shows an optional "Buying for a business?" section with GSTIN and
-business name. A GSTIN with a typo is refused at checkout. The GSTIN and business name show on
-the order and on its GST invoice (GST invoices app), so the buyer can claim input tax credit.
-
-### Order notes
-
-**Let shoppers add a note to their order** adds a note box, for things like "Please call before
-delivery". You see the note on the order page.
-
 ### Minimum order value
 
 Checkout will not place an order below this amount, counted after discounts and before
@@ -65,11 +59,67 @@ These show only when cash on delivery is on in **Settings → Payments**.
 
 </Steps>
 
+## Branding
+
+Open **Settings → Checkout → Branding**. A live preview sits beside the settings; switch it
+between **Computer** and **Phone** to see both. Nothing changes for shoppers until you press
+**Save**.
+
+<Steps>
+
+### Look
+
+- **Logo**: shown at the top of the order summary. Without one, your theme's logo is used, and
+  without that, your store name.
+- **Accent colour**: focus rings, links and the payment or delivery option a shopper picks.
+- **Pay button colour**: the Pay button. Its text turns white or black by itself, whichever is
+  easier to read.
+- **Font**: one font for the whole checkout, from a short list that loads fast (Inter, Figtree,
+  Manrope, DM Sans, Plus Jakarta Sans, IBM Plex Sans).
+- **Corners**: sharp, soft or round fields and buttons.
+
+### Order summary background
+
+The left side on a computer and the summary bar on a phone. Pick a **Colour**, or an **Image**
+with a soft wash of that colour over it so the text stays easy to read. The text colour on it
+turns light or dark by itself. If your store has dark mode on, shoppers who use it see a dark
+checkout with a hint of your colour.
+
+### Shown at checkout
+
+- **Company name and GSTIN**: an optional "Add a GSTIN for a business invoice" tick box with
+  GSTIN and business name. A GSTIN with a typo is refused at checkout. The GSTIN and business
+  name show on the order and on its GST invoice (GST invoices app), so the buyer can claim input
+  tax credit.
+- **Order notes**: a note box under the payment options, for things like "Please call before
+  delivery". You see the note on the order page.
+- **Trust line**: "Secure checkout" and your ways to pay, under the Pay button.
+
+</Steps>
+
+## The checkout shoppers get
+
+- **On a computer**: the order summary on the left (logo, the big amount, each item with its
+  photo, discounts, gift cards, shipping, "Inclusive of all taxes", and a pre-order balance or
+  EMI line when they apply), and the steps on the right: Contact, Delivery, Delivery method,
+  Payment, all on one page.
+- **On a phone**: a "Show order summary · ₹X" bar at the top, big fields, and the Pay button
+  always at the bottom of the screen.
+- **UPI first**: a **Pay with UPI** button at the very top, and UPI first among the ways to pay.
+  Cash on delivery comes last, when it is on.
+- **Mistakes shown as they type**: a wrong email, a short mobile number or a state that does not
+  match the PIN code is pointed out under the field. Pressing Pay with something missing jumps
+  to the first field to fix.
+- **The exact amount on the button**: "Pay ₹7,499", or "Place order · ₹7,499" for cash on
+  delivery.
+- **Thank-you page** in the same look: a calm tick, the order number, what happens next, the UPI
+  QR or app buttons when payment is still due, and the order details.
+
 ## What shoppers see
 
 | Your setting | At checkout |
 | --- | --- |
-| PIN code first | The PIN code field comes first; "New Delhi, Delhi. Change it below if needed." appears under it. |
+| PIN code first | The PIN code field comes first; city and state fill in from it ("New Delhi, Delhi. Change it below if needed."). |
 | Minimum order ₹500, cart ₹350 | "The minimum order is ₹500. Add ₹150 more to check out." and the button is greyed out. |
 | COD limit ₹5,000, order ₹6,200 | Cash on delivery shows "Available on orders up to ₹5,000" and cannot be picked. |
 | Blocked PIN code | Cash on delivery shows "Not available for this PIN code". |
