@@ -4,7 +4,8 @@ import { fairnessKey, fairProcessor, storeSlots } from './fair'
 import { createConnection, QUEUE_LIMITS } from './index'
 
 const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
-const run = `${Date.now()}`
+// Per worker and per run, so parallel test files and checkouts never share keys.
+const run = `w${process.env.VITEST_POOL_ID ?? 0}-${Date.now()}`
 let redis: ReturnType<typeof createConnection>
 
 beforeAll(() => {

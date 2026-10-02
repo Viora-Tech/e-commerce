@@ -1,7 +1,7 @@
-import { runMigrations } from '@commerce/db/migrate'
+import { prepareTestDatabases } from '@commerce/db/test/databases'
+import type { TestProject } from 'vitest/node'
 
-export default async function setup(): Promise<void> {
-  const url = process.env.DATABASE_URL_OWNER
-  if (!url) throw new Error('DATABASE_URL_OWNER missing; is .env.test loaded?')
-  await runMigrations(url)
+/** Migrate the template test database, then clone one copy per vitest worker. */
+export default function setup(project: TestProject): Promise<void> {
+  return prepareTestDatabases(project.config.maxWorkers)
 }
