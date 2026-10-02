@@ -44,12 +44,13 @@ because the shared dev database ran this branch's earlier 0081 of the same table
 ## Zero Drift (the owner's theme) on the dev data
 
 Imported through the admin UI with `waimers.in`: 20 pictures and 8 hero/bento videos copied.
-Home + header + footer: 15 imported exactly, 8 run on our features, 3 not available yet (reviews
-showcase reads Judge.me data, contact, recommendations), 0 failed. Whole theme (114 sections): 54 / 40 /
-17 / 1 (`sections/legacy-*`-style parse error, see the report). Visually matches waimers.in section
-by section at 1440×900 and 390×844; remaining differences are data (no `new-nav-1` menu, no
-`preorder`/`best-sellers` collections, our stock and pre-order flags) plus the money format
-(₹7,499 from `@commerce/money` vs "Rs. 7,499.00").
+Home + header + footer (26 sections): 14 imported exactly, 8 run on our features, 4 not available
+yet (reviews showcase reads Judge.me data, reviews app block, drops teaser and signup popup read
+metafields), 0 failed. Whole theme (114 sections): 51 / 40 / 21 / 0. Every section and snippet
+parses. Visually matches waimers.in section by section at 1440×900 and 390×844; remaining
+differences are data (no `new-nav-1` menu, no `preorder` / `best-sellers` collections, two
+products, our stock and pre-order flags), Judge.me reviews, and the money format (₹7,499 from
+`@commerce/money` vs "Rs. 7,499.00").
 
 ## Left for later
 

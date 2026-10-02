@@ -50,7 +50,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
     shopify: 'Shopify checkout',
     ours: 'Our checkout with your payment methods, COD rules and GST invoices (checkout is not themeable)',
     kind: 'replaced',
-    detect: /\/checkout|name=["']checkout["']/,
+    detect: /(href|action)=["']\/checkout|routes\.checkout|name=["']checkout["']/,
   },
   {
     key: 'predictive_search',
