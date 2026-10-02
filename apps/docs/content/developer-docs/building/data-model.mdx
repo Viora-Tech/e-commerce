@@ -160,14 +160,21 @@ erDiagram
 
 GST is registered per PAN per state, so one store can hold several GSTINs, and a warehouse may
 belong to a different legal business. Added in migration `0080_gst_registrations` (phase 1:
-recorded and linked only; tax and invoices still read `store.gstin`). Rules:
-`packages/core/src/tax/registrations.ts`.
+recorded and linked). Migration `0084_gst_phase_2_3` puts them to work: the order is billed from
+its warehouse's GSTIN (phase 3) and invoices are numbered and filed per GSTIN (phase 2). Rules:
+`packages/core/src/tax/registrations.ts` (registrations), `packages/core/src/tax/origin.ts`
+(which GSTIN an order bills from), `packages/plugin-gst-invoices/src/registration.ts` (which
+GSTIN issues a document).
 
 ```mermaid
 erDiagram
   store ||--o{ business : "sells as"
   business ||--o{ gst_registration : "one GSTIN per state"
   gst_registration |o--o{ location : "bills for"
+  gst_registration |o--o{ order : "billed from"
+  gst_registration |o--o{ invoice : "issues"
+  gst_registration |o--o{ invoice_sequence : "counts"
+  gst_registration |o--o{ invoice_period : "files GSTR-1"
 
   business {
     uuid id PK
@@ -192,6 +199,27 @@ erDiagram
     uuid id PK
     text state_code "two letters, e.g. HR"
     uuid gst_registration_id FK "nullable"
+    jsonb courier_pickup "null: Settings > Shipping return address"
+  }
+  order {
+    uuid id PK
+    uuid gst_registration_id FK "nullable: billed from"
+    jsonb tax_origin "source, location, GSTIN, state at checkout"
+  }
+  invoice {
+    uuid id PK
+    uuid gst_registration_id FK "issuing GSTIN"
+    text number "unique per GSTIN per FY"
+  }
+  invoice_sequence {
+    uuid gst_registration_id FK "unique with series and FY, NULLS NOT DISTINCT"
+    text series_id
+    int fy_start_year
+    int next
+  }
+  invoice_period {
+    uuid gst_registration_id FK "unique with period, NULLS NOT DISTINCT"
+    text period "2026-09"
   }
 ```
 
@@ -208,6 +236,47 @@ erDiagram
 - **Backfill.** 0080 creates one primary business and one default registration for each store
   whose `store.gstin` is well formed (legal name and address from the GST invoices app's seller
   block, else the store). Stores without a GSTIN get neither: a business needs a PAN.
+
+#### Tax origin (phase 3)
+
+`placeOrder` resolves the order's tax origin before it splits the GST (`resolveTaxOrigin`,
+ORIGIN_FALLBACK): the active GSTIN linked to the location the goods sell from
+(`inventory_level_one_sellable`; with lines at different locations, the one holding the most
+order value), else the default GSTIN, else `store.address` with no GSTIN, exactly as before.
+Prices include GST, so the origin only flips CGST + SGST and IGST; the total never changes. The
+result is snapshotted on the order (`gst_registration_id`, `tax_origin`) and never recomputed.
+Orders placed before 0084 have neither and bill from the default GSTIN. An order still has one
+origin: splitting an order across warehouses (fulfilment orders, one invoice per GSTIN) is
+phase 4.
+
+#### Documents per GSTIN (phase 2)
+
+- `invoice`, `invoice_sequence` and `invoice_period` carry `gst_registration_id`. Rule 46(b)
+  uniqueness is per GSTIN per financial year (`invoice_number_unique` on
+  `coalesce(gst_registration_id, zero uuid), fy_start_year, number`), counters are per GSTIN,
+  series and year, and a GSTR-1 month is filed and closed per GSTIN.
+- A document is issued by the order's GSTIN (`orderIssuer`: a draft's own, else
+  `order.gst_registration_id`, else the default). Credit notes and refund vouchers use the
+  original document's GSTIN, even after it is cancelled (`documentIssuer`).
+- The seller block is the app's own (`settings.seller`) when it is that GSTIN's, so a
+  single-GSTIN store prints what it always did; any other GSTIN prints its business's PAN name
+  and its registration's legal address.
+- `{GST}` in a series pattern prints the registration's `invoice_prefix`, else its state
+  letters. Settings validation counts it as 5 characters against the 16-character limit.
+- **Null means "no registration".** A store without any GSTIN keeps `gst_registration_id`
+  null; `NULLS NOT DISTINCT` keeps one counter per series. The trigger
+  `gst_registration_adopt_unassigned` hands those rows to the first registration that becomes
+  default (`adopt_unassigned_gst_documents`), so the series carries on instead of restarting
+  at 1. 0084's backfill runs the same function for every existing default registration.
+
+#### Courier pickup per location
+
+`location.courier_pickup` (`{ pickupName, contactName, phone }`, address from the location's
+own columns) makes couriers collect from that location and bring returns back to it
+(`shipFromFor` in `packages/core/src/shipping/ship-from.ts`). Null, the default, keeps
+`store.shipping.policy.warehouse`. Bookings use the order's `tax_origin.locationId` (older
+orders: the default location). `pickupName` reaches Delhivery and Shiprocket as
+`pickup_location`; pickup scheduling (`schedulePickup`) still uses the store-wide name.
 
 </Tabs.Tab>
 </Tabs>

@@ -248,6 +248,8 @@ export const orderDetailContent = {
     cgst: (rate: number) => `CGST ${rate / 2}%`,
     sgst: (rate: number) => `SGST ${rate / 2}%`,
     igst: (rate: number) => `IGST ${rate}%`,
+    /** The GST number the order is billed from: its warehouse's state decides CGST + SGST or IGST. */
+    billedFrom: 'Billed from',
     taxIncluded: 'included in the prices above',
     paidByCustomer: 'Paid by customer',
     balance: 'Balance',

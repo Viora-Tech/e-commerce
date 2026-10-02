@@ -119,12 +119,33 @@ for cotton T-shirts) and **GST rate (%)**. Leave the rate blank to use the store
 ## How the tax split works
 
 Prices in your store include GST. On each order the tax is split out of the price using the
-product's **GST rate (%)**:
+product's **GST rate (%)**. "Your state" is the state of the GST number the order is billed
+from: the GST number of the warehouse it ships from (see
+[Locations](/merchant-guide/settings/locations)), else your default one.
 
 | Shopper ships to | Tax on the invoice | Example: ₹1,180 at 18% |
 | --- | --- | --- |
-| Your own state | CGST + SGST, half each | ₹1,000 + CGST ₹90 + SGST ₹90 |
+| The same state as the warehouse's GST number | CGST + SGST, half each | ₹1,000 + CGST ₹90 + SGST ₹90 |
 | Another state | IGST | ₹1,000 + IGST ₹180 |
+
+## More than one GST number
+
+If you have a GST number in more than one state ([Business and GST](/merchant-guide/settings/business-and-gst)),
+each one is its own GST taxpayer, so:
+
+- **Invoices come from the order's GST number.** The supplier on the invoice is that GST
+  number, with the address saved for it. Credit notes always come from the GST number of the
+  invoice they correct.
+- **Each GST number counts on its own.** Haryana's first invoice and Karnataka's first invoice
+  can both be `INV/26-27/0001`; that is allowed, because numbers only have to be unique per GST
+  number. To tell them apart at a glance, put `{GST}` in the prefix: `{GST}/{FY}/` prints
+  `HR/26-27/0001` and `KA/26-27/0001` (or the invoice prefix you saved for that GST number).
+  `{GST}` counts as 5 characters toward the 16-character limit.
+- **Each GST number files its own GSTR-1.** A **GST number** picker sits at the top of
+  **Queue**, **Invoices** and **Returns**. On **Returns**, pick the GST number, then **Export
+  GSTR-1**, **Mark filed** or **Close period** for that one only.
+
+With one GST number nothing changes: there is no picker and your numbers carry on as before.
 
 ## Common problems and fixes
 
@@ -133,7 +154,8 @@ product's **GST rate (%)**:
 | Nothing is being queued | **Queue orders** is **Only when I add them**, or the app isn't set up. | Check **Queue and delivery** and **Business details**. |
 | A queued invoice won't issue | A required detail (like GSTIN) is missing. | The queue shows the reason; fix it in Settings and issue again. |
 | Wrong HSN on an invoice | The product has no HS code, so **Default HSN** was used. | Add the HS code on the product; for the issued invoice, credit note and re-issue. |
-| IGST where you expected CGST/SGST | The **State** in Business details doesn't match the shipping state. | Correct your State in Business details. |
+| IGST where you expected CGST/SGST | The order was billed from a GST number in another state (see **Billed from** on the order). | Check which GST number the warehouse bills under on **Settings → Locations**. |
+| Two invoices with the same number | They come from two different GST numbers, which is allowed. | Add `{GST}` to the prefix so each GST number's invoices look different. |
 
 ## FAQ
 

@@ -4,94 +4,73 @@ import type { SignedInCustomer } from '@commerce/core'
 import CheckoutField from '@/components/checkout/checkout-field'
 import { accountContent } from '@/data/account'
 import { checkoutContent as content } from '@/data/checkout'
+import { type CheckoutFieldErrors, fieldId } from '@/lib/checkout-validation'
 
-type ContactKey = 'name' | 'email' | 'phone' | 'gstin' | 'businessName'
+type ContactKey = 'email' | 'phone'
 
 type CheckoutContactFieldsProps = {
   values: Record<ContactKey, string>
+  /** Errors to show now: fields the shopper has left, or all of them after a Pay attempt. */
+  errors: CheckoutFieldErrors
   customer: SignedInCustomer | null
   /** Settings → Checkout: email can be left empty. */
   emailOptional: boolean
-  /** Settings → Checkout: business buyers can add a GSTIN. */
-  gstinEnabled: boolean
   onField: (key: ContactKey) => (e: React.ChangeEvent<HTMLInputElement>) => void
-  onContactBlur: () => void
+  /** Leaving a field: show its check, and save the contact so a left basket can be recovered. */
+  onLeave: (key: ContactKey) => void
 }
 
 const f = content.fields
-const accountCopy = accountContent.checkout
 
-/** Name, email and mobile number, plus the optional GSTIN for business buyers. */
+/** Email and mobile number. A signed-in shopper's email is theirs and not edited here. */
 export default function CheckoutContactFields({
   values,
+  errors,
   customer,
   emailOptional,
-  gstinEnabled,
   onField,
-  onContactBlur,
+  onLeave,
 }: CheckoutContactFieldsProps) {
+  // Render logic
+  const lockedEmail = Boolean(customer?.email)
+
   return (
-    <fieldset className="checkout__group">
-      <legend className="h4">{content.contact}</legend>
+    <div className="flex flex-col gap-4">
       {customer ? (
-        <p className="text-small text-muted">
-          {accountCopy.signedInAs(customer.email ?? customer.phone ?? '')}
+        <p className="text-[0.875rem] text-ck-muted">
+          {accountContent.checkout.signedInAs(customer.email ?? customer.phone ?? '')}
         </p>
-      ) : (
-        <a
-          href="/account/login?return_to=%2Fcheckout"
-          className="text-small underline underline-offset-4"
-        >
-          {accountCopy.signIn}
-        </a>
-      )}
+      ) : null}
       <CheckoutField
-        label={f.name}
-        required
-        autoComplete="name"
-        value={values.name}
-        onChange={onField('name')}
-      />
-      <CheckoutField
-        label={emailOptional && !customer?.email ? f.emailOptional : f.email}
+        id={fieldId('email')}
+        label={emailOptional && !lockedEmail ? f.emailOptional : f.email}
         type="email"
-        required={!emailOptional || Boolean(customer?.email)}
+        inputMode="email"
+        required={!emailOptional || lockedEmail}
         autoComplete="email"
+        placeholder={f.emailPlaceholder}
         value={values.email}
         onChange={onField('email')}
-        onBlur={onContactBlur}
-        readOnly={Boolean(customer?.email)}
+        onBlur={() => onLeave('email')}
+        readOnly={lockedEmail}
+        error={errors.email}
       />
       <CheckoutField
+        id={fieldId('phone')}
         label={f.phone}
         type="tel"
+        inputMode="tel"
         required
-        pattern="[+0-9 \-]{10,16}"
-        autoComplete="tel"
+        autoComplete="tel-national"
+        prefix={f.phonePrefix}
+        placeholder={f.phonePlaceholder}
+        maxLength={16}
         value={values.phone}
         onChange={onField('phone')}
-        onBlur={onContactBlur}
+        onBlur={() => onLeave('phone')}
+        error={errors.phone}
+        hint={f.phoneHint}
       />
-      <p className="text-small text-muted">{f.phoneHint}</p>
-      {gstinEnabled ? (
-        <details className="checkout__business" open={values.gstin !== ''}>
-          <summary className="text-small underline underline-offset-4">{content.business}</summary>
-          <CheckoutField
-            label={f.gstin}
-            autoComplete="off"
-            pattern="[0-9A-Za-z]{15}"
-            value={values.gstin}
-            onChange={onField('gstin')}
-          />
-          <p className="text-small text-muted">{f.gstinHint}</p>
-          <CheckoutField
-            label={f.businessName}
-            autoComplete="organization"
-            value={values.businessName}
-            onChange={onField('businessName')}
-          />
-        </details>
-      ) : null}
-    </fieldset>
+    </div>
   )
 }

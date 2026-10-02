@@ -20,11 +20,12 @@ import {
   loadSettings,
   orderSnapshot,
   seriesContextOf,
-  takeNumber,
   totalsColumns,
   writeLines,
 } from './issue'
+import { takeNumber } from './numbers'
 import { assertPeriodOpen, PeriodError } from './periods'
+import { gstToken, orderIssuer, sameRegistration } from './registration'
 import { invoice, invoiceSequence } from './schema'
 
 /**
@@ -98,6 +99,7 @@ export async function enqueueOrder(
   } else if (!settings.documents.tax_invoice.enabled) {
     throw new InvoiceError('disabled', 'Tax invoices are switched off in the GST invoices settings')
   }
+  const issuer = await orderIssuer(tx, orderId)
   const draft = await orderSnapshot(
     tx,
     storeId,
@@ -107,8 +109,11 @@ export async function enqueueOrder(
     at,
     settings,
     undefined,
+    null,
+    issuer,
   )
   const row = await insertDocument(tx, storeId, draft, {
+    gstRegistrationId: issuer?.id ?? null,
     status: 'draft',
     eligibleAt: at,
     dispatchedAt: reason === 'fulfilled' ? at : null,
@@ -130,12 +135,21 @@ export async function removeFromQueue(tx: StoreTx, ids: readonly string[]): Prom
   return gone.length
 }
 
-export type QueueFilter = { from?: Date | undefined; to?: Date | undefined; q?: string | undefined }
+export type QueueFilter = {
+  from?: Date | undefined
+  to?: Date | undefined
+  q?: string | undefined
+  /** One GSTIN's drafts (null: a store without a registration); undefined: every GSTIN. */
+  gstRegistrationId?: string | null | undefined
+}
 
 export async function listQueue(tx: StoreTx, filter: QueueFilter) {
   const conds: (SQL | undefined)[] = [
     eq(invoice.kind, 'tax_invoice'),
     eq(invoice.status, 'draft'),
+    filter.gstRegistrationId === undefined
+      ? undefined
+      : sameRegistration(invoice.gstRegistrationId, filter.gstRegistrationId),
     filter.from ? gte(invoice.eligibleAt, filter.from) : undefined,
     filter.to ? lt(invoice.eligibleAt, filter.to) : undefined,
   ]
@@ -190,7 +204,7 @@ export async function issueDrafts(
       sql`select pg_advisory_xact_lock(hashtext(${`gst-invoices:issue:${storeId}`}))`,
     )
   }
-  // Keyed by series id and financial year: each series runs on its own.
+  // Keyed by GSTIN, series id and financial year: each runs on its own.
   const lastDate = new Map<string, Date | null>()
   const peek = new Map<string, number>()
   const plan: IssuePlan = []
@@ -202,8 +216,11 @@ export async function issueDrafts(
     if (item.invoiceDate.getTime() > now.getTime() + 60_000) {
       throw new InvoiceError('invalid', 'An invoice cannot be dated in the future')
     }
+    // The order's GSTIN numbers it, and that GSTIN's return month must be open.
+    const issuer = await orderIssuer(tx, row.orderId, row.gstRegistrationId)
+    const registrationId = issuer?.id ?? null
     try {
-      await assertPeriodOpen(tx, storeId, item.invoiceDate)
+      await assertPeriodOpen(tx, storeId, item.invoiceDate, registrationId)
     } catch (err) {
       if (err instanceof PeriodError) throw new InvoiceError('closed', err.message)
       throw err
@@ -221,14 +238,17 @@ export async function issueDrafts(
           settings,
           row.buyerGstin,
           draft.exportSupply,
+          issuer,
         )
       : draft
     const series = pickSeries(settings.series, 'tax_invoice', seriesContextOf(doc))
     if (!series)
       throw new InvoiceError('invalid', `No invoice series matches order ${doc.order.name}`)
     const fy = financialYear(item.invoiceDate).startYear
-    const key = `${series.id}:${fy}`
-    if (!lastDate.has(key)) lastDate.set(key, await latestIssuedDate(tx, series.id, fy))
+    const key = `${registrationId ?? ''}:${series.id}:${fy}`
+    if (!lastDate.has(key)) {
+      lastDate.set(key, await latestIssuedDate(tx, registrationId, series.id, fy))
+    }
     const latest = lastDate.get(key)
     if (latest && item.invoiceDate.getTime() < startOfIstDay(latest).getTime()) {
       throw new InvoiceError(
@@ -244,12 +264,14 @@ export async function issueDrafts(
         item.invoiceDate,
         settings,
         seriesContextOf(doc),
+        issuer,
       )
       const issued = { ...doc, number: n.number }
       await tx
         .update(invoice)
         .set({
           status: 'issued',
+          gstRegistrationId: n.gstRegistrationId,
           number: n.number,
           seriesId: n.seriesId,
           seq: n.seq,
@@ -266,12 +288,17 @@ export async function issueDrafts(
       plan.push({ id: row.id, number: n.number, invoiceDate: item.invoiceDate })
     } else {
       const year = counterYear(series, financialYear(item.invoiceDate))
-      const counter = `${series.id}:${year}`
-      const next = peek.get(counter) ?? (await peekNext(tx, series.id, year))
+      const counter = `${registrationId ?? ''}:${series.id}:${year}`
+      const next = peek.get(counter) ?? (await peekNext(tx, registrationId, series.id, year))
       peek.set(counter, next + 1)
       plan.push({
         id: row.id,
-        number: formatSeriesNumber(series, financialYear(item.invoiceDate), next),
+        number: formatSeriesNumber(
+          series,
+          financialYear(item.invoiceDate),
+          next,
+          gstToken(issuer, settings),
+        ),
         invoiceDate: item.invoiceDate,
       })
     }
@@ -298,9 +325,13 @@ export function checkRule46(doc: DocumentSnapshot): void {
   }
 }
 
-/** The number a series' counter hands out next, without taking it; `fyStartYear` is its {@link counterYear}. */
+/**
+ * The number a GSTIN's series counter hands out next, without taking it; `fyStartYear` is
+ * its {@link counterYear}. `gstRegistrationId` null is a store without a registration.
+ */
 export async function peekNext(
   tx: StoreTx,
+  gstRegistrationId: string | null,
   seriesId: string,
   fyStartYear: number,
 ): Promise<number> {
@@ -308,7 +339,11 @@ export async function peekNext(
     .select({ next: invoiceSequence.next })
     .from(invoiceSequence)
     .where(
-      and(eq(invoiceSequence.seriesId, seriesId), eq(invoiceSequence.fyStartYear, fyStartYear)),
+      and(
+        sameRegistration(invoiceSequence.gstRegistrationId, gstRegistrationId),
+        eq(invoiceSequence.seriesId, seriesId),
+        eq(invoiceSequence.fyStartYear, fyStartYear),
+      ),
     )
   return row?.next ?? 1
 }
@@ -320,11 +355,15 @@ export async function peekNext(
  */
 export async function nextNumberFloor(
   tx: StoreTx,
+  gstRegistrationId: string | null,
   series: Pick<Series, 'id'>,
   at: Date,
 ): Promise<number> {
   const fy = financialYear(at)
-  return Math.max(await peekNext(tx, series.id, fy.startYear), await peekNext(tx, series.id, 0))
+  return Math.max(
+    await peekNext(tx, gstRegistrationId, series.id, fy.startYear),
+    await peekNext(tx, gstRegistrationId, series.id, 0),
+  )
 }
 
 /**
@@ -335,19 +374,32 @@ export async function nextNumberFloor(
 export async function setNextNumber(
   tx: StoreTx,
   storeId: string,
+  gstRegistrationId: string | null,
   series: Series,
   wanted: number,
   at = new Date(),
 ): Promise<number> {
-  const floor = await nextNumberFloor(tx, series, at)
+  const floor = await nextNumberFloor(tx, gstRegistrationId, series, at)
   const problem = nextNumberProblem(floor, wanted)
   if (problem) throw new InvoiceError('invalid', problem)
   const fyStartYear = counterYear(series, financialYear(at))
   await tx
     .insert(invoiceSequence)
-    .values({ storeId, kind: series.kind, seriesId: series.id, fyStartYear, next: wanted })
+    .values({
+      storeId,
+      gstRegistrationId,
+      kind: series.kind,
+      seriesId: series.id,
+      fyStartYear,
+      next: wanted,
+    })
     .onConflictDoUpdate({
-      target: [invoiceSequence.storeId, invoiceSequence.seriesId, invoiceSequence.fyStartYear],
+      target: [
+        invoiceSequence.storeId,
+        invoiceSequence.gstRegistrationId,
+        invoiceSequence.seriesId,
+        invoiceSequence.fyStartYear,
+      ],
       set: { next: sql`greatest(${invoiceSequence.next}, ${wanted})` },
     })
   return wanted
@@ -355,6 +407,7 @@ export async function setNextNumber(
 
 async function latestIssuedDate(
   tx: StoreTx,
+  gstRegistrationId: string | null,
   seriesId: string,
   fyStartYear: number,
 ): Promise<Date | null> {
@@ -363,6 +416,7 @@ async function latestIssuedDate(
     .from(invoice)
     .where(
       and(
+        sameRegistration(invoice.gstRegistrationId, gstRegistrationId),
         eq(invoice.seriesId, seriesId),
         inArray(invoice.status, ['issued', 'cancelled']),
         eq(invoice.fyStartYear, fyStartYear),

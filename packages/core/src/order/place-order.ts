@@ -65,6 +65,7 @@ import { StoreAddressSchema } from '../settings/general'
 import { quoteShipping, type ShippingRateOption } from '../shipping/rates'
 import { loadRateZones } from '../shipping/rates-service'
 import { computeOrderGst } from '../tax/gst'
+import { resolveTaxOrigin } from '../tax/origin'
 import { chargedGstRate, parseStoreTax, type StoreTaxSettings } from '../tax/settings'
 import { runWorkflow, type WorkflowLog, type WorkflowStep } from '../workflow/run'
 import { recomputeOrderStatuses } from './recompute'
@@ -562,6 +563,13 @@ const createOrder: WorkflowStep<State> = {
     }, 0)
     const tags = preorderLines.length > 0 ? ['pre-order'] : []
     const storeAddress = StoreAddressSchema.safeParse(s.address ?? {})
+    // The GSTIN of the location the goods sell from decides CGST + SGST or IGST (tax/origin.ts).
+    const origin = await resolveTaxOrigin(ctx.tx, {
+      lines: lines
+        .filter((l) => !l.giftCard)
+        .map((l) => ({ variantId: l.variantId, grossPaise: l.quantity * l.unitPricePaise })),
+      storeState: storeAddress.success ? storeAddress.data.state : null,
+    })
     const tax = computeOrderGst({
       lines: lines.map((l) => ({
         grossPaise: l.quantity * l.unitPricePaise,
@@ -570,7 +578,7 @@ const createOrder: WorkflowStep<State> = {
       totalPaise,
       reductionPaise: discountPaise + Math.max(0, -adjustmentPaise),
       shipToState: input.checkout?.address.stateCode ?? null,
-      storeState: storeAddress.success ? storeAddress.data.state : null,
+      storeState: origin.stateCode,
     })
     const [o] = await ctx.tx
       .insert(order)
@@ -581,6 +589,8 @@ const createOrder: WorkflowStep<State> = {
         subtotalPaise,
         taxPaise: tax.taxPaise,
         taxBreakdown: tax,
+        gstRegistrationId: origin.gstRegistrationId,
+        taxOrigin: origin,
         shippingPaise,
         shippingRateId: shipping?.rateId ?? null,
         shippingRateName: shipping?.name ?? null,

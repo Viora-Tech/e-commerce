@@ -35,6 +35,10 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
   // Helpers
   const gstinOf = (l: LocationBillingView) =>
     view.registrations.find((r) => r.id === l.gstRegistrationId)?.gstin ?? null
+  const pickupOf = (l: LocationBillingView) =>
+    l.courierPickup
+      ? copy.pickupHere([l.city, l.pincode].filter(Boolean).join(' '))
+      : copy.pickupShipping
 
   // Event handlers
   const handleCreated = () => router.refresh()
@@ -62,6 +66,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
               <TableHead className="pl-4">{copy.columns.name}</TableHead>
               <TableHead className="hidden sm:table-cell">{copy.columns.state}</TableHead>
               <TableHead>{copy.columns.billsUnder}</TableHead>
+              <TableHead className="hidden md:table-cell">{copy.columns.pickup}</TableHead>
               <TableHead className="w-0 pr-4" />
             </TableRow>
           </TableHeader>
@@ -88,6 +93,9 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
                       {gstinOf(l) ?? copy.notChosen}
                     </span>
                   )}
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground md:table-cell">
+                  {pickupOf(l)}
                 </TableCell>
                 <TableCell className="pr-4 text-right">
                   <Button

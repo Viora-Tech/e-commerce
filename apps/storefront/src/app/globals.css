@@ -27,6 +27,94 @@
   --radius-section: var(--section-radius);
 }
 
+/*
+ * The locked checkout (components/checkout). Its own palette, never the theme's: the
+ * shell sets the merchant's Settings -> Checkout -> Branding as --ck-* properties
+ * (checkoutBrandingVars in @commerce/core), and these map them to Tailwind tokens
+ * (bg-ck-button, rounded-ck, font-ck). Dark mode follows the store's mode: data-theme
+ * on <html>, or the system setting when the store leaves the choice to the shopper.
+ */
+@theme inline {
+  --color-ck-bg: var(--ck-bg);
+  --color-ck-ink: var(--ck-ink);
+  --color-ck-muted: var(--ck-muted);
+  --color-ck-line: var(--ck-line);
+  --color-ck-field: var(--ck-field);
+  --color-ck-soft: var(--ck-soft);
+  --color-ck-danger: var(--ck-danger);
+  --color-ck-danger-soft: color-mix(in oklab, var(--ck-danger) 9%, transparent);
+  --color-ck-success: var(--ck-success);
+  --color-ck-accent: var(--ck-accent);
+  --color-ck-accent-ink: var(--ck-accent-ink);
+  --color-ck-accent-soft: color-mix(in oklab, var(--ck-accent) 7%, transparent);
+  --color-ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
+  --color-ck-button: var(--ck-button);
+  --color-ck-button-ink: var(--ck-button-ink);
+  --color-ck-summary: var(--ck-summary);
+  --color-ck-summary-ink: var(--ck-summary-ink);
+  --color-ck-summary-muted: color-mix(in oklab, var(--ck-summary-ink) 62%, transparent);
+  --color-ck-summary-line: color-mix(in oklab, var(--ck-summary-ink) 13%, transparent);
+  --color-ck-summary-wash: color-mix(in oklab, var(--ck-summary) 86%, transparent);
+  --color-ck-qr: var(--ck-qr);
+  --radius-ck: var(--ck-radius);
+  --radius-ck-button: var(--ck-radius-button);
+  --font-ck: var(--ck-font);
+}
+
+.ck {
+  --ck-bg: #ffffff;
+  --ck-ink: #1a1a1a;
+  --ck-muted: #6e6e73;
+  --ck-line: #e3e3e0;
+  --ck-field: #ffffff;
+  --ck-soft: #f7f7f5;
+  --ck-danger: #c23a2b;
+  --ck-success: #1d8a50;
+  /* A QR needs a light quiet zone to scan, so it stays white in dark mode too. */
+  --ck-qr: #ffffff;
+  --ck-summary: var(--ck-summary-light);
+  --ck-summary-ink: var(--ck-summary-ink-light);
+  /* Focus rings as real properties: arbitrary box-shadow values cannot read @theme inline names. */
+  --ck-ring: color-mix(in oklab, var(--ck-accent) 24%, transparent);
+  --ck-danger-ring: color-mix(in oklab, var(--ck-danger) 14%, transparent);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] .ck {
+  --ck-bg: #121214;
+  --ck-ink: #ededee;
+  --ck-muted: #9a9aa1;
+  --ck-line: #2c2c31;
+  --ck-field: #18181b;
+  --ck-soft: #1b1b1f;
+  --ck-danger: #f0776a;
+  --ck-success: #4cc488;
+  --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
+  --ck-summary-ink: #ededee;
+  color-scheme: dark;
+}
+
+/* The theme's mobile dock pads <body> for itself; the checkout hides the dock, so not here. */
+body:has(.ck) {
+  padding-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .ck {
+    --ck-bg: #121214;
+    --ck-ink: #ededee;
+    --ck-muted: #9a9aa1;
+    --ck-line: #2c2c31;
+    --ck-field: #18181b;
+    --ck-soft: #1b1b1f;
+    --ck-danger: #f0776a;
+    --ck-success: #4cc488;
+    --ck-summary: color-mix(in oklab, var(--ck-summary-light) 8%, #0b0b0d);
+    --ck-summary-ink: #ededee;
+    color-scheme: dark;
+  }
+}
+
 html {
   font-size: var(--font-body-size, 16px);
 }
@@ -57,27 +145,7 @@ h3 {
   font-size: calc(1.25rem * var(--font-heading-scale, 1));
 }
 
-/* Checkout form, in Glide's field language until the checkout section is ported. */
-.checkout__group {
-  border: 0;
-  padding: 0;
-  margin: 0 0 2rem;
-  display: grid;
-  gap: 1rem;
-}
-.checkout__group legend {
-  margin-bottom: 0.75rem;
-}
-.checkout__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
-}
-@media (max-width: 749px) {
-  .checkout__row {
-    grid-template-columns: 1fr;
-  }
-}
+/* Fields in Glide's language (account forms, the cart's code entry). */
 .field {
   display: grid;
   gap: 0.35rem;
@@ -97,29 +165,11 @@ h3 {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
-.checkout__option {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
-  background: var(--color-surface);
-  cursor: pointer;
-}
-.checkout__option:has(input:checked) {
-  border-color: var(--color-ink);
-}
 .cart-summary__row--total {
   font-weight: 600;
   border-top: 1px solid var(--color-line);
   padding-top: 0.75rem;
   margin-top: 0.5rem;
-}
-.thank-you__lines {
-  text-align: left;
-  max-width: 520px;
-  margin: 2rem auto;
 }
 .manual-pay {
   max-width: 640px;
@@ -176,16 +226,6 @@ h3 {
   margin-top: 0.35rem;
   color: var(--color-accent);
 }
-.checkout__option-label {
-  flex: 1;
-}
-.checkout__adjustment {
-  opacity: 0.75;
-}
-.checkout__adjustment--discount {
-  color: var(--color-accent);
-  opacity: 1;
-}
 .delivery-estimate {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -228,20 +268,6 @@ h3 {
   text-decoration: underline;
   color: inherit;
   cursor: pointer;
-}
-.checkout__delivery {
-  margin-top: 0.5rem;
-}
-.checkout__delivery.is-negative,
-.checkout__error {
-  color: var(--color-danger);
-}
-.checkout__error {
-  margin-bottom: 0.75rem;
-}
-.checkout__option.is-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .discount-field {
@@ -288,10 +314,6 @@ h3 {
 }
 .cart-summary__row--discount {
   color: var(--color-accent);
-}
-.checkout__option-meta {
-  display: block;
-  color: var(--color-muted);
 }
 .free-shipping {
   display: flex;

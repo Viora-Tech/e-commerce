@@ -1,4 +1,4 @@
-import { newId, order, refund, store } from '@commerce/db'
+import { gstRegistration, newId, order, refund, store } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import {
   check,
@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
@@ -24,6 +25,13 @@ const storeId = () =>
     .notNull()
     .references(() => store.id)
 const at = (name: string) => timestamp(name, { withTimezone: true }).notNull().defaultNow()
+/**
+ * The GSTIN a document, counter or return month belongs to. GST numbering and returns are per
+ * GSTIN, so each registration runs its own series. Null only in a store with no GST
+ * registration yet; the first default registration adopts those rows (migration 0082's
+ * `adopt_unassigned_gst_documents` trigger).
+ */
+const gstRegistrationId = () => uuid('gst_registration_id').references(() => gstRegistration.id)
 
 /** One row per store: the app's settings blob, validated by InvoiceSettingsSchema. */
 export const invoiceSettings = pgTable(
@@ -38,7 +46,7 @@ export const invoiceSettings = pgTable(
 )
 
 /**
- * The running number per store, series and financial year. Issuing locks the
+ * The running number per GSTIN, series and financial year. Issuing locks the
  * row (`update ... returning`) inside the same transaction that inserts the
  * invoice, so numbers are gapless and never repeat even under concurrency.
  */
@@ -47,6 +55,7 @@ export const invoiceSequence = pgTable(
   {
     id: id(),
     storeId: storeId(),
+    gstRegistrationId: gstRegistrationId(),
     kind: text('kind', {
       enum: ['tax_invoice', 'credit_note', 'receipt_voucher', 'refund_voucher'],
     }).notNull(),
@@ -57,7 +66,12 @@ export const invoiceSequence = pgTable(
     /** The number the next document takes. */
     next: integer('next').notNull().default(1),
   },
-  (t) => [uniqueIndex('invoice_sequence_series_fy').on(t.storeId, t.seriesId, t.fyStartYear)],
+  (t) => [
+    // NULLS NOT DISTINCT: a store without a registration still has one counter per series.
+    unique('invoice_sequence_series_fy')
+      .on(t.storeId, t.gstRegistrationId, t.seriesId, t.fyStartYear)
+      .nullsNotDistinct(),
+  ],
 )
 
 export const INVOICE_KINDS = [
@@ -88,6 +102,8 @@ export const invoice = pgTable(
       .references(() => order.id),
     /** The refund a credit note reverses. */
     refundId: uuid('refund_id').references(() => refund.id),
+    /** The GSTIN that issues it: the order's, or for a credit note its invoice's. */
+    gstRegistrationId: gstRegistrationId(),
     kind: text('kind', { enum: INVOICE_KINDS }).notNull(),
     status: text('status', { enum: INVOICE_STATUSES }).notNull().default('issued'),
     /** GST serial; null on packing slips and order confirmations. */
@@ -132,9 +148,14 @@ export const invoice = pgTable(
     ),
     check('invoice_pdf_status_check', sql`${t.pdfStatus} in ('pending', 'ready', 'failed')`),
     check('invoice_status_check', sql`${t.status} in ('draft', 'issued', 'cancelled')`),
-    // Rule 46(b): unique per financial year within a series.
+    // Rule 46(b): unique per GSTIN per financial year. No registration counts as one GSTIN.
     uniqueIndex('invoice_number_unique')
-      .on(t.storeId, t.fyStartYear, t.number)
+      .on(
+        t.storeId,
+        sql`coalesce(${t.gstRegistrationId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+        t.fyStartYear,
+        t.number,
+      )
       .where(sql`${t.number} is not null`),
     // Idempotency: one invoice, slip or confirmation per order...
     // A cancelled invoice frees the order for a fresh one.
@@ -190,19 +211,22 @@ export const invoiceBatch = pgTable('invoice_batch', {
 })
 
 /**
- * A calendar month (IST) of the store's GST return. Filing marks every
- * invoice in it reported (no more cancellation); closing stops issuing or
- * backdating into it.
+ * A calendar month (IST) of one GSTIN's GST return. Filing marks every
+ * invoice of that GSTIN in it reported (no more cancellation); closing stops
+ * issuing or backdating into it.
  */
 export const invoicePeriod = pgTable(
   'invoice_period',
   {
     id: id(),
     storeId: storeId(),
+    gstRegistrationId: gstRegistrationId(),
     /** `2026-09`. */
     period: text('period').notNull(),
     gstr1FiledAt: timestamp('gstr1_filed_at', { withTimezone: true }),
     closedAt: timestamp('closed_at', { withTimezone: true }),
   },
-  (t) => [uniqueIndex('invoice_period_store').on(t.storeId, t.period)],
+  (t) => [
+    unique('invoice_period_store').on(t.storeId, t.gstRegistrationId, t.period).nullsNotDistinct(),
+  ],
 )

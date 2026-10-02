@@ -1,6 +1,6 @@
 ---
 title: Locations
-description: The places you keep stock, the state each one is in, and which GST number each location bills under.
+description: The places you keep stock, the state each one is in, which GST number each location bills under, and where couriers collect parcels.
 ---
 
 # Locations
@@ -12,6 +12,7 @@ sells online) and any warehouses you added under **Products → Inventory**.
 
 - Seeing which GST number each location bills under.
 - Spotting a location in a state where you have no GST number yet.
+- Letting couriers collect parcels from the warehouse that sends them.
 
 ## How it works
 
@@ -25,8 +26,26 @@ sells online) and any warehouses you added under **Products → Inventory**.
 - A location without a state can use any GST number. Add its address under **Products →
   Inventory** to get the state check.
 
-Right now this choice is recorded only. Invoices still come from your default GST number;
-billing from each location's GST number comes in a later update.
+Orders whose products sell from a location are billed from its GST number: its state decides
+CGST + SGST or IGST, and its invoices carry that GST number. Your prices include GST, so the
+shopper pays the same either way. A location with no GST number chosen bills from your default
+one.
+
+### Courier pickup
+
+Each row also shows **Courier pickup**: either the location's own address, or **Return address
+in Shipping settings** (what every store uses until it turns this on).
+
+Open a location and use **Courier pickup** to turn on **Couriers pick up from this address**.
+Couriers then collect parcels for orders sent from this location here, and returns come back
+here too. Fill in:
+
+- **Pickup name at your courier**: the pickup location name exactly as it is on your Delhivery
+  or Shiprocket dashboard. Leave it empty to use the one saved in the courier app.
+- **Contact name** and **Phone**: printed on labels. Empty uses the location's name and phone.
+
+The location needs a full address (line 1, city, state and PIN code) first. Turn the switch off
+and save to go back to the return address in **Settings → Shipping**.
 
 ## Try it
 
@@ -34,3 +53,5 @@ billing from each location's GST number comes in a later update.
 2. Open a location and pick a GST number under **Bills under**. It saves straight away.
 3. Try a location in a state with no GST number: you see the warning and an **Add a GST
    number** button.
+4. On a location with a full address, turn on **Couriers pick up from this address**, type the
+   pickup name from your courier dashboard and select **Save pickup**.

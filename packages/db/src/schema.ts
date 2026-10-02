@@ -495,7 +495,7 @@ export const gstRegistration = pgTable(
     tradeName: text('trade_name'),
     email: text('email'),
     phone: text('phone'),
-    /** Up to 5 characters printed before invoice numbers from this GSTIN (used from phase 3). */
+    /** Up to 5 characters; `{GST}` in a numbering series prints it on this GSTIN's invoices. */
     invoicePrefix: text('invoice_prefix'),
     effectiveFrom: date('effective_from'),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
@@ -541,10 +541,25 @@ export const location = pgTable(
     fulfilsOnlineOrders: boolean('fulfils_online_orders').notNull().default(false),
     /** The GSTIN goods dispatched from here are billed under. Null: not chosen yet. */
     gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
+    /**
+     * Couriers collect parcels from this location's address (and returns come back to it).
+     * Null: shipments use the store-wide return address in Settings › Shipping, as before.
+     */
+    courierPickup: jsonb('courier_pickup').$type<LocationCourierPickup>(),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('location_one_default').on(t.storeId).where(sql`${t.isDefault}`)],
 )
+
+/** A location's courier pickup: its own address, plus the names the courier knows it by. */
+export type LocationCourierPickup = {
+  /** The pickup location (warehouse) name registered on the courier's dashboard. */
+  pickupName: string
+  /** Who hands parcels over; printed on labels. Blank uses the location's name. */
+  contactName: string
+  /** Blank uses the location's phone. */
+  phone: string
+}
 
 /**
  * Stock of one variant at one location. on_hand is physically there, reserved
@@ -998,6 +1013,14 @@ export const order = pgTable(
     taxPaise: integer('tax_paise').notNull().default(0),
     /** GstBreakdown snapshot: rate, CGST/SGST or IGST, as charged. */
     taxBreakdown: jsonb('tax_breakdown'),
+    /**
+     * The GSTIN this order is billed from: the GST registration of the location its goods
+     * sell from, else the default one. Its invoices, credit notes and vouchers use it. Null
+     * on orders placed before GST registrations, or in a store without any.
+     */
+    gstRegistrationId: uuid('gst_registration_id').references(() => gstRegistration.id),
+    /** Where the GST split was worked out from, as it was at checkout. */
+    taxOrigin: jsonb('tax_origin').$type<OrderTaxOrigin>(),
     tags: text('tags').array().notNull().default([]),
     /** Snapshot of the cart's attribution when the order was placed; drives Marketing reports. */
     attribution: jsonb('attribution').$type<MarketingAttribution>(),
@@ -1502,6 +1525,24 @@ export const shippingRate = pgTable(
   },
   (t) => [index('shipping_rate_zone').on(t.zoneId, t.position)],
 )
+
+/**
+ * Where an order's GST was charged from. Prices include GST, so this only decides
+ * CGST + SGST (same state as the shopper) or IGST (another state), never the price.
+ * Rules: @commerce/core tax/origin.ts.
+ */
+export type OrderTaxOrigin = {
+  /** `location`: the selling location's GSTIN; `default_registration`: the store's default
+   *  GSTIN; `store_address`: no GSTIN at all, the state in Settings › General. */
+  source: 'location' | 'default_registration' | 'store_address'
+  locationId: string | null
+  locationName: string | null
+  gstRegistrationId: string | null
+  gstin: string | null
+  /** Two-letter state, e.g. 'HR'; null when nothing says where the seller is. */
+  stateCode: string | null
+  stateName: string | null
+}
 
 /** What the shopper picked at checkout, kept on the order as it was charged. */
 export type OrderShippingSnapshot = {

@@ -1,6 +1,6 @@
 {
-  "id": "17f7302d-a66d-4b88-952f-1da92045bbf8",
-  "prevId": "3eb9e06e-337c-404e-9613-f62c95442b01",
+  "id": "7d35e88f-2fc5-47f3-a6ef-7e032f9e7450",
+  "prevId": "a8cff187-4932-42ca-bdca-294c70c0b99c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3004,6 +3004,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "courier_pickup": {
+          "name": "courier_pickup",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -4189,6 +4195,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gst_registration_id": {
+          "name": "gst_registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tax_origin": {
+          "name": "tax_origin",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "tags": {
           "name": "tags",
           "type": "text[]",
@@ -4453,6 +4471,19 @@
           "tableTo": "address",
           "columnsFrom": [
             "shipping_address_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "order_gst_registration_id_gst_registration_id_fk": {
+          "name": "order_gst_registration_id_gst_registration_id_fk",
+          "tableFrom": "order",
+          "tableTo": "gst_registration",
+          "columnsFrom": [
+            "gst_registration_id"
           ],
           "columnsTo": [
             "id"
@@ -13007,6 +13038,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "gst_registration_id": {
+          "name": "gst_registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "kind": {
           "name": "kind",
           "type": "text",
@@ -13186,6 +13223,12 @@
               "nulls": "last"
             },
             {
+              "expression": "coalesce(\"gst_registration_id\", '00000000-0000-0000-0000-000000000000'::uuid)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
               "expression": "fy_start_year",
               "isExpression": false,
               "asc": true,
@@ -13309,6 +13352,19 @@
           "tableTo": "refund",
           "columnsFrom": [
             "refund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "invoice_gst_registration_id_gst_registration_id_fk": {
+          "name": "invoice_gst_registration_id_gst_registration_id_fk",
+          "tableFrom": "invoice",
+          "tableTo": "gst_registration",
+          "columnsFrom": [
+            "gst_registration_id"
           ],
           "columnsTo": [
             "id"
@@ -13590,6 +13646,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "gst_registration_id": {
+          "name": "gst_registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "period": {
           "name": "period",
           "type": "text",
@@ -13609,29 +13671,7 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "invoice_period_store": {
-          "name": "invoice_period_store",
-          "columns": [
-            {
-              "expression": "store_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "period",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "invoice_period_store_id_store_id_fk": {
           "name": "invoice_period_store_id_store_id_fk",
@@ -13645,10 +13685,33 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "invoice_period_gst_registration_id_gst_registration_id_fk": {
+          "name": "invoice_period_gst_registration_id_gst_registration_id_fk",
+          "tableFrom": "invoice_period",
+          "tableTo": "gst_registration",
+          "columnsFrom": [
+            "gst_registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "invoice_period_store": {
+          "name": "invoice_period_store",
+          "nullsNotDistinct": true,
+          "columns": [
+            "store_id",
+            "gst_registration_id",
+            "period"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -13668,6 +13731,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "gst_registration_id": {
+          "name": "gst_registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "kind": {
           "name": "kind",
@@ -13696,35 +13765,7 @@
           "default": 1
         }
       },
-      "indexes": {
-        "invoice_sequence_series_fy": {
-          "name": "invoice_sequence_series_fy",
-          "columns": [
-            {
-              "expression": "store_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "series_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "fy_start_year",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "invoice_sequence_store_id_store_id_fk": {
           "name": "invoice_sequence_store_id_store_id_fk",
@@ -13738,10 +13779,34 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "invoice_sequence_gst_registration_id_gst_registration_id_fk": {
+          "name": "invoice_sequence_gst_registration_id_gst_registration_id_fk",
+          "tableFrom": "invoice_sequence",
+          "tableTo": "gst_registration",
+          "columnsFrom": [
+            "gst_registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "invoice_sequence_series_fy": {
+          "name": "invoice_sequence_series_fy",
+          "nullsNotDistinct": true,
+          "columns": [
+            "store_id",
+            "gst_registration_id",
+            "series_id",
+            "fy_start_year"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

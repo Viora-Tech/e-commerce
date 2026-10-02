@@ -23,6 +23,7 @@ import { recomputeOrderStatuses } from '../order/recompute'
 import { insertOutboxEvent } from '../outbox/write'
 import { resolveParcelWeightGrams } from '../shipping/parcel'
 import { defaultBoxPreset, parseShippingSettings } from '../shipping/settings'
+import { shipFromFor } from '../shipping/ship-from'
 import {
   ACTIVE_RETURN_STATUSES,
   type Eligibility,
@@ -451,7 +452,12 @@ export async function arrangeReturnPickup(
   if (!from) throw new ReturnNotAllowed('This order has no address to collect from.', ctx.storeId)
   const [s] = await ctx.tx.select().from(store).where(eq(store.id, ctx.storeId))
   const settings = parseShippingSettings(s?.shipping)
-  const w = settings.policy.warehouse
+  // Back to the location the order left from when it has courier pickup on.
+  const backTo = await shipFromFor(ctx.tx, {
+    taxOrigin: o.taxOrigin,
+    settings,
+    storeName: s?.name ?? '',
+  })
   const lines = await ctx.tx
     .select({
       title: orderLine.title,
@@ -479,16 +485,7 @@ export async function arrangeReturnPickup(
       country: from.country,
       phone: from.phone,
     },
-    to: {
-      name: w.name || s?.name || '',
-      line1: w.line1,
-      line2: w.line2 || undefined,
-      city: w.city,
-      state: w.state,
-      pincode: settings.policy.originPincode,
-      country: 'IN',
-      phone: w.phone,
-    },
+    to: backTo.address,
     lines: lines.map((l) => ({
       title: [l.title, l.variantTitle !== 'Default' ? l.variantTitle : null]
         .filter(Boolean)

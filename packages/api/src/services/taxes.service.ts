@@ -1,6 +1,7 @@
 import {
   adoptStoreGstin,
   defaultRegistrationGstin,
+  documentRegistration,
   gstinStateOf,
   parseStoreTax,
   type TaxesForm,
@@ -19,6 +20,7 @@ import {
 } from '@commerce/invoices'
 import {
   GST_INVOICES_ID,
+  gstToken,
   loadSettings,
   nextNumberFloor,
   saveSettings,
@@ -77,7 +79,11 @@ export async function getTaxes(tx: StoreTx, storeId: string): Promise<TaxesView 
   const invoices = await loadSettings(tx, storeId)
   const tax = parseStoreTax(s.apps)
   const series = domesticSeries(invoices)
-  const lowest = series ? await nextNumberFloor(tx, series, new Date()) : 1
+  // This page numbers the default GST number's invoices; others follow the same series.
+  const registration = await documentRegistration(tx, null)
+  const lowest = series
+    ? await nextNumberFloor(tx, registration?.id ?? null, series, new Date())
+    : 1
   const apps = await getStoreApps(tx, storeId)
   return {
     form: {
@@ -159,12 +165,18 @@ export async function saveTaxes(
   )
   const series = domesticSeries(settings)
   if (series) {
-    const sample = formatSeriesNumber(series, financialYear(new Date()), input.numbering.nextNumber)
+    const registration = await documentRegistration(tx, null)
+    const sample = formatSeriesNumber(
+      series,
+      financialYear(new Date()),
+      input.numbering.nextNumber,
+      gstToken(registration, settings),
+    )
     if (!checkDocumentNumber(sample).ok) {
       throw new TaxesError(`Invoice numbers can be at most 16 characters; ${sample} is too long`)
     }
     // Always written, so switching the yearly restart on or off carries the count over.
-    await setNextNumber(tx, storeId, series, input.numbering.nextNumber)
+    await setNextNumber(tx, storeId, registration?.id ?? null, series, input.numbering.nextNumber)
   }
   return getTaxes(tx, storeId)
 }

@@ -25,6 +25,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import ChoiceField from './choice-field'
+import GstNumberPicker from './gst-number-picker'
 import { saveFile } from './save-file'
 
 type Page = Awaited<ReturnType<typeof api.gstInvoices.list>>
@@ -52,12 +53,18 @@ function monthRange(now = new Date()): { from: string; to: string } {
 const istStart = (day: string) => new Date(`${day}T00:00:00+05:30`)
 const istEnd = (day: string) => new Date(istStart(day).getTime() + 86_400_000)
 
-function filterOf(q: string, kind: string, range: { from: string; to: string }) {
+function filterOf(
+  q: string,
+  kind: string,
+  range: { from: string; to: string },
+  gst: string | undefined,
+) {
   return {
     q: q.trim() || undefined,
     kind: kind === ALL ? undefined : (kind as DocumentKind),
     from: range.from ? istStart(range.from) : undefined,
     to: range.to ? istEnd(range.to) : undefined,
+    gstRegistrationId: gst,
   }
 }
 
@@ -73,11 +80,12 @@ export default function InvoicesList() {
   const [everything, setEverything] = useState(false)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState<Progress | null>(null)
+  const [gst, setGst] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
-      api.gstInvoices.list({ ...filterOf(q, kind, range), page }).then((d) => {
+      api.gstInvoices.list({ ...filterOf(q, kind, range, gst), page }).then((d) => {
         if (!cancelled) setData(d)
       })
     }, 250)
@@ -85,7 +93,7 @@ export default function InvoicesList() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [q, kind, range, page])
+  }, [q, kind, range, page, gst])
 
   useEffect(() => {
     if (!progress || progress.sent + progress.failed >= progress.total) return
@@ -97,7 +105,8 @@ export default function InvoicesList() {
   }, [progress])
 
   // Helpers
-  const selection = () => (everything ? { filter: filterOf(q, kind, range) } : { ids: [...picked] })
+  const selection = () =>
+    everything ? { filter: filterOf(q, kind, range, gst) } : { ids: [...picked] }
   const bulk = async (fn: () => Promise<void>) => {
     setBusy(true)
     const id = toast.loading(copy.working)
@@ -120,6 +129,12 @@ export default function InvoicesList() {
       else next.delete(id)
       return next
     })
+  }
+  const handleGst = (id: string | undefined) => {
+    setGst(id)
+    setPage(1)
+    setPicked(new Set())
+    setEverything(false)
   }
   const handleTogglePage = (on: boolean) => {
     setEverything(false)
@@ -144,7 +159,11 @@ export default function InvoicesList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <PageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={<GstNumberPicker value={gst} onChange={handleGst} allowAll />}
+      />
       <DataCard title={copy.title} flush>
         <div className="flex flex-col gap-3 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_12rem_10rem_10rem]">

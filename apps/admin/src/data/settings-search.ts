@@ -312,8 +312,22 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     title: 'Business buyers at checkout',
     where: 'Settings → Checkout',
-    href: '/settings/checkout#gstin',
+    href: '/settings/checkout?tab=branding#gstin',
     keywords: ['gstin', 'b2b', 'business buyer', 'gst invoice', 'company'],
+  },
+  {
+    title: 'Checkout branding',
+    where: 'Settings → Checkout',
+    href: '/settings/checkout?tab=branding',
+    keywords: [
+      'checkout logo',
+      'checkout colour',
+      'checkout color',
+      'pay button',
+      'checkout font',
+      'trust badges',
+      'checkout look',
+    ],
   },
   {
     title: 'Customer privacy',

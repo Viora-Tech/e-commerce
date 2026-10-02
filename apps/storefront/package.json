@@ -14,6 +14,7 @@
     "@commerce/blocks": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
+    "@commerce/dates": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/invoices": "workspace:*",
     "@commerce/money": "workspace:*",
