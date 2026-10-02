@@ -3,7 +3,7 @@ import { translation } from '@/lib/i18n'
 
 export default [
   translation(shippingSettingsContent, {
-    title: 'शिपिंग',
+    title: 'शिपिंग और डिलीवरी',
     intro: 'आप कहाँ डिलीवरी करते हैं, कितना लगता है, और ऑर्डर कब निकलते हैं।',
     whatsThis: {
       trigger: 'यह क्या है?',

@@ -108,7 +108,12 @@ export default function LocationDetail({ location, registrations }: LocationDeta
                 {copy.unregistered(location.stateName ?? '')}
               </p>
               {canManage ? (
-                <Button variant="outline" size="sm" render={<Link href="/settings/business" />}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<Link href="/settings/taxes" />}
+                  nativeButton={false}
+                >
                   {copy.addGst}
                 </Button>
               ) : null}

@@ -39,16 +39,17 @@ flowchart TD
 ### Fill in your store details
 
 Open **Settings**: the **Get your shop ready** checklist shows what is left, with a progress
-bar, and ticks each item by itself. Then **Settings → General**:
+bar, and ticks each item by itself. Then **Settings → Store details**:
 
 - **Store details**: **Store name**, **Contact email** (shoppers reply to it), **Phone**.
 - **Business address**: address lines, **City**, **State**, **Pincode** (e.g. `302001`). This
   is printed on invoices and used to work out delivery dates.
 - **Currency and time**: **Time zone** (India, Asia/Kolkata).
 
-Then **Settings → Taxes & GST** (skip it if you aren't GST registered): **GSTIN**, legal name
-and registered address, whether **My prices include GST**, the **Default GST rate** and
-**Default HSN code**, and how invoices are numbered. See
+Then **Settings → GST & invoices** (skip it if you aren't GST registered): add your GST number
+on the **GST numbers** tab; on **Tax rules**, the legal name and registered address, whether
+**My prices include GST**, the **Default GST rate** and **Default HSN code**; and on
+**Invoice numbers**, how invoices are numbered. See
 [Taxes & GST](/merchant-guide/settings/taxes).
 
 Select **Save**; you'll see "Store details saved". Guide: [Settings](/merchant-guide/settings).
@@ -122,7 +123,7 @@ shipment straight after). Cancel and refund the test orders afterwards.
 
 | Problem | Why it happens | Fix |
 | --- | --- | --- |
-| Invoices show the wrong state | **State** in Business address is wrong. | Fix it in **Settings → General**. |
+| Invoices show the wrong state | **State** in Business address is wrong. | Fix it in **Settings → Store details**. |
 | Checkout says a PIN code isn't serviceable | No delivery area covers it, or the courier doesn't deliver there. | Check **Where you ship and what it costs** covers **All of India**, and **Check delivery to a pincode**. |
 | Test Razorpay order stays **Unpaid** | Webhook not set up. | Add the webhook URL and secret in the Razorpay Dashboard. |
 

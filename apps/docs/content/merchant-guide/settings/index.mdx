@@ -1,14 +1,45 @@
 ---
-title: Settings home and General
-description: The setup checklist that ticks itself, searching settings by plain words, and your store details on Settings → General.
+title: Settings home and Store details
+description: The setup checklist that ticks itself, the six groups every settings page sits in, searching settings by plain words, and your store details.
 ---
 
-# Settings home and General
+# Settings home and Store details
 
 **Settings** opens on a page called **Overview**. It shows what your shop still needs, with a
-progress bar, and a list of every settings page. **Settings → General** holds your shop name,
-contact details and business address. Your GST number has its own page,
-[Taxes & GST](/merchant-guide/settings/taxes).
+progress bar, then every settings page under six headings. **Settings → Store details** holds
+your shop name, contact details and business address. Your GST numbers have their own page,
+[GST & invoices](/merchant-guide/settings/taxes).
+
+## Where everything is
+
+The settings menu on the left has six groups. On a phone, Settings opens on the same list;
+pick a page, and **‹ Settings** at the top takes you back.
+
+| Group | Pages |
+| --- | --- |
+| **Store** | Store details (with your store's data: download or delete), Domains, Locations & warehouses |
+| **Selling** | Payments, Checkout, Shipping & delivery, Returns |
+| **Taxes & GST** | GST & invoices, one page with three tabs: GST numbers, Tax rules, Invoice numbers |
+| **Customers** | Customer accounts, Privacy & data requests, Policies |
+| **Messages** | Notifications (emails, WhatsApp, and the address emails come from) |
+| **Team & advanced** | Staff, AI, Custom data |
+
+Your own preferences are not store settings, so they are in the **account menu** (your
+initials, top right): **Account** (the admin language) and **Appearance** (light or dark,
+accent colour). Where uploads are stored is under **Content → Files → Storage**.
+
+Every old settings address still works and opens the page's new home:
+
+| Old place | New place |
+| --- | --- |
+| Settings → General | Settings → Store details |
+| Settings → Business and GST | Settings → GST & invoices → **GST numbers** tab |
+| Settings → Taxes & GST | Settings → GST & invoices → **Tax rules** and **Invoice numbers** tabs |
+| Settings → Locations | Settings → Locations & warehouses |
+| Settings → Customer privacy | Settings → Privacy & data requests |
+| Settings → Account | Account menu → Account |
+| Settings → Appearance | Account menu → Appearance |
+| Settings → Files | Content → Files → Storage |
 
 ## What this is for
 
@@ -34,10 +65,10 @@ flowchart LR
 
 | Item | Ticked when | Where to fix it |
 | --- | --- | --- |
-| **Store details** | Shop name, contact email and business address (line 1, city, pincode) are filled in. | **Settings → General** |
+| **Store details** | Shop name, contact email and business address (line 1, city, pincode) are filled in. | **Settings → Store details** |
 | **Payments** | A payment company (Razorpay, Cashfree, Decentro) is connected, or you saved your own choice, like turning on UPI to your own ID. Cash on delivery being on from the start does not count. | **Settings → Payments** |
-| **Shipping** | At least one delivery area has a price. | **Settings → Shipping** |
-| **Taxes & GST** | Your GSTIN is saved. Skip it if you are not GST registered. | **Settings → Taxes & GST** |
+| **Shipping & delivery** | At least one delivery area has a price. | **Settings → Shipping & delivery** |
+| **Taxes & GST** | Your GSTIN is saved. Skip it if you are not GST registered. | **Settings → GST & invoices** |
 | **Domain** | Your own website address is connected and working. | **Settings → Domains** |
 | **Notifications** | The Amazon SES email app is connected, so customers get order emails. | **Settings → Notifications** |
 | **Policies** | All five policies (refund, privacy, terms, shipping, contact) are created and shown on your store. | **Settings → Policies** |
@@ -48,15 +79,16 @@ At the top of the settings menu there is a box that says **Search settings…**.
 word and pick a result:
 
 - "UPI", "COD", "Razorpay" or "bank transfer" → **Payments**
-- "GST", "GSTIN", "HSN" or "invoice number" → **Taxes & GST**
-- "courier" → **Shipping → Which courier ships**, or **Apps** to connect one
+- "GST", "GSTIN", "PAN", "HSN" or "invoice number" → **GST & invoices** (the right tab)
+- "courier" → **Shipping & delivery → Which courier ships**, or **Apps** to connect one
 - "WhatsApp" or "email" → **Notifications**
-- "cookie", "privacy" or "delete data" → **Customer privacy**
+- "cookie", "privacy" or "delete data" → **Privacy & data requests**
+- "dark mode" or "Hindi" → **Appearance** or **Account** in the account menu
 - "login", "OTP", "Google", "Apple", "Facebook", "Truecaller" or "passkey" → **Customer accounts**
 
 Use the **↑** and **↓** keys to move, **Enter** to open, **Esc** to clear.
 
-## Settings → General
+## Settings → Store details
 
 <Steps>
 
@@ -77,8 +109,8 @@ Printed on your invoices and used to work out delivery dates. If it is empty you
 
 ### Taxes and GST
 
-These moved to their own page: **Settings → Taxes & GST**. General shows a short note with an
-**Open Taxes & GST** button where the card used to be. See
+These moved to their own page: **Settings → GST & invoices**. Store details shows a short note
+with an **Open GST & invoices** button where the card used to be. See
 [Taxes & GST](/merchant-guide/settings/taxes).
 
 ### Currency and time
@@ -100,7 +132,7 @@ Select **Save** in the bar at the top. You will see "Store details saved".
 
 | Problem | Why it happens | Fix |
 | --- | --- | --- |
-| **Store details** is not ticked | The contact email or part of the address is empty. | Fill in email, address line 1, city and pincode in **General**, then **Save**. |
+| **Store details** is not ticked | The contact email or part of the address is empty. | Fill in email, address line 1, city and pincode in **Store details**, then **Save**. |
 | **Policies** is not ticked | One of the five policies is missing or hidden. | Open **Settings → Policies**, select **Create from template** on each one marked **Needed**, and save. Guide: [Policies](/merchant-guide/settings/policies). |
 | Search finds nothing | The word is not one we know yet. | Try a simpler word, like "pay", "delivery" or "email". |
 

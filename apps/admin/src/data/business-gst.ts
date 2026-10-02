@@ -1,10 +1,9 @@
 /**
- * Settings › Business and GST, and Settings › Locations (which GST number each place bills
- * under). Plain words: many owners know "GST number" and "PAN", not "GSTIN" or "registration".
+ * Settings › Taxes & GST › GST numbers, and Settings › Locations & warehouses (which GST number
+ * each place bills under). Plain words: many owners know "GST number" and "PAN", not "GSTIN" or
+ * "registration".
  */
 export const businessGstContent = {
-  title: 'Business and GST',
-  intro: 'Your business, its PAN, and a GST number for each state you sell from.',
   loadFailed: 'Could not load your business details.',
   business: {
     heading: 'Your business',
@@ -85,7 +84,7 @@ export const businessGstContent = {
     failed: 'Could not save the business',
   },
   locations: {
-    title: 'Locations',
+    title: 'Locations & warehouses',
     intro:
       'The places you keep stock and send orders from, and the GST number each one bills under.',
     heading: 'Your locations',
@@ -105,7 +104,7 @@ export const businessGstContent = {
     pickupShipping: 'Return address in Shipping settings',
   },
   location: {
-    back: 'Locations',
+    back: 'Locations & warehouses',
     address: 'Address',
     noAddress: 'No address added. Add it under Products › Inventory.',
     billingHeading: 'GST for this location',

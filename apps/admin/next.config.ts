@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url'
 import { withSentryConfig } from '@sentry/nextjs/config'
 import type { NextConfig } from 'next'
 import { ADMIN_FRAME_ANCESTORS } from './src/lib/csp'
+import { SETTINGS_REDIRECTS } from './src/lib/settings-redirects'
 
 // Monorepo root, two levels up from apps/admin — lets `output: 'standalone'`
 // trace workspace packages (packages/*) correctly instead of only this app's
@@ -45,6 +46,8 @@ const config: NextConfig = {
         destination: '/growth/automations/:path*',
         permanent: true,
       },
+      // Settings were regrouped (October 2026); every old page address still opens its new home.
+      ...SETTINGS_REDIRECTS.map((r) => ({ ...r, permanent: false })),
     ]
   },
   async headers() {

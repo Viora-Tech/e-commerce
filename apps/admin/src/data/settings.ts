@@ -7,9 +7,7 @@ import {
   CreditCard,
   Globe,
   Home,
-  Images,
   MapPinLineIcon,
-  Palette,
   ReceiptIcon,
   ShieldCheck,
   ShoppingCart,
@@ -18,14 +16,22 @@ import {
   Undo,
   UserCircle,
   UserCog,
-  UserRound,
 } from '@commerce/ui/icons'
 
 export type SettingsSection = {
   href: string
   title: string
+  /** The one line under the title: what this page is for. */
   body: string
   icon: LucideIcon
+}
+
+/** The six headings the settings pages sit under, in the rail and on the Settings home. */
+export type SettingsGroupId = 'store' | 'selling' | 'taxes' | 'customers' | 'messages' | 'team'
+
+export type SettingsGroup = {
+  id: SettingsGroupId
+  sections: SettingsSection[]
 }
 
 /** The settings home: setup checklist and every section. First in the left rail. */
@@ -36,128 +42,149 @@ export const SETTINGS_HOME: SettingsSection = {
   icon: Home,
 }
 
-/** Settings tabs in the left rail, in Shopify's order. */
-export const SETTINGS_SECTIONS: SettingsSection[] = [
+/**
+ * Every settings page, under its heading. The rail, the Settings home, the command palette and
+ * the Hindi page names all read this one list; headings come from `settingsContent.groups`.
+ */
+export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
-    href: '/settings/general',
-    title: 'General',
-    body: 'Store name, contact details, address, currency and timezone.',
-    icon: Store,
+    id: 'store',
+    sections: [
+      {
+        href: '/settings/store',
+        title: 'Store details',
+        body: 'Shop name, contact details, address, currency and time zone, and your store data.',
+        icon: Store,
+      },
+      {
+        href: '/settings/domains',
+        title: 'Domains',
+        body: 'The website addresses your shop opens on.',
+        icon: Globe,
+      },
+      {
+        href: '/settings/locations',
+        title: 'Locations & warehouses',
+        body: 'Where you keep stock, and which GST number each place bills under.',
+        icon: MapPinLineIcon,
+      },
+    ],
   },
   {
-    href: '/settings/payments',
-    title: 'Payments',
-    body: 'Cash on delivery, UPI, Razorpay and per-method fees or discounts.',
-    icon: CreditCard,
+    id: 'selling',
+    sections: [
+      {
+        href: '/settings/payments',
+        title: 'Payments',
+        body: 'How customers pay you: UPI, cards, cash on delivery and fees per method.',
+        icon: CreditCard,
+      },
+      {
+        href: '/settings/checkout',
+        title: 'Checkout',
+        body: 'What shoppers fill in, minimum order value, COD rules and how checkout looks.',
+        icon: ShoppingCart,
+      },
+      {
+        href: '/settings/shipping',
+        title: 'Shipping & delivery',
+        body: 'Where you deliver, what it costs, your boxes, couriers and dispatch days.',
+        icon: Truck,
+      },
+      {
+        href: '/settings/returns',
+        title: 'Returns',
+        body: 'How many days customers have to return, which reasons you accept, and refunds.',
+        icon: Undo,
+      },
+    ],
   },
   {
-    href: '/settings/checkout',
-    title: 'Checkout',
-    body: 'What shoppers fill in, minimum order value and cash on delivery rules.',
-    icon: ShoppingCart,
+    id: 'taxes',
+    sections: [
+      {
+        href: '/settings/taxes',
+        title: 'GST & invoices',
+        body: 'Your GST numbers, how GST is added to prices, and how invoices are numbered.',
+        icon: ReceiptIcon,
+      },
+    ],
   },
   {
-    href: '/settings/shipping',
-    title: 'Shipping',
-    body: 'Couriers, shipping rates, delivery estimates and dispatch policy.',
-    icon: Truck,
+    id: 'customers',
+    sections: [
+      {
+        href: '/settings/customer-accounts',
+        title: 'Customer accounts',
+        body: 'Guest checkout, and sign-in codes by email, SMS or WhatsApp.',
+        icon: UserCircle,
+      },
+      {
+        href: '/settings/privacy',
+        title: 'Privacy & data requests',
+        body: 'Cookie banner, marketing consent, and customers asking for or deleting their data.',
+        icon: ShieldCheck,
+      },
+      {
+        href: '/settings/policies',
+        title: 'Policies',
+        body: 'Refund, privacy, terms, shipping and contact pages, from ready-made templates.',
+        icon: ClipboardList,
+      },
+    ],
   },
   {
-    href: '/settings/taxes',
-    title: 'Taxes & GST',
-    body: 'Your GSTIN, whether prices include GST, default rate and HSN, and invoice numbers.',
-    icon: ReceiptIcon,
+    id: 'messages',
+    sections: [
+      {
+        href: '/settings/notifications',
+        title: 'Notifications',
+        body: 'Order emails and WhatsApp messages to customers, and the address they come from.',
+        icon: Bell,
+      },
+    ],
   },
   {
-    href: '/settings/business',
-    title: 'Business and GST',
-    body: 'Your business and PAN, and a GST number for each state you sell from.',
-    icon: Store,
-  },
-  {
-    href: '/settings/locations',
-    title: 'Locations',
-    body: 'Where you keep stock, and which GST number each place bills under.',
-    icon: MapPinLineIcon,
-  },
-  {
-    href: '/settings/returns',
-    title: 'Returns',
-    body: 'How many days customers have to return, which reasons you accept, restock and refunds.',
-    icon: Undo,
-  },
-  {
-    href: '/settings/policies',
-    title: 'Policies',
-    body: 'Refund, privacy, terms, shipping and contact pages, from ready-made templates.',
-    icon: ClipboardList,
-  },
-  {
-    href: '/settings/customer-privacy',
-    title: 'Customer privacy',
-    body: 'Cookie banner, data requests (copy or delete) and marketing consent, for the DPDP Act.',
-    icon: ShieldCheck,
-  },
-  {
-    href: '/settings/customer-accounts',
-    title: 'Customer accounts',
-    body: 'Guest checkout, and sign-in codes by email, SMS or WhatsApp.',
-    icon: UserCircle,
-  },
-  {
-    href: '/settings/notifications',
-    title: 'Notifications',
-    body: 'Order emails and WhatsApp messages to shoppers.',
-    icon: Bell,
-  },
-  {
-    href: '/settings/files',
-    title: 'Files',
-    body: 'Where product images and uploads are stored: a local folder or your own R2 bucket.',
-    icon: Images,
-  },
-  {
-    href: '/settings/staff',
-    title: 'Staff',
-    body: 'Who can sign in to this store and what they can do.',
-    icon: UserCog,
-  },
-  {
-    href: '/settings/custom-data',
-    title: 'Custom data',
-    body: 'Extra fields on products and collections, and your content types.',
-    icon: Braces,
-  },
-  {
-    href: '/settings/domains',
-    title: 'Domains',
-    body: 'The addresses your storefront answers on.',
-    icon: Globe,
-  },
-  {
-    href: '/settings/ai',
-    title: 'AI',
-    body: 'Write with AI and Ask your store: what you used this month, and turning them on or off.',
-    icon: AiIcon,
-  },
-  {
-    href: '/settings/appearance',
-    title: 'Appearance',
-    body: 'Admin accent colour and light or dark mode.',
-    icon: Palette,
-  },
-  {
-    href: '/settings/account',
-    title: 'Account',
-    body: 'Your own preferences, like the language this admin shows in.',
-    icon: UserRound,
+    id: 'team',
+    sections: [
+      {
+        href: '/settings/staff',
+        title: 'Staff',
+        body: 'Who can sign in to this store and what they can do.',
+        icon: UserCog,
+      },
+      {
+        href: '/settings/ai',
+        title: 'AI',
+        body: 'Write with AI and Ask your store: what you used this month, and turning them on.',
+        icon: AiIcon,
+      },
+      {
+        href: '/settings/custom-data',
+        title: 'Custom data',
+        body: 'Extra fields on products and collections, and your content types.',
+        icon: Braces,
+      },
+    ],
   },
 ]
+
+/** Every settings page in rail order, for lookups that do not care about the headings. */
+export const SETTINGS_SECTIONS: SettingsSection[] = SETTINGS_GROUPS.flatMap((g) => g.sections)
 
 export const settingsContent = {
   nav: {
     label: 'Settings sections',
+    back: 'Settings',
   },
+  groups: {
+    store: 'Store',
+    selling: 'Selling',
+    taxes: 'Taxes & GST',
+    customers: 'Customers',
+    messages: 'Messages',
+    team: 'Team & advanced',
+  } satisfies Record<SettingsGroupId, string>,
   sections: {
     payments: [
       { id: 'section-methods', label: 'Payment methods' },
@@ -168,10 +195,15 @@ export const settingsContent = {
       { id: 'section-providers', label: 'Storage' },
       { id: 'section-verify', label: 'Connection' },
     ],
+    taxes: [
+      { id: 'gst-numbers', label: 'GST numbers' },
+      { id: 'tax-rules', label: 'Tax rules' },
+      { id: 'invoices', label: 'Invoice numbers' },
+    ],
   },
   general: {
-    title: 'General',
-    intro: 'Your shop name, how customers reach you, and your address for invoices.',
+    title: 'Store details',
+    intro: 'Your shop name, how customers reach you, your address for invoices, and your data.',
     completion: {
       progress: (done: number, total: number) => `${done} of ${total} details done`,
       allDone: 'All your shop details are filled in.',
@@ -228,6 +260,10 @@ export const settingsContent = {
     save: 'Save',
     discard: 'Discard',
   },
+  taxesPage: {
+    title: 'GST & invoices',
+    intro: 'Your GST numbers, how GST is added to your prices, and how your invoices are numbered.',
+  },
   staff: {
     heading: 'Only you, for now',
     body: 'Invite teammates and set what each person can see and change in this store.',
@@ -261,7 +297,7 @@ export const settingsHomeContent = {
         title: 'Store details',
         todo: 'Add your shop name, email and business address.',
         done: 'Name, email and address are filled in.',
-        href: '/settings/general',
+        href: '/settings/store',
       },
       payments: {
         title: 'Payments',
@@ -270,7 +306,7 @@ export const settingsHomeContent = {
         href: '/settings/payments',
       },
       shipping: {
-        title: 'Shipping',
+        title: 'Shipping & delivery',
         todo: 'Say where you deliver and what delivery costs.',
         done: 'Delivery areas and prices are set.',
         href: '/settings/shipping',
@@ -303,5 +339,13 @@ export const settingsHomeContent = {
   },
   all: {
     heading: 'All settings',
+  },
+  elsewhere: {
+    personal: 'Your language and how the admin looks are yours, not the store’s:',
+    account: 'Account',
+    appearance: 'Appearance',
+    personalWhere: '(also in the menu under your initials, top right).',
+    storage: 'Where uploads are stored:',
+    storageLink: 'Content › Files › Storage',
   },
 } as const

@@ -10,7 +10,7 @@ import { localize } from '@/lib/copy'
 import type { Locale } from '@/lib/i18n'
 import LanguageField from './language-field'
 
-/** Settings › Account: preferences that belong to the signed-in member, starting with language. */
+/** Account (from the account menu): preferences that belong to the signed-in member, starting with language. */
 export default function AccountSettings() {
   // Hooks
   const copy = useCopy(accountContent)

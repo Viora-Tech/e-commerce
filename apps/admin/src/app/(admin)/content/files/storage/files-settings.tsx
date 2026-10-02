@@ -34,6 +34,7 @@ export default function FilesSettings() {
   return (
     <ProviderSettingsForm<Extra>
       title={copy.title}
+      back={copy.back}
       icon={<Images aria-hidden="true" />}
       intro={copy.intro}
       load={load}
