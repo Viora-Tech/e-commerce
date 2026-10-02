@@ -1,0 +1,27 @@
+/* Customize canvas only: the stand-in strip for popups and banners
+   (components/editor-overlay.tsx). On the store these sections float over the page,
+   so in the canvas they stay a slim strip until selected. */
+.editor-overlay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  padding: 0.625rem var(--page-margin);
+  border-top: 1px dashed var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.editor-overlay__label {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* A selected banner floats at the foot of the canvas, as it does on the store. */
+.editor-overlay__float {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 50;
+}

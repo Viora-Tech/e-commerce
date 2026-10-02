@@ -510,3 +510,28 @@ describe('bindings inside slots (custom sections)', () => {
     expect(problems[1]).toMatch(/^Image › image reads product\.featured_image/)
   })
 })
+
+describe('live editor data that is not plain JSON', () => {
+  const binding = connect('shop.name', 'text', 'Fallback')
+
+  it('finds bindings without looping on circular objects', () => {
+    const loop: Record<string, unknown> = { heading: binding }
+    loop.self = loop
+    const data = { root: { props: {} }, content: [{ type: 'Hero', props: loop }] }
+    expect(boundPaths(data)).toEqual(['shop.name'])
+  })
+
+  it('skips React elements and leaves them intact when applying bindings', () => {
+    const owner: Record<string, unknown> = {}
+    const element = { $$typeof: Symbol.for('react.element'), type: 'p', props: {}, _owner: owner }
+    owner.child = element
+    const data = {
+      root: { props: {} },
+      content: [{ type: 'RichText', props: { body: element, heading: binding } }],
+    }
+    expect(boundPaths(data)).toEqual(['shop.name'])
+    const applied = applyBindings(data)
+    expect(applied.content[0]?.props.body).toBe(element)
+    expect(applied.content[0]?.props.heading).toBe('Fallback')
+  })
+})
