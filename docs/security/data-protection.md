@@ -140,6 +140,24 @@ to guess.
   hashed before storage (`packages/core/src/accounts/auth.ts`); nothing in this codebase
   or its scripts reads a raw OTP or password out of the database.
 
+## AI features
+
+"Write with AI" and "Ask your store" (`packages/ai`, developer docs "AI engine") send data to an
+AI model through one platform gateway key (Vercel AI Gateway or OpenRouter), set as a deployment
+secret like the others above (`AI_GATEWAY_API_KEY` / `OPENROUTER_API_KEY`), never per merchant
+and never in the database.
+
+- **Sent**: for the product writer, the product's title, type, brand, tags, description, the
+  merchant's notes and up to three product photos; for store questions, the question, the last
+  three turns and tool results, which are aggregates, product names and order numbers.
+- **Never sent**: customer names, emails, phone numbers or addresses. The store tools
+  (`packages/api/src/services/ai/store-tools.ts`) do not select those columns at all.
+- **Never stored or logged**: prompts and answers. `ai_usage` keeps counts only (calls, input and
+  output tokens per store, month and feature).
+- **Nothing changes without the merchant**: the writer suggests and the merchant applies and
+  saves; the store tools are read-only; any future write tool goes through the engine's approval
+  step.
+
 ## Transport and disk encryption
 
 - **TLS**: the storefront and admin apps sit behind Cloudflare/the load balancer, which

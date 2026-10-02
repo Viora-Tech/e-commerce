@@ -12,7 +12,7 @@
 
 import sharp from 'sharp'
 import { rgbaToThumbHash, thumbHashToRGBA } from 'thumbhash'
-import { MAX_MASTER_LONG_EDGE, VARIANT_WIDTHS } from './constants'
+import { MAX_MASTER_LONG_EDGE, VARIANT_WIDTHS, variantKey } from './constants'
 
 export { MAX_MASTER_LONG_EDGE, VARIANT_WIDTHS }
 
@@ -70,17 +70,7 @@ export type ProcessImageInput = {
   maxInputPixels?: number | undefined
 }
 
-/**
- * `stores/x/media/id-name.jpg` + width 640 + `avif` → a sibling key the
- * variant is written to. Kept as a pure string function so the worker,
- * backfill script and any future admin tooling agree on the same layout
- * without re-deriving it.
- */
-export function variantKey(masterKey: string, width: number, format: 'avif' | 'webp'): string {
-  const dot = masterKey.lastIndexOf('.')
-  const base = dot === -1 ? masterKey : masterKey.slice(0, dot)
-  return `${base}-w${width}.${format}`
-}
+export { variantKey }
 
 /**
  * Animated GIF becomes a single animated WebP master (`gif→animated webp`

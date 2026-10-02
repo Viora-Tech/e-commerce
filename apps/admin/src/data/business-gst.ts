@@ -89,6 +89,7 @@ export const businessGstContent = {
     intro:
       'The places you keep stock and send orders from, and the GST number each one bills under.',
     heading: 'Your locations',
+    add: 'Add location',
     columns: { name: 'Location', state: 'State', billsUnder: 'Bills under' },
     noState: 'No state added',
     notChosen: 'Not chosen',

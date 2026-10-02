@@ -68,6 +68,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/ai": "workspace:*",
     "@commerce/blocks": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/db": "workspace:*",

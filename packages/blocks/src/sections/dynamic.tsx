@@ -1,5 +1,6 @@
 import type { ComponentConfig, Fields } from '@puckeditor/core'
 import type { ReactNode } from 'react'
+import EditorOverlay from '../components/editor-overlay'
 import type { NewsletterAction } from '../components/sections/newsletter'
 import { sectionsContent } from '../data/sections'
 import type { ProductDetail } from '../types'
@@ -125,15 +126,27 @@ const DEFS: Record<DynamicSection, Def> = {
   },
 }
 
+/** Dynamic sections that float over the page on the store rather than sitting in its flow. */
+const OVERLAY_SECTIONS: ReadonlySet<DynamicSection> = new Set(['CookieBanner'])
+
 function dynamicSection(type: DynamicSection): ComponentConfig<SectionSettings> {
   const def = DEFS[type]
   return {
     label: def.label,
     fields: def.fields,
     defaultProps: def.defaultProps,
-    render: ({ puck, id: _id, ...settings }) => {
+    render: ({ puck, id, ...settings }) => {
       const meta = (puck?.metadata ?? {}) as SectionMetadata
-      return <>{meta.renderers?.[type]?.({ ...def.defaultProps, ...settings }) ?? null}</>
+      const section = meta.renderers?.[type]?.({ ...def.defaultProps, ...settings }) ?? null
+      // Floats over the page on the store: a strip in the canvas until selected.
+      if (puck?.isEditing && OVERLAY_SECTIONS.has(type)) {
+        return (
+          <EditorOverlay id={typeof id === 'string' ? id : undefined} label={def.label}>
+            <div className="editor-overlay__float">{section}</div>
+          </EditorOverlay>
+        )
+      }
+      return <>{section}</>
     },
   }
 }

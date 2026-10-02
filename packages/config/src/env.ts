@@ -19,6 +19,41 @@ const platformEmailShape = {
   PLATFORM_EMAIL_NAME: z.string().min(1).default('Waimers'),
 }
 
+/** Optional, and a blank value (compose's `${KEY:-}`) counts as unset. */
+function optionalOrBlank<T extends z.ZodType>(inner: T) {
+  return z.preprocess((v) => (v === '' ? undefined : v), inner.optional())
+}
+
+/** Comma-separated list, trimmed, lowercased, blanks dropped. */
+const commaList = z
+  .string()
+  .default('')
+  .transform((s) =>
+    s
+      .split(',')
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean),
+  )
+
+/**
+ * The AI engine (`@commerce/ai`): one platform key for every store, merchants never bring
+ * their own. `AI_PROVIDER` unset picks the gateway whose key is set (Vercel AI Gateway
+ * first, then OpenRouter); with no key AI is off and the admin hides every AI button.
+ * `mock` answers from a built-in fake model (local demos and screenshots, refused in
+ * production); `off` turns AI off even with a key.
+ */
+const aiShape = {
+  AI_PROVIDER: optionalOrBlank(z.enum(['gateway', 'openrouter', 'mock', 'off'])),
+  /** Vercel AI Gateway key (https://vercel.com/ai-gateway). */
+  AI_GATEWAY_API_KEY: optionalOrBlank(z.string().min(1)),
+  /** OpenRouter key (https://openrouter.ai/keys). */
+  OPENROUTER_API_KEY: optionalOrBlank(z.string().min(1)),
+  /** Overrides the model id of every AI feature, e.g. `openai/gpt-4.1-mini`. Unset: per-feature defaults. */
+  AI_MODEL: optionalOrBlank(z.string().min(3)),
+  /** Store slugs on the unlimited AI plan, comma-separated (the platform's own stores, e.g. `waimers`). */
+  AI_UNLIMITED_STORES: commaList,
+}
+
 /** Comma-separated platform domains; they and their subdomains cannot be connected as custom. */
 const platformDomains = z
   .string()
@@ -127,6 +162,7 @@ const schema = z.object({
   /** Folder the built-in local storage provider reads and writes. Default ./.data/uploads. */
   LOCAL_STORAGE_DIR: z.string().min(1).optional(),
   ...platformEmailShape,
+  ...aiShape,
 })
 
 export type Env = z.infer<typeof schema>
@@ -162,6 +198,23 @@ export type PlatformEmailEnv = z.infer<typeof platformEmailSchema>
  */
 export function loadPlatformEmailEnv(source: Record<string, string | undefined>): PlatformEmailEnv {
   const result = platformEmailSchema.safeParse(source)
+  if (!result.success) {
+    const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
+    throw new Error(`Invalid environment: ${keys}`)
+  }
+  return result.data
+}
+
+const aiSchema = z.object({ ...aiShape, NODE_ENV: z.string().optional() })
+
+export type AiEnv = z.infer<typeof aiSchema>
+
+/**
+ * Just the AI engine's keys, for `@commerce/ai`, which must not require the database URLs.
+ * Read per call (not cached) so tests can swap the env. Throws on a malformed value.
+ */
+export function loadAiEnv(source: Record<string, string | undefined>): AiEnv {
+  const result = aiSchema.safeParse(source)
   if (!result.success) {
     const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
     throw new Error(`Invalid environment: ${keys}`)

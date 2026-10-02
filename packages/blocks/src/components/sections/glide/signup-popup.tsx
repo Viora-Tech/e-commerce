@@ -4,7 +4,8 @@
 //   corner  slides up bottom-right, no overlay, the page stays usable
 //   figure  centred card, a product rises out of it; dims the page
 //   feed    neon-edged card listing drops, then the signup
-// In the Customize canvas it is drawn in place and open, so it can be edited.
+// In the Customize canvas it is a strip until selected (components/editor-overlay.tsx), then
+// opens where it would on the store (`floating`); without `floating` it is drawn in place.
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react'
 import { signupPopupContent as copy } from '../../../data/glide/signup-popup'
 import type { Image } from '../../../sections/framed'
@@ -49,6 +50,8 @@ type SignupPopupProps = {
   figure: CardProduct | null
   feed: CardProduct[]
   editing: boolean
+  /** Editor preview of the real overlay: open, placed as on the store, nothing armed. */
+  floating?: boolean | undefined
   action?: NewsletterAction | undefined
 }
 
@@ -76,6 +79,7 @@ export default function SignupPopup({
   figure,
   feed,
   editing,
+  floating = false,
   action,
   ...text
 }: SignupPopupProps) {
@@ -158,14 +162,14 @@ export default function SignupPopup({
     'signup-popup',
     `signup-popup--${style}`,
     isOpen ? 'is-open' : '',
-    editing ? 'signup-popup--editing' : '',
+    editing && !floating ? 'signup-popup--editing' : '',
   ]
     .filter(Boolean)
     .join(' ')
 
   return (
     <div className={classes} hidden={!editing && phase === 'hidden'}>
-      {editing ? (
+      {editing && !floating ? (
         <p className="signup-popup__editor-note">{copy.editorNote(copy.triggerNotes[trigger])}</p>
       ) : null}
       {style === 'figure' && !editing ? (

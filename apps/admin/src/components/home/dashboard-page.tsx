@@ -1,5 +1,6 @@
 import type { DashboardChartsData, DashboardSummary } from '@commerce/api'
 import PageBody from '@/components/layout/page-body'
+import AskStoreCard from './ask-store-card'
 import ChartsPanel from './charts/charts-panel'
 import HoursHeatmap from './charts/hours-heatmap'
 import PaymentStatusDonuts from './charts/payment-status-donuts'
@@ -15,6 +16,8 @@ type DashboardPageProps = {
   summary: DashboardSummary
   charts: DashboardChartsData
   firstName: string
+  /** Show "Ask your store": AI is on for this store and member. */
+  askStore?: boolean
 }
 
 /**
@@ -22,7 +25,12 @@ type DashboardPageProps = {
  * insights first (what the owner actually opens this page to see), then a
  * Live view globe with a live stream and the monthly goal ring. No KPI grid.
  */
-export default function DashboardPage({ summary, charts, firstName }: DashboardPageProps) {
+export default function DashboardPage({
+  summary,
+  charts,
+  firstName,
+  askStore = false,
+}: DashboardPageProps) {
   return (
     <PageBody width="frame" className="gap-6">
       <TodayBriefing
@@ -34,6 +42,7 @@ export default function DashboardPage({ summary, charts, firstName }: DashboardP
         todayHourly={summary.today.hourly}
         yesterdayHourly={summary.yesterday.hourly}
       />
+      {askStore ? <AskStoreCard /> : null}
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
         <NeedsYouList needsYou={summary.needsYou} />
         <InsightsList

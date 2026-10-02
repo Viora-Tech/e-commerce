@@ -239,6 +239,9 @@ export { GoogleLogo_ as GoogleLogo }
 export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
 export { WhatsappLogo_ as WhatsappLogo }
 
+/* AI features: Settings → AI, "Write with AI", "Ask your store". */
+export const AiIcon = defineIcon(Sparkle, 'AiIcon', 'duotone')
+
 /* Onboarding picture cards ("What do you sell?", "Do you already sell somewhere?"). */
 export const Clothing = defineIcon(TShirt, 'Clothing', 'duotone')
 export const Beauty = defineIcon(Sparkle, 'Beauty', 'duotone')

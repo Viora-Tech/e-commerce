@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@commerce/ai": "workspace:*",
     "@commerce/api": "workspace:*",
     "@commerce/auth": "workspace:*",
     "@commerce/blocks": "workspace:*",

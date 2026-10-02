@@ -8,10 +8,12 @@ type Params = { params: Promise<{ id: string }> }
 export default async function ProductEditPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
-  const [product, facets] = await Promise.all([
+  const [product, facets, ai] = await Promise.all([
     call(appRouter.products.get, { id }, { context }),
     call(appRouter.products.facets, undefined, { context }),
-  ]).catch(() => [undefined, undefined] as const)
+    // AI is optional: any failure just hides the button.
+    call(appRouter.ai.status, undefined, { context }).catch(() => null),
+  ]).catch(() => [undefined, undefined, null] as const)
   if (product === undefined || !facets) redirect('/select-store')
   if (!product) notFound()
   return (
@@ -19,6 +21,7 @@ export default async function ProductEditPage({ params }: Params) {
       product={product}
       facets={facets}
       storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      aiWriter={ai?.productWriter ?? false}
     />
   )
 }
