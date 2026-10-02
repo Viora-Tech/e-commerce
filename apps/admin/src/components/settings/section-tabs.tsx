@@ -2,7 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { useQueryState } from 'nuqs'
-import { createContext, type ReactNode, useContext } from 'react'
+import { createContext, type ReactNode, useContext, useEffect } from 'react'
 import { settingsContent } from '@/data/settings'
 
 export type SectionTab = { id: string; label: string }
@@ -10,6 +10,9 @@ export type SectionTab = { id: string; label: string }
 type SectionTabsProps = {
   tabs: readonly SectionTab[]
   children: ReactNode
+  /** `#anchor` → tab id, so an old link to a card (`/settings/taxes#invoice-numbers`) opens
+   *  the tab that card now sits on. */
+  hashTabs?: Readonly<Record<string, string>>
 }
 
 const FOCUS =
@@ -28,12 +31,20 @@ export function useActiveSection(): string | null {
 }
 
 /** Horizontal tabs for a settings page; the URL (`?tab=`) remembers the choice. */
-export default function SectionTabs({ tabs, children }: SectionTabsProps) {
+export default function SectionTabs({ tabs, children, hashTabs }: SectionTabsProps) {
   // Hooks
   const [tab, setTab] = useQueryState('tab', { defaultValue: tabs[0]?.id ?? '' })
+  useEffect(() => {
+    const target = hashTabs?.[window.location.hash.slice(1)]
+    if (target) setTab(target === tabs[0]?.id ? null : target)
+  }, [hashTabs, tabs, setTab])
 
   // Event handlers
   const handleSelect = (id: string) => {
+    // A card's #anchor from an old link would pull a reload back to that card's tab.
+    if (hashTabs && window.location.hash) {
+      window.history.replaceState(window.history.state, '', window.location.href.split('#')[0])
+    }
     setTab(id === tabs[0]?.id ? null : id)
   }
 

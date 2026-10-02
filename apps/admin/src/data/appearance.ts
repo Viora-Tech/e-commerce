@@ -1,4 +1,4 @@
-/** Copy for Settings › Appearance. */
+/** Copy for Account › Appearance (the account menu, top right). */
 export const appearanceContent = {
   title: 'Appearance',
   intro: 'How the admin looks to you. Your store and what shoppers see stay the same.',

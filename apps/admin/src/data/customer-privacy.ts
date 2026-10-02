@@ -6,9 +6,9 @@ import type {
   RequestUrgency,
 } from '@commerce/core/privacy'
 
-/** Settings → Customer privacy, the data request queue and the customer consent card. */
+/** Settings → Privacy & data requests, the data request queue and the customer consent card. */
 export const customerPrivacyContent = {
-  title: 'Customer privacy',
+  title: 'Privacy & data requests',
   subtitle:
     "What India's data protection law (DPDP Act 2023) asks of your store: a cookie choice, answering data requests on time, and messaging only people who said yes.",
   save: 'Save',
@@ -99,7 +99,7 @@ export const CHANNEL_LABEL: Record<ConsentChannel, string> = {
 export const dataRequestsContent = {
   title: 'Data requests',
   subtitle: 'Copies of data and deletions customers asked for. Answer each before its due date.',
-  back: 'Customer privacy',
+  back: 'Privacy & data requests',
   tabs: { open: 'Open', closed: 'Closed', all: 'All' },
   empty: {
     open: 'No open requests. When a customer asks, it shows up here.',

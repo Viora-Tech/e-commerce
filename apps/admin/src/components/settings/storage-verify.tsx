@@ -13,7 +13,7 @@ type Verify = Awaited<ReturnType<typeof api.store.verifyStorage>>
 
 const copy = mediaContent.settings
 
-/** "Test connection" for Settings › Files. Hits the saved settings, not the unsaved form. */
+/** "Test connection" for Content › Files › Storage. Hits the saved settings, not the unsaved form. */
 export default function StorageVerify() {
   // Hooks
   const [result, setResult] = useState<Verify | null>(null)

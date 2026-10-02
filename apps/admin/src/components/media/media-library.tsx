@@ -1,8 +1,10 @@
 'use client'
 
-import { Search } from '@commerce/ui/icons'
+import { Search, Settings } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
+import Link from 'next/link'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 import { type FormEvent, Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -80,6 +82,15 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
     <PageBody className="gap-6">
       <div className="flex h-9 items-center justify-between">
         <h1 className="text-page-title">{copy.title}</h1>
+        {/* Where uploads are stored (local folder, R2 or S3); it moved here from Settings. */}
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/content/files/storage" />}
+        >
+          <Settings aria-hidden="true" />
+          {copy.storage}
+        </Button>
       </div>
       <Card className="gap-5 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">

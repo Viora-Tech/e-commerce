@@ -186,7 +186,7 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
         <CardContent>
           <Button
             variant="outline"
-            render={<Link href="/settings/customer-privacy#banner" />}
+            render={<Link href="/settings/privacy#banner" />}
             nativeButton={false}
           >
             {copy.privacy.link}

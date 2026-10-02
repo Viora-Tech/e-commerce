@@ -144,7 +144,7 @@ export default function PoliciesSettings() {
                 <Button
                   variant="outline"
                   className="self-start"
-                  render={<Link href="/settings/general" />}
+                  render={<Link href="/settings/store" />}
                 >
                   {copy.business.generalLink}
                 </Button>

@@ -1,5 +1,6 @@
 import type { LucideIcon } from '@commerce/ui/icons'
 import { Plus, Settings } from '@commerce/ui/icons'
+import { ACCOUNT_PAGES } from './account'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
 import { SETTINGS_SECTIONS } from './settings'
 
@@ -17,6 +18,7 @@ export const commandContent = {
   empty: 'Nothing matches',
   toggleTheme: 'Switch between light and dark',
   settings: 'Settings',
+  account: 'Your account',
 } as const
 
 /** `G` then a second key jumps straight to a section, Gmail-style. */
@@ -62,7 +64,7 @@ export const CREATE_LINKS: PaletteLink[] = [
   { label: 'Create collection', href: '/products/collections/new', icon: Plus },
 ]
 
-/** Every rail page and sub-page, plus each Settings section. */
+/** Every rail page and sub-page, each Settings section, and your own account pages. */
 export const PAGE_LINKS: PaletteLink[] = [
   ...NAV_GROUPS.flatMap((group) =>
     group.items.flatMap((item) => [
@@ -81,5 +83,11 @@ export const PAGE_LINKS: PaletteLink[] = [
     hint: commandContent.settings,
     href: s.href,
     icon: Settings,
+  })),
+  ...ACCOUNT_PAGES.map((p) => ({
+    label: p.title,
+    hint: commandContent.account,
+    href: p.href,
+    icon: p.icon,
   })),
 ]

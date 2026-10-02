@@ -57,7 +57,7 @@ function LoadingCards() {
 }
 
 /**
- * Settings › General in three cards (store details, business address,
+ * Settings › Store details (once "General") in three cards (store details, business address,
  * currency and time), each with a help line, plus how many details are done
  * and a prompt when the business address is still empty, then the store's data
  * (export, delete). Taxes moved to Settings › Taxes & GST; `#tax` redirects there.
@@ -70,7 +70,7 @@ export default function GeneralSettings() {
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
   useEffect(() => {
-    // Old links to the tax card (/settings/general#tax) land on the new page.
+    // Old links to the tax card (General's #tax, which redirects to this page) land on Taxes & GST.
     if (window.location.hash === '#tax') router.replace(TAXES_HREF)
   }, [router])
   useEffect(() => {

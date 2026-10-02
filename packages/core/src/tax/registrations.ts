@@ -486,7 +486,7 @@ export async function adoptStoreGstin(
     if (current === value) return
     throw new GstRegistrationError(
       'MANAGED_ELSEWHERE',
-      'Your GST numbers are managed in Settings › Business and GST. Change them there.',
+      'Your GST numbers are managed in Settings › Taxes & GST › GST numbers. Change them there.',
       storeId,
     )
   }

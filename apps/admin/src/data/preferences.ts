@@ -46,7 +46,7 @@ export const preferencesContent = {
   },
   privacy: {
     heading: 'Cookie consent',
-    body: 'The cookie banner now lives in Settings, Customer privacy. Shoppers are always asked before analytics or marketing tags load.',
+    body: 'The cookie banner now lives in Settings, Privacy & data requests. Shoppers are always asked before analytics or marketing tags load.',
     link: 'Open cookie banner settings',
   },
   tracking: {
