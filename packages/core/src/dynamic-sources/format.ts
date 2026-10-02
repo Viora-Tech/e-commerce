@@ -223,25 +223,45 @@ export type FoundBinding = {
   binding: Binding
 }
 
-function walk(value: unknown, section: string, at: (string | number)[], out: FoundBinding[]) {
+/**
+ * Template data is plain JSON once saved, but the editor's live data can hold
+ * things that aren't: React elements (rich text rendered for the canvas, with an
+ * `_owner` that points back up the tree) and objects shared or nested in a loop.
+ * Bindings only ever live in plain objects and arrays, so the walk skips the rest
+ * and never visits the same object twice.
+ */
+function isPlainData(value: object): boolean {
+  if ('$$typeof' in value) return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null || Array.isArray(value)
+}
+
+function walk(
+  value: unknown,
+  section: string,
+  at: (string | number)[],
+  out: FoundBinding[],
+  seen: WeakSet<object> = new WeakSet(),
+) {
   if (isBinding(value)) {
     out.push({ section, at, binding: value })
     return
   }
+  if (typeof value !== 'object' || value === null) return
+  if (seen.has(value) || !isPlainData(value)) return
+  seen.add(value)
   if (Array.isArray(value)) {
-    for (const [i, item] of value.entries()) walk(item, section, [...at, i], out)
+    for (const [i, item] of value.entries()) walk(item, section, [...at, i], out, seen)
     return
   }
-  if (typeof value === 'object' && value !== null) {
-    // A block nested in a slot (`{ type, props }` inside a Group's content, a tab's
-    // panel): its settings are named after it, not after the section around it.
-    const nested = value as { type?: unknown; props?: unknown }
-    if (typeof nested.type === 'string' && typeof nested.props === 'object' && nested.props) {
-      walk(nested.props, nested.type, [], out)
-      return
-    }
-    for (const [k, v] of Object.entries(value)) walk(v, section, [...at, k], out)
+  // A block nested in a slot (`{ type, props }` inside a Group's content, a tab's
+  // panel): its settings are named after it, not after the section around it.
+  const nested = value as { type?: unknown; props?: unknown }
+  if (typeof nested.type === 'string' && typeof nested.props === 'object' && nested.props) {
+    walk(nested.props, nested.type, [], out, seen)
+    return
   }
+  for (const [k, v] of Object.entries(value)) walk(v, section, [...at, k], out, seen)
 }
 
 type DataLike = {
@@ -418,19 +438,24 @@ function resolveBinding(binding: Binding, values: SourceValues): unknown {
   return resolved !== undefined ? resolved : binding.fallback
 }
 
-function replace(value: unknown, values: SourceValues): unknown {
+function replace(
+  value: unknown,
+  values: SourceValues,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown {
   if (isBinding(value)) return resolveBinding(value, values)
-  if (Array.isArray(value)) return value.map((v) => replace(v, values))
-  if (typeof value === 'object' && value !== null) {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(value)) {
-      const next = replace(v, values)
-      // An empty source with nothing typed in leaves the key out, so defaults apply.
-      if (next !== undefined) out[k] = next
-    }
-    return out
+  if (typeof value !== 'object' || value === null) return value
+  // Non-JSON values (React elements, class instances) and repeat visits pass through untouched.
+  if (seen.has(value) || !isPlainData(value)) return value
+  seen.add(value)
+  if (Array.isArray(value)) return value.map((v) => replace(v, values, seen))
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(value)) {
+    const next = replace(v, values, seen)
+    // An empty source with nothing typed in leaves the key out, so defaults apply.
+    if (next !== undefined) out[k] = next
   }
-  return value
+  return out
 }
 
 /**

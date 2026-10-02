@@ -1,5 +1,6 @@
 @import "./base.css";
 @import "./effects.css";
+@import "./editor-overlay.css";
 @import "./component-app-blocks.css";
 @import "./component-article-card.css";
 @import "./component-breadcrumbs.css";

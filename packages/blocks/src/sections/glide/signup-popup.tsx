@@ -1,4 +1,5 @@
 import type { ComponentConfig } from '@puckeditor/core'
+import EditorOverlay from '../../components/editor-overlay'
 import SignupPopup from '../../components/sections/glide/signup-popup'
 import type { PopupTrigger, PopupWhere } from '../../components/sections/glide/signup-popup-timing'
 import { signupPopupContent as copy } from '../../data/glide/signup-popup'
@@ -123,15 +124,26 @@ export function signupPopupSection(loaders: GlideLoaders): ComponentConfig {
       const p = { ...defaults, ...props }
       const meta = (puck?.metadata ?? {}) as SectionMetadata
       const editing = Boolean(puck?.isEditing)
-      return (
+      const popup = (
         <SignupPopup
           {...p}
           sectionId={typeof id === 'string' ? id : p.style}
           figure={p.resolved?.figure ?? null}
           feed={p.resolved?.feed ?? []}
           editing={editing}
+          floating={editing}
           action={meta.newsletterAction}
         />
+      )
+      if (!editing) return popup
+      return (
+        <EditorOverlay
+          id={typeof id === 'string' ? id : undefined}
+          label={copy.label}
+          when={copy.triggerNotes[p.trigger]}
+        >
+          {popup}
+        </EditorOverlay>
       )
     },
   } as unknown as ComponentConfig
