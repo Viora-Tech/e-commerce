@@ -1,5 +1,6 @@
 import type { TranslationPair } from '@/lib/i18n'
 import account from './account'
+import ai from './ai'
 import businessGst from './business-gst'
 import common from './common'
 import dates from './dates'
@@ -25,6 +26,7 @@ import table from './table'
  */
 export const hindiCopy: readonly TranslationPair[] = [
   ...account,
+  ...ai,
   ...businessGst,
   ...common,
   ...dates,

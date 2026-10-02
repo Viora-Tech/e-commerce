@@ -90,6 +90,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
     body: 'वे पते जिन पर आपका स्टोर खुलता है।',
   },
   '/settings/invoices': { title: 'इनवॉइस' },
+  '/settings/ai': {
+    title: 'AI',
+    body: 'AI से लिखें और अपने स्टोर से पूछें: इस महीने कितना इस्तेमाल हुआ, और इन्हें चालू या बंद करना।',
+  },
   '/settings/appearance': {
     title: 'रंग-रूप',
     body: 'एडमिन का एक्सेंट रंग और लाइट या डार्क मोड।',

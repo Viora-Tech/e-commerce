@@ -45,6 +45,13 @@ auth) for its Google, Apple and Facebook provider modules and `verifyGoogleIdTok
 from each package's `package.json` in `node_modules` on 2026-09-28 (the docs hosts were blocked
 from the build machine). Google Identity Services (One Tap) is Google's hosted script, loaded
 from `accounts.google.com`, never copied.
+The AI engine (`packages/ai`, "Write with AI" and "Ask your store") is built on the
+[Vercel AI SDK](https://github.com/vercel/ai): `ai` 7.0 (including its `ai/test` mock models),
+`@ai-sdk/gateway` 4.0 and `@ai-sdk/provider` 4.0, all Apache License 2.0, plus
+[`@openrouter/ai-sdk-provider`](https://github.com/OpenRouterTeam/ai-sdk-provider) 3.1 (Apache
+License 2.0); licences read from each package's npm metadata (`npm view <pkg> license`) on
+2026-10-02. Used as libraries behind our own interface (`packages/ai/src/engine.ts`); no code is
+copied.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

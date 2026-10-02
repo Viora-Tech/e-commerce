@@ -23,6 +23,8 @@ type ProductMainCardProps = {
   onReason: (reason: InventoryReason) => void
   /** The media card, drawn first so the jump nav reads top to bottom: Media, Details, Pricing, Inventory. */
   media?: ReactNode
+  /** Right side of the details card header ("Write with AI" when AI is on). */
+  detailsAction?: ReactNode
 }
 
 /** Jump-nav targets land below the sticky page header instead of under it. */
@@ -44,6 +46,7 @@ export default function ProductMainCard({
   onVariant,
   onReason,
   media,
+  detailsAction,
 }: ProductMainCardProps) {
   // Hooks
   const copy = useCopy(productFormContent)
@@ -58,7 +61,7 @@ export default function ProductMainCard({
         {media}
       </section>
       <section id="details" className={SECTION}>
-        <DataCard title={copy.basics}>
+        <DataCard title={copy.basics} action={detailsAction}>
           <ProductBasicsSection
             title={form.title}
             description={form.description}

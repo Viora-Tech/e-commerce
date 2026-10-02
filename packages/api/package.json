@@ -12,12 +12,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commerce/ai": "workspace:*",
     "@commerce/auth": "workspace:*",
     "@commerce/config": "workspace:*",
     "@commerce/core": "workspace:*",
     "@commerce/dates": "workspace:*",
     "@commerce/db": "workspace:*",
     "@commerce/invoices": "workspace:*",
+    "@commerce/money": "workspace:*",
     "@commerce/notifications": "workspace:*",
     "@commerce/observability": "workspace:*",
     "@commerce/payments": "workspace:*",

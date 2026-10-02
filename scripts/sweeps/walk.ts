@@ -20,6 +20,8 @@ export const ROOT = path.resolve(HERE, '../..')
  * shipping connectors, api).
  */
 export const SERVER_ONLY_PACKAGES = new Set([
+  // Root entry reads the platform AI keys and pulls in the AI SDK; browser code uses @commerce/ai/client.
+  '@commerce/ai',
   '@commerce/core',
   '@commerce/db',
   '@commerce/auth',

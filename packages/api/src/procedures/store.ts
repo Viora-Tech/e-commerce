@@ -10,7 +10,7 @@ import {
 import type { StoreTx } from '@commerce/db'
 import { resolveStoreForOrganization, withStore } from '@commerce/db'
 import { ORPCError } from '@orpc/server'
-import { protectedProcedure } from './base'
+import { protectedProcedure, type SessionContext } from './base'
 
 export type StoreScope = {
   storeId: string
@@ -93,6 +93,50 @@ async function resolveAccess(
 }
 
 /**
+ * The caller's store: requires an active organization the user belongs to and resolves it
+ * to a store. Shared by `can` and `canDetached`.
+ */
+async function findMembership(context: SessionContext) {
+  const organizationId = context.session.activeOrganizationId
+  if (!organizationId) throw new ORPCError('PRECONDITION_FAILED', { message: 'Pick a store first' })
+
+  const org = await context.auth.api.getFullOrganization({
+    headers: context.headers,
+    query: { organizationId },
+  })
+  const membership = org?.members.find((m) => m.userId === context.session.user.id)
+  if (!membership) throw new ORPCError('FORBIDDEN', { message: 'Not a member of this store' })
+
+  const storeId = await resolveStoreForOrganization(context.db, organizationId)
+  if (!storeId) throw new ORPCError('NOT_FOUND', { message: 'No store for this organization' })
+  return { organizationId, storeId, role: membership.role, userId: context.session.user.id }
+}
+
+/** Loads what the member may do and refuses when `required` is missing. */
+async function scopeFor(
+  tx: StoreTx,
+  member: Awaited<ReturnType<typeof findMembership>>,
+  required: Permission | undefined,
+): Promise<StoreScope> {
+  const access = await resolveAccess(tx, member.storeId, member.userId, member.role)
+  const holds = (permission: Permission) =>
+    access.isOwner || access.permissions.includes(permission)
+  if (required && !holds(required)) {
+    throw new ORPCError('FORBIDDEN', {
+      message: `Your role does not allow ${describe(required)}`,
+      data: { required, role: access.roleSlug },
+    })
+  }
+  return { ...member, ...access, can: holds }
+}
+
+/** ORPCError is a deliberate, client-facing response (unauthorized, validation, not found); only unexpected exceptions are worth an error-tracking event. */
+function report(context: SessionContext, storeId: string, error: unknown): never {
+  if (!(error instanceof ORPCError)) context.reportError?.(error, { storeId })
+  throw error
+}
+
+/**
  * Requires an active organization the user belongs to, resolves it to a store,
  * loads what that member may do, and runs the handler inside `withStore` so
  * every query is tenant-scoped. Permissions are read from the database on each
@@ -101,46 +145,13 @@ async function resolveAccess(
  */
 function storeProcedureWith(required?: Permission) {
   return protectedProcedure.use(async ({ context, next }) => {
-    const organizationId = context.session.activeOrganizationId
-    if (!organizationId)
-      throw new ORPCError('PRECONDITION_FAILED', { message: 'Pick a store first' })
-
-    const org = await context.auth.api.getFullOrganization({
-      headers: context.headers,
-      query: { organizationId },
-    })
-    const membership = org?.members.find((m) => m.userId === context.session.user.id)
-    if (!membership) throw new ORPCError('FORBIDDEN', { message: 'Not a member of this store' })
-
-    const storeId = await resolveStoreForOrganization(context.db, organizationId)
-    if (!storeId) throw new ORPCError('NOT_FOUND', { message: 'No store for this organization' })
-
-    const userId = context.session.user.id
-    return withStore(context.db, storeId, async (tx: StoreTx) => {
-      const access = await resolveAccess(tx, storeId, userId, membership.role)
-      const holds = (permission: Permission) =>
-        access.isOwner || access.permissions.includes(permission)
-      if (required && !holds(required)) {
-        throw new ORPCError('FORBIDDEN', {
-          message: `Your role does not allow ${describe(required)}`,
-          data: { required, role: access.roleSlug },
-        })
-      }
-      const scope: StoreScope = {
-        storeId,
-        organizationId,
-        role: membership.role,
-        userId,
-        ...access,
-        can: holds,
-      }
+    const member = await findMembership(context)
+    return withStore(context.db, member.storeId, async (tx: StoreTx) => {
+      const scope = await scopeFor(tx, member, required)
       try {
         return await next({ context: { scope, tx } })
       } catch (error) {
-        // ORPCError is a deliberate, client-facing response (unauthorized, validation, not
-        // found); only unexpected exceptions are worth an error-tracking event.
-        if (!(error instanceof ORPCError)) context.reportError?.(error, { storeId })
-        throw error
+        return report(context, member.storeId, error)
       }
     })
   })
@@ -152,4 +163,26 @@ export const storeProcedure = storeProcedureWith()
 /** Store-scoped procedure that refuses callers without `permission`. */
 export function can(permission: Permission) {
   return storeProcedureWith(permission)
+}
+
+/**
+ * `can(permission)` for handlers that wait on a slow outside service (an AI model) or stream
+ * their answer. Membership and permission are checked in a short `withStore` transaction
+ * exactly as `can` does, then the handler runs with `scope` but no `tx`: it opens its own
+ * `withStore(context.db, scope.storeId, ...)` for each read or write. So no Postgres
+ * connection sits idle in a transaction while a model thinks, and a streamed answer (whose
+ * generator runs after the middleware returns) never touches a committed transaction.
+ */
+export function canDetached(permission: Permission) {
+  return protectedProcedure.use(async ({ context, next }) => {
+    const member = await findMembership(context)
+    const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>
+      scopeFor(tx, member, permission),
+    )
+    try {
+      return await next({ context: { scope } })
+    } catch (error) {
+      return report(context, member.storeId, error)
+    }
+  })
 }
