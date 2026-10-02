@@ -30,11 +30,13 @@ export default async function Home({ params }: Params) {
       page: await renderTemplate(tx, storeId, 'home'),
     }
   })
+  // The sections come first so a theme's `main > section:first-child` rules (the hero
+  // painting without a reveal) see the first section, as on Shopify.
   return (
     <>
+      {page}
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from our own data; jsonLd() escapes it. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(storeGraph(identity))} />
-      {page}
     </>
   )
 }

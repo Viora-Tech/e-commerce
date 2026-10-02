@@ -52,6 +52,14 @@ The AI engine (`packages/ai`, "Write with AI" and "Ask your store") is built on 
 License 2.0); licences read from each package's npm metadata (`npm view <pkg> license`) on
 2026-10-02. Used as libraries behind our own interface (`packages/ai/src/engine.ts`); no code is
 copied.
+Shopify theme import (`packages/core/src/theme-import`) renders a merchant's own uploaded theme with
+[LiquidJS](https://github.com/harttle/liquidjs) 10.30.0 (MIT, Copyright (c) 2016 Jun Yang / harttle),
+licence verified with `npm view liquidjs license` and its GitHub `LICENSE` on 2026-10-02. Used as a
+library behind our own engine (`engine.ts`); no code is copied. The Shopify-only tags, filters and
+objects (`form`, `image_url`, `money`, `product`, `collection`...) are our own implementations
+written from Shopify's public Liquid reference; no Shopify code is used. The themes merchants
+upload stay theirs: the upload dialog asks them to confirm they own the theme or hold the rights,
+since Theme Store themes are usually licensed for Shopify only.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

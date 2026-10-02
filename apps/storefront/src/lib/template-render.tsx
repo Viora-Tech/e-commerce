@@ -22,8 +22,10 @@ import { resolveAllData } from '@puckeditor/core'
 import { headers } from 'next/headers'
 import { Fragment } from 'react'
 import RecentlyViewed from '@/components/product/recently-viewed'
+import LiquidHtml from '@/components/theme/liquid-html'
 import { listCardProducts } from './catalog'
 import { collectionCards, listCollections } from './collections'
+import { liquidContextFor, prerenderLiquidSections } from './liquid-theme'
 import { attachImageMedia } from './media-lookup'
 import { subscribeAction } from './newsletter-actions'
 import { readPreview } from './storefront-gate'
@@ -113,6 +115,10 @@ export async function renderTemplate(
   // variants and ThumbHash, so a banner never ships the full-size original.
   const visible = await attachImageMedia(tx, bound)
   const config = await blocksConfig(tx, storeId)
+  // An imported Shopify theme: its sections render through the Liquid engine now, while
+  // this transaction is open; the LiquidSection renderer below only places the HTML.
+  const liquid = themeId ? await liquidContextFor(tx, storeId, themeId) : null
+  const liquidHtml = liquid ? await prerenderLiquidSections(liquid, key, visible.content) : null
   const metadata: SectionMetadata = {
     renderers: {
       // Any template can show the shopper's history; routes add their own sections.
@@ -123,6 +129,10 @@ export async function renderTemplate(
           limit={typeof settings.limit === 'number' ? settings.limit : 4}
         />
       ),
+      LiquidSection: (settings) => {
+        const section = liquidHtml?.get(String(settings.id))
+        return section ? <LiquidHtml {...section} /> : null
+      },
       ...options.renderers,
     },
     appBlockContext: options.appBlockContext,
@@ -131,12 +141,21 @@ export async function renderTemplate(
     newsletterAction: subscribeAction,
   }
   const resolved = await resolveAllData(visible as unknown as PageData, config, metadata)
-  options.onSections?.(new Set(resolved.content.map((item) => String(item.type))))
+  // Imported sections also report their theme type (`LiquidSection:cookie-banner`).
+  options.onSections?.(
+    new Set(
+      resolved.content.flatMap((item) =>
+        item.type === 'LiquidSection'
+          ? [String(item.type), `LiquidSection:${String(item.props.sectionType)}`]
+          : [String(item.type)],
+      ),
+    ),
+  )
   const components = config.components as unknown as Record<string, ComponentConfig | undefined>
   const puck = { metadata, isEditing: false, renderDropZone: () => null, dragRef: null }
   // Sections below the first rise in on scroll. Not the header and footer groups, and
   // not in a theme preview, where the merchant is looking at sections, not arriving.
-  const reveals = !preview && key !== 'header' && key !== 'footer'
+  const reveals = !preview && !liquid && key !== 'header' && key !== 'footer'
   // The first section of a page is where the LCP image usually is: hero-type blocks
   // load theirs eagerly at high priority when told so, everything else stays lazy.
   const group = key === 'header' || key === 'footer'

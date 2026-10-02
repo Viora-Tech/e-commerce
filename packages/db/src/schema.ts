@@ -2092,6 +2092,67 @@ export const themeTemplate = pgTable(
 )
 
 /**
+ * The files of a theme imported from Shopify (`@commerce/core` theme-import): its Liquid
+ * sections, snippets, blocks, layout, locales, config and assets, exactly as uploaded,
+ * so the Liquid engine can render the theme's own markup and the storefront can serve its
+ * CSS, JS and fonts. Text files are stored as UTF-8, binary assets as base64.
+ */
+export const themeFile = pgTable(
+  'theme_file',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    /** Path inside the theme, e.g. `sections/hero.liquid` or `assets/base.css`. */
+    path: text('path').notNull(),
+    body: text('body').notNull(),
+    encoding: text('encoding').notNull().default('utf8'),
+    contentType: text('content_type').notNull(),
+    size: integer('size').notNull(),
+    /** SHA-256 of the bytes (hex, first 16); asset URLs carry it so caches never go stale. */
+    checksum: text('checksum').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('theme_file_encoding', sql`${t.encoding} in ('utf8','base64')`),
+    uniqueIndex('theme_file_path').on(t.themeId, t.path),
+    index('theme_file_store').on(t.storeId),
+  ],
+)
+
+/**
+ * One row per imported theme: where it came from, the theme's own settings
+ * (`config/settings_data.json`, current preset) and the import report the merchant reads.
+ * A theme with a row here renders through the Liquid engine.
+ */
+export const themeImport = pgTable(
+  'theme_import',
+  {
+    id: id(),
+    storeId: storeId(),
+    themeId: uuid('theme_id')
+      .notNull()
+      .references(() => theme.id, { onDelete: 'cascade' }),
+    source: text('source').notNull().default('shopify'),
+    fileName: text('file_name').notNull(),
+    /** `theme_info` from settings_schema.json: name, version, author. */
+    themeInfo: jsonb('theme_info').notNull().default({}),
+    /** Theme settings (Shopify `settings`), images already re-hosted. */
+    settings: jsonb('settings').notNull().default({}),
+    report: jsonb('report').notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('theme_import_source', sql`${t.source} in ('shopify')`),
+    uniqueIndex('theme_import_theme').on(t.themeId),
+    index('theme_import_store').on(t.storeId),
+  ],
+)
+
+/**
  * Storefront menus (header, footer). The storefront renders them later;
  * for now the admin owns the list and every item's destination.
  */

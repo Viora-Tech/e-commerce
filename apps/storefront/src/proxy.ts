@@ -103,6 +103,11 @@ async function routeRequest(request: NextRequest, withNonce: (headers: Headers) 
   headers.set('x-store-id', storeId)
   const country = visitorCountry(request)
   if (country) headers.set('x-visitor-country', country)
+  // Imported Shopify themes read `form.posted_successfully?` after our form handlers
+  // redirect back with `?form_posted=<type>` (lib/liquid-theme.ts).
+  const posted = request.nextUrl.searchParams.get('form_posted')
+  if (posted && /^[a-z_]{1,40}$/.test(posted)) headers.set('x-form-posted', posted)
+  headers.set('x-pathname', request.nextUrl.pathname)
 
   if (route.kind === 'passthrough') return NextResponse.next({ request: { headers } })
 

@@ -33,7 +33,15 @@ type ConsentManagerProps = {
    * Only the banner changes: the cookie, the version check and what each answer loads do not.
    */
   appearance?: CookieBannerSettings | undefined
+  /**
+   * An imported Shopify theme draws its own banner (`lib/liquid-shim.ts` answers its
+   * `Shopify.customerPrivacy` calls): no banner here, only the answer it sends.
+   */
+  themeBanner?: boolean | undefined
 }
+
+/** The event the imported theme's banner sends with the shopper's choice. */
+const THEME_CONSENT_EVENT = 'commerce:consent'
 
 function remember(consent: Consent, version: number): void {
   const secure = window.location.protocol === 'https:' ? '; secure' : ''
@@ -55,6 +63,7 @@ export default function ConsentManager({
   initial,
   nonce,
   appearance,
+  themeBanner,
 }: ConsentManagerProps) {
   // Hooks
   const [consent, setConsent] = useState<Consent | null>(currentConsent(initial, bannerVersion))
@@ -72,6 +81,19 @@ export default function ConsentManager({
     return () => window.removeEventListener('hashchange', check)
   }, [])
 
+  useEffect(() => {
+    if (!themeBanner) return
+    const handleThemeChoice = (event: Event) => {
+      const detail = (event as CustomEvent<{ analytics?: unknown; marketing?: unknown }>).detail
+      const next = { analytics: detail?.analytics === true, marketing: detail?.marketing === true }
+      remember(next, bannerVersion)
+      setConsent(next)
+      void recordConsentAction(next).catch(() => undefined)
+    }
+    window.addEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
+    return () => window.removeEventListener(THEME_CONSENT_EVENT, handleThemeChoice)
+  }, [themeBanner, bannerVersion])
+
   // Event handlers
   const handleChoose = (next: Consent) => {
     remember(next, bannerVersion)
@@ -83,7 +105,7 @@ export default function ConsentManager({
 
   // Render logic
   const tags = allowedTags({ tracking }, consent)
-  const asking = consent === null || reopened
+  const asking = !themeBanner && (consent === null || reopened)
   const current = consent ?? { analytics: false, marketing: false }
 
   return (
