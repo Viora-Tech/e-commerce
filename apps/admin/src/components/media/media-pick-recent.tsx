@@ -44,7 +44,7 @@ export default function MediaPickRecent({
                 aria-pressed={active}
                 aria-label={item.alt || filenameFrom(item.key) || copy.title}
                 className={cn(
-                  'flex size-16 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1 transition-shadow duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none',
+                  'flex size-16 items-center justify-center overflow-hidden rounded-lg border bg-muted p-1 motion-press focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                   active ? 'ring-2 ring-primary' : 'hover:shadow-card-hover',
                 )}
               >

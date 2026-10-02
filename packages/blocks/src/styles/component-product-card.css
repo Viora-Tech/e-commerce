@@ -18,6 +18,14 @@
      (see .product-card__price) across a row that mixes reviewed and
      unreviewed products. */
   flex: 1 1 auto;
+  /* Press: the whole card dips as the finger lands, so a tap is answered
+     before the next page starts loading. A card presses less than a button
+     (--motion-card-press-scale); reduced motion sets it to 1. */
+  transition: scale var(--duration-press) var(--ease-out);
+}
+
+.product-card__link:active {
+  scale: var(--motion-card-press-scale);
 }
 
 .product-card__media {
@@ -98,9 +106,9 @@
    images at all were worse: the placeholder faded out too.
    snippets/product-card.liquid now marks the card only when a hover image
    genuinely exists, so a swap is never started that cannot finish. */
-.product-card[data-has-hover]:not([data-scrub-active])
-  .product-card__link:hover
-  .product-card__image--primary,
+/* Hover only with a real mouse: on a phone a tap fakes :hover and leaves it
+   on, so the card came back from the product page still lifted and showing
+   its second photo. Keyboard focus keeps the same treatment everywhere. */
 .product-card[data-has-hover]:not([data-scrub-active])
   .product-card__link:focus-visible
   .product-card__image--primary {
@@ -108,17 +116,31 @@
 }
 
 .product-card[data-has-hover]:not([data-scrub-active])
-  .product-card__link:hover
-  .product-card__image--hover,
-.product-card[data-has-hover]:not([data-scrub-active])
   .product-card__link:focus-visible
   .product-card__image--hover {
   opacity: 1;
 }
 
-.product-card__link:hover .product-card__media,
 .product-card__link:focus-visible .product-card__media {
   transform: translateY(-2px);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .product-card[data-has-hover]:not([data-scrub-active])
+    .product-card__link:hover
+    .product-card__image--primary {
+    opacity: 0;
+  }
+
+  .product-card[data-has-hover]:not([data-scrub-active])
+    .product-card__link:hover
+    .product-card__image--hover {
+    opacity: 1;
+  }
+
+  .product-card__link:hover .product-card__media {
+    transform: translateY(-2px);
+  }
 }
 
 /* Scrub cards must NOT lift. The media box is the element card-scrub.js
@@ -552,10 +574,16 @@
   text-overflow: ellipsis;
 }
 
-.product-card__link:hover .product-card__title,
 .product-card__link:focus-visible .product-card__title {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .product-card__link:hover .product-card__title {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 .product-card__rating {

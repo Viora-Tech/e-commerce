@@ -27,6 +27,20 @@
   --radius-section: var(--section-radius);
 }
 
+/* Motion tokens (--ease-out, --duration-press, ...) live in @commerce/blocks base.css
+   (docs/conventions.md, "Motion"). That :root is unlayered, so it also overrides Tailwind's
+   own --ease-out / --ease-in-out and every `ease-out` class gets the shared curve. */
+
+/* Hover only where there is a real mouse: a tap on a phone fakes :hover and leaves it on.
+   Gates every `hover:` / `group-hover:` class; touch gets `active:` press feedback. */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
 /*
  * The locked checkout (components/checkout). Its own palette, never the theme's: the
  * shell sets the merchant's Settings -> Checkout -> Branding as --ck-* properties

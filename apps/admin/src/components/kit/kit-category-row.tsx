@@ -16,7 +16,7 @@ export default function KitCategoryRow({ href, image, label, count }: KitCategor
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-md bg-card p-1.5 shadow-lift transition-shadow hover:shadow-card-hover"
+      className="flex items-center gap-3 rounded-md bg-card p-1.5 shadow-lift motion-press hover:shadow-card-hover"
     >
       <KitThumb src={image} alt="" size="category" />
       <span className="min-w-0 flex-1 truncate text-kit-title font-normal text-foreground">

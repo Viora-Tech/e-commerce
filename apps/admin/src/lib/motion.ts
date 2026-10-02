@@ -5,7 +5,8 @@ import type { Transition } from 'motion/react'
  * ease-out; only the active pill uses a stiff spring so it settles without
  * overshoot. Components check `useReducedMotion()` and pass `instant` instead.
  */
-export const EASE_OUT: readonly [number, number, number, number] = [0.22, 1, 0.36, 1]
+/** Same curve as the `--ease-out` token in @commerce/ui styles.css (docs/conventions.md, "Motion"). */
+export const EASE_OUT: readonly [number, number, number, number] = [0.23, 1, 0.32, 1]
 
 export const fast: Transition = { duration: 0.15, ease: EASE_OUT }
 export const base: Transition = { duration: 0.2, ease: EASE_OUT }

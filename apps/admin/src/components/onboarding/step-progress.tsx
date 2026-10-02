@@ -41,7 +41,7 @@ export default function StepProgress({ step, total, onBack, disabled }: StepProg
         {dots.map((i) => (
           <span
             key={i}
-            className={`h-2 rounded-full transition-all ${
+            className={`h-2 rounded-full transition-[width,background-color] duration-(--duration-modal) ease-out ${
               i === step ? 'w-5 bg-primary' : i < step ? 'w-2 bg-primary/60' : 'w-2 bg-muted'
             }`}
           />
