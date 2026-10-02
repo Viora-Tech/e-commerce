@@ -1,6 +1,6 @@
-/** Copy for Settings → Shipping and the order shipment panel. */
+/** Copy for Settings → Shipping & delivery and the order shipment panel. */
 export const shippingSettingsContent = {
-  title: 'Shipping',
+  title: 'Shipping & delivery',
   intro: 'Where you deliver, what it costs, and when orders go out.',
   whatsThis: {
     trigger: "What's this?",

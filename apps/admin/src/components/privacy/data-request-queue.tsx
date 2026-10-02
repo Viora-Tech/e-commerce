@@ -61,10 +61,7 @@ export default function DataRequestQueue() {
         title={copy.title}
         subtitle={copy.subtitle}
         icon={<ShieldCheck aria-hidden="true" />}
-        breadcrumbs={[
-          { label: copy.back, href: '/settings/customer-privacy' },
-          { label: copy.title },
-        ]}
+        breadcrumbs={[{ label: copy.back, href: '/settings/privacy' }, { label: copy.title }]}
         actions={
           <Button onClick={() => setLogging(true)}>
             <Plus aria-hidden="true" />
@@ -101,7 +98,7 @@ export default function DataRequestQueue() {
                 return (
                   <li key={r.id}>
                     <Link
-                      href={`/settings/customer-privacy/requests/${r.id}`}
+                      href={`/settings/privacy/requests/${r.id}`}
                       className="flex flex-col gap-2 px-4 py-3 hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex min-w-0 flex-col gap-0.5">

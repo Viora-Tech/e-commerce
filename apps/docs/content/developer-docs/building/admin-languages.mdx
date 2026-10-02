@@ -18,7 +18,7 @@ ICU-message libraries such as next-intl (MIT) would have meant rewriting. The la
 
 ```mermaid
 flowchart LR
-  picker["Settings → Account<br/>LanguageField"] -- "document.cookie admin_locale=hi<br/>router.refresh()" --> cookie[(admin_locale cookie)]
+  picker["Account (account menu)<br/>LanguageField"] -- "document.cookie admin_locale=hi<br/>router.refresh()" --> cookie[(admin_locale cookie)]
   cookie --> layout["app/layout.tsx (server)<br/>getLocale()"]
   layout -- "lang=hi" --> html["&lt;html&gt;"]
   layout -- "locale" --> provider["LocaleProvider (client)"]

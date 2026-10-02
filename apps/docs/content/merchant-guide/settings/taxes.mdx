@@ -1,26 +1,33 @@
 ---
 title: Taxes & GST
-description: Add your GSTIN, choose whether prices include GST, set the default rate and HSN code, the composition scheme, and how invoices are numbered.
+description: One page in three tabs. GST numbers (your business, PAN and a GST number per state), Tax rules (whether prices include GST, rate, HSN, composition) and Invoice numbers.
 ---
 
 # Taxes & GST
 
-**Settings → Taxes & GST** is where your GST details live: your **GSTIN**, whether your prices
-include GST, the default rate and HSN code, the composition scheme, and how your invoices are
-numbered. It used to be a card on **Settings → General**; old links to it now open this page.
+**Settings → Taxes & GST → GST & invoices** is one page with three tabs:
+
+| Tab | What it holds | Used to be |
+| --- | --- | --- |
+| **GST numbers** | Your business and PAN, a GST number for each state you sell from, and which one is the default. | **Settings → Business and GST** |
+| **Tax rules** | Your registered legal name and address, whether prices include GST, the default rate and HSN code, the composition scheme. | **Settings → Taxes & GST** |
+| **Invoice numbers** | How your tax invoices are numbered, and e-invoicing. | **Settings → Taxes & GST** |
+
+Old links to either page still work and open the right tab. The tab you are on is part of the
+address (`?tab=tax-rules`), so you can bookmark it or send it to your CA.
 
 ## What this is for
 
+- Keeping every GST number your business holds in one place, and choosing the **default** one.
 - Putting your GST number, legal name and registered address on your invoices.
 - Deciding how much GST each order carries when a product has no rate of its own.
 - Numbering your tax invoices the way GST expects: every number used once, in order.
 
-If your business is not registered for GST, leave the GSTIN empty. Nothing else on this page
-is needed.
+If your business is not registered for GST, you can skip this page. Nothing on it is needed.
 
 ## How GST works here
 
-The page ends with a short guide. The same points, in brief:
+The **Tax rules** tab ends with a short guide. The same points, in brief:
 
 - **Inside your state: CGST + SGST.** When the delivery address is in the same state as your
   GST registration, the tax is split in half: CGST to the central government, SGST to your
@@ -40,9 +47,63 @@ A ₹1,000 item at 18%:
 | Same state | CGST ₹76.27 + SGST ₹76.27 | CGST ₹90 + SGST ₹90 |
 | Other state | IGST ₹152.54 | IGST ₹180 |
 
-The example on the page uses your own default rate.
+The example on the Tax rules tab uses your own default rate.
 
-## Settings → Taxes & GST
+## GST per state
+
+Each order is billed from the GST number of the warehouse its products sell from (you choose
+it per location on [Locations](/merchant-guide/settings/locations)). If that warehouse has no
+GST number chosen, the order is billed from your default GST number.
+
+Your prices already include GST, so this never changes what the shopper pays. It only changes
+how the tax is split on the invoice:
+
+| Warehouse in | Shopper in | Tax on the order |
+| --- | --- | --- |
+| Haryana | Haryana | CGST + SGST |
+| Haryana | Karnataka | IGST |
+| Karnataka | Karnataka | CGST + SGST |
+
+The order page shows which GST number it was billed from, for example **Billed from:
+Haryana · 06AAPFU0939F1ZV**. Each GST number also numbers its own invoices and files its own
+GSTR-1 (see [GST invoices](/merchant-guide/money/gst-invoices#more-than-one-gst-number)).
+
+## GST numbers tab
+
+In India you get one GST number for each state where you have a shop or warehouse. If you send
+orders from Haryana and from Delhi, you have two GST numbers, and both belong to the same PAN.
+
+- **Your business** shows your legal name and PAN. You do not type the PAN for your first GST
+  number: we read it from the GST number itself (characters 3 to 12 of a GST number are the PAN).
+- **GST numbers** lists each number with its state. We read the state from the first two
+  digits, so you never pick it. The default one has a **Default** badge.
+- **Add GST number** asks for the 15-character number from your GST certificate. As you type,
+  the page shows "Registered in Haryana" (or your state). The other fields are optional: an
+  invoice prefix such as `HR` (printed where your numbering uses `{GST}`), and the address on
+  the certificate, which invoices from this GST number print as your address.
+- If the number belongs to a different PAN, you see: *"This GST number belongs to a different
+  PAN. Is it another business?"* Check for a typo first. If it really is another business, use
+  **Add it as another business**.
+- **Make default** (from the ⋮ menu) switches your default GST number. **Mark as cancelled** is
+  only for a number the GST department has cancelled; old invoices keep showing it.
+
+### More than one business
+
+Open **Advanced: more than one business** only if a warehouse belongs to a different legal
+business (a different PAN), for example a partner's stock you sell.
+
+> Selling stock owned by another business makes you an e-commerce operator. Talk to your CA
+> first.
+
+### GST numbers and the Tax rules tab
+
+Once you have a GST number on the GST numbers tab, the **Tax rules** tab shows it read-only with
+a **Manage GST numbers** button that brings you back to the first tab. If you have no GST
+number yet, typing one on Tax rules adds it as your first.
+
+Only owners and administrators can change this tab. Staff cannot open it.
+
+## Tax rules tab
 
 <Steps>
 
@@ -75,6 +136,17 @@ shop name) and your **Registered address**. Both are printed on invoices.
 
 A different rate or HSN code for one product is set on that product's page in **Products**.
 
+### Save
+
+Select **Save** in the bar at the top. You will see "Tax settings saved". The bar stays put
+when you switch tabs, so you can change a rule and an invoice number and save both at once.
+
+</Steps>
+
+## Invoice numbers tab
+
+<Steps>
+
 ### Invoice numbers
 
 - **Starts with**: letters, numbers, `/` and `-`. Write `{FY}` where you want the year:
@@ -99,6 +171,15 @@ government portal for B2B invoices; for now, do that on the e-invoice portal you
 Select **Save** in the bar at the top. You will see "Tax settings saved".
 
 </Steps>
+
+## Try it
+
+1. Open **Settings → GST & invoices**. It opens on **GST numbers**.
+2. Select **Add GST number**, type your GST number and check the state it shows.
+3. Add a second one for another state, then use **⋮ → Make default** to switch.
+4. Open the **Tax rules** tab and check **My prices include GST** and the default rate.
+5. Open the **Invoice numbers** tab and check the next invoice number under the fields.
+6. Open **Settings → Locations & warehouses** and pick which GST number each location bills under.
 
 ## Common questions
 

@@ -6,7 +6,7 @@ import { useReducedMotion } from '../use-reduced-motion'
 /** Every control whose hover colour sweeps in from where the cursor entered. */
 const FILL_TARGETS = '.btn, [data-icon-close]'
 
-/** Only a real pointer that can hover; touch taps keep the instant CSS :hover swap. */
+/** Only a real pointer that can hover. Touch has no hover at all (base.css gates it) and gets the :active press. */
 const FINE_POINTER = '(hover: hover) and (pointer: fine)'
 
 function pointAt(el: Element, event: PointerEvent): { x: string; y: string } {

@@ -75,7 +75,7 @@ export default function DataRequestDetail({ id }: DataRequestDetailProps) {
         subtitle={KIND_LABEL[r.kind]}
         icon={<ShieldCheck aria-hidden="true" />}
         breadcrumbs={[
-          { label: copy.back, href: '/settings/customer-privacy/requests' },
+          { label: copy.back, href: '/settings/privacy/requests' },
           { label: copy.title(r.number) },
         ]}
         badges={<DataRequestStatusBadge status={r.status} />}

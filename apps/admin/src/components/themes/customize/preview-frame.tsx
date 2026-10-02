@@ -1,9 +1,11 @@
 'use client'
 
+import { EditorSelectionContext } from '@commerce/blocks/editor-selection'
 import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
 import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
+import { useCustomizePuck } from '@/lib/customize-puck'
 import { useLiquidHead, usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import CanvasInsertLine from './canvas-insert-line'
 
@@ -27,6 +29,11 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   const mode = usePreviewMode()
   const liquid = useLiquidHead()
   const reducedMotion = useReducedMotion()
+  // Popups and the cookie banner open in the canvas only while selected (EditorOverlay).
+  const selectedId = useCustomizePuck((s) => {
+    const id = s.selectedItem?.props?.id
+    return typeof id === 'string' ? id : null
+  })
   useEffect(() => {
     // An imported Shopify theme brings its own CSS (below); ours would fight it.
     if (!document || !theme || liquid) return
@@ -120,9 +127,9 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
 
   // Render logic
   return (
-    <>
+    <EditorSelectionContext.Provider value={selectedId}>
       {children}
       {document ? <CanvasInsertLine document={document} /> : null}
-    </>
+    </EditorSelectionContext.Provider>
   )
 }

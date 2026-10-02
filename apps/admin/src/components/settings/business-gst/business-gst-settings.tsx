@@ -2,11 +2,7 @@
 
 import type { Business, BusinessGstView } from '@commerce/core'
 import { permissions } from '@commerce/core/permissions'
-import { Store } from '@commerce/ui/icons'
 import { useState } from 'react'
-import PageHeader from '@/components/layout/page-header'
-import { businessGstContent } from '@/data/business-gst'
-import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import AddRegistrationDialog from './add-registration-dialog'
 import BusinessCard from './business-card'
@@ -22,12 +18,12 @@ type BusinessGstSettingsProps = {
 type BusinessDialogState = { business: Business | null } | null
 
 /**
- * Settings › Business and GST: the main business (PAN), its GST numbers with the default one,
- * and other businesses behind an Advanced disclosure. Every change refreshes the server page.
+ * The GST numbers tab of Settings › Taxes & GST (once its own page, "Business and GST"): the
+ * main business (PAN), its GST numbers with the default one, and other businesses behind an
+ * Advanced disclosure. Every change refreshes the server page.
  */
 export default function BusinessGstSettings({ view }: BusinessGstSettingsProps) {
   // Hooks
-  const copy = useCopy(businessGstContent)
   const { hasPermission } = usePermissions()
   const [addOpen, setAddOpen] = useState(false)
   const [businessDialog, setBusinessDialog] = useState<BusinessDialogState>(null)
@@ -47,7 +43,6 @@ export default function BusinessGstSettings({ view }: BusinessGstSettingsProps) 
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Store aria-hidden="true" />} />
       <BusinessCard
         business={main}
         canManage={canManage}

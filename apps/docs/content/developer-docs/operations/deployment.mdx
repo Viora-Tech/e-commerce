@@ -7,10 +7,11 @@ title: Deployment
 Production runs on **one AWS Lightsail server** (Mumbai region, 8 GB RAM / 2 vCPU burstable,
 Ubuntu 24.04) running **Dokploy** (self-hosted PaaS, Apache-2.0 core — we don't use any of its
 paid enterprise features). **Nothing is built on the server.** GitHub Actions
-(`.github/workflows/release.yml`) builds every image on each push to `main`, pushes it to the
-GitHub Container Registry (GHCR), then calls Dokploy's deploy webhook; Dokploy only pulls the new
-images and restarts. `.github/workflows/ci.yml` still runs lint/typecheck/tests on every push and
-PR, separately. Domains sit behind Cloudflare (proxied, Full (strict) SSL).
+(`.github/workflows/release.yml`) builds every image, pushes it to the GitHub Container Registry
+(GHCR), then calls Dokploy's deploy webhook; Dokploy only pulls the new images and restarts.
+`.github/workflows/ci.yml` runs lint/typecheck/tests separately. **Both are paused to manual runs
+(2026-10-02):** start them from the repo's Actions tab → "Run workflow"; checks run locally before
+each PR. Restore their `push`/`pull_request` triggers to make them automatic again. Domains sit behind Cloudflare (proxied, Full (strict) SSL).
 
 ```mermaid
 flowchart LR

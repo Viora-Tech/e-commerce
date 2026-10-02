@@ -136,6 +136,64 @@ the rebuild stays pixel-faithful and a theme change can be diffed against the or
 Those files still follow the other rules: rem sizes, colours from the theme's CSS variables,
 never hardcoded. Inventory and status of the port: `docs/design/glide-theme-port.md`.
 
+## Motion
+
+One motion system for the admin and the storefront, after Emil Kowalski's rules (the
+`emil-design-eng`, `review-animations` and `mobile-native` skills). The tokens are defined twice,
+once per app, with the same values:
+
+- Admin: `packages/ui/src/styles.css` (`@theme` curves, `:root` durations, the `motion-*` utilities).
+- Storefront: `packages/blocks/src/styles/base.css` (`:root`, top of the file).
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` | anything entering or leaving, presses |
+| `--ease-in-out` | `cubic-bezier(0.77, 0, 0.175, 1)` | something moving across the screen |
+| `--ease-drawer` | `cubic-bezier(0.32, 0.72, 0, 1)` | sheets and drawers |
+| `--duration-press` | 140ms | `:active` press feedback |
+| `--duration-tooltip` | 150ms | tooltips |
+| `--duration-popover` | 180ms | popovers |
+| `--duration-dropdown` | 200ms | menus, selects, comboboxes |
+| `--duration-modal` | 250ms | dialogs, backdrops |
+| `--duration-drawer` | 350ms | sheets |
+| `--motion-exit-ratio` | 0.7 | exits run at 70% of their entry |
+| `--motion-press-scale` | 0.97 | pressed buttons (cards: `--motion-card-press-scale` 0.98 on the storefront) |
+
+The `ease-out` and `ease-in-out` Tailwind classes resolve to these curves in both apps.
+
+Rules:
+
+- **Name the properties.** `transition-[color,background-color,scale]`, never `transition-all` /
+  `transition: all`. Animate `transform`/`scale`/`opacity`; avoid width, height, margin.
+- **Never `ease-in` on UI.** It starts slow, which reads as lag. Enter and exit use `--ease-out`.
+- **Under 300ms** for UI (drawers excepted). Exits are quicker than entries.
+- **Nothing appears from nothing.** Entries start at `scale(0.95–0.97)` with `opacity: 0`, never
+  `scale(0)`.
+- **Press feedback on every pressable.** `<Button>` (packages/ui) and the storefront `.btn` already
+  do it: `:active` scales to `--motion-press-scale` with a 140ms ease-out, disabled buttons stay
+  still. Cards and tiles that are links or buttons: add `motion-press` in the admin (it owns the
+  element's transition, so use it instead of `transition-shadow`); on the storefront use
+  `active:scale-(--motion-card-press-scale)` with a `scale` transition.
+- **Popups grow from their trigger.** Base UI popovers, menus, selects and comboboxes use the
+  `motion-popup` utility, tooltips `motion-tooltip`: `transform-origin: var(--transform-origin)`,
+  `data-starting-style`/`data-ending-style` at opacity 0 + scale 0.97, CSS transitions (they
+  retarget when reopened mid-way; keyframes restart). Dialogs use `motion-dialog` and stay centred.
+  Every admin tooltip shares one `TooltipProvider` (`components/layout/motion-provider.tsx`), so
+  after the first one the next opens instantly (`data-instant`, no animation).
+- **Hover only with a mouse.** Both apps override Tailwind's `hover:` variant to
+  `@media (hover: hover) and (pointer: fine)`, so `hover:`, `group-hover:` and `peer-hover:` never
+  stick on a phone. Handwritten theme CSS wraps its `:hover` rules in the same query and keeps
+  `:focus-visible` outside it.
+- **Reduced motion keeps fades, drops movement.** Each app has one rule that sets the
+  `--motion-*-scale` and offset tokens to "no movement" under `prefers-reduced-motion: reduce`.
+  Motion (motion.dev) components follow the OS setting through `MotionConfig reducedMotion="user"`
+  in the admin root; storefront components check `useReducedMotion`.
+- **Feel native on a phone.** The storefront sets `viewport-fit=cover` (root layout), so fixed
+  bottom bars, drawers and page margins pad with `env(safe-area-inset-*)`. Full-height panels use
+  `dvh` (app-like) or `svh` (heroes, pinned stages), never `100vh`. Fields are at least 16px on
+  touch screens so iOS does not zoom. Controls get `touch-action: manipulation`; scrollable
+  drawers and overlays get `overscroll-behavior: contain`. Never disable zoom.
+
 ## Inline editing in theme sections
 
 Text drawn on the canvas uses the field helpers in `packages/blocks/src/sections/inline-fields.ts`

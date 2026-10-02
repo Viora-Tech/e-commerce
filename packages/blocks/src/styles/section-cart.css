@@ -616,6 +616,8 @@
 .cart-drawer__items {
   flex: 1 1 auto;
   overflow-y: auto;
+  /* The end of the list must not scroll (or pull-to-refresh) the page behind the drawer. */
+  overscroll-behavior: contain;
   padding-inline: var(--space-5);
   padding-block: var(--space-5);
 }
@@ -634,6 +636,7 @@
      below). */
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -673,6 +676,8 @@
 .cart-drawer__footer {
   flex: 0 0 auto;
   padding: var(--space-5);
+  /* Checkout clear of the home indicator (viewport-fit=cover). */
+  padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--color-line);
   display: flex;
   flex-direction: column;
@@ -814,6 +819,7 @@
 .cart-drawer__recent {
   padding: var(--space-5);
   overflow-y: auto;
+  overscroll-behavior: contain;
   gap: var(--space-4);
 }
 

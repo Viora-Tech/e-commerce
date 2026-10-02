@@ -33,7 +33,7 @@ export default function ReportsList({ reports }: ReportsListProps) {
               {items.map((report) =>
                 report.available ? (
                   <Link key={report.slug} href={`/analytics/reports/${report.slug}`}>
-                    <Card className="h-full gap-1 p-5 transition-shadow hover:shadow-card-hover">
+                    <Card className="h-full gap-1 p-5 motion-press hover:shadow-card-hover">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-kit-body font-medium text-foreground">{report.title}</p>
                         <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />

@@ -44,7 +44,7 @@ export const guides = {
     href: '/merchant-guide/settings',
     icon: 'checklist',
     title: 'Settings',
-    description: 'The setup checklist, searching settings, and your store details.',
+    description: 'The setup checklist, the six settings groups, search, and your store details.',
   },
   notifications: {
     href: '/merchant-guide/settings/notifications',
@@ -61,7 +61,7 @@ export const guides = {
   shipping: {
     href: '/merchant-guide/settings/shipping',
     icon: 'truck',
-    title: 'Shipping settings',
+    title: 'Shipping & delivery',
     description: 'Delivery prices, your boxes, when orders go out, which courier ships.',
   },
   shipments: {

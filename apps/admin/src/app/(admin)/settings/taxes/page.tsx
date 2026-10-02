@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import TaxesSettings from '@/components/settings/taxes/taxes-settings'
+import TaxesGstPage from '@/components/settings/taxes/taxes-gst-page'
+import { appRouter, call, serverContext } from '@/lib/api'
 
-export const metadata: Metadata = { title: 'Taxes & GST' }
+export const metadata: Metadata = { title: 'GST & invoices' }
 
-export default function Page() {
-  return <TaxesSettings />
+export default async function Page() {
+  const context = await serverContext()
+  const view = await call(appRouter.businessGst.get, undefined, { context })
+  return <TaxesGstPage view={view} />
 }

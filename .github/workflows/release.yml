@@ -13,10 +13,12 @@
 
 name: Release
 
+# Paused (owner, 2026-10-02): images are built only when started by hand from the Actions tab
+# ("Run workflow"). Restore the push trigger to build on every merge to main again.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  # push:
+  #   branches: [main]
 
 # One release at a time; a newer push to main supersedes a queued one.
 concurrency:

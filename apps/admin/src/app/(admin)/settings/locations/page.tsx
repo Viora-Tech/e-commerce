@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import LocationsSettings from '@/components/settings/locations/locations-settings'
 import { appRouter, call, serverContext } from '@/lib/api'
 
-export const metadata: Metadata = { title: 'Locations' }
+export const metadata: Metadata = { title: 'Locations & warehouses' }
 
 export default async function Page() {
   const context = await serverContext()

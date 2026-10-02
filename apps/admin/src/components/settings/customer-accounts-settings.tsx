@@ -232,7 +232,7 @@ export default function CustomerAccountsSettings() {
             <CardContent>
               <Button
                 variant="outline"
-                render={<Link href="/settings/customer-privacy" />}
+                render={<Link href="/settings/privacy" />}
                 nativeButton={false}
               >
                 {copy.deletion.link}

@@ -39,7 +39,7 @@ const clampDays = (raw: string): number =>
     Math.max(PRIVACY_LIMITS.minDueDays, Math.round(Number(raw) || PRIVACY_LIMITS.minDueDays)),
   )
 
-/** Settings → Customer privacy: cookie banner, data requests, grievance officer. */
+/** Settings → Privacy & data requests: cookie banner, data requests, grievance officer. */
 export default function CustomerPrivacySettings() {
   // Hooks
   const [overview, setOverview] = useState<Overview | null>(null)
@@ -191,10 +191,7 @@ export default function CustomerPrivacySettings() {
                   <p className="text-body">
                     {copy.requests.counts(overview.requests.open, overview.requests.overdue)}
                   </p>
-                  <Button
-                    render={<Link href="/settings/customer-privacy/requests" />}
-                    nativeButton={false}
-                  >
+                  <Button render={<Link href="/settings/privacy/requests" />} nativeButton={false}>
                     {copy.requests.view}
                   </Button>
                 </div>
