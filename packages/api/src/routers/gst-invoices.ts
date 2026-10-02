@@ -1,15 +1,5 @@
-import { settingsSecret } from '@commerce/config'
 import { enqueueAppJob, listGstNumbers, permissions } from '@commerce/core'
-import type { StoreTx } from '@commerce/db'
-import {
-  counterYear,
-  DOCUMENT_KINDS,
-  DocumentSnapshotSchema,
-  financialYear,
-  formatSeriesNumber,
-  type InvoiceSettings,
-  InvoiceSettingsSchema,
-} from '@commerce/invoices'
+import { DOCUMENT_KINDS, DocumentSnapshotSchema, InvoiceSettingsSchema } from '@commerce/invoices'
 import { mergePdfs, zipFiles } from '@commerce/invoices/render'
 import {
   cancelInvoice,
@@ -21,7 +11,6 @@ import {
   enqueueOrder,
   GST_INVOICES_ID,
   gstr1ForPeriod,
-  gstToken,
   InvoiceError,
   issueCreditNote,
   issueDocument,
@@ -31,11 +20,8 @@ import {
   listQueue,
   loadSettings,
   markFiled,
-  PeriodError,
   pdfBytes,
   pdfFilename,
-  peekNext,
-  type RenderDeps,
   regenerateDocument,
   removeFromQueue,
   renderAndStore,
@@ -45,58 +31,24 @@ import {
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
 import { BULK_MAX, can, heavy } from '../procedures'
-import { getStoreApps, storeRegistries } from '../services/apps.service'
 import {
   createEmailBatch,
   emailBatch,
   mediaUrls,
   orderIdsByNumber,
   orderRefunds,
-  registrationScope,
   storeName,
 } from '../services/gst-invoices.service'
-import { storageProviderFor } from '../services/media.service'
-
-type Ctx = { tx: StoreTx; scope: { storeId: string } }
-
-/** Every procedure here needs the store to have installed the app. */
-async function requireInstalled(context: Ctx) {
-  const apps = await getStoreApps(context.tx, context.scope.storeId)
-  if (!apps.installed.includes(GST_INVOICES_ID)) {
-    throw new ORPCError('PRECONDITION_FAILED', { message: 'Install the GST invoices app first' })
-  }
-}
-
-/** Render deps bound to the request's own store-scoped transaction. */
-function renderDeps(context: Ctx): RenderDeps {
-  return {
-    storeId: context.scope.storeId,
-    inStore: (fn) => fn(context.tx),
-    storage: async () => {
-      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
-      return storageProviderFor(context.tx, context.scope.storeId, storage, settingsSecret())
-    },
-  }
-}
-
-function asOrpc(err: unknown): never {
-  if (err instanceof PeriodError) throw new ORPCError('BAD_REQUEST', { message: err.message })
-  if (err instanceof InvoiceError) {
-    const code =
-      err.code === 'not_found' || err.code === 'order_not_found' ? 'NOT_FOUND' : 'BAD_REQUEST'
-    throw new ORPCError(code, { message: err.message })
-  }
-  if (err instanceof z.ZodError) {
-    throw new ORPCError('BAD_REQUEST', { message: err.issues[0]?.message ?? 'Invalid settings' })
-  }
-  throw err
-}
-
-/**
- * Which GST number a screen works on (the picker at the top of the app). Omitted: the store's
- * default; null: a store without a GST registration.
- */
-const Gst = z.uuid().nullable().optional()
+import {
+  asOrpc,
+  type Ctx,
+  Gst,
+  gstScope,
+  nextNumbers,
+  Period,
+  renderDeps,
+  requireInstalled,
+} from './gst-invoices-context'
 
 const IssueBatch = z.object({
   items: z
@@ -104,9 +56,6 @@ const IssueBatch = z.object({
     .min(1)
     .max(200),
 })
-
-/** A GST return month, 2026-09. */
-const Period = z.string().regex(/^20[0-9]{2}-(0[1-9]|1[0-2])$/)
 
 const Filter = z.object({
   q: z.string().max(100).optional(),
@@ -130,25 +79,6 @@ async function selectedIds(context: Ctx, input: z.infer<typeof Selection>) {
 
 const file = (bytes: Uint8Array, name: string, type = 'application/pdf') =>
   new File([bytes as Uint8Array<ArrayBuffer>], name, { type })
-
-/** The picked GSTIN, refused when it is not this store's; the default when none is picked. */
-async function gstScope(context: Ctx, picked: string | null | undefined): Promise<string | null> {
-  const scope = await registrationScope(context.tx, picked)
-  if (!scope) throw new ORPCError('NOT_FOUND', { message: 'GST number not found' })
-  return scope.id
-}
-
-/** What each series will print next for one GSTIN this financial year. */
-async function nextNumbers(context: Ctx, settings: InvoiceSettings, gst: string | null) {
-  const fy = financialYear(new Date())
-  const issuer = await documentIssuer(context.tx, gst)
-  const out: Record<string, string> = {}
-  for (const series of settings.series) {
-    const next = await peekNext(context.tx, gst, series.id, counterYear(series, fy))
-    out[series.id] = formatSeriesNumber(series, fy, next, gstToken(issuer, settings))
-  }
-  return out
-}
 
 export const gstInvoicesRouter = {
   /** The store's GST numbers for the picker at the top of the app, and which one is the default. */
