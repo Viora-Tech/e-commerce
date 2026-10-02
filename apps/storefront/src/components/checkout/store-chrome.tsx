@@ -2,12 +2,9 @@
 
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { isCheckoutPath } from '@/lib/checkout-path'
 
 type StoreChromeProps = { children: ReactNode }
-
-/** Checkout, payment and thank-you pages: locked like Shopify's, no theme header or footer. */
-const isCheckoutPath = (pathname: string): boolean =>
-  pathname === '/checkout' || pathname.startsWith('/checkout/')
 
 /**
  * The theme's header, footer and cursor effect around every page except the checkout. They
