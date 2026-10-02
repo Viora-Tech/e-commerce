@@ -17,17 +17,29 @@ type FieldTypeSelectProps = {
   id: string
   value: FieldType | null
   disabled?: boolean | undefined
+  /** Only these types (a group's rows hold plain values); every type when absent. */
+  only?: readonly FieldType[] | undefined
   onChange: (type: FieldType) => void
 }
 
 /** "What goes in it" picker: field types in plain words, grouped, with a hint per type. */
-export default function FieldTypeSelect({ id, value, disabled, onChange }: FieldTypeSelectProps) {
+export default function FieldTypeSelect({
+  id,
+  value,
+  disabled,
+  only,
+  onChange,
+}: FieldTypeSelectProps) {
   // Hooks
   const copy = useCopy(fieldTypeContent)
   const { typePlaceholder: placeholder } = useCopy(fieldDialogContent)
 
   // Render logic
   const items = Object.fromEntries(Object.entries(copy.types).map(([type, c]) => [type, c.label]))
+  const groups = FIELD_TYPE_GROUPS.map((group) => ({
+    id: group.id,
+    types: group.types.filter((t: FieldType) => !only || only.includes(t)),
+  })).filter((group) => group.types.length > 0)
 
   return (
     <Select
@@ -36,11 +48,11 @@ export default function FieldTypeSelect({ id, value, disabled, onChange }: Field
       disabled={disabled}
       onValueChange={(v) => v !== null && onChange(v as FieldType)}
     >
-      <SelectTrigger id={id} className="w-full">
+      <SelectTrigger id={id} size="lg" className="w-full">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {FIELD_TYPE_GROUPS.map((group) => (
+        {groups.map((group) => (
           <SelectGroup key={group.id}>
             <SelectLabel>{copy.groups[group.id]}</SelectLabel>
             {group.types.map((type) => (

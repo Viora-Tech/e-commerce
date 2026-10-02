@@ -34,7 +34,9 @@ export default function DefinitionSettingsCard({
 
   // Render logic
   const textFields = fields.filter(
-    (f) => !f.list && ['single_line_text', 'number_integer', 'number_decimal'].includes(f.type),
+    (f) =>
+      !f.list &&
+      ['single_line_text', 'number_integer', 'number_decimal', 'choice'].includes(f.type),
   )
   const items = {
     [NONE]: copy.display.none,

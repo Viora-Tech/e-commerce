@@ -12,6 +12,8 @@ import FieldDialog from './field-dialog'
 
 type DefinitionFieldsCardProps = {
   fields: FieldDefinition[]
+  /** Per field key, how many saved entries hold a value in it. */
+  filled: Record<string, number>
   targets: { id: string; name: string }[]
   onChange: (fields: FieldDefinition[]) => void
 }
@@ -26,6 +28,7 @@ function move<T>(items: T[], from: number, to: number): T[] {
 /** The definition's fields in order, each editable in a dialog. */
 export default function DefinitionFieldsCard({
   fields,
+  filled,
   targets,
   onChange,
 }: DefinitionFieldsCardProps) {
@@ -117,6 +120,7 @@ export default function DefinitionFieldsCard({
         open={editing !== null}
         field={current}
         takenKeys={takenKeys}
+        filled={current ? (filled[current.key] ?? 0) : 0}
         targets={targets}
         onClose={() => setEditing(null)}
         onSave={handleSave}

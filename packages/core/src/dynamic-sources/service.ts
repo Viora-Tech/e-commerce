@@ -328,5 +328,14 @@ export async function loadSourceValues(
   // Only what was asked for: a page's other metafields stay out of the result.
   const asked = new Set(paths)
   for (const key of Object.keys(values)) if (!asked.has(key)) delete values[key]
+  // A date and time reads in the store's clock.
+  const timed = Object.values(values).filter((v) => v.type === 'date_time')
+  if (timed.length) {
+    const [row] = await tx
+      .select({ timeZone: store.timezone })
+      .from(store)
+      .where(eq(store.id, scope.storeId))
+    for (const v of timed) v.timeZone = row?.timeZone
+  }
   return values
 }

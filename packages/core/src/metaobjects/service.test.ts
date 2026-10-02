@@ -1,6 +1,7 @@
 import { collection, createDb, media, product, type StoreTx, store, withStore } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { referenceOptions } from './references'
 import { InvalidMetaobject, type MetaobjectDefinitionWrite } from './schemas'
 import {
   createDefinition,
@@ -15,7 +16,6 @@ import {
   listDefinitions,
   listEntries,
   listMetafieldDefinitions,
-  referenceOptions,
   setMetafields,
   updateDefinition,
   updateEntry,
@@ -180,7 +180,7 @@ describe('content type presets', () => {
       createEntry(tx, s, {
         definitionId: first.id,
         status: 'active',
-        fields: { title: 'Tops', unit: 'cm', rows: ['S | 36', 'M | 38'] },
+        fields: { title: 'Tops', unit: 'cm', rows: [{ size: 'S', chest: '36' }, { size: 'M' }] },
       }),
     )
     expect(entry.handle).toBe('tops')
@@ -192,7 +192,7 @@ describe('content type presets', () => {
           fields: { title: 'Tops', unit: 'feet' },
         }),
       ),
-      /must be one of cm, inches/,
+      /must be picked from the choices/,
     )
   })
 })

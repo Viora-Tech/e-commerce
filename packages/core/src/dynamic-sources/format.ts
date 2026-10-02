@@ -1,5 +1,4 @@
-/** SOURCE OF TRUTH: dynamic source bindings — WHAT the `{ $source, kind, fallback }` format in section settings, source paths, setting/source type compatibility, validation and value resolution with fallback / WHY the editor, Save and the storefront renderer must read bindings the same way. No database. */
-import { formatMoney } from '@commerce/money'
+/** SOURCE OF TRUTH: dynamic source bindings — WHAT the `{ $source, kind, fallback }` format in section settings, source paths, setting/source type compatibility, validation (value resolution: `./resolve.ts`) / WHY the editor, Save and the storefront renderer must read bindings the same way. No database. */
 import type { FieldType } from '../metaobjects/schemas'
 
 /**
@@ -62,13 +61,31 @@ export type SourceOption = {
   definition?: string | undefined
 }
 
-/** A loaded value and its type, keyed by source path (see `loadSourceValues`). */
-export type SourceValues = Record<string, { type: SourceType; value: unknown }>
+/**
+ * A loaded value and its type, keyed by source path (see `loadSourceValues`). A date and
+ * time carries the store's time zone, so the text reads in the store's clock.
+ */
+export type SourceValues = Record<
+  string,
+  { type: SourceType; value: unknown; timeZone?: string | undefined }
+>
+
+/** Sources that can be the target of a link or URL setting. */
+const LINKABLE = [
+  'url',
+  'link',
+  'product_reference',
+  'collection_reference',
+  'page_reference',
+  'variant_reference',
+  'article_reference',
+] as const satisfies readonly SourceType[]
 
 /**
  * Which source types each setting kind accepts. The picker lists only these, and
- * Save refuses anything else. Numbers, prices and dates read fine as text; a colour
- * setting takes single line text and uses it only when it is a real CSS colour.
+ * Save refuses anything else. Numbers, prices, dates, choices, ratings and
+ * measurements read fine as text; a colour setting takes a colour, or single line
+ * text used only when it is a real CSS colour.
  */
 export const COMPATIBLE: Record<SettingKind, readonly SourceType[]> = {
   text: [
@@ -78,14 +95,18 @@ export const COMPATIBLE: Record<SettingKind, readonly SourceType[]> = {
     'number_decimal',
     'money',
     'date',
+    'date_time',
     'url',
+    'choice',
+    'rating',
+    'measurement',
   ],
   richtext: ['rich_text', 'single_line_text', 'multi_line_text'],
   image: ['file'],
-  link: ['url', 'product_reference', 'collection_reference'],
-  url: ['url', 'product_reference', 'collection_reference'],
-  number: ['number_integer', 'number_decimal'],
-  color: ['single_line_text'],
+  link: [...LINKABLE],
+  url: [...LINKABLE],
+  number: ['number_integer', 'number_decimal', 'rating'],
+  color: ['color', 'single_line_text'],
 }
 
 export const isCompatible = (kind: SettingKind, type: SourceType): boolean =>
@@ -100,7 +121,7 @@ export function isBinding(value: unknown): value is Binding {
   )
 }
 
-const isSettingKind = (v: unknown): v is SettingKind =>
+export const isSettingKind = (v: unknown): v is SettingKind =>
   typeof v === 'string' && (SETTING_KINDS as readonly string[]).includes(v)
 
 /** A binding for `path`, keeping the current value as the fallback. */
@@ -230,7 +251,7 @@ export type FoundBinding = {
  * Bindings only ever live in plain objects and arrays, so the walk skips the rest
  * and never visits the same object twice.
  */
-function isPlainData(value: object): boolean {
+export function isPlainData(value: object): boolean {
   if ('$$typeof' in value) return false
   const proto = Object.getPrototypeOf(value)
   return proto === Object.prototype || proto === null || Array.isArray(value)
@@ -334,135 +355,4 @@ export function bindingProblems(
     }
   }
   return problems
-}
-
-// Resolving
-
-const DATE = /^(\d{4})-(\d{2})-(\d{2})$/
-const COLOUR =
-  /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\([0-9.,%\s/+-]+\)|[a-z]{3,20})$/i
-
-function formatDate(s: string): string {
-  const m = DATE.exec(s)
-  if (!m) return s
-  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
-  return date.toLocaleDateString('en-IN', {
-    timeZone: 'UTC',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
-const asRecord = (v: unknown): Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
-
-const safeUrl = (s: unknown): string | null =>
-  typeof s === 'string' && (/^https?:\/\//i.test(s) || /^\/(?![/\\])/.test(s)) ? s : null
-
-const referenceHref = (type: SourceType, v: unknown): string | null => {
-  const handle = asRecord(v).handle
-  if (typeof handle !== 'string' || !handle) return null
-  if (type === 'product_reference') return `/products/${handle}`
-  if (type === 'collection_reference') return `/collections/${handle}`
-  return null
-}
-
-const isEmpty = (v: unknown): boolean =>
-  v === undefined ||
-  v === null ||
-  (typeof v === 'string' && v.trim() === '') ||
-  (Array.isArray(v) && v.length === 0)
-
-/**
- * A loaded source value in the shape its setting expects, or `undefined` when
- * the source is empty or unusable (the caller then renders the fallback).
- * Images and links keep the fallback's other keys (alt text, button label).
- */
-function coerceValue(
-  kind: SettingKind,
-  type: SourceType,
-  value: unknown,
-  fallback: unknown,
-): unknown {
-  if (isEmpty(value) || Array.isArray(value) || !isCompatible(kind, type)) return undefined
-  switch (kind) {
-    case 'text': {
-      if (type === 'money') return typeof value === 'number' ? formatMoney(value, 'INR') : undefined
-      if (type === 'date') return typeof value === 'string' ? formatDate(value) : undefined
-      if (typeof value === 'number') return String(value)
-      return typeof value === 'string' ? value : undefined
-    }
-    case 'richtext':
-      return typeof value === 'string' || asRecord(value).root ? value : undefined
-    case 'number': {
-      const n = typeof value === 'number' ? value : Number(value)
-      return Number.isFinite(n) ? n : undefined
-    }
-    case 'color':
-      return typeof value === 'string' && COLOUR.test(value.trim()) ? value.trim() : undefined
-    case 'image': {
-      const img = asRecord(value)
-      const url = safeUrl(img.url)
-      if (!url) return undefined
-      const alt = typeof img.alt === 'string' && img.alt ? img.alt : asRecord(fallback).alt
-      return { ...asRecord(fallback), url, alt: alt ?? '' }
-    }
-    case 'url': {
-      const href = type === 'url' ? safeUrl(value) : referenceHref(type, value)
-      return href ?? undefined
-    }
-    case 'link': {
-      const href = type === 'url' ? safeUrl(value) : referenceHref(type, value)
-      if (!href) return undefined
-      const base = asRecord(fallback)
-      const title = asRecord(value).title
-      const label =
-        typeof base.label === 'string' && base.label
-          ? base.label
-          : typeof title === 'string'
-            ? title
-            : ''
-      return { ...base, label, href }
-    }
-  }
-}
-
-/** The value a binding renders: the source when it has one, else the typed-in fallback. */
-function resolveBinding(binding: Binding, values: SourceValues): unknown {
-  const loaded = values[binding.$source]
-  const resolved =
-    loaded && isSettingKind(binding.kind)
-      ? coerceValue(binding.kind, loaded.type, loaded.value, binding.fallback)
-      : undefined
-  return resolved !== undefined ? resolved : binding.fallback
-}
-
-function replace(
-  value: unknown,
-  values: SourceValues,
-  seen: WeakSet<object> = new WeakSet(),
-): unknown {
-  if (isBinding(value)) return resolveBinding(value, values)
-  if (typeof value !== 'object' || value === null) return value
-  // Non-JSON values (React elements, class instances) and repeat visits pass through untouched.
-  if (seen.has(value) || !isPlainData(value)) return value
-  seen.add(value)
-  if (Array.isArray(value)) return value.map((v) => replace(v, values, seen))
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(value)) {
-    const next = replace(v, values, seen)
-    // An empty source with nothing typed in leaves the key out, so defaults apply.
-    if (next !== undefined) out[k] = next
-  }
-  return out
-}
-
-/**
- * Template data with every binding swapped for its value (or fallback). Pass no
- * values to get the typed-in fallbacks only, which is what code that cannot load
- * sources (resolveData in the editor) should see.
- */
-export function applyBindings<T>(data: T, values: SourceValues = {}): T {
-  return replace(data, values) as T
 }

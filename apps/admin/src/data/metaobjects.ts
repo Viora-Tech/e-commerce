@@ -1,4 +1,5 @@
-import type { FieldType, PresetKey } from '@commerce/core/metaobjects'
+import type { FieldType, MeasureKind, MeasureUnit, PresetKey } from '@commerce/core/metaobjects'
+import type { Currency } from '@commerce/money'
 
 /*
  * Merchants see "Content types", "Entries" and "Extra fields"; the code, the API and the
@@ -8,10 +9,25 @@ import type { FieldType, PresetKey } from '@commerce/core/metaobjects'
 /** Field type picker groups, in order. Labels live in `fieldTypeContent.groups`. */
 export const FIELD_TYPE_GROUPS = [
   { id: 'text', types: ['single_line_text', 'multi_line_text', 'rich_text'] },
-  { id: 'number', types: ['number_integer', 'number_decimal'] },
-  { id: 'choice', types: ['date', 'url', 'boolean'] },
+  {
+    id: 'number',
+    types: ['number_integer', 'number_decimal', 'money', 'rating', 'measurement'],
+  },
+  { id: 'choice', types: ['choice', 'boolean', 'date', 'date_time', 'color'] },
+  { id: 'web', types: ['url', 'link'] },
   { id: 'media', types: ['file'] },
-  { id: 'link', types: ['product_reference', 'collection_reference', 'metaobject_reference'] },
+  {
+    id: 'link',
+    types: [
+      'product_reference',
+      'variant_reference',
+      'collection_reference',
+      'page_reference',
+      'article_reference',
+      'metaobject_reference',
+    ],
+  },
+  { id: 'rows', types: ['group'] },
 ] as const satisfies readonly { id: string; types: readonly FieldType[] }[]
 type FieldTypeGroup = (typeof FIELD_TYPE_GROUPS)[number]['id']
 
@@ -21,10 +37,12 @@ export const fieldTypeContent: {
 } = {
   groups: {
     text: 'Text',
-    number: 'Numbers',
-    choice: 'Date, link and yes / no',
+    number: 'Numbers and money',
+    choice: 'Choices, dates and colours',
+    web: 'Web links',
     media: 'Pictures and files',
     link: 'Pick from your store',
+    rows: 'Rows',
   },
   types: {
     single_line_text: { label: 'Short text', help: 'A name, a label or one of a few choices.' },
@@ -45,6 +63,56 @@ export const fieldTypeContent: {
       label: 'Another entry',
       help: 'An entry of another content type, like a designer.',
     },
+    color: { label: 'Colour', help: 'A colour you pick, like a brand or fabric colour.' },
+    date_time: { label: 'Date and time', help: 'A day and a time, like when a sale starts.' },
+    money: { label: 'Money', help: 'An amount of money, like ₹499.' },
+    choice: {
+      label: 'Pick from a list',
+      help: 'Choices you write, like S, M, L. Allow several values to pick more than one.',
+    },
+    link: { label: 'Button link', help: 'Words and a link, like "See the size chart".' },
+    rating: { label: 'Star rating', help: 'Stars out of 5, like 4½.' },
+    measurement: { label: 'Measurement', help: 'A number with a unit, like 1.5 kg or 30 cm.' },
+    page_reference: { label: 'Page', help: 'One of your pages, like About us.' },
+    variant_reference: { label: 'Product variant', help: 'One size or colour of a product.' },
+    article_reference: { label: 'Blog post', help: 'One of your blog posts.' },
+    group: {
+      label: 'Rows of fields',
+      help: 'A small table you fill row by row, like one row per size.',
+    },
+  },
+}
+
+/** Names of the currencies a money field can use. */
+export const currencyContent: Record<Currency, string> = {
+  INR: 'Indian rupee (₹)',
+  USD: 'US dollar ($)',
+  EUR: 'Euro (€)',
+}
+
+/** What a measurement measures, and how each unit reads in a picker. */
+export const measureContent: {
+  kinds: Record<MeasureKind, string>
+  units: Record<MeasureUnit, string>
+} = {
+  kinds: {
+    weight: 'Weight (g, kg)',
+    length: 'Length (cm, inches)',
+    volume: 'Volume (ml, litres)',
+  },
+  units: {
+    g: 'g',
+    kg: 'kg',
+    oz: 'oz',
+    lb: 'lb',
+    mm: 'mm',
+    cm: 'cm',
+    m: 'm',
+    in: 'inches',
+    ft: 'feet',
+    ml: 'ml',
+    l: 'litres',
+    fl_oz: 'fl oz',
   },
 }
 
@@ -180,6 +248,29 @@ export const fieldDialogContent = {
   maxItems: 'Most values',
   choices: 'Preset choices',
   choicesHelp: 'One per line. Leave empty to allow any text.',
+  choiceList: 'Choices',
+  choiceListHelp: 'One per line, like S, then M, then L.',
+  currency: 'Currency',
+  measure: 'It measures',
+  measurePlaceholder: 'Pick weight, length or volume',
+  ratingMax: 'Number of stars',
+  ratingMaxOption: (n: number) => `Out of ${n}`,
+  maxRows: 'Most rows',
+  typeLocked: (n: number) =>
+    `${n === 1 ? '1 entry already uses' : `${n} entries already use`} this field, so what goes in it is fixed. To change it, add a new field.`,
+  rows: {
+    heading: 'Fields in each row',
+    help: 'Each row has these fields, like Size, Chest and Waist.',
+    add: 'Add row field',
+    empty: 'Add the first field of a row, like Size.',
+    name: 'Name',
+    namePlaceholder: 'Size',
+    type: 'What goes in it',
+    required: 'Must fill',
+    remove: 'Remove row field',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+  },
   target: 'Content type',
   targetPlaceholder: 'Pick a content type',
   noTargets: 'Make another content type first, then link to it here.',
@@ -253,6 +344,9 @@ export const fieldInputContent = {
     collection: 'Pick collection',
     metaobject: 'Pick entry',
     file: 'Pick file',
+    page: 'Pick page',
+    variant: 'Pick variant',
+    article: 'Pick blog post',
   },
   change: 'Change',
   remove: 'Remove',
@@ -262,6 +356,35 @@ export const fieldInputContent = {
   filesEmpty: 'No files yet. Upload them under Content, Files first.',
   missing: 'Deleted. Pick another one.',
   choose: 'Pick one',
+  colour: {
+    swatch: 'Pick a colour',
+    invalid: 'Type a colour like #1A2B3C',
+  },
+  date: 'Date',
+  time: 'Time',
+  amount: 'Amount',
+  link: {
+    label: 'Words on the button',
+    labelPlaceholder: 'See the size chart',
+    url: 'Goes to',
+    urlPlaceholder: 'https://... or /pages/size-chart',
+  },
+  rating: {
+    star: (n: number) => (n === 1 ? '1 star' : `${n} stars`),
+    value: (value: number, max: number) => `${value} of ${max}`,
+    none: 'No stars yet',
+    clear: 'Clear',
+  },
+  number: 'Number',
+  unit: 'Unit',
+  rows: {
+    row: (n: number) => `Row ${n}`,
+    add: 'Add row',
+    remove: 'Remove row',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    empty: 'No rows yet. Add the first one.',
+  },
 } as const
 
 export const customDataContent = {

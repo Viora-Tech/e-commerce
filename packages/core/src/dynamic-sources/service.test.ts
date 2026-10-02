@@ -18,7 +18,7 @@ import {
   createMetafieldDefinition,
   setMetafields,
 } from '../metaobjects/service'
-import { applyBindings } from './format'
+import { applyBindings } from './resolve'
 import {
   assertTemplateBindings,
   InvalidBindings,

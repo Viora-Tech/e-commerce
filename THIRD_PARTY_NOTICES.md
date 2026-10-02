@@ -60,6 +60,14 @@ objects (`form`, `image_url`, `money`, `product`, `collection`...) are our own i
 written from Shopify's public Liquid reference; no Shopify code is used. The themes merchants
 upload stay theirs: the upload dialog asks them to confirm they own the theme or hold the rights,
 since Theme Store themes are usually licensed for Shopify only.
+Content type field types (CMS PR2, `packages/core/src/metaobjects`, admin
+`components/metaobjects`) take ideas, no code, from two MIT projects: the "Rows of fields" group
+(a list of rows with their own fields, one level deep) and per-field `subfields` config follow
+[Payload CMS](https://github.com/payloadcms/payload)'s `array` field (MIT, as recorded in
+`docs/open-source-radar.md`), and naming a row after its first text follows the repeater
+summary of [Instatic](https://github.com/CoreBunch/Instatic) (MIT, Copyright (c) 2026 David
+Babinec; `LICENSE` read from the owner's local copy on 2026-10-02). Our schemas, checks and
+inputs are written from scratch.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its

@@ -36,7 +36,6 @@ const ALLOWLIST: AllowEntry[] = [
   { file: 'apps/storefront/src/data/account.ts', reason: STOREFRONT },
   { file: 'apps/storefront/src/data/policies.ts', reason: STOREFRONT },
   { file: 'packages/core/src/blog/text.ts', reason: CORE },
-  { file: 'packages/core/src/dynamic-sources/format.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/client.ts', reason: CORE },
   { file: 'packages/core/src/gift-cards/service.ts', reason: CORE },
   { file: 'packages/core/src/notifications/deliver.ts', reason: CORE },

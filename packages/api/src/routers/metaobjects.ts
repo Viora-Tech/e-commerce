@@ -7,6 +7,7 @@ import {
   deleteEntries,
   deleteMetafieldDefinition,
   FromPresetInputSchema,
+  filledFieldKeys,
   getDefinition,
   getEntry,
   getMetafields,
@@ -19,6 +20,7 @@ import {
   MetaobjectDefinitionWriteSchema,
   MetaobjectWriteSchema,
   permissions,
+  REFERENCE_KINDS,
   referenceOptions,
   setMetafields,
   updateDefinition,
@@ -61,7 +63,8 @@ export const metaobjectsRouter = {
           message: 'This content type no longer exists. Go back to Content types and open another',
         })
       }
-      return row
+      /* Per field key, how many entries hold a value: the editor locks those fields' type. */
+      return { ...row, filled: await filledFieldKeys(context.tx, row.id) }
     }),
 
   createDefinition: write()
@@ -139,7 +142,7 @@ export const metaobjectsRouter = {
   references: read()
     .input(
       z.object({
-        kind: z.enum(['product', 'collection', 'metaobject', 'file']),
+        kind: z.enum(REFERENCE_KINDS),
         query: z.string().trim().max(SEARCH_MAX).optional(),
         ids: z.array(z.uuid()).max(250).optional(),
         definitionId: z.uuid().optional(),

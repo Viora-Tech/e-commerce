@@ -1829,7 +1829,10 @@ export const giftCardTransaction = pgTable(
   ],
 )
 
-/** Value types shared by metaobject fields and product/collection metafields. */
+/**
+ * Value types shared by metaobject fields and product/collection metafields. Plain text in
+ * the database (no CHECK), validated by @commerce/core, which documents each value's shape.
+ */
 export const METAFIELD_TYPES = [
   'single_line_text',
   'multi_line_text',
@@ -1843,6 +1846,17 @@ export const METAFIELD_TYPES = [
   'product_reference',
   'collection_reference',
   'metaobject_reference',
+  'color',
+  'date_time',
+  'money',
+  'choice',
+  'link',
+  'rating',
+  'measurement',
+  'page_reference',
+  'variant_reference',
+  'article_reference',
+  'group',
 ] as const
 export type MetafieldType = (typeof METAFIELD_TYPES)[number]
 

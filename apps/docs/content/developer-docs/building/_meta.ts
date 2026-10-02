@@ -11,6 +11,7 @@ export default {
   'section-settings': 'Section settings and SectionFrame',
   'theme-editor': 'Theme editor',
   'shopify-theme-import': 'Shopify theme import',
+  'content-types': 'Content types (metaobjects)',
   'dynamic-sources': 'Dynamic sources',
   'custom-sections': 'Slots and custom sections',
   performance: 'Storefront performance',

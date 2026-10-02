@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildSourceCatalog, catalogTypes, optionsFor } from './catalog'
 import {
-  applyBindings,
   type Binding,
   bindingProblems,
   boundPaths,
@@ -17,6 +16,7 @@ import {
   type SourceType,
   type SourceValues,
 } from './format'
+import { applyBindings } from './resolve'
 
 /** One binding through `applyBindings`: the source's value, or the fallback. */
 const resolveBinding = (binding: Binding, values: SourceValues) =>
