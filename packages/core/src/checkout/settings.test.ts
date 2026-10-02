@@ -38,6 +38,7 @@ describe('checkout settings', () => {
       orderNotes: false,
       minimumOrderPaise: 0,
       cod: { maxOrderPaise: 0, blockedPincodes: [], confirmOnWhatsApp: false },
+      branding: CheckoutSettingsSchema.shape.branding.parse({}),
     })
   })
 

@@ -93,6 +93,16 @@ function statesForPincode(pincode: string, exact?: string | null): readonly stri
   return PREFIX_STATES[pincode.slice(0, 2)] ?? null
 }
 
+/**
+ * The state a PIN code must be in when its prefix allows only one (11 is Delhi, 56
+ * Karnataka), so the checkout can fill the state in as the shopper types. Null when
+ * the prefix spans several states or is not checked; the shopper picks then.
+ */
+export function stateForPincode(pincode: string): string | null {
+  const allowed = statesForPincode(pincode)
+  return allowed?.length === 1 ? (allowed[0] ?? null) : null
+}
+
 /** Whether a checkout's state can be right for its PIN code. */
 export function stateMatchesPincode(
   pincode: string,
