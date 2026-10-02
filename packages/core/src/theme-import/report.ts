@@ -41,7 +41,7 @@ export type ImportReport = {
   /** Swap rows that apply to this theme. */
   swaps: SwapKey[]
   /** Images copied from Shopify into Files, and those that could not be. */
-  images: { copied: number; failed: string[]; skippedNoHost: number }
+  images: { copied: number; videosCopied: number; failed: string[]; skippedNoHost: number }
   /** Files left out of the zip (wrong folder or type). */
   skippedFiles: string[]
   /**

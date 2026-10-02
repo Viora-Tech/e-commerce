@@ -20,7 +20,12 @@ export default function ImportReportTodo({ copy, report }: ImportReportTodoProps
     images.skippedNoHost ? copy.images.noHost(images.skippedNoHost) : null,
     report.videos.length ? copy.images.videos(report.videos.length) : null,
   ].filter((x): x is string => x !== null)
-  const done = images.copied ? copy.images.copied(images.copied) : null
+  const done = [
+    images.copied ? copy.images.copied(images.copied) : null,
+    images.videosCopied ? copy.images.videosCopied(images.videosCopied) : null,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <Card className="gap-0 p-0">

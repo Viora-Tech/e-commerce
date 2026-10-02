@@ -16,6 +16,7 @@ export type SwapKey =
   | 'localization'
   | 'recommendations'
   | 'preorder'
+  | 'app_data'
 
 export type SwapRow = {
   key: SwapKey
@@ -87,11 +88,18 @@ export const SWAP_TABLE: readonly SwapRow[] = [
     detect: /["']@app["']/,
   },
   {
+    key: 'app_data',
+    shopify: 'Data from Shopify apps (Judge.me reviews and similar)',
+    ours: 'Not available yet: the section stays hidden until our Reviews app collects reviews',
+    kind: 'unavailable',
+    detect: /metafields\.(judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)/,
+  },
+  {
     key: 'metafields',
     shopify: 'Metafields and metaobjects',
     ours: 'Blank until you add matching extra fields or content types here',
     kind: 'unavailable',
-    detect: /\.metafields\.|metaobjects/,
+    detect: /\.metafields\.(?!judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)|metaobjects/,
   },
   {
     key: 'fonts',

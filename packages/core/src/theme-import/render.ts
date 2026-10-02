@@ -20,6 +20,8 @@ import {
   PageDrop,
   PagesDrop,
   ProductDrop,
+  type LiquidImageData,
+  VideoDrop,
 } from './drops'
 import { createThemeEngine, type EngineRuntime } from './engine'
 import { escapeAttr } from './filters'
@@ -221,6 +223,15 @@ function videoUrl(value: string): Record<string, unknown> | null {
   return { type: null, id: null, url: value }
 }
 
+/** A colour scheme's settings: hex strings become colour objects (`.rgb`, `.alpha`). */
+const colourValues = (settings: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(settings).map(([k, v]) => [
+      k,
+      typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v) ? new ColorDrop(v) : v,
+    ]),
+  )
+
 const handlesOf = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && v !== '') : []
 
@@ -291,7 +302,15 @@ export function liquidSettingValue(
     case 'color_scheme': {
       const schemes = (themeSettings.color_schemes ?? {}) as Record<string, { settings?: Record<string, unknown> }>
       const scheme = schemes[text]
-      return scheme ? new ColorSchemeDrop(text, scheme.settings ?? {}) : text
+      return scheme ? new ColorSchemeDrop(text, colourValues(scheme.settings ?? {})) : text
+    }
+    case 'color_scheme_group': {
+      // Stored as `{ "scheme-1": { settings } }`; Liquid iterates it as a list of schemes.
+      const groups = (value && typeof value === 'object' ? value : {}) as Record<
+        string,
+        { settings?: Record<string, unknown> }
+      >
+      return Object.entries(groups).map(([id, scheme]) => new ColorSchemeDrop(id, colourValues(scheme.settings ?? {})))
     }
     case 'font_picker':
       return text ? new FontDrop(text) : null
@@ -299,7 +318,12 @@ export function liquidSettingValue(
       return text ? shopifyUrlToPath(text) : null
     case 'video_url':
       return videoUrl(text)
-    case 'video':
+    case 'video': {
+      const v = value as { url?: unknown; poster?: LiquidImageData | null } | null
+      return v && typeof v === 'object' && typeof v.url === 'string' && v.url
+        ? new VideoDrop({ url: v.url, poster: v.poster ?? null })
+        : null
+    }
     case 'metaobject':
     case 'metaobject_list':
       return null

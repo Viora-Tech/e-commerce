@@ -531,15 +531,24 @@ export function registerShopifyFilters(engine: Liquid): void {
 
   add('video_tag', (video: unknown, ...args: unknown[]) => {
     const { named } = splitArgs(args)
-    const v = video as { sources?: { url: string; mime_type: string }[]; url?: string } | null
+    const v = video as {
+      sources?: { url: string; mime_type: string }[]
+      url?: string
+      preview_image?: ImageDrop | null
+    } | null
     const src = v?.sources?.[0]?.url ?? v?.url ?? (typeof video === 'string' ? video : '')
     if (!src) return ''
-    const flags = ['autoplay', 'loop', 'muted', 'controls', 'playsinline']
+    const flags = ['autoplay', 'loop', 'muted', 'controls']
       .filter((f) => named[f])
-      .join(' ')
-    const cls = named.class ? ` class="${escapeAttr(named.class)}"` : ''
-    const poster = named.image_size || named.poster ? '' : ''
-    return `<video${cls} ${flags}${poster} preload="metadata"><source src="${escapeAttr(src)}" type="video/mp4"></video>`
+      .map((f) => `${f}="${f}"`)
+    const attrs = [
+      'playsinline="true"',
+      named.class ? `class="${escapeAttr(named.class)}"` : '',
+      ...flags,
+      `preload="${escapeAttr(named.preload ?? 'metadata')}"`,
+      v?.preview_image ? `poster="${escapeAttr(v.preview_image.src)}"` : '',
+    ].filter(Boolean)
+    return `<video ${attrs.join(' ')}><source src="${escapeAttr(src)}" type="video/mp4"></video>`
   })
   add('external_video_url', (video: unknown) => {
     const v = video as { host?: string; external_id?: string } | null

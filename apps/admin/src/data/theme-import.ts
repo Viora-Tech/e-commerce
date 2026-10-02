@@ -68,6 +68,7 @@ export const themeImportContent = {
       localization: 'India and rupees only',
       recommendations: 'Recommendations are empty for now',
       preorder: 'Pre-order uses our built-in pre-order',
+      app_data: 'Reads data from a Shopify app (such as Judge.me), so it stays hidden for now',
       main_template: 'This page uses our own page, with your header and footer',
       parse_error: 'Its code uses something we cannot read yet',
     } satisfies Record<ReportReason, string>,
@@ -89,6 +90,10 @@ export const themeImportContent = {
       localization: { shopify: 'Country and currency picker', ours: 'India and rupees only for now.' },
       recommendations: { shopify: 'Product recommendations', ours: 'Empty for now. Our Related products section can take its place.' },
       preorder: { shopify: 'Pre-order apps', ours: 'Our built-in pre-order.' },
+      app_data: {
+        shopify: 'Data from Shopify apps (Judge.me reviews…)',
+        ours: 'Not available yet. The section stays hidden until our Reviews app has reviews.',
+      },
     } satisfies Record<SwapKey, { shopify: string; ours: string }>,
     pagesHeading: 'Pages',
     pagesBody: 'Your home page uses your theme’s sections. Other pages use our pages, inside your theme’s header and footer.',
@@ -116,12 +121,17 @@ export const themeImportContent = {
       blogs: (list: string) => `These blogs are not in your store yet: ${list}`,
     },
     images: {
-      copied: (n: number) => `${n} pictures copied into Files.`,
-      failed: (n: number) => `${n} pictures could not be copied. Upload them in Files and pick them in Customize.`,
+      copied: (n: number) => (n === 1 ? '1 picture copied into Files.' : `${n} pictures copied into Files.`),
+      videosCopied: (n: number) =>
+        n === 1 ? '1 video copied into Files.' : `${n} videos copied into Files.`,
+      failed: (n: number) =>
+        n === 1
+          ? '1 picture could not be copied. Upload it in Files and pick it in Customize.'
+          : `${n} pictures could not be copied. Upload them in Files and pick them in Customize.`,
       noHost: (n: number) =>
-        `${n} pictures were not copied because no Shopify store address was given. Import again with the address, or upload them in Files.`,
+        `${n === 1 ? '1 picture was' : `${n} pictures were`} not copied because no Shopify store address was given. Import again with the address, or upload them in Files.`,
       videos: (n: number) =>
-        `${n} videos live in your Shopify Files and cannot be copied. Upload them in Files, then pick them in the slides that used them.`,
+        `${n === 1 ? '1 video lives' : `${n} videos live`} in your Shopify Files and cannot be copied. Upload them in Files, then pick them in the slides that used them.`,
     },
     notFound: 'This theme was not imported from Shopify.',
   },

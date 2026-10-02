@@ -18,8 +18,9 @@ import {
   variant,
   variantOptionValue,
 } from '@commerce/db'
-import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, like, sql } from 'drizzle-orm'
 import { toNavLinks } from '../navigation/resolve'
+import { uuidPrefixOf } from './numeric-id'
 import { richTextHtml } from './rich-html'
 import type {
   LiquidBlogData,
@@ -373,4 +374,22 @@ export async function storeLiquidData(
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
   }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * The variant an imported theme's cart form or script names: our UUID, or the whole
+ * number the theme saw (`numeric-id.ts`). Null when it is neither, or matches nothing.
+ */
+export async function resolveThemeVariantId(tx: StoreTx, raw: string): Promise<string | null> {
+  if (UUID.test(raw)) return raw
+  const prefix = uuidPrefixOf(raw)
+  if (!prefix) return null
+  const rows = await tx
+    .select({ id: variant.id })
+    .from(variant)
+    .where(like(sql`${variant.id}::text`, `${prefix}%`))
+    .limit(2)
+  return rows.length === 1 ? (rows[0]?.id ?? null) : null
 }

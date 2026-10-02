@@ -90,6 +90,23 @@ export type LiquidSectionPlacement = {
   index: number
 }
 
+/** A stable 14-digit number per template or group, standing in for Shopify's internal ids. */
+function locationNumber(location: string): string {
+  let h = 2166136261
+  for (const ch of location) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0
+  return String(29_000_000_000_000 + (h % 1_000_000_000_000))
+}
+
+/**
+ * Shopify's `section.id` for a section placed by a JSON template or group:
+ * `template--<n>__hero`, `sections--<n>__header`. Themes key CSS on it
+ * (`[id$="__category_panels"]`), so the shape matters, not the number.
+ */
+export function shopifySectionId(key: string, location: string): string {
+  const prefix = location === 'template' ? 'template' : 'sections'
+  return `${prefix}--${locationNumber(location)}__${key}`
+}
+
 /** A `LiquidSection`'s props as the engine's input; `location` is `template` or a group name. */
 export function liquidPlacement(
   props: Record<string, unknown>,
@@ -98,7 +115,7 @@ export function liquidPlacement(
   index: number,
 ): LiquidSectionPlacement {
   return {
-    id: liquidSectionKey(props),
+    id: shopifySectionId(liquidSectionKey(props), location),
     type: typeof props.sectionType === 'string' ? props.sectionType : '',
     settings: settingsFromProps(props, schema),
     blocks: blocksFromProps(props),

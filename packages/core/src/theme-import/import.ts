@@ -105,13 +105,14 @@ async function sharpSize(bytes: Uint8Array): Promise<{ width: number; height: nu
   return meta.width && meta.height ? { width: meta.width, height: meta.height } : null
 }
 
-/** Downloads one image; null when it is larger than we accept. */
+/** Downloads one image (or mp4 video); null when it is larger than we accept. */
 async function download(
   src: string,
   deps: ThemeImportDeps,
+  kind: 'image' | 'video' = 'image',
 ): Promise<{ bytes: Uint8Array; contentType: string } | null> {
   const res = await safeFetch(src, {
-    timeoutMs: 20_000,
+    timeoutMs: kind === 'video' ? 120_000 : 20_000,
     ...(deps.fetch ? { fetch: deps.fetch } : {}),
     ...(deps.lookup ? { lookup: deps.lookup } : {}),
   })
@@ -120,16 +121,17 @@ async function download(
     throw new Error(`download failed (${res.status})`)
   }
   const contentType = res.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() ?? ''
-  if (!isAllowedContentType(contentType) || !isImageContentType(contentType)) {
+  const wanted = kind === 'image' ? isImageContentType(contentType) : contentType === 'video/mp4'
+  if (!isAllowedContentType(contentType) || !wanted) {
     await res.body?.cancel()
-    throw new Error(`${contentType || 'unknown type'} is not an image we accept`)
+    throw new Error(`${contentType || 'unknown type'} is not a file we accept`)
   }
   const bytes = await readCapped(res, maxUploadBytesFor(contentType))
   return bytes ? { bytes, contentType } : null
 }
 
-/** The widest copy we ask Shopify's CDN for when the original is over our upload limit. */
-const RESIZED_WIDTH = 3000
+/** Smaller copies we ask Shopify's CDN for, in turn, when the original is over our upload limit. */
+const RESIZED_WIDTHS = [3000, 2000, 1400]
 
 /** Copies one image from the merchant's Shopify store into Files. */
 async function copyImage(
@@ -141,28 +143,13 @@ async function copyImage(
 ): Promise<{ url: string; width: number | null; height: number | null }> {
   const src = `https://${host}/cdn/shop/files/${name.split('/').map(encodeURIComponent).join('/')}`
   // Shopify's CDN resizes on request; a huge original comes over as a smaller copy.
-  const file = (await download(src, deps)) ?? (await download(`${src}?width=${RESIZED_WIDTH}`, deps))
+  let file = await download(src, deps)
+  for (const width of RESIZED_WIDTHS) {
+    if (file) break
+    file = await download(`${src}?width=${width}`, deps)
+  }
   if (!file) throw new Error('image is too large')
-  const { bytes, contentType } = file
-  const id = newId()
-  const key = mediaKey({ storeId, filename: name.split('/').pop() ?? 'image', contentType, id })
-  await deps.storage.put({ key, body: bytes, contentType })
-  const size = await (deps.imageSize ?? sharpSize)(bytes).catch(() => null)
-  const url = deps.storage.publicUrl(key)
-  await tx.insert(media).values({
-    id,
-    storeId,
-    url,
-    key,
-    provider: deps.storage.id,
-    contentType,
-    size: bytes.byteLength,
-    alt: null,
-    width: size?.width ?? null,
-    height: size?.height ?? null,
-    status: 'ready',
-  })
-  return { url, width: size?.width ?? null, height: size?.height ?? null }
+  return storeFile(tx, storeId, name.split('/').pop() ?? 'image', file, deps)
 }
 
 /** Runs `work` over `items`, `limit` at a time. */
@@ -172,7 +159,13 @@ async function inBatches<T>(items: T[], limit: number, work: (item: T) => Promis
   }
 }
 
-type Hosted = Map<string, { url: string; width: number | null; height: number | null }>
+type HostedImage = { url: string; width: number | null; height: number | null }
+type HostedVideo = { url: string; poster: HostedImage | null }
+
+/** What the import copied from the old store: images by Files name, videos by Files name. */
+type Hosted = { images: Map<string, HostedImage>; videos: Map<string, HostedVideo> }
+
+const SHOP_VIDEO = /^shopify:\/\/files\/videos\/(.+)$/
 
 /**
  * A stored setting value: image settings become `{ url, alt }` pointing at Files,
@@ -181,9 +174,14 @@ type Hosted = Map<string, { url: string; width: number | null; height: number | 
  */
 function storedValue(setting: ShopifySetting | undefined, value: unknown, hosted: Hosted): unknown {
   if (typeof value === 'string') {
+    const video = SHOP_VIDEO.exec(value)
+    if (video?.[1]) {
+      const v = hosted.videos.get(video[1])
+      return v ? { url: v.url, poster: v.poster } : ''
+    }
     const m = SHOP_IMAGE.exec(value)
     if (m?.[1]) {
-      const h = hosted.get(m[1])
+      const h = hosted.images.get(m[1])
       if (setting && setting.type !== 'image_picker') return h?.url ?? ''
       return h ? { url: h.url, alt: '', width: h.width, height: h.height } : { url: '', alt: '' }
     }
@@ -356,8 +354,6 @@ function buildReport(input: {
   }
 }
 
-const SHOP_VIDEO = /^shopify:\/\/files\/videos\/(.+)$/
-
 /** Every `shopify://files/videos/...` name inside a JSON value. */
 function collectShopVideos(value: unknown, into: Set<string>): void {
   if (typeof value === 'string') {
@@ -411,7 +407,8 @@ async function missingHandles(tx: StoreTx, wanted: Wanted): Promise<ImportReport
     menus: await have(wanted.menus, (h) =>
       tx.select({ handle: navigationMenu.handle }).from(navigationMenu).where(inArray(navigationMenu.handle, h)),
     ),
-    collections: await have(wanted.collections, (h) =>
+    // `all` is every product, which every store has (Shopify's built-in collection).
+    collections: await have(new Set([...wanted.collections].filter((h) => h !== 'all')), (h) =>
       tx.select({ handle: collection.handle }).from(collection).where(inArray(collection.handle, h)),
     ),
     products: await have(wanted.products, (h) =>
@@ -420,6 +417,144 @@ async function missingHandles(tx: StoreTx, wanted: Wanted): Promise<ImportReport
     blogs: await have(wanted.blogs, (h) =>
       tx.select({ handle: blog.handle }).from(blog).where(inArray(blog.handle, h)),
     ),
+  }
+}
+
+/** The templates and groups an import turns into ours. */
+const IMPORTED_PAGES = [...IMPORTED_TEMPLATES, 'header-group', 'footer-group']
+
+/** One `<video>` on the live page: its mp4 and poster, both on the store's CDN. */
+type LiveVideo = { src: string; poster: string | null }
+
+/** The videos inside one section of the live page's HTML, in page order. */
+function liveVideosIn(html: string, sectionKey: string): LiveVideo[] {
+  const start = html.search(new RegExp(`id="shopify-section-[^"]*__${sectionKey.replace(/[^\w-]/g, '')}"`))
+  if (start === -1) return []
+  const next = html.indexOf('id="shopify-section-', start + 20)
+  const chunk = html.slice(start, next === -1 ? undefined : next)
+  const out: LiveVideo[] = []
+  for (const m of chunk.matchAll(/<video\b([^>]*)>([\s\S]*?)<\/video>/g)) {
+    const src = /<source[^>]*\bsrc="([^"]+\.mp4[^"]*)"/.exec(m[2] ?? '')?.[1]
+    if (!src) continue
+    const poster = /\bposter="([^"]+)"/.exec(m[1] ?? '')?.[1] ?? null
+    const abs = (u: string) => (u.startsWith('//') ? `https:${u}` : u).replace(/&amp;/g, '&')
+    out.push({ src: abs(src), poster: poster ? abs(poster) : null })
+  }
+  return out
+}
+
+/** Video setting values of a section in render order: its own settings, then enabled blocks. */
+function videoNamesOf(section: ShopifyJsonTemplate['sections'][string]): string[] {
+  const names: string[] = []
+  const take = (settings: Record<string, unknown> | undefined) => {
+    for (const v of Object.values(settings ?? {})) {
+      const m = typeof v === 'string' ? /^shopify:\/\/files\/videos\/(.+)$/.exec(v) : null
+      if (m?.[1]) names.push(m[1])
+    }
+  }
+  take(section.settings)
+  for (const id of section.block_order ?? Object.keys(section.blocks ?? {})) {
+    const b = section.blocks?.[id]
+    if (b && !b.disabled) take(b.settings)
+  }
+  return names
+}
+
+/** Downloads one file into storage and Files; the stored public URL. */
+async function storeFile(
+  tx: StoreTx,
+  storeId: string,
+  name: string,
+  file: { bytes: Uint8Array; contentType: string },
+  deps: ThemeImportDeps,
+): Promise<HostedImage> {
+  const id = newId()
+  const key = mediaKey({ storeId, filename: name, contentType: file.contentType, id })
+  await deps.storage.put({ key, body: file.bytes, contentType: file.contentType })
+  const size = file.contentType.startsWith('image/')
+    ? await (deps.imageSize ?? sharpSize)(file.bytes).catch(() => null)
+    : null
+  const url = deps.storage.publicUrl(key)
+  await tx.insert(media).values({
+    id,
+    storeId,
+    url,
+    key,
+    provider: deps.storage.id,
+    contentType: file.contentType,
+    size: file.bytes.byteLength,
+    alt: null,
+    width: size?.width ?? null,
+    height: size?.height ?? null,
+    status: 'ready',
+  })
+  return { url, width: size?.width ?? null, height: size?.height ?? null }
+}
+
+/**
+ * Copies the videos a template's sections use from the live store's page: the n-th
+ * video setting of a section is the n-th `<video>` inside that section on the page.
+ * Only the home page is fetched (`path`); groups ride along on it.
+ */
+async function copyLiveVideos(
+  tx: StoreTx,
+  storeId: string,
+  host: string,
+  path: string | null,
+  tpl: ShopifyJsonTemplate,
+  hosted: Hosted,
+  failed: string[],
+  deps: ThemeImportDeps,
+): Promise<void> {
+  const wanted = tpl.order.flatMap((key) => {
+    const section = tpl.sections[key]
+    return section && !section.disabled ? [{ key, names: videoNamesOf(section) }] : []
+  })
+  if (!wanted.some((w) => w.names.some((n) => !hosted.videos.has(n)))) return
+  const page = await livePage(host, path ?? '/', deps)
+  if (!page) {
+    failed.push(`videos: could not read https://${host}${path ?? '/'}`)
+    return
+  }
+  for (const { key, names } of wanted) {
+    const videos = liveVideosIn(page, key)
+    for (const [i, name] of names.entries()) {
+      const live = videos[i]
+      if (hosted.videos.has(name)) continue
+      if (!live) {
+        failed.push(`${name}: not found on the live page`)
+        continue
+      }
+      try {
+        const file = await download(live.src, deps, 'video')
+        if (!file) throw new Error('video is larger than 100 MB')
+        const video = await storeFile(tx, storeId, name, file, deps)
+        const posterFile = live.poster ? await download(live.poster, deps).catch(() => null) : null
+        const poster = posterFile ? await storeFile(tx, storeId, `${name}-poster.jpg`, posterFile, deps) : null
+        hosted.videos.set(name, { url: video.url, poster })
+      } catch (err) {
+        failed.push(`${name}: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+  }
+}
+
+/** The live store's page HTML (capped), or null when it cannot be read. */
+async function livePage(host: string, path: string, deps: ThemeImportDeps): Promise<string | null> {
+  try {
+    const res = await safeFetch(`https://${host}${path}`, {
+      timeoutMs: 20_000,
+      ...(deps.fetch ? { fetch: deps.fetch } : {}),
+      ...(deps.lookup ? { lookup: deps.lookup } : {}),
+    })
+    if (!res.ok) {
+      await res.body?.cancel()
+      return null
+    }
+    const bytes = await readCapped(res, 8 * 1024 * 1024)
+    return bytes ? new TextDecoder().decode(bytes) : null
+  } catch {
+    return null
   }
 }
 
@@ -488,20 +623,30 @@ export async function importShopifyTheme(
   // Images the theme's templates and settings point at, copied from the old store.
   const settings = currentSettings(archive)
   const wanted = new Set<string>()
-  for (const name of [...IMPORTED_TEMPLATES, 'header-group', 'footer-group']) {
+  for (const name of IMPORTED_PAGES) {
     collectShopImages(templates.get(name), wanted)
   }
   collectShopImages(settings, wanted)
-  const hosted: Hosted = new Map()
+  const hosted: Hosted = { images: new Map(), videos: new Map() }
   const failed: string[] = []
   if (host) {
     await inBatches([...wanted], 6, async (name) => {
       try {
-        hosted.set(name, await copyImage(tx, storeId, host, name, deps))
+        hosted.images.set(name, await copyImage(tx, storeId, host, name, deps))
       } catch (err) {
         failed.push(`${name}: ${err instanceof Error ? err.message : String(err)}`)
       }
     })
+  }
+
+  // Videos in Shopify Files have no address we can derive from their name; the live
+  // store's own pages carry them, so they are matched there, section by section.
+  if (host) {
+    for (const name of IMPORTED_PAGES) {
+      const tpl = templates.get(name)
+      if (!tpl) continue
+      await copyLiveVideos(tx, storeId, host, name === 'index' ? '/' : null, tpl, hosted, failed, deps)
+    }
   }
 
   // The theme row: unpublished, keeping the live theme's brand settings for our own pages.
@@ -576,10 +721,16 @@ export async function importShopifyTheme(
     liquidTemplates,
     schemaLocale,
     themeInfo: info,
-    images: { copied: hosted.size, failed, skippedNoHost: host ? 0 : wanted.size },
+    images: {
+      copied: hosted.images.size,
+      videosCopied: hosted.videos.size,
+      failed,
+      skippedNoHost: host ? 0 : wanted.size,
+    },
     skippedFiles: archive.skipped,
     missing: await missingHandles(tx, wantedHandles),
-    videos: [...videos].sort(),
+    // Videos still to upload: the ones the live page did not give us.
+    videos: [...videos].filter((v) => !hosted.videos.has(v)).sort(),
   })
   await tx.insert(themeImport).values({
     id: newId(),

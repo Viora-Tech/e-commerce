@@ -1,6 +1,7 @@
 /** SOURCE OF TRUTH: our data in Shopify's Liquid object shapes — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills) and the Liquid drops that present it as Shopify's `product`, `collection`, `image`, `linklist`, `cart`, `shop`... objects / WHY: a theme's markup reads Shopify's objects; mapping our records onto those shapes in one place is what lets a theme LOOK the same while every value comes from our own catalogue, menus and cart */
 import { Drop } from 'liquidjs'
 import type { LiquidDataCache } from './cache'
+import { numericId } from './numeric-id'
 
 /** An image we host: product media, a section image, a collection image. */
 export type LiquidImageData = {
@@ -140,6 +141,13 @@ export const handleize = (value: string): string =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+/** A stable whole number for an image we only know by URL. */
+function urlNumber(url: string): number {
+  let h = 0
+  for (let i = 0; i < url.length; i++) h = (Math.imul(h, 31) + url.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
 export class ImageDrop extends Drop {
   readonly src: string
   readonly url: string
@@ -147,7 +155,7 @@ export class ImageDrop extends Drop {
   readonly width: number
   readonly height: number
   readonly aspect_ratio: number
-  readonly id: string
+  readonly id: number | string
   readonly media_type = 'image'
   readonly presentation = { focal_point: '50.0% 50.0%' }
   constructor(image: LiquidImageData) {
@@ -159,7 +167,8 @@ export class ImageDrop extends Drop {
     this.width = image.width ?? 1600
     this.height = image.height ?? image.width ?? 1600
     this.aspect_ratio = this.width / this.height
-    this.id = image.id ?? image.url
+    // Themes write media ids into JSON unquoted, as Shopify's are numbers.
+    this.id = image.id ? numericId(image.id) : urlNumber(image.url)
   }
   get preview_image(): ImageDrop {
     return this
@@ -174,6 +183,25 @@ export class ImageDrop extends Drop {
 
 export const imageDrop = (image: LiquidImageData | null | undefined): ImageDrop | null =>
   image?.url ? new ImageDrop(image) : null
+
+/** A video copied into Files (a `video` setting): plays through `video_tag`, poster as `preview_image`. */
+export class VideoDrop extends Drop {
+  readonly media_type = 'video'
+  readonly id: number
+  readonly alt = ''
+  readonly aspect_ratio = 16 / 9
+  readonly sources: { url: string; mime_type: string; format: string; width: number; height: number }[]
+  readonly preview_image: ImageDrop | null
+  constructor(video: { url: string; poster?: LiquidImageData | null }) {
+    super()
+    this.id = urlNumber(video.url)
+    this.sources = [{ url: video.url, mime_type: 'video/mp4', format: 'mp4', width: 1920, height: 1080 }]
+    this.preview_image = imageDrop(video.poster)
+  }
+  override valueOf(): string {
+    return this.sources[0]?.url ?? ''
+  }
+}
 
 /** A theme colour setting: prints as its hex, reads like Shopify's colour object. */
 export class ColorDrop extends Drop {
@@ -261,7 +289,8 @@ export class FontDrop extends Drop {
 }
 
 export class VariantDrop extends Drop {
-  readonly id: string
+  /** A whole number, as Shopify ids are (see `numeric-id.ts`). */
+  readonly id: number | string
   readonly title: string
   readonly name: string
   readonly price: number
@@ -292,7 +321,7 @@ export class VariantDrop extends Drop {
   readonly selected = false
   constructor(v: LiquidVariantData, productUrl: string) {
     super()
-    this.id = v.id
+    this.id = numericId(v.id)
     this.title = v.title
     this.name = v.title
     this.price = v.price
@@ -335,7 +364,7 @@ const minOf = (xs: number[]) => (xs.length ? Math.min(...xs) : 0)
 const maxOf = (xs: number[]) => (xs.length ? Math.max(...xs) : 0)
 
 export class ProductDrop extends Drop {
-  readonly id: string
+  readonly id: number | string
   readonly handle: string
   readonly title: string
   readonly url: string
@@ -379,7 +408,7 @@ export class ProductDrop extends Drop {
     this.selling_plan_groups = p.preorder
       ? [{ id: 'preorder', name: 'Pre-order', app_id: 'commerce', selling_plans: [] }]
       : []
-    this.id = p.id
+    this.id = numericId(p.id)
     this.handle = p.handle
     this.title = p.title
     this.url = `/products/${p.handle}`
@@ -418,6 +447,10 @@ export class ProductDrop extends Drop {
     this.created_at = p.createdAt
     this.published_at = p.createdAt
   }
+  /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
+  override valueOf(): string {
+    return this.handle
+  }
   get options_by_name(): Record<string, unknown> {
     return Object.fromEntries(this.options_with_values.map((o) => [o.name.toLowerCase(), o]))
   }
@@ -454,6 +487,10 @@ export class CollectionDrop extends Drop {
     this.image = imageDrop(c.image)
     this.products_count = c.productsCount
     this.all_products_count = c.productsCount
+  }
+  /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
+  override valueOf(): string {
+    return this.handle
   }
   get products(): ProductDrop[] {
     if (this.#products) return this.#products
@@ -598,6 +635,10 @@ export class ArticleDrop extends Drop {
     this.published_at = a.publishedAt
     this.created_at = a.publishedAt
   }
+  /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
+  override valueOf(): string {
+    return this.handle
+  }
 }
 
 export class BlogDrop extends Drop {
@@ -619,6 +660,10 @@ export class BlogDrop extends Drop {
     this.articles_count = b.articles.length
     this.all_tags = [...new Set(b.articles.flatMap((a) => a.tags))]
     this.tags = this.all_tags
+  }
+  /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
+  override valueOf(): string {
+    return this.handle
   }
 }
 
@@ -649,6 +694,10 @@ export class PageDrop extends Drop {
     this.title = p.title
     this.url = `/pages/${p.handle}`
     this.content = p.contentHtml
+  }
+  /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
+  override valueOf(): string {
+    return this.handle
   }
 }
 
@@ -681,7 +730,7 @@ export function cartDrop(cart: LiquidCartData): Record<string, unknown> {
     requires_shipping: cart.itemCount > 0,
     empty: cart.itemCount === 0,
     items: cart.items.map((i) => ({
-      id: i.id,
+      id: numericId(i.id),
       key: i.id,
       quantity: i.quantity,
       title: i.title,
@@ -691,7 +740,7 @@ export function cartDrop(cart: LiquidCartData): Record<string, unknown> {
       line_price: i.linePrice,
       final_line_price: i.linePrice,
       original_line_price: i.linePrice,
-      variant_id: i.id,
+      variant_id: numericId(i.id),
       product: i.product ? new ProductDrop(i.product) : null,
       variant: { title: i.variantTitle },
       image: imageDrop(i.image),

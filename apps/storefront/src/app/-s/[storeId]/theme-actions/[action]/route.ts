@@ -1,4 +1,5 @@
 import type { NewsletterState } from '@commerce/blocks/puck'
+import { resolveThemeVariantId } from '@commerce/core'
 import { addLineAction, cartCountAction } from '@/lib/cart-actions'
 import { renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { subscribeAction } from '@/lib/newsletter-actions'
@@ -52,12 +53,17 @@ async function cartLines(req: Request): Promise<{ id: string; quantity: number }
 }
 
 export async function POST(req: Request, { params }: Params) {
-  const { action } = await params
+  const { storeId, action } = await params
   if (action === 'cart-add') {
     const lines = await cartLines(req)
     if (lines.length === 0) return new Response('Choose a product', { status: 422 })
     try {
-      for (const line of lines.slice(0, 20)) await addLineAction(line.id, Math.min(line.quantity, 99))
+      for (const line of lines.slice(0, 20)) {
+        // Themes post the whole-number id they were shown; our cart wants the variant's UUID.
+        const variantId = await inStore(storeId, (tx) => resolveThemeVariantId(tx, line.id))
+        if (!variantId) throw new Error('unknown variant')
+        await addLineAction(variantId, Math.min(line.quantity, 99))
+      }
     } catch {
       return wantsJson(req)
         ? Response.json({ status: 422, description: 'Could not add this item' }, { status: 422 })

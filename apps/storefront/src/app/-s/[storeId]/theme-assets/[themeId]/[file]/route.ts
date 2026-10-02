@@ -1,7 +1,7 @@
 import { themeAssetFile } from '@commerce/core'
 import { inStore } from '@/lib/store-context'
 
-type Params = { params: Promise<{ storeId: string; themeId: string; path: string[] }> }
+type Params = { params: Promise<{ storeId: string; themeId: string; file: string }> }
 
 const notFound = () => new Response('Not found', { status: 404 })
 
@@ -14,10 +14,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
  * answer any origin because the Customize canvas (the admin) loads them too.
  */
 export async function GET(req: Request, { params }: Params) {
-  const { storeId, themeId, path } = await params
+  const { storeId, themeId, file: raw } = await params
   if (!UUID.test(themeId)) return notFound()
-  const file = path.map((p) => decodeURIComponent(p)).join('/')
-  if (!file || file.includes('..') || file.includes('\0')) return notFound()
+  // Shopify's assets folder is flat, so one path segment is the whole file name.
+  const file = decodeURIComponent(raw)
+  if (!file || file.includes('..') || file.includes('/') || file.includes('\0')) return notFound()
   const asset = await inStore(storeId, (tx) => themeAssetFile(tx, themeId, file))
   if (!asset) return notFound()
   const versioned = new URL(req.url).searchParams.get('v') === asset.checksum
