@@ -1,9 +1,11 @@
 'use client'
 
+import { EditorSelectionContext } from '@commerce/blocks/editor-selection'
 import { themeRootAttrs, themeToCss } from '@commerce/core/theme'
 import { useReducedMotion } from 'motion/react'
 import { type ReactNode, useEffect } from 'react'
 import { canvasMotionCss, installCanvasMotion } from '@/lib/customize-canvas-motion'
+import { useCustomizePuck } from '@/lib/customize-puck'
 import { usePreviewMode, useThemePreview } from '@/lib/customize-theme-context'
 import CanvasInsertLine from './canvas-insert-line'
 
@@ -26,6 +28,11 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
   const theme = useThemePreview()
   const mode = usePreviewMode()
   const reducedMotion = useReducedMotion()
+  // Popups and the cookie banner open in the canvas only while selected (EditorOverlay).
+  const selectedId = useCustomizePuck((s) => {
+    const id = s.selectedItem?.props?.id
+    return typeof id === 'string' ? id : null
+  })
   useEffect(() => {
     if (!document || !theme) return
     const style = document.createElement('style')
@@ -95,9 +102,9 @@ export default function PreviewFrame({ children, document }: PreviewFrameProps) 
 
   // Render logic
   return (
-    <>
+    <EditorSelectionContext.Provider value={selectedId}>
       {children}
       {document ? <CanvasInsertLine document={document} /> : null}
-    </>
+    </EditorSelectionContext.Provider>
   )
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import Footer from '../src/components/footer'
 import CookieBanner from '../src/components/sections/glide/cookie-banner'
 import { pageAllowed } from '../src/components/sections/glide/signup-popup-timing'
+import { EditorSelectionContext } from '../src/editor-selection'
 import { createBlocksConfig } from '../src/puck-config'
 import type { SectionMetadata } from '../src/sections/dynamic'
 import { cookieBannerSettings } from '../src/sections/glide/cookie-banner'
@@ -178,15 +179,36 @@ describe('CookieBanner (Glide cookie banner)', () => {
 })
 
 describe('SignupPopup (Glide signup popup)', () => {
+  it('is a slim strip in the editor until it is selected', () => {
+    const html = render(
+      'SignupPopup',
+      { ...components.SignupPopup?.defaultProps, id: 'pop-1', style: 'corner' },
+      { metadata: {}, isEditing: true },
+    )
+    expect(html).toContain('editor-overlay')
+    expect(html).not.toContain('signup-popup__card')
+  })
+
   for (const style of ['corner', 'figure', 'feed'] as const) {
-    it(`draws the ${style} look open and in place while editing`, () => {
-      const html = render(
-        'SignupPopup',
-        { ...components.SignupPopup?.defaultProps, style },
-        { metadata: {}, isEditing: true },
+    it(`opens the ${style} look where the store shows it when selected in the editor`, () => {
+      const component = components.SignupPopup
+      if (!component) throw new Error('SignupPopup is not registered')
+      const html = renderToStaticMarkup(
+        createElement(
+          EditorSelectionContext.Provider,
+          { value: 'pop-1' },
+          createElement(() =>
+            component.render({
+              ...component.defaultProps,
+              id: 'pop-1',
+              style,
+              puck: { metadata: {}, isEditing: true },
+            }),
+          ),
+        ),
       )
       expect(html).toContain(`signup-popup--${style}`)
-      expect(html).toContain('signup-popup--editing')
+      expect(html).not.toContain('signup-popup--editing')
       expect(html).toContain('is-open')
       expect(html).not.toContain('hidden=""')
       expect(html).toContain('<em>₹100 off</em>')

@@ -11,7 +11,8 @@
     "./styles.css": "./src/styles/index.css",
     "./embed": "./src/embed-sanitize.ts",
     "./slots": "./src/slots.tsx",
-    "./element-style": "./src/element-style.ts"
+    "./element-style": "./src/element-style.ts",
+    "./editor-selection": "./src/editor-selection.ts"
   },
   "scripts": {
     "test": "vitest run",
