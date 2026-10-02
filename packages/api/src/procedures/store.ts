@@ -112,19 +112,24 @@ async function findMembership(context: SessionContext) {
   return { organizationId, storeId, role: membership.role, userId: context.session.user.id }
 }
 
-/** Loads what the member may do and refuses when `required` is missing. */
+/**
+ * Loads what the member may do and refuses when `required` is missing. An array means any
+ * one of them is enough (the AI assistant: each of its tools checks its own permission).
+ */
 async function scopeFor(
   tx: StoreTx,
   member: Awaited<ReturnType<typeof findMembership>>,
-  required: Permission | undefined,
+  required: Permission | readonly Permission[] | undefined,
 ): Promise<StoreScope> {
   const access = await resolveAccess(tx, member.storeId, member.userId, member.role)
   const holds = (permission: Permission) =>
     access.isOwner || access.permissions.includes(permission)
-  if (required && !holds(required)) {
+  const wanted = required === undefined ? [] : typeof required === 'string' ? [required] : required
+  if (wanted.length && !wanted.some(holds)) {
+    const first = wanted[0] as Permission
     throw new ORPCError('FORBIDDEN', {
-      message: `Your role does not allow ${describe(required)}`,
-      data: { required, role: access.roleSlug },
+      message: `Your role does not allow ${describe(first)}`,
+      data: { required: first, role: access.roleSlug },
     })
   }
   return { ...member, ...access, can: holds }
@@ -143,7 +148,7 @@ function report(context: SessionContext, storeId: string, error: unknown): never
  * request rather than carried in the session, so revoking one takes effect on
  * the next call.
  */
-function storeProcedureWith(required?: Permission) {
+function storeProcedureWith(required?: Permission | readonly Permission[]) {
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
     return withStore(context.db, member.storeId, async (tx: StoreTx) => {
@@ -166,6 +171,15 @@ export function can(permission: Permission) {
 }
 
 /**
+ * `can` for a handler that serves several permission grains at once and checks the exact one
+ * itself (`context.scope.can(...)`): the caller must hold at least one of `permissions`. The
+ * AI assistant's approve and undo use it; each action re-checks its own permission.
+ */
+export function canAny(permissions: readonly Permission[]) {
+  return storeProcedureWith(permissions)
+}
+
+/**
  * `can(permission)` for handlers that wait on a slow outside service (an AI model) or stream
  * their answer. Membership and permission are checked in a short `withStore` transaction
  * exactly as `can` does, then the handler runs with `scope` but no `tx`: it opens its own
@@ -173,7 +187,7 @@ export function can(permission: Permission) {
  * connection sits idle in a transaction while a model thinks, and a streamed answer (whose
  * generator runs after the middleware returns) never touches a committed transaction.
  */
-export function canDetached(permission: Permission) {
+export function canDetached(permission: Permission | readonly Permission[]) {
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>

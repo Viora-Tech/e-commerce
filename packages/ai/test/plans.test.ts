@@ -44,10 +44,15 @@ describe('parsers', () => {
   })
 
   it('treats missing feature toggles as on', () => {
-    expect(parseFeatureToggles(null)).toEqual({ productWriter: true, askStore: true })
-    expect(parseFeatureToggles({ askStore: false, junk: 1 })).toEqual({
+    expect(parseFeatureToggles(null)).toEqual({
       productWriter: true,
-      askStore: false,
+      assistant: true,
+      bulkWriter: true,
+    })
+    expect(parseFeatureToggles({ bulkWriter: false, junk: 1 })).toEqual({
+      productWriter: true,
+      assistant: true,
+      bulkWriter: false,
     })
   })
 })

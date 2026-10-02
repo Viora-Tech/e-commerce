@@ -8,6 +8,7 @@ import { hasOwnHeading, layoutContent, pagePrefixFor, pageTitleFor } from '@/dat
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { pageName } from '@/lib/page-names'
 import AdminSidebar from './admin-sidebar'
+import AssistantHost from './assistant/assistant-host'
 import PaletteHost from './layout/palette-host'
 import TopBar from './layout/top-bar'
 
@@ -86,6 +87,7 @@ export default function AdminFrame({
         </main>
         <Toaster />
         <PaletteHost />
+        <AssistantHost storeId={activeStoreId} />
       </SidebarInset>
     </SidebarProvider>
   )

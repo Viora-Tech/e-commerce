@@ -561,6 +561,13 @@
       "when": 1791140000000,
       "tag": "0084_gst_phase_2_3",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1791160000000,
+      "tag": "0086_ai_v2_assistant",
+      "breakpoints": true
     }
   ]
 }

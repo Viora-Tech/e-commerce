@@ -74,7 +74,9 @@ const SKIP: Record<string, string> = {
   'shopifyImport.testConnection': 'Shopify API',
   'shopifyImport.createApiRun': 'Shopify API',
   'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
-  'ai.ask': 'AI model provider (a dev .env key would reach the real gateway)',
+  'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
+  'ai.bulkWrite':
+    'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
   'domains.connect': 'DNS and certificate provider',
   'domains.verify': 'DNS and certificate provider',
   'onboarding.create': 'creates another store and switches the session to it',
@@ -242,6 +244,8 @@ const NAMESPACE_TABLE: Record<string, string> = {
 
 /** Procedure-name hints that beat the namespace (`blog.updateBlog` edits a blog, not an article). */
 const NAME_HINTS: [RegExp, string][] = [
+  [/^(approve|revise|cancel|undo)Action$/, 'ai_action'],
+  [/^(bulkJob|cancelBulk|applyBulk)$/, 'ai_job'],
   [/MetafieldDefinition/, 'metafield_definition'],
   [/Definition/, 'metaobject_definition'],
   [/Blog$/, 'blog'],

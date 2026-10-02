@@ -12,6 +12,7 @@
     "./payment-methods": "./src/payments/methods.ts",
     "./manual-payments": "./src/payments/manual-collection.ts",
     "./registries": "./src/plugins/registries.ts",
+    "./ai-runtime": "./src/ai/runtime.ts",
     "./catalog": "./src/catalog/client.ts",
     "./discounts": "./src/discounts/client.ts",
     "./store-settings": "./src/settings/general.ts",

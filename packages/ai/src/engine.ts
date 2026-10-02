@@ -29,14 +29,18 @@ export type AiMessage = { role: 'user' | 'assistant'; content: string }
 export type AiUsage = { inputTokens: number; outputTokens: number }
 
 /**
- * A tool the model may call. `read` tools run straight away; `write` tools (anything that
- * changes data, spends money or messages someone) are never run by the model: the engine
- * emits an `approval` event and stops, and the merchant decides.
+ * A tool the model may call.
+ * - `read` tools run straight away and only read.
+ * - `propose` tools run straight away but change nothing in the store: they validate the
+ *   model's input and record a proposal (a preview the merchant approves, edits or cancels).
+ *   The change itself runs later, only through the merchant's approval (the AI assistant).
+ * - `write` tools (anything that changes data, spends money or messages someone) are never
+ *   run by the model: the engine emits an `approval` event and stops, and the merchant decides.
  */
 export type AiTool<I = unknown, O = unknown> = {
   description: string
   input: z.ZodType<I>
-  risk: 'read' | 'write'
+  risk: 'read' | 'propose' | 'write'
   run: (input: I, runtime: AiRuntime) => Promise<O>
 }
 

@@ -12,6 +12,7 @@ const copy: ProductCopy = {
   seoTitle: 'Glide Mouse',
   seoDescription: 'A light mouse.',
   tags: ['gaming', 'Mouse', 'usb-c'],
+  altTexts: [],
 }
 
 const all = { description: true, specs: true, seoTitle: true, seoDescription: true, tags: true }

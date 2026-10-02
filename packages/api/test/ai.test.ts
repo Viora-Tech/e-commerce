@@ -23,7 +23,7 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
-import type { AskStoreEvent } from '../src/services/ai/ask-store'
+import type { AssistantEvent } from '../src/services/ai/assistant/assistant'
 import { storeTools } from '../src/services/ai/store-tools'
 
 /*
@@ -49,6 +49,7 @@ const AI_KEYS = [
   'AI_GATEWAY_API_KEY',
   'OPENROUTER_API_KEY',
   'AI_MODEL',
+  'AI_MODEL_STRONG',
   'AI_UNLIMITED_STORES',
 ] as const
 const savedEnv = Object.fromEntries(AI_KEYS.map((k) => [k, process.env[k]]))
@@ -109,8 +110,8 @@ async function staffOf(boss: Awaited<ReturnType<typeof merchant>>) {
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000)
 
-async function collect(events: AsyncIterable<AskStoreEvent>): Promise<AskStoreEvent[]> {
-  const out: AskStoreEvent[] = []
+async function collect(events: AsyncIterable<AssistantEvent>): Promise<AssistantEvent[]> {
+  const out: AssistantEvent[] = []
   for await (const event of events) out.push(event)
   return out
 }
@@ -155,7 +156,8 @@ describe('AI off', () => {
     expect(await call(appRouter.ai.status, undefined, { context: a.ctx })).toEqual({
       configured: false,
       productWriter: false,
-      askStore: false,
+      assistant: false,
+      bulkWriter: false,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
@@ -188,7 +190,7 @@ describe('product writer', () => {
     expect(settings.usage.month).toBe(aiMonth())
     expect(settings.usage.byFeature.productWriter.calls).toBe(1)
     expect(settings.usage.total.inputTokens).toBeGreaterThan(0)
-    expect(settings.usage.byFeature.askStore.calls).toBe(0)
+    expect(settings.usage.byFeature.assistant.calls).toBe(0)
   })
 
   it('writes in Hindi when asked', async () => {
@@ -230,11 +232,12 @@ describe('settings, switches and quota', () => {
       { features: { productWriter: false } },
       { context: a.ctx },
     )
-    expect(saved.features).toEqual({ productWriter: false, askStore: true })
+    expect(saved.features).toEqual({ productWriter: false, assistant: true, bulkWriter: true })
     expect(await call(appRouter.ai.status, undefined, { context: a.ctx })).toEqual({
       configured: true,
       productWriter: false,
-      askStore: true,
+      assistant: true,
+      bulkWriter: true,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: a.ctx }),
@@ -294,7 +297,8 @@ describe('permissions', () => {
     expect(await call(appRouter.ai.status, undefined, { context: staff })).toEqual({
       configured: true,
       productWriter: false,
-      askStore: true,
+      assistant: true,
+      bulkWriter: false,
     })
     await expect(
       call(appRouter.ai.writeProduct, writeInput, { context: staff }),
@@ -305,16 +309,20 @@ describe('permissions', () => {
       code: 'FORBIDDEN',
     })
     await expect(
-      call(appRouter.ai.saveSettings, { features: { askStore: false } }, { context: staff }),
+      call(appRouter.ai.saveSettings, { features: { assistant: false } }, { context: staff }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
     const events = await collect(
-      await call(appRouter.ai.ask, { question: 'How were sales this week?' }, { context: staff }),
+      await call(
+        appRouter.ai.assistant,
+        { message: 'How were sales this week?' },
+        { context: staff },
+      ),
     )
     expect(events.at(-1)).toEqual({ type: 'done' })
   })
 })
 
-describe('ask your store', () => {
+describe('assistant: answering questions', () => {
   it('streams an answer whose numbers come from the store tools, and meters it', async () => {
     const a = await merchant('a@example.com', 'ai-ask')
     await owner.insert(order).values({
@@ -327,20 +335,24 @@ describe('ask your store', () => {
       placedAt: new Date(),
     })
     const events = await collect(
-      await call(appRouter.ai.ask, { question: 'How were sales this week?' }, { context: a.ctx }),
+      await call(
+        appRouter.ai.assistant,
+        { message: 'How were sales this week?' },
+        { context: a.ctx },
+      ),
     )
     const sources = events.filter((e) => e.type === 'source')
     expect(sources.map((s) => s.status)).toEqual(['running', 'done'])
     expect(sources[1]).toMatchObject({ tool: 'salesSummary' })
-    const done = sources[1] as Extract<AskStoreEvent, { type: 'source' }>
+    const done = sources[1] as Extract<AssistantEvent, { type: 'source' }>
     expect(done.facts).toContainEqual({ label: 'Sales, last 7 days', value: '₹2,450' })
     const text = events.flatMap((e) => (e.type === 'text' ? [e.delta] : [])).join('')
     expect(text).toContain('₹2,450')
     expect(events.at(-1)).toEqual({ type: 'done' })
 
     const settings = await call(appRouter.ai.settings, undefined, { context: a.ctx })
-    expect(settings.usage.byFeature.askStore.calls).toBe(1)
-    expect(settings.usage.byFeature.askStore.outputTokens).toBeGreaterThan(0)
+    expect(settings.usage.byFeature.assistant.calls).toBe(1)
+    expect(settings.usage.byFeature.assistant.outputTokens).toBeGreaterThan(0)
   })
 })
 
@@ -422,7 +434,7 @@ describe('store tools (read-only, against the database)', () => {
       storeId: a.storeId,
       userId: 'u',
       plan: 'starter' as const,
-      feature: 'askStore' as const,
+      feature: 'assistant' as const,
     }
     const run = async (name: string, input: unknown) =>
       JSON.stringify(await tools[name]?.run(input, runtime))

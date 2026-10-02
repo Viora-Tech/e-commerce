@@ -1,11 +1,12 @@
 /**
- * "Ask your store" tools: READ-ONLY lookups the model may call. Each one opens its own
+ * The AI assistant's store tools: READ-ONLY lookups the model may call (sales, top products,
+ * stock, orders to ship, abandoned checkouts). Each one opens its own
  * `withStore` transaction for the store in the engine's runtime (never a store id from the
  * model), reads aggregates only, and returns `facts`: labelled, already-formatted values the
  * model copies into its answer and the admin shows as sources. No customer names, emails,
  * phones or addresses ever leave here.
  */
-import { type AiRuntime, type AiToolSet, defineAiTool } from '@commerce/ai'
+import { type AiRuntime, type AiToolSet, defineAiTool, guardData } from '@commerce/ai'
 import { abandonedStats, notSystemTest, UNFULFILLED_STATUSES } from '@commerce/core'
 import { formatInZone, startOfDay } from '@commerce/dates'
 import {
@@ -22,6 +23,7 @@ import {
 import { type Currency, formatMoney } from '@commerce/money'
 import { and, asc, desc, eq, gte, inArray, lt, lte, ne, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
+import type { Taint } from './assistant/taint'
 import type { StoreFacts } from './guard'
 
 export type Fact = { label: string; value: string }
@@ -32,18 +34,29 @@ const notDraft = ne(order.status, 'draft')
 const live = and(notDraft, ne(order.status, 'cancelled'))
 const available = sql<number>`${inventoryLevel.onHand} - ${inventoryLevel.reserved}`
 
-type ToolEnv = { db: Db; store: StoreFacts; now: () => Date }
+export type ToolEnv = { db: Db; store: StoreFacts; now: () => Date; taint?: Taint | undefined }
+
+/** A product title (merchant text) made safe for the model; flags the turn if it tries to instruct. */
+export function safeTitle(env: ToolEnv, title: string): string {
+  const guarded = guardData(title, 120)
+  if (guarded.flagged && env.taint) env.taint.flagged = true
+  return guarded.text
+}
 
 /** Whole rupees: an answer reads "₹2,37,948", not "₹2,37,948.21". */
-function money(env: ToolEnv, paise: number): string {
+export function money(env: ToolEnv, paise: number): string {
   return formatMoney(Math.round(paise / 100) * 100, env.store.currency as Currency)
 }
 
-function day(env: ToolEnv, at: Date): string {
+export function day(env: ToolEnv, at: Date): string {
   return formatInZone(at, { day: 'numeric', month: 'short' }, { timeZone: env.store.timezone })
 }
 
-function read<T>(env: ToolEnv, runtime: AiRuntime, fn: (tx: StoreTx) => Promise<T>): Promise<T> {
+export function read<T>(
+  env: ToolEnv,
+  runtime: AiRuntime,
+  fn: (tx: StoreTx) => Promise<T>,
+): Promise<T> {
   return withStore(env.db, runtime.storeId, fn)
 }
 
@@ -133,7 +146,7 @@ export function storeTools(env: ToolEnv): AiToolSet {
             }
           return {
             facts: rows.map((r, i) => ({
-              label: `${i + 1}. ${r.title}`,
+              label: `${i + 1}. ${safeTitle(env, r.title)}`,
               value: `${r.units} sold, ${money(env, r.revenue)}`,
             })),
           }
@@ -180,8 +193,8 @@ export function storeTools(env: ToolEnv): AiToolSet {
               ...rows.map((r) => ({
                 label:
                   r.variantTitle && r.variantTitle !== 'Default'
-                    ? `${r.title} (${r.variantTitle})`
-                    : r.title,
+                    ? `${safeTitle(env, r.title)} (${safeTitle(env, r.variantTitle)})`
+                    : safeTitle(env, r.title),
                 value: r.available <= 0 ? 'out of stock' : `${r.available} left`,
               })),
             ],

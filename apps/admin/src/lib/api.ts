@@ -3,6 +3,7 @@ import { appRouter } from '@commerce/api'
 import { loadEnv } from '@commerce/config'
 import { createRedisRateLimitStore } from '@commerce/core'
 import {
+  aiBulkQueue,
   appEventQueue,
   appJobQueue,
   dailyVisitors,
@@ -28,6 +29,7 @@ export function apiHost() {
     appJobs: appJobQueue(loadEnv(process.env).REDIS_URL),
     mediaProcess: mediaProcessQueue(loadEnv(process.env).REDIS_URL),
     storeExport: storeExportQueue(loadEnv(process.env).REDIS_URL),
+    aiBulk: aiBulkQueue(loadEnv(process.env).REDIS_URL),
     visitors: {
       live: (storeId: string) => liveVisitors(sharedRedis(loadEnv(process.env).REDIS_URL), storeId),
       daily: (storeId: string, days: string[]) =>

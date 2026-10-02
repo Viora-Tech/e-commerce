@@ -6,6 +6,7 @@ import { reportWorkerFailures } from '@commerce/observability'
 import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
 import { sql } from 'drizzle-orm'
 import { Hono } from 'hono'
+import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
@@ -67,6 +68,7 @@ const backInStock = createBackInStockWorker(redis, db, {
   storefrontUrl: env.STOREFRONT_URL,
 })
 const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -88,6 +90,7 @@ reportWorkerFailures(outboxRelay.worker, 'outbox-relay', reportError)
 reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
 reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
 reportWorkerFailures(storeExport.worker, 'store-export', reportError)
+reportWorkerFailures(aiBulkWrite.worker, 'ai-bulk-write', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -175,6 +178,8 @@ const shutdown = async () => {
   await backInStock.queue.close()
   await storeExport.worker.close()
   await storeExport.queue.close()
+  await aiBulkWrite.worker.close()
+  await aiBulkWrite.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()
