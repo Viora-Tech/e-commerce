@@ -1,9 +1,12 @@
 name: CI
 
+# Paused (owner, 2026-10-02): checks run locally before each PR, so CI does not start on its
+# own. Run it by hand from the Actions tab; restore the triggers below to turn it back on.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
 
 jobs:
   check:
