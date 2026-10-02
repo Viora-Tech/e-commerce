@@ -131,6 +131,26 @@
   }
 }
 
+/* Clear of the home indicator on notched phones (the storefront sets
+   viewport-fit=cover, so the inset is real). When the mobile dock is on the
+   page the card rides above the dock, whose own height already includes the
+   inset, so it keeps its plain padding there. */
+@media screen and (max-width: 749px) {
+  .sticky-atc {
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  }
+
+  body:has(.mobile-dock) .sticky-atc {
+    padding-bottom: var(--space-3);
+  }
+}
+
+@media screen and (min-width: 750px) {
+  .sticky-atc {
+    padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Parked below the fold until shown; `hidden` keeps it out of the tab order meanwhile. */
 .sticky-atc {
   translate: 0 100%;

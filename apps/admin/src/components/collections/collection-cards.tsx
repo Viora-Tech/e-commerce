@@ -59,7 +59,7 @@ export default function CollectionCards({
           type="button"
           onClick={handleNext}
           aria-label={copy.nextPage}
-          className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-card transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-card motion-press hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowRight className="size-5" aria-hidden="true" />
         </button>

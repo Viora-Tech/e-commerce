@@ -186,7 +186,7 @@ export default function MediaPickGrid({
               aria-pressed={active}
               aria-label={item.alt || filenameFrom(item.key)}
               className={cn(
-                'group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border bg-muted p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'group relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border bg-muted p-2 motion-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 active ? 'bg-accent ring-2 ring-primary' : 'hover:shadow-card-hover',
               )}
             >

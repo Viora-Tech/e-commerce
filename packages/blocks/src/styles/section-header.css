@@ -1249,6 +1249,8 @@ search-overlay {
   justify-content: center;
   padding: var(--space-6) var(--space-4);
   overflow-y: auto;
+  /* Scrolling to the end of the overlay must not scroll (or pull-to-refresh) the page behind it. */
+  overscroll-behavior: contain;
   /* Lets clicks in the empty margin around the panel fall through to the
      scrim underneath instead of this frame intercepting them. */
   pointer-events: none;
@@ -1381,6 +1383,7 @@ search-overlay {
 .search-overlay__body {
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-6);
 }
 
@@ -1533,9 +1536,8 @@ html.has-cursor-fill .search-overlay__pill.is-hover-fill::before {
 
 /* The label has to invert or it ends up ink-on-purple once the fill covers
    it, and it must do so on the fill's own duration AND easing in both
-   directions - duration alone still desyncs, because the fill's exit is
-   ease-in (barely moves, then accelerates) while a default curve is already
-   well underway, so the label would revert while the purple still covers it. */
+   directions - duration alone still desyncs, because the fill's exit runs
+   on its own curve while a default curve would be somewhere else, so the label would revert while the purple still covers it. */
 html.has-cursor-fill .search-overlay__pill:hover {
   color: var(--color-bg);
 }
@@ -1736,6 +1738,10 @@ html:not(.has-cursor-fill) .search-overlay__pill:hover {
   padding: var(--space-4);
   background-color: var(--color-bg);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Clear of the home indicator and, in landscape, the notch (viewport-fit=cover). */
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--space-4) + env(safe-area-inset-left, 0px));
   transform: translateX(-100%);
 }
 

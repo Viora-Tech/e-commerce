@@ -11,6 +11,166 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hover only where there is a real mouse. Tailwind's own `hover:` checks (hover: hover) alone,
+   which some touch devices claim; a tap there leaves the hover style stuck on. Overriding the
+   variant gates every `hover:` / `group-hover:` / `peer-hover:` class at once. Touch users get
+   press feedback from `active:` instead. Conventions: docs/conventions.md, "Motion". */
+@custom-variant hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Motion. One set of curves and durations for the whole admin (docs/conventions.md, "Motion").
+ * The curves replace Tailwind's `ease-out` / `ease-in-out` and add `ease-drawer`, so every
+ * `ease-out` class gets the strong curve. Nothing here uses `ease-in`: it starts slow, which
+ * reads as lag at exactly the moment the user is watching.
+ */
+@theme {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+:root {
+  /* Durations. UI motion stays under 300ms; only drawers go past it. */
+  --duration-press: 140ms;
+  --duration-tooltip: 150ms;
+  --duration-popover: 180ms;
+  --duration-dropdown: 200ms;
+  --duration-modal: 250ms;
+  --duration-drawer: 350ms;
+  /* Exits run at this fraction of their entry: the system answering should be quicker than
+     the thing arriving. */
+  --motion-exit-ratio: 0.7;
+  /* Distances. Reduced motion sets these to "no movement" below. */
+  --motion-press-scale: 0.97;
+  --motion-pop-scale: 0.97;
+  --motion-modal-scale: 0.95;
+  --motion-sheet-offset: 2.5rem;
+}
+
+/* Reduced motion keeps fades and colour changes and drops movement: presses don't shrink,
+   popups and dialogs only fade, sheets fade in place. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-press-scale: 1;
+    --motion-pop-scale: 1;
+    --motion-modal-scale: 1;
+    --motion-sheet-offset: 0rem;
+  }
+}
+
+/* Popovers, menus, selects and comboboxes (Base UI): grow out of the trigger
+   (--transform-origin), transitions rather than keyframes so a quick reopen retargets
+   instead of restarting. */
+@utility motion-popup {
+  transform-origin: var(--transform-origin);
+  transition-property: opacity, scale;
+  /* Menus and selects use the dropdown time; Popover sets --motion-popup-duration to the
+     shorter popover time. */
+  transition-duration: var(--motion-popup-duration, var(--duration-dropdown));
+  transition-timing-function: var(--ease-out);
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    scale: var(--motion-pop-scale);
+  }
+  &[data-ending-style] {
+    transition-duration: calc(
+      var(--motion-popup-duration, var(--duration-dropdown)) * var(--motion-exit-ratio)
+    );
+  }
+  /* Opened from the keyboard or snapped in by Base UI: no animation. */
+  &[data-instant] {
+    transition-duration: 0ms;
+  }
+}
+
+/* Tooltips: shorter than menus, and instant once one is already open (Base UI sets
+   data-instant while the pointer moves between triggers in one provider). */
+@utility motion-tooltip {
+  transform-origin: var(--transform-origin);
+  transition-property: opacity, scale;
+  transition-duration: var(--duration-tooltip);
+  transition-timing-function: var(--ease-out);
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    scale: var(--motion-pop-scale);
+  }
+  &[data-ending-style] {
+    transition-duration: calc(var(--duration-tooltip) * var(--motion-exit-ratio));
+  }
+  &[data-instant] {
+    transition-duration: 0ms;
+  }
+}
+
+/* Dialogs stay centred: they are not anchored to a trigger, so they scale from the middle. */
+@utility motion-dialog {
+  transition-property: opacity, scale;
+  transition-duration: var(--duration-modal);
+  transition-timing-function: var(--ease-out);
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    scale: var(--motion-modal-scale);
+  }
+  &[data-ending-style] {
+    transition-duration: calc(var(--duration-modal) * var(--motion-exit-ratio));
+  }
+}
+
+/* Backdrops only fade. */
+@utility motion-backdrop {
+  transition-property: opacity;
+  transition-duration: var(--duration-modal);
+  transition-timing-function: var(--ease-out);
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+  }
+  &[data-ending-style] {
+    transition-duration: calc(var(--duration-modal) * var(--motion-exit-ratio));
+  }
+}
+
+/* Press feedback for anything pressable that is not a <Button> (cards that are links, tiles).
+   Buttons carry the same rule in buttonVariants. It owns the element's transition, so the
+   hover shadow/colour changes ride along: use it instead of `transition-shadow`. */
+@utility motion-press {
+  transition-property: scale, box-shadow, background-color, border-color, color;
+  transition-duration: var(--duration-press);
+  transition-timing-function: var(--ease-out);
+  &:active:not(:disabled, [aria-disabled="true"], [data-disabled]) {
+    scale: var(--motion-press-scale);
+  }
+}
+
+/* Feel native on a phone (docs/conventions.md, "Motion"). Tailwind's preflight already drops
+   the grey tap flash (every control has its own :active state); this drops the double-tap
+   wait on controls so a tap answers at once. */
+@layer base {
+  :where(button, a, label, summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"]) {
+    touch-action: manipulation;
+  }
+}
+
+/* iOS zooms the page into any field under 16px and never zooms back out. Admin fields are
+   13px by design, so on touch screens they step up to 16px. Unlayered on purpose: it has to
+   beat the `text-*` utilities on the field itself. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+  textarea,
+  select {
+    font-size: max(1rem, 16px);
+  }
+}
+
 @theme inline {
   --font-sans:
     var(--font-primary), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",

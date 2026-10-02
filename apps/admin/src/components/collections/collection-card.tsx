@@ -30,7 +30,7 @@ export default function CollectionCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'flex items-center gap-3 rounded-md bg-card p-3 text-left shadow-card transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex items-center gap-3 rounded-md bg-card p-3 text-left shadow-card motion-press hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         selected && 'ring-2 ring-primary',
       )}
     >

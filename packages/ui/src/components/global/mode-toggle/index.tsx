@@ -27,11 +27,11 @@ export default function ModeToggle() {
   return (
     <Button className="relative" onClick={handleSwitchTheme} size="icon-sm" variant="ghost">
       <SunIcon
-        className="rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-100"
+        className="rotate-0 scale-100 opacity-100 transition-[rotate,scale,opacity] duration-(--duration-popover) ease-out dark:-rotate-90 dark:scale-75 dark:opacity-0"
         size={16}
       />
       <MoonIcon
-        className="absolute rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-0"
+        className="absolute rotate-90 scale-75 opacity-0 transition-[rotate,scale,opacity] duration-(--duration-popover) ease-out dark:rotate-0 dark:scale-100 dark:opacity-100"
         size={16}
       />
       <span className="sr-only">Toggle theme</span>

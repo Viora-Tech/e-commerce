@@ -888,8 +888,8 @@ html.has-cursor-fill .hero-carousel__control.is-hover-fill::before {
 
 /* The glyph has to invert or it ends up ink-on-purple once the fill covers
    it, on the fill's own duration AND easing in both directions - duration
-   alone still desyncs, because the fill's exit is ease-in (barely moves, then
-   accelerates) while a default curve is already well underway. */
+   alone still desyncs, because the fill's exit runs on its own curve and a
+   default curve would be somewhere else. */
 html.has-cursor-fill .hero-carousel__control:hover {
   color: var(--hero-white);
 }
@@ -1094,8 +1094,8 @@ html.has-cursor-fill .hero-carousel__scroll-cue.is-hover-fill::before {
 
 /* The label has to invert or white sits on white once the fill covers it,
    and it must ride the fill's own duration AND easing in both directions -
-   duration alone still desyncs, because the fill's exit is ease-in (barely
-   moves, then accelerates) while a default curve is already well underway. */
+   duration alone still desyncs, because the fill's exit runs on its own
+   curve and a default curve would be somewhere else. */
 html.has-cursor-fill .hero-carousel__scroll-cue:hover {
   color: var(--hero-ink-fixed);
 }

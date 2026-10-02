@@ -233,7 +233,7 @@ html.has-cursor-fill .social-wall__tab.is-hover-fill::before {
 
 /* The label has to invert or it ends up ink-on-ink once the fill covers it,
    on the fill's own duration AND easing in both directions - duration alone
-   still desyncs against the fill's ease-in exit. */
+   still desyncs against the fill's own exit curve. */
 html.has-cursor-fill .social-wall__tab:hover {
   color: var(--color-bg);
 }
