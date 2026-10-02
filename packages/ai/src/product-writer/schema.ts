@@ -33,6 +33,11 @@ export const ProductCopySchema = z.object({
   seoTitle: z.string().describe('Search result title, at most 60 characters.'),
   seoDescription: z.string().describe('Search result description, 120-155 characters.'),
   tags: z.array(z.string()).describe('4-8 lowercase tags shoppers would filter or search by.'),
+  altTexts: z
+    .array(z.string())
+    .describe(
+      'One short alt text per photo, in the order given: what is visible, for shoppers using a screen reader. Empty when there are no photos.',
+    ),
 })
 
 export type ProductCopy = z.infer<typeof ProductCopySchema>
@@ -50,6 +55,8 @@ const LIMITS = {
   seoDescription: 160,
   tags: 10,
   tag: 30,
+  altTexts: 3,
+  altText: 125,
 } as const
 
 function cut(text: string, max: number): string {
@@ -81,5 +88,9 @@ export function clampProductCopy(copy: ProductCopy): ProductCopy {
     seoTitle: cut(copy.seoTitle, LIMITS.seoTitle),
     seoDescription: cut(copy.seoDescription, LIMITS.seoDescription),
     tags: tags.slice(0, LIMITS.tags),
+    altTexts: (copy.altTexts ?? [])
+      .map((a) => cut(a, LIMITS.altText))
+      .filter(Boolean)
+      .slice(0, LIMITS.altTexts),
   }
 }

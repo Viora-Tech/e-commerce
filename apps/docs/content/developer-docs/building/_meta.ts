@@ -4,6 +4,7 @@ export default {
   'data-model': 'Data model',
   'first-app': 'Build your first app',
   'ai-engine': 'AI engine',
+  'ai-assistant': 'AI assistant',
   plugins: 'Plugins SDK and app blocks',
   'media-pipeline': 'Image pipeline',
   'live-globe': 'Live view globe',

@@ -1,14 +1,38 @@
 import {
   AI_FEATURES,
-  ASK_MAX_HISTORY,
-  ASK_MAX_QUESTION,
+  ASSISTANT_MAX_HISTORY,
+  ASSISTANT_MAX_MESSAGE,
+  ASSISTANT_PAGES,
+  BULK_WRITE_FIELDS,
   WRITER_LANGUAGES,
   WRITER_TONES,
+  WRITING_QUALITIES,
 } from '@commerce/ai/client'
-import { permissions } from '@commerce/core'
+import {
+  AiJobEmpty,
+  applyAiJobItems,
+  cancelAiJob,
+  getAiJob,
+  listAiJobs,
+  permissions,
+} from '@commerce/core'
+import { aiStoreFacts } from '@commerce/core/ai-runtime'
+import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can, canDetached, storeProcedure } from '../procedures'
-import { askStore } from '../services/ai/ask-store'
+import type { StoreScope } from '../procedures'
+import { BULK_MAX, can, canAny, canDetached, PAGE_SIZE_MAX, storeProcedure } from '../procedures'
+import { ProposalProblem } from '../services/ai/assistant/actions/resolve'
+import type { ActionEnv } from '../services/ai/assistant/actions/types'
+import { runAssistant } from '../services/ai/assistant/assistant'
+import { ACTION_PERMISSIONS, ASSISTANT_PERMISSIONS } from '../services/ai/assistant/registry'
+import {
+  approveAction,
+  cancelAction,
+  listActivity,
+  reviseAction,
+  undoAction,
+} from '../services/ai/assistant/service'
+import { startBulkWrite } from '../services/ai/bulk.service'
 import { writeProduct } from '../services/ai/product-writer'
 import { aiSettingsView, aiStatus, saveAiSettings } from '../services/ai/settings.service'
 
@@ -27,35 +51,74 @@ const WriteProductInput = z.object({
   language: z.enum(WRITER_LANGUAGES).default('en'),
 })
 
-const AskInput = z.object({
-  question: z.string().trim().min(1).max(ASK_MAX_QUESTION),
+const AssistantInput = z.object({
+  message: z.string().trim().min(1).max(ASSISTANT_MAX_MESSAGE),
   /** Earlier turns of this conversation, oldest first, so follow-ups ("and last month?") work. */
   history: z
     .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) }))
-    .max(ASK_MAX_HISTORY)
+    .max(ASSISTANT_MAX_HISTORY)
     .default([]),
+  /** Where the merchant is: the page kind and the record's id (resolved under RLS, never trusted as text). */
+  page: z
+    .object({ page: z.enum(ASSISTANT_PAGES), entityId: z.uuid().nullable().default(null) })
+    .default({ page: 'other', entityId: null }),
   language: z.enum(['en', 'hi']).default('en'),
 })
+
+const ActionId = z.object({ id: z.uuid() })
+
+const BulkFields = z.array(z.enum(BULK_WRITE_FIELDS)).min(1).max(BULK_WRITE_FIELDS.length)
+
+type ActionContext = {
+  tx: ActionEnv['tx']
+  scope: StoreScope
+  session: { user: { email: string } }
+}
+
+/** What an approve, edit, cancel or undo runs with: the caller's RLS transaction and who they are. */
+async function actionEnv(context: ActionContext): Promise<ActionEnv> {
+  return {
+    tx: context.tx,
+    storeId: context.scope.storeId,
+    userId: context.scope.userId,
+    email: context.session.user.email,
+    store: await aiStoreFacts(context.tx, context.scope.storeId),
+    now: new Date(),
+  }
+}
+
+function problemToBadRequest<T>(work: () => Promise<T>): Promise<T> {
+  return work().catch((err: unknown) => {
+    if (err instanceof ProposalProblem) throw new ORPCError('BAD_REQUEST', { message: err.message })
+    if (err instanceof AiJobEmpty) throw new ORPCError('BAD_REQUEST', { message: err.message })
+    throw err
+  })
+}
 
 export const aiRouter = {
   /**
    * Which AI buttons the caller sees. Bare `storeProcedure` on purpose (docs/guardrails.md,
-   * "Router idiom"): it answers only for the calling member, three booleans derived from
-   * their own role, like `staff.me`, and exposes no other member's or store-wide data.
+   * "Router idiom"): it answers only for the calling member, booleans derived from their own
+   * role, like `staff.me`, and exposes no other member's or store-wide data.
    */
   status: storeProcedure.handler(({ context }) =>
     aiStatus({ storeId: context.scope.storeId, tx: context.tx }, context.scope),
   ),
 
-  /** Settings → AI: plan, usage this month against the quota, and the feature switches. */
+  /** Settings → AI: plan, usage this month against the quota, the switches and writing quality. */
   settings: can(permissions.SETTINGS_READ).handler(({ context }) =>
     aiSettingsView({ storeId: context.scope.storeId, tx: context.tx }),
   ),
 
   saveSettings: can(permissions.SETTINGS_MANAGE)
-    .input(z.object({ features: z.partialRecord(z.enum(AI_FEATURES), z.boolean()) }))
+    .input(
+      z.object({
+        features: z.partialRecord(z.enum(AI_FEATURES), z.boolean()),
+        writingQuality: z.enum(WRITING_QUALITIES).optional(),
+      }),
+    )
     .handler(({ context, input }) =>
-      saveAiSettings({ storeId: context.scope.storeId, tx: context.tx }, input.features),
+      saveAiSettings({ storeId: context.scope.storeId, tx: context.tx }, input),
     ),
 
   /** "Write with AI" on the product page. Suggests only: nothing is saved. */
@@ -63,8 +126,107 @@ export const aiRouter = {
     .input(WriteProductInput)
     .handler(({ context, input, signal }) => writeProduct(context, input, signal)),
 
-  /** "Ask your store" on Home: a streamed answer from read-only store data. */
-  ask: canDetached(permissions.ANALYTICS_READ)
-    .input(AskInput)
-    .handler(({ context, input, signal }) => askStore(context, input, signal)),
+  /**
+   * The AI bar on every admin page: a streamed answer (oRPC event iterator). Open to a member
+   * whose role allows at least one assistant tool; each tool is offered only with its own
+   * permission. Change proposals are stored, never run: see `approveAction`.
+   */
+  assistant: canDetached(ASSISTANT_PERMISSIONS)
+    .input(AssistantInput)
+    .handler(({ context, input, signal }) =>
+      runAssistant({ ...context, email: context.session.user.email }, input, signal),
+    ),
+
+  /** Approve on a proposal card: runs it with the caller's permission for that action. */
+  approveAction: canAny(ACTION_PERMISSIONS)
+    .input(ActionId)
+    .handler(async ({ context, input }) =>
+      approveAction(await actionEnv(context), context.scope, input.id),
+    ),
+
+  /** Edit on a proposal card: the merchant's changes, checked like the model's input. */
+  reviseAction: canAny(ACTION_PERMISSIONS)
+    .input(
+      z.object({
+        id: z.uuid(),
+        changes: z.record(
+          z.string().max(40),
+          z.union([z.string().max(5000), z.number(), z.null()]),
+        ),
+      }),
+    )
+    .handler(({ context, input }) =>
+      problemToBadRequest(async () =>
+        reviseAction(await actionEnv(context), input.id, input.changes),
+      ),
+    ),
+
+  cancelAction: canAny(ACTION_PERMISSIONS)
+    .input(ActionId)
+    .handler(async ({ context, input }) => cancelAction(await actionEnv(context), input.id)),
+
+  /** Undo from the card or Settings → AI → Activity, with the action's own permission. */
+  undoAction: canAny(ACTION_PERMISSIONS)
+    .input(ActionId)
+    .handler(async ({ context, input }) =>
+      undoAction(await actionEnv(context), context.scope, input.id),
+    ),
+
+  /** Settings → AI → Activity: every AI action in the store, newest first. */
+  activity: can(permissions.SETTINGS_READ)
+    .input(
+      z.object({
+        page: z.number().int().min(1).default(1),
+        perPage: z.number().int().min(1).max(PAGE_SIZE_MAX).default(20),
+      }),
+    )
+    .handler(({ context, input }) =>
+      listActivity({ storeId: context.scope.storeId, tx: context.tx }, input),
+    ),
+
+  /** Bulk "Write with AI" on the products list: starts a worker run, returns its progress. */
+  bulkWrite: canDetached(permissions.PRODUCTS_WRITE)
+    .input(
+      z.object({
+        productIds: z.array(z.uuid()).min(1).max(BULK_MAX),
+        fields: BulkFields,
+        language: z.enum(WRITER_LANGUAGES).default('en'),
+        tone: z.enum(WRITER_TONES).default('friendly'),
+      }),
+    )
+    .handler(({ context, input }) => problemToBadRequest(() => startBulkWrite(context, input))),
+
+  bulkJob: can(permissions.PRODUCTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      const job = await getAiJob({ storeId: context.scope.storeId, tx: context.tx }, input.id)
+      if (!job) throw new ORPCError('NOT_FOUND', { message: 'That AI run was not found.' })
+      return job
+    }),
+
+  bulkJobs: can(permissions.PRODUCTS_WRITE).handler(({ context }) =>
+    listAiJobs({ storeId: context.scope.storeId, tx: context.tx }),
+  ),
+
+  cancelBulk: can(permissions.PRODUCTS_WRITE)
+    .input(z.object({ id: z.uuid() }))
+    .handler(async ({ context, input }) => ({
+      cancelled: await cancelAiJob({ storeId: context.scope.storeId, tx: context.tx }, input.id),
+    })),
+
+  /** Applies the reviewed suggestions to products; logged in Activity with an undo. */
+  applyBulk: can(permissions.PRODUCTS_WRITE)
+    .input(
+      z.object({
+        jobId: z.uuid(),
+        itemIds: z.array(z.uuid()).min(1).max(BULK_MAX),
+        fields: BulkFields,
+      }),
+    )
+    .handler(({ context, input }) =>
+      applyAiJobItems(
+        { storeId: context.scope.storeId, tx: context.tx },
+        { ...input, userId: context.scope.userId },
+      ),
+    ),
 }

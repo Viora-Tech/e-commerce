@@ -48,8 +48,10 @@ const aiShape = {
   AI_GATEWAY_API_KEY: optionalOrBlank(z.string().min(1)),
   /** OpenRouter key (https://openrouter.ai/keys). */
   OPENROUTER_API_KEY: optionalOrBlank(z.string().min(1)),
-  /** Overrides the model id of every AI feature, e.g. `openai/gpt-4.1-mini`. Unset: per-feature defaults. */
+  /** Overrides the fast model (chat, tools, quick writing), e.g. `openai/gpt-4.1-mini`. Unset: the default in @commerce/ai `MODEL_TIERS`. */
   AI_MODEL: optionalOrBlank(z.string().min(3)),
+  /** Overrides the stronger model used for long writing when a store picks "Best" quality. Unset: the default in `MODEL_TIERS`. */
+  AI_MODEL_STRONG: optionalOrBlank(z.string().min(3)),
   /** Store slugs on the unlimited AI plan, comma-separated (the platform's own stores, e.g. `waimers`). */
   AI_UNLIMITED_STORES: commaList,
 }

@@ -1,15 +1,39 @@
 /**
- * Client-safe surface of the AI engine: feature names, plans and quotas, the product writer's
- * schema and choices. No SDK, no environment, safe in `'use client'` components.
+ * Client-safe surface of the AI engine: feature names, model tiers, plans and quotas, the
+ * assistant's limits and page context, the product writer's schema and choices. No SDK, no
+ * environment, safe in `'use client'` components.
  */
-export { ASK_MAX_HISTORY, ASK_MAX_QUESTION, type AskLanguage } from './ask-store/prompt'
+export {
+  ASSISTANT_LIMITS,
+  ASSISTANT_MAX_HISTORY,
+  ASSISTANT_MAX_MESSAGE,
+  ASSISTANT_PAGES,
+  type AssistantPage,
+  type AssistantPageContext,
+  pageContextFor,
+} from './assistant/limits'
+export type { AssistantLanguage } from './assistant/prompt'
 export {
   AI_FEATURES,
   type AiFeature,
   type AiFeatureToggles,
   FEATURE_MODELS,
+  MODEL_TIERS,
+  type ModelTier,
   parseFeatureToggles,
+  parseWritingQuality,
+  TIER_CALL_WEIGHT,
+  tierFor,
+  WRITING_QUALITIES,
+  type WritingQuality,
 } from './features'
+export {
+  DATA_RULES,
+  type GuardedText,
+  guardData,
+  HIDDEN_DATA,
+  looksLikeInstructions,
+} from './guard-text'
 export {
   AI_PLANS,
   type AiPlan,
@@ -21,6 +45,20 @@ export {
   PLAN_QUOTAS,
   parseAiPlan,
 } from './plans'
+export {
+  BULK_WRITE_FIELDS,
+  BULK_WRITE_MAX,
+  type BulkWriteField,
+} from './product-writer/bulk'
+export {
+  appendSpecs,
+  type CopyDoc,
+  type CopyNode,
+  descriptionFromCopy,
+  descriptionFromText,
+  descriptionText,
+  newTags,
+} from './product-writer/description'
 export {
   clampProductCopy,
   type ProductCopy,

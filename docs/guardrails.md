@@ -306,10 +306,19 @@ handlers, deliberately:
   self-scoped (keyed on `scope.userId`), not store-wide.
 - `staff.me` — every member may read their own resolved role/permissions; same reasoning,
   it drives which controls the admin renders for the caller and touches no one else's data.
-- `ai.status` — every member may read which AI buttons *they* see: three booleans (AI
+- `ai.status` — every member may read which AI buttons *they* see: four booleans (AI
   configured, and each feature on for the store and allowed by the caller's own role). Same
   reasoning as `staff.me`; usage, plan and the switches themselves sit behind
   `can(SETTINGS_READ)` / `can(SETTINGS_MANAGE)` (`ai.settings`, `ai.saveSettings`).
+
+One more gate exists for handlers that serve several permission grains at once and check the
+exact one themselves: `canAny([...])` (and `canDetached([...])` for model calls), which requires
+the caller to hold **at least one** of the listed permissions. The AI assistant uses it:
+`ai.assistant` admits a member whose role allows any assistant tool (each tool is then offered
+only with its own permission), and `ai.approveAction` / `undoAction` / `reviseAction` /
+`cancelAction` admit any action permission and then check the action's own permission (and, for
+approve, edit and cancel, that the caller asked for it). Never use `canAny` as a looser `can`:
+the handler must check the exact grain before it reads or writes store-wide data.
 
 `appearance.setStoreDefault` is the one store-wide mutation in that router; it stays on
 bare `storeProcedure` with an explicit `if (!context.scope.isOwner) throw ...` check rather

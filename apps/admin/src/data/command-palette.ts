@@ -37,6 +37,7 @@ export const shortcutsContent = {
       items: [
         { keys: ['⌘', 'K'], label: 'Open search' },
         { keys: ['/'], label: 'Open search' },
+        { keys: ['⌘', 'J'], label: 'Open or close the AI assistant' },
         { keys: ['?'], label: 'Show this list' },
         { keys: ['Esc'], label: 'Close a dialog or panel' },
       ],

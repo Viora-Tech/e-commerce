@@ -13,7 +13,7 @@ export default async function Home() {
     call(appRouter.dashboard.summary, undefined, { context }),
     call(appRouter.dashboard.charts, { range: 30 }, { context }),
     getSession(),
-    // AI is optional: any failure just hides "Ask your store".
+    // AI is optional: any failure just hides "Ask AI".
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
   ])
   const { fallbackName } = (await getCopy(homeContent)).briefing
@@ -23,7 +23,7 @@ export default async function Home() {
       summary={summary}
       charts={charts}
       firstName={firstName}
-      askStore={ai?.askStore ?? false}
+      assistant={ai?.assistant ?? false}
     />
   )
 }

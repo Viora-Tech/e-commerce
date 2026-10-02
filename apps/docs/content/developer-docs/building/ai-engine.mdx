@@ -1,6 +1,6 @@
 ---
 title: AI engine
-description: The AI engine (@commerce/ai) behind "Write with AI" and "Ask your store", how a call is gated and metered, and how to add a new AI feature as one slice.
+description: The AI engine (@commerce/ai) behind the AI assistant, "Write with AI" and bulk writing, model routing, how a call is gated and metered, and how to add a new AI feature as one slice.
 ---
 
 # AI engine
@@ -10,9 +10,11 @@ the [Vercel AI SDK](https://ai-sdk.dev) directly; they go through a small interf
 
 | Piece | File | What it does |
 |---|---|---|
-| Engine | `packages/ai/src/engine.ts` | `generateStructured` (one answer validated against a zod schema), `streamAnswer` (streamed text with tools), `defineAiTool` (a tool with `risk: 'read' \| 'write'`) |
-| Provider | `packages/ai/src/provider.ts` | `aiProvider()` reads `AI_PROVIDER` and the gateway keys; `aiModel(feature)` returns the model or `null` (AI off) |
-| Features and models | `packages/ai/src/features.ts` | `AI_FEATURES` and `FEATURE_MODELS`: the model, output cap, temperature and tool steps per feature |
+| Engine | `packages/ai/src/engine.ts` | `generateStructured` (one answer validated against a zod schema), `streamAnswer` (streamed text with tools), `defineAiTool` (a tool with `risk: 'read' \| 'propose' \| 'write'`) |
+| Provider | `packages/ai/src/provider.ts` | `aiProvider()` reads `AI_PROVIDER` and the gateway keys; `aiModel(feature, env, tier)` returns the model or `null` (AI off) |
+| Features and models | `packages/ai/src/features.ts` | `AI_FEATURES`, the two `MODEL_TIERS` (fast, strong), `FEATURE_MODELS` (tier, output cap, temperature, tool steps per feature), `tierFor` and `TIER_CALL_WEIGHT` |
+| Injection guard | `packages/ai/src/guard-text.ts` | `guardData` (store text made safe for a model), `DATA_RULES` (the prompt rule) |
+| Assistant | `packages/ai/src/assistant/` | prompt, hard limits (`ASSISTANT_LIMITS`), page context (`pageContextFor`); see [AI assistant](./ai-assistant) |
 | Plans | `packages/ai/src/plans.ts` | `PLAN_QUOTAS` (calls and tokens per month per plan), `checkQuota`, `aiMonth` (IST month) |
 | Prompts and schemas | `packages/ai/src/<feature>/` | the feature's instructions and its output schema |
 | Client-safe surface | `@commerce/ai/client` | features, plans, schemas: safe in `'use client'` code |
@@ -32,21 +34,40 @@ AI runs on **one platform key**; merchants never bring their own. Set one of:
 
 `AI_PROVIDER` picks explicitly (`gateway`, `openrouter`, `off`, or `mock`); unset, the gateway whose
 key is set wins, Vercel first. Both gateways take the same `provider/model` ids, so one model id
-works on either. `AI_MODEL` overrides every feature's model at once (for example
-`openai/gpt-4.1-mini`). **No key means AI is off**: `ai.status` answers `configured: false` and
+works on either. **No key means AI is off**: `ai.status` answers `configured: false` and
 the admin hides every AI button.
 
-`AI_PROVIDER=mock` swaps in a built-in fake model (canned product copy; a tool call followed by
-an answer built from the tool's facts). Use it for local demos and screenshots with no key. It
-is refused when `NODE_ENV=production`.
+### Model routing (one config)
 
-Defaults: both features use **Claude Haiku 4.5** (`anthropic/claude-haiku-4.5`, $1 in / $5 out per
-million tokens). A product write is roughly 5k tokens in and 800 out (about $0.009, ₹0.8); a
-store question roughly 8k in over two or three steps and 400 out (about $0.01, ₹0.9).
+Every call goes to one of two tiers in `MODEL_TIERS` (`packages/ai/src/features.ts`):
+
+| Tier | Default | Used for | Override |
+|---|---|---|---|
+| `fast` | `anthropic/claude-haiku-4.5` | the assistant (chat and tools), quick writing | `AI_MODEL` |
+| `strong` | `anthropic/claude-sonnet-4.5` | long writing (`productWriter`, `bulkWriter`) when the store picks **Best** writing quality in Settings → AI | `AI_MODEL_STRONG` |
+
+`tierFor(feature, quality)` decides; features marked `writes: true` move to `strong` at "best".
+A strong call costs about three times as much, so it counts as `TIER_CALL_WEIGHT.strong` (3)
+requests against the monthly allowance. The quality is a column on `ai_settings`
+(`writing_quality`, migration `0086`).
+
+`AI_PROVIDER=mock` swaps in a built-in fake model: canned product copy, and for the assistant a
+deterministic planner (`packages/ai/src/mock-plan.ts`) that turns a message into tool calls, so
+"Create discount DIWALI10: 10% off collection Mice, 20 Oct to 5 Nov" really becomes that
+proposal, and "Raise prices 5% in collection Mice", "Add 8 products to new collection Glasspads",
+"Write this product in Hindi" (on a product page) and "Draft a reply to order #2250" each
+produce their card. Use it for local demos and screenshots with no key. It is refused when
+`NODE_ENV=production`.
+
+Cost on the fast tier (Claude Haiku 4.5, $1 in / $5 out per million tokens): a product write is
+roughly 5k tokens in and 800 out (about $0.009, ₹0.8); an assistant message roughly 9k in over
+two to four steps and 500 out (about $0.012, ₹1).
 
 ## How one call runs
 
-Every AI procedure goes through `packages/api/src/services/ai/guard.ts`:
+Every AI procedure goes through `packages/api/src/services/ai/guard.ts` (the feature, plan and
+quota part is core's `admitAiCall` in `@commerce/core/ai-runtime`, shared with the worker's bulk
+runs):
 
 1. `canDetached(permission)` checks membership and the permission in a short `withStore`
    transaction, then runs the handler **outside** a transaction. A model call takes seconds; a
@@ -59,7 +80,7 @@ Every AI procedure goes through `packages/api/src/services/ai/guard.ts`:
    - feature on for the store (`ai_settings.features`), else `PRECONDITION_FAILED` / `feature_off`
    - monthly quota for the store's plan (`ai_usage` summed for the IST month), else
      `TOO_MANY_REQUESTS` / `quota`. Stores in `AI_UNLIMITED_STORES` (slugs) are on `unlimited`
-   - counts the call (`calls + 1`) and returns the `AiRuntime` (store, member, plan, feature)
+   - counts the call (`calls + TIER_CALL_WEIGHT[tier]`) and returns the `AiRuntime` (store, member, plan, feature)
 3. The engine runs with that runtime. Tools get the runtime **from the engine, never from the
    model's input**, so a tool always reads the caller's store under RLS.
 4. `finishAiCall` adds the reported tokens. For streams it runs from `onUsage`, which fires even
@@ -84,8 +105,11 @@ The merchant API never changes the plan; billing (or a platform admin) sets `ai_
 
 A tool with `risk: 'write'` is never run by the model. `streamAnswer` passes it to the SDK's
 `toolApproval` as `user-approval`: the stream yields an `approval` event (tool name and input)
-and stops. The two shipped features only have read tools; the store assistant agent (next) is
-where the merchant approves a write.
+and stops.
+
+A tool with `risk: 'propose'` runs, but changes nothing in the store: it validates the model's
+input and stores a proposal. The AI assistant's write tools are all `propose` tools; the change
+itself runs only from the merchant's Approve, outside the model (see [AI assistant](./ai-assistant)).
 
 ## What data goes to the model
 
@@ -93,9 +117,12 @@ where the merchant approves a write.
   merchant's notes, and up to three of the product's photos (the 640px WebP variant from the
   image pipeline when there is one). Photos are read from the store's own storage by media id
   under RLS, so another store's id simply finds nothing.
-- **Ask your store**: the question, the last three questions and answers of the conversation,
-  and tool results. Tools return aggregates and order numbers only, never customer names,
-  emails, phones or addresses.
+- **AI assistant**: the message, the last four turns of the conversation (with one line per
+  change card), one line about the page (resolved under RLS from the record id), and tool
+  results. Tools return aggregates, product and order facts; the only personal detail is an
+  order's customer first name (`orderDetails`, for reply drafts), and the answer says so.
+  Customer notes go through with phone numbers and emails hidden.
+- **Bulk Write with AI**: the same as Write with AI, per product, from the worker.
 
 ## Add an AI feature (one slice)
 
@@ -124,8 +151,9 @@ Say you are adding "Reply to a review".
    }
    ```
 
-   For a streamed, tool-using feature copy `ask-store.ts`: `streamAnswer` plus tools built with
-   `defineAiTool`, each opening its own `withStore` for `runtime.storeId`.
+   For a streamed, tool-using feature copy `assistant/assistant.ts`: `streamAnswer` plus tools
+   built with `defineAiTool`, each opening its own `withStore` for `runtime.storeId`. To give the
+   assistant a new tool instead of a new feature, see [AI assistant](./ai-assistant).
 4. **Procedure**: add it to `packages/api/src/routers/ai.ts` with
    `canDetached(permissions.X)`, and give `ai.status` a boolean for the button (map the feature
    to its permission in `settings.service.ts`). Add the procedure to the cross-store leak test's
@@ -148,5 +176,7 @@ AI_PROVIDER=mock
 AI_GATEWAY_API_KEY=...        # or OPENROUTER_API_KEY=...
 ```
 
-Restart the admin, then open a product (**Write with AI** on the Basic details card), Home
-(**Ask your store**), and **Settings → AI** for usage and switches.
+Restart the admin, then press **⌘J / Ctrl+J** on any page (the AI bar), open a product
+(**Write with AI** on the Basic details card), select products on the list (**Write with AI**
+in the selection bar; run the worker so the run is picked up), and **Settings → AI** for usage,
+switches, writing quality and Activity.

@@ -1,4 +1,4 @@
-/** Copy for the AI features: "Write with AI", "Ask your store" and Settings → AI. Plain words, no jargon. */
+/** Copy for the AI features: "Write with AI" on a product and Settings → AI. The AI bar's copy is in `assistant.ts`. Plain words, no jargon. */
 
 export const aiContent = {
   badge: 'AI',
@@ -58,39 +58,10 @@ export const aiContent = {
     failed: 'Could not write this time. Please try again.',
   },
 
-  ask: {
-    title: 'Ask your store',
-    subtitle: 'Sales, stock and orders, answered from your own data.',
-    placeholder: 'Ask about sales, stock or orders…',
-    send: 'Ask',
-    stop: 'Stop',
-    suggestions: [
-      'How were sales this week?',
-      "What's running out?",
-      'Orders waiting over 2 days?',
-      'Top products this month?',
-      'Abandoned checkouts this week?',
-    ],
-    thinking: 'Checking your store…',
-    checking: (what: string) => `Checking ${what}…`,
-    sourcesTitle: 'Numbers from your store',
-    sourcesToggle: (n: number) => (n === 1 ? 'Show the data used' : `Show the data used (${n})`),
-    sourcesHide: 'Hide the data used',
-    tools: {
-      salesSummary: 'sales',
-      topProducts: 'top products',
-      lowStock: 'stock',
-      pendingOrders: 'orders to ship',
-      abandonedCheckouts: 'abandoned checkouts',
-    } as Record<string, string>,
-    stopped: 'Stopped.',
-    failed: 'Sorry, that did not work. Please try again.',
-    newQuestion: 'Clear',
-  },
-
   settings: {
     title: 'AI',
-    subtitle: 'Write product pages and ask about your store with AI. Included in your plan.',
+    subtitle:
+      'Your AI assistant on every page, and product writing from your photos. Included in your plan.',
     off: {
       title: 'AI is not switched on yet',
       body: 'AI features need to be set up on this platform first. Your other settings are not affected.',
@@ -115,19 +86,31 @@ export const aiContent = {
         label: 'Write with AI',
         help: 'On the product page: description, search text, tags and key specs from your photos.',
       },
-      askStore: {
-        label: 'Ask your store',
-        help: 'On Home: questions about sales, stock and orders, answered from your own data.',
+      assistant: {
+        label: 'AI assistant',
+        help: 'The AI bar on every page: answers from your own data, and changes you approve first.',
       },
+      bulkWriter: {
+        label: 'Write with AI for many products',
+        help: 'On the products list: select products and write them all at once, then review.',
+      },
+    },
+    quality: {
+      label: 'Writing quality',
+      help: 'Best uses a stronger AI for product writing. Each write then counts as 3 requests.',
+      standard: 'Standard',
+      best: 'Best',
     },
     privacy: {
       heading: 'Your data',
       lines: [
-        'Customer names, phone numbers, emails and addresses are never sent to the AI.',
-        'Questions and answers are not saved. We only count how much AI you use.',
-        'Nothing is changed in your store until you click Apply and save.',
+        "Customer phone numbers, emails and addresses are never sent to the AI. To draft a reply, it sees only the customer's first name, and says so.",
+        'Text in your products and orders is treated as data, never as instructions to the AI.',
+        'Nothing changes in your store until you approve it. Every change is listed under Activity, with Undo where possible.',
+        'Conversations are not saved on our servers. We count how much AI you use.',
       ],
-      model: (model: string) => `Model: ${model}`,
+      model: (fast: string, strong: string) =>
+        `Models: ${fast} (chat and quick writing), ${strong} (Best writing)`,
     },
     save: 'Save',
     saved: 'AI settings saved',

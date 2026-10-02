@@ -1,12 +1,18 @@
 'use client'
 
-import { AI_FEATURES, type AiFeatureToggles } from '@commerce/ai/client'
+import {
+  AI_FEATURES,
+  type AiFeatureToggles,
+  WRITING_QUALITIES,
+  type WritingQuality,
+} from '@commerce/ai/client'
 import { AiIcon, CircleAlert, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Progress } from '@commerce/ui/shadcn/progress'
+import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
@@ -17,6 +23,7 @@ import { aiContent } from '@/data/ai'
 import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import AiActivityCard from './ai-activity-card'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
 
@@ -30,7 +37,10 @@ function share(used: number, limit: number | null): number {
   return limit === null || limit <= 0 ? 0 : Math.min(100, (used / limit) * 100)
 }
 
-/** Settings → AI: this month's AI use against the plan, the feature switches, and what data is sent. */
+/**
+ * Settings → AI: this month's AI use against the plan, the feature switches and writing quality,
+ * what data is sent, and the Activity log of every change the AI made (with Undo).
+ */
 export default function AiSettings() {
   // Hooks
   const copy = useCopy(aiContent)
@@ -38,6 +48,7 @@ export default function AiSettings() {
   const fmt = useFormat()
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [features, setFeatures] = useState<AiFeatureToggles | null>(null)
+  const [quality, setQuality] = useState<WritingQuality>('standard')
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -47,6 +58,7 @@ export default function AiSettings() {
       .then((v) => {
         setLoaded(v)
         setFeatures(v.features)
+        setQuality(v.writingQuality)
       })
       .catch(() => setFailed(true))
   }, [])
@@ -62,9 +74,10 @@ export default function AiSettings() {
     if (!features) return
     setBusy(true)
     try {
-      const next = await api.ai.saveSettings({ features })
+      const next = await api.ai.saveSettings({ features, writingQuality: quality })
       setLoaded(next)
       setFeatures(next.features)
+      setQuality(next.writingQuality)
       toast.success(copy.settings.saved)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.settings.failed)
@@ -80,7 +93,8 @@ export default function AiSettings() {
   const dirty =
     loaded !== null &&
     features !== null &&
-    JSON.stringify(features) !== JSON.stringify(loaded.features)
+    (JSON.stringify(features) !== JSON.stringify(loaded.features) ||
+      quality !== loaded.writingQuality)
   const usage = loaded?.usage
   const tokens = usage ? usage.total.inputTokens + usage.total.outputTokens : 0
 
@@ -92,7 +106,11 @@ export default function AiSettings() {
         saveLabel={copy.settings.save}
         discardLabel={settingsCopy.general.discard}
         onSave={handleSave}
-        onDiscard={() => loaded && setFeatures(loaded.features)}
+        onDiscard={() => {
+          if (!loaded) return
+          setFeatures(loaded.features)
+          setQuality(loaded.writingQuality)
+        }}
         saving={busy}
       />
       <PageHeader
@@ -182,6 +200,26 @@ export default function AiSettings() {
                     />
                   </Field>
                 ))}
+                <Field className="gap-2">
+                  <FieldLabel>{copy.settings.quality.label}</FieldLabel>
+                  <FieldDescription>{copy.settings.quality.help}</FieldDescription>
+                  <RadioGroup
+                    value={quality}
+                    onValueChange={(v) => setQuality(v as WritingQuality)}
+                    className="flex flex-wrap gap-4"
+                  >
+                    {WRITING_QUALITIES.map((q) => (
+                      <label
+                        key={q}
+                        htmlFor={`ai-quality-${q}`}
+                        className="flex items-center gap-2"
+                      >
+                        <RadioGroupItem id={`ai-quality-${q}`} value={q} />
+                        <span className="text-body">{copy.settings.quality[q]}</span>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </Field>
               </FieldGroup>
             </CardContent>
           </Card>
@@ -200,11 +238,12 @@ export default function AiSettings() {
               </ul>
               {loaded.configured ? (
                 <p className="text-caption text-muted-foreground">
-                  {copy.settings.privacy.model(loaded.models.askStore)}
+                  {copy.settings.privacy.model(loaded.models.fast, loaded.models.strong)}
                 </p>
               ) : null}
             </CardContent>
           </Card>
+          <AiActivityCard />
         </>
       )}
     </div>

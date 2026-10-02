@@ -1,5 +1,6 @@
 import type { MerchantAuth } from '@commerce/auth'
 import type {
+  AiBulkQueue,
   AppEventQueue,
   AppJobQueue,
   MediaProcessQueue,
@@ -25,6 +26,8 @@ export type ApiContext = {
   mediaProcess?: MediaProcessQueue | undefined
   /** Full store exports, built by the worker. Absent in tests: the export is then built in the request. */
   storeExport?: StoreExportQueue | undefined
+  /** Bulk "Write with AI" runs, worked through by the worker. Absent in tests: the run happens in the request. */
+  aiBulk?: AiBulkQueue | undefined
   /** Live storefront visitors from Dragonfly; absent in tests, the dashboard then shows zeros. */
   visitors?: VisitorSource
   /** Reports an unexpected procedure error (never an intentional ORPCError) to Sentry. No-op in tests. */

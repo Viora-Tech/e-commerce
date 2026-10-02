@@ -1,4 +1,7 @@
 import {
+  AI_BULK_QUEUE,
+  type AiBulkJob,
+  type AiBulkQueue,
   APP_EVENTS_QUEUE,
   APP_JOBS_QUEUE,
   type AppEventJob,
@@ -57,6 +60,8 @@ export const QUEUE_LIMITS = {
   mediaProcess: { concurrency: 2, perStore: 1 },
   backInStock: { concurrency: 2, perStore: 1 },
   storeExport: { concurrency: 2, perStore: 1 },
+  /** Bulk "Write with AI" runs: one product at a time per store, so a 200-product run never starves another store's. */
+  aiBulkWrite: { concurrency: 2, perStore: 1 },
 } as const satisfies Record<string, QueueLimits>
 
 export function createConnection(redisUrl: string): IORedis {
@@ -161,6 +166,19 @@ export function storeExportQueue(redisUrl: string): StoreExportQueue {
     g.__storeExportQueue = createStoreExportQueue(createConnection(redisUrl))
   }
   return g.__storeExportQueue
+}
+
+export type { AiBulkJob, AiBulkQueue }
+
+export function createAiBulkQueue(connection: IORedis): Queue<AiBulkJob> & AiBulkQueue {
+  return new Queue<AiBulkJob>(AI_BULK_QUEUE, { connection })
+}
+
+/** Process-wide bulk AI queue, cached like the others. */
+export function aiBulkQueue(redisUrl: string): AiBulkQueue {
+  const g = globalThis as { __aiBulkQueue?: AiBulkQueue }
+  if (!g.__aiBulkQueue) g.__aiBulkQueue = createAiBulkQueue(createConnection(redisUrl))
+  return g.__aiBulkQueue
 }
 
 /** Process-wide app jobs queue. */

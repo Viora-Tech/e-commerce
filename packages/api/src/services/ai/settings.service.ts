@@ -1,6 +1,7 @@
 /**
  * What the admin needs to show AI: whether it is configured, which features this member may
- * use (the buttons), and the store's usage this month against its plan (Settings → AI).
+ * use (the buttons), and the store's usage this month against its plan, its switches and its
+ * writing quality (Settings → AI).
  */
 import {
   type AiFeature,
@@ -9,40 +10,53 @@ import {
   type AiQuota,
   aiMonth,
   aiProvider,
-  modelIdFor,
+  type ModelTier,
+  modelIdForTier,
   PLAN_QUOTAS,
+  type WritingQuality,
 } from '@commerce/ai'
 import {
   type AiMonthUsage,
   aiUsageForMonth,
   loadAiSettings,
+  type Permission,
   permissions,
   type StoreContext,
   saveAiFeatures,
 } from '@commerce/core'
+import { aiStoreFacts, effectiveAiPlan } from '@commerce/core/ai-runtime'
 import type { StoreScope } from '../../procedures'
-import { effectivePlan, storeFacts } from './guard'
+import { ASSISTANT_PERMISSIONS } from './assistant/registry'
 
 export type AiStatus = {
   /** A gateway key is set (or the dev mock is on). False: hide every AI button. */
   configured: boolean
   /** Which AI buttons this member sees: configured, turned on for the store, and allowed by their role. */
   productWriter: boolean
-  askStore: boolean
+  assistant: boolean
+  bulkWriter: boolean
 }
 
-/** Each feature's permission: the same one its procedure checks. */
-const FEATURE_PERMISSION = {
-  productWriter: permissions.PRODUCTS_WRITE,
-  askStore: permissions.ANALYTICS_READ,
-} as const satisfies Record<AiFeature, unknown>
+/** Each feature's permission: the same one its procedure checks (any one of them, for the assistant). */
+const FEATURE_PERMISSION: Record<AiFeature, readonly Permission[]> = {
+  productWriter: [permissions.PRODUCTS_WRITE],
+  assistant: ASSISTANT_PERMISSIONS,
+  bulkWriter: [permissions.PRODUCTS_WRITE],
+}
 
 export async function aiStatus(ctx: StoreContext, scope: StoreScope): Promise<AiStatus> {
   const configured = aiProvider() !== null
-  if (!configured) return { configured, productWriter: false, askStore: false }
+  if (!configured) {
+    return { configured, productWriter: false, assistant: false, bulkWriter: false }
+  }
   const { features } = await loadAiSettings(ctx)
-  const allowed = (f: AiFeature) => features[f] && scope.can(FEATURE_PERMISSION[f])
-  return { configured, productWriter: allowed('productWriter'), askStore: allowed('askStore') }
+  const allowed = (f: AiFeature) => features[f] && FEATURE_PERMISSION[f].some(scope.can)
+  return {
+    configured,
+    productWriter: allowed('productWriter'),
+    assistant: allowed('assistant'),
+    bulkWriter: allowed('bulkWriter'),
+  }
 }
 
 export type AiSettingsView = {
@@ -52,14 +66,16 @@ export type AiSettingsView = {
   quota: AiQuota
   usage: AiMonthUsage
   features: AiFeatureToggles
-  models: Record<AiFeature, string>
+  writingQuality: WritingQuality
+  /** The model id behind each tier: fast (chat, tools) and strong ("Best" writing). */
+  models: Record<ModelTier, string>
 }
 
 export async function aiSettingsView(ctx: StoreContext): Promise<AiSettingsView> {
   const settings = await loadAiSettings(ctx)
-  const facts = await storeFacts(ctx.tx, ctx.storeId)
+  const facts = await aiStoreFacts(ctx.tx, ctx.storeId)
   const usage = await aiUsageForMonth(ctx, aiMonth())
-  const plan = effectivePlan(facts.slug, settings.plan)
+  const plan = effectiveAiPlan(facts.slug, settings.plan)
   const provider = aiProvider()
   return {
     configured: provider !== null,
@@ -68,14 +84,15 @@ export async function aiSettingsView(ctx: StoreContext): Promise<AiSettingsView>
     quota: PLAN_QUOTAS[plan],
     usage,
     features: settings.features,
-    models: { productWriter: modelIdFor('productWriter'), askStore: modelIdFor('askStore') },
+    writingQuality: settings.writingQuality,
+    models: { fast: modelIdForTier('fast'), strong: modelIdForTier('strong') },
   }
 }
 
 export async function saveAiSettings(
   ctx: StoreContext,
-  features: Partial<AiFeatureToggles>,
+  input: { features: Partial<AiFeatureToggles>; writingQuality?: WritingQuality | undefined },
 ): Promise<AiSettingsView> {
-  await saveAiFeatures(ctx, features)
+  await saveAiFeatures(ctx, input.features, input.writingQuality)
   return aiSettingsView(ctx)
 }

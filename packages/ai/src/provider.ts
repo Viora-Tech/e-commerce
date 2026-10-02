@@ -1,15 +1,15 @@
 /**
  * SOURCE OF TRUTH: which AI provider and model a call uses — WHAT reads AI_PROVIDER and the
- * gateway keys, and turns a feature into a model / WHY "is AI on?" has one answer everywhere
- * (no key, no AI buttons). Keys come from the platform's environment only; merchants never
- * bring their own and nothing here stores or logs them.
+ * gateway keys, and turns a feature (and tier) into a model / WHY "is AI on?" has one answer
+ * everywhere (no key, no AI buttons). Keys come from the platform's environment only;
+ * merchants never bring their own and nothing here stores or logs them.
  */
 
 import { createGateway } from '@ai-sdk/gateway'
 import { loadAiEnv } from '@commerce/config'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { LanguageModel } from 'ai'
-import { type AiFeature, FEATURE_MODELS } from './features'
+import { type AiFeature, FEATURE_MODELS, MODEL_TIERS, type ModelTier } from './features'
 import { mockModel } from './mock'
 
 export type AiProviderName = 'gateway' | 'openrouter' | 'mock'
@@ -36,9 +36,20 @@ export function aiProvider(source: Env = process.env): AiProviderName | null {
   }
 }
 
-/** The model id a feature uses: `AI_MODEL` when set, else the feature's default. */
-export function modelIdFor(feature: AiFeature, source: Env = process.env): string {
-  return loadAiEnv(source).AI_MODEL ?? FEATURE_MODELS[feature].model
+/** The model id behind a tier: `AI_MODEL` / `AI_MODEL_STRONG` when set, else `MODEL_TIERS`. */
+export function modelIdForTier(tier: ModelTier, source: Env = process.env): string {
+  const env = loadAiEnv(source)
+  const override = tier === 'strong' ? env.AI_MODEL_STRONG : env.AI_MODEL
+  return override ?? MODEL_TIERS[tier]
+}
+
+/** The model id a feature uses on `tier` (its default tier when omitted). */
+export function modelIdFor(
+  feature: AiFeature,
+  source: Env = process.env,
+  tier: ModelTier = FEATURE_MODELS[feature].tier,
+): string {
+  return modelIdForTier(tier, source)
 }
 
 /** Whether a store (by slug) is on the unlimited plan through `AI_UNLIMITED_STORES`. */
@@ -46,12 +57,16 @@ export function isUnlimitedStore(slug: string, source: Env = process.env): boole
   return loadAiEnv(source).AI_UNLIMITED_STORES.includes(slug.toLowerCase())
 }
 
-/** The model for one feature, or null when AI is off. */
-export function aiModel(feature: AiFeature, source: Env = process.env): LanguageModel | null {
+/** The model for one feature on `tier` (its default when omitted), or null when AI is off. */
+export function aiModel(
+  feature: AiFeature,
+  source: Env = process.env,
+  tier: ModelTier = FEATURE_MODELS[feature].tier,
+): LanguageModel | null {
   const provider = aiProvider(source)
   if (!provider) return null
   const env = loadAiEnv(source)
-  const id = modelIdFor(feature, source)
+  const id = modelIdFor(feature, source, tier)
   if (provider === 'mock') return mockModel(feature)
   // `aiProvider` only picks a gateway whose key is set, so the fallbacks never apply.
   if (provider === 'gateway') return createGateway({ apiKey: env.AI_GATEWAY_API_KEY ?? '' })(id)

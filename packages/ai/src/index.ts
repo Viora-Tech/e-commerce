@@ -1,10 +1,10 @@
 /**
  * `@commerce/ai`: the AI engine. Server only (it reads the platform's AI keys and pulls in the
- * AI SDK); browser code imports `@commerce/ai/client`. How to add a feature: developer docs,
- * Building → AI engine.
+ * AI SDK); browser code imports `@commerce/ai/client`. How to add a feature or an assistant
+ * tool: developer docs, Building → AI engine and AI assistant.
  */
 export type { LanguageModel as AiModel } from 'ai'
-export { askStoreInstructions } from './ask-store/prompt'
+export { assistantInstructions } from './assistant/prompt'
 export * from './client'
 export {
   type AiContent,
@@ -26,4 +26,5 @@ export {
   aiProvider,
   isUnlimitedStore,
   modelIdFor,
+  modelIdForTier,
 } from './provider'

@@ -2,11 +2,16 @@
  * The built-in fake model behind `AI_PROVIDER=mock`: lets the AI features run end to end on a
  * laptop with no key (demos, screenshots, local testing). Deterministic, offline, and refused
  * in production by `aiProvider`. Unit tests build their own mocks instead.
+ *
+ * For the assistant it plans tool calls from the message and the page line in the system
+ * prompt (`mockPlan`), one call per model step, then writes an answer from the last tool
+ * result: facts become a short list, a proposal becomes "ready for you to approve".
  */
 import type { LanguageModelV4CallOptions, LanguageModelV4StreamPart } from '@ai-sdk/provider'
 import { simulateReadableStream } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import type { AiFeature } from './features'
+import { mockPlan } from './mock-plan'
 
 const USAGE = {
   inputTokens: { total: 1_200, noCache: 1_200, cacheRead: undefined, cacheWrite: undefined },
@@ -15,23 +20,39 @@ const USAGE = {
 
 type Prompt = LanguageModelV4CallOptions['prompt']
 
+function lastUserIndex(prompt: Prompt): number {
+  for (let i = prompt.length - 1; i >= 0; i--) if (prompt[i]?.role === 'user') return i
+  return -1
+}
+
 function lastUserText(prompt: Prompt): string {
-  for (let i = prompt.length - 1; i >= 0; i--) {
-    const message = prompt[i]
-    if (message?.role !== 'user') continue
-    return message.content.map((part) => (part.type === 'text' ? part.text : '')).join('\n')
-  }
-  return ''
+  const message = prompt[lastUserIndex(prompt)]
+  if (message?.role !== 'user') return ''
+  return message.content.map((part) => (part.type === 'text' ? part.text : '')).join('\n')
+}
+
+function systemText(prompt: Prompt): string {
+  return prompt.flatMap((m) => (m.role === 'system' ? [m.content] : [])).join('\n')
 }
 
 function titleFrom(text: string): string {
   return /Title: (.+)/.exec(text)?.[1]?.trim() ?? 'This product'
 }
 
+function photoCount(prompt: Prompt): number {
+  const message = prompt[lastUserIndex(prompt)]
+  if (message?.role !== 'user') return 0
+  return message.content.filter((part) => part.type === 'file').length
+}
+
 function productCopy(prompt: Prompt): string {
   const text = lastUserText(prompt)
   const title = titleFrom(text)
-  const hindi = prompt.some((m) => m.role === 'system' && m.content.includes('Hindi'))
+  const photos = photoCount(prompt)
+  const hindi = systemText(prompt).includes('Hindi')
+  const altTexts = Array.from({ length: photos }, (_, i) =>
+    hindi ? `${title}, फ़ोटो ${i + 1}` : `${title}, photo ${i + 1} of ${photos}`,
+  )
   if (hindi) {
     return JSON.stringify({
       intro: `${title} रोज़ के इस्तेमाल के लिए बनाया गया है। मज़बूत बनावट, साफ़ डिज़ाइन और आसान सेटअप, ताकि आप बिना झंझट के काम शुरू कर सकें।`,
@@ -42,6 +63,7 @@ function productCopy(prompt: Prompt): string {
       seoTitle: `${title} | ऑनलाइन खरीदें`,
       seoDescription: `${title}: मज़बूत बनावट, आसान सेटअप और रोज़ के इस्तेमाल के लिए आरामदायक डिज़ाइन। आज ही ऑर्डर करें।`,
       tags: ['gaming', 'setup', 'accessories', 'usb-c'],
+      altTexts,
     })
   }
   return JSON.stringify({
@@ -61,31 +83,24 @@ function productCopy(prompt: Prompt): string {
     seoTitle: `${title} | Buy online in India`,
     seoDescription: `Shop ${title}: a sturdy, comfortable build with plug and play USB-C setup. Made for everyday use and long sessions.`,
     tags: ['gaming', 'desk setup', 'usb-c', 'accessories'],
+    altTexts,
   })
 }
 
-const TOOL_HINTS: { pattern: RegExp; tool: string; input: Record<string, unknown> }[] = [
-  { pattern: /stock|running out|restock/i, tool: 'lowStock', input: {} },
-  { pattern: /waiting|pending|ship|days/i, tool: 'pendingOrders', input: { olderThanDays: 2 } },
-  { pattern: /abandon|cart/i, tool: 'abandonedCheckouts', input: { days: 7 } },
-  { pattern: /top|best|selling/i, tool: 'topProducts', input: { days: 30, limit: 5 } },
-]
+type ToolValue = {
+  facts?: { label: string; value: string }[]
+  proposal?: { summary: string }
+  error?: string
+} | null
 
-function pickTool(text: string, available: string[]): { tool: string; input: unknown } | null {
-  const hint = TOOL_HINTS.find((h) => h.pattern.test(text) && available.includes(h.tool))
-  if (hint) return { tool: hint.tool, input: hint.input }
-  if (available.includes('salesSummary')) return { tool: 'salesSummary', input: { days: 7 } }
-  return null
-}
-
-/** Reads `{ facts: [{ label, value }] }` out of the latest tool result, the shape our tools return. */
-function factsFrom(prompt: Prompt): { label: string; value: string }[] {
-  const last = prompt[prompt.length - 1]
-  if (last?.role !== 'tool') return []
-  return last.content.flatMap((part) => {
-    if (part.type !== 'tool-result' || part.output.type !== 'json') return []
-    const value = part.output.value as { facts?: { label: string; value: string }[] } | null
-    return value?.facts ?? []
+/** Tool results since the merchant's last message, oldest first. */
+function resultsThisTurn(prompt: Prompt): ToolValue[] {
+  return prompt.slice(lastUserIndex(prompt) + 1).flatMap((message) => {
+    if (message.role !== 'tool') return []
+    return message.content.flatMap((part) => {
+      if (part.type !== 'tool-result' || part.output.type !== 'json') return []
+      return [part.output.value as ToolValue]
+    })
   })
 }
 
@@ -99,32 +114,45 @@ function textStream(text: string): LanguageModelV4StreamPart[] {
   ]
 }
 
-function answerStream(options: LanguageModelV4CallOptions): LanguageModelV4StreamPart[] {
-  const facts = factsFrom(options.prompt)
-  if (facts.length) {
-    const lines = facts.map((f) => `- **${f.label}:** ${f.value}`).join('\n')
-    return textStream(
-      `Here is what your store data shows:\n\n${lines}\n\nAsk me to compare with another period, or about stock and orders.`,
-    )
+function answerFrom(results: ToolValue[], hindi: boolean): string {
+  const proposals = results.flatMap((r) => (r?.proposal ? [r.proposal.summary] : []))
+  if (proposals.length) {
+    return hindi
+      ? 'बदलाव नीचे तैयार है, जाँच लीजिए। जब तक आप मंज़ूर नहीं करते, स्टोर में कुछ नहीं बदलेगा।'
+      : 'I have prepared the change below. Check it: nothing changes in your store until you approve it.'
   }
+  const error = results.find((r) => r?.error)?.error
+  if (error) return `I could not prepare that: ${error}`
+  const facts = results.flatMap((r) => r?.facts ?? [])
+  if (!facts.length) {
+    return 'I can only answer from your store data, and I could not find a tool for that question.'
+  }
+  const lines = facts.map((f) => `- **${f.label}:** ${f.value}`).join('\n')
+  return hindi
+    ? `आपके स्टोर के आँकड़े:\n\n${lines}`
+    : `Here is what your store data shows:\n\n${lines}\n\nAsk me to compare with another period, or about stock and orders.`
+}
+
+function answerStream(options: LanguageModelV4CallOptions): LanguageModelV4StreamPart[] {
   const available = (options.tools ?? []).map((t) => t.name)
-  const pick = pickTool(lastUserText(options.prompt), available)
-  if (!pick)
-    return textStream(
-      'I can only answer from your store data, and I could not find a tool for that question.',
-    )
+  const system = systemText(options.prompt)
+  const steps = mockPlan(lastUserText(options.prompt), system, available)
+  const results = resultsThisTurn(options.prompt)
+  const next = steps[results.length]
+  const stuck = results.some((r) => r?.error)
+  if (!next || stuck) return textStream(answerFrom(results, system.includes('Hindi (Devanagari)')))
   return [
     {
       type: 'tool-call',
-      toolCallId: `call-${pick.tool}`,
-      toolName: pick.tool,
-      input: JSON.stringify(pick.input),
+      toolCallId: `call-${results.length}-${next.tool}`,
+      toolName: next.tool,
+      input: JSON.stringify(next.input),
     },
     { type: 'finish', finishReason: { unified: 'tool-calls', raw: undefined }, usage: USAGE },
   ]
 }
 
-/** A fake model for one feature: canned product copy, or a tool call followed by an answer built from the tool's facts. */
+/** A fake model for one feature: canned product copy, or planned tool calls followed by an answer from their results. */
 export function mockModel(feature: AiFeature): MockLanguageModelV4 {
   return new MockLanguageModelV4({
     provider: 'mock',

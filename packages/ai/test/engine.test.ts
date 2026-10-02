@@ -82,7 +82,7 @@ describe('streamAnswer', () => {
     })
     const events = await collect(
       streamAnswer({
-        runtime: runtime('askStore'),
+        runtime: runtime('assistant'),
         model: scriptedModel([
           // The model tries to name another store; tools never read it from the input.
           { toolCall: { name: 'salesSummary', input: { days: 7, storeId: 'store-b' } } },
@@ -116,7 +116,7 @@ describe('streamAnswer', () => {
     })
     const events = await collect(
       streamAnswer({
-        runtime: runtime('askStore'),
+        runtime: runtime('assistant'),
         model: scriptedModel([{ toolCall: { name: 'cancelOrder', input: { number: 1001 } } }]),
         instructions: 'Answer.',
         messages: [{ role: 'user', content: 'Cancel order 1001' }],
@@ -133,7 +133,7 @@ describe('streamAnswer', () => {
   it('still reports usage when the reader stops early', async () => {
     const usages: AiUsage[] = []
     const stream = streamAnswer({
-      runtime: runtime('askStore'),
+      runtime: runtime('assistant'),
       model: scriptedModel([{ text: 'Hello there' }]),
       instructions: 'Answer.',
       messages: [{ role: 'user', content: 'Hi' }],
@@ -170,8 +170,8 @@ describe('the built-in mock model', () => {
     })
     const events = await collect(
       streamAnswer({
-        runtime: runtime('askStore'),
-        model: mockModel('askStore'),
+        runtime: runtime('assistant'),
+        model: mockModel('assistant'),
         instructions: 'Answer.',
         messages: [{ role: 'user', content: "What's running out?" }],
         tools: { lowStock },
@@ -193,11 +193,15 @@ describe('clampProductCopy', () => {
       seoTitle: 'word '.repeat(30),
       seoDescription: 'x',
       tags: ['RGB', 'rgb', ' '],
+      altTexts: ['A mouse on a desk', '', 'x'.repeat(300), 'four', 'five'],
     })
     expect(copy.intro.length).toBeLessThanOrEqual(900)
     expect(copy.highlights).toHaveLength(6)
     expect(copy.specs).toEqual([])
     expect(copy.seoTitle.length).toBeLessThanOrEqual(70)
     expect(copy.tags).toEqual(['rgb'])
+    expect(copy.altTexts).toHaveLength(3)
+    expect(copy.altTexts[0]).toBe('A mouse on a desk')
+    expect(copy.altTexts[1]?.length).toBeLessThanOrEqual(125)
   })
 })

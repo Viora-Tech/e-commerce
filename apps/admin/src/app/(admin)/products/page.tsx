@@ -11,7 +11,7 @@ type Props = { searchParams: Promise<SearchParams> }
 export default async function Page({ searchParams }: Props) {
   const query = parseListQuery(await searchParams, PRODUCT_STATUSES)
   const context = await serverContext()
-  const [result, all, facets] = await Promise.all([
+  const [result, all, facets, ai] = await Promise.all([
     call(
       appRouter.products.list,
       {
@@ -24,7 +24,13 @@ export default async function Page({ searchParams }: Props) {
     ),
     call(appRouter.products.list, { page: 1, perPage: 1 }, { context }),
     call(appRouter.products.facets, undefined, { context }),
+    // AI is optional: any failure just hides bulk "Write with AI".
+    call(appRouter.ai.status, undefined, { context }).catch(() => null),
   ])
 
-  return <ProductsPage initial={{ query, result, allCount: all.total, facets }} />
+  return (
+    <ProductsPage
+      initial={{ query, result, allCount: all.total, facets, aiBulk: ai?.bulkWriter ?? false }}
+    />
+  )
 }

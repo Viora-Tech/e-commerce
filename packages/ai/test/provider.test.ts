@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { aiModel, aiProvider, isUnlimitedStore, modelIdFor } from '../src/provider'
+import { parseFeatureToggles, TIER_CALL_WEIGHT, tierFor } from '../src/features'
+import { aiModel, aiProvider, isUnlimitedStore, modelIdFor, modelIdForTier } from '../src/provider'
 
 describe('aiProvider', () => {
   it('is off with no key', () => {
     expect(aiProvider({})).toBeNull()
-    expect(aiModel('askStore', {})).toBeNull()
+    expect(aiModel('assistant', {})).toBeNull()
   })
 
   it('picks the gateway whose key is set, Vercel first', () => {
@@ -34,15 +35,41 @@ describe('aiProvider', () => {
   })
 
   it('builds a real provider model without calling it', () => {
-    const model = aiModel('askStore', { AI_GATEWAY_API_KEY: 'k' })
+    const model = aiModel('assistant', { AI_GATEWAY_API_KEY: 'k' })
     expect(model).not.toBeNull()
   })
 })
 
 describe('models and plans from the environment', () => {
   it('uses the feature default unless AI_MODEL overrides it', () => {
-    expect(modelIdFor('askStore', {})).toBe('anthropic/claude-haiku-4.5')
-    expect(modelIdFor('askStore', { AI_MODEL: 'openai/gpt-4.1-mini' })).toBe('openai/gpt-4.1-mini')
+    expect(modelIdFor('assistant', {})).toBe('anthropic/claude-haiku-4.5')
+    expect(modelIdFor('assistant', { AI_MODEL: 'openai/gpt-4.1-mini' })).toBe('openai/gpt-4.1-mini')
+  })
+
+  it('routes long writing to the strong tier only at "Best" quality', () => {
+    expect(tierFor('assistant', 'best')).toBe('fast')
+    expect(tierFor('productWriter')).toBe('fast')
+    expect(tierFor('bulkWriter', 'best')).toBe('strong')
+    expect(modelIdForTier('strong', {})).toBe('anthropic/claude-sonnet-4.5')
+    expect(modelIdForTier('strong', { AI_MODEL: 'x/fast', AI_MODEL_STRONG: 'x/strong' })).toBe(
+      'x/strong',
+    )
+    expect(modelIdFor('bulkWriter', { AI_MODEL: 'x/fast' }, 'fast')).toBe('x/fast')
+    expect(TIER_CALL_WEIGHT.strong).toBeGreaterThan(TIER_CALL_WEIGHT.fast)
+  })
+
+  it('keeps a store that turned "Ask your store" off with the assistant off', () => {
+    expect(parseFeatureToggles({ askStore: false })).toEqual({
+      productWriter: true,
+      assistant: false,
+      bulkWriter: true,
+    })
+    expect(parseFeatureToggles({ askStore: false, assistant: true }).assistant).toBe(true)
+    expect(parseFeatureToggles('junk')).toEqual({
+      productWriter: true,
+      assistant: true,
+      bulkWriter: true,
+    })
   })
 
   it('reads unlimited stores by slug, any case', () => {
