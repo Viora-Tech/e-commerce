@@ -64,7 +64,8 @@ export const SWAP_TABLE: readonly SwapRow[] = [
     shopify: 'Shopify customer accounts (login, register, addresses, orders)',
     ours: 'Our account pages with one-time-code sign in',
     kind: 'replaced',
-    detect: /form\s+['"](customer_login|create_customer|customer_address|recover_customer_password|reset_customer_password|activate_customer_password)['"]|routes\.account/,
+    detect:
+      /form\s+['"](customer_login|create_customer|customer_address|recover_customer_password|reset_customer_password|activate_customer_password)['"]|routes\.account/,
   },
   {
     key: 'newsletter',
@@ -92,7 +93,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
     shopify: 'Data from Shopify apps (Judge.me reviews and similar)',
     ours: 'Not available yet: the section stays hidden until our Reviews app collects reviews',
     kind: 'unavailable',
-    detect: /metafields\.(judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)/,
+    detect: /metafields\.(judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)\b/,
   },
   {
     key: 'metafields',

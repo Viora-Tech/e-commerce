@@ -5,11 +5,11 @@ import {
   evalToken,
   Hash,
   Liquid,
-  Tag,
   type Parser,
+  Tag,
   type TagToken,
-  type Tokenizer,
   type Template,
+  type Tokenizer,
   type TopLevelToken,
   TypeGuards,
   Value,
@@ -18,7 +18,7 @@ import {
 import { escapeAttr, type LiquidRuntime, registerShopifyFilters, stringifyLiquid } from './filters'
 
 /** Where the forms a theme draws post to: our handlers, never Shopify's endpoints. */
-export const THEME_ACTIONS = {
+const THEME_ACTIONS = {
   cartAdd: '/theme-actions/cart-add',
   newsletter: '/theme-actions/newsletter',
   contact: '/theme-actions/contact',
@@ -300,7 +300,7 @@ class NoopTag extends Tag {
 }
 
 /** Render limits for untrusted theme code: a runaway loop stops instead of holding a request. */
-export const LIQUID_LIMITS = {
+const LIQUID_LIMITS = {
   /**
    * Milliseconds one render may take, database reads included (a section awaits the
    * products it shows). Generous on purpose: this stops a runaway loop, not a slow disk.

@@ -1,8 +1,9 @@
 /** SOURCE OF TRUTH: Shopify theme zip reading — WHAT: unpack the zip Shopify emails ("Download theme file") into a checked map of theme files: size caps, file-count cap, zip-slip safe paths, only the folders and file types a theme has / WHY: the upload is untrusted bytes, and nothing in it is ever executed on our servers; every later step reads only what this returns */
 import { unzipSync } from 'fflate'
+import { CommerceError } from '../errors'
 
 /** Upload and unpack limits. A large real theme (Zero Drift) is ~5 MB unpacked. */
-export const THEME_ARCHIVE_LIMITS = {
+const THEME_ARCHIVE_LIMITS = {
   /** The zip itself. */
   zipBytes: 50 * 1024 * 1024,
   /** Everything unpacked together. */
@@ -13,7 +14,7 @@ export const THEME_ARCHIVE_LIMITS = {
 } as const
 
 /** Folders a Shopify theme has. Anything else in the zip is skipped and listed. */
-export const THEME_FOLDERS = [
+const THEME_FOLDERS = [
   'assets',
   'blocks',
   'config',
@@ -71,13 +72,17 @@ export type ThemeArchive = {
   skipped: string[]
 }
 
-export class ThemeArchiveProblem extends Error {}
+export class ThemeArchiveProblem extends CommerceError {
+  constructor(message: string) {
+    super('THEME_ARCHIVE_INVALID', message)
+  }
+}
 
 /** `a.css.liquid` → `liquid`; `a.min.js` → `js`. */
 const extensionOf = (path: string): string => path.split('.').pop()?.toLowerCase() ?? ''
 
 /** The content type for a theme file, or null for a type a theme never has. */
-export function themeContentType(path: string): { type: string; text: boolean } | null {
+function themeContentType(path: string): { type: string; text: boolean } | null {
   const ext = extensionOf(path)
   if (TEXT_TYPES[ext]) return { type: TEXT_TYPES[ext], text: true }
   if (BINARY_TYPES[ext]) return { type: BINARY_TYPES[ext], text: false }

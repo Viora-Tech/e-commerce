@@ -20,7 +20,7 @@ const RESERVED = new Set([
 ])
 
 /** The prop a theme setting is stored under. */
-export const settingPropKey = (id: string): string => (RESERVED.has(id) ? `setting_${id}` : id)
+const settingPropKey = (id: string): string => (RESERVED.has(id) ? `setting_${id}` : id)
 
 /** One block, as an item of the section's `blocks` array. */
 export type LiquidBlockItem = {
@@ -153,7 +153,7 @@ export function schemaText(value: string | undefined, locale: Record<string, unk
     if (typeof node !== 'object' || node === null) return value.slice(2)
     node = (node as Record<string, unknown>)[part]
   }
-  return typeof node === 'string' ? node : value.slice(2).split('.').pop() ?? value
+  return typeof node === 'string' ? node : (value.slice(2).split('.').pop() ?? value)
 }
 
 /**
@@ -163,7 +163,13 @@ export function schemaText(value: string | undefined, locale: Record<string, unk
  */
 export type LiquidField =
   | { type: 'text' | 'textarea'; label: string; placeholder?: string | undefined }
-  | { type: 'number'; label: string; min?: number | undefined; max?: number | undefined; step?: number | undefined }
+  | {
+      type: 'number'
+      label: string
+      min?: number | undefined
+      max?: number | undefined
+      step?: number | undefined
+    }
   | { type: 'select' | 'radio'; label: string; options: { label: string; value: unknown }[] }
   | {
       type: 'object'
@@ -189,10 +195,17 @@ const yesNo = (label: string): LiquidField => ({
   ],
 })
 
+/** What the theme itself offers to pick from: its colour schemes (`settings.color_schemes`). */
+export type LiquidFieldOptions = { colorSchemes?: string[] | undefined }
+
+/** `scheme-1` → `Scheme 1`. */
+const schemeLabel = (id: string) => id.replace(/[-_]+/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
+
 /** One schema setting as an editor field, or null for label-only settings. */
-export function settingField(
+function settingField(
   setting: ShopifySetting,
   locale: Record<string, unknown>,
+  options: LiquidFieldOptions = {},
 ): LiquidField | null {
   if (!isValueSetting(setting)) return null
   const label = schemaText(setting.label, locale) || setting.id
@@ -215,11 +228,13 @@ export function settingField(
       return {
         type: setting.type === 'radio' ? 'radio' : 'select',
         label,
-        options: (setting.options ?? [
-          { value: 'left', label: 'Left' },
-          { value: 'center', label: 'Center' },
-          { value: 'right', label: 'Right' },
-        ]).map((o) => ({ label: schemaText(o.label, locale) || o.value, value: o.value })),
+        options: (
+          setting.options ?? [
+            { value: 'left', label: 'Left' },
+            { value: 'center', label: 'Center' },
+            { value: 'right', label: 'Right' },
+          ]
+        ).map((o) => ({ label: schemaText(o.label, locale) || o.value, value: o.value })),
       }
     case 'image_picker':
       return {
@@ -249,19 +264,31 @@ export function settingField(
     case 'color':
     case 'color_background':
       return { type: 'text', label, placeholder: '#000000' }
+    case 'color_scheme':
+      return options.colorSchemes?.length
+        ? {
+            type: 'select',
+            label,
+            options: [
+              { label: 'Default', value: '' },
+              ...options.colorSchemes.map((id) => ({ label: schemeLabel(id), value: id })),
+            ],
+          }
+        : { type: 'text', label }
     default:
       return { type: 'text', label, placeholder: setting.placeholder }
   }
 }
 
 /** Fields for a list of settings, keyed by prop. */
-export function settingsFields(
+function settingsFields(
   settings: ShopifySetting[] | undefined,
   locale: Record<string, unknown>,
+  options: LiquidFieldOptions = {},
 ): Record<string, LiquidField> {
   const out: Record<string, LiquidField> = {}
   for (const s of settings ?? []) {
-    const field = s.id ? settingField(s, locale) : null
+    const field = s.id ? settingField(s, locale, options) : null
     if (field && s.id) out[settingPropKey(s.id)] = field
   }
   return out
@@ -276,15 +303,16 @@ export function liquidSectionFields(
   schema: ShopifySectionSchema | null | undefined,
   locale: Record<string, unknown>,
   themeBlocks: Record<string, ShopifySectionSchema> = {},
+  options: LiquidFieldOptions = {},
 ): Record<string, LiquidField> {
-  const fields = settingsFields(schema?.settings, locale)
+  const fields = settingsFields(schema?.settings, locale, options)
   const blockTypes = (schema?.blocks ?? []).filter((b) => b.type !== '@app')
   if (blockTypes.length === 0) return fields
   const perType: Record<string, Record<string, LiquidField>> = {}
   const names: Record<string, string> = {}
   for (const b of blockTypes) {
     const settings = b.type === '@theme' ? undefined : (b.settings ?? themeBlocks[b.type]?.settings)
-    perType[b.type] = settingsFields(settings, locale)
+    perType[b.type] = settingsFields(settings, locale, options)
     names[b.type] = schemaText(b.name, locale) || themeBlocks[b.type]?.name || b.type
   }
   fields.blocks = {

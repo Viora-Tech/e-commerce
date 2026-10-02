@@ -20,8 +20,6 @@ import {
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, isNotNull, isNull, like, sql } from 'drizzle-orm'
 import { toNavLinks } from '../navigation/resolve'
-import { uuidPrefixOf } from './numeric-id'
-import { richTextHtml } from './rich-html'
 import type {
   LiquidBlogData,
   LiquidCartData,
@@ -32,6 +30,8 @@ import type {
   LiquidProductData,
   LiquidShopData,
 } from './drops'
+import { uuidPrefixOf } from './numeric-id'
+import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
   storeId: string
@@ -57,7 +57,10 @@ const escapeHtml = (s: string) =>
 async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductData[]> {
   if (ids.length === 0) return []
   const [rows, variants, images, options] = await Promise.all([
-    tx.select().from(product).where(and(inArray(product.id, ids), eq(product.status, 'active'))),
+    tx
+      .select()
+      .from(product)
+      .where(and(inArray(product.id, ids), eq(product.status, 'active'))),
     tx
       .select({
         id: variant.id,
@@ -133,7 +136,13 @@ async function loadProducts(tx: StoreTx, ids: string[]): Promise<LiquidProductDa
     }
     const imgs: LiquidImageData[] = images
       .filter((i) => i.productId === id && (i.contentType ?? 'image/').startsWith('image/'))
-      .map((i) => ({ id: i.id, url: i.url, alt: i.alt ?? p.title, width: i.width, height: i.height }))
+      .map((i) => ({
+        id: i.id,
+        url: i.url,
+        alt: i.alt ?? p.title,
+        width: i.width,
+        height: i.height,
+      }))
     const description = toHtml(p.description)
     return [
       {
@@ -310,14 +319,17 @@ export async function storeLiquidData(
           .orderBy(asc(collectionProduct.position))
           .limit(limit)
         return loadProducts(
-            tx,
-            rows.map((r) => r.id),
-          )
+          tx,
+          rows.map((r) => r.id),
+        )
       }),
     collections: collectionList,
     menu: (handle) =>
       once(`m:${handle}`, async () => {
-        const [row] = await tx.select().from(navigationMenu).where(eq(navigationMenu.handle, handle))
+        const [row] = await tx
+          .select()
+          .from(navigationMenu)
+          .where(eq(navigationMenu.handle, handle))
         if (!row) return null
         return { handle: row.handle, title: row.title, links: toLinks(toNavLinks(row.items)) }
       }),

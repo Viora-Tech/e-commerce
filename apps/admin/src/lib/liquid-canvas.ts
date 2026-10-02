@@ -20,10 +20,10 @@ const WINDOW_MS = 40
 const BATCH = 60
 
 let queue: Ask[] = []
-let timer: ReturnType<typeof setTimeout> | null = null
+let scheduled = false
 
 async function flush(): Promise<void> {
-  timer = null
+  scheduled = false
   const asks = queue
   queue = []
   const byTheme = new Map<string, Ask[]>()
@@ -50,6 +50,9 @@ export function renderLiquidCanvas(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     queue.push({ themeId, section, resolve, reject })
-    timer ??= setTimeout(() => void flush(), WINDOW_MS)
+    if (!scheduled) {
+      scheduled = true
+      setTimeout(() => void flush(), WINDOW_MS)
+    }
   })
 }

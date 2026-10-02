@@ -16,7 +16,8 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 /** Only web and mail links; anything else (javascript:, data:) becomes `#`. */
-const safeUrl = (url: string) => (/^(https?:|mailto:|tel:|\/(?!\/)|#)/i.test(url.trim()) ? url : '#')
+const safeUrl = (url: string) =>
+  /^(https?:|mailto:|tel:|\/(?!\/)|#)/i.test(url.trim()) ? url : '#'
 
 const HEADINGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
 

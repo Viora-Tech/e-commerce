@@ -39,7 +39,7 @@ const sizeLabel = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`
  */
 export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDialogProps) {
   // Hooks
-  const copy = useCopy(themeImportContent).dialog
+  const { dialog: copy } = useCopy(themeImportContent)
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [host, setHost] = useState('')

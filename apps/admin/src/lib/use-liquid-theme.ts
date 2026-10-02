@@ -32,7 +32,9 @@ export function useLiquidTheme(themeId: string): {
     ? Object.fromEntries(
         Object.entries(info.schemas).map(([type, schema]) => [
           type,
-          liquidSectionFields(schema, info.schemaLocale, info.blockSchemas),
+          liquidSectionFields(schema, info.schemaLocale, info.blockSchemas, {
+            colorSchemes: info.colorSchemes,
+          }),
         ]),
       )
     : null

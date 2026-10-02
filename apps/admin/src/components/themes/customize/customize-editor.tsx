@@ -41,6 +41,7 @@ import CreateTemplateDialog, { type AlternateKind } from './create-template-dial
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
+import ImportedThemeSettings from './imported-theme-settings'
 import LiquidCanvasSection from './liquid-canvas-section'
 import ResourcePicker from './resource-picker'
 import TemplatePicker, { type TemplateRef } from './template-picker'
@@ -173,6 +174,13 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     return () => window.removeEventListener('beforeunload', warn)
   }, [settings, record.settings])
 
+  // Helpers
+  /** Which group an imported section sits in (`section.location` in Liquid). */
+  const groupOf = (id: unknown) => {
+    const inZone = (zone: string) => (loaded?.doc.zones[zone] ?? []).some((s) => s.props.id === id)
+    return inZone(HEADER_ZONE) ? 'header-group' : inZone(FOOTER_ZONE) ? 'footer-group' : 'template'
+  }
+
   // Event handlers
   const handleChange = (data: Data) => {
     if (!loaded) return
@@ -254,10 +262,6 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     : null
   const base = previewMetadata({ ...preview, logo })
   const liquidInfo = liquidTheme.info
-  const groupOf = (id: unknown) => {
-    const inZone = (zone: string) => (loaded?.doc.zones[zone] ?? []).some((s) => s.props.id === id)
-    return inZone(HEADER_ZONE) ? 'header-group' : inZone(FOOTER_ZONE) ? 'footer-group' : 'template'
-  }
   const metadata =
     liquidInfo && liquidTheme.fields
       ? {
@@ -326,7 +330,9 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     />
   )
 
-  const settingsPanel = (
+  const settingsPanel = liquidInfo ? (
+    <ImportedThemeSettings themeId={record.id} />
+  ) : (
     <>
       <div className="border-b border-border px-4 py-4">
         <ThemePresets theme={settings} onChange={setSettings} />
@@ -353,26 +359,26 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
         >
           <ThemePreviewContext.Provider value={settings}>
             <LiquidHeadContext.Provider value={liquidHead}>
-            <PreviewModeContext.Provider value={mode}>
-              <DynamicSourceContext.Provider value={sourceScope}>
-                <CustomizeHotkeys />
-                <CustomizeLayout
-                  topBar={topBar}
-                  settings={settingsPanel}
-                  dock={
-                    <CanvasDock
-                      device={device}
-                      mode={mode}
-                      darkMode={settings.darkMode.enabled}
-                      onDevice={setDevice}
-                      onMode={setModePick}
-                    />
-                  }
-                  device={device}
-                  loading={switching}
-                />
-              </DynamicSourceContext.Provider>
-            </PreviewModeContext.Provider>
+              <PreviewModeContext.Provider value={mode}>
+                <DynamicSourceContext.Provider value={sourceScope}>
+                  <CustomizeHotkeys />
+                  <CustomizeLayout
+                    topBar={topBar}
+                    settings={settingsPanel}
+                    dock={
+                      <CanvasDock
+                        device={device}
+                        mode={mode}
+                        darkMode={settings.darkMode.enabled}
+                        onDevice={setDevice}
+                        onMode={setModePick}
+                      />
+                    }
+                    device={device}
+                    loading={switching}
+                  />
+                </DynamicSourceContext.Provider>
+              </PreviewModeContext.Provider>
             </LiquidHeadContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>

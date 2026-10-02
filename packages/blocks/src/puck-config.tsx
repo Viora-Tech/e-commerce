@@ -16,7 +16,6 @@ import {
 import { type CustomProps, customSections, ELEMENT_BLOCKS, LAYOUT_BLOCKS } from './sections/custom'
 import { type DynamicSection, dynamicSections, type SectionSettings } from './sections/dynamic'
 import { GLIDE_SECTIONS, type GlideProps, glideSections } from './sections/glide'
-import { liquidSectionConfig } from './sections/liquid'
 import { type ProductGridProps, tabbedProductsSection } from './sections/glide/tabbed-products'
 import {
   GLIDE_PRODUCT_SECTIONS,
@@ -30,6 +29,7 @@ import {
   librarySections,
   type SingleProductLoader,
 } from './sections/library'
+import { liquidSectionConfig } from './sections/liquid'
 import { type ModernProps, modernSections } from './sections/modern'
 import { type RichTextFieldEditor, richTextField } from './sections/rich-text-field'
 import type { CardProduct } from './types'
@@ -293,7 +293,8 @@ export function createBlocksConfig(
       >),
       ...(dynamicSections() as unknown as Pick<Config<BlockProps>['components'], DynamicSection>),
       // Sections of an imported Shopify theme; see ./sections/liquid.tsx.
-      LiquidSection: liquidSectionConfig as unknown as Config<BlockProps>['components']['LiquidSection'],
+      LiquidSection:
+        liquidSectionConfig as unknown as Config<BlockProps>['components']['LiquidSection'],
       Hero: heroBlock({ loadProduct: options.loadProduct }),
 
       // Glide's tabbed-products section; config in ./sections/glide/tabbed-products.tsx.

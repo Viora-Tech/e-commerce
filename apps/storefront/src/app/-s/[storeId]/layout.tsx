@@ -35,8 +35,8 @@ import type { ReactNode } from 'react'
 import StoreChrome from '@/components/checkout/store-chrome'
 import ConsentManager from '@/components/privacy/consent-manager'
 import PredictiveSearch from '@/components/search/predictive-search'
-import PreviewBar from '@/components/theme/preview-bar'
 import LiquidHtml from '@/components/theme/liquid-html'
+import PreviewBar from '@/components/theme/preview-bar'
 import ThemePreviewBridge from '@/components/theme/theme-preview-bridge'
 import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
@@ -46,8 +46,8 @@ import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
 import { themeFontVariables } from '@/lib/fonts'
-import { liquidContextFor, liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { liquidShim } from '@/lib/liquid-shim'
+import { liquidContextFor, liquidLayoutFor, reactAttrs } from '@/lib/liquid-theme'
 import { mediaByUrl } from '@/lib/media-lookup'
 import { heightForWidth } from '@/lib/section-images'
 import { requestOrigin } from '@/lib/seo'
@@ -275,7 +275,7 @@ export default async function StoreLayout({ children, params }: Props) {
           {previewName && !preview?.inFrame ? <PreviewBar themeName={previewName} /> : null}
           <LiquidHtml html={liquid.beforeHeader} />
           {header}
-          <main id="MainContent" role="main" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
+          <main id="MainContent" tabIndex={-1} {...reactAttrs(liquid.mainAttrs)}>
             {children}
           </main>
           {footer}

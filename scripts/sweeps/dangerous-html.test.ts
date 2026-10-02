@@ -13,6 +13,11 @@ type AllowEntry = { file: string; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/admin/src/components/themes/customize/liquid-canvas-section.tsx',
+    reason:
+      "the merchant's own imported Shopify theme rendered by our Liquid engine for the Customize canvas; the API strips every <script> and inline on* handler first (theme-import.service.ts stripScripts)",
+  },
+  {
     file: 'packages/blocks/src/components/custom/embed-element.tsx',
     reason:
       'merchant Custom HTML, rendered only after sanitizeEmbedHtml (sanitize-html allow-list: no scripts, handlers, styles or foreign iframes); also sanitised on save',

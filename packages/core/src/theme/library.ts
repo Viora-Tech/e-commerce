@@ -1,9 +1,9 @@
 import { newId, type StoreTx, store, theme } from '@commerce/db'
 import { and, desc, eq, ne, sql } from 'drizzle-orm'
 import { CommerceError } from '../errors'
+import { copyThemeImport } from '../theme-import/bundle-store'
 import { applyThemePreset } from './presets'
 import { defaultTheme, parseTheme, type Theme, type ThemePresetId, ThemeSchema } from './schema'
-import { copyThemeImport } from '../theme-import/bundle-store'
 import { copyTemplates } from './templates'
 
 /**

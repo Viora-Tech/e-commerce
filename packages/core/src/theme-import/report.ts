@@ -64,7 +64,7 @@ export function countStatuses(sections: SectionReport[]): ImportCounts {
 }
 
 /** The worst status among a section's reasons (unsupported beats unavailable beats replaced). */
-export function statusFor(reasons: ReportReason[]): ImportStatus {
+export function importStatusFor(reasons: ReportReason[]): ImportStatus {
   const statuses = new Set<ImportStatus>(
     reasons.map((r) => {
       if (r === 'parse_error') return 'unsupported'
@@ -79,5 +79,4 @@ export function statusFor(reasons: ReportReason[]): ImportStatus {
 export const IMPORTED_TEMPLATES = new Set(['index'])
 
 /** Sections that draw a resource page's main content (product, collection, cart...). */
-export const isMainSection = (type: string): boolean =>
-  type.startsWith('main-') || type === 'main'
+export const isMainSection = (type: string): boolean => type.startsWith('main-') || type === 'main'

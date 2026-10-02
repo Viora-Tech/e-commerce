@@ -23,7 +23,9 @@ export async function GET(req: Request, { params }: Params) {
   if (!asset) return notFound()
   const versioned = new URL(req.url).searchParams.get('v') === asset.checksum
   const headers: Record<string, string> = {
-    'content-type': asset.contentType.startsWith('text/') ? `${asset.contentType}; charset=utf-8` : asset.contentType,
+    'content-type': asset.contentType.startsWith('text/')
+      ? `${asset.contentType}; charset=utf-8`
+      : asset.contentType,
     'cache-control': versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
     'x-content-type-options': 'nosniff',
     'access-control-allow-origin': '*',

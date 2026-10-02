@@ -30,6 +30,12 @@ export const themeImportContent = {
     tooLarge: 'This file is larger than 50 MB. Upload only the theme zip.',
     notZip: 'Choose the .zip file Shopify emailed you.',
   },
+  editor: {
+    settingsTitle: 'Colours, fonts and layout come from your Shopify theme',
+    settingsBody:
+      'Our theme presets do not apply to an imported theme. Change its sections on the left; editing its own theme settings here comes next.',
+    report: 'See the import report',
+  },
   report: {
     title: 'Import report',
     back: 'Themes',
@@ -43,8 +49,14 @@ export const themeImportContent = {
     status: {
       imported: { label: 'Imported exactly', help: 'Looks and works the same.' },
       replaced: { label: 'Runs on our features', help: 'Same look; what it does runs here.' },
-      unavailable: { label: 'Not available yet', help: 'The look is kept; one part has no match here yet.' },
-      unsupported: { label: 'Could not import', help: 'Its code uses something we cannot read yet.' },
+      unavailable: {
+        label: 'Not available yet',
+        help: 'The look is kept; one part has no match here yet.',
+      },
+      unsupported: {
+        label: 'Could not import',
+        help: 'Its code uses something we cannot read yet.',
+      },
     } satisfies Record<ImportStatus, { label: string; help: string }>,
     sectionsHeading: 'Sections',
     sectionsBody: 'Sections on your imported pages come first.',
@@ -75,20 +87,50 @@ export const themeImportContent = {
     swapsHeading: 'What Shopify used, and what runs here instead',
     swapColumns: { shopify: 'On Shopify', ours: 'Here' },
     swaps: {
-      cart_add: { shopify: 'Add to cart buttons', ours: 'Our cart. The shopper lands on the cart page.' },
+      cart_add: {
+        shopify: 'Add to cart buttons',
+        ours: 'Our cart. The shopper lands on the cart page.',
+      },
       cart_drawer: { shopify: 'Cart drawer', ours: 'Our cart page. The drawer keeps its look.' },
-      checkout: { shopify: 'Shopify checkout', ours: 'Our checkout with your payment methods, COD rules and GST invoices.' },
-      predictive_search: { shopify: 'Instant search suggestions', ours: 'Our search page. The search box keeps its look.' },
-      customer_accounts: { shopify: 'Customer accounts', ours: 'Our account pages, with sign in by one-time code.' },
-      newsletter: { shopify: 'Newsletter signup', ours: 'Your subscriber list, with a confirm email.' },
-      contact: { shopify: 'Contact form', ours: 'Not available yet. Show your email or WhatsApp number instead.' },
-      app_blocks: { shopify: 'Shopify apps (Judge.me, Klaviyo…)', ours: 'Our apps where one exists (Reviews, Back in stock, EMI).' },
-      metafields: { shopify: 'Metafields and metaobjects', ours: 'Blank until you add matching extra fields or content types.' },
+      checkout: {
+        shopify: 'Shopify checkout',
+        ours: 'Our checkout with your payment methods, COD rules and GST invoices.',
+      },
+      predictive_search: {
+        shopify: 'Instant search suggestions',
+        ours: 'Our search page. The search box keeps its look.',
+      },
+      customer_accounts: {
+        shopify: 'Customer accounts',
+        ours: 'Our account pages, with sign in by one-time code.',
+      },
+      newsletter: {
+        shopify: 'Newsletter signup',
+        ours: 'Your subscriber list, with a confirm email.',
+      },
+      contact: {
+        shopify: 'Contact form',
+        ours: 'Not available yet. Show your email or WhatsApp number instead.',
+      },
+      app_blocks: {
+        shopify: 'Shopify apps (Judge.me, Klaviyo…)',
+        ours: 'Our apps where one exists (Reviews, Back in stock, EMI).',
+      },
+      metafields: {
+        shopify: 'Metafields and metaobjects',
+        ours: 'Blank until you add matching extra fields or content types.',
+      },
       fonts: { shopify: 'Shopify fonts', ours: 'The same fonts from Google Fonts.' },
       hosted_images: { shopify: 'Pictures in Shopify Files', ours: 'Copied into your Files.' },
       payment_icons: { shopify: 'Payment icons', ours: 'Simple marks for your payment methods.' },
-      localization: { shopify: 'Country and currency picker', ours: 'India and rupees only for now.' },
-      recommendations: { shopify: 'Product recommendations', ours: 'Empty for now. Our Related products section can take its place.' },
+      localization: {
+        shopify: 'Country and currency picker',
+        ours: 'India and rupees only for now.',
+      },
+      recommendations: {
+        shopify: 'Product recommendations',
+        ours: 'Empty for now. Our Related products section can take its place.',
+      },
       preorder: { shopify: 'Pre-order apps', ours: 'Our built-in pre-order.' },
       app_data: {
         shopify: 'Data from Shopify apps (Judge.me reviews…)',
@@ -96,7 +138,8 @@ export const themeImportContent = {
       },
     } satisfies Record<SwapKey, { shopify: string; ours: string }>,
     pagesHeading: 'Pages',
-    pagesBody: 'Your home page uses your theme’s sections. Other pages use our pages, inside your theme’s header and footer.',
+    pagesBody:
+      'Your home page uses your theme’s sections. Other pages use our pages, inside your theme’s header and footer.',
     pages: { imported: 'Your theme’s sections', ours: 'Our page, your header and footer' },
     pageNames: {
       index: 'Home page',
@@ -115,13 +158,15 @@ export const themeImportContent = {
     todoHeading: 'Before you publish',
     todoNone: 'Nothing to do. Your theme has everything it needs.',
     missing: {
-      menus: (list: string) => `Add these menus in Content, then Menus (or import them with the Shopify importer): ${list}`,
+      menus: (list: string) =>
+        `Add these menus in Content, then Menus (or import them with the Shopify importer): ${list}`,
       collections: (list: string) => `These collections are not in your store yet: ${list}`,
       products: (list: string) => `These products are not in your store yet: ${list}`,
       blogs: (list: string) => `These blogs are not in your store yet: ${list}`,
     },
     images: {
-      copied: (n: number) => (n === 1 ? '1 picture copied into Files.' : `${n} pictures copied into Files.`),
+      copied: (n: number) =>
+        n === 1 ? '1 picture copied into Files.' : `${n} pictures copied into Files.`,
       videosCopied: (n: number) =>
         n === 1 ? '1 video copied into Files.' : `${n} videos copied into Files.`,
       failed: (n: number) =>

@@ -182,7 +182,7 @@ export async function renderStaticLiquidSection(
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
   const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
-  if (!ctx || !ctx.bundle.sections.has(sectionType)) return null
+  if (!ctx?.bundle.sections.has(sectionType)) return null
   const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
@@ -203,7 +203,10 @@ export async function renderStaticLiquidSection(
   }
   const html = await renderLiquidSection(ctx, section)
   const w = sectionWrapper(ctx.bundle, section)
-  return withNonce(`<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`, ctx.runtime.nonce)
+  return withNonce(
+    `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`,
+    ctx.runtime.nonce,
+  )
 }
 
 /** Theme layout attributes (`class`, `data-*`, `lang`) as React props; handlers and styles dropped. */

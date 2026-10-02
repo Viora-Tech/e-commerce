@@ -1,7 +1,7 @@
 /** SOURCE OF TRUTH: imported theme storage reads — WHAT: whether a theme is an imported Liquid theme, its import record and report, its renderable bundle (cached per theme version) and single asset files for the storefront's asset route / WHY: every storefront request and every canvas render needs the bundle; reading ~5 MB of theme files per request would be wasteful, so it is cached and re-read only when the import row changes */
 import { newId, type StoreTx, themeFile, themeImport } from '@commerce/db'
 import { and, eq } from 'drizzle-orm'
-import { buildThemeBundle, type ThemeBundle } from './render'
+import { buildThemeBundle, type ThemeBundle } from './bundle'
 import type { ImportReport } from './report'
 
 export type ThemeImportRecord = {
@@ -36,15 +36,6 @@ export async function themeImportFor(
 export async function importedThemeIds(tx: StoreTx): Promise<Set<string>> {
   const rows = await tx.select({ themeId: themeImport.themeId }).from(themeImport)
   return new Set(rows.map((r) => r.themeId))
-}
-
-/** Version stamp of an imported theme, or null when the theme is one of ours (cheap). */
-export async function liquidThemeVersion(tx: StoreTx, themeId: string): Promise<string | null> {
-  const [row] = await tx
-    .select({ updatedAt: themeImport.updatedAt })
-    .from(themeImport)
-    .where(eq(themeImport.themeId, themeId))
-  return row ? row.updatedAt.toISOString() : null
 }
 
 const bundles = new Map<string, ThemeBundle>()
@@ -136,8 +127,10 @@ export async function copyThemeImport(
   })
   const files = await tx.select().from(themeFile).where(eq(themeFile.themeId, fromThemeId))
   for (let i = 0; i < files.length; i += 100) {
-    await tx.insert(themeFile).values(
-      files.slice(i, i + 100).map((f) => ({ ...f, id: newId(), storeId, themeId: toThemeId })),
-    )
+    await tx
+      .insert(themeFile)
+      .values(
+        files.slice(i, i + 100).map((f) => ({ ...f, id: newId(), storeId, themeId: toThemeId })),
+      )
   }
 }

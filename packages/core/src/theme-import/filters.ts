@@ -1,277 +1,29 @@
 /** SOURCE OF TRUTH: Shopify Liquid filters for imported themes — WHAT: every Shopify-only filter a theme uses (t, asset_url, image_url, image_tag, money, placeholder_svg_tag, font_face, colour maths, link and URL helpers, payment icons...) implemented on our data, plus the per-render runtime they read / WHY: LiquidJS ships the standard Liquid filters only; a theme's look depends on these producing the same markup Shopify does, pointed at our assets, prices and pages */
-import { type Currency, formatMoney, formatNumber } from '@commerce/money'
+import { formatInZone } from '@commerce/dates'
+import { formatNumber } from '@commerce/money'
 import { Drop, type FilterImplOptions, type Liquid } from 'liquidjs'
 import { ColorDrop, FontDrop, handleize, ImageDrop, LIQUID_ROUTES } from './drops'
+import {
+  adjustLightness,
+  adjustSaturation,
+  brightness,
+  escapeAttr,
+  hslToHex,
+  imageSrc,
+  imageTag,
+  imageUrl,
+  money,
+  paymentIcon,
+  placeholderSvg,
+  rgbToHsl,
+  runtimeOf,
+  splitArgs,
+  str,
+  toRgb,
+  translate,
+} from './filter-values'
 
-/** What filters need from the render that called them; passed as the `_rt` global. */
-export type LiquidRuntime = {
-  /** `asset_url` for a file in `assets/`: our URL, versioned by checksum. */
-  assetUrl: (file: string) => string
-  /** A text asset's contents, for `inline_asset_content`. */
-  assetText: (file: string) => string | null
-  /** The theme's storefront locale (`locales/en.default.json`), nested keys. */
-  locale: Record<string, unknown>
-  currency: Currency
-  /** Shopify `money_format`, e.g. `₹{{amount_no_decimals}}`; null formats with @commerce/money. */
-  moneyFormat: string | null
-  /** Fonts the theme asked for with `font_face`; the layout loads them. */
-  fonts: Map<string, FontDrop>
-  /** Script nonce for the storefront's CSP; blank in the editor canvas. */
-  nonce: string
-  /** The merchant's old Shopify host, for `file_url` images we did not copy. */
-  shopifyHost: string | null
-}
-
-type Named = Record<string, unknown>
-
-/** Liquid passes `key: value` filter arguments as `[key, value]` pairs. */
-function splitArgs(args: unknown[]): { positional: unknown[]; named: Named } {
-  const positional: unknown[] = []
-  const named: Named = {}
-  for (const a of args) {
-    if (Array.isArray(a) && a.length === 2 && typeof a[0] === 'string') named[a[0]] = a[1]
-    else positional.push(a)
-  }
-  return { positional, named }
-}
-
-function runtimeOf(self: unknown): LiquidRuntime {
-  const ctx = (self as { context?: { globals?: { _rt?: LiquidRuntime } } }).context
-  const rt = ctx?.globals?._rt
-  if (!rt) throw new Error('Liquid render without a runtime')
-  return rt
-}
-
-const escapeAttr = (value: unknown): string =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-const str = (value: unknown): string => {
-  if (value === null || value === undefined) return ''
-  if (value instanceof Drop) return String(value.valueOf() ?? '')
-  return String(value)
-}
-
-/** `a.b.c` in the locale, or undefined. */
-function lookup(tree: Record<string, unknown>, key: string): unknown {
-  let node: unknown = tree
-  for (const part of key.split('.')) {
-    if (typeof node !== 'object' || node === null) return undefined
-    node = (node as Record<string, unknown>)[part]
-  }
-  return node
-}
-
-/** `{{ name }}` placeholders in a translation. */
-const interpolate = (text: string, vars: Named): string =>
-  text.replace(/{{\s*([\w.]+)\s*}}/g, (_, k: string) => str(vars[k]))
-
-/** Shopify's `t`: plural forms by `count`, `{{ var }}` interpolation, missing keys shown. */
-export function translate(locale: Record<string, unknown>, key: string, vars: Named): string {
-  let value = lookup(locale, key)
-  if (value && typeof value === 'object' && 'count' in vars) {
-    const forms = value as Record<string, unknown>
-    const n = Number(vars.count)
-    value = (n === 0 ? forms.zero : undefined) ?? (n === 1 ? forms.one : forms.other) ?? forms.other
-  }
-  if (typeof value !== 'string') return `Translation missing: en.${key}`
-  return interpolate(value, vars)
-}
-
-/** Shopify money formats: `{{amount}}`, `{{amount_no_decimals}}`, comma separators. */
-export function shopifyMoney(paise: number, format: string): string {
-  const major = paise / 100
-  const group = (n: string, sep: string) => n.replace(/\B(?=(\d{3})+(?!\d))/g, sep)
-  const parts = (decimals: number, thousands: string, point: string) => {
-    const [whole = '0', frac] = Math.abs(major).toFixed(decimals).split('.')
-    const sign = major < 0 ? '-' : ''
-    return `${sign}${group(whole, thousands)}${frac ? `${point}${frac}` : ''}`
-  }
-  return format.replace(/{{\s*(\w+)\s*}}/g, (_, name: string) => {
-    switch (name) {
-      case 'amount':
-        return parts(2, ',', '.')
-      case 'amount_no_decimals':
-        return parts(0, ',', '.')
-      case 'amount_with_comma_separator':
-        return parts(2, '.', ',')
-      case 'amount_no_decimals_with_comma_separator':
-        return parts(0, '.', ',')
-      case 'amount_with_apostrophe_separator':
-        return parts(2, "'", '.')
-      case 'amount_no_decimals_with_space_separator':
-        return parts(0, ' ', '.')
-      case 'amount_with_space_separator':
-        return parts(2, ' ', ',')
-      default:
-        return parts(2, ',', '.')
-    }
-  })
-}
-
-function money(rt: LiquidRuntime, value: unknown): string {
-  const paise = Number(value ?? 0)
-  if (!Number.isFinite(paise)) return ''
-  return rt.moneyFormat
-    ? shopifyMoney(paise, rt.moneyFormat)
-    : formatMoney(Math.round(paise), rt.currency)
-}
-
-/** The image URL a value stands for: an image object, a URL string, or a product/variant. */
-function imageSrc(value: unknown): string {
-  if (value instanceof ImageDrop) return value.src
-  if (value instanceof ImageUrl) return value.url
-  if (typeof value === 'string') return value
-  if (value && typeof value === 'object') {
-    const v = value as Record<string, unknown>
-    const inner = v.featured_image ?? v.image ?? v.preview_image ?? v.src
-    if (inner !== undefined && inner !== value) return imageSrc(inner)
-  }
-  return ''
-}
-
-/**
- * What `image_url` returns: prints as the URL, but remembers the image so a following
- * `image_tag` can write its width, height and alt, as Shopify's does.
- */
-export class ImageUrl extends Drop {
-  constructor(
-    readonly url: string,
-    readonly image: ImageDrop | null,
-    readonly width: number | null,
-    readonly height: number | null,
-  ) {
-    super()
-  }
-  override valueOf(): string {
-    return this.url
-  }
-  override toString(): string {
-    return this.url
-  }
-}
-
-const imageOf = (value: unknown): ImageDrop | null => {
-  if (value instanceof ImageDrop) return value
-  if (value && typeof value === 'object') {
-    const v = value as Record<string, unknown>
-    const inner = v.featured_image ?? v.image ?? v.preview_image
-    if (inner instanceof ImageDrop) return inner
-  }
-  return null
-}
-
-function imageUrl(value: unknown, named: Named): ImageUrl | string {
-  const src = imageSrc(value)
-  if (!src) return ''
-  const width = named.width ? Number(named.width) : null
-  const height = named.height ? Number(named.height) : null
-  return new ImageUrl(src, imageOf(value), width, height)
-}
-
-/** Attributes Shopify's `image_tag` writes itself; anything else passes through. */
-const IMAGE_TAG_OWN = new Set(['widths', 'preload', 'srcset'])
-
-function imageTag(value: unknown, named: Named): string {
-  const url = value instanceof ImageUrl ? value : null
-  const src = url ? url.url : imageSrc(value)
-  if (!src) return ''
-  const image = url?.image ?? imageOf(value)
-  const naturalW = image?.width ?? null
-  const naturalH = image?.height ?? null
-  let width = named.width ?? url?.width ?? naturalW
-  let height = named.height ?? url?.height ?? null
-  if (width && !height && naturalW && naturalH) {
-    height = Math.round((Number(width) * naturalH) / naturalW)
-  }
-  if (!width && height && naturalW && naturalH) {
-    width = Math.round((Number(height) * naturalW) / naturalH)
-  }
-  const attrs: Record<string, unknown> = {
-    src,
-    alt: named.alt ?? image?.alt ?? '',
-    ...(width ? { width } : {}),
-    ...(height ? { height } : {}),
-  }
-  for (const [k, v] of Object.entries(named)) {
-    if (k === 'alt' || k === 'width' || k === 'height' || IMAGE_TAG_OWN.has(k)) continue
-    if (v === null || v === undefined || v === false) continue
-    attrs[k] = v
-  }
-  if (named.preload) attrs.fetchpriority ??= 'high'
-  return `<img ${Object.entries(attrs)
-    .map(([k, v]) => `${k}="${escapeAttr(str(v))}"`)
-    .join(' ')}>`
-}
-
-/** A neutral stand-in for Shopify's placeholder illustrations. */
-function placeholderSvg(name: unknown, className: unknown): string {
-  const cls = className ? ` class="${escapeAttr(className)}"` : ''
-  const label = escapeAttr(str(name) || 'image')
-  return `<svg${cls} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 525 525" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${label}"><rect width="525" height="525" fill="currentColor" opacity=".08"/><path d="M197 312l52-66 38 48 26-33 46 51z" fill="currentColor" opacity=".25"/><circle cx="315" cy="214" r="18" fill="currentColor" opacity=".25"/></svg>`
-}
-
-/** Hex/rgb colour parsing for the colour filters. */
-function toRgb(value: unknown): { r: number; g: number; b: number; a: number } {
-  const c = value instanceof ColorDrop ? value : new ColorDrop(str(value))
-  return { r: c.red, g: c.green, b: c.blue, a: c.alpha }
-}
-
-function rgbToHsl({ r, g, b }: { r: number; g: number; b: number }) {
-  const [rr, gg, bb] = [r / 255, g / 255, b / 255]
-  const max = Math.max(rr, gg, bb)
-  const min = Math.min(rr, gg, bb)
-  const l = (max + min) / 2
-  if (max === min) return { h: 0, s: 0, l: l * 100 }
-  const d = max - min
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
-  let h = 0
-  if (max === rr) h = (gg - bb) / d + (gg < bb ? 6 : 0)
-  else if (max === gg) h = (bb - rr) / d + 2
-  else h = (rr - gg) / d + 4
-  return { h: h * 60, s: s * 100, l: l * 100 }
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  const sat = Math.max(0, Math.min(100, s)) / 100
-  const lig = Math.max(0, Math.min(100, l)) / 100
-  const k = (n: number) => (n + h / 30) % 12
-  const a = sat * Math.min(lig, 1 - lig)
-  const f = (n: number) => lig - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
-  const hex = (x: number) =>
-    Math.round(x * 255)
-      .toString(16)
-      .padStart(2, '0')
-  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`
-}
-
-function adjustLightness(value: unknown, delta: number): string {
-  const hsl = rgbToHsl(toRgb(value))
-  return hslToHex(hsl.h, hsl.s, hsl.l + delta)
-}
-
-function adjustSaturation(value: unknown, delta: number): string {
-  const hsl = rgbToHsl(toRgb(value))
-  return hslToHex(hsl.h, hsl.s + delta, hsl.l)
-}
-
-const brightness = (value: unknown): number => {
-  const { r, g, b } = toRgb(value)
-  return Math.round((r * 299 + g * 587 + b * 114) / 1000)
-}
-
-/** Simple, label-only payment marks (Shopify's own artwork is theirs, not ours to copy). */
-function paymentIcon(type: unknown): string {
-  const label = escapeAttr(
-    str(type)
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase()),
-  )
-  return `<svg class="icon icon--full-color" xmlns="http://www.w3.org/2000/svg" role="img" viewBox="0 0 38 24" width="38" height="24" aria-label="${label}"><rect x=".5" y=".5" width="37" height="23" rx="3" fill="#fff" stroke="#000" stroke-opacity=".07"/><text x="19" y="15" text-anchor="middle" font-family="Arial, sans-serif" font-size="6.5" font-weight="700" fill="#222">${label.slice(0, 10)}</text></svg>`
-}
+export type { LiquidRuntime } from './filter-values'
 
 /**
  * Registers the Shopify filters on an engine. Unknown filters pass their input
@@ -304,7 +56,9 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('shopify_asset_url', () => '')
 
   add('stylesheet_tag', (url: unknown) =>
-    url ? `<link href="${escapeAttr(str(url))}" rel="stylesheet" type="text/css" media="all" />` : '',
+    url
+      ? `<link href="${escapeAttr(str(url))}" rel="stylesheet" type="text/css" media="all" />`
+      : '',
   )
   add('script_tag', function (this: unknown, url: unknown) {
     if (!url) return ''
@@ -323,12 +77,8 @@ export function registerShopifyFilters(engine: Liquid): void {
     add(legacy, (value: unknown) => imageSrc(value))
   }
   add('image_tag', (value: unknown, ...args: unknown[]) => imageTag(value, splitArgs(args).named))
-  add('img_tag', (value: unknown, alt: unknown) =>
-    imageTag(value, alt ? { alt } : {}),
-  )
-  add('placeholder_svg_tag', (name: unknown, className: unknown) =>
-    placeholderSvg(name, className),
-  )
+  add('img_tag', (value: unknown, alt: unknown) => imageTag(value, alt ? { alt } : {}))
+  add('placeholder_svg_tag', (name: unknown, className: unknown) => placeholderSvg(name, className))
 
   add('money', function (this: unknown, value: unknown) {
     return money(runtimeOf(this), value)
@@ -366,9 +116,18 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('payment_terms', () => '')
   add('metafield_tag', () => '')
   add('metafield_text', () => '')
-  add('customer_login_link', (text: unknown) => `<a href="${LIQUID_ROUTES.account_login_url}">${str(text)}</a>`)
-  add('customer_logout_link', (text: unknown) => `<a href="${LIQUID_ROUTES.account_logout_url}">${str(text)}</a>`)
-  add('customer_register_link', (text: unknown) => `<a href="${LIQUID_ROUTES.account_register_url}">${str(text)}</a>`)
+  add(
+    'customer_login_link',
+    (text: unknown) => `<a href="${LIQUID_ROUTES.account_login_url}">${str(text)}</a>`,
+  )
+  add(
+    'customer_logout_link',
+    (text: unknown) => `<a href="${LIQUID_ROUTES.account_logout_url}">${str(text)}</a>`,
+  )
+  add(
+    'customer_register_link',
+    (text: unknown) => `<a href="${LIQUID_ROUTES.account_register_url}">${str(text)}</a>`,
+  )
   add('payment_type_svg_tag', (type: unknown) => paymentIcon(type))
   add('payment_type_img_url', () => '')
 
@@ -395,30 +154,41 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('weight_with_unit', (grams: unknown) => `${(Number(grams ?? 0) / 1000).toFixed(2)} kg`)
   add('unit_price_with_measurement', () => '')
 
-  add('link_to', (text: unknown, url: unknown, title: unknown) =>
-    `<a href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${str(text)}</a>`,
+  add(
+    'link_to',
+    (text: unknown, url: unknown, title: unknown) =>
+      `<a href="${escapeAttr(url)}"${title ? ` title="${escapeAttr(title)}"` : ''}>${str(text)}</a>`,
   )
   add('url_for_type', (type: unknown) => `/collections/types?q=${encodeURIComponent(str(type))}`)
   add('url_for_vendor', (v: unknown) => `/collections/vendors?q=${encodeURIComponent(str(v))}`)
-  add('link_to_type', (type: unknown) =>
-    `<a href="/collections/types?q=${encodeURIComponent(str(type))}" title="${escapeAttr(type)}">${str(type)}</a>`,
+  add(
+    'link_to_type',
+    (type: unknown) =>
+      `<a href="/collections/types?q=${encodeURIComponent(str(type))}" title="${escapeAttr(type)}">${str(type)}</a>`,
   )
-  add('link_to_vendor', (v: unknown) =>
-    `<a href="/collections/vendors?q=${encodeURIComponent(str(v))}" title="${escapeAttr(v)}">${str(v)}</a>`,
+  add(
+    'link_to_vendor',
+    (v: unknown) =>
+      `<a href="/collections/vendors?q=${encodeURIComponent(str(v))}" title="${escapeAttr(v)}">${str(v)}</a>`,
   )
-  add('link_to_tag', (label: unknown, tag: unknown) =>
-    `<a href="?tag=${encodeURIComponent(str(tag))}" title="${escapeAttr(tag)}">${str(label)}</a>`,
+  add(
+    'link_to_tag',
+    (label: unknown, tag: unknown) =>
+      `<a href="?tag=${encodeURIComponent(str(tag))}" title="${escapeAttr(tag)}">${str(label)}</a>`,
   )
   add('within', (url: unknown, collection: unknown) => {
     const c = collection as { url?: string } | null
     return c?.url ? `${c.url}${str(url)}` : str(url)
   })
-  add('sort_by', (url: unknown, sort: unknown) => `${str(url)}?sort_by=${encodeURIComponent(str(sort))}`)
+  add(
+    'sort_by',
+    (url: unknown, sort: unknown) => `${str(url)}?sort_by=${encodeURIComponent(str(sort))}`,
+  )
 
   add('time_tag', (value: unknown, ...args: unknown[]) => {
     const date = value instanceof Date ? value : new Date(str(value))
     if (Number.isNaN(date.getTime())) return ''
-    const text = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+    const text = formatInZone(date, { day: 'numeric', month: 'long', year: 'numeric' })
     const { named } = splitArgs(args)
     const datetime = named.datetime ? str(named.datetime) : date.toISOString()
     return `<time datetime="${escapeAttr(datetime)}">${text}</time>`
@@ -426,7 +196,14 @@ export function registerShopifyFilters(engine: Liquid): void {
   add('format_address', (address: unknown) => {
     if (!address || typeof address !== 'object') return ''
     const a = address as Record<string, unknown>
-    const lines = [a.name, a.company, a.address1, a.address2, [a.city, a.province, a.zip].filter(Boolean).join(' '), a.country]
+    const lines = [
+      a.name,
+      a.company,
+      a.address1,
+      a.address2,
+      [a.city, a.province, a.zip].filter(Boolean).join(' '),
+      a.country,
+    ]
       .map((x) => str(x).trim())
       .filter(Boolean)
     return lines.map((l) => `<span>${l}</span>`).join('<br>')
@@ -449,7 +226,15 @@ export function registerShopifyFilters(engine: Liquid): void {
       const v = str(value)
       const w = Number(weight)
       const next =
-        v === 'bold' || v === 'bolder' ? Math.min(9, Math.max(w + 3, 7)) : v === 'lighter' ? Math.max(1, w - 3) : v === 'normal' ? 4 : /^[+-]\d+$/.test(v) ? w + Number(v) / 100 : Number(v) / 100
+        v === 'bold' || v === 'bolder'
+          ? Math.min(9, Math.max(w + 3, 7))
+          : v === 'lighter'
+            ? Math.max(1, w - 3)
+            : v === 'normal'
+              ? 4
+              : /^[+-]\d+$/.test(v)
+                ? w + Number(v) / 100
+                : Number(v) / 100
       return new FontDrop(`${base}_${style}${Math.max(1, Math.min(9, Math.round(next)))}`)
     }
     if (str(attr) === 'style') {
@@ -592,4 +377,4 @@ export function registerShopifyFilters(engine: Liquid): void {
   })
 }
 
-export { splitArgs, str as stringifyLiquid, escapeAttr }
+export { escapeAttr, splitArgs, str as stringifyLiquid }

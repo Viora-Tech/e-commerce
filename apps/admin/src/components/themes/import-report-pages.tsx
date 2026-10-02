@@ -19,7 +19,10 @@ export default function ImportReportPages({ copy, templates }: ImportReportPages
       <CardContent className="p-0">
         <ul className="divide-y divide-border">
           {templates.map((t) => (
-            <li key={t.name} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+            <li
+              key={t.name}
+              className="flex flex-wrap items-center justify-between gap-2 px-5 py-3"
+            >
               <span className="text-body font-medium text-foreground">
                 {copy.pageNames[t.name] ?? t.name}
               </span>

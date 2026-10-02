@@ -58,9 +58,7 @@ export default function CustomizeArrayField({
 }: CustomizeArrayFieldProps) {
   // Helpers
   const titleOf = (item: Record<string, unknown>, index: number) =>
-    field.getItemSummary?.(item, index) ||
-    liquidItemTitle(field, item) ||
-    copy.itemFallback(index)
+    field.getItemSummary?.(item, index) || liquidItemTitle(field, item) || copy.itemFallback(index)
 
   // Event handlers
   const handleReorder = (rows: Row[]) => onChange(rows.map((r) => r.item))

@@ -9,6 +9,11 @@ type LiquidCanvasSectionProps = {
   section: LiquidSectionPlacement
 }
 
+/** The section as a string, so the render effect re-runs only when its content changes. */
+function useContentKey(section: LiquidSectionPlacement): string {
+  return JSON.stringify(section)
+}
+
 /** How long settings must stay still before the canvas asks for a fresh render. */
 const SETTLE_MS = 180
 
@@ -20,8 +25,8 @@ const SETTLE_MS = 180
  */
 export default function LiquidCanvasSection({ themeId, section }: LiquidCanvasSectionProps) {
   // Hooks
+  const key = useContentKey(section)
   const [html, setHtml] = useState<string | null>(null)
-  const key = JSON.stringify(section)
 
   useEffect(() => {
     let active = true

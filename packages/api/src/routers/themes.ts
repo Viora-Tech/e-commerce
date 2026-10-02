@@ -221,7 +221,10 @@ const importRouter = {
       z.object({
         file: z
           .instanceof(File)
-          .refine((f) => f.size > 0 && f.size <= THEME_ZIP_MAX_BYTES, 'Upload a theme zip under 50 MB'),
+          .refine(
+            (f) => f.size > 0 && f.size <= THEME_ZIP_MAX_BYTES,
+            'Upload a theme zip under 50 MB',
+          ),
         shopifyHost: z.string().trim().max(200).optional(),
       }),
     )
@@ -284,7 +287,11 @@ function present(storeId: string, t: ThemeRecord, imported = false) {
 }
 
 /** `present`, with the imported flag read for this one theme. */
-async function presentOne(tx: Parameters<typeof importedThemeIds>[0], storeId: string, t: ThemeRecord) {
+async function presentOne(
+  tx: Parameters<typeof importedThemeIds>[0],
+  storeId: string,
+  t: ThemeRecord,
+) {
   return present(storeId, t, (await importedThemeIds(tx)).has(t.id))
 }
 
@@ -326,7 +333,11 @@ export const themesRouter = {
     .input(z.object({ id: z.string().uuid(), settings: ThemeSchema }))
     .handler(({ context, input }) =>
       libraryErrors(async () =>
-        presentOne(context.tx, context.scope.storeId, await updateThemeSettings(context.tx, input.id, input.settings)),
+        presentOne(
+          context.tx,
+          context.scope.storeId,
+          await updateThemeSettings(context.tx, input.id, input.settings),
+        ),
       ),
     ),
 
@@ -334,7 +345,11 @@ export const themesRouter = {
     .input(z.object({ id: z.string().uuid(), name: z.string().max(80) }))
     .handler(({ context, input }) =>
       libraryErrors(async () =>
-        presentOne(context.tx, context.scope.storeId, await renameTheme(context.tx, input.id, input.name)),
+        presentOne(
+          context.tx,
+          context.scope.storeId,
+          await renameTheme(context.tx, input.id, input.name),
+        ),
       ),
     ),
 
@@ -342,7 +357,11 @@ export const themesRouter = {
     .input(IdInput)
     .handler(({ context, input }) =>
       libraryErrors(async () =>
-        presentOne(context.tx, context.scope.storeId, await duplicateTheme(context.tx, context.scope.storeId, input.id)),
+        presentOne(
+          context.tx,
+          context.scope.storeId,
+          await duplicateTheme(context.tx, context.scope.storeId, input.id),
+        ),
       ),
     ),
 

@@ -33,17 +33,14 @@ export function liquidItemFields(
 }
 
 /** A block card's title: its first text setting, else its type's name. */
-export function liquidItemTitle(
-  field: unknown,
-  item: Record<string, unknown>,
-): string | null {
+export function liquidItemTitle(field: unknown, item: Record<string, unknown>): string | null {
   const names = metaOf(field).liquidBlockNames
   if (!names) return null
   const type = typeof item.type === 'string' ? item.type : ''
   const settings = (item.settings ?? {}) as Record<string, unknown>
-  const text = ['heading', 'title', 'text', 'label', 'name'].map((k) => settings[k]).find(
-    (v): v is string => typeof v === 'string' && v.trim() !== '',
-  )
+  const text = ['heading', 'title', 'text', 'label', 'name']
+    .map((k) => settings[k])
+    .find((v): v is string => typeof v === 'string' && v.trim() !== '')
   const name = names[type] ?? type
   return text ? `${name}: ${text.replace(/<[^>]*>/g, '').slice(0, 40)}` : name
 }

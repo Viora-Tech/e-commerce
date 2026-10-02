@@ -55,7 +55,9 @@ export async function themeImportReport(tx: StoreTx, themeId: string) {
 
 /** Script tags never run in the editor canvas (it shares the admin's origin). */
 const stripScripts = (html: string) =>
-  html.replace(/<script\b[\s\S]*?<\/script>/gi, '').replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+  html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
 
 async function editorContext(tx: StoreTx, storeId: string, themeId: string) {
   const bundle = await loadThemeBundle(tx, themeId)
@@ -98,6 +100,7 @@ export async function liquidEditorInfo(tx: StoreTx, storeId: string, themeId: st
     schemas,
     blockSchemas,
     schemaLocale: ctx.bundle.schemaLocale,
+    colorSchemes: Object.keys((ctx.bundle.settings.color_schemes ?? {}) as Record<string, unknown>),
     head: stripScripts(layout.head),
     beforeHeader: stripScripts(layout.beforeHeader),
     fontsHref: googleFontsHref(layout.fonts),
@@ -118,7 +121,8 @@ export async function renderLiquidForEditor(
   for (const section of sections) {
     const html = await renderLiquidSection(ctx, section)
     const w = sectionWrapper(ctx.bundle, section)
-    out[section.id] = `<${w.tag} id="${w.id}" class="${w.className}">${stripScripts(html)}</${w.tag}>`
+    out[section.id] =
+      `<${w.tag} id="${w.id}" class="${w.className}">${stripScripts(html)}</${w.tag}>`
   }
   return out
 }

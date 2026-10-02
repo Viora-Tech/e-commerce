@@ -9,7 +9,7 @@ import type {
 } from './drops'
 
 /** How many products a collection hands a theme at once (Shopify pages at 50). */
-export const COLLECTION_PAGE_SIZE = 50
+const COLLECTION_PAGE_SIZE = 50
 
 type Store<T> = Map<string, T | null>
 
