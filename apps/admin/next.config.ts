@@ -62,6 +62,7 @@ const config: NextConfig = {
     ]
   },
   transpilePackages: [
+    '@commerce/ai',
     '@commerce/db',
     '@commerce/core',
     '@commerce/config',

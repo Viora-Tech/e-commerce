@@ -7,16 +7,16 @@ import { business, gstRegistration, order, store } from '../src/schema'
 import { resetDb } from './reset'
 
 /*
- * 0082 numbers invoices per GSTIN. Its backfill hands every existing invoice, counter and
+ * 0084 numbers invoices per GSTIN. Its backfill hands every existing invoice, counter and
  * return month to the store's default registration; its trigger does the same when a store
  * adds its first GSTIN later. The columns already exist here (global setup migrated), so only
- * the statements after the BACKFILL marker run again, against rows shaped as before 0082.
+ * the statements after the BACKFILL marker run again, against rows shaped as before 0084.
  */
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 
 const MIGRATION = readFileSync(
-  join(import.meta.dirname, '..', 'drizzle', '0082_gst_phase_2_3.sql'),
+  join(import.meta.dirname, '..', 'drizzle', '0084_gst_phase_2_3.sql'),
   'utf8',
 )
 const BACKFILL = MIGRATION.slice(MIGRATION.indexOf('-- BACKFILL'))
@@ -27,7 +27,7 @@ async function runBackfill() {
   }
 }
 
-/** Seed rows as they were before 0082: the trigger stays off while the old state is built. */
+/** Seed rows as they were before 0084: the trigger stays off while the old state is built. */
 async function withoutTrigger(fn: () => Promise<void>) {
   await owner.execute(
     sql`alter table gst_registration disable trigger gst_registration_adopt_unassigned`,
@@ -109,7 +109,7 @@ afterAll(async () => {
   await owner.$client.end()
 })
 
-describe('0082 backfill', () => {
+describe('0084 backfill', () => {
   it('hands each store’s documents, counters and months to its default GSTIN only', async () => {
     const a = await seedStore('a')
     const b = await seedStore('b')
@@ -133,7 +133,7 @@ describe('0082 backfill', () => {
   })
 })
 
-describe('0082 adoption trigger', () => {
+describe('0084 adoption trigger', () => {
   it('a first GSTIN added later adopts the store’s unassigned rows', async () => {
     const a = await seedStore('a')
     await seedDocuments(a.storeId, a.orderId, ['INV/25-26/0001'])

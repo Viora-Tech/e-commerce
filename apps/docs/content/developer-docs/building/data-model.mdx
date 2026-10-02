@@ -160,7 +160,7 @@ erDiagram
 
 GST is registered per PAN per state, so one store can hold several GSTINs, and a warehouse may
 belong to a different legal business. Added in migration `0080_gst_registrations` (phase 1:
-recorded and linked). Migration `0082_gst_phase_2_3` puts them to work: the order is billed from
+recorded and linked). Migration `0084_gst_phase_2_3` puts them to work: the order is billed from
 its warehouse's GSTIN (phase 3) and invoices are numbered and filed per GSTIN (phase 2). Rules:
 `packages/core/src/tax/registrations.ts` (registrations), `packages/core/src/tax/origin.ts`
 (which GSTIN an order bills from), `packages/plugin-gst-invoices/src/registration.ts` (which
@@ -245,7 +245,7 @@ ORIGIN_FALLBACK): the active GSTIN linked to the location the goods sell from
 order value), else the default GSTIN, else `store.address` with no GSTIN, exactly as before.
 Prices include GST, so the origin only flips CGST + SGST and IGST; the total never changes. The
 result is snapshotted on the order (`gst_registration_id`, `tax_origin`) and never recomputed.
-Orders placed before 0082 have neither and bill from the default GSTIN. An order still has one
+Orders placed before 0084 have neither and bill from the default GSTIN. An order still has one
 origin: splitting an order across warehouses (fulfilment orders, one invoice per GSTIN) is
 phase 4.
 
@@ -267,7 +267,7 @@ phase 4.
   null; `NULLS NOT DISTINCT` keeps one counter per series. The trigger
   `gst_registration_adopt_unassigned` hands those rows to the first registration that becomes
   default (`adopt_unassigned_gst_documents`), so the series carries on instead of restarting
-  at 1. 0082's backfill runs the same function for every existing default registration.
+  at 1. 0084's backfill runs the same function for every existing default registration.
 
 #### Courier pickup per location
 

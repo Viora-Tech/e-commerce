@@ -1,0 +1,30 @@
+{
+  "name": "@commerce/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The AI engine: one small interface over the Vercel AI SDK, a gateway provider chosen by env, per-feature models, plan quotas and tool approvals.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/gateway": "^4.0.103",
+    "@ai-sdk/provider": "^4.0.21",
+    "@commerce/config": "workspace:*",
+    "@commerce/dates": "workspace:*",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
+    "ai": "^7.0.127",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

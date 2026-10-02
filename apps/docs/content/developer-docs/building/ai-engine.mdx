@@ -1,0 +1,152 @@
+---
+title: AI engine
+description: The AI engine (@commerce/ai) behind "Write with AI" and "Ask your store", how a call is gated and metered, and how to add a new AI feature as one slice.
+---
+
+# AI engine
+
+`packages/ai` (`@commerce/ai`) is the one owner of AI in the platform. Features never import
+the [Vercel AI SDK](https://ai-sdk.dev) directly; they go through a small interface:
+
+| Piece | File | What it does |
+|---|---|---|
+| Engine | `packages/ai/src/engine.ts` | `generateStructured` (one answer validated against a zod schema), `streamAnswer` (streamed text with tools), `defineAiTool` (a tool with `risk: 'read' \| 'write'`) |
+| Provider | `packages/ai/src/provider.ts` | `aiProvider()` reads `AI_PROVIDER` and the gateway keys; `aiModel(feature)` returns the model or `null` (AI off) |
+| Features and models | `packages/ai/src/features.ts` | `AI_FEATURES` and `FEATURE_MODELS`: the model, output cap, temperature and tool steps per feature |
+| Plans | `packages/ai/src/plans.ts` | `PLAN_QUOTAS` (calls and tokens per month per plan), `checkQuota`, `aiMonth` (IST month) |
+| Prompts and schemas | `packages/ai/src/<feature>/` | the feature's instructions and its output schema |
+| Client-safe surface | `@commerce/ai/client` | features, plans, schemas: safe in `'use client'` code |
+| Test models | `@commerce/ai/testing` | `textModel`, `scriptedModel` (AI SDK `MockLanguageModelV4`) |
+
+The SDK is Apache-2.0 (credited in `THIRD_PARTY_NOTICES.md`). The root entry is server only (the
+`client-imports-server` sweep lists it): it reads the platform keys and pulls in the SDK.
+
+## Providers and keys
+
+AI runs on **one platform key**; merchants never bring their own. Set one of:
+
+| Variable | Provider |
+|---|---|
+| `AI_GATEWAY_API_KEY` | [Vercel AI Gateway](https://vercel.com/ai-gateway) (`@ai-sdk/gateway`) |
+| `OPENROUTER_API_KEY` | [OpenRouter](https://openrouter.ai) (`@openrouter/ai-sdk-provider`) |
+
+`AI_PROVIDER` picks explicitly (`gateway`, `openrouter`, `off`, or `mock`); unset, the gateway whose
+key is set wins, Vercel first. Both gateways take the same `provider/model` ids, so one model id
+works on either. `AI_MODEL` overrides every feature's model at once (for example
+`openai/gpt-4.1-mini`). **No key means AI is off**: `ai.status` answers `configured: false` and
+the admin hides every AI button.
+
+`AI_PROVIDER=mock` swaps in a built-in fake model (canned product copy; a tool call followed by
+an answer built from the tool's facts). Use it for local demos and screenshots with no key. It
+is refused when `NODE_ENV=production`.
+
+Defaults: both features use **Claude Haiku 4.5** (`anthropic/claude-haiku-4.5`, $1 in / $5 out per
+million tokens). A product write is roughly 5k tokens in and 800 out (about $0.009, ₹0.8); a
+store question roughly 8k in over two or three steps and 400 out (about $0.01, ₹0.9).
+
+## How one call runs
+
+Every AI procedure goes through `packages/api/src/services/ai/guard.ts`:
+
+1. `canDetached(permission)` checks membership and the permission in a short `withStore`
+   transaction, then runs the handler **outside** a transaction. A model call takes seconds; a
+   streamed answer runs after the middleware returns. Neither may hold a Postgres connection
+   idle in a transaction, so every read opens its own `withStore(context.db, storeId, ...)`.
+2. `startAiCall(context, feature)`:
+   - AI configured? (`aiModel(feature)`), else `PRECONDITION_FAILED` / `ai_off`
+   - per-store burst limit, 20 calls per 5 minutes across all AI features, on the shared
+     rate-limit store, else `TOO_MANY_REQUESTS` / `rate_limit`
+   - feature on for the store (`ai_settings.features`), else `PRECONDITION_FAILED` / `feature_off`
+   - monthly quota for the store's plan (`ai_usage` summed for the IST month), else
+     `TOO_MANY_REQUESTS` / `quota`. Stores in `AI_UNLIMITED_STORES` (slugs) are on `unlimited`
+   - counts the call (`calls + 1`) and returns the `AiRuntime` (store, member, plan, feature)
+3. The engine runs with that runtime. Tools get the runtime **from the engine, never from the
+   model's input**, so a tool always reads the caller's store under RLS.
+4. `finishAiCall` adds the reported tokens. For streams it runs from `onUsage`, which fires even
+   when the browser goes away mid-answer.
+
+Usage and settings live in two tenant tables (migration `0083_ai_engine`): `ai_settings` (plan,
+feature switches) and `ai_usage` (store, month, feature, calls, input and output tokens). No
+prompt or answer is ever stored or logged.
+
+### Plans
+
+| Plan | Calls / month | Tokens / month |
+|---|---|---|
+| free | 30 | 150,000 |
+| starter (default) | 300 | 1,500,000 |
+| growth | 2,000 | 10,000,000 |
+| unlimited | no limit | no limit |
+
+The merchant API never changes the plan; billing (or a platform admin) sets `ai_settings.plan`.
+
+### Approvals for risky tools
+
+A tool with `risk: 'write'` is never run by the model. `streamAnswer` passes it to the SDK's
+`toolApproval` as `user-approval`: the stream yields an `approval` event (tool name and input)
+and stops. The two shipped features only have read tools; the store assistant agent (next) is
+where the merchant approves a write.
+
+## What data goes to the model
+
+- **Write with AI**: the product's title, type, brand, existing tags and description, the
+  merchant's notes, and up to three of the product's photos (the 640px WebP variant from the
+  image pipeline when there is one). Photos are read from the store's own storage by media id
+  under RLS, so another store's id simply finds nothing.
+- **Ask your store**: the question, the last three questions and answers of the conversation,
+  and tool results. Tools return aggregates and order numbers only, never customer names,
+  emails, phones or addresses.
+
+## Add an AI feature (one slice)
+
+Say you are adding "Reply to a review".
+
+1. **Feature and model**: add `'reviewReply'` to `AI_FEATURES` and a row to `FEATURE_MODELS`
+   (`packages/ai/src/features.ts`). Missing switches default to on, so no migration.
+2. **Prompt and schema**: `packages/ai/src/review-reply/schema.ts` (zod output, client-safe) and
+   `prompt.ts` (instructions, content builder). Export them from `client.ts` / `index.ts`.
+   Treat merchant text as data, never instructions.
+3. **Service**: `packages/api/src/services/ai/review-reply.ts`:
+
+   ```ts
+   export async function replyToReview(context: AiCallContext, input: Input) {
+     const call = await startAiCall(context, 'reviewReply')
+     const review = await withStore(context.db, call.runtime.storeId, (tx) => loadReview(tx, input.id))
+     const { output, usage } = await generateStructured({
+       runtime: call.runtime,
+       model: call.model,
+       schema: ReviewReplySchema,
+       instructions: reviewReplyInstructions(),
+       content: reviewReplyContent(review),
+     })
+     await finishAiCall(context.db, call, usage)
+     return output
+   }
+   ```
+
+   For a streamed, tool-using feature copy `ask-store.ts`: `streamAnswer` plus tools built with
+   `defineAiTool`, each opening its own `withStore` for `runtime.storeId`.
+4. **Procedure**: add it to `packages/api/src/routers/ai.ts` with
+   `canDetached(permissions.X)`, and give `ai.status` a boolean for the button (map the feature
+   to its permission in `settings.service.ts`). Add the procedure to the cross-store leak test's
+   `SKIP` list (it reaches the model provider).
+5. **Admin**: copy in `apps/admin/src/data/ai.ts` plus the Hindi overlay in `data/hi/ai.ts`;
+   show the button only when `ai.status` says so. Suggest, never save: the merchant applies.
+6. **Settings → AI**: the new switch appears from `AI_FEATURES` once its label and help are in
+   `aiContent.settings.features`.
+7. **Tests**: engine-level with `textModel` / `scriptedModel`; API-level with
+   `AI_PROVIDER=mock` against the test database (`packages/api/test/ai.test.ts` shows quota,
+   permission, switch and tool tests). Never call a real provider in a test.
+8. **Docs**: a line in the merchant guide's "AI features" page.
+
+## Local testing
+
+```bash
+# .env (root), no key needed:
+AI_PROVIDER=mock
+# or a real gateway:
+AI_GATEWAY_API_KEY=...        # or OPENROUTER_API_KEY=...
+```
+
+Restart the admin, then open a product (**Write with AI** on the Basic details card), Home
+(**Ask your store**), and **Settings → AI** for usage and switches.
