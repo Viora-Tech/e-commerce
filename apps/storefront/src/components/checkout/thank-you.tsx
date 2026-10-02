@@ -1,13 +1,20 @@
 import { formatPaise } from '@commerce/blocks'
+import type { CheckoutLook } from '@commerce/core'
 import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
-import type { order, orderLine, payment } from '@commerce/db'
-import { formatSignedMoney } from '@commerce/money'
+import type { address, order, orderLine, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import type { ReactNode } from 'react'
+import CheckoutIcon from '@/components/checkout/checkout-icon'
+import CheckoutShell from '@/components/checkout/checkout-shell'
+import OrderDetails from '@/components/checkout/order-details'
+import OrderSummary from '@/components/checkout/order-summary'
+import StatusMark from '@/components/checkout/status-mark'
+import SummaryDisclosure from '@/components/checkout/summary-disclosure'
+import TransferInstructions from '@/components/checkout/transfer-instructions'
+import UpiQrPayment from '@/components/checkout/upi-qr-payment'
 import { thankYouContent as content } from '@/data/checkout'
 import { retryPaymentAction } from '@/lib/cart-actions'
-import ManualPaymentInstructions from './manual-payment-instructions'
-import UpiQrPayment from './upi-qr-payment'
+import { CK_BUTTON_PRIMARY, CK_BUTTON_SECONDARY, CK_HEADING } from '@/lib/checkout-classes'
 
 type ThankYouTemplateProps = {
   order: typeof order.$inferSelect
@@ -22,6 +29,11 @@ type ThankYouTemplateProps = {
   balance?: ReactNode
   /** The signed `/checkout/pay/...` path for "Pay now", token included. */
   payPath: string
+  look: CheckoutLook
+  /** Variant images by variant id, for the summary's thumbnails. */
+  images?: Record<string, string>
+  /** The delivery address snapshot; null for an emailed gift card. */
+  shipTo?: typeof address.$inferSelect | null
 }
 
 /** Attempts still waiting on the shopper or the gateway. */
@@ -44,6 +56,11 @@ function statusLine(
   return content.status.paid(total)
 }
 
+/**
+ * The thank-you page, in the checkout's own look: a calm mark and one headline, the
+ * status in plain words, then whatever the shopper still has to do (scan the UPI QR,
+ * make the transfer, pay a pre-order balance, retry a failed payment).
+ */
 export default function ThankYouTemplate({
   order: o,
   lines,
@@ -52,7 +69,11 @@ export default function ThankYouTemplate({
   links = [],
   balance = null,
   payPath,
+  look,
+  images = {},
+  shipTo = null,
 }: ThankYouTemplateProps) {
+  // Render logic
   const awaiting = o.paymentMethod !== 'cod' && OPEN_STATUSES.has(pay?.status ?? '')
   // The latest attempt failed on an order that is still open: offer a new attempt.
   const failed =
@@ -62,86 +83,80 @@ export default function ThankYouTemplate({
   const session = (pay?.checkoutSession ?? null) as CheckoutSession | null
   const manual = awaiting && session?.kind === 'manual' ? session.instructions : null
   const qr = awaiting && session?.kind === 'upi_qr' ? session.qr : null
-  const total = formatPaise(o.totalPaise)
   // What the shopper still pays after gift cards: the amount COD, transfer and gateway lines quote.
   const due = formatPaise(pay?.amountPaise ?? o.totalPaise)
   const status = statusLine(o.paymentMethod, awaiting, manual !== null, due, failed, qr !== null)
   const boughtCards = lines.length > 0 && lines.every((l) => l.giftCard)
+  const tone = failed ? 'failed' : awaiting ? 'pending' : 'success'
+  const headline = failed
+    ? content.headline.failed
+    : awaiting
+      ? content.headline.pending
+      : o.paymentMethod === 'cod'
+        ? content.headline.cod
+        : content.headline.confirmed
 
   return (
-    <section className="section-cart page-width">
-      <div className="cart-empty">
-        <h1 className="cart-empty__heading h2">{content.heading(o.number)}</h1>
-        <p className="cart-empty__text text-body">
-          {status}{' '}
-          {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
-        </p>
-        {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={due} /> : null}
+    <CheckoutShell
+      look={look}
+      backHref="/"
+      backLabel={content.continueShopping}
+      summary={
+        <SummaryDisclosure totalLabel={formatPaise(o.totalPaise)}>
+          <OrderSummary order={o} lines={lines} images={images} giftCards={giftCards} />
+        </SummaryDisclosure>
+      }
+    >
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-5">
+          <StatusMark tone={tone} />
+          <div className="flex flex-col gap-2">
+            <p className="text-[0.875rem] font-medium text-ck-muted">
+              {content.orderNumber(o.number)}
+            </p>
+            <h1 className={`${CK_HEADING} text-[1.75rem]! sm:text-[2rem]!`}>{headline}</h1>
+            <p className="text-[1rem] leading-relaxed text-ck-muted">{status}</p>
+          </div>
+        </div>
+
+        {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
         {qr ? <UpiQrPayment orderNumber={o.number} qr={qr} amountLabel={due} /> : null}
         {balance}
-        <ul className="cart-items__list thank-you__lines">
-          {lines.map((l) => (
-            <li key={l.id} className="cart-summary__row">
-              <span>
-                {content.lineTitle(l.title, l.variantTitle)} x {l.quantity}
-              </span>
-              <span>{formatPaise(l.quantity * l.unitPricePaise)}</span>
-            </li>
-          ))}
-          {o.discountPaise > 0 ? (
-            <li className="cart-summary__row cart-summary__row--discount">
-              <span>{o.discountLabel ?? content.discount}</span>
-              <span>−{formatPaise(o.discountPaise)}</span>
-            </li>
-          ) : null}
-          {o.shippingPaise > 0 || o.shippingRateName ? (
-            <li className="cart-summary__row">
-              <span>{content.shippingRow(o.shippingRateName)}</span>
-              <span>
-                {o.shippingPaise > 0 ? formatPaise(o.shippingPaise) : content.shippingFree}
-              </span>
-            </li>
-          ) : null}
-          {o.paymentAdjustmentPaise !== 0 ? (
-            <li className="cart-summary__row">
-              <span>
-                {o.paymentAdjustmentLabel ?? content.adjustmentFallback(o.paymentAdjustmentPaise)}
-              </span>
-              <span>{formatSignedMoney(o.paymentAdjustmentPaise)}</span>
-            </li>
-          ) : null}
-          <li className="cart-summary__row cart-summary__row--total">
-            <span>{content.total}</span>
-            <span>{total}</span>
-          </li>
-          {giftCards.map((g) => (
-            <li key={g.id} className="cart-summary__row cart-summary__row--discount">
-              <span>{content.giftCardPaid(g.last)}</span>
-              <span>−{formatPaise(g.amountPaise)}</span>
-            </li>
-          ))}
-        </ul>
-        {links.map((l) => (
-          <a key={l.url} href={l.url} className="btn btn--secondary">
-            {l.label}
-          </a>
-        ))}
-        {failed ? (
-          <form action={retryPaymentAction.bind(null, o.number)}>
-            <button type="submit" className="btn btn--primary">
-              {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
-            </button>
-          </form>
+        {failed || (awaiting && session?.kind === 'client') ? (
+          <div className="flex flex-col gap-3">
+            {failed ? (
+              <form action={retryPaymentAction.bind(null, o.number)}>
+                <button type="submit" className={CK_BUTTON_PRIMARY}>
+                  {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
+                </button>
+              </form>
+            ) : null}
+            {awaiting && session?.kind === 'client' ? (
+              <a href={payPath} className={`${CK_BUTTON_PRIMARY} no-underline`}>
+                {content.payNow}
+              </a>
+            ) : null}
+          </div>
         ) : null}
-        {awaiting && session?.kind === 'client' ? (
-          <a href={payPath} className="btn btn--primary">
-            {content.payNow}
+
+        <p className="flex items-start gap-2.5 rounded-ck bg-ck-soft px-4 py-3 text-[0.875rem] text-ck-ink">
+          <CheckoutIcon name="mail" className="mt-0.5! size-4 text-ck-muted" />
+          {boughtCards ? content.status.giftCardEmail(o.email) : content.confirmation(o.email)}
+        </p>
+
+        <OrderDetails order={o} shipTo={shipTo} />
+
+        <div className="flex flex-col gap-3">
+          {links.map((l) => (
+            <a key={l.url} href={l.url} className={`${CK_BUTTON_SECONDARY} w-full`}>
+              {l.label}
+            </a>
+          ))}
+          <a href="/" className={`${CK_BUTTON_SECONDARY} w-full`}>
+            {content.continueShopping}
           </a>
-        ) : null}
-        <a href="/" className="btn btn--secondary btn--pill cart-empty__cta">
-          {content.continueShopping}
-        </a>
+        </div>
       </div>
-    </section>
+    </CheckoutShell>
   )
 }

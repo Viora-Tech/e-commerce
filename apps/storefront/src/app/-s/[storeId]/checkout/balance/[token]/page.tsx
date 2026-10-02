@@ -1,12 +1,14 @@
 import { settingsSecret } from '@commerce/config'
-import { orderViewToken, thankYouPath, verifyBalanceToken } from '@commerce/core'
+import { orderViewToken, storeCheckoutLook, thankYouPath, verifyBalanceToken } from '@commerce/core'
 import { OPEN_ATTEMPT_STATUSES } from '@commerce/core/order-status'
 import { order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import BalanceDue from '@/components/checkout/balance-due'
+import CheckoutBalance from '@/components/checkout/checkout-balance'
+import CheckoutShell from '@/components/checkout/checkout-shell'
 import { balanceContent as content } from '@/data/checkout'
+import { CK_HEADING } from '@/lib/checkout-classes'
 import { balanceView, storePreorderPolicy } from '@/lib/preorder'
 import { inStore } from '@/lib/store-context'
 
@@ -51,18 +53,23 @@ export default async function PayBalancePage({ params }: Params) {
     redirect(thankYouPath(data.number, orderViewToken(data.orderId, secret)))
   }
 
+  const look = await inStore(storeId, (tx) => storeCheckoutLook({ tx, storeId }))
   return (
-    <section className="section-cart page-width">
-      <div className="cart-empty">
-        {data?.balance ? (
-          <>
-            <h1 className="cart-empty__heading h2">{content.pageTitle(data.number)}</h1>
-            <BalanceDue orderNumber={data.number} balance={data.balance} session={data.session} />
-          </>
-        ) : (
-          <p className="cart-empty__text text-body">{content.unavailable}</p>
-        )}
-      </div>
-    </section>
+    <CheckoutShell look={look} backHref="/" backLabel={content.back}>
+      {data?.balance ? (
+        <div className="flex flex-col gap-6">
+          <h1 className={`${CK_HEADING} text-[1.75rem]!`}>{content.pageTitle(data.number)}</h1>
+          <CheckoutBalance
+            orderNumber={data.number}
+            balance={data.balance}
+            session={data.session}
+          />
+        </div>
+      ) : (
+        <p className="rounded-ck bg-ck-soft px-4 py-3 text-[0.9375rem] text-ck-ink">
+          {content.unavailable}
+        </p>
+      )}
+    </CheckoutShell>
   )
 }

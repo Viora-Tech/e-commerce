@@ -1,9 +1,16 @@
 import { loadEnv } from '@commerce/config'
-import { orderViewToken, thankYouPath, verifyOrderViewToken } from '@commerce/core'
+import {
+  orderViewToken,
+  storeCheckoutLook,
+  thankYouPath,
+  verifyOrderViewToken,
+} from '@commerce/core'
 import { order, payment } from '@commerce/db'
 import type { CheckoutSession } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
 import { notFound, redirect } from 'next/navigation'
+import CheckoutShell from '@/components/checkout/checkout-shell'
+import { payClientContent } from '@/data/checkout'
 import { currentCustomer } from '@/lib/customer-session'
 import { inStore } from '@/lib/store-context'
 import PayClient from './pay-client'
@@ -35,7 +42,7 @@ export default async function PayPage({ params, searchParams }: Params) {
       .where(and(eq(payment.orderId, o.id), ne(payment.provider, 'gift_card')))
       .orderBy(desc(payment.attempt), desc(payment.id))
       .limit(1)
-    return p ? { order: o, payment: p } : null
+    return p ? { order: o, payment: p, look: await storeCheckoutLook({ storeId, tx }) } : null
   })
 
   if (!data) notFound()
@@ -48,11 +55,13 @@ export default async function PayPage({ params, searchParams }: Params) {
   const session = data.payment.checkoutSession as CheckoutSession | null
   if (session?.kind !== 'client') redirect(thankYou)
   return (
-    <PayClient
-      orderNumber={data.order.number}
-      session={session}
-      amountPaise={data.payment.amountPaise}
-      thankYouPath={thankYou}
-    />
+    <CheckoutShell look={data.look} backHref={thankYou} backLabel={payClientContent.back}>
+      <PayClient
+        orderNumber={data.order.number}
+        session={session}
+        amountPaise={data.payment.amountPaise}
+        thankYouPath={thankYou}
+      />
+    </CheckoutShell>
   )
 }

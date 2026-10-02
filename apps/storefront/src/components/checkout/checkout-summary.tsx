@@ -3,17 +3,14 @@
 import { formatPaise } from '@commerce/blocks'
 import type { CartView } from '@commerce/core'
 import { formatSignedMoney } from '@commerce/money'
-import type { ReactNode } from 'react'
-import DiscountCodeField from '@/components/cart/discount-code-field'
+import CheckoutDiscount from '@/components/checkout/checkout-discount'
 import GiftCardField from '@/components/checkout/gift-card-field'
+import SummaryLine from '@/components/checkout/summary-line'
+import SummaryRow from '@/components/checkout/summary-row'
 import { checkoutContent as content } from '@/data/checkout'
+import type { ShippingRow } from '@/lib/checkout-preview'
 import type { CartDiscountView } from '@/lib/discount-actions'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
-
-/** What the shipping row says: a price, "Free", or a prompt before the address is checked. */
-export type ShippingRow =
-  | { kind: 'price'; paise: number; name: string | null }
-  | { kind: 'pending' }
 
 type CheckoutSummaryProps = {
   cart: CartView
@@ -29,14 +26,16 @@ type CheckoutSummaryProps = {
   totalPaise: number
   cardRows: (AppliedGiftCard & { amountPaise: number })[]
   duePaise: number
-  error: string | null
+  /** A deposit pre-order's balance, charged later; 0 when nothing is deferred. */
+  laterPaise: number
+  /** What the shopper pays now: the big number at the top. */
+  payNowPaise: number
+  /** "EMI from ₹X/month", formatted, when the store offers EMI on this amount. */
+  emiMonthly: string | null
   /** Terms the shopper must see before paying, e.g. a non-refundable pre-order deposit. */
   notice?: string | null | undefined
-  /** Under the notice: the minimum-order line and the links to the store's policies. */
-  footnote?: ReactNode
-  pending: boolean
-  submitDisabled: boolean
-  submitLabel: string
+  /** Shipping is being re-quoted: amounts shimmer instead of showing a stale number. */
+  updating: boolean
 }
 
 function shippingValue(row: ShippingRow): string {
@@ -44,7 +43,10 @@ function shippingValue(row: ShippingRow): string {
   return row.paise === 0 ? content.shippingFree : formatPaise(row.paise)
 }
 
-/** The checkout's right column: lines, codes, the price rows and the submit button. */
+/**
+ * The left column: the big amount, every line with its thumbnail, codes, and the price
+ * rows down to what is due today. Preview only; `placeOrder` prices the order.
+ */
 export default function CheckoutSummary({
   cart,
   discount,
@@ -58,96 +60,121 @@ export default function CheckoutSummary({
   totalPaise,
   cardRows,
   duePaise,
-  error,
+  laterPaise,
+  payNowPaise,
+  emiMonthly,
   notice = null,
-  footnote = null,
-  pending,
-  submitDisabled,
-  submitLabel,
+  updating,
 }: CheckoutSummaryProps) {
   // Render logic
   const discountPaise = discount?.amountPaise ?? 0
-  const showSubtotal = adjustmentPaise !== 0 || discountPaise > 0 || shipping !== null
+  const shimmer = (
+    <span
+      aria-hidden="true"
+      className="inline-block h-[0.8em] w-[4.5em] animate-pulse rounded bg-ck-summary-line align-middle motion-reduce:animate-none"
+    />
+  )
 
   return (
-    <aside className="cart-layout__summary">
-      <div className="cart-summary">
-        <h2 className="cart-summary__heading h4">{content.summary}</h2>
-        {cart.lines.map((l) => (
-          <div key={l.id} className="cart-summary__row">
-            <span>
-              {l.productTitle} x {l.quantity}
-            </span>
-            <span>{formatPaise(l.linePaise)}</span>
-          </div>
-        ))}
-        {digitalOnly ? null : <DiscountCodeField discount={discount} />}
-        {digitalOnly ? null : (
-          <GiftCardField
-            applied={giftCards}
-            onApply={onGiftCardApply}
-            onRemove={onGiftCardRemove}
-          />
-        )}
-        {showSubtotal ? (
-          <div className="cart-summary__row">
-            <span>{content.subtotal}</span>
-            <span>{formatPaise(cart.subtotalPaise)}</span>
-          </div>
-        ) : null}
-        {discount?.label && discountPaise > 0 ? (
-          <div className="cart-summary__row cart-summary__row--discount">
-            <span>{discount.label}</span>
-            <span>−{formatPaise(discountPaise)}</span>
-          </div>
-        ) : null}
-        {shipping ? (
-          <div className="cart-summary__row">
-            <span>
-              {shipping.kind === 'price' && shipping.name
-                ? `${content.shipping} (${shipping.name})`
-                : content.shipping}
-            </span>
-            <span>{shippingValue(shipping)}</span>
-          </div>
-        ) : null}
-        {adjustmentPaise !== 0 ? (
-          <div className="cart-summary__row">
-            <span>{adjustmentLabel}</span>
-            <span>{formatSignedMoney(adjustmentPaise)}</span>
-          </div>
-        ) : null}
-        <div className="cart-summary__row cart-summary__row--total">
-          <span>{content.total}</span>
-          <span>{formatPaise(totalPaise)}</span>
-        </div>
-        {cardRows.map((c) => (
-          <div key={c.code} className="cart-summary__row cart-summary__row--discount">
-            <span>{content.paidByGiftCard}</span>
-            <span>−{formatPaise(c.amountPaise)}</span>
-          </div>
-        ))}
-        {giftCards.length > 0 ? (
-          <div className="cart-summary__row cart-summary__row--total">
-            <span>{content.totalDue}</span>
-            <span>{formatPaise(duePaise)}</span>
-          </div>
-        ) : null}
-        {notice ? <p className="text-small">{notice}</p> : null}
-        {footnote}
-        {error ? (
-          <p className="checkout__error text-small" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <button
-          type="submit"
-          className={`btn btn--primary cart-summary__checkout${pending ? ' is-loading' : ''}`}
-          disabled={submitDisabled}
+    <div className="flex flex-col gap-7 lg:gap-9">
+      <div className="hidden flex-col gap-1.5 lg:flex">
+        <p className="text-[0.875rem] font-medium text-ck-summary-muted">{content.orderTotal}</p>
+        <p
+          className="text-[2.5rem] leading-none font-semibold tracking-[-0.025em] tabular-nums"
+          aria-live="polite"
         >
-          <span className="btn__label">{submitLabel}</span>
-        </button>
+          {updating ? shimmer : formatPaise(payNowPaise)}
+        </p>
       </div>
-    </aside>
+
+      <section aria-label={content.summary} className="flex flex-col gap-7">
+        <ul className="flex flex-col gap-5">
+          {cart.lines.map((l) => (
+            <SummaryLine
+              key={l.id}
+              title={l.productTitle}
+              variant={l.variantTitle && l.variantTitle !== 'Default' ? l.variantTitle : null}
+              quantity={l.quantity}
+              linePaise={l.linePaise}
+              imageUrl={l.imageUrl}
+              preorder={l.preorder}
+            />
+          ))}
+        </ul>
+
+        {digitalOnly ? null : (
+          <div className="flex flex-col gap-4 border-t border-ck-summary-line pt-6">
+            <CheckoutDiscount discount={discount} />
+            <GiftCardField
+              applied={giftCards}
+              onApply={onGiftCardApply}
+              onRemove={onGiftCardRemove}
+            />
+          </div>
+        )}
+
+        <dl className="flex flex-col gap-3 border-t border-ck-summary-line pt-6">
+          <SummaryRow label={content.subtotal} value={formatPaise(cart.subtotalPaise)} />
+          {discount?.label && discountPaise > 0 ? (
+            <SummaryRow
+              tone="saving"
+              label={discount.label}
+              value={`−${formatPaise(discountPaise)}`}
+            />
+          ) : null}
+          {shipping ? (
+            <SummaryRow
+              label={
+                shipping.kind === 'price' && shipping.name
+                  ? `${content.shipping} · ${shipping.name}`
+                  : content.shipping
+              }
+              value={updating ? shimmer : shippingValue(shipping)}
+            />
+          ) : null}
+          {adjustmentPaise !== 0 ? (
+            <SummaryRow label={adjustmentLabel} value={formatSignedMoney(adjustmentPaise)} />
+          ) : null}
+          <div className="mt-2! border-t border-ck-summary-line pt-4">
+            <SummaryRow
+              tone="total"
+              label={
+                <span className="flex flex-col gap-0.5">
+                  {content.total}
+                  <span className="text-[0.75rem] font-normal text-ck-summary-muted">
+                    {content.taxes}
+                  </span>
+                </span>
+              }
+              value={updating ? shimmer : formatPaise(totalPaise)}
+            />
+          </div>
+          {cardRows.map((c) => (
+            <SummaryRow
+              key={c.code}
+              tone="saving"
+              label={content.paidByGiftCard}
+              value={`−${formatPaise(c.amountPaise)}`}
+            />
+          ))}
+          {giftCards.length > 0 ? (
+            <SummaryRow tone="total" label={content.totalDue} value={formatPaise(duePaise)} />
+          ) : null}
+          {laterPaise > 0 ? (
+            <>
+              <SummaryRow tone="total" label={content.dueToday} value={formatPaise(payNowPaise)} />
+              <SummaryRow tone="muted" label={content.dueLater} value={formatPaise(laterPaise)} />
+            </>
+          ) : null}
+        </dl>
+
+        {emiMonthly || notice ? (
+          <div className="flex flex-col gap-2 text-[0.8125rem] text-ck-summary-muted">
+            {emiMonthly ? <p>{content.emi(emiMonthly)}</p> : null}
+            {notice ? <p>{notice}</p> : null}
+          </div>
+        ) : null}
+      </section>
+    </div>
   )
 }
