@@ -16,7 +16,7 @@ const GROWTH_MARGIN = 50
 const SPLIT = 'several concerns in one module — split by concern when it next changes'
 
 const ALLOWLIST: Record<string, { lines: number; reason: string }> = {
-  'packages/api/src/routers/gst-invoices.ts': { lines: 530, reason: SPLIT },
+  'packages/api/src/routers/gst-invoices.ts': { lines: 510, reason: SPLIT },
   'packages/api/src/routers/store.ts': { lines: 524, reason: SPLIT },
   'packages/api/src/services/analytics-reports.ts': { lines: 554, reason: SPLIT },
   'packages/api/src/services/dashboard.service.ts': { lines: 1027, reason: SPLIT },

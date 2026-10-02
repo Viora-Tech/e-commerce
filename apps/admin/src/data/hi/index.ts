@@ -4,6 +4,7 @@ import ai from './ai'
 import businessGst from './business-gst'
 import common from './common'
 import dates from './dates'
+import gstInvoices from './gst-invoices'
 import home from './home'
 import layout from './layout'
 import metaobjects from './metaobjects'
@@ -30,6 +31,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...businessGst,
   ...common,
   ...dates,
+  ...gstInvoices,
   ...home,
   ...layout,
   ...metaobjects,

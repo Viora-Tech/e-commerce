@@ -1,6 +1,24 @@
-import { media, order, refund, type StoreTx, store } from '@commerce/db'
+import { gstRegistration, media, order, refund, type StoreTx, store } from '@commerce/db'
 import { invoiceBatch } from '@commerce/plugin-gst-invoices/server'
 import { eq, inArray } from 'drizzle-orm'
+
+/**
+ * The GSTIN a GST invoices screen works on. A picked id is read back under RLS, so another
+ * store's id is refused (null); undefined is the store's default GSTIN; `{ id: null }` is a
+ * store without any GST registration.
+ */
+export async function registrationScope(
+  tx: StoreTx,
+  picked: string | null | undefined,
+): Promise<{ id: string | null } | null> {
+  if (picked === null) return { id: null }
+  const [row] = await tx
+    .select({ id: gstRegistration.id })
+    .from(gstRegistration)
+    .where(picked ? eq(gstRegistration.id, picked) : eq(gstRegistration.isDefault, true))
+  if (picked) return row ? { id: row.id } : null
+  return { id: row?.id ?? null }
+}
 
 /** Reads the GST invoices router needs beyond the plugin's own services. */
 export async function storeName(tx: StoreTx, storeId: string): Promise<string> {

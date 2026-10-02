@@ -58,7 +58,8 @@ export const gstInvoicesContent = {
         kind: 'Document',
         rule: 'Used for',
         pattern: 'Prefix',
-        patternHelp: '{FY} prints the financial year, e.g. 26-27.',
+        patternHelp:
+          '{FY} prints the financial year, e.g. 26-27. {GST} prints the GST number’s invoice prefix (or its state letters), so each GST number’s invoices look different.',
         pad: 'Digits',
         next: (n: string) => `Next: ${n}`,
         add: 'Add series',
@@ -237,7 +238,7 @@ export const gstInvoicesContent = {
   returns: {
     title: 'Returns',
     subtitle:
-      'GSTR-1 exports per month. Mark a month filed once you file it: its invoices can then only be corrected by credit notes. Close a month to stop issuing or backdating into it.',
+      'GSTR-1 exports per month, one GST number at a time. Mark a month filed once you file it: its invoices can then only be corrected by credit notes. Close a month to stop issuing or backdating into it.',
     month: 'Month',
     status: 'Status',
     filed: 'GSTR-1 filed',
@@ -306,4 +307,16 @@ export const gstInvoicesContent = {
     previous: 'Previous',
     next: 'Next',
   },
+} as const
+
+/**
+ * The "GST number" picker at the top of the GST invoices pages. Each GST number (one per
+ * state) numbers its own invoices and files its own GSTR-1.
+ */
+export const gstNumberPickerContent = {
+  label: 'GST number',
+  all: 'All GST numbers',
+  option: (state: string, gstin: string) => `${state} · ${gstin}`,
+  main: '(main)',
+  cancelled: '(cancelled)',
 } as const

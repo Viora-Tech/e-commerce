@@ -1,6 +1,7 @@
 import { formatInZone, IST_OFFSET_MS } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import { and, eq, gte, inArray, lt, ne } from 'drizzle-orm'
+import { sameRegistration } from './registration'
 import { invoice, invoicePeriod } from './schema'
 
 /** `2026-09`: the IST calendar month an instant falls in, which is its GST return period. */
@@ -31,18 +32,35 @@ const label = (period: string) => {
   return formatInZone(from.getTime() + 86_400_000, { month: 'long', year: 'numeric' })
 }
 
-export async function getPeriod(tx: StoreTx, storeId: string, period: string) {
+/** One GSTIN's return month; `gstRegistrationId` null is a store without a registration. */
+export async function getPeriod(
+  tx: StoreTx,
+  storeId: string,
+  period: string,
+  gstRegistrationId: string | null,
+) {
   const [row] = await tx
     .select()
     .from(invoicePeriod)
-    .where(and(eq(invoicePeriod.storeId, storeId), eq(invoicePeriod.period, period)))
+    .where(
+      and(
+        eq(invoicePeriod.storeId, storeId),
+        sameRegistration(invoicePeriod.gstRegistrationId, gstRegistrationId),
+        eq(invoicePeriod.period, period),
+      ),
+    )
   return row ?? null
 }
 
-/** Refuse to date a document into a month the merchant closed. */
-export async function assertPeriodOpen(tx: StoreTx, storeId: string, at: Date): Promise<void> {
+/** Refuse to date a document into a month the merchant closed for this GSTIN. */
+export async function assertPeriodOpen(
+  tx: StoreTx,
+  storeId: string,
+  at: Date,
+  gstRegistrationId: string | null,
+): Promise<void> {
   const period = periodOf(at)
-  const row = await getPeriod(tx, storeId, period)
+  const row = await getPeriod(tx, storeId, period, gstRegistrationId)
   if (row?.closedAt) {
     throw new PeriodError('closed', `${label(period)} is closed; reopen it or pick a later date`)
   }
@@ -52,27 +70,40 @@ async function upsert(
   tx: StoreTx,
   storeId: string,
   period: string,
+  gstRegistrationId: string | null,
   set: Partial<typeof invoicePeriod.$inferInsert>,
 ) {
   await tx
     .insert(invoicePeriod)
-    .values({ storeId, period, ...set })
-    .onConflictDoUpdate({ target: [invoicePeriod.storeId, invoicePeriod.period], set })
+    .values({ storeId, gstRegistrationId, period, ...set })
+    .onConflictDoUpdate({
+      target: [invoicePeriod.storeId, invoicePeriod.gstRegistrationId, invoicePeriod.period],
+      set,
+    })
 }
 
 /**
- * Mark a month's GSTR-1 as filed. Every invoice and credit note dated in it
- * becomes reported: it can no longer be cancelled, only corrected by a
- * credit note (or an amendment on the portal).
+ * Mark one GSTIN's GSTR-1 for a month as filed. Every invoice and credit note
+ * of that GSTIN dated in it becomes reported: it can no longer be cancelled,
+ * only corrected by a credit note (or an amendment on the portal).
  */
-export async function markFiled(tx: StoreTx, storeId: string, period: string, filed: boolean) {
-  await upsert(tx, storeId, period, { gstr1FiledAt: filed ? new Date() : null })
+export async function markFiled(
+  tx: StoreTx,
+  storeId: string,
+  period: string,
+  filed: boolean,
+  gstRegistrationId: string | null,
+) {
+  await upsert(tx, storeId, period, gstRegistrationId, {
+    gstr1FiledAt: filed ? new Date() : null,
+  })
   const { from, to } = periodRange(period)
   await tx
     .update(invoice)
     .set({ reportedPeriod: filed ? period : null, updatedAt: new Date() })
     .where(
       and(
+        sameRegistration(invoice.gstRegistrationId, gstRegistrationId),
         inArray(invoice.kind, ['tax_invoice', 'credit_note']),
         ne(invoice.status, 'draft'),
         gte(invoice.invoiceDate, from),
@@ -81,15 +112,26 @@ export async function markFiled(tx: StoreTx, storeId: string, period: string, fi
     )
 }
 
-/** Close or reopen a month: while closed nothing can be issued or backdated into it. */
-export async function setClosed(tx: StoreTx, storeId: string, period: string, closed: boolean) {
-  await upsert(tx, storeId, period, { closedAt: closed ? new Date() : null })
+/** Close or reopen one GSTIN's month: while closed nothing can be issued or backdated into it. */
+export async function setClosed(
+  tx: StoreTx,
+  storeId: string,
+  period: string,
+  closed: boolean,
+  gstRegistrationId: string | null,
+) {
+  await upsert(tx, storeId, period, gstRegistrationId, { closedAt: closed ? new Date() : null })
 }
 
-export async function listPeriods(tx: StoreTx, storeId: string) {
+export async function listPeriods(tx: StoreTx, storeId: string, gstRegistrationId: string | null) {
   return tx
     .select()
     .from(invoicePeriod)
-    .where(eq(invoicePeriod.storeId, storeId))
+    .where(
+      and(
+        eq(invoicePeriod.storeId, storeId),
+        sameRegistration(invoicePeriod.gstRegistrationId, gstRegistrationId),
+      ),
+    )
     .orderBy(invoicePeriod.period)
 }
