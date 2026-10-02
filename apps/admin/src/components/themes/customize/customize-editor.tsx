@@ -1,6 +1,7 @@
 'use client'
 
 import { type TemplateKind, THEME_FONT_IDS, THEME_FONTS } from '@commerce/core/theme'
+import { liquidPlacement } from '@commerce/core/theme-import'
 import { type Data, Puck, type PuckAction } from '@puckeditor/core'
 import '@/styles/vendor-puck.css'
 import '@/styles/vendor-blocks.css'
@@ -12,13 +13,24 @@ import { themesContent } from '@/data/themes'
 import { api } from '@/lib/api-client'
 import { prefersReducedMotion, scrollToSection } from '@/lib/customize-canvas-motion'
 import { createCustomizeConfig } from '@/lib/customize-config'
-import { type CustomizeDoc, composeDoc, normalizeDoc } from '@/lib/customize-doc'
+import {
+  type CustomizeDoc,
+  composeDoc,
+  FOOTER_ZONE,
+  HEADER_ZONE,
+  normalizeDoc,
+} from '@/lib/customize-doc'
 import { CUSTOMIZE_OVERRIDES } from '@/lib/customize-overrides'
 import { previewMetadata } from '@/lib/customize-preview'
 import { zoneItems } from '@/lib/customize-slots'
-import { PreviewModeContext, ThemePreviewContext } from '@/lib/customize-theme-context'
+import {
+  LiquidHeadContext,
+  PreviewModeContext,
+  ThemePreviewContext,
+} from '@/lib/customize-theme-context'
 import { DynamicSourceContext, scopeFor } from '@/lib/dynamic-sources'
 import { useCustomizePreview } from '@/lib/use-customize-preview'
+import { useLiquidTheme } from '@/lib/use-liquid-theme'
 import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
@@ -29,6 +41,8 @@ import CreateTemplateDialog, { type AlternateKind } from './create-template-dial
 import CustomizeHotkeys from './customize-hotkeys'
 import CustomizeLayout from './customize-layout'
 import CustomizeTopBar from './customize-top-bar'
+import ImportedThemeSettings from './imported-theme-settings'
+import LiquidCanvasSection from './liquid-canvas-section'
 import ResourcePicker from './resource-picker'
 import TemplatePicker, { type TemplateRef } from './template-picker'
 
@@ -97,6 +111,8 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   const [appsVersion, setAppsVersion] = useState(0)
   const drafts = useTemplateDrafts(record.id, () => toast.error(copy.draftFailed))
   const preview = useCustomizePreview(ref.key, initial.resource)
+  // An imported Shopify theme: section fields from each `{% schema %}`, its head for the canvas.
+  const liquidTheme = useLiquidTheme(record.id)
 
   // Which apps this store has installed, for the Add panel's Apps tab and the
   // storefront-matching "app is off" placeholder for anything already placed
@@ -157,6 +173,13 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [settings, record.settings])
+
+  // Helpers
+  /** Which group an imported section sits in (`section.location` in Liquid). */
+  const groupOf = (id: unknown) => {
+    const inZone = (zone: string) => (loaded?.doc.zones[zone] ?? []).some((s) => s.props.id === id)
+    return inZone(HEADER_ZONE) ? 'header-group' : inZone(FOOTER_ZONE) ? 'footer-group' : 'template'
+  }
 
   // Event handlers
   const handleChange = (data: Data) => {
@@ -237,7 +260,35 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
   const logo = settings.brand.logo
     ? { url: settings.brand.logo.url, width: settings.brand.logoWidth }
     : null
-  const metadata = previewMetadata({ ...preview, logo })
+  const base = previewMetadata({ ...preview, logo })
+  const liquidInfo = liquidTheme.info
+  const metadata =
+    liquidInfo && liquidTheme.fields
+      ? {
+          ...base,
+          liquid: { fields: liquidTheme.fields as NonNullable<typeof base.liquid>['fields'] },
+          renderers: {
+            ...base.renderers,
+            LiquidSection: (props: Record<string, unknown>) => {
+              const type = typeof props.sectionType === 'string' ? props.sectionType : ''
+              return (
+                <LiquidCanvasSection
+                  themeId={record.id}
+                  section={liquidPlacement(props, liquidInfo.schemas[type], groupOf(props.id), 0)}
+                />
+              )
+            },
+          },
+        }
+      : base
+  const liquidHead = liquidInfo
+    ? {
+        head: liquidInfo.head,
+        beforeHeader: liquidInfo.beforeHeader,
+        fontsHref: liquidInfo.fontsHref,
+        htmlAttrs: liquidInfo.htmlAttrs,
+      }
+    : null
   const sourceScope = scopeFor(ref.key, preview.kind, preview.resourceId)
   // Keep showing the previously loaded template (dimmed via `switching`) while the
   // next one fetches, instead of unmounting the whole editor to a blank "Connecting" screen.
@@ -279,7 +330,9 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
     />
   )
 
-  const settingsPanel = (
+  const settingsPanel = liquidInfo ? (
+    <ImportedThemeSettings themeId={record.id} />
+  ) : (
     <>
       <div className="border-b border-border px-4 py-4">
         <ThemePresets theme={settings} onChange={setSettings} />
@@ -305,26 +358,28 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
           overrides={CUSTOMIZE_OVERRIDES}
         >
           <ThemePreviewContext.Provider value={settings}>
-            <PreviewModeContext.Provider value={mode}>
-              <DynamicSourceContext.Provider value={sourceScope}>
-                <CustomizeHotkeys />
-                <CustomizeLayout
-                  topBar={topBar}
-                  settings={settingsPanel}
-                  dock={
-                    <CanvasDock
-                      device={device}
-                      mode={mode}
-                      darkMode={settings.darkMode.enabled}
-                      onDevice={setDevice}
-                      onMode={setModePick}
-                    />
-                  }
-                  device={device}
-                  loading={switching}
-                />
-              </DynamicSourceContext.Provider>
-            </PreviewModeContext.Provider>
+            <LiquidHeadContext.Provider value={liquidHead}>
+              <PreviewModeContext.Provider value={mode}>
+                <DynamicSourceContext.Provider value={sourceScope}>
+                  <CustomizeHotkeys />
+                  <CustomizeLayout
+                    topBar={topBar}
+                    settings={settingsPanel}
+                    dock={
+                      <CanvasDock
+                        device={device}
+                        mode={mode}
+                        darkMode={settings.darkMode.enabled}
+                        onDevice={setDevice}
+                        onMode={setModePick}
+                      />
+                    }
+                    device={device}
+                    loading={switching}
+                  />
+                </DynamicSourceContext.Provider>
+              </PreviewModeContext.Provider>
+            </LiquidHeadContext.Provider>
           </ThemePreviewContext.Provider>
         </Puck>
       ) : (

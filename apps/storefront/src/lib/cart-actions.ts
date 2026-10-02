@@ -75,6 +75,18 @@ export async function addLineAction(variantId: string, quantity: number) {
   revalidatePath('/', 'layout')
 }
 
+/**
+ * The cart's count and total for an imported Shopify theme's script (its `/cart.js`
+ * call is answered from our cart; field names are the ones theme scripts read).
+ */
+export async function cartCountAction() {
+  const storeId = await requestStoreId()
+  const cartId = await readCartId()
+  const cart = cartId ? await inStore(storeId, (tx) => getCart({ storeId, tx }, cartId)) : null
+  const open = cart?.status === 'open' ? cart : null
+  return { item_count: open?.itemCount ?? 0, total_price: open?.subtotalPaise ?? 0, items: [] }
+}
+
 export async function setQuantityAction(lineId: string, quantity: number) {
   const storeId = await requestStoreId()
   const cartId = await readCartId()

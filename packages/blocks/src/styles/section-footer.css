@@ -174,8 +174,8 @@ html.has-cursor-fill .footer__social-link.is-hover-fill::before {
 /* The glyph flips to the footer's surface colour, and the ring picks up the
    fill so the edge and the interior arrive together. Both ride the fill's
    own duration AND easing in both directions - duration alone still desyncs,
-   because the fill's exit is ease-in (barely moves, then accelerates) while a
-   default curve is already well underway. */
+   because the fill's exit runs on its own curve and a default curve would
+   be somewhere else. */
 html.has-cursor-fill .footer__social-link:hover {
   border-color: var(--ft-ink);
   color: var(--ft-surface);

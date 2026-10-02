@@ -18,6 +18,36 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/core/src/theme-import/archive.ts',
+    names: ['safeThemePath'],
+    reason: 'the zip-slip guard behind readThemeArchive, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/fields.ts',
+    names: ['settingsFromProps', 'blocksFromProps', 'liquidSectionKey', 'shopifySectionId'],
+    reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',
+  },
+  {
+    file: 'packages/core/src/theme-import/filter-values.ts',
+    names: ['shopifyMoney'],
+    reason: 'Shopify money formats behind the money filter, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/import.ts',
+    names: ['ThemeImportError', 'cleanShopifyHost'],
+    reason: 'thrown and used by importShopifyTheme, exported for its tests',
+  },
+  {
+    file: 'packages/core/src/theme-import/settings-values.ts',
+    names: ['liquidSettingValue'],
+    reason: 'one setting of liquidSettings, exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/schema.ts',
+    names: ['stripJsonComments'],
+    reason: 'the comment stripper behind parseThemeJson, exported for its unit test',
+  },
+  {
     file: 'packages/shipping/src/pincode.ts',
     names: ['buildPincodeDirectory'],
     reason:
@@ -516,7 +546,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme/library.ts',
-    names: ['MAX_THEMES', 'presetThemeName'],
+    names: ['presetThemeName'],
     reason: 'no external importer today — investigate before removing',
   },
   {

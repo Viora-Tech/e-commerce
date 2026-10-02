@@ -171,8 +171,8 @@ html.has-cursor-fill .tabbed-products__tab.is-hover-fill::before {
 
 /* The label has to invert or it ends up ink-on-ink once the fill covers it,
    and it must do so on the fill's OWN duration AND easing in both directions.
-   Duration alone still desyncs: the fill's exit is ease-in (barely moves,
-   then accelerates) while a default curve is already well underway, so the
+   Duration alone still desyncs: the fill's exit runs on its own curve while
+   a default curve would be somewhere else, so the
    label would revert to ink while the black still covers it. --color-bg is
    the token .btn--secondary:hover uses for exactly this inversion. */
 html.has-cursor-fill .tabbed-products__tab:hover {

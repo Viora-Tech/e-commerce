@@ -1,20 +1,29 @@
 'use client'
 
-import { ReceiptIcon } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { taxesContent as copy } from '@/data/taxes'
 import { api } from '@/lib/api-client'
+import { useActiveSection } from '../section-tabs'
+import SettingsSection from '../settings-section'
 import ChargingCard from './charging-card'
 import EinvoiceCard from './einvoice-card'
 import GstExplainer from './gst-explainer'
 import NumberingCard from './numbering-card'
 import RegistrationCard from './registration-card'
 import { formOf, type TaxesFormState, type TaxesView, validateTaxes } from './taxes-form'
+
+type TaxesSettingsProps = {
+  /** Changes when GST numbers change on the first tab: the GSTIN shown here is reloaded. */
+  refreshKey: string
+  /** The tab that holds the GST numbers; nothing of this form shows on it but the save bar. */
+  gstTab: string
+}
+
+const same = (a: TaxesFormState, b: TaxesFormState) => JSON.stringify(a) === JSON.stringify(b)
 
 function LoadingCards() {
   return (
@@ -31,25 +40,30 @@ function LoadingCards() {
 }
 
 /**
- * Settings › Taxes & GST: registration, how GST is charged, invoice numbers,
- * e-invoicing status and a short explainer. One save bar for the whole page.
+ * The Tax rules tab (registration, how GST is charged, a short explainer) and the Invoice numbers
+ * tab (numbering, e-invoicing) of Settings › Taxes & GST. It stays mounted on every tab so one
+ * save bar covers both and a half-made change survives a tab switch.
  */
-export default function TaxesSettings() {
+export default function TaxesSettings({ refreshKey, gstTab }: TaxesSettingsProps) {
   // Hooks
+  const active = useActiveSection()
   const [view, setView] = useState<TaxesView | null>(null)
   const [form, setForm] = useState<TaxesFormState | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reload when GST numbers change, not on every edit.
   useEffect(() => {
     api.taxes
       .get()
       .then((v) => {
         if (!v) return
+        // Keep what the member is typing; otherwise show the fresh values. `view` is the one
+        // this effect's render saw, i.e. what the form was last loaded or saved from.
+        setForm((f) => (f && view && !same(f, formOf(view)) ? f : formOf(v)))
         setView(v)
-        setForm(formOf(v))
       })
       .catch(() => toast.error(copy.loadFailed))
-  }, [])
+  }, [refreshKey])
 
   // Helpers
   const patch = (p: Partial<TaxesFormState>) => setForm((f) => (f ? { ...f, ...p } : f))
@@ -80,8 +94,7 @@ export default function TaxesSettings() {
   }
 
   // Render logic
-  const dirty =
-    form !== null && view !== null && JSON.stringify(form) !== JSON.stringify(formOf(view))
+  const dirty = form !== null && view !== null && !same(form, formOf(view))
   const errors = form && view && attempted ? validateTaxes(form, view.numbering.lowest) : {}
 
   return (
@@ -95,36 +108,35 @@ export default function TaxesSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        icon={<ReceiptIcon aria-hidden="true" />}
-      />
-      {!form || !view ? (
+      {active === gstTab ? null : !form || !view ? (
         <LoadingCards />
       ) : (
         <>
-          <RegistrationCard
-            form={form}
-            errors={errors}
-            onPatch={patch}
-            managed={view.gstinManaged}
-          />
-          <ChargingCard form={form} errors={errors} onPatch={patch} />
-          <NumberingCard
-            numbering={form.numbering}
-            lowest={view.numbering.lowest}
-            pad={view.numbering.pad}
-            installed={view.invoicesAppInstalled}
-            errors={errors}
-            onChange={(numbering) => patch({ numbering })}
-          />
-          <EinvoiceCard />
-          <GstExplainer
-            ratePercent={form.gstRatePercent}
-            inclusive={form.pricesIncludeGst}
-            composition={form.composition}
-          />
+          <SettingsSection id="tax-rules" className="flex flex-col gap-4">
+            <RegistrationCard
+              form={form}
+              errors={errors}
+              onPatch={patch}
+              managed={view.gstinManaged}
+            />
+            <ChargingCard form={form} errors={errors} onPatch={patch} />
+            <GstExplainer
+              ratePercent={form.gstRatePercent}
+              inclusive={form.pricesIncludeGst}
+              composition={form.composition}
+            />
+          </SettingsSection>
+          <SettingsSection id="invoices" className="flex flex-col gap-4">
+            <NumberingCard
+              numbering={form.numbering}
+              lowest={view.numbering.lowest}
+              pad={view.numbering.pad}
+              installed={view.invoicesAppInstalled}
+              errors={errors}
+              onChange={(numbering) => patch({ numbering })}
+            />
+            <EinvoiceCard />
+          </SettingsSection>
         </>
       )}
     </div>

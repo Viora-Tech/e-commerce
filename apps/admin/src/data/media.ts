@@ -42,12 +42,13 @@ export const mediaContent = {
   },
   library: {
     title: 'Files',
+    storage: 'Storage',
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
     search: 'Search by alt text or file name',
     upload: 'Upload',
     empty: {
       heading: 'No files yet',
-      body: 'Upload product images here or from any product page. They are stored on the provider chosen under Settings, Files.',
+      body: 'Upload product images here or from any product page. They are stored where Storage on this page says.',
       action: 'Upload files',
     },
     used: (n: number) =>
@@ -125,7 +126,8 @@ export const mediaContent = {
     selectedCount: (n: number) => (n === 1 ? '1 selected' : `${n} selected`),
   },
   settings: {
-    title: 'Files',
+    title: 'File storage',
+    back: { label: 'Files', href: '/content/files' },
     intro:
       'Where uploads are stored. The first enabled provider receives new files; the local folder is used when nothing is enabled and only works on a development machine.',
     hints: {

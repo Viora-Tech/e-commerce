@@ -8,8 +8,9 @@ import type { MouseEvent, ReactNode } from 'react'
 import { customizeContent } from '@/data/customize'
 import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
 import type { CustomizeDoc } from '@/lib/customize-doc'
+import { sectionName } from '@/lib/customize-insert'
 import { useCustomizePuck } from '@/lib/customize-puck'
-import { locateBlock, zoneItems } from '@/lib/customize-slots'
+import { findBlock, locateBlock, zoneItems } from '@/lib/customize-slots'
 import SectionIcon from './section-icon'
 
 type SectionOverlayProps = {
@@ -75,7 +76,9 @@ export default function SectionOverlay({
   if (!located || !(hover || isSelected)) return <>{children}</>
 
   // Render logic
-  const label = components[componentType]?.label ?? componentType
+  const block = findBlock(data, componentId)
+  const typeLabel = components[componentType]?.label ?? componentType
+  const label = block ? sectionName(block, typeLabel) : typeLabel
   const locked = SINGLE_SECTIONS.has(componentType)
   const { zone, index } = located
   const count = zoneItems(data, zone).length

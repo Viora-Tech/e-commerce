@@ -21,6 +21,7 @@ import shipping from './shipping'
 import shippingRates from './shipping-rates'
 import storeData from './store-data'
 import table from './table'
+import themeImport from './theme-import'
 
 /**
  * Every Hindi translation, as [English export, Hindi overlay] pairs. A `data/<feature>.ts`
@@ -50,4 +51,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shippingRates,
   ...storeData,
   ...table,
+  ...themeImport,
 ]

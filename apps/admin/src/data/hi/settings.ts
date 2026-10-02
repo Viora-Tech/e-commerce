@@ -1,10 +1,19 @@
 import { settingsContent, settingsHomeContent } from '@/data/settings'
-import { translation } from '@/lib/i18n'
+import { translation, untranslated } from '@/lib/i18n'
 
 export default [
   translation(settingsContent, {
     nav: {
       label: 'Settings के हिस्से',
+      back: 'Settings',
+    },
+    groups: {
+      store: 'स्टोर',
+      selling: 'बिक्री',
+      taxes: 'टैक्स और GST',
+      customers: 'ग्राहक',
+      messages: 'मैसेज',
+      team: 'टीम और एडवांस्ड',
     },
     sections: {
       payments: [
@@ -16,10 +25,15 @@ export default [
         { id: 'section-providers', label: 'स्टोरेज' },
         { id: 'section-verify', label: 'कनेक्शन' },
       ],
+      taxes: [
+        { id: 'gst-numbers', label: 'GST नंबर' },
+        { id: 'tax-rules', label: 'टैक्स के नियम' },
+        { id: 'invoices', label: 'इनवॉइस नंबर' },
+      ],
     },
     general: {
-      title: 'सामान्य',
-      intro: 'आपकी दुकान का नाम, ग्राहक आपसे कैसे संपर्क करें, और इनवॉइस के लिए आपका पता।',
+      title: 'स्टोर की जानकारी',
+      intro: 'आपकी दुकान का नाम, ग्राहक आपसे कैसे संपर्क करें, इनवॉइस के लिए आपका पता, और आपका डेटा।',
       completion: {
         progress: (done, total) => `${total} में से ${done} जानकारी भरी गई`,
         allDone: 'आपकी दुकान की सारी जानकारी भर गई है।',
@@ -76,6 +90,10 @@ export default [
       save: 'सेव करें',
       discard: 'रद्द करें',
     },
+    taxesPage: {
+      title: 'GST और इनवॉइस',
+      intro: 'आपके GST नंबर, आपकी कीमतों में GST कैसे जुड़ता है, और आपके इनवॉइस के नंबर कैसे बनते हैं।',
+    },
     staff: {
       heading: 'अभी सिर्फ़ आप',
       body: 'अपनी टीम को जोड़ें और तय करें कि हर व्यक्ति इस स्टोर में क्या देख और बदल सकता है।',
@@ -98,48 +116,56 @@ export default [
           title: 'स्टोर की जानकारी',
           todo: 'अपनी दुकान का नाम, ईमेल और बिज़नेस का पता जोड़ें।',
           done: 'नाम, ईमेल और पता भर गए हैं।',
-          href: '/settings/general',
+          href: untranslated,
         },
         payments: {
           title: 'पेमेंट',
           todo: 'चुनें कि ग्राहक आपको कैसे पेमेंट करें: UPI, कार्ड या कैश ऑन डिलीवरी (COD)।',
           done: 'आपने चुन लिया है कि ग्राहक कैसे पेमेंट करेंगे।',
-          href: '/settings/payments',
+          href: untranslated,
         },
         shipping: {
-          title: 'शिपिंग',
+          title: 'शिपिंग और डिलीवरी',
           todo: 'बताएं कि आप कहाँ डिलीवर करते हैं और डिलीवरी का कितना चार्ज है।',
           done: 'डिलीवरी के इलाके और चार्ज सेट हैं।',
-          href: '/settings/shipping',
+          href: untranslated,
         },
         taxes: {
           title: 'टैक्स / GST',
           todo: 'GST में रजिस्टर्ड हैं तो अपना GSTIN जोड़ें। नहीं हैं तो इसे छोड़ दें।',
           done: 'आपका GSTIN आपके इनवॉइस पर है।',
-          href: '/settings/general#tax',
+          href: untranslated,
         },
         domain: {
           title: 'डोमेन',
           todo: 'अपनी वेबसाइट का पता जोड़ें, जैसे yourshop.in।',
           done: 'आपकी अपनी वेबसाइट का पता चल रहा है।',
-          href: '/settings/domains',
+          href: untranslated,
         },
         notifications: {
           title: 'नोटिफ़िकेशन',
           todo: 'ईमेल जोड़ें ताकि ऑर्डर करने पर ग्राहकों को आपकी तरफ़ से मैसेज मिले।',
           done: 'ग्राहकों को ऑर्डर ईमेल मिलते हैं।',
-          href: '/settings/notifications',
+          href: untranslated,
         },
         policies: {
           title: 'पॉलिसी',
           todo: 'रिटर्न, प्राइवेसी और शर्तों वाले पेज पब्लिश करें।',
           done: 'आपके पॉलिसी पेज लाइव हैं।',
-          href: '/online-store/pages',
+          href: untranslated,
         },
       },
     },
     all: {
       heading: 'सारी Settings',
+    },
+    elsewhere: {
+      personal: 'आपकी भाषा और एडमिन का रंग-रूप आपके अपने हैं, स्टोर के नहीं:',
+      account: 'अकाउंट',
+      appearance: 'रंग-रूप',
+      personalWhere: '(ऊपर दाईं ओर आपके नाम के अक्षरों वाले मेन्यू में भी)।',
+      storage: 'अपलोड की गई फ़ाइलें कहाँ रखी जाती हैं:',
+      storageLink: 'कंटेंट › फ़ाइलें › स्टोरेज',
     },
   }),
 ]

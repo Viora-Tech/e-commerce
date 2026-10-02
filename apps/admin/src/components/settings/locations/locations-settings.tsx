@@ -25,7 +25,7 @@ type LocationsSettingsProps = {
   view: BusinessGstView
 }
 
-/** Settings › Locations: every place stock sits, its state, and the GST number it bills under. */
+/** Settings › Locations & warehouses: every place stock sits, its state, and the GST number it bills under. */
 export default function LocationsSettings({ view }: LocationsSettingsProps) {
   // Hooks
   const { locations: copy } = useCopy(businessGstContent)
@@ -102,6 +102,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
                     variant="ghost"
                     size="sm"
                     render={<Link href={`/settings/locations/${l.id}`} />}
+                    nativeButton={false}
                   >
                     {copy.open}
                   </Button>

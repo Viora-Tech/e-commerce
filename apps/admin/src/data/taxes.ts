@@ -1,7 +1,8 @@
-/** Copy for Settings › Taxes & GST. Plain words: most merchants are not tax experts. */
+/**
+ * Copy for the Tax rules and Invoice numbers tabs of Settings › Taxes & GST (the page title and
+ * tabs are in `settingsContent.taxesPage`). Plain words: most merchants are not tax experts.
+ */
 export const taxesContent = {
-  title: 'Taxes & GST',
-  intro: 'Your GST number, how GST is added to your prices, and how your invoices are numbered.',
   loadFailed: 'Could not load your tax settings.',
   saved: 'Tax settings saved',
   failed: 'Could not save tax settings',
@@ -16,7 +17,7 @@ export const taxesContent = {
     gstinHelp:
       'Your 15-character GST number, like 06AAACW1234A1Z5. It is printed on your invoices.',
     registeredIn: (state: string) => `Registered in ${state}`,
-    managed: 'Your default GST number. Add or change GST numbers in Business and GST.',
+    managed: 'Your default GST number. Add or change GST numbers on the GST numbers tab.',
     manage: 'Manage GST numbers',
     legalName: 'Registered legal name',
     legalNameHelp: 'The name on your GST certificate. It can differ from your shop name.',
@@ -110,6 +111,6 @@ export const taxesContent = {
 
   movedFromGeneral: {
     body: 'Taxes and GST now have their own page.',
-    action: 'Open Taxes & GST',
+    action: 'Open GST & invoices',
   },
 } as const

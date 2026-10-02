@@ -14,7 +14,7 @@ type RegistrationCardProps = {
   form: TaxesFormState
   errors: TaxesErrors
   onPatch: (p: Partial<TaxesFormState>) => void
-  /** Business and GST owns the GSTIN: show it, do not edit it here. */
+  /** The GST numbers tab owns the GSTIN: show it, do not edit it here. */
   managed: boolean
 }
 
@@ -48,7 +48,12 @@ export default function RegistrationCard({
                 <span className="text-body-strong text-ink-strong">{copy.gstin}</span>
                 <span className="font-mono text-body">{form.gstin}</span>
                 <span className="text-caption text-muted-foreground">{copy.managed}</span>
-                <Button variant="outline" size="sm" render={<Link href="/settings/business" />}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<Link href="/settings/taxes" />}
+                  nativeButton={false}
+                >
                   {copy.manage}
                 </Button>
               </div>

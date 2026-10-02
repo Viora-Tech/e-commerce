@@ -71,7 +71,14 @@
      100vw on its own for exactly this reason, and anything else that wants
      the full screen can do the same in four lines. */
   --page-width: 1440px;
-  --page-margin: clamp(20px, 2.5vw, 40px);
+  /* Never less than the notch: the storefront paints edge to edge
+     (viewport-fit=cover), so in landscape the side insets are real and the
+     content has to step in by at least that much. Backgrounds still bleed. */
+  --page-margin: max(
+    clamp(20px, 2.5vw, 40px),
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
 
   /* The sticky header's height. Lives here rather than in section-header.css
      because anything that parks itself below the header has to know it -
@@ -100,6 +107,27 @@
      button beside a search field, say - has to match it, and .btn is 56px,
      so the two disagreed by 8px wherever they were placed side by side. */
   --field-height: 48px;
+
+  /* The motion system, shared with the admin (docs/conventions.md, "Motion").
+     Curves: --ease-out for anything entering or leaving and for presses,
+     --ease-in-out for things moving across the screen, --ease-drawer for
+     sheets. Never ease-in on UI: it barely moves at first, which is the
+     moment the shopper is watching. Durations stay under 300ms except
+     drawers. The --motion-*-scale values are what reduced motion zeroes out
+     (see the reduced-motion block near the end of this file). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-press: 140ms;
+  --duration-tooltip: 150ms;
+  --duration-popover: 180ms;
+  --duration-dropdown: 200ms;
+  --duration-modal: 250ms;
+  --duration-drawer: 350ms;
+  --motion-exit-ratio: 0.7;
+  --motion-press-scale: 0.97;
+  /* Cards press less than buttons: a big surface shrinking 3% reads as a jump. */
+  --motion-card-press-scale: 0.98;
 
   /* Overlay motion. Every overlay (cart drawer, quick view, concierge
      modal, gallery lightbox, search overlay, mobile drawer) used to pick
@@ -137,13 +165,16 @@
 
      The label colour crossfade reads these too, and must share the fill's
      easing as well as its duration in BOTH directions. Matching duration
-     alone still desyncs: the fill's exit is ease-in (barely moves, then
-     accelerates) while a default `ease` colour is already well underway, so
-     the label reverts while the fill still covers it. */
+     alone still desyncs: the fill's exit runs on its own curve while a
+     default `ease` colour would be somewhere else, so the label reverts
+     while the fill still covers it.
+
+     Exits use the shared --ease-out (never ease-in, which barely moves at
+     first and reads as the control ignoring the pointer leaving). */
   --btn-fill-in: 3s;
   --btn-fill-out: 0.5s;
   --btn-fill-in-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --btn-fill-out-ease: ease-in;
+  --btn-fill-out-ease: var(--ease-out);
 
   /* The circular [data-icon-close] controls run the same mechanism at their
      own pace: an overlay's close button is a small target that has to
@@ -161,7 +192,7 @@
   --icon-close-fill-in: 1.1s;
   --icon-close-fill-out: 0.5s;
   --icon-close-fill-in-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --icon-close-fill-out-ease: ease-in;
+  --icon-close-fill-out-ease: var(--ease-out);
   /* The glyph turn and the colour crossfade that ride along with the fill.
      Held separate from --icon-close-fill-in-ease only because that is what
      ships today; see the note on the turn rule below. */
@@ -183,7 +214,7 @@
   --icon-motion-in: 0.22s;
   --icon-motion-out: 0.18s;
   --icon-motion-in-ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --icon-motion-out-ease: ease-in;
+  --icon-motion-out-ease: var(--ease-out);
   --icon-motion-travel: 1.6px;
   --icon-motion-lift: 1.6px;
 }
@@ -441,11 +472,22 @@ h6,
   text-decoration: none;
   white-space: nowrap;
   border: 1px solid transparent;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  /* The colour swap reads --btn-colour-time/-ease so the cursor-fill rules
+     below can re-time it to the sweep without also slowing the press: a
+     single transition-duration there would apply to every property in the
+     list, scale included, and a 3s press is no press at all. */
+  --btn-colour-time: 0.15s;
+  --btn-colour-ease: ease;
+  transition-property: background-color, color, border-color, box-shadow, scale;
+  transition-duration:
+    var(--btn-colour-time), var(--btn-colour-time), var(--btn-colour-time),
+    var(--btn-colour-time), var(--duration-press);
+  transition-timing-function:
+    var(--btn-colour-ease), var(--btn-colour-ease), var(--btn-colour-ease),
+    var(--btn-colour-ease), var(--ease-out);
+  /* A label is a control, not content: long-press must not select it. */
+  user-select: none;
+  -webkit-user-select: none;
   position: relative;
   isolation: isolate;
   /* Only the fill's COLOUR is per-variant (see .btn--primary etc. below).
@@ -489,16 +531,22 @@ h6,
   --btn-fill-edge: var(--btn-bg, var(--color-ink));
 }
 
-/* The no-cursor-fill fallback (touch, reduced motion, before motion.js runs):
+/* The no-cursor-fill fallback (reduced motion, before motion.js runs):
    the same inversion, arrived at instantly. The inset ring is stated here
    because there is no ::before sweep to carry it in these contexts; the rule
-   under html.has-cursor-fill below takes it back off again. */
-.btn--primary:hover,
-.shopify-payment-button__button.shopify-payment-button__button--unbranded:hover {
-  background-color: var(--btn-text, var(--color-bg));
-  color: var(--btn-bg, var(--color-ink));
-  border-color: var(--btn-bg, var(--color-ink));
-  box-shadow: inset 0 0 0 1px var(--btn-bg, var(--color-ink));
+   under html.has-cursor-fill below takes it back off again.
+
+   Every hover in this block is gated on a real mouse. On a phone a tap fakes
+   :hover and leaves it on, so a tapped Add to cart stayed inverted until the
+   shopper tapped somewhere else. Touch gets the :active press below instead. */
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover,
+  .shopify-payment-button__button.shopify-payment-button__button--unbranded:hover {
+    background-color: var(--btn-text, var(--color-bg));
+    color: var(--btn-bg, var(--color-ink));
+    border-color: var(--btn-bg, var(--color-ink));
+    box-shadow: inset 0 0 0 1px var(--btn-bg, var(--color-ink));
+  }
 }
 
 /* Theme setting "outline buttons": the primary button starts as its own hover
@@ -509,9 +557,11 @@ h6,
   --btn-fill-color: var(--btn-bg, var(--color-ink));
 }
 
-:root[data-button-style="outline"] .btn--primary:hover {
-  background-color: var(--btn-bg, var(--color-ink));
-  color: var(--btn-text, var(--color-bg));
+@media (hover: hover) and (pointer: fine) {
+  :root[data-button-style="outline"] .btn--primary:hover {
+    background-color: var(--btn-bg, var(--color-ink));
+    color: var(--btn-text, var(--color-bg));
+  }
 }
 
 .btn--secondary {
@@ -521,9 +571,11 @@ h6,
   --btn-fill-color: var(--color-ink);
 }
 
-.btn--secondary:hover {
-  background-color: var(--color-ink);
-  color: var(--color-bg);
+@media (hover: hover) and (pointer: fine) {
+  .btn--secondary:hover {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+  }
 }
 
 /* On dark surfaces, the stroke variant flips to a white outline.
@@ -540,10 +592,12 @@ h6,
   --btn-fill-color: var(--color-on-dark-band);
 }
 
-.color-scheme--dark .btn--secondary:hover,
-[data-color-scheme="dark"] .btn--secondary:hover {
-  background-color: var(--color-on-dark-band);
-  color: var(--color-dark-band);
+@media (hover: hover) and (pointer: fine) {
+  .color-scheme--dark .btn--secondary:hover,
+  [data-color-scheme="dark"] .btn--secondary:hover {
+    background-color: var(--color-on-dark-band);
+    color: var(--color-dark-band);
+  }
 }
 
 .btn--small {
@@ -556,6 +610,15 @@ h6,
 .btn[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Press: the button answers the moment a finger or mouse goes down, on every
+   input type (this is the only feedback a touch shopper gets). `scale` rather
+   than `transform`, so it composes with anything a section already transforms.
+   Disabled and loading buttons stay still. Reduced motion sets the scale to 1. */
+.btn:active:not(:disabled, [aria-disabled="true"], .is-loading),
+.shopify-payment-button__button.shopify-payment-button__button--unbranded:active {
+  scale: var(--motion-press-scale);
 }
 
 /* ------------------------------------------------------------------ */
@@ -670,15 +733,15 @@ html.has-cursor-fill .btn--secondary:hover {
 @media (prefers-reduced-motion: no-preference) {
   html.has-cursor-fill .btn,
   html.has-cursor-fill .shopify-payment-button__button.shopify-payment-button__button--unbranded {
-    transition-duration: var(--btn-fill-out);
-    transition-timing-function: var(--btn-fill-out-ease);
+    --btn-colour-time: var(--btn-fill-out);
+    --btn-colour-ease: var(--btn-fill-out-ease);
   }
 
   html.has-cursor-fill .btn:hover,
   html.has-cursor-fill
     .shopify-payment-button__button.shopify-payment-button__button--unbranded:hover {
-    transition-duration: var(--btn-fill-in);
-    transition-timing-function: var(--btn-fill-in-ease);
+    --btn-colour-time: var(--btn-fill-in);
+    --btn-colour-ease: var(--btn-fill-in-ease);
   }
 }
 
@@ -690,7 +753,7 @@ html.has-cursor-fill .btn--secondary:hover {
    the sweep visually reaches it. */
 @media (prefers-reduced-motion: no-preference) {
   html.has-cursor-fill .btn--secondary:hover {
-    transition-duration: var(--btn-fill-in);
+    --btn-colour-time: var(--btn-fill-in);
   }
 }
 
@@ -707,7 +770,7 @@ html.has-cursor-fill [data-color-scheme="dark"] .btn--secondary:hover {
 @media (prefers-reduced-motion: no-preference) {
   html.has-cursor-fill .color-scheme--dark .btn--secondary:hover,
   html.has-cursor-fill [data-color-scheme="dark"] .btn--secondary:hover {
-    transition-duration: var(--btn-fill-in);
+    --btn-colour-time: var(--btn-fill-in);
   }
 }
 
@@ -756,11 +819,24 @@ html.has-cursor-fill [data-color-scheme="dark"] .btn--secondary:hover {
    gives the dark circle a light edge on a dark ground and a quiet outline on
    a light one. Keeping it fixed is also why nothing here changes at rest. */
 
-/* The no-cursor-fill fallback (touch, reduced motion, before motion.js
-   runs): the same inversion, arrived at instantly. */
-[data-icon-close]:hover {
-  background-color: var(--color-ink);
-  color: var(--color-bg);
+/* The no-cursor-fill fallback (reduced motion, before motion.js runs): the
+   same inversion, arrived at instantly. Mouse only: on touch a tapped close
+   stayed inverted after the overlay it closed had gone. */
+@media (hover: hover) and (pointer: fine) {
+  [data-icon-close]:hover {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+  }
+}
+
+/* Press, on every input type. The glyph turn rides `transform` on the child,
+   so the press uses `scale` on the circle itself and the two never collide. */
+[data-icon-close] {
+  transition: scale var(--duration-press) var(--ease-out);
+}
+
+[data-icon-close]:active {
+  scale: var(--motion-press-scale);
 }
 
 [data-icon-close]::before {
@@ -812,7 +888,9 @@ html.has-cursor-fill [data-icon-close]:hover {
 
 @media (prefers-reduced-motion: no-preference) {
   html.has-cursor-fill [data-icon-close]:hover {
-    transition: color var(--icon-close-fill-in) var(--icon-close-turn-in-ease);
+    transition:
+      color var(--icon-close-fill-in) var(--icon-close-turn-in-ease),
+      scale var(--duration-press) var(--ease-out);
   }
 
   /* A quarter turn, not a full one - the icon is an X, so 90deg reads as a
@@ -1350,12 +1428,24 @@ html.js [data-reveal].is-revealed {
 
   /* The one rule that applies all of the above. Icons with no values
      declared resolve to their fallbacks and stay exactly still. */
-  :where(a, button, summary, label, [role="button"]):is(:hover, :focus-visible) > .icon > *,
-  :where(a, button, summary, label, [role="button"]):is(:hover, :focus-visible) > * > .icon > * {
+  :where(a, button, summary, label, [role="button"]):focus-visible > .icon > *,
+  :where(a, button, summary, label, [role="button"]):focus-visible > * > .icon > * {
     translate: var(--icon-hover-dx, 0) var(--icon-hover-dy, 0);
     scale: var(--icon-hover-s, 1);
     transition-duration: var(--icon-motion-in);
     transition-timing-function: var(--icon-motion-in-ease);
+  }
+
+  /* The pointer half, mouse only: on touch a tap fakes :hover and the glyph
+     stayed nudged after the finger had gone. */
+  @media (hover: hover) and (pointer: fine) {
+    :where(a, button, summary, label, [role="button"]):hover > .icon > *,
+    :where(a, button, summary, label, [role="button"]):hover > * > .icon > * {
+      translate: var(--icon-hover-dx, 0) var(--icon-hover-dy, 0);
+      scale: var(--icon-hover-s, 1);
+      transition-duration: var(--icon-motion-in);
+      transition-timing-function: var(--icon-motion-in-ease);
+    }
   }
 }
 
@@ -1749,5 +1839,40 @@ main#MainContent {
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle__icon {
     transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Feel native on a phone (docs/conventions.md, "Motion")              */
+/* ------------------------------------------------------------------ */
+/* No grey flash over a tapped control: every control here has its own
+   :active state instead (the .btn press, the card press). */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Controls answer the tap at once instead of waiting 300ms to see whether a
+   double-tap zoom is coming. */
+:where(button, a, label, summary, [role="button"], [role="tab"]) {
+  touch-action: manipulation;
+}
+
+/* iOS zooms the page into any field under 16px and never zooms back out.
+   The theme's body size is a merchant setting and can go below that, so on
+   touch screens fields never drop under 16px. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]),
+  textarea,
+  select {
+    font-size: max(1rem, 16px);
+  }
+}
+
+/* Reduced motion keeps fades and colour changes and drops movement: presses
+   stop shrinking. Sections keep their own reduced-motion rules for the rest. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-press-scale: 1;
+    --motion-card-press-scale: 1;
   }
 }

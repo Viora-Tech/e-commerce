@@ -227,7 +227,7 @@ erDiagram
   GSTIN whose PAN is not its business's (`PAN_MISMATCH`). The database cannot check this across
   tables, so only `addRegistration` inserts rows.
 - **`store.gstin` is a mirror.** It always equals the default registration's GSTIN, written only
-  by `mirrorStoreGstin`. Settings → Taxes & GST and Settings → General go through
+  by `mirrorStoreGstin`. Settings → GST & invoices and Settings → Store details go through
   `adoptStoreGstin`: with no registration yet a GSTIN saved there becomes the first one; after
   that a different GSTIN is refused (`MANAGED_ELSEWHERE`).
 - **A location bills under its own state's GSTIN** (`STATE_MISMATCH` otherwise). Cancelling a

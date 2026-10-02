@@ -23,7 +23,7 @@ const messageOf = (err: unknown, fallback: string) =>
   err instanceof Error && err.message ? err.message : fallback
 
 /**
- * Bottom of Settings › General: "Download your data" (a full export, built in the
+ * Bottom of Settings › Store details: "Download your data" (a full export, built in the
  * background and listed here until it expires) and the "Delete store" danger zone, which
  * only the owner sees enabled. Renders nothing for a member who can do neither.
  */

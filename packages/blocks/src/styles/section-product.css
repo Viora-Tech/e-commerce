@@ -1340,8 +1340,8 @@ html.has-cursor-fill .share-row__copy.is-hover-fill {
    colour that says so whether or not the pointer is still on the pill. */
 
 /* Both directions ride the fill's duration AND its easing. Duration alone
-   still desyncs: the exit is ease-in (barely moves, then accelerates) while a
-   default curve is already well underway, so the label would revert to ink
+   still desyncs: the exit runs on its own curve while a default curve
+   would be somewhere else, so the label would revert to ink
    while the ink fill is still sitting under it. */
 @media (prefers-reduced-motion: no-preference) {
   .share-row__link,

@@ -40,7 +40,7 @@ function sourceLine(loaded: Loaded): string {
   return copy.accent.source.default
 }
 
-/** Settings › Appearance: the member's admin accent, the owner's store default, and theme mode. */
+/** Account › Appearance (from the account menu): the member's admin accent, the owner's store default, and theme mode. */
 export default function AppearanceSettings() {
   // Hooks
   const router = useRouter()

@@ -29,7 +29,7 @@ export const appsContent = {
     payments: { label: 'Payments', href: '/settings/payments' },
     shipping: { label: 'Shipping', href: '/settings/shipping' },
     notifications: { label: 'Notifications', href: '/settings/notifications' },
-    storage: { label: 'Files', href: '/settings/files' },
+    storage: { label: 'Files', href: '/content/files/storage' },
   },
   configure: (kind: string) => `Set up in ${kind}`,
   docs: 'Want FedEx, DHL or a new gateway? Write a plugin: docs/plugins.md',

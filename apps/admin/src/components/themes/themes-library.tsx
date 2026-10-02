@@ -1,18 +1,21 @@
 'use client'
 
 import type { ThemePresetId } from '@commerce/core/theme'
-import { Plus } from '@commerce/ui/icons'
+import { Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
+import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AddThemeDialog from './add-theme-dialog'
 import CurrentThemeCard from './current-theme-card'
 import DeleteThemeDialog from './delete-theme-dialog'
+import ImportThemeDialog from './import-theme-dialog'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
@@ -54,6 +57,8 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   const [themes, setThemes] = useState(initial)
   const [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const importCopy = useCopy(themeImportContent)
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
   const [deleting, setDeleting] = useState<ThemeItem | null>(null)
 
@@ -126,10 +131,16 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
         title={themesContent.title}
         subtitle={copy.subtitle}
         actions={
-          <Button onClick={() => setAdding(true)} disabled={busy}>
-            <Plus aria-hidden />
-            {copy.add}
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
+              <Upload aria-hidden />
+              {importCopy.button}
+            </Button>
+            <Button onClick={() => setAdding(true)} disabled={busy}>
+              <Plus aria-hidden />
+              {copy.add}
+            </Button>
+          </>
         }
       />
       {live ? (
@@ -163,6 +174,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
         )}
       </Card>
       <AddThemeDialog open={adding} busy={busy} onOpenChange={setAdding} onAdd={handleAdd} />
+      <ImportThemeDialog open={importing} onOpenChange={setImporting} />
       {renaming ? (
         <RenameThemeDialog
           key={renaming.id}

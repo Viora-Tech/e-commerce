@@ -1,5 +1,5 @@
 /**
- * Settings › General, bottom of the page: download a copy of everything the store holds,
+ * Settings › Store details, bottom of the page: download a copy of everything the store holds,
  * and delete the store for good. Plain words: a merchant reading this may be closing
  * their business, so say exactly what happens and nothing more.
  */

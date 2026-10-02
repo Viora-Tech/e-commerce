@@ -40,7 +40,7 @@ export const policiesContent = {
   } satisfies Record<PolicyType, string>,
   business: {
     heading: 'Business details for your policies',
-    help: 'Every policy prints these. Your store name, address, email, phone and GSTIN come from Settings → General.',
+    help: 'Every policy prints these. Your store name, address, email and phone come from Settings → Store details, and your GSTIN from Settings → GST & invoices.',
     legalName: 'Registered business name',
     legalNameHint:
       'As on your GST or company papers, like "Waimers Tech Private Limited". Leave empty to use your store name.',
@@ -81,9 +81,9 @@ export const policyEditorContent = {
   missingBody:
     'The template shows these in [brackets]. Fill them in here, or add them and create it again:',
   missing: {
-    address: { label: 'Business address', href: '/settings/general' },
-    email: { label: 'Contact email', href: '/settings/general' },
-    phone: { label: 'Contact phone', href: '/settings/general' },
+    address: { label: 'Business address', href: '/settings/store' },
+    email: { label: 'Contact email', href: '/settings/store' },
+    phone: { label: 'Contact phone', href: '/settings/store' },
     grievanceOfficerName: { label: 'Grievance officer name', href: '/settings/policies#grievance' },
     grievanceOfficerContact: {
       label: 'Grievance officer email or phone',

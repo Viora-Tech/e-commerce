@@ -28,6 +28,7 @@ copying: projects relicense (Unleash moved to AGPL, Cal.com moved to MIT).
 | CMS | [Strapi](https://github.com/strapi/strapi) | MIT outside `ee/` | Content-type builder UX | Admin UX |
 | CMS / builder | [Instatic](https://github.com/CoreBunch/Instatic) | MIT | Data workspace (tables and rows), loops, bindings, visual components, static publish with dynamic holes | CMS now; builder later |
 | Builder | [Puck](https://github.com/puckeditor/puck) | MIT | Already our editor | |
+| Themes | [LiquidJS](https://github.com/harttle/liquidjs) | MIT (npm metadata and GitHub LICENSE, 2026-10-02) | A Liquid engine that renders a merchant's uploaded Shopify theme exactly; we add Shopify's tags, filters and objects on our data | In use: `packages/core/src/theme-import` (Shopify theme import, 2026-10-02). Shopify's own Liquid is Ruby; no JS port of its Shopify-only filters exists, so those are ours |
 | Security | [sanitize-html](https://github.com/apostrophecms/sanitize-html) | MIT (verified 2026-09-27) | Allow-list HTML sanitiser, pure JS (no DOM needed on the server) | Custom HTML element (`@commerce/blocks/embed`). DOMPurify (Apache-2.0 or MPL-2.0) was the alternative; it needs jsdom on the server |
 | Builder | [GrapesJS](https://github.com/GrapesJS/grapesjs) | BSD-3-Clause | Drag-and-drop email and newsletter builder | Campaign composer |
 | Automations | [Activepieces](https://github.com/activepieces/activepieces) | MIT outside `packages/ee` and `app/ee` | Pieces (integrations), triggers and actions, flow builder UI | Automations v2 plugin |

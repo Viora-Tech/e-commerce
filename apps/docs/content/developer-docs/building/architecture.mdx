@@ -199,7 +199,7 @@ answers `TOO_MANY_REQUESTS` with a plain "try again in N minutes".
 
 ### Store export and offboarding
 
-Settings → General → "Download your data" builds a zip of every table with a `store_id`
+Settings → Store details → "Download your data" builds a zip of every table with a `store_id`
 (one NDJSON file each, found from the catalogue, so new tables are included) plus the store
 row, in the worker (`{store}-export` queue), into the store's own storage under
 `stores/<id>/private/exports/` with a random suffix, downloadable through the API for 7 days.

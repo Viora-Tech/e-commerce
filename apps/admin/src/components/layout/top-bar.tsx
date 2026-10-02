@@ -13,14 +13,17 @@ import {
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { SidebarTrigger } from '@commerce/ui/shadcn/sidebar'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useSyncExternalStore } from 'react'
+import { ACCOUNT_PAGES } from '@/data/account'
 import { commandContent } from '@/data/command-palette'
 import { navigationContent } from '@/data/navigation'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
 import { initials } from '@/lib/initials'
+import { pageName } from '@/lib/page-names'
 import { openPalette } from '@/lib/palette-events'
 
 type TopBarProps = {
@@ -40,6 +43,7 @@ const noSubscription = () => () => {}
 export default function TopBar({ user, storefrontUrl }: TopBarProps) {
   // Hooks
   const navCopy = useCopy(navigationContent)
+  const locale = useLocale()
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   /* The theme lives in localStorage, so the server cannot know it. False while
@@ -135,7 +139,17 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut}>
+            {/* Your own preferences live here, not in store Settings. */}
+            <DropdownMenuGroup>
+              {ACCOUNT_PAGES.map((page) => (
+                <DropdownMenuItem key={page.href} render={<Link href={page.href} />}>
+                  <page.icon className="size-4" />
+                  {pageName(page.href, page.title, locale)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="size-4" />
               {navCopy.signOut}
             </DropdownMenuItem>

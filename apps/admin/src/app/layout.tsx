@@ -6,6 +6,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import type { ReactNode } from 'react'
 import './globals.css'
 import LocaleProvider from '@/components/layout/locale-provider'
+import MotionProvider from '@/components/layout/motion-provider'
 import { layoutContent } from '@/data/layout'
 import { localize } from '@/lib/copy'
 import { getLocale } from '@/lib/copy-server'
@@ -46,7 +47,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </a>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem nonce={nonce}>
           <NuqsAdapter>
-            <LocaleProvider locale={locale}>{children}</LocaleProvider>
+            <LocaleProvider locale={locale}>
+              <MotionProvider>{children}</MotionProvider>
+            </LocaleProvider>
           </NuqsAdapter>
         </ThemeProvider>
       </body>

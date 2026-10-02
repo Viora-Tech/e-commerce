@@ -3,8 +3,6 @@ import { translation } from '@/lib/i18n'
 
 export default [
   translation(businessGstContent, {
-    title: 'बिज़नेस और GST',
-    intro: 'आपका बिज़नेस, उसका PAN, और जिस-जिस राज्य से आप बेचते हैं वहाँ का GST नंबर।',
     loadFailed: 'आपके बिज़नेस की जानकारी लोड नहीं हो सकी।',
     business: {
       heading: 'आपका बिज़नेस',
@@ -83,7 +81,7 @@ export default [
       failed: 'बिज़नेस सेव नहीं हो सका',
     },
     locations: {
-      title: 'लोकेशन',
+      title: 'लोकेशन और गोदाम',
       intro: 'जहाँ आप स्टॉक रखते हैं और जहाँ से ऑर्डर भेजते हैं, और हर जगह किस GST नंबर से बिल बनता है।',
       heading: 'आपकी लोकेशन',
       add: 'लोकेशन जोड़ें',

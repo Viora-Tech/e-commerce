@@ -52,7 +52,8 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
 
   // Render logic
   const component = components[selected.type]
-  const label = component?.label ?? selected.type
+  // A renamed section (or an imported one, named after its theme schema) shows its own name.
+  const label = sectionName(selected, component?.label ?? selected.type)
   const hasFields = Object.keys(component?.fields ?? {}).length > 0
   const located = locateBlock(data, selected.props.id)
   // A nested block names its container ("In Promo strip"); a section its group.

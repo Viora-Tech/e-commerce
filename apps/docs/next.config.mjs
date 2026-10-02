@@ -22,6 +22,17 @@ export default withNextra({
   images: {
     unoptimized: true,
   },
+  // Settings were regrouped in October 2026: "Business and GST" is now the GST numbers tab of
+  // Taxes & GST, so its guide merged into that one.
+  async redirects() {
+    return [
+      {
+        source: '/merchant-guide/settings/business-and-gst',
+        destination: '/merchant-guide/settings/taxes',
+        permanent: false,
+      },
+    ]
+  },
   turbopack: {
     resolveAlias: {
       [MERMAID_MODULE]: MERMAID_WRAPPER,

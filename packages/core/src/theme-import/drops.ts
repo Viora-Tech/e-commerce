@@ -1,0 +1,334 @@
+/** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills) and the small objects every theme prints: images, videos, colours, colour schemes, fonts, blank metafields / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
+import { Drop } from 'liquidjs'
+import { numericId } from './numeric-id'
+
+/** An image we host: product media, a section image, a collection image. */
+export type LiquidImageData = {
+  url: string
+  alt?: string | null | undefined
+  width?: number | null | undefined
+  height?: number | null | undefined
+  id?: string | undefined
+}
+
+export type LiquidVariantData = {
+  id: string
+  title: string
+  /** Paise, as Shopify's subunit amounts. */
+  price: number
+  compareAtPrice: number | null
+  available: boolean
+  inventoryQuantity: number
+  sku: string | null
+  barcode: string | null
+  options: string[]
+  image: LiquidImageData | null
+  weightGrams: number | null
+}
+
+export type LiquidProductData = {
+  id: string
+  handle: string
+  title: string
+  descriptionHtml: string
+  vendor: string
+  type: string
+  tags: string[]
+  images: LiquidImageData[]
+  variants: LiquidVariantData[]
+  options: { name: string; values: string[] }[]
+  createdAt: Date
+  /** Sold under our pre-order rules; shown to the theme as a "Pre-order" selling plan group. */
+  preorder: boolean
+}
+
+export type LiquidCollectionData = {
+  id: string
+  handle: string
+  title: string
+  descriptionHtml: string
+  image: LiquidImageData | null
+  productsCount: number
+}
+
+export type LiquidLinkData = {
+  title: string
+  url: string
+  type: string
+  handle?: string | undefined
+  links: LiquidLinkData[]
+}
+
+export type LiquidMenuData = { handle: string; title: string; links: LiquidLinkData[] }
+
+export type LiquidArticleData = {
+  id: string
+  handle: string
+  title: string
+  url: string
+  author: string
+  excerptHtml: string
+  contentHtml: string
+  image: LiquidImageData | null
+  tags: string[]
+  publishedAt: Date | null
+}
+
+export type LiquidBlogData = {
+  id: string
+  handle: string
+  title: string
+  url: string
+  articles: LiquidArticleData[]
+}
+
+export type LiquidPageData = { id: string; handle: string; title: string; contentHtml: string }
+
+export type LiquidCartData = {
+  itemCount: number
+  totalPrice: number
+  items: {
+    id: string
+    quantity: number
+    title: string
+    price: number
+    linePrice: number
+    product: LiquidProductData | null
+    variantTitle: string
+    image: LiquidImageData | null
+    url: string
+  }[]
+}
+
+export type LiquidShopData = {
+  name: string
+  email: string
+  phone: string
+  /** The host shoppers use, e.g. `waimers.in`. */
+  domain: string
+  /** `https://waimers.in`. */
+  url: string
+  currency: string
+  description: string
+}
+
+/**
+ * Everything a render can ask our store for. Each call is per request; the store
+ * loader caches within one request, so a header and a footer asking for the same
+ * menu cost one query.
+ */
+export type LiquidDataSource = {
+  shop: LiquidShopData
+  product(handle: string): Promise<LiquidProductData | null>
+  collection(handle: string): Promise<LiquidCollectionData | null>
+  /** A collection's products in its own order, the first `limit` of them. */
+  collectionProducts(handle: string, limit: number): Promise<LiquidProductData[]>
+  collections(): Promise<LiquidCollectionData[]>
+  menu(handle: string): Promise<LiquidMenuData | null>
+  blog(handle: string): Promise<LiquidBlogData | null>
+  page(handle: string): Promise<LiquidPageData | null>
+  cart(): Promise<LiquidCartData>
+}
+
+/** Shopify's handleize: lowercase, words joined by hyphens. */
+export const handleize = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/['"]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+/** A stable whole number for an image we only know by URL. */
+function urlNumber(url: string): number {
+  let h = 0
+  for (let i = 0; i < url.length; i++) h = (Math.imul(h, 31) + url.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+export class ImageDrop extends Drop {
+  readonly src: string
+  readonly url: string
+  readonly alt: string
+  readonly width: number
+  readonly height: number
+  readonly aspect_ratio: number
+  readonly id: number | string
+  readonly media_type = 'image'
+  readonly presentation = { focal_point: '50.0% 50.0%' }
+  constructor(image: LiquidImageData) {
+    super()
+    this.src = image.url
+    this.url = image.url
+    this.alt = image.alt ?? ''
+    // Unknown sizes read as square, so `aspect_ratio` maths never divides by zero.
+    this.width = image.width ?? 1600
+    this.height = image.height ?? image.width ?? 1600
+    this.aspect_ratio = this.width / this.height
+    // Themes write media ids into JSON unquoted, as Shopify's are numbers.
+    this.id = image.id ? numericId(image.id) : urlNumber(image.url)
+  }
+  get preview_image(): ImageDrop {
+    return this
+  }
+  override valueOf(): string {
+    return this.src
+  }
+  override toString(): string {
+    return this.src
+  }
+}
+
+export const imageDrop = (image: LiquidImageData | null | undefined): ImageDrop | null =>
+  image?.url ? new ImageDrop(image) : null
+
+/** A video copied into Files (a `video` setting): plays through `video_tag`, poster as `preview_image`. */
+export class VideoDrop extends Drop {
+  readonly media_type = 'video'
+  readonly id: number
+  readonly alt = ''
+  readonly aspect_ratio = 16 / 9
+  readonly sources: {
+    url: string
+    mime_type: string
+    format: string
+    width: number
+    height: number
+  }[]
+  readonly preview_image: ImageDrop | null
+  constructor(video: { url: string; poster?: LiquidImageData | null }) {
+    super()
+    this.id = urlNumber(video.url)
+    this.sources = [
+      { url: video.url, mime_type: 'video/mp4', format: 'mp4', width: 1920, height: 1080 },
+    ]
+    this.preview_image = imageDrop(video.poster)
+  }
+  override valueOf(): string {
+    return this.sources[0]?.url ?? ''
+  }
+}
+
+/** A theme colour setting: prints as its hex, reads like Shopify's colour object. */
+export class ColorDrop extends Drop {
+  readonly hex: string
+  readonly red: number
+  readonly green: number
+  readonly blue: number
+  readonly alpha: number
+  readonly rgb: string
+  readonly rgba: string
+  constructor(value: string) {
+    super()
+    const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})([0-9a-f]{2})?$/i.exec(value.trim())
+    const hex6 = m?.[1]
+      ? m[1].length === 3
+        ? m[1]
+            .split('')
+            .map((c) => c + c)
+            .join('')
+        : m[1]
+      : '000000'
+    this.hex = `#${hex6}`
+    this.red = Number.parseInt(hex6.slice(0, 2), 16)
+    this.green = Number.parseInt(hex6.slice(2, 4), 16)
+    this.blue = Number.parseInt(hex6.slice(4, 6), 16)
+    this.alpha = m?.[2] ? Number.parseInt(m[2], 16) / 255 : 1
+    this.rgb = `${this.red} ${this.green} ${this.blue}`
+    this.rgba = `${this.red} ${this.green} ${this.blue} / ${this.alpha}`
+  }
+  override valueOf(): string {
+    return this.hex
+  }
+  override toString(): string {
+    return this.hex
+  }
+}
+
+/** A colour scheme (`color_scheme` setting): its id prints, its settings read as colours. */
+export class ColorSchemeDrop extends Drop {
+  readonly id: string
+  readonly settings: Record<string, unknown>
+  constructor(id: string, settings: Record<string, unknown>) {
+    super()
+    this.id = id
+    this.settings = settings
+  }
+  override valueOf(): string {
+    return this.id
+  }
+}
+
+/** A theme font (`font_picker`): Shopify font library handles like `inter_n7`. */
+export class FontDrop extends Drop {
+  readonly family: string
+  readonly fallback_families: string
+  readonly weight: number
+  readonly style: string
+  readonly variants: FontDrop[] = []
+  readonly system: boolean
+  readonly handle: string
+  constructor(handle: string) {
+    super()
+    this.handle = handle
+    const m = /^(.+)_([nio])(\d)$/.exec(handle)
+    const name = m?.[1] ?? handle
+    this.system = name.startsWith('system') || name === 'sans-serif' || name === 'serif'
+    this.family = this.system
+      ? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      : name
+          .split('_')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ')
+    this.fallback_families =
+      name.includes('serif') && !name.includes('sans') ? 'serif' : 'sans-serif'
+    this.weight = Number(m?.[3] ?? 4) * 100
+    this.style = m?.[2] === 'i' ? 'italic' : m?.[2] === 'o' ? 'oblique' : 'normal'
+  }
+  /** Liquid reads `font.system?` as a property named with a question mark. */
+  override liquidMethodMissing(key: string): unknown {
+    if (key === 'system?') return this.system
+    return undefined
+  }
+  override valueOf(): string {
+    return this.handle
+  }
+}
+
+/** Metafields: we have none under Shopify's namespaces, so every lookup is blank. */
+export class MetafieldsDrop extends Drop {
+  override liquidMethodMissing(): unknown {
+    return new BlankNamespaceDrop()
+  }
+}
+
+class BlankNamespaceDrop extends Drop {
+  override liquidMethodMissing(): unknown {
+    return null
+  }
+  override valueOf(): string {
+    return ''
+  }
+}
+
+/** Shopify's `routes`, pointed at our pages. */
+export const LIQUID_ROUTES = {
+  root_url: '/',
+  account_url: '/account',
+  account_login_url: '/account/login',
+  account_logout_url: '/account/logout',
+  account_register_url: '/account/login',
+  account_addresses_url: '/account/addresses',
+  account_recover_url: '/account/login',
+  collections_url: '/collections',
+  all_products_collection_url: '/collections/all',
+  search_url: '/search',
+  predictive_search_url: '/search/suggest',
+  cart_url: '/cart',
+  cart_add_url: '/cart/add',
+  cart_change_url: '/cart/change',
+  cart_clear_url: '/cart/clear',
+  cart_update_url: '/cart/update',
+  product_recommendations_url: '/recommendations/products',
+} as const
