@@ -9,6 +9,7 @@ export default {
   'live-globe': 'Live view globe',
   'section-settings': 'Section settings and SectionFrame',
   'theme-editor': 'Theme editor',
+  'shopify-theme-import': 'Shopify theme import',
   'dynamic-sources': 'Dynamic sources',
   'custom-sections': 'Slots and custom sections',
   performance: 'Storefront performance',

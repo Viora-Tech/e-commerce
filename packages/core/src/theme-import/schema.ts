@@ -66,7 +66,29 @@ export type ShopifyJsonTemplate = {
   order: string[]
 }
 
-const SCHEMA_RE = /{%-?\s*schema\s*-?%}([\s\S]*?){%-?\s*endschema\s*-?%}/
+const SCHEMA_OPEN = /{%-?\s*schema\s*-?%}/g
+const SCHEMA_CLOSE = /{%-?\s*endschema\s*-?%}/g
+
+/**
+ * Where the real `{% schema %}` block sits: the last `endschema`, and the last `schema`
+ * before it. A comment that merely mentions `{% schema %}` (themes do) is not it.
+ */
+function schemaSpan(
+  source: string,
+): { start: number; bodyStart: number; bodyEnd: number; end: number } | null {
+  const closes = [...source.matchAll(SCHEMA_CLOSE)]
+  const close = closes[closes.length - 1]
+  if (!close || close.index === undefined) return null
+  const opens = [...source.slice(0, close.index).matchAll(SCHEMA_OPEN)]
+  const open = opens[opens.length - 1]
+  if (!open || open.index === undefined) return null
+  return {
+    start: open.index,
+    bodyStart: open.index + open[0].length,
+    bodyEnd: close.index,
+    end: close.index + close[0].length,
+  }
+}
 
 /**
  * Strips `/* *\/` and `//` comments outside strings, as Shopify's JSON files allow
@@ -116,14 +138,17 @@ export function parseThemeJson<T = unknown>(text: string): T | null {
 
 /** A Liquid file's `{% schema %}` (null when it has none or it is not JSON). */
 export function extractSchema(source: string): ShopifySectionSchema | null {
-  const match = SCHEMA_RE.exec(source)
-  if (!match?.[1]) return null
-  const parsed = parseThemeJson<ShopifySectionSchema>(match[1])
+  const span = schemaSpan(source)
+  if (!span) return null
+  const parsed = parseThemeJson<ShopifySectionSchema>(source.slice(span.bodyStart, span.bodyEnd))
   return parsed && typeof parsed === 'object' ? parsed : null
 }
 
 /** The Liquid without its schema block, what the engine renders. */
-export const withoutSchema = (source: string): string => source.replace(SCHEMA_RE, '')
+export function withoutSchema(source: string): string {
+  const span = schemaSpan(source)
+  return span ? source.slice(0, span.start) + source.slice(span.end) : source
+}
 
 /** A JSON template or section group, or null when it is not one. */
 export function parseJsonTemplate(text: string): ShopifyJsonTemplate | null {

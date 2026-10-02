@@ -127,6 +127,14 @@ describe('schema and JSON reading', () => {
     expect(withoutSchema(FIXTURE_HERO)).not.toContain('{% schema %}')
   })
 
+  it('finds the real schema block when a comment mentions {% schema %}', () => {
+    const src =
+      '{% comment %}See {% schema %} below.{% endcomment %}<p>x</p>{% schema %}{ "name": "Real" }{% endschema %}'
+    expect(extractSchema(src)?.name).toBe('Real')
+    expect(withoutSchema(src)).toBe('{% comment %}See {% schema %} below.{% endcomment %}<p>x</p>')
+    expect(() => createThemeEngine(new Map()).parse(withoutSchema(src))).not.toThrow()
+  })
+
   it('reads a JSON template in its own order, ignoring unknown keys', () => {
     const tpl = parseJsonTemplate(
       '{ "sections": { "a": { "type": "x" } }, "order": ["a", "missing"] }',
