@@ -1,6 +1,5 @@
 import {
   collection,
-  media,
   metafield,
   metafieldDefinition,
   metaobject,
@@ -11,7 +10,9 @@ import {
 } from '@commerce/db'
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { slugify } from '../catalog/slug'
+import { storedFieldProblems } from './field-changes'
 import { type FromPresetInput, presetDefinition } from './presets'
+import { referenceProblems } from './references'
 import {
   type FieldDefinition,
   InvalidMetaobject,
@@ -19,14 +20,13 @@ import {
   type MetafieldOwnerType,
   type MetaobjectDefinitionWrite,
   type MetaobjectWrite,
-  type ReferenceType,
+  NO_LIST_TYPES,
 } from './schemas'
 import {
   collectReferences,
   definitionProblems,
   entryDisplayName,
   keyFromName,
-  type ReferenceUse,
   ruleProblems,
   validateFields,
   validateFieldValue,
@@ -35,70 +35,6 @@ import {
 /* ------------------------------------------------------------------ */
 /* References                                                          */
 /* ------------------------------------------------------------------ */
-
-/**
- * Confirm every referenced id exists in this store (RLS hides other stores'
- * rows, so a foreign id reads as missing) and that metaobject references point
- * into the right definition. Returns per-source errors.
- */
-export async function referenceProblems(
-  tx: StoreTx,
-  uses: ReferenceUse[],
-): Promise<Record<string, string>> {
-  const problems: Record<string, string> = {}
-  const idsOf = (type: ReferenceType) => [
-    ...new Set(uses.filter((u) => u.type === type).map((u) => u.id)),
-  ]
-  const [files, products, collections, entries] = await Promise.all([
-    idsOf('file').length
-      ? tx
-          .select({ id: media.id })
-          .from(media)
-          .where(inArray(media.id, idsOf('file')))
-      : [],
-    idsOf('product_reference').length
-      ? tx
-          .select({ id: product.id })
-          .from(product)
-          .where(inArray(product.id, idsOf('product_reference')))
-      : [],
-    idsOf('collection_reference').length
-      ? tx
-          .select({ id: collection.id })
-          .from(collection)
-          .where(inArray(collection.id, idsOf('collection_reference')))
-      : [],
-    idsOf('metaobject_reference').length
-      ? tx
-          .select({ id: metaobject.id, definitionId: metaobject.definitionId })
-          .from(metaobject)
-          .where(inArray(metaobject.id, idsOf('metaobject_reference')))
-      : [],
-  ])
-  const found = {
-    file: new Set(files.map((r) => r.id)),
-    product_reference: new Set(products.map((r) => r.id)),
-    collection_reference: new Set(collections.map((r) => r.id)),
-  }
-  const entryDefinition = new Map(entries.map((r) => [r.id, r.definitionId]))
-  for (const use of uses) {
-    if (problems[use.source]) continue
-    if (use.type === 'metaobject_reference') {
-      const def = entryDefinition.get(use.id)
-      if (!def) problems[use.source] = 'links to an entry that was deleted. Pick another one'
-      else if (use.definitionId && def !== use.definitionId) {
-        problems[use.source] =
-          'links to an entry of a different content type. Pick one from the list'
-      }
-    } else if (!found[use.type].has(use.id)) {
-      problems[use.source] =
-        use.type === 'file'
-          ? 'uses a file that was deleted. Pick another file'
-          : 'links to something that was deleted. Pick another one'
-    }
-  }
-  return problems
-}
 
 /** Metaobject definitions that exist here, for checking `metaobjectDefinitionId` rules. */
 async function checkDefinitionTargets(tx: StoreTx, ids: string[]): Promise<string[]> {
@@ -112,141 +48,6 @@ async function checkDefinitionTargets(tx: StoreTx, ids: string[]): Promise<strin
   return unique
     .filter((id) => !have.has(id))
     .map(() => 'A field links to a content type that was deleted. Pick another one in that field')
-}
-
-export type ReferenceOption = {
-  id: string
-  label: string
-  detail: string | null
-  imageUrl: string | null
-}
-
-/** Picker rows for a reference field: by search text, or the labels of chosen ids. */
-export async function referenceOptions(
-  tx: StoreTx,
-  input: {
-    kind: 'product' | 'collection' | 'metaobject' | 'file'
-    query?: string | undefined
-    ids?: string[] | undefined
-    definitionId?: string | undefined
-    limit?: number | undefined
-  },
-): Promise<ReferenceOption[]> {
-  const limit = input.limit ?? 20
-  const q = input.query?.trim()
-  if (input.ids && input.ids.length === 0) return []
-  if (input.kind === 'product') {
-    const rows = await tx
-      .select({
-        id: product.id,
-        title: product.title,
-        handle: product.handle,
-        status: product.status,
-      })
-      .from(product)
-      .where(
-        input.ids
-          ? inArray(product.id, input.ids)
-          : q
-            ? or(ilike(product.title, `%${q}%`), ilike(product.handle, `%${q}%`))
-            : undefined,
-      )
-      .orderBy(asc(product.title))
-      .limit(input.ids ? input.ids.length : limit)
-    const images = await firstProductImages(
-      tx,
-      rows.map((r) => r.id),
-    )
-    return rows.map((r) => ({
-      id: r.id,
-      label: r.title,
-      detail: r.status === 'active' ? r.handle : `${r.handle} (${r.status})`,
-      imageUrl: images.get(r.id) ?? null,
-    }))
-  }
-  if (input.kind === 'file') {
-    const rows = await tx
-      .select({ id: media.id, url: media.url, alt: media.alt, contentType: media.contentType })
-      .from(media)
-      .where(
-        and(
-          eq(media.status, 'ready'),
-          input.ids ? inArray(media.id, input.ids) : q ? ilike(media.alt, `%${q}%`) : undefined,
-        ),
-      )
-      .orderBy(desc(media.createdAt))
-      .limit(input.ids ? input.ids.length : limit)
-    return rows.map((r) => ({
-      id: r.id,
-      label: r.alt || (r.url.split('/').pop() ?? r.url),
-      detail: r.contentType,
-      imageUrl: r.contentType?.startsWith('image/') || !r.contentType ? r.url : null,
-    }))
-  }
-  if (input.kind === 'collection') {
-    const rows = await tx
-      .select({
-        id: collection.id,
-        title: collection.title,
-        handle: collection.handle,
-        url: media.url,
-      })
-      .from(collection)
-      .leftJoin(media, eq(media.id, collection.imageMediaId))
-      .where(
-        input.ids
-          ? inArray(collection.id, input.ids)
-          : q
-            ? ilike(collection.title, `%${q}%`)
-            : undefined,
-      )
-      .orderBy(asc(collection.title))
-      .limit(input.ids ? input.ids.length : limit)
-    return rows.map((r) => ({ id: r.id, label: r.title, detail: r.handle, imageUrl: r.url }))
-  }
-  const rows = await tx
-    .select({
-      id: metaobject.id,
-      handle: metaobject.handle,
-      fields: metaobject.fields,
-      displayNameKey: metaobjectDefinition.displayNameKey,
-      name: metaobjectDefinition.name,
-    })
-    .from(metaobject)
-    .innerJoin(metaobjectDefinition, eq(metaobjectDefinition.id, metaobject.definitionId))
-    .where(
-      and(
-        input.ids ? inArray(metaobject.id, input.ids) : undefined,
-        input.definitionId ? eq(metaobject.definitionId, input.definitionId) : undefined,
-        !input.ids && q
-          ? or(
-              ilike(metaobject.handle, `%${q}%`),
-              sql`${metaobject.fields}::text ilike ${`%${q}%`}`,
-            )
-          : undefined,
-      ),
-    )
-    .orderBy(desc(metaobject.updatedAt))
-    .limit(input.ids ? input.ids.length : limit)
-  return rows.map((r) => ({
-    id: r.id,
-    label: entryDisplayName(r.displayNameKey, r.fields, r.handle),
-    detail: r.name,
-    imageUrl: null,
-  }))
-}
-
-async function firstProductImages(tx: StoreTx, ids: string[]): Promise<Map<string, string>> {
-  if (ids.length === 0) return new Map()
-  const rows = await tx.execute<{ product_id: string; url: string }>(sql`
-    select distinct on (pm.product_id) pm.product_id, m.url
-    from product_media pm join media m on m.id = pm.media_id
-    where pm.product_id in (${sql.join(
-      ids.map((id) => sql`${id}::uuid`),
-      sql`, `,
-    )})
-    order by pm.product_id, pm.position`)
-  return new Map(rows.map((r) => [r.product_id, r.url]))
 }
 
 /* ------------------------------------------------------------------ */
@@ -373,7 +174,8 @@ export async function createDefinitionFromPreset(
 
 /**
  * Update a definition. The type handle is what templates read, so it only
- * changes while the definition has no entries. Removing a field keeps old
+ * changes while the definition has no entries, and a field's kind of value only while no
+ * entry holds a value in it (`storedFieldProblems`). Removing a field keeps old
  * values in the rows but they are no longer validated or served.
  */
 export async function updateDefinition(
@@ -387,6 +189,8 @@ export async function updateDefinition(
       'This content type was deleted. Go back to Content types and open another',
     ])
   await assertDefinitionValid(tx, write)
+  const changes = await storedFieldProblems(tx, id, current.fields, write.fields)
+  if (changes.length) throw new InvalidMetaobject(changes)
   let type = current.type
   if (write.type && write.type !== current.type) {
     if (current.entries > 0) {
@@ -627,7 +431,7 @@ export async function listMetafieldDefinitions(tx: StoreTx, ownerType: Metafield
 
 async function assertMetafieldRules(tx: StoreTx, write: MetafieldDefinitionWrite) {
   const problems = ruleProblems(write.name, write.type, write.validations)
-  if (write.list && ['boolean', 'rich_text', 'multi_line_text'].includes(write.type)) {
+  if (write.list && NO_LIST_TYPES.includes(write.type)) {
     problems.push(`${write.name} cannot be a list`)
   }
   if (write.validations.metaobjectDefinitionId) {

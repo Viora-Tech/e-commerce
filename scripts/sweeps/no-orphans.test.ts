@@ -349,9 +349,9 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/core/src/metaobjects/service.ts',
-    names: ['referenceProblems'],
-    reason: 'no external importer today — investigate before removing',
+    file: 'packages/core/src/metaobjects/field-changes.ts',
+    names: ['fieldChangeProblems'],
+    reason: 'the pure rule behind storedFieldProblems (same file), exported for its unit test',
   },
   {
     file: 'packages/core/src/metaobjects/storefront.ts',

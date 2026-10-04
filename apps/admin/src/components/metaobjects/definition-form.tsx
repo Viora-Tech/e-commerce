@@ -31,7 +31,7 @@ type DefinitionFormProps = {
   targets: { id: string; name: string }[]
 }
 
-const NAMEABLE = ['single_line_text', 'number_integer', 'number_decimal']
+const NAMEABLE = ['single_line_text', 'number_integer', 'number_decimal', 'choice']
 
 /** Create or edit a metaobject definition: its handle, fields, display name and access. */
 export default function DefinitionForm({ definition, targets }: DefinitionFormProps) {
@@ -159,7 +159,12 @@ export default function DefinitionForm({ definition, targets }: DefinitionFormPr
               onChange={patch}
               onTypeEdited={() => setTypeEdited(true)}
             />
-            <DefinitionFieldsCard fields={form.fields} targets={targets} onChange={handleFields} />
+            <DefinitionFieldsCard
+              fields={form.fields}
+              filled={definition?.filled ?? {}}
+              targets={targets}
+              onChange={handleFields}
+            />
           </>
         }
         side={

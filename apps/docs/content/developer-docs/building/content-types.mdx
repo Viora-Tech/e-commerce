@@ -1,0 +1,127 @@
+---
+title: Content types (metaobjects)
+description: Metaobject definitions, entries and metafields, their field types and stored value shapes, validation, the field-change lock and storefront resolution.
+---
+
+# Content types (metaobjects)
+
+Merchants see **Content types**, **Entries** and **Extra fields**. The code, the API
+(`metaobjects.*`), templates and these docs keep Shopify's names: a **metaobject definition**
+(`metaobject_definition`) with **entries** (`metaobject`), and **metafields** on products and
+collections (`metafield_definition`, `metafield`). Merchant guide:
+[Content types](/merchant-guide/selling/content).
+
+| Piece | File |
+| --- | --- |
+| Field types, zod schemas, row-field types, units, currencies | `packages/core/src/metaobjects/schemas.ts` |
+| Value checks for one field or a whole entry, rule checks, groups | `packages/core/src/metaobjects/validate.ts` |
+| Stored shape and check of colour, date and time, money, choice, link, rating, measurement | `packages/core/src/metaobjects/field-values.ts` |
+| Existence checks and picker rows for every reference kind | `packages/core/src/metaobjects/references.ts` |
+| The field-change lock | `packages/core/src/metaobjects/field-changes.ts` |
+| Definitions, entries, metafields (RLS `StoreTx`) | `packages/core/src/metaobjects/service.ts` |
+| Storefront loader: active entries, references resolved one level | `packages/core/src/metaobjects/storefront.ts` |
+| Ready-made content types | `packages/core/src/metaobjects/presets.ts` |
+| Router | `packages/api/src/routers/metaobjects.ts` |
+| Admin screens and inputs | `apps/admin/src/components/metaobjects/` (copy: `data/metaobjects.ts`, Hindi `data/hi/metaobjects.ts`) |
+
+Everything in `schemas.ts`, `validate.ts`, `field-values.ts` and `presets.ts` is browser-safe
+(`@commerce/core/metaobjects`): the admin runs the same checks for inline errors, and the server
+runs them again before anything is written.
+
+## Field types and stored values
+
+The type is plain text in the database (no `CHECK`), so adding a type needs no migration.
+`FIELD_TYPES` (core) and `METAFIELD_TYPES` (`@commerce/db`) must stay equal; a test checks it.
+
+| Type | Merchant name | Stored value | Rules (`validations`) |
+| --- | --- | --- | --- |
+| `single_line_text` | Short text | `"Cotton"` | `minLength`, `maxLength`, `choices` |
+| `multi_line_text` | Long text | `"line 1\nline 2"` | `minLength`, `maxLength` |
+| `rich_text` | Formatted text | Lexical JSON `{ root }` | |
+| `number_integer` / `number_decimal` | Whole / Decimal number | `12` / `1.5` | `min`, `max` |
+| `boolean` | Yes / No | `true` | |
+| `date` | Date | `"2026-01-31"` | `min`, `max` (dates) |
+| `url` | Link | `"https://..."` | |
+| `file` | File | media id | |
+| `product_reference` / `collection_reference` | Product / Collection | id | |
+| `metaobject_reference` | Another entry | entry id | `metaobjectDefinitionId` (required) |
+| `color` | Colour | `"#1a2b3c"` (lower case, `#abc` widened) | |
+| `date_time` | Date and time | `"2026-10-02T04:30:00.000Z"` (UTC; input must carry `Z` or an offset) | |
+| `money` | Money | `{ "amount": 49900, "currency": "INR" }`, amount in paise / cents | `currency` (`INR` default, `USD`, `EUR`) |
+| `choice` | Pick from a list | `"M"`; a list field stores `["S", "L"]` (multi-pick, in the field's order) | `choices` (required) |
+| `link` | Button link | `{ "label": "See the chart", "url": "/pages/size-chart" }` (`http(s)://` or a site path) | |
+| `rating` | Star rating | `{ "value": 4.5, "max": 5 }`, whole or half stars | `ratingMax` (5 default, at most 10) |
+| `measurement` | Measurement | `{ "value": 1.5, "unit": "kg" }` | `measure`: `weight` (g, kg, oz, lb), `length` (mm, cm, m, in, ft), `volume` (ml, l, fl_oz); required |
+| `page_reference` | Page | page id | |
+| `variant_reference` | Product variant | variant id | |
+| `article_reference` | Blog post | article id | |
+| `group` | Rows of fields | `[{ "size": "S", "chest": { "value": 36, "unit": "in" } }]` | `subfields` (1 to 12 row fields), `maxItems` (rows, 100 at most) |
+
+Lists (`list: true`) store an array of the single value. `boolean`, `rich_text`,
+`multi_line_text` and `group` cannot be lists.
+
+### Groups (rows of fields)
+
+A group is a list of rows, one level deep, after Payload CMS's `array` field and Instatic's
+repeater (both MIT; ideas only, see `THIRD_PARTY_NOTICES.md`). Its `validations.subfields` are
+`GroupField`s: `{ key, name, type, required, validations }`, where `type` is one of
+`GROUP_FIELD_TYPES` (plain values and `file`; no references to other records, no nested
+groups). Each row is checked against them: keys a row field does not know are dropped, blank
+rows are left out, and errors name the row (`Sizes row 2: Size is required`). Files picked in
+rows are checked to exist like any other reference and resolve to `{ id, url, alt }` on the
+storefront.
+
+## The field-change lock
+
+Saved values were checked against the field as it was, so a field's **kind of value** cannot
+change while any entry holds a value in it. `updateDefinition` calls `storedFieldProblems`
+(`field-changes.ts`), which counts values per key (`filledFieldKeys`, one
+`jsonb_object_keys` query) and refuses:
+
+- a different `type` or `list` flag,
+- a different `currency` (money) or `measure` (measurement),
+- a group row field kept under the same key with a different type, currency or unit kind.
+
+Renaming, rules such as `choices` or `ratingMax`, `required`, and adding or removing row fields
+are fine. A field removed earlier keeps its old values in the rows; adding a field back under
+that key is allowed only when every old value fits the new field. The message is plain words:
+`Fit already has values in 3 entries, so what goes in it cannot change. Add a new field
+instead, or clear it in those entries first`. `metaobjects.definition` returns `filled`
+(per-key counts) so the admin greys out **What goes in it** with that reason. Metafield
+definitions never change type after creation.
+
+## References
+
+`referenceProblems` (`references.ts`) confirms every id under RLS, so another store's id reads
+as deleted. `metaobjects.references` serves the pickers: `kind` is one of `product`,
+`variant` (named `Product · Variant`, searchable by SKU), `collection`, `page`, `article`
+(detail: its blog), `metaobject` and `file`.
+
+On the storefront (`storefront.ts`) references resolve one level deep and hidden targets drop
+out: products and collections that are not active, pages without `published_at`, blog posts
+not yet visible (`visibleNow`), archived variants or variants of inactive products, and hidden
+or draft entries.
+
+| Type | Resolved value |
+| --- | --- |
+| `page_reference` | `{ id, handle, title }` |
+| `article_reference` | `{ id, handle, title, blogHandle }` |
+| `variant_reference` | `{ id, title, sku, price, productHandle, productTitle }` |
+
+## Theme bindings
+
+Settings connect to `metaobjects.<type>.<handle>.<key>` and
+`product|collection.metafields.<namespace>.<key>` exactly as before; the new types just fit
+more settings. See [Dynamic sources](./dynamic-sources#type-compatibility).
+
+## Importing from Shopify
+
+The value shapes follow Shopify's metafield types so an importer can map them field by field:
+`color` → `color`; `date_time` → `date_time`; `money` `{ amount: "5.99", currency_code }` →
+`money` `{ amount: 599, currency }`; `link` `{ text, url }` → `link` `{ label, url }`;
+`rating` `{ value, scale_max }` → `rating` `{ value, max }`; `weight` / `dimension` / `volume`
+`{ value, unit }` → `measurement` with `measure` `weight` / `length` / `volume` (units outside
+our list need converting); `page_reference`, `variant_reference` → the same; an article
+reference → `article_reference`; a `list.single_line_text_field` with choices → a `choice`
+list. Groups have no Shopify metafield equivalent (Shopify uses a list of metaobject
+references).

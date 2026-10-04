@@ -11,7 +11,8 @@ import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ReferenceThumb from './reference-thumb'
 
-export type ReferenceKind = 'product' | 'collection' | 'metaobject' | 'file'
+/** What a reference picker can search (the API's `REFERENCE_KINDS`). */
+export type ReferenceKind = Parameters<typeof api.metaobjects.references>[0]['kind']
 export type ReferenceOption = Awaited<ReturnType<typeof api.metaobjects.references>>[number]
 
 type ReferenceSearchDialogProps = {

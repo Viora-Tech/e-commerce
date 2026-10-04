@@ -1,25 +1,26 @@
 'use client'
 
-import type { FieldType } from '@commerce/core/metaobjects'
+import type { FieldType, FieldValidations } from '@commerce/core/metaobjects'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Label } from '@commerce/ui/shadcn/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@commerce/ui/shadcn/select'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { fieldInputContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
+import ChoiceInput from './choice-input'
+import ColourInput from './colour-input'
+import DateTimeInput from './date-time-input'
+import LinkInput from './link-input'
+import MeasurementInput from './measurement-input'
+import MoneyFieldInput from './money-field-input'
+import RatingInput from './rating-input'
 
 type ScalarInputProps = {
   id: string
   type: FieldType
   value: unknown
-  choices?: string[] | undefined
+  /** The field's rules: its choices, currency, unit kind or number of stars. */
+  rules?: FieldValidations | undefined
   invalid?: boolean | undefined
   onChange: (value: unknown) => void
 }
@@ -34,12 +35,15 @@ const INPUT_TYPE: Partial<Record<FieldType, string>> = {
 const text = (v: unknown): string =>
   typeof v === 'string' ? v : typeof v === 'number' ? String(v) : ''
 
-/** One plain value: text, number, date, link, true/false or a preset choice. */
+/**
+ * One plain value: text, number, date, link, true/false, a choice, a colour, a date and
+ * time, money, a button link, stars or a measurement.
+ */
 export default function ScalarInput({
   id,
   type,
   value,
-  choices,
+  rules,
   invalid,
   onChange,
 }: ScalarInputProps) {
@@ -69,24 +73,38 @@ export default function ScalarInput({
       />
     )
   }
-  if (type === 'single_line_text' && choices?.length) {
+  if ((type === 'single_line_text' && rules?.choices?.length) || type === 'choice') {
     return (
-      <Select
-        items={Object.fromEntries(choices.map((c) => [c, c]))}
-        value={text(value) || null}
-        onValueChange={(v) => onChange(v === null ? '' : String(v))}
-      >
-        <SelectTrigger id={id} className="w-full" aria-invalid={invalid || undefined}>
-          <SelectValue placeholder={copy.choose} />
-        </SelectTrigger>
-        <SelectContent>
-          {choices.map((c) => (
-            <SelectItem key={c} value={c}>
-              {c}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <ChoiceInput
+        id={id}
+        choices={rules?.choices ?? []}
+        multiple={false}
+        value={value}
+        invalid={invalid}
+        onChange={(v) => onChange(v ?? '')}
+      />
+    )
+  }
+  if (type === 'color') {
+    return <ColourInput id={id} value={value} invalid={invalid} onChange={onChange} />
+  }
+  if (type === 'date_time') {
+    return <DateTimeInput id={id} value={value} invalid={invalid} onChange={onChange} />
+  }
+  if (type === 'money') {
+    return (
+      <MoneyFieldInput id={id} value={value} rules={rules} invalid={invalid} onChange={onChange} />
+    )
+  }
+  if (type === 'link') {
+    return <LinkInput id={id} value={value} invalid={invalid} onChange={onChange} />
+  }
+  if (type === 'rating') {
+    return <RatingInput id={id} value={value} rules={rules} onChange={onChange} />
+  }
+  if (type === 'measurement') {
+    return (
+      <MeasurementInput id={id} value={value} rules={rules} invalid={invalid} onChange={onChange} />
     )
   }
 

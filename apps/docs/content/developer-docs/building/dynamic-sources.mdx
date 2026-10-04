@@ -20,7 +20,8 @@ already store.
 
 | Piece | File |
 | --- | --- |
-| Binding format, source paths, compatibility table, validation, `applyBindings` (pure, browser-safe) | `packages/core/src/dynamic-sources/format.ts` (`@commerce/core/dynamic-sources`) |
+| Binding format, source paths, compatibility table, validation (pure, browser-safe) | `packages/core/src/dynamic-sources/format.ts` (`@commerce/core/dynamic-sources`) |
+| `applyBindings`: a loaded value in the shape its setting wants, else the fallback (pure) | `packages/core/src/dynamic-sources/resolve.ts` (same entry) |
 | Source catalog for a template (what the picker lists and Save accepts) | `packages/core/src/dynamic-sources/catalog.ts` |
 | Server loader under RLS, catalog loader, Save check | `packages/core/src/dynamic-sources/service.ts` |
 | Storefront resolution | `apps/storefront/src/lib/template-render.tsx` (`renderTemplate`, option `sources`) |
@@ -81,8 +82,11 @@ A connected setting's value is replaced by a binding object, anywhere inside a s
 `packages/core/src/catalog/product-taxonomy.json`, MIT, see `THIRD_PARTY_NOTICES.md`).
 
 Only definitions with **Storefront access** and active metaobject entries are offered or
-resolved. List metafields, `boolean` and `metaobject_reference` fields are not offered: no
-setting can show them.
+resolved. List metafields, `boolean`, `group` and `metaobject_reference` fields are not
+offered: no setting can show them (a group's rows wait for Content list loops, CMS PR3). The
+path `metaobjects.<type>.<handle>.<key>` is unchanged by the CMS PR2 field types; each new type
+simply has more settings it fits (below). Value shapes per type:
+[Content types](./content-types#field-types-and-stored-values).
 
 ## Type compatibility
 
@@ -91,16 +95,20 @@ checks it.
 
 | Setting kind | Accepts |
 | --- | --- |
-| `text` (text, textarea) | single/multi line text, integer, decimal, money (formatted `₹1,299`), date (`12 March 2026`), url |
+| `text` (text, textarea) | single/multi line text, integer, decimal, money (formatted `₹1,299`, a money field in its own currency), date (`12 March 2026`), date and time (`2 October 2026 at 10:00 am`, in the store's time zone), url, choice, rating (`4.5/5`), measurement (`1.5 kg`) |
 | `richtext` | rich text, single/multi line text |
 | `image` (`{ url, alt }` objects) | file |
-| `link` (`{ label, href }` objects) | url, product reference, collection reference |
-| `number` | integer, decimal |
-| `color` (text fields named `*colour*`/`*color*`) | single line text, used only when it is a CSS colour |
+| `link` (`{ label, href }` objects) | url, button link, product / variant / collection / page / blog post reference |
+| `url` (link picker text fields) | the same as `link` |
+| `number` | integer, decimal, rating (its value) |
+| `color` (text fields named `*colour*`/`*color*`) | colour; single line text, used only when it is a CSS colour |
 
 Images and links keep the fallback's other keys (alt text, button label). Image and link URLs
-must be `http(s)://` or a site path; anything else falls back. Select, radio, array and plain
-object fields cannot be connected.
+must be `http(s)://` or a site path; anything else falls back. A reference links to its
+storefront page: `/products/<handle>`, `/collections/<handle>`, `/pages/<handle>`,
+`/blogs/<blog>/<handle>`, and a variant to `/products/<handle>?variant=<id>`. A **button link**
+field's own words replace the button label; a record's title only fills an empty label.
+Select, radio, array and plain object fields cannot be connected.
 
 ## Resolution
 

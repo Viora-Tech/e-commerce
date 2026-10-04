@@ -1,6 +1,11 @@
 'use client'
 
-import { type FieldRule, isReferenceType, NO_LIST_TYPES } from '@commerce/core/metaobjects'
+import {
+  type FieldRule,
+  type FieldType,
+  isReferenceType,
+  NO_LIST_TYPES,
+} from '@commerce/core/metaobjects'
 import type { RichTextValue } from '@commerce/richtext'
 import { Plus, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -9,6 +14,8 @@ import { useId } from 'react'
 import RichTextField from '@/components/fields/rich-text-field'
 import { entryFormContent, fieldInputContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
+import ChoiceInput from './choice-input'
+import GroupInput from './group-input'
 import ReferencePicker from './reference-picker'
 import type { ReferenceKind } from './reference-search-dialog'
 import ScalarInput from './scalar-input'
@@ -20,11 +27,14 @@ type FieldInputProps = {
   onChange: (value: unknown) => void
 }
 
-const KIND: Record<string, ReferenceKind> = {
+const KIND: Partial<Record<FieldType, ReferenceKind>> = {
   file: 'file',
   product_reference: 'product',
   collection_reference: 'collection',
   metaobject_reference: 'metaobject',
+  page_reference: 'page',
+  variant_reference: 'variant',
+  article_reference: 'article',
 }
 
 function asIds(value: unknown): string[] {
@@ -66,6 +76,7 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
   // Render logic
   const list = rule.list && !NO_LIST_TYPES.includes(rule.type)
   const items = asItems(value)
+  const kind = isReferenceType(rule.type) ? KIND[rule.type] : undefined
 
   return (
     <Field data-invalid={Boolean(error)}>
@@ -75,13 +86,31 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
           <span className="text-caption font-normal text-muted-foreground">{required}</span>
         ) : null}
       </FieldLabel>
-      {isReferenceType(rule.type) ? (
+      {kind ? (
         <ReferencePicker
-          kind={KIND[rule.type] as ReferenceKind}
+          kind={kind}
           definitionId={rule.validations?.metaobjectDefinitionId}
           value={asIds(value)}
           multiple={list}
           onChange={(ids) => onChange(list ? ids : (ids[0] ?? null))}
+        />
+      ) : rule.type === 'group' ? (
+        <GroupInput
+          id={id}
+          subfields={rule.validations?.subfields ?? []}
+          maxRows={rule.validations?.maxItems}
+          value={value}
+          invalid={Boolean(error)}
+          onChange={onChange}
+        />
+      ) : rule.type === 'choice' && list ? (
+        <ChoiceInput
+          id={id}
+          choices={rule.validations?.choices ?? []}
+          multiple
+          value={value}
+          invalid={Boolean(error)}
+          onChange={onChange}
         />
       ) : list ? (
         <div className="flex flex-col gap-2">
@@ -93,7 +122,7 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
                   id={index === 0 ? id : `${id}-${index}`}
                   type={rule.type}
                   value={item}
-                  choices={rule.validations?.choices}
+                  rules={rule.validations}
                   invalid={Boolean(error)}
                   onChange={(next) => setItem(items, index, next)}
                 />
@@ -119,7 +148,7 @@ export default function FieldInput({ rule, value, error, onChange }: FieldInputP
           id={id}
           type={rule.type}
           value={value}
-          choices={rule.validations?.choices}
+          rules={rule.validations}
           invalid={Boolean(error)}
           onChange={onChange}
         />

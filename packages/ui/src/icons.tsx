@@ -125,6 +125,8 @@ import {
   Palette as PhPalette,
   ShoppingBag as PhShoppingBag,
   ShoppingCart as PhShoppingCart,
+  Star as PhStar,
+  StarHalf as PhStarHalf,
   Plus,
   Printer,
   PuzzlePiece,
@@ -378,6 +380,9 @@ export const TargetIcon = defineIcon(Target, 'TargetIcon')
 export const FireIcon = defineIcon(Fire, 'FireIcon')
 export const MapPinLineIcon = defineIcon(MapPinLine, 'MapPinLineIcon')
 export const WarningIcon = defineIcon(Warning, 'WarningIcon')
+/** Rating stars (Content types "Rating" field); pass `weight="fill"` for a chosen star. */
+export const StarIcon = defineIcon(PhStar, 'StarIcon')
+export const StarHalfIcon = defineIcon(PhStarHalf, 'StarHalfIcon', 'fill')
 
 /*
  * Theme editor section glyphs: one family, Phosphor regular, drawn at 16px in the
