@@ -35,6 +35,9 @@ COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).
 COPY --from=pruner /repo/commerce.config.ts ./commerce.config.ts
+# The storefront has no static files of its own yet, and git keeps no empty folders; the
+# runner's COPY of public/ needs it to exist.
+RUN mkdir -p apps/storefront/public
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # See apps/admin/Dockerfile's identical line for why this is here (fits the GitHub Actions
