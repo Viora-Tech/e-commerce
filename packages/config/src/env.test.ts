@@ -19,4 +19,21 @@ describe('loadEnv', () => {
     const { DATABASE_URL: _drop, ...rest } = valid
     expect(() => loadEnv(rest)).toThrow(/Invalid environment:.*DATABASE_URL/)
   })
+
+  it('treats a blank optional value as unset (Dokploy, compose ${KEY:-})', () => {
+    const env = loadEnv({ ...valid, SENTRY_DSN: '', SES_REGION: '  ', PLATFORM_EMAIL_FROM: '' })
+    expect(env.SENTRY_DSN).toBeUndefined()
+    expect(env.SES_REGION).toBeUndefined()
+    expect(env.PLATFORM_EMAIL_FROM).toBeUndefined()
+  })
+
+  it('still fails a blank required value, as missing', () => {
+    expect(() => loadEnv({ ...valid, DATABASE_URL: '' })).toThrow(
+      /Invalid environment:.*DATABASE_URL/,
+    )
+  })
+
+  it('still rejects a non-blank invalid value', () => {
+    expect(() => loadEnv({ ...valid, SENTRY_DSN: 'not-a-url' })).toThrow(/SENTRY_DSN/)
+  })
 })
