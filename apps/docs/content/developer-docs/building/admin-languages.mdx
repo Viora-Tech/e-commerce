@@ -119,8 +119,8 @@ Compact amounts differ: English `₹1.2L` / `₹1.2Cr`, Hindi `₹1.2 लाख`
 package spells the units out and stays in crore instead of hi-IN's own `अरब`). Dates use
 `hi-IN` with full month names (`12 सितंबर 2026`), still pinned to the store's zone
 (Asia/Kolkata) through `formatInZone` in `@commerce/dates`; relative days (`आज`, `कल`,
-`5 मिनट पहले`) come from `data/dates.ts`. Need another pattern? `useFormat().pattern(value,
-{ ... })`, never a hand-built `Intl.DateTimeFormat` (the `date-format` sweep fails on one).
+`5 मिनट पहले`) come from `data/dates.ts`. Need another pattern?
+`useFormat().pattern(value, { ... })`, never a hand-built `Intl.DateTimeFormat` (the `date-format` sweep fails on one).
 
 ## Page names and status badges
 

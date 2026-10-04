@@ -10,9 +10,17 @@ import { sharedRedis } from '@commerce/queue'
 import { toNextJsHandler } from 'better-auth/next-js'
 import { auth } from '@/lib/auth'
 
-const { GET, POST: authPost } = toNextJsHandler(auth())
+/**
+ * Built on the first request, not at import: `next build` imports every route to read its config,
+ * and the image is built without DATABASE_URL / REDIS_URL / AUTH_SECRET.
+ */
+let handlers: ReturnType<typeof toNextJsHandler> | undefined
+const authHandlers = () => (handlers ??= toNextJsHandler(auth()))
+const authPost = (request: Request) => authHandlers().POST(request)
 
-export { GET }
+export function GET(request: Request): Promise<Response> {
+  return authHandlers().GET(request)
+}
 
 /** Better Auth's email-OTP plugin route; per email and per IP, generous but not open. */
 const OTP_SEND_PATH = '/email-otp/send-verification-otp'
