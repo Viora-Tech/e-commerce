@@ -30,6 +30,10 @@ RUN bun install --frozen-lockfile
 
 # --- Build with the full pruned source ------------------------------------------------------
 FROM installer AS builder
+# `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
+# under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
+# Build stage only; the runtime image is unchanged.
+RUN apk add --no-cache nodejs
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core and this
 # app's customize-config.tsx both import these by relative path (see
@@ -50,6 +54,9 @@ RUN if [ -z "$NEXT_PUBLIC_WORKER_URL" ]; then unset NEXT_PUBLIC_WORKER_URL; fi \
 
 # --- Minimal runtime image ------------------------------------------------------------------
 FROM base AS runner
+# The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
+# server runtime ("Expected CommonJS module to have a function wrapper").
+RUN apk add --no-cache nodejs
 WORKDIR /app
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 ENV NODE_ENV=production
@@ -65,6 +72,6 @@ USER nextjs
 EXPOSE 3200
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD bun -e "fetch('http://127.0.0.1:3200/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3200/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["bun", "apps/admin/server.js"]
+CMD ["node", "apps/admin/server.js"]

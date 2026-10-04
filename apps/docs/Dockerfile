@@ -24,6 +24,10 @@ COPY patches ./patches
 RUN bun install --frozen-lockfile
 
 FROM installer AS builder
+# `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
+# under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
+# Build stage only; the runtime image is unchanged.
+RUN apk add --no-cache nodejs
 COPY --from=pruner /repo/out/full/ .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -31,6 +35,9 @@ ENV NODE_OPTIONS=--max-old-space-size=2048
 RUN bun run build --filter=@commerce/docs
 
 FROM base AS runner
+# The standalone Next server runs on Node: Bun 1.3.11 fails to load Next's compiled
+# server runtime ("Expected CommonJS module to have a function wrapper").
+RUN apk add --no-cache nodejs
 WORKDIR /app
 RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 ENV NODE_ENV=production
@@ -46,6 +53,6 @@ USER nextjs
 EXPOSE 3500
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD bun -e "fetch('http://127.0.0.1:3500/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3500/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["bun", "apps/docs/server.js"]
+CMD ["node", "apps/docs/server.js"]
