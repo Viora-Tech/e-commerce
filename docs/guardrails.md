@@ -260,6 +260,19 @@ ceiling (a 12-row picker, a 100-order courier batch), with why.
 A `.ts` module (not tests or migrations) over 500 lines. Listed files may grow by at most 50
 lines past their recorded size; one that drops under 500 must leave the list.
 
+### u. `turbo-cache-graph` (`scripts/sweeps/turbo-cache-graph.test.ts`)
+
+Not a ratchet. `test` and `typecheck` are cached by turbo (see "Testing fast" below), so a
+task's hash must cover every file it depends on. `packages/core` imports the root
+`commerce.config.ts` (the admin, `commerce.blocks.config.ts`), which pulls in every plugin
+package — packages core does not list in its package.json, so turbo cannot see them. The root
+`//#plugin-graph` task in `turbo.json` covers both config files and every package they import;
+every package that depends on core adds it to its `test`/`typecheck` `dependsOn` in its own
+`turbo.json` (copy `packages/core/turbo.json`). The sweep fails when a config imports a package
+`//#plugin-graph` doesn't list (or lists one it no longer imports), or when a package that
+depends on core has no such `turbo.json`. Without it, editing a plugin would replay a stale
+cached pass for core, the API and the apps.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does
@@ -340,3 +353,61 @@ bun run test:sweeps -- scripts/sweeps/service-layer.test.ts   # one sweep
 
 They're plain vitest tests (`scripts/sweeps/vitest.config.ts`), so normal vitest flags
 work (`--reporter=verbose`, `-t "no-orphans"`, etc).
+
+## Testing fast
+
+Coding is quick; the test loop is what agents wait on. Four things keep it short.
+
+**1. Test only what changed.** `test` and `typecheck` are cached, so ask for the whole set and
+let turbo skip what hasn't changed, or filter to the packages your branch touched:
+
+```sh
+bun run affected        # typecheck + test: packages changed since origin/main, plus dependents
+bun run turbo:shared run typecheck test --filter=@commerce/core   # one package
+bun run test            # everything; unchanged packages are cache hits
+```
+
+`bun run affected` is `turbo run typecheck test --filter=...[origin/main]` on the shared cache.
+The filter follows package.json dependencies, so a change to `commerce.config.ts`,
+`commerce.blocks.config.ts` or a plugin package (which core and everything above it import
+through those files) is only fully covered by `bun run test`; there the cache hash does see it.
+Skip `next build` unless you changed build config, routes or something only the bundler checks;
+`typecheck` covers the rest.
+
+**2. Parallel test files, one database per worker.** Database-backed packages (`api`, `auth`,
+`core`, `db`, `plugin-back-in-stock`, `plugin-gst-invoices`, `plugin-shopify-import`) run
+`TEST_WORKERS` files at once (default 3; `TEST_WORKERS=1` runs one at a time). Their
+`globalSetup` (`prepareTestDatabases`, `packages/db/test/databases.ts`) migrates the package's
+test database once and clones it per worker with `CREATE DATABASE … TEMPLATE`
+(`commerce_test_<namespace>_<pkg>_w1`, `_w2`, …). A setup file
+(`packages/config/src/test-worker.ts`) points each worker's `DATABASE_URL`,
+`DATABASE_URL_OWNER` and `LOCAL_STORAGE_DIR` at its own copy, so `resetDb` in one file never
+empties another file's rows. Copies are kept between runs and migrated like the template, so a
+new migration reaches them; they are never dropped, because `DROP DATABASE` forces a Postgres
+checkpoint that took minutes on the shared Docker volume while other suites were writing. To
+clear a namespace's copies by hand, drop `commerce_test_<namespace>_*_w*`. The queue package's Redis tests run in parallel too, with
+per-worker key prefixes. A new database-backed package does the same: `...parallelDbTests()` in
+its `vitest.config.ts`, `prepareTestDatabases` in its global setup. Keep `TEST_WORKERS` at 3 or
+below on the 15 GB machine while other agents build; each worker is a Node process and up to
+two 10-connection pools.
+
+`resetDb` (`@commerce/db/test`) runs before almost every test. It `DELETE`s from every table
+with foreign-key triggers off for that transaction instead of `TRUNCATE`-ing ~110 tables:
+~50 ms instead of ~2 s per test, which was most of the old suite time.
+
+**3. Turbo caches `test` and `typecheck`.** A package's hash covers its own files, every
+workspace package it depends on (so a migration in `packages/db/drizzle` re-runs every
+database-backed suite), the root `.env.test`, and, for packages that depend on core, the plugin
+graph (sweep `u`). The api suite also hashes `apps/storefront/src`, which the cross-store leak
+test walks. `TEST_DB_NAMESPACE`, `TEST_WORKERS` and `VITEST_MAX_WORKERS` pass through without
+changing the hash. Turbo never caches a failed run. `typecheck` is incremental
+(`incremental: true` in `packages/config/tsconfig.base.json`), and its `*.tsbuildinfo` is a
+cached output, so a cache hit also hands tsc its state for the next real run.
+
+**4. One cache for every worktree.** `bun run test`, `typecheck`, `test:coverage`, `affected`
+and `turbo:shared` go through `scripts/turbo.ts`, which sets `TURBO_CACHE_DIR` to the main
+checkout's `.turbo/cache` (found with `git rev-parse --git-common-dir`). A result one worktree
+computed is then a hit in every other worktree. Set `TURBO_CACHE_DIR` yourself to use another
+folder (for example one shared by several clones); plain `bunx turbo …` uses the worktree's own
+`.turbo/cache` unless that variable is set. `build` stays plain `turbo`, because the Docker
+builds run it in a pruned tree without `scripts/`.

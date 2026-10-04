@@ -5,12 +5,37 @@ title: Testing
 # Testing
 
 ```sh filename="Terminal"
-bun run test              # all packages, via turbo
+bun run test              # all packages, via turbo (unchanged packages are cache hits)
+bun run affected          # typecheck + test for packages changed since origin/main
 bun run test:coverage
 bun run test:sweeps       # guardrail sweeps — see /developer-docs/building/guardrails
 ```
 
-17 vitest projects, one per package/app that has tests.
+One vitest project per package/app that has tests.
+
+## Testing fast (read this before running the suite)
+
+- **Test what changed.** `bun run affected` runs `turbo run typecheck test --filter=...[origin/main]`.
+  For one package: `bun run turbo:shared run typecheck test --filter=@commerce/core`. A change to
+  `commerce.config.ts`, `commerce.blocks.config.ts` or a plugin package also affects core and
+  everything above it; run `bun run test` then (the cache still skips the rest).
+- **Cached.** `test` and `typecheck` are turbo-cached. The hash covers the package, every
+  workspace package it depends on (a new migration re-runs every database suite), `.env.test`,
+  and the plugin graph for anything built on core. A failed run is never cached.
+- **Shared between worktrees.** The root scripts set `TURBO_CACHE_DIR` to the main checkout's
+  `.turbo/cache`, so a typecheck or test another worktree already ran is a cache hit. Set
+  `TURBO_CACHE_DIR` to use a different folder.
+- **Parallel files.** Database-backed packages run `TEST_WORKERS` test files at once (default
+  3, `TEST_WORKERS=1` for one at a time). Each worker gets its own copy of the test database,
+  cloned from a migrated template, so files never see each other's rows.
+- **Skip `next build`** unless you changed build config or something only the bundler checks;
+  `bun run typecheck` covers types.
+
+```sh filename="Terminal"
+TEST_DB_NAMESPACE=agent7 TEST_WORKERS=2 bun run affected
+```
+
+Details and the reasons behind each piece: `docs/guardrails.md`, "Testing fast".
 
 ## Test databases
 
@@ -30,7 +55,10 @@ Parallel worktrees share the same Postgres instance, so without namespacing two 
 test runs would both reset `commerce_test_<suffix>` and stomp on each other mid-run. Set
 `TEST_DB_NAMESPACE` (letters, digits, underscores, 1-32 chars) per checkout/worktree, and
 every package then uses `commerce_test_<namespace>_<suffix>` instead — created on first use by
-the global test setup.
+the global test setup. That database is the migrated template; the workers run on
+`commerce_test_<namespace>_<suffix>_w1`, `_w2`, … copies, cloned once and then migrated with the
+template on every run. Keep the namespace short enough that the copy names stay within Postgres's 63 characters
+(the setup refuses longer ones).
 
 ```sh filename="Terminal"
 TEST_DB_NAMESPACE=agent7 bun run test
