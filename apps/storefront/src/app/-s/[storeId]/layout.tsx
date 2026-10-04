@@ -42,6 +42,7 @@ import { policyPageContent } from '@/data/policies'
 import { privacyContent } from '@/data/privacy'
 import { searchContent } from '@/data/search'
 import { readCartId } from '@/lib/cart-cookie'
+import { liquidLayoutForPath } from '@/lib/checkout-path'
 import { listCollections } from '@/lib/collections'
 import { COOKIE_SETTINGS_HASH } from '@/lib/cookie-settings'
 import { NONCE_HEADER } from '@/lib/csp'
@@ -140,12 +141,16 @@ export default async function StoreLayout({ children, params }: Props) {
   if (!current) notFound()
 
   // An imported Shopify theme draws its own page shell (`layout/theme.liquid`): its
-  // stylesheets, icon sprites, cart drawer and scripts around our <main>.
-  const liquid = await inStore(storeId, async (tx) => {
+  // stylesheets, icon sprites, cart drawer and scripts around our <main>. Never around the
+  // locked checkout, which then also skips the theme's header and footer (`liquidLayoutForPath`).
+  const pathname = (await headers()).get('x-pathname') ?? '/'
+  const themeLayout = await inStore(storeId, async (tx) => {
     const themeId = preview?.themeId ?? (await mainThemeId(tx))
     const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
     return ctx ? liquidLayoutFor(ctx) : null
   })
+  const liquid = liquidLayoutForPath(themeLayout, pathname)
+  const themeChrome = liquid !== null || themeLayout === null
 
   const cartId = await readCartId()
   const cartCount = cartId
@@ -174,6 +179,7 @@ export default async function StoreLayout({ children, params }: Props) {
   // signups sit around the Header and Footer sections, which draw the store's menus.
   // The store's collections give the menu its card images and the search its brand pills.
   const header = await inStore(storeId, async (tx) => {
+    if (!themeChrome) return null
     const collections = await listCollections(tx)
     return renderTemplate(tx, storeId, 'header', {
       renderers: {
@@ -222,8 +228,11 @@ export default async function StoreLayout({ children, params }: Props) {
   }
   let themedConsent = false
   let consentDrawn = false
-  const footer = await inStore(storeId, (tx) =>
-    renderTemplate(tx, storeId, 'footer', {
+  // Without the theme's footer group (checkout under an imported theme) the standalone
+  // ConsentManager below asks and runs the tags, so a purchase is still measured.
+  const footer = await inStore(storeId, async (tx) => {
+    if (!themeChrome) return null
+    return renderTemplate(tx, storeId, 'footer', {
       // The mobile dock's cart count.
       appBlockContext: { cartCount },
       onSections: (types) => {
@@ -258,8 +267,8 @@ export default async function StoreLayout({ children, params }: Props) {
           return <ConsentManager {...consent} appearance={cookieBannerSettings(s)} />
         },
       },
-    }),
-  )
+    })
+  })
 
   if (liquid) {
     return (

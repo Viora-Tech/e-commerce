@@ -91,8 +91,12 @@ A home page is about 1 s in dev and two passes per section.
   Shopify's because themes key CSS on them). The store layout draws the theme's
   `layout/theme.liquid` head (stylesheets, CSS variables), the body markup before the header group
   and after the footer group (icon sprites, cart drawer, scripts), with the request's CSP nonce on
-  every `<script>`. Our own pages (product, cart, checkout) render inside the theme's header and
-  footer. Assets: `/theme-assets/<theme>/<file>` (route `-s/[storeId]/theme-assets/[themeId]/[file]`),
+  every `<script>`. Our own pages (product, cart, search, account) render inside the theme's header
+  and footer. The checkout (`/checkout` and everything under it) never does: the layout drops the
+  theme's shell, header and footer there (`liquidLayoutForPath`, `lib/checkout-path.ts`), so the
+  theme's CSS cannot restyle it and its scripts cannot rewrite it before React hydrates (Zero
+  Drift's `reveal.js` wraps every `main h1`–`h3` in a span, which threw hydration error #418).
+  Assets: `/theme-assets/<theme>/<file>` (route `-s/[storeId]/theme-assets/[themeId]/[file]`),
   cached for a year when `?v=` matches, CORS-open for the canvas, SVG sandboxed.
 - **Customize.** `themes.import.editor` returns schemas, the schema locale, colour schemes and the
   theme's head; `use-liquid-theme.ts` turns each `{% schema %}` into Puck fields
@@ -120,7 +124,7 @@ before any theme script). This is not an emulation of Shopify's API; each call b
 | `Shopify.customerPrivacy` (cookie banner) | Our consent cookie: the theme's banner asks when we would, its answer goes to `ConsentManager` (`commerce:consent` event) which stores it and loads the allowed tags |
 | Newsletter form (`form 'customer'`) | `/theme-actions/newsletter` → `subscribeAction` (double opt-in) |
 | Contact form | Not available yet (redirects back) |
-| Checkout | Ours, never themed |
+| Checkout | Ours, never themed: no theme CSS, scripts, header or footer on `/checkout/*` |
 | Customer account forms | Our account pages |
 | App blocks (`@app`), app data (Judge.me metafields) | Left out / hidden; listed in the report |
 | Metafields, metaobjects | Blank |

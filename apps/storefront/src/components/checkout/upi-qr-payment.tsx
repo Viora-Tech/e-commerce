@@ -41,12 +41,15 @@ function clock(ms: number): string {
 export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaymentProps) {
   // Hooks
   const router = useRouter()
-  const [now, setNow] = useState(() => Date.now())
+  // The clock is read only after hydration: the server's time and the shopper's differ, and
+  // a QR that closes in between would draw the expired state on one side only (error #418).
+  const [now, setNow] = useState<number | null>(null)
   const [drawn, setDrawn] = useState<string | null>(null)
   const [notYet, setNotYet] = useState(false)
   const [checking, startCheck] = useTransition()
 
   useEffect(() => {
+    setNow(Date.now())
     const tick = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(tick)
   }, [])
@@ -87,7 +90,8 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
     })
 
   // Render logic
-  const left = msLeft(qr.expiresAt, now)
+  // Null until the page has the shopper's clock: open, with no countdown yet.
+  const left = now === null ? null : msLeft(qr.expiresAt, now)
   const expired = left === 0
   const src = qr.imageUrl ?? drawn
   const apps = qr.apps ?? []
@@ -101,18 +105,13 @@ export default function UpiQrPayment({ orderNumber, qr, amountLabel }: UpiQrPaym
           <h2 className={`${CK_HEADING} text-[1.0625rem]!`}>{content.heading(amountLabel)}</h2>
           <p className="text-[0.8125rem] text-ck-muted">{content.help}</p>
         </div>
-        {expired ? null : (
+        {left === null || expired ? null : (
           <span
             className="shrink-0 rounded-full bg-ck-soft px-2.5 py-1 text-[0.75rem] font-medium tabular-nums text-ck-muted"
             title={content.closesIn(clock(left))}
-            suppressHydrationWarning
           >
-            <span className="sr-only" suppressHydrationWarning>
-              {content.closesIn(clock(left))}
-            </span>
-            <span aria-hidden="true" suppressHydrationWarning>
-              {clock(left)}
-            </span>
+            <span className="sr-only">{content.closesIn(clock(left))}</span>
+            <span aria-hidden="true">{clock(left)}</span>
           </span>
         )}
       </div>
