@@ -16,18 +16,19 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
-const copy = shopifyImportContent.csv
 const base = shopifyImportContent.base
 
 /** Upload one of Shopify's CSV exports; the preview starts at once. */
 export default function CsvPage() {
   // Hooks
+  const copy = useCopy(shopifyImportContent.csv)
   const router = useRouter()
   const [resource, setResource] = useState<CsvResource>('products')
   const [file, setFile] = useState<File | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<'notCsv' | 'tooBig' | null>(null)
   const [busy, setBusy] = useState(false)
   const input = useRef<HTMLInputElement>(null)
 
@@ -36,8 +37,8 @@ export default function CsvPage() {
     setError(null)
     setFile(null)
     if (!next) return
-    if (!/\.csv$/i.test(next.name)) return setError(copy.notCsv)
-    if (next.size > MAX_CSV_BYTES) return setError(copy.tooBig)
+    if (!/\.csv$/i.test(next.name)) return setError('notCsv')
+    if (next.size > MAX_CSV_BYTES) return setError('tooBig')
     setFile(next)
   }
 
@@ -96,7 +97,7 @@ export default function CsvPage() {
               {file ? `${file.name}, ${copy.size(file.size)}` : copy.none}
             </span>
           </div>
-          {error ? <p className="text-body text-destructive">{error}</p> : null}
+          {error ? <p className="text-body text-destructive">{copy[error]}</p> : null}
         </CardContent>
       </Card>
       <div className="flex justify-end">

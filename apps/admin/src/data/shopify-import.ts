@@ -2,12 +2,17 @@ import type {
   AuthMode,
   CsvResource,
   ImportResource,
+  LeftBehindReason,
   RunStatus,
   ScopeHandle,
 } from '@commerce/plugin-shopify-import/client'
 
 const plural = (n: number, one: string, many: string) =>
   `${n.toLocaleString('en-IN')} ${n === 1 ? one : many}`
+
+/** Every read scope the import asks for, in the order the Dev Dashboard lists them. */
+export const SCOPE_LIST =
+  'read_products, read_inventory, read_customers, read_orders, read_all_orders, read_content, read_online_store_navigation, read_files, read_metaobject_definitions, read_metaobjects, read_discounts and read_gift_cards'
 
 export const shopifyImportContent = {
   base: '/apps/shopify-import',
@@ -20,6 +25,11 @@ export const shopifyImportContent = {
     articles: 'Blog posts',
     menus: 'Menus',
     redirects: 'URL redirects',
+    files: 'Files',
+    metaobjects: 'Content types and entries',
+    metafields: 'Extra fields',
+    discounts: 'Discounts',
+    gift_cards: 'Gift cards',
   } satisfies Record<ImportResource, string>,
   previewReady: 'Preview ready',
   status: {
@@ -39,7 +49,7 @@ export const shopifyImportContent = {
     csvAction: 'Upload a file',
     apiTitle: 'Connect your Shopify store',
     apiBody:
-      'Connect a Shopify app (or an existing Admin API token) to bring everything over, including collections, pages, blog posts, menus and redirects.',
+      'Connect a Shopify app (or an existing Admin API token) to bring everything over, including collections, pages, blog posts, menus, redirects, files, content types, extra fields, discounts and gift cards.',
     apiAction: 'Connect store',
     apiConnected: (shop: string) => `Connected to ${shop}`,
     historyTitle: 'Import history',
@@ -111,7 +121,7 @@ export const shopifyImportContent = {
       stepsHeading: 'Create the app in the Dev Dashboard',
       steps: [
         'Open the Shopify Dev Dashboard (partners.shopify.com or dev.shopify.com) and create an app.',
-        'Under Configuration, give the Admin API these read scopes: read_products, read_inventory, read_customers, read_orders, read_all_orders, read_content and read_online_store_navigation.',
+        `Under Configuration, give the Admin API these read scopes: ${SCOPE_LIST}.`,
         'Release a version of the app.',
         'Install the app on your own store from the Dev Dashboard.',
         'Copy the client ID and client secret from the app’s API credentials page and paste them below.',
@@ -133,7 +143,7 @@ export const shopifyImportContent = {
       stepsHeading: 'Create the token in Shopify',
       steps: [
         'In your Shopify admin, open Settings, Apps and sales channels, Develop apps, and create an app. (New from 1 January 2026? Shopify no longer allows this here — use the app method instead.)',
-        'Under Configuration, give the Admin API these read scopes: read_products, read_inventory, read_customers, read_orders, read_all_orders, read_content and read_online_store_navigation.',
+        `Under Configuration, give the Admin API these read scopes: ${SCOPE_LIST}.`,
         'Install the app, then reveal the Admin API access token once and paste it here.',
       ],
       domain: 'Store address',
@@ -171,9 +181,15 @@ export const shopifyImportContent = {
       read_all_orders: 'Read orders older than 60 days',
       read_content: 'Read pages and blog posts',
       read_online_store_navigation: 'Read menus and redirects',
+      read_files: 'Read files',
+      read_metaobject_definitions: 'Read content types',
+      read_metaobjects: 'Read entries',
+      read_discounts: 'Read discounts',
+      read_gift_cards: 'Read gift cards',
     } satisfies Record<ScopeHandle, string>,
     chooseHeading: 'What to import',
-    chooseHelp: 'Products come first so collections and orders can link to them.',
+    chooseHelp:
+      'Products come first so collections, orders, discounts and extra fields can link to them.',
     scope: (s: string) => `Needs ${s}`,
     preview: 'Preview import',
     previewFailed: 'Could not start the preview',
@@ -219,5 +235,76 @@ export const shopifyImportContent = {
     notFound: 'This import no longer exists.',
     previous: 'Previous page',
     next: 'Next page',
+  },
+
+  /** "What stays in Shopify": one plain sentence per reason (`d` is the Shopify type or owner). */
+  left: {
+    heading: 'What stays in Shopify',
+    intro:
+      'These were not brought over, or arrived changed. The problems list below names each record.',
+    owners: {
+      PRODUCTVARIANT: 'variants',
+      CUSTOMER: 'customers',
+      ORDER: 'orders',
+      PAGE: 'pages',
+      ARTICLE: 'blog posts',
+      BLOG: 'blogs',
+      SHOP: 'your store',
+      LOCATION: 'locations',
+      COMPANY: 'companies',
+    } as Record<string, string>,
+    reasons: {
+      metafield_owner: (n: number, owner: string) =>
+        `${plural(n, 'extra field value', 'extra field values')} on ${owner}. Extra fields here are on products and collections only for now.`,
+      field_type: (n: number, type: string) =>
+        `${plural(n, 'field', 'fields')} of the Shopify type “${type}”, which has no match here yet. Their values stay in Shopify.`,
+      reference_target: (n: number, name: string) =>
+        `${plural(n, 'field', 'fields')} (${name}) link to entries of a content type that was not imported.`,
+      field_value: (n: number) =>
+        `${plural(n, 'value', 'values')} did not fit their field, such as a link to something that was not imported.`,
+      time_dropped: (n: number) =>
+        `${plural(n, 'date and time field keeps', 'date and time fields keep')} the date only.`,
+      link_label: (n: number) =>
+        `${plural(n, 'link field keeps', 'link fields keep')} the web address, not the link text.`,
+      file_type: (n: number, kind: string) =>
+        `${plural(n, `${kind} file`, `${kind} files`)}. Files holds pictures and mp4 videos for now, so download these from Shopify.`,
+      video_too_large: (n: number) =>
+        `${plural(n, 'video is', 'videos are')} over 100 MB in every size Shopify has.`,
+      external_video: (n: number) =>
+        `${plural(n, 'YouTube or Vimeo link', 'YouTube or Vimeo links')}. Add them to a section by their link.`,
+      model_3d: (n: number) => `${plural(n, '3D model', '3D models')}, not supported yet.`,
+      file_not_ready: (n: number) =>
+        `${plural(n, 'file', 'files')} Shopify was still processing. Run the import again later.`,
+      buy_x_get_y: (n: number) =>
+        `${plural(n, '“Buy X get Y” discount', '“Buy X get Y” discounts')}, not supported yet.`,
+      app_discount: (n: number) =>
+        `${plural(n, 'discount', 'discounts')} made by a Shopify app. Their rules live in that app.`,
+      customer_specific: (n: number) =>
+        `${plural(n, 'discount', 'discounts')} only for chosen customers or segments.`,
+      minimum_quantity: (n: number) =>
+        `${plural(n, 'discount needs', 'discounts need')} a minimum number of items. Ours can ask for a minimum amount instead.`,
+      variant_specific: (n: number) =>
+        `${plural(n, 'discount is', 'discounts are')} on single variants. Ours apply to whole products.`,
+      per_item_amount: (n: number) =>
+        `${plural(n, 'discount takes', 'discounts take')} an amount off each item. Ours take it off the order once.`,
+      shipping_rules: (n: number) =>
+        `${plural(n, 'free shipping discount is', 'free shipping discounts are')} limited by country or shipping price.`,
+      code_characters: (n: number) =>
+        `${plural(n, 'code uses', 'codes use')} characters other than letters, numbers and hyphens. Make a new code for each.`,
+      items_not_imported: (n: number) =>
+        `${plural(n, 'discount is', 'discounts are')} for products or collections that were not imported.`,
+      gift_card_code: (n: number) =>
+        `${plural(n, 'gift card has', 'gift cards have')} a new code with the same balance, because Shopify never shares full codes. Open each one in Gift cards and press Resend to email the new code to the customer.`,
+      gift_card_no_customer: (n: number) =>
+        `${plural(n, 'gift card has', 'gift cards have')} a balance but no customer, so there is no one to give a new code to. They keep working on Shopify.`,
+      gift_card_empty: (n: number) =>
+        `${plural(n, 'gift card is', 'gift cards are')} used up, disabled or expired.`,
+      gift_card_over_limit: (n: number) =>
+        `${plural(n, 'gift card holds', 'gift cards hold')} more than ₹2,00,000, the most a gift card can hold here.`,
+      gift_card_currency: (n: number) =>
+        `${plural(n, 'gift card is', 'gift cards are')} in another currency.`,
+      gift_card_used_here: (n: number) =>
+        `${plural(n, 'gift card was', 'gift cards were')} already spent in this store, so the balance here was kept.`,
+    } satisfies Record<LeftBehindReason, (n: number, detail: string) => string>,
   },
 } as const

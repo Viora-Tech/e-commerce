@@ -177,3 +177,110 @@ export type NMenuItem = {
 export type NMenu = { sourceId: string | null; handle: string; title: string; items: NMenuItem[] }
 
 export type NRedirect = { sourceId: string | null; path: string; target: string }
+
+/* ------------------------------------------------- import everything (2026-10) */
+
+/** One file from Shopify's Files page. */
+export type NFile = {
+  sourceId: string
+  kind: 'image' | 'video' | 'file' | 'external_video' | 'model_3d'
+  /** What to download: the image, the best mp4 under the video limit, or the file itself. */
+  url: string | null
+  alt: string | null
+  mimeType: string | null
+  /** Bytes, when Shopify says. */
+  size: number | null
+  /** Shopify's `fileStatus`: READY, PROCESSING, UPLOADED, FAILED. */
+  status: string
+}
+
+/** A field of a metaobject definition, or a metafield definition, as Shopify describes it. */
+export type NFieldDefinition = {
+  key: string
+  name: string
+  description: string | null
+  required: boolean
+  /** Shopify type name: `single_line_text_field`, `list.product_reference`, … */
+  type: string
+  validations: { name: string; value: string | null }[]
+}
+
+export type NMetaobjectDefinition = {
+  sourceId: string
+  type: string
+  name: string
+  description: string | null
+  displayNameKey: string | null
+  fields: NFieldDefinition[]
+  storefrontAccess: boolean
+}
+
+export type NFieldValue = { key: string; type: string; value: string | null }
+
+export type NMetaobject = {
+  sourceId: string
+  /** The Shopify definition's id. */
+  definitionSourceId: string
+  handle: string
+  displayName: string
+  status: 'active' | 'draft'
+  fields: NFieldValue[]
+}
+
+export type MetafieldOwner = 'PRODUCT' | 'COLLECTION'
+
+export type NMetafieldDefinition = NFieldDefinition & {
+  sourceId: string
+  ownerType: MetafieldOwner
+  namespace: string
+}
+
+/** Every metafield value of one product or collection. */
+export type NOwnerMetafields = {
+  ownerType: MetafieldOwner
+  ownerSourceId: string
+  handle: string
+  metafields: (NFieldValue & { namespace: string })[]
+}
+
+/** Shopify's discount union, reduced to what we can express plus why the rest is not. */
+export type NDiscount = {
+  sourceId: string
+  title: string
+  kind: 'code' | 'automatic'
+  /** `DiscountCodeBasic`, `DiscountAutomaticBxgy`, … */
+  typename: string
+  /** Code discounts: every code with its own use count. */
+  codes: { code: string; used: number }[]
+  method: 'percent' | 'fixed' | 'free_shipping' | null
+  /** Basis points for percent, paise for fixed. */
+  value: number
+  appliesOnEachItem: boolean
+  items:
+    | { kind: 'all' }
+    | { kind: 'products'; ids: string[]; variants: boolean; more: boolean }
+    | { kind: 'collections'; ids: string[]; more: boolean }
+  minSubtotalPaise: number | null
+  minQuantity: number | null
+  allCustomers: boolean
+  /** Free shipping: every country, or the ones listed. */
+  countries: string[] | 'all'
+  maxShippingPaise: number | null
+  usageLimit: number | null
+  oncePerCustomer: boolean
+  used: number
+  startsAt: string | null
+  endsAt: string | null
+}
+
+export type NGiftCard = {
+  sourceId: string
+  lastCharacters: string
+  balancePaise: number
+  initialPaise: number
+  currency: string
+  enabled: boolean
+  expiresOn: string | null
+  note: string | null
+  customer: { sourceId: string; email: string | null; name: string | null } | null
+}

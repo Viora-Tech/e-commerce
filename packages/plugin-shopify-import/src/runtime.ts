@@ -4,6 +4,7 @@
  */
 import type { StoreTx } from '@commerce/db'
 import { and, eq, sql } from 'drizzle-orm'
+import type { LeftBehindReason } from './client'
 import {
   type ImportResource,
   importIssue,
@@ -91,6 +92,19 @@ export class Reporter {
     const p = this.of(resource)
     p.processed++
     p[outcome]++
+  }
+
+  /**
+   * Note something that stays in Shopify (or arrives changed), summed per
+   * reason and detail so the report reads "12 values on customers", not 12 rows.
+   */
+  leave(resource: ImportResource, reason: LeftBehindReason, count = 1, detail?: string) {
+    if (count <= 0) return
+    const p = this.of(resource)
+    p.left ??= []
+    const same = p.left.find((l) => l.reason === reason && l.detail === detail)
+    if (same) same.count += count
+    else p.left.push(detail === undefined ? { reason, count } : { reason, detail, count })
   }
 
   sample(sample: PreviewSample) {

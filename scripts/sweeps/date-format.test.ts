@@ -21,8 +21,6 @@ const CORE =
 const STOREFRONT = 'storefront date text — move to formatInZone with the store timezone'
 
 const ALLOWLIST: AllowEntry[] = [
-  { file: 'apps/admin/src/components/apps/shopify-import/connect-page.tsx', reason: ADMIN },
-  { file: 'apps/admin/src/components/apps/shopify-import/imports-page.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/home/charts/sales-orders-chart.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/navigation/navigation-list.tsx', reason: ADMIN },
   { file: 'apps/admin/src/components/notifications/sender-email-card.tsx', reason: ADMIN },

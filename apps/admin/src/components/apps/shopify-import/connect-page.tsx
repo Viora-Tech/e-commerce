@@ -15,18 +15,21 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConnectForm from './connect-form'
 import ScopesCard from './scopes-card'
 
 type Connection = Awaited<ReturnType<typeof api.shopifyImport.connection>>
 
-const copy = shopifyImportContent.connect
 const base = shopifyImportContent.base
 
 /** Connect with a custom-app token, then choose what to bring over. */
 export default function ConnectPage() {
   // Hooks
+  const copy = useCopy(shopifyImportContent.connect)
+  const resources = useCopy(shopifyImportContent.resources)
+  const fmt = useFormat()
   const router = useRouter()
   const [connection, setConnection] = useState<Connection | undefined>(undefined)
   const [chosen, setChosen] = useState<ImportResource[]>([...IMPORT_RESOURCES])
@@ -97,15 +100,7 @@ export default function ConnectPage() {
     ],
     [copy.tokenLabel, `${copy.authMode[connection.authMode]} (${connection.tokenHint})`],
     ...(connection.verifiedAt
-      ? [
-          [
-            copy.verified,
-            new Date(connection.verifiedAt).toLocaleString('en-IN', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            }),
-          ] as [string, string],
-        ]
+      ? [[copy.verified, fmt.dateTime(connection.verifiedAt)] as [string, string]]
       : []),
   ]
 
@@ -156,9 +151,7 @@ export default function ConnectPage() {
                 onCheckedChange={(v) => handleToggle(resource, Boolean(v))}
               />
               <span className="flex flex-col">
-                <span className="font-medium text-ink-strong">
-                  {shopifyImportContent.resources[resource]}
-                </span>
+                <span className="font-medium text-ink-strong">{resources[resource]}</span>
                 <span className="text-caption text-muted-foreground">
                   {copy.scope(REQUIRED_SCOPES[resource])}
                 </span>

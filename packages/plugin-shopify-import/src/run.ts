@@ -5,12 +5,15 @@
 import type { LookupAll } from '@commerce/core/safe-fetch'
 import type { StorageProvider } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
+import { fetchFiles } from './api-files'
+import { REQUIRED_SCOPES } from './client'
 import { mapLimit } from './concurrency'
 import { clientFor } from './connection'
 import { parseCustomersCsv } from './csv-customers'
 import { parseOrdersCsv } from './csv-orders'
 import { parseProductsCsv } from './csv-products'
 import { createMediaHost } from './media'
+import { createReferenceResolver } from './references'
 import { errorMessage, type ImportContext, type InStore, Reporter } from './runtime'
 import { IMPORT_RESOURCES, type ImportResource, importIssue, importRun } from './schema'
 import {
@@ -23,9 +26,14 @@ import {
   fetchProducts,
   fetchRedirects,
 } from './shopify-api'
-import type { ShopifyClient } from './shopify-client'
+import { type ShopifyClient, ShopifyError } from './shopify-client'
 import { writeArticle, writeCollection, writeMenu, writePage, writeRedirect } from './write-content'
 import { writeCustomer } from './write-customers'
+import { importDiscounts } from './write-discounts'
+import { writeFile } from './write-files'
+import { importGiftCards } from './write-gift-cards'
+import { importMetafields } from './write-metafields'
+import { importMetaobjects } from './write-metaobjects'
 import { writeOrder } from './write-orders'
 import { writeProduct } from './write-products'
 
@@ -160,6 +168,38 @@ async function runApi(ctx: ImportContext, client: ShopifyClient, resources: Impo
     await forEachBatch(ctx, 'menus', fetchMenus(client), (m) => writeMenu(ctx, m))
   if (wanted('redirects'))
     await forEachBatch(ctx, 'redirects', fetchRedirects(client), (r) => writeRedirect(ctx, r))
+
+  // Files before entries and extra fields (they link to files); entries before extra fields
+  // (those link to entries); products and collections before discounts; customers before gift cards.
+  const resolver = createReferenceResolver(ctx, client)
+  if (wanted('files'))
+    await optional(ctx, 'files', () =>
+      forEachBatch(ctx, 'files', fetchFiles(client), (f) => writeFile(ctx, f), 3),
+    )
+  if (wanted('metaobjects'))
+    await optional(ctx, 'metaobjects', () => importMetaobjects(ctx, client, resolver))
+  if (wanted('metafields'))
+    await optional(ctx, 'metafields', () => importMetafields(ctx, client, resolver, onBulkFallback))
+  if (wanted('discounts')) await optional(ctx, 'discounts', () => importDiscounts(ctx, client))
+  if (wanted('gift_cards')) await optional(ctx, 'gift_cards', () => importGiftCards(ctx, client))
+}
+
+/**
+ * The newer resources need scopes an older connection may lack (and Shopify
+ * keeps gift cards from some plans). A refused scope ends that resource with a
+ * plain reason instead of stopping everything else.
+ */
+async function optional(ctx: ImportContext, resource: ImportResource, run: () => Promise<void>) {
+  try {
+    await run()
+  } catch (err) {
+    if (!(err instanceof ShopifyError) || err.kind !== 'scope') throw err
+    ctx.report.begin(resource)
+    ctx.report.issue({
+      resource,
+      message: `Shopify did not allow reading this (${REQUIRED_SCOPES[resource]}). Add the scope to your Shopify app, then run the import again. ${err.message}`,
+    })
+  }
 }
 
 /**

@@ -10,6 +10,7 @@ export default {
   'live-globe': 'Live view globe',
   'section-settings': 'Section settings and SectionFrame',
   'theme-editor': 'Theme editor',
+  'shopify-import': 'Shopify importer',
   'shopify-theme-import': 'Shopify theme import',
   'content-types': 'Content types (metaobjects)',
   'dynamic-sources': 'Dynamic sources',
