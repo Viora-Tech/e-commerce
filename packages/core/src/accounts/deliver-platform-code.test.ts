@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: deliverPlatformLoginCode tests — WHAT: admin sign-in codes go through the platform SES account / WHY: they were only logged, never emailed */
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { describe, expect, it } from 'vitest'
 import { deliverPlatformLoginCode, type PlatformCodeSender } from './deliver-code'
