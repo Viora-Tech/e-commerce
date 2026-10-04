@@ -3,6 +3,7 @@ import type { NotificationChannel, NotificationRegistry } from '@commerce/notifi
 import { eq } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { storeNotificationChannels } from '../sender-email/channels'
+import { getPlatformEmail, type PlatformEmail } from '../sender-email/platform'
 
 export type DeliverCodeOptions = {
   registry: NotificationRegistry
@@ -82,4 +83,40 @@ export async function deliverLoginLink(
     if (r.ok) sent += 1
   }
   return sent
+}
+
+/** What `deliverPlatformLoginCode` sends through; `getPlatformEmail()` in the apps, a fake in tests. */
+export type PlatformCodeSender = Pick<PlatformEmail, 'transport'>
+
+/**
+ * Send a merchant's admin sign-in code through the platform email account (the one SES account
+ * every store sends through). Merchants sign in before any store exists, so there is no store
+ * channel to use. Returns false when the platform account is not configured (development), and
+ * false when the provider refuses; the caller decides whether to fail the sign-in.
+ */
+export async function deliverPlatformLoginCode(
+  input: { email: string; code: string },
+  platform: PlatformCodeSender = getPlatformEmail(),
+): Promise<boolean> {
+  const transport = platform.transport
+  if (!transport) return false
+  const channel = transport.channel({
+    fromEmail: transport.fromEmail,
+    fromName: transport.fromName,
+    replyTo: undefined,
+    using: 'platform',
+  })
+  const r = await channel.send({
+    to: { email: input.email },
+    template: 'login_code',
+    data: {
+      storeName: transport.fromName,
+      customerName: '',
+      totalLabel: '',
+      lines: [],
+      paymentMethodLabel: '',
+      code: input.code,
+    },
+  })
+  return r.ok
 }
