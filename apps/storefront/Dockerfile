@@ -27,6 +27,10 @@ RUN bun install --frozen-lockfile
 
 # --- Build with the full pruned source ------------------------------------------------------
 FROM installer AS builder
+# `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
+# under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
+# Build stage only; the runtime image is unchanged.
+RUN apk add --no-cache nodejs
 COPY --from=pruner /repo/out/full/ .
 # turbo prune only copies workspace packages, not root-only files — packages/core imports
 # this one by relative path (see apps/docs/content/developer-docs/building/plugins.mdx).

@@ -24,6 +24,10 @@ COPY patches ./patches
 RUN bun install --frozen-lockfile
 
 FROM installer AS builder
+# `next build` runs on Node, not Bun: Bun 1.3.11 segfaults mid-build on linux/arm64 (Graviton)
+# under memory pressure. `bun run` honours the `#!/usr/bin/env node` shebang once Node exists.
+# Build stage only; the runtime image is unchanged.
+RUN apk add --no-cache nodejs
 COPY --from=pruner /repo/out/full/ .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
