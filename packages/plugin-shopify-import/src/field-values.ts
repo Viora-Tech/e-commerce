@@ -228,6 +228,9 @@ const KIND_WORDS: Record<ReferenceType, string> = {
   product_reference: 'a product',
   collection_reference: 'a collection',
   metaobject_reference: 'an entry',
+  page_reference: 'a page',
+  variant_reference: 'a variant',
+  article_reference: 'a blog post',
 }
 
 export type ConvertedFields = {
