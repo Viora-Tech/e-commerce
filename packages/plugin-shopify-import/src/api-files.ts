@@ -31,8 +31,8 @@ const FILE_FIELDS = `__typename id alt fileStatus
   ... on Video { originalSource { url mimeType fileSize } sources { url mimeType fileSize } }
   ... on ExternalVideo { originUrl }`
 
-const FILES_QUERY = `query Files($cursor: String) {
-  files(first: 50, after: $cursor, sortKey: ID) {
+const FILES_QUERY = `query Files($cursor: String, $query: String) {
+  files(first: 50, after: $cursor, sortKey: ID, query: $query) {
     pageInfo { hasNextPage endCursor }
     nodes { ${FILE_FIELDS} }
   }
@@ -95,11 +95,14 @@ export function mapFile(f: GFile): NFile {
   }
 }
 
-export async function* fetchFiles(client: ShopifyClient): AsyncGenerator<NFile[]> {
+export async function* fetchFiles(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NFile[]> {
   for await (const nodes of client.paginate<GFile>(
     FILES_QUERY,
     (d) => (d as { files: Page<GFile> }).files,
-    {},
+    { query: search },
     150,
   )) {
     yield nodes.map(mapFile)

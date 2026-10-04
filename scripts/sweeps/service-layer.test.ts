@@ -125,6 +125,12 @@ const ALLOWLIST: AllowEntry[] = [
   },
   { path: 'apps/worker/src/app-events.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/back-in-stock.ts', exact: true, reason: WORKER },
+  {
+    path: 'apps/worker/src/import-snapshots.ts',
+    exact: true,
+    reason:
+      'worker sweep lists stores through a SECURITY DEFINER helper (ids only), like preorder-balance',
+  },
   { path: 'apps/worker/src/index.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/marketing.ts', exact: true, reason: WORKER },
   { path: 'apps/worker/src/media-process.ts', exact: true, reason: WORKER },
@@ -170,6 +176,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-shopify-import/src/runtime.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/service.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/snapshot.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-content.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-customers.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-orders.ts', exact: true, reason: PLUGIN },

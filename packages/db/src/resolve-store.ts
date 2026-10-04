@@ -91,6 +91,17 @@ export async function storesWithAbandonedCarts(db: Db, cutoff: Date): Promise<st
   return rows.map((r) => r.id)
 }
 
+/**
+ * Store ids with a Shopify import preview snapshot older than `cutoff`, for the
+ * worker's snapshot cleanup. SECURITY DEFINER backed.
+ */
+export async function storesWithStaleImportSnapshots(db: Db, cutoff: Date): Promise<string[]> {
+  const rows = await db.execute<{ id: string }>(
+    sql`select stores_with_stale_import_snapshots(${cutoff.toISOString()}::timestamptz) as id`,
+  )
+  return rows.map((r) => r.id)
+}
+
 /** How the storefront should answer a hostname: which store, and whether to send it elsewhere. */
 export type HostRoute = {
   storeId: string

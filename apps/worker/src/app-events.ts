@@ -8,7 +8,9 @@ import {
   deliverNotification,
   dispatchAppEvent,
   dispatchAppJob,
+  dispatchAppJobFailure,
   installedApps,
+  isFinalJobFailure,
   storageForStore,
 } from '@commerce/core'
 import { getRegistries, registriesForStore } from '@commerce/core/registries'
@@ -91,17 +93,29 @@ export function createAppEventWorker(connection: IORedis, db: Db, opts: AppOpts)
   )
 }
 
-/** Runs jobs apps queued for themselves: PDF renders, email batches. */
+/**
+ * Runs jobs apps queued for themselves: PDF renders, email batches, Shopify
+ * imports. When a job fails for good (last retry, or stalled out because the
+ * worker died under it, e.g. out of memory), the app's `jobFailed` handler
+ * runs so its record (an import run) ends `failed` instead of `running` forever.
+ */
 export function createAppJobWorker(connection: IORedis, db: Db, opts: AppOpts) {
   const deps = appDeps(db, opts)
   const { concurrency, perStore } = QUEUE_LIMITS.appJobs
-  return new Worker<AppJobData>(
+  const worker = new Worker<AppJobData>(
     APP_JOBS_QUEUE,
     fairProcessor(connection, APP_JOBS_QUEUE, { perStore }, async (job) =>
       dispatchAppJob(deps, job.data),
     ),
     { connection, concurrency },
   )
+  worker.on('failed', (job, error) => {
+    if (!job?.data || !isFinalJobFailure(job, error)) return
+    dispatchAppJobFailure(deps, job.data, error?.message ?? 'failed').catch((err) =>
+      console.warn(`[app] ${job.data.pluginId}:${job.data.name} failure handler failed:`, err),
+    )
+  })
+  return worker
 }
 
 /** Links and attachments installed apps add to one order email. */

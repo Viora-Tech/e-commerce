@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RunIssuesCard from './run-issues-card'
 import RunLeftCard from './run-left-card'
@@ -33,6 +33,7 @@ export default function RunPage({ params }: AppPageProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
   const home = useCopy(shopifyImportContent.home)
+  const fmt = useFormat()
   const [run, setRun] = useState<RunDetail | null | undefined>(undefined)
   const [busy, setBusy] = useState(false)
 
@@ -87,6 +88,11 @@ export default function RunPage({ params }: AppPageProps) {
         ? copy.importNow
         : copy.runAgain
   const source = run.mode === 'csv' ? home.source.csv(run.fileName) : home.source.api
+  const reuse = run.snapshotUse
+    ? copy.usingPreview(fmt.dateTime(run.snapshotUse.takenAt), run.snapshotUse.changes)
+    : run.dryRun && run.status === 'completed' && run.snapshot
+      ? copy.previewReuse
+      : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,6 +114,7 @@ export default function RunPage({ params }: AppPageProps) {
           <RunStatusLabel status={run.status} preview={run.dryRun} />
           {finished ? null : <Spinner className="size-4 text-muted-foreground" />}
           <p className="text-body text-muted-foreground">{message(copy, run)}</p>
+          {reuse ? <p className="w-full text-body text-muted-foreground">{reuse}</p> : null}
         </CardContent>
       </Card>
       <RunProgressCard run={run} />

@@ -202,6 +202,10 @@ export const shopifyImportContent = {
     waiting: 'Waiting for the worker to pick this up.',
     running: 'Working through your data. You can leave this page; it keeps going.',
     previewDone: 'Nothing has been written yet. Check the counts and problems below, then import.',
+    previewReuse:
+      'Import now uses what this preview already read from Shopify, and only asks Shopify for what changed since. Import within a day to save the wait.',
+    usingPreview: (when: string, changes: number) =>
+      `Using the preview from ${when} + ${plural(changes, 'change', 'changes')} since.`,
     importDone:
       'Import finished. Running it again updates what it created instead of duplicating it.',
     failed: 'The import stopped.',

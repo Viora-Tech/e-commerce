@@ -3,7 +3,7 @@
  * issues, dry-run samples) and the import mapping.
  */
 import type { StoreTx } from '@commerce/db'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { LeftBehindReason } from './client'
 import {
   type ImportResource,
@@ -173,6 +173,88 @@ export async function saveMapping(
       set: { localId, updatedAt: sql`now()` },
     })
 }
+
+/** Shopify id → our id for many records of one resource, in one query. */
+export async function findMappings(
+  tx: StoreTx,
+  resource: string,
+  sourceIds: readonly (string | null | undefined)[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(sourceIds.filter((s): s is string => Boolean(s)))]
+  if (ids.length === 0) return new Map()
+  const rows = await tx
+    .select({ sourceId: importMapping.sourceId, localId: importMapping.localId })
+    .from(importMapping)
+    .where(and(eq(importMapping.resource, resource), inArray(importMapping.sourceId, ids)))
+  return new Map(rows.map((r) => [r.sourceId, r.localId]))
+}
+
+export type MappingRow = { sourceId: string | null | undefined; localId: string }
+
+/** `saveMapping` for many records in one statement; a repeated source id keeps the last. */
+export async function saveMappings(
+  tx: StoreTx,
+  storeId: string,
+  resource: string,
+  rows: readonly MappingRow[],
+): Promise<void> {
+  const unique = new Map<string, string>()
+  for (const r of rows) if (r.sourceId) unique.set(r.sourceId, r.localId)
+  if (unique.size === 0) return
+  await tx
+    .insert(importMapping)
+    .values([...unique].map(([sourceId, localId]) => ({ storeId, resource, sourceId, localId })))
+    .onConflictDoUpdate({
+      target: [importMapping.storeId, importMapping.resource, importMapping.sourceId],
+      set: { localId: sql`excluded.local_id`, updatedAt: sql`now()` },
+    })
+}
+
+/**
+ * Write one chunk of records in a single transaction (one round of
+ * `set_config`/commit and multi-row inserts instead of one per record).
+ * `batch` does the writes and returns one result per record without
+ * reporting; results are reported only after the commit. If anything in the
+ * chunk throws, the whole transaction rolls back and every record goes through
+ * `one`, today's record-at-a-time writer, so a bad record is still reported
+ * exactly as before and the good ones still land.
+ */
+export async function writeBatch<T, R>(
+  ctx: ImportContext,
+  items: readonly T[],
+  opts: {
+    batch: (tx: StoreTx, items: readonly T[]) => Promise<R[]>
+    report: (item: T, result: R) => void
+    one: (item: T) => Promise<unknown>
+    /** Undo in-memory caches the rolled-back transaction filled. */
+    onRollback?: (() => void) | undefined
+  },
+): Promise<void> {
+  if (items.length === 0) return
+  let results: R[] | null = null
+  try {
+    results = await ctx.inStore((tx) => opts.batch(tx, items))
+  } catch (err) {
+    opts.onRollback?.()
+    ctx.log(
+      `${ctx.report.current ?? 'batch'}: a batch of ${items.length} failed (${errorMessage(err)}); writing them one at a time`,
+    )
+  }
+  if (results) {
+    items.forEach((item, i) => {
+      opts.report(item, results[i] as R)
+    })
+  } else {
+    for (const item of items) {
+      await opts.one(item)
+      await ctx.report.flush()
+    }
+  }
+  await ctx.report.flush()
+}
+
+/** Records written per transaction by the batched writers. */
+export const WRITE_BATCH_SIZE = 200
 
 export const errorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err)

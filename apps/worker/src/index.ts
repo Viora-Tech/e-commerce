@@ -10,6 +10,7 @@ import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
 import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
+import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createMediaProcessWorker } from './media-process'
 import { createNotificationWorker } from './notifications'
@@ -69,6 +70,9 @@ const backInStock = createBackInStockWorker(redis, db, {
 })
 const storeExport = createStoreExportWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+const importSnapshots = createImportSnapshotCleanup(redis, db, {
+  settingsSecret: env.SETTINGS_SECRET,
+})
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -91,6 +95,7 @@ reportWorkerFailures(backInStock.worker, 'back-in-stock', reportError)
 reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
 reportWorkerFailures(storeExport.worker, 'store-export', reportError)
 reportWorkerFailures(aiBulkWrite.worker, 'ai-bulk-write', reportError)
+reportWorkerFailures(importSnapshots.worker, 'import-snapshot-cleanup', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -130,6 +135,11 @@ await outboxRelay.queue.upsertJobScheduler(
   'relay-outbox-events',
   { every: RELAY_EVERY_MS },
   { name: 'relay' },
+)
+await importSnapshots.queue.upsertJobScheduler(
+  'clean-import-snapshots',
+  { every: SNAPSHOT_CLEANUP_EVERY_MS },
+  { name: 'clean' },
 )
 
 const rateLimitStore = createRedisRateLimitStore(redis)
@@ -180,6 +190,8 @@ const shutdown = async () => {
   await storeExport.queue.close()
   await aiBulkWrite.worker.close()
   await aiBulkWrite.queue.close()
+  await importSnapshots.worker.close()
+  await importSnapshots.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

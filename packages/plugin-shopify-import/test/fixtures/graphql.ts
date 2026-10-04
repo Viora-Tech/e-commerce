@@ -317,3 +317,17 @@ export const REDIRECTS = {
     nodes: [{ id: 'gid://shopify/UrlRedirect/1', path: '/old-sale', target: '/collections/audio' }],
   },
 }
+
+const stock = (id: string, qty: number) => ({
+  id: `gid://shopify/ProductVariant/${id}`,
+  inventoryQuantity: qty,
+  inventoryItem: { tracked: true },
+})
+
+/** `productVariants` stock, read fresh when an import reuses a preview's products. */
+export const VARIANT_STOCK = {
+  productVariants: {
+    pageInfo: pageInfo(null),
+    nodes: [stock('11', 7), stock('21', 1), stock('22', 2)],
+  },
+}

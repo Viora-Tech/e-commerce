@@ -34,6 +34,76 @@ flowchart LR
 - A dry run never downloads or writes; references to things the same run would create are
   assumed to resolve (placeholder ids), so the preview counts match the real run.
 
+## Preview snapshot: Import now reuses the preview
+
+`startRun` flips the same `shopify_import_run` row from preview to import, so the import finds
+the preview's copy on its own row (`src/snapshot.ts`, migration `0087_shopify_import_snapshot`).
+
+- **Preview (record).** `SnapshotSession.read` passes every batch through to the (counting)
+  writers and gzips it into JSONL as it goes; at the end of each resource it stores
+  `stores/<store>/private/imports/<run>/snapshot/<resource>.jsonl.gz` through the store's
+  storage provider. A completed preview saves `snapshot` (`{ takenAt, streams: { resource:
+  { key, count } } }`) and `snapshot_taken_at`. `takenAt` is when the preview **started**, so
+  anything Shopify changed while it read is caught later. A failed preview keeps nothing.
+- **Import (reuse).** When the snapshot is under 24 h old (`SNAPSHOT_FRESH_MS`), each resource
+  that has a stream reads it instead of Shopify, then asks Shopify for
+  `updated_at:>'<takenAt − 1 min>'` through the paged query (no bulk export) and merges by
+  Shopify id, the changed copy winning, new records appended. Products also read every
+  variant's stock with one light `productVariants` query (`api-stock.ts`): Shopify does not
+  move a product's `updated_at` when stock changes. `snapshot_use` (`{ takenAt, changes,
+  reused }`) drives "Using the preview from … + N changes since" on the run page.
+- **Covered:** `SNAPSHOT_RESOURCES` = products, collections, customers, orders, pages, articles,
+  files. **Read in full every time:** menus and redirects (no update filter), metaobjects and
+  metafields (definitions have no update filter and values do not move the owner's
+  `updated_at`), discounts (use counts change without an update) and gift cards (no
+  `updated_at` filter; balances move).
+- **Not seen by a delta:** records deleted on Shopify after the preview still import (within
+  the 24 h window); a re-run after that cleans nothing up either, as before.
+- **Cleanup.** A completed import deletes the copy (`dropSnapshot`); a failed one keeps it for
+  Try again. `cleanupSnapshots` removes this store's copies older than 7 days at the start of
+  every run, and the worker's hourly `{imports}-snapshot-cleanup` job
+  (`apps/worker/src/import-snapshots.ts`) finds stores with old copies through
+  `stores_with_stale_import_snapshots(cutoff)` (SECURITY DEFINER, ids only) and runs the
+  importer's `cleanup-snapshots` app job for each.
+
+## Memory
+
+A run never holds a whole resource. Bulk results stream: `streamBulkRoots` (`bulk.ts`)
+reassembles one top-level record at a time from the JSONL download (Shopify writes nested
+records after their parent; one that arrives after its parent was handed on stops the read with
+`BulkUnavailableError` rather than import an order without its lines) and hands on 50 at a time.
+A failure before the first batch falls back to paged reading (`bulkOrPaged`), after it the run
+fails. Snapshots are written gzipped batch by batch and read back line by line; only the
+changes since the preview are held whole to merge. Extra-field values (`api-metafields.ts`) are
+still collected per owner type.
+
+## Batched writes
+
+Products, customers and orders are written a batch per transaction (`writeBatch` in
+`runtime.ts`; 25 products, 200 customers, 100 orders): one `set_config`/commit per batch,
+customers inserted in one multi-row statement, each order's lines in one statement, mappings
+in one `saveMappings` upsert per batch. Product images are copied before the transaction. If
+anything in a batch throws, the transaction rolls back (and the orders' placeholder-item cache
+is restored) and every record of the batch goes through the one-record writer, so a bad record
+reports exactly the issue it always did and the rest still land. A customer that shares a
+Shopify id, email, phone or matched row with an earlier one in the same batch is written after
+the commit, as one-at-a-time writes would see it. Product variants still go through core's
+`createProduct`/`updateProduct` (shared with the admin editor), unchanged.
+
+## A run whose worker died
+
+- **Job ids.** The router queues each start of a run as its own job (`runJobKey`: run id plus
+  the row's `updatedAt`). BullMQ ignores an add whose id it still holds, even for a failed job,
+  so a fixed id left Try again waiting forever. A double click never reaches the queue twice:
+  `startRun` refuses a run that is queued or running.
+- **Failed for good.** The app-jobs worker listens for `failed`; when the failure is final (the
+  last attempt, or "stalled more than allowable limit" after the process died, e.g. an OOM
+  kill) it runs the plugin's `jobFailed.run` handler (`dispatchAppJobFailure`, new optional
+  `jobFailed` on the plugin manifest), which marks the run `failed` with a plain reason.
+- **Backstop.** `executeRun` touches the row every minute while it runs; `getRun`, `listRuns`
+  and `startRun` fail a `running` run silent for 10 minutes, so the page shows Try again even
+  if the failure event was lost.
+
 ## Order of resources
 
 `IMPORT_RESOURCES` (`src/client.ts`) is also the write order: products, collections, customers,
@@ -112,3 +182,11 @@ re-run against a fake Admin API (`test/fixtures/everything.ts`): no real Shopify
 downloads. It checks the counts and `left` reasons of the preview, every written row, the
 second-pass links, and that a re-run updates instead of duplicating; a second test refuses the
 gift card scope and expects the rest to import.
+
+`test/snapshot.test.ts` uses a stateful fake (`test/fixtures/fake-shopify.ts`) that answers bulk
+exports and `updated_at` searches: the preview keeps its copy, a fresh copy means no bulk
+export and only "changed since" queries, a 25-hour-old copy means a full read, changes merge
+by id (stock read fresh), batches fall back to one record at a time with the same issue,
+re-runs never duplicate, and week-old copies are cleaned up. `test/run-recovery.test.ts`
+covers the dead-worker cases and job ids. `test/benchmark.test.ts` times a preview and import
+of 2,000 customers and 500 orders (`SHOPIFY_IMPORT_BENCH=1`).

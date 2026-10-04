@@ -1,7 +1,7 @@
 /** Run bookkeeping for the API router: create, start, list and read imports. */
 import { newId, type StoreTx } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
-import { and, asc, count, desc, eq } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, lt } from 'drizzle-orm'
 import { type CsvResource, type ImportResource, MAX_CSV_BYTES } from './client'
 import { importIssue, importRun } from './schema'
 
@@ -69,6 +69,7 @@ export async function createApiRun(
  * (safe: it matches what it created before). Refused while one is running.
  */
 export async function startRun(tx: StoreTx, id: string): Promise<RunRow> {
+  await failStaleRuns(tx)
   const [current] = await tx.select().from(importRun).where(eq(importRun.id, id))
   if (!current) throw new ImportError('Import not found')
   if (current.status === 'queued' || current.status === 'running') {
@@ -83,6 +84,58 @@ export async function startRun(tx: StoreTx, id: string): Promise<RunRow> {
   return row
 }
 
+/**
+ * The queue's dedupe key for one start of a run. BullMQ keeps a failed job
+ * and silently ignores a new one with the same id, so the key changes with
+ * every start (`startRun` and the create calls stamp `updatedAt`); a double
+ * click never reaches the queue twice because `startRun` refuses a run that is
+ * already queued or running.
+ */
+export const runJobKey = (run: Pick<RunRow, 'id' | 'updatedAt'>) =>
+  `run-${run.id}-${run.updatedAt.getTime()}`
+
+/**
+ * A running import touches its row at least every minute (`executeRun`'s
+ * heartbeat, plus every progress flush). One silent for this long lost its
+ * worker (a crash or out-of-memory kill) without anything marking it failed.
+ */
+const RUN_STALE_MS = 10 * 60 * 1000
+
+const INTERRUPTED_ERROR =
+  'The import stopped unexpectedly (the server restarted or ran out of memory). Press Try again: it carries on from the start without duplicating anything.'
+
+/**
+ * End a run whose job died for good (called from the importer's `jobFailed`
+ * handler). Only a run still waiting or running changes; a finished one keeps
+ * its result.
+ */
+export async function failInterruptedRun(tx: StoreTx, id: string): Promise<boolean> {
+  const rows = await tx
+    .update(importRun)
+    .set({
+      status: 'failed',
+      error: INTERRUPTED_ERROR,
+      finishedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(importRun.id, id), inArray(importRun.status, ['queued', 'running'])))
+    .returning({ id: importRun.id })
+  return rows.length > 0
+}
+
+/** Backstop for a lost failure event: fail runs `running` with no sign of life for `RUN_STALE_MS`. */
+async function failStaleRuns(tx: StoreTx, now = new Date()): Promise<void> {
+  await tx
+    .update(importRun)
+    .set({ status: 'failed', error: INTERRUPTED_ERROR, finishedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(importRun.status, 'running'),
+        lt(importRun.updatedAt, new Date(now.getTime() - RUN_STALE_MS)),
+      ),
+    )
+}
+
 /** Mark a run failed when its job could not be queued, so the page does not wait forever. */
 export async function failRun(tx: StoreTx, id: string, error: string): Promise<void> {
   await tx
@@ -92,6 +145,7 @@ export async function failRun(tx: StoreTx, id: string, error: string): Promise<v
 }
 
 export async function listRuns(tx: StoreTx, input: { page: number; perPage: number }) {
+  await failStaleRuns(tx)
   const [total] = await tx.select({ n: count() }).from(importRun)
   const items = await tx
     .select({
@@ -115,6 +169,7 @@ export async function listRuns(tx: StoreTx, input: { page: number; perPage: numb
 }
 
 export async function getRun(tx: StoreTx, id: string) {
+  await failStaleRuns(tx)
   const [row] = await tx.select().from(importRun).where(eq(importRun.id, id))
   if (!row) return null
   const [issues] = await tx

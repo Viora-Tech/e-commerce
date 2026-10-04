@@ -575,6 +575,13 @@
       "when": 1791160000000,
       "tag": "0086_ai_v2_assistant",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1791170000000,
+      "tag": "0087_shopify_import_snapshot",
+      "breakpoints": true
     }
   ]
 }

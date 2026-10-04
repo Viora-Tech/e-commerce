@@ -98,6 +98,46 @@ export type PreviewSample = {
   detail?: string | undefined
 }
 
+/**
+ * What a preview keeps so the import that follows reads it instead of asking
+ * Shopify again: the resources Shopify can say "changed since" for. The rest
+ * (menus, redirects, content types, extra fields, discounts, gift cards) are
+ * read again in full, because Shopify cannot filter them by update time or
+ * their counts (balances, uses) change without one.
+ */
+export const SNAPSHOT_RESOURCES = [
+  'products',
+  'collections',
+  'customers',
+  'orders',
+  'pages',
+  'articles',
+  'files',
+] as const
+export type SnapshotResource = (typeof SNAPSHOT_RESOURCES)[number]
+
+/** A preview's saved copy: where each resource's items are stored and how many. */
+export type ImportSnapshot = {
+  /** When the preview started reading; the import asks Shopify for changes since then. */
+  takenAt: string
+  streams: Partial<Record<SnapshotResource, { key: string; count: number }>>
+}
+
+/** What a real import took from the preview: shown as "Using preview from … + N changes since". */
+export type SnapshotUse = {
+  takenAt: string
+  /** Records Shopify said changed (or were added) since the preview. */
+  changes: number
+  reused: SnapshotResource[]
+}
+
+/** A preview is reused for 24 hours; after that the import reads Shopify again. */
+export const SNAPSHOT_FRESH_MS = 24 * 60 * 60 * 1000
+/** Unused snapshots are deleted after 7 days. */
+export const SNAPSHOT_KEEP_MS = 7 * 24 * 60 * 60 * 1000
+/** The app job that deletes them; the worker's hourly sweep queues it per store. */
+export const SNAPSHOT_CLEANUP_JOB = 'cleanup-snapshots'
+
 /** 15 MB of CSV is roughly 50,000 product rows; larger stores use the API import. */
 export const MAX_CSV_BYTES = 15 * 1024 * 1024
 

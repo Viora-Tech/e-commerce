@@ -5,7 +5,7 @@
  * paged separately.
  */
 import type { CollectionCondition, CollectionOp, CollectionRules } from '@commerce/db'
-import { reassembleBulkStream, runBulkQuery, streamJsonl } from './bulk'
+import { bulkOrPaged, runBulkQuery, streamBulkRoots, streamJsonl } from './bulk'
 import type { ShopifyClient } from './shopify-client'
 import type {
   NAddress,
@@ -61,8 +61,8 @@ const VARIANT_FIELDS = `id title sku barcode price compareAtPrice taxable invent
  * before an expensive page (see `shopify-client.ts`), so a bigger page that
  * spends more of the budget per round trip beats many tiny ones.
  */
-export const PRODUCTS_QUERY = `query Products($cursor: String) {
-  products(first: 25, after: $cursor, sortKey: ID) {
+export const PRODUCTS_QUERY = `query Products($cursor: String, $query: String) {
+  products(first: 25, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
       id handle title descriptionHtml vendor productType tags status
@@ -217,10 +217,10 @@ export const PRODUCTS_BULK_QUERY = `{
   }
 }`
 
-async function fetchProductsBulk(client: ShopifyClient): Promise<NProduct[]> {
+async function* fetchProductsBulk(client: ShopifyClient): AsyncGenerator<NProduct[]> {
   const url = await runBulkQuery(client, PRODUCTS_BULK_QUERY)
-  if (!url) return []
-  const nodes = await reassembleBulkStream<GProduct>(
+  if (!url) return
+  for await (const nodes of streamBulkRoots<GProduct>(
     streamJsonl(url, client.fetchImpl),
     (type) =>
       type === 'ProductVariant'
@@ -232,15 +232,20 @@ async function fetchProductsBulk(client: ShopifyClient): Promise<NProduct[]> {
       { field: 'variants', asPage: true },
       { field: 'media', asPage: false },
     ],
-  )
-  return nodes.map((p) => mapProduct(p, p.variants.nodes.slice(0, 100)))
+    BULK_BATCH_SIZE,
+  )) {
+    yield nodes.map((p) => mapProduct(p, p.variants.nodes.slice(0, 100)))
+  }
 }
 
-async function* fetchProductsPaged(client: ShopifyClient): AsyncGenerator<NProduct[]> {
+async function* fetchProductsPaged(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NProduct[]> {
   for await (const nodes of client.paginate<GProduct>(
     PRODUCTS_QUERY,
     (d) => (d as { products: Page<GProduct> }).products,
-    {},
+    { query: search },
     1500,
   )) {
     const batch: NProduct[] = []
@@ -273,23 +278,24 @@ const BULK_BATCH_SIZE = 50
 export async function* fetchProducts(
   client: ShopifyClient,
   onBulkFallback?: (reason: unknown) => void,
+  /** Only what matches (`updated_at:>'…'`): read page by page, no bulk operation. */
+  search: string | null = null,
 ): AsyncGenerator<NProduct[]> {
-  try {
-    const products = await fetchProductsBulk(client)
-    for (let i = 0; i < products.length; i += BULK_BATCH_SIZE) {
-      yield products.slice(i, i + BULK_BATCH_SIZE)
-    }
+  if (search) {
+    yield* fetchProductsPaged(client, search)
     return
-  } catch (err) {
-    onBulkFallback?.(err)
   }
-  yield* fetchProductsPaged(client)
+  yield* bulkOrPaged(
+    () => fetchProductsBulk(client),
+    () => fetchProductsPaged(client),
+    onBulkFallback,
+  )
 }
 
 /* ------------------------------------------------------------- collections */
 
-export const COLLECTIONS_QUERY = `query Collections($cursor: String) {
-  collections(first: 15, after: $cursor, sortKey: ID) {
+export const COLLECTIONS_QUERY = `query Collections($cursor: String, $query: String) {
+  collections(first: 15, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
       id handle title descriptionHtml sortOrder
@@ -366,11 +372,14 @@ export function mapRules(ruleSet: GCollection['ruleSet']): {
   }
 }
 
-export async function* fetchCollections(client: ShopifyClient): AsyncGenerator<NCollection[]> {
+export async function* fetchCollections(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NCollection[]> {
   for await (const nodes of client.paginate<GCollection>(
     COLLECTIONS_QUERY,
     (d) => (d as { collections: Page<GCollection> }).collections,
-    {},
+    { query: search },
     900,
   )) {
     const batch: NCollection[] = []
@@ -410,8 +419,8 @@ export async function* fetchCollections(client: ShopifyClient): AsyncGenerator<N
 
 /* --------------------------------------------------------------- customers */
 
-export const CUSTOMERS_QUERY = `query Customers($cursor: String) {
-  customers(first: 100, after: $cursor, sortKey: ID) {
+export const CUSTOMERS_QUERY = `query Customers($cursor: String, $query: String) {
+  customers(first: 100, after: $cursor, sortKey: ID, query: $query) {
     ${PAGE_INFO}
     nodes {
       id email phone firstName lastName tags note createdAt
@@ -498,21 +507,27 @@ export const CUSTOMERS_BULK_QUERY = `{
   }
 }`
 
-async function fetchCustomersBulk(client: ShopifyClient): Promise<NCustomer[]> {
+async function* fetchCustomersBulk(client: ShopifyClient): AsyncGenerator<NCustomer[]> {
   const url = await runBulkQuery(client, CUSTOMERS_BULK_QUERY)
-  if (!url) return []
-  const nodes = await reassembleBulkStream<GCustomer>(
+  if (!url) return
+  for await (const nodes of streamBulkRoots<GCustomer>(
     streamJsonl(url, client.fetchImpl),
     () => null,
-  )
-  return nodes.map(mapCustomer)
+    [],
+    BULK_BATCH_SIZE,
+  )) {
+    yield nodes.map(mapCustomer)
+  }
 }
 
-async function* fetchCustomersPaged(client: ShopifyClient): AsyncGenerator<NCustomer[]> {
+async function* fetchCustomersPaged(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NCustomer[]> {
   for await (const nodes of client.paginate<GCustomer>(
     CUSTOMERS_QUERY,
     (d) => (d as { customers: Page<GCustomer> }).customers,
-    {},
+    { query: search },
     300,
   )) {
     yield nodes.map(mapCustomer)
@@ -522,23 +537,24 @@ async function* fetchCustomersPaged(client: ShopifyClient): AsyncGenerator<NCust
 export async function* fetchCustomers(
   client: ShopifyClient,
   onBulkFallback?: (reason: unknown) => void,
+  /** Only what matches (`updated_at:>'…'`): read page by page, no bulk operation. */
+  search: string | null = null,
 ): AsyncGenerator<NCustomer[]> {
-  try {
-    const customers = await fetchCustomersBulk(client)
-    for (let i = 0; i < customers.length; i += BULK_BATCH_SIZE) {
-      yield customers.slice(i, i + BULK_BATCH_SIZE)
-    }
+  if (search) {
+    yield* fetchCustomersPaged(client, search)
     return
-  } catch (err) {
-    onBulkFallback?.(err)
   }
-  yield* fetchCustomersPaged(client)
+  yield* bulkOrPaged(
+    () => fetchCustomersBulk(client),
+    () => fetchCustomersPaged(client),
+    onBulkFallback,
+  )
 }
 
 /* ------------------------------------------------------------------ orders */
 
-export const ORDERS_QUERY = `query Orders($cursor: String) {
-  orders(first: 50, after: $cursor, sortKey: CREATED_AT) {
+export const ORDERS_QUERY = `query Orders($cursor: String, $query: String) {
+  orders(first: 50, after: $cursor, sortKey: CREATED_AT, query: $query) {
     ${PAGE_INFO}
     nodes {
       id name email phone createdAt cancelledAt displayFinancialStatus displayFulfillmentStatus
@@ -670,22 +686,27 @@ export const ORDERS_BULK_QUERY = `{
   }
 }`
 
-async function fetchOrdersBulk(client: ShopifyClient): Promise<NOrder[]> {
+async function* fetchOrdersBulk(client: ShopifyClient): AsyncGenerator<NOrder[]> {
   const url = await runBulkQuery(client, ORDERS_BULK_QUERY)
-  if (!url) return []
-  const nodes = await reassembleBulkStream<GOrder>(
+  if (!url) return
+  for await (const nodes of streamBulkRoots<GOrder>(
     streamJsonl(url, client.fetchImpl),
     (type) => (type === 'LineItem' ? { field: 'lineItems', asPage: false } : null),
     [{ field: 'lineItems', asPage: false }],
-  )
-  return nodes.map(mapOrder)
+    BULK_BATCH_SIZE,
+  )) {
+    yield nodes.map(mapOrder)
+  }
 }
 
-async function* fetchOrdersPaged(client: ShopifyClient): AsyncGenerator<NOrder[]> {
+async function* fetchOrdersPaged(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NOrder[]> {
   for await (const nodes of client.paginate<GOrder>(
     ORDERS_QUERY,
     (d) => (d as { orders: Page<GOrder> }).orders,
-    {},
+    { query: search },
     1000,
   )) {
     yield nodes.map(mapOrder)
@@ -700,23 +721,24 @@ async function* fetchOrdersPaged(client: ShopifyClient): AsyncGenerator<NOrder[]
 export async function* fetchOrders(
   client: ShopifyClient,
   onBulkFallback?: (reason: unknown) => void,
+  /** Only what matches (`updated_at:>'…'`): read page by page, no bulk operation. */
+  search: string | null = null,
 ): AsyncGenerator<NOrder[]> {
-  try {
-    const orders = await fetchOrdersBulk(client)
-    for (let i = 0; i < orders.length; i += BULK_BATCH_SIZE) {
-      yield orders.slice(i, i + BULK_BATCH_SIZE)
-    }
+  if (search) {
+    yield* fetchOrdersPaged(client, search)
     return
-  } catch (err) {
-    onBulkFallback?.(err)
   }
-  yield* fetchOrdersPaged(client)
+  yield* bulkOrPaged(
+    () => fetchOrdersBulk(client),
+    () => fetchOrdersPaged(client),
+    onBulkFallback,
+  )
 }
 
 /* ---------------------------------------------------- pages and articles */
 
-export const PAGES_QUERY = `query Pages($cursor: String) {
-  pages(first: 50, after: $cursor) {
+export const PAGES_QUERY = `query Pages($cursor: String, $query: String) {
+  pages(first: 50, after: $cursor, query: $query) {
     ${PAGE_INFO}
     nodes {
       id handle title body isPublished publishedAt
@@ -737,11 +759,14 @@ type GPage = {
   seoDescription: { value: string } | null
 }
 
-export async function* fetchPages(client: ShopifyClient): AsyncGenerator<NPage[]> {
+export async function* fetchPages(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NPage[]> {
   for await (const nodes of client.paginate<GPage>(
     PAGES_QUERY,
     (d) => (d as { pages: Page<GPage> }).pages,
-    {},
+    { query: search },
     150,
   )) {
     yield nodes.map((p) => ({
@@ -757,8 +782,8 @@ export async function* fetchPages(client: ShopifyClient): AsyncGenerator<NPage[]
   }
 }
 
-export const ARTICLES_QUERY = `query Articles($cursor: String) {
-  articles(first: 50, after: $cursor) {
+export const ARTICLES_QUERY = `query Articles($cursor: String, $query: String) {
+  articles(first: 50, after: $cursor, query: $query) {
     ${PAGE_INFO}
     nodes {
       id handle title body summary tags isPublished publishedAt
@@ -787,11 +812,14 @@ type GArticle = {
   seoDescription: { value: string } | null
 }
 
-export async function* fetchArticles(client: ShopifyClient): AsyncGenerator<NArticle[]> {
+export async function* fetchArticles(
+  client: ShopifyClient,
+  search: string | null = null,
+): AsyncGenerator<NArticle[]> {
   for await (const nodes of client.paginate<GArticle>(
     ARTICLES_QUERY,
     (d) => (d as { articles: Page<GArticle> }).articles,
-    {},
+    { query: search },
     200,
   )) {
     yield nodes.map((a) => ({

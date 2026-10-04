@@ -25,7 +25,13 @@ const storeId = () =>
     .references(() => store.id)
 const at = (name: string) => timestamp(name, { withTimezone: true }).notNull().defaultNow()
 
-import type { ImportResource, PreviewSample, ResourceProgress } from './client'
+import type {
+  ImportResource,
+  ImportSnapshot,
+  PreviewSample,
+  ResourceProgress,
+  SnapshotUse,
+} from './client'
 import { RUN_STATUSES } from './client'
 
 export {
@@ -79,6 +85,15 @@ export const importRun = pgTable(
       .notNull()
       .default({}),
     preview: jsonb('preview').$type<PreviewSample[]>().notNull().default([]),
+    /**
+     * A finished preview's copy of what it read (gzipped JSONL per resource in
+     * private storage), reused by the import that follows within 24 hours.
+     * Deleted when that import finishes, or after 7 days.
+     */
+    snapshot: jsonb('snapshot').$type<ImportSnapshot>(),
+    snapshotTakenAt: timestamp('snapshot_taken_at', { withTimezone: true }),
+    /** Set on a real import that read the preview's copy instead of Shopify. */
+    snapshotUse: jsonb('snapshot_use').$type<SnapshotUse>(),
     /** Why the run as a whole stopped; row problems go to shopify_import_issue. */
     error: text('error'),
     createdBy: text('created_by'),
@@ -94,6 +109,9 @@ export const importRun = pgTable(
       sql`${t.status} in ('queued', 'running', 'completed', 'failed')`,
     ),
     index('shopify_import_run_store_created').on(t.storeId, t.createdAt),
+    index('shopify_import_run_snapshot_taken')
+      .on(t.snapshotTakenAt)
+      .where(sql`${t.snapshotTakenAt} is not null`),
   ],
 )
 
