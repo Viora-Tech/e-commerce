@@ -20,7 +20,7 @@ describe('loadEnv', () => {
     expect(() => loadEnv(rest)).toThrow(/Invalid environment:.*DATABASE_URL/)
   })
 
-  it('treats a blank optional value as unset (Dokploy, compose ${KEY:-})', () => {
+  it('treats a blank optional value as unset (Dokploy, compose KEY:- defaults)', () => {
     const env = loadEnv({ ...valid, SENTRY_DSN: '', SES_REGION: '  ', PLATFORM_EMAIL_FROM: '' })
     expect(env.SENTRY_DSN).toBeUndefined()
     expect(env.SES_REGION).toBeUndefined()

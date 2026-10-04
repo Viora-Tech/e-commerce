@@ -174,7 +174,9 @@ export type Env = z.infer<typeof schema>
  * hand an empty string for an option the operator left empty, and an optional `.url()` or
  * `.min(1)` would otherwise refuse to boot on it. Required keys left blank still fail, as missing.
  */
-function withoutBlanks(source: Record<string, string | undefined>): Record<string, string | undefined> {
+function withoutBlanks(
+  source: Record<string, string | undefined>,
+): Record<string, string | undefined> {
   const out: Record<string, string | undefined> = {}
   for (const [key, value] of Object.entries(source)) {
     if (value === undefined || value.trim() === '') continue
