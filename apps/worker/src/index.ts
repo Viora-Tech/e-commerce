@@ -203,6 +203,23 @@ const shutdown = async () => {
 process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
+/*
+ * A throw outside any job's promise chain (a library's stream internals, a timer)
+ * must not take down every queue with it: Bun's stream piping once threw
+ * "undefined is not a function" at the end of a Shopify import's video copy and
+ * exited the worker twice. Report it and keep going; each job has its own
+ * timeouts and watchdog (the importer's STUCK_MS), so one that lost its work
+ * still ends.
+ */
+process.on('uncaughtException', (err) => {
+  console.error('[worker] uncaught exception, kept running:', err)
+  reportError(err, { where: 'uncaughtException' })
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[worker] unhandled rejection, kept running:', reason)
+  reportError(reason, { where: 'unhandledRejection' })
+})
+
 console.log(`worker listening on :${env.WORKER_PORT}`)
 
 export default { port: env.WORKER_PORT, fetch: app.fetch }

@@ -12,7 +12,6 @@
  * decompresses and parses line by line, handing on a batch at a time. Only
  * the changes since the preview (usually few) are held whole, to merge.
  */
-import { Readable } from 'node:stream'
 import { createGunzip, createGzip } from 'node:zlib'
 import type { StorageProvider } from '@commerce/storage'
 import { and, eq, isNotNull, lt } from 'drizzle-orm'
@@ -58,9 +57,14 @@ function gzipWriter() {
   }
 }
 
-/** Decompress and parse gzipped JSONL one line at a time. */
+/**
+ * Decompress and parse gzipped JSONL one line at a time. The compressed bytes go
+ * straight into the gunzip stream (no `.pipe`: the worker runs on Bun, whose
+ * stream piping has crashed the process).
+ */
 async function* readJsonl<T>(bytes: Uint8Array): AsyncGenerator<T> {
-  const lines = Readable.from([Buffer.from(bytes)]).pipe(createGunzip())
+  const lines = createGunzip()
+  lines.end(Buffer.from(bytes))
   lines.setEncoding('utf8')
   let buffer = ''
   for await (const chunk of lines as AsyncIterable<string>) {

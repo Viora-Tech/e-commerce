@@ -195,8 +195,9 @@ describe('field types and values', () => {
   })
 
   it('picks the largest mp4 under the video limit', () => {
+    // Videos stream into storage, so the import's limit is 1 GB: the 200 MB 1080p copy fits.
     const f = mapFile(FILES.files.nodes[2] as Parameters<typeof mapFile>[0])
-    expect(f).toMatchObject({ kind: 'video', url: 'https://cdn.shopify.com/videos/hero-720.mp4' })
+    expect(f).toMatchObject({ kind: 'video', url: 'https://cdn.shopify.com/videos/hero-1080.mp4' })
   })
 
   it('refuses discounts our model cannot express, with the reason', () => {

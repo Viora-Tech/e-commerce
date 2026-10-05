@@ -42,24 +42,31 @@ export async function issueGroups(tx: StoreTx, runId: string): Promise<IssueGrou
     .from(importIssue)
     .where(eq(importIssue.runId, runId))
   const groups = new Map<string, IssueGroup>()
+  // Retry works per record: count each record once, however many of its images failed.
+  const records = new Map<string, Set<string>>()
   for (const row of rows) {
     const cause = causeOf(row)
     const key = STORE_WIDE.includes(cause) ? cause : `${cause}:${row.resource}`
-    const group = groups.get(key)
-    if (group) {
-      group.count++
-      if (row.sourceId) group.retryable++
-      if (!group.resources.includes(row.resource)) group.resources.push(row.resource)
-      continue
+    let group = groups.get(key)
+    if (!group) {
+      group = {
+        cause,
+        resources: [],
+        count: 0,
+        retryable: 0,
+        retryableProblems: 0,
+        sample: row.message.slice(0, 300),
+        fixHref: FIX[cause] ?? null,
+      }
+      groups.set(key, group)
+      records.set(key, new Set())
     }
-    groups.set(key, {
-      cause,
-      resources: [row.resource],
-      count: 1,
-      retryable: row.sourceId ? 1 : 0,
-      sample: row.message.slice(0, 300),
-      fixHref: FIX[cause] ?? null,
-    })
+    group.count++
+    if (!group.resources.includes(row.resource)) group.resources.push(row.resource)
+    if (!row.sourceId) continue
+    group.retryableProblems++
+    records.get(key)?.add(`${row.resource}:${row.sourceId}`)
   }
+  for (const [key, group] of groups) group.retryable = records.get(key)?.size ?? 0
   return [...groups.values()].sort((a, b) => b.count - a.count)
 }

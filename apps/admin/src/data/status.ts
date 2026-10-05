@@ -216,6 +216,7 @@ export const STATUS = {
     running: entry(shopifyImportContent.status.running, 'pending'),
     completed: entry(shopifyImportContent.status.completed, 'success'),
     failed: entry(shopifyImportContent.status.failed, 'error'),
+    cancelled: entry(shopifyImportContent.status.cancelled, 'neutral'),
     preview: entry(shopifyImportContent.previewReady, 'info'),
   },
   /** One type on "What's left to import". */

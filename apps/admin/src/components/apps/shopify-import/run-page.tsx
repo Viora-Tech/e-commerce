@@ -17,15 +17,30 @@ import RunPreflight from './run-preflight'
 import RunProgressCard from './run-progress-card'
 import RunSamplesCard from './run-samples-card'
 import RunStatusLabel from './run-status-label'
+import RunStopButton from './run-stop-button'
 import type { RunDetail } from './types'
 
 const base = shopifyImportContent.base
 const POLL_MS = 2000
 
-function message(copy: (typeof shopifyImportContent)['run'], run: RunDetail): string {
+/** Runs that will not move again until someone starts them. */
+const ENDED = new Set<RunDetail['status']>(['completed', 'failed', 'cancelled'])
+
+function message(
+  copy: (typeof shopifyImportContent)['run'],
+  run: RunDetail,
+  when: (iso: string | Date) => string,
+): string {
+  if (run.stopRequestedAt && (run.status === 'queued' || run.status === 'running')) {
+    return copy.stopping
+  }
   if (run.status === 'queued') return copy.waiting
   if (run.status === 'running') return copy.running
   if (run.status === 'failed') return run.error ? `${copy.failed} ${run.error}` : copy.failed
+  if (run.status === 'cancelled') {
+    const at = run.finishedAt ?? run.stopRequestedAt ?? run.updatedAt
+    return `${copy.stopped(run.stoppedBy, when(at))} ${copy.stoppedKeeps}`
+  }
   return run.dryRun ? copy.previewDone : copy.importDone
 }
 
@@ -39,7 +54,7 @@ export default function RunPage({ params }: AppPageProps) {
 
   // Poll while queued or running; Import now sets `queued`, which starts it again.
   useEffect(() => {
-    if (run?.status === 'completed' || run?.status === 'failed') return
+    if (run?.status && ENDED.has(run.status)) return
     let live = true
     let timer: ReturnType<typeof setTimeout> | undefined
     const load = async () => {
@@ -61,6 +76,11 @@ export default function RunPage({ params }: AppPageProps) {
   const handleQueued = () =>
     setRun((current) => (current ? { ...current, status: 'queued', dryRun: false } : current))
 
+  const handleStopped = () =>
+    setRun((current) =>
+      current ? { ...current, stopRequestedAt: current.stopRequestedAt ?? new Date() } : current,
+    )
+
   // Early returns
   const crumbs = [{ label: copy.back, href: base }]
   if (run === undefined) return <Skeleton className="h-64 w-full" />
@@ -69,7 +89,7 @@ export default function RunPage({ params }: AppPageProps) {
   }
 
   // Render logic
-  const finished = run.status === 'completed' || run.status === 'failed'
+  const finished = ENDED.has(run.status)
   const previewDone = run.dryRun && run.status === 'completed'
   const source = run.mode === 'csv' ? home.source.csv(run.fileName) : home.source.api
   const reuse = run.snapshotUse
@@ -84,13 +104,18 @@ export default function RunPage({ params }: AppPageProps) {
         title={copy.title(run.dryRun)}
         subtitle={copy.from(source)}
         breadcrumbs={crumbs}
-        actions={<RunActions run={run} onQueued={handleQueued} />}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <RunStopButton run={run} onStopped={handleStopped} />
+            <RunActions run={run} onQueued={handleQueued} />
+          </div>
+        }
       />
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3">
           <RunStatusLabel status={run.status} preview={run.dryRun} />
           {finished ? null : <Spinner className="size-4 text-muted-foreground" />}
-          <p className="text-body text-muted-foreground">{message(copy, run)}</p>
+          <p className="text-body text-muted-foreground">{message(copy, run, fmt.dateTime)}</p>
           {reuse ? <p className="w-full text-body text-muted-foreground">{reuse}</p> : null}
           {run.retryOf ? (
             <p className="w-full text-body text-muted-foreground">{copy.retrying}</p>

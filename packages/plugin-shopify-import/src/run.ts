@@ -9,7 +9,7 @@
 import { CommerceError } from '@commerce/core'
 import type { LookupAll } from '@commerce/core/safe-fetch'
 import type { StorageProvider } from '@commerce/storage'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNotNull, ne } from 'drizzle-orm'
 import type { SnapshotUse } from './client'
 import { clientFor } from './connection'
 import { createMediaHost, type MediaHostOptions } from './media'
@@ -44,6 +44,8 @@ export type RunDeps = {
   stuckMs?: number
   /** Overrides `HEARTBEAT_MS` (tests). */
   heartbeatMs?: number
+  /** Overrides `STOP_POLL_MS` (tests). */
+  stopPollMs?: number
 }
 
 /** How often a running import touches its row (see RUN_STALE_MS in service.ts). */
@@ -56,6 +58,16 @@ const HEARTBEAT_MS = 60_000
  * while it prepares an export, so a live run never comes near this.
  */
 const STUCK_MS = 10 * 60_000
+
+/** How often a running import checks whether Stop import was pressed. */
+const STOP_POLL_MS = 3000
+
+/** Stop import was pressed: the run ends `cancelled`, not failed. */
+class RunStopped extends CommerceError {
+  constructor() {
+    super('IMPORT_STOPPED', 'The import was stopped')
+  }
+}
 
 /** The watchdog's reason, shown to the merchant on the run. */
 class RunStuck extends CommerceError {
@@ -127,6 +139,11 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     tx.select().from(importRun).where(eq(importRun.id, runId)),
   )
   if (!run) return
+  // Stopped while it waited, or marked stopped because this worker never answered: drop the job.
+  if (run.status === 'cancelled') {
+    deps.log(`run ${runId} was stopped; nothing to do`)
+    return
+  }
   const files = { inStore: deps.inStore, storage: deps.storage }
   // Housekeeping first: this store's week-old snapshots, and a preview's previous copy.
   await cleanupSnapshots(files, now()).catch((err) =>
@@ -144,9 +161,9 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     : run.onlyMissing
       ? { keep: await deps.inStore((tx) => remainingFilter(tx, run.resources)) }
       : null
-  await deps.inStore(async (tx) => {
-    await tx.delete(importIssue).where(eq(importIssue.runId, runId))
-    await tx
+  const started = await deps.inStore(async (tx) => {
+    // Not a run stopped a moment ago, while this job was picking it up.
+    const rows = await tx
       .update(importRun)
       .set({
         status: 'running',
@@ -158,8 +175,13 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
         finishedAt: null,
         updatedAt: new Date(),
       })
-      .where(eq(importRun.id, runId))
+      .where(and(eq(importRun.id, runId), ne(importRun.status, 'cancelled')))
+      .returning({ id: importRun.id })
+    if (rows.length === 0) return false
+    await tx.delete(importIssue).where(eq(importIssue.runId, runId))
+    return true
   })
+  if (!started) return
   const report = new Reporter(deps.inStore, deps.storeId, runId)
   // Aborted by the watchdog (or when the run ends): every copy still in flight stops.
   const stop = new AbortController()
@@ -221,6 +243,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     report,
     log: deps.log,
     secret: deps.settingsSecret,
+    signal: stop.signal,
   }
   const resources = IMPORT_RESOURCES.filter((r) => run.resources.includes(r))
   // One write test before copying anything: a broken storage (no bucket connected, the
@@ -261,6 +284,25 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       .catch(() => {})
   }, deps.heartbeatMs ?? HEARTBEAT_MS)
   heartbeat.unref?.()
+  // Stop import: the API sets `stop_requested_at`; between records and copies the
+  // run sees the abort and ends within seconds.
+  const stopPoll = setInterval(() => {
+    deps
+      .inStore((tx) =>
+        tx
+          .select({ id: importRun.id })
+          .from(importRun)
+          .where(and(eq(importRun.id, runId), isNotNull(importRun.stopRequestedAt))),
+      )
+      .then((rows) => {
+        if (rows.length > 0 && !stop.signal.aborted) {
+          deps.log(`run ${runId}: stop requested, stopping`)
+          stop.abort(new RunStopped())
+        }
+      })
+      .catch(() => {})
+  }, deps.stopPollMs ?? STOP_POLL_MS)
+  stopPoll.unref?.()
   const work = async () => {
     if (run.mode === 'csv') {
       const resource = resources[0]
@@ -287,6 +329,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     report.close()
     const takenAt = snap.takenAt
     const keep = run.dryRun && takenAt && Object.keys(snap.recorded).length > 0
+    // Only a run still running: one marked stopped meanwhile stays stopped.
     await deps.inStore((tx) =>
       tx
         .update(importRun)
@@ -302,7 +345,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
               }
             : {}),
         })
-        .where(eq(importRun.id, runId)),
+        .where(and(eq(importRun.id, runId), eq(importRun.status, 'running'))),
     )
     // The import is done with the preview's copy: delete it, unless something was missed and a
     // retry can still read it (it moves to the retry run; the 7-day cleanup takes the rest).
@@ -319,20 +362,26 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     if (run.dryRun) {
       await dropSnapshot(files, runId, { takenAt: '', streams: snap.recorded }).catch(() => {})
     }
+    const stopped = stop.signal.reason instanceof RunStopped
     await deps.inStore((tx) =>
       tx
         .update(importRun)
-        .set({
-          status: 'failed',
-          error: errorMessage(err).slice(0, 1000),
-          finishedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(importRun.id, runId)),
+        .set(
+          stopped
+            ? { status: 'cancelled', finishedAt: new Date(), updatedAt: new Date() }
+            : {
+                status: 'failed',
+                error: errorMessage(err).slice(0, 1000),
+                finishedAt: new Date(),
+                updatedAt: new Date(),
+              },
+        )
+        .where(and(eq(importRun.id, runId), eq(importRun.status, 'running'))),
     )
-    deps.log(`run ${runId} failed: ${errorMessage(err)}`)
+    deps.log(`run ${runId} ${stopped ? 'stopped' : `failed: ${errorMessage(err)}`}`)
   } finally {
     clearInterval(heartbeat)
+    clearInterval(stopPoll)
     // Anything a failed step left copying stops now rather than running on unseen.
     if (!stop.signal.aborted) stop.abort(new Error('the import ended'))
   }

@@ -14,32 +14,28 @@ import { media, newId } from '@commerce/db'
 import {
   isAllowedContentType,
   isImageContentType,
-  maxUploadBytesFor,
   mediaKey,
   type StorageProvider,
 } from '@commerce/storage'
 import { eq } from 'drizzle-orm'
-import { createLimiter } from './concurrency'
+import { createByteBudget, createLimiter } from './concurrency'
+import { BUFFER_BUDGET_BYTES, importMaxBytesFor, sizeText } from './limits'
+import { metered, peek, readAll, sniffContentType } from './media-streams'
 import { findMapping, type InStore, type MediaHost, saveMapping } from './runtime'
 
 /**
  * Copies in flight across one import (every product's images and the Files step
- * share it). Images are read whole (10 MB cap) and videos stream in 8 MB parts,
- * so this bounds memory well inside the worker's limit.
+ * share it). What a copy holds in memory is bounded separately: whole-read copies
+ * (images, up to 50 MB) by the byte budget, streamed videos by `STREAMED_IN_FLIGHT`.
  */
 const MEDIA_IN_FLIGHT = 16
-/**
- * Copies that have to be held whole (no stream support, or an unknown type, so
- * possibly a 100 MB video) get their own, much smaller cap.
- */
-const BUFFERED_LARGE_IN_FLIGHT = 2
 /** Videos streaming into the bucket at once (each holds up to ~16 MB of parts). */
 const STREAMED_IN_FLIGHT = 4
 
 /** One attempt at an image or other small copy, from asking to stored. */
 const COPY_TIMEOUT_MS = 60_000
-/** One attempt at a streamed video (up to 100 MB), from asking to stored. */
-const LARGE_COPY_TIMEOUT_MS = 10 * 60_000
+/** One attempt at a streamed video (up to 1 GB), from asking to stored. */
+const LARGE_COPY_TIMEOUT_MS = 30 * 60_000
 /** A download that sends nothing for this long is given up on, whatever its size. */
 const IDLE_TIMEOUT_MS = 30_000
 /** Extra attempts after a timeout, a dropped connection or a server error; then it is an issue. */
@@ -64,8 +60,6 @@ class CopyTimeout extends CommerceError {
 }
 
 const seconds = (ms: number) => `${ms / 1000} s`
-
-const megabytes = (bytes: number) => `${Math.round(bytes / 1024 / 1024)} MB`
 
 function isRetryable(err: unknown): boolean {
   return !(err instanceof CopyRefused || err instanceof BlockedUrlError)
@@ -107,14 +101,29 @@ function attemptClock(opts: { overallMs: number; idleMs: number; run?: AbortSign
   // Nobody may be listening when the attempt already ended another way.
   aborted.catch(() => {})
   kick()
+  let overallMs = opts.overallMs
+  const extend = (ms: number) => {
+    overallMs = ms
+    clearTimeout(overall)
+    overall = setTimeout(() => fire(`timed out after ${seconds(ms)}`), ms)
+  }
   return {
     signal,
     /** A chunk arrived: the idle deadline starts again. */
     kick,
     /** Give this attempt `ms` in all from now (a video). */
-    extend(ms: number) {
+    extend,
+    /**
+     * Waiting for its turn (memory budget, stream slots) is not the source being
+     * slow: no deadline runs until `resume`, which starts both again in full.
+     */
+    pause() {
       clearTimeout(overall)
-      overall = setTimeout(() => fire(`timed out after ${seconds(ms)}`), ms)
+      clearTimeout(idle)
+    },
+    resume() {
+      extend(overallMs)
+      kick()
     },
     aborted,
     stop() {
@@ -122,56 +131,6 @@ function attemptClock(opts: { overallMs: number; idleMs: number; run?: AbortSign
       clearTimeout(idle)
     },
   }
-}
-
-/**
- * Pass the body through, calling `onChunk` for each chunk and failing once more
- * than `limit` bytes have arrived. Counts what fetch hands over (decompressed),
- * never what the headers said.
- */
-function metered(
-  limit: number,
-  onChunk: (bytes: number) => void,
-): TransformStream<Uint8Array, Uint8Array> {
-  let seen = 0
-  return new TransformStream({
-    transform(chunk, controller) {
-      seen += chunk.byteLength
-      onChunk(chunk.byteLength)
-      if (seen > limit) controller.error(new CopyRefused(`file is larger than ${megabytes(limit)}`))
-      else controller.enqueue(chunk)
-    },
-  })
-}
-
-/** The whole body, or null once it passes `limit` bytes (the download is then cancelled). */
-async function readAll(
-  body: ReadableStream<Uint8Array> | null,
-  limit: number,
-  onChunk: () => void,
-): Promise<Uint8Array | null> {
-  if (!body) return new Uint8Array()
-  const reader = body.getReader()
-  const chunks: Uint8Array[] = []
-  let total = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    onChunk()
-    total += value.byteLength
-    if (total > limit) {
-      await reader.cancel().catch(() => {})
-      return null
-    }
-    chunks.push(value)
-  }
-  const out = new Uint8Array(total)
-  let at = 0
-  for (const chunk of chunks) {
-    out.set(chunk, at)
-    at += chunk.byteLength
-  }
-  return out
 }
 
 /** `//cdn.shopify.com/a.jpg?v=12` → `https://cdn.shopify.com/a.jpg`. */
@@ -187,33 +146,6 @@ function filenameOf(url: string): string {
   } catch {
     return last
   }
-}
-
-const ascii = (bytes: Uint8Array, from: number, to: number) =>
-  String.fromCharCode(...bytes.subarray(from, to))
-
-/**
- * What the bytes say they are (magic numbers), for a response whose own
- * content type is not one we accept. The URL's extension is never trusted:
- * `…/latest/meta-data.mp4` redirected somewhere internal would otherwise be
- * stored as video. ISO BMFF (`ftyp`) covers AVIF, HEIC, MP4 and QuickTime.
- */
-function sniffContentType(bytes: Uint8Array): string | null {
-  const [b0, b1, b2, b3] = bytes
-  if (b0 === 0xff && b1 === 0xd8 && b2 === 0xff) return 'image/jpeg'
-  if (b0 === 0x89 && ascii(bytes, 1, 4) === 'PNG') return 'image/png'
-  if (ascii(bytes, 0, 4) === 'GIF8') return 'image/gif'
-  if (ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 12) === 'WEBP') return 'image/webp'
-  if (b0 === 0x1a && b1 === 0x45 && b2 === 0xdf && b3 === 0xa3) return 'video/webm'
-  if (ascii(bytes, 4, 8) === 'ftyp') {
-    const brand = ascii(bytes, 8, 12)
-    if (brand === 'avif' || brand === 'avis') return 'image/avif'
-    if (['heic', 'heix', 'hevc', 'heim', 'heis', 'mif1', 'msf1'].includes(brand))
-      return 'image/heic'
-    if (brand === 'qt  ') return 'video/quicktime'
-    return 'video/mp4'
-  }
-  return null
 }
 
 export type MediaHostOptions = {
@@ -252,13 +184,15 @@ export type MediaHostOptions = {
   onMediaImported?: (mediaId: string, contentType: string, src: string) => Promise<void>
   /** Overrides `MEDIA_IN_FLIGHT` (tests). */
   maxInFlight?: number | undefined
+  /** Overrides `BUFFER_BUDGET_BYTES`: bytes of whole-read copies held at once. */
+  bufferBudgetBytes?: number | undefined
 }
 
 export function createMediaHost(opts: MediaHostOptions): MediaHost {
   const known = new Map<string, string>()
   let provider: StorageProvider | null = null
   const inFlight = createLimiter(opts.maxInFlight ?? MEDIA_IN_FLIGHT)
-  const largeBuffered = createLimiter(BUFFERED_LARGE_IN_FLIGHT)
+  const budget = createByteBudget(opts.bufferBudgetBytes ?? BUFFER_BUDGET_BYTES)
   const streamed = createLimiter(STREAMED_IN_FLIGHT)
   const smallMs = opts.timeoutMs ?? COPY_TIMEOUT_MS
   const largeMs = opts.largeTimeoutMs ?? LARGE_COPY_TIMEOUT_MS
@@ -392,56 +326,81 @@ export function createMediaHost(opts: MediaHostOptions): MediaHost {
     const id = newId()
     const keyFor = (contentType: string) =>
       mediaKey({ storeId: opts.storeId, filename: filenameOf(key), contentType, id })
-    const tooLarge = (limit: number) => new CopyRefused(`file is larger than ${megabytes(limit)}`)
-    if (trusted && Number.isFinite(declaredSize) && declaredSize > maxUploadBytesFor(trusted)) {
-      await res.body?.cancel().catch(() => {})
-      throw tooLarge(maxUploadBytesFor(trusted))
-    }
+    const tooLarge = (limit: number) => new CopyRefused(`file is larger than ${sizeText(limit)}`)
 
-    let contentType: string
-    let size: number
-    let objectKey: string
-    const body = res.body
-    if (trusted && !isImageContentType(trusted) && store.putStream && body) {
+    // The type: the header when it is one we take, else what the first bytes say.
+    let body: ReadableStream<Uint8Array> | null = res.body
+    let contentType = trusted
+    if (!contentType) {
+      const peeked = body ? await peek(body, onChunk) : null
+      body = peeked?.body ?? null
+      contentType =
+        (peeked ? sniffContentType(peeked.head) : null) ??
+        declaredType ??
+        'application/octet-stream'
+      if (!isAllowedContentType(contentType)) {
+        await body?.cancel().catch(() => {})
+        throw new CopyRefused(`${contentType} is not supported`)
+      }
+    }
+    const type = contentType
+    const streams = !isImageContentType(type) && Boolean(store.putStream) && body !== null
+    const limit = importMaxBytesFor(type, streams)
+    if (Number.isFinite(declaredSize) && declaredSize > limit) {
+      await body?.cancel().catch(() => {})
+      throw tooLarge(limit)
+    }
+    const objectKey = keyFor(type)
+
+    if (streams && store.putStream && body) {
       // A video: from the download into the bucket in parts, never held whole. Its
       // size is what actually arrived; one smaller than a part goes as one exact PUT.
-      const limit = maxUploadBytesFor(trusted)
       const putStream = store.putStream.bind(store)
-      contentType = trusted
-      objectKey = keyFor(contentType)
-      const target = objectKey
+      const source = body
       let counted = 0
+      clock.pause()
       await streamed(() => {
+        clock.resume()
         clock.extend(largeMs)
         return putStream({
-          key: target,
-          body: body.pipeThrough(
-            metered(limit, (n) => {
+          key: objectKey,
+          body: metered(
+            source,
+            limit,
+            (n) => {
               counted += n
               onChunk()
-            }),
+            },
+            () => tooLarge(limit),
           ),
-          contentType: trusted,
+          contentType: type,
           signal: clock.signal,
         })
       })
-      size = counted
-    } else {
-      // An image (10 MB cap) or an unknown type: read it whole, sniff, one exact put.
-      const readLimit = maxUploadBytesFor(trusted ?? 'video/mp4')
-      const read = () => readAll(body, readLimit, onChunk)
-      const bytes = isImageContentType(trusted ?? '') ? await read() : await largeBuffered(read)
-      if (!bytes) throw tooLarge(readLimit)
-      contentType = trusted ?? sniffContentType(bytes) ?? declaredType ?? 'application/octet-stream'
-      if (!isAllowedContentType(contentType)) {
-        throw new CopyRefused(`${contentType} is not supported`)
-      }
-      const limit = maxUploadBytesFor(contentType)
-      if (bytes.byteLength > limit) throw tooLarge(limit)
-      size = bytes.byteLength
-      objectKey = keyFor(contentType)
-      await store.put({ key: objectKey, body: bytes, contentType, signal: clock.signal })
+      return { id, store, objectKey, contentType: type, size: counted }
     }
-    return { id, store, objectKey, contentType, size }
+
+    // An image (50 MB cap), or a video the storage cannot take as a stream: read it
+    // whole and store it with one put of its exact length. The bytes it may hold
+    // (its stated size, else the cap) are reserved first and kept until it is stored.
+    const expected = Number.isFinite(declaredSize) ? declaredSize : null
+    const source = body
+    clock.pause()
+    const readAndPut = async () => {
+      const bytes = await readAll(source, limit, onChunk, expected)
+      if (!bytes) throw tooLarge(limit)
+      await store.put({ key: objectKey, body: bytes, contentType: type, signal: clock.signal })
+      return bytes.byteLength
+    }
+    const size = await budget.use(
+      expected ?? limit,
+      () => {
+        clock.resume()
+        // The reservation goes back when the attempt ends, even if a hung source ignores the abort.
+        return Promise.race([readAndPut(), clock.aborted])
+      },
+      clock.signal,
+    )
+    return { id, store, objectKey, contentType: type, size }
   }
 }

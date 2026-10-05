@@ -37,6 +37,7 @@ export const shopifyImportContent = {
     running: 'Running',
     completed: 'Completed',
     failed: 'Failed',
+    cancelled: 'Stopped',
   } satisfies Record<RunStatus, string>,
 
   home: {
@@ -209,6 +210,21 @@ export const shopifyImportContent = {
     importDone:
       'Import finished. Running it again updates what it created instead of duplicating it.',
     failed: 'The import stopped.',
+    stopped: (who: string | null, when: string) =>
+      who ? `Stopped by ${who} at ${when}.` : `Stopped at ${when}.`,
+    stoppedKeeps:
+      'What was already imported stays. Bring in the rest with Run again, or Retry the ones that were missed.',
+    stopping: 'Stopping… the import ends within a few seconds.',
+    stop: {
+      button: 'Stop import',
+      title: 'Stop this import?',
+      body: 'What’s already imported stays. You can bring in the rest later with Run again or Retry.',
+      confirm: 'Stop import',
+      keep: 'Keep importing',
+      done: 'Import stopped',
+      asked: 'Stopping the import',
+      failed: 'Couldn’t stop the import',
+    },
     importNow: 'Import now',
     runAgain: 'Run again',
     tryAgain: 'Try again',
@@ -257,6 +273,10 @@ export const shopifyImportContent = {
         `${plural(n, 'record', 'records')} to retry: one record can have several problems, such as several images.`,
       example: 'For example:',
       retryable: (n: number) => `${plural(n, 'record', 'records')} can be retried`,
+      retryableImages: (images: number, records: number) =>
+        `${plural(images, 'image', 'images')} can be retried with the ${plural(records, 'record', 'records')} they belong to`,
+      retryableFiles: (files: number, records: number) =>
+        `${plural(files, 'file', 'files')} can be retried (${plural(records, 'record', 'records')})`,
       fix: { storage: 'Connect storage', scope: 'Add the access' },
       cause: {
         storage: (n: number) =>
@@ -295,10 +315,13 @@ export const shopifyImportContent = {
       import: (n: number) => `Import ${n.toLocaleString('en-IN')}`,
       images: 'Copy images',
       files: 'Copy files',
+      preview: 'Run a preview',
     },
     importRemaining: 'Import remaining',
     allHere: 'Everything is here',
     fromShopify: 'Counted live from Shopify',
+    fromImport: (when: string) => `Counted by the full import on ${when}`,
+    fromIssues: 'At least this many: what is here plus what the last import couldn’t copy',
     fromPreview: (when: string) =>
       `Numbers Shopify doesn’t count for us are from the ${when} preview`,
     lastImport: (when: string) => `Last import ${when}`,
@@ -412,6 +435,10 @@ export const shopifyImportContent = {
         `${plural(n, 'gift card is', 'gift cards are')} in another currency.`,
       gift_card_used_here: (n: number) =>
         `${plural(n, 'gift card was', 'gift cards were')} already spent in this store, so the balance here was kept.`,
+      redirect_manual: (n: number) =>
+        `${plural(n, 'redirect', 'redirects')} you set up here by hand kept your version.`,
+      redirect_invalid: (n: number) =>
+        `${plural(n, 'redirect starts', 'redirects start')} from the home page or an empty path, so ${n === 1 ? 'it was' : 'they were'} left out.`,
     } satisfies Record<LeftBehindReason, (n: number, detail: string) => string>,
   },
 } as const

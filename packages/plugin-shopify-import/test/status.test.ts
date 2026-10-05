@@ -145,7 +145,13 @@ describe("what's left to import", () => {
     })
     expect(row('collections')).toMatchObject({ inShopify: 3, missing: 3, state: 'never' })
     expect(row('orders')).toMatchObject({ inShopify: null, state: 'unknown' })
-    expect(status.images).toMatchObject({ expected: 20, missing: 2, state: 'not_copied' })
+    // "Here" is images really linked to imported products: none in this seed, so all 20 are missing.
+    expect(status.images).toMatchObject({
+      expected: 20,
+      here: 0,
+      missing: 20,
+      state: 'not_copied',
+    })
     expect(status.remaining.sort()).toEqual(['collections', 'files', 'products'])
     expect(status.lastImportAt).not.toBeNull()
   })
@@ -296,6 +302,29 @@ describe('problems grouped by cause', () => {
       expect.objectContaining({ cause: 'record', count: 1, retryable: 1, fixHref: null }),
     ])
   })
+
+  it('counts records to retry, not problems: 77 images across 23 products is 23 to retry', async () => {
+    const storeId = await seedStore()
+    const [run] = await owner
+      .insert(importRun)
+      .values({ storeId, mode: 'api', resources: ['products'], dryRun: false, status: 'completed' })
+      .returning({ id: importRun.id })
+    const runId = run?.id as string
+    await owner.insert(importIssue).values(
+      Array.from({ length: 77 }, (_, i) => ({
+        storeId,
+        runId,
+        resource: 'products',
+        sourceId: P(i % 23),
+        kind: 'media' as const,
+        message: `Image https://cdn/${i}.png was not copied: file is larger than 10 MB`,
+      })),
+    )
+    const groups = await withStore(app, storeId, (tx) => issueGroups(tx, runId))
+    expect(groups).toEqual([
+      expect.objectContaining({ cause: 'image', count: 77, retryable: 23, retryableProblems: 77 }),
+    ])
+  })
 })
 
 describe('faster copies', () => {
@@ -346,7 +375,7 @@ describe('faster copies', () => {
     )
     expect(ids.every(Boolean)).toBe(true)
     expect(peak).toBe(2)
-    // Images (10 MB at most): read whole and stored with one put of their exact length.
+    // Images (50 MB at most): read whole and stored with one put of their exact length.
     expect(storage.streamed).toHaveLength(0)
     const stored = [...storage.objects.values()].map((o) => o.body.byteLength)
     expect(stored.every((n) => n === PNG.byteLength)).toBe(true)

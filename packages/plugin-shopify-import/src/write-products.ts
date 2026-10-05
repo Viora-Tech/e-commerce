@@ -137,8 +137,6 @@ function toWrite(
 
 function preview(ctx: ImportContext, p: NProduct, existingId: string | null) {
   ctx.report.count('products', existingId ? 'updated' : 'created')
-  const progress = ctx.report.of('products')
-  progress.images = (progress.images ?? 0) + p.images.length
   ctx.report.sample({
     resource: 'products',
     key: p.handle,
@@ -238,6 +236,10 @@ const PREPARE_CONCURRENCY = 3
  * back and commits them one at a time, reusing the copied images.
  */
 export async function writeProducts(ctx: ImportContext, batch: readonly NProduct[]) {
+  // How many images Shopify's products carry, on a preview and an import alike: the
+  // status page compares it with what is here ("Product images: 2,097 not copied").
+  const progress = ctx.report.of('products')
+  progress.images = (progress.images ?? 0) + batch.reduce((n, p) => n + p.images.length, 0)
   let existing: (string | null)[] = []
   try {
     existing = await ctx.inStore(async (tx) => {

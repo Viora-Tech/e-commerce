@@ -7,6 +7,7 @@ import {
   deleteRedirects,
   findRedirect,
   hasRedirects,
+  importRedirect,
   listRedirects,
   saveRedirect,
   upsertImportedRedirect,
@@ -95,6 +96,19 @@ describe('redirect service', () => {
       expect(await upsertImportedRedirect(tx, storeId, '/old-page', '/pages/new')).toBe('skipped')
       expect(await upsertImportedRedirect(tx, storeId, '/old-page', '/pages/newer')).toBe('updated')
       expect(await findRedirect(tx, '/sale')).toBe('/collections/sale')
+      // Why each skip happened, for the import's report.
+      expect(await importRedirect(tx, storeId, '/sale', '/x')).toEqual({
+        outcome: 'skipped',
+        skip: 'manual',
+      })
+      expect(await importRedirect(tx, storeId, '/old-page', '/pages/newer')).toEqual({
+        outcome: 'skipped',
+        skip: 'unchanged',
+      })
+      expect(await importRedirect(tx, storeId, '/', '/x')).toEqual({
+        outcome: 'skipped',
+        skip: 'invalid',
+      })
     })
   })
 

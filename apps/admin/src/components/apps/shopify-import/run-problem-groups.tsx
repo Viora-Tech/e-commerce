@@ -17,6 +17,19 @@ type RunProblemGroupsProps = {
 
 const isResource = (r: string, labels: Record<string, string>): r is ImportResource => r in labels
 
+type ProblemsCopy = (typeof shopifyImportContent)['run']['problems']
+
+/** Same unit as the card's "N records to retry": records, with the images or files they carry. */
+function retryText(p: ProblemsCopy, g: IssueGroup): string {
+  if (g.retryableProblems > g.retryable && g.cause === 'image') {
+    return p.retryableImages(g.retryableProblems, g.retryable)
+  }
+  if (g.retryableProblems > g.retryable && g.cause === 'file') {
+    return p.retryableFiles(g.retryableProblems, g.retryable)
+  }
+  return p.retryable(g.retryable)
+}
+
 /** A run's problems as a few lines, one per cause and type, each with its fix. */
 export default function RunProblemGroups({ runId, version }: RunProblemGroupsProps) {
   // Hooks
@@ -65,7 +78,7 @@ export default function RunProblemGroups({ runId, version }: RunProblemGroupsPro
               {p.example} {g.sample}
             </span>
             {g.retryable > 0 && g.cause !== 'storage' ? (
-              <span className="text-caption text-muted-foreground">{p.retryable(g.retryable)}</span>
+              <span className="text-caption text-muted-foreground">{retryText(p, g)}</span>
             ) : null}
           </div>
           {g.fixHref && (g.cause === 'storage' || g.cause === 'scope') ? (
