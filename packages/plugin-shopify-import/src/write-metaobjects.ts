@@ -129,7 +129,12 @@ async function writeDefinitions(
       out.push({ def, localId, plans: plansOf(planned), waiting })
     } catch (err) {
       ctx.report.count(ENTRIES, 'failed')
-      ctx.report.issue({ resource: ENTRIES, ref: def.type, message: errorMessage(err) })
+      ctx.report.issue({
+        resource: ENTRIES,
+        ref: def.type,
+        sourceId: def.sourceId,
+        message: errorMessage(err),
+      })
       out.push({ def, localId: null, plans: new Map(), waiting: new Set() })
     }
   }
@@ -227,7 +232,7 @@ async function writeEntry(
     return converted.deferred
   } catch (err) {
     counted('failed')
-    ctx.report.issue({ resource: ENTRIES, ref, message: errorMessage(err) })
+    ctx.report.issue({ resource: ENTRIES, ref, sourceId: e.sourceId, message: errorMessage(err) })
     return false
   }
 }

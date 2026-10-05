@@ -231,8 +231,12 @@ export function fakeShopify(opts: { customers: number; orders: number; products:
     const search = (variables.query as string | null | undefined) ?? null
     calls.push({ op: name, search })
     const after = changedAfter(search)
+    // `id:12 OR id:13`: only those records (a retry asking by id).
+    const ids = new Set([...(search ?? '').matchAll(/(?:^|\s)id:(\d+)/g)].map((m) => m[1]))
     const all = data[resource].filter(
-      (n) => after === null || new Date(n.updatedAt).getTime() > after,
+      (n) =>
+        (after === null || new Date(n.updatedAt).getTime() > after) &&
+        (ids.size === 0 || ids.has(n.id.split('/').pop())),
     )
     const start = Number(variables.cursor ?? 0)
     const nodes = all.slice(start, start + PAGE[resource])

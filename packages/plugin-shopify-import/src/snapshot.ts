@@ -80,6 +80,34 @@ async function* readJsonl<T>(bytes: Uint8Array): AsyncGenerator<T> {
 const changedSince = (takenAt: string) =>
   `updated_at:>'${new Date(new Date(takenAt).getTime() - CLOCK_SKEW_MS).toISOString()}'`
 
+/** Ids per Shopify search: `id:1 OR id:2 …` stays well inside the query length limit. */
+const IDS_PER_SEARCH = 50
+
+/**
+ * Records by import key, through the same paged query (and mapping) a full
+ * read uses, filtered with Shopify's `id:` search: `gid://shopify/Product/12`
+ * → `id:12`. Keys that are not Shopify ids (CSV keys) cannot be asked for.
+ */
+async function* fetchByIds<T>(
+  spec: Pick<ReadSpec<T>, 'idOf' | 'delta'>,
+  ids: ReadonlySet<string>,
+): AsyncGenerator<T[]> {
+  const numeric = [...ids].flatMap((id) => {
+    const n = /^gid:\/\/shopify\/\w+\/(\d+)$/.exec(id)?.[1]
+    return n ? [n] : []
+  })
+  for (let i = 0; i < numeric.length; i += IDS_PER_SEARCH) {
+    const search = numeric
+      .slice(i, i + IDS_PER_SEARCH)
+      .map((n) => `id:${n}`)
+      .join(' OR ')
+    for await (const batch of spec.delta(search)) {
+      const wanted = batch.filter((item) => ids.has(spec.idOf(item)))
+      if (wanted.length) yield wanted
+    }
+  }
+}
+
 /** A snapshot the import may use: under 24 hours old. */
 export function freshSnapshot(
   snapshot: ImportSnapshot | null | undefined,
@@ -104,7 +132,7 @@ type SessionOptions = {
   onReuse?: ((use: SnapshotUse) => Promise<void>) | undefined
 }
 
-type ReadSpec<T> = {
+export type ReadSpec<T> = {
   resource: SnapshotResource
   idOf: (item: T) => string
   /** Everything, the way a run without a snapshot reads it. */
@@ -204,6 +232,50 @@ export class SnapshotSession {
       }
     }
     if (batch.length) yield hand(batch)
+  }
+
+  /**
+   * Only the records with these import keys (a retry of what an import missed):
+   * from the snapshot while it is fresh, else asked from Shopify by id.
+   */
+  async *readSome<T>(spec: ReadSpec<T>, ids: ReadonlySet<string>): AsyncGenerator<T[]> {
+    const { mode } = this.opts
+    const entry = mode.kind === 'reuse' ? mode.snapshot.streams[spec.resource] : undefined
+    const bytes = entry ? await this.load(entry.key) : null
+    let apply: ((items: T[]) => void) | null = null
+    if (bytes && spec.refresher) apply = await spec.refresher().catch(() => null)
+    if (!bytes || (spec.refresher && !apply)) {
+      yield* fetchByIds(spec, ids)
+      return
+    }
+    if (mode.kind !== 'reuse') return
+    // Anything fixed in Shopify since the copy was taken comes fresh, as on an import.
+    const changed = new Map<string, T>()
+    for await (const batch of spec.delta(changedSince(mode.snapshot.takenAt))) {
+      for (const item of batch) {
+        const id = spec.idOf(item)
+        if (ids.has(id)) changed.set(id, item)
+      }
+    }
+    this.changes += changed.size
+    this.reused.push(spec.resource)
+    const use = this.use
+    if (use && this.opts.onReuse) await this.opts.onReuse(use)
+    let batch: T[] = []
+    for await (const saved of readJsonl<T>(bytes)) {
+      const id = spec.idOf(saved)
+      if (!ids.has(id)) continue
+      batch.push(changed.get(id) ?? saved)
+      changed.delete(id)
+      if (batch.length >= BATCH) {
+        apply?.(batch)
+        yield batch
+        batch = []
+      }
+    }
+    batch.push(...changed.values())
+    apply?.(batch)
+    if (batch.length) yield batch
   }
 
   private async *record<T>(spec: ReadSpec<T>): AsyncGenerator<T[]> {

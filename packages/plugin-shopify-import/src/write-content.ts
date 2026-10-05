@@ -49,17 +49,26 @@ async function richText(ctx: ImportContext, html: string | null): Promise<RichTe
   return doc
 }
 
+/** How a record is named in the report, and its import key (what a retry fetches again). */
+type Key = { ref: string; sourceId: string }
+
 async function hostOne(
   ctx: ImportContext,
   resource: ImportResource,
-  ref: string,
+  key: Key,
   image: { src: string; alt: string | null } | null,
 ): Promise<string | null> {
   if (!image) return null
   try {
     return await ctx.media.host(image.src, image.alt)
   } catch (err) {
-    ctx.report.issue({ resource, ref, message: `Image was not copied: ${errorMessage(err)}` })
+    ctx.report.issue({
+      resource,
+      ref: key.ref,
+      sourceId: key.sourceId,
+      kind: 'media',
+      message: `Image was not copied: ${errorMessage(err)}`,
+    })
     return null
   }
 }
@@ -68,7 +77,7 @@ async function hostOne(
 async function upsert(
   ctx: ImportContext,
   resource: ImportResource,
-  ref: string,
+  key: Key,
   title: string,
   find: (tx: StoreTx) => Promise<string | null>,
   write: (existing: string | null) => Promise<string>,
@@ -80,7 +89,7 @@ async function upsert(
       ctx.report.count(resource, existing ? 'updated' : 'created')
       ctx.report.sample({
         resource,
-        key: ref,
+        key: key.ref,
         title,
         action: existing ? 'update' : 'create',
         detail,
@@ -92,7 +101,7 @@ async function upsert(
     return id
   } catch (err) {
     ctx.report.count(resource, 'failed')
-    ctx.report.issue({ resource, ref, message: errorMessage(err) })
+    ctx.report.issue({ resource, ref: key.ref, sourceId: key.sourceId, message: errorMessage(err) })
     return null
   }
 }
@@ -134,14 +143,15 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
       message: `Smart rules we cannot express (${c.unmappedRules.join(', ')}); imported as a manual collection with its current products`,
     })
   }
+  const key = { ref: c.handle, sourceId: c.sourceId ?? `handle:${c.handle}` }
   return upsert(
     ctx,
     'collections',
-    c.handle,
+    key,
     c.title,
     (tx) => mappedOr(tx, 'collections', c.sourceId, collection, handle),
     async (existing) => {
-      const imageMediaId = await hostOne(ctx, 'collections', c.handle, c.image)
+      const imageMediaId = await hostOne(ctx, 'collections', key, c.image)
       const description = await richText(ctx, c.bodyHtml)
       return ctx.inStore(async (tx) => {
         const productIds: string[] = []
@@ -172,7 +182,7 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
         }
         const id = existing ?? (await createCollection(tx, ctx.storeId, write))
         if (existing) await updateCollection(tx, ctx.storeId, existing, write)
-        await saveMapping(tx, ctx.storeId, 'collections', c.sourceId ?? `handle:${c.handle}`, id)
+        await saveMapping(tx, ctx.storeId, 'collections', key.sourceId, id)
         const [row] = await tx
           .select({ handle: collection.handle })
           .from(collection)
@@ -194,10 +204,11 @@ export async function writeCollection(ctx: ImportContext, c: NCollection) {
 
 export async function writePage(ctx: ImportContext, p: NPage) {
   const handle = handleOf(p.handle, 'page')
+  const key = { ref: p.handle, sourceId: p.sourceId ?? `handle:${p.handle}` }
   return upsert(
     ctx,
     'pages',
-    p.handle,
+    key,
     p.title,
     (tx) => mappedOr(tx, 'pages', p.sourceId, page, handle),
     async (existing) => {
@@ -229,7 +240,7 @@ export async function writePage(ctx: ImportContext, p: NPage) {
             await upsertImportedRedirect(tx, ctx.storeId, `/pages/${p.handle}`, `/pages/${free}`)
           }
         }
-        await saveMapping(tx, ctx.storeId, 'pages', p.sourceId ?? `handle:${p.handle}`, id)
+        await saveMapping(tx, ctx.storeId, 'pages', key.sourceId, id)
         return id
       })
     },
@@ -246,10 +257,11 @@ async function blogFor(tx: StoreTx, storeId: string, a: NArticle): Promise<strin
 export async function writeArticle(ctx: ImportContext, a: NArticle) {
   const handle = handleOf(a.handle, 'post')
   const ref = `${a.blogHandle}/${a.handle}`
+  const key = { ref, sourceId: a.sourceId ?? `handle:${ref}` }
   return upsert(
     ctx,
     'articles',
-    ref,
+    key,
     a.title,
     async (tx) => {
       const mapped = await findMapping(tx, 'articles', a.sourceId)
@@ -268,7 +280,7 @@ export async function writeArticle(ctx: ImportContext, a: NArticle) {
       return row?.id ?? null
     },
     async (existing) => {
-      const imageMediaId = await hostOne(ctx, 'articles', ref, a.image)
+      const imageMediaId = await hostOne(ctx, 'articles', key, a.image)
       const body = await richText(ctx, a.bodyHtml)
       return ctx.inStore(async (tx) => {
         const blogId = await blogFor(tx, ctx.storeId, a)
@@ -289,7 +301,7 @@ export async function writeArticle(ctx: ImportContext, a: NArticle) {
         }
         const id = existing ?? (await createArticle(tx, ctx.storeId, write))
         if (existing) await updateArticle(tx, existing, write)
-        await saveMapping(tx, ctx.storeId, 'articles', a.sourceId ?? `handle:${ref}`, id)
+        await saveMapping(tx, ctx.storeId, 'articles', key.sourceId, id)
         const [row] = await tx
           .select({ handle: article.handle, blog: blog.handle })
           .from(article)
@@ -340,10 +352,11 @@ export function navigationItem(item: NMenuItem, id: () => string, depth = 1): Na
 
 export async function writeMenu(ctx: ImportContext, m: NMenu) {
   const handle = handleOf(m.handle, 'menu')
+  const key = { ref: m.handle, sourceId: m.sourceId ?? `handle:${m.handle}` }
   return upsert(
     ctx,
     'menus',
-    m.handle,
+    key,
     m.title,
     (tx) => mappedOr(tx, 'menus', m.sourceId, navigationMenu, handle),
     async (existing) => {
@@ -368,12 +381,15 @@ export async function writeMenu(ctx: ImportContext, m: NMenu) {
             items: parsed.data,
           })
         }
-        await saveMapping(tx, ctx.storeId, 'menus', m.sourceId ?? `handle:${m.handle}`, id)
+        await saveMapping(tx, ctx.storeId, 'menus', key.sourceId, id)
         return id
       })
     },
   )
 }
+
+/** A redirect's import key: its Shopify id, else its path. */
+export const redirectSourceId = (r: NRedirect) => r.sourceId ?? `path:${r.path}`
 
 export async function writeRedirect(ctx: ImportContext, r: NRedirect) {
   try {
@@ -393,6 +409,11 @@ export async function writeRedirect(ctx: ImportContext, r: NRedirect) {
     ctx.report.count('redirects', outcome)
   } catch (err) {
     ctx.report.count('redirects', 'failed')
-    ctx.report.issue({ resource: 'redirects', ref: r.path, message: errorMessage(err) })
+    ctx.report.issue({
+      resource: 'redirects',
+      ref: r.path,
+      sourceId: redirectSourceId(r),
+      message: errorMessage(err),
+    })
   }
 }

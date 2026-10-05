@@ -381,7 +381,13 @@ export async function writeOrder(
     return r.id
   } catch (err) {
     ctx.report.count('orders', 'failed')
-    ctx.report.issue({ resource: 'orders', row: o.row, ref: o.name, message: errorMessage(err) })
+    ctx.report.issue({
+      resource: 'orders',
+      row: o.row,
+      ref: o.name,
+      sourceId: orderSourceId(o),
+      message: errorMessage(err),
+    })
     return null
   }
 }

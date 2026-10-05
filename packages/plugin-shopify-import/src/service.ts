@@ -1,8 +1,8 @@
 /** Run bookkeeping for the API router: create, start, list and read imports. */
 import { newId, type StoreTx } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
-import { and, asc, count, desc, eq, inArray, lt } from 'drizzle-orm'
-import { type CsvResource, type ImportResource, MAX_CSV_BYTES } from './client'
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql } from 'drizzle-orm'
+import { type CsvResource, IMPORT_RESOURCES, type ImportResource, MAX_CSV_BYTES } from './client'
 import { importIssue, importRun } from './schema'
 
 export class ImportError extends Error {}
@@ -173,10 +173,83 @@ export async function getRun(tx: StoreTx, id: string) {
   const [row] = await tx.select().from(importRun).where(eq(importRun.id, id))
   if (!row) return null
   const [issues] = await tx
-    .select({ n: count() })
+    .select({
+      n: count(),
+      retryable: sql<number>`count(distinct (${importIssue.resource}, ${importIssue.sourceId}))
+        filter (where ${importIssue.sourceId} is not null)`.mapWith(Number),
+    })
     .from(importIssue)
     .where(eq(importIssue.runId, id))
-  return { ...row, issueCount: issues?.n ?? 0 }
+  return { ...row, issueCount: issues?.n ?? 0, retryable: issues?.retryable ?? 0 }
+}
+
+/** What a retry of `runId` imports again: per resource, the import keys of its problems. */
+export async function retryTargets(
+  tx: StoreTx,
+  runId: string,
+): Promise<Map<ImportResource, Set<string>>> {
+  const rows = await tx
+    .selectDistinct({ resource: importIssue.resource, sourceId: importIssue.sourceId })
+    .from(importIssue)
+    .where(and(eq(importIssue.runId, runId), isNotNull(importIssue.sourceId)))
+  const out = new Map<ImportResource, Set<string>>()
+  for (const r of rows) {
+    if (!r.sourceId || !IMPORT_RESOURCES.includes(r.resource as ImportResource)) continue
+    const resource = r.resource as ImportResource
+    const set = out.get(resource) ?? new Set<string>()
+    set.add(r.sourceId)
+    out.set(resource, set)
+  }
+  return out
+}
+
+/**
+ * "Retry the ones that were missed": a new import of only the records (and
+ * images, and files) the finished import `previousId` reported problems for.
+ * The previous run keeps its report; the new one reports only what it retried.
+ * The previous run's copy of what it read moves to the new run, so the retry
+ * reads from it while it is fresh.
+ */
+export async function createRetryRun(
+  tx: StoreTx,
+  storeId: string,
+  previousId: string,
+  createdBy: string | null,
+): Promise<RunRow> {
+  await failStaleRuns(tx)
+  const [previous] = await tx.select().from(importRun).where(eq(importRun.id, previousId))
+  if (!previous) throw new ImportError('Import not found')
+  if (previous.dryRun) throw new ImportError('Import this preview first')
+  if (previous.status === 'queued' || previous.status === 'running') {
+    throw new ImportError('This import is still running')
+  }
+  const targets = await retryTargets(tx, previousId)
+  const resources = IMPORT_RESOURCES.filter((r) => targets.has(r))
+  if (resources.length === 0)
+    throw new ImportError('Nothing was missed, so there is nothing to retry')
+  const [row] = await tx
+    .insert(importRun)
+    .values({
+      storeId,
+      mode: previous.mode,
+      resources,
+      dryRun: false,
+      fileKey: previous.fileKey,
+      fileName: previous.fileName,
+      createdBy,
+      retryOf: previousId,
+      snapshot: previous.snapshot,
+      snapshotTakenAt: previous.snapshotTakenAt,
+    })
+    .returning()
+  if (!row) throw new ImportError('The retry was not created')
+  if (previous.snapshot) {
+    await tx
+      .update(importRun)
+      .set({ snapshot: null, snapshotTakenAt: null })
+      .where(eq(importRun.id, previousId))
+  }
+  return row
 }
 
 export async function listIssues(

@@ -22,6 +22,19 @@ SECURITY DEFINER `stores_with_stale_import_snapshots(cutoff)`.
   Backstop: a `running` run silent for 10 min is failed on the next read. Try again now queues
   a fresh BullMQ job id per start (`runJobKey`); the old fixed id was ignored while the failed
   job was kept, leaving the run queued forever.
+- **Before you import.** `preflightChecks` (`src/preflight.ts`, API `shopifyImport.preflight`):
+  storage on the local fallback in production (warn, link to `/content/files/storage`), missing
+  Shopify scope (block that resource only), connection check failed (block), no
+  `read_all_orders` (warn), orders/collections/discounts/extra fields without products, gift
+  cards without customers (warn). Card on the connect page and on a finished preview. Every
+  real import first writes+deletes a test file; if storage refuses, ONE issue and all media and
+  files are skipped (left reason `storage_unwritable`).
+- **Retry only what was missed.** Migration 0087 also adds `shopify_import_issue.source_id` +
+  `kind` (`record`/`media`/`file`) and `shopify_import_run.retry_of`. "Retry the N that were
+  missed" (`createRetryRun`, API `retryRun`) imports only those keys: from the kept snapshot
+  (+ changes) while fresh, else by `id:` search; failed images re-copy only those images.
+  "Import everything again" is the old full re-run. `run.ts` split: reading/writing per
+  resource is now `src/read-write.ts`.
 - The worker now depends on `@commerce/plugin-shopify-import` (client constants only).
 - Docs: developer docs "Shopify importer" (snapshot, memory, batched writes, dead worker),
   merchant guide "Import from Shopify".

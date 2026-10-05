@@ -104,6 +104,56 @@ the commit, as one-at-a-time writes would see it. Product variants still go thro
   and `startRun` fail a `running` run silent for 10 minutes, so the page shows Try again even
   if the failure event was lost.
 
+## Before you import (pre-import checks)
+
+`preflightChecks` (`src/preflight.ts`, API `shopifyImport.preflight`) returns
+`{ id, status: ok | warn | block, resource?, detail?, title, help, fixHref }` for the chosen
+resources. The connect page shows it under "What to import" and the run page shows it on a
+finished preview (`preflight-card.tsx`; copy keyed by `id` in `data/shopify-import.ts` →
+`preflight`, Hindi overlay too).
+
+- **`storage`** (warn): a resource that copies images or files is chosen while uploads go to
+  the local folder fallback in production. Fix link: `/content/files/storage`.
+- **`scope`** (block, per resource): the token lacks a scope in `RESOURCE_SCOPES`. Only that
+  resource is unticked and disabled; the rest can still be previewed. **`connection`** (block,
+  no resource): the scope check itself failed; Preview is disabled.
+- **`all_orders`** (warn): orders chosen without `read_all_orders` (last 60 days only).
+- **`needs_products`** / **`needs_customers`** (warn): orders, collections, discounts or extra
+  fields chosen with no products chosen or imported before; gift cards without customers.
+
+At the start of every real import that copies media, the worker writes and deletes
+`stores/<store>/private/imports/<run>/write-test.txt`. If storage refuses, the run records
+**one** issue ("Storage isn't writable: … Images and files were skipped."), swaps the media
+host for one that copies nothing, and files are counted skipped with `left` reason
+`storage_unwritable` — instead of one EACCES issue per image (the test-server incident: 2,409
+files and ~2,100 product images).
+
+## Retry only what was missed
+
+Issues carry `source_id` (the record's import key: Shopify GID, or the CSV key such as
+`handle:tee`) and `kind` (`record`, `media`, `file`) when a retry could fix them; problems a
+retry would only repeat (unsupported types, skipped orders, parse errors) have none.
+`getRun` returns `retryable` (distinct resource + source id).
+
+- **Retry the N that were missed** (`createRetryRun`, API `shopifyImport.retryRun`) creates a
+  new real import with `retry_of` = the finished import and `resources` = those with
+  retryable issues. `executeRun` loads the keys (`retryTargets`) and reads only those:
+  - from the snapshot when it is still fresh (an import with retryable issues keeps its copy,
+    and the retry takes it over), plus anything changed since (`updated_at` search, filtered
+    to the keys);
+  - otherwise from Shopify by id through the same paged queries and mappers, with Shopify's
+    `id:` search (`id:12 OR id:13`, 50 per query). We use the search filter instead of
+    `nodes(ids:)` so variants past the first page, collection members and every mapper stay
+    exactly the code a full read uses.
+  - menus, redirects, discounts and gift cards are read in full and filtered to the keys;
+    metaobjects and metafields (they link to each other) are re-run in full; CSV runs re-read
+    the file and keep only the missed rows.
+- A `media` issue retries its product (or collection, article): the record is written again
+  with its full image list, and the media host only downloads images it has not copied yet,
+  so only the failed images are fetched.
+- The previous run keeps its report; the retry reports only what it retried. **Import
+  everything again** (secondary button) is the old full re-run.
+
 ## Order of resources
 
 `IMPORT_RESOURCES` (`src/client.ts`) is also the write order: products, collections, customers,
@@ -188,5 +238,8 @@ exports and `updated_at` searches: the preview keeps its copy, a fresh copy mean
 export and only "changed since" queries, a 25-hour-old copy means a full read, changes merge
 by id (stock read fresh), batches fall back to one record at a time with the same issue,
 re-runs never duplicate, and week-old copies are cleaned up. `test/run-recovery.test.ts`
-covers the dead-worker cases and job ids. `test/benchmark.test.ts` times a preview and import
+covers the dead-worker cases and job ids. `test/retry-and-preflight.test.ts` covers the
+pre-import checks, the storage write test (one issue, no per-image errors), and retries: only
+the missed records (from the copy plus changes, or by `id:` when the copy is too old; the fake
+asserts which ids were asked for) and only the failed images. `test/benchmark.test.ts` times a preview and import
 of 2,000 customers and 500 orders (`SHOPIFY_IMPORT_BENCH=1`).

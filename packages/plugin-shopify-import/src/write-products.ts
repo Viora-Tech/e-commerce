@@ -65,6 +65,8 @@ async function hostImages(ctx: ImportContext, p: NProduct): Promise<Map<string, 
         resource: 'products',
         row: p.row,
         ref: p.handle,
+        sourceId: productSourceId(p),
+        kind: 'media',
         message: `Image ${image.src} was not copied: ${errorMessage(err)}`,
       })
     }
@@ -146,7 +148,13 @@ function preview(ctx: ImportContext, p: NProduct, existingId: string | null) {
 
 const failed = (ctx: ImportContext, p: NProduct, err: unknown) => {
   ctx.report.count('products', 'failed')
-  ctx.report.issue({ resource: 'products', row: p.row, ref: p.handle, message: errorMessage(err) })
+  ctx.report.issue({
+    resource: 'products',
+    row: p.row,
+    ref: p.handle,
+    sourceId: productSourceId(p),
+    message: errorMessage(err),
+  })
 }
 
 /** Images copied and the write built: everything before the database. */

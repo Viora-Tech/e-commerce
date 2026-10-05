@@ -1,5 +1,5 @@
 {
-  "id": "e7eb0d3d-df5a-43d2-aebb-d0744a5969a0",
+  "id": "43f28731-06f9-4d38-8740-e845622cd0ff",
   "prevId": "fc2e4736-e486-4230-afc3-f8eaf8c96061",
   "version": "7",
   "dialect": "postgresql",
@@ -14412,6 +14412,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -14468,7 +14480,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "shopify_import_issue_kind": {
+          "name": "shopify_import_issue_kind",
+          "value": "\"shopify_import_issue\".\"kind\" in ('record', 'media', 'file')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.shopify_import_mapping": {
@@ -14688,6 +14705,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "retry_of": {
+          "name": "retry_of",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "started_at": {
           "name": "started_at",
           "type": "timestamp with time zone",
@@ -14766,6 +14789,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shopify_import_run_retry_of_shopify_import_run_id_fk": {
+          "name": "shopify_import_run_retry_of_shopify_import_run_id_fk",
+          "tableFrom": "shopify_import_run",
+          "tableTo": "shopify_import_run",
+          "columnsFrom": [
+            "retry_of"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

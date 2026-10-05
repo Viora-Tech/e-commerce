@@ -27,6 +27,10 @@ export type ImportResource = (typeof IMPORT_RESOURCES)[number]
 export const CSV_RESOURCES = ['products', 'customers', 'orders'] as const
 export type CsvResource = (typeof CSV_RESOURCES)[number]
 
+/** What an import problem is about: a record, one of its images, or a file from Files. */
+export const ISSUE_KINDS = ['record', 'media', 'file'] as const
+export type IssueKind = (typeof ISSUE_KINDS)[number]
+
 export const RUN_STATUSES = ['queued', 'running', 'completed', 'failed'] as const
 export type RunStatus = (typeof RUN_STATUSES)[number]
 
@@ -55,6 +59,8 @@ export const LEFT_BEHIND_REASONS = [
   'model_3d',
   /** Shopify was still processing the file, or it failed there. */
   'file_not_ready',
+  /** The store's file storage could not be written, so no image or file was copied. */
+  'storage_unwritable',
   'buy_x_get_y',
   'app_discount',
   'customer_specific',
@@ -174,6 +180,53 @@ export const ALL_SCOPE_HANDLES = [
   'read_gift_cards',
 ] as const
 export type ScopeHandle = (typeof ALL_SCOPE_HANDLES)[number]
+
+/** The scopes each resource cannot be read without (`read_all_orders` is only a warning). */
+export const RESOURCE_SCOPES: Record<ImportResource, ScopeHandle[]> = {
+  products: ['read_products', 'read_inventory'],
+  collections: ['read_products'],
+  customers: ['read_customers'],
+  orders: ['read_orders'],
+  pages: ['read_content'],
+  articles: ['read_content'],
+  menus: ['read_online_store_navigation'],
+  redirects: ['read_online_store_navigation'],
+  files: ['read_files'],
+  metaobjects: ['read_metaobject_definitions', 'read_metaobjects'],
+  metafields: ['read_products'],
+  discounts: ['read_discounts'],
+  gift_cards: ['read_gift_cards'],
+}
+
+/** "Before you import" checks, shown before Preview import and Import now. */
+export const PREFLIGHT_IDS = [
+  /** Images and files need cloud storage; the local folder fallback is not writable in production. */
+  'storage',
+  /** The saved Shopify connection could not be checked. */
+  'connection',
+  /** A chosen resource's scope is missing: that resource cannot be imported. */
+  'scope',
+  /** Orders older than 60 days need read_all_orders. */
+  'all_orders',
+  /** Orders, collections, discounts or extra fields point at products that are not here yet. */
+  'needs_products',
+  /** Gift cards belong to customers that are not here yet. */
+  'needs_customers',
+] as const
+export type PreflightId = (typeof PREFLIGHT_IDS)[number]
+
+/** `block` stops only `resource` (or everything when it has none); `warn` still lets it run. */
+export type PreflightCheck = {
+  id: PreflightId
+  status: 'ok' | 'warn' | 'block'
+  resource?: ImportResource | undefined
+  /** The missing scopes, or the error the connection check gave. */
+  detail?: string | undefined
+  title: string
+  help: string
+  /** Admin path that fixes it, when there is one. */
+  fixHref: string | null
+}
 
 /** Which mode a saved connection authenticates with. */
 export const AUTH_MODES = ['legacy', 'client_credentials'] as const

@@ -188,7 +188,7 @@ async function writeOne(
     ctx.report.count(R, existing ? 'updated' : 'created')
   } catch (err) {
     ctx.report.count(R, 'failed')
-    ctx.report.issue({ resource: R, ref, message: errorMessage(err) })
+    ctx.report.issue({ resource: R, ref, sourceId: d.sourceId, message: errorMessage(err) })
   }
 }
 
@@ -261,10 +261,16 @@ async function writeDiscount(
   }
 }
 
-export async function importDiscounts(ctx: ImportContext, client: ShopifyClient): Promise<void> {
+export async function importDiscounts(
+  ctx: ImportContext,
+  client: ShopifyClient,
+  /** On a retry, only these Shopify discount ids. */
+  only: ReadonlySet<string> | null = null,
+): Promise<void> {
   ctx.report.begin(R)
   for await (const batch of fetchDiscounts(client)) {
     for (const d of batch) {
+      if (only && !only.has(d.sourceId)) continue
       await writeDiscount(ctx, d)
       await ctx.report.flush()
     }

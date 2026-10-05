@@ -4,12 +4,17 @@
  * Money is paise, weights grams, dates ISO strings.
  */
 import type { CollectionRules } from '@commerce/db'
+import type { IssueKind } from './client'
 import type { ImportResource } from './schema'
 
 export type Issue = {
   resource: ImportResource
   row?: number | null | undefined
   ref?: string | null | undefined
+  /** The record's import key when a retry could fix this (see `shopify_import_issue.source_id`). */
+  sourceId?: string | null | undefined
+  /** Defaults to `record` when `sourceId` is set. */
+  kind?: IssueKind | undefined
   message: string
 }
 

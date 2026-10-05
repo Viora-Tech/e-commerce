@@ -149,6 +149,7 @@ export async function writeCustomer(ctx: ImportContext, c: NCustomer): Promise<s
       resource: 'customers',
       row: c.row,
       ref: refOf(c),
+      sourceId: customerSourceId(c),
       message: errorMessage(err),
     })
     return null

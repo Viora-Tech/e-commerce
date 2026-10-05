@@ -239,6 +239,43 @@ export const shopifyImportContent = {
     notFound: 'This import no longer exists.',
     previous: 'Previous page',
     next: 'Next page',
+    retryMissed: (n: number) => `Retry the ${plural(n, 'one', 'ones')} that were missed`,
+    retryFailed: 'Could not start the retry',
+    importAll: 'Import everything again',
+    retrying: 'Retrying only what the last import missed. Everything else is left as it is.',
+  },
+
+  /** "Before you import": what is not set up yet, with where to fix it. */
+  preflight: {
+    heading: 'Before you import',
+    fix: 'Fix this',
+    blocked: 'Can’t be imported until this is fixed',
+    checks: {
+      storage: {
+        title: 'No file storage connected',
+        help: 'Images and files can’t be copied: no storage is connected. Connect Cloudflare R2 or Amazon S3 first, or images will be skipped.',
+      },
+      connection: {
+        title: 'Shopify isn’t answering',
+        help: 'We couldn’t check your Shopify connection. Test it again on the connect page.',
+      },
+      scope: {
+        title: 'Shopify access missing',
+        help: 'Your Shopify app can’t read this yet. Add the missing access in Shopify, then test the connection again.',
+      },
+      all_orders: {
+        title: 'Only recent orders',
+        help: 'Without “Read all orders” Shopify shares only the last 60 days of orders.',
+      },
+      needs_products: {
+        title: 'Products aren’t here yet',
+        help: 'Tick products too. Without them, order lines point to a placeholder item and collections and discounts come over empty.',
+      },
+      needs_customers: {
+        title: 'Customers aren’t here yet',
+        help: 'Tick customers too, or gift cards for unknown customers are skipped.',
+      },
+    },
   },
 
   /** "What stays in Shopify": one plain sentence per reason (`d` is the Shopify type or owner). */
@@ -279,6 +316,8 @@ export const shopifyImportContent = {
       model_3d: (n: number) => `${plural(n, '3D model', '3D models')}, not supported yet.`,
       file_not_ready: (n: number) =>
         `${plural(n, 'file', 'files')} Shopify was still processing. Run the import again later.`,
+      storage_unwritable: (n: number) =>
+        `${plural(n, 'file', 'files')} not copied because file storage isn’t working. Connect Cloudflare R2 or Amazon S3, then retry.`,
       buy_x_get_y: (n: number) =>
         `${plural(n, '“Buy X get Y” discount', '“Buy X get Y” discounts')}, not supported yet.`,
       app_discount: (n: number) =>

@@ -1,18 +1,18 @@
 'use client'
 
-import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import type { AppPageProps } from '@/apps/registry'
 import PageHeader from '@/components/layout/page-header'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import RunActions from './run-actions'
 import RunIssuesCard from './run-issues-card'
 import RunLeftCard from './run-left-card'
+import RunPreflight from './run-preflight'
 import RunProgressCard from './run-progress-card'
 import RunSamplesCard from './run-samples-card'
 import RunStatusLabel from './run-status-label'
@@ -35,7 +35,6 @@ export default function RunPage({ params }: AppPageProps) {
   const home = useCopy(shopifyImportContent.home)
   const fmt = useFormat()
   const [run, setRun] = useState<RunDetail | null | undefined>(undefined)
-  const [busy, setBusy] = useState(false)
 
   // Poll while queued or running; Import now sets `queued`, which starts it again.
   useEffect(() => {
@@ -58,18 +57,8 @@ export default function RunPage({ params }: AppPageProps) {
   }, [params.id, run?.status])
 
   // Event handlers
-  const handleStart = async () => {
-    setBusy(true)
-    try {
-      await api.shopifyImport.start({ id: params.id ?? '' })
-      toast.success(copy.started)
-      setRun((current) => (current ? { ...current, status: 'queued', dryRun: false } : current))
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : copy.startFailed)
-    } finally {
-      setBusy(false)
-    }
-  }
+  const handleQueued = () =>
+    setRun((current) => (current ? { ...current, status: 'queued', dryRun: false } : current))
 
   // Early returns
   const crumbs = [{ label: copy.back, href: base }]
@@ -80,13 +69,7 @@ export default function RunPage({ params }: AppPageProps) {
 
   // Render logic
   const finished = run.status === 'completed' || run.status === 'failed'
-  const action = !finished
-    ? null
-    : run.status === 'failed'
-      ? copy.tryAgain
-      : run.dryRun
-        ? copy.importNow
-        : copy.runAgain
+  const previewDone = run.dryRun && run.status === 'completed'
   const source = run.mode === 'csv' ? home.source.csv(run.fileName) : home.source.api
   const reuse = run.snapshotUse
     ? copy.usingPreview(fmt.dateTime(run.snapshotUse.takenAt), run.snapshotUse.changes)
@@ -100,14 +83,7 @@ export default function RunPage({ params }: AppPageProps) {
         title={copy.title(run.dryRun)}
         subtitle={copy.from(source)}
         breadcrumbs={crumbs}
-        actions={
-          action ? (
-            <Button type="button" onClick={handleStart} disabled={busy}>
-              {busy ? <Spinner /> : null}
-              {action}
-            </Button>
-          ) : null
-        }
+        actions={<RunActions run={run} onQueued={handleQueued} />}
       />
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3">
@@ -115,8 +91,12 @@ export default function RunPage({ params }: AppPageProps) {
           {finished ? null : <Spinner className="size-4 text-muted-foreground" />}
           <p className="text-body text-muted-foreground">{message(copy, run)}</p>
           {reuse ? <p className="w-full text-body text-muted-foreground">{reuse}</p> : null}
+          {run.retryOf ? (
+            <p className="w-full text-body text-muted-foreground">{copy.retrying}</p>
+          ) : null}
         </CardContent>
       </Card>
+      {previewDone ? <RunPreflight resources={run.resources} mode={run.mode} /> : null}
       <RunProgressCard run={run} />
       <RunLeftCard run={run} />
       {run.dryRun && run.preview.length > 0 ? <RunSamplesCard samples={run.preview} /> : null}

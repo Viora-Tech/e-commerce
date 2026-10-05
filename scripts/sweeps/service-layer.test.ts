@@ -176,6 +176,7 @@ const ALLOWLIST: AllowEntry[] = [
   { path: 'packages/plugin-shopify-import/src/runtime.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/schema.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/service.ts', exact: true, reason: PLUGIN },
+  { path: 'packages/plugin-shopify-import/src/preflight.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/snapshot.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-content.ts', exact: true, reason: PLUGIN },
   { path: 'packages/plugin-shopify-import/src/write-customers.ts', exact: true, reason: PLUGIN },

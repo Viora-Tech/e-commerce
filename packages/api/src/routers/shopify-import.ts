@@ -7,6 +7,7 @@ import {
   connect,
   createApiRun,
   createCsvRun,
+  createRetryRun,
   disconnect,
   failRun,
   getConnection,
@@ -15,6 +16,7 @@ import {
   ImportError,
   listIssues,
   listRuns,
+  preflightChecks,
   type RunRow,
   runJobKey,
   SHOPIFY_IMPORT_ID,
@@ -151,6 +153,40 @@ export const shopifyImportRouter = {
       return { id: run.id }
     }),
 
+  /**
+   * "Before you import": file storage, Shopify scopes per chosen resource, and what the
+   * chosen resources depend on. Shown before Preview import and Import now.
+   */
+  preflight: can(permissions.APPS_MANAGE)
+    .input(
+      z.object({
+        resources: z.array(z.enum(IMPORT_RESOURCES)).min(1),
+        mode: z.enum(['api', 'csv']).default('api'),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const { storage } = await storeRegistries(context.tx, context.scope.storeId)
+      const provider = await storageProviderFor(
+        context.tx,
+        context.scope.storeId,
+        storage,
+        settingsSecret(),
+      )
+      const scopes =
+        input.mode === 'api'
+          ? await testConnection(context.tx, settingsSecret()).catch((err: unknown) => ({
+              error: err instanceof Error ? err.message : String(err),
+            }))
+          : null
+      return preflightChecks(context.tx, {
+        mode: input.mode,
+        resources: input.resources,
+        storage: { providerId: provider.id, production: process.env.NODE_ENV === 'production' },
+        scopes,
+      })
+    }),
+
   /** Preview an API import of the chosen resources. */
   createApiRun: can(permissions.APPS_MANAGE)
     .use(heavy('import'))
@@ -176,6 +212,22 @@ export const shopifyImportRouter = {
     .handler(async ({ context, input }) => {
       await requireInstalled(context)
       const run = await startRun(context.tx, input.id).catch(asOrpc)
+      await queue(context, run)
+      return { id: run.id }
+    }),
+
+  /** "Retry the ones that were missed": a new import of only what this one reported problems for. */
+  retryRun: can(permissions.APPS_MANAGE)
+    .use(heavy('import'))
+    .input(RunId)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const run = await createRetryRun(
+        context.tx,
+        context.scope.storeId,
+        input.id,
+        context.session.user.email,
+      ).catch(asOrpc)
       await queue(context, run)
       return { id: run.id }
     }),

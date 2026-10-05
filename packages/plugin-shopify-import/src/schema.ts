@@ -1,6 +1,7 @@
 import { newId, store } from '@commerce/db'
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -32,7 +33,7 @@ import type {
   ResourceProgress,
   SnapshotUse,
 } from './client'
-import { RUN_STATUSES } from './client'
+import { ISSUE_KINDS, RUN_STATUSES } from './client'
 
 export {
   IMPORT_RESOURCES,
@@ -97,6 +98,10 @@ export const importRun = pgTable(
     /** Why the run as a whole stopped; row problems go to shopify_import_issue. */
     error: text('error'),
     createdBy: text('created_by'),
+    /** Set on "Retry the ones that were missed": the run whose problems this one retries. */
+    retryOf: uuid('retry_of').references((): AnyPgColumn => importRun.id, {
+      onDelete: 'set null',
+    }),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
     createdAt: at('created_at'),
@@ -130,9 +135,19 @@ export const importIssue = pgTable(
     /** Handle, email, order name or Shopify id, whatever identifies the record. */
     ref: text('ref'),
     message: text('message').notNull(),
+    /**
+     * The record's import key (Shopify id, or the CSV key such as `handle:tee`) when the
+     * problem is one a retry can fix; null for problems a retry would only repeat.
+     */
+    sourceId: text('source_id'),
+    /** What failed: the record itself, one of its images, or a file from Files. */
+    kind: text('kind', { enum: ISSUE_KINDS }),
     createdAt: at('created_at'),
   },
-  (t) => [index('shopify_import_issue_run').on(t.runId)],
+  (t) => [
+    index('shopify_import_issue_run').on(t.runId),
+    check('shopify_import_issue_kind', sql`${t.kind} in ('record', 'media', 'file')`),
+  ],
 )
 
 /**

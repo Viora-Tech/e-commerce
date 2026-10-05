@@ -229,6 +229,42 @@ const hi = {
     notFound: 'यह इंपोर्ट अब मौजूद नहीं है।',
     previous: 'पिछला पेज',
     next: 'अगला पेज',
+    retryMissed: (n) => `जो ${num(n)} छूट गए, उन्हें फिर से इंपोर्ट करें`,
+    retryFailed: 'दोबारा कोशिश शुरू नहीं हो पाई',
+    importAll: 'सब कुछ फिर से इंपोर्ट करें',
+    retrying: 'सिर्फ़ वही दोबारा लाया जा रहा है जो पिछले इंपोर्ट में छूट गया था। बाकी सब वैसा ही रहेगा।',
+  },
+
+  preflight: {
+    heading: 'इंपोर्ट से पहले',
+    fix: 'ठीक करें',
+    blocked: 'इसे ठीक करने तक यह इंपोर्ट नहीं होगा',
+    checks: {
+      storage: {
+        title: 'कोई फ़ाइल स्टोरेज नहीं जुड़ा',
+        help: 'फ़ोटो और फ़ाइलें कॉपी नहीं हो सकतीं क्योंकि कोई स्टोरेज नहीं जुड़ा। पहले Cloudflare R2 या Amazon S3 जोड़ें, वरना फ़ोटो छूट जाएँगी।',
+      },
+      connection: {
+        title: 'Shopify जवाब नहीं दे रहा',
+        help: 'आपका Shopify कनेक्शन जाँचा नहीं जा सका। कनेक्ट पेज पर फिर से टेस्ट करें।',
+      },
+      scope: {
+        title: 'Shopify की अनुमति नहीं है',
+        help: 'आपका Shopify ऐप इसे अभी पढ़ नहीं सकता। Shopify में यह अनुमति जोड़ें, फिर कनेक्शन दोबारा टेस्ट करें।',
+      },
+      all_orders: {
+        title: 'सिर्फ़ हाल के ऑर्डर',
+        help: '“Read all orders” के बिना Shopify सिर्फ़ पिछले 60 दिनों के ऑर्डर देता है।',
+      },
+      needs_products: {
+        title: 'प्रोडक्ट अभी यहाँ नहीं हैं',
+        help: 'प्रोडक्ट भी चुनें। उनके बिना ऑर्डर की लाइनें एक प्लेसहोल्डर आइटम पर जाएँगी और कलेक्शन व डिस्काउंट खाली आएँगे।',
+      },
+      needs_customers: {
+        title: 'ग्राहक अभी यहाँ नहीं हैं',
+        help: 'ग्राहक भी चुनें, वरना अनजान ग्राहकों के गिफ़्ट कार्ड छूट जाएँगे।',
+      },
+    },
   },
 
   left: {
@@ -262,6 +298,8 @@ const hi = {
       external_video: (n) => `${num(n)} YouTube या Vimeo लिंक। इन्हें किसी सेक्शन में लिंक से जोड़ें।`,
       model_3d: (n) => `${num(n)} 3D मॉडल, अभी सपोर्ट नहीं हैं।`,
       file_not_ready: (n) => `${num(n)} फ़ाइलें Shopify अभी तैयार कर रहा था। बाद में इंपोर्ट फिर से चलाएं।`,
+      storage_unwritable: (n) =>
+        `${num(n)} फ़ाइलें कॉपी नहीं हुईं क्योंकि फ़ाइल स्टोरेज काम नहीं कर रहा। Cloudflare R2 या Amazon S3 जोड़ें, फिर दोबारा कोशिश करें।`,
       buy_x_get_y: (n) => `${num(n)} “Buy X get Y” डिस्काउंट, अभी सपोर्ट नहीं हैं।`,
       app_discount: (n) => `${num(n)} डिस्काउंट किसी Shopify ऐप ने बनाए हैं। उनके नियम उसी ऐप में हैं।`,
       customer_specific: (n) => `${num(n)} डिस्काउंट सिर्फ़ चुने हुए ग्राहकों या सेगमेंट के लिए हैं।`,
@@ -295,4 +333,5 @@ export default [
   translation(shopifyImportContent.csv, hi.csv),
   translation(shopifyImportContent.connect, hi.connect),
   translation(shopifyImportContent.run, hi.run),
+  translation(shopifyImportContent.preflight, hi.preflight),
 ]

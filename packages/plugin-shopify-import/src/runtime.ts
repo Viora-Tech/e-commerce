@@ -34,6 +34,11 @@ export type ImportContext = {
   log: (message: string) => void
   /** SETTINGS_SECRET — encrypts/decrypts `customer.phone` the same way the admin and checkout paths do. */
   secret: string
+  /**
+   * Set when the store's file storage failed the write test at the start of the
+   * run: images and files are skipped without trying (one issue says why).
+   */
+  mediaOff?: string | null | undefined
 }
 
 const SAMPLES_PER_RESOURCE = 5
@@ -60,6 +65,8 @@ export class Reporter {
   current: ImportResource | null = null
   private pendingIssues: Issue[] = []
   private issueCount = 0
+  /** Problems a retry could fix (they carry the record's import key). */
+  retryable = 0
   private lastFlush = 0
 
   constructor(
@@ -114,6 +121,7 @@ export class Reporter {
 
   issue(issue: Issue) {
     this.issueCount++
+    if (issue.sourceId) this.retryable++
     if (this.issueCount <= ISSUE_CAP) this.pendingIssues.push(issue)
   }
 
@@ -133,6 +141,8 @@ export class Reporter {
             row: i.row ?? null,
             ref: i.ref ? String(i.ref).slice(0, 300) : null,
             message: i.message.slice(0, 1000),
+            sourceId: i.sourceId ?? null,
+            kind: i.kind ?? (i.sourceId ? ('record' as const) : null),
           })),
         )
       }

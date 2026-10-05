@@ -9,45 +9,14 @@
 import type { LookupAll } from '@commerce/core/safe-fetch'
 import type { StorageProvider } from '@commerce/storage'
 import { and, eq } from 'drizzle-orm'
-import { fetchFiles } from './api-files'
-import { stockRefresher } from './api-stock'
-import { REQUIRED_SCOPES, type SnapshotUse } from './client'
-import { mapLimit } from './concurrency'
+import type { SnapshotUse } from './client'
 import { clientFor } from './connection'
-import { parseCustomersCsv } from './csv-customers'
-import { parseOrdersCsv } from './csv-orders'
-import { parseProductsCsv } from './csv-products'
 import { createMediaHost } from './media'
-import { createReferenceResolver } from './references'
-import {
-  errorMessage,
-  type ImportContext,
-  type InStore,
-  Reporter,
-  WRITE_BATCH_SIZE,
-} from './runtime'
+import { runApi, runCsv } from './read-write'
+import { errorMessage, type ImportContext, type InStore, Reporter } from './runtime'
 import { IMPORT_RESOURCES, type ImportResource, importIssue, importRun } from './schema'
-import {
-  fetchArticles,
-  fetchCollections,
-  fetchCustomers,
-  fetchMenus,
-  fetchOrders,
-  fetchPages,
-  fetchProducts,
-  fetchRedirects,
-} from './shopify-api'
-import { type ShopifyClient, ShopifyError } from './shopify-client'
+import { retryTargets } from './service'
 import { cleanupSnapshots, dropSnapshot, freshSnapshot, SnapshotSession } from './snapshot'
-import { writeArticle, writeCollection, writeMenu, writePage, writeRedirect } from './write-content'
-import { customerSourceId, writeCustomers } from './write-customers'
-import { importDiscounts } from './write-discounts'
-import { writeFile } from './write-files'
-import { importGiftCards } from './write-gift-cards'
-import { importMetafields } from './write-metafields'
-import { importMetaobjects } from './write-metaobjects'
-import { orderSourceId, writeOrders } from './write-orders'
-import { productSourceId, writeProducts } from './write-products'
 
 export type RunDeps = {
   storeId: string
@@ -69,224 +38,29 @@ export type RunDeps = {
   now?: () => Date
 }
 
-/** Records per write batch: products are heavy (images, variants), customers light. */
-const PRODUCT_BATCH = 25
-const ORDER_BATCH = 100
 /** How often a running import touches its row (see RUN_STALE_MS in service.ts). */
 const HEARTBEAT_MS = 60_000
 
-/** Regroup a reader's pages into batches of `size` for the batched writers. */
-async function* rebatch<T>(source: AsyncGenerator<T[]>, size: number): AsyncGenerator<T[]> {
-  let pending: T[] = []
-  for await (const page of source) {
-    pending.push(...page)
-    while (pending.length >= size) {
-      yield pending.slice(0, size)
-      pending = pending.slice(size)
-    }
-  }
-  if (pending.length) yield pending
-}
+/** Resources whose import copies images or files into the store's storage. */
+const MEDIA_RESOURCES: readonly ImportResource[] = [
+  'products',
+  'collections',
+  'articles',
+  'files',
+  'metaobjects',
+  'metafields',
+]
 
-/**
- * `concurrency` > 1 runs a batch's writes with `mapLimit` instead of one at a
- * time. Safe for any resource whose writes are independent: `Reporter.count`/
- * `issue`/`sample` are plain synchronous methods (no `await` inside), so
- * however these calls interleave across concurrent writers, each one runs to
- * completion before the next gets a turn on the event loop — no locking
- * needed.
- */
-async function forEachBatch<T>(
-  ctx: ImportContext,
-  resource: ImportResource,
-  source: AsyncGenerator<T[]>,
-  write: (item: T) => Promise<unknown>,
-  concurrency = 1,
-) {
-  ctx.report.begin(resource)
-  for await (const batch of source) {
-    ctx.report.addTotal(resource, batch.length)
-    if (concurrency > 1) {
-      await mapLimit(batch, concurrency, async (item) => {
-        await write(item)
-        await ctx.report.flush()
-      })
-    } else {
-      for (const item of batch) {
-        await write(item)
-        await ctx.report.flush()
-      }
-    }
-    await ctx.report.flush()
-  }
-}
-
-/** Like `forEachBatch`, but hands whole batches to a batched writer (`writeBatch` in runtime). */
-async function forEachChunk<T>(
-  ctx: ImportContext,
-  resource: ImportResource,
-  source: AsyncGenerator<T[]>,
-  size: number,
-  write: (items: T[]) => Promise<void>,
-) {
-  ctx.report.begin(resource)
-  for await (const chunk of rebatch(source, size)) {
-    ctx.report.addTotal(resource, chunk.length)
-    await write(chunk)
-    await ctx.report.flush()
-  }
-}
-
-async function* chunksOf<T>(items: T[]): AsyncGenerator<T[]> {
-  yield items
-}
-
-async function runCsv(ctx: ImportContext, deps: RunDeps, resource: ImportResource, key: string) {
-  const provider = await deps.storage()
-  const bytes = await provider.get(key)
-  if (!bytes) throw new Error('The uploaded file is no longer available. Upload it again.')
-  const text = new TextDecoder().decode(bytes)
-  const cache = new Map<string, string>()
-  if (resource === 'products') {
-    const { products, issues } = parseProductsCsv(text)
-    ctx.report.begin(resource)
-    for (const i of issues) ctx.report.issue(i)
-    await forEachChunk(ctx, 'products', chunksOf(products), PRODUCT_BATCH, (b) =>
-      writeProducts(ctx, b),
-    )
-  } else if (resource === 'customers') {
-    const { customers, issues } = parseCustomersCsv(text)
-    ctx.report.begin(resource)
-    for (const i of issues) ctx.report.issue(i)
-    await forEachChunk(ctx, 'customers', chunksOf(customers), WRITE_BATCH_SIZE, (b) =>
-      writeCustomers(ctx, b),
-    )
-  } else if (resource === 'orders') {
-    const { orders, issues } = parseOrdersCsv(text)
-    ctx.report.begin(resource)
-    for (const i of issues) ctx.report.issue(i)
-    await forEachChunk(ctx, 'orders', chunksOf(orders), ORDER_BATCH, (b) =>
-      writeOrders(ctx, b, cache),
-    )
-  } else {
-    throw new Error(`Shopify has no ${resource} CSV export`)
-  }
-}
-
-async function runApi(
-  ctx: ImportContext,
-  client: ShopifyClient,
-  resources: ImportResource[],
-  snap: SnapshotSession,
-) {
-  const wanted = (r: ImportResource) => resources.includes(r)
-  const cache = new Map<string, string>()
-  const onBulkFallback = (reason: unknown) =>
-    ctx.log(`Shopify bulk read fell back to paged fetching: ${errorMessage(reason)}`)
-  const byHandle = (item: { sourceId: string | null; handle: string }) =>
-    item.sourceId ?? `handle:${item.handle}`
-  // Products before collections (membership) and orders (line matching); customers before orders.
-  if (wanted('products')) {
-    ctx.log('Asking Shopify to prepare your products…')
-    const products = snap.read({
-      resource: 'products',
-      idOf: productSourceId,
-      full: () => fetchProducts(client, onBulkFallback),
-      delta: (search) => fetchProducts(client, onBulkFallback, search),
-      // Stock changes do not move a product's update time; read it fresh.
-      refresher: () => stockRefresher(client),
-    })
-    await forEachChunk(ctx, 'products', products, PRODUCT_BATCH, (b) => writeProducts(ctx, b))
-  }
-  if (wanted('collections')) {
-    const collections = snap.read({
-      resource: 'collections',
-      idOf: byHandle,
-      full: () => fetchCollections(client),
-      delta: (search) => fetchCollections(client, search),
-    })
-    await forEachBatch(ctx, 'collections', collections, (c) => writeCollection(ctx, c))
-  }
-  if (wanted('customers')) {
-    ctx.log('Asking Shopify to prepare your customers…')
-    const customers = snap.read({
-      resource: 'customers',
-      idOf: customerSourceId,
-      full: () => fetchCustomers(client, onBulkFallback),
-      delta: (search) => fetchCustomers(client, onBulkFallback, search),
-    })
-    await forEachChunk(ctx, 'customers', customers, WRITE_BATCH_SIZE, (b) => writeCustomers(ctx, b))
-  }
-  if (wanted('orders')) {
-    ctx.log('Asking Shopify to prepare your orders…')
-    const orders = snap.read({
-      resource: 'orders',
-      idOf: orderSourceId,
-      full: () => fetchOrders(client, onBulkFallback),
-      delta: (search) => fetchOrders(client, onBulkFallback, search),
-    })
-    await forEachChunk(ctx, 'orders', orders, ORDER_BATCH, (b) => writeOrders(ctx, b, cache))
-  }
-  if (wanted('pages')) {
-    const pages = snap.read({
-      resource: 'pages',
-      idOf: byHandle,
-      full: () => fetchPages(client),
-      delta: (search) => fetchPages(client, search),
-    })
-    await forEachBatch(ctx, 'pages', pages, (p) => writePage(ctx, p))
-  }
-  if (wanted('articles')) {
-    const articles = snap.read({
-      resource: 'articles',
-      idOf: (a) => a.sourceId ?? `handle:${a.blogHandle}/${a.handle}`,
-      full: () => fetchArticles(client),
-      delta: (search) => fetchArticles(client, search),
-    })
-    await forEachBatch(ctx, 'articles', articles, (a) => writeArticle(ctx, a))
-  }
-  if (wanted('menus'))
-    await forEachBatch(ctx, 'menus', fetchMenus(client), (m) => writeMenu(ctx, m))
-  if (wanted('redirects'))
-    await forEachBatch(ctx, 'redirects', fetchRedirects(client), (r) => writeRedirect(ctx, r))
-
-  // Files before entries and extra fields (they link to files); entries before extra fields
-  // (those link to entries); products and collections before discounts; customers before gift cards.
-  const resolver = createReferenceResolver(ctx, client)
-  if (wanted('files')) {
-    const files = snap.read({
-      resource: 'files',
-      idOf: (f) => f.sourceId,
-      full: () => fetchFiles(client),
-      delta: (search) => fetchFiles(client, search),
-    })
-    await optional(ctx, 'files', () =>
-      forEachBatch(ctx, 'files', files, (f) => writeFile(ctx, f), 3),
-    )
-  }
-  if (wanted('metaobjects'))
-    await optional(ctx, 'metaobjects', () => importMetaobjects(ctx, client, resolver))
-  if (wanted('metafields'))
-    await optional(ctx, 'metafields', () => importMetafields(ctx, client, resolver, onBulkFallback))
-  if (wanted('discounts')) await optional(ctx, 'discounts', () => importDiscounts(ctx, client))
-  if (wanted('gift_cards')) await optional(ctx, 'gift_cards', () => importGiftCards(ctx, client))
-}
-
-/**
- * The newer resources need scopes an older connection may lack (and Shopify
- * keeps gift cards from some plans). A refused scope ends that resource with a
- * plain reason instead of stopping everything else.
- */
-async function optional(ctx: ImportContext, resource: ImportResource, run: () => Promise<void>) {
+/** Write and delete a tiny private file; the reason when storage refuses, else null. */
+async function probeStorage(deps: RunDeps, runId: string): Promise<string | null> {
+  const key = `stores/${deps.storeId}/private/imports/${runId}/write-test.txt`
   try {
-    await run()
+    const provider = await deps.storage()
+    await provider.put({ key, body: new TextEncoder().encode('ok'), contentType: 'text/plain' })
+    await provider.delete(key)
+    return null
   } catch (err) {
-    if (!(err instanceof ShopifyError) || err.kind !== 'scope') throw err
-    ctx.report.begin(resource)
-    ctx.report.issue({
-      resource,
-      message: `Shopify did not allow reading this (${REQUIRED_SCOPES[resource]}). Add the scope to your Shopify app, then run the import again. ${err.message}`,
-    })
+    return errorMessage(err).slice(0, 300)
   }
 }
 
@@ -336,6 +110,9 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
   }
   const reuse =
     !run.dryRun && run.mode === 'api' ? freshSnapshot(run.snapshot, now().getTime()) : null
+  // A retry imports only what the run it retries reported problems for.
+  const retryOf = run.retryOf
+  const only = retryOf ? await deps.inStore((tx) => retryTargets(tx, retryOf)) : null
   await deps.inStore(async (tx) => {
     await tx.delete(importIssue).where(eq(importIssue.runId, runId))
     await tx
@@ -393,6 +170,21 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     secret: deps.settingsSecret,
   }
   const resources = IMPORT_RESOURCES.filter((r) => run.resources.includes(r))
+  // One write test before copying anything: a broken storage (no bucket connected, the
+  // local folder not writable in a container) is one plain issue, not one per image.
+  const withMedia = resources.find((r) => MEDIA_RESOURCES.includes(r))
+  if (!run.dryRun && withMedia) {
+    const broken = await probeStorage(deps, runId)
+    if (broken) {
+      ctx.mediaOff = broken
+      ctx.media = { host: async () => null, urlOf: async () => null }
+      report.issue({
+        resource: withMedia,
+        message: `Storage isn't writable: ${broken}. Images and files were skipped. Connect Cloudflare R2 or Amazon S3, then retry.`,
+      })
+      deps.log(`storage not writable, media skipped: ${broken}`)
+    }
+  }
   // Proof of life while Shopify prepares an export and nothing else touches the row; a
   // run silent for RUN_STALE_MS lost its worker and is failed by the next read (service.ts).
   const heartbeat = setInterval(() => {
@@ -410,7 +202,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     if (run.mode === 'csv') {
       const resource = resources[0]
       if (!resource || !run.fileKey) throw new Error('This import has no file')
-      await runCsv(ctx, deps, resource, run.fileKey)
+      await runCsv(ctx, deps.storage, resource, run.fileKey, only)
     } else {
       const client = await deps.inStore((tx) =>
         clientFor(tx, deps.settingsSecret, {
@@ -420,7 +212,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
         }),
       )
       if (!client) throw new Error('Connect your Shopify store first')
-      await runApi(ctx, client, resources, snap)
+      await runApi(ctx, client, resources, snap, only)
     }
     await report.flush(true)
     const takenAt = snap.takenAt
@@ -442,8 +234,9 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
         })
         .where(eq(importRun.id, runId)),
     )
-    // The import is done with the preview's copy (used or too old): delete it.
-    if (!run.dryRun && run.snapshot) {
+    // The import is done with the preview's copy: delete it, unless something was missed and a
+    // retry can still read it (it moves to the retry run; the 7-day cleanup takes the rest).
+    if (!run.dryRun && run.snapshot && (report.retryable === 0 || !reuse)) {
       await dropSnapshot(files, runId, run.snapshot).catch((err) =>
         deps.log(`could not delete the preview copy: ${errorMessage(err)}`),
       )
