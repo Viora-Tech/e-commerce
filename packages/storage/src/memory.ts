@@ -54,7 +54,7 @@ export class MemoryStorageProvider implements StorageProvider {
 
   async putStream(input: PutStreamInput): Promise<void> {
     const body = new Uint8Array(await new Response(input.body).arrayBuffer())
-    if (body.byteLength !== input.size) throw new Error('stream length does not match its size')
+    input.signal?.throwIfAborted()
     this.streamed.push(input.key)
     this.objects.set(input.key, { body, contentType: input.contentType })
   }

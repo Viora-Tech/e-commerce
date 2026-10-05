@@ -6,12 +6,13 @@
  * within 24 hours reads that copy plus only what Shopify changed since, then
  * deletes it.
  */
+import { CommerceError } from '@commerce/core'
 import type { LookupAll } from '@commerce/core/safe-fetch'
 import type { StorageProvider } from '@commerce/storage'
 import { and, eq } from 'drizzle-orm'
 import type { SnapshotUse } from './client'
 import { clientFor } from './connection'
-import { createMediaHost } from './media'
+import { createMediaHost, type MediaHostOptions } from './media'
 import { type Only, runApi, runCsv } from './read-write'
 import { errorMessage, type ImportContext, type InStore, Reporter } from './runtime'
 import { IMPORT_RESOURCES, type ImportResource, importIssue, importRun } from './schema'
@@ -37,10 +38,35 @@ export type RunDeps = {
   sleep?: (ms: number) => Promise<void>
   /** Injected in tests: the clock snapshots are dated and aged by. */
   now?: () => Date
+  /** Overrides the image/file copy deadlines and retries (tests). */
+  copy?: Pick<MediaHostOptions, 'timeoutMs' | 'largeTimeoutMs' | 'idleTimeoutMs' | 'retries'>
+  /** Overrides `STUCK_MS` (tests). */
+  stuckMs?: number
+  /** Overrides `HEARTBEAT_MS` (tests). */
+  heartbeatMs?: number
 }
 
 /** How often a running import touches its row (see RUN_STALE_MS in service.ts). */
 const HEARTBEAT_MS = 60_000
+
+/**
+ * A run where nothing moved for this long (no record written, no issue, no byte of a
+ * copy, no answer from Shopify) is stuck: it is stopped and marked failed. Every copy
+ * attempt ends within a minute without data, and Shopify is polled every few seconds
+ * while it prepares an export, so a live run never comes near this.
+ */
+const STUCK_MS = 10 * 60_000
+
+/** The watchdog's reason, shown to the merchant on the run. */
+class RunStuck extends CommerceError {
+  constructor(ms: number) {
+    const minutes = Math.max(1, Math.round(ms / 60_000))
+    super(
+      'IMPORT_STUCK',
+      `The import stopped moving: nothing was downloaded, copied or saved for ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}. Press Try again: it carries on from where it was without duplicating anything.`,
+    )
+  }
+}
 
 /** Resources whose import copies images or files into the store's storage. */
 const MEDIA_RESOURCES: readonly ImportResource[] = [
@@ -135,6 +161,19 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       .where(eq(importRun.id, runId))
   })
   const report = new Reporter(deps.inStore, deps.storeId, runId)
+  // Aborted by the watchdog (or when the run ends): every copy still in flight stops.
+  const stop = new AbortController()
+  const stopped = new Promise<never>((_, reject) => {
+    stop.signal.addEventListener('abort', () => reject(stop.signal.reason), { once: true })
+  })
+  stopped.catch(() => {})
+  // Shopify answering (a page, a bulk-export poll) is the run getting somewhere.
+  const baseFetch = deps.fetch ?? fetch
+  const shopifyFetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    const res = await baseFetch(input, init)
+    report.touch()
+    return res
+  }) as typeof fetch
   const saveUse = (use: SnapshotUse) =>
     deps.inStore(async (tx) => {
       await tx.update(importRun).set({ snapshotUse: use }).where(eq(importRun.id, runId))
@@ -165,6 +204,15 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       storage: deps.storage,
       ...(deps.fetch ? { fetch: deps.fetch } : {}),
       ...(deps.lookup ? { lookup: deps.lookup } : {}),
+      ...(deps.sleep ? { sleep: deps.sleep } : {}),
+      ...deps.copy,
+      signal: stop.signal,
+      onActivity: () => report.touch(),
+      onSettled: (ok) => {
+        report.copySettled(ok)
+        // Progress moves per copy, not only once a whole batch of records is written.
+        report.flush().catch(() => {})
+      },
       // A dry run never hosts media (writers return before downloading); no queue either way.
       ...(deps.processMedia && !run.dryRun
         ? { onMediaImported: queueImportedMedia(report, deps.processMedia) }
@@ -190,9 +238,19 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       deps.log(`storage not writable, media skipped: ${broken}`)
     }
   }
-  // Proof of life while Shopify prepares an export and nothing else touches the row; a
-  // run silent for RUN_STALE_MS lost its worker and is failed by the next read (service.ts).
+  // Watchdog and proof of life. While the run is getting somewhere (`report.lastActivity`)
+  // it touches its row, so a run whose worker died (silent for RUN_STALE_MS) is failed by
+  // the next read (service.ts). One where nothing moved for STUCK_MS is stopped here, and
+  // its row is no longer touched, so the backstop fires even if stopping it fails.
+  const stuckMs = deps.stuckMs ?? STUCK_MS
   const heartbeat = setInterval(() => {
+    if (Date.now() - report.lastActivity >= stuckMs) {
+      if (!stop.signal.aborted) {
+        deps.log(`run ${runId}: nothing moved for ${stuckMs} ms, stopping it`)
+        stop.abort(new RunStuck(stuckMs))
+      }
+      return
+    }
     deps
       .inStore((tx) =>
         tx
@@ -201,9 +259,9 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
           .where(and(eq(importRun.id, runId), eq(importRun.status, 'running'))),
       )
       .catch(() => {})
-  }, HEARTBEAT_MS)
+  }, deps.heartbeatMs ?? HEARTBEAT_MS)
   heartbeat.unref?.()
-  try {
+  const work = async () => {
     if (run.mode === 'csv') {
       const resource = resources[0]
       if (!resource || !run.fileKey) throw new Error('This import has no file')
@@ -212,14 +270,21 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
       const client = await deps.inStore((tx) =>
         clientFor(tx, deps.settingsSecret, {
           inStore: deps.inStore,
-          ...(deps.fetch ? { fetch: deps.fetch } : {}),
+          fetch: shopifyFetch,
           ...(deps.sleep ? { sleep: deps.sleep } : {}),
         }),
       )
       if (!client) throw new Error('Connect your Shopify store first')
       await runApi(ctx, client, resources, snap, only)
     }
+  }
+  try {
+    const running = work()
+    // Stopped by the watchdog, the work may still be unwinding; nobody waits for it.
+    running.catch(() => {})
+    await Promise.race([running, stopped])
     await report.flush(true)
+    report.close()
     const takenAt = snap.takenAt
     const keep = run.dryRun && takenAt && Object.keys(snap.recorded).length > 0
     await deps.inStore((tx) =>
@@ -249,6 +314,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     deps.log(`${run.dryRun ? 'previewed' : 'imported'} ${resources.join(', ')}`)
   } catch (err) {
     await report.flush(true).catch(() => {})
+    report.close()
     // A failed preview keeps nothing; a failed import keeps the preview's copy for Try again.
     if (run.dryRun) {
       await dropSnapshot(files, runId, { takenAt: '', streams: snap.recorded }).catch(() => {})
@@ -267,5 +333,7 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     deps.log(`run ${runId} failed: ${errorMessage(err)}`)
   } finally {
     clearInterval(heartbeat)
+    // Anything a failed step left copying stops now rather than running on unseen.
+    if (!stop.signal.aborted) stop.abort(new Error('the import ended'))
   }
 }

@@ -42,6 +42,9 @@ afterAll(async () => {
 
 const P = (n: number) => `gid://shopify/Product/${n}`
 
+/** The start of an mp4 (`ftyp isom`): enough for the media host to store as video. */
+const MP4 = new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, 1, 2])
+
 /** A preview, then an import of products, customers and files that left some problems. */
 async function seedHistory(storeId: string) {
   await withStore(app, storeId, async (tx: StoreTx) => {
@@ -313,7 +316,7 @@ describe('faster copies', () => {
     expect(peak).toBe(3)
   })
 
-  it('caps downloads across every caller, and streams a known size straight into storage', async () => {
+  it('caps downloads across every caller; images are stored whole, videos streamed', async () => {
     const storeId = await seedStore()
     const storage = new MemoryStorageProvider()
     let inFlight = 0
@@ -323,12 +326,11 @@ describe('faster copies', () => {
       peak = Math.max(peak, inFlight)
       await new Promise((r) => setTimeout(r, 10))
       inFlight--
-      const sized = !String(input).includes('nosize')
+      if (String(input).endsWith('.mp4')) {
+        return new Response(MP4, { headers: { 'content-type': 'video/mp4' } })
+      }
       return new Response(PNG, {
-        headers: {
-          'content-type': 'image/png',
-          ...(sized ? { 'content-length': String(PNG.byteLength) } : {}),
-        },
+        headers: { 'content-type': 'image/png', 'content-length': String(PNG.byteLength) },
       })
     }) as typeof fetch
     const host = createMediaHost({
@@ -344,11 +346,13 @@ describe('faster copies', () => {
     )
     expect(ids.every(Boolean)).toBe(true)
     expect(peak).toBe(2)
-    expect(storage.streamed).toHaveLength(8)
-    // Unknown size: read into memory and stored with an ordinary put.
-    await host.host('https://cdn.shopify.com/nosize.png', null)
-    expect(storage.streamed).toHaveLength(8)
+    // Images (10 MB at most): read whole and stored with one put of their exact length.
+    expect(storage.streamed).toHaveLength(0)
     const stored = [...storage.objects.values()].map((o) => o.body.byteLength)
     expect(stored.every((n) => n === PNG.byteLength)).toBe(true)
+    // A video streams into the bucket, never held whole.
+    await host.host('https://cdn.shopify.com/clip.mp4', null)
+    expect(storage.streamed).toHaveLength(1)
+    expect([...storage.objects.values()].at(-1)?.body.byteLength).toBe(MP4.byteLength)
   })
 })
