@@ -225,6 +225,17 @@ export function canAny(permissions: readonly Permission[]) {
  * generator runs after the middleware returns) never touches a committed transaction.
  */
 export function canDetached(permission: Permission | readonly Permission[]) {
+  return detachedWith(permission)
+}
+
+/**
+ * `storeProcedure` (any member, no permission) for a handler that waits on an outside
+ * service, like `canDetached`: no transaction stays open; the handler opens its own
+ * `withStore` for reads and writes. "Report a bug" files GitHub issues through it.
+ */
+export const storeProcedureDetached = detachedWith(undefined)
+
+function detachedWith(permission: Permission | readonly Permission[] | undefined) {
   return protectedProcedure.use(async ({ context, next }) => {
     const member = await findMembership(context)
     const scope = await withStore(context.db, member.storeId, (tx: StoreTx) =>

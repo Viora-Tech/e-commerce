@@ -5,6 +5,7 @@ import { appearanceRouter } from './appearance'
 import { appsRouter } from './apps'
 import { backInStockRouter } from './back-in-stock'
 import { blogRouter } from './blog'
+import { bugReportsRouter } from './bug-reports'
 import { businessGstRouter } from './business-gst'
 import { checkoutSettingsRouter } from './checkout-settings'
 import { collectionsRouter } from './collections'
@@ -86,6 +87,7 @@ export const appRouter = {
   domains: domainsRouter,
   invitations: invitationsRouter,
   onboarding: onboardingRouter,
+  bugReports: bugReportsRouter,
 }
 
 export type AppRouter = typeof appRouter

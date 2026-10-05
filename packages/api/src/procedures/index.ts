@@ -8,4 +8,5 @@ export {
   isNoStoreError,
   type StoreScope,
   storeProcedure,
+  storeProcedureDetached,
 } from './store'

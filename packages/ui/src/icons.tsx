@@ -19,6 +19,7 @@ import {
   BellSimple,
   BellSimpleRinging,
   BracketsCurly,
+  Bug,
   CaretDown,
   CaretLeft,
   CaretRight,
@@ -272,6 +273,8 @@ export const Moon_ = defineIcon(Moon, 'Moon')
 export { Moon_ as Moon }
 export const MoonIcon = Moon_
 export const LogOut = defineIcon(SignOut, 'LogOut') // kit user card
+/** "Report a bug" (test server only): the account menu item and the floating button. */
+export const BugIcon = defineIcon(Bug, 'BugIcon')
 /* Kit 5:1384 "arrow-menu-close": a bar on the right with a chevron pointing at it. Mirror with `-scale-x-100` when collapsed. */
 export const PanelLeftClose = definePath(
   ['M20 5v14', 'M13 8l-4 4 4 4', 'M9 12h7'],

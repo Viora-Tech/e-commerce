@@ -56,6 +56,35 @@ const aiShape = {
   AI_UNLIMITED_STORES: commaList,
 }
 
+/** `true` / `false` (also `1` / `0`, `yes` / `no`), any case. Anything else is refused. */
+const flag = z
+  .string()
+  .default('false')
+  .transform((v) => v.trim().toLowerCase())
+  .pipe(z.enum(['true', 'false', '1', '0', 'yes', 'no']))
+  .transform((v) => v === 'true' || v === '1' || v === 'yes')
+
+/**
+ * The "Report a bug" button (test server only). On, every signed-in admin member sees it and
+ * each report becomes a GitHub issue. With no token, development logs the would-be issue to
+ * the server console instead; production refuses to start (the refine below).
+ */
+const bugReportShape = {
+  BUG_REPORTS_ENABLED: flag,
+  /**
+   * Fine-grained GitHub token for the one repository, with only "Issues: Read and write".
+   * Never a classic token or one with code access.
+   */
+  GITHUB_ISSUES_TOKEN: z.string().min(1).optional(),
+  /** `owner/name` of the repository reports are filed in. */
+  GITHUB_ISSUES_REPO: z
+    .string()
+    .regex(/^[\w.-]+\/[\w.-]+$/)
+    .default('Viora-Tech/e-commerce'),
+  /** The commit this build runs, shown on each bug report. Unset: SENTRY_RELEASE, then "unknown". */
+  SOURCE_COMMIT: z.string().min(1).optional(),
+}
+
 /** Comma-separated platform domains; they and their subdomains cannot be connected as custom. */
 const platformDomains = z
   .string()
@@ -178,16 +207,25 @@ const shape = z.object({
   LOCAL_STORAGE_DIR: z.string().min(1).optional(),
   ...platformEmailShape,
   ...aiShape,
+  ...bugReportShape,
+  NODE_ENV: z.string().optional(),
 })
 
-const schema = shape.refine(
-  (e) => e.DOMAIN_PROVIDER !== 'dns' || e.STOREFRONT_A_RECORD !== DOC_A_RECORD,
-  {
+const schema = shape
+  .refine((e) => e.DOMAIN_PROVIDER !== 'dns' || e.STOREFRONT_A_RECORD !== DOC_A_RECORD, {
     // Merchants would be told to point their domain at a documentation address.
     message: 'DOMAIN_PROVIDER=dns needs the server IPv4 in STOREFRONT_A_RECORD',
     path: ['STOREFRONT_A_RECORD'],
-  },
-)
+  })
+  .refine(
+    (e) => !(e.BUG_REPORTS_ENABLED && !e.GITHUB_ISSUES_TOKEN && e.NODE_ENV === 'production'),
+    {
+      // In production a report must reach GitHub; a console line nobody reads would lose it.
+      message:
+        'BUG_REPORTS_ENABLED=true in production needs GITHUB_ISSUES_TOKEN (a fine-grained token with only Issues: write on GITHUB_ISSUES_REPO)',
+      path: ['GITHUB_ISSUES_TOKEN'],
+    },
+  )
 
 export type Env = z.infer<typeof schema>
 
@@ -210,7 +248,10 @@ function withoutBlanks(
 export function loadEnv(source: Record<string, string | undefined>): Env {
   const result = schema.safeParse(withoutBlanks(source))
   if (!result.success) {
-    const keys = result.error.issues.map((i) => i.path.join('.')).join(', ')
+    // Key names only, never values; a cross-key rule adds its sentence so the fix is obvious.
+    const keys = result.error.issues
+      .map((i) => (i.code === 'custom' ? `${i.path.join('.')} (${i.message})` : i.path.join('.')))
+      .join(', ')
     throw new Error(`Invalid environment: ${keys}`)
   }
   return result.data

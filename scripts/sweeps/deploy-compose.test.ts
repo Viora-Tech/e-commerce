@@ -23,6 +23,7 @@ const NOT_FOR_APPS: Record<string, string> = {
   BACKUP_R2_BUCKET: 'backup service only',
   BACKUP_LOCAL_DIR: 'dev backups only',
   LOCAL_STORAGE_DIR: 'local disk storage is not used in production',
+  NODE_ENV: 'set by the images and x-app-env itself (production), never by the operator',
 }
 
 function schemaKeys(): string[] {

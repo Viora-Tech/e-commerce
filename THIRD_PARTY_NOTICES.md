@@ -68,6 +68,10 @@ Content type field types (CMS PR2, `packages/core/src/metaobjects`, admin
 summary of [Instatic](https://github.com/CoreBunch/Instatic) (MIT, Copyright (c) 2026 David
 Babinec; `LICENSE` read from the owner's local copy on 2026-10-02). Our schemas, checks and
 inputs are written from scratch.
+The test server's "Report a bug" button (`apps/admin/src/lib/capture-page.ts`) takes its page
+screenshot with [modern-screenshot](https://github.com/qq15725/modern-screenshot) 4.7.0 (MIT,
+Copyright (c) 2021-present wxm), licence verified with `npm view modern-screenshot license` and its `LICENSE` on 2026-10-05.
+Used as a library, loaded only when a screenshot is taken; no code is copied.
 Framework credit, not an adaptation: `apps/docs` (the docs site) is built with
 [Nextra](https://github.com/shuding/nextra) (MIT), verified on
 [npm](https://www.npmjs.com/package/nextra) and its
