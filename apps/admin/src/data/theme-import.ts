@@ -20,7 +20,7 @@ export const themeImportContent = {
     change: 'Choose a different file',
     host: 'Your Shopify store address (optional)',
     hostHint:
-      'For example waimers.in or yourstore.myshopify.com. We copy your theme’s pictures from it into Files. Leave it empty to skip the pictures.',
+      'Filled in from your connected Shopify store, so you can leave it empty. Pictures and videos you already imported are reused. Type an address (like waimers.in) only to use a different store.',
     hostPlaceholder: 'yourstore.myshopify.com',
     cancel: 'Cancel',
     confirm: 'Import theme',

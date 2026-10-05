@@ -2,6 +2,7 @@
 import {
   createDb,
   media,
+  newId,
   product,
   type StoreTx,
   store,
@@ -13,10 +14,10 @@ import {
 } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { MemoryStorageProvider } from '@commerce/storage'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { fixtureThemeZip, PNG_1X1 } from '../../test/theme-import-fixture'
-import { duplicateTheme, ensureMainTheme } from '../theme/library'
+import { duplicateTheme, ensureMainTheme, publishTheme } from '../theme/library'
 import { loadTemplate } from '../theme/templates'
 import { importedThemeIds, loadThemeBundle, themeAssetFile, themeImportFor } from './bundle-store'
 import { resolveThemeVariantId, storeLiquidData } from './data'
@@ -286,5 +287,92 @@ describe('importShopifyTheme', () => {
     expect(cleanShopifyHost('x.myshopify.com')).toBe('x.myshopify.com')
     expect(cleanShopifyHost('not a host')).toBeNull()
     expect(cleanShopifyHost('')).toBeNull()
+  })
+})
+
+describe('importShopifyTheme with media the Shopify importer already copied', () => {
+  async function seedImported(storeId: string) {
+    const add = async (name: string, contentType: string, resource: string, sourceId: string) => {
+      const [row] = await owner
+        .insert(media)
+        .values({
+          storeId,
+          url: `https://files.example/${name}`,
+          key: `k/${name}`,
+          provider: 'memory',
+          contentType,
+          size: 10,
+          width: 4,
+          height: 3,
+          status: 'ready',
+        })
+        .returning()
+      await owner.execute(
+        sql`insert into shopify_import_mapping (id, store_id, resource, source_id, local_id)
+          values (${newId()}, ${storeId}, ${resource}, ${sourceId}, ${row?.id})`,
+      )
+    }
+    await add('banner.png', 'image/png', 'media', 'https://cdn.shopify.com/s/f/1/files/banner.png')
+    await add('logo.png', 'image/png', 'media', 'https://cdn.shopify.com/s/f/1/files/Logo.png')
+    await add('intro.mp4', 'video/mp4', 'file_name', 'intro.mp4')
+  }
+
+  it('reuses them without an address and without downloading anything', async () => {
+    const storeId = await seedStore()
+    await seedImported(storeId)
+    const shopify = fakeShopify()
+    const { report } = await inStore(storeId, (tx) =>
+      importShopifyTheme(
+        tx,
+        storeId,
+        { zip: fixtureThemeZip(), fileName: 'f.zip' },
+        { storage: new MemoryStorageProvider(), ...shopify },
+      ),
+    )
+    expect(shopify.requests).toEqual([])
+    expect(report.images).toMatchObject({
+      copied: 2,
+      videosCopied: 1,
+      skippedNoHost: 0,
+      failed: [],
+    })
+    expect(report.videos).toEqual([])
+    expect(await owner.select().from(media).where(eq(media.storeId, storeId))).toHaveLength(3)
+  })
+
+  it('leaves exactly one live theme after the imported theme is published', async () => {
+    const storeId = await seedStore()
+    const before = await inStore(storeId, (tx) => ensureMainTheme(tx, storeId))
+    const { themeId } = await inStore(storeId, (tx) =>
+      importShopifyTheme(
+        tx,
+        storeId,
+        { zip: fixtureThemeZip(), fileName: 'f.zip' },
+        { storage: new MemoryStorageProvider() },
+      ),
+    )
+    await inStore(storeId, (tx) => publishTheme(tx, themeId))
+    const mains = await owner.select().from(theme).where(eq(theme.role, 'main'))
+    expect(mains.map((t) => t.id)).toEqual([themeId])
+    expect(mains.some((t) => t.id === before.id)).toBe(false)
+  })
+
+  it('uses the connected Shopify store when no address is typed', async () => {
+    const storeId = await seedStore()
+    await owner.execute(
+      sql`insert into shopify_import_connection (id, store_id, shop_domain, access_token)
+        values (${newId()}, ${storeId}, 'old.example', 'x')`,
+    )
+    const shopify = fakeShopify()
+    const { report } = await inStore(storeId, (tx) =>
+      importShopifyTheme(
+        tx,
+        storeId,
+        { zip: fixtureThemeZip(), fileName: 'f.zip' },
+        { storage: new MemoryStorageProvider(), ...shopify },
+      ),
+    )
+    expect(report.images).toMatchObject({ copied: 2, videosCopied: 1, skippedNoHost: 0 })
+    expect(shopify.requests).toContain('https://old.example/')
   })
 })

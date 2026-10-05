@@ -192,6 +192,8 @@ export type NFile = {
   /** What to download: the image, the best mp4 under the video limit, or the file itself. */
   url: string | null
   alt: string | null
+  /** The name in Shopify Files (`intro.mp4`), when Shopify gives it; themes refer to videos by it. */
+  filename?: string | null | undefined
   mimeType: string | null
   /** Bytes, when Shopify says. */
   size: number | null
