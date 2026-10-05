@@ -243,7 +243,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/domains/records.ts',
-    names: ['VERIFY_LABEL', 'relativeName'],
+    names: ['relativeName'],
     reason: 'no external importer today — investigate before removing',
   },
   {

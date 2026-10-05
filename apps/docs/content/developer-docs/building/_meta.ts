@@ -2,6 +2,7 @@ export default {
   architecture: 'Architecture',
   'request-flow': 'Request flow',
   'data-model': 'Data model',
+  'custom-domains': 'Custom domains',
   'first-app': 'Build your first app',
   'ai-engine': 'AI engine',
   'ai-assistant': 'AI assistant',

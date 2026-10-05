@@ -10,8 +10,9 @@ import {
 import { and, asc, desc, eq, inArray, or } from 'drizzle-orm'
 import { CommerceError } from '../errors'
 import { createDevDomainProvider } from './dev-provider'
+import { createDnsDomainProvider } from './dns-provider'
 import { isPlatformHostname, normaliseHostname, wwwCounterpart } from './hostname'
-import type { DomainProvider } from './provider'
+import type { DnsState, DomainProvider } from './provider'
 import { type DnsRecord, type DomainTargets, dnsRecordsFor } from './records'
 
 export type DomainRow = typeof storeDomain.$inferSelect
@@ -25,12 +26,17 @@ export class DomainError extends CommerceError {
   }
 }
 
-/** Provider ids the platform knows. Only `dev` exists until the edge adapter is written. */
-export const DOMAIN_PROVIDERS = ['dev'] as const
+/**
+ * Provider ids the platform knows: `dev` (offline, decides from the hostname)
+ * and `dns` (real DNS lookups plus a TLS handshake). Keep in step with the
+ * `DOMAIN_PROVIDER` enum in `@commerce/config`.
+ */
+export const DOMAIN_PROVIDERS = ['dev', 'dns'] as const
 export type DomainProviderId = (typeof DOMAIN_PROVIDERS)[number]
 
 export function createDomainProvider(id: string): DomainProvider {
   if (id === 'dev') return createDevDomainProvider()
+  if (id === 'dns') return createDnsDomainProvider()
   throw new DomainError(`Unknown domain provider "${id}"`)
 }
 
@@ -203,6 +209,12 @@ export async function setDomainRedirect(
   return row
 }
 
+function dnsStateOf(status: DomainRow['status']): DnsState {
+  if (status === 'active') return 'verified'
+  if (status === 'failed') return 'misconfigured'
+  return 'pending'
+}
+
 /**
  * Ask the provider about one domain and record the answer. A domain that is
  * already live never drops back to pending over a failed check: taking a
@@ -218,6 +230,8 @@ export async function verifyDomain(tx: StoreTx, id: string, deps: DomainDeps): P
     hostname: d.hostname,
     verificationToken: d.verificationToken,
     expected: dnsRecordsFor(d.hostname, d.verificationToken, deps.targets),
+    targets: deps.targets,
+    previous: { dns: dnsStateOf(d.status), ssl: d.sslStatus },
     verifiedAt: d.verifiedAt,
     now,
   })

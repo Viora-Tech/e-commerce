@@ -176,6 +176,14 @@ Dokploy → Settings → Git Providers → **GitHub** → install the Dokploy Gi
 4. Cloudflare Page Rules/Rulesets: none required to start; add caching/security rules later as
    needed.
 
+### Merchants' own domains
+
+Set `DOMAIN_PROVIDER=dns`, `STOREFRONT_A_RECORD` (this server's public IPv4) and
+`STOREFRONT_CNAME_TARGET` (a hostname that resolves to it) on the admin and worker; with the
+default `dev` provider real domains stay pending forever. Each domain that goes live still needs
+its own HTTPS route: add it as a domain on the storefront app in Dokploy. That step is manual
+for now. Details and troubleshooting: [Custom domains](../building/custom-domains).
+
 ### Lock the origin to Cloudflare (required)
 
 Per-IP rate limits (sign-in codes, checkout, gift card checks, newsletter, webhooks) key on the

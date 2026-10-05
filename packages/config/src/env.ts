@@ -67,7 +67,10 @@ const platformDomains = z
       .filter(Boolean),
   )
 
-const schema = z.object({
+/** RFC 5737 documentation address: the offline default, never a real server. */
+const DOC_A_RECORD = '192.0.2.10'
+
+const shape = z.object({
   DATABASE_URL: z.string().url(),
   DATABASE_URL_OWNER: z.string().url(),
   REDIS_URL: z.string().url(),
@@ -99,10 +102,16 @@ const schema = z.object({
    */
   RAZORPAY_OAUTH_CLIENT_ID: z.string().min(1).optional(),
   RAZORPAY_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
-  /** Checks custom domains' DNS and certificates. `dev` decides from the hostname, offline. */
-  DOMAIN_PROVIDER: z.enum(['dev']).default('dev'),
-  /** IPv4 an apex custom domain's A record must point at. Default is a documentation address. */
-  STOREFRONT_A_RECORD: z.ipv4().default('192.0.2.10'),
+  /**
+   * Checks custom domains' DNS and certificates. `dev` decides from the hostname, offline;
+   * `dns` asks real DNS and does a TLS handshake (needs a real STOREFRONT_A_RECORD).
+   */
+  DOMAIN_PROVIDER: z.enum(['dev', 'dns']).default('dev'),
+  /**
+   * The storefront server's public IPv4: an apex custom domain's A record must point at it
+   * (a subdomain may too, instead of the CNAME). Default is a documentation address.
+   */
+  STOREFRONT_A_RECORD: z.ipv4().default(DOC_A_RECORD),
   /** Hostname a subdomain's CNAME must point at. */
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
   PLATFORM_DOMAINS: platformDomains,
@@ -166,6 +175,15 @@ const schema = z.object({
   ...platformEmailShape,
   ...aiShape,
 })
+
+const schema = shape.refine(
+  (e) => e.DOMAIN_PROVIDER !== 'dns' || e.STOREFRONT_A_RECORD !== DOC_A_RECORD,
+  {
+    // Merchants would be told to point their domain at a documentation address.
+    message: 'DOMAIN_PROVIDER=dns needs the server IPv4 in STOREFRONT_A_RECORD',
+    path: ['STOREFRONT_A_RECORD'],
+  },
+)
 
 export type Env = z.infer<typeof schema>
 

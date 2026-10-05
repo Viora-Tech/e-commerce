@@ -1,4 +1,4 @@
-import type { DnsRecord } from './records'
+import type { DnsRecord, DomainTargets } from './records'
 
 export type DnsState = 'pending' | 'verified' | 'misconfigured'
 export type SslState = 'pending' | 'issuing' | 'active' | 'failed'
@@ -8,6 +8,10 @@ export type DomainCheckInput = {
   verificationToken: string | null
   /** Records the merchant was asked to add. */
   expected: DnsRecord[]
+  /** Where the platform's records point; a subdomain may use an A record to `aRecord` instead of the CNAME. */
+  targets: DomainTargets
+  /** The last recorded answer, returned as-is when a lookup times out. */
+  previous?: { dns: DnsState; ssl: SslState } | undefined
   /** When DNS was first seen correct; providers use it to age certificate issuance. */
   verifiedAt: Date | null
   now: Date
@@ -25,8 +29,9 @@ export type DomainCheck = {
 /**
  * Checks that a hostname points at the platform and that a certificate exists
  * for it. The production adapter would sit on the edge provider's custom
- * hostname API; the dev one decides from the hostname alone and never touches
- * the network. Must not throw for DNS problems: those come back as state.
+ * hostname API; `dns` (dns-provider.ts) asks DNS and does a TLS handshake;
+ * `dev` decides from the hostname alone and never touches the network. Must
+ * not throw for DNS problems: those come back as state.
  */
 export type DomainProvider = {
   readonly id: string

@@ -1,0 +1,109 @@
+---
+title: Custom domains
+description: How a merchant's own domain goes from pending to live — the records we ask for, the dev and dns providers, the worker's re-check, and the proxy route each live hostname still needs.
+---
+
+# Custom domains
+
+A merchant connects `brand.in` in Settings → Domains. The row starts `pending`; the storefront
+only answers a hostname once its `store_domain` row is `status = 'active'` (`resolve_store` /
+`resolve_host`, see [Request flow](./request-flow)). A **domain provider** decides when that
+happens.
+
+Code: `packages/core/src/domains/` (`service.ts` for connect / verify / poll, `records.ts` for
+the records we show, `provider.ts` for the provider contract, `dev-provider.ts` and
+`dns-provider.ts` for the two providers). Admin: `apps/admin/src/components/domains/`.
+
+## The records we ask for
+
+| Hostname | Routing record | Ownership record |
+| --- | --- | --- |
+| `brand.in` (apex) | `A @ → STOREFRONT_A_RECORD` | `TXT _waimers-verify → waimers-verify=<token>` |
+| `www.brand.in` (subdomain) | `CNAME www → STOREFRONT_CNAME_TARGET` | `TXT _waimers-verify.www → waimers-verify=<token>` |
+
+The token is made when the domain is connected and never changes for that row.
+
+## Providers
+
+`DOMAIN_PROVIDER` picks one; `dev` is the default.
+
+### `dev` (offline)
+
+Never touches the network. `*.test` and `*.example` verify on the first check (certificate
+`issuing` for a minute, then `active`), a first label starting with `fail` is misconfigured, and
+every real domain stays `pending` forever. Right for local work and tests, wrong for any server
+where merchants connect real domains.
+
+### `dns` (real)
+
+`createDnsDomainProvider` in `dns-provider.ts`. On each check it asks DNS (`node:dns/promises`,
+5 s per lookup) and, once DNS is right, does a TLS handshake.
+
+| Situation | DNS state | What decides it |
+| --- | --- | --- |
+| Apex A records include `STOREFRONT_A_RECORD` | routing OK | `resolve4(host)` |
+| Subdomain CNAME equals `STOREFRONT_CNAME_TARGET` (case and trailing dot ignored) | routing OK | `resolveCname(host)` |
+| Subdomain A record is `STOREFRONT_A_RECORD` (flattened CNAME, Cloudflare DNS-only) | routing OK | `resolve4(host)` |
+| Every A record is in Cloudflare's published ranges (orange cloud) | routing OK **only** if the TXT record matches; noted in `error` | `resolve4` + `resolveTxt` |
+| `_waimers-verify[.name]` TXT holds the token | ownership OK | `resolveTxt` |
+| Records missing (NXDOMAIN / no data) | `pending` | keeps polling |
+| Routing points somewhere else, or the TXT has another value | `misconfigured` → row `failed` | plain-words `error`, e.g. "brand.in points at 1.2.3.4. Change the A record to 15.206.197.145." |
+| A lookup times out or the DNS server fails | previous state, no throw | `previous` in the check input |
+
+When routing and ownership are both OK the provider connects to `host:443` with
+`servername = host` and `rejectUnauthorized: true` (5 s limit). A trusted certificate makes the
+SSL state `active`; anything else is `issuing` and the next check tries again.
+
+`verifyDomain` writes the answer: DNS verified flips the row to `status = 'active'` (the
+storefront starts answering) and copies the SSL state. A live domain never drops back to
+pending over a failed check. The resolver and the TLS checker are function parameters, so
+tests (`dns-provider.test.ts`) never touch the network.
+
+## Re-checks
+
+- **Worker**: the `{domains}-verify` repeat job (every 2 minutes, scheduler id
+  `verify-pending-domains`, `apps/worker/src/domains.ts`) checks every custom domain that is
+  `pending`, or `active` with a certificate still `pending`/`issuing`
+  (`stores_with_pending_domains()`).
+- **Admin**: the domain page re-checks every few seconds while the tab is open and the domain is
+  settling, and "Verify connection" checks at once (`domains.verify`).
+- A `failed` domain is not polled: the merchant fixes the records and presses "Verify
+  connection", as the page tells them.
+
+## Turning it on for a server
+
+```bash
+DOMAIN_PROVIDER=dns
+# The storefront server's public IPv4. Apex domains point their A record here.
+STOREFRONT_A_RECORD=15.206.197.145
+# A hostname that resolves to that server. Subdomains point their CNAME here.
+STOREFRONT_CNAME_TARGET=shops.vioratech.in
+```
+
+`loadEnv` refuses `DOMAIN_PROVIDER=dns` while `STOREFRONT_A_RECORD` is still the documentation
+default (`192.0.2.10`), so merchants are never told to point at it. Both the admin (the
+"Verify connection" button) and the worker (the poll) read these keys, so set them on both.
+
+### Each live hostname also needs an HTTPS route on the proxy
+
+DNS reaching the server is not enough: Traefik must route the hostname to the storefront and
+hold a certificate for it. Today that is a manual step: add the hostname as a **domain on the
+storefront app in Dokploy** (HTTPS on, Let's Encrypt), the same way `STOREFRONT_DOMAIN` is set
+up. Until that route exists the TLS check fails and the domain stays `active` with SSL
+`issuing`. Automating it (Traefik on-demand TLS, or the Dokploy API from the worker) is out of
+scope for this provider.
+
+Other things that keep a certificate from issuing:
+
+- **Cloudflare proxy (orange cloud)**: the handshake reaches Cloudflare, not us, so SSL turns
+  `active` as soon as Cloudflare serves its own certificate. Set Cloudflare's SSL mode to
+  **Full (strict)** so it also checks our origin certificate.
+- **An extra AAAA (IPv6) record** pointing at the old host: Let's Encrypt prefers IPv6, so the
+  challenge goes there and fails. Ask the merchant to delete it.
+- **Origin locked to Cloudflare's ranges** ([Deployment](../operations/deployment), "Lock the
+  origin"): a merchant domain that is not on Cloudflare cannot reach the server at all. Servers
+  that take custom domains must allow 80/443 from everywhere, or put the storefront behind a
+  separate entry point.
+- **The check runs from the server itself** (admin and worker containers connect to
+  `host:443`). The firewall / security group must let the server reach its own public address
+  on 443, or every domain stays `issuing`.

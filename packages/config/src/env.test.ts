@@ -36,4 +36,23 @@ describe('loadEnv', () => {
   it('still rejects a non-blank invalid value', () => {
     expect(() => loadEnv({ ...valid, SENTRY_DSN: 'not-a-url' })).toThrow(/SENTRY_DSN/)
   })
+
+  it('defaults custom domain checks to the offline dev provider', () => {
+    expect(loadEnv(valid).DOMAIN_PROVIDER).toBe('dev')
+  })
+
+  it('accepts the real dns provider with the server address', () => {
+    const env = loadEnv({
+      ...valid,
+      DOMAIN_PROVIDER: 'dns',
+      STOREFRONT_A_RECORD: '15.206.197.145',
+      STOREFRONT_CNAME_TARGET: 'shops.vioratech.in',
+    })
+    expect(env).toMatchObject({ DOMAIN_PROVIDER: 'dns', STOREFRONT_A_RECORD: '15.206.197.145' })
+  })
+
+  it('refuses the dns provider without a real server address', () => {
+    expect(() => loadEnv({ ...valid, DOMAIN_PROVIDER: 'dns' })).toThrow(/STOREFRONT_A_RECORD/)
+    expect(() => loadEnv({ ...valid, DOMAIN_PROVIDER: 'cloudflare' })).toThrow(/DOMAIN_PROVIDER/)
+  })
 })
