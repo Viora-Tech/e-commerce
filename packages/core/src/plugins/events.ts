@@ -37,6 +37,25 @@ export type AppEventQueue = {
   ): Promise<unknown>
 }
 
+/** The queue's job id for an app job queued with `dedupeKey`. */
+const appJobId = (storeId: string, pluginId: string, dedupeKey: string) =>
+  // BullMQ allows ':' in a custom id only as exactly three parts.
+  `${storeId}:${pluginId}:${dedupeKey.replace(/:/g, '-')}`
+
+/**
+ * Take a job queued with `dedupeKey` off the queue, if it is still waiting. False
+ * when the queue cannot remove jobs or the job already started (or is gone).
+ */
+export async function removeAppJob(
+  queue: AppJobQueue,
+  job: { storeId: string; pluginId: string },
+  dedupeKey: string,
+): Promise<boolean> {
+  if (!queue.remove) return false
+  const removed = await queue.remove(appJobId(job.storeId, job.pluginId, dedupeKey))
+  return removed === 1 || removed === true
+}
+
 /** One job per order event (or per refund) per app; a repeat enqueue is a no-op. */
 export const appEventJobId = (job: AppEventJob): string =>
   `${job.storeId}:${job.event}:${job.refundId ?? job.orderId}${job.pluginId ? `:${job.pluginId}` : ''}`
@@ -179,6 +198,8 @@ export type AppJobQueue = {
       removeOnComplete?: boolean | number
     },
   ): Promise<unknown>
+  /** Take a waiting or delayed job off the queue (BullMQ `Queue.remove`); 0 when it is running. */
+  remove?(jobId: string): Promise<unknown>
 }
 
 /**
@@ -191,10 +212,7 @@ export async function enqueueAppJob(
   dedupeKey?: string,
 ): Promise<void> {
   await queue.add(`${job.pluginId}:${job.name}`, job, {
-    // BullMQ allows ':' in a custom id only as exactly three parts.
-    ...(dedupeKey
-      ? { jobId: `${job.storeId}:${job.pluginId}:${dedupeKey.replace(/:/g, '-')}` }
-      : {}),
+    ...(dedupeKey ? { jobId: appJobId(job.storeId, job.pluginId, dedupeKey) } : {}),
     attempts: 3,
     backoff: { type: 'exponential', delay: 5_000 },
     removeOnComplete: true,

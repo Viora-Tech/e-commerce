@@ -1,5 +1,5 @@
 import { settingsSecret } from '@commerce/config'
-import { enqueueAppJob, permissions } from '@commerce/core'
+import { enqueueAppJob, permissions, removeAppJob } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import {
   ConnectionError,
@@ -21,6 +21,7 @@ import {
   preflightChecks,
   type RunRow,
   remainingStatus,
+  requestStop,
   runJobKey,
   SHOPIFY_IMPORT_ID,
   ShopifyError,
@@ -217,6 +218,32 @@ export const shopifyImportRouter = {
       const run = await startRun(context.tx, input.id).catch(asOrpc)
       await queue(context, run)
       return { id: run.id }
+    }),
+
+  /**
+   * Stop import: a waiting run is cancelled and its job taken off the queue; a running
+   * one stops within seconds (marked stopped after a minute even if its worker hangs).
+   * What it imported stays. Same permission as starting one.
+   */
+  stop: can(permissions.APPS_MANAGE)
+    .input(RunId)
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const user = context.session.user
+      const { run, jobKey } = await requestStop(
+        context.tx,
+        input.id,
+        user.name?.trim() || user.email,
+      ).catch(asOrpc)
+      if (jobKey && context.appJobs) {
+        // Best effort: a job that slipped through sees the run stopped and does nothing.
+        await removeAppJob(
+          context.appJobs,
+          { storeId: context.scope.storeId, pluginId: SHOPIFY_IMPORT_ID },
+          jobKey,
+        ).catch(() => false)
+      }
+      return { id: run.id, status: run.status }
     }),
 
   /** "Retry the ones that were missed": a new import of only what this one reported problems for. */

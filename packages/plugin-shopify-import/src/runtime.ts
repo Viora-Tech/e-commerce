@@ -39,6 +39,11 @@ export type ImportContext = {
    * run: images and files are skipped without trying (one issue says why).
    */
   mediaOff?: string | null | undefined
+  /**
+   * Aborted when the run is stopped (Stop import, or the watchdog): the readers
+   * stop handing on records between batches and records, and copies end.
+   */
+  signal?: AbortSignal | undefined
 }
 
 const SAMPLES_PER_RESOURCE = 5

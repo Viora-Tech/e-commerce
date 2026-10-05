@@ -26,6 +26,7 @@ import {
 } from './shopify-api'
 import { type ShopifyClient, ShopifyError } from './shopify-client'
 import type { ReadSpec, SnapshotSession } from './snapshot'
+import type { KeepTest } from './status'
 import type {
   Issue,
   NArticle,
@@ -91,15 +92,18 @@ async function forEachBatch<T>(
 ) {
   ctx.report.begin(resource)
   for await (const batch of source) {
+    ctx.signal?.throwIfAborted()
     ctx.report.addTotal(resource, batch.length)
     await ctx.report.flush()
     if (concurrency > 1) {
       await mapLimit(batch, concurrency, async (item) => {
+        ctx.signal?.throwIfAborted()
         await write(item)
         await ctx.report.flush()
       })
     } else {
       for (const item of batch) {
+        ctx.signal?.throwIfAborted()
         await write(item)
         await ctx.report.flush()
       }
@@ -118,6 +122,8 @@ async function forEachChunk<T>(
 ) {
   ctx.report.begin(resource)
   for await (const chunk of rebatch(source, size)) {
+    // Stop import: nothing more is written once it was asked for.
+    ctx.signal?.throwIfAborted()
     ctx.report.addTotal(resource, chunk.length)
     // Show the step and its total before the batch's copies start, not only after it is written.
     await ctx.report.flush()
@@ -137,24 +143,27 @@ async function* chunksOf<T>(items: T[]): AsyncGenerator<T[]> {
  */
 export type Only = {
   ids?: Map<ImportResource, Set<string>> | undefined
-  keep?: ((resource: ImportResource, id: string) => boolean) | undefined
+  keep?: KeepTest | undefined
 } | null
 
-/** The test for one resource's import keys, or null to keep everything. */
-function wants(only: Only, resource: ImportResource): ((id: string) => boolean) | null {
+/** The test for one resource's import keys (and the record, when it has one), or null to keep everything. */
+function wants(
+  only: Only,
+  resource: ImportResource,
+): ((id: string, item?: unknown) => boolean) | null {
   const ids = only?.ids
   if (ids) {
     const set = ids.get(resource)
     return set ? (id) => set.has(id) : () => false
   }
   const test = only?.keep
-  return test ? (id) => test(resource, id) : null
+  return test ? (id, item) => test(resource, id, item) : null
 }
 
 /** Keep only the records a narrowed run writes (all of them otherwise). */
 function keep<T>(only: Only, resource: ImportResource, idOf: (item: T) => string) {
   const test = wants(only, resource)
-  return (items: T[]) => (test ? items.filter((item) => test(idOf(item))) : items)
+  return (items: T[]) => (test ? items.filter((item) => test(idOf(item), item)) : items)
 }
 
 async function* filtered<T>(
@@ -217,7 +226,11 @@ export async function runApi(
   snap: SnapshotSession,
   only: Only,
 ) {
-  const wanted = (r: ImportResource) => resources.includes(r)
+  // Asked before every step, so a stopped run never starts the next one.
+  const wanted = (r: ImportResource) => {
+    ctx.signal?.throwIfAborted()
+    return resources.includes(r)
+  }
   const cache = new Map<string, string>()
   const onBulkFallback = (reason: unknown) =>
     ctx.log(`Shopify bulk read fell back to paged fetching: ${errorMessage(reason)}`)

@@ -5,6 +5,7 @@ import {
   createArticle,
   createBlog,
   createCollection,
+  importRedirect,
   MenuItemsSchema,
   slugify,
   updateArticle,
@@ -403,10 +404,22 @@ export async function writeRedirect(ctx: ImportContext, r: NRedirect) {
       })
       return
     }
-    const outcome = await ctx.inStore((tx) =>
-      upsertImportedRedirect(tx, ctx.storeId, r.path, r.target),
+    const { outcome, skip } = await ctx.inStore((tx) =>
+      importRedirect(tx, ctx.storeId, r.path, r.target),
     )
+    // Already here with the same target: the redirect is in place, like any record a
+    // re-run finds unchanged (it used to read "skipped", which looked like a failure).
+    if (skip === 'unchanged') return ctx.report.count('redirects', 'updated')
     ctx.report.count('redirects', outcome)
+    if (skip === 'manual') ctx.report.leave('redirects', 'redirect_manual')
+    if (skip === 'invalid') {
+      ctx.report.leave('redirects', 'redirect_invalid')
+      ctx.report.issue({
+        resource: 'redirects',
+        ref: r.path,
+        message: `Redirect from "${r.path}" points nowhere we can use (the home page or an empty path)`,
+      })
+    }
   } catch (err) {
     ctx.report.count('redirects', 'failed')
     ctx.report.issue({

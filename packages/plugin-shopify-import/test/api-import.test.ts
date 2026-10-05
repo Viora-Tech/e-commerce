@@ -547,7 +547,8 @@ describe('API import run', () => {
     expect(await counts()).toEqual(before)
     const [second] = await owner.select().from(importRun).where(eq(importRun.id, again.id))
     expect(second?.progress.products).toMatchObject({ created: 0, updated: 2 })
-    expect(second?.progress.redirects).toMatchObject({ skipped: 1 })
+    // Already here with the same target: in place, counted like any record a re-run finds (#272 notes).
+    expect(second?.progress.redirects).toMatchObject({ updated: 1, skipped: 0 })
   })
 
   it('queues each hosted image once, nothing on a dry run, and nothing again on a re-run', async () => {

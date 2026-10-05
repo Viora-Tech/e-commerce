@@ -18,7 +18,7 @@ it again updates what it brought over before instead of making copies.
 | Customers | Customers | Matched by email, then phone. |
 | Orders | Orders | Read-only history: no stock change, no messages, no invoices. |
 | Pages, blog posts, menus, URL redirects | Pages, Blog, Navigation, Redirects | |
-| **Files** (Content → Files) | **Files** | Pictures and mp4 videos (up to 100 MB). |
+| **Files** (Content → Files) | **Files** | Pictures (up to 50 MB) and mp4 videos (up to 1 GB). |
 | **Metaobjects** | **Content types** and their **entries** | Links between entries, to products, collections and files are kept. |
 | **Metafields** on products and collections | **Extra fields** | Each Shopify field becomes an extra field of the matching type. |
 | **Discounts** | **Discounts** | Code and automatic discounts our discount model can express. |
@@ -54,6 +54,14 @@ many are here, and what is still missing, with a button on each row (**Import 3*
 images**, **Copy files**) and **Import remaining** for all of it. Only the missing records are
 brought over; everything already here is left alone. On an import's page, problems are grouped
 by cause ("1,400 images and files not copied: file storage isn't working") with one fix each.
+A row only says **Done** when Shopify's number is known and everything is here. If it is not
+known yet, the row says **Not checked yet** with a **Run a preview** button. **Product images**
+always has its own row: how many images your Shopify products have, how many are on your
+products here, and **Copy images** for the rest (each picture is downloaded once, never twice).
+
+**Stop an import.** While an import is waiting or running, press **Stop import**. What's
+already imported stays; the page says who stopped it and when. Bring in the rest later with
+**Run again**, **Retry**, or **Import remaining**.
 
 **Retry only what was missed.** When an import finishes with problems, press **Retry the 12
 that were missed**: only those records, images or files are brought over again; everything
@@ -81,7 +89,7 @@ each record. What you can see there:
   links to variants, pages or customers. The field and its values stay in Shopify. Colours and
   IDs come over as text; date and time fields keep the date; link fields keep the web address.
 - **Files we cannot hold yet.** PDFs and other documents (download them from Shopify), YouTube
-  or Vimeo links (add them to a section by their link), 3D models, and videos over 100 MB.
+  or Vimeo links (add them to a section by their link), 3D models, and videos over 1 GB.
 - **Discounts our model cannot express.** Buy X get Y, discounts made by Shopify apps, discounts
   for chosen customers or segments, a minimum number of items, single variants, an amount off
   each item, free shipping limited by country or shipping price, and codes with characters other

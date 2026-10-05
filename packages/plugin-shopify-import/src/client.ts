@@ -31,7 +31,8 @@ export type CsvResource = (typeof CSV_RESOURCES)[number]
 export const ISSUE_KINDS = ['record', 'media', 'file'] as const
 export type IssueKind = (typeof ISSUE_KINDS)[number]
 
-export const RUN_STATUSES = ['queued', 'running', 'completed', 'failed'] as const
+/** `cancelled`: someone pressed Stop import; what it had imported stays. */
+export const RUN_STATUSES = ['queued', 'running', 'completed', 'failed', 'cancelled'] as const
 export type RunStatus = (typeof RUN_STATUSES)[number]
 
 /**
@@ -77,6 +78,10 @@ export const LEFT_BEHIND_REASONS = [
   'gift_card_over_limit',
   'gift_card_currency',
   'gift_card_used_here',
+  /** A redirect for that path was set here by hand; the merchant's own one was kept. */
+  'redirect_manual',
+  /** A redirect from the home page or an empty path. */
+  'redirect_invalid',
 ] as const
 export type LeftBehindReason = (typeof LEFT_BEHIND_REASONS)[number]
 
@@ -260,8 +265,14 @@ export type IssueGroup = {
   /** The types it happened on (storage and scope problems span several). */
   resources: string[]
   count: number
-  /** How many of them "Retry the ones that were missed" would bring over again. */
+  /**
+   * Records "Retry the ones that were missed" would bring over again: distinct record
+   * keys, the same unit as the run's "N records to retry" (one product can have several
+   * failed images).
+   */
   retryable: number
+  /** The problems among `count` that a retry covers (e.g. 77 images across 23 products). */
+  retryableProblems: number
   /** One of the messages, as an example. */
   sample: string
   fixHref: string | null
@@ -270,25 +281,37 @@ export type IssueGroup = {
 /** One row of "What is left to import". */
 export type ResourceStatus = {
   resource: ImportResource
-  /** How many Shopify has: its own count, else the last preview's; null when never looked. */
+  /**
+   * How many Shopify has: its own count, else the latest preview's (or its kept copy),
+   * else the latest full import's; null when nothing ever counted them.
+   */
   inShopify: number | null
-  countedFrom: 'shopify' | 'preview' | null
+  countedFrom: 'shopify' | 'preview' | 'import' | null
   countedAt: string | null
   /** Records here from Shopify (the import mapping). */
   imported: number
   /** Not imported yet, or with an open problem from their last import. */
   missing: number
-  /** `not_copied`: files that are in Shopify but not in this store's storage. */
+  /**
+   * `not_copied`: files that are in Shopify but not in this store's storage.
+   * `unknown`: Shopify's number is not known, so it is never called done.
+   */
   state: 'done' | 'missing' | 'not_copied' | 'never' | 'unknown'
   lastImportAt: string | null
 }
 
 export type ImportStatus = {
   resources: ResourceStatus[]
-  /** Product images: how many the last preview saw, how many the last import could not copy. */
+  /**
+   * Product images: how many Shopify's products carry (the latest preview's or full
+   * import's count; for an older import without one, what is here plus what it could
+   * not copy), how many are here (linked to imported products), and how many are not.
+   */
   images: {
     expected: number | null
+    here: number
     missing: number
+    countedFrom: 'preview' | 'import' | null
     countedAt: string | null
     state: 'done' | 'not_copied' | 'unknown'
   }

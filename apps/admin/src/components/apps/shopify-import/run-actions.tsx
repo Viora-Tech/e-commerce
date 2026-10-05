@@ -20,8 +20,8 @@ const base = shopifyImportContent.base
 
 /**
  * What can happen next to a finished run: Import now after a preview, Try again
- * after a failure, and after an import with problems "Retry the N that were
- * missed" (only those) next to "Import everything again".
+ * after a failure, Run again after a stop, and after an import with problems
+ * "Retry the N that were missed" (only those) next to "Import everything again".
  */
 export default function RunActions({ run, onQueued }: RunActionsProps) {
   // Hooks
@@ -56,10 +56,13 @@ export default function RunActions({ run, onQueued }: RunActionsProps) {
   }
 
   // Early returns
-  if (run.status !== 'completed' && run.status !== 'failed') return null
+  if (run.status !== 'completed' && run.status !== 'failed' && run.status !== 'cancelled') {
+    return null
+  }
 
   // Render logic
-  const canRetry = run.status === 'completed' && !run.dryRun && run.retryable > 0
+  // A stopped import can be retried like a finished one: only what it missed.
+  const canRetry = run.status !== 'failed' && !run.dryRun && run.retryable > 0
   const label =
     run.status === 'failed' ? copy.tryAgain : run.dryRun ? copy.importNow : copy.runAgain
 

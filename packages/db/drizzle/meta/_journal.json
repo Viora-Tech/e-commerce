@@ -589,6 +589,13 @@
       "when": 1791180000000,
       "tag": "0088_shopify_import_only_missing",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1791194814670,
+      "tag": "0089_shopify_import_stop",
+      "breakpoints": true
     }
   ]
 }

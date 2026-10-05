@@ -7,6 +7,7 @@
  */
 import { isAllowedContentType } from '@commerce/storage'
 import type { LeftBehindReason } from './client'
+import { IMPORT_VIDEO_MAX_BYTES, sizeText } from './limits'
 import { mediaSourceKey } from './media'
 import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
 import type { NFile } from './types'
@@ -56,7 +57,7 @@ function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
       : {
           ok: false,
           reason: 'video_too_large',
-          message: 'Every mp4 copy of this video is over the 100 MB limit',
+          message: `Every mp4 copy of this video is over the ${sizeText(IMPORT_VIDEO_MAX_BYTES)} limit`,
         }
   }
   if (!f.url) {

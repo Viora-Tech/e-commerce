@@ -77,9 +77,16 @@ export async function deleteRedirects(tx: StoreTx, ids: string[]): Promise<numbe
 }
 
 /**
+ * Why an imported redirect was left alone: the same one is already here, the
+ * merchant's own (manual) redirect for that path wins, or the path is the home
+ * page or empty.
+ */
+export type RedirectSkip = 'unchanged' | 'manual' | 'invalid'
+
+/**
  * Write a redirect an import produced. A redirect the merchant created or
  * edited by hand wins: an imported one never overwrites a manual row.
- * Returns whether a row was created, updated, or left alone.
+ * Returns whether a row was created, updated, or left alone (`detail` says why).
  */
 export async function upsertImportedRedirect(
   tx: StoreTx,
@@ -87,22 +94,33 @@ export async function upsertImportedRedirect(
   path: string,
   target: string,
 ): Promise<'created' | 'updated' | 'skipped'> {
+  return (await importRedirect(tx, storeId, path, target)).outcome
+}
+
+/** `upsertImportedRedirect` with the reason a skipped one was left alone. */
+export async function importRedirect(
+  tx: StoreTx,
+  storeId: string,
+  path: string,
+  target: string,
+): Promise<{ outcome: 'created' | 'updated' | 'skipped'; skip?: RedirectSkip }> {
   const from = normaliseRedirectPath(path)
-  if (!from || from === '/') return 'skipped'
+  if (!from || from === '/') return { outcome: 'skipped', skip: 'invalid' }
   const [existing] = await tx
     .select({ id: urlRedirect.id, source: urlRedirect.source, target: urlRedirect.target })
     .from(urlRedirect)
     .where(eq(urlRedirect.path, from))
   if (!existing) {
     await tx.insert(urlRedirect).values({ storeId, path: from, target, source: 'import' })
-    return 'created'
+    return { outcome: 'created' }
   }
-  if (existing.source === 'manual' || existing.target === target) return 'skipped'
+  if (existing.source === 'manual') return { outcome: 'skipped', skip: 'manual' }
+  if (existing.target === target) return { outcome: 'skipped', skip: 'unchanged' }
   await tx
     .update(urlRedirect)
     .set({ target, updatedAt: new Date() })
     .where(eq(urlRedirect.id, existing.id))
-  return 'updated'
+  return { outcome: 'updated' }
 }
 
 /** The storefront's lookup: the target for one normalised path, or null. */
