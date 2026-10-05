@@ -186,11 +186,16 @@ async function writeGiftCard(
     if (!existingId) ctx.report.leave(R, 'gift_card_code')
   } catch (err) {
     ctx.report.count(R, 'failed')
-    ctx.report.issue({ resource: R, ref, message: errorMessage(err) })
+    ctx.report.issue({ resource: R, ref, sourceId: g.sourceId, message: errorMessage(err) })
   }
 }
 
-export async function importGiftCards(ctx: ImportContext, client: ShopifyClient): Promise<void> {
+export async function importGiftCards(
+  ctx: ImportContext,
+  client: ShopifyClient,
+  /** On a retry, only these Shopify gift card ids. */
+  only: ReadonlySet<string> | null = null,
+): Promise<void> {
   ctx.report.begin(R)
   const { today, currency } = await ctx.inStore(async (tx) => {
     const [s] = await tx
@@ -199,7 +204,8 @@ export async function importGiftCards(ctx: ImportContext, client: ShopifyClient)
       .where(eq(store.id, ctx.storeId))
     return { today: await storeToday({ tx, storeId: ctx.storeId }), currency: s?.currency ?? 'INR' }
   })
-  for await (const batch of fetchGiftCards(client)) {
+  for await (const page of fetchGiftCards(client)) {
+    const batch = only ? page.filter((g) => only.has(g.sourceId)) : page
     ctx.report.addTotal(R, batch.length)
     for (const g of batch) {
       await writeGiftCard(ctx, g, today, currency)

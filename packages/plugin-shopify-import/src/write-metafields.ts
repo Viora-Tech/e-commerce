@@ -232,7 +232,7 @@ async function writeOwner(
     }
   } catch (err) {
     for (const _ of planned) ctx.report.count(R, 'failed')
-    ctx.report.issue({ resource: R, ref, message: errorMessage(err) })
+    ctx.report.issue({ resource: R, ref, sourceId: o.ownerSourceId, message: errorMessage(err) })
   }
 }
 

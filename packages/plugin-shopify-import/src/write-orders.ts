@@ -27,7 +27,15 @@ import {
 } from '@commerce/db'
 import { and, eq, ilike, isNull, sql } from 'drizzle-orm'
 import { countryFor, stateFor } from './address'
-import { errorMessage, findMapping, type ImportContext, saveMapping } from './runtime'
+import {
+  errorMessage,
+  findMapping,
+  type ImportContext,
+  type MappingRow,
+  saveMapping,
+  saveMappings,
+  writeBatch,
+} from './runtime'
 import type { NOrder, NOrderLine } from './types'
 
 export const PLACEHOLDER_HANDLE = 'imported-historical-item'
@@ -215,137 +223,201 @@ async function bumpCounter(tx: StoreTx, storeId: string, number: number) {
     .where(eq(store.id, storeId))
 }
 
+type Outcome = {
+  outcome: 'created' | 'updated' | 'skipped'
+  id: string | null
+  existing: Existing
+}
+
+/**
+ * Everything one order writes, against the caller's transaction. A dry run
+ * stops after the lookup. With `mappings`, the mapping row is collected for
+ * one multi-row statement at the end of the batch instead of written here.
+ */
+async function applyOrder(
+  tx: StoreTx,
+  ctx: ImportContext,
+  o: NOrder,
+  cache: Map<string, string>,
+  mappings?: MappingRow[],
+): Promise<Outcome> {
+  const existing = await existingOrder(tx, o)
+  if (existing && !existing.importedFrom) return { outcome: 'skipped', id: null, existing }
+  if (ctx.dryRun) {
+    return { outcome: existing ? 'updated' : 'created', id: existing?.id ?? null, existing }
+  }
+  const customerId = await customerFor(tx, ctx.storeId, o, ctx.secret)
+  let shippingAddressId: string | null = null
+  if (o.shippingAddress) {
+    const a = o.shippingAddress
+    const [row] = await tx
+      .insert(address)
+      .values({
+        storeId: ctx.storeId,
+        name: a.name || o.customerName || '',
+        line1: [a.company, a.line1].filter(Boolean).join(', '),
+        line2: a.line2,
+        city: a.city,
+        stateCode: stateFor(a),
+        pincode: a.zip.replace(/\s/g, ''),
+        country: countryFor(a),
+        phone: a.phone ?? o.phone ?? '',
+      })
+      .returning({ id: address.id })
+    shippingAddressId = row?.id ?? null
+  }
+  const meta: OrderImportMeta = {
+    name: o.name,
+    sourceId: o.sourceId,
+    financialStatus: o.financialStatus,
+    fulfillmentStatus: o.fulfillmentStatus,
+    paymentMethod: o.paymentMethod,
+    cancelledAt: o.cancelledAt,
+    refundedPaise: o.refundedPaise || null,
+  }
+  const statuses = statusFor(o)
+  const placedAt = o.createdAt ? new Date(o.createdAt) : new Date()
+  const fields = {
+    customerId,
+    email: o.email,
+    phone: o.phone,
+    shippingAddressId,
+    paymentMethod: null,
+    ...statuses,
+    checkoutPaidAt: SETTLED_PAYMENT_STATUSES.includes(statuses.paymentStatus) ? placedAt : null,
+    subtotalPaise: o.subtotalPaise,
+    shippingPaise: o.shippingPaise,
+    discountCode: o.discountCode,
+    discountLabel: o.discountCode,
+    discountPaise: o.discountPaise,
+    totalPaise: o.totalPaise,
+    taxPaise: o.taxPaise,
+    tags: o.tags.slice(0, 20),
+    placedAt,
+    importedFrom: 'shopify',
+    importMeta: meta,
+  }
+  let orderId: string
+  if (existing) {
+    orderId = existing.id
+    await tx.update(order).set(fields).where(eq(order.id, orderId))
+    // Lines and the payment record are rebuilt: nothing else points at them.
+    await tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
+    await tx.delete(payment).where(eq(payment.orderId, orderId))
+  } else {
+    orderId = newId()
+    const number = o.number ?? (await nextNumber(tx, ctx.storeId))
+    await tx.insert(order).values({ id: orderId, storeId: ctx.storeId, number, ...fields })
+    await bumpCounter(tx, ctx.storeId, number)
+  }
+  const lines = []
+  for (const line of o.lines) {
+    const v = await variantFor(tx, ctx.storeId, line, cache)
+    lines.push({
+      storeId: ctx.storeId,
+      orderId,
+      variantId: v.id,
+      title: line.title.slice(0, 300),
+      variantTitle: v.variantTitle,
+      quantity: line.quantity,
+      unitPricePaise: line.unitPricePaise,
+      fulfilledQuantity: Math.min(line.fulfilledQuantity, line.quantity),
+      hsCode: v.hsCode,
+    })
+  }
+  // One statement for every line of the order.
+  if (lines.length) await tx.insert(orderLine).values(lines)
+  if (PAID.has(o.financialStatus ?? '') && o.totalPaise > 0) {
+    await tx.insert(payment).values({
+      storeId: ctx.storeId,
+      orderId,
+      provider: 'shopify',
+      providerRef: (o.paymentReference ?? o.name).slice(0, 200),
+      status: o.financialStatus === 'refunded' ? 'refunded' : 'captured',
+      amountPaise: o.totalPaise,
+    })
+  }
+  // Same derivation the recompute applies to imported orders; it never writes events for them.
+  await recomputeOrderStatuses({ storeId: ctx.storeId, tx }, orderId)
+  if (mappings) mappings.push({ sourceId: orderSourceId(o), localId: orderId })
+  else await saveMapping(tx, ctx.storeId, 'orders', orderSourceId(o), orderId)
+  return { outcome: existing ? 'updated' : 'created', id: orderId, existing }
+}
+
+/** Counts, the skip reason, and on a dry run the sample: the same for one order or a batch. */
+function reportOrder(ctx: ImportContext, o: NOrder, r: Outcome) {
+  ctx.report.count('orders', r.outcome)
+  if (r.outcome === 'skipped') {
+    ctx.report.issue({
+      resource: 'orders',
+      row: o.row,
+      ref: o.name,
+      message: `Order number ${o.number} already belongs to an order placed in this store; skipped`,
+    })
+    if (ctx.dryRun) {
+      ctx.report.sample({ resource: 'orders', key: o.name, title: o.name, action: 'skip' })
+    }
+    return
+  }
+  if (ctx.dryRun) {
+    ctx.report.sample({
+      resource: 'orders',
+      key: o.name,
+      title: `${o.name}${o.customerName ? `, ${o.customerName}` : ''}`,
+      action: r.existing ? 'update' : 'create',
+      detail: `${o.lines.length} ${o.lines.length === 1 ? 'line' : 'lines'}, ${previewStatus(statusFor(o))}`,
+    })
+  }
+}
+
 export async function writeOrder(
   ctx: ImportContext,
   o: NOrder,
   cache: Map<string, string> = new Map(),
 ): Promise<string | null> {
   try {
-    const existing = await ctx.inStore((tx) => existingOrder(tx, o))
-    if (existing && !existing.importedFrom) {
-      ctx.report.count('orders', 'skipped')
-      ctx.report.issue({
-        resource: 'orders',
-        row: o.row,
-        ref: o.name,
-        message: `Order number ${o.number} already belongs to an order placed in this store; skipped`,
-      })
-      if (ctx.dryRun) {
-        ctx.report.sample({ resource: 'orders', key: o.name, title: o.name, action: 'skip' })
-      }
-      return null
-    }
-    if (ctx.dryRun) {
-      ctx.report.count('orders', existing ? 'updated' : 'created')
-      ctx.report.sample({
-        resource: 'orders',
-        key: o.name,
-        title: `${o.name}${o.customerName ? `, ${o.customerName}` : ''}`,
-        action: existing ? 'update' : 'create',
-        detail: `${o.lines.length} ${o.lines.length === 1 ? 'line' : 'lines'}, ${previewStatus(statusFor(o))}`,
-      })
-      return existing?.id ?? null
-    }
-
-    const id = await ctx.inStore(async (tx) => {
-      const customerId = await customerFor(tx, ctx.storeId, o, ctx.secret)
-      let shippingAddressId: string | null = null
-      if (o.shippingAddress) {
-        const a = o.shippingAddress
-        const [row] = await tx
-          .insert(address)
-          .values({
-            storeId: ctx.storeId,
-            name: a.name || o.customerName || '',
-            line1: [a.company, a.line1].filter(Boolean).join(', '),
-            line2: a.line2,
-            city: a.city,
-            stateCode: stateFor(a),
-            pincode: a.zip.replace(/\s/g, ''),
-            country: countryFor(a),
-            phone: a.phone ?? o.phone ?? '',
-          })
-          .returning({ id: address.id })
-        shippingAddressId = row?.id ?? null
-      }
-      const meta: OrderImportMeta = {
-        name: o.name,
-        sourceId: o.sourceId,
-        financialStatus: o.financialStatus,
-        fulfillmentStatus: o.fulfillmentStatus,
-        paymentMethod: o.paymentMethod,
-        cancelledAt: o.cancelledAt,
-        refundedPaise: o.refundedPaise || null,
-      }
-      const statuses = statusFor(o)
-      const placedAt = o.createdAt ? new Date(o.createdAt) : new Date()
-      const fields = {
-        customerId,
-        email: o.email,
-        phone: o.phone,
-        shippingAddressId,
-        paymentMethod: null,
-        ...statuses,
-        checkoutPaidAt: SETTLED_PAYMENT_STATUSES.includes(statuses.paymentStatus) ? placedAt : null,
-        subtotalPaise: o.subtotalPaise,
-        shippingPaise: o.shippingPaise,
-        discountCode: o.discountCode,
-        discountLabel: o.discountCode,
-        discountPaise: o.discountPaise,
-        totalPaise: o.totalPaise,
-        taxPaise: o.taxPaise,
-        tags: o.tags.slice(0, 20),
-        placedAt,
-        importedFrom: 'shopify',
-        importMeta: meta,
-      }
-      let orderId: string
-      if (existing) {
-        orderId = existing.id
-        await tx.update(order).set(fields).where(eq(order.id, orderId))
-        // Lines and the payment record are rebuilt: nothing else points at them.
-        await tx.delete(orderLine).where(eq(orderLine.orderId, orderId))
-        await tx.delete(payment).where(eq(payment.orderId, orderId))
-      } else {
-        orderId = newId()
-        const number = o.number ?? (await nextNumber(tx, ctx.storeId))
-        await tx.insert(order).values({ id: orderId, storeId: ctx.storeId, number, ...fields })
-        await bumpCounter(tx, ctx.storeId, number)
-      }
-      for (const line of o.lines) {
-        const v = await variantFor(tx, ctx.storeId, line, cache)
-        await tx.insert(orderLine).values({
-          storeId: ctx.storeId,
-          orderId,
-          variantId: v.id,
-          title: line.title.slice(0, 300),
-          variantTitle: v.variantTitle,
-          quantity: line.quantity,
-          unitPricePaise: line.unitPricePaise,
-          fulfilledQuantity: Math.min(line.fulfilledQuantity, line.quantity),
-          hsCode: v.hsCode,
-        })
-      }
-      if (PAID.has(o.financialStatus ?? '') && o.totalPaise > 0) {
-        await tx.insert(payment).values({
-          storeId: ctx.storeId,
-          orderId,
-          provider: 'shopify',
-          providerRef: (o.paymentReference ?? o.name).slice(0, 200),
-          status: o.financialStatus === 'refunded' ? 'refunded' : 'captured',
-          amountPaise: o.totalPaise,
-        })
-      }
-      // Same derivation the recompute applies to imported orders; it never writes events for them.
-      await recomputeOrderStatuses({ storeId: ctx.storeId, tx }, orderId)
-      await saveMapping(tx, ctx.storeId, 'orders', orderSourceId(o), orderId)
-      return orderId
-    })
-    ctx.report.count('orders', existing ? 'updated' : 'created')
-    return id
+    const r = await ctx.inStore((tx) => applyOrder(tx, ctx, o, cache))
+    reportOrder(ctx, o, r)
+    return r.id
   } catch (err) {
     ctx.report.count('orders', 'failed')
-    ctx.report.issue({ resource: 'orders', row: o.row, ref: o.name, message: errorMessage(err) })
+    ctx.report.issue({
+      resource: 'orders',
+      row: o.row,
+      ref: o.name,
+      sourceId: orderSourceId(o),
+      message: errorMessage(err),
+    })
     return null
   }
+}
+
+/**
+ * A batch of orders in one transaction, still one after another (they resolve
+ * or create customers and the placeholder item through shared lookups), with
+ * each order's lines in one statement and the batch's mappings in one more.
+ * A failure rolls the batch back and writes it one order at a time.
+ */
+export async function writeOrders(
+  ctx: ImportContext,
+  batch: readonly NOrder[],
+  cache: Map<string, string>,
+): Promise<void> {
+  const before = new Map(cache)
+  await writeBatch(ctx, batch, {
+    batch: async (tx, items) => {
+      const mappings: MappingRow[] = []
+      const out: Outcome[] = []
+      for (const o of items) out.push(await applyOrder(tx, ctx, o, cache, mappings))
+      await saveMappings(tx, ctx.storeId, 'orders', mappings)
+      return out
+    },
+    report: (o, r) => reportOrder(ctx, o, r),
+    one: (o) => writeOrder(ctx, o, cache),
+    // The placeholder item the rolled-back batch made is gone with it.
+    onRollback: () => {
+      cache.clear()
+      for (const [k, v] of before) cache.set(k, v)
+    },
+  })
 }

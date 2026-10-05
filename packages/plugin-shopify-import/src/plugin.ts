@@ -1,7 +1,9 @@
 import { definePlugin } from '@commerce/plugins'
 import { z } from 'zod'
-import { SHOPIFY_IMPORT_ID } from './client'
+import { SHOPIFY_IMPORT_ID, SNAPSHOT_CLEANUP_JOB } from './client'
 import { executeRun } from './run'
+import { failInterruptedRun } from './service'
+import { cleanupSnapshots } from './snapshot'
 
 const RunJob = z.object({ runId: z.uuid() })
 
@@ -35,6 +37,20 @@ export const shopifyImportPlugin = definePlugin({
         },
         RunJob.parse(data).runId,
       )
+    },
+    /** Queued by the worker's hourly sweep for stores with a preview copy over 7 days old. */
+    [SNAPSHOT_CLEANUP_JOB]: async (ctx) => {
+      const removed = await cleanupSnapshots({ inStore: ctx.inStore, storage: ctx.storage })
+      if (removed) ctx.log(`removed ${removed} old preview ${removed === 1 ? 'copy' : 'copies'}`)
+    },
+  },
+  jobFailed: {
+    /** The worker died under the import (or it threw on every try): end the run so the page offers Try again. */
+    run: async (ctx, data, reason) => {
+      const parsed = RunJob.safeParse(data)
+      if (!parsed.success) return
+      const ended = await ctx.inStore((tx) => failInterruptedRun(tx, parsed.data.runId))
+      if (ended) ctx.log(`run ${parsed.data.runId} marked failed: ${reason}`)
     },
   },
   admin: {

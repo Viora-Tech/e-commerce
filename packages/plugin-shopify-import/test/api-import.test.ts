@@ -35,6 +35,7 @@ import {
   PRODUCT_PAGES,
   REDIRECTS,
   VARIANT_PAGES,
+  VARIANT_STOCK,
 } from './fixtures/graphql'
 import {
   app,
@@ -86,6 +87,7 @@ function shopify(query: string, variables: Record<string, unknown>): Response {
     },
     Products: PRODUCT_PAGES[cursor],
     Variants: VARIANT_PAGES[cursor],
+    VariantStock: VARIANT_STOCK,
     Collections: COLLECTIONS,
     Customers: CUSTOMERS,
     Orders: ORDERS,
@@ -408,6 +410,19 @@ describe('API import run', () => {
     const [done] = await owner.select().from(importRun).where(eq(importRun.id, run.id))
     expect(done?.status).toBe('completed')
     expect(done?.error).toBeNull()
+    // The import read the preview's copy (plus changes), then deleted it.
+    expect(preview?.snapshot?.streams).toHaveProperty('products')
+    expect(done?.snapshotUse?.reused).toEqual([
+      'products',
+      'collections',
+      'customers',
+      'orders',
+      'pages',
+      'articles',
+    ])
+    expect(done?.snapshot).toBeNull()
+    expect(storage.objects.size).toBeGreaterThan(0)
+    expect([...storage.objects.keys()].some((k) => k.includes('/snapshot/'))).toBe(false)
 
     // Products, including the variant that arrived on the nested second page.
     const variants = await owner.select().from(variant).orderBy(asc(variant.sku))

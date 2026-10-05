@@ -3,6 +3,7 @@
 import {
   IMPORT_RESOURCES,
   type ImportResource,
+  type PreflightCheck,
   REQUIRED_SCOPES,
 } from '@commerce/plugin-shopify-import/client'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -18,6 +19,7 @@ import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import ConnectForm from './connect-form'
+import PreflightCard from './preflight-card'
 import ScopesCard from './scopes-card'
 
 type Connection = Awaited<ReturnType<typeof api.shopifyImport.connection>>
@@ -34,6 +36,7 @@ export default function ConnectPage() {
   const [connection, setConnection] = useState<Connection | undefined>(undefined)
   const [chosen, setChosen] = useState<ImportResource[]>([...IMPORT_RESOURCES])
   const [busy, setBusy] = useState(false)
+  const [checks, setChecks] = useState<PreflightCheck[]>([])
 
   useEffect(() => {
     api.shopifyImport
@@ -41,6 +44,26 @@ export default function ConnectPage() {
       .then(setConnection)
       .catch(() => setConnection(null))
   }, [])
+
+  // "Before you import" for what is ticked; a missing scope blocks only its own resource.
+  useEffect(() => {
+    if (!connection || chosen.length === 0) {
+      setChecks([])
+      return
+    }
+    let live = true
+    api.shopifyImport
+      .preflight({ resources: chosen })
+      .then((next) => {
+        if (live) setChecks(next)
+      })
+      .catch(() => {
+        if (live) setChecks([])
+      })
+    return () => {
+      live = false
+    }
+  }, [connection, chosen])
 
   // Event handlers
   const handleToggle = (resource: ImportResource, on: boolean) =>
@@ -64,7 +87,7 @@ export default function ConnectPage() {
   const handlePreview = async () => {
     setBusy(true)
     try {
-      const run = await api.shopifyImport.createApiRun({ resources: chosen })
+      const run = await api.shopifyImport.createApiRun({ resources: importable })
       router.push(`${base}/runs/${run.id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.previewFailed)
@@ -91,6 +114,11 @@ export default function ConnectPage() {
   }
 
   // Render logic
+  const blocked = new Set(
+    checks.flatMap((c) => (c.status === 'block' && c.resource ? [c.resource] : [])),
+  )
+  const stopped = checks.some((c) => c.status === 'block' && !c.resource)
+  const importable = chosen.filter((r) => !blocked.has(r))
   const facts: [string, string][] = [
     [
       copy.shop,
@@ -147,7 +175,8 @@ export default function ConnectPage() {
               <Checkbox
                 id={`resource-${resource}`}
                 className="mt-0.5"
-                checked={chosen.includes(resource)}
+                checked={chosen.includes(resource) && !blocked.has(resource)}
+                disabled={blocked.has(resource)}
                 onCheckedChange={(v) => handleToggle(resource, Boolean(v))}
               />
               <span className="flex flex-col">
@@ -160,8 +189,13 @@ export default function ConnectPage() {
           ))}
         </CardContent>
       </Card>
+      <PreflightCard checks={checks} />
       <div className="flex justify-end">
-        <Button type="button" onClick={handlePreview} disabled={busy || chosen.length === 0}>
+        <Button
+          type="button"
+          onClick={handlePreview}
+          disabled={busy || stopped || importable.length === 0}
+        >
           {busy ? <Spinner /> : null}
           {copy.preview}
         </Button>

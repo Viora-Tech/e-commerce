@@ -40,6 +40,8 @@ export const OUTBOX_RELAY_QUEUE = '{outbox}-relay'
 export const MARKETING_TICK_QUEUE = '{marketing}-tick'
 /** One job per sending campaign; works through recipients in batches. */
 export const MARKETING_SEND_QUEUE = '{marketing}-send'
+/** Repeat job that deletes Shopify import preview copies older than a week. */
+export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 /** One job per confirmed image upload (or Shopify-import media row); runs the upload-time pipeline. */
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
 

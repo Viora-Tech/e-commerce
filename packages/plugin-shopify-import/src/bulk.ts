@@ -154,44 +154,46 @@ function gidType(id: string): string {
 type ChildMapping = { field: string; asPage: boolean }
 
 type RawNode = { id: string; __parentId?: string } & Record<string, unknown>
-type WithChildren = RawNode & { __children: Map<string, RawNode[]> }
+type WithChildren = RawNode & { __children: Map<string, WithChildren[]> }
+
+export type ChildMappingOf = (gidType: string) => ChildMapping | null
 
 /**
  * Reassemble a bulk-operation JSONL stream into the same nested shape a paged
  * query would have produced (`{ nodes: [...] }` or, for a field that pairs
  * with a `hasNextPage` check elsewhere, `{ pageInfo, nodes: [...] }`), so the
- * existing `map*` functions in `shopify-api.ts` can read either.
+ * existing `map*` functions in `shopify-api.ts` can read either, and hand the
+ * records on `size` at a time while the download is still streaming.
  *
  * `childFieldOf` says which field name (and shape) a child's GID type maps to
  * on its parent, e.g. `ProductVariant -> variants` (paged) or
  * `MediaImage -> media` (plain `nodes`). Types with no mapping are dropped.
+ *
+ * Memory stays at one top-level record plus one batch, never the whole file:
+ * Shopify writes every nested record after its parent ("all nested connections
+ * appear after their parents") and in practice before the next top-level
+ * record, so a record is complete when the next one starts. A nested record
+ * that turns up after its parent was already handed on would be lost, so the
+ * read stops with `BulkUnavailableError` instead of importing a record without
+ * its lines.
  */
-export async function reassembleBulkStream<T>(
+export async function* streamBulkRoots<T>(
   lines: AsyncGenerator<Record<string, unknown>>,
-  childFieldOf: (gidType: string) => ChildMapping | null,
+  childFieldOf: ChildMappingOf,
   /**
    * Connections that must be present even when empty (a product with no
    * images has zero `MediaImage` lines, but callers still expect `media.nodes`).
    */
   connectionDefaults: ChildMapping[] = [],
-): Promise<T[]> {
-  const byId = new Map<string, WithChildren>()
-  const rootOrder: string[] = []
-  for await (const raw of lines) {
-    const node = raw as RawNode
-    const withChildren: WithChildren = { ...node, __children: new Map() }
-    byId.set(node.id, withChildren)
-    if (!node.__parentId) rootOrder.push(node.id)
-  }
-  for (const node of byId.values()) {
-    if (!node.__parentId) continue
-    const parent = byId.get(node.__parentId)
-    if (!parent) continue
-    const type = gidType(node.id)
-    const bucket = parent.__children.get(type) ?? []
-    bucket.push(node)
-    parent.__children.set(type, bucket)
-  }
+  size = 50,
+): AsyncGenerator<T[]> {
+  /** The current top-level record and everything nested under it so far, by id. */
+  let group: Map<string, WithChildren> | null = null
+  let rootId: string | null = null
+  /** Ids of records already handed on (ids only, to catch an out-of-order child). */
+  const done = new Set<string>()
+  let batch: T[] = []
+
   const attach = (node: WithChildren): unknown => {
     const out: Record<string, unknown> = { ...node }
     delete out.__children
@@ -204,12 +206,86 @@ export async function reassembleBulkStream<T>(
     for (const [type, children] of node.__children) {
       const mapping = childFieldOf(type)
       if (!mapping) continue
-      const mapped = children.map((c) => attach(byId.get(c.id) ?? { ...c, __children: new Map() }))
+      const mapped = children.map((c) => attach(c))
       out[mapping.field] = mapping.asPage
         ? { pageInfo: { hasNextPage: false, endCursor: null }, nodes: mapped }
         : { nodes: mapped }
     }
     return out
   }
-  return rootOrder.map((id) => attach(byId.get(id) as WithChildren)) as T[]
+  const finish = () => {
+    if (!group || !rootId) return
+    const root = group.get(rootId)
+    if (root) batch.push(attach(root) as T)
+    for (const id of group.keys()) done.add(id)
+    group = null
+    rootId = null
+  }
+
+  for await (const raw of lines) {
+    const node = raw as RawNode
+    if (!node.__parentId) {
+      finish()
+      if (batch.length >= size) {
+        yield batch
+        batch = []
+      }
+      rootId = node.id
+      group = new Map([[node.id, { ...node, __children: new Map() }]])
+      continue
+    }
+    const parent = group?.get(node.__parentId)
+    if (!parent) {
+      if (done.has(node.__parentId)) {
+        throw new BulkUnavailableError('Shopify sent a nested record after its parent was read')
+      }
+      continue
+    }
+    const child: WithChildren = { ...node, __children: new Map() }
+    group?.set(node.id, child)
+    const type = gidType(node.id)
+    const bucket = parent.__children.get(type) ?? []
+    bucket.push(child)
+    parent.__children.set(type, bucket)
+  }
+  finish()
+  if (batch.length) yield batch
+}
+
+/**
+ * Read with a bulk operation, streaming, else page by page. Falls back to
+ * pages only while nothing has been handed on yet (a bulk op already running,
+ * Shopify refusing it, the export failing); a failure after that ends the read,
+ * since the writers already have part of it.
+ */
+export async function* bulkOrPaged<T>(
+  bulk: () => AsyncGenerator<T[]>,
+  paged: () => AsyncGenerator<T[]>,
+  onBulkFallback?: (reason: unknown) => void,
+): AsyncGenerator<T[]> {
+  let started = false
+  try {
+    for await (const batch of bulk()) {
+      started = true
+      yield batch
+    }
+    return
+  } catch (err) {
+    if (started) throw err
+    onBulkFallback?.(err)
+  }
+  yield* paged()
+}
+
+/** Every record of a bulk result at once; for small results (tests, extra-field owners). */
+export async function reassembleBulkStream<T>(
+  lines: AsyncGenerator<Record<string, unknown>>,
+  childFieldOf: ChildMappingOf,
+  connectionDefaults: ChildMapping[] = [],
+): Promise<T[]> {
+  const out: T[] = []
+  for await (const batch of streamBulkRoots<T>(lines, childFieldOf, connectionDefaults)) {
+    out.push(...batch)
+  }
+  return out
 }

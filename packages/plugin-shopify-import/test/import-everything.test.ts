@@ -32,7 +32,13 @@ import {
   METAOBJECTS,
   PRODUCT_METAFIELDS,
 } from './fixtures/everything'
-import { COLLECTIONS, CUSTOMERS, PRODUCT_PAGES, VARIANT_PAGES } from './fixtures/graphql'
+import {
+  COLLECTIONS,
+  CUSTOMERS,
+  PRODUCT_PAGES,
+  VARIANT_PAGES,
+  VARIANT_STOCK,
+} from './fixtures/graphql'
 import {
   app,
   deps,
@@ -75,6 +81,7 @@ function shopifyFor(state: { giftCardBalance: string; denyGiftCards?: boolean })
       Shop: { shop: { name: 'Waimers', myshopifyDomain: 'waimers.myshopify.com' } },
       Products: PRODUCT_PAGES[cursor],
       Variants: VARIANT_PAGES[cursor],
+      VariantStock: VARIANT_STOCK,
       Collections: COLLECTIONS,
       Customers: CUSTOMERS,
       Files: FILES,

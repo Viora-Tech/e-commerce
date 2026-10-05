@@ -836,18 +836,29 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/plugin-shopify-import/src/write-customers.ts',
-    names: ['customerSourceId', 'matchCustomer'],
+    names: ['matchCustomer'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/plugin-shopify-import/src/write-orders.ts',
-    names: ['PLACEHOLDER_HANDLE', 'orderSourceId', 'statusFor'],
+    names: ['PLACEHOLDER_HANDLE', 'statusFor'],
     reason: 'no external importer today — investigate before removing',
   },
   {
     file: 'packages/plugin-shopify-import/src/write-products.ts',
-    names: ['localHandle', 'productSourceId'],
+    names: ['localHandle'],
     reason: 'no external importer today — investigate before removing',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-customers.ts',
+    names: ['writeCustomer'],
+    reason:
+      'one-record writer the batched writer falls back to; exported for the fallback unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/write-orders.ts',
+    names: ['writeOrder'],
+    reason: 'one-record writer the batched writer falls back to; exported for its unit tests',
   },
   {
     file: 'packages/queue/src/visitors.ts',

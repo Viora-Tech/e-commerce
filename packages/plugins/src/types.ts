@@ -98,6 +98,15 @@ export type AppHook = (ctx: AppHookContext, payload: AppEventPayload) => Promise
  */
 export type AppJob = (ctx: AppHookContext, data: unknown) => Promise<void>
 
+/**
+ * Called once when an app job has failed for good: its last retry threw, or
+ * the worker died under it (out of memory, a restart) more often than the
+ * queue allows. The place to mark the app's own record failed so a page
+ * waiting on it stops waiting. Must not throw for a record that is already
+ * finished.
+ */
+export type AppJobFailed = (ctx: AppHookContext, data: unknown, reason: string) => Promise<void>
+
 /** Files an app attaches to one order email; called while the email is being sent. */
 export type EmailAttachments = (
   ctx: AppHookContext,
@@ -227,6 +236,8 @@ export type PluginManifest = {
   credits?: AppCredit[] | undefined
   /** Named background jobs, queued with `enqueueAppJob`. */
   jobs?: Record<string, AppJob> | undefined
+  /** Per job name: what to do when that job has failed for good (see `AppJobFailed`). */
+  jobFailed?: Record<string, AppJobFailed> | undefined
   emailAttachments?: EmailAttachments | undefined
   /** Theme editor app blocks this app contributes (Add panel → Apps tab). */
   storefront?: PluginStorefront | undefined

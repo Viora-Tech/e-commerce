@@ -77,6 +77,9 @@ function whyNotHostable(f: NFile): Exclude<HostedFile, { ok: true }> | null {
 export async function hostShopifyFile(ctx: ImportContext, f: NFile): Promise<HostedFile> {
   const why = whyNotHostable(f)
   if (why) return why
+  if (ctx.mediaOff) {
+    return { ok: false, reason: 'storage_unwritable', message: 'File storage is not writable' }
+  }
   const existing = await ctx.inStore((tx) => findMapping(tx, 'files', f.sourceId))
   if (existing) {
     const url = await ctx.media.urlOf(existing)
@@ -120,6 +123,12 @@ export async function writeFile(ctx: ImportContext, f: NFile): Promise<string | 
       })
       return null
     }
+    if (ctx.mediaOff) {
+      // Storage failed its write test at the start of the run; one issue already says so.
+      ctx.report.count('files', 'skipped')
+      ctx.report.leave('files', 'storage_unwritable')
+      return null
+    }
     const hosted = await hostShopifyFile(ctx, f)
     if (!hosted.ok) {
       ctx.report.count('files', 'skipped')
@@ -131,7 +140,13 @@ export async function writeFile(ctx: ImportContext, f: NFile): Promise<string | 
     return hosted.mediaId
   } catch (err) {
     ctx.report.count('files', 'failed')
-    ctx.report.issue({ resource: 'files', ref, message: `Not copied: ${errorMessage(err)}` })
+    ctx.report.issue({
+      resource: 'files',
+      ref,
+      sourceId: f.sourceId,
+      kind: 'file',
+      message: `Not copied: ${errorMessage(err)}`,
+    })
     return null
   }
 }

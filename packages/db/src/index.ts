@@ -18,6 +18,7 @@ export {
   storesWithPendingDomains,
   storesWithPendingManualOrders,
   storesWithSenderEmailChecks,
+  storesWithStaleImportSnapshots,
   storesWithUndispatchedOutboxEvents,
   storesWithUnpaidOnlineOrders,
 } from './resolve-store'

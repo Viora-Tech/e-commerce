@@ -59,6 +59,7 @@ export function definePlugin(input: DefinePluginInput): PluginManifest {
     admin: input.admin,
     credits: input.credits,
     jobs: input.jobs,
+    jobFailed: input.jobFailed,
     emailAttachments: input.emailAttachments,
     storefront: input.storefront,
     provides: {

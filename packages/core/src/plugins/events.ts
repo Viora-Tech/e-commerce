@@ -190,3 +190,37 @@ export async function dispatchAppJob(
   await run(appContext(deps, job.storeId, `${job.pluginId}:${job.name}`), job.data)
   return { ran: true }
 }
+
+/**
+ * Tell the app one of its jobs failed for good (last retry threw, or it
+ * stalled out because the worker died under it), so it can mark its own
+ * record failed instead of leaving a page waiting forever.
+ */
+export async function dispatchAppJobFailure(
+  deps: DispatchDeps,
+  job: AppJobData,
+  reason: string,
+): Promise<{ ran: boolean }> {
+  const installed = await installedApps(deps.db, job.storeId)
+  const onFailed = deps.plugins.jobFailedFor(job.pluginId, job.name, installed)
+  if (!onFailed) return { ran: false }
+  await onFailed(
+    appContext(deps, job.storeId, `${job.pluginId}:${job.name}:failed`),
+    job.data,
+    reason,
+  )
+  return { ran: true }
+}
+
+/**
+ * Whether a failed BullMQ job will not run again: every attempt is spent, or
+ * it stalled out (the process holding it died more often than allowed, which
+ * BullMQ fails without retrying).
+ */
+export function isFinalJobFailure(
+  job: { attemptsMade: number; opts: { attempts?: number | undefined } },
+  error: { message: string } | undefined,
+): boolean {
+  if (error && /stalled more than allowable limit/i.test(error.message)) return true
+  return job.attemptsMade >= (job.opts.attempts ?? 1)
+}

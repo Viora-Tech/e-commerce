@@ -1,8 +1,8 @@
 /** Run bookkeeping for the API router: create, start, list and read imports. */
 import { newId, type StoreTx } from '@commerce/db'
 import type { StorageProvider } from '@commerce/storage'
-import { and, asc, count, desc, eq } from 'drizzle-orm'
-import { type CsvResource, type ImportResource, MAX_CSV_BYTES } from './client'
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql } from 'drizzle-orm'
+import { type CsvResource, IMPORT_RESOURCES, type ImportResource, MAX_CSV_BYTES } from './client'
 import { importIssue, importRun } from './schema'
 
 export class ImportError extends Error {}
@@ -69,6 +69,7 @@ export async function createApiRun(
  * (safe: it matches what it created before). Refused while one is running.
  */
 export async function startRun(tx: StoreTx, id: string): Promise<RunRow> {
+  await failStaleRuns(tx)
   const [current] = await tx.select().from(importRun).where(eq(importRun.id, id))
   if (!current) throw new ImportError('Import not found')
   if (current.status === 'queued' || current.status === 'running') {
@@ -83,6 +84,58 @@ export async function startRun(tx: StoreTx, id: string): Promise<RunRow> {
   return row
 }
 
+/**
+ * The queue's dedupe key for one start of a run. BullMQ keeps a failed job
+ * and silently ignores a new one with the same id, so the key changes with
+ * every start (`startRun` and the create calls stamp `updatedAt`); a double
+ * click never reaches the queue twice because `startRun` refuses a run that is
+ * already queued or running.
+ */
+export const runJobKey = (run: Pick<RunRow, 'id' | 'updatedAt'>) =>
+  `run-${run.id}-${run.updatedAt.getTime()}`
+
+/**
+ * A running import touches its row at least every minute (`executeRun`'s
+ * heartbeat, plus every progress flush). One silent for this long lost its
+ * worker (a crash or out-of-memory kill) without anything marking it failed.
+ */
+const RUN_STALE_MS = 10 * 60 * 1000
+
+const INTERRUPTED_ERROR =
+  'The import stopped unexpectedly (the server restarted or ran out of memory). Press Try again: it carries on from the start without duplicating anything.'
+
+/**
+ * End a run whose job died for good (called from the importer's `jobFailed`
+ * handler). Only a run still waiting or running changes; a finished one keeps
+ * its result.
+ */
+export async function failInterruptedRun(tx: StoreTx, id: string): Promise<boolean> {
+  const rows = await tx
+    .update(importRun)
+    .set({
+      status: 'failed',
+      error: INTERRUPTED_ERROR,
+      finishedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(importRun.id, id), inArray(importRun.status, ['queued', 'running'])))
+    .returning({ id: importRun.id })
+  return rows.length > 0
+}
+
+/** Backstop for a lost failure event: fail runs `running` with no sign of life for `RUN_STALE_MS`. */
+async function failStaleRuns(tx: StoreTx, now = new Date()): Promise<void> {
+  await tx
+    .update(importRun)
+    .set({ status: 'failed', error: INTERRUPTED_ERROR, finishedAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(importRun.status, 'running'),
+        lt(importRun.updatedAt, new Date(now.getTime() - RUN_STALE_MS)),
+      ),
+    )
+}
+
 /** Mark a run failed when its job could not be queued, so the page does not wait forever. */
 export async function failRun(tx: StoreTx, id: string, error: string): Promise<void> {
   await tx
@@ -92,6 +145,7 @@ export async function failRun(tx: StoreTx, id: string, error: string): Promise<v
 }
 
 export async function listRuns(tx: StoreTx, input: { page: number; perPage: number }) {
+  await failStaleRuns(tx)
   const [total] = await tx.select({ n: count() }).from(importRun)
   const items = await tx
     .select({
@@ -115,13 +169,87 @@ export async function listRuns(tx: StoreTx, input: { page: number; perPage: numb
 }
 
 export async function getRun(tx: StoreTx, id: string) {
+  await failStaleRuns(tx)
   const [row] = await tx.select().from(importRun).where(eq(importRun.id, id))
   if (!row) return null
   const [issues] = await tx
-    .select({ n: count() })
+    .select({
+      n: count(),
+      retryable: sql<number>`count(distinct (${importIssue.resource}, ${importIssue.sourceId}))
+        filter (where ${importIssue.sourceId} is not null)`.mapWith(Number),
+    })
     .from(importIssue)
     .where(eq(importIssue.runId, id))
-  return { ...row, issueCount: issues?.n ?? 0 }
+  return { ...row, issueCount: issues?.n ?? 0, retryable: issues?.retryable ?? 0 }
+}
+
+/** What a retry of `runId` imports again: per resource, the import keys of its problems. */
+export async function retryTargets(
+  tx: StoreTx,
+  runId: string,
+): Promise<Map<ImportResource, Set<string>>> {
+  const rows = await tx
+    .selectDistinct({ resource: importIssue.resource, sourceId: importIssue.sourceId })
+    .from(importIssue)
+    .where(and(eq(importIssue.runId, runId), isNotNull(importIssue.sourceId)))
+  const out = new Map<ImportResource, Set<string>>()
+  for (const r of rows) {
+    if (!r.sourceId || !IMPORT_RESOURCES.includes(r.resource as ImportResource)) continue
+    const resource = r.resource as ImportResource
+    const set = out.get(resource) ?? new Set<string>()
+    set.add(r.sourceId)
+    out.set(resource, set)
+  }
+  return out
+}
+
+/**
+ * "Retry the ones that were missed": a new import of only the records (and
+ * images, and files) the finished import `previousId` reported problems for.
+ * The previous run keeps its report; the new one reports only what it retried.
+ * The previous run's copy of what it read moves to the new run, so the retry
+ * reads from it while it is fresh.
+ */
+export async function createRetryRun(
+  tx: StoreTx,
+  storeId: string,
+  previousId: string,
+  createdBy: string | null,
+): Promise<RunRow> {
+  await failStaleRuns(tx)
+  const [previous] = await tx.select().from(importRun).where(eq(importRun.id, previousId))
+  if (!previous) throw new ImportError('Import not found')
+  if (previous.dryRun) throw new ImportError('Import this preview first')
+  if (previous.status === 'queued' || previous.status === 'running') {
+    throw new ImportError('This import is still running')
+  }
+  const targets = await retryTargets(tx, previousId)
+  const resources = IMPORT_RESOURCES.filter((r) => targets.has(r))
+  if (resources.length === 0)
+    throw new ImportError('Nothing was missed, so there is nothing to retry')
+  const [row] = await tx
+    .insert(importRun)
+    .values({
+      storeId,
+      mode: previous.mode,
+      resources,
+      dryRun: false,
+      fileKey: previous.fileKey,
+      fileName: previous.fileName,
+      createdBy,
+      retryOf: previousId,
+      snapshot: previous.snapshot,
+      snapshotTakenAt: previous.snapshotTakenAt,
+    })
+    .returning()
+  if (!row) throw new ImportError('The retry was not created')
+  if (previous.snapshot) {
+    await tx
+      .update(importRun)
+      .set({ snapshot: null, snapshotTakenAt: null })
+      .where(eq(importRun.id, previousId))
+  }
+  return row
 }
 
 export async function listIssues(

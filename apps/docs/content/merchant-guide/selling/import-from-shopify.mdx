@@ -35,8 +35,27 @@ it again updates what it brought over before instead of making copies.
    would be new or updated, a few samples, **What stays in Shopify** and a list of problems.
 5. Press **Import now**. You can leave the page; the import keeps going.
 
+**Import within a day of the preview and it goes faster.** The import reuses what the preview
+already read from Shopify (products, collections, customers, orders, pages, blog posts and
+files) and only asks Shopify for what changed since. The run page says so: "Using the preview
+from … + 3 changes since". Stock is always read fresh. After a day, or for menus, redirects,
+content types, extra fields, discounts and gift cards, the import reads Shopify again.
+
 Run it again any time (**Run again**): records it brought over before are updated, never
 duplicated.
+
+**Before you import.** Under "What to import" a card lists anything that isn't set up yet,
+with a **Fix this** button: no file storage connected (connect Cloudflare R2 or Amazon S3, or
+images are skipped), a Shopify access the app is missing (that one thing can't be ticked
+until you add it), or orders chosen without products. You can still preview with warnings.
+
+**Retry only what was missed.** When an import finishes with problems, press **Retry the 12
+that were missed**: only those records, images or files are brought over again; everything
+that already worked is left alone. **Import everything again** still runs the whole import.
+
+If an import ever stops on its own (the server restarted mid-way), the page says **The import
+stopped unexpectedly** and offers **Try again**. Trying again is safe: it runs again without
+duplicating anything.
 
 ## What stays in Shopify
 
