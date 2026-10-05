@@ -92,11 +92,11 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
         {navCopy.viewStore}
         <ExternalLink className="size-3.5 text-muted-foreground" />
       </a>
-      <div className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card py-1 pr-1 pl-1.5 shadow-xs dark:bg-secondary">
+      <div className="flex h-9 items-center gap-1 rounded-xl border border-border bg-card py-1 pr-1 pl-1 shadow-xs">
         <Popover>
           <PopoverTrigger
             aria-label={navCopy.notifications.label}
-            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-150 ease-out hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"
           >
             <Bell className="size-[1.125rem]" strokeWidth={1.6} />
           </PopoverTrigger>
@@ -112,11 +112,11 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
           aria-checked={dark}
           aria-label={navCopy.toggleTheme}
           onClick={() => setTheme(dark ? 'light' : 'dark')}
-          className="flex h-6 w-11 items-center rounded-full bg-primary-soft p-0.5 ring-1 ring-border transition-colors dark:bg-muted"
+          className="flex h-6 w-11 shrink-0 items-center rounded-full bg-secondary p-0.5 ring-1 ring-border ring-inset transition-colors duration-200 ease-out hover:ring-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-input"
         >
           {/* Knob and icon follow the `dark` class next-themes sets before paint, so
               the markup is the same on the server and the client and never flashes. */}
-          <span className="flex size-5 items-center justify-center rounded-full bg-card text-foreground shadow-toggle transition-transform duration-200 ease-out motion-reduce:transition-none dark:translate-x-5">
+          <span className="flex size-5 items-center justify-center rounded-full bg-card text-ink-strong shadow-toggle transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none dark:translate-x-5 dark:bg-ink-strong dark:text-background">
             <Sun className="size-3 dark:hidden" />
             <Moon className="hidden size-3 dark:block" />
           </span>
@@ -125,9 +125,9 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={navCopy.account}
-            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-[0.625rem] dark:bg-input font-semibold tracking-tight text-foreground ring-1 ring-border transition-shadow hover:ring-border-strong"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[0.625rem] font-semibold tracking-tight text-primary ring-1 ring-primary/25 transition-shadow duration-150 ease-out hover:ring-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {initials(user.name)}
+            {initials(user.name, user.email)}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
             <DropdownMenuGroup>
