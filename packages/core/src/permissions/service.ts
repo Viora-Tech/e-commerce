@@ -123,6 +123,17 @@ export async function listRoles(tx: StoreTx, storeId: string): Promise<StoreRole
   }))
 }
 
+/**
+ * Makes healing a store's memberships (seeding the system roles, granting a first role) run one
+ * transaction at a time per store, until this transaction ends. One admin page load makes several
+ * store calls at once; healing them in parallel collides on role_permission's unique key.
+ */
+export async function lockMembershipHeal(tx: StoreTx, storeId: string): Promise<void> {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`member_heal:${storeId}`}, 0))`,
+  )
+}
+
 /** Resolves what one user may do in one store. Null when they are not a member. */
 export async function memberAccess(
   tx: StoreTx,

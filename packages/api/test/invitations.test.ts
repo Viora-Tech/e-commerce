@@ -5,6 +5,7 @@ import { call } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type { ApiContext } from '../src/context'
+import { isNoStoreError } from '../src/procedures'
 import { appRouter } from '../src/routers/_app'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
@@ -402,5 +403,99 @@ describe('pending invitations', () => {
     await expect(
       call(appRouter.staff.resendInvitation, { id: other.id }, { context: ctx(helper) }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+})
+
+/** An invited member who accepted through our page and picked the store, as the admin does. */
+async function acceptedMember(
+  shop: { headers: Headers; organizationId: string; storeId: string },
+  email: string,
+  slug: string,
+) {
+  const invite = await call(
+    appRouter.staff.invite,
+    { email, roleId: await roleId(shop.storeId, slug) },
+    { context: ctx(shop.headers) },
+  )
+  const headers = await signIn(email)
+  await call(appRouter.invitations.accept, { id: invite.id }, { context: ctx(headers) })
+  await auth.api.setActiveOrganization({ headers, body: { organizationId: shop.organizationId } })
+  return headers
+}
+
+describe('opening the store after accepting (store picker loop)', () => {
+  it('lets an invited administrator read the store, on the first load and every later one', async () => {
+    const shop = await storeWithOwner('boss-loop@example.com', 'loop-a')
+    const manager = await acceptedMember(shop, 'manager@example.com', 'admin')
+    for (let i = 0; i < 2; i++) {
+      const current = await call(appRouter.store.current, undefined, { context: ctx(manager) })
+      expect(current?.id).toBe(shop.storeId)
+    }
+  })
+
+  it('lets a Staff member past the home guard, and a missing permission is not "no store"', async () => {
+    const shop = await storeWithOwner('boss-loop2@example.com', 'loop-b')
+    const helper = await acceptedMember(shop, 'packer@example.com', 'staff')
+    // The home page's guard: every member passes it, whatever their role.
+    const me = await call(appRouter.staff.me, {}, { context: ctx(helper) })
+    expect(me.roleSlug).toBe('staff')
+    // Staff cannot read settings: an error to show, never a reason to pick the store again.
+    const refused = await call(appRouter.store.current, undefined, { context: ctx(helper) }).catch(
+      (e: unknown) => e,
+    )
+    expect(refused).toMatchObject({ code: 'FORBIDDEN' })
+    expect(isNoStoreError(refused)).toBe(false)
+  })
+
+  it('calls only "no store picked" and "not a member" a no-store error', async () => {
+    const shop = await storeWithOwner('boss-loop3@example.com', 'loop-c')
+    const loner = await signIn('loner@example.com')
+    const unpicked = await call(appRouter.staff.me, {}, { context: ctx(loner) }).catch(
+      (e: unknown) => e,
+    )
+    expect(isNoStoreError(unpicked)).toBe(true)
+
+    const gone = await acceptedMember(shop, 'gone@example.com', 'admin')
+    await auth.api.removeMember({
+      headers: shop.headers,
+      body: { memberIdOrEmail: 'gone@example.com', organizationId: shop.organizationId },
+    })
+    const removed = await call(appRouter.staff.me, {}, { context: ctx(gone) }).catch(
+      (e: unknown) => e,
+    )
+    expect(isNoStoreError(removed)).toBe(true)
+
+    expect(isNoStoreError(new Error('connection reset'))).toBe(false)
+  })
+
+  it('grants a role-less member their role even when the layout and page load at once', async () => {
+    const shop = await storeWithOwner('boss-loop4@example.com', 'loop-d')
+    const invite = await call(
+      appRouter.staff.invite,
+      { email: 'direct-loop@example.com', roleId: await roleId(shop.storeId, 'admin') },
+      { context: ctx(shop.headers) },
+    )
+    const direct = await signIn('direct-loop@example.com')
+    // Joined through Better Auth directly, so the first store call grants the role.
+    await auth.api.acceptInvitation({ headers: direct, body: { invitationId: invite.id } })
+    await auth.api.setActiveOrganization({
+      headers: direct,
+      body: { organizationId: shop.organizationId },
+    })
+    // One admin page load runs the layout's calls and the page's at the same time.
+    const results = await Promise.allSettled([
+      call(appRouter.store.current, undefined, { context: ctx(direct) }),
+      call(appRouter.apps.list, undefined, { context: ctx(direct) }),
+      call(appRouter.themes.list, undefined, { context: ctx(direct) }),
+      call(appRouter.staff.me, {}, { context: ctx(direct) }),
+    ])
+    expect(results.map((r) => r.status)).toEqual([
+      'fulfilled',
+      'fulfilled',
+      'fulfilled',
+      'fulfilled',
+    ])
+    const me = await call(appRouter.staff.me, {}, { context: ctx(direct) })
+    expect(me.roleSlug).toBe('admin')
   })
 })

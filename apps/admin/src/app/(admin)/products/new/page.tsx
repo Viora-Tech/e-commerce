@@ -2,11 +2,12 @@ import { loadEnv } from '@commerce/config'
 import { redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orNoStore } from '@/lib/store-guard'
 
 export default async function NewProductPage() {
   const context = await serverContext()
   const [facets, ai] = await Promise.all([
-    call(appRouter.products.facets, undefined, { context }).catch(() => null),
+    call(appRouter.products.facets, undefined, { context }).catch(orNoStore(null)),
     // AI is optional: any failure just hides the button.
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
   ])

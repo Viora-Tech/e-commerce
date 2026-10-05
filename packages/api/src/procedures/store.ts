@@ -2,6 +2,8 @@ import {
   forgetInvitation,
   invitationRoleForUser,
   listRoles,
+  lockMembershipHeal,
+  type MemberAccess,
   memberAccess,
   type Permission,
   seedSystemRoles,
@@ -35,6 +37,16 @@ function describe(permission: Permission): string {
   return `${action} ${String(resource).replace(/_/g, ' ')}`
 }
 
+function accessOf(found: MemberAccess): Access {
+  return {
+    roleId: found.roleId,
+    roleSlug: found.roleSlug,
+    roleName: found.roleName,
+    isOwner: found.isOwner,
+    permissions: found.permissions,
+  }
+}
+
 /**
  * Reads the member's role. Stores created before roles existed, and members
  * added straight through Better Auth, are healed here: the system roles are
@@ -46,16 +58,16 @@ async function resolveAccess(
   userId: string,
   organizationRole: string,
 ): Promise<Access> {
-  const found = await memberAccess(tx, storeId, userId)
-  if (found) {
-    return {
-      roleId: found.roleId,
-      roleSlug: found.roleSlug,
-      roleName: found.roleName,
-      isOwner: found.isOwner,
-      permissions: found.permissions,
-    }
-  }
+  const known = await memberAccess(tx, storeId, userId)
+  if (known) return accessOf(known)
+
+  // One admin page load makes several store calls at once (layout and page), and each would
+  // heal here: concurrent `seedSystemRoles` rewrites collide on role_permission's unique key
+  // and all but one call fail. Heal one at a time per store, then re-read: the call that
+  // waited usually finds the membership the first one just wrote.
+  await lockMembershipHeal(tx, storeId)
+  const healed = await memberAccess(tx, storeId, userId)
+  if (healed) return accessOf(healed)
 
   await seedSystemRoles(tx, storeId)
   const roles = await listRoles(tx, storeId)
@@ -92,23 +104,48 @@ async function resolveAccess(
   }
 }
 
+/** Marks the errors that mean "there is no store to work in", the only ones the admin answers
+ *  with the store picker. A missing permission or a failed query is not one of them. */
+const NO_STORE = { reason: 'no_store' } as const
+
+function noStore(code: 'PRECONDITION_FAILED' | 'FORBIDDEN' | 'NOT_FOUND', message: string) {
+  return new ORPCError(code, { message, data: NO_STORE })
+}
+
+/**
+ * True when a store call failed only because the caller has no store to work in: none picked,
+ * no longer a member, or the store is gone. Admin pages send these to the store picker and let
+ * every other error reach the error page (a redirect there would loop, and hide the error).
+ */
+export function isNoStoreError(error: unknown): boolean {
+  return error instanceof ORPCError && error.data?.reason === NO_STORE.reason
+}
+
+/** Better Auth refuses `getFullOrganization` (403 not a member, 400 no such organization). */
+function isOrganizationRefusal(error: unknown): boolean {
+  const status = (error as { statusCode?: unknown } | null)?.statusCode
+  return status === 400 || status === 403
+}
+
 /**
  * The caller's store: requires an active organization the user belongs to and resolves it
  * to a store. Shared by `can` and `canDetached`.
  */
 async function findMembership(context: SessionContext) {
   const organizationId = context.session.activeOrganizationId
-  if (!organizationId) throw new ORPCError('PRECONDITION_FAILED', { message: 'Pick a store first' })
+  if (!organizationId) throw noStore('PRECONDITION_FAILED', 'Pick a store first')
 
-  const org = await context.auth.api.getFullOrganization({
-    headers: context.headers,
-    query: { organizationId },
-  })
+  const org = await context.auth.api
+    .getFullOrganization({ headers: context.headers, query: { organizationId } })
+    .catch((error: unknown) => {
+      if (isOrganizationRefusal(error)) throw noStore('FORBIDDEN', 'Not a member of this store')
+      throw error
+    })
   const membership = org?.members.find((m) => m.userId === context.session.user.id)
-  if (!membership) throw new ORPCError('FORBIDDEN', { message: 'Not a member of this store' })
+  if (!membership) throw noStore('FORBIDDEN', 'Not a member of this store')
 
   const storeId = await resolveStoreForOrganization(context.db, organizationId)
-  if (!storeId) throw new ORPCError('NOT_FOUND', { message: 'No store for this organization' })
+  if (!storeId) throw noStore('NOT_FOUND', 'No store for this organization')
   return { organizationId, storeId, role: membership.role, userId: context.session.user.id }
 }
 

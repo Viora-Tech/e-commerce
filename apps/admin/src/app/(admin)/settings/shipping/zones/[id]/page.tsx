@@ -1,13 +1,16 @@
 import { notFound, redirect } from 'next/navigation'
 import ZoneForm from '@/components/shipping-zones/zone-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orNoStore } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ id: string }> }
 
 export default async function ShippingZonePage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
-  const zone = await call(appRouter.shipping.zones.get, { id }, { context }).catch(() => undefined)
+  const zone = await call(appRouter.shipping.zones.get, { id }, { context }).catch(
+    orNoStore(undefined),
+  )
   if (zone === undefined) redirect('/select-store')
   if (!zone) notFound()
   return <ZoneForm key={zone.updatedAt.toISOString()} zone={zone} />
