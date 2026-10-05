@@ -3,8 +3,10 @@ import { resetDb } from '@commerce/db/test'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDevDomainProvider, DEV_SSL_ISSUE_MS } from './dev-provider'
+import { createDnsDomainProvider } from './dns-provider'
 import {
   connectDomain,
+  createDomainProvider,
   DomainError,
   domainView,
   listDomains,
@@ -138,6 +140,46 @@ describe('verifyDomain with the dev provider', () => {
     const [platform] = await withStore(app, storeId, listDomains)
     const r = await verify(storeId, platform?.id as string)
     expect(r.lastCheckedAt).toBeNull()
+  })
+})
+
+describe('verifyDomain with the dns provider', () => {
+  it('builds the dns provider by id and refuses unknown ones', () => {
+    expect(createDomainProvider('dns').id).toBe('dns')
+    expect(() => createDomainProvider('edge')).toThrow(DomainError)
+  })
+
+  it('routes a real domain once DNS and the certificate check out, and keeps it on a timeout', async () => {
+    const storeId = await seedStore('w')
+    const [d] = await connect(storeId, 'kuldeepsaini.com')
+    const id = d?.id as string
+    const token = d?.verificationToken as string
+    let tlsOk = false
+    let lookupsFail = false
+    const answer = (records: string[] | string[][]) =>
+      lookupsFail
+        ? Promise.reject(Object.assign(new Error('timeout'), { code: 'ETIMEOUT' }))
+        : Promise.resolve(records)
+    const dnsProvider = createDnsDomainProvider({
+      resolver: {
+        resolve4: () => answer([targets.aRecord]) as Promise<string[]>,
+        resolveCname: () => answer([]) as Promise<string[]>,
+        resolveTxt: () => answer([[token]]) as Promise<string[][]>,
+      },
+      tlsCheck: async () => tlsOk,
+    })
+    const check = (now: Date) =>
+      withStore(app, storeId, (tx) => verifyDomain(tx, id, { provider: dnsProvider, targets, now }))
+
+    expect(await check(t0)).toMatchObject({ status: 'active', sslStatus: 'issuing', error: null })
+    expect(await resolveHost(app, 'kuldeepsaini.com')).toMatchObject({ storeId })
+
+    lookupsFail = true
+    expect(await check(later(1000))).toMatchObject({ status: 'active', sslStatus: 'issuing' })
+
+    lookupsFail = false
+    tlsOk = true
+    expect(await check(later(2000))).toMatchObject({ status: 'active', sslStatus: 'active' })
   })
 })
 
