@@ -1,8 +1,8 @@
-import { loadEnv } from '@commerce/config'
 import { redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { orNoStore } from '@/lib/store-guard'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export default async function NewProductPage() {
   const context = await serverContext()
@@ -16,7 +16,7 @@ export default async function NewProductPage() {
     <ProductForm
       product={null}
       facets={facets}
-      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      storefrontOrigin={await storefrontOrigin()}
       aiWriter={ai?.productWriter ?? false}
     />
   )

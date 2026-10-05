@@ -1,9 +1,9 @@
-import { loadEnv } from '@commerce/config'
 import { notFound, redirect } from 'next/navigation'
 import PageForm from '@/components/online-store/page-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { customizeHref } from '@/lib/customize-href'
 import { orNoStore } from '@/lib/store-guard'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export default async function PageRoute({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,7 +24,7 @@ export default async function PageRoute({ params }: { params: Promise<{ id: stri
       page={page}
       suffixes={templates.filter((t) => t.template === 'page' && t.suffix).map((t) => t.suffix)}
       contentHref={customizeHref(live?.id ?? null, page)}
-      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      storefrontOrigin={await storefrontOrigin()}
     />
   )
 }

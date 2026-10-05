@@ -1,4 +1,3 @@
-import { loadEnv } from '@commerce/config'
 import { Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import type { Metadata } from 'next'
@@ -16,6 +15,7 @@ import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getCopy } from '@/lib/copy-server'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -34,7 +34,7 @@ export default async function Page({ params }: Props) {
     return <SectionEmpty {...themesContent.unavailable} body={copy.notFound} icon={Palette} />
   }
   const { report } = found
-  const origin = new URL(loadEnv(process.env).STOREFRONT_URL).origin
+  const origin = await storefrontOrigin()
 
   return (
     <PageBody>

@@ -13,6 +13,7 @@ import {
   markRecoverySent,
   RECOVERY_NO_CONSENT,
   recoveryUrl,
+  storefrontOriginFor,
   updateDraft,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -162,15 +163,17 @@ export async function sendRecovery(
     cartId: string
     registry: NotificationRegistry
     settingsSecret: string
+    /** STOREFRONT_URL: the fallback when the store has no live primary domain. */
     storefrontUrl: string
   },
 ) {
   const ctx = ctxOf(tx, storeId)
+  const origin = await storefrontOriginFor(tx, storeId, input.storefrontUrl)
   const results = await deliverCartRecovery(
     ctx,
     {
       cartId: input.cartId,
-      actionUrl: recoveryUrl(input.cartId, input.settingsSecret, input.storefrontUrl),
+      actionUrl: recoveryUrl(input.cartId, input.settingsSecret, origin),
     },
     { registry: input.registry, settingsSecret: input.settingsSecret },
   )

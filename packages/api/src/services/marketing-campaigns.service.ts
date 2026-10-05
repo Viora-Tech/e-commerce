@@ -5,6 +5,7 @@ import {
   getCampaign,
   type MarketingDeps,
   marketingChannels,
+  storefrontOriginFor,
   storeSender,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
@@ -20,7 +21,8 @@ export async function marketingDeps(
   return {
     registry: (await registriesForStore(tx, storeId)).notifications,
     settingsSecret: env.settingsSecret,
-    storefrontUrl: env.storefrontUrl,
+    // The store's own domain; `env.storefrontUrl` (STOREFRONT_URL) only when it has none.
+    storefrontUrl: await storefrontOriginFor(tx, storeId, env.storefrontUrl),
   }
 }
 

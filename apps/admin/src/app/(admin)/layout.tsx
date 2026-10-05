@@ -1,4 +1,3 @@
-import { loadEnv } from '@commerce/config'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -6,6 +5,7 @@ import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { auth, getSession } from '@/lib/auth'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         user={{ name: session.user.name, email: session.user.email }}
         stores={storeOptions}
         activeStoreId={active?.id ?? null}
-        storefrontUrl={loadEnv(process.env).STOREFRONT_URL}
+        storefrontUrl={await storefrontOrigin()}
         apps={appLinks}
         logoUrl={logoUrl}
       >

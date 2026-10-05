@@ -107,3 +107,34 @@ Other things that keep a certificate from issuing:
 - **The check runs from the server itself** (admin and worker containers connect to
   `host:443`). The firewall / security group must let the server reach its own public address
   on 443, or every domain stays `issuing`.
+
+## Store links use the primary domain
+
+One storefront app serves every store by hostname, so a link must use a hostname that
+resolves to the store. `STOREFRONT_URL` belongs to no store on a multi-tenant server: a link on
+it answers "No store is configured for shop.example.in." Every store-facing link is therefore
+built from `storefrontOriginFor(tx, storeId, fallback)` (`packages/core/src/domains/origin.ts`):
+
+- the store's primary domain when it is live (`is_primary AND status = 'active'`), as
+  `https://<hostname>`. A primary domain that is still `pending` does not count yet;
+- else `fallback`, which is `STOREFRONT_URL` (origin only);
+- in development, when `STOREFRONT_URL` is a `localhost` URL, the fallback always wins, because
+  the store's real domains do not point at the dev machine.
+
+Who calls it:
+
+| Where | Links |
+| --- | --- |
+| Admin pages, through `store.origin` (`apps/admin/src/lib/storefront-origin.ts`) | top bar "View store", theme preview and import report preview, product/page/blog post/policy "View", Growth › Links |
+| API services | marketing shop, click and unsubscribe links (`marketingDeps`), abandoned-cart recovery link, Settings › Payments test order link, the imported theme editor canvas (Liquid `shop.url`, theme asset base) |
+| Core / worker | order and balance links in order emails (`deliverNotification`), newsletter confirm link, back-in-stock alert links, campaign and automation sends, `ctx.storefrontUrl` for apps (`storeAppContext`) |
+| Storefront | `storefrontUrl` handed to apps' order links on the thank-you and account order pages |
+
+`store.origin` is a bare `storeProcedure` (every member, see
+[guardrails](/developer-docs/building/guardrails)): it is the address every shopper already sees,
+and staff without `settings.read` still need working links. Theme preview links
+(`?theme-preview=<token>`) work on any hostname of the store: the storefront proxy checks the
+token against the store the hostname resolves to and never redirects a preview to the primary.
+Checkout itself never reads `STOREFRONT_URL`: it runs on the shopper's own host, and gateway
+webhooks go to the worker URL. The one payments link the admin builds (Settings › Payments test
+order) opens on the store's origin like the rest.
