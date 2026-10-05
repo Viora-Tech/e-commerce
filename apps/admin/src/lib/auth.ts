@@ -1,7 +1,11 @@
 import 'server-only'
 import { createMerchantAuth, type MerchantAuth } from '@commerce/auth'
 import { loadEnv } from '@commerce/config'
-import { deliverPlatformLoginCode, getPlatformEmail } from '@commerce/core'
+import {
+  deliverPlatformLoginCode,
+  deliverPlatformStaffInvite,
+  getPlatformEmail,
+} from '@commerce/core'
 import { headers } from 'next/headers'
 import { db } from './db'
 import { rememberDevOtp } from './dev-otp'
@@ -30,6 +34,22 @@ export function auth(): MerchantAuth {
         }
         console.log(`[otp] ${type} code for ${email}: ${otp}`)
         rememberDevOtp(email, otp)
+      },
+      // Same rule for staff invitations: emailed through the platform account and never logged
+      // (the accept link lets the invited email join the store). A refused send throws, and the
+      // Staff page says the email did not go; the invite stays listed with "Resend email".
+      // Without the platform account (development) the link is printed instead.
+      sendInvite: async (invite) => {
+        const result = await deliverPlatformStaffInvite({
+          email: invite.email,
+          storeName: invite.storeName ?? invite.organizationName,
+          inviterEmail: invite.inviterEmail,
+          roleLabel: invite.roleLabel,
+          acceptUrl: invite.acceptUrl,
+        })
+        if (result === 'sent') return
+        if (result === 'refused') throw new Error("Couldn't send the invite email")
+        console.log(`[invite] ${invite.email} for ${invite.organizationName}: ${invite.acceptUrl}`)
       },
     })
   }

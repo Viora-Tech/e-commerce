@@ -37,7 +37,14 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'return_rejected',
   'return_received',
   'return_refunded',
+  'staff_invite',
 ]
+
+/**
+ * Templates the platform sends about itself (through the platform email account), never a store's
+ * own customer messages. They are not in Settings → Notifications and a merchant cannot switch them off.
+ */
+export const PLATFORM_TEMPLATE_IDS: readonly TemplateId[] = ['staff_invite']
 
 /** Human names for the dev preview list and the admin's document-template picker. */
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
@@ -70,6 +77,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   return_rejected: 'Return declined',
   return_received: 'Return received',
   return_refunded: 'Return refunded',
+  staff_invite: 'Staff invitation (platform)',
 }
 
 /** Drop runs of blank lines left by optional sections. */
@@ -88,6 +96,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Newsletter'
     case 'gift_card_issued':
       return 'Gift card'
+    case 'staff_invite':
+      return 'Team invitation'
     case 'checkout_recovery':
       return 'Your basket'
     case 'back_in_stock_confirm':
@@ -137,6 +147,8 @@ function primaryActionFor(
       return d.actionUrl ? { label: `Sign in to ${d.storeName}`, url: d.actionUrl } : undefined
     case 'newsletter_confirm':
       return d.actionUrl ? { label: 'Confirm my email', url: d.actionUrl } : undefined
+    case 'staff_invite':
+      return d.actionUrl ? { label: 'Accept invitation', url: d.actionUrl } : undefined
     case 'document_copy':
       return d.links?.[0] ? { label: d.links[0].label, url: d.links[0].url } : undefined
     case 'balance_request':

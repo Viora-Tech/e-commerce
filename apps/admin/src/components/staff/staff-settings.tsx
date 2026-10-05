@@ -20,6 +20,7 @@ import SectionTabs from '@/components/settings/section-tabs'
 import SettingsSection from '@/components/settings/settings-section'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
+import PendingInvitesCard, { type PendingInviteRow } from '@/components/staff/pending-invites-card'
 import RoleSheet from '@/components/staff/role-sheet'
 import RolesCard, { type RoleRow } from '@/components/staff/roles-card'
 import { staffContent as copy } from '@/data/staff'
@@ -28,11 +29,19 @@ import { api } from '@/lib/api-client'
 
 const TABS = [copy.tabs.members, copy.tabs.roles]
 
-type Team = { members: StaffMemberRow[]; roles: RoleRow[] }
+type Team = { members: StaffMemberRow[]; roles: RoleRow[]; invites: PendingInviteRow[] }
 
 async function fetchTeam(): Promise<Team> {
-  const [members, roles] = await Promise.all([api.staff.members(), api.staff.roles()])
-  return { members: members as StaffMemberRow[], roles: roles as RoleRow[] }
+  const [members, roles, invites] = await Promise.all([
+    api.staff.members(),
+    api.staff.roles(),
+    api.staff.invitations(),
+  ])
+  return {
+    members: members as StaffMemberRow[],
+    roles: roles as RoleRow[],
+    invites: invites as PendingInviteRow[],
+  }
 }
 
 /** Team and roles for this store. Server procedures re-check every action. */
@@ -41,6 +50,7 @@ export default function StaffSettings() {
   const { member, hasPermission } = usePermissions()
   const [members, setMembers] = useState<StaffMemberRow[] | null>(null)
   const [roles, setRoles] = useState<RoleRow[] | null>(null)
+  const [invites, setInvites] = useState<PendingInviteRow[]>([])
   const [inviteOpen, setInviteOpen] = useState(false)
   const [editing, setEditing] = useState<RoleRow | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -54,6 +64,7 @@ export default function StaffSettings() {
         if (!live) return
         setMembers(team.members)
         setRoles(team.roles)
+        setInvites(team.invites)
       })
       .catch(() => {
         if (live) toast.error(copy.errors.load)
@@ -67,6 +78,7 @@ export default function StaffSettings() {
   const applyTeam = (team: Team) => {
     setMembers(team.members)
     setRoles(team.roles)
+    setInvites(team.invites)
   }
 
   const reload = async () => {
@@ -138,6 +150,7 @@ export default function StaffSettings() {
             onChanged={reload}
             onRemove={setPendingRemove}
           />
+          <PendingInvitesCard invites={invites} canInvite={canInvite} onChanged={reload} />
         </SettingsSection>
         <SettingsSection id={copy.tabs.roles.id} className="flex flex-col gap-4">
           {canManage ? (

@@ -244,7 +244,27 @@ const shipmentTemplates = {
   TemplateCopy
 >
 
+const platformName = (d: TemplateData): string => d.staffInvite?.platformName || 'Vextro'
+const asRole = (d: TemplateData): string =>
+  d.staffInvite?.roleLabel ? ` as ${d.staffInvite.roleLabel}` : ''
+const invitedBy = (d: TemplateData): string => d.staffInvite?.inviterEmail || 'The store owner'
+
+/** Messages the platform sends about itself, through its own email account. */
+const platformTemplates = {
+  staff_invite: {
+    subject: (d) => `You're invited to manage ${d.storeName} on ${platformName(d)}`,
+    heading: (d) => `Join ${d.storeName} on ${platformName(d)}`,
+    intro: (d) =>
+      `${invitedBy(d)} invited you to help run ${d.storeName}${asRole(d)}. Accept the invitation and sign in with this email address to get started.`,
+    outro: (d) =>
+      `${d.actionUrl ? `Accept here: ${d.actionUrl}. ` : ''}The invitation expires in 2 days. If you were not expecting it, ignore this email.`,
+    whatsapp: (d) =>
+      `${invitedBy(d)} invited you to help run ${d.storeName} on ${platformName(d)}.${d.actionUrl ? ` Accept: ${d.actionUrl}` : ''}`,
+  },
+} satisfies Record<'staff_invite', TemplateCopy>
+
 export const templateContent: Record<TemplateId, TemplateCopy> = {
+  ...platformTemplates,
   ...balanceTemplates,
   ...transferTemplates,
   ...backInStockTemplates,

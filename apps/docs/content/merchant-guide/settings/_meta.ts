@@ -17,6 +17,7 @@ export default {
   notifications: 'Notifications',
   'sender-email': 'Send emails from your own address',
   '-- team': { type: 'separator', title: 'Team & advanced' },
+  staff: 'Staff and invites',
   ai: 'AI features',
   '-- account': { type: 'separator', title: 'Your account (account menu)' },
   language: 'Admin language (हिंदी)',
