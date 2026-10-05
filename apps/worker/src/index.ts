@@ -36,6 +36,8 @@ const redis = createConnection(env.REDIS_URL)
 const { queue, worker } = createHeartbeat(redis)
 const notifications = createNotificationQueue(redis)
 const appEvents = createAppEventQueue(redis)
+// STOREFRONT_URL below is only the fallback: every job links to its store's own live primary
+// domain (`storefrontOriginFor`), since one storefront serves every store by hostname.
 const notificationWorker = createNotificationWorker(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
   storefrontUrl: env.STOREFRONT_URL,

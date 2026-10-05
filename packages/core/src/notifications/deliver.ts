@@ -13,7 +13,6 @@ import {
   refund,
   shipment,
   store,
-  storeDomain,
   variant,
 } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
@@ -29,6 +28,7 @@ import { and, eq, inArray, or, sql } from 'drizzle-orm'
 import type { StoreContext } from '../context'
 import { newsletterConfirmToken, newsletterConfirmUrl } from '../customers/newsletter'
 import { phoneBlindIndex } from '../customers/phone-crypto'
+import { storefrontOriginFor } from '../domains/origin'
 import { GIFT_CARD_PROVIDER } from '../gift-cards/service'
 import { mayNudgeKnownContact, phoneLookupVariants } from '../marketing/recipient'
 import { manualCancelAt } from '../payments/manual-followup'
@@ -65,7 +65,10 @@ const PAYMENT_LABELS: Record<string, string> = {
 export type DeliverOptions = {
   registry: NotificationRegistry
   settingsSecret: string
-  /** Public storefront origin, for the "view your order" link. Optional. */
+  /**
+   * Platform storefront URL (`STOREFRONT_URL`), the fallback for order links when the store
+   * has no live primary domain (`storefrontOriginFor`). Optional.
+   */
   storefrontUrl?: string | undefined
   /** Override channel resolution; tests inject fakes here. */
   channels?: NotificationChannel[] | undefined
@@ -320,12 +323,7 @@ export async function deliverNewsletterConfirm(
   const [s] = await ctx.tx.select({ name: store.name }).from(store).where(eq(store.id, ctx.storeId))
   // The confirm page checks the store its hostname resolves to, so the link goes to the
   // store's own primary domain (the platform storefront URL in development).
-  const [primary] = await ctx.tx
-    .select({ hostname: storeDomain.hostname })
-    .from(storeDomain)
-    .where(and(eq(storeDomain.isPrimary, true), eq(storeDomain.status, 'active')))
-  const dev = /(^|\.)localhost$/.test(new URL(opts.storefrontUrl).hostname)
-  const base = primary && !dev ? `https://${primary.hostname}` : opts.storefrontUrl
+  const base = await storefrontOriginFor(ctx.tx, ctx.storeId, opts.storefrontUrl)
   const token = newsletterConfirmToken(signup, opts.settingsSecret)
   const data: TemplateData = {
     storeName: s?.name ?? '',
@@ -523,7 +521,12 @@ export async function deliverNotification(
   },
   opts: DeliverOptions,
 ): Promise<DeliveryResult[]> {
-  const built = await buildTemplateData(ctx, input.orderId, opts.storefrontUrl, opts.settingsSecret)
+  // Order and balance links open on the store's own domain; `opts.storefrontUrl` (the
+  // platform URL) is only the fallback for a store without a live primary domain.
+  const storefrontUrl = opts.storefrontUrl
+    ? await storefrontOriginFor(ctx.tx, ctx.storeId, opts.storefrontUrl)
+    : undefined
+  const built = await buildTemplateData(ctx, input.orderId, storefrontUrl, opts.settingsSecret)
   if (!built) return []
   // The merchant switched this message off in Settings → Notifications.
   if (!(await messageOn(ctx, input.template))) return []
@@ -531,7 +534,7 @@ export async function deliverNotification(
   if (BALANCE_ASKS.has(input.template)) {
     const [o] = await ctx.tx.select().from(order).where(eq(order.id, input.orderId))
     if (!o || balanceOwed(o) <= 0) return []
-    if (opts.storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, opts.storefrontUrl)
+    if (storefrontUrl) actionUrl = balanceUrl(o.id, opts.settingsSecret, storefrontUrl)
   }
   // A reminder to pay is pointless once the order is paid or gone.
   if (input.template === 'payment_reminder') {

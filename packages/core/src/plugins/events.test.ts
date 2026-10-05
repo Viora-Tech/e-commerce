@@ -1,9 +1,9 @@
-import { createDb, store } from '@commerce/db'
+import { createDb, store, storeDomain } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { definePlugin, loadPlugins } from '@commerce/plugins'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { corePlugin } from './core-plugin'
-import { appContext, dispatchAppEvent } from './events'
+import { dispatchAppEvent, storeAppContext } from './events'
 
 const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
@@ -101,7 +101,7 @@ describe('dispatchAppEvent', () => {
   })
 })
 
-describe('appContext', () => {
+describe('storeAppContext', () => {
   it('offers processMedia only when a media queue is wired, keyed by store and media id', async () => {
     const plugins = loadPlugins([corePlugin])
     const base = {
@@ -113,10 +113,10 @@ describe('appContext', () => {
       settingsSecret: 'x',
       storefrontUrl: null,
     }
-    expect(appContext(base, 'store-1', 'job').processMedia).toBeUndefined()
+    expect((await storeAppContext(base, 'store-1', 'job')).processMedia).toBeUndefined()
 
     const added: unknown[] = []
-    const ctx = appContext(
+    const ctx = await storeAppContext(
       {
         ...base,
         mediaProcess: {
@@ -130,5 +130,28 @@ describe('appContext', () => {
     )
     await ctx.processMedia?.('media-1')
     expect(added).toEqual([{ data: { storeId: 'store-1', mediaId: 'media-1' }, jobId: 'media-1' }])
+  })
+
+  it("gives apps the store's live primary domain as storefrontUrl, the platform URL otherwise", async () => {
+    const withDomain = await seedStore('a', [])
+    const without = await seedStore('b', [])
+    await owner
+      .insert(storeDomain)
+      .values({ storeId: withDomain, hostname: 'brand.test', isPrimary: true, status: 'active' })
+    const deps = {
+      db: app,
+      plugins: loadPlugins([corePlugin]),
+      storage: async () => {
+        throw new Error('unused')
+      },
+      settingsSecret: 'x',
+      storefrontUrl: 'https://shop.platform.test',
+    }
+    expect((await storeAppContext(deps, withDomain, 'job')).storefrontUrl).toBe(
+      'https://brand.test',
+    )
+    expect((await storeAppContext(deps, without, 'job')).storefrontUrl).toBe(
+      'https://shop.platform.test',
+    )
   })
 })

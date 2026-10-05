@@ -9,6 +9,7 @@ import {
   renderLiquidSection,
   type ShopifySectionSchema,
   sectionWrapper,
+  storefrontOriginFor,
   storeLiquidData,
   themeImportFor,
 } from '@commerce/core'
@@ -22,7 +23,9 @@ import { storageProviderFor } from './media.service'
  * canvas shows the look, the storefront runs the behaviour).
  */
 
-const storefront = () => new URL(loadEnv(process.env).STOREFRONT_URL)
+/** The store's own storefront (its live primary domain; STOREFRONT_URL only as the fallback). */
+const storefront = async (tx: StoreTx, storeId: string) =>
+  new URL(await storefrontOriginFor(tx, storeId, loadEnv(process.env).STOREFRONT_URL))
 
 /** Imports an uploaded Shopify theme zip as a new unpublished theme. */
 export async function importThemeZip(
@@ -63,7 +66,7 @@ async function editorContext(tx: StoreTx, storeId: string, themeId: string) {
   const bundle = await loadThemeBundle(tx, themeId)
   if (!bundle) return null
   const record = await themeImportFor(tx, themeId)
-  const url = storefront()
+  const url = await storefront(tx, storeId)
   return createPageContext({
     bundle,
     data: await storeLiquidData(tx, { storeId, host: url.host, origin: url.origin }),

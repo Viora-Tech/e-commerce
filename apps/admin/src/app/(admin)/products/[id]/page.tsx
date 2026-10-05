@@ -1,8 +1,8 @@
-import { loadEnv } from '@commerce/config'
 import { notFound, redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { orNoStore } from '@/lib/store-guard'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -21,7 +21,7 @@ export default async function ProductEditPage({ params }: Params) {
     <ProductForm
       product={product}
       facets={facets}
-      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      storefrontOrigin={await storefrontOrigin()}
       aiWriter={ai?.productWriter ?? false}
     />
   )

@@ -1,5 +1,10 @@
 import { loadEnv } from '@commerce/config'
-import { getCustomerOrder, installedApps, orderReturnState } from '@commerce/core'
+import {
+  getCustomerOrder,
+  installedApps,
+  orderReturnState,
+  storefrontOriginFor,
+} from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
 import { order, withStore } from '@commerce/db'
 import { eq } from 'drizzle-orm'
@@ -57,7 +62,10 @@ export default async function AccountOrderPage({ params, searchParams }: OrderPa
       storeId,
       inStore: (fn) => withStore(db(), storeId, fn),
       settingsSecret: env.SETTINGS_SECRET,
-      storefrontUrl: env.STOREFRONT_URL ?? null,
+      // Links apps build open on this store's own domain (STOREFRONT_URL is the fallback).
+      storefrontUrl: await inStore(storeId, (tx) =>
+        storefrontOriginFor(tx, storeId, env.STOREFRONT_URL),
+      ),
       surface: 'storefront',
     },
     data.order.id,

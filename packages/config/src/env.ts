@@ -79,7 +79,11 @@ const shape = z.object({
   AUTH_SECRET: z.string().min(32).optional(),
   /** Public URL of the admin app, used as Better Auth's baseURL. */
   ADMIN_URL: z.string().url().default('http://localhost:3200'),
-  /** Public URL of the storefront, used for links inside notifications. */
+  /**
+   * Platform storefront URL. Fallback only: store links use the store's live primary domain
+   * (`storefrontOriginFor` in `@commerce/core`), this URL when a store has none, and always
+   * in development (a localhost URL).
+   */
   STOREFRONT_URL: z.string().url().default('http://localhost:3100'),
   /** Encrypts gateway credentials stored in store settings. */
   SETTINGS_SECRET: z.string().min(16).default('dev-only-settings-secret'),

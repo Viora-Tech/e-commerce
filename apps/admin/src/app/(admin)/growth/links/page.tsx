@@ -1,9 +1,9 @@
-import { loadEnv } from '@commerce/config'
 import type { Metadata } from 'next'
 import LinksBuilder from '@/components/growth/links-builder'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export const metadata: Metadata = { title: 'Links' }
 
-export default function Page() {
-  return <LinksBuilder storefrontOrigin={loadEnv(process.env).STOREFRONT_URL} />
+export default async function Page() {
+  return <LinksBuilder storefrontOrigin={await storefrontOrigin()} />
 }

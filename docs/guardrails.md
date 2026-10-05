@@ -311,8 +311,7 @@ Proof this doesn't break anything: `apps/worker/src/index.ts` still bundles clea
 
 Every `packages/api/src/routers/*.ts` handler that changes or reads store-wide data is
 gated with `can(permission)` (`../procedures`), which requires the caller's role to hold
-that grant. Two routers also use the bare `storeProcedure` (no permission) for specific
-handlers, deliberately:
+that grant. A few handlers also use the bare `storeProcedure` (no permission), deliberately:
 
 - `appearance.get` / `appearance.setMine` — every store member may read and set their
   *own* accent colour pick; there is no permission to check because the data is
@@ -323,6 +322,10 @@ handlers, deliberately:
   configured, and each feature on for the store and allowed by the caller's own role). Same
   reasoning as `staff.me`; usage, plan and the switches themselves sit behind
   `can(SETTINGS_READ)` / `can(SETTINGS_MANAGE)` (`ai.settings`, `ai.saveSettings`).
+- `store.origin` — every member may read the store's public web address
+  (`https://<live primary domain>`, `STOREFRONT_URL` only when it has none) that the admin's
+  "View store", preview and share links start from. It is what every shopper already sees, and
+  staff without `settings.read` (which `store.current` needs) must still get working links.
 
 One more gate exists for handlers that serve several permission grains at once and check the
 exact one themselves: `canAny([...])` (and `canDetached([...])` for model calls), which requires

@@ -1,8 +1,8 @@
-import { loadEnv } from '@commerce/config'
 import { isPolicyType, POLICY_TITLES } from '@commerce/core/policies'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import PolicyEditor from '@/components/settings/policy-editor'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 type PageProps = {
   params: Promise<{ type: string }>
@@ -22,7 +22,7 @@ export default async function Page({ params, searchParams }: PageProps) {
     <PolicyEditor
       type={type}
       startFromTemplate={template === '1'}
-      storefrontOrigin={loadEnv(process.env).STOREFRONT_URL}
+      storefrontOrigin={await storefrontOrigin()}
     />
   )
 }
