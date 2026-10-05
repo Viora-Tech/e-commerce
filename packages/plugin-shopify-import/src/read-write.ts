@@ -92,6 +92,7 @@ async function forEachBatch<T>(
   ctx.report.begin(resource)
   for await (const batch of source) {
     ctx.report.addTotal(resource, batch.length)
+    await ctx.report.flush()
     if (concurrency > 1) {
       await mapLimit(batch, concurrency, async (item) => {
         await write(item)
@@ -118,6 +119,8 @@ async function forEachChunk<T>(
   ctx.report.begin(resource)
   for await (const chunk of rebatch(source, size)) {
     ctx.report.addTotal(resource, chunk.length)
+    // Show the step and its total before the batch's copies start, not only after it is written.
+    await ctx.report.flush()
     await write(chunk)
     await ctx.report.flush()
   }

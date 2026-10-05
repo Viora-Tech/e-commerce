@@ -68,13 +68,32 @@ export class Reporter {
   /** Problems a retry could fix (they carry the record's import key). */
   retryable = 0
   private lastFlush = 0
+  /**
+   * When the run last got somewhere: a record counted, an issue raised, bytes of a
+   * copy arriving, Shopify answering. The run's watchdog (`executeRun`) reads it; a
+   * timer that merely proves the worker is alive does not count.
+   */
+  lastActivity: number
+  private closed = false
 
   constructor(
     private readonly inStore: InStore,
     private readonly storeId: string,
     private readonly runId: string,
     private readonly now: () => number = Date.now,
-  ) {}
+  ) {
+    this.lastActivity = now()
+  }
+
+  /** Something moved. */
+  touch() {
+    this.lastActivity = this.now()
+  }
+
+  /** The run has ended (or was stopped): later flushes from work still unwinding write nothing. */
+  close() {
+    this.closed = true
+  }
 
   of(resource: ImportResource): ResourceProgress {
     this.progress[resource] ??= empty()
@@ -84,6 +103,7 @@ export class Reporter {
   /** Start a resource: its counters show from now on and it becomes `current`. */
   begin(resource: ImportResource): ResourceProgress {
     this.current = resource
+    this.touch()
     return this.of(resource)
   }
 
@@ -92,13 +112,24 @@ export class Reporter {
   }
 
   addTotal(resource: ImportResource, n: number) {
+    this.touch()
     this.of(resource).total += n
   }
 
   count(resource: ImportResource, outcome: 'created' | 'updated' | 'skipped' | 'failed') {
+    this.touch()
     const p = this.of(resource)
     p.processed++
     p[outcome]++
+  }
+
+  /** One image or file copy finished for the current resource, stored or given up on. */
+  copySettled(ok: boolean) {
+    this.touch()
+    if (!this.current) return
+    const p = this.of(this.current)
+    if (ok) p.copied = (p.copied ?? 0) + 1
+    else p.notCopied = (p.notCopied ?? 0) + 1
   }
 
   /**
@@ -120,6 +151,7 @@ export class Reporter {
   }
 
   issue(issue: Issue) {
+    this.touch()
     this.issueCount++
     if (issue.sourceId) this.retryable++
     if (this.issueCount <= ISSUE_CAP) this.pendingIssues.push(issue)
@@ -127,6 +159,7 @@ export class Reporter {
 
   /** Persist progress (throttled unless forced) and any queued issues. */
   async flush(force = false) {
+    if (this.closed) return
     if (!force && this.now() - this.lastFlush < FLUSH_EVERY_MS) return
     this.lastFlush = this.now()
     const issues = this.pendingIssues

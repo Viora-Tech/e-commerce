@@ -1,5 +1,6 @@
 /** SOURCE OF TRUTH: outbound fetch of untrusted URLs (SSRF guard) — WHAT a GET that only reaches public http(s) hosts, re-checks every redirect, times out and caps the bytes it reads / WHY a URL from a CSV, product HTML or a webhook body must never make our server read cloud metadata, localhost or the private network */
 import { isIP } from 'node:net'
+import { CommerceError } from '../errors'
 
 /**
  * `safeFetch(url, opts)` resolves the host, refuses when ANY address it resolves to is
@@ -24,6 +25,18 @@ export type SafeFetchOptions = {
   allowHttp?: boolean
   maxRedirects?: number
   timeoutMs?: number
+  /** Aborts the request and its body early (the caller's own deadline), on top of `timeoutMs`. */
+  signal?: AbortSignal | undefined
+}
+
+/**
+ * The URL itself is refused (scheme, private address, redirect loop): asking again
+ * gives the same answer, so callers that retry should not.
+ */
+export class BlockedUrlError extends CommerceError {
+  constructor(message: string) {
+    super('URL_BLOCKED', message)
+  }
 }
 
 const defaultLookup: LookupAll = async (hostname) => {
@@ -119,12 +132,12 @@ function isBlockedAddress(ip: string): boolean {
 
 async function assertPublicUrl(url: URL, lookup: LookupAll, allowHttp: boolean): Promise<void> {
   if (url.protocol !== 'https:' && !(allowHttp && url.protocol === 'http:')) {
-    throw new Error(`${url.protocol} URLs are not allowed`)
+    throw new BlockedUrlError(`${url.protocol} URLs are not allowed`)
   }
   const host = url.hostname.replace(/^\[|\]$/g, '')
   const addresses = isIP(host) ? [host] : await lookup(host)
-  if (!addresses.length) throw new Error(`${host} did not resolve`)
-  if (addresses.some(isBlockedAddress)) throw new Error(`${host} is not a public address`)
+  if (!addresses.length) throw new BlockedUrlError(`${host} did not resolve`)
+  if (addresses.some(isBlockedAddress)) throw new BlockedUrlError(`${host} is not a public address`)
 }
 
 const REDIRECTS = new Set([301, 302, 303, 307, 308])
@@ -134,7 +147,8 @@ export async function safeFetch(raw: string, opts: SafeFetchOptions = {}): Promi
   const doFetch = opts.fetch ?? fetch
   const lookup = opts.lookup ?? defaultLookup
   const maxRedirects = opts.maxRedirects ?? 3
-  const signal = AbortSignal.timeout(opts.timeoutMs ?? 30_000)
+  const timeout = AbortSignal.timeout(opts.timeoutMs ?? 30_000)
+  const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
   let url = new URL(raw)
   for (let hop = 0; ; hop++) {
     await assertPublicUrl(url, lookup, opts.allowHttp ?? false)
@@ -142,7 +156,7 @@ export async function safeFetch(raw: string, opts: SafeFetchOptions = {}): Promi
     const location = res.headers.get('location')
     if (!REDIRECTS.has(res.status) || !location) return res
     await res.body?.cancel()
-    if (hop >= maxRedirects) throw new Error('too many redirects')
+    if (hop >= maxRedirects) throw new BlockedUrlError('too many redirects')
     url = new URL(location, url)
   }
 }
