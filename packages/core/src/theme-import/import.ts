@@ -19,8 +19,10 @@ import {
 import {
   collectShopImages,
   collectShopVideos,
+  connectedShopifyHost,
   copyImage,
   copyLiveVideos,
+  findImportedMedia,
   type Hosted,
   inBatches,
   livePage,
@@ -216,7 +218,9 @@ export async function importShopifyTheme(
     )
   }
 
-  const host = cleanShopifyHost(input.shopifyHost)
+  // The typed address wins; otherwise the store's connected Shopify importer.
+  const host =
+    cleanShopifyHost(input.shopifyHost) ?? cleanShopifyHost(await connectedShopifyHost(tx))
   const schemaLocale =
     [...archive.files.keys()]
       .filter((p) => p.startsWith('locales/') && p.endsWith('.default.schema.json'))
@@ -248,19 +252,25 @@ export async function importShopifyTheme(
   // downloads, so Shopify's rate limit is not already spent.
   const videoNames = new Set<string>()
   for (const name of IMPORTED_PAGES) collectShopVideos(templates.get(name), videoNames)
-  const homePage = host && videoNames.size ? await livePage(host, '/', deps) : null
-
-  // Images the theme's templates and settings point at, copied from the old store.
   const settings = currentSettings(archive)
   const wanted = new Set<string>()
   for (const name of IMPORTED_PAGES) {
     collectShopImages(templates.get(name), wanted)
   }
   collectShopImages(settings, wanted)
-  const hosted: Hosted = { images: new Map(), videos: new Map() }
+
+  // Files the Shopify importer already copied are reused, so only what is missing is downloaded.
+  const hosted = await findImportedMedia(tx, wanted, videoNames)
   const failed: string[] = []
+  const missingImages = [...wanted].filter((n) => !hosted.images.has(n))
+  const homePage =
+    host && [...videoNames].some((n) => !hosted.videos.has(n))
+      ? await livePage(host, '/', deps)
+      : null
+
+  // Images the theme's templates and settings point at, copied from the old store.
   if (host) {
-    await inBatches([...wanted], 6, async (name) => {
+    await inBatches(missingImages, 6, async (name) => {
       try {
         hosted.images.set(name, await copyImage(tx, storeId, host, name, deps))
       } catch (err) {
@@ -362,7 +372,7 @@ export async function importShopifyTheme(
       copied: hosted.images.size,
       videosCopied: hosted.videos.size,
       failed,
-      skippedNoHost: host ? 0 : wanted.size,
+      skippedNoHost: host ? 0 : missingImages.length,
     },
     skippedFiles: archive.skipped,
     missing: await missingHandles(tx, wantedHandles),

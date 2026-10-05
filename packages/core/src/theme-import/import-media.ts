@@ -6,6 +6,7 @@ import {
   maxUploadBytesFor,
   mediaKey,
 } from '@commerce/storage'
+import { sql } from 'drizzle-orm'
 import sharp from 'sharp'
 import { readCapped, safeFetch } from '../net/safe-fetch'
 import type { ThemeImportDeps } from './import'
@@ -244,4 +245,59 @@ export async function livePage(
   } catch (err) {
     return { problem: err instanceof Error ? err.message : String(err) }
   }
+}
+
+/** The store's connected Shopify importer address (`shop.myshopify.com`), or null. */
+export async function connectedShopifyHost(tx: StoreTx): Promise<string | null> {
+  const rows = await tx.execute<{ shop_domain: string }>(
+    sql`select shop_domain from shopify_import_connection limit 1`,
+  )
+  return rows[0]?.shop_domain ?? null
+}
+
+const baseName = (path: string) => {
+  const last = path.split(/[?#]/)[0]?.split('/').pop() ?? ''
+  try {
+    return decodeURIComponent(last).toLowerCase()
+  } catch {
+    return last.toLowerCase()
+  }
+}
+
+/**
+ * Files the Shopify importer already copied into Files, for the names a theme refers to.
+ * The importer records every file by its CDN address (resource `media`; the last part is
+ * the image's file name) and videos also by their Shopify file name (resource
+ * `file_name`). A name matching either reuses the copy and downloads nothing.
+ */
+export async function findImportedMedia(
+  tx: StoreTx,
+  imageNames: Iterable<string>,
+  videoNames: Iterable<string>,
+): Promise<Hosted> {
+  const images = new Map<string, HostedImage>()
+  const videos = new Map<string, HostedVideo>()
+  const wantedImages = new Map([...imageNames].map((n) => [baseName(n), n]))
+  const wantedVideos = new Map([...videoNames].map((n) => [baseName(n), n]))
+  if (wantedImages.size === 0 && wantedVideos.size === 0) return { images, videos }
+  const rows = await tx.execute<{
+    resource: string
+    source_id: string
+    url: string
+    width: number | null
+    height: number | null
+    content_type: string
+  }>(sql`select m.resource, m.source_id, md.url, md.width, md.height, md.content_type
+    from shopify_import_mapping m join media md on md.id = m.local_id
+    where m.resource in ('media', 'file_name') and md.status = 'ready'`)
+  for (const r of rows) {
+    const key = r.resource === 'file_name' ? r.source_id.toLowerCase() : baseName(r.source_id)
+    const image = wantedImages.get(key)
+    if (image && r.content_type.startsWith('image/') && !images.has(image))
+      images.set(image, { url: r.url, width: r.width, height: r.height })
+    const video = wantedVideos.get(key)
+    if (video && r.content_type.startsWith('video/') && !videos.has(video))
+      videos.set(video, { url: r.url, poster: null })
+  }
+  return { images, videos }
 }

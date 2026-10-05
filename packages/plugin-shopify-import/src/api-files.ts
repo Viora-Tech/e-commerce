@@ -23,12 +23,13 @@ export type GFile = {
   originalFileSize?: number | null
   sources?: VideoSource[]
   originUrl?: string | null
+  filename?: string | null
 }
 
 const FILE_FIELDS = `__typename id alt fileStatus
   ... on MediaImage { mimeType image { url } originalSource { fileSize } }
   ... on GenericFile { url mimeType originalFileSize }
-  ... on Video { originalSource { url mimeType fileSize } sources { url mimeType fileSize } }
+  ... on Video { filename originalSource { url mimeType fileSize } sources { url mimeType fileSize } }
   ... on ExternalVideo { originUrl }`
 
 const FILES_QUERY = `query Files($cursor: String, $query: String) {
@@ -69,6 +70,7 @@ export function mapFile(f: GFile): NFile {
       return {
         ...base,
         kind: 'video',
+        filename: f.filename ?? null,
         url: mp4.url,
         mimeType: mp4.url ? 'video/mp4' : (f.originalSource?.mimeType ?? null),
         size: mp4.size,

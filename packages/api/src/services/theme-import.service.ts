@@ -11,6 +11,8 @@ import {
   sectionWrapper,
   storefrontOriginFor,
   storeLiquidData,
+  ThemeImportError,
+  ThemeLibraryError,
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
@@ -33,15 +35,26 @@ export async function importThemeZip(
   storeId: string,
   input: { file: File; shopifyHost?: string | undefined },
 ) {
-  const { storage } = await storeRegistries(tx, storeId)
-  const provider = await storageProviderFor(tx, storeId, storage, settingsSecret())
-  const zip = new Uint8Array(await input.file.arrayBuffer())
-  return importShopifyTheme(
-    tx,
-    storeId,
-    { zip, fileName: input.file.name, shopifyHost: input.shopifyHost },
-    { storage: provider },
-  )
+  try {
+    const { storage } = await storeRegistries(tx, storeId)
+    const provider = await storageProviderFor(tx, storeId, storage, settingsSecret())
+    const zip = new Uint8Array(await input.file.arrayBuffer())
+    return await importShopifyTheme(
+      tx,
+      storeId,
+      { zip, fileName: input.file.name, shopifyHost: input.shopifyHost },
+      { storage: provider },
+    )
+  } catch (err) {
+    if (err instanceof ThemeLibraryError) throw err
+    // Never a bare 500: the merchant gets plain words, and the request's transaction
+    // rolls back so no half-made theme stays behind.
+    console.error('theme import failed', { storeId, file: input.file.name, err })
+    throw new ThemeImportError(
+      'THEME_IMPORT_INVALID',
+      'We could not import this theme, and nothing was added. Try again; if it keeps failing, contact support with the file name.',
+    )
+  }
 }
 
 /** The import report page's data. */

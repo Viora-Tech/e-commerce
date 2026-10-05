@@ -39,7 +39,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
   {
     file: 'packages/core/src/theme-import/import.ts',
-    names: ['ThemeImportError', 'cleanShopifyHost'],
+    names: ['cleanShopifyHost'],
     reason: 'thrown and used by importShopifyTheme, exported for its tests',
   },
   {
