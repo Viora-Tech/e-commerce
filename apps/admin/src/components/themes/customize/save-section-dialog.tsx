@@ -53,7 +53,7 @@ export default function SaveSectionDialog({ block, defaultName, onClose }: SaveS
   // Render logic
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[26rem]">
+      <DialogContent className="sm:max-w-[26rem]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <div className="flex items-center gap-2.5">
