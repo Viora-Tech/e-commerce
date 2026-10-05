@@ -96,9 +96,12 @@ export const runJobKey = (run: Pick<RunRow, 'id' | 'updatedAt'>) =>
   `run-${run.id}-${run.updatedAt.getTime()}`
 
 /**
- * A running import touches its row at least every minute (`executeRun`'s
- * heartbeat, plus every progress flush). One silent for this long lost its
- * worker (a crash or out-of-memory kill) without anything marking it failed.
+ * A running import touches its row at least every minute while it is getting
+ * somewhere (`executeRun`'s heartbeat, plus every progress flush). One silent for
+ * this long lost its worker (a crash or out-of-memory kill) without anything
+ * marking it failed. A run whose worker is alive but stuck is stopped by
+ * `executeRun`'s own watchdog (STUCK_MS in run.ts), which also stops touching the
+ * row, so this backstop still applies if stopping it goes wrong.
  */
 const RUN_STALE_MS = 10 * 60 * 1000
 

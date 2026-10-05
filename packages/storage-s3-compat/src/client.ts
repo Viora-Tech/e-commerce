@@ -27,6 +27,17 @@ export type S3CompatDeps = {
   sign?: SignFn | undefined
 }
 
+/**
+ * Every request ends. Without these the SDK waits forever: a PUT whose body stopped
+ * part way never gets a response, and the import that made it holds its slot for good.
+ * `requestTimeout` runs until the response starts, so it covers sending the body (a
+ * 100 MB buffered video included) but not reading a large `get`.
+ */
+export const S3_COMPAT_TIMEOUTS = {
+  connectionTimeout: 10_000,
+  requestTimeout: 5 * 60_000,
+}
+
 export type S3CompatClientConfig = {
   region: string
   accessKeyId: string
@@ -35,6 +46,10 @@ export type S3CompatClientConfig = {
   endpoint?: string | undefined
   /** R2 and most other S3-compatible stores need the older path style; real S3 uses virtual-hosted style. */
   forcePathStyle?: boolean | undefined
+  /** Overrides `S3_COMPAT_TIMEOUTS` (tests). */
+  timeouts?: Partial<typeof S3_COMPAT_TIMEOUTS> | undefined
+  /** The SDK's attempts per request (its default is 3). */
+  maxAttempts?: number | undefined
 }
 
 export function makeS3CompatClient(config: S3CompatClientConfig): S3Client {
@@ -43,6 +58,13 @@ export function makeS3CompatClient(config: S3CompatClientConfig): S3Client {
     credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
     ...(config.endpoint ? { endpoint: config.endpoint } : {}),
     ...(config.forcePathStyle ? { forcePathStyle: true } : {}),
+    ...(config.maxAttempts ? { maxAttempts: config.maxAttempts } : {}),
+    requestHandler: {
+      ...S3_COMPAT_TIMEOUTS,
+      ...config.timeouts,
+      // Without this a request past `requestTimeout` only logs a warning and carries on waiting.
+      throwOnRequestTimeout: true,
+    },
   }
   return new S3Client(opts)
 }

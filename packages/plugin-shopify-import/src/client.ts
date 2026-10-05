@@ -95,6 +95,12 @@ export type ResourceProgress = {
   left?: LeftBehind[] | undefined
   /** Products only: how many images the records carry (a preview counts them for the status page). */
   images?: number | undefined
+  /**
+   * An import only: images and files copied so far, and those given up on (each is an
+   * issue). They move while a batch's copies run, before its records are counted.
+   */
+  copied?: number | undefined
+  notCopied?: number | undefined
 }
 
 /** One sample row the dry run shows: what it is and what would happen to it. */

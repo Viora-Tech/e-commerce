@@ -1,5 +1,3 @@
-import { Readable } from 'node:stream'
-import type { ReadableStream as NodeWebStream } from 'node:stream/web'
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -9,6 +7,7 @@ import {
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3'
+import { Upload } from '@aws-sdk/lib-storage'
 import type {
   PresignedUpload,
   PresignInput,
@@ -17,6 +16,14 @@ import type {
   StorageProvider,
 } from '@commerce/storage'
 import { defaultSign, S3_COMPAT_PRESIGN_SECONDS, type S3CompatDeps, type SignFn } from './client'
+
+/**
+ * `putStream` sends the body in parts of this size, at most `STREAM_PARTS_IN_FLIGHT`
+ * at a time, so one streamed copy holds about 16 MB. A body that fits in one part goes
+ * as a single PUT with its exact length.
+ */
+const STREAM_PART_BYTES = 8 * 1024 * 1024
+const STREAM_PARTS_IN_FLIGHT = 2
 
 export type S3CompatProviderOptions = {
   bucket: string
@@ -83,23 +90,40 @@ export abstract class S3CompatProvider implements StorageProvider {
         ContentType: input.contentType,
         ContentLength: input.body.byteLength,
       }),
+      input.signal ? { abortSignal: input.signal } : {},
     )
   }
 
   /**
-   * One PUT straight from a web stream: the SDK sends it as the body with the
-   * declared length, so the object never sits whole in memory.
+   * A web stream of unknown length into the bucket, through the SDK's multipart
+   * `Upload`: every request carries a buffer of known size, so no length is ever
+   * declared up front. (A single PUT piping the stream with the download's
+   * `content-length` hangs for good when the two disagree, as they do for a gzip
+   * response, or when the download breaks part way: the SDK never ends the request.)
+   * A broken or aborted body rejects, and a multipart upload already begun is aborted.
    */
   async putStream(input: PutStreamInput): Promise<void> {
-    await this.client.send(
-      new PutObjectCommand({
+    input.signal?.throwIfAborted()
+    const upload = new Upload({
+      client: this.client,
+      params: {
         Bucket: this.bucket,
         Key: this.fullKey(input.key),
-        Body: Readable.fromWeb(input.body as unknown as NodeWebStream<Uint8Array>),
+        Body: input.body,
         ContentType: input.contentType,
-        ContentLength: input.size,
-      }),
-    )
+      },
+      partSize: STREAM_PART_BYTES,
+      queueSize: STREAM_PARTS_IN_FLIGHT,
+      leavePartsOnError: false,
+    })
+    // `done()` rejects at once; the caller's signal should also end the download feeding `body`.
+    const stop = () => void upload.abort()
+    input.signal?.addEventListener('abort', stop, { once: true })
+    try {
+      await upload.done()
+    } finally {
+      input.signal?.removeEventListener('abort', stop)
+    }
   }
 
   async get(key: string): Promise<Uint8Array | null> {

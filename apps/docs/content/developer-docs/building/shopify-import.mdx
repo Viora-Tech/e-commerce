@@ -100,9 +100,15 @@ the commit, as one-at-a-time writes would see it. Product variants still go thro
   last attempt, or "stalled more than allowable limit" after the process died, e.g. an OOM
   kill) it runs the plugin's `jobFailed.run` handler (`dispatchAppJobFailure`, new optional
   `jobFailed` on the plugin manifest), which marks the run `failed` with a plain reason.
-- **Backstop.** `executeRun` touches the row every minute while it runs; `getRun`, `listRuns`
-  and `startRun` fail a `running` run silent for 10 minutes, so the page shows Try again even
-  if the failure event was lost.
+- **Stuck, worker alive.** The `Reporter` keeps `lastActivity`: a record counted, an issue, a
+  chunk of a copy arriving, a Shopify answer (the client's fetch is wrapped, so bulk-export
+  polls count). When nothing moved for `STUCK_MS` (10 minutes, `run.ts`) the watchdog aborts the
+  run's signal (every copy in flight stops), the run is marked `failed` with "The import stopped
+  moving…", and the reporter is closed so work still unwinding writes nothing.
+- **Backstop.** `executeRun` touches the row every minute, but only while the run is getting
+  somewhere (a heartbeat alone no longer keeps a stuck run alive); `getRun`, `listRuns` and
+  `startRun` fail a `running` run silent for 10 minutes, so the page shows Try again even if
+  the failure event was lost.
 
 ## Before you import (pre-import checks)
 
@@ -192,13 +198,33 @@ bring over; the per-record table is behind **Show every record**.
 ## Copy speed and memory
 
 Files are copied 12 at a time, each product's images 10 at a time, products' images prepared 3
-products at a time; one limiter in the media host (`createLimiter`, 16 downloads in flight)
-caps them all together. A download whose type is accepted and whose size Shopify states is
-streamed straight into the bucket (`StorageProvider.putStream`, implemented for R2 and S3 in
-`storage-s3-compat`: one PUT with the stream as body and `ContentLength`), with a byte counter
-that fails a body longer or shorter than stated. Anything else (unknown type, no length, the
-local folder) is read into memory as before; those that could be videos (up to 100 MB) have
-their own cap of 2 at a time. Per-download timeout and error capture are unchanged.
+products at a time; one limiter in the media host (`createLimiter`, 16 copies in flight) caps
+them all together.
+
+- **Sizes come from the bytes, never the headers.** `fetch` decompresses a gzip/br response but
+  leaves the compressed length in `content-length`, so that header is only used to refuse an
+  oversized file early, and only when the response is not encoded. Images (10 MB cap) and
+  unknown types are read whole and stored with one `put` of their exact `byteLength` (unknown
+  types, possibly a 100 MB video, 2 at a time). Videos stream into the bucket
+  (`StorageProvider.putStream`, no size argument; R2/S3 use `@aws-sdk/lib-storage` `Upload`:
+  8 MB parts, 2 in flight, 4 videos at once, a body under one part goes as a single exact PUT).
+  Before 2026-10-05 this was one PUT piping the stream with the download's `content-length`:
+  a length mismatch or a body that broke part way left the SDK waiting forever (it pipes the
+  body and never ends the request), which deadlocked the products step (#266).
+- **Every copy ends.** Each attempt has an overall deadline (60 s; 10 minutes once a video
+  starts streaming) and an idle one (30 s without a byte), both aborting one signal that ends
+  the download (`safeFetch`'s `signal`) and the write (`put`/`putStream` `signal`), and the
+  attempt is raced against it so the slot is freed even if something ignores the signal. The
+  S3 client has `connectionTimeout` 10 s and `requestTimeout` 5 minutes with
+  `throwOnRequestTimeout` (`S3_COMPAT_TIMEOUTS`) for every other caller.
+- **Retries.** Timeouts, dropped connections, 408/429/5xx and bucket errors are tried twice
+  more (after 1 s, then 3 s). Refusals (`BlockedUrlError` from `safeFetch`, other 4xx, too
+  large, unsupported type) are not. What still fails is an issue ("Image … was not copied: timed
+  out: no data for 30 s (tried 3 times)") carrying the record's key, so **Retry the N that were
+  missed** picks it up. The media row is written only after the object is stored.
+- **Progress.** `progress.<resource>.copied` / `notCopied` count copies as they settle and are
+  flushed (throttled) each time, and each batch's total is flushed before its copies start, so
+  a long products step never shows `{}`.
 
 ## Order of resources
 
