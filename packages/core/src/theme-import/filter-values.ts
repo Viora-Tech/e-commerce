@@ -120,14 +120,24 @@ export function money(rt: LiquidRuntime, value: unknown): string {
     : formatMoney(Math.round(paise), rt.currency)
 }
 
+/**
+ * What an image filter reads inside a value: a product's or variant's image, or a
+ * metafield's value (`feature.image | image_url`, a file field).
+ */
+const innerImage = (v: Record<string, unknown>): unknown =>
+  v.featured_image ??
+  v.image ??
+  v.preview_image ??
+  v.src ??
+  (v instanceof Drop ? v.value : undefined)
+
 /** The image URL a value stands for: an image object, a URL string, or a product/variant. */
 export function imageSrc(value: unknown): string {
   if (value instanceof ImageDrop) return value.src
   if (value instanceof ImageUrl) return value.url
   if (typeof value === 'string') return value
   if (value && typeof value === 'object') {
-    const v = value as Record<string, unknown>
-    const inner = v.featured_image ?? v.image ?? v.preview_image ?? v.src
+    const inner = innerImage(value as Record<string, unknown>)
     if (inner !== undefined && inner !== value) return imageSrc(inner)
   }
   return ''
@@ -157,9 +167,9 @@ class ImageUrl extends Drop {
 const imageOf = (value: unknown): ImageDrop | null => {
   if (value instanceof ImageDrop) return value
   if (value && typeof value === 'object') {
-    const v = value as Record<string, unknown>
-    const inner = v.featured_image ?? v.image ?? v.preview_image
+    const inner = innerImage(value as Record<string, unknown>)
     if (inner instanceof ImageDrop) return inner
+    if (inner && typeof inner === 'object' && inner !== value) return imageOf(inner)
   }
   return null
 }

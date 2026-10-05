@@ -72,7 +72,27 @@ colour maths (`color_lighten`, `color_mix`, `color_contrast`…), link and URL h
 `routes` (our paths), `request`, `localization` (India, INR), `template`. Resources read as their
 handle when used as a key (`collections[section.settings.collection]`). Our built-in pre-order
 shows up as a selling plan group named "Pre-order", which is how pre-order apps mark products on
-Shopify. Metafields read blank.
+Shopify. Menu links carry `link.object` (the collection, product, page or blog of their path). Metafields and metaobjects read our custom data, see below.
+
+### Metafields and metaobjects
+
+The Shopify importer copies metafields into our **extra fields** (product and collection owners)
+and metaobjects into **content types and entries**, storing Shopify's `namespace` and `key` (and
+metaobject types) through `keyFromName` (lower snake case). `custom-drops.ts` maps them back the
+same way, so `product.metafields.custom['size-guide']` finds `custom.size_guide`.
+
+| Liquid | Here |
+| --- | --- |
+| `product.metafields.<ns>.<key>`, `collection.metafields…` | A metafield: `.value`, `.type` (Shopify's name, `list.` for lists), `.list?`; printed on its own like Shopify prints it (text as text, references as `gid://shopify/…`, lists and objects as JSON). Other properties read through to the value (`feature.image.width`). |
+| `.value` by type | Text, number, boolean, date and URL as is; colour → colour object; rich text → HTML; money → `{ amount, currency }` that `money` formats; rating → `{ rating, scale_min, scale_max }`; measurement → `{ value, unit }` with type `weight` / `dimension` / `volume`; link → `{ text, url }`; file → image (works with `image_url`) or `{ url, media_type: 'generic_file' }`; product, collection, page, variant, blog post and entry links → the same drops themes get everywhere; group → rows (`json`); lists → arrays. |
+| `metaobjects.<type>` and `shop.metaobjects.<type>` | `.values` (published entries, oldest first, up to 250), `.values_count`, `[handle]`; each entry exposes its fields (`entry.title.value`) and `system.id` / `handle` / `type`. |
+| `variant`, `page`, `article`, `blog`, `shop` metafields | Blank: we keep no extra fields on those owners yet (the importer only counts them). |
+
+Only definitions with storefront access, active entries and published targets are read, under the
+store's RLS. Loading goes through the request cache: every owner asked for in a pass is one
+query per owner type (`custom-data.ts`, `loadMetafields`), each content type one query, and entry
+links are followed three levels deep in the same load; files, products, collections, pages,
+posts and variants they point at are one query per kind.
 
 ### Synchronous passes
 
@@ -127,7 +147,7 @@ before any theme script). This is not an emulation of Shopify's API; each call b
 | Checkout | Ours, never themed: no theme CSS, scripts, header or footer on `/checkout/*` |
 | Customer account forms | Our account pages |
 | App blocks (`@app`), app data (Judge.me metafields) | Left out / hidden; listed in the report |
-| Metafields, metaobjects | Blank |
+| Metafields, metaobjects | Our extra fields (products, collections) and content types; app namespaces stay blank until an app fills them |
 | Pre-order apps | Our pre-order as a "Pre-order" selling plan group |
 
 The same table, in code, is `swap.ts` (`SWAP_TABLE`), which also detects each row in a section's

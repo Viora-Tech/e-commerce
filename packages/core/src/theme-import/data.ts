@@ -1,4 +1,4 @@
-/** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
+/** SOURCE OF TRUTH: the store data an imported theme reads — WHAT: a per-request `LiquidDataSource` over our database (products with variants, options and images; collections and their products; menus; blogs; pages; the shop; extra fields and content entries through `custom-data.ts`), cached within the request / WHY: imported Liquid asks for Shopify objects by handle; this answers from our catalogue under the store's RLS, so the theme shows our live data */
 import {
   article,
   blog,
@@ -19,7 +19,9 @@ import {
   variantOptionValue,
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, isNotNull, isNull, like, sql } from 'drizzle-orm'
+import { keyFromName } from '../metaobjects/validate'
 import { toNavLinks } from '../navigation/resolve'
+import { loadMetafields, loadMetaobjects, loadMetaobjectsOfType } from './custom-data'
 import type {
   LiquidBlogData,
   LiquidCartData,
@@ -385,6 +387,10 @@ export async function storeLiquidData(
           : null
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
+    metafields: (ownerType, ownerIds) => loadMetafields(tx, ownerType, ownerIds),
+    metaobjectsOfType: (type) =>
+      once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
+    metaobjects: (ids) => loadMetaobjects(tx, ids),
   }
 }
 
