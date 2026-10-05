@@ -73,7 +73,7 @@ export const themeImportContent = {
       newsletter: 'Signups join your subscriber list',
       contact: 'The contact form cannot send yet',
       app_blocks: 'Shopify app blocks are left out',
-      metafields: 'Metafields show blank until you add matching fields',
+      metafields: 'Metafields and metaobjects read from your extra fields and content types',
       fonts: 'Fonts load from Google Fonts',
       hosted_images: 'Pictures copied into Files',
       payment_icons: 'Simple payment marks',
@@ -118,7 +118,7 @@ export const themeImportContent = {
       },
       metafields: {
         shopify: 'Metafields and metaobjects',
-        ours: 'Blank until you add matching extra fields or content types.',
+        ours: 'Read from your extra fields (products and collections) and content types. The Shopify importer copies them over.',
       },
       fonts: { shopify: 'Shopify fonts', ours: 'The same fonts from Google Fonts.' },
       hosted_images: { shopify: 'Pictures in Shopify Files', ours: 'Copied into your Files.' },

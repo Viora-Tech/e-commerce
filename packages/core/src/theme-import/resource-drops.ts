@@ -1,6 +1,9 @@
-/** SOURCE OF TRUTH: Shopify's resource objects on our data — WHAT: `product`, `variant`, `collection(s)`, `all_products`, `linklist(s)`, `blog(s)`, `article`, `page(s)` as Liquid drops reading the request's data cache / WHY: themes walk these objects for every card, menu and post; one mapping keeps every section consistent with our catalogue */
+/** SOURCE OF TRUTH: Shopify's resource objects on our data — WHAT: `product`, `variant`, `collection(s)`, `all_products`, `linklist(s)` (with `link.object`), `blog(s)`, `article`, `page(s)` as Liquid drops reading the request's data cache; products and collections carry their extra fields as `metafields` / WHY: themes walk these objects for every card, menu and post; one mapping keeps every section consistent with our catalogue */
 import { Drop } from 'liquidjs'
 import type { LiquidDataCache } from './cache'
+// Metafields read our extra fields (`custom-drops.ts`). The two modules import each other;
+// neither uses the other while loading, only inside constructors and getters.
+import { MetafieldsDrop } from './custom-drops'
 import {
   handleize,
   ImageDrop,
@@ -13,11 +16,10 @@ import {
   type LiquidPageData,
   type LiquidProductData,
   type LiquidVariantData,
-  MetafieldsDrop,
 } from './drops'
 import { numericId } from './numeric-id'
 
-class VariantDrop extends Drop {
+export class VariantDrop extends Drop {
   /** A whole number, as Shopify ids are (see `numeric-id.ts`). */
   readonly id: number | string
   readonly title: string
@@ -48,7 +50,7 @@ class VariantDrop extends Drop {
   readonly incoming = false
   readonly matched = true
   readonly selected = false
-  constructor(v: LiquidVariantData, productUrl: string) {
+  constructor(v: LiquidVariantData, productUrl: string, cache: LiquidDataCache) {
     super()
     this.id = numericId(v.id)
     this.title = v.title
@@ -69,7 +71,8 @@ class VariantDrop extends Drop {
     this.featured_media = this.image
     this.weight = v.weightGrams ?? 0
     this.url = `${productUrl}?variant=${v.id}`
-    this.metafields = new MetafieldsDrop()
+    // We keep no extra fields on variants; their metafields read blank.
+    this.metafields = new MetafieldsDrop(cache, null)
   }
 }
 
@@ -113,7 +116,7 @@ export class ProductDrop extends Drop {
   readonly selected_or_first_available_variant: VariantDrop | null
   readonly created_at: Date
   readonly published_at: Date
-  readonly metafields = new MetafieldsDrop()
+  readonly metafields: MetafieldsDrop
   readonly collections: unknown[] = []
   readonly gift_card = false
   readonly requires_selling_plan = false
@@ -125,8 +128,9 @@ export class ProductDrop extends Drop {
   }[]
   readonly template_suffix = ''
   readonly quantity_price_breaks_configured = false
-  constructor(p: LiquidProductData) {
+  constructor(p: LiquidProductData, cache: LiquidDataCache) {
     super()
+    this.metafields = new MetafieldsDrop(cache, { type: 'product', id: p.id })
     // Pre-order apps on Shopify mark products with a selling plan group; ours is built in.
     this.selling_plan_groups = p.preorder
       ? [{ id: 'preorder', name: 'Pre-order', app_id: 'commerce', selling_plans: [] }]
@@ -144,7 +148,7 @@ export class ProductDrop extends Drop {
     this.media = this.images
     this.featured_image = this.images[0] ?? null
     this.featured_media = this.featured_image
-    this.variants = p.variants.map((v) => new VariantDrop(v, this.url))
+    this.variants = p.variants.map((v) => new VariantDrop(v, this.url, cache))
     this.options = p.options.map((o) => o.name)
     this.options_with_values = p.options.map((o, i) => ({
       name: o.name,
@@ -193,7 +197,7 @@ export class CollectionDrop extends Drop {
   readonly image: ImageDrop | null
   readonly products_count: number
   readonly all_products_count: number
-  readonly metafields = new MetafieldsDrop()
+  readonly metafields: MetafieldsDrop
   readonly filters: unknown[] = []
   readonly sort_by = ''
   readonly default_sort_by = 'manual'
@@ -211,6 +215,7 @@ export class CollectionDrop extends Drop {
     this.image = imageDrop(c.image)
     this.products_count = c.productsCount
     this.all_products_count = c.productsCount
+    this.metafields = new MetafieldsDrop(cache, { type: 'collection', id: c.id })
   }
   /** Used as a key (`collections[setting]`), a resource reads as its handle, as on Shopify. */
   override valueOf(): string {
@@ -220,7 +225,7 @@ export class CollectionDrop extends Drop {
     if (this.#products) return this.#products
     const list = this.#cache.collectionProducts(this.handle)
     if (!list) return []
-    this.#products = list.map((p) => new ProductDrop(p))
+    this.#products = list.map((p) => new ProductDrop(p, this.#cache))
     return this.#products
   }
   get featured_image(): ImageDrop | null {
@@ -271,8 +276,14 @@ export class AllProductsDrop extends Drop {
   }
   override liquidMethodMissing(handle: string): unknown {
     const found = this.#cache.product(handle)
-    return found ? new ProductDrop(found) : null
+    return found ? new ProductDrop(found, this.#cache) : null
   }
+}
+
+/** The handle after `/<kind>/` in one of our paths (`/collections/mice?x=1` → `mice`). */
+const pathHandle = (url: string, kind: string): string | null => {
+  const m = new RegExp(`^/${kind}/([^/?#]+)/?(?:[?#].*)?$`).exec(url)
+  return m?.[1] ? decodeURIComponent(m[1]) : null
 }
 
 class LinkDrop extends Drop {
@@ -286,15 +297,44 @@ class LinkDrop extends Drop {
   readonly current = false
   readonly child_active = false
   readonly child_current = false
-  readonly object = null
-  constructor(link: LiquidLinkData) {
+  readonly #cache: LiquidDataCache
+  constructor(link: LiquidLinkData, cache: LiquidDataCache) {
     super()
+    this.#cache = cache
     this.title = link.title
     this.url = link.url
     this.type = link.type
     this.handle = link.handle ?? handleize(link.title)
-    this.links = link.links.map((l) => new LinkDrop(l))
+    this.links = link.links.map((l) => new LinkDrop(l, cache))
     this.levels = this.links.length ? 1 + Math.max(...this.links.map((l) => l.levels)) : 0
+  }
+  /**
+   * The collection, product, page or blog the link points at (menu images read
+   * `link.object.featured_image`), found by its path and loaded like any other lookup.
+   */
+  get object(): unknown {
+    const cache = this.#cache
+    const collection = pathHandle(this.url, 'collections')
+    if (collection) {
+      const c = cache.collection(collection)
+      return c ? new CollectionDrop(c, cache) : null
+    }
+    const product = pathHandle(this.url, 'products')
+    if (product) {
+      const p = cache.product(product)
+      return p ? new ProductDrop(p, cache) : null
+    }
+    const page = pathHandle(this.url, 'pages')
+    if (page) {
+      const p = cache.page(page)
+      return p ? new PageDrop(p) : null
+    }
+    const blog = pathHandle(this.url, 'blogs')
+    if (blog) {
+      const b = cache.blog(blog)
+      return b ? new BlogDrop(b) : null
+    }
+    return null
   }
 }
 
@@ -303,11 +343,11 @@ export class LinklistDrop extends Drop {
   readonly title: string
   readonly links: LinkDrop[]
   readonly levels: number
-  constructor(menu: LiquidMenuData) {
+  constructor(menu: LiquidMenuData, cache: LiquidDataCache) {
     super()
     this.handle = menu.handle
     this.title = menu.title
-    this.links = menu.links.map((l) => new LinkDrop(l))
+    this.links = menu.links.map((l) => new LinkDrop(l, cache))
     this.levels = this.links.length ? 1 + Math.max(...this.links.map((l) => l.levels)) : 0
   }
   override valueOf(): string {
@@ -324,7 +364,7 @@ export class LinklistsDrop extends Drop {
   }
   override liquidMethodMissing(handle: string): unknown {
     const menu = this.#cache.menu(handle)
-    return menu ? new LinklistDrop(menu) : null
+    return menu ? new LinklistDrop(menu, this.#cache) : null
   }
 }
 

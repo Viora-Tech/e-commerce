@@ -1,5 +1,6 @@
-/** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills) and the small objects every theme prints: images, videos, colours, colour schemes, fonts, blank metafields / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
+/** SOURCE OF TRUTH: our data and Shopify's basic Liquid objects — WHAT: the plain data an imported theme reads (`LiquidData*` types the store loader fills, extra fields and content entries included) and the small objects every theme prints: images, videos, colours, colour schemes, fonts / WHY: a theme's markup reads Shopify's objects; these shapes are what lets a theme LOOK the same while every value comes from our store */
 import { Drop } from 'liquidjs'
+import type { FieldType, MeasureKind } from '../metaobjects/schemas'
 import { numericId } from './numeric-id'
 
 /** An image we host: product media, a section image, a collection image. */
@@ -112,6 +113,54 @@ export type LiquidShopData = {
   description: string
 }
 
+/** A file an extra field points at (an image, or any other file in Files). */
+export type LiquidFileData = LiquidImageData & { id: string; contentType: string | null }
+
+/** A record an extra field links to: enough for the drops to find it in the request cache. */
+export type LiquidFieldRef =
+  | { kind: 'file'; id: string; file: LiquidFileData }
+  | { kind: 'product'; id: string; handle: string }
+  | { kind: 'collection'; id: string; handle: string }
+  | { kind: 'page'; id: string; handle: string }
+  | { kind: 'article'; id: string; handle: string; blogHandle: string }
+  | { kind: 'variant'; id: string; productHandle: string }
+  | { kind: 'metaobject'; id: string }
+
+/**
+ * One extra-field value as a theme reads it: our stored value with every reference
+ * swapped for a `LiquidFieldRef` (hidden or deleted targets drop out) and rich text as HTML.
+ */
+export type LiquidFieldData = {
+  key: string
+  type: FieldType
+  list: boolean
+  /** Measurements only: weight, length or volume (Shopify's weight, dimension, volume). */
+  measure: MeasureKind | null
+  value: unknown
+}
+
+/** An extra field (metafield) on a product or collection. */
+export type LiquidMetafieldData = LiquidFieldData & { namespace: string }
+
+/** One content entry (metaobject); `type` is its content type's handle. */
+export type LiquidMetaobjectData = {
+  id: string
+  handle: string
+  type: string
+  fields: LiquidFieldData[]
+}
+
+/** Owners our extra fields live on. */
+export type LiquidMetafieldOwner = 'product' | 'collection'
+
+/** What one custom-data load returns; the request cache keeps all of it. */
+export type LiquidCustomData = {
+  /** Owner id to its extra fields; owners with none are absent. */
+  metafields: Record<string, LiquidMetafieldData[]>
+  /** Entries asked for, plus the ones their values link to (a few levels deep). */
+  entries: LiquidMetaobjectData[]
+}
+
 /**
  * Everything a render can ask our store for. Each call is per request; the store
  * loader caches within one request, so a header and a footer asking for the same
@@ -128,6 +177,12 @@ export type LiquidDataSource = {
   blog(handle: string): Promise<LiquidBlogData | null>
   page(handle: string): Promise<LiquidPageData | null>
   cart(): Promise<LiquidCartData>
+  /** Extra fields of many owners at once (one batch per render pass). */
+  metafields(ownerType: LiquidMetafieldOwner, ownerIds: string[]): Promise<LiquidCustomData>
+  /** Every published entry of one content type, in order, with the entries they link to. */
+  metaobjectsOfType(type: string): Promise<LiquidCustomData>
+  /** Published entries by id, with the entries they link to. */
+  metaobjects(ids: string[]): Promise<LiquidCustomData>
 }
 
 /** Shopify's handleize: lowercase, words joined by hyphens. */
@@ -293,22 +348,6 @@ export class FontDrop extends Drop {
   }
   override valueOf(): string {
     return this.handle
-  }
-}
-
-/** Metafields: we have none under Shopify's namespaces, so every lookup is blank. */
-export class MetafieldsDrop extends Drop {
-  override liquidMethodMissing(): unknown {
-    return new BlankNamespaceDrop()
-  }
-}
-
-class BlankNamespaceDrop extends Drop {
-  override liquidMethodMissing(): unknown {
-    return null
-  }
-  override valueOf(): string {
-    return ''
   }
 }
 

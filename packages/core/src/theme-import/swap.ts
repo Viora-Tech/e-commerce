@@ -98,8 +98,8 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'metafields',
     shopify: 'Metafields and metaobjects',
-    ours: 'Blank until you add matching extra fields or content types here',
-    kind: 'unavailable',
+    ours: 'Read from your extra fields (products and collections) and content types; the importer copied them from Shopify',
+    kind: 'replaced',
     detect: /\.metafields\.(?!judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)|metaobjects/,
   },
   {

@@ -191,7 +191,7 @@ export async function renderStaticLiquidSection(
   }
   if (product) {
     const found = await ctx.options.data.product(decodeURIComponent(product))
-    if (found) ctx.globals.product = new ProductDrop(found)
+    if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
   }
   const section: LiquidSectionInput = {
     id: sectionType,

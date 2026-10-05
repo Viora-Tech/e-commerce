@@ -1,7 +1,8 @@
-/** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
+/** SOURCE OF TRUTH: the Liquid page context — WHAT: what one request renders with: the request and render options, the Shopify globals (shop, settings, routes, request, localization, collections, linklists, metaobjects, cart...) and our routes and cart in Shopify's shape / WHY: every section on a page shares one context, so they all see the same data and cost one set of loads */
 
 import { type EngineEntry, engineFor, type ThemeBundle } from './bundle'
 import { LiquidDataCache } from './cache'
+import { MetafieldsDrop, MetaobjectsDrop } from './custom-drops'
 import { imageDrop, LIQUID_ROUTES, type LiquidCartData, type LiquidDataSource } from './drops'
 import type { EngineRuntime } from './engine'
 import { numericId } from './numeric-id'
@@ -105,6 +106,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     postedForm: request.postedForm,
   }
   const shop = data.shop
+  // Content entries (metaobjects): the `metaobjects` global and `shop.metaobjects` are one object.
+  const metaobjects = new MetaobjectsDrop(cache)
   const globals: Record<string, unknown> = {
     _rt: runtime,
     settings,
@@ -133,7 +136,9 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       customer_accounts_optional: true,
       types: [],
       vendors: [],
-      metafields: {},
+      // Extra fields live on products and collections only; the shop's read blank.
+      metafields: new MetafieldsDrop(cache, null),
+      metaobjects,
       brand: { logo: null, colors: {}, short_description: shop.description },
     },
     routes: LIQUID_ROUTES,
@@ -165,7 +170,8 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     linklists: new LinklistsDrop(cache),
     blogs: new BlogsDrop(cache),
     pages: new PagesDrop(cache),
-    cart: cartDrop(cart),
+    metaobjects,
+    cart: cartDrop(cart, cache),
     customer: null,
     content_for_header: '',
     content_for_index: '',
@@ -186,7 +192,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
   return { bundle, entry, globals, runtime, options, cache }
 }
 
-function cartDrop(cart: LiquidCartData): Record<string, unknown> {
+function cartDrop(cart: LiquidCartData, cache: LiquidDataCache): Record<string, unknown> {
   return {
     item_count: cart.itemCount,
     total_price: cart.totalPrice,
@@ -213,7 +219,7 @@ function cartDrop(cart: LiquidCartData): Record<string, unknown> {
       final_line_price: i.linePrice,
       original_line_price: i.linePrice,
       variant_id: numericId(i.id),
-      product: i.product ? new ProductDrop(i.product) : null,
+      product: i.product ? new ProductDrop(i.product, cache) : null,
       variant: { title: i.variantTitle },
       image: imageDrop(i.image),
       url: i.url,
