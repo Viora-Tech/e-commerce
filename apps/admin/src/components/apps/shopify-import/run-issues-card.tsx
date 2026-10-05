@@ -21,6 +21,8 @@ import type { IssueItem } from './types'
 type RunIssuesCardProps = {
   runId: string
   count: number
+  /** Records a retry would bring over (one record can have several problems). */
+  retryable?: number | undefined
   /** Changes whenever the run moves on, so the list refetches. */
   version: string
 }
@@ -31,7 +33,12 @@ const PER_PAGE = 50
  * What could not be imported: grouped by cause with one fix each, and every
  * record with its reason behind "Show every record".
  */
-export default function RunIssuesCard({ runId, count, version }: RunIssuesCardProps) {
+export default function RunIssuesCard({
+  runId,
+  count,
+  retryable = 0,
+  version,
+}: RunIssuesCardProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
   const resources = useCopy(shopifyImportContent.resources)
@@ -73,6 +80,11 @@ export default function RunIssuesCard({ runId, count, version }: RunIssuesCardPr
 
   return (
     <DataCard title={copy.issuesHeading(count)} action={toggle} flush={all}>
+      {retryable > 0 && retryable !== count ? (
+        <p className={`mb-3 text-caption text-muted-foreground ${all ? 'px-5' : ''}`}>
+          {copy.problems.unit(retryable)}
+        </p>
+      ) : null}
       {all ? null : <RunProblemGroups runId={runId} version={version} />}
       <Table className={all ? undefined : 'hidden'}>
         <TableHeader>

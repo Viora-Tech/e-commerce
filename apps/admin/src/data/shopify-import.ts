@@ -253,6 +253,8 @@ export const shopifyImportContent = {
     problems: {
       showAll: 'Show every record',
       showGrouped: 'Group by cause',
+      unit: (n: number) =>
+        `${plural(n, 'record', 'records')} to retry: one record can have several problems, such as several images.`,
       example: 'For example:',
       retryable: (n: number) => `${plural(n, 'record', 'records')} can be retried`,
       fix: { storage: 'Connect storage', scope: 'Add the access' },

@@ -10,7 +10,7 @@ import {
 import KitProgress from '@/components/kit/kit-progress'
 import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { RunDetail } from './types'
 
 type RunProgressCardProps = { run: RunDetail }
@@ -20,6 +20,7 @@ export default function RunProgressCard({ run }: RunProgressCardProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
   const resources = useCopy(shopifyImportContent.resources)
+  const fmt = useFormat()
 
   // Render logic
   const rows = IMPORT_RESOURCES.filter((r) => run.resources.includes(r)).map((resource) => ({
@@ -69,11 +70,17 @@ export default function RunProgressCard({ run }: RunProgressCardProps) {
                   </span>
                 </span>
               </TableCell>
-              <TableCell className={`hidden sm:table-cell ${numeric}`}>{p.created}</TableCell>
-              <TableCell className={`hidden sm:table-cell ${numeric}`}>{p.updated}</TableCell>
-              <TableCell className={`hidden sm:table-cell ${numeric}`}>{p.skipped}</TableCell>
+              <TableCell className={`hidden sm:table-cell ${numeric}`}>
+                {fmt.number(p.created)}
+              </TableCell>
+              <TableCell className={`hidden sm:table-cell ${numeric}`}>
+                {fmt.number(p.updated)}
+              </TableCell>
+              <TableCell className={`hidden sm:table-cell ${numeric}`}>
+                {fmt.number(p.skipped)}
+              </TableCell>
               <TableCell className={`${numeric} ${p.failed ? 'text-destructive' : ''}`}>
-                {p.failed}
+                {fmt.number(p.failed)}
               </TableCell>
             </TableRow>
           ))}

@@ -108,6 +108,7 @@ export default function RunPage({ params }: AppPageProps) {
       <RunIssuesCard
         runId={run.id}
         count={run.issueCount}
+        retryable={run.dryRun ? 0 : run.retryable}
         version={`${run.status}-${run.updatedAt}`}
       />
     </div>

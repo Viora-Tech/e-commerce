@@ -159,7 +159,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
     status?.lastImportAt ? copy.lastImport(fmt.when(status.lastImportAt)) : copy.nothingYet,
     status?.freshPreview ? copy.previewReused(fmt.when(status.freshPreview.takenAt)) : null,
     previewAt ? copy.fromPreview(fmt.date(previewAt)) : null,
-    connected ? null : copy.notConnected,
+    connected || previewAt ? null : copy.notConnected,
   ].filter((f): f is string => Boolean(f))
 
   return (
@@ -179,7 +179,7 @@ export default function RemainingCard({ connected }: RemainingCardProps) {
     >
       <div className="mb-3 flex flex-col gap-1.5 px-5 in-data-[layout=sections]:px-4 md:in-data-[layout=sections]:px-6">
         <p className="text-body text-muted-foreground">{copy.subtitle}</p>
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted-foreground">
+        <ul className="flex flex-col gap-0.5 text-caption text-muted-foreground">
           {facts.map((f) => (
             <li key={f}>{f}</li>
           ))}
