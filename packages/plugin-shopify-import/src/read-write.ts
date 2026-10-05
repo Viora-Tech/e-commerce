@@ -58,6 +58,8 @@ import { productSourceId, writeProducts } from './write-products'
 /** Records per write batch: products are heavy (images, variants), customers light. */
 const PRODUCT_BATCH = 25
 const ORDER_BATCH = 100
+/** Files copied at once; the media host's shared cap (MEDIA_IN_FLIGHT) bounds memory across steps. */
+const FILE_CONCURRENCY = 12
 
 /** Regroup a reader's pages into batches of `size` for the batched writers. */
 async function* rebatch<T>(source: AsyncGenerator<T[]>, size: number): AsyncGenerator<T[]> {
@@ -125,13 +127,31 @@ async function* chunksOf<T>(items: T[]): AsyncGenerator<T[]> {
   yield items
 }
 
-/** On a retry: per resource, the import keys of what the previous import missed. */
-export type Only = Map<ImportResource, Set<string>> | null
+/**
+ * Which records a narrowed run writes; null writes everything.
+ * - A retry knows the keys of what the previous import missed (`ids`), so it reads just those.
+ * - "Import remaining" tests each record (`keep`): not imported yet, or with an open problem.
+ */
+export type Only = {
+  ids?: Map<ImportResource, Set<string>> | undefined
+  keep?: ((resource: ImportResource, id: string) => boolean) | undefined
+} | null
 
-/** Keep only the retried records (all of them when this is not a retry). */
+/** The test for one resource's import keys, or null to keep everything. */
+function wants(only: Only, resource: ImportResource): ((id: string) => boolean) | null {
+  const ids = only?.ids
+  if (ids) {
+    const set = ids.get(resource)
+    return set ? (id) => set.has(id) : () => false
+  }
+  const test = only?.keep
+  return test ? (id) => test(resource, id) : null
+}
+
+/** Keep only the records a narrowed run writes (all of them otherwise). */
 function keep<T>(only: Only, resource: ImportResource, idOf: (item: T) => string) {
-  const ids = only?.get(resource)
-  return (items: T[]) => (ids ? items.filter((item) => ids.has(idOf(item))) : items)
+  const test = wants(only, resource)
+  return (items: T[]) => (test ? items.filter((item) => test(idOf(item))) : items)
 }
 
 async function* filtered<T>(
@@ -200,10 +220,15 @@ export async function runApi(
     ctx.log(`Shopify bulk read fell back to paged fetching: ${errorMessage(reason)}`)
   const byHandle = (item: { sourceId: string | null; handle: string }) =>
     item.sourceId ?? `handle:${item.handle}`
-  /** Everything (with the preview's copy when there is one), or on a retry only what was missed. */
+  /**
+   * Everything (with the preview's copy when there is one); on a retry only what was missed;
+   * for "Import remaining" everything read, but only what is not here yet written.
+   */
   const read = <T>(spec: ReadSpec<T>): AsyncGenerator<T[]> => {
-    const ids = only?.get(spec.resource)
-    return ids ? snap.readSome(spec, ids) : snap.read(spec)
+    const ids = only?.ids?.get(spec.resource)
+    if (ids) return snap.readSome(spec, ids)
+    const pick = keep(only, spec.resource, spec.idOf)
+    return only ? filtered(snap.read(spec), pick) : snap.read(spec)
   }
   // Products before collections (membership) and orders (line matching); customers before orders.
   if (wanted('products')) {
@@ -289,7 +314,7 @@ export async function runApi(
       delta: (search) => fetchFiles(client, search),
     })
     await optional(ctx, 'files', () =>
-      forEachBatch(ctx, 'files', files, (f) => writeFile(ctx, f), 3),
+      forEachBatch(ctx, 'files', files, (f) => writeFile(ctx, f), FILE_CONCURRENCY),
     )
   }
   // Content types and extra fields link to each other: a retry runs them in full (safe, idempotent).
@@ -298,13 +323,9 @@ export async function runApi(
   if (wanted('metafields'))
     await optional(ctx, 'metafields', () => importMetafields(ctx, client, resolver, onBulkFallback))
   if (wanted('discounts'))
-    await optional(ctx, 'discounts', () =>
-      importDiscounts(ctx, client, only?.get('discounts') ?? null),
-    )
+    await optional(ctx, 'discounts', () => importDiscounts(ctx, client, wants(only, 'discounts')))
   if (wanted('gift_cards'))
-    await optional(ctx, 'gift_cards', () =>
-      importGiftCards(ctx, client, only?.get('gift_cards') ?? null),
-    )
+    await optional(ctx, 'gift_cards', () => importGiftCards(ctx, client, wants(only, 'gift_cards')))
 }
 
 /**

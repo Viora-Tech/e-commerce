@@ -10,6 +10,7 @@ import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import RunActions from './run-actions'
+import RunCurrentStep from './run-current-step'
 import RunIssuesCard from './run-issues-card'
 import RunLeftCard from './run-left-card'
 import RunPreflight from './run-preflight'
@@ -94,6 +95,10 @@ export default function RunPage({ params }: AppPageProps) {
           {run.retryOf ? (
             <p className="w-full text-body text-muted-foreground">{copy.retrying}</p>
           ) : null}
+          {run.onlyMissing ? (
+            <p className="w-full text-body text-muted-foreground">{copy.remainingRun}</p>
+          ) : null}
+          <RunCurrentStep run={run} />
         </CardContent>
       </Card>
       {previewDone ? <RunPreflight resources={run.resources} mode={run.mode} /> : null}

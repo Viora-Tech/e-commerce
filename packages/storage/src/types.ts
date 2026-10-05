@@ -42,6 +42,15 @@ export type PutInput = {
   contentType: string
 }
 
+/** A server-side write straight from a download, never held whole in memory. */
+export type PutStreamInput = {
+  key: string
+  body: ReadableStream<Uint8Array>
+  contentType: string
+  /** Exact byte length (object stores need it up front for a single PUT). */
+  size: number
+}
+
 export type StorageProvider = {
   /** Stable id used in store settings and on media rows. Lowercase, no spaces. */
   readonly id: string
@@ -52,6 +61,12 @@ export type StorageProvider = {
    * rather than files a browser uploads. Overwrites an existing key.
    */
   put(input: PutInput): Promise<void>
+  /**
+   * Optional streaming `put` for a body of known size (the Shopify importer copies
+   * images and files download → bucket without buffering them). Without it callers
+   * read the body into memory and use `put`.
+   */
+  putStream?(input: PutStreamInput): Promise<void>
   /** Server-side read; resolves null for a missing key. Used to stream private files. */
   get(key: string): Promise<Uint8Array | null>
   /**

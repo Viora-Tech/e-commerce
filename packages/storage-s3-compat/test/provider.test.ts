@@ -48,6 +48,27 @@ describe('S3CompatProvider', () => {
     expect(sent.input.Key).toBe('media/a.png')
   })
 
+  it('putStream sends one PUT with the stream as body and the declared length', async () => {
+    const { provider, client } = fake('media')
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2]))
+        controller.enqueue(new Uint8Array([3]))
+        controller.close()
+      },
+    })
+    await provider.putStream({ key: 'a.png', body, contentType: 'image/png', size: 3 })
+    const sent = (client.send as ReturnType<typeof vi.fn>).mock.calls[0]?.[0]
+    expect(sent.input).toMatchObject({
+      Key: 'media/a.png',
+      ContentType: 'image/png',
+      ContentLength: 3,
+    })
+    const chunks: Uint8Array[] = []
+    for await (const chunk of sent.input.Body as AsyncIterable<Uint8Array>) chunks.push(chunk)
+    expect(Buffer.concat(chunks)).toEqual(Buffer.from([1, 2, 3]))
+  })
+
   it('delete is idempotent by design: it never checks existence first', async () => {
     const { provider, client } = fake()
     await provider.delete('missing.png')

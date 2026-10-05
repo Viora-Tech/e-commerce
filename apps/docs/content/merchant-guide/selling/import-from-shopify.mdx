@@ -49,6 +49,12 @@ with a **Fix this** button: no file storage connected (connect Cloudflare R2 or 
 images are skipped), a Shopify access the app is missing (that one thing can't be ticked
 until you add it), or orders chosen without products. You can still preview with warnings.
 
+**See what is left.** The importer's first page lists every type with Shopify's count, how
+many are here, and what is still missing, with a button on each row (**Import 3**, **Copy
+images**, **Copy files**) and **Import remaining** for all of it. Only the missing records are
+brought over; everything already here is left alone. On an import's page, problems are grouped
+by cause ("1,400 images and files not copied: file storage isn't working") with one fix each.
+
 **Retry only what was missed.** When an import finishes with problems, press **Retry the 12
 that were missed**: only those records, images or files are brought over again; everything
 that already worked is left alone. **Import everything again** still runs the whole import.

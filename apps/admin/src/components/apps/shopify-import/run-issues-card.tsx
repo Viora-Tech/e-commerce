@@ -15,6 +15,7 @@ import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import RunProblemGroups from './run-problem-groups'
 import type { IssueItem } from './types'
 
 type RunIssuesCardProps = {
@@ -26,17 +27,21 @@ type RunIssuesCardProps = {
 
 const PER_PAGE = 50
 
-/** Every row or record that could not be imported, with the reason. */
+/**
+ * What could not be imported: grouped by cause with one fix each, and every
+ * record with its reason behind "Show every record".
+ */
 export default function RunIssuesCard({ runId, count, version }: RunIssuesCardProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
   const resources = useCopy(shopifyImportContent.resources)
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<IssueItem[]>([])
+  const [all, setAll] = useState(false)
 
   useEffect(() => {
     // `version` changes as the run moves on; refetch then.
-    if (count === 0 || !version) return
+    if (count === 0 || !version || !all) return
     let live = true
     api.shopifyImport
       .issues({ runId, page, perPage: PER_PAGE })
@@ -47,7 +52,7 @@ export default function RunIssuesCard({ runId, count, version }: RunIssuesCardPr
     return () => {
       live = false
     }
-  }, [runId, page, count, version])
+  }, [runId, page, count, version, all])
 
   // Early returns
   if (count === 0) {
@@ -60,10 +65,16 @@ export default function RunIssuesCard({ runId, count, version }: RunIssuesCardPr
 
   // Render logic
   const pages = Math.ceil(count / PER_PAGE)
+  const toggle = (
+    <Button type="button" variant="ghost" size="sm" onClick={() => setAll(!all)}>
+      {all ? copy.problems.showGrouped : copy.problems.showAll}
+    </Button>
+  )
 
   return (
-    <DataCard title={copy.issuesHeading(count)} flush>
-      <Table>
+    <DataCard title={copy.issuesHeading(count)} action={toggle} flush={all}>
+      {all ? null : <RunProblemGroups runId={runId} version={version} />}
+      <Table className={all ? undefined : 'hidden'}>
         <TableHeader>
           <TableRow>
             <TableHead>{copy.issueColumns.where}</TableHead>
@@ -86,7 +97,7 @@ export default function RunIssuesCard({ runId, count, version }: RunIssuesCardPr
           ))}
         </TableBody>
       </Table>
-      {pages > 1 ? (
+      {all && pages > 1 ? (
         <div className="flex justify-end gap-2 p-4">
           <Button
             size="sm"

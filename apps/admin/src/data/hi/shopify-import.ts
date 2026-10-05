@@ -233,6 +233,57 @@ const hi = {
     retryFailed: 'दोबारा कोशिश शुरू नहीं हो पाई',
     importAll: 'सब कुछ फिर से इंपोर्ट करें',
     retrying: 'सिर्फ़ वही दोबारा लाया जा रहा है जो पिछले इंपोर्ट में छूट गया था। बाकी सब वैसा ही रहेगा।',
+    remainingRun:
+      'सिर्फ़ वही लाया जा रहा है जो अभी यहाँ नहीं है या पिछली बार किसी दिक्कत में अटका था। बाकी सब वैसा ही रहेगा।',
+    now: (what, done, total) => `${what}: ${num(total)} में से ${num(done)}`,
+    problems: {
+      showAll: 'हर रिकॉर्ड देखें',
+      showGrouped: 'वजह के हिसाब से देखें',
+      example: 'उदाहरण:',
+      retryable: (n) => `${num(n)} रिकॉर्ड फिर से लाए जा सकते हैं`,
+      fix: { storage: 'स्टोरेज जोड़ें', scope: 'अनुमति जोड़ें' },
+      cause: {
+        storage: (n) => `${num(n)} फ़ोटो और फ़ाइलें कॉपी नहीं हुईं: फ़ाइल स्टोरेज काम नहीं कर रहा`,
+        scope: (n) => `${num(n)} तरह का डेटा Shopify ने पढ़ने नहीं दिया`,
+        order_number: (n) => `${num(n)} ऑर्डर छोड़े गए: यह ऑर्डर नंबर यहाँ पहले से है`,
+        image: (n) => `${num(n)} फ़ोटो कॉपी नहीं हो पाईं`,
+        file: (n) => `${num(n)} फ़ाइलें कॉपी नहीं हो पाईं`,
+        record: (n) => `${num(n)} रिकॉर्ड सेव नहीं हो पाए`,
+        note: (n) => `${num(n)} नोट: क्या बदला या Shopify में रह गया`,
+      },
+    },
+  },
+
+  remaining: {
+    heading: 'क्या इंपोर्ट होना बाकी है',
+    subtitle: 'Shopify की गिनती और यहाँ की गिनती साथ-साथ, ताकि दिखे कि क्या अभी बाकी है।',
+    notConnected: 'क्या बाकी है यह देखने के लिए अपना Shopify स्टोर जोड़ें।',
+    loadFailed: 'बाकी का हिसाब नहीं मिल पाया। पेज दोबारा खोलें।',
+    columns: { what: 'क्या', inShopify: 'Shopify में', here: 'यहाँ', status: 'स्थिति' },
+    state: {
+      done: 'पूरा',
+      missing: 'बाकी',
+      not_copied: 'कॉपी नहीं हुआ',
+      never: 'कभी इंपोर्ट नहीं हुआ',
+      unknown: 'अभी जाँचा नहीं',
+    },
+    missingCount: (n) => `${num(n)} बाकी`,
+    notCopiedCount: (n) => `${num(n)} कॉपी नहीं हुए`,
+    images: 'प्रोडक्ट फ़ोटो',
+    action: {
+      import: (n) => `${num(n)} इंपोर्ट करें`,
+      images: 'फ़ोटो कॉपी करें',
+      files: 'फ़ाइलें कॉपी करें',
+    },
+    importRemaining: 'बाकी इंपोर्ट करें',
+    allHere: 'सब कुछ यहाँ है',
+    fromShopify: 'Shopify से अभी गिना गया',
+    fromPreview: (when) => `जो गिनती Shopify नहीं देता, वह ${when} के प्रीव्यू से है`,
+    lastImport: (when) => `पिछला इंपोर्ट ${when}`,
+    nothingYet: 'अभी कुछ इंपोर्ट नहीं हुआ',
+    previewReused: (when) => `${when} का प्रीव्यू दोबारा इस्तेमाल होगा, इसलिए अगला इंपोर्ट जल्दी शुरू होगा।`,
+    started: 'इंपोर्ट शुरू हुआ',
+    startFailed: 'इंपोर्ट शुरू नहीं हो पाया',
   },
 
   preflight: {
@@ -334,4 +385,5 @@ export default [
   translation(shopifyImportContent.connect, hi.connect),
   translation(shopifyImportContent.run, hi.run),
   translation(shopifyImportContent.preflight, hi.preflight),
+  translation(shopifyImportContent.remaining, hi.remaining),
 ]

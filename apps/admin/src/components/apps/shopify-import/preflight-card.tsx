@@ -52,7 +52,12 @@ export default function PreflightCard({ checks }: PreflightCardProps) {
                 ) : null}
               </div>
               {c.fixHref ? (
-                <Button variant="outline" size="sm" render={<Link href={c.fixHref} />}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={c.fixHref} />}
+                >
                   {copy.fix}
                 </Button>
               ) : null}

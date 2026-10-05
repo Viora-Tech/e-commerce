@@ -856,6 +856,17 @@ const ALLOWLIST: AllowEntry[] = [
       'one-record writer the batched writer falls back to; exported for the fallback unit test',
   },
   {
+    file: 'packages/plugin-shopify-import/src/issue-groups.ts',
+    names: ['causeOf'],
+    reason: 'classifies one problem; exported for its unit test',
+  },
+  {
+    file: 'packages/plugin-shopify-import/src/status.ts',
+    names: ['shopifyCounts', 'importStatus'],
+    reason:
+      'the two halves of remainingStatus (Shopify counts, then the numbers); exported for their unit tests',
+  },
+  {
     file: 'packages/plugin-shopify-import/src/write-orders.ts',
     names: ['writeOrder'],
     reason: 'one-record writer the batched writer falls back to; exported for its unit tests',

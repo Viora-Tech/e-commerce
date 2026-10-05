@@ -12,11 +12,12 @@ import { and, eq } from 'drizzle-orm'
 import type { SnapshotUse } from './client'
 import { clientFor } from './connection'
 import { createMediaHost } from './media'
-import { runApi, runCsv } from './read-write'
+import { type Only, runApi, runCsv } from './read-write'
 import { errorMessage, type ImportContext, type InStore, Reporter } from './runtime'
 import { IMPORT_RESOURCES, type ImportResource, importIssue, importRun } from './schema'
 import { retryTargets } from './service'
 import { cleanupSnapshots, dropSnapshot, freshSnapshot, SnapshotSession } from './snapshot'
+import { remainingFilter } from './status'
 
 export type RunDeps = {
   storeId: string
@@ -112,7 +113,11 @@ export async function executeRun(deps: RunDeps, runId: string): Promise<void> {
     !run.dryRun && run.mode === 'api' ? freshSnapshot(run.snapshot, now().getTime()) : null
   // A retry imports only what the run it retries reported problems for.
   const retryOf = run.retryOf
-  const only = retryOf ? await deps.inStore((tx) => retryTargets(tx, retryOf)) : null
+  const only: Only = retryOf
+    ? { ids: await deps.inStore((tx) => retryTargets(tx, retryOf)) }
+    : run.onlyMissing
+      ? { keep: await deps.inStore((tx) => remainingFilter(tx, run.resources)) }
+      : null
   await deps.inStore(async (tx) => {
     await tx.delete(importIssue).where(eq(importIssue.runId, runId))
     await tx

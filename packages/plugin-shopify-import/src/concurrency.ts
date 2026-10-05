@@ -23,3 +23,23 @@ export async function mapLimit<T, R>(
   await Promise.all(Array.from({ length: size }, worker))
   return results
 }
+
+/**
+ * A shared cap on how many of something run at once, across every caller
+ * (each product's images and the Files step all go through one limiter, so
+ * however the callers fan out, at most `max` downloads hold memory at a time).
+ */
+export function createLimiter(max: number) {
+  let active = 0
+  const waiting: (() => void)[] = []
+  return async function limit<T>(fn: () => Promise<T>): Promise<T> {
+    while (active >= max) await new Promise<void>((resolve) => waiting.push(resolve))
+    active++
+    try {
+      return await fn()
+    } finally {
+      active--
+      waiting.shift()?.()
+    }
+  }
+}

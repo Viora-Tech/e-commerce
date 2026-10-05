@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream'
+import type { ReadableStream as NodeWebStream } from 'node:stream/web'
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -7,7 +9,13 @@ import {
   PutObjectCommand,
   type S3Client,
 } from '@aws-sdk/client-s3'
-import type { PresignedUpload, PresignInput, PutInput, StorageProvider } from '@commerce/storage'
+import type {
+  PresignedUpload,
+  PresignInput,
+  PutInput,
+  PutStreamInput,
+  StorageProvider,
+} from '@commerce/storage'
 import { defaultSign, S3_COMPAT_PRESIGN_SECONDS, type S3CompatDeps, type SignFn } from './client'
 
 export type S3CompatProviderOptions = {
@@ -74,6 +82,22 @@ export abstract class S3CompatProvider implements StorageProvider {
         Body: input.body,
         ContentType: input.contentType,
         ContentLength: input.body.byteLength,
+      }),
+    )
+  }
+
+  /**
+   * One PUT straight from a web stream: the SDK sends it as the body with the
+   * declared length, so the object never sits whole in memory.
+   */
+  async putStream(input: PutStreamInput): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: this.fullKey(input.key),
+        Body: Readable.fromWeb(input.body as unknown as NodeWebStream<Uint8Array>),
+        ContentType: input.contentType,
+        ContentLength: input.size,
       }),
     )
   }

@@ -93,6 +93,8 @@ export type ResourceProgress = {
   failed: number
   /** What was not brought over (or arrived changed), summed by reason. */
   left?: LeftBehind[] | undefined
+  /** Products only: how many images the records carry (a preview counts them for the status page). */
+  images?: number | undefined
 }
 
 /** One sample row the dry run shows: what it is and what would happen to it. */
@@ -226,6 +228,69 @@ export type PreflightCheck = {
   help: string
   /** Admin path that fixes it, when there is one. */
   fixHref: string | null
+}
+
+/** Why problems happened, for grouping them on the run page. */
+export const ISSUE_CAUSES = [
+  /** File storage refused the copy (not connected, or not writable). */
+  'storage',
+  /** The Shopify app lacks a scope. */
+  'scope',
+  /** The order number already belongs to an order placed here. */
+  'order_number',
+  /** An image could not be downloaded or copied. */
+  'image',
+  /** A file from Files could not be copied. */
+  'file',
+  /** A record could not be saved. */
+  'record',
+  /** Something that stays in Shopify or arrives changed (the note says what). */
+  'note',
+] as const
+export type IssueCause = (typeof ISSUE_CAUSES)[number]
+
+export type IssueGroup = {
+  cause: IssueCause
+  /** The types it happened on (storage and scope problems span several). */
+  resources: string[]
+  count: number
+  /** How many of them "Retry the ones that were missed" would bring over again. */
+  retryable: number
+  /** One of the messages, as an example. */
+  sample: string
+  fixHref: string | null
+}
+
+/** One row of "What is left to import". */
+export type ResourceStatus = {
+  resource: ImportResource
+  /** How many Shopify has: its own count, else the last preview's; null when never looked. */
+  inShopify: number | null
+  countedFrom: 'shopify' | 'preview' | null
+  countedAt: string | null
+  /** Records here from Shopify (the import mapping). */
+  imported: number
+  /** Not imported yet, or with an open problem from their last import. */
+  missing: number
+  /** `not_copied`: files that are in Shopify but not in this store's storage. */
+  state: 'done' | 'missing' | 'not_copied' | 'never' | 'unknown'
+  lastImportAt: string | null
+}
+
+export type ImportStatus = {
+  resources: ResourceStatus[]
+  /** Product images: how many the last preview saw, how many the last import could not copy. */
+  images: {
+    expected: number | null
+    missing: number
+    countedAt: string | null
+    state: 'done' | 'not_copied' | 'unknown'
+  }
+  /** What "Import remaining" covers. */
+  remaining: ImportResource[]
+  lastImportAt: string | null
+  /** A preview under 24 hours old: the next import reads its copy instead of Shopify. */
+  freshPreview: { runId: string; takenAt: string } | null
 }
 
 /** Which mode a saved connection authenticates with. */

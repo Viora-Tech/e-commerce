@@ -264,13 +264,13 @@ async function writeDiscount(
 export async function importDiscounts(
   ctx: ImportContext,
   client: ShopifyClient,
-  /** On a retry, only these Shopify discount ids. */
-  only: ReadonlySet<string> | null = null,
+  /** On a retry or "Import remaining", only the discounts this says yes to. */
+  only: ((sourceId: string) => boolean) | null = null,
 ): Promise<void> {
   ctx.report.begin(R)
   for await (const batch of fetchDiscounts(client)) {
     for (const d of batch) {
-      if (only && !only.has(d.sourceId)) continue
+      if (only && !only(d.sourceId)) continue
       await writeDiscount(ctx, d)
       await ctx.report.flush()
     }
