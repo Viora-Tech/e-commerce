@@ -10,7 +10,7 @@ import {
 import KitProgress from '@/components/kit/kit-progress'
 import DataCard from '@/components/layout/data-card'
 import { shopifyImportContent } from '@/data/shopify-import'
-import { useCopy } from '@/hooks/use-copy'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { RunDetail } from './types'
 
 type RunProgressCardProps = { run: RunDetail }
@@ -20,6 +20,7 @@ export default function RunProgressCard({ run }: RunProgressCardProps) {
   // Hooks
   const copy = useCopy(shopifyImportContent.run)
   const resources = useCopy(shopifyImportContent.resources)
+  const fmt = useFormat()
 
   // Render logic
   const rows = IMPORT_RESOURCES.filter((r) => run.resources.includes(r)).map((resource) => ({
@@ -42,9 +43,15 @@ export default function RunProgressCard({ run }: RunProgressCardProps) {
           <TableRow>
             <TableHead>{copy.columns.what}</TableHead>
             <TableHead className="w-1/3">{copy.columns.progress}</TableHead>
-            <TableHead className="text-right">{copy.columns.created}</TableHead>
-            <TableHead className="text-right">{copy.columns.updated}</TableHead>
-            <TableHead className="text-right">{copy.columns.skipped}</TableHead>
+            <TableHead className="hidden text-right sm:table-cell">
+              {copy.columns.created}
+            </TableHead>
+            <TableHead className="hidden text-right sm:table-cell">
+              {copy.columns.updated}
+            </TableHead>
+            <TableHead className="hidden text-right sm:table-cell">
+              {copy.columns.skipped}
+            </TableHead>
             <TableHead className="text-right">{copy.columns.failed}</TableHead>
           </TableRow>
         </TableHeader>
@@ -54,17 +61,26 @@ export default function RunProgressCard({ run }: RunProgressCardProps) {
               <TableCell className="font-medium">{resources[resource]}</TableCell>
               <TableCell>
                 <span className="flex items-center gap-3">
-                  <KitProgress value={p.total ? p.processed / p.total : 0} className="max-w-40" />
+                  <KitProgress
+                    value={p.total ? p.processed / p.total : 0}
+                    className="hidden max-w-40 min-w-16 sm:block"
+                  />
                   <span className="text-caption text-muted-foreground tabular-nums">
                     {copy.counted(p.processed, p.total)}
                   </span>
                 </span>
               </TableCell>
-              <TableCell className={numeric}>{p.created}</TableCell>
-              <TableCell className={numeric}>{p.updated}</TableCell>
-              <TableCell className={numeric}>{p.skipped}</TableCell>
+              <TableCell className={`hidden sm:table-cell ${numeric}`}>
+                {fmt.number(p.created)}
+              </TableCell>
+              <TableCell className={`hidden sm:table-cell ${numeric}`}>
+                {fmt.number(p.updated)}
+              </TableCell>
+              <TableCell className={`hidden sm:table-cell ${numeric}`}>
+                {fmt.number(p.skipped)}
+              </TableCell>
               <TableCell className={`${numeric} ${p.failed ? 'text-destructive' : ''}`}>
-                {p.failed}
+                {fmt.number(p.failed)}
               </TableCell>
             </TableRow>
           ))}

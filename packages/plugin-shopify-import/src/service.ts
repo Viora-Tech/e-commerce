@@ -4,6 +4,7 @@ import type { StorageProvider } from '@commerce/storage'
 import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql } from 'drizzle-orm'
 import { type CsvResource, IMPORT_RESOURCES, type ImportResource, MAX_CSV_BYTES } from './client'
 import { importIssue, importRun } from './schema'
+import { freshSnapshot } from './snapshot'
 
 export class ImportError extends Error {}
 
@@ -181,6 +182,54 @@ export async function getRun(tx: StoreTx, id: string) {
     .from(importIssue)
     .where(eq(importIssue.runId, id))
   return { ...row, issueCount: issues?.n ?? 0, retryable: issues?.retryable ?? 0 }
+}
+
+/**
+ * "Import remaining": one real import of `resources` that writes only records
+ * not imported yet or with an open problem (`remainingFilter` in status.ts).
+ * A preview copy under a day old moves to it, so it reads that instead of Shopify.
+ */
+export async function createRemainingRun(
+  tx: StoreTx,
+  storeId: string,
+  input: { resources: ImportResource[]; createdBy: string | null },
+): Promise<RunRow> {
+  const resources = IMPORT_RESOURCES.filter((r) => input.resources.includes(r))
+  if (resources.length === 0) throw new ImportError('Everything is already here')
+  await failStaleRuns(tx)
+  const [busy] = await tx
+    .select({ id: importRun.id })
+    .from(importRun)
+    .where(inArray(importRun.status, ['queued', 'running']))
+    .limit(1)
+  if (busy) throw new ImportError('An import is already running; wait for it to finish')
+  const withCopy = await tx
+    .select({ id: importRun.id, snapshot: importRun.snapshot, at: importRun.snapshotTakenAt })
+    .from(importRun)
+    .where(isNotNull(importRun.snapshot))
+    .orderBy(desc(importRun.snapshotTakenAt))
+    .limit(1)
+  const copy = withCopy[0] && freshSnapshot(withCopy[0].snapshot) ? withCopy[0] : null
+  const [row] = await tx
+    .insert(importRun)
+    .values({
+      storeId,
+      mode: 'api',
+      resources,
+      dryRun: false,
+      onlyMissing: true,
+      createdBy: input.createdBy,
+      ...(copy ? { snapshot: copy.snapshot, snapshotTakenAt: copy.at } : {}),
+    })
+    .returning()
+  if (!row) throw new ImportError('The import was not created')
+  if (copy) {
+    await tx
+      .update(importRun)
+      .set({ snapshot: null, snapshotTakenAt: null })
+      .where(eq(importRun.id, copy.id))
+  }
+  return row
 }
 
 /** What a retry of `runId` imports again: per resource, the import keys of its problems. */

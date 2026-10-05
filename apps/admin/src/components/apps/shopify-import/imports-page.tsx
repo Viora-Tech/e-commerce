@@ -11,6 +11,7 @@ import { shopifyImportContent } from '@/data/shopify-import'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
+import RemainingCard from './remaining-card'
 import RunStatusLabel from './run-status-label'
 import { type RunListItem, totals } from './types'
 
@@ -81,7 +82,7 @@ export default function ImportsPage() {
   const fmt = useFormat()
   const [page, setPage] = useState(1)
   const [data, setData] = useState<{ items: RunListItem[]; total: number } | null>(null)
-  const [shop, setShop] = useState<string | null>(null)
+  const [shop, setShop] = useState<string | null | undefined>(undefined)
 
   useEffect(() => {
     let live = true
@@ -104,7 +105,7 @@ export default function ImportsPage() {
     api.shopifyImport
       .connection()
       .then((c) => setShop(c?.shopName ?? c?.shopDomain ?? null))
-      .catch(() => {})
+      .catch(() => setShop(null))
   }, [])
 
   // Render logic
@@ -130,6 +131,7 @@ export default function ImportsPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <RemainingCard connected={shop !== null} />
       <div className="grid gap-4 md:grid-cols-2">
         {ways.map((way) => (
           <Card key={way.href}>

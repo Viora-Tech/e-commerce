@@ -239,10 +239,74 @@ export const shopifyImportContent = {
     notFound: 'This import no longer exists.',
     previous: 'Previous page',
     next: 'Next page',
-    retryMissed: (n: number) => `Retry the ${plural(n, 'one', 'ones')} that were missed`,
+    retryMissed: (n: number) =>
+      n === 1
+        ? 'Retry the 1 that was missed'
+        : `Retry the ${n.toLocaleString('en-IN')} that were missed`,
     retryFailed: 'Could not start the retry',
     importAll: 'Import everything again',
     retrying: 'Retrying only what the last import missed. Everything else is left as it is.',
+    remainingRun:
+      'Importing only what was not here yet, or had a problem last time. Everything else is left as it is.',
+    now: (what: string, done: number, total: number) =>
+      `${what}: ${done.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')}`,
+    problems: {
+      showAll: 'Show every record',
+      showGrouped: 'Group by cause',
+      unit: (n: number) =>
+        `${plural(n, 'record', 'records')} to retry: one record can have several problems, such as several images.`,
+      example: 'For example:',
+      retryable: (n: number) => `${plural(n, 'record', 'records')} can be retried`,
+      fix: { storage: 'Connect storage', scope: 'Add the access' },
+      cause: {
+        storage: (n: number) =>
+          `${plural(n, 'image or file', 'images and files')} not copied: file storage isn’t working`,
+        scope: (n: number) => `${plural(n, 'type', 'types')} Shopify didn’t let us read`,
+        order_number: (n: number) =>
+          `${plural(n, 'order', 'orders')} skipped: the order number is already used here`,
+        image: (n: number) => `${plural(n, 'image', 'images')} couldn’t be copied`,
+        file: (n: number) => `${plural(n, 'file', 'files')} couldn’t be copied`,
+        record: (n: number) => `${plural(n, 'record', 'records')} couldn’t be saved`,
+        note: (n: number) =>
+          `${plural(n, 'note', 'notes')} about what changed or stayed in Shopify`,
+      },
+    },
+  },
+
+  /** The importer's main page: what Shopify has, what is here, what is still missing. */
+  remaining: {
+    heading: 'What’s left to import',
+    subtitle:
+      'Shopify’s numbers next to what is already here, so you can see what is still missing.',
+    notConnected: 'Connect your Shopify store to see what is left to import.',
+    loadFailed: 'Couldn’t check what is left. Reload the page to try again.',
+    columns: { what: 'Type', inShopify: 'In Shopify', here: 'Here', status: 'Status' },
+    state: {
+      done: 'Done',
+      missing: 'Missing',
+      not_copied: 'Not copied',
+      never: 'Never imported',
+      unknown: 'Not checked yet',
+    },
+    missingCount: (n: number) => `${n.toLocaleString('en-IN')} missing`,
+    notCopiedCount: (n: number) => `${n.toLocaleString('en-IN')} not copied`,
+    images: 'Product images',
+    action: {
+      import: (n: number) => `Import ${n.toLocaleString('en-IN')}`,
+      images: 'Copy images',
+      files: 'Copy files',
+    },
+    importRemaining: 'Import remaining',
+    allHere: 'Everything is here',
+    fromShopify: 'Counted live from Shopify',
+    fromPreview: (when: string) =>
+      `Numbers Shopify doesn’t count for us are from the ${when} preview`,
+    lastImport: (when: string) => `Last import ${when}`,
+    nothingYet: 'Nothing imported yet',
+    previewReused: (when: string) =>
+      `The preview from ${when} will be reused, so the next import starts faster.`,
+    started: 'Import started',
+    startFailed: 'Couldn’t start the import',
   },
 
   /** "Before you import": what is not set up yet, with where to fix it. */

@@ -7,6 +7,7 @@ import {
   connect,
   createApiRun,
   createCsvRun,
+  createRemainingRun,
   createRetryRun,
   disconnect,
   failRun,
@@ -14,10 +15,12 @@ import {
   getRun,
   IMPORT_RESOURCES,
   ImportError,
+  issueGroups,
   listIssues,
   listRuns,
   preflightChecks,
   type RunRow,
+  remainingStatus,
   runJobKey,
   SHOPIFY_IMPORT_ID,
   ShopifyError,
@@ -230,6 +233,37 @@ export const shopifyImportRouter = {
       ).catch(asOrpc)
       await queue(context, run)
       return { id: run.id }
+    }),
+
+  /**
+   * "What is left to import": Shopify's counts (cached a few minutes per store), what is
+   * here, and what is missing per resource, plus product images.
+   */
+  status: can(permissions.APPS_MANAGE).handler(async ({ context }) => {
+    await requireInstalled(context)
+    return remainingStatus(context.tx, context.scope.storeId, settingsSecret())
+  }),
+
+  /** "Import remaining": one import that writes only what is missing, for these resources. */
+  importRemaining: can(permissions.APPS_MANAGE)
+    .use(heavy('import'))
+    .input(z.object({ resources: z.array(z.enum(IMPORT_RESOURCES)).min(1) }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      const run = await createRemainingRun(context.tx, context.scope.storeId, {
+        resources: input.resources,
+        createdBy: context.session.user.email,
+      }).catch(asOrpc)
+      await queue(context, run)
+      return { id: run.id }
+    }),
+
+  /** A run's problems grouped by cause, each with its fix. */
+  issueGroups: can(permissions.APPS_MANAGE)
+    .input(z.object({ runId: z.uuid() }))
+    .handler(async ({ context, input }) => {
+      await requireInstalled(context)
+      return issueGroups(context.tx, input.runId)
     }),
 
   runs: can(permissions.APPS_MANAGE)

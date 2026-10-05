@@ -154,6 +154,52 @@ retry would only repeat (unsupported types, skipped orders, parse errors) have n
 - The previous run keeps its report; the retry reports only what it retried. **Import
   everything again** (secondary button) is the old full re-run.
 
+## What's left to import, and "Import remaining"
+
+The importer's main page (`remaining-card.tsx`, API `shopifyImport.status`) shows one row per
+type plus **Product images**: In Shopify, Here, Status (Done / N missing / N not copied / Never
+imported / Not checked yet) and a button per row (Import N, Copy images, Copy files).
+`remainingStatus` (`src/status.ts`):
+
+- **In Shopify:** Shopify's own count where the Admin API has one (`productsCount`,
+  `collectionsCount`, `customersCount`, `ordersCount`, `pagesCount`, `discountNodesCount`,
+  `giftCardsCount`, `urlRedirectsCount`, each `limit: null`, each its own query so one the token
+  or API version refuses is just left out). Cached 3 minutes per store. Otherwise the latest
+  preview's total, with "from the <date> preview" on the page.
+- **Here:** the import mapping count for types with one row per record; redirects and extra
+  fields use the last import's created + updated + skipped.
+- **Missing:** the larger of the open problems on the type's latest import (record problems
+  only; image problems count on the images row) and Shopify's count minus here minus what the
+  preview said can never come over (its `skipped`). Product images: the preview counts them
+  (`progress.products.images`); missing = image problems of the latest products import.
+- **Import remaining** (`createRemainingRun`, API `importRemaining`, migration
+  `0088_shopify_import_only_missing` adds `shopify_import_run.only_missing`) creates one real
+  import of the chosen types (all with something missing, or one row's). It takes over a
+  preview copy under a day old. `remainingFilter` keeps a record when it has no mapping or an
+  open problem on its type's latest import (so "Copy images" rewrites the products whose images
+  failed, and the media host downloads only the images not copied yet). Redirects, extra
+  fields and content types are rewritten in full (no per-record mapping, idempotent).
+
+## Run page: current step and problems by cause
+
+While a run is going, the status card shows the step it is on ("Files: 1,240 of 2,300") with a
+bar (`run-current-step.tsx`). Problems are grouped (`issueGroups`, `src/issue-groups.ts`,
+API `shopifyImport.issueGroups`) by cause: storage (any type, one line, link to
+`/content/files/storage`), scope (link to the connect page), order number taken, image, file,
+record, note. Each line has the count, the types, one example message and how many a retry can
+bring over; the per-record table is behind **Show every record**.
+
+## Copy speed and memory
+
+Files are copied 12 at a time, each product's images 10 at a time, products' images prepared 3
+products at a time; one limiter in the media host (`createLimiter`, 16 downloads in flight)
+caps them all together. A download whose type is accepted and whose size Shopify states is
+streamed straight into the bucket (`StorageProvider.putStream`, implemented for R2 and S3 in
+`storage-s3-compat`: one PUT with the stream as body and `ContentLength`), with a byte counter
+that fails a body longer or shorter than stated. Anything else (unknown type, no length, the
+local folder) is read into memory as before; those that could be videos (up to 100 MB) have
+their own cap of 2 at a time. Per-download timeout and error capture are unchanged.
+
 ## Order of resources
 
 `IMPORT_RESOURCES` (`src/client.ts`) is also the write order: products, collections, customers,

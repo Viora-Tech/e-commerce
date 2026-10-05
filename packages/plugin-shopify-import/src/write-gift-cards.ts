@@ -193,8 +193,8 @@ async function writeGiftCard(
 export async function importGiftCards(
   ctx: ImportContext,
   client: ShopifyClient,
-  /** On a retry, only these Shopify gift card ids. */
-  only: ReadonlySet<string> | null = null,
+  /** On a retry or "Import remaining", only the cards this says yes to. */
+  only: ((sourceId: string) => boolean) | null = null,
 ): Promise<void> {
   ctx.report.begin(R)
   const { today, currency } = await ctx.inStore(async (tx) => {
@@ -205,7 +205,7 @@ export async function importGiftCards(
     return { today: await storeToday({ tx, storeId: ctx.storeId }), currency: s?.currency ?? 'INR' }
   })
   for await (const page of fetchGiftCards(client)) {
-    const batch = only ? page.filter((g) => only.has(g.sourceId)) : page
+    const batch = only ? page.filter((g) => only(g.sourceId)) : page
     ctx.report.addTotal(R, batch.length)
     for (const g of batch) {
       await writeGiftCard(ctx, g, today, currency)

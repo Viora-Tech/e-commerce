@@ -218,6 +218,14 @@ export const STATUS = {
     failed: entry(shopifyImportContent.status.failed, 'error'),
     preview: entry(shopifyImportContent.previewReady, 'info'),
   },
+  /** One type on "What's left to import". */
+  importState: {
+    done: entry(shopifyImportContent.remaining.state.done, 'success'),
+    missing: entry(shopifyImportContent.remaining.state.missing, 'pending'),
+    not_copied: entry(shopifyImportContent.remaining.state.not_copied, 'error'),
+    never: entry(shopifyImportContent.remaining.state.never, 'neutral'),
+    unknown: entry(shopifyImportContent.remaining.state.unknown, 'neutral'),
+  },
   /** Draft orders: open until an invoice goes out. */
   draft: {
     open: entry(draftsContent.status.open, 'info'),

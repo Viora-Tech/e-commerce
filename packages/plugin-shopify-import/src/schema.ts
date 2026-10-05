@@ -98,6 +98,11 @@ export const importRun = pgTable(
     /** Why the run as a whole stopped; row problems go to shopify_import_issue. */
     error: text('error'),
     createdBy: text('created_by'),
+    /**
+     * "Import remaining": write only records that are not imported yet or have an open
+     * problem from their last import; everything already here is left alone.
+     */
+    onlyMissing: boolean('only_missing').notNull().default(false),
     /** Set on "Retry the ones that were missed": the run whose problems this one retries. */
     retryOf: uuid('retry_of').references((): AnyPgColumn => importRun.id, {
       onDelete: 'set null',

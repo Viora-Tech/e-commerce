@@ -21,7 +21,7 @@ import {
 import type { NProduct } from './types'
 
 /** How many images (product images, or a body's inline images) download at once. */
-const IMAGE_CONCURRENCY = 6
+const IMAGE_CONCURRENCY = 10
 
 const clip = (value: string | null, max: number) => (value ? value.slice(0, max) : null)
 
@@ -137,6 +137,8 @@ function toWrite(
 
 function preview(ctx: ImportContext, p: NProduct, existingId: string | null) {
   ctx.report.count('products', existingId ? 'updated' : 'created')
+  const progress = ctx.report.of('products')
+  progress.images = (progress.images ?? 0) + p.images.length
   ctx.report.sample({
     resource: 'products',
     key: p.handle,
