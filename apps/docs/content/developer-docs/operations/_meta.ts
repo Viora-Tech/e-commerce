@@ -5,4 +5,5 @@ export default {
   'email-sending': 'Email sending',
   'key-rotation': 'Key rotation',
   deployment: 'Deployment',
+  'release-checklist': 'Release checklist',
 }

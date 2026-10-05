@@ -12,7 +12,8 @@
 - Branches: `dev` is the default branch. Feature/fix branches start from `origin/dev` and open
   PRs **into `dev`**; `main` only moves by a `dev` → `main` release PR. Merged branches are deleted
   (GitHub auto-delete is on). The test server (vioratech.in) deploys `dev`. See developer docs
-  "Deployment" → "Branches".
+  "Deployment" → "Branches". Before a `dev` → `main` release, run the smoke checklist
+  (developer docs "Release checklist"). Every bug is a GitHub issue (`bug` label); fix PRs say `Fixes #n`.
 - Every PR records what it changed as a new file in `docs/handoff/changes/`
   (`YYYY-MM-DD-short-title.md`), never by editing `docs/handoff.md`, so parallel PRs don't conflict.
 - New feature? First ask: build from scratch, or adopt from open source? Check
