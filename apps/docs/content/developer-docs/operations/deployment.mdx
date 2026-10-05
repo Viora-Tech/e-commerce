@@ -48,6 +48,38 @@ kept in the GitHub Actions cache (one scope per image):
 Each is tagged with the full commit sha and `latest`. The compose file runs
 `${IMAGE_TAG:-latest}`, with `pull_policy: always` so a redeploy really fetches the new `latest`.
 
+## Branches: `dev` and `main`
+
+| Branch | What goes in | Deployed to |
+| --- | --- | --- |
+| `feat/…`, `fix/…` | One piece of work. Start from `origin/dev`. | nowhere |
+| `dev` (default branch) | Every reviewed PR is merged here first. Several features collect here and are tested together. | test server (vioratech.in) |
+| `main` | Only a release PR `dev` → `main`, once `dev` has been checked on the test server. | production |
+
+- Open PRs with `--base dev` (it is the default, so `gh pr create` does this).
+- After a PR merges, GitHub deletes its branch automatically (`delete_branch_on_merge`). `dev`
+  is never deleted because it is the default branch.
+- Hotfix for production: branch from `main`, PR into `main`, then merge `main` back into `dev`.
+- The org is on GitHub Free, so branch protection rules aren't available on this private repo;
+  the rule above is a convention, kept by review.
+
+### Test server deploys (vioratech.in)
+
+The test server is one EC2 machine running Dokploy, which builds the apps from `dev` with their
+Dockerfiles. Builds are heavy, so:
+
+- **No instant deploys.** Auto-deploy is off. `/usr/local/bin/nightly-deploy.sh` runs at
+  02:30 IST (`/etc/cron.d/nightly-deploy`): worker first (it runs migrations), then admin, then
+  storefront, **one at a time**, and **only apps whose watch paths changed** since their last
+  deploy. It reads the repo with a read-only GitHub deploy key and keeps the last deployed commit
+  per app in `/var/lib/nightly-deploy/<applicationId>.sha`. Log: `/var/log/nightly-deploy.log`;
+  `nightly-deploy.sh --dry-run` shows what would deploy.
+- **Need it now?** Press Deploy on the app in Dokploy.
+- **Live apps first.** Running containers get CPU priority over builds
+  (`/etc/cron.d/protect-live-apps`) and a memory reservation each.
+- Environment variables live only in Dokploy. Add or change one key at a time; never paste a
+  whole new env over an app's existing one.
+
 ## Server sizing and why
 
 8 GB / 2 vCPU is the smallest Lightsail plan that comfortably fits Postgres, Dragonfly, three
