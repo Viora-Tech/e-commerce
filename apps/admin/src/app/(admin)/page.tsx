@@ -4,11 +4,15 @@ import { homeContent } from '@/data/home'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { getCopy } from '@/lib/copy-server'
+import { orNoStore } from '@/lib/store-guard'
 
 export default async function Home() {
   const context = await serverContext()
-  const current = await call(appRouter.store.current, undefined, { context }).catch(() => null)
-  if (!current) redirect('/select-store')
+  // The guard every member passes, whatever their role (store.current needs settings.read,
+  // which Staff does not have). Only "no store to work in" goes to the picker; any other
+  // error reaches the error page rather than looping back to the picker.
+  const member = await call(appRouter.staff.me, {}, { context }).catch(orNoStore(null))
+  if (!member) redirect('/select-store')
   const [summary, charts, session, ai] = await Promise.all([
     call(appRouter.dashboard.summary, undefined, { context }),
     call(appRouter.dashboard.charts, { range: 30 }, { context }),

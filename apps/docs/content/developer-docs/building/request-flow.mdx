@@ -100,6 +100,15 @@ member → `FORBIDDEN` "Not a member of this store", no store → `NOT_FOUND`, m
 → `FORBIDDEN` "Your role does not allow …". Procedures are built with `storeProcedure` (no
 permission) or `can(permission)` (`packages/api/src/procedures/store.ts`).
 
+The first three are "no store to work in" errors: they carry `data.reason: 'no_store'` and
+`isNoStoreError(error)` (exported from `@commerce/api`) is true for them only. Admin server pages
+catch with `.catch(orNoStore(fallback))` (`apps/admin/src/lib/store-guard.ts`) and send only
+those to `/select-store`; a missing permission or any other failure is rethrown to the error page
+and error tracking. Never `.catch(() => undefined)` then redirect to the picker: the picker sends
+the member straight back, so any other error becomes an endless loop with nothing logged. The
+admin home guards with `staff.me`, which every role passes (`store.current` needs
+`settings.read`, which the Staff role does not have).
+
 ## 3. A shopper checks out and pays
 
 ```mermaid

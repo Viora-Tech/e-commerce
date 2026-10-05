@@ -8,13 +8,14 @@ import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import { segmentsContent as copy } from '@/data/customers'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orNoStore } from '@/lib/store-guard'
 
 export const metadata: Metadata = { title: 'Segments' }
 
 export default async function Page() {
   const context = await serverContext()
   const segments = await call(appRouter.customers.segments, undefined, { context }).catch(
-    () => undefined,
+    orNoStore(undefined),
   )
   if (segments === undefined) redirect('/select-store')
 

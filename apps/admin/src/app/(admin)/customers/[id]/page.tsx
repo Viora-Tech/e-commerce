@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import CustomerView from '@/components/customers/customer-view'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orNoStore } from '@/lib/store-guard'
 
 type Params = {
   params: Promise<{ id: string }>
@@ -11,7 +12,9 @@ export default async function CustomerPage({ params, searchParams }: Params) {
   const { id } = await params
   const { edit } = await searchParams
   const context = await serverContext()
-  const customer = await call(appRouter.customers.get, { id }, { context }).catch(() => undefined)
+  const customer = await call(appRouter.customers.get, { id }, { context }).catch(
+    orNoStore(undefined),
+  )
   if (customer === undefined) redirect('/select-store')
   if (!customer) notFound()
   // `?edit=1` (the order page's "View profile" → edit) opens the editor straight away.

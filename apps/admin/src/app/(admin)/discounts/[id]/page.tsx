@@ -1,13 +1,16 @@
 import { notFound, redirect } from 'next/navigation'
 import DiscountForm from '@/components/discounts/discount-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { orNoStore } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ id: string }> }
 
 export default async function DiscountEditPage({ params }: Params) {
   const { id } = await params
   const context = await serverContext()
-  const discount = await call(appRouter.discounts.get, { id }, { context }).catch(() => undefined)
+  const discount = await call(appRouter.discounts.get, { id }, { context }).catch(
+    orNoStore(undefined),
+  )
   if (discount === undefined) redirect('/select-store')
   if (!discount) notFound()
   return <DiscountForm discount={discount} />
