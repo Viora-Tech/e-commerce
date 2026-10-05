@@ -1,3 +1,4 @@
+import { loadEnv } from '@commerce/config'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -47,6 +48,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         storefrontUrl={await storefrontOrigin()}
         apps={appLinks}
         logoUrl={logoUrl}
+        // Test server only. A report is filed against a store, so none before one is picked.
+        bugReports={loadEnv(process.env).BUG_REPORTS_ENABLED && active !== null}
       >
         {/* No active org yet: auto-pick it when the member belongs to exactly one store, else
             show the picker instead of letting every page below throw "Pick a store first". */}

@@ -6,4 +6,5 @@ export default {
   'key-rotation': 'Key rotation',
   deployment: 'Deployment',
   'release-checklist': 'Release checklist',
+  'bug-reports': 'Bug reports',
 }

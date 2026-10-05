@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, ExternalLink, LogOut, Moon, Search, Sun } from '@commerce/ui/icons'
+import { Bell, BugIcon, ExternalLink, LogOut, Moon, Search, Sun } from '@commerce/ui/icons'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +18,12 @@ import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useSyncExternalStore } from 'react'
 import { ACCOUNT_PAGES } from '@/data/account'
+import { bugReportContent } from '@/data/bug-report'
 import { commandContent } from '@/data/command-palette'
 import { navigationContent } from '@/data/navigation'
 import { useCopy, useLocale } from '@/hooks/use-copy'
 import { authClient } from '@/lib/auth-client'
+import { openBugReport } from '@/lib/bug-report-events'
 import { initials } from '@/lib/initials'
 import { pageName } from '@/lib/page-names'
 import { openPalette } from '@/lib/palette-events'
@@ -30,6 +32,8 @@ type TopBarProps = {
   user: { name: string; email: string }
   /** Opens the live storefront in a new tab. */
   storefrontUrl: string
+  /** Adds "Report a bug" to the account menu (test server only). */
+  bugReports: boolean
 }
 
 /* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
@@ -40,9 +44,10 @@ const noSubscription = () => () => {}
  * the search field on the left (opens the command palette, as does ⌘K); notifications,
  * the light/dark switch and the account menu on the right. On phones it also opens the rail.
  */
-export default function TopBar({ user, storefrontUrl }: TopBarProps) {
+export default function TopBar({ user, storefrontUrl, bugReports }: TopBarProps) {
   // Hooks
   const navCopy = useCopy(navigationContent)
+  const bugCopy = useCopy(bugReportContent)
   const locale = useLocale()
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
@@ -149,6 +154,12 @@ export default function TopBar({ user, storefrontUrl }: TopBarProps) {
               ))}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            {bugReports ? (
+              <DropdownMenuItem onClick={openBugReport}>
+                <BugIcon className="size-4" />
+                {bugCopy.open}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="size-4" />
               {navCopy.signOut}

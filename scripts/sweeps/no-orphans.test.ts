@@ -18,6 +18,11 @@ type AllowEntry = { file: string; names: string[]; reason: string }
 
 const ALLOWLIST: AllowEntry[] = [
   {
+    file: 'packages/api/src/services/bug-report.service.ts',
+    names: ['scrubSecrets'],
+    reason: 'the redaction rule behind buildBugIssue, exported for its unit test',
+  },
+  {
     file: 'packages/core/src/theme-import/archive.ts',
     names: ['safeThemePath'],
     reason: 'the zip-slip guard behind readThemeArchive, exported for its unit test',

@@ -1,0 +1,21 @@
+/** "Report a bug" (test server only): the account menu item, the floating button and the dialog. */
+export const bugReportContent = {
+  open: 'Report a bug',
+  title: 'Report a bug',
+  intro: 'Tell us what went wrong. We also send the page you are on and any recent errors.',
+  summaryLabel: 'What went wrong?',
+  summaryPlaceholder: 'For example: Save does nothing',
+  detailsLabel: 'What were you doing just before?',
+  detailsPlaceholder: 'Optional. The steps help us see it happen.',
+  screenshotLabel: 'Include a screenshot of this page',
+  screenshotHelp: 'It may show store details. It is only sent to our team.',
+  screenshotAlt: 'Screenshot of the page that will be sent',
+  screenshotFailed: 'A screenshot could not be taken. You can still send the report.',
+  cancel: 'Cancel',
+  send: 'Send',
+  sending: 'Sending',
+  sent: (n: number) => `Thanks, reported as #${n}`,
+  view: 'View',
+  logged: 'Thanks. Saved to the server log (no GitHub token on this server).',
+  failed: 'The report was not sent. Try again in a minute.',
+}

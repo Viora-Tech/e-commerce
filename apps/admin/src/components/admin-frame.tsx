@@ -9,6 +9,7 @@ import { useCopy, useLocale } from '@/hooks/use-copy'
 import { pageName } from '@/lib/page-names'
 import AdminSidebar from './admin-sidebar'
 import AssistantHost from './assistant/assistant-host'
+import BugReportHost from './bug-report/bug-report-host'
 import PaletteHost from './layout/palette-host'
 import TopBar from './layout/top-bar'
 
@@ -24,6 +25,8 @@ type AdminFrameProps = {
   apps: { id: string; name: string; icon: string | null }[]
   /** The live theme's logo, if the store has uploaded one; else the sidebar shows a monogram. */
   logoUrl: string | null
+  /** The test server's "Report a bug" button and menu item (`BUG_REPORTS_ENABLED`). */
+  bugReports: boolean
 }
 
 const SIDEBAR_WIDTH = '16rem'
@@ -37,6 +40,7 @@ export default function AdminFrame({
   storefrontUrl,
   apps,
   logoUrl,
+  bugReports,
 }: AdminFrameProps) {
   // Hooks
   const layoutCopy = useCopy(layoutContent)
@@ -67,7 +71,7 @@ export default function AdminFrame({
       <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
         {/* Search, notifications, theme and account sit in the grey band above the page, so the
             white panel below reads as the page itself. */}
-        <TopBar user={user} storefrontUrl={storefrontUrl} />
+        <TopBar user={user} storefrontUrl={storefrontUrl} bugReports={bugReports} />
         {/* The white content panel in the grey shell (Saleor Dashboard): one curve at its
             top-left where it meets the rail, hairlines on the top and left, and flush with the
             right and bottom edges of the window. */}
@@ -88,6 +92,7 @@ export default function AdminFrame({
         <Toaster />
         <PaletteHost />
         <AssistantHost storeId={activeStoreId} />
+        {bugReports ? <BugReportHost /> : null}
       </SidebarInset>
     </SidebarProvider>
   )
