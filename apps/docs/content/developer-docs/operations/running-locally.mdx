@@ -98,6 +98,17 @@ production. The service behind all of this is `createStore`
 Existing staff invitations to join an existing store (Settings → Staff, `/accept-invitation/[id]`)
 are unaffected by this gate - they always work.
 
+Staff invite emails go through the platform email account (`deliverPlatformStaffInvite`,
+`packages/core/src/accounts/staff-invite-email.ts`, template `staff_invite`, sender name
+`PLATFORM_EMAIL_NAME`). Without it (`SENDER_EMAIL_PROVIDER=dev`) the admin prints
+`[invite] <email> for <org>: <accept URL>` instead; with it the URL is never logged. A refused send
+does not fail the invite: Better Auth swallows errors from `sendInvitationEmail`, so the API wraps
+the call in `runInvite` (`@commerce/auth`) to learn the outcome and returns `emailSent: false`.
+The Staff page then says "Couldn't send the invite email" and the invite waits under **Pending
+invites** (`staff.invitations`, `staff.resendInvitation`, `staff.cancelInvitation`; every action
+checks the invitation belongs to the active store's organization before calling Better Auth,
+which on its own would let someone who runs two stores act on the other store's invites).
+
 ### The guided flow and the waitlist
 
 `/onboarding` is a client-side wizard (`apps/admin/src/components/onboarding/onboarding-wizard.tsx`),

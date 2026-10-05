@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Db } from '@commerce/db'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -8,16 +9,48 @@ export type SendOtp = (input: { email: string; otp: string; type: string }) => P
 export type SendInvite = (input: {
   email: string
   organizationName: string
+  /** The store's own name, when the invite was sent through the API (`runInvite`). */
+  storeName?: string | undefined
+  /** The store role offered, e.g. "Staff", when known. */
+  roleLabel?: string | undefined
   inviterEmail: string
   acceptUrl: string
 }) => Promise<void>
+
+/** What the API knows about an invite that Better Auth does not, and how its email went. */
+type InviteScope = {
+  storeName?: string | undefined
+  roleLabel?: string | undefined
+  /** Set when `sendInvite` threw: the invitation exists but its email did not go. */
+  emailError?: string | undefined
+}
+
+const inviteScope = new AsyncLocalStorage<InviteScope>()
+
+/**
+ * Runs a Better Auth invite call (createInvitation, also with `resend`) with the store name and
+ * role for the email, and reports whether the email went. Better Auth swallows errors thrown by
+ * `sendInvitationEmail` (it only logs them), so this is the only way the caller can tell the
+ * merchant "the invitation was created but the email did not go".
+ */
+export async function runInvite<T>(
+  details: { storeName?: string | undefined; roleLabel?: string | undefined },
+  fn: () => Promise<T>,
+): Promise<{ result: T; emailError: string | null }> {
+  const scope: InviteScope = { ...details }
+  const result = await inviteScope.run(scope, fn)
+  return { result, emailError: scope.emailError ?? null }
+}
 
 export type MerchantAuthOptions = {
   db: Db
   baseURL: string
   secret: string
   sendOtp: SendOtp
-  /** Staff invitation email. Defaults to a console line so dev needs no mailer. */
+  /**
+   * Staff invitation email. Defaults to a console line so dev needs no mailer. Throw when the
+   * email could not be sent: `runInvite` reports it to the caller.
+   */
   sendInvite?: SendInvite
   /** Extra origins allowed to call the auth API (the storefront, dev hosts). */
   trustedOrigins?: string[]
@@ -69,12 +102,20 @@ export function createMerchantAuth(opts: MerchantAuthOptions) {
             (async (i) => {
               console.log(`[invite] ${i.email} for ${i.organizationName}: ${i.acceptUrl}`)
             })
-          await send({
-            email: data.email,
-            organizationName: data.organization.name,
-            inviterEmail: data.inviter.user.email,
-            acceptUrl,
-          })
+          const scope = inviteScope.getStore()
+          try {
+            await send({
+              email: data.email,
+              organizationName: data.organization.name,
+              storeName: scope?.storeName,
+              roleLabel: scope?.roleLabel,
+              inviterEmail: data.inviter.user.email,
+              acceptUrl,
+            })
+          } catch (err) {
+            if (scope) scope.emailError = err instanceof Error ? err.message : String(err)
+            throw err
+          }
         },
       }),
     ],

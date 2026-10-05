@@ -1,3 +1,4 @@
+/** SOURCE OF TRUTH: platform sign-in code email tests — sent, refused and no platform account, with a fake transport (never real SES) */
 import type { Message, NotificationChannel } from '@commerce/notifications'
 import { describe, expect, it } from 'vitest'
 import { deliverPlatformLoginCode, type PlatformCodeSender } from './deliver-code'

@@ -1,4 +1,4 @@
-import { createMerchantAuth } from '@commerce/auth'
+import { createMerchantAuth, type SendInvite } from '@commerce/auth'
 import { authSchema, createDb, role, store, storeInvitation, storeMember } from '@commerce/db'
 import { resetDb } from '@commerce/db/test'
 import { call } from '@orpc/server'
@@ -11,12 +11,19 @@ const owner = createDb(process.env.DATABASE_URL_OWNER as string)
 const app = createDb(process.env.DATABASE_URL as string)
 
 const sent: { email: string; otp: string }[] = []
+const invites: Parameters<SendInvite>[0][] = []
+/** Flip to make the next invite emails fail, like a refused SES send. */
+let inviteEmailFails = false
 const auth = createMerchantAuth({
   db: app,
   baseURL: 'http://localhost:3200',
   secret: 'test-secret-test-secret-test-secret-1234',
   sendOtp: async (m) => {
     sent.push(m)
+  },
+  sendInvite: async (i) => {
+    if (inviteEmailFails) throw new Error("Couldn't send the invite email")
+    invites.push(i)
   },
 })
 
@@ -68,6 +75,8 @@ async function memberRole(storeId: string, userId: string) {
 beforeEach(async () => {
   await resetDb(owner)
   sent.length = 0
+  invites.length = 0
+  inviteEmailFails = false
 })
 
 afterAll(async () => {
@@ -202,5 +211,196 @@ describe('invitations', () => {
     await expect(
       call(appRouter.staff.deleteRole, { id: custom.id }, { context: ctx(shop.headers) }),
     ).rejects.toBeTruthy()
+  })
+})
+
+describe('pending invitations', () => {
+  it('emails the invite with the store name and role, and lists it until accepted', async () => {
+    const shop = await storeWithOwner('lister@example.com', 'pend-a')
+    const staffRole = await roleId(shop.storeId, 'staff')
+    const invite = await call(
+      appRouter.staff.invite,
+      { email: 'new@example.com', roleId: staffRole },
+      { context: ctx(shop.headers) },
+    )
+    expect(invite.emailSent).toBe(true)
+    expect(invites).toHaveLength(1)
+    expect(invites[0]).toMatchObject({
+      email: 'new@example.com',
+      storeName: 'Store pend-a',
+      roleLabel: 'Staff',
+      inviterEmail: 'lister@example.com',
+      acceptUrl: `http://localhost:3200/accept-invitation/${invite.id}`,
+    })
+
+    const list = await call(appRouter.staff.invitations, {}, { context: ctx(shop.headers) })
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({
+      id: invite.id,
+      email: 'new@example.com',
+      roleId: staffRole,
+      roleName: 'Staff',
+      invitedBy: 'lister@example.com',
+      expired: false,
+    })
+    expect(new Date(list[0]?.expiresAt as Date).getTime()).toBeGreaterThan(Date.now())
+
+    const joiner = await signIn('new@example.com')
+    await call(appRouter.invitations.accept, { id: invite.id }, { context: ctx(joiner) })
+    expect(await call(appRouter.staff.invitations, {}, { context: ctx(shop.headers) })).toEqual([])
+  })
+
+  it('reports an invite whose email failed, and keeps it listed to resend', async () => {
+    const shop = await storeWithOwner('fail@example.com', 'pend-b')
+    inviteEmailFails = true
+    const invite = await call(
+      appRouter.staff.invite,
+      { email: 'nomail@example.com', roleId: await roleId(shop.storeId, 'staff') },
+      { context: ctx(shop.headers) },
+    )
+    expect(invite.emailSent).toBe(false)
+    const list = await call(appRouter.staff.invitations, {}, { context: ctx(shop.headers) })
+    expect(list.map((i) => i.id)).toEqual([invite.id])
+    expect(list[0]?.roleName).toBe('Staff')
+
+    inviteEmailFails = false
+    const again = await call(
+      appRouter.staff.resendInvitation,
+      { id: invite.id },
+      { context: ctx(shop.headers) },
+    )
+    expect(again).toMatchObject({ id: invite.id, emailSent: true })
+    expect(invites.at(-1)).toMatchObject({ email: 'nomail@example.com', roleLabel: 'Staff' })
+  })
+
+  it('resends an open invite with a fresh expiry and replaces an expired one', async () => {
+    const shop = await storeWithOwner('resend@example.com', 'pend-c')
+    const adminRole = await roleId(shop.storeId, 'admin')
+    const invite = await call(
+      appRouter.staff.invite,
+      { email: 'again@example.com', roleId: adminRole },
+      { context: ctx(shop.headers) },
+    )
+    const soon = new Date(Date.now() + 60_000)
+    await owner
+      .update(authSchema.invitation)
+      .set({ expiresAt: soon })
+      .where(eq(authSchema.invitation.id, invite.id))
+
+    const resent = await call(
+      appRouter.staff.resendInvitation,
+      { id: invite.id },
+      { context: ctx(shop.headers) },
+    )
+    expect(resent.id).toBe(invite.id)
+    expect(invites).toHaveLength(2)
+    const [row] = await owner
+      .select()
+      .from(authSchema.invitation)
+      .where(eq(authSchema.invitation.id, invite.id))
+    expect(row?.expiresAt.getTime()).toBeGreaterThan(soon.getTime())
+
+    // Expired: Better Auth makes a new invitation; the role moves over and the old one closes.
+    await owner
+      .update(authSchema.invitation)
+      .set({ expiresAt: new Date(Date.now() - 60_000) })
+      .where(eq(authSchema.invitation.id, invite.id))
+    const listed = await call(appRouter.staff.invitations, {}, { context: ctx(shop.headers) })
+    expect(listed[0]).toMatchObject({ id: invite.id, expired: true })
+
+    const renewed = await call(
+      appRouter.staff.resendInvitation,
+      { id: invite.id },
+      { context: ctx(shop.headers) },
+    )
+    expect(renewed.id).not.toBe(invite.id)
+    expect(invites.at(-1)).toMatchObject({ roleLabel: 'Administrator' })
+    const after = await call(appRouter.staff.invitations, {}, { context: ctx(shop.headers) })
+    expect(after).toHaveLength(1)
+    expect(after[0]).toMatchObject({ id: renewed.id, roleId: adminRole, expired: false })
+    const old = await call(
+      appRouter.invitations.preview,
+      { id: invite.id },
+      { context: ctx(new Headers()) },
+    )
+    expect(old.state).toBe('cancelled')
+  })
+
+  it('cancels an invite so its link stops working', async () => {
+    const shop = await storeWithOwner('cancel@example.com', 'pend-d')
+    const invite = await call(
+      appRouter.staff.invite,
+      { email: 'gone@example.com', roleId: await roleId(shop.storeId, 'staff') },
+      { context: ctx(shop.headers) },
+    )
+    await call(appRouter.staff.cancelInvitation, { id: invite.id }, { context: ctx(shop.headers) })
+    expect(await call(appRouter.staff.invitations, {}, { context: ctx(shop.headers) })).toEqual([])
+    const left = await owner
+      .select()
+      .from(storeInvitation)
+      .where(eq(storeInvitation.invitationId, invite.id))
+    expect(left).toHaveLength(0)
+    const gone = await signIn('gone@example.com')
+    await expect(
+      call(appRouter.invitations.accept, { id: invite.id }, { context: ctx(gone) }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+    await expect(
+      call(appRouter.staff.cancelInvitation, { id: invite.id }, { context: ctx(shop.headers) }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it("never shows or touches another store's invitations, even for someone who runs both", async () => {
+    const a = await storeWithOwner('both@example.com', 'pend-e')
+    const invite = await call(
+      appRouter.staff.invite,
+      { email: 'a-only@example.com', roleId: await roleId(a.storeId, 'staff') },
+      { context: ctx(a.headers) },
+    )
+    // Same person, second store, now the active one: Better Auth alone would let them act on A.
+    const b = await storeWithOwner('both@example.com', 'pend-f')
+    expect(await call(appRouter.staff.invitations, {}, { context: ctx(b.headers) })).toEqual([])
+    await expect(
+      call(appRouter.staff.cancelInvitation, { id: invite.id }, { context: ctx(b.headers) }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(
+      call(appRouter.staff.resendInvitation, { id: invite.id }, { context: ctx(b.headers) }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+
+    // A different owner entirely.
+    const c = await storeWithOwner('other@example.com', 'pend-g')
+    await expect(
+      call(appRouter.staff.cancelInvitation, { id: invite.id }, { context: ctx(c.headers) }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    expect(await call(appRouter.staff.invitations, {}, { context: ctx(c.headers) })).toEqual([])
+
+    const still = await call(appRouter.staff.invitations, {}, { context: ctx(a.headers) })
+    expect(still.map((i) => i.id)).toEqual([invite.id])
+  })
+
+  it('needs staff.invite to cancel or resend', async () => {
+    const shop = await storeWithOwner('perm@example.com', 'pend-h')
+    const staffRole = await roleId(shop.storeId, 'staff')
+    const helperInvite = await call(
+      appRouter.staff.invite,
+      { email: 'helper@example.com', roleId: staffRole },
+      { context: ctx(shop.headers) },
+    )
+    const helper = await signIn('helper@example.com')
+    await call(appRouter.invitations.accept, { id: helperInvite.id }, { context: ctx(helper) })
+    await auth.api.setActiveOrganization({
+      headers: helper,
+      body: { organizationId: shop.organizationId },
+    })
+    const other = await call(
+      appRouter.staff.invite,
+      { email: 'later@example.com', roleId: staffRole },
+      { context: ctx(shop.headers) },
+    )
+    await expect(
+      call(appRouter.staff.cancelInvitation, { id: other.id }, { context: ctx(helper) }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(
+      call(appRouter.staff.resendInvitation, { id: other.id }, { context: ctx(helper) }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 })

@@ -58,6 +58,11 @@ export type TemplateId =
   | 'return_received'
   /** Money went back for the return (original payment or store credit). */
   | 'return_refunded'
+  /**
+   * PLATFORM message, not a store one: someone was invited to help run a store. Sent through the
+   * platform email account straight away; `actionUrl` is the accept link. Email only.
+   */
+  | 'staff_invite'
 
 export type Recipient = {
   email?: string | undefined
@@ -144,6 +149,14 @@ export type TemplateData = {
         /** Amount and where it went (return_refunded). */
         refundLabel?: string | undefined
         refundMethod?: 'original' | 'store_credit' | undefined
+      }
+    | undefined
+  /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
+  staffInvite?:
+    | {
+        inviterEmail: string
+        roleLabel?: string | undefined
+        platformName: string
       }
     | undefined
   /** For gift_card_issued: the code in full (the only place it is ever shown) and its terms. */

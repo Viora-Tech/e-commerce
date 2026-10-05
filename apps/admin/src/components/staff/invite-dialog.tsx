@@ -22,6 +22,8 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { staffContent as copy } from '@/data/staff'
+import { staffInvitesContent } from '@/data/staff-invites'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 export type InvitableRole = { id: string; name: string; slug: string }
@@ -36,6 +38,7 @@ type InviteDialogProps = {
 /** Sends a Better Auth invitation and records the role the person will hold. */
 export default function InviteDialog({ open, roles, onOpenChange, onInvited }: InviteDialogProps) {
   // Hooks
+  const invitesCopy = useCopy(staffInvitesContent)
   const [email, setEmail] = useState('')
   const [roleId, setRoleId] = useState('')
   const [sending, setSending] = useState(false)
@@ -50,8 +53,10 @@ export default function InviteDialog({ open, roles, onOpenChange, onInvited }: I
   const handleSend = async () => {
     setSending(true)
     try {
-      await api.staff.invite({ email: email.trim(), roleId })
-      toast.success(copy.invite.sent(email.trim()))
+      const result = await api.staff.invite({ email: email.trim(), roleId })
+      // The invitation exists either way; when its email did not go it waits under Pending invites.
+      if (result.emailSent) toast.success(copy.invite.sent(email.trim()))
+      else toast.error(invitesCopy.emailFailed, { description: invitesCopy.emailFailedHelp })
       onOpenChange(false)
       onInvited()
     } catch (err) {

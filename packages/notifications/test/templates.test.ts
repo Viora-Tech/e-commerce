@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   NotificationRegistry,
+  PLATFORM_TEMPLATE_IDS,
   renderEmail,
   renderWhatsapp,
+  sampleTemplateDataByTemplate,
   TEMPLATE_IDS,
   TEMPLATE_NAMES,
 } from '../src'
@@ -92,6 +94,36 @@ describe('templates', () => {
     })
     expect(e.html).toContain('CGST')
     expect(e.html).toContain('SGST')
+  })
+
+  it('staff_invite names the store, platform, inviter and role, with an accept button', async () => {
+    const data = sampleTemplateDataByTemplate.staff_invite
+    const e = await renderEmail('staff_invite', data)
+    expect(e.subject).toBe("You're invited to manage Waimers on Vextro")
+    expect(e.text).toContain('owner@waimers.example invited you to help run Waimers as Staff.')
+    expect(e.text).toContain('https://admin.vextro.example/accept-invitation/sample')
+    expect(e.text).toContain('expires in 2 days')
+    expect(e.text).not.toContain('Items:')
+    expect(e.html).toContain('Team invitation')
+    expect(e.html).toContain('Accept invitation')
+    expect(e.html).toContain('href="https://admin.vextro.example/accept-invitation/sample"')
+    expect(e.html).not.toContain('Maboroshi')
+  })
+
+  it('staff_invite reads well without a role and escapes the store name', async () => {
+    const e = await renderEmail('staff_invite', {
+      ...sampleTemplateDataByTemplate.staff_invite,
+      storeName: '<i>Shop</i>',
+      staffInvite: { inviterEmail: 'a@b.example', platformName: 'Vextro' },
+    })
+    expect(e.text).toContain('a@b.example invited you to help run <i>Shop</i>. Accept')
+    expect(e.html).not.toContain('<i>Shop</i>')
+    expect(e.html).toContain('&lt;i&gt;Shop&lt;/i&gt;')
+  })
+
+  it('keeps platform templates out of the store message list', () => {
+    expect(PLATFORM_TEMPLATE_IDS).toContain('staff_invite')
+    expect(TEMPLATE_IDS).toContain('staff_invite')
   })
 
   it('renders the one-time code for login_code', async () => {

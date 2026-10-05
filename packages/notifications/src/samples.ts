@@ -185,4 +185,18 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     orderUrl: 'https://waimers.example/account/orders/42',
     returnInfo: { label: 'R-3', refundLabel: '₹1,999', refundMethod: 'original' },
   },
+  staff_invite: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    totalLabel: '',
+    storeAddress: undefined,
+    actionUrl: 'https://admin.vextro.example/accept-invitation/sample',
+    staffInvite: {
+      inviterEmail: 'owner@waimers.example',
+      roleLabel: 'Staff',
+      platformName: 'Vextro',
+    },
+  },
 }
