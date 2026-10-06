@@ -55,6 +55,10 @@ export type OutboxEventType =
   | 'newsletter.confirm_requested'
   /** A shopper sent a message from a theme's contact form (Forms app); the store's contact address is emailed. */
   | 'contact.message_received'
+  /** A review request (or its one reminder) is due for an order (Reviews app); the shopper is emailed. */
+  | 'review.request_due'
+  /** The store replied to a review for the first time (Reviews app); the reviewer is emailed. */
+  | 'review.replied'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -74,6 +78,10 @@ export type OutboxPayload = {
   signupId?: string | undefined
   /** The `contact_message` a `contact.message_received` event is about. */
   contactMessageId?: string | undefined
+  /** For `review.request_due`: the first request or the reminder. */
+  reviewRequestKind?: 'request' | 'reminder' | undefined
+  /** The `review` a `review.replied` event is about. */
+  reviewId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -128,6 +136,10 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'newsletter.confirm_requested': null,
   // No order: the relay queues `contact_message` with the message id itself (`dispatchRow`).
   'contact.message_received': null,
+  // The relay queues `review_request` / `review_reminder` itself (`dispatchRow`), keyed by the row.
+  'review.request_due': null,
+  // The relay queues `review_reply` with the review id itself (`dispatchRow`).
+  'review.replied': null,
 }
 
 /**
@@ -174,8 +186,10 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'return.refunded': null,
   'order.rto': null,
   'shipment.out_for_delivery': null,
-  'order.delivered': null,
+  'order.delivered': 'order.delivered',
   'order.cancel_notice': null,
   'newsletter.confirm_requested': null,
   'contact.message_received': null,
+  'review.request_due': null,
+  'review.replied': null,
 }

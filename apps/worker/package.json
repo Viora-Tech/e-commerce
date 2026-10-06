@@ -18,6 +18,7 @@
     "@commerce/payments": "workspace:*",
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-forms": "workspace:*",
+    "@commerce/plugin-reviews": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/queue": "workspace:*",
     "@commerce/shipping": "workspace:*",

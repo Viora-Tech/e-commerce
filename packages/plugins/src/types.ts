@@ -47,7 +47,7 @@ export type PluginProvides = {
  * Order lifecycle events an installed app can react to. Fired by the worker,
  * at least once per (order, event) or (refund, event); hooks must be idempotent.
  */
-export type AppEvent = 'order.paid' | 'order.fulfilled' | 'refund.created'
+export type AppEvent = 'order.paid' | 'order.fulfilled' | 'order.delivered' | 'refund.created'
 
 export type AppEventPayload = {
   storeId: string

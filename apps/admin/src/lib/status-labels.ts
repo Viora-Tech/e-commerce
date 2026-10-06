@@ -1,6 +1,7 @@
 import { homeContent } from '@/data/home'
 import { orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
+import { reviewsContent } from '@/data/reviews'
 import { shipmentPanelContent } from '@/data/shipping'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { localize } from '@/lib/copy'
@@ -17,6 +18,7 @@ const SOURCES: readonly unknown[] = [
   orderDetailContent,
   shipmentPanelContent,
   productsListContent,
+  reviewsContent,
   homeContent,
   shopifyImportContent,
 ]

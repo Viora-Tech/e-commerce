@@ -82,6 +82,7 @@ export default function AppShell({
                 <Button
                   variant="outline"
                   size="sm"
+                  nativeButton={false}
                   render={<Link href={hrefFor(appId, 'settings')} />}
                 >
                   <Settings />
@@ -91,6 +92,7 @@ export default function AppShell({
               <Button
                 variant="ghost"
                 size="sm"
+                nativeButton={false}
                 render={<Link href="/apps" />}
                 aria-label="Help with this app"
               >

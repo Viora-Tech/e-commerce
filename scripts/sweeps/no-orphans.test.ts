@@ -774,6 +774,21 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by the root commerce.config.ts, like emiPlugin',
   },
   {
+    file: 'packages/plugin-reviews/src/plugin.ts',
+    names: ['reviewsPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like formsPlugin',
+  },
+  {
+    file: 'packages/plugin-reviews/src/judgeme.ts',
+    names: ['parseJudgemeCsv', 'matchJudgemeRows'],
+    reason: 'the pure CSV reader and the matcher, used inside this file and tested directly',
+  },
+  {
+    file: 'packages/core/src/theme-import/data.ts',
+    names: ['withReviewMetafields'],
+    reason: 'the pure metafield merge, used inside this file and tested directly',
+  },
+  {
     file: 'packages/core/src/theme-import/related.ts',
     names: ['rankRelated'],
     reason: 'the pure ranking, used inside this file and tested directly',

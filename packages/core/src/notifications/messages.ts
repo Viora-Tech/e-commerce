@@ -80,6 +80,9 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
   },
   { id: 'unpaid_cancel_notice', group: 'you', trigger: 'auto', channels: EMAIL },
   { id: 'contact_message', group: 'app', trigger: 'app', channels: EMAIL, appId: 'forms' },
+  { id: 'review_request', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
+  { id: 'review_reminder', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
+  { id: 'review_reply', group: 'app', trigger: 'app', channels: EMAIL, appId: 'reviews' },
 ]
 
 export const messageDef = (id: string): MessageDef | undefined =>

@@ -91,8 +91,8 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'app_data',
     shopify: 'Data from Shopify apps (Judge.me reviews and similar)',
-    ours: 'Not available yet: the section stays hidden until our Reviews app collects reviews',
-    kind: 'unavailable',
+    ours: 'Our Reviews app (Apps, Reviews): star ratings and Judge.me review data come from your reviews, imported or new. Without it these sections stay hidden',
+    kind: 'replaced',
     detect: /metafields\.(judgeme|reviews|yotpo|loox|stamped|okendo|klaviyo)\b/,
   },
   {

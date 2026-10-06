@@ -350,6 +350,46 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `Sign in to ${d.storeName}: ${d.actionUrl ?? ''} (works once, expires in 15 minutes).`,
   },
+  review_request: {
+    subject: (d) => d.review?.subject || `How was your order from ${d.storeName}?`,
+    heading: (d) => `Hi ${d.customerName}, how is it going?`,
+    intro: (d) => {
+      const names = (d.review?.items ?? []).map((i) => i.title)
+      const what = names.length === 1 ? names[0] : 'what you bought'
+      return `Your order${d.orderNumber ? ` #${d.orderNumber}` : ''} arrived a few days ago. Would you tell other shoppers what you think of ${what}? It takes a minute, and photos are welcome.`
+    },
+    outro: (d) =>
+      d.review?.unsubscribeUrl
+        ? 'Not keen on these emails? The "Stop review emails" link below ends them.'
+        : '',
+    whatsapp: (d) =>
+      `${d.storeName}: how was your order? Leave a review: ${d.review?.items?.[0]?.url ?? ''}`,
+  },
+  review_reminder: {
+    subject: (d) => d.review?.subject || `A quick review for ${d.storeName}?`,
+    heading: (d) => `Hi ${d.customerName}, one quick question`,
+    intro: (d) => {
+      const names = (d.review?.items ?? []).map((i) => i.title)
+      const what = names.length === 1 ? names[0] : 'your order'
+      return `We would love to hear how ${what} is working out for you. Your review helps other shoppers choose, and it only takes a minute. This is the last time we ask.`
+    },
+    outro: (d) =>
+      d.review?.unsubscribeUrl
+        ? 'Not keen on these emails? The "Stop review emails" link below ends them.'
+        : '',
+    whatsapp: (d) => `${d.storeName}: a quick review? ${d.review?.items?.[0]?.url ?? ''}`,
+  },
+  review_reply: {
+    subject: (d) => `${d.storeName} replied to your review`,
+    heading: (d) => `Hi ${d.customerName}, ${d.storeName} replied`,
+    intro: (d) =>
+      `Thanks for reviewing ${d.review?.productTitle ?? 'your purchase'}. Here is the reply:
+
+${d.review?.reply ?? ''}`,
+    outro: () => 'The reply shows under your review on the product page.',
+    whatsapp: (d) =>
+      `${d.storeName} replied to your review of ${d.review?.productTitle ?? 'your purchase'}.`,
+  },
   contact_message: {
     subject: (d) =>
       `${d.storeName}: new message from ${d.contactMessage?.name || d.contactMessage?.email || 'a shopper'}`,

@@ -34,6 +34,7 @@ import { policiesRouter } from './policies'
 import { productsRouter } from './products'
 import { redirectsRouter } from './redirects'
 import { returnsRouter } from './returns'
+import { reviewsRouter } from './reviews'
 import { shipmentsRouter } from './shipments'
 import { shippingRouter } from './shipping'
 import { shopifyImportRouter } from './shopify-import'
@@ -81,6 +82,7 @@ export const appRouter = {
   backInStock: backInStockRouter,
   emi: emiRouter,
   forms: formsRouter,
+  reviews: reviewsRouter,
   dashboard: dashboardRouter,
   analytics: analyticsRouter,
   ai: aiRouter,

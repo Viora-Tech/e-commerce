@@ -25,6 +25,7 @@ import { addLineAction } from '@/lib/cart-actions'
 import { getProductByHandle, getProductSeo, type ProductDetail } from '@/lib/catalog'
 import { storeEmiOffers } from '@/lib/emi-offers'
 import { storeOffersEmi } from '@/lib/payments'
+import { productReviews } from '@/lib/reviews'
 import { jsonLd, metaDescription, productGraph, requestOrigin } from '@/lib/seo'
 import { estimateDeliveryAction } from '@/lib/shipping-actions'
 import { inStore } from '@/lib/store-context'
@@ -37,7 +38,7 @@ function defaultVariant(product: ProductDetail) {
 
 type Params = {
   params: Promise<{ storeId: string; handle: string }>
-  searchParams: Promise<{ view?: string }>
+  searchParams: Promise<{ view?: string; review?: string }>
 }
 
 const limitOf = (value: unknown) => (typeof value === 'number' ? value : 4)
@@ -97,10 +98,16 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 export default async function ProductPage({ params, searchParams }: Params) {
   const { storeId, handle } = await params
-  const { view } = await searchParams
+  const { view, review } = await searchParams
   const found = await loadProduct(storeId, handle)
   if (!found) notFound()
   const { product } = found
+  // Reviews app: the widget's data, and the real rating for the stars under the title.
+  const reviews = await productReviews(storeId, product, {
+    requestToken: typeof review === 'string' ? review : null,
+    storeName: found.storeName,
+  })
+  const rated = reviews && reviews.summary.count > 0 ? reviews.summary : null
   const emiApp = await inStore(storeId, (tx) => storeEmiOffers(tx, storeId))
   // Before the EMI & pay later app is installed, the older built-in hint still shows.
   const legacyEmi = emiApp.installed
@@ -115,6 +122,14 @@ export default async function ProductPage({ params, searchParams }: Params) {
       ...product,
       description: found.description,
       images: product.images.filter((i) => !i.contentType?.startsWith('video/')),
+      rating: rated ? { value: rated.rating, count: rated.count } : null,
+      reviews:
+        reviews?.widget.reviews.slice(0, 5).map((r) => ({
+          author: r.name,
+          rating: r.rating,
+          title: r.title,
+          body: r.body,
+        })) ?? [],
     },
     await requestOrigin(),
     found.currency,
@@ -144,6 +159,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
         },
         deliveryChecker: { estimate: estimateDeliveryAction },
         emiOffers: emiOfferFor(emiApp.config, variant?.pricePaise ?? 0),
+        reviews: reviews?.widget,
       },
       renderers: {
         MainProduct: (s) => {
@@ -151,7 +167,15 @@ export default async function ProductPage({ params, searchParams }: Params) {
             <ProductView
               product={product}
               onAddToCart={addLineAction}
-              settings={mainProductSettings(s)}
+              settings={
+                rated
+                  ? {
+                      ...mainProductSettings(s),
+                      ratingValue: rated.rating,
+                      ratingCount: rated.count,
+                    }
+                  : mainProductSettings(s)
+              }
               UnderPrice={s.showEmiHint !== false ? UnderPrice : undefined}
               belowBuy={s.showDeliveryEstimate === false ? undefined : <DeliveryEstimateWidget />}
               NotifyMe={bis.installed ? NotifyMeForm : undefined}

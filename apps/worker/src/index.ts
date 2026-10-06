@@ -20,6 +20,7 @@ import { paymentWebhooks } from './payments'
 import { createUnpaidOrderExpiry, EXPIRY_EVERY_MS } from './payments-expiry'
 import { BALANCE_EVERY_MS, createPreorderBalanceJob } from './preorder-balance'
 import { createConnection, createHeartbeat } from './queues'
+import { createReviewRequestSweep, REVIEW_REQUESTS_EVERY_MS } from './reviews'
 import { createSenderEmailPoller, SENDER_CHECK_EVERY_MS } from './sender-email'
 import { shipmentWebhooks } from './shipments-webhook'
 import { createShippingTracker, TRACK_EVERY_MS } from './shipping'
@@ -75,6 +76,7 @@ const aiBulkWrite = createAiBulkWriteWorker(redis, db, { settingsSecret: env.SET
 const importSnapshots = createImportSnapshotCleanup(redis, db, {
   settingsSecret: env.SETTINGS_SECRET,
 })
+const reviewRequests = createReviewRequestSweep(redis, db)
 const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
@@ -98,6 +100,7 @@ reportWorkerFailures(mediaProcess.worker, 'media-process', reportError)
 reportWorkerFailures(storeExport.worker, 'store-export', reportError)
 reportWorkerFailures(aiBulkWrite.worker, 'ai-bulk-write', reportError)
 reportWorkerFailures(importSnapshots.worker, 'import-snapshot-cleanup', reportError)
+reportWorkerFailures(reviewRequests.worker, 'review-requests', reportError)
 
 await queue.upsertJobScheduler('heartbeat-every-minute', { every: 60_000 }, { name: 'tick' })
 await tracker.queue.upsertJobScheduler(
@@ -142,6 +145,11 @@ await importSnapshots.queue.upsertJobScheduler(
   'clean-import-snapshots',
   { every: SNAPSHOT_CLEANUP_EVERY_MS },
   { name: 'clean' },
+)
+await reviewRequests.queue.upsertJobScheduler(
+  'queue-review-requests',
+  { every: REVIEW_REQUESTS_EVERY_MS },
+  { name: 'sweep' },
 )
 
 const rateLimitStore = createRedisRateLimitStore(redis)
@@ -194,6 +202,8 @@ const shutdown = async () => {
   await aiBulkWrite.queue.close()
   await importSnapshots.worker.close()
   await importSnapshots.queue.close()
+  await reviewRequests.worker.close()
+  await reviewRequests.queue.close()
   await queue.close()
   await notifications.close()
   redis.disconnect()

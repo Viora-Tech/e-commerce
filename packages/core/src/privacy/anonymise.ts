@@ -286,6 +286,14 @@ export async function anonymiseCustomer(
     await tx.execute(
       sql`delete from contact_message where store_id = ${ctx.storeId} and lower(email) = ${cu.email.toLowerCase()}`,
     )
+    // Reviews app (same plain-SQL reason): no more review emails, and their reviews stay
+    // as anonymous text without the email, name or account link.
+    await tx.execute(
+      sql`delete from review_request where store_id = ${ctx.storeId} and lower(email) = ${cu.email.toLowerCase()}`,
+    )
+    await tx.execute(
+      sql`update review set reviewer_email = null, reviewer_name = 'A customer', customer_id = null where store_id = ${ctx.storeId} and (lower(reviewer_email) = ${cu.email.toLowerCase()} or customer_id = ${input.customerId})`,
+    )
   }
 
   await tx

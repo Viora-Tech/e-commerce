@@ -1,10 +1,19 @@
-// Port of sections/product-reviews.liquid: a quote-marked heading over the reviews panel. No reviews store exists yet, so the panel holds the merchant's empty-state text.
+// Port of sections/product-reviews.liquid: a quote-marked heading over the reviews panel. With the
+// Reviews app installed the panel holds its widget (summary, reviews, write a review); without it,
+// the merchant's empty-state text.
 import type { ReactNode } from 'react'
+import type { ReviewsWidgetContext } from '../../../types'
+import ReviewsWidget from '../../reviews/reviews-widget'
 import RichCopy from '../../rich-copy'
 
-type ProductReviewsProps = { heading: ReactNode; text: ReactNode }
+type ProductReviewsProps = {
+  heading: ReactNode
+  text: ReactNode
+  /** Set by the product page when the Reviews app is installed. */
+  reviews?: ReviewsWidgetContext | undefined
+}
 
-export default function ProductReviews({ heading, text }: ProductReviewsProps) {
+export default function ProductReviews({ heading, text, reviews }: ProductReviewsProps) {
   return (
     <div className="section-product-reviews" id="reviews">
       {heading ? (
@@ -16,7 +25,11 @@ export default function ProductReviews({ heading, text }: ProductReviewsProps) {
         </header>
       ) : null}
       <div className="section-product-reviews__widget">
-        <RichCopy value={text} className="section-product-reviews__empty rte" />
+        {reviews ? (
+          <ReviewsWidget context={reviews} />
+        ) : (
+          <RichCopy value={text} className="section-product-reviews__empty rte" />
+        )}
       </div>
     </div>
   )

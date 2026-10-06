@@ -185,6 +185,21 @@ export type LiquidDataSource = {
   metaobjectsOfType(type: string): Promise<LiquidCustomData>
   /** Published entries by id, with the entries they link to. */
   metaobjects(ids: string[]): Promise<LiquidCustomData>
+  /**
+   * Judge.me's shop-wide review data (`shop.metafields.judgeme.*`: `reviews_grid`,
+   * `all_reviews_rating`...), built from the Reviews app; null when the app is not installed.
+   */
+  judgeme?: (() => Promise<Record<string, unknown> | null>) | undefined
+}
+
+/**
+ * Reviews for imported themes, handed in by the storefront when the Reviews app is
+ * installed (core never imports the app): ratings per product for Shopify's standard
+ * `product.metafields.reviews.rating` / `.rating_count`, and Judge.me's shop data.
+ */
+export type LiquidReviewsSource = {
+  ratings(productIds: string[]): Promise<Map<string, { rating: number; count: number }>>
+  judgeme(): Promise<Record<string, unknown>>
 }
 
 /** Shopify's handleize: lowercase, words joined by hyphens. */

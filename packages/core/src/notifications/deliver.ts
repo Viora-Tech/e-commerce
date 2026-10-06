@@ -286,7 +286,7 @@ export async function buildTemplateData(
 }
 
 /** The store's enabled channels, unless the caller injected fakes. */
-async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
+export async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
   if (opts.channels) return opts.channels
   return storeNotificationChannels(ctx.tx, ctx.storeId, {
     registry: opts.registry,
@@ -295,7 +295,7 @@ async function channelsFor(ctx: StoreContext, opts: DeliverOptions) {
 }
 
 /** Whether the store still sends this template (see `isMessageOn`). */
-async function messageOn(ctx: StoreContext, template: TemplateId): Promise<boolean> {
+export async function messageOn(ctx: StoreContext, template: TemplateId): Promise<boolean> {
   const [s] = await ctx.tx
     .select({ notifications: store.notifications })
     .from(store)
@@ -353,48 +353,6 @@ export async function deliverNewsletterConfirm(
       ok: r.ok,
       error: r.ok ? undefined : r.error,
     })
-  }
-  return results
-}
-
-/**
- * A message to the MERCHANT that belongs to no order (a form message from the Forms app):
- * one email to the store's contact address through the email channels. Nothing goes out
- * when the store has no contact address or the merchant switched the message off.
- */
-export async function deliverToStoreContact(
-  ctx: StoreContext,
-  template: TemplateId,
-  data: Partial<TemplateData>,
-  opts: DeliverOptions,
-): Promise<DeliveryResult[]> {
-  const [s] = await ctx.tx
-    .select({ name: store.name, email: store.contactEmail })
-    .from(store)
-    .where(eq(store.id, ctx.storeId))
-  if (!s?.email || !(await messageOn(ctx, template))) return []
-  const full: TemplateData = {
-    customerName: '',
-    totalLabel: '',
-    lines: [],
-    paymentMethodLabel: '',
-    ...data,
-    storeName: s.name,
-  }
-  const results: DeliveryResult[] = []
-  for (const channel of await channelsFor(ctx, opts)) {
-    if (channel.requires !== 'email') continue
-    const r = await channel.send({ to: { email: s.email }, template, data: full })
-    await ctx.tx.insert(notification).values({
-      storeId: ctx.storeId,
-      channel: channel.id,
-      template,
-      to: s.email,
-      status: r.ok ? 'sent' : 'failed',
-      providerRef: r.ok ? r.providerRef : null,
-      error: r.ok ? null : r.error,
-    })
-    results.push({ channel: channel.id, to: s.email, ok: r.ok, error: r.ok ? undefined : r.error })
   }
   return results
 }

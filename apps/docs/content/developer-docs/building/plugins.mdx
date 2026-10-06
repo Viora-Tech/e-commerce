@@ -344,7 +344,7 @@ that installed the app from Admin → Apps.
 | Field | What it does |
 | --- | --- |
 | `category` | Badge on the Apps page, e.g. `invoicing`. |
-| `hooks` | `order.paid`, `order.fulfilled`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `refund.created` is queued by the refund route. |
+| `hooks` | `order.paid`, `order.fulfilled`, `order.delivered`, `refund.created`. Run in the worker on the `{apps}-events` queue, at least once per (order, event) or (refund, event): **make them idempotent**. `order.paid`/`order.fulfilled` fire from the `payment_received`/`order_shipped` notifications, so every path that marks an order paid or shipped is covered; `order.delivered` fans out from the `order.delivered` outbox row (courier tracking or "mark delivered"); `refund.created` is queued by the refund route. |
 | `jobs` | Named background jobs the app queues for itself with `enqueueAppJob(context.appJobs, { storeId, pluginId, name, data })`. They run on `{apps}-jobs` with the same context as hooks. |
 | `orderLinks` | Links on the shopper's order page and in order emails (`ctx.surface` says which). Failures are swallowed. |
 | `emailAttachments` | Files attached to one order email (`{ orderId, template }`). A failure fails the notification job so it retries. SES sends them; other channels ignore them. |
@@ -411,6 +411,41 @@ route `/theme-actions/contact` calls it only when the store installed the app
 (`formsInstalled` in `apps/storefront/src/lib/forms-context.ts`); the worker's notifications
 consumer emails the store's contact address with the core `contact_message` template through
 `deliverToStoreContact`. Core never imports the app: the outbox event carries only the message id.
+
+`packages/plugin-reviews` (Reviews) is the fullest worked example of an app with its own
+tables, a storefront surface and emails:
+
+- **Tables** (`schema.ts`, migration `0091_reviews`, all under RLS): `review` (product,
+  optional order and customer, rating 1-5, title, body, reviewer name, private reviewer
+  email, `status` pending/published/hidden, `held_reason`, `verified_buyer`, `source`
+  storefront/judgeme, `external_id` unique per store, `helpful_count`, `reply`/`reply_at`,
+  `featured`), `review_media` (a `media` row, or a Judge.me `source_url` until the copy job
+  fetched it) and `review_request` (one per order and product: `due_at`, `sent_at`,
+  `reminder_sent_at`, `reviewed_at`, `opted_out_at`). Settings live in `store.apps` under
+  `reviews` (`./settings`, pure and client-safe).
+- **Ratings** are worked out from published reviews on every read (`ratingSummaries`), so
+  approve, hide, delete and import never leave a stale average.
+- **Storefront**: the product page hands the Glide Product reviews section
+  `appBlockContext.reviews` (`apps/storefront/src/lib/reviews.ts`); the widget
+  (`packages/blocks/src/components/reviews/*`) posts to `/reviews/photo`, `/reviews/submit` and
+  `/reviews/helpful` (`apps/storefront/src/lib/review-actions.ts`). The store comes from the
+  hostname, never the body; each endpoint is rate-limited per IP and store; the form has a
+  honeypot (`review_website`); photos go through `saveImageForProcessing` (core) and the media
+  pipeline, which strips GPS, and come back as signed tokens so a review only attaches photos
+  the same visitor uploaded. **Verified buyer** means the shopper's account, or the order of a
+  signed review request link (`?review=`), holds an order with the product.
+- **Emails**: the app's `order.delivered` hook plans `review_request` rows; the worker's
+  `{reviews}-requests` sweep (`apps/worker/src/reviews.ts`, stores from the SECURITY DEFINER
+  `stores_with_due_review_requests()`) writes one `review.request_due` outbox row per order, the
+  relay queues `review_request` / `review_reminder`, and the notifications worker sends them with
+  core's `deliverEmailTo`. The first store reply writes `review.replied` (`review_reply`).
+  Each email carries a signed stop link (`/reviews/unsubscribe`).
+- **Judge.me import** (`judgeme.ts`): reads the export by column name, matches by SKU then
+  handle, skips rows whose external id is already here, and queues the `copy-photos` app job,
+  which fetches each photo through `@commerce/core/safe-fetch` only.
+- **Imported themes**: `reviewsLiquidSource` feeds `storeLiquidData`'s `reviews` option, which
+  adds Shopify's `reviews.rating` / `reviews.rating_count` product metafields and Judge.me's
+  `shop.metafields.judgeme.*` (see the theme import page).
 
 ## 7. Storefront app blocks
 

@@ -1,6 +1,7 @@
 import {
   type AppEventQueue,
   appEventForTemplate,
+  deliverEmailTo,
   deliverNewsletterConfirm,
   deliverNotification,
   deliverToStoreContact,
@@ -8,10 +9,16 @@ import {
   fulfilGiftCardsForOrder,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
+  storefrontOriginFor,
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
 import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
+import {
+  loadReviewsSettings,
+  replyEmailData,
+  reviewRequestEmail,
+} from '@commerce/plugin-reviews/server'
 import { fairProcessor, type IORedis, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { appEmailExtras } from './app-events'
 
@@ -34,8 +41,17 @@ export function createNotificationWorker(
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     fairProcessor(connection, NOTIFICATIONS_QUEUE, { perStore }, async (job) => {
-      const { storeId, orderId, template, key, returnId, refundId, signupId, contactMessageId } =
-        job.data
+      const {
+        storeId,
+        orderId,
+        template,
+        key,
+        returnId,
+        refundId,
+        signupId,
+        contactMessageId,
+        reviewId,
+      } = job.data
       // The one message without an order: the newsletter confirm link (double opt-in).
       if (template === 'newsletter_confirm') {
         if (!signupId || !opts.storefrontUrl) return []
@@ -76,6 +92,64 @@ export function createNotificationWorker(
                 phone: msg.phone,
                 text: messageText(msg),
                 path: msg.path,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // Reviews app: the request or reminder for an order's products, and the store's reply.
+      if (template === 'review_request' || template === 'review_reminder') {
+        const fallback = opts.storefrontUrl
+        if (!fallback) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const settings = await loadReviewsSettings(tx, storeId)
+          const email = await reviewRequestEmail(
+            tx,
+            storeId,
+            orderId,
+            template === 'review_request' ? 'request' : 'reminder',
+            settings,
+            {
+              secret: opts.settingsSecret,
+              storefrontUrl: await storefrontOriginFor(tx, storeId, fallback),
+            },
+          )
+          if (!email) return []
+          return deliverEmailTo({ storeId, tx }, template, email.to, email.data, {
+            registry: (await registriesForStore(tx, storeId)).notifications,
+            settingsSecret: opts.settingsSecret,
+          })
+        })
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      if (template === 'review_reply') {
+        if (!reviewId) return []
+        const fallback = opts.storefrontUrl ?? ''
+        const sent = await withStore(db, storeId, async (tx) => {
+          const r = await replyEmailData(tx, reviewId)
+          if (!r?.email || !r.reply) return []
+          const base = (await storefrontOriginFor(tx, storeId, fallback)).replace(/\/+$/, '')
+          return deliverEmailTo(
+            { storeId, tx },
+            template,
+            r.email,
+            {
+              customerName: r.name.split(' ')[0] || 'there',
+              review: {
+                productTitle: r.productTitle,
+                productUrl: base
+                  ? `${base}/products/${encodeURIComponent(r.handle)}#reviews`
+                  : undefined,
+                reply: r.reply,
               },
             },
             {

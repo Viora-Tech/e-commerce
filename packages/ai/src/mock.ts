@@ -12,6 +12,7 @@ import { simulateReadableStream } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import type { AiFeature } from './features'
 import { mockPlan } from './mock-plan'
+import { REVIEW_REPLY_MARKER } from './review-reply'
 
 const USAGE = {
   inputTokens: { total: 1_200, noCache: 1_200, cacheRead: undefined, cacheWrite: undefined },
@@ -158,7 +159,17 @@ export function mockModel(feature: AiFeature): MockLanguageModelV4 {
     provider: 'mock',
     modelId: `mock-${feature}`,
     doGenerate: async (options) => ({
-      content: [{ type: 'text', text: productCopy(options.prompt) }],
+      content: [
+        {
+          type: 'text',
+          text: systemText(options.prompt).includes(REVIEW_REPLY_MARKER)
+            ? JSON.stringify({
+                reply:
+                  'Thank you for taking the time to write this. We are glad it works well for you, and we hope you enjoy it for a long time.',
+              })
+            : productCopy(options.prompt),
+        },
+      ],
       finishReason: { unified: 'stop', raw: undefined },
       usage: USAGE,
       warnings: [],
