@@ -124,3 +124,11 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 
 - Used in: `apps/docs` (renders Mermaid diagrams in MDX pages)
 - Licence: MIT — https://github.com/dimaMachina/nextra (The Guild)
+
+## @shadcn/lint and Oxlint
+
+- Used in: repo root dev tooling (`bun run lint:design`, `.oxlintrc.json`): design-system lint
+  rules for Tailwind (no restyling shared components, theme tokens only, no inline styles).
+- Licences: `@shadcn/lint` MIT (shadcn) — https://github.com/shadcn-ui/lint ;
+  `oxlint` MIT (oxc project) — https://github.com/oxc-project/oxc. Installed as dev
+  dependencies; no code copied.
