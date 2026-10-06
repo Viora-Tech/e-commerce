@@ -44,6 +44,15 @@ const pending = {
   MailFromAttributes: { MailFromDomain: 'bounce.waimers.in', MailFromDomainStatus: 'PENDING' },
 }
 
+/** An identity this platform created for `storeId`. */
+const ours = (storeId: string) => ({
+  ...pending,
+  Tags: [
+    { Key: 'managed-by', Value: 'waimers-commerce' },
+    { Key: 'store-id', Value: storeId },
+  ],
+})
+
 describe('SesIdentityProvider', () => {
   it('creates an Easy DKIM domain identity, sets the bounce subdomain and reads the tokens back', async () => {
     const ses = fakeSes((c) => (c.name === 'GetEmailIdentityCommand' ? pending : {}))
@@ -79,16 +88,45 @@ describe('SesIdentityProvider', () => {
   it('adopts an identity that already exists (a retry after a crash)', async () => {
     const ses = fakeSes((c) => {
       if (c.name === 'CreateEmailIdentityCommand') throw awsError('AlreadyExistsException')
-      return c.name === 'GetEmailIdentityCommand' ? pending : {}
+      return c.name === 'GetEmailIdentityCommand' ? ours('store-1') : {}
     })
     const state = await new SesIdentityProvider(config, ses.client).create('waimers.in', {
       mailFromDomain: null,
+      storeId: 'store-1',
     })
     expect(state.status).toBe('pending')
     expect(ses.sent.map((c) => c.name)).toEqual([
       'CreateEmailIdentityCommand',
       'GetEmailIdentityCommand',
+      'GetEmailIdentityCommand',
     ])
+  })
+
+  // Audit 2026-09-28: an identity already in the platform account that this
+  // platform did not make for this store is never adopted (the store would send
+  // as that domain at once) and never deleted.
+  it('refuses to adopt an identity it did not make, or made for another store', async () => {
+    for (const existing of [pending, ours('store-2')]) {
+      const ses = fakeSes((c) => {
+        if (c.name === 'CreateEmailIdentityCommand') throw awsError('AlreadyExistsException')
+        return c.name === 'GetEmailIdentityCommand' ? existing : {}
+      })
+      await expect(
+        new SesIdentityProvider(config, ses.client).create('waimers.in', {
+          mailFromDomain: null,
+          storeId: 'store-1',
+        }),
+      ).rejects.toThrow('someone else')
+    }
+  })
+
+  it('never deletes an identity it did not make', async () => {
+    const ses = fakeSes((c) => (c.name === 'GetEmailIdentityCommand' ? pending : {}))
+    await new SesIdentityProvider(config, ses.client).remove('other-product.in')
+    expect(ses.sent.map((c) => c.name)).toEqual(['GetEmailIdentityCommand'])
+    const mine = fakeSes((c) => (c.name === 'GetEmailIdentityCommand' ? ours('store-1') : {}))
+    await new SesIdentityProvider(config, mine.client).remove('waimers.in')
+    expect(mine.sent.at(-1)?.name).toBe('DeleteEmailIdentityCommand')
   })
 
   it('passes other create errors through', async () => {
@@ -107,7 +145,7 @@ describe('SesIdentityProvider', () => {
     const p = new SesIdentityProvider(config, ses.client)
     expect(await p.get('gone.in')).toBeNull()
     await expect(p.remove('gone.in')).resolves.toBeUndefined()
-    expect(ses.sent.at(-1)?.name).toBe('DeleteEmailIdentityCommand')
+    expect(ses.sent.at(-1)?.name).toBe('GetEmailIdentityCommand')
   })
 
   it('reports a refused MAIL FROM as false instead of throwing', async () => {

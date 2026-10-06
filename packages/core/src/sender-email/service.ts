@@ -94,6 +94,7 @@ async function createIdentity(
   try {
     return await deps.identities.create(domain, {
       mailFromDomain: `${MAIL_FROM_SUBDOMAIN}.${domain}`,
+      storeId,
     })
   } catch (err) {
     throw new SenderEmailError(

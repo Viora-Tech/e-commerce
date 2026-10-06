@@ -9,7 +9,7 @@ import SummaryLine from '@/components/checkout/summary-line'
 import SummaryRow from '@/components/checkout/summary-row'
 import { checkoutContent as content } from '@/data/checkout'
 import type { ShippingRow } from '@/lib/checkout-preview'
-import type { CartDiscountView } from '@/lib/discount-actions'
+import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 
 type CheckoutSummaryProps = {

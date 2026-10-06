@@ -41,7 +41,7 @@ import {
   fieldId,
   fieldOrder,
 } from '@/lib/checkout-validation'
-import type { CartDiscountView } from '@/lib/discount-actions'
+import type { CartDiscountView } from '@/lib/discount-view'
 import type { AppliedGiftCard } from '@/lib/gift-card-actions'
 import type { CheckoutMethod } from '@/lib/payments'
 import type { CartDepositTerms } from '@/lib/preorder'

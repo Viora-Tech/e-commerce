@@ -30,22 +30,27 @@ flowchart LR
 
 | Step | File | What it does |
 | --- | --- | --- |
-| Read the zip | `archive.ts` | fflate `unzipSync` with a filter that checks the zip directory before inflating: 50 MB zip, 120 MB unpacked, 15 MB per file, 4,000 files. Paths with `..`, absolute paths, drive letters or NUL are dropped, not cleaned. Only theme folders and known file types are kept; everything else is listed as skipped. Nothing is executed. |
+| Read the zip | `archive.ts` | Reads the zip's own directory, then inflates each entry with fflate's streaming `Inflate` 16 KB at a time and stops as soon as it passes the size the entry declared (a "zip bomb" that says 1 KB and inflates to gigabytes costs one small step, security audit 2026-10-06): 50 MB zip, 120 MB unpacked, 15 MB per file, 4,000 files. Paths with `..`, absolute paths, drive letters or NUL are dropped, not cleaned. Only theme folders and known file types are kept; everything else is listed as skipped. Nothing is executed. |
 | Store | `import.ts` | A **new** unpublished theme "`<name> (imported)`" (the live theme is never touched). Every file goes to `theme_file` (text as UTF-8, binary as base64, with a checksum). `theme_import` keeps the theme's settings (`settings_data.json` current), `theme_info` and the report. Migration `0085_shopify_theme_import`, both tables under RLS. |
-| Copy media | `import-media.ts` | The address is the typed one, else the connected Shopify importer store (`shopify_import_connection`). Before any download, `findImportedMedia` reuses files the importer already copied: `shopify_import_mapping` rows of resource `media` (image CDN address, matched by file name) and `file_name` (the Shopify file name, written by the importer for videos from now on; re-run the importer once to fill it for older imports). Only what is still missing is downloaded. `shopify://shop_images/x` → `https://<host>/cdn/shop/files/x` through `@commerce/core/safe-fetch` (public addresses only, redirects re-checked, bytes capped); oversized originals are asked for again at 3000, 2000 and 1400 px. Shopify Files videos have no address derivable from their name, so the live home page is read once and the n-th video setting of a section is matched to the n-th `<video>` inside `#shopify-section-…__<key>`. Copies land in storage and Files (`media` rows). |
+| Copy media | `import-media.ts` | The address is the typed one, else the connected Shopify importer store (`shopify_import_connection`). Before any download, `findImportedMedia` reuses files the importer already copied: `shopify_import_mapping` rows of resource `media` (image CDN address, matched by file name) and `file_name` (the Shopify file name, written by the importer for videos from now on; re-run the importer once to fill it for older imports). Only what is still missing is downloaded. `shopify://shop_images/x` → `https://<host>/cdn/shop/files/x` through `@commerce/core/safe-fetch` (public addresses only, redirects re-checked, bytes capped); oversized originals are asked for again at 3000, 2000 and 1400 px. Shopify Files videos have no address derivable from their name, so the live home page is read once and the n-th video setting of a section is matched to the n-th `<video>` inside `#shopify-section-…__<key>`. Copies land in storage and Files (`media` rows). One import downloads at most 300 images and 20 videos in 3 minutes (`THEME_MEDIA_LIMITS`); the rest is listed in the report as not copied. The live page is read with forward-only string searches (never a pattern that can backtrack over it). The import counts against the store's `heavy('import')` budget. |
 | Templates | `import.ts`, `fields.ts` | `templates/index.json` → our `home`, `sections/header-group.json` → `header`, `footer-group.json` → `footer`. Each section becomes one Puck item of type `LiquidSection`: `sectionType`, `sectionKey`, `_name` (the schema name, shown in Customize), its settings at the top level (`settingPropKey` prefixes reserved ids) and `blocks: [{ id, type, disabled, settings }]`. Image settings are stored as `{ url, alt, width, height }`, Shopify links as our paths, handles as handles. |
 | Report | `import-report.ts`, `report.ts`, `swap.ts` | Every section file: where it is placed, what it relies on (swap table), app blocks, main templates, LiquidJS parse errors → `imported`, `replaced`, `unavailable`, `unsupported`. Plus menus, collections, products and blogs the imported pages name that this store lacks, images and videos copied or not, skipped files. Copy (English and Hindi) lives in `apps/admin/src/data/theme-import.ts` keyed by reason. |
 
 ## The engine
 
 `engine.ts` creates one LiquidJS (MIT) instance per theme version: snippets are served from
-memory (`templates` option, no file system), `ownPropertyOnly`, and render limits (20 s, which
-includes data loads; parse and memory caps). Shopify-only tags:
+memory (`templates` option, no file system), `ownPropertyOnly`, and render limits
+(`LIQUID_LIMITS`, applied by `renderBounded`): renders are synchronous, so while one runs the
+whole server waits, for every store on it. One render pass may take 2 s of CPU and write 4 M
+characters; all renders of one page context together (layout, sections, passes, the canvas's
+60-section batch) 6 s; then the rest render as a comment. Parse and memory caps as before.
+Shopify-only tags:
 
 | Tag | Here |
 | --- | --- |
 | `form` | Draws the theme's form; posts to `/theme-actions/<action>` (cart-add, newsletter, contact, localization) or our pages (login, account). Inner `form` object reads like Shopify's, `posted_successfully?` from `?form_posted=` after our handler redirects back. |
-| `style`, `stylesheet`, `javascript` | Inline `<style>` / `<script>` (nonce added on the storefront). |
+| `style`, `stylesheet`, `javascript` | Inline `<style>` / `<script>` (with the request's nonce on the storefront). |
+| `commerce_script_nonce` | Ours. `bundle.ts` (`nonceThemeScripts`) writes it after every `<script` in the theme's **source** markup (never inside `{% %}`, `{{ }}` or `{% raw %}`), and it prints ` nonce="…"`. A `<script>` that arrives in data (a product title, an entry, a setting) is output, not source, so it gets no nonce and the CSP blocks it. |
 | `section`, `sections` | Static sections render in place; groups leave markers in the layout the storefront fills with its own header and footer templates. |
 | `content_for 'blocks'` / `'block'` | Theme blocks from `blocks/*.liquid`. |
 | `paginate` | One page (collections hand themes up to 50 products), with the `paginate` object. |
@@ -111,7 +116,7 @@ A home page is about 1 s in dev and two passes per section.
   Shopify's because themes key CSS on them). The store layout draws the theme's
   `layout/theme.liquid` head (stylesheets, CSS variables), the body markup before the header group
   and after the footer group (icon sprites, cart drawer, scripts), with the request's CSP nonce on
-  every `<script>`. Our own pages (product, cart, search, account) render inside the theme's header
+  every `<script>` the theme's own source writes (see `commerce_script_nonce` above). Our own pages (product, cart, search, account) render inside the theme's header
   and footer. The checkout (`/checkout` and everything under it) never does: the layout drops the
   theme's shell, header and footer there (`liquidLayoutForPath`, `lib/checkout-path.ts`), so the
   theme's CSS cannot restyle it and its scripts cannot rewrite it before React hydrates (Zero
@@ -124,8 +129,10 @@ A home page is about 1 s in dev and two passes per section.
   colour, colour scheme, product/collection/blog/page/menu handles) passed through
   `metadata.liquid`; `LiquidSection.resolveFields` picks the section's own. Blocks are one array
   field whose item fields depend on the block type (`customize-liquid-blocks.ts`). The canvas
-  asks `themes.import.render` for HTML (batched, `liquid-canvas.ts`) with **scripts and inline
-  handlers removed** — the canvas shares the admin's origin. The iframe gets the theme's head
+  asks `themes.import.render` for HTML (batched, `liquid-canvas.ts`) with **everything that can
+  run removed** by `sanitize-html` (`canvasSafeHtml`, `@commerce/blocks/canvas-html`: scripts,
+  frames, `<meta>`/`<base>`, every `on*` handler however quoted, script URLs) — the canvas shares
+  the admin's origin. The iframe gets the theme's head
   instead of our theme CSS (`preview-frame.tsx`).
 
 ## Behaviour swap

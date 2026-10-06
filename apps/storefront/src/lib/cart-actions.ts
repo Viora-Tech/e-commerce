@@ -28,7 +28,7 @@ import {
   syncOpenQrAttempt,
   thankYouPath,
 } from '@commerce/core'
-import { order, payment } from '@commerce/db'
+import { payment } from '@commerce/db'
 import { formatMoney } from '@commerce/money'
 import type { ClientConfirmation } from '@commerce/payments'
 import { and, desc, eq, ne } from 'drizzle-orm'
@@ -40,6 +40,7 @@ import { readAttribution } from './attribution-cookie'
 import { clearCartId, readCartId, writeCartId } from './cart-cookie'
 import { currentCustomer } from './customer-session'
 import { db } from './db'
+import { accessibleOrderId } from './order-access'
 import { nudgeOutbox } from './outbox'
 import { storePaymentProviders } from './payments'
 import { clientIp, rateLimited } from './rate-limit'
@@ -296,16 +297,12 @@ function redirectAfterCheckout(
  * with the same amount and gateway, then back to the gateway. Two taps make
  * one attempt; the order and its stock are untouched.
  */
-export async function retryPaymentAction(orderNumber: number) {
+export async function retryPaymentAction(orderNumber: number, viewToken: string | null) {
   const storeId = await requestStoreId()
-  // Looked up before the rate-limit check too, so every exit (including a
-  // rate-limited one) can still land on a validly-tokened thank-you link.
-  const orderId = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    return o?.id ?? null
-  })
-  // No order: nothing to tell apart from a stray order number, so the
-  // fallback (untokened) link is fine — the page 404s on it either way.
+  // The caller must own the order or hold its view token: every exit below mints a fresh
+  // one, which opens the order to whoever holds it (security audit 2026-10-06, A-00).
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  // No order, or not theirs: the untokened link, which a stranger cannot open.
   if (!orderId) redirect(`/checkout/thank-you/${orderNumber}`)
   const oid: string = orderId
   const backToThankYou = (): never =>
@@ -313,7 +310,7 @@ export async function retryPaymentAction(orderNumber: number) {
   const ip = clientIp(await headers())
   const [byIp, byOrder] = await Promise.all([
     rateLimited('payment-retry:ip', ip, PAYMENT_RETRY_IP_RULE),
-    rateLimited('payment-retry:order', String(orderNumber), PAYMENT_RETRY_IP_RULE),
+    rateLimited('payment-retry:order', `${storeId}:${orderNumber}`, PAYMENT_RETRY_IP_RULE),
   ])
   // No error slot on this action's return type: over the limit lands back on
   // the thank-you page, same as a retry that turns out not to be needed.
@@ -348,7 +345,7 @@ export async function retryPaymentAction(orderNumber: number) {
  * the order turns paid even when its webhook is late or not set up. True once
  * paid; the page then refreshes to the paid state.
  */
-export async function checkQrPaymentAction(orderNumber: number) {
+export async function checkQrPaymentAction(orderNumber: number, viewToken: string | null) {
   const storeId = await requestStoreId()
   const limited = await rateLimited(
     'qr-check:order',
@@ -356,9 +353,12 @@ export async function checkQrPaymentAction(orderNumber: number) {
     QR_CHECK_ORDER_RULE,
   )
   if (!limited.ok) return false
+  // Only for whoever can see the order: a stranger learns nothing about it and cannot make
+  // us call the gateway for it (security audit 2026-10-06, A-00).
+  const orderId = await accessibleOrderId(storeId, orderNumber, viewToken)
+  if (!orderId) return false
   const target = await inStore(storeId, async (tx) => {
-    const [o] = await tx.select({ id: order.id }).from(order).where(eq(order.number, orderNumber))
-    if (!o) return null
+    const o = { id: orderId }
     const [latest] = await tx
       .select({ provider: payment.provider })
       .from(payment)

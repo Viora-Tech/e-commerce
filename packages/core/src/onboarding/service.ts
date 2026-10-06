@@ -192,7 +192,20 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
 
   let organizationId = storeRow.organizationId
   if (!organizationId) {
-    const orgResult = await input.createOrganization({ name, slug: input.slug })
+    const orgResult = await input
+      .createOrganization({ name, slug: input.slug })
+      .catch(async (err: unknown) => {
+        // Refused (e.g. Better Auth's organization limit): give the address back, or an
+        // owner over their limit could hold any number of store addresses with no store
+        // behind them (security audit 2026-09-28 branch, ported 2026-10-06).
+        if (created) {
+          await withStore(db, storeId, async (tx) => {
+            await tx.delete(storeDomain).where(eq(storeDomain.storeId, storeId))
+            await tx.delete(store).where(eq(store.id, storeId))
+          })
+        }
+        throw err
+      })
     organizationId = orgResult.organizationId
     await withStore(db, storeId, (tx) =>
       tx.update(store).set({ organizationId }).where(eq(store.id, storeId)),

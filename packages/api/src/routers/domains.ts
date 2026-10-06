@@ -8,6 +8,7 @@ import {
   getDomain,
   listDomains,
   permissions,
+  platformRoots,
   removeDomain,
   setDomainRedirect,
   setPrimaryDomain,
@@ -64,7 +65,7 @@ export const domainsRouter = {
       domainErrorsToBadRequest(async () => {
         const t = targets()
         const rows = await connectDomain(context.tx, context.scope.storeId, input, {
-          platformRoots: env().PLATFORM_DOMAINS,
+          platformRoots: platformRoots(env()),
           targets: t,
         })
         return rows.map((d) => domainView(d, t))

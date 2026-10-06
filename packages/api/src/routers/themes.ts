@@ -35,7 +35,7 @@ import {
 } from '@commerce/core'
 import { ORPCError } from '@orpc/server'
 import { z } from 'zod'
-import { can } from '../procedures'
+import { can, heavy } from '../procedures'
 import {
   importThemeZip,
   liquidEditorInfo,
@@ -216,7 +216,9 @@ const LiquidSectionInput = z.object({
  * import report, and the Customize canvas's renders of its Liquid sections.
  */
 const importRouter = {
+  // The store's import budget (`heavy`): an import unpacks a zip and downloads its files.
   shopify: can(permissions.ONLINE_STORE_WRITE)
+    .use(heavy('import'))
     .input(
       z.object({
         file: z

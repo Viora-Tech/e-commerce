@@ -188,7 +188,9 @@ describe('rendering a section', () => {
     expect(html).toContain('<a href="/collections/mice">Mice</a>')
     expect(html).toContain('/theme-assets/theme-1/section-hero.css?v=abc123')
     // Ids go into JSON unquoted, as Shopify's numbers do.
-    const json = /<script type="application\/json">(.*?)<\/script>/.exec(html)?.[1] ?? ''
+    // The theme's own script tags carry the request's nonce (security audit 2026-10-06, A-04).
+    const json =
+      /<script nonce="n0nce" type="application\/json">(.*?)<\/script>/.exec(html)?.[1] ?? ''
     expect(typeof JSON.parse(json).id).toBe('number')
   })
 

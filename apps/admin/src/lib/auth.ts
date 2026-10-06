@@ -8,7 +8,7 @@ import {
 } from '@commerce/core'
 import { headers } from 'next/headers'
 import { db } from './db'
-import { rememberDevOtp } from './dev-otp'
+import { mayPrintCodes, rememberDevOtp } from './dev-otp'
 
 const g = globalThis as unknown as { __merchantAuth?: MerchantAuth }
 
@@ -32,6 +32,12 @@ export function auth(): MerchantAuth {
           if (!sent) throw new Error('Could not send the sign-in code. Try again in a minute.')
           return
         }
+        if (!mayPrintCodes()) {
+          console.error(
+            '[otp] no platform email account (SENDER_EMAIL_PROVIDER=ses); code not sent',
+          )
+          throw new Error('Could not send the sign-in code. Try again in a minute.')
+        }
         console.log(`[otp] ${type} code for ${email}: ${otp}`)
         rememberDevOtp(email, otp)
       },
@@ -48,7 +54,9 @@ export function auth(): MerchantAuth {
           acceptUrl: invite.acceptUrl,
         })
         if (result === 'sent') return
-        if (result === 'refused') throw new Error("Couldn't send the invite email")
+        if (result === 'refused' || !mayPrintCodes()) {
+          throw new Error("Couldn't send the invite email")
+        }
         console.log(`[invite] ${invite.email} for ${invite.organizationName}: ${invite.acceptUrl}`)
       },
     })

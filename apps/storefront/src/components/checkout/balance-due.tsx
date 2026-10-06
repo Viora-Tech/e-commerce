@@ -7,6 +7,8 @@ import ManualPaymentInstructions from './manual-payment-instructions'
 
 type BalanceDueProps = {
   orderNumber: number
+  /** The order's view token; "Pay balance" proves access with it, never the number alone. */
+  viewToken: string
   balance: BalanceView
   /** The open balance attempt's session, when it is a transfer waiting on the shopper. */
   session?: CheckoutSession | null | undefined
@@ -19,6 +21,7 @@ const formatDate = (d: Date, timeZone: string) =>
 /** A deposit pre-order's balance: what was paid, what is owed, and the "Pay balance" button. */
 export default function BalanceDue({
   orderNumber,
+  viewToken,
   balance,
   session,
   timeZone = 'Asia/Kolkata',
@@ -45,7 +48,7 @@ export default function BalanceDue({
         <p className="text-small">{content.nonRefundable(balance.nonRefundableDays)}</p>
       ) : null}
       {manual ? <ManualPaymentInstructions instructions={manual} amountLabel={owed} /> : null}
-      <form action={payBalanceAction.bind(null, orderNumber)}>
+      <form action={payBalanceAction.bind(null, orderNumber, viewToken)}>
         <button type="submit" className="btn btn--primary">
           {content.pay(owed)}
         </button>

@@ -3,6 +3,7 @@ import {
   getCustomerOrder,
   installedApps,
   orderReturnState,
+  orderViewToken,
   storefrontOriginFor,
 } from '@commerce/core'
 import { getRegistries } from '@commerce/core/registries'
@@ -91,6 +92,7 @@ export default async function AccountOrderPage({ params, searchParams }: OrderPa
         data.balance ? (
           <BalanceDue
             orderNumber={data.order.number}
+            viewToken={orderViewToken(data.order.id, env.SETTINGS_SECRET)}
             balance={data.balance}
             timeZone={data.timeZone}
           />

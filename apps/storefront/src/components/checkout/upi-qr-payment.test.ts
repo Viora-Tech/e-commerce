@@ -20,7 +20,12 @@ const qr: UpiQr = {
 const render = (at: string) => {
   vi.setSystemTime(new Date(at))
   return renderToString(
-    createElement(UpiQrPayment, { orderNumber: 1001, qr, amountLabel: '₹7,499' }),
+    createElement(UpiQrPayment, {
+      orderNumber: 1001,
+      viewToken: 'view-token',
+      qr,
+      amountLabel: '₹7,499',
+    }),
   )
 }
 

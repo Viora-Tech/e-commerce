@@ -92,9 +92,23 @@ describe('bug reports env', () => {
       ...valid,
       BUG_REPORTS_ENABLED: 'true',
       NODE_ENV: 'production',
+      SETTINGS_SECRET: 'a-real-production-secret',
       GITHUB_ISSUES_TOKEN: 'github_pat_x',
     })
     expect(env.GITHUB_ISSUES_TOKEN).toBe('github_pat_x')
+  })
+
+  // Security audit 2026-10-06 (A-02): blank-means-unset (#245) turned a blank SETTINGS_SECRET
+  // into the public development default; production must refuse to start instead.
+  it('refuses a missing or blank SETTINGS_SECRET in production, never the public default', () => {
+    for (const SETTINGS_SECRET of [undefined, '', '   ', 'dev-only-settings-secret']) {
+      expect(() => loadEnv({ ...valid, NODE_ENV: 'production', SETTINGS_SECRET })).toThrow(
+        /SETTINGS_SECRET/,
+      )
+    }
+    const env = loadEnv({ ...valid, NODE_ENV: 'production', SETTINGS_SECRET: 'x'.repeat(32) })
+    expect(env.SETTINGS_SECRET).toBe('x'.repeat(32))
+    expect(loadEnv(valid).SETTINGS_SECRET).toBe('dev-only-settings-secret')
   })
 
   it('rejects a repo that is not owner/name', () => {

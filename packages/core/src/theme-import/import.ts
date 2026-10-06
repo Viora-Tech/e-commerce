@@ -26,8 +26,10 @@ import {
   type Hosted,
   inBatches,
   livePage,
+  newMediaBudget,
   SHOP_IMAGE,
   SHOP_VIDEO,
+  takeMedia,
 } from './import-media'
 import { buildReport, collectHandles, missingHandles, type Wanted } from './import-report'
 import { IMPORTED_TEMPLATES, type ImportReport } from './report'
@@ -269,8 +271,14 @@ export async function importShopifyTheme(
       : null
 
   // Images the theme's templates and settings point at, copied from the old store.
+  const budget = newMediaBudget()
   if (host) {
     await inBatches(missingImages, 6, async (name) => {
+      const refused = takeMedia(budget, 'images')
+      if (refused) {
+        failed.push(`${name}: ${refused}`)
+        return
+      }
       try {
         hosted.images.set(name, await copyImage(tx, storeId, host, name, deps))
       } catch (err) {
@@ -286,7 +294,7 @@ export async function importShopifyTheme(
   } else if (homePage) {
     for (const name of IMPORTED_PAGES) {
       const tpl = templates.get(name)
-      if (tpl) await copyLiveVideos(tx, storeId, homePage.html, tpl, hosted, failed, deps)
+      if (tpl) await copyLiveVideos(tx, storeId, homePage.html, tpl, hosted, failed, deps, budget)
     }
   }
 

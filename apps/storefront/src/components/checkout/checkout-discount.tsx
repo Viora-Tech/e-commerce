@@ -5,11 +5,8 @@ import CheckoutIcon from '@/components/checkout/checkout-icon'
 import CodeEntry from '@/components/checkout/code-entry'
 import { discountFieldContent as content } from '@/data/cart'
 import { checkoutContent } from '@/data/checkout'
-import {
-  applyDiscountAction,
-  type CartDiscountView,
-  removeDiscountAction,
-} from '@/lib/discount-actions'
+import { applyDiscountAction, removeDiscountAction } from '@/lib/discount-actions'
+import type { CartDiscountView } from '@/lib/discount-view'
 
 type CheckoutDiscountProps = {
   discount: CartDiscountView | null

@@ -4,7 +4,7 @@ import { type EngineEntry, engineFor, type ThemeBundle } from './bundle'
 import { LiquidDataCache } from './cache'
 import { MetafieldsDrop, MetaobjectsDrop } from './custom-drops'
 import { imageDrop, LIQUID_ROUTES, type LiquidCartData, type LiquidDataSource } from './drops'
-import type { EngineRuntime } from './engine'
+import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
 import { numericId } from './numeric-id'
 import {
   AllProductsDrop,
@@ -81,6 +81,8 @@ export type LiquidPageContext = {
   options: LiquidRenderOptions
   /** The request's data, read synchronously by renders (see `cache.ts`). */
   cache: LiquidDataCache
+  /** Render time this page has used; every render is held to `LIQUID_LIMITS.pageMs` (engine.ts). */
+  budget: RenderBudget
 }
 
 export async function createPageContext(options: LiquidRenderOptions): Promise<LiquidPageContext> {
@@ -189,7 +191,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     images: {},
     scripts: null,
   }
-  return { bundle, entry, globals, runtime, options, cache }
+  return { bundle, entry, globals, runtime, options, cache, budget: newRenderBudget() }
 }
 
 function cartDrop(cart: LiquidCartData, cache: LiquidDataCache): Record<string, unknown> {

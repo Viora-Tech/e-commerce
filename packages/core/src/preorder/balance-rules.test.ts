@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   balanceToken,
   balanceUrl,
+  canViewOrder,
   orderViewToken,
   payPath,
   thankYouPath,
@@ -105,6 +106,23 @@ describe('order-view link (thank-you / pay IDOR guard)', () => {
     const balance = balanceToken('order-1', secret, t0)
     expect(verifyOrderViewToken(balance, secret, at(1)).ok).toBe(false)
     expect(verifyBalanceToken(token, secret, at(1)).ok).toBe(false)
+  })
+
+  // Security audit 2026-10-06 (A-00, from the 2026-09-28 branch): "Retry payment" and
+  // "Pay balance" minted a fresh view token for any order number a stranger sent.
+  it('canViewOrder: the owner or a token for this order, never the number alone', () => {
+    const o = { id: 'order-1', customerId: 'cust-a' }
+    const token = orderViewToken('order-1', secret, t0)
+    expect(canViewOrder(o, { customerId: 'cust-a', token: null }, secret, at(1))).toBe(true)
+    expect(canViewOrder(o, { customerId: null, token }, secret, at(1))).toBe(true)
+    expect(canViewOrder(o, { customerId: null, token: null }, secret, at(1))).toBe(false)
+    expect(canViewOrder(o, { customerId: 'cust-b', token: null }, secret, at(1))).toBe(false)
+    const guest = { id: 'order-1', customerId: null }
+    expect(canViewOrder(guest, { customerId: null, token: null }, secret, at(1))).toBe(false)
+    const mine = orderViewToken('order-2', secret, t0)
+    expect(canViewOrder(o, { customerId: 'cust-b', token: mine }, secret, at(1))).toBe(false)
+    const balance = balanceToken('order-1', secret, t0)
+    expect(canViewOrder(o, { customerId: null, token: balance }, secret, at(1))).toBe(false)
   })
 
   it('builds the thank-you and pay paths/URLs with the token attached', () => {

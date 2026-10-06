@@ -1,5 +1,6 @@
 import { loadEnv, settingsSecret } from '@commerce/config'
 import {
+  canvasSafeHtml,
   createPageContext,
   googleFontsHref,
   importShopifyTheme,
@@ -69,11 +70,12 @@ export async function themeImportReport(tx: StoreTx, themeId: string) {
   }
 }
 
-/** Script tags never run in the editor canvas (it shares the admin's origin). */
-const stripScripts = (html: string) =>
-  html
-    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+/**
+ * Nothing a theme wrote runs in the editor canvas (it shares the admin's origin): scripts,
+ * frames, handlers and script URLs are removed by a real HTML sanitiser (`canvasSafeHtml`),
+ * not a pattern a theme can step around.
+ */
+const stripScripts = canvasSafeHtml
 
 async function editorContext(tx: StoreTx, storeId: string, themeId: string) {
   const bundle = await loadThemeBundle(tx, themeId)
