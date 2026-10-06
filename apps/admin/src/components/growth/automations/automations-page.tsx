@@ -53,7 +53,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
   return (
     <PageBody className="gap-6">
       <PageHeader title={copy.title} subtitle={copy.intro} />
-      <Card className="gap-0 p-5">
+      <Card gap="none" inset={5}>
         <p className="text-kit-title text-foreground">{copy.listTitle}</p>
         {automations.length === 0 ? (
           <p className="mt-4 text-kit-body text-muted-foreground">{copy.empty}</p>
@@ -117,7 +117,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {AUTOMATION_TEMPLATES.map((t) => (
-            <Card key={t.id} className="justify-between gap-4 p-4">
+            <Card key={t.id} gap={4} inset={4} className="justify-between">
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-body-strong">{t.name}</p>

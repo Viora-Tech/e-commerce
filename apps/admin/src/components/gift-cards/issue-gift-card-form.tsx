@@ -101,7 +101,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
       />
       <PageColumns
         main={
-          <Card className="gap-5 p-5">
+          <Card gap={5} inset={5}>
             <p className="text-card-title text-foreground">{copy.details}</p>
             <Field>
               <FieldLabel htmlFor="gc-value">{copy.value}</FieldLabel>
@@ -162,7 +162,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
         }
         side={
           <>
-            <Card className="gap-4 p-5">
+            <Card gap={4} inset={5}>
               <p className="text-card-title text-foreground">{copy.customer}</p>
               <CustomerPicker value={customer} onChange={setCustomer} />
               <p className="text-caption text-muted-foreground">{copy.customerHelp}</p>
@@ -207,7 +207,7 @@ export default function IssueGiftCardForm({ today }: IssueGiftCardFormProps) {
                 </Label>
               </div>
             </Card>
-            <Card className="gap-3 p-5">
+            <Card gap={3} inset={5}>
               <Label htmlFor="gc-note" className="text-card-title">
                 {copy.note}
               </Label>

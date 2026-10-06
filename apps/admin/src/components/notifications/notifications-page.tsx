@@ -127,7 +127,7 @@ export default function NotificationsPage() {
       <div className="flex flex-col gap-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-16 w-full" />
-        <Card className="gap-4 p-6">
+        <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-56" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />

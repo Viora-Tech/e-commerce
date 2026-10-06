@@ -166,7 +166,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const isEmpty = !props.loading && props.items.length === 0
 
   return (
-    <Card className="gap-0 py-0">
+    <Card gap="none" inset="y-none">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}

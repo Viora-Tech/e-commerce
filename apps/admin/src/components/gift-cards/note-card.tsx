@@ -39,7 +39,7 @@ export default function NoteCard({ card, onChanged }: NoteCardProps) {
   const dirty = value.trim() !== (card.note ?? '')
 
   return (
-    <Card className="gap-3 p-5">
+    <Card gap={3} inset={5}>
       <p className="text-card-title text-foreground">{copy.heading}</p>
       <Textarea
         rows={3}

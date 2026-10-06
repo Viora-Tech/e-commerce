@@ -125,8 +125,22 @@ function AlertDialogDescription({
   )
 }
 
-function AlertDialogAction({ className, ...props }: React.ComponentProps<typeof Button>) {
-  return <Button data-slot="alert-dialog-action" className={cn(className)} {...props} />
+/** The confirm button of a destructive action: the classes pages used to pass as className. */
+const ACTION_DESTRUCTIVE =
+  'bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90'
+
+function AlertDialogAction({
+  className,
+  tone,
+  ...props
+}: React.ComponentProps<typeof Button> & { tone?: 'destructive' }) {
+  return (
+    <Button
+      data-slot="alert-dialog-action"
+      className={cn(tone === 'destructive' && ACTION_DESTRUCTIVE, className)}
+      {...props}
+    />
+  )
 }
 
 function AlertDialogCancel({

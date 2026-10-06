@@ -75,7 +75,7 @@ export default function MembersCard({
   const roleItems = Object.fromEntries(assignable.map((r) => [r.id, r.name]))
 
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <div className={`${ROW} h-10 rounded-t-lg bg-muted/60 text-table-head text-muted-foreground`}>
         <span>{copy.members.columns.person}</span>
         <span>{copy.members.columns.role}</span>

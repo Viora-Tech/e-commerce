@@ -31,7 +31,7 @@ export default async function SettingsHome() {
           <h3 id={`settings-home-${group.id}`} className="text-eyebrow px-1">
             {groups[group.id]}
           </h3>
-          <Card className="gap-0 py-0">
+          <Card gap="none" inset="y-none">
             <ul className="flex flex-col divide-y divide-border">
               {group.sections.map((s) => (
                 <li key={s.href}>

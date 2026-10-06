@@ -35,7 +35,7 @@ export default function DraftActionsCard({
 }: DraftActionsCardProps) {
   // Render logic
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <p className="text-kit-card-title text-foreground">{copy.actions.heading}</p>
       <Field>
         <FieldLabel htmlFor="draft-method">{copy.paymentMethod}</FieldLabel>

@@ -25,7 +25,7 @@ export default function ImportReportSections({ copy, sections }: ImportReportSec
     s.reasons.length ? s.reasons.map((r) => copy.reasons[r]).join('. ') : copy.exact
 
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <CardHeader className="border-b border-border px-5 py-4">
         <CardTitle>{copy.sectionsHeading}</CardTitle>
         <CardDescription>{copy.sectionsBody}</CardDescription>

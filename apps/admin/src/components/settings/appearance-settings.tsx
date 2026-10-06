@@ -93,7 +93,7 @@ export default function AppearanceSettings() {
           subtitle={copy.intro}
           icon={<Palette aria-hidden="true" />}
         />
-        <Card className="gap-4 p-6">
+        <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-48 w-full" />

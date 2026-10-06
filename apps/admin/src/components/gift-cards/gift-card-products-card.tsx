@@ -20,7 +20,7 @@ type GiftCardProductsCardProps = {
 /** The gift card products shoppers can buy, each linking to its product page. */
 export default function GiftCardProductsCard({ products, onAdd }: GiftCardProductsCardProps) {
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <p className="text-card-title text-foreground">{copy.heading}</p>

@@ -25,7 +25,7 @@ export default function SegmentsList({ segments }: SegmentsListProps) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {segments.map((s) => (
-        <Card key={s.id} className="p-5 motion-press hover:shadow-card-hover">
+        <Card key={s.id} inset={5} className="motion-press hover:shadow-card-hover">
           <Link href={`/customers/segments/${s.id}`} className="flex flex-col gap-2">
             <span className="text-card-title text-ink-strong">{s.name}</span>
             <span className="text-stat text-ink-strong tabular-nums">

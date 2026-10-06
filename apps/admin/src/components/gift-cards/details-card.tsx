@@ -36,7 +36,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 /** Where the card came from and whether its code has been emailed. */
 export default function DetailsCard({ card }: DetailsCardProps) {
   return (
-    <Card className="gap-3 p-5">
+    <Card gap={3} inset={5}>
       <p className="text-card-title text-foreground">{copy.heading}</p>
       <Row label={copy.issued}>{formatPattern(card.createdAt, WHEN)}</Row>
       {card.createdBy ? <Row label={copy.by}>{card.createdBy}</Row> : null}

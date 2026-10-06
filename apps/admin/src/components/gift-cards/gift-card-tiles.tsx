@@ -14,7 +14,7 @@ type TileProps = { title: string; value: string; period: string }
 /* Same tile as the order and discount lists (frame 5:2512): title, figure, period line. */
 function Tile({ title, value, period }: TileProps) {
   return (
-    <Card className="h-[6.5rem] gap-0 rounded-lg p-4">
+    <Card gap="none" inset={4} className="h-[6.5rem] rounded-lg">
       <p className="text-card-title">{title}</p>
       <div className="mt-3 flex items-end gap-2">
         <span className="text-stat text-ink-strong tabular-nums">{value}</span>

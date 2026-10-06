@@ -28,7 +28,7 @@ export default function ImportReportTodo({ copy, report }: ImportReportTodoProps
     .join(' ')
 
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <CardHeader className="border-b border-border px-5 py-4">
         <CardTitle>{copy.todoHeading}</CardTitle>
       </CardHeader>

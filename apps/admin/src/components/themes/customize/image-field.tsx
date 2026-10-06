@@ -13,6 +13,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { Input } from '@commerce/ui/shadcn/input'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import type { CSSProperties } from 'react'
 import { type DragEvent, useId, useState } from 'react'
 import { toast } from 'sonner'
 import MediaPickDialog, { type PickedMedia } from '@/components/media/media-pick-dialog'
@@ -162,8 +163,8 @@ export default function ImageField({ value, onChange }: ImageFieldProps) {
               {uploading ? (
                 <span className="h-1 w-2/3 overflow-hidden rounded-full bg-muted">
                   <span
-                    className="block h-full rounded-full bg-primary transition-[width] duration-150"
-                    style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
+                    className="block h-full rounded-full w-(--w) bg-primary transition-[width] duration-150"
+                    style={{ '--w': `${Math.round((progress ?? 0) * 100)}%` } as CSSProperties}
                   />
                 </span>
               ) : null}

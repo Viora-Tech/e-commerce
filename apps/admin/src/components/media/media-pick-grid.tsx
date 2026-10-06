@@ -4,7 +4,7 @@ import { Video } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import type { KeyboardEvent } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
 import {
   extLabel,
@@ -153,8 +153,8 @@ export default function MediaPickGrid({
                     className="h-1 overflow-hidden rounded-full bg-muted"
                   >
                     <span
-                      className="block h-full rounded-full bg-primary transition-[width] duration-150 motion-reduce:transition-none"
-                      style={{ width: `${pct}%` }}
+                      className="block h-full rounded-full w-(--w) bg-primary transition-[width] duration-150 motion-reduce:transition-none"
+                      style={{ '--w': `${pct}%` } as CSSProperties}
                     />
                   </span>
                 )}

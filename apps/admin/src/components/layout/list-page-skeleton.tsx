@@ -17,7 +17,7 @@ export default function ListPageSkeleton() {
           <Skeleton key={i.toString()} className="h-24 rounded-lg" />
         ))}
       </div>
-      <Card className="gap-0 py-0">
+      <Card gap="none" inset="y-none">
         <div className="flex h-11 items-center gap-5 border-b border-border px-4">
           <Skeleton className="h-3.5 w-20" />
           <Skeleton className="h-3.5 w-14" />

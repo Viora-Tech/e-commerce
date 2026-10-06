@@ -101,7 +101,7 @@ export default function ReportView({ report, initialRange, initial }: ReportView
         {copy.reports.back}
       </Link>
       <ReportChart report={report} data={data} />
-      <Card className="gap-0 p-5">
+      <Card gap="none" inset={5}>
         <p className="text-kit-title text-foreground">{report.title}</p>
         <div className="mt-5">
           <ReportTable report={report} data={data} />

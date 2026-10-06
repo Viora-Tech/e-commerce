@@ -1,5 +1,7 @@
 'use client'
 
+/* oxlint-disable shadcn/no-raw-colors -- floats over the storefront theme canvas in the editor iframe, so it uses fixed neutrals on purpose; theme tokens would follow the admin theme (revamp: pick matching tokens). */
+
 import { SINGLE_SECTIONS } from '@commerce/core/theme'
 import { ArrowDown, ArrowUp, Copy, Trash2 } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'

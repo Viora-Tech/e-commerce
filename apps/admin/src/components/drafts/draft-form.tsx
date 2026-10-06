@@ -148,7 +148,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
           <>
             <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
             <DraftTotalsCard form={form} onChange={patch} />
-            <Card className="gap-3 p-5">
+            <Card gap={3} inset={5}>
               <p className="text-kit-card-title text-foreground">{copy.note.heading}</p>
               <Textarea
                 value={form.note}

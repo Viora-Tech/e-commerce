@@ -36,7 +36,7 @@ function LoadingCards() {
   return (
     <>
       {[0, 1, 2, 3].map((i) => (
-        <Card key={i} className="gap-4 p-6">
+        <Card key={i} gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-6 w-32" />

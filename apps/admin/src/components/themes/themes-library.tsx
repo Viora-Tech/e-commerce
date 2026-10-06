@@ -151,7 +151,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
           onAction={(action) => handleAction(live, action)}
         />
       ) : null}
-      <Card className="gap-0 p-0">
+      <Card gap="none" inset="none">
         <CardHeader className="border-b border-border px-5 py-4">
           <CardTitle>{copy.libraryHeading}</CardTitle>
           <CardDescription>{copy.libraryBody}</CardDescription>

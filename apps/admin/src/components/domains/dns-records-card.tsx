@@ -21,7 +21,7 @@ type DnsRecordsCardProps = {
 export default function DnsRecordsCard({ records }: DnsRecordsCardProps) {
   // Render logic
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <CardHeader className="px-4 pt-4 pb-3">
         <CardTitle>{copy.heading}</CardTitle>
         <CardDescription>{copy.body}</CardDescription>

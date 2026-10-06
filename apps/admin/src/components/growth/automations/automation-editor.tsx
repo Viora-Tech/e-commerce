@@ -207,7 +207,7 @@ export default function AutomationEditor({
       ) : null}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
         {tiles.map((t) => (
-          <Card key={t.label} className="gap-0 p-4">
+          <Card key={t.label} gap="none" inset={4}>
             <p className="text-card-title">{t.label}</p>
             <p className="mt-2 text-stat text-ink-strong tabular-nums">{t.value}</p>
           </Card>
@@ -216,7 +216,7 @@ export default function AutomationEditor({
       <p className="text-caption text-muted-foreground">{copy.convertedHelp}</p>
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-5">
-          <Card className="p-4">
+          <Card inset={4}>
             <Field>
               <FieldLabel htmlFor="automation-name">{copy.name}</FieldLabel>
               <Input

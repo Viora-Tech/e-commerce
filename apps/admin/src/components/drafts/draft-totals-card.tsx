@@ -19,7 +19,7 @@ export default function DraftTotalsCard({ form, onChange }: DraftTotalsCardProps
   const { subtotalPaise, discountPaise, totalPaise } = draftTotals(form)
 
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <p className="text-kit-card-title text-foreground">{copy.totals.heading}</p>
       <dl className="flex flex-col gap-2">
         <div className="flex items-center justify-between text-body">
