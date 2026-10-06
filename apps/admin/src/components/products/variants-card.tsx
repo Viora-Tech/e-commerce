@@ -230,7 +230,7 @@ export default function VariantsCard({
             <AlertDialogCancel>{copy.confirmRemoveCancel}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+              tone="destructive"
               onClick={handleConfirmRemove}
             >
               {copy.confirmRemoveConfirm}

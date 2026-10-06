@@ -25,7 +25,7 @@ const ACTIONS = ['rename', 'duplicate', 'download'] as const
 export default function CurrentThemeCard({ theme, origin, busy, onAction }: CurrentThemeCardProps) {
   // Render logic
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <div className="grid gap-5 p-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <ThemeThumbnail name={theme.name} origin={origin} previewToken={theme.previewToken} />
         <div className="flex min-w-0 flex-col gap-4">

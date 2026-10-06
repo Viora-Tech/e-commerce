@@ -28,7 +28,7 @@ export default function ProductFormActions({
 
   // Render logic
   return (
-    <Card size="form" className="p-4">
+    <Card size="form" inset={4}>
       <CardContent className="flex flex-wrap gap-2 p-0">
         <KitButton
           variant="secondary"

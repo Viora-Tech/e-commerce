@@ -391,7 +391,7 @@ export default function ProductForm({
             <AlertDialogCancel disabled={busy}>{copy.delete.cancel}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+              tone="destructive"
               onClick={handleRemove}
               disabled={busy}
             >

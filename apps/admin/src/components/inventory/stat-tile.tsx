@@ -18,7 +18,7 @@ const TONE = {
 /* Same 135px tile as the order and product lists (5:2512): title, 32/700 figure, caption. */
 export default function StatTile({ title, value, caption, tone = 'default' }: StatTileProps) {
   return (
-    <Card className="h-[8.4375rem] gap-0 rounded-lg p-4">
+    <Card gap="none" inset={4} className="h-[8.4375rem] rounded-lg">
       <p className="text-kit-title text-foreground">{title}</p>
       <div className="mt-4 flex items-end gap-2">
         <span className={cn('text-kit-stat tabular-nums', TONE[tone])}>

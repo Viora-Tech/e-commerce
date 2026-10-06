@@ -20,7 +20,7 @@ export default function CustomerCard({ card }: CustomerCardProps) {
   const recipient = card.recipientEmail && card.recipientEmail !== card.customerEmail
 
   return (
-    <Card className="gap-3 p-5">
+    <Card gap={3} inset={5}>
       <p className="text-card-title text-foreground">{copy.heading}</p>
       {card.customerId ? (
         <div className="flex flex-col gap-0.5">

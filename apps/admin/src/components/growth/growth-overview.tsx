@@ -114,7 +114,11 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((s) => (
             <Link key={s.href} href={s.href} className="group">
-              <Card className="h-full flex-row items-start gap-3 p-4 transition-colors group-hover:bg-muted/50">
+              <Card
+                gap={3}
+                inset={4}
+                className="h-full flex-row items-start transition-colors group-hover:bg-muted/50"
+              >
                 <s.icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
                 <div className="flex flex-col gap-1">
                   <p className="text-kit-body font-medium text-foreground">{s.title}</p>

@@ -86,7 +86,7 @@ export default function ReportChart({ report, data }: ReportChartProps) {
   )
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div className="flex flex-col gap-1">
           <p className="text-kit-mini text-muted-foreground">{label}</p>

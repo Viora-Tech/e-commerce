@@ -22,7 +22,7 @@ export default function ImportReportSummary({ copy, imported, all }: ImportRepor
   return (
     <div className="grid gap-5 md:grid-cols-2">
       {cards.map((card) => (
-        <Card key={card.title} className="gap-0 p-0">
+        <Card key={card.title} gap="none" inset="none">
           <CardHeader className="border-b border-border px-5 py-4">
             <CardTitle>{card.title}</CardTitle>
           </CardHeader>

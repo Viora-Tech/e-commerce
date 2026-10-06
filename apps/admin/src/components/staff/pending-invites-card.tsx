@@ -106,7 +106,7 @@ export default function PendingInvitesCard({
   }
 
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       <div className="flex flex-col gap-1 px-4 pt-4 pb-3">
         <h2 className="text-card-title text-ink-strong">{copy.heading}</h2>
         <p className="text-body text-muted-foreground">{copy.intro}</p>

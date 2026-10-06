@@ -66,7 +66,7 @@ export default function BalanceCard({ card, onChanged }: BalanceCardProps) {
   const canSave = !busy && valid && note.trim().length > 0 && next >= 0
 
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <p className="text-card-title text-foreground">{copy.balance.heading}</p>

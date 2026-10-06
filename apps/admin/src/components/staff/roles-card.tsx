@@ -19,7 +19,7 @@ type RolesCardProps = {
 export default function RolesCard({ roles, canManage, onEdit, onDelete }: RolesCardProps) {
   // Render logic
   return (
-    <Card className="gap-0 p-0">
+    <Card gap="none" inset="none">
       {roles.length === 0 ? (
         <p className="px-4 py-6 text-body text-muted-foreground">{copy.roles.empty}</p>
       ) : (

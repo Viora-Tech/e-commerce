@@ -37,7 +37,7 @@ export default function OtherBusinesses({
 
   return (
     <Collapsible defaultOpen={businesses.length > 0}>
-      <Card size="form" className="gap-0 py-0">
+      <Card size="form" gap="none" inset="y-none">
         <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 px-6 py-4 text-left text-body-strong text-ink-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           {copy.toggle}
           <ChevronDown

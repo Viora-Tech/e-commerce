@@ -40,7 +40,7 @@ const WHEN = {
 /** Every balance movement, newest first, with the order it came from and who made it. */
 export default function HistoryCard({ transactions }: HistoryCardProps) {
   return (
-    <Card className="gap-4 p-5">
+    <Card gap={4} inset={5}>
       <p className="text-card-title text-foreground">{copy.heading}</p>
       <div className="-mx-5">
         <Table>

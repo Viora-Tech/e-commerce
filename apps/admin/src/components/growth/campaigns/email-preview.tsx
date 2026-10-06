@@ -61,7 +61,7 @@ export default function EmailPreview({
   })
 
   return (
-    <Card className="sticky top-4 gap-0 overflow-hidden p-0">
+    <Card gap="none" inset="none" className="sticky top-4 overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <p className="text-card-title">{copy.title}</p>
         <ToggleGroup

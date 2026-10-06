@@ -2,6 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { motion, useReducedMotion } from 'motion/react'
+import type { CSSProperties } from 'react'
 import { useId } from 'react'
 import { instant, pill } from '@/lib/motion'
 
@@ -24,8 +25,8 @@ export default function StatTabs({ items, active, onChange }: StatTabsProps) {
   return (
     <div
       role="tablist"
-      className="grid gap-5"
-      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      className="grid grid-cols-(--cols) gap-5"
+      style={{ '--cols': `repeat(${items.length}, minmax(0, 1fr))` } as CSSProperties}
     >
       {items.map((it, i) => {
         const selected = i === active

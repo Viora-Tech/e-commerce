@@ -34,10 +34,48 @@ every file and reported our admin size tokens (`text-body`) as colours.
 
 ## Baseline (2026-10-06)
 
-1,525 warnings: `no-restyle` 1,369 (admin), `no-inline-styles` 82, `no-unknown-classes` 37,
-`no-raw-colors` 18, `require-static-classes` 19. These are cleared during the admin UI revamp
-(`docs/design/admin-ui-revamp-plan.md`); once a batch is clean its folder moves to `error`.
-New code should add no new warnings.
+First run: 1,525 warnings. After `chore/design-lint-fixes`: **124** (`no-restyle` 115,
+`no-raw-colors` 8, `no-unknown-classes` 1). No visual change: every replacement renders the same
+classes.
+
+| Rule | Before | After | How |
+| --- | --- | --- | --- |
+| `no-unknown-classes` | 37 | 1 | Allow list in `.oxlintrc.json`: `cn-*` and `toaster` are shadcn marker hooks that generate nothing by design; `page-width`, `h4`, `rte`, `rich-text-block` are imported-theme and rich-text CSS; `kit-form` is a marker on 7 forms that no CSS targets. Left: `text-page` (setup wizard) |
+| `no-raw-colors` | 18 | 8 | The print page and the editor section overlay disable the rule with a reason comment. Left: `text-kit-card-title` (6 drafts cards), `text-heading`, `text-heading-3`: classes with no token behind them, so they render nothing today. Giving them a size would change the look, so the redesign decides |
+| `require-static-classes` | 19 | 0 | Off for files whose classes come from named constants or maps (`FIELD_CONTROL`, `ALIGN`, `TONE_CLASS`); they are static, the linter just cannot follow the constant |
+| `no-inline-styles` | 82 | 0 | 7 moved to CSS custom properties (`w-(--w)`, `bg-(color:--swatch)`, `grid-cols-(--cols)`); the rest are off per file: user- and theme-picked colours and fonts, dnd-kit transforms, injected `<style>` themes, chart config |
+| `no-restyle` | 1,369 | 115 | Variants and contracts below |
+
+### Variants (same classes, merged after the base like `className`)
+
+- `<Card gap inset>`: `gap="none"` = `gap-0`, `gap={3|4|5}` = `gap-3|4|5`; `inset="none"` = `p-0`,
+  `inset={4|5|6}` = `p-4|5|6`, `inset="y-none"` = `py-0`, `inset="y-10"` = `py-10`.
+- `<AlertDialogAction tone="destructive">` = `bg-destructive text-destructive-foreground
+  hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground
+  dark:hover:bg-destructive/90`.
+
+### Contracts (what pages may still pass, and why)
+
+- `TableCell`, `TableHead`, `TableRow`: typography, spacing, colour, shape. Density and number
+  alignment differ per table until the redesign has one data-table kit.
+- `*Trigger` (Collapsible, DropdownMenu, Popover, Tooltip), `Collapsible`, `CollapsibleContent`:
+  everything. Unstyled primitives that wrap the page's own element, so there is no design-system
+  style to override.
+- `CardHeader`, `CardContent`, `CardFooter`, `CardTitle`, `CardDescription`: spacing, typography,
+  colour. Regions are laid out per card.
+- `Input`, `Textarea`, `Label`, `Field*`: typography (`font-mono`, `tabular-nums`), spacing (icon
+  padding `pl-9`), colour. Radius stays denied on Input.
+- `Dialog*`, `AlertDialog*`, `Sheet*` regions, `Skeleton`, `ToggleGroup*`, `RadioGroup`, `Badge`,
+  `Alert`, `Empty*`, `Spinner`, `PopoverContent`: see `.oxlintrc.json`.
+- `Button`: colour, `gap-*`, `rounded-*` (muted and destructive icon buttons).
+
+### Left for the admin revamp
+
+`no-restyle` 115: Card combined with `rounded-*`, shadow or `motion-press` (about 65, the stat and
+tile cards), Button padding and type overrides, ChartContainer animation classes, Sidebar and
+Tabs overrides, DropdownMenuItem, Input and SelectTrigger radius. Each needs a real variant (tile
+card, muted icon button) decided with the new look (`docs/design/admin-ui-revamp-plan.md`); once a
+batch is clean its folder moves to `error`. New code should add no new warnings.
 
 Configure rules in `.oxlintrc.json`; rule docs: https://github.com/shadcn-ui/lint#rules and
 examples in https://github.com/shadcn-ui/lint/blob/main/docs/design-systems.md.

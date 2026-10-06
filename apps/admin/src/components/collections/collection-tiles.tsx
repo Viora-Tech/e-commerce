@@ -15,7 +15,7 @@ const copy = collectionsListContent.tiles
 /* Same 135px tile as the product and order lists (5:2512). */
 function Tile({ title, value }: TileProps) {
   return (
-    <Card className="h-[8.4375rem] gap-0 rounded-lg p-4">
+    <Card gap="none" inset={4} className="h-[8.4375rem] rounded-lg">
       <p className="text-kit-title text-foreground">{title}</p>
       <div className="mt-4 flex items-end gap-2">
         <span className="text-kit-stat text-ink-strong tabular-nums">

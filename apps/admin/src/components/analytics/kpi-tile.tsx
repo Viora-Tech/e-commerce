@@ -24,7 +24,7 @@ export default function KpiTile({ kpi }: KpiTileProps) {
   const hasShape = kpi.series.some((v) => v > 0)
 
   return (
-    <Card className="gap-0 p-5">
+    <Card gap="none" inset={5}>
       <p className="text-kit-body text-muted-foreground">{meta.label}</p>
       <div className="mt-2 flex items-end gap-3">
         <p className="text-kit-stat-sm text-ink-strong tabular-nums">

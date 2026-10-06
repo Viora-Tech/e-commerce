@@ -36,7 +36,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
   // Early returns
   if (!setup) {
     return (
-      <Card className="gap-4 p-6">
+      <Card gap={4} inset={6}>
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-10 w-full" />
       </Card>

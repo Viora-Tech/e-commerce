@@ -18,7 +18,7 @@ type SectionEmptyProps = SectionEmptyContent & { icon: LucideIcon }
 export default function SectionEmpty({ heading, body, action, icon }: SectionEmptyProps) {
   return (
     <PageBody>
-      <Card className="py-10">
+      <Card inset="y-10">
         <EmptyState
           heading={heading}
           body={body}

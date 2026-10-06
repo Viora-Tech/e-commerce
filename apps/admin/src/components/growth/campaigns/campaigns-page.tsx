@@ -109,7 +109,7 @@ export default function CampaignsPage({ campaigns }: CampaignsPageProps) {
           <h1 className="text-page-title">{copy.title}</h1>
           <CreateCampaignMenu />
         </div>
-        <Card className="py-10">
+        <Card inset="y-10">
           <EmptyState heading={copy.empty.heading} body={copy.empty.body} icon={Send} />
         </Card>
       </PageBody>

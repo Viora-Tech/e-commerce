@@ -1,4 +1,5 @@
 import { cn } from '@commerce/ui/lib/utils'
+import type { CSSProperties } from 'react'
 
 type KitProgressProps = { value: number; className?: string }
 
@@ -11,7 +12,10 @@ export default function KitProgress({ value, className }: KitProgressProps) {
     <span
       className={cn('block h-1.5 w-full overflow-hidden rounded-[0.625rem] bg-muted', className)}
     >
-      <span className="block h-full rounded-[0.625rem] bg-primary" style={{ width }} />
+      <span
+        className="block h-full w-(--w) rounded-[0.625rem] bg-primary"
+        style={{ '--w': width } as CSSProperties}
+      />
     </span>
   )
 }

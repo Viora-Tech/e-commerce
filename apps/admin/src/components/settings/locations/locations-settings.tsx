@@ -56,7 +56,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
           </Button>
         }
       />
-      <Card className="gap-0 p-0">
+      <Card gap="none" inset="none">
         <CardHeader className="px-4 pt-4 pb-3">
           <CardTitle>{copy.heading}</CardTitle>
         </CardHeader>

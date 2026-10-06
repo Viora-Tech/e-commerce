@@ -184,7 +184,7 @@ export default function OrderActions({
             <AlertDialogCancel>{copy.cancelDialog.keep}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/90"
+              tone="destructive"
               onClick={() => {
                 setConfirmCancel(false)
                 onMove('cancelled')

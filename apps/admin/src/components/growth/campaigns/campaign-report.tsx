@@ -31,7 +31,7 @@ const POLL_MS = 5000
 
 function Stat({ label, value, detail }: StatProps) {
   return (
-    <Card className="gap-0 p-4">
+    <Card gap="none" inset={4}>
       <p className="text-card-title">{label}</p>
       <p className="mt-2 text-stat text-ink-strong tabular-nums">{value}</p>
       <p className="mt-1 min-h-4 text-period text-muted-foreground">{detail ?? ''}</p>

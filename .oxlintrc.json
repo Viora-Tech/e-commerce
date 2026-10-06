@@ -15,10 +15,60 @@
     "shadcn/no-restyle": [
       "warn",
       {
-        "allow": ["layout"]
+        "allow": ["layout"],
+        "contracts": [
+          {
+            "pattern": "^Table(Cell|Head)$",
+            "allow": ["layout", "typography", "spacing", "color", "shape"]
+          },
+          {
+            "pattern": "^TableRow$",
+            "allow": ["layout", "typography", "color", "shape", "motion"]
+          },
+          {
+            "pattern": "^(Collapsible|DropdownMenu|Popover|Tooltip)Trigger$",
+            "allow": ["layout", "typography", "spacing", "color", "shape", "effects", "motion"]
+          },
+          {
+            "pattern": "^Collapsible(Content)?$",
+            "allow": ["layout", "spacing", "color", "shape"]
+          },
+          {
+            "pattern": "^Card(Header|Content|Footer)$",
+            "allow": ["layout", "spacing", "typography", "color", "shape"]
+          },
+          {
+            "pattern": "^Card(Title|Description)$",
+            "allow": ["layout", "typography", "color", "spacing"]
+          },
+          { "pattern": "^Input$", "allow": ["layout", "typography", "spacing", "color"] },
+          { "pattern": "^Textarea$", "allow": ["layout", "typography"] },
+          {
+            "pattern": "^(Label|Field(Label|Description|Group)?)$",
+            "allow": ["layout", "typography", "spacing", "color", "shape"]
+          },
+          {
+            "pattern": "^(Dialog|AlertDialog|Sheet)(Header|Footer|Title|Description|Content)$",
+            "allow": ["layout", "typography", "spacing", "shape", "color"]
+          },
+          { "pattern": "^Button$", "allow": ["layout", "color", "gap-*", "rounded-*"] },
+          {
+            "pattern": "^(Skeleton|ToggleGroup|ToggleGroupItem|RadioGroup)$",
+            "allow": ["layout", "spacing", "shape", "color", "typography"]
+          },
+          {
+            "pattern": "^(Badge|Spinner|Alert|AlertDescription|Empty|EmptyHeader|EmptyTitle|EmptyDescription|PopoverContent)$",
+            "allow": ["layout", "spacing", "typography", "color", "shape", "effects"]
+          }
+        ]
       }
     ],
-    "shadcn/no-unknown-classes": "warn",
+    "shadcn/no-unknown-classes": [
+      "warn",
+      {
+        "allow": ["cn-*", "toaster", "kit-form", "page-width", "h4", "rich-text-block", "rte"]
+      }
+    ],
     "shadcn/require-static-classes": "warn",
     "shadcn/no-inline-styles": "warn"
   },
@@ -27,6 +77,43 @@
       "files": ["packages/ui/src/**"],
       "rules": {
         "shadcn/no-restyle": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/storefront/src/app/not-found.tsx",
+        "apps/storefront/src/app/-p/**",
+        "apps/storefront/src/app/-s/**",
+        "apps/admin/src/components/analytics/live-globe/**",
+        "apps/admin/src/components/apps/gst-invoices/look-group.tsx",
+        "apps/admin/src/components/apps/shopify-import/run-current-step.tsx",
+        "apps/storefront/src/components/checkout/checkout-shell.tsx",
+        "apps/admin/src/components/home/charts/**",
+        "apps/admin/src/components/layout/accent-style.tsx",
+        "apps/admin/src/components/metaobjects/colour-input.tsx",
+        "apps/admin/src/components/settings/accent-*.tsx",
+        "apps/admin/src/components/settings/appearance-settings.tsx",
+        "apps/admin/src/components/settings/checkout-branding-*.tsx",
+        "packages/ui/src/components/shadcn/chart.tsx",
+        "packages/ui/src/components/shadcn/sonner.tsx",
+        "packages/ui/src/components/sortable/**",
+        "apps/admin/src/components/themes/**"
+      ],
+      "rules": {
+        "shadcn/no-inline-styles": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/admin/src/components/analytics/report-table.tsx",
+        "apps/admin/src/components/settings/shipping-try-pin.tsx",
+        "apps/admin/src/components/table/resource-table/index.tsx",
+        "apps/admin/src/components/themes/customize/**",
+        "packages/ui/src/components/shadcn/calendar.tsx",
+        "packages/ui/src/components/shadcn/input-group.tsx"
+      ],
+      "rules": {
+        "shadcn/require-static-classes": "off"
       }
     },
     {
