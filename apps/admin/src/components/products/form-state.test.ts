@@ -5,6 +5,8 @@ import {
   emptyForm,
   emptyVariant,
   formErrors,
+  fromProduct,
+  type LoadedProduct,
   matrixOptions,
   type OptionRow,
   reconcileVariants,
@@ -174,5 +176,23 @@ describe('suggestSku', () => {
 
   it('works with no option values', () => {
     expect(suggestSku('Gift Card', [])).toBe('GIFT-CARD')
+  })
+})
+
+describe('fromProduct', () => {
+  it('gives a product with no variants one empty row so the editor can render', () => {
+    const imported = {
+      title: 'Historical item',
+      description: null,
+      status: 'archived',
+      tags: [],
+      handle: 'historical-item',
+      options: [],
+      variants: [],
+      images: [],
+    } as unknown as LoadedProduct
+    const form = fromProduct(imported)
+    expect(form.variants).toHaveLength(1)
+    expect(form.variants[0]?.optionValues).toEqual([])
   })
 })

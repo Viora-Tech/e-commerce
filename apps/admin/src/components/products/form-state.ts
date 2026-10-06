@@ -175,7 +175,9 @@ export function fromProduct(p: LoadedProduct): ProductFormState {
       name: o.name,
       values: o.values.map((v) => v.value),
     })),
-    variants: p.variants.map((v) => ({
+    // A product imported without variants (Shopify "historical" items) still needs one row,
+    // or the editor has nothing to show and renders a blank page.
+    variants: p.variants.length === 0 ? [emptyVariant([])] : p.variants.map((v) => ({
       id: v.id,
       optionValues: v.optionValues,
       price: rupees.toField(v.pricePaise),
