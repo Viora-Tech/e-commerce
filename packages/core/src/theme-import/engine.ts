@@ -37,7 +37,13 @@ export type LiquidHooks = {
   renderThemeBlock?: ((block: unknown, section: unknown, ctx: Context) => string) | undefined
   /** `?form_posted=<type>` on the request, so `form.posted_successfully?` is true after a post. */
   postedForm?: string | null | undefined
+  /** False when the Forms app is not installed: `{% form 'contact' %}` shows a plain notice instead. */
+  formsAvailable?: boolean | undefined
 }
+
+/** What a contact form shows when the Forms app is not installed for the store. */
+const FORM_UNAVAILABLE =
+  '<p class="form-unavailable" role="status">This form is not available right now.</p>'
 
 export type EngineRuntime = LiquidRuntime & LiquidHooks
 
@@ -156,6 +162,10 @@ class FormTag extends Tag {
     const object = this.args.object ? yield evalToken(this.args.object, ctx) : null
     const hash = (yield this.args.hash.render(ctx)) as Record<string, unknown>
     const target = FORM_ACTION[type] ?? { action: '#', method: 'get' }
+    if (type === 'contact' && runtime(ctx).formsAvailable === false) {
+      emitter.write(FORM_UNAVAILABLE)
+      return
+    }
     const attrs: Record<string, unknown> = {
       method: target.method ?? 'post',
       action: target.action,
@@ -167,9 +177,11 @@ class FormTag extends Tag {
     }
     if (type === 'product') attrs.enctype = 'multipart/form-data'
     const posted = runtime(ctx).postedForm === type
+    // A post we rejected comes back as `?form_posted=<type>_error`: the form shows its errors.
+    const failed = runtime(ctx).postedForm === `${type}_error`
     const formObject = {
       id: hash.id ?? `${type}_form`,
-      errors: null,
+      errors: failed ? ['form'] : null,
       email: '',
       body: '',
       name: '',
@@ -188,6 +200,12 @@ class FormTag extends Tag {
     }
     if (typeof hash.return_to === 'string') {
       hidden.push(`<input type="hidden" name="return_to" value="${escapeAttr(hash.return_to)}" />`)
+    }
+    // Spam trap for the contact form: a field a person never sees, so only a script fills it.
+    if (type === 'contact') {
+      hidden.push(
+        '<div hidden aria-hidden="true"><input type="text" name="contact_website" tabindex="-1" autocomplete="off" value="" /></div>',
+      )
     }
     ctx.push({ form: formObject })
     const inner = (yield this.liquid.renderer.renderTemplates(this.templates, ctx)) as string

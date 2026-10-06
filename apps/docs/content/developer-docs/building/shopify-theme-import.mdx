@@ -147,10 +147,11 @@ before any theme script). This is not an emulation of Shopify's API; each call b
 | `/cart.js` | `/theme-actions/cart`: count and total from our cart |
 | `/cart/change.js`, `/cart/update.js`, `/cart/clear.js`, cart drawer refresh | Our cart page |
 | Section rendering (`?section_id=`, `?sections=`) | `/theme-actions/section`: the theme's own section rendered by our engine with the collection or product of the path (lazy tabs and carousels) |
-| `/search/suggest`, `/recommendations/products` | Empty answers; the search box submits to our search page |
+| `/search/suggest` | An empty answer; the search box submits to our search page |
+| `/recommendations/products` (`product_id`, `limit`, `section_id`) | `/theme-actions/recommendations`: the theme's own section rendered with `recommendations.products` filled from `relatedProductIds` (`theme-import/related.ts`): products sharing a collection first, then the same product type, then shared tags; never the product itself, only active products with a sellable variant, store-scoped by RLS. The numeric `product_id` the theme saw maps back to our UUID like variant ids do |
 | `Shopify.customerPrivacy` (cookie banner) | Our consent cookie: the theme's banner asks when we would, its answer goes to `ConsentManager` (`commerce:consent` event) which stores it and loads the allowed tags |
 | Newsletter form (`form 'customer'`) | `/theme-actions/newsletter` → `subscribeAction` (double opt-in) |
-| Contact form | Not available yet (redirects back) |
+| Contact and advice forms (`form 'contact'`) | The **Forms** app (`packages/plugin-forms`). `/theme-actions/contact` reads `contact[...]` fields, drops a post whose honeypot field `contact_website` is filled, rate-limits per IP and store (5 per 10 minutes), saves a `contact_message` row (RLS table, store from the hostname never the body) and queues `contact.message_received` in the outbox; the worker emails the store contact address (`contact_message` template). The page comes back with `?form_posted=contact` (`form.posted_successfully?`) or `contact_error` (`form.errors`). Without the app installed the tag draws "This form is not available right now" instead of a form |
 | Checkout | Ours, never themed: no theme CSS, scripts, header or footer on `/checkout/*` |
 | Customer account forms | Our account pages |
 | App blocks (`@app`), app data (Judge.me metafields) | Left out / hidden; listed in the report |
@@ -171,5 +172,4 @@ fake fetch and DNS, `MemoryStorageProvider`) run on the fixture theme in
 - Product, collection and other resource templates from the theme (they use our pages today).
 - Editing the theme's own settings (`settings_schema.json`) in Customize; adding new sections
   from the theme in the Add panel.
-- A cart drawer that refreshes in place, predictive search results in the theme's look, a home
-  for contact form messages.
+- A cart drawer that refreshes in place, predictive search results in the theme's look.

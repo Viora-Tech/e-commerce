@@ -13,6 +13,7 @@ import {
   ProductDrop,
   renderLiquidLayout,
   renderLiquidSection,
+  resolveThemeProductId,
   sectionWrapper,
   storeLiquidData,
   themeImportFor,
@@ -21,6 +22,7 @@ import type { StoreTx } from '@commerce/db'
 import { headers } from 'next/headers'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
+import { formsInstalled } from './forms-context'
 import { requestOrigin } from './seo'
 import { readPreview } from './storefront-gate'
 
@@ -103,6 +105,7 @@ export async function liquidContextFor(
       origin,
       designMode: false,
       postedForm: posted,
+      formsAvailable: await formsInstalled(tx, storeId),
       nonce: h.get(NONCE_HEADER) ?? '',
     },
     assetBase: `/theme-assets/${themeId}`,
@@ -165,10 +168,16 @@ export async function renderStaticLiquidSection(
   storeId: string,
   sectionType: string,
   path: string,
+  prepare?: (ctx: LiquidPageContext) => Promise<void>,
 ): Promise<string | null> {
   const themeId = await requestThemeId(tx, storeId)
   const ctx = themeId ? await liquidContextFor(tx, storeId, themeId) : null
-  if (!ctx?.bundle.sections.has(sectionType)) return null
+  if (!ctx) return null
+  // Shopify's section ids read `template--123__<key>`; the key is the section's type for
+  // the sections a theme ships by default.
+  const key = sectionType.split('__').pop() ?? sectionType
+  const type = [sectionType, key].find((t) => ctx.bundle.sections.has(t))
+  if (!type) return null
   const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
@@ -179,9 +188,10 @@ export async function renderStaticLiquidSection(
     const found = await ctx.options.data.product(decodedSegment(product))
     if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
   }
+  await prepare?.(ctx)
   const section: LiquidSectionInput = {
-    id: sectionType,
-    type: sectionType,
+    id: type,
+    type,
     settings: {},
     blocks: [],
     location: 'template',
@@ -190,6 +200,30 @@ export async function renderStaticLiquidSection(
   const html = await renderLiquidSection(ctx, section)
   const w = sectionWrapper(ctx.bundle, section)
   return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
+}
+
+/**
+ * Our answer to Shopify's `/recommendations/products?product_id=&limit=&section_id=`: the
+ * theme's own section rendered with `recommendations.products` filled from the product's
+ * related products (shared collection, then type and tags; published and in stock only).
+ * Null when the section is not in the theme, or the product is not ours.
+ */
+export async function renderRecommendations(
+  tx: StoreTx,
+  storeId: string,
+  input: { sectionId: string; productId: string; limit: number },
+): Promise<string | null> {
+  const productId = await resolveThemeProductId(tx, input.productId)
+  if (!productId) return null
+  return renderStaticLiquidSection(tx, storeId, input.sectionId, '/', async (ctx) => {
+    const related = await ctx.options.data.relatedProducts(productId, input.limit)
+    ctx.globals.recommendations = {
+      performed: true,
+      intent: 'related',
+      products: related.map((p) => new ProductDrop(p, ctx.cache)),
+      products_count: related.length,
+    }
+  })
 }
 
 /** A path segment decoded, or as it came when it is not valid percent-encoding (never a 500). */

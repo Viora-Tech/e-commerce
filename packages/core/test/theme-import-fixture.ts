@@ -246,6 +246,7 @@ export function fakeDataSource(extra: FakeStoreData = {}): LiquidDataSource & { 
     },
     collection: async (h) => collections.find((c) => c.handle === h) ?? null,
     collectionProducts: async () => [],
+    relatedProducts: async () => [],
     collections: async () => collections,
     menu: async (h) => {
       calls.push(`menu:${h}`)

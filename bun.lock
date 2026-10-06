@@ -18,6 +18,7 @@
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
+        "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -57,6 +58,7 @@
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
+        "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -144,6 +146,7 @@
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
+        "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
@@ -186,6 +189,7 @@
         "@commerce/observability": "workspace:*",
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
+        "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/shipping": "workspace:*",
@@ -240,6 +244,7 @@
         "@commerce/payments-razorpay": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
+        "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
@@ -609,6 +614,28 @@
         "@types/react-dom": "^19.2.3",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
+      },
+    },
+    "packages/plugin-forms": {
+      "name": "@commerce/plugin-forms",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
       },
@@ -1093,6 +1120,8 @@
     "@commerce/plugin-back-in-stock": ["@commerce/plugin-back-in-stock@workspace:packages/plugin-back-in-stock"],
 
     "@commerce/plugin-emi": ["@commerce/plugin-emi@workspace:packages/plugin-emi"],
+
+    "@commerce/plugin-forms": ["@commerce/plugin-forms@workspace:packages/plugin-forms"],
 
     "@commerce/plugin-gst-invoices": ["@commerce/plugin-gst-invoices@workspace:packages/plugin-gst-invoices"],
 

@@ -40,6 +40,8 @@ export type TemplateId =
   | 'balance_received'
   /** A manual UPI / bank transfer order is still unpaid; links to the payment details. Sent by the merchant. */
   | 'payment_reminder'
+  /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
+  | 'contact_message'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
   | 'unpaid_cancel_notice'
   /** A manual UPI / bank transfer order was cancelled for non-payment. */
@@ -150,6 +152,10 @@ export type TemplateData = {
         refundLabel?: string | undefined
         refundMethod?: 'original' | 'store_credit' | undefined
       }
+    | undefined
+  /** For contact_message: who wrote and what they said. */
+  contactMessage?:
+    | { name: string; email: string; phone: string; text: string; path: string }
     | undefined
   /** For staff_invite: who sent it, the role offered and the platform's own name (PLATFORM_EMAIL_NAME). */
   staffInvite?:

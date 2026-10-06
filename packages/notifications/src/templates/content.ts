@@ -350,6 +350,23 @@ export const templateContent: Record<TemplateId, TemplateCopy> = {
     whatsapp: (d) =>
       `Sign in to ${d.storeName}: ${d.actionUrl ?? ''} (works once, expires in 15 minutes).`,
   },
+  contact_message: {
+    subject: (d) =>
+      `${d.storeName}: new message from ${d.contactMessage?.name || d.contactMessage?.email || 'a shopper'}`,
+    heading: () => 'You have a new message',
+    intro: (d) => {
+      const m = d.contactMessage
+      const who = [m?.name, m?.email, m?.phone].filter(Boolean).join(' | ')
+      return `${who} wrote${m?.path ? ` on ${m.path}` : ''}:
+
+${m?.text ?? ''}`
+    },
+    outro: (d) =>
+      d.contactMessage?.email
+        ? `Reply to ${d.contactMessage.email} to answer. All messages are kept in Apps, Forms.`
+        : 'All messages are kept in Apps, Forms.',
+    whatsapp: (d) => `${d.storeName}: new message from ${d.contactMessage?.name || 'a shopper'}.`,
+  },
   newsletter_confirm: {
     subject: (d) => `Confirm your ${d.storeName} newsletter signup`,
     heading: () => 'Please confirm your email',

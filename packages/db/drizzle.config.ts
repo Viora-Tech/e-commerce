@@ -14,6 +14,7 @@ export default defineConfig({
     '../plugin-gst-invoices/src/schema.ts',
     '../plugin-shopify-import/src/schema.ts',
     '../plugin-back-in-stock/src/schema.ts',
+    '../plugin-forms/src/schema.ts',
   ],
   out: './drizzle',
   casing: 'snake_case',

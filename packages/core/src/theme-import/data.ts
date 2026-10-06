@@ -33,6 +33,7 @@ import type {
   LiquidShopData,
 } from './drops'
 import { uuidPrefixOf } from './numeric-id'
+import { MAX_RECOMMENDATIONS, relatedProductIds } from './related'
 import { richTextHtml } from './rich-html'
 
 export type StoreLiquidDataOptions = {
@@ -326,6 +327,14 @@ export async function storeLiquidData(
         )
       }),
     collections: collectionList,
+    relatedProducts: (productId, limit) =>
+      once(`rel:${productId}:${limit}`, async () => {
+        const wanted = Math.min(Math.max(1, Math.trunc(limit) || 4), MAX_RECOMMENDATIONS)
+        const ids = await relatedProductIds(tx, productId)
+        // Over-read: sold-out products are dropped after loading (stock lives on the variants).
+        const loaded = await loadProducts(tx, ids.slice(0, wanted * 3))
+        return loaded.filter((p) => p.variants.some((v) => v.available)).slice(0, wanted)
+      }),
     menu: (handle) =>
       once(`m:${handle}`, async () => {
         const [row] = await tx
@@ -392,6 +401,19 @@ export async function storeLiquidData(
       once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
     metaobjects: (ids) => loadMetaobjects(tx, ids),
   }
+}
+
+/** The product an imported theme's script names: our UUID or the whole number it was shown. Null when neither matches. */
+export async function resolveThemeProductId(tx: StoreTx, raw: string): Promise<string | null> {
+  if (UUID.test(raw)) return raw
+  const prefix = uuidPrefixOf(raw)
+  if (!prefix) return null
+  const rows = await tx
+    .select({ id: product.id })
+    .from(product)
+    .where(like(sql`${product.id}::text`, `${prefix}%`))
+    .limit(2)
+  return rows.length === 1 ? (rows[0]?.id ?? null) : null
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

@@ -27,6 +27,8 @@ export type LiquidRequest = {
   designMode: boolean
   /** `?form_posted=<type>` after one of our form handlers redirected back. */
   postedForm: string | null
+  /** False when the Forms app is not installed (contact forms show a notice); default true. */
+  formsAvailable?: boolean | undefined
   /** CSP nonce for inline scripts on the storefront; blank in the editor. */
   nonce: string
 }
@@ -106,6 +108,7 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
     nonce: request.nonce,
     shopifyHost: options.shopifyHost,
     postedForm: request.postedForm,
+    formsAvailable: request.formsAvailable ?? true,
   }
   const shop = data.shop
   // Content entries (metaobjects): the `metaobjects` global and `shop.metaobjects` are one object.

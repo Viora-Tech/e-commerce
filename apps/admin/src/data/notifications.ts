@@ -189,6 +189,10 @@ export const notificationsSettingsContent = {
       name: 'Return refunded',
       when: 'When you refund a return or give store credit.',
     },
+    contact_message: {
+      name: 'New form message',
+      when: 'When a shopper sends a message from a contact or advice form (Forms app).',
+    },
     unpaid_cancel_notice: {
       name: 'Unpaid order will be cancelled',
       when: 'Before an unpaid UPI or bank transfer order is cancelled for you.',
