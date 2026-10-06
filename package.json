@@ -17,6 +17,7 @@
     "turbo:shared": "bun scripts/turbo.ts",
     "lint": "biome check --error-on-warnings . && bun run lint:components",
     "lint:fix": "biome check --write .",
+    "lint:design": "oxlint -c .oxlintrc.json apps/admin/src apps/storefront/src packages/ui/src",
     "lint:components": "bun scripts/check-components.ts",
     "typecheck": "bun scripts/turbo.ts run typecheck",
     "test:sweeps": "vitest run --config scripts/sweeps/vitest.config.ts",
@@ -38,6 +39,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@shadcn/lint": "^0.2.0",
+    "oxlint": "^1.87.0",
     "turbo": "^2.11.2",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
