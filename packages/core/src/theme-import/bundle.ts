@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: imported theme bundles — WHAT: a theme's files as the renderer needs them (sections and blocks with their schemas, snippets, layout, locales, settings, asset checksums), Shopify-only Liquid normalised, and one parsed-template cache per theme version / WHY: parsing is the slow half of a render; building once per version keeps renders fast */
 import type { Liquid, Template } from 'liquidjs'
-import { createThemeEngine } from './engine'
+import { createThemeEngine, SCRIPT_NONCE_TAG } from './engine'
 import {
   extractSchema,
   parseThemeJson,
@@ -77,27 +77,67 @@ export function normalizeLiquid(source: string): string {
   })
 }
 
+/** What `<script` in a theme's own markup becomes: the tag writes the request's CSP nonce. */
+const NONCED_SCRIPT = `<script{% ${SCRIPT_NONCE_TAG} %}`
+
+/**
+ * Gives every `<script` the theme's source spells out the request's CSP nonce, at parse
+ * time, so only the theme's own scripts run on the storefront. A `<script>` that arrives
+ * in data (a product title, a content entry, a setting) is output, never source, so it gets
+ * no nonce and the CSP blocks it. Liquid tags and outputs (`{% … %}`, `{{ … }}`) and
+ * `{% raw %}` blocks are left exactly as written. One forward pass: each search starts
+ * where the last one ended.
+ */
+export function nonceThemeScripts(source: string): string {
+  let out = ''
+  let at = 0
+  let nextTag = source.indexOf('{%')
+  let nextOutput = source.indexOf('{{')
+  const markup = (text: string) =>
+    text.replace(/<script\b/gi, (tag) => `${tag}${NONCED_SCRIPT.slice('<script'.length)}`)
+  while (at < source.length) {
+    if (nextTag !== -1 && nextTag < at) nextTag = source.indexOf('{%', at)
+    if (nextOutput !== -1 && nextOutput < at) nextOutput = source.indexOf('{{', at)
+    const open =
+      nextTag === -1 ? nextOutput : nextOutput === -1 ? nextTag : Math.min(nextTag, nextOutput)
+    if (open === -1) break
+    out += markup(source.slice(at, open))
+    const closer = open === nextTag ? '%}' : '}}'
+    const close = source.indexOf(closer, open + 2)
+    let end = close === -1 ? source.length : close + 2
+    if (closer === '%}' && /^{%-?\s*raw\s*-?%}$/.test(source.slice(open, end))) {
+      const endraw = source.slice(end).search(/{%-?\s*endraw\s*-?%}/)
+      end = endraw === -1 ? source.length : end + endraw
+    }
+    out += source.slice(open, end)
+    at = end
+  }
+  return out + markup(source.slice(at))
+}
+
 export function buildThemeBundle(input: ThemeBundleInput): ThemeBundle {
   const sections = new Map<string, { source: string; schema: ShopifySectionSchema | null }>()
   const blocks = new Map<string, { source: string; schema: ShopifySectionSchema | null }>()
   const snippets = new Map<string, string>()
   for (const [path, raw] of input.textFiles) {
     const text = path.endsWith('.liquid') ? normalizeLiquid(raw) : raw
+    const renderable = () => nonceThemeScripts(withoutSchema(text))
     const section = nameOf(path, 'sections', '.liquid')
-    if (section) sections.set(section, { source: withoutSchema(text), schema: extractSchema(text) })
+    if (section) sections.set(section, { source: renderable(), schema: extractSchema(text) })
     const block = nameOf(path, 'blocks', '.liquid')
-    if (block) blocks.set(block, { source: withoutSchema(text), schema: extractSchema(text) })
+    if (block) blocks.set(block, { source: renderable(), schema: extractSchema(text) })
     const snippet = nameOf(path, 'snippets', '.liquid')
-    if (snippet) snippets.set(snippet, text)
+    if (snippet) snippets.set(snippet, nonceThemeScripts(text))
   }
   const schemaText = input.textFiles.get('config/settings_schema.json')
+  const layout = normalizeLiquid(input.textFiles.get('layout/theme.liquid') ?? '')
   return {
     themeId: input.themeId,
     version: input.version,
     sections,
     blocks,
     snippets,
-    layout: normalizeLiquid(input.textFiles.get('layout/theme.liquid') ?? '') || null,
+    layout: layout ? nonceThemeScripts(layout) : null,
     locale: defaultLocale(input.textFiles, false),
     schemaLocale: defaultLocale(input.textFiles, true),
     settingsSchema:

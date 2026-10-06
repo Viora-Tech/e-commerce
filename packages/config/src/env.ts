@@ -96,6 +96,9 @@ const platformDomains = z
       .filter(Boolean),
   )
 
+/** SETTINGS_SECRET's development default. Public, so production refuses it (see `schema`). */
+const DEV_SETTINGS_SECRET = 'dev-only-settings-secret'
+
 /** RFC 5737 documentation address: the offline default, never a real server. */
 const DOC_A_RECORD = '192.0.2.10'
 
@@ -115,7 +118,7 @@ const shape = z.object({
    */
   STOREFRONT_URL: z.string().url().default('http://localhost:3100'),
   /** Encrypts gateway credentials stored in store settings. */
-  SETTINGS_SECRET: z.string().min(16).default('dev-only-settings-secret'),
+  SETTINGS_SECRET: z.string().min(16).default(DEV_SETTINGS_SECRET),
   /**
    * Retired SETTINGS_SECRET value(s), comma-separated, kept only while
    * `scripts/rotate-secrets.ts --apply` re-encrypts everything under the new
@@ -212,6 +215,13 @@ const shape = z.object({
 })
 
 const schema = shape
+  .refine((e) => !(e.NODE_ENV === 'production' && e.SETTINGS_SECRET === DEV_SETTINGS_SECRET), {
+    // The default is public (it is in this file). In production it would encrypt every
+    // store's gateway keys and sign every token with a value anyone can read; a blank or
+    // missing SETTINGS_SECRET must stop the app, never fall back to it.
+    message: 'SETTINGS_SECRET is required in production (16+ random characters)',
+    path: ['SETTINGS_SECRET'],
+  })
   .refine((e) => e.DOMAIN_PROVIDER !== 'dns' || e.STOREFRONT_A_RECORD !== DOC_A_RECORD, {
     // Merchants would be told to point their domain at a documentation address.
     message: 'DOMAIN_PROVIDER=dns needs the server IPv4 in STOREFRONT_A_RECORD',

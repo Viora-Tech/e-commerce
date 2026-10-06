@@ -29,6 +29,8 @@ type ThankYouTemplateProps = {
   balance?: ReactNode
   /** The signed `/checkout/pay/...` path for "Pay now", token included. */
   payPath: string
+  /** The order's view token; "Retry payment" and the UPI QR prove access with it. */
+  viewToken: string
   look: CheckoutLook
   /** Variant images by variant id, for the summary's thumbnails. */
   images?: Record<string, string>
@@ -69,6 +71,7 @@ export default function ThankYouTemplate({
   links = [],
   balance = null,
   payPath,
+  viewToken,
   look,
   images = {},
   shipTo = null,
@@ -120,12 +123,14 @@ export default function ThankYouTemplate({
         </div>
 
         {manual ? <TransferInstructions instructions={manual} amountLabel={due} /> : null}
-        {qr ? <UpiQrPayment orderNumber={o.number} qr={qr} amountLabel={due} /> : null}
+        {qr ? (
+          <UpiQrPayment orderNumber={o.number} viewToken={viewToken} qr={qr} amountLabel={due} />
+        ) : null}
         {balance}
         {failed || (awaiting && session?.kind === 'client') ? (
           <div className="flex flex-col gap-3">
             {failed ? (
-              <form action={retryPaymentAction.bind(null, o.number)}>
+              <form action={retryPaymentAction.bind(null, o.number, viewToken)}>
                 <button type="submit" className={CK_BUTTON_PRIMARY}>
                   {session?.kind === 'upi_qr' ? content.newQr : content.retryPayment}
                 </button>

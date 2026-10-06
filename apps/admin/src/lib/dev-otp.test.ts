@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { devOtpEnabled, devOtpHostAllowed, recallDevOtp, rememberDevOtp } from './dev-otp'
+import {
+  devOtpEnabled,
+  devOtpHostAllowed,
+  mayPrintCodes,
+  recallDevOtp,
+  rememberDevOtp,
+} from './dev-otp'
 
 afterEach(() => {
   delete process.env.DEV_OTP_ALLOWED_HOSTS
@@ -62,5 +68,24 @@ describe('dev login code readback in production', () => {
       }),
     )
     expect(await res.json()).toEqual({ otp: '654321' })
+  })
+})
+
+// Security audit 2026-10-06 (A-08): without the platform email account the admin printed
+// sign-in codes and invite links to the log, in production too.
+describe('mayPrintCodes', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('never prints a code or invite link in production', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('DEV_LOGIN_OTP', '1')
+    expect(mayPrintCodes()).toBe(false)
+  })
+
+  it('prints in development, where nothing sends mail', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    expect(mayPrintCodes()).toBe(true)
   })
 })

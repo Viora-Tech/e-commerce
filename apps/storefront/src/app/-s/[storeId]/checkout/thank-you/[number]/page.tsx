@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   payPath as buildPayPath,
+  canViewOrder,
   GIFT_CARD_PROVIDER,
   installedApps,
   orderViewToken,
@@ -108,11 +109,20 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
     },
     data.order.id,
   )
-  // Reuses the incoming token when there was one, so "Pay now" doesn't mint a
-  // fresh token on every render; a signed-in owner without one gets a new one.
-  const payToken = token ?? orderViewToken(data.order.id, env.SETTINGS_SECRET)
+  // Reuses the incoming token when it is valid for this order, so "Pay now" doesn't mint a
+  // fresh token on every render; a signed-in owner without one (or with a stale one) gets a
+  // new one. The page's actions prove access with it (`lib/order-access.ts`).
+  const tokenFits =
+    !!token &&
+    canViewOrder(
+      { id: data.order.id, customerId: null },
+      { customerId: null, token },
+      env.SETTINGS_SECRET,
+    )
+  const payToken = tokenFits ? token : orderViewToken(data.order.id, env.SETTINGS_SECRET)
   return (
     <ThankYouTemplate
+      viewToken={payToken}
       order={data.order}
       lines={data.lines}
       payment={data.pay}
@@ -126,6 +136,7 @@ export default async function ThankYouPage({ params, searchParams }: Params) {
         data.balance ? (
           <CheckoutBalance
             orderNumber={data.order.number}
+            viewToken={payToken}
             balance={data.balance}
             session={data.balanceAttempt?.checkoutSession as CheckoutSession | null | undefined}
           />

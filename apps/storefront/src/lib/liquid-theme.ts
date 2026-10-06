@@ -55,12 +55,6 @@ async function cartFor(tx: StoreTx, storeId: string): Promise<LiquidCartData> {
   }
 }
 
-/** Adds the request's CSP nonce to every script the theme writes, so the theme's look JS runs. */
-export function withNonce(html: string, nonce: string): string {
-  if (!nonce) return html
-  return html.replace(/<script\b(?![^>]*\bnonce=)/gi, `<script nonce="${nonce}"`)
-}
-
 /** Shopify's `template.name` for a storefront path. */
 export function liquidTemplateFor(path: string): string {
   if (path === '/' || path === '') return 'index'
@@ -142,10 +136,9 @@ export async function prerenderLiquidSections(
       console.error(`[liquid] ${type} failed to render`, err),
     )
     const wrapper = sectionWrapper(ctx.bundle, section)
-    out.set(String(item.props.id), {
-      html: withNonce(html, ctx.runtime.nonce),
-      ...wrapper,
-    })
+    // The theme's own `<script>` tags already carry this request's nonce (written at parse
+    // time, `nonceThemeScripts` in core); a script that came in with data never does.
+    out.set(String(item.props.id), { html, ...wrapper })
   }
   return out
 }
@@ -153,14 +146,7 @@ export async function prerenderLiquidSections(
 /** The parts of the theme's `layout/theme.liquid` the store layout draws around `<main>`. */
 export async function liquidLayoutFor(ctx: LiquidPageContext) {
   const parts = await renderLiquidLayout(ctx, (err) => console.error('[liquid] layout failed', err))
-  const nonce = ctx.runtime.nonce
-  return {
-    ...parts,
-    head: withNonce(parts.head, nonce),
-    beforeHeader: withNonce(parts.beforeHeader, nonce),
-    afterFooter: withNonce(parts.afterFooter, nonce),
-    fontsHref: googleFontsHref(parts.fonts),
-  }
+  return { ...parts, fontsHref: googleFontsHref(parts.fonts) }
 }
 
 /** The theme this request renders: the verified preview's, else the live one. */
@@ -186,11 +172,11 @@ export async function renderStaticLiquidSection(
   const collection = /^\/collections\/([^/]+)/.exec(path)?.[1]
   const product = /^\/products\/([^/]+)/.exec(path)?.[1]
   if (collection) {
-    const found = await ctx.options.data.collection(decodeURIComponent(collection))
+    const found = await ctx.options.data.collection(decodedSegment(collection))
     if (found) ctx.globals.collection = new CollectionDrop(found, ctx.cache)
   }
   if (product) {
-    const found = await ctx.options.data.product(decodeURIComponent(product))
+    const found = await ctx.options.data.product(decodedSegment(product))
     if (found) ctx.globals.product = new ProductDrop(found, ctx.cache)
   }
   const section: LiquidSectionInput = {
@@ -203,10 +189,16 @@ export async function renderStaticLiquidSection(
   }
   const html = await renderLiquidSection(ctx, section)
   const w = sectionWrapper(ctx.bundle, section)
-  return withNonce(
-    `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`,
-    ctx.runtime.nonce,
-  )
+  return `<${w.tag} id="${w.id}" class="${w.className}">${html}</${w.tag}>`
+}
+
+/** A path segment decoded, or as it came when it is not valid percent-encoding (never a 500). */
+function decodedSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
 }
 
 /** Theme layout attributes (`class`, `data-*`, `lang`) as React props; handlers and styles dropped. */

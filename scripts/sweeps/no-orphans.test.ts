@@ -28,6 +28,23 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'the zip-slip guard behind readThemeArchive, exported for its unit test',
   },
   {
+    file: 'packages/core/src/theme-import/bundle.ts',
+    names: ['nonceThemeScripts'],
+    reason:
+      'the source rewrite behind buildThemeBundle (nonces only on the theme own scripts, security audit 2026-10-06), exported for its unit test',
+  },
+  {
+    file: 'packages/core/src/theme-import/engine.ts',
+    names: ['LIQUID_LIMITS'],
+    reason: 'the render budgets renderBounded applies, exported so security.test.ts can pin them',
+  },
+  {
+    file: 'packages/core/src/theme-import/import-media.ts',
+    names: ['THEME_MEDIA_LIMITS', 'liveVideosIn'],
+    reason:
+      'the download budget and live-page reader behind importShopifyTheme (security audit 2026-10-06), exported for their unit tests',
+  },
+  {
     file: 'packages/core/src/theme-import/fields.ts',
     names: ['settingsFromProps', 'blocksFromProps', 'liquidSectionKey', 'shopifySectionId'],
     reason: 'the parts of liquidPlacement (props to engine input), exported for their unit tests',

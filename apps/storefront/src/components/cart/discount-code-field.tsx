@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { discountFieldContent as content } from '@/data/cart'
-import type { CartDiscountView } from '@/lib/discount-actions'
 import { applyDiscountAction, removeDiscountAction } from '@/lib/discount-actions'
+import type { CartDiscountView } from '@/lib/discount-view'
 
 type DiscountCodeFieldProps = {
   discount: CartDiscountView | null

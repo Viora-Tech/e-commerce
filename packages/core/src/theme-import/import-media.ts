@@ -77,6 +77,36 @@ export async function copyImage(
   return storeFile(tx, storeId, name.split('/').pop() ?? 'image', file, deps)
 }
 
+/**
+ * How much one theme import may download. The import runs inside the merchant's request
+ * (and its database transaction), and the theme names the files and the host serves them,
+ * so both the count and the time are capped: what is left over is listed in the report as
+ * not copied, never waited for.
+ */
+export const THEME_MEDIA_LIMITS = { images: 300, videos: 20, totalMs: 3 * 60_000 } as const
+
+export type MediaBudget = { deadline: number; images: number; videos: number }
+
+export const newMediaBudget = (now = Date.now()): MediaBudget => ({
+  deadline: now + THEME_MEDIA_LIMITS.totalMs,
+  images: 0,
+  videos: 0,
+})
+
+/** Takes one download of `kind` from the budget, or says why it cannot be made. */
+export function takeMedia(
+  budget: MediaBudget,
+  kind: 'images' | 'videos',
+  now = Date.now(),
+): string | null {
+  if (now > budget.deadline) return 'not copied: the import ran out of time for files'
+  if (budget[kind] >= THEME_MEDIA_LIMITS[kind]) {
+    return `not copied: an import copies at most ${THEME_MEDIA_LIMITS[kind]} ${kind}`
+  }
+  budget[kind] += 1
+  return null
+}
+
 /** Runs `work` over `items`, `limit` at a time. */
 export async function inBatches<T>(items: T[], limit: number, work: (item: T) => Promise<void>) {
   for (let i = 0; i < items.length; i += limit) {
@@ -105,21 +135,60 @@ export function collectShopVideos(value: unknown, into: Set<string>): void {
 /** One `<video>` on the live page: its mp4 and poster, both on the store's CDN. */
 export type LiveVideo = { src: string; poster: string | null }
 
-/** The videos inside one section of the live page's HTML, in page order. */
-function liveVideosIn(html: string, sectionKey: string): LiveVideo[] {
-  const start = html.search(
-    new RegExp(`id="shopify-section-[^"]*__${sectionKey.replace(/[^\w-]/g, '')}"`),
-  )
+/** Longest `<video>` element read from the live page; a real one is a few hundred characters. */
+const VIDEO_ELEMENT_MAX = 4_000
+
+/** The first `<source src="….mp4">` inside a video element, one `<source …>` tag at a time. */
+function mp4SourceIn(inner: string): string | null {
+  for (let at = inner.indexOf('<source'); at !== -1; at = inner.indexOf('<source', at + 1)) {
+    const close = inner.indexOf('>', at)
+    if (close === -1) return null
+    const src = /\bsrc="([^"]+\.mp4[^"]*)"/.exec(inner.slice(at, close))?.[1]
+    if (src) return src
+    at = close
+  }
+  return null
+}
+
+/**
+ * The videos inside one section of the live page's HTML, in page order. The page comes from
+ * whatever host the merchant typed, so it is read with fixed-string searches that only move
+ * forward and patterns run on one short element at a time: a page built to make a pattern
+ * backtrack (`<video<video<video…` with no end tag) cannot hold the server.
+ */
+export function liveVideosIn(html: string, sectionKey: string): LiveVideo[] {
+  const key = sectionKey.replace(/[^\w-]/g, '')
+  if (!key) return []
+  const marker = 'id="shopify-section-'
+  let start = -1
+  for (let at = html.indexOf(marker); at !== -1; at = html.indexOf(marker, at + 1)) {
+    const quote = html.indexOf('"', at + marker.length)
+    if (quote === -1) break
+    if (html.slice(at + marker.length, quote).endsWith(`__${key}`)) {
+      start = at
+      break
+    }
+  }
   if (start === -1) return []
-  const next = html.indexOf('id="shopify-section-', start + 20)
+  const next = html.indexOf(marker, start + marker.length)
   const chunk = html.slice(start, next === -1 ? undefined : next)
   const out: LiveVideo[] = []
-  for (const m of chunk.matchAll(/<video\b([^>]*)>([\s\S]*?)<\/video>/g)) {
-    const src = /<source[^>]*\bsrc="([^"]+\.mp4[^"]*)"/.exec(m[2] ?? '')?.[1]
+  const abs = (u: string) => (u.startsWith('//') ? `https:${u}` : u).replace(/&amp;/g, '&')
+  let end = -1
+  for (let at = chunk.indexOf('<video'); at !== -1; at = chunk.indexOf('<video', at + 1)) {
+    // The next end tag, found once and reused until passed.
+    if (end < at) end = chunk.indexOf('</video>', at)
+    if (end === -1) break
+    if (end - at > VIDEO_ELEMENT_MAX) continue
+    const element = chunk.slice(at, end)
+    const openEnd = element.indexOf('>')
+    if (openEnd === -1) continue
+    const open = element.slice(0, openEnd)
+    const src = mp4SourceIn(element.slice(openEnd + 1))
     if (!src) continue
-    const poster = /\bposter="([^"]+)"/.exec(m[1] ?? '')?.[1] ?? null
-    const abs = (u: string) => (u.startsWith('//') ? `https:${u}` : u).replace(/&amp;/g, '&')
+    const poster = /\bposter="([^"]+)"/.exec(open)?.[1] ?? null
     out.push({ src: abs(src), poster: poster ? abs(poster) : null })
+    at = end
   }
   return out
 }
@@ -185,6 +254,7 @@ export async function copyLiveVideos(
   hosted: Hosted,
   failed: string[],
   deps: ThemeImportDeps,
+  budget: MediaBudget = newMediaBudget(),
 ): Promise<void> {
   const wanted = tpl.order.flatMap((key) => {
     const section = tpl.sections[key]
@@ -197,6 +267,11 @@ export async function copyLiveVideos(
       if (hosted.videos.has(name)) continue
       if (!live) {
         failed.push(`${name}: not found on the live page`)
+        continue
+      }
+      const refused = takeMedia(budget, 'videos')
+      if (refused) {
+        failed.push(`${name}: ${refused}`)
         continue
       }
       try {

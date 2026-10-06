@@ -176,3 +176,41 @@ describe('createStore', () => {
     })
   })
 })
+
+// Audit 2026-09-28: a refused organization (e.g. over the limit) used to leave the
+// store row behind, so the address stayed taken with no store.
+describe('createStore when the organization is refused', () => {
+  it('gives the store address back', async () => {
+    const attempt = () =>
+      createStore({
+        db: app,
+        ownerUserId: OWNER_USER_ID,
+        name: 'Squat',
+        slug: 'squatted',
+        platformDomain: 'waimers.store',
+        addLocalhostDomain: false,
+        createOrganization: async () => {
+          throw new Error('organization limit reached')
+        },
+      })
+    await expect(attempt()).rejects.toThrow('organization limit reached')
+    expect(await owner.select().from(store).where(eq(store.slug, 'squatted'))).toHaveLength(0)
+    expect(
+      await owner
+        .select()
+        .from(storeDomain)
+        .where(eq(storeDomain.hostname, 'squatted.waimers.store')),
+    ).toHaveLength(0)
+    // Someone else can now have it.
+    const other = await createStore({
+      db: app,
+      ownerUserId: OTHER_USER_ID,
+      name: 'Real',
+      slug: 'squatted',
+      platformDomain: 'waimers.store',
+      addLocalhostDomain: false,
+      ...fakeOrg('org_real'),
+    })
+    expect(other.created).toBe(true)
+  })
+})

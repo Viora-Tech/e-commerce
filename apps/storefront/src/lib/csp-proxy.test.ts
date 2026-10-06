@@ -23,6 +23,8 @@ describe('storefront proxy CSP', () => {
     vi.stubEnv('DATABASE_URL_OWNER', 'postgres://x:x@127.0.0.1:1/none')
     vi.stubEnv('REDIS_URL', 'redis://127.0.0.1:1')
     vi.stubEnv('ACCOUNTS_URL', 'https://accounts.waimers.store')
+    // Production refuses the public development default (security audit 2026-10-06, A-02).
+    vi.stubEnv('SETTINGS_SECRET', 'test-only-production-secret-0123456789')
     const { proxy } = await import('../proxy')
     const ask = () =>
       proxy(new NextRequest('https://unknown.example/', { headers: { host: 'unknown.example' } }))

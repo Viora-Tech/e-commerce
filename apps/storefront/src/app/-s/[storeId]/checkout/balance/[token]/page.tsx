@@ -61,6 +61,7 @@ export default async function PayBalancePage({ params }: Params) {
           <h1 className={`${CK_HEADING} text-[1.75rem]!`}>{content.pageTitle(data.number)}</h1>
           <CheckoutBalance
             orderNumber={data.number}
+            viewToken={orderViewToken(data.orderId, settingsSecret())}
             balance={data.balance}
             session={data.session}
           />
