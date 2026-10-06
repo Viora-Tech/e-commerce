@@ -53,6 +53,8 @@ export type OutboxEventType =
   | 'order.cancel_notice'
   /** A newsletter signup waits for its confirm link (double opt-in); no order. */
   | 'newsletter.confirm_requested'
+  /** A shopper sent a message from a theme's contact form (Forms app); the store's contact address is emailed. */
+  | 'contact.message_received'
 
 /**
  * `orderId` is required for every order-lifecycle type; `variantId` (and
@@ -70,6 +72,8 @@ export type OutboxPayload = {
   returnId?: string | undefined
   /** The `newsletter_signup` a `newsletter.confirm_requested` event is about. */
   signupId?: string | undefined
+  /** The `contact_message` a `contact.message_received` event is about. */
+  contactMessageId?: string | undefined
 }
 
 export type OutboxEventRow = {
@@ -122,6 +126,8 @@ export const OUTBOX_NOTIFICATION_TEMPLATE: Record<OutboxEventType, TemplateId | 
   'order.cancel_notice': 'order_cancelled',
   // No order: the relay queues `newsletter_confirm` with the signup id itself (`dispatchRow`).
   'newsletter.confirm_requested': null,
+  // No order: the relay queues `contact_message` with the message id itself (`dispatchRow`).
+  'contact.message_received': null,
 }
 
 /**
@@ -171,4 +177,5 @@ export const OUTBOX_APP_EVENT: Record<OutboxEventType, AppEvent | null> = {
   'order.delivered': null,
   'order.cancel_notice': null,
   'newsletter.confirm_requested': null,
+  'contact.message_received': null,
 }

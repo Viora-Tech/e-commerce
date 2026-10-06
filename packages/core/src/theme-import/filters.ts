@@ -23,6 +23,10 @@ import {
   translate,
 } from './filter-values'
 
+/** What `form.errors | default_errors` prints after a post we rejected. */
+const FORM_ERRORS_HTML =
+  '<ul class="errors" role="alert"><li>Please check your details and try again.</li></ul>'
+
 export type { LiquidRuntime } from './filter-values'
 
 /**
@@ -110,7 +114,9 @@ export function registerShopifyFilters(engine: Liquid): void {
       .replace(/</g, '\\u003c')
       .replace(/>/g, '\\u003e')
   })
-  add('default_errors', () => '')
+  add('default_errors', (errors: unknown) =>
+    Array.isArray(errors) && errors.length > 0 ? FORM_ERRORS_HTML : '',
+  )
   add('structured_data', () => '')
   add('payment_button', () => '')
   add('payment_terms', () => '')

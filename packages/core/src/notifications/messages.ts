@@ -79,6 +79,7 @@ export const MESSAGE_CATALOGUE: readonly MessageDef[] = [
     appId: 'back-in-stock',
   },
   { id: 'unpaid_cancel_notice', group: 'you', trigger: 'auto', channels: EMAIL },
+  { id: 'contact_message', group: 'app', trigger: 'app', channels: EMAIL, appId: 'forms' },
 ]
 
 export const messageDef = (id: string): MessageDef | undefined =>

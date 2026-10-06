@@ -769,6 +769,16 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'imported only by the root commerce.config.ts, like backInStockPlugin',
   },
   {
+    file: 'packages/plugin-forms/src/plugin.ts',
+    names: ['formsPlugin'],
+    reason: 'imported only by the root commerce.config.ts, like emiPlugin',
+  },
+  {
+    file: 'packages/core/src/theme-import/related.ts',
+    names: ['rankRelated'],
+    reason: 'the pure ranking, used inside this file and tested directly',
+  },
+  {
     file: 'packages/plugin-gst-invoices/src/issue.ts',
     names: ['creditNoteCutoff'],
     reason: 'no external importer today — investigate before removing',

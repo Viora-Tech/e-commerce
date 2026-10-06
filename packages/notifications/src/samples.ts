@@ -127,6 +127,19 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
   balance_received: { ...base, orderUrl: 'https://waimers.example/orders/42' },
   payment_reminder: { ...base, orderUrl: 'https://waimers.example/orders/42/pay' },
   unpaid_cancel_notice: { ...base, deadlineLabel: '28 Sep 2026' },
+  contact_message: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    contactMessage: {
+      name: 'Asha',
+      email: 'asha@example.com',
+      phone: '',
+      text: 'Which shade suits dry skin?',
+      path: '/pages/contact',
+    },
+  },
   unpaid_cancelled: { ...base },
   back_in_stock_confirm: {
     ...base,

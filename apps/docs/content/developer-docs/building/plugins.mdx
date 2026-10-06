@@ -404,6 +404,14 @@ never vendoring it; `packages/blocks/src/app-blocks/razorpay-affordability.ts`
 holds the loader, the one-widget-per-page rule and the dark-theme check, and
 its tests fake the DOM so nothing is fetched.
 
+`packages/plugin-forms` (Forms) is the smallest app that owns a table and has no block: its
+`contact_message` table, a `saveContactMessage` service that writes the row and an outbox event
+(`contact.message_received`) in one transaction, and one admin page (Submissions). The storefront
+route `/theme-actions/contact` calls it only when the store installed the app
+(`formsInstalled` in `apps/storefront/src/lib/forms-context.ts`); the worker's notifications
+consumer emails the store's contact address with the core `contact_message` template through
+`deliverToStoreContact`. Core never imports the app: the outbox event carries only the message id.
+
 ## 7. Storefront app blocks
 
 An app can add sections merchants pick from the theme editor's Add panel →

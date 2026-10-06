@@ -173,6 +173,8 @@ export type LiquidDataSource = {
   /** A collection's products in its own order, the first `limit` of them. */
   collectionProducts(handle: string, limit: number): Promise<LiquidProductData[]>
   collections(): Promise<LiquidCollectionData[]>
+  /** Products related to one (our UUID): shared collection first, then type and tags; available ones only. */
+  relatedProducts(productId: string, limit: number): Promise<LiquidProductData[]>
   menu(handle: string): Promise<LiquidMenuData | null>
   blog(handle: string): Promise<LiquidBlogData | null>
   page(handle: string): Promise<LiquidPageData | null>

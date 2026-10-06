@@ -126,6 +126,16 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       signupId: payload.signupId,
     })
   }
+  if (type === 'contact.message_received' && payload.contactMessageId) {
+    // To the merchant, no order: the job carries the message (the worker reads it from the Forms app).
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'contact_message',
+      key: row.id,
+      contactMessageId: payload.contactMessageId,
+    })
+  }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(
       'restocked',

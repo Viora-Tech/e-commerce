@@ -29,6 +29,7 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'balance_received',
   'payment_reminder',
   'unpaid_cancel_notice',
+  'contact_message',
   'unpaid_cancelled',
   'back_in_stock_confirm',
   'back_in_stock_alert',
@@ -69,6 +70,7 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   balance_received: 'Balance received',
   payment_reminder: 'Payment reminder',
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
+  contact_message: 'New form message (merchant)',
   unpaid_cancelled: 'Unpaid order cancelled',
   back_in_stock_confirm: 'Back in stock: confirm alert',
   back_in_stock_alert: 'Back in stock: alert',
@@ -94,6 +96,8 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Sign-in link'
     case 'newsletter_confirm':
       return 'Newsletter'
+    case 'contact_message':
+      return 'Form message'
     case 'gift_card_issued':
       return 'Gift card'
     case 'staff_invite':

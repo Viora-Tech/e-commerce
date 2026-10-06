@@ -3,6 +3,7 @@ import {
   appEventForTemplate,
   deliverNewsletterConfirm,
   deliverNotification,
+  deliverToStoreContact,
   enqueueAppEvent,
   fulfilGiftCardsForOrder,
   NOTIFICATIONS_QUEUE,
@@ -10,6 +11,7 @@ import {
 } from '@commerce/core'
 import { registriesForStore } from '@commerce/core/registries'
 import { type Db, withStore } from '@commerce/db'
+import { getContactMessage, messageText } from '@commerce/plugin-forms/server'
 import { fairProcessor, type IORedis, QUEUE_LIMITS, Worker } from '@commerce/queue'
 import { appEmailExtras } from './app-events'
 
@@ -32,7 +34,8 @@ export function createNotificationWorker(
   return new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     fairProcessor(connection, NOTIFICATIONS_QUEUE, { perStore }, async (job) => {
-      const { storeId, orderId, template, key, returnId, refundId, signupId } = job.data
+      const { storeId, orderId, template, key, returnId, refundId, signupId, contactMessageId } =
+        job.data
       // The one message without an order: the newsletter confirm link (double opt-in).
       if (template === 'newsletter_confirm') {
         if (!signupId || !opts.storefrontUrl) return []
@@ -53,6 +56,34 @@ export function createNotificationWorker(
             `[notification] newsletter_confirm ${r.channel}→${r.to} ${r.ok ? 'sent' : `failed: ${r.error}`}`,
           )
         }
+        const bad = sent.filter((r) => !r.ok)
+        if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
+        return sent
+      }
+      // To the merchant, no order: a message from a theme's contact or advice form (Forms app).
+      if (template === 'contact_message') {
+        if (!contactMessageId) return []
+        const sent = await withStore(db, storeId, async (tx) => {
+          const msg = await getContactMessage(tx, contactMessageId)
+          if (!msg) return []
+          return deliverToStoreContact(
+            { storeId, tx },
+            template,
+            {
+              contactMessage: {
+                name: msg.name,
+                email: msg.email,
+                phone: msg.phone,
+                text: messageText(msg),
+                path: msg.path,
+              },
+            },
+            {
+              registry: (await registriesForStore(tx, storeId)).notifications,
+              settingsSecret: opts.settingsSecret,
+            },
+          )
+        })
         const bad = sent.filter((r) => !r.ok)
         if (bad.length > 0) throw new Error(bad.map((r) => `${r.channel}: ${r.error}`).join('; '))
         return sent

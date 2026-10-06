@@ -1,7 +1,8 @@
 import type { NewsletterState } from '@commerce/blocks/puck'
 import { resolveThemeVariantId } from '@commerce/core'
 import { addLineAction, cartCountAction } from '@/lib/cart-actions'
-import { renderStaticLiquidSection } from '@/lib/liquid-theme'
+import { submitContact } from '@/lib/contact-actions'
+import { renderRecommendations, renderStaticLiquidSection } from '@/lib/liquid-theme'
 import { subscribeAction } from '@/lib/newsletter-actions'
 import { inStore } from '@/lib/store-context'
 
@@ -81,14 +82,34 @@ export async function POST(req: Request, { params }: Params) {
     const result = await subscribeAction({ status: 'idle' } as NewsletterState, data)
     return backTo(req, result.status === 'done' ? 'customer' : null)
   }
-  // Contact messages have no home here yet (the report says so); localization is India only.
-  if (action === 'contact' || action === 'localization') return backTo(req, null)
+  if (action === 'contact') {
+    const form = await req.formData().catch(() => null)
+    if (!form) return backTo(req, 'contact_error')
+    const referer = req.headers.get('referer')
+    const path = referer ? new URL(referer).pathname : ''
+    const outcome = await submitContact(form, path)
+    return backTo(req, outcome === 'posted' ? 'contact' : 'contact_error')
+  }
+  // Localization is India only.
+  if (action === 'localization') return backTo(req, null)
   return notFound()
 }
 
 export async function GET(req: Request, { params }: Params) {
   const { storeId, action } = await params
   if (action === 'cart') return Response.json(await cartCountAction())
+  if (action === 'recommendations') {
+    const url = new URL(req.url)
+    const productId = url.searchParams.get('product_id') ?? ''
+    const sectionId = url.searchParams.get('section_id') ?? ''
+    const limit = Number(url.searchParams.get('limit')) || 4
+    if (!productId || !/^[a-z0-9_-]{1,120}$/i.test(sectionId)) return notFound()
+    const html = await inStore(storeId, (tx) =>
+      renderRecommendations(tx, storeId, { sectionId, productId, limit }),
+    )
+    if (html === null) return notFound()
+    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
+  }
   if (action === 'section') {
     const url = new URL(req.url)
     const type = url.searchParams.get('section_id') ?? ''

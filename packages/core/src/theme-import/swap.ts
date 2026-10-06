@@ -77,7 +77,7 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'contact',
     shopify: 'Contact form (form "contact")',
-    ours: 'Not available yet: the form shows but cannot send. Show your email or WhatsApp number instead',
+    ours: 'Our Forms app (Apps, Forms): messages are saved there and emailed to you. Until you install it the form shows "not available"',
     kind: 'unavailable',
     detect: /form\s+['"]contact['"]/,
   },
@@ -133,8 +133,8 @@ export const SWAP_TABLE: readonly SwapRow[] = [
   {
     key: 'recommendations',
     shopify: 'Product recommendations (/recommendations/products)',
-    ours: 'Empty for now; our Related products section can take its place',
-    kind: 'unavailable',
+    ours: 'Our related products: the same collection first, then the same product type and tags (in stock and published only)',
+    kind: 'replaced',
     detect: /product_recommendations_url|recommendations\/products/,
   },
   {
