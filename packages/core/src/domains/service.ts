@@ -9,11 +9,13 @@ import {
 } from '@commerce/db'
 import { and, asc, desc, eq, inArray, or } from 'drizzle-orm'
 import { CommerceError } from '../errors'
+import { insertOutboxEvent } from '../outbox/write'
 import { createDevDomainProvider } from './dev-provider'
 import { createDnsDomainProvider } from './dns-provider'
 import { isPlatformHostname, normaliseHostname, wwwCounterpart } from './hostname'
 import type { DnsState, DomainProvider } from './provider'
 import { type DnsRecord, type DomainTargets, dnsRecordsFor } from './records'
+import { needsRouteRequest, requestDomainRoute } from './routes'
 
 export type DomainRow = typeof storeDomain.$inferSelect
 
@@ -158,6 +160,10 @@ export async function removeDomain(tx: StoreTx, storeId: string, id: string): Pr
     throw new DomainError('Choose another primary domain before removing this one', storeId)
   }
   await tx.delete(storeDomain).where(eq(storeDomain.id, id))
+  // A route was asked for, so the proxy may have one: queue its removal (domains/routes.ts).
+  if (d.routeStatus !== 'none') {
+    await insertOutboxEvent(tx, storeId, 'domain.route_removed', { hostname: d.hostname })
+  }
   return true
 }
 
@@ -273,24 +279,39 @@ const awaitingProvider = and(
  */
 export async function pollPendingDomains(
   db: Db,
-  deps: DomainDeps & { log?: ((message: string) => void) | undefined },
-): Promise<{ stores: number; checked: number; failed: number }> {
+  deps: DomainDeps & {
+    log?: ((message: string) => void) | undefined
+    /**
+     * True when the proxy's routes are managed for us (the Dokploy env keys are set): a live
+     * domain without a working certificate gets its HTTPS route queued (domains/routes.ts).
+     */
+    requestRoutes?: boolean | undefined
+  },
+): Promise<{ stores: number; checked: number; failed: number; routes: number }> {
   const storeIds = await storesWithPendingDomains(db)
   let checked = 0
   let failed = 0
+  let routes = 0
   for (const storeId of storeIds) {
     const ids = await withStore(db, storeId, async (tx) =>
       tx.select({ id: storeDomain.id }).from(storeDomain).where(awaitingProvider),
     )
     for (const { id } of ids) {
       try {
-        await withStore(db, storeId, (tx) => verifyDomain(tx, id, deps))
+        const requested = await withStore(db, storeId, async (tx) => {
+          const row = await verifyDomain(tx, id, deps)
+          const now = deps.now ?? new Date()
+          if (!deps.requestRoutes || !needsRouteRequest(row, now)) return false
+          await requestDomainRoute(tx, storeId, row.id, now)
+          return true
+        })
         checked += 1
+        if (requested) routes += 1
       } catch (err) {
         failed += 1
         deps.log?.(`[domains] check ${id} failed: ${err instanceof Error ? err.message : err}`)
       }
     }
   }
-  return { stores: storeIds.length, checked, failed }
+  return { stores: storeIds.length, checked, failed, routes }
 }

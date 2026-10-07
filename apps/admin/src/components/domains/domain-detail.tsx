@@ -21,7 +21,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
-import { domainsContent } from '@/data/domains'
+import { domainCertificateContent, domainsContent } from '@/data/domains'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
@@ -52,6 +53,7 @@ function connectionText(d: DomainView): string {
 export default function DomainDetail({ initial, primaryHostname }: DomainDetailProps) {
   // Hooks
   const { hasPermission } = usePermissions()
+  const certificate = useCopy(domainCertificateContent)
   const router = useRouter()
   const [domain, setDomain] = useState(initial)
   const [checking, setChecking] = useState(false)
@@ -125,7 +127,13 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const isCustom = domain.kind === 'custom'
   const canBePrimary = domain.status === 'active' && domain.sslStatus === 'active'
-  const sslText = copy.ssl[domain.status === 'active' ? domain.sslStatus : 'pending']
+  const sslState = domain.status === 'active' ? domain.sslStatus : 'pending'
+  const sslText =
+    sslState !== 'issuing'
+      ? copy.ssl[sslState]
+      : domain.routeStatus === 'failed'
+        ? certificate.retrying
+        : certificate.issuing
   const lastChecked = domain.lastCheckedAt
     ? copy.verification.checked(formatDateTime(domain.lastCheckedAt))
     : copy.verification.never

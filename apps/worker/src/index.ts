@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { loadEnv } from '@commerce/config'
-import { createRedisRateLimitStore } from '@commerce/core'
+import { createRedisRateLimitStore, dokployConfigFrom, platformRoots } from '@commerce/core'
 import { createDb } from '@commerce/db'
 import { reportWorkerFailures } from '@commerce/observability'
 import { createAppEventQueue, createNotificationQueue } from '@commerce/queue'
@@ -9,7 +9,7 @@ import { Hono } from 'hono'
 import { createAiBulkWriteWorker } from './ai-bulk-write'
 import { createAppEventWorker, createAppJobWorker } from './app-events'
 import { createBackInStockWorker } from './back-in-stock'
-import { createDomainPoller, VERIFY_EVERY_MS } from './domains'
+import { createDomainPoller, createDomainRouteWorker, VERIFY_EVERY_MS } from './domains'
 import { createImportSnapshotCleanup, SNAPSHOT_CLEANUP_EVERY_MS } from './import-snapshots'
 import { createMarketingWorker, MARKETING_TICK_MS, retireAbandonedSweep } from './marketing'
 import { createMediaProcessWorker } from './media-process'
@@ -58,9 +58,16 @@ const appJobWorker = createAppJobWorker(redis, db, {
 const unpaidExpiry = createUnpaidOrderExpiry(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const preorderBalance = createPreorderBalanceJob(redis, db, { settingsSecret: env.SETTINGS_SECRET })
 const tracker = createShippingTracker(redis, db, { settingsSecret: env.SETTINGS_SECRET })
+// Unset Dokploy keys: no routes are asked for and every route job is a no-op (added by hand).
+const dokploy = dokployConfigFrom(env)
 const domains = createDomainPoller(redis, db, {
   provider: env.DOMAIN_PROVIDER,
   targets: { aRecord: env.STOREFRONT_A_RECORD, cnameTarget: env.STOREFRONT_CNAME_TARGET },
+  requestRoutes: dokploy !== null,
+})
+const domainRoutes = createDomainRouteWorker(redis, db, {
+  dokploy,
+  guard: { platformRoots: platformRoots(env), cnameTarget: env.STOREFRONT_CNAME_TARGET },
 })
 const senderEmails = createSenderEmailPoller(redis, db)
 const marketing = createMarketingWorker(redis, db, {
@@ -81,6 +88,7 @@ const outboxRelay = createOutboxRelay(redis, db, {
   notifications,
   appEvents,
   inventoryRestock: backInStock.queue,
+  domainRoutes: domainRoutes.queue,
 })
 
 reportWorkerFailures(worker, 'heartbeat', reportError)
@@ -91,6 +99,7 @@ reportWorkerFailures(tracker.worker, 'shipping-tracker', reportError)
 reportWorkerFailures(unpaidExpiry.worker, 'unpaid-order-expiry', reportError)
 reportWorkerFailures(preorderBalance.worker, 'preorder-balance', reportError)
 reportWorkerFailures(domains.worker, 'domain-verify', reportError)
+reportWorkerFailures(domainRoutes.worker, 'domain-route', reportError)
 reportWorkerFailures(senderEmails.worker, 'sender-email-verify', reportError)
 reportWorkerFailures(marketing.tick, 'marketing-tick', reportError)
 reportWorkerFailures(marketing.send, 'marketing-send', reportError)
@@ -186,6 +195,8 @@ const shutdown = async () => {
   await preorderBalance.queue.close()
   await domains.worker.close()
   await domains.queue.close()
+  await domainRoutes.worker.close()
+  await domainRoutes.queue.close()
   await senderEmails.worker.close()
   await senderEmails.queue.close()
   await marketing.tick.close()

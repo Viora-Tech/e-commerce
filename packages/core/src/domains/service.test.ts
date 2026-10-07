@@ -266,19 +266,19 @@ describe('pollPendingDomains', () => {
     await verify(b, failed?.id as string)
 
     const r = await pollPendingDomains(app, { provider, targets, now: t0 })
-    expect(r).toEqual({ stores: 2, checked: 2, failed: 0 })
+    expect(r).toEqual({ stores: 2, checked: 2, failed: 0, routes: 0 })
     const [aDomain] = (await withStore(app, a, listDomains)).filter((d) => d.kind === 'custom')
     expect(aDomain).toMatchObject({ status: 'active', sslStatus: 'issuing' })
 
     // Next tick: the certificate lands; the real domain is still waiting on DNS.
     const next = await pollPendingDomains(app, { provider, targets, now: later(DEV_SSL_ISSUE_MS) })
-    expect(next).toEqual({ stores: 2, checked: 2, failed: 0 })
+    expect(next).toEqual({ stores: 2, checked: 2, failed: 0, routes: 0 })
     const settled = await pollPendingDomains(app, {
       provider,
       targets,
       now: later(2 * DEV_SSL_ISSUE_MS),
     })
-    expect(settled).toEqual({ stores: 1, checked: 1, failed: 0 })
+    expect(settled).toEqual({ stores: 1, checked: 1, failed: 0, routes: 0 })
   })
 
   it('logs and counts a provider failure without stopping', async () => {
@@ -296,7 +296,7 @@ describe('pollPendingDomains', () => {
       targets,
       log: (m) => logs.push(m),
     })
-    expect(r).toEqual({ stores: 1, checked: 0, failed: 1 })
+    expect(r).toEqual({ stores: 1, checked: 0, failed: 1, routes: 0 })
     expect(logs[0]).toMatch(/provider down/)
   })
 })
