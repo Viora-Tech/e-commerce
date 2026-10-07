@@ -70,7 +70,6 @@ export const domainsContent = {
     ssl: {
       heading: 'SSL certificate',
       pending: 'A free certificate is issued as soon as the domain is connected.',
-      issuing: 'Issuing a free certificate. This usually takes a few minutes.',
       active: 'Secured with a free SSL certificate. Shoppers see the padlock.',
       failed: 'The certificate could not be issued. Check the DNS records, then verify again.',
     },
@@ -102,4 +101,14 @@ export const domainsContent = {
     load: 'Could not load domains',
     action: 'Something went wrong. Try again.',
   },
+} as const
+
+/**
+ * The security-certificate step after a domain is connected: we add the domain to our
+ * server, then the free certificate is issued. Translated in `data/hi/domains.ts`.
+ */
+export const domainCertificateContent = {
+  issuing: 'Getting your security certificate. This can take a few minutes.',
+  retrying:
+    'Getting your security certificate is taking longer than usual. We keep trying on our own. If it is not done in an hour, contact support.',
 } as const

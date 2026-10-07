@@ -269,6 +269,12 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
+    file: 'packages/core/src/domains/routes.ts',
+    names: ['ROUTE_RETRY_MS', 'isRoutableHostname', 'ensureRoute', 'removeRoute'],
+    reason:
+      'the guard, retry window and idempotent Dokploy steps behind runDomainRouteJob, exported for their unit tests',
+  },
+  {
     file: 'packages/core/src/domains/service.ts',
     names: ['DOMAIN_PROVIDERS'],
     reason: 'no external importer today — investigate before removing',

@@ -1,6 +1,6 @@
 {
   "id": "5988ce5c-41e1-4871-a2f2-3f4bfc4cf5cf",
-  "prevId": "613429c4-6efd-49cc-aab1-c0953804780e",
+  "prevId": "8ed1dad5-b81b-4437-94d3-d2c21f9cff88",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1822,12 +1822,6 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
-        "product_values": {
-          "name": "product_values",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "usage_limit": {
           "name": "usage_limit",
           "type": "integer",
@@ -1879,6 +1873,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "product_values": {
+          "name": "product_values",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -8286,6 +8286,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "route_status": {
+          "name": "route_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "route_requested_at": {
+          "name": "route_requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -8350,6 +8363,10 @@
         "store_domain_ssl_status": {
           "name": "store_domain_ssl_status",
           "value": "\"store_domain\".\"ssl_status\" in ('pending', 'issuing', 'active', 'failed')"
+        },
+        "store_domain_route_status": {
+          "name": "store_domain_route_status",
+          "value": "\"store_domain\".\"route_status\" in ('none', 'pending', 'ready', 'failed')"
         }
       },
       "isRLSEnabled": false

@@ -1,6 +1,7 @@
 import { type Db, outboxEvent, withStore } from '@commerce/db'
 import type { LoadedPlugins } from '@commerce/plugins'
 import { and, asc, eq, isNull } from 'drizzle-orm'
+import { type DomainRouteQueue, ROUTE_JOB_ATTEMPTS, ROUTE_JOB_BACKOFF_MS } from '../domains/routes'
 import { enqueueNotification, type NotificationQueue } from '../notifications/enqueue'
 import { inviteForPaidPlanOrder, revokePlanInvitesForOrder } from '../onboarding/plan-invites'
 import { type AppEventQueue, enqueueAppEvent, installedApps } from '../plugins/events'
@@ -33,6 +34,8 @@ export type OutboxRelayDeps = {
   appEvents?: AppEventQueue | undefined
   /** Absent only in tests that do not exercise `inventory.restocked`; that row is then just marked dispatched. */
   inventoryRestock?: InventoryRestockQueue | undefined
+  /** Absent only in tests that do not exercise `domain.route_*`; those rows are then just marked dispatched. */
+  domainRoutes?: DomainRouteQueue | undefined
   log?: ((message: string) => void) | undefined
   /** The platform's own sales store (`PLATFORM_SALES_STORE_ID`): paid plan orders there grant a signup invite. */
   salesStoreId?: string | undefined
@@ -154,6 +157,29 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       key: row.id,
       reviewId: payload.reviewId,
     })
+  }
+  if (type === 'domain.route_requested' && payload.domainId && deps.domainRoutes) {
+    await deps.domainRoutes.add(
+      'add',
+      { action: 'add', storeId: row.storeId, domainId: payload.domainId },
+      {
+        // Keyed by the row: a re-dispatch is a no-op, a later request (new row) is its own job.
+        jobId: `route-add-${row.id}`,
+        attempts: ROUTE_JOB_ATTEMPTS,
+        backoff: { type: 'exponential', delay: ROUTE_JOB_BACKOFF_MS },
+      },
+    )
+  }
+  if (type === 'domain.route_removed' && payload.hostname && deps.domainRoutes) {
+    await deps.domainRoutes.add(
+      'remove',
+      { action: 'remove', storeId: row.storeId, hostname: payload.hostname },
+      {
+        jobId: `route-remove-${row.id}`,
+        attempts: ROUTE_JOB_ATTEMPTS,
+        backoff: { type: 'exponential', delay: ROUTE_JOB_BACKOFF_MS },
+      },
+    )
   }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(

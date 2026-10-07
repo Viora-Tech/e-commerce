@@ -212,9 +212,11 @@ Dokploy → Settings → Git Providers → **GitHub** → install the Dokploy Gi
 
 Set `DOMAIN_PROVIDER=dns`, `STOREFRONT_A_RECORD` (this server's public IPv4) and
 `STOREFRONT_CNAME_TARGET` (a hostname that resolves to it) on the admin and worker; with the
-default `dev` provider real domains stay pending forever. Each domain that goes live still needs
-its own HTTPS route: add it as a domain on the storefront app in Dokploy. That step is manual
-for now. Details and troubleshooting: [Custom domains](../building/custom-domains).
+default `dev` provider real domains stay pending forever. Each domain that goes live also needs
+its own HTTPS route on the storefront app in Dokploy. Set `DOKPLOY_URL`, `DOKPLOY_API_KEY`,
+`DOKPLOY_STOREFRONT_APPLICATION_ID` (and `DOKPLOY_STOREFRONT_PORT` if not `3100`) on the worker
+and it adds and removes those routes itself; unset, add each domain by hand. How to create the
+key and find the id, plus troubleshooting: [Custom domains](../building/custom-domains).
 
 ### Lock the origin to Cloudflare (required)
 

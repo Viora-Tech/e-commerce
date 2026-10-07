@@ -1622,6 +1622,7 @@ export const discountUsage = pgTable('discount_usage', {
 export type DomainKind = 'platform' | 'custom'
 export type DomainStatus = 'pending' | 'active' | 'failed'
 export type DomainSslStatus = 'pending' | 'issuing' | 'active' | 'failed'
+export type DomainRouteStatus = 'none' | 'pending' | 'ready' | 'failed'
 
 /**
  * Hostnames that serve a store. `platform` domains come with the store and
@@ -1648,6 +1649,15 @@ export const storeDomain = pgTable(
     error: text('error'),
     lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    /**
+     * The HTTPS route on the proxy (a Dokploy domain on the storefront app), added by the
+     * worker once DNS is verified: `none` (not asked for, or routing is off), `pending`
+     * (queued), `ready` (the proxy has it, the certificate follows), `failed` (gave up
+     * after retries; the next poll asks again). See `domains/routes.ts`.
+     */
+    routeStatus: text('route_status').$type<DomainRouteStatus>().notNull().default('none'),
+    /** When the route was last asked for, so a stuck request is asked again. */
+    routeRequestedAt: timestamp('route_requested_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
@@ -1657,6 +1667,10 @@ export const storeDomain = pgTable(
     check(
       'store_domain_ssl_status',
       sql`${t.sslStatus} in ('pending', 'issuing', 'active', 'failed')`,
+    ),
+    check(
+      'store_domain_route_status',
+      sql`${t.routeStatus} in ('none', 'pending', 'ready', 'failed')`,
     ),
   ],
 )

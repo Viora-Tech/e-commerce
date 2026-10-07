@@ -1,6 +1,6 @@
 ---
 title: Custom domains
-description: How a merchant's own domain goes from pending to live — the records we ask for, the dev and dns providers, the worker's re-check, and the proxy route each live hostname still needs.
+description: How a merchant's own domain goes from pending to live — the records we ask for, the dev and dns providers, the worker's re-check, and the HTTPS route the worker adds in Dokploy.
 ---
 
 # Custom domains
@@ -12,7 +12,8 @@ happens.
 
 Code: `packages/core/src/domains/` (`service.ts` for connect / verify / poll, `records.ts` for
 the records we show, `provider.ts` for the provider contract, `dev-provider.ts` and
-`dns-provider.ts` for the two providers). Admin: `apps/admin/src/components/domains/`.
+`dns-provider.ts` for the two providers, `routes.ts` and `dokploy.ts` for the automatic HTTPS
+route). Admin: `apps/admin/src/components/domains/`.
 
 ## The records we ask for
 
@@ -87,11 +88,63 @@ default (`192.0.2.10`), so merchants are never told to point at it. Both the adm
 ### Each live hostname also needs an HTTPS route on the proxy
 
 DNS reaching the server is not enough: Traefik must route the hostname to the storefront and
-hold a certificate for it. Today that is a manual step: add the hostname as a **domain on the
-storefront app in Dokploy** (HTTPS on, Let's Encrypt), the same way `STOREFRONT_DOMAIN` is set
-up. Until that route exists the TLS check fails and the domain stays `active` with SSL
-`issuing`. Automating it (Traefik on-demand TLS, or the Dokploy API from the worker) is out of
-scope for this provider.
+hold a certificate for it, and Traefik only does that for hostnames added as a **domain on the
+storefront app in Dokploy**. Until that route exists the TLS check fails and the domain stays
+`active` with SSL `issuing`.
+
+With the four `DOKPLOY_*` keys set on the **worker**, this step is automatic
+(`packages/core/src/domains/routes.ts`):
+
+1. The worker's poll checks a domain, DNS is verified, and the domain has no working
+   certificate yet. It sets `store_domain.route_status = 'pending'` and writes a
+   `domain.route_requested` outbox row in the same transaction (`requestDomainRoute`).
+2. The outbox relay turns the row into a `{domains}-route` job (6 attempts, exponential backoff
+   from 30 s), keyed by the outbox row so a re-dispatch never doubles it.
+3. The job (`runDomainRouteJob`) re-checks the row (still a live custom domain), re-checks the
+   hostname (`hostname.ts` rules, never a platform domain or the CNAME target), lists the
+   storefront app's Dokploy domains and creates one only if the hostname is not there yet:
+   `https: true`, `certificateType: 'letsencrypt'`, `path: '/'`, `port: DOKPLOY_STOREFRONT_PORT`.
+   Dokploy writes the Traefik config at once (no redeploy), Traefik gets the certificate, and
+   the next poll's TLS check moves SSL to `active`. The row becomes `route_status = 'ready'`.
+4. A job that uses all its attempts marks the row `failed`. The poll asks again 30 minutes
+   after the last request (`ROUTE_RETRY_MS`), as it does for a `pending` or `ready` route whose
+   certificate still has not shown up (a lost job, or a route deleted by hand).
+5. Removing a domain whose route was ever asked for writes `domain.route_removed` with the
+   hostname. Its job deletes the Dokploy domain, unless the hostname is live again (any store,
+   `resolve_store`).
+
+The www twin is its own `store_domain` row, so it gets its own route. Admin requests never call
+Dokploy: Dokploy being down only delays the route, and the domain page says "Getting your
+security certificate" (or, after the retries, that it is taking longer than usual).
+
+| Key | What it is |
+| --- | --- |
+| `DOKPLOY_URL` | Dokploy's base URL as the worker reaches it, without `/api`, e.g. `https://dokploy.example.com` |
+| `DOKPLOY_API_KEY` | A Dokploy API key. Secret: sent only in the `x-api-key` header, never logged or returned |
+| `DOKPLOY_STOREFRONT_APPLICATION_ID` | The storefront application's id in Dokploy |
+| `DOKPLOY_STOREFRONT_PORT` | The port the storefront container listens on (default `3100`) |
+
+Any of the first three unset (local, tests): no route is asked for, every route job is a no-op,
+and each domain is added in Dokploy by hand as before. Every Dokploy request has a 10 s timeout.
+
+**Setting it up on the server**
+
+1. **API key**: in Dokploy, open **Settings → Profile**, find **API/CLI**, and generate a key.
+   Use an account that can manage domains on the storefront app.
+2. **Application id**: open the storefront application in Dokploy. The id is the last part of
+   the address bar (`…/services/application/<applicationId>`). It is also in the app's
+   **General** tab next to the API examples.
+3. **Port**: the storefront runs `next start --port 3100`; keep `3100` unless the app's own
+   domains in Dokploy use another container port.
+4. Set the four keys in the **worker's** environment (Dokploy → worker app → Environment), then
+   redeploy the worker. The admin and storefront do not need them.
+5. Check: connect a test domain, point its DNS at the server, and within a few minutes the
+   storefront app's **Domains** tab in Dokploy lists it with HTTPS on.
+
+Domains added in Dokploy by hand before this was turned on are left alone: the worker only
+deletes routes it asked for. A hostname listed in `PLATFORM_DOMAINS` can never be connected, so
+it never reaches Dokploy either; take a domain out of that list before connecting it as a
+store's own.
 
 Other things that keep a certificate from issuing:
 

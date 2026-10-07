@@ -32,6 +32,8 @@ export const PREORDER_BALANCE_QUEUE = '{payments}-preorder-balance'
 export const ABANDONED_SWEEP_QUEUE = '{abandoned}-sweep'
 /** Repeat job that checks custom domains still waiting on DNS or a certificate. */
 export const DOMAIN_VERIFY_QUEUE = '{domains}-verify'
+/** One job per custom-domain HTTPS route to add or delete on the proxy (Dokploy). Platform work, one at a time. */
+export const DOMAIN_ROUTE_QUEUE = '{domains}-route'
 /** Repeat job that checks store sender email domains (pending, and verified ones daily). */
 export const SENDER_EMAIL_VERIFY_QUEUE = '{sender-email}-verify'
 /** Repeat job that claims undispatched outbox rows and fans them out. */
