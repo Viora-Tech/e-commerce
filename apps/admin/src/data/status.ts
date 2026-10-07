@@ -33,6 +33,7 @@ import { onlineStoreContent } from '@/data/online-store'
 import { orderDetailContent, ordersContent } from '@/data/orders'
 import { productsListContent } from '@/data/products'
 import { returnsContent } from '@/data/returns'
+import { reviewsContent } from '@/data/reviews'
 import { shipmentPanelContent } from '@/data/shipping'
 import { shopifyImportContent } from '@/data/shopify-import'
 import { staffContent } from '@/data/staff'
@@ -209,6 +210,12 @@ export const STATUS = {
     confirmed: entry(backInStockContent.signups.status.confirmed, 'info'),
     notified: entry(backInStockContent.signups.status.notified, 'success'),
     unsubscribed: entry(backInStockContent.signups.status.unsubscribed, 'neutral'),
+  },
+  /** Product reviews (Reviews app). */
+  review: {
+    pending: entry(reviewsContent.status.pending, 'pending'),
+    published: entry(reviewsContent.status.published, 'success'),
+    hidden: entry(reviewsContent.status.hidden, 'neutral'),
   },
   /** Shopify import runs; a finished dry run reads "Preview ready". */
   importRun: {

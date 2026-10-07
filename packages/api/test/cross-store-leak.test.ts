@@ -77,6 +77,7 @@ const SKIP: Record<string, string> = {
   'shopifyImport.status': 'Shopify API',
   'ai.writeProduct': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.assistant': 'AI model provider (a dev .env key would reach the real gateway)',
+  'reviews.writeReply': 'AI model provider (a dev .env key would reach the real gateway)',
   'ai.bulkWrite':
     'AI model provider (runs in the request without a queue); covered by ai-assistant.test.ts',
   'domains.connect': 'DNS and certificate provider',

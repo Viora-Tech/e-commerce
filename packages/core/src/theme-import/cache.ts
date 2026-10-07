@@ -37,6 +37,8 @@ export class LiquidDataCache {
   /** Content type → its entries' ids, in order. */
   readonly #types: Store<string[]> = new Map()
   readonly #pending = new Map<string, () => Promise<void>>()
+  /** Judge.me's shop data from the Reviews app (one value per request). */
+  readonly #judgeme: Store<Record<string, unknown>> = new Map()
   /** Every collection, titles and images only, in title order (`{% for c in collections %}`). */
   readonly collectionList: LiquidCollectionData[]
 
@@ -78,6 +80,16 @@ export class LiquidDataCache {
 
   blog(handle: string): LiquidBlogData | null {
     return this.#read(this.#blogs, 'b', handle, () => this.source.blog(handle))
+  }
+
+  /** `shop.metafields.judgeme`: the Reviews app's data in Judge.me's shape, or null without it. */
+  judgeme(): Record<string, unknown> | null {
+    return this.#read(
+      this.#judgeme,
+      'jm',
+      'shop',
+      async () => (await this.source.judgeme?.()) ?? null,
+    )
   }
 
   page(handle: string): LiquidPageData | null {

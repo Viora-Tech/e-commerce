@@ -7,6 +7,7 @@ import { backInStockPlugin } from '@commerce/plugin-back-in-stock'
 import { emiPlugin } from '@commerce/plugin-emi'
 import { formsPlugin } from '@commerce/plugin-forms'
 import { gstInvoicesPlugin } from '@commerce/plugin-gst-invoices'
+import { reviewsPlugin } from '@commerce/plugin-reviews'
 import { shopifyImportPlugin } from '@commerce/plugin-shopify-import'
 import { defineConfig } from '@commerce/plugins'
 import { delhiveryPlugin } from '@commerce/shipping-delhivery'
@@ -38,5 +39,6 @@ export default defineConfig({
     backInStockPlugin,
     emiPlugin,
     formsPlugin,
+    reviewsPlugin,
   ],
 })

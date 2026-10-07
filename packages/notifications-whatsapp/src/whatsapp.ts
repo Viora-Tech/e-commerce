@@ -68,6 +68,11 @@ export function templateParams(template: TemplateId, d: TemplateData): string[] 
       return [d.customerName, d.storeName, n, d.totalLabel]
     case 'contact_message':
       return [d.storeName, d.contactMessage?.name || '-']
+    case 'review_request':
+    case 'review_reminder':
+      return [d.customerName, d.storeName, d.review?.items?.[0]?.url ?? '-']
+    case 'review_reply':
+      return [d.storeName, d.review?.productTitle ?? '-', d.review?.productUrl ?? '-']
     case 'unpaid_cancel_notice':
       return [d.storeName, n, d.totalLabel, d.deadlineLabel ?? '-']
     case 'back_in_stock_confirm':

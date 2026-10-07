@@ -17,6 +17,7 @@ import {
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { storeRegistries } from './apps.service'
 import { storageProviderFor } from './media.service'
 
@@ -84,7 +85,12 @@ async function editorContext(tx: StoreTx, storeId: string, themeId: string) {
   const url = await storefront(tx, storeId)
   return createPageContext({
     bundle,
-    data: await storeLiquidData(tx, { storeId, host: url.host, origin: url.origin }),
+    data: await storeLiquidData(tx, {
+      storeId,
+      host: url.host,
+      origin: url.origin,
+      reviews: await reviewsLiquidSource(tx, storeId),
+    }),
     request: {
       template: 'index',
       path: '/',

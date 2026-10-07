@@ -26,8 +26,11 @@ export function productFramed<P extends Frame>(
   fields: Record<string, unknown>,
   defaults: Omit<P, keyof Frame>,
   hints: Hints,
-  /** `id` is the section's Puck id, for element ids that must be unique on the page. */
-  body: (props: P, product: ProductDetail, id: string) => ReactNode | null,
+  /**
+   * `id` is the section's Puck id, for element ids that must be unique on the page; `meta` is
+   * the page's metadata, for a section an app fills (`appBlockContext`).
+   */
+  body: (props: P, product: ProductDetail, id: string, meta: SectionMetadata) => ReactNode | null,
   extra: { defaultProps?: P } = {},
 ): ComponentConfig {
   const base = framed<P>(label, fields, defaults, () => null, extra)
@@ -38,7 +41,7 @@ export function productFramed<P extends Frame>(
       const meta = (puck?.metadata ?? {}) as SectionMetadata
       const editing = puck?.isEditing === true
       const id = typeof props.id === 'string' ? props.id : label.toLowerCase().replace(/\W+/g, '-')
-      const content = meta.product ? body(p, meta.product, id) : null
+      const content = meta.product ? body(p, meta.product, id, meta) : null
       const hint = meta.product ? hints.empty : hints.noProduct
       if (content === null && !editing) return null
       return (

@@ -13,6 +13,7 @@ export {
   resolveStoreForOrganization,
   storesWithAbandonedCarts,
   storesWithBalanceDue,
+  storesWithDueReviewRequests,
   storesWithMarketingWork,
   storesWithOpenShipments,
   storesWithPendingDomains,

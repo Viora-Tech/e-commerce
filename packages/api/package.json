@@ -28,6 +28,7 @@
     "@commerce/plugin-back-in-stock": "workspace:*",
     "@commerce/plugin-emi": "workspace:*",
     "@commerce/plugin-forms": "workspace:*",
+    "@commerce/plugin-reviews": "workspace:*",
     "@commerce/plugin-gst-invoices": "workspace:*",
     "@commerce/plugin-shopify-import": "workspace:*",
     "@commerce/plugins": "workspace:*",

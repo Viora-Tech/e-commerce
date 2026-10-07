@@ -2,7 +2,7 @@
 
 import { type EngineEntry, engineFor, type ThemeBundle } from './bundle'
 import { LiquidDataCache } from './cache'
-import { MetafieldsDrop, MetaobjectsDrop } from './custom-drops'
+import { MetaobjectsDrop, ShopMetafieldsDrop } from './custom-drops'
 import { imageDrop, LIQUID_ROUTES, type LiquidCartData, type LiquidDataSource } from './drops'
 import { type EngineRuntime, newRenderBudget, type RenderBudget } from './engine'
 import { numericId } from './numeric-id'
@@ -141,8 +141,9 @@ export async function createPageContext(options: LiquidRenderOptions): Promise<L
       customer_accounts_optional: true,
       types: [],
       vendors: [],
-      // Extra fields live on products and collections only; the shop's read blank.
-      metafields: new MetafieldsDrop(cache, null),
+      // Extra fields live on products and collections only; the shop's read blank, except
+      // the Reviews app's Judge.me data.
+      metafields: new ShopMetafieldsDrop(cache),
       metaobjects,
       brand: { logo: null, colors: {}, short_description: shop.description },
     },

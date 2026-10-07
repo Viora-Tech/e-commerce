@@ -30,6 +30,9 @@ export const TEMPLATE_IDS: TemplateId[] = [
   'payment_reminder',
   'unpaid_cancel_notice',
   'contact_message',
+  'review_request',
+  'review_reminder',
+  'review_reply',
   'unpaid_cancelled',
   'back_in_stock_confirm',
   'back_in_stock_alert',
@@ -71,6 +74,9 @@ export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   payment_reminder: 'Payment reminder',
   unpaid_cancel_notice: 'Unpaid order will be cancelled (merchant)',
   contact_message: 'New form message (merchant)',
+  review_request: 'Review request',
+  review_reminder: 'Review reminder',
+  review_reply: 'Reply to a review',
   unpaid_cancelled: 'Unpaid order cancelled',
   back_in_stock_confirm: 'Back in stock: confirm alert',
   back_in_stock_alert: 'Back in stock: alert',
@@ -98,6 +104,10 @@ function eyebrowFor(template: TemplateId, d: TemplateData): string {
       return 'Newsletter'
     case 'contact_message':
       return 'Form message'
+    case 'review_request':
+    case 'review_reminder':
+    case 'review_reply':
+      return 'Your review'
     case 'gift_card_issued':
       return 'Gift card'
     case 'staff_invite':
@@ -164,6 +174,13 @@ function primaryActionFor(
       return d.backInStock?.confirmUrl
         ? { label: 'Confirm alert', url: d.backInStock.confirmUrl }
         : undefined
+    case 'review_request':
+    case 'review_reminder': {
+      const first = d.review?.items?.[0]
+      return first ? { label: 'Write a review', url: first.url } : undefined
+    }
+    case 'review_reply':
+      return d.review?.productUrl ? { label: 'See the reply', url: d.review.productUrl } : undefined
     case 'back_in_stock_alert':
       return d.backInStock?.productUrl
         ? { label: 'Shop now', url: d.backInStock.productUrl }

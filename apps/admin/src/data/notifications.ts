@@ -193,6 +193,18 @@ export const notificationsSettingsContent = {
       name: 'New form message',
       when: 'When a shopper sends a message from a contact or advice form (Forms app).',
     },
+    review_request: {
+      name: 'Review request',
+      when: 'Some days after an order is delivered, asking for a review (Reviews app settings).',
+    },
+    review_reminder: {
+      name: 'Review reminder',
+      when: 'Once, when no review came after the request (Reviews app settings).',
+    },
+    review_reply: {
+      name: 'Reply to a review',
+      when: 'The first time you reply to a customer review (Reviews app).',
+    },
     unpaid_cancel_notice: {
       name: 'Unpaid order will be cancelled',
       when: 'Before an unpaid UPI or bank transfer order is cancelled for you.',

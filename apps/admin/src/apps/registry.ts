@@ -22,6 +22,10 @@ import RapidshypConnectPage from '@/components/apps/rapidshyp/connect-page'
 import RapidshypOverviewPage from '@/components/apps/rapidshyp/overview-page'
 import RazorpayConnectPage from '@/components/apps/razorpay/connect-page'
 import RazorpayOverviewPage from '@/components/apps/razorpay/overview-page'
+import ReviewsImportPage from '@/components/apps/reviews/import-page'
+import ReviewDetail from '@/components/apps/reviews/review-detail'
+import ReviewsPage from '@/components/apps/reviews/reviews-page'
+import ReviewsSettingsPage from '@/components/apps/reviews/settings-page'
 import S3ConnectPage from '@/components/apps/s3/connect-page'
 import ShiprocketConnectPage from '@/components/apps/shiprocket/connect-page'
 import ShiprocketOverviewPage from '@/components/apps/shiprocket/overview-page'
@@ -102,6 +106,14 @@ export const ADMIN_APPS: Record<string, AdminApp> = {
     pages: {
       '': RazorpayOverviewPage,
       connect: RazorpayConnectPage,
+    },
+  },
+  reviews: {
+    pages: {
+      '': ReviewsPage,
+      import: ReviewsImportPage,
+      settings: ReviewsSettingsPage,
+      'reviews/[id]': ReviewDetail,
     },
   },
   s3: {

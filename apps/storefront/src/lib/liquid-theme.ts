@@ -19,6 +19,7 @@ import {
   themeImportFor,
 } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
+import { reviewsLiquidSource } from '@commerce/plugin-reviews/server'
 import { headers } from 'next/headers'
 import { readCartId } from './cart-cookie'
 import { NONCE_HEADER } from './csp'
@@ -97,6 +98,7 @@ export async function liquidContextFor(
       host: url.host,
       origin,
       cart: () => cartFor(tx, storeId),
+      reviews: await reviewsLiquidSource(tx, storeId),
     }),
     request: {
       template,

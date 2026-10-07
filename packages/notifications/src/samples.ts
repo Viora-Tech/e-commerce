@@ -140,6 +140,46 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
       path: '/pages/contact',
     },
   },
+  review_request: {
+    ...base,
+    lines: [],
+    review: {
+      subject: 'How was your Maboroshi mousepad?',
+      items: [
+        {
+          title: 'Maboroshi mousepad',
+          url: 'https://waimers.example/products/maboroshi?review=sample#reviews',
+          imageUrl: 'https://placehold.co/80x80/f2f2f2/141414?text=%20',
+        },
+      ],
+      unsubscribeUrl: 'https://waimers.example/reviews/unsubscribe?t=sample',
+    },
+  },
+  review_reminder: {
+    ...base,
+    lines: [],
+    review: {
+      subject: 'How was your Maboroshi mousepad?',
+      items: [
+        {
+          title: 'Maboroshi mousepad',
+          url: 'https://waimers.example/products/maboroshi?review=sample#reviews',
+        },
+      ],
+      unsubscribeUrl: 'https://waimers.example/reviews/unsubscribe?t=sample',
+    },
+  },
+  review_reply: {
+    ...base,
+    orderNumber: undefined,
+    lines: [],
+    taxBreakdown: undefined,
+    review: {
+      productTitle: 'Maboroshi mousepad',
+      productUrl: 'https://waimers.example/products/maboroshi#reviews',
+      reply: 'Thanks for the kind words, Asha! Enjoy the glide.',
+    },
+  },
   unpaid_cancelled: { ...base },
   back_in_stock_confirm: {
     ...base,

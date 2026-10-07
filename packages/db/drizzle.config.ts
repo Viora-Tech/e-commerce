@@ -15,6 +15,7 @@ export default defineConfig({
     '../plugin-shopify-import/src/schema.ts',
     '../plugin-back-in-stock/src/schema.ts',
     '../plugin-forms/src/schema.ts',
+    '../plugin-reviews/src/schema.ts',
   ],
   out: './drizzle',
   casing: 'snake_case',

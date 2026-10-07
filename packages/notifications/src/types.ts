@@ -42,6 +42,12 @@ export type TemplateId =
   | 'payment_reminder'
   /** To the MERCHANT: a shopper sent a message from a contact or advice form (Forms app). Email only. */
   | 'contact_message'
+  /** Asks the shopper to review what a delivered order brought (Reviews app). Email only. */
+  | 'review_request'
+  /** The one reminder when no review came after a review request (Reviews app). Email only. */
+  | 'review_reminder'
+  /** The store replied to the shopper's review (Reviews app). Email only. */
+  | 'review_reply'
   /** To the MERCHANT: an unpaid transfer order will be cancelled automatically. Email only. */
   | 'unpaid_cancel_notice'
   /** A manual UPI / bank transfer order was cancelled for non-payment. */
@@ -151,6 +157,21 @@ export type TemplateData = {
         /** Amount and where it went (return_refunded). */
         refundLabel?: string | undefined
         refundMethod?: 'original' | 'store_credit' | undefined
+      }
+    | undefined
+  /**
+   * For review_request / review_reminder: the products to review, each with its own link, the
+   * merchant's subject and the stop-these-emails link. For review_reply: the product and reply.
+   */
+  review?:
+    | {
+        items?: { title: string; url: string; imageUrl?: string | undefined }[] | undefined
+        /** The merchant's subject, product name already filled in. */
+        subject?: string | undefined
+        unsubscribeUrl?: string | undefined
+        productTitle?: string | undefined
+        productUrl?: string | undefined
+        reply?: string | undefined
       }
     | undefined
   /** For contact_message: who wrote and what they said. */

@@ -357,6 +357,25 @@ export class MetafieldsDrop extends Drop {
   }
 }
 
+/**
+ * `shop.metafields`: we keep no extra fields on the shop, so every namespace reads blank,
+ * except `judgeme`, which the Reviews app fills with Judge.me's shop data (`reviews_grid`,
+ * `all_reviews_rating`, `all_reviews_count`, `trust_badge.verified_reviews_count`), each as
+ * `{ value }` like a metafield, so review walls and showcases render our reviews.
+ */
+export class ShopMetafieldsDrop extends Drop {
+  readonly #cache: LiquidDataCache
+  constructor(cache: LiquidDataCache) {
+    super()
+    this.#cache = cache
+  }
+  override liquidMethodMissing(namespace: string): unknown {
+    const ns = localKey(String(namespace))
+    if (ns === 'judgeme') return this.#cache.judgeme()
+    return new MetafieldNamespaceDrop(ns, null, null)
+  }
+}
+
 /** One entry (metaobject): its fields by key, and `system` (id, handle, type). */
 class MetaobjectDrop extends Drop {
   readonly system: { id: number | string; handle: string; type: string; url: null }

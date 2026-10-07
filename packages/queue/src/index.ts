@@ -44,6 +44,8 @@ export const MARKETING_SEND_QUEUE = '{marketing}-send'
 export const IMPORT_SNAPSHOT_CLEANUP_QUEUE = '{imports}-snapshot-cleanup'
 /** One job per confirmed image upload (or Shopify-import media row); runs the upload-time pipeline. */
 export const MEDIA_PROCESS_QUEUE = '{media}-process'
+/** Repeat job that queues due review request and reminder emails (Reviews app). */
+export const REVIEW_REQUESTS_QUEUE = '{reviews}-requests'
 
 /**
  * Worker concurrency and the per-store cap for every queue that carries store jobs (see

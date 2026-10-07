@@ -136,6 +136,25 @@ async function dispatchRow(deps: OutboxRelayDeps, row: Row): Promise<void> {
       contactMessageId: payload.contactMessageId,
     })
   }
+  if (type === 'review.request_due' && payload.orderId) {
+    // Reviews app: the request or its reminder for one order, keyed by this row so the
+    // reminder is its own job (the worker reads the products from the app).
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: payload.orderId,
+      template: payload.reviewRequestKind === 'reminder' ? 'review_reminder' : 'review_request',
+      key: row.id,
+    })
+  }
+  if (type === 'review.replied' && payload.reviewId) {
+    await enqueueNotification(deps.notifications, {
+      storeId: row.storeId,
+      orderId: '',
+      template: 'review_reply',
+      key: row.id,
+      reviewId: payload.reviewId,
+    })
+  }
   if (type === 'inventory.restocked' && payload.variantId && deps.inventoryRestock) {
     await deps.inventoryRestock.add(
       'restocked',

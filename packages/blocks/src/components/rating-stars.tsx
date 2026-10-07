@@ -5,13 +5,15 @@ type RatingStarsProps = {
   /** Out of `max`; anything not above zero renders nothing (a row of zeros reads as disliked). */
   rating: number
   max?: number | undefined
+  /** Stars only, without the number after them (a review card, where the stars say it all). */
+  hideValue?: boolean | undefined
 }
 
 const STAR_SIZE = 16
 
 // Port of snippets/rating-stars.liquid: full, half and empty stars rounded to the nearest half,
 // then the number. The row announces as one sentence; the stars themselves are decorative.
-export default function RatingStars({ rating, max = 5 }: RatingStarsProps) {
+export default function RatingStars({ rating, max = 5, hideValue }: RatingStarsProps) {
   // Early returns
   if (!Number.isFinite(rating) || rating <= 0) return null
 
@@ -44,7 +46,7 @@ export default function RatingStars({ rating, max = 5 }: RatingStarsProps) {
           )
         })}
       </span>
-      <span className="rating-stars__value">{shown}</span>
+      {hideValue ? null : <span className="rating-stars__value">{shown}</span>}
     </div>
   )
 }

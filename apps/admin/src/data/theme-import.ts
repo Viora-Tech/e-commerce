@@ -80,7 +80,8 @@ export const themeImportContent = {
       localization: 'India and rupees only',
       recommendations: 'Recommendations are empty for now',
       preorder: 'Pre-order uses our built-in pre-order',
-      app_data: 'Reads data from a Shopify app (such as Judge.me), so it stays hidden for now',
+      app_data:
+        'Reads review data (Judge.me); it shows your reviews once the Reviews app is installed',
       main_template: 'This page uses our own page, with your header and footer',
       parse_error: 'Its code uses something we cannot read yet',
     } satisfies Record<ReportReason, string>,
@@ -134,7 +135,7 @@ export const themeImportContent = {
       preorder: { shopify: 'Pre-order apps', ours: 'Our built-in pre-order.' },
       app_data: {
         shopify: 'Data from Shopify apps (Judge.me reviews…)',
-        ours: 'Not available yet. The section stays hidden until our Reviews app has reviews.',
+        ours: 'Our Reviews app. Install it and import your Judge.me reviews; stars and review sections then show them.',
       },
     } satisfies Record<SwapKey, { shopify: string; ours: string }>,
     pagesHeading: 'Pages',

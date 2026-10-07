@@ -20,6 +20,7 @@
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
+        "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping-delhivery": "workspace:*",
@@ -59,6 +60,7 @@
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -148,6 +150,7 @@
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
+        "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/richtext": "workspace:*",
@@ -190,6 +193,7 @@
         "@commerce/payments": "workspace:*",
         "@commerce/plugin-back-in-stock": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
+        "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/queue": "workspace:*",
         "@commerce/shipping": "workspace:*",
@@ -246,6 +250,7 @@
         "@commerce/plugin-emi": "workspace:*",
         "@commerce/plugin-forms": "workspace:*",
         "@commerce/plugin-gst-invoices": "workspace:*",
+        "@commerce/plugin-reviews": "workspace:*",
         "@commerce/plugin-shopify-import": "workspace:*",
         "@commerce/plugins": "workspace:*",
         "@commerce/shipping": "workspace:*",
@@ -663,6 +668,30 @@
         "dotenv": "^18.0.1",
         "typescript": "~5.9.3",
         "vitest": "^4.1.11",
+      },
+    },
+    "packages/plugin-reviews": {
+      "name": "@commerce/plugin-reviews",
+      "version": "0.0.0",
+      "dependencies": {
+        "@commerce/core": "workspace:*",
+        "@commerce/db": "workspace:*",
+        "@commerce/plugins": "workspace:*",
+        "@commerce/storage": "workspace:*",
+        "drizzle-orm": "^0.45.2",
+        "zod": "^4.6.5",
+      },
+      "devDependencies": {
+        "@commerce/config": "workspace:*",
+        "@types/node": "^22.20.4",
+        "@types/react": "^19.2.8",
+        "dotenv": "^18.0.1",
+        "react": "^19.2.0",
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.11",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0",
       },
     },
     "packages/plugin-shopify-import": {
@@ -1124,6 +1153,8 @@
     "@commerce/plugin-forms": ["@commerce/plugin-forms@workspace:packages/plugin-forms"],
 
     "@commerce/plugin-gst-invoices": ["@commerce/plugin-gst-invoices@workspace:packages/plugin-gst-invoices"],
+
+    "@commerce/plugin-reviews": ["@commerce/plugin-reviews@workspace:packages/plugin-reviews"],
 
     "@commerce/plugin-shopify-import": ["@commerce/plugin-shopify-import@workspace:packages/plugin-shopify-import"],
 

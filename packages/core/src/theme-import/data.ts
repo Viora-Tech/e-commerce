@@ -26,10 +26,12 @@ import type {
   LiquidBlogData,
   LiquidCartData,
   LiquidCollectionData,
+  LiquidCustomData,
   LiquidDataSource,
   LiquidImageData,
   LiquidLinkData,
   LiquidProductData,
+  LiquidReviewsSource,
   LiquidShopData,
 } from './drops'
 import { uuidPrefixOf } from './numeric-id'
@@ -43,6 +45,45 @@ export type StoreLiquidDataOptions = {
   origin: string
   /** The shopper's cart, from the storefront cart cookie; empty in the editor. */
   cart?: (() => Promise<LiquidCartData>) | undefined
+  /** The Reviews app's data, when the store installed it (see `withReviewMetafields`). */
+  reviews?: LiquidReviewsSource | undefined
+}
+
+/**
+ * Our ratings as Shopify's standard review metafields (`reviews.rating`, a rating out of 5,
+ * and `reviews.rating_count`), which review apps keep on each product and themes read for
+ * stars on cards and product pages. A product with our reviews gets ours in place of any
+ * copied from Shopify; one without keeps what the importer brought.
+ */
+export function withReviewMetafields(
+  data: LiquidCustomData,
+  ratings: Map<string, { rating: number; count: number }>,
+): LiquidCustomData {
+  const metafields = { ...data.metafields }
+  for (const [id, r] of ratings) {
+    if (r.count <= 0) continue
+    const others = (metafields[id] ?? []).filter((f) => f.namespace !== 'reviews')
+    metafields[id] = [
+      ...others,
+      {
+        namespace: 'reviews',
+        key: 'rating',
+        type: 'rating',
+        list: false,
+        measure: null,
+        value: { value: r.rating, max: 5 },
+      },
+      {
+        namespace: 'reviews',
+        key: 'rating_count',
+        type: 'number_integer',
+        list: false,
+        measure: null,
+        value: r.count,
+      },
+    ]
+  }
+  return { ...data, metafields }
 }
 
 const EMPTY_CART: LiquidCartData = { itemCount: 0, totalPrice: 0, items: [] }
@@ -396,7 +437,13 @@ export async function storeLiquidData(
           : null
       }),
     cart: () => once('cart', () => options.cart?.() ?? Promise.resolve(EMPTY_CART)),
-    metafields: (ownerType, ownerIds) => loadMetafields(tx, ownerType, ownerIds),
+    metafields: async (ownerType, ownerIds) => {
+      const data = await loadMetafields(tx, ownerType, ownerIds)
+      if (ownerType !== 'product' || !options.reviews) return data
+      return withReviewMetafields(data, await options.reviews.ratings(ownerIds))
+    },
+    judgeme: () =>
+      once('judgeme', async () => (options.reviews ? options.reviews.judgeme() : null)),
     metaobjectsOfType: (type) =>
       once(`mt:${type}`, () => loadMetaobjectsOfType(tx, keyFromName(type))),
     metaobjects: (ids) => loadMetaobjects(tx, ids),

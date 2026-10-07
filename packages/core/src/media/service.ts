@@ -162,6 +162,45 @@ export async function authorizeLocalUpload(
   return { ok: true, maxBytes: maxUploadBytesFor(announced) }
 }
 
+/**
+ * Image bytes the server received or fetched itself (a shopper's review photo, a photo
+ * copied from another app), saved the way a direct upload ends up: the original in the
+ * store's storage under a fresh media key, a `processing` media row, and the caller
+ * queues the upload-time pipeline, which strips EXIF and GPS, caps the size and makes
+ * the variants before the row turns `ready`. Same type and size rules as an upload
+ * (images only, `maxUploadBytesFor`).
+ */
+export async function saveImageForProcessing(
+  tx: StoreTx,
+  storeId: string,
+  provider: StorageProvider,
+  input: { filename: string; contentType: string; bytes: Uint8Array },
+): Promise<{ mediaId: string; url: string }> {
+  const contentType = input.contentType.toLowerCase()
+  if (!isAllowedContentType(contentType) || !isImageContentType(contentType)) {
+    throw new InvalidUpload(`${input.contentType} is not an image we accept`)
+  }
+  const limit = maxUploadBytesFor(contentType)
+  if (input.bytes.byteLength <= 0 || input.bytes.byteLength > limit) {
+    throw new InvalidUpload(`images must be under ${Math.round(limit / 1024 / 1024)} MB`)
+  }
+  const id = newId()
+  const key = mediaKey({ storeId, filename: input.filename, contentType, id })
+  await provider.put({ key, body: input.bytes, contentType })
+  const url = provider.publicUrl(key)
+  await tx.insert(media).values({
+    id,
+    storeId,
+    url,
+    key,
+    provider: provider.id,
+    contentType,
+    size: input.bytes.byteLength,
+    status: 'processing',
+  })
+  return { mediaId: id, url }
+}
+
 export type MediaSort = 'newest' | 'oldest' | 'name' | 'size'
 export type MediaFileType = 'image' | 'video'
 export type MediaSizeBucket = 'small' | 'medium' | 'large'
