@@ -37,6 +37,28 @@ describe('loadEnv', () => {
     expect(() => loadEnv({ ...valid, SENTRY_DSN: 'not-a-url' })).toThrow(/SENTRY_DSN/)
   })
 
+  it('leaves the Dokploy route keys unset when blank and defaults the storefront port', () => {
+    const env = loadEnv({
+      ...valid,
+      DOKPLOY_URL: '',
+      DOKPLOY_API_KEY: '',
+      DOKPLOY_STOREFRONT_APPLICATION_ID: '',
+      DOKPLOY_STOREFRONT_PORT: '',
+    })
+    expect(env.DOKPLOY_URL).toBeUndefined()
+    expect(env.DOKPLOY_API_KEY).toBeUndefined()
+    expect(env.DOKPLOY_STOREFRONT_APPLICATION_ID).toBeUndefined()
+    expect(env.DOKPLOY_STOREFRONT_PORT).toBe(3100)
+    const set = loadEnv({
+      ...valid,
+      DOKPLOY_URL: 'https://dokploy.example.com',
+      DOKPLOY_STOREFRONT_PORT: '3000',
+    })
+    expect(set.DOKPLOY_URL).toBe('https://dokploy.example.com')
+    expect(set.DOKPLOY_STOREFRONT_PORT).toBe(3000)
+    expect(() => loadEnv({ ...valid, DOKPLOY_URL: 'ftp://dokploy' })).toThrow(/DOKPLOY_URL/)
+  })
+
   it('defaults custom domain checks to the offline dev provider', () => {
     expect(loadEnv(valid).DOMAIN_PROVIDER).toBe('dev')
   })

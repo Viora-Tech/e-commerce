@@ -277,6 +277,12 @@ services:
       # best-effort basis. 320 leaves headroom under the 384m mem_limit for the queue
       # connections and BullMQ's own buffers, which live outside the JS heap.
       NODE_OPTIONS: --max-old-space-size=320
+      # Automatic HTTPS routes for custom domains (Dokploy API). Worker only: the admin and
+      # storefront never call Dokploy, so the key stays out of their environment.
+      DOKPLOY_URL: ${DOKPLOY_URL:-}
+      DOKPLOY_API_KEY: ${DOKPLOY_API_KEY:-}
+      DOKPLOY_STOREFRONT_APPLICATION_ID: ${DOKPLOY_STOREFRONT_APPLICATION_ID:-}
+      DOKPLOY_STOREFRONT_PORT: ${DOKPLOY_STOREFRONT_PORT:-3100}
     depends_on:
       migrate:
         condition: service_completed_successfully

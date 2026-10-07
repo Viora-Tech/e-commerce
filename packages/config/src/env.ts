@@ -152,6 +152,23 @@ const shape = z.object({
   STOREFRONT_CNAME_TARGET: z.string().min(3).default('shops.waimers.localhost'),
   PLATFORM_DOMAINS: platformDomains,
   /**
+   * Automatic HTTPS routes for custom domains (worker only). With all three set, a custom
+   * domain whose DNS is verified is added to the storefront app in Dokploy (https, Let's
+   * Encrypt, path `/`) and deleted again when the merchant removes it. Any one unset: the
+   * step is skipped and routes are added by hand, as before.
+   * `DOKPLOY_URL` is Dokploy's base URL (no `/api`); the key comes from Dokploy → Settings →
+   * Profile → API/CLI and is only ever sent in the `x-api-key` header.
+   */
+  DOKPLOY_URL: optionalOrBlank(z.url({ protocol: /^https?$/ })),
+  DOKPLOY_API_KEY: optionalOrBlank(z.string().min(1)),
+  /** The storefront application's id in Dokploy (the `applicationId` in its URL). */
+  DOKPLOY_STOREFRONT_APPLICATION_ID: optionalOrBlank(z.string().min(1)),
+  /** The port the storefront container listens on (`next start --port 3100`). */
+  DOKPLOY_STOREFRONT_PORT: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(1).max(65535).default(3100),
+  ),
+  /**
    * Whose client-IP header per-IP rate limits believe (`@commerce/core` `clientIp`).
    * `none` (default): no forwarded header, only the peer address the server sees.
    * `cloudflare`: `cf-connecting-ip`, and only safe when the origin is firewalled to

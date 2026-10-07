@@ -1,6 +1,7 @@
 import { loadEnv } from '@commerce/config'
 import {
   type AppEventQueue,
+  type DomainRouteQueue,
   type InventoryRestockQueue,
   type NotificationQueue,
   type OutboxRelayDeps,
@@ -44,6 +45,7 @@ export function createOutboxRelay(
     notifications: NotificationQueue
     appEvents?: AppEventQueue | undefined
     inventoryRestock?: InventoryRestockQueue | undefined
+    domainRoutes?: DomainRouteQueue | undefined
   },
 ) {
   const deps: OutboxRelayDeps = {
@@ -52,6 +54,7 @@ export function createOutboxRelay(
     notifications: opts.notifications,
     appEvents: opts.appEvents,
     inventoryRestock: opts.inventoryRestock,
+    domainRoutes: opts.domainRoutes,
     salesStoreId: loadEnv(process.env).PLATFORM_SALES_STORE_ID,
     log: (message) => console.log(`[outbox] ${message}`),
   }
