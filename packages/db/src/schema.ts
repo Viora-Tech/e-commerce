@@ -1585,6 +1585,12 @@ export const discount = pgTable(
     appliesTo: text('applies_to').$type<DiscountAppliesTo>().notNull().default('all'),
     /** Product or collection ids when applies_to narrows the scope. */
     appliesToIds: jsonb('applies_to_ids').$type<string[]>().notNull().default([]),
+    /**
+     * A different amount for each product: `{ productId: value }`, value in the same unit
+     * as `value` (basis points or paise), taken off every unit of that product. Only with
+     * applies_to `products` and method `percent` or `fixed`; null means `value` applies.
+     */
+    productValues: jsonb('product_values').$type<Record<string, number>>(),
     usageLimit: integer('usage_limit'),
     usagePerCustomer: integer('usage_per_customer'),
     usedCount: integer('used_count').notNull().default(0),
