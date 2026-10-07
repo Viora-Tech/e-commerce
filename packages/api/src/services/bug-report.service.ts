@@ -239,6 +239,27 @@ export class GithubIssueError extends CommerceError {
   }
 }
 
+/**
+ * What the member reads when GitHub refuses, by status. "Try again in a minute" only fits
+ * outages; a bad or unapproved token fails every time until someone fixes the admin's settings,
+ * so say that instead (the token itself is never shown).
+ */
+export function githubIssueProblem(status: number | null, repo: string): string {
+  if (status === 401) {
+    return 'The GitHub token on this server is wrong or has expired. Ask the owner to make a new one (admin setting GITHUB_ISSUES_TOKEN).'
+  }
+  if (status === 403 || status === 404) {
+    return `The GitHub token on this server cannot create issues in ${repo}. It needs access to that repository with Issues: Read and write, approved by the organisation.`
+  }
+  if (status === 410) return `Issues are turned off for ${repo} on GitHub.`
+  if (status === 422) {
+    return 'GitHub refused the report. The labels "bug" and "test-server" must exist on the repository.'
+  }
+  if (status === 429) return 'GitHub is limiting requests right now. Try again in a few minutes.'
+  if (status === null) return 'GitHub could not be reached. Try again in a minute.'
+  return 'GitHub did not take the report. Try again in a minute.'
+}
+
 /** `POST /repos/{repo}/issues`. `fetch` is injected: tests pass a fake, the app the real one. */
 export async function fileGithubIssue(input: {
   fetch: typeof fetch

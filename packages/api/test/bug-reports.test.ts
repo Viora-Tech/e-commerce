@@ -8,7 +8,11 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ApiContext } from '../src/context'
 import { appRouter } from '../src/routers/_app'
-import { BUG_REPORT_RULE, scrubSecrets } from '../src/services/bug-report.service'
+import {
+  BUG_REPORT_RULE,
+  githubIssueProblem,
+  scrubSecrets,
+} from '../src/services/bug-report.service'
 
 /**
  * "Report a bug" (test server only): any signed-in member files a GitHub issue. These tests
@@ -347,7 +351,22 @@ describe('bugReports.create', () => {
       context: { ...ctx(a.headers), githubFetch: refusing },
     }).catch((e: unknown) => e as { code: string; message: string })
     expect(error).toMatchObject({ code: 'BAD_GATEWAY' })
+    expect(error).toMatchObject({ message: expect.stringContaining('wrong or has expired') })
     expect(JSON.stringify(error)).not.toContain('github_pat_test_only')
+  })
+})
+
+describe('githubIssueProblem', () => {
+  it('names the fix for token problems and keeps "try again" for outages', () => {
+    const repo = 'Viora-Tech/e-commerce'
+    expect(githubIssueProblem(401, repo)).toContain('wrong or has expired')
+    expect(githubIssueProblem(403, repo)).toContain('cannot create issues in Viora-Tech/e-commerce')
+    expect(githubIssueProblem(404, repo)).toContain('Issues: Read and write')
+    expect(githubIssueProblem(422, repo)).toContain('labels')
+    expect(githubIssueProblem(null, repo)).toContain('could not be reached')
+    expect(githubIssueProblem(502, repo)).toBe(
+      'GitHub did not take the report. Try again in a minute.',
+    )
   })
 })
 
