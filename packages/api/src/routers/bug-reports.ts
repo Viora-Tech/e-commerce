@@ -20,6 +20,7 @@ import {
   decodeScreenshot,
   fileGithubIssue,
   GithubIssueError,
+  githubIssueProblem,
   InvalidScreenshot,
   SCREENSHOT_DATA_URL_MAX,
   uploadScreenshot,
@@ -107,10 +108,11 @@ export const bugReportsRouter = {
       return { ...filed, logged: false }
     } catch (err) {
       if (err instanceof GithubIssueError) {
-        // The status helps whoever reads the server log; the member gets a plain sentence.
-        console.error(`[bug report] ${err.message}`)
+        // The status helps whoever reads the server log; the member gets a plain sentence that
+        // says what to fix (a bad token never succeeds on retry).
+        console.error(`[bug report] ${err.message} (repo ${env.GITHUB_ISSUES_REPO})`)
         throw new ORPCError('BAD_GATEWAY', {
-          message: 'GitHub did not take the report. Try again in a minute.',
+          message: githubIssueProblem(err.status, env.GITHUB_ISSUES_REPO),
         })
       }
       throw err
