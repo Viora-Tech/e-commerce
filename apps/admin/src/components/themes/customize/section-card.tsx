@@ -16,6 +16,7 @@ import {
 } from '@/lib/customize-chrome'
 import SectionIcon from './section-icon'
 import SectionLivePreview from './section-live-preview'
+import SectionPreview from './section-preview'
 
 type SectionCardProps = {
   type: string
@@ -26,6 +27,8 @@ type SectionCardProps = {
   hovered: boolean
   onHover: (type: string | null) => void
   onAdd: () => void
+  /** `tile` (Figma 369:4809 Sections tab): caption above a blue layout thumbnail, two per row. */
+  layout?: 'row' | 'tile'
 }
 
 type Anchor = { top: number; left: number }
@@ -65,6 +68,7 @@ export default function SectionCard({
   hovered,
   onHover,
   onAdd,
+  layout = 'row',
 }: SectionCardProps) {
   // Hooks
   const reducedMotion = useReducedMotion()
@@ -118,32 +122,50 @@ export default function SectionCard({
             onMouseEnter={handleHover}
             onFocus={handleHover}
             className={cn(
-              'group/card flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2 py-1.5 text-left active:cursor-grabbing',
-              CHROME_ROW_HOVER,
+              layout === 'tile'
+                ? 'group/card flex w-full min-w-0 cursor-grab flex-col gap-1.5 rounded-lg text-left active:cursor-grabbing'
+                : 'group/card flex w-full cursor-grab items-center gap-2.5 rounded-lg px-2 py-1.5 text-left active:cursor-grabbing',
+              layout === 'row' && CHROME_ROW_HOVER,
               CHROME_TRANSITION,
               CHROME_FOCUS,
             )}
           >
-            <span className="relative flex shrink-0">
-              <SectionIcon type={type} tile="md" />
-              {AppBadge ? (
-                // `appIcon` is an icon name from the app's manifest ("CreditCard"), not a URL.
-                <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-border">
-                  <AppBadge aria-hidden weight="regular" className="size-2.5" />
+            {layout === 'tile' ? (
+              <>
+                <span className="truncate text-[0.625rem] leading-3 font-medium tracking-wide text-muted-foreground uppercase">
+                  {label}
                 </span>
-              ) : null}
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
-                {label}
-              </span>
-              <span className="truncate text-xs leading-4 text-muted-foreground">
-                {description}
-              </span>
-              {source ? (
-                <span className={cn('truncate pt-0.5', CHROME_META)}>{copy.by(source.name)}</span>
-              ) : null}
-            </span>
+                <SectionPreview
+                  type={type}
+                  className="aspect-[106/72] w-full rounded-lg border-border bg-card transition-[border-color,box-shadow] group-hover/card:border-primary/50 group-hover/card:shadow-lift [&_.bg-muted]:bg-card [&_.bg-muted-foreground\/30]:bg-primary/70 [&_.border-muted-foreground\/40]:border-primary/70"
+                />
+              </>
+            ) : (
+              <>
+                <span className="relative flex shrink-0">
+                  <SectionIcon type={type} tile="md" />
+                  {AppBadge ? (
+                    // `appIcon` is an icon name from the app's manifest ("CreditCard"), not a URL.
+                    <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-border">
+                      <AppBadge aria-hidden weight="regular" className="size-2.5" />
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[0.8125rem] leading-5 font-medium text-foreground">
+                    {label}
+                  </span>
+                  <span className="truncate text-xs leading-4 text-muted-foreground">
+                    {description}
+                  </span>
+                  {source ? (
+                    <span className={cn('truncate pt-0.5', CHROME_META)}>
+                      {copy.by(source.name)}
+                    </span>
+                  ) : null}
+                </span>
+              </>
+            )}
           </div>
         )}
       </Drawer.Item>

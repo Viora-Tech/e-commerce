@@ -28,7 +28,10 @@ export default function CustomizeRail({ active, onChange }: CustomizeRailProps) 
 
   // Render logic
   return (
-    <nav aria-label={copy.label} className="relative flex w-12 shrink-0 flex-col items-center py-1">
+    <nav
+      aria-label={copy.label}
+      className="relative flex w-[3.25rem] shrink-0 flex-col items-center border-r border-border bg-card py-3"
+    >
       <span
         aria-hidden
         className="key-primary flex size-8 items-center justify-center rounded-lg text-caption font-semibold"
