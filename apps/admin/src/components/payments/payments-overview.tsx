@@ -1,13 +1,13 @@
 'use client'
 
-import { CreditCard, ExternalLink, Plus } from '@commerce/ui/icons'
+import { ExternalLink, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -93,7 +93,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -101,7 +101,6 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
             <WhatsThis />
           </span>
         }
-        icon={<CreditCard aria-hidden="true" />}
         actions={actions}
       />
 

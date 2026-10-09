@@ -1,15 +1,14 @@
 'use client'
 
-import { Bell } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import HelpFooter from '@/components/payments/help-footer'
 import HealthLine from '@/components/settings/health-line'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
 import { notificationsSettingsContent as copy, type MessageGroupId } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
@@ -142,7 +141,7 @@ export default function NotificationsPage() {
   const whatsappOn = data.channels.whatsapp.state === 'connected'
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -154,7 +153,6 @@ export default function NotificationsPage() {
             />
           </span>
         }
-        icon={<Bell aria-hidden="true" />}
       />
 
       <HealthLine

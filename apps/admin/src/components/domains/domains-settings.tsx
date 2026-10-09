@@ -17,8 +17,8 @@ import {
 import Link from 'next/link'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
-import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { domainsContent as copy } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
 import ChangePrimaryDialog from './change-primary-dialog'
@@ -49,10 +49,9 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={copy.intro}
-        icon={<Globe aria-hidden="true" />}
         actions={
           canManage ? (
             <Button onClick={() => setConnectOpen(true)}>{copy.connect}</Button>

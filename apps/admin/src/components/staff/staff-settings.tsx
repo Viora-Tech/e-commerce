@@ -1,7 +1,6 @@
 'use client'
 
 import { permissions } from '@commerce/core/permissions'
-import { UserCog } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,8 +14,8 @@ import {
 import { Button } from '@commerce/ui/shadcn/button'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SectionTabs from '@/components/settings/section-tabs'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsSection from '@/components/settings/settings-section'
 import InviteDialog from '@/components/staff/invite-dialog'
 import MembersCard, { type StaffMemberRow } from '@/components/staff/members-card'
@@ -134,7 +133,7 @@ export default function StaffSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<UserCog aria-hidden="true" />} />
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} />
       <SectionTabs tabs={TABS}>
         <SettingsSection id={copy.tabs.members.id} className="flex flex-col gap-4">
           {canInvite ? (

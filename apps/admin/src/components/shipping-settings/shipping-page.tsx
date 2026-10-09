@@ -1,18 +1,17 @@
 'use client'
 
-import { Truck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import HelpFooter from '@/components/payments/help-footer'
 import BoxPresetsFields from '@/components/settings/box-presets-fields'
 import CourierRuleFields from '@/components/settings/courier-rule-fields'
 import HealthLine from '@/components/settings/health-line'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import ShippingPolicyFields from '@/components/settings/shipping-policy-fields'
 import ShippingTryPin from '@/components/settings/shipping-try-pin'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
@@ -113,7 +112,7 @@ export default function ShippingPage() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -125,7 +124,6 @@ export default function ShippingPage() {
             />
           </span>
         }
-        icon={<Truck aria-hidden="true" />}
       />
 
       <HealthLine

@@ -3,7 +3,7 @@
 import type { MissingDetail, StorePolicy } from '@commerce/core'
 import { type PolicyType, policyPath } from '@commerce/core/policies'
 import type { RichTextValue } from '@commerce/richtext'
-import { ClipboardList, ExternalLink, Sparkle, TriangleAlert } from '@commerce/ui/icons'
+import { ExternalLink, Sparkle, TriangleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
@@ -15,9 +15,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ConfirmDelete from '@/components/metaobjects/confirm-delete'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { policyEditorContent as copy, policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
@@ -151,18 +151,14 @@ export default function PolicyEditor({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={policiesContent.names[type]}
         subtitle={
           policy?.updatedAt
             ? copy.updated(formatDate(policy.updatedAt))
             : policiesContent.hints[type]
         }
-        breadcrumbs={[
-          { label: copy.back, href: '/settings/policies' },
-          { label: policiesContent.names[type] },
-        ]}
-        icon={<ClipboardList aria-hidden="true" />}
+        back={{ label: copy.back, href: '/settings/policies' }}
         actions={
           live ? (
             <Button

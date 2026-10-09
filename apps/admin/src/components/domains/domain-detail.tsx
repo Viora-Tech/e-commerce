@@ -19,8 +19,8 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { domainCertificateContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -142,9 +142,9 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
+      <SettingsPageHeader
         title={domain.hostname}
-        breadcrumbs={[{ label: copy.back, href: '/settings/domains' }, { label: domain.hostname }]}
+        back={{ label: copy.back, href: '/settings/domains' }}
         actions={
           <>
             <DomainStatusBadge domain={domain} />

@@ -8,7 +8,7 @@ import { SETTINGS_HOME, settingsContent } from '@/data/settings'
 type SettingsPageHeaderProps = {
   title: string
   /** The plain-language line under the title. */
-  subtitle?: string
+  subtitle?: ReactNode
   /** Save button: dimmed until `dirty`. Leave `onSave` out for pages that have no form. */
   onSave?: () => void
   dirty?: boolean
@@ -61,7 +61,7 @@ export default function SettingsPageHeader({
             {badges}
           </div>
           {subtitle ? (
-            <p className="text-body font-normal text-muted-foreground">{subtitle}</p>
+            <div className="text-body font-normal text-muted-foreground">{subtitle}</div>
           ) : null}
         </div>
         {actions || onSave ? (

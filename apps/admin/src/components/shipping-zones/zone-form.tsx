@@ -20,8 +20,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -123,10 +123,10 @@ export default function ZoneForm({ zone }: ZoneFormProps) {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
+      <SettingsPageHeader
         title={title}
         subtitle={copy.meta}
-        breadcrumbs={[{ label: copy.backLabel, href: LIST_HREF }, { label: title }]}
+        back={{ label: copy.backLabel, href: LIST_HREF }}
         actions={
           !canManage ? null : zone ? (
             <Button variant="outline" onClick={() => setConfirmDelete(true)} disabled={busy}>

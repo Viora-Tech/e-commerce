@@ -4,7 +4,7 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import PageHeader from '@/components/layout/page-header'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -38,9 +38,9 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   return (
     <div className="flex flex-col gap-4">
       <BackToPayments />
-      <PageHeader
+      <SettingsPageHeader
         title={copy.wizard.connect.title(guide.name)}
-        breadcrumbs={[{ label: copy.title, href: PAYMENTS_PAGE_HREF }, { label: guide.name }]}
+        back={{ label: copy.title, href: PAYMENTS_PAGE_HREF }}
         subtitle={guide.intro}
       />
       <Card size="form">
