@@ -3,7 +3,6 @@
 import type { GrievanceOfficer, CustomerPrivacySettings as Settings } from '@commerce/core'
 import { PRIVACY_LIMITS } from '@commerce/core/privacy'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
@@ -15,8 +14,10 @@ import AskAgainDialog from '@/components/settings/ask-again-dialog'
 import { customerPrivacyContent as copy } from '@/data/customer-privacy'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
+import SettingsRow from './settings-row'
 
 type Overview = {
   settings: Settings
@@ -124,19 +125,19 @@ export default function CustomerPrivacySettings() {
       ) : (
         <>
           <SettingsCard id="banner" title={copy.banner.heading} description={copy.banner.body}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="privacy-banner-message">{copy.banner.message}</FieldLabel>
-                <Textarea
-                  id="privacy-banner-message"
-                  rows={3}
-                  maxLength={PRIVACY_LIMITS.bannerMessage}
-                  placeholder={copy.banner.messagePlaceholder}
-                  value={form.bannerMessage}
-                  onChange={(e) => setForm({ ...form, bannerMessage: e.target.value })}
-                />
-                <FieldDescription>{copy.banner.messageHelp}</FieldDescription>
-              </Field>
+            <SettingsRow
+              label={copy.banner.message}
+              description={copy.banner.messageHelp}
+              htmlFor="privacy-banner-message"
+            >
+              <Textarea
+                id="privacy-banner-message"
+                rows={3}
+                maxLength={PRIVACY_LIMITS.bannerMessage}
+                placeholder={copy.banner.messagePlaceholder}
+                value={form.bannerMessage}
+                onChange={(e) => setForm({ ...form, bannerMessage: e.target.value })}
+              />
               <p className="text-caption text-muted-foreground">
                 {copy.banner.stats(
                   overview.consent30Days.total,
@@ -144,18 +145,18 @@ export default function CustomerPrivacySettings() {
                   overview.consent30Days.marketing,
                 )}
               </p>
-              <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-body font-medium">
-                    {copy.banner.version(overview.settings.bannerVersion)}
-                  </p>
-                  <p className="text-caption text-muted-foreground">{copy.banner.askAgainHelp}</p>
-                </div>
-                <Button variant="outline" onClick={() => setAsking(true)} disabled={busy}>
-                  {copy.banner.askAgain}
-                </Button>
+            </SettingsRow>
+            <div className="flex flex-col gap-2 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-0.5">
+                <p className="text-body font-semibold text-ink-strong">
+                  {copy.banner.version(overview.settings.bannerVersion)}
+                </p>
+                <p className="text-caption text-muted-foreground">{copy.banner.askAgainHelp}</p>
               </div>
-            </FieldGroup>
+              <Button variant="outline" onClick={() => setAsking(true)} disabled={busy}>
+                {copy.banner.askAgain}
+              </Button>
+            </div>
           </SettingsCard>
 
           <SettingsCard
@@ -163,34 +164,36 @@ export default function CustomerPrivacySettings() {
             title={copy.requests.heading}
             description={copy.requests.body}
           >
-            <FieldGroup>
-              <Field className="max-w-60">
-                <FieldLabel htmlFor="privacy-due-days">{copy.requests.dueDays}</FieldLabel>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="privacy-due-days"
-                    type="number"
-                    inputMode="numeric"
-                    min={PRIVACY_LIMITS.minDueDays}
-                    max={PRIVACY_LIMITS.maxDueDays}
-                    value={form.requestDueDays}
-                    onChange={(e) =>
-                      setForm({ ...form, requestDueDays: clampDays(e.target.value) })
-                    }
-                  />
-                  <span className="text-body text-muted-foreground">{copy.requests.days}</span>
-                </div>
-                <FieldDescription>{copy.requests.dueDaysHelp}</FieldDescription>
-              </Field>
-              <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-body">
-                  {copy.requests.counts(overview.requests.open, overview.requests.overdue)}
-                </p>
-                <Button render={<Link href="/settings/privacy/requests" />} nativeButton={false}>
-                  {copy.requests.view}
-                </Button>
+            <SettingsRow
+              label={copy.requests.dueDays}
+              description={copy.requests.dueDaysHelp}
+              htmlFor="privacy-due-days"
+            >
+              <div className="flex items-center gap-2">
+                <Input
+                  id="privacy-due-days"
+                  type="number"
+                  inputMode="numeric"
+                  className="w-24"
+                  min={PRIVACY_LIMITS.minDueDays}
+                  max={PRIVACY_LIMITS.maxDueDays}
+                  value={form.requestDueDays}
+                  onChange={(e) => setForm({ ...form, requestDueDays: clampDays(e.target.value) })}
+                />
+                <span className="text-body text-muted-foreground">{copy.requests.days}</span>
               </div>
-            </FieldGroup>
+            </SettingsRow>
+            <div className="flex flex-col gap-2 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-body text-foreground">
+                {copy.requests.counts(overview.requests.open, overview.requests.overdue)}
+              </p>
+              <Button
+                render={<Link href={routes.settings.privacyRequests()} />}
+                nativeButton={false}
+              >
+                {copy.requests.view}
+              </Button>
+            </div>
           </SettingsCard>
 
           <SettingsCard
@@ -216,7 +219,7 @@ export default function CustomerPrivacySettings() {
             )}
             <Button
               variant="outline"
-              render={<Link href="/settings/policies#grievance" />}
+              render={<Link href={`${routes.settings.policies()}#grievance`} />}
               nativeButton={false}
             >
               {copy.grievance.edit}
@@ -226,7 +229,7 @@ export default function CustomerPrivacySettings() {
           <SettingsCard title={copy.accounts.heading} description={copy.accounts.body}>
             <Button
               variant="outline"
-              render={<Link href="/settings/customer-accounts" />}
+              render={<Link href={routes.settings.customerAccounts()} />}
               nativeButton={false}
             >
               {copy.accounts.link}
