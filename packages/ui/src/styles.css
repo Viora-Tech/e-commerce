@@ -404,10 +404,10 @@
   --info-soft: #e6f4fe;
 
   /* Lines and focus */
-  --border: #e6e8ec;
+  --border: #e3e6eb;
   --hairline: #e6e8ec;
   --border-strong: #d5d8de;
-  --border-soft: #eef0f3;
+  --border-soft: #e3e6eb;
   --line: #eef0f3; /* table row dividers */
   --line-list: #eef0f3;
   --input: #e6e8ec;

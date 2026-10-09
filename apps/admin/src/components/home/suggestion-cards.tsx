@@ -89,32 +89,36 @@ export default function SuggestionCards({
   if (visible.length === 0) return null
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3.5">
       <SectionHead title={title} aside={note} />
-      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {visible.map((s) => {
           const Icon = ICONS[s.icon]
           return (
-            <li key={s.id} className="group relative flex gap-4 rounded-xl surface-card p-4">
-              <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary-soft text-primary">
+            <li key={s.id} className="group relative flex gap-4 rounded-xl surface-card p-3.5">
+              <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-[0.75rem] bg-linear-to-b from-muted to-secondary text-primary">
                 {s.imageUrl ? (
                   <>
                     {/* biome-ignore lint/performance/noImgElement: product photo from the store's own storage. */}
                     <img src={s.imageUrl} alt="" className="size-full object-cover" />
                   </>
                 ) : (
-                  <Icon className="size-6" aria-hidden="true" />
+                  <Icon className="size-8" aria-hidden="true" />
                 )}
               </div>
               <div className="flex min-w-0 flex-1 flex-col items-start gap-1 pr-5">
-                <p className="text-body-strong text-ink-strong">{s.title}</p>
-                <p className="text-caption font-normal text-muted-foreground">{s.body}</p>
+                <p className="text-[0.9375rem] leading-[1.375rem] font-semibold text-ink-strong">
+                  {s.title}
+                </p>
+                <p className="text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
+                  {s.body}
+                </p>
                 <Link
                   href={s.href}
-                  className="mt-1 inline-flex items-center gap-1 text-caption font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex items-center gap-1 pt-1.5 text-[0.8125rem] leading-[1.1875rem] font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {s.cta}
-                  <ArrowRight className="size-3" aria-hidden="true" />
+                  <ArrowRight className="size-3.5" aria-hidden="true" />
                 </Link>
               </div>
               <button

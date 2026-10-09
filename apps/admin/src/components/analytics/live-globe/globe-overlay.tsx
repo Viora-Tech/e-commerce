@@ -11,7 +11,8 @@ type GlobeOverlayProps = {
   activeId: string | null
   onActiveChange: (id: string | null) => void
   /** +1 zooms in a step, -1 out, 0 resets. */
-  onZoom: (direction: -1 | 0 | 1) => void
+  /** Left out to hide the zoom buttons (the Home card). */
+  onZoom?: ((direction: -1 | 0 | 1) => void) | undefined
   /** The Live view hero's gear button (its own popover); left out on the Home card's cobe
    * globe, which stays exactly as it was. */
   settingsButton?: ReactNode
@@ -69,22 +70,24 @@ export default function GlobeOverlay({
           {active.tooltip}
         </div>
       ) : null}
-      <div className="absolute top-2 right-2 z-10 flex flex-row gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
-        {settingsButton}
-        {zoomButtons.map(({ label, icon: Icon, direction }) => (
-          <Button
-            key={label}
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            aria-label={label}
-            onClick={() => onZoom(direction)}
-          >
-            <Icon className="size-4" />
-          </Button>
-        ))}
-      </div>
+      {onZoom ? (
+        <div className="absolute top-2 right-2 z-10 flex flex-row gap-1 rounded-lg border border-border bg-popover/90 p-1 shadow-lift backdrop-blur-sm">
+          {settingsButton}
+          {zoomButtons.map(({ label, icon: Icon, direction }) => (
+            <Button
+              key={label}
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label={label}
+              onClick={() => onZoom(direction)}
+            >
+              <Icon className="size-4" />
+            </Button>
+          ))}
+        </div>
+      ) : null}
     </>
   )
 }

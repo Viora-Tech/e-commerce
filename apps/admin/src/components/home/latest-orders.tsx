@@ -43,7 +43,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
   const rows = orders.slice(0, ROWS)
 
   return (
-    <section className="flex min-w-0 flex-col gap-3">
+    <section className="flex min-w-0 flex-col gap-3.5">
       <SectionHead
         title={c.title}
         aside={
@@ -52,7 +52,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
           </Link>
         }
       />
-      <div className="flex-1 rounded-2xl surface-card">
+      <div className="flex-1 rounded-xl surface-card">
         {rows.length === 0 ? (
           <p className="p-5 text-body text-muted-foreground">{c.empty}</p>
         ) : (
@@ -64,10 +64,10 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                 <li key={order.id}>
                   <Link
                     href={routes.orders.detail(order.id)}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex items-center gap-3.5 px-5 py-3.5 transition-colors first:rounded-t-xl last:rounded-b-xl hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-caption text-muted-foreground"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-caption font-semibold text-muted-foreground"
                       aria-hidden="true"
                     >
                       {initials(order.customerName, order.email ?? String(order.number))}
@@ -76,12 +76,12 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                       <span className="block truncate text-body-strong text-ink-strong">
                         {name}
                       </span>
-                      <span className="block truncate text-caption font-normal text-muted-foreground">
+                      <span className="block truncate text-[0.8125rem] leading-[1.1875rem] text-muted-foreground">
                         #{order.number} · <RelativeTime value={order.placedAt} />
                       </span>
                     </span>
                     <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
-                    <span className="w-20 shrink-0 text-right text-body-strong text-ink-strong tabular-nums">
+                    <span className="w-[5.625rem] shrink-0 text-right text-body font-semibold text-ink-strong tabular-nums">
                       {fmt.money(order.totalPaise)}
                     </span>
                   </Link>
