@@ -4,7 +4,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useState } from 'react'
 import MoneyInput from '@/components/fields/money-input'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 /** Fields left blank are not touched; `skuPrefix` becomes PREFIX-VALUE-VALUE per row. */

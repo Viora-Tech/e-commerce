@@ -1,6 +1,6 @@
 /** SOURCE OF TRUTH: product form state: variant matrix reconciliation, SKU suggestion, stock-loss detection */
 import { describe, expect, it } from 'vitest'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import {
   emptyForm,
   emptyVariant,

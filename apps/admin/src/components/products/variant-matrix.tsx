@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import MoneyInput from '@/components/fields/money-input'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { MediaItem, VariantRow } from './form-state'
 import VariantImagePicker from './variant-image-picker'

@@ -3,7 +3,7 @@
 import { Copy, ExternalLink, Trash2 } from '@commerce/ui/icons'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import KitButton from '@/components/kit/kit-button'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { LoadedProduct } from './form-state'
 

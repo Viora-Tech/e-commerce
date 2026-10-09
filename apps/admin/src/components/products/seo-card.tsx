@@ -20,7 +20,7 @@ import {
 } from '@commerce/ui/shadcn/input-group'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useState } from 'react'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type SeoCardProps = {

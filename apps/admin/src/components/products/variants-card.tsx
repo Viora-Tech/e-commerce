@@ -17,7 +17,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/sh
 import { useState } from 'react'
 import SuggestInput from '@/components/fields/suggest-input'
 import TagInput from '@/components/fields/tag-input'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import {
   MAX_OPTIONS,

@@ -181,8 +181,8 @@ describe('formatters', () => {
 
   it('translate relative days', () => {
     const now = new Date('2026-09-12T12:00:00.000Z')
-    expect(formatters('en').when(at, now)).toMatch(/^Today, 4:00 pm$/)
-    expect(formatters('hi').when(at, now)).toMatch(/^आज, 4:00/)
+    expect(formatters('en').when(at, now)).toMatch(/^Today 4:00 pm$/)
+    expect(formatters('hi').when(at, now)).toMatch(/^आज 4:00/)
     expect(formatters('hi').ago(new Date(now.getTime() - 5 * 60_000), now)).toBe('5 मिनट पहले')
   })
 })

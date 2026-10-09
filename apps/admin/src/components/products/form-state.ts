@@ -6,7 +6,8 @@ import {
   variantTitle,
 } from '@commerce/core/catalog'
 import { isRichTextEmpty, parseRichText, type RichTextValue } from '@commerce/richtext'
-import { type productFormContent, rupees } from '@/data/products'
+import type { productFormContent } from '@/data/product-form'
+import { rupees } from '@/data/products'
 import type { api } from '@/lib/api-client'
 
 export type LoadedProduct = NonNullable<Awaited<ReturnType<typeof api.products.get>>>

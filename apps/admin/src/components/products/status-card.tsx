@@ -11,7 +11,7 @@ import {
 import SuggestInput from '@/components/fields/suggest-input'
 import KitField from '@/components/kit/kit-field'
 import DataCard from '@/components/layout/data-card'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import type { Facets } from './form-state'
 

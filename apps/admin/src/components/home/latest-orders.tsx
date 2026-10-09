@@ -5,6 +5,7 @@ import StatusChip from '@/components/layout/status-chip'
 import { homePageContent } from '@/data/home'
 import { getCopy, getLocale } from '@/lib/copy-server'
 import { formatters } from '@/lib/format'
+import { initials } from '@/lib/initials'
 import { routes } from '@/lib/routes'
 import SectionHead from './section-head'
 
@@ -17,19 +18,6 @@ type Tone = 'neutral' | 'attention' | 'info' | 'danger'
 
 const ROWS = 5
 const SHIPPED = new Set(['shipped', 'fulfilled', 'partially_fulfilled', 'partially_delivered'])
-
-/** Up to two capitals for the round avatar: "Riya Sharma" is RS, an email gives its first letter. */
-function initials(name: string): string {
-  const words = name
-    .replace(/^#/, '')
-    .split(/[\s@._-]+/)
-    .filter(Boolean)
-  return words
-    .slice(0, 2)
-    .map((w) => w[0] ?? '')
-    .join('')
-    .toUpperCase()
-}
 
 /** The status chip: coloured only where the owner has something to do, grey once it is done. */
 function chipFor(
@@ -82,7 +70,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
                       className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-caption text-muted-foreground"
                       aria-hidden="true"
                     >
-                      {initials(name)}
+                      {initials(order.customerName, order.email ?? String(order.number))}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-body-strong text-ink-strong">

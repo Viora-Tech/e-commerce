@@ -14,7 +14,7 @@ import { Area, AreaChart, Line, XAxis } from 'recharts'
 import PillTabs from '@/components/layout/pill-tabs'
 import { homePageContent } from '@/data/home'
 import { useCopy, useFormat } from '@/hooks/use-copy'
-import { INTL_LOCALE, type Locale } from '@/lib/i18n'
+import type { Formatters } from '@/lib/format'
 
 type SalesHeroProps = {
   today: DashboardSummary['today']
@@ -29,10 +29,6 @@ type Point = { label: string; value: number | null; before: number | null }
 
 const HOURS = 24
 const SHORT_DATE_OPTIONS = { day: 'numeric', month: 'short' } as const
-const SHORT_DATE: Record<Locale, Intl.DateTimeFormat> = {
-  en: new Intl.DateTimeFormat(INTL_LOCALE.en, SHORT_DATE_OPTIONS),
-  hi: new Intl.DateTimeFormat(INTL_LOCALE.hi, SHORT_DATE_OPTIONS),
-}
 
 const sum = (values: number[]) => values.reduce((n, v) => n + v, 0)
 
@@ -63,7 +59,7 @@ function hourlyPoints(today: number[], yesterday: number[]): Point[] {
 }
 
 /** Daily sales for the last `days` days, with the `days` before them dashed behind. */
-function dailyPoints(charts: DashboardChartsData, days: number, locale: Locale): Point[] {
+function dailyPoints(charts: DashboardChartsData, days: number, fmt: Formatters): Point[] {
   const all = charts.salesPaise
   const labels = charts.days.slice(-days)
   const previous = charts.previousSalesPaise
@@ -71,7 +67,7 @@ function dailyPoints(charts: DashboardChartsData, days: number, locale: Locale):
     const index = all.length - days + i
     const before = index - days >= 0 ? all[index - days] : previous?.[all.length + index - days]
     return {
-      label: SHORT_DATE[locale].format(new Date(`${day}T00:00:00+05:30`)),
+      label: fmt.pattern(new Date(`${day}T00:00:00+05:30`), SHORT_DATE_OPTIONS),
       value: all[index] ?? 0,
       before: before ?? null,
     }
@@ -107,7 +103,7 @@ export default function SalesHero({ today, yesterdayHourly, charts }: SalesHeroP
     orders = sum(charts.orders.slice(-days))
     change = percentChange(value, sum(previous))
     comparedTo = copy.vsPrevious(days)
-    points = dailyPoints(charts, days, fmt.locale)
+    points = dailyPoints(charts, days, fmt)
     title = copy.titleDays(days)
   }
   const hasData = points.some((p) => (p.value ?? 0) > 0 || (p.before ?? 0) > 0)
