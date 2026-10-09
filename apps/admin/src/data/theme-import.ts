@@ -30,6 +30,25 @@ export const themeImportContent = {
     tooLarge: 'This file is larger than 50 MB. Upload only the theme zip.',
     notZip: 'Choose the .zip file Shopify emailed you.',
   },
+  screen: {
+    title: 'Import a Shopify theme',
+    subtitle: 'Upload a theme zip and we will rebuild it with your Vextro store',
+    back: 'Themes',
+    drop: 'Drop your theme .zip here',
+    dropBody:
+      'We keep the exact look. Cart, checkout, accounts and apps are swapped for Vextro’s own, and you get a plain-words report of what changed.',
+    limits: 'Up to 50 MB · .zip exported from Shopify',
+    bullets: [
+      'Your Shopify store is never touched. We only read the zip you give us.',
+      'Sections, blocks and settings are kept, so you can keep editing them.',
+    ],
+    workingTitle: 'Importing your theme',
+    workingSubtitle: 'This takes about a minute. Stay on this page.',
+    progress: 'Import progress',
+    failedSubtitle: 'We could not read this file',
+    failedTitle: 'This import did not finish',
+    chooseAnother: 'Choose another file',
+  },
   editor: {
     settingsTitle: 'Colours, fonts and layout come from your Shopify theme',
     settingsBody:

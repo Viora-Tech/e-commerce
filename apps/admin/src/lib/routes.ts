@@ -105,6 +105,7 @@ export const routes = {
     home: () => '/online-store',
     themes: () => '/online-store/themes',
     themeEditor: (themeId: string) => `/online-store/themes/${id(themeId)}/editor`,
+    themeImportNew: () => '/online-store/themes/import',
     themeImport: (themeId: string) => `/online-store/themes/${id(themeId)}/import`,
     pages: () => '/online-store/pages',
     page: (pageId: string) => `/online-store/pages/${id(pageId)}`,
