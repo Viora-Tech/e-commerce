@@ -1,5 +1,6 @@
-import { ArrowLeft, Settings } from '@commerce/ui/icons'
+import { ArrowLeft, CircleAlert, Settings } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
+import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -9,6 +10,7 @@ import { appsContent } from '@/data/apps'
 import { getCopy } from '@/lib/copy-server'
 import { routes } from '@/lib/routes'
 import AppLogo from './app-logo'
+import AppUninstallButton from './app-uninstall-button'
 
 type AppShellProps = {
   appId: string
@@ -22,6 +24,8 @@ type AppShellProps = {
   active: string
   /** Whether one of the app's own pages is a `settings` page, for the header shortcut. */
   hasSettings: boolean
+  /** A connection that is installed but has no working credentials yet; links to where to fix it. */
+  setupHref?: string | undefined
   children: ReactNode
 }
 
@@ -66,6 +70,7 @@ export default async function AppShell({
   tabs,
   active,
   hasSettings,
+  setupHref,
   children,
 }: AppShellProps) {
   // Render logic
@@ -87,7 +92,9 @@ export default async function AppShell({
           <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-page-title text-ink-strong">{name}</h1>
-              <StatusChip className="h-5 text-xs">{copy.active}</StatusChip>
+              <StatusChip tone={setupHref ? 'attention' : 'neutral'} className="h-5 text-xs">
+                {setupHref ? copy.needsSetup : copy.active}
+              </StatusChip>
             </div>
             {description ? (
               <p className="text-caption text-muted-foreground">{description}</p>
@@ -105,8 +112,21 @@ export default async function AppShell({
                 {copy.settings}
               </Button>
             ) : null}
+            <AppUninstallButton appId={appId} name={name} />
           </div>
         </div>
+        {setupHref ? (
+          <Alert>
+            <CircleAlert />
+            <AlertTitle>{copy.setupBanner.title}</AlertTitle>
+            <AlertDescription>
+              {copy.setupBanner.body}{' '}
+              <Link href={setupHref} className="font-medium underline">
+                {copy.setupBanner.action}
+              </Link>
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <nav aria-label={name} className="-mb-px flex gap-1 overflow-x-auto">
           {tabs.map((t) => {
             const on = t.path === section

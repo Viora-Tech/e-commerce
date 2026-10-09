@@ -39,6 +39,11 @@ export const appsContent = {
   connectedHeading: 'Connected',
   connectedBody: 'Your account works and is saved.',
   openApp: 'Open app',
+  setupBanner: {
+    title: 'Finish setting this app up',
+    body: 'It is installed but not connected yet, so it cannot do its job.',
+    action: 'Connect now',
+  },
   listing: {
     back: 'App Store',
     whatItDoes: 'What it does',

@@ -41,6 +41,11 @@ export default [
     connectedHeading: 'जुड़ गया',
     connectedBody: 'आपका अकाउंट काम कर रहा है और सेव हो गया है।',
     openApp: 'ऐप खोलें',
+    setupBanner: {
+      title: 'इस ऐप का सेटअप पूरा करें',
+      body: 'यह इंस्टॉल है पर अभी जुड़ा नहीं है, इसलिए अपना काम नहीं कर पाएगा।',
+      action: 'अभी जोड़ें',
+    },
     listing: {
       back: 'ऐप स्टोर',
       whatItDoes: 'यह क्या करता है',
