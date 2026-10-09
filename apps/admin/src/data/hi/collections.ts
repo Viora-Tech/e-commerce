@@ -1,5 +1,5 @@
 import { collectionDetailContent, collectionsListContent } from '@/data/collections'
-import { translation, untranslated } from '@/lib/i18n'
+import { translation } from '@/lib/i18n'
 
 export default [
   translation(collectionsListContent, {
@@ -49,29 +49,49 @@ export default [
       deleteFailed: 'कलेक्शन हटाया नहीं जा सका',
       empty: { heading: 'कोई कलेक्शन नहीं मिला', body: 'दूसरी खोज या टैब आज़माएँ।' },
     },
-    heading: untranslated,
-    add: untranslated,
-    moreActions: untranslated,
+    heading: 'खोजें',
+    add: 'प्रोडक्ट जोड़ें',
+    moreActions: 'और विकल्प',
     newCollection: 'नया कलेक्शन',
     allCollections: 'सभी कलेक्शन',
-    searchProducts: untranslated,
+    searchProducts: 'अपना प्रोडक्ट खोजें',
     searchCollections: 'कलेक्शन खोजें',
-    allProducts: untranslated,
-    clearFilter: untranslated,
-    filteredBy: untranslated,
-    tabs: untranslated,
-    columns: untranslated,
-    rowActions: untranslated,
-    empty: untranslated,
+    allProducts: 'सभी प्रोडक्ट',
+    clearFilter: 'सारे प्रोडक्ट दिखाएँ',
+    filteredBy: (title: string) => `${title} दिख रहा है`,
+    tabs: {
+      all: 'सभी प्रोडक्ट',
+      featured: 'खास प्रोडक्ट',
+      onSale: 'सेल पर',
+      outOfStock: 'स्टॉक खत्म',
+    },
+    columns: {
+      no: 'नं.',
+      product: 'प्रोडक्ट',
+      created: 'बनाने की तारीख',
+      order: 'स्टॉक',
+      action: 'कार्रवाई',
+    },
+    rowActions: { edit: 'प्रोडक्ट बदलें', remove: 'प्रोडक्ट हटाएँ' },
+    empty: {
+      heading: 'यहाँ अभी कोई प्रोडक्ट नहीं',
+      body: 'इस कलेक्शन में जोड़े गए प्रोडक्ट इस तालिका में दिखेंगे।',
+    },
     noCollections: {
       heading: 'अभी कोई कलेक्शन नहीं',
       body: 'प्रोडक्ट को कलेक्शन में बाँटें ताकि ग्राहक प्रकार, ब्रांड या सीज़न से ढूँढ सकें।',
       action: 'कलेक्शन बनाएँ',
     },
-    tiles: untranslated,
+    tiles: {
+      total: 'कलेक्शन',
+      automatic: 'ऑटोमैटिक',
+      manual: 'मैन्युअल',
+      empty: 'खाली',
+      period: 'अब तक',
+    },
     resource: { singular: 'कलेक्शन', plural: 'कलेक्शन' },
-    nextPage: untranslated,
-    previousPage: untranslated,
+    nextPage: 'और कलेक्शन दिखाएँ',
+    previousPage: 'पिछले कलेक्शन दिखाएँ',
   }),
   translation(collectionDetailContent, {
     back: 'कलेक्शन',
@@ -140,7 +160,17 @@ export default [
       emptyAutomaticBody: 'शर्तों से मेल खाते ही प्रोडक्ट यहाँ दिखेंगे।',
       emptySearch: 'खोज से कोई प्रोडक्ट नहीं मिला',
       automaticNote: 'सेव किए कलेक्शन प्रोडक्ट बदलने पर अपने आप अपडेट होते हैं।',
-      sortLabels: untranslated,
+      sortLabels: {
+        instructions:
+          'प्रोडक्ट उठाने के लिए स्पेस दबाएँ, खिसकाने के लिए तीर वाली कीज़ दबाएँ, और रखने के लिए फिर स्पेस दबाएँ।',
+        handle: (title: string) => `${title} को खिसकाएँ`,
+        picked: (title: string) => `${title} उठाया`,
+        moved: (title: string, position: number, total: number) =>
+          `${title} ${total} में से ${position} नंबर पर गया`,
+        dropped: (title: string, position: number, total: number) =>
+          `${title} ${total} में से ${position} नंबर पर रखा गया`,
+        cancelled: (title: string) => `${title} को खिसकाना रद्द हुआ`,
+      },
     },
   }),
 ]

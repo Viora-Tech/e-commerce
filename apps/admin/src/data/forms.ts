@@ -7,5 +7,6 @@ export const formsContent = {
     empty: 'No messages yet. They appear here when a shopper sends a form.',
     columns: { from: 'From', message: 'Message', page: 'Page', received: 'Received' },
     anonymous: 'No name',
+    resource: { singular: 'message', plural: 'messages' },
   },
 }

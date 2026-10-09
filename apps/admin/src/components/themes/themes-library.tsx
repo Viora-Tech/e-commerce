@@ -4,6 +4,7 @@ import type { ThemePresetId } from '@commerce/core/theme'
 import { Plus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
@@ -12,10 +13,10 @@ import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AddThemeDialog from './add-theme-dialog'
 import CurrentThemeCard from './current-theme-card'
 import DeleteThemeDialog from './delete-theme-dialog'
-import ImportThemeDialog from './import-theme-dialog'
 import OnlineStoreTabs from './online-store-tabs'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
@@ -56,7 +57,6 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   const [themes, setThemes] = useState(initial)
   const [busy, setBusy] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [importing, setImporting] = useState(false)
   const importCopy = useCopy(themeImportContent)
   const { title } = useCopy(themesContent)
   const copy = useCopy(themesContent.library)
@@ -133,7 +133,12 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
         subtitle={copy.subtitle}
         actions={
           <>
-            <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
+            <Button
+              variant="outline"
+              disabled={busy}
+              nativeButton={false}
+              render={<Link href={routes.onlineStore.themeImportNew()} />}
+            >
               <Upload aria-hidden />
               {importCopy.button}
             </Button>
@@ -194,7 +199,6 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
         )}
       </Card>
       <AddThemeDialog open={adding} busy={busy} onOpenChange={setAdding} onAdd={handleAdd} />
-      <ImportThemeDialog open={importing} onOpenChange={setImporting} />
       {renaming ? (
         <RenameThemeDialog
           key={renaming.id}

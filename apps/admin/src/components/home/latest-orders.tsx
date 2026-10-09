@@ -52,7 +52,7 @@ export default async function LatestOrders({ orders }: LatestOrdersProps) {
           </Link>
         }
       />
-      <div className="flex-1 rounded-2xl bg-card shadow-card">
+      <div className="flex-1 rounded-2xl surface-card">
         {rows.length === 0 ? (
           <p className="p-5 text-body text-muted-foreground">{c.empty}</p>
         ) : (

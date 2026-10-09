@@ -10,8 +10,9 @@ import {
   TableRow,
 } from '@commerce/ui/shadcn/table'
 import { useEffect, useState } from 'react'
-import DataCard from '@/components/layout/data-card'
-import PageHeader from '@/components/layout/page-header'
+import { CELL, HEAD } from '@/components/apps/gst-invoices/table-classes'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import SettingsCard from '@/components/settings/settings-card'
 import { backInStockContent } from '@/data/back-in-stock'
 import { api } from '@/lib/api-client'
 
@@ -60,20 +61,21 @@ export default function OverviewPage() {
   const top = data.topVariants
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
-      <DataCard title={copy.title}>
-        <div className="flex flex-col gap-5 p-4">
-          {usageRow(copy.emailUsage, data.usage.email)}
-          {usageRow(copy.whatsappUsage, data.usage.whatsapp)}
-        </div>
-      </DataCard>
-      <DataCard title={copy.demandTitle} flush>
+    <div className="flex flex-col gap-5">
+      <ProoflyPageHeader title={copy.title} summary={copy.subtitle} />
+      <SettingsCard title={copy.title} bodyClassName="gap-5">
+        {usageRow(copy.emailUsage, data.usage.email)}
+        {usageRow(copy.whatsappUsage, data.usage.whatsapp)}
+      </SettingsCard>
+      <div className="overflow-hidden rounded-xl surface-card">
+        <h2 className="px-6 pt-5 pb-3 text-body font-semibold text-ink-strong">
+          {copy.demandTitle}
+        </h2>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{copy.columns.variant}</TableHead>
-              <TableHead className="text-right">{copy.columns.waiting}</TableHead>
+              <TableHead className={HEAD}>{copy.columns.variant}</TableHead>
+              <TableHead className={`${HEAD} text-right`}>{copy.columns.waiting}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -86,13 +88,13 @@ export default function OverviewPage() {
             ) : null}
             {top.map((t) => (
               <TableRow key={t.variantId}>
-                <TableCell className="font-medium">{t.label}</TableCell>
-                <TableCell className="text-right tabular-nums">{t.waiting}</TableCell>
+                <TableCell className={`${CELL} font-medium`}>{t.label}</TableCell>
+                <TableCell className={`${CELL} text-right tabular-nums`}>{t.waiting}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </DataCard>
+      </div>
     </div>
   )
 }

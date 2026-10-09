@@ -53,7 +53,7 @@ export default function LiveNow({ initial }: LiveNowProps) {
           </span>
         }
       />
-      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl bg-card shadow-card">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl surface-card">
         <div className="flex flex-col gap-1 p-5">
           <p className="font-[family-name:var(--font-display)] text-[2.5rem] leading-[2.75rem] font-bold tracking-tight text-ink-strong tabular-nums">
             {fmt.compact(visitors)}

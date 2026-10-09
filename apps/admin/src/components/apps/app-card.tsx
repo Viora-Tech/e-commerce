@@ -84,7 +84,7 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
   const attention = needsSetup(app)
 
   return (
-    <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card px-5 py-[1.125rem] shadow-card transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
+    <div className="flex h-full flex-col gap-3 rounded-2xl border border-border surface-card px-5 py-[1.125rem] transition-shadow duration-200 ease-out hover:shadow-card-hover motion-reduce:transition-none">
       <div className="flex items-center gap-3">
         <AppLogo id={app.id} icon={app.admin.icon} />
         <div className="flex min-w-0 flex-1 flex-col">

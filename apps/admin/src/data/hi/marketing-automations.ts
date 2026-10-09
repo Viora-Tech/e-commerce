@@ -1,5 +1,5 @@
 import { automationEditorContent, automationsContent } from '@/data/marketing-automations'
-import { translation, untranslated } from '@/lib/i18n'
+import { translation } from '@/lib/i18n'
 
 export default [
   translation(automationsContent, {
@@ -22,7 +22,8 @@ export default [
     },
     status: { active: 'चालू', paused: 'बंद' },
     created: 'ऑटोमेशन बन गया। देख लें, फिर चालू करें।',
-    browseNote: untranslated,
+    browseNote:
+      'ब्राउज़ छोड़ने वालों को पकड़ने के लिए पहचाने हुए ग्राहक के प्रोडक्ट व्यू चाहिए, जो स्टोरफ़्रंट अभी दर्ज नहीं करता।',
     triggers: {
       checkout_abandoned: 'ग्राहक ईमेल या फ़ोन डालकर चेकआउट छोड़ देता है',
       cart_abandoned: 'साइन-इन ग्राहक कार्ट में प्रोडक्ट छोड़ देता है',
@@ -31,7 +32,14 @@ export default [
       customer_lapsed: 'ग्राहक ने काफ़ी समय से ऑर्डर नहीं किया',
       cod_order_placed: 'ग्राहक कैश-ऑन-डिलीवरी ऑर्डर करता है',
     },
-    templateChannels: untranslated,
+    templateChannels: {
+      abandoned_checkout: 'ईमेल, WhatsApp',
+      abandoned_cart: 'ईमेल',
+      welcome_subscriber: 'ईमेल',
+      first_purchase: 'ईमेल',
+      win_back: 'ईमेल',
+      cod_confirmation: 'WhatsApp',
+    },
   }),
   translation(automationEditorContent, {
     breadcrumb: 'ऑटोमेशन',
@@ -43,9 +51,22 @@ export default [
     saved: 'ऑटोमेशन सेव हुआ',
     deleted: 'ऑटोमेशन हटा दिया',
     failed: 'ऑटोमेशन सेव नहीं हुआ',
-    delete: untranslated,
+    delete: {
+      action: 'हटाएँ',
+      title: 'यह ऑटोमेशन हटाएँ?',
+      body: 'इसमें जो ग्राहक हैं उन्हें मैसेज जाना बंद हो जाएगा और इसके नतीजे मिट जाएँगे। यह वापस नहीं होगा।',
+      confirm: 'ऑटोमेशन हटाएँ',
+      cancel: 'रहने दें',
+    },
     name: 'नाम',
-    tiles: untranslated,
+    tiles: {
+      runs: 'शामिल हुए ग्राहक',
+      active: 'जारी',
+      sent: 'भेजे गए मैसेज',
+      clicked: 'क्लिक किया',
+      converted: 'ऑर्डर किया',
+      sales: 'बिक्री',
+    },
     flow: {
       trigger: 'ट्रिगर',
       settings: 'स्टेप सेटिंग',
@@ -55,9 +76,75 @@ export default [
       noSubject: 'सब्जेक्ट लिखें',
       condition: (field, op, value) => `${field}: ${op} ${value}`,
     },
-    convertedHelp: untranslated,
-    trigger: untranslated,
-    steps: untranslated,
-    runs: untranslated,
+    convertedHelp: 'सीक्वेंस के दौरान ऑर्डर किया; सीक्वेंस वहीं रुक गया।',
+    trigger: {
+      title: 'ट्रिगर',
+      afterMinutes: 'बास्केट को छोड़ा हुआ तब मानें जब इतना समय बीते',
+      lapsedDays: 'आखिरी ऑर्डर के बाद के दिन',
+      audience: 'किसे मिलेगा',
+      audienceConsent:
+        'सिर्फ़ उन ग्राहकों को जिन्होंने उस चैनल (ईमेल या WhatsApp) पर मार्केटिंग के लिए हाँ कहा है। बाकी सबको छोड़ दिया जाता है। ग्राहक चेकआउट पर, अपने अकाउंट में या आपके ज़रिए अपने ग्राहक पेज पर सहमति देते या वापस लेते हैं।',
+      audienceOrderUpdate:
+        'कैश ऑन डिलीवरी के हर खरीदार को पहला WhatsApp मैसेज मिलता है: यह उनके अपने ऑर्डर की जानकारी है, मार्केटिंग नहीं, इसलिए इसके लिए मार्केटिंग की सहमति नहीं चाहिए। इसके बाद का हर स्टेप मार्केटिंग है और सिर्फ़ उन्हें जाता है जिन्होंने हाँ कहा है।',
+      stops: 'ग्राहक के ऑर्डर करते ही सीक्वेंस रुक जाता है।',
+      minutes: 'मिनट',
+      days: 'दिन',
+    },
+    steps: {
+      title: 'स्टेप',
+      add: 'स्टेप जोड़ें',
+      empty: 'इंतज़ार, शर्त या मैसेज जोड़ें।',
+      types: {
+        wait: 'इंतज़ार',
+        email: 'ईमेल भेजें',
+        whatsapp: 'WhatsApp भेजें',
+        condition: 'शर्त जाँचें',
+      },
+      hints: {
+        wait: 'अगले स्टेप से पहले रुकें',
+        email: 'ब्लॉक से बना ईमेल',
+        whatsapp: 'मंज़ूर हुआ WhatsApp टेम्पलेट',
+        condition: 'शर्त सही होने पर ही आगे बढ़ें',
+      },
+      after: (label: string) => `${label} के बाद`,
+      immediately: 'तुरंत',
+      waitFor: 'इतना रुकें',
+      hours: 'घंटे',
+      subject: 'सब्जेक्ट',
+      previewText: 'प्रीव्यू टेक्स्ट',
+      showPreview: 'प्रीव्यू',
+      hidePreview: 'प्रीव्यू छिपाएँ',
+      field: 'अगर',
+      op: 'है',
+      value: 'वैल्यू',
+      ops: { gte: 'कम से कम', lte: 'ज़्यादा से ज़्यादा', eq: 'ठीक' },
+      fields: {
+        cart_value: 'बास्केट की कीमत (₹)',
+        order_count: 'ऑर्डर की संख्या',
+        has_ordered: 'पहले ऑर्डर कर चुका है',
+        accepts_marketing: 'मार्केटिंग के लिए सब्सक्राइब है',
+      },
+      yes: 'हाँ',
+      no: 'नहीं',
+      moveUp: 'ऊपर करें',
+      moveDown: 'नीचे करें',
+      remove: 'स्टेप हटाएँ',
+      noDiscount: 'ऑटोमेशन चालू करने से पहले इस ईमेल के लिए डिस्काउंट कोड चुनें।',
+    },
+    runs: {
+      title: 'हाल के ग्राहक',
+      empty: 'इस ऑटोमेशन में अभी कोई नहीं आया।',
+      step: (n: number, total: number) => `${total} में से स्टेप ${Math.min(n + 1, total)}`,
+      status: {
+        active: 'जारी',
+        completed: 'पूरा हुआ',
+        converted: 'ऑर्डर किया',
+        stopped: 'रुका',
+      },
+      reasons: {
+        condition: 'शर्त पूरी नहीं हुई',
+        unsubscribed: 'सब्सक्रिप्शन बंद किया',
+      },
+    },
   }),
 ]

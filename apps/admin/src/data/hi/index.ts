@@ -26,6 +26,7 @@ import marketingAutomations from './marketing-automations'
 import marketingCampaigns from './marketing-campaigns'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
+import notifications from './notifications'
 import onboarding from './onboarding'
 import orders from './orders'
 import payments from './payments'
@@ -37,6 +38,7 @@ import settings from './settings'
 import shipping from './shipping'
 import shippingRates from './shipping-rates'
 import shopifyImport from './shopify-import'
+import staff from './staff'
 import staffInvites from './staff-invites'
 import states from './states'
 import storeData from './store-data'
@@ -88,6 +90,8 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...shipping,
   ...shippingRates,
   ...shopifyImport,
+  ...notifications,
+  ...staff,
   ...staffInvites,
   ...states,
   ...storeData,

@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import StatusLabel from '@/components/status/status-label'
-import { notificationsSettingsContent as setupCopy } from '@/data/notifications'
+import { notificationsSettingsContent } from '@/data/notifications'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import type { ChannelStatusData } from './types'
 
@@ -19,13 +20,12 @@ type SendingCardProps = {
   platformEmail: boolean
 }
 
-const copy = setupCopy.sending
-
 const ICONS = { email: Inbox, whatsapp: MessageSquare }
 
 /** "How messages are sent": Email and WhatsApp, whether each is connected, and one button. */
 export default function SendingCard({ email, whatsapp, platformEmail }: SendingCardProps) {
   // Hooks
+  const { sending: copy } = useCopy(notificationsSettingsContent)
   const router = useRouter()
   const [opening, setOpening] = useState<string | null>(null)
 

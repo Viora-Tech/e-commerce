@@ -12,7 +12,8 @@ import {
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@commerce/ui/shadcn/toggle-group'
 import { useEffect, useState } from 'react'
-import { notificationsSettingsContent as setupCopy } from '@/data/notifications'
+import { notificationsSettingsContent } from '@/data/notifications'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type PreviewDialogProps = {
@@ -24,11 +25,11 @@ type PreviewDialogProps = {
 type Preview = Awaited<ReturnType<typeof api.notifications.preview>>
 type Tab = 'email' | 'whatsapp'
 
-const copy = setupCopy.preview
-
 /** The message filled with a sample order: the email as the customer sees it, and the WhatsApp text. */
 export default function PreviewDialog({ messageId, onClose }: PreviewDialogProps) {
   // Hooks
+  const setupCopy = useCopy(notificationsSettingsContent)
+  const { preview: copy } = useCopy(notificationsSettingsContent)
   const [preview, setPreview] = useState<Preview | null>(null)
   const [failed, setFailed] = useState(false)
   const [tab, setTab] = useState<Tab>('email')

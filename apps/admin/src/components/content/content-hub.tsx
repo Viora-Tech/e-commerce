@@ -31,7 +31,7 @@ const NAMES_SHOWN = 3
 function HubCard({ icon, title, facts, body, open, href }: HubCardProps) {
   // Render logic
   return (
-    <div className="flex min-w-0 flex-col items-start gap-3.5 rounded-2xl border bg-card px-5.5 py-5 shadow-card">
+    <div className="flex min-w-0 flex-col items-start gap-3.5 rounded-2xl border surface-card px-5.5 py-5">
       <div className="flex w-full items-center gap-3.5">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary [&_svg]:size-5.5">
           {icon}

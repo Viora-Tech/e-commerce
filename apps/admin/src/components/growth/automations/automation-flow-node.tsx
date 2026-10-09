@@ -23,7 +23,7 @@ export default function AutomationFlowNode({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        'flex w-full max-w-[22rem] flex-col gap-1 rounded-lg bg-card p-4 text-left shadow-card transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'flex w-full max-w-[22rem] flex-col gap-1 rounded-lg surface-card p-4 text-left transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         selected && 'shadow-[inset_0_0_0_1px_var(--primary)]',
       )}
     >
