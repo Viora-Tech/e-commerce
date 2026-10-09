@@ -116,13 +116,16 @@ import {
   PencilSimpleLine,
   BookmarkSimple as PhBookmarkSimple,
   Clock as PhClock,
+  Compass as PhCompass,
   Cookie as PhCookie,
   Diamond as PhDiamond,
   Globe as PhGlobe,
   HandHeart as PhHandHeart,
   Headphones as PhHeadphones,
   Images as PhImages,
+  Lock as PhLock,
   Monitor as PhMonitor,
+  Phone,
   Palette as PhPalette,
   ShoppingBag as PhShoppingBag,
   ShoppingCart as PhShoppingCart,
@@ -150,6 +153,7 @@ import {
   TextAlignLeft,
   TextT,
   ToggleLeft,
+  Translate,
   Trash,
   Tray,
   TreeStructure,
@@ -166,6 +170,7 @@ import {
   WarningDiamond,
   WarningOctagon,
   WhatsappLogo,
+  WifiSlash,
   X,
   XCircle,
   YoutubeLogo,
@@ -239,6 +244,8 @@ export const YoutubeLogo_ = defineIcon(YoutubeLogo, 'YoutubeLogo', 'duotone')
 export { YoutubeLogo_ as YoutubeLogo }
 export const GoogleLogo_ = defineIcon(GoogleLogo, 'GoogleLogo', 'duotone')
 export { GoogleLogo_ as GoogleLogo }
+export const Phone_ = defineIcon(Phone, 'Phone', 'duotone')
+export { Phone_ as Phone }
 export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
 export { WhatsappLogo_ as WhatsappLogo }
 
@@ -273,6 +280,11 @@ export const Moon_ = defineIcon(Moon, 'Moon')
 export { Moon_ as Moon }
 export const MoonIcon = Moon_
 export const LogOut = defineIcon(SignOut, 'LogOut') // kit user card
+/* Page states: offline, no access, not found; and the language switch. */
+export const WifiOff = defineIcon(WifiSlash, 'WifiOff')
+export const Lock = defineIcon(PhLock, 'Lock')
+export const Compass = defineIcon(PhCompass, 'Compass')
+export const Language = defineIcon(Translate, 'Language')
 /** "Report a bug" (test server only): the account menu item and the floating button. */
 export const BugIcon = defineIcon(Bug, 'BugIcon')
 /* Kit 5:1384 "arrow-menu-close": a bar on the right with a chevron pointing at it. Mirror with `-scale-x-100` when collapsed. */

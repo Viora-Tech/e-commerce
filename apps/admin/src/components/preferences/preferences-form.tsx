@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
+import OnlineStoreTabs from '@/components/themes/online-store-tabs'
 import SwitchField from '@/components/themes/switch-field'
 import { preferencesContent as copy } from '@/data/preferences'
 import { api } from '@/lib/api-client'
@@ -84,6 +85,7 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
         saving={busy}
       />
       <PageHeader title={copy.title} subtitle={copy.subtitle} />
+      <OnlineStoreTabs active="preferences" />
 
       <Card size="form">
         <CardHeader>
@@ -147,11 +149,13 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
         </CardHeader>
         <CardContent>
           <FieldGroup>
-            <SwitchField
-              label={copy.password.enabled}
-              checked={form.password.enabled}
-              onChange={(enabled) => patch('password', { enabled })}
-            />
+            <div className="rounded-lg border border-hairline px-4 py-3">
+              <SwitchField
+                label={copy.password.enabled}
+                checked={form.password.enabled}
+                onChange={(enabled) => patch('password', { enabled })}
+              />
+            </div>
             {form.password.enabled ? (
               <>
                 <TextSetting

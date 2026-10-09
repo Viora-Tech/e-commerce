@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { redirectsContent } from '@/data/redirects'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type DeleteRedirectsDialogProps = {
@@ -21,14 +22,13 @@ type DeleteRedirectsDialogProps = {
   onDeleted: () => void
 }
 
-const copy = redirectsContent.actions
-
 export default function DeleteRedirectsDialog({
   ids,
   onClose,
   onDeleted,
 }: DeleteRedirectsDialogProps) {
   // Hooks
+  const { actions: copy } = useCopy(redirectsContent)
   const [busy, setBusy] = useState(false)
 
   // Event handlers

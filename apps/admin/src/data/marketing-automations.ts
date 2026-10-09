@@ -74,6 +74,15 @@ export const automationEditorContent = {
     converted: 'Converted',
     sales: 'Sales',
   },
+  flow: {
+    trigger: 'Trigger',
+    settings: 'Step settings',
+    pickStep: 'Pick a step in the flow to change it.',
+    wait: (label: string) => `Wait ${label}`,
+    noTemplate: 'Pick a WhatsApp template',
+    noSubject: 'Write a subject',
+    condition: (field: string, op: string, value: string) => `${field} is ${op} ${value}`,
+  },
   convertedHelp: 'Ordered while in the sequence; the sequence stopped there.',
   trigger: {
     title: 'Trigger',

@@ -15,6 +15,7 @@ import {
 import Link from 'next/link'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 import type { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 export type TemplatesResult = Awaited<ReturnType<typeof api.marketing.campaigns.whatsappTemplates>>
 type Template = Extract<TemplatesResult, { ok: true }>['templates'][number]
@@ -80,7 +81,7 @@ export default function WhatsappTemplateCard({
             <Alert>
               <AlertDescription>
                 {problemText(templates)}{' '}
-                <Link href="/settings/notifications" className="underline">
+                <Link href={routes.settings.notifications()} className="underline">
                   {campaignEditorContent.channel.settings}
                 </Link>
               </AlertDescription>

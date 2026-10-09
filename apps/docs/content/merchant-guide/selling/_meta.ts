@@ -2,6 +2,7 @@ export default {
   shipments: 'Shipments',
   returns: 'Returns and RTO',
   reviews: 'Reviews',
+  discounts: 'Discounts',
   'online-store': 'Online store',
   content: 'Content types',
   'build-your-own-section': 'Build your own section',

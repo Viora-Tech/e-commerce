@@ -1,9 +1,7 @@
 import { formatNumber } from '@commerce/money'
-import { Card } from '@commerce/ui/shadcn/card'
-import type { ReactNode } from 'react'
+import StatTile from '@/components/layout/stat-tile'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
-import ReviewStars from './review-stars'
 
 type Stats = {
   all: number
@@ -13,61 +11,37 @@ type Stats = {
   withPhotos: number
 }
 
-type ReviewTilesProps = { stats: Stats }
-
-type TileProps = { title: string; value: ReactNode; period: string }
-
-const figure = (n: number | string) => (
-  <span className="text-stat text-ink-strong tabular-nums">{n}</span>
-)
-
-/* Same tile as the gift card and order lists: title, figure, period line. */
-function Tile({ title, value, period }: TileProps) {
-  return (
-    <Card gap="none" inset={4} className="h-[6.5rem] rounded-lg">
-      <p className="text-card-title">{title}</p>
-      <div className="mt-3 flex items-center gap-2">{value}</div>
-      <p className="mt-1.5 text-period text-muted-foreground">{period}</p>
-    </Card>
-  )
+type ReviewTilesProps = {
+  stats: Stats
+  /** The status filter on the table: published and waiting tiles act as filters. */
+  status: 'pending' | 'published' | 'hidden' | null
+  onStatus: (status: 'pending' | 'published' | null) => void
 }
 
 /** Average rating, published, waiting and with-photos counts above the reviews table. */
-export default function ReviewTiles({ stats }: ReviewTilesProps) {
+export default function ReviewTiles({ stats, status, onStatus }: ReviewTilesProps) {
   // Hooks
   const copy = useCopy(reviewsContent)
 
   // Render logic
   const t = copy.list.tiles
-  const pct = stats.all > 0 ? Math.round((stats.withPhotos / stats.all) * 100) : 0
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Tile
-        title={t.average}
-        value={
-          stats.average === null ? (
-            figure('0')
-          ) : (
-            <>
-              {figure(stats.average.toFixed(1))}
-              <ReviewStars value={stats.average} label={copy.stars(stats.average)} size="md" />
-            </>
-          )
-        }
-        period={stats.average === null ? t.noAverage : t.averageFrom(stats.published)}
+      <StatTile label={t.average} value={stats.average === null ? '0' : stats.average.toFixed(1)} />
+      <StatTile
+        label={t.published}
+        value={formatNumber(stats.published)}
+        active={status === 'published'}
+        onSelect={() => onStatus(status === 'published' ? null : 'published')}
       />
-      <Tile
-        title={t.published}
-        value={figure(formatNumber(stats.published))}
-        period={t.publishedHelp}
+      <StatTile
+        label={t.waiting}
+        value={formatNumber(stats.pending)}
+        active={status === 'pending'}
+        onSelect={() => onStatus(status === 'pending' ? null : 'pending')}
       />
-      <Tile title={t.waiting} value={figure(formatNumber(stats.pending))} period={t.waitingHelp} />
-      <Tile
-        title={t.photos}
-        value={figure(formatNumber(stats.withPhotos))}
-        period={t.photosHelp(pct)}
-      />
+      <StatTile label={t.photos} value={formatNumber(stats.withPhotos)} />
     </div>
   )
 }

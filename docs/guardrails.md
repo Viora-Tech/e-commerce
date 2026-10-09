@@ -228,6 +228,9 @@ server (UTC) and the browser (IST) disagree on the day and the text — a hydrat
 `useFormat()` (`date`, `dateTime`, `when`, `pattern`) or `lib/format-date.ts`
 (`formatPattern`, `formatNumericDate`, `todayKey`). Day maths (`dayKey`, `startOfDay`,
 `startOfMonth`, `wallClock`) lives there too. **Allow-list**: per file with a reason.
+The same sweep checks that every Dockerfile installing Alpine's `nodejs` also installs
+`icu-data-full`: without it the server formats `en-IN` as `en-US` and drops `hi-IN`, so
+server and browser text differ (React #418 on `/discounts`, issue #292).
 
 ### p. `server-only-guard` (`scripts/sweeps/server-only-guard.test.ts`)
 
@@ -272,6 +275,20 @@ every package that depends on core adds it to its `test`/`typecheck` `dependsOn`
 `//#plugin-graph` doesn't list (or lists one it no longer imports), or when a package that
 depends on core has no such `turbo.json`. Without it, editing a plugin would replay a stale
 cached pass for core, the API and the apps.
+
+### v. `admin-routes` (`scripts/sweeps/admin-routes.test.ts`)
+
+Admin URLs live once in `apps/admin/src/lib/routes.ts` (`routes.orders.detail(id)`). A string
+literal admin path in an `href` or in `redirect` / `push` / `replace` under `apps/admin/src` is a
+hardcoded one. Ratchet by **count per file**: a new one (or one more in a listed file) fails;
+migrating one means lowering that file's number, and a stale (too high) number fails too.
+`data/settings-search.ts` keeps hash and query links (`/settings/taxes?tab=...#x`) until `routes`
+grows a query helper.
+
+### w. `site-config` (`scripts/sweeps/site-config.test.ts`)
+
+The brand name (`siteConfig.brand.name`, `packages/config/src/site.ts`) may not appear as a
+literal string or JSX text anywhere else (tests and the docs app excepted). Not allow-listed.
 
 ## `server-only`
 

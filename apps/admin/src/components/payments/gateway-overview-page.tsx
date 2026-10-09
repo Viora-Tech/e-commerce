@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { gatewayCatalogue, gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import BackToPayments from './back-to-payments'
 import MainGatewayCard from './main-gateway-card'
 import type { GatewayId, PaymentsSetup } from './types'
@@ -65,7 +66,7 @@ export default function GatewayOverviewPage({ providerId }: GatewayOverviewPageP
             <Button
               className="w-fit"
               nativeButton={false}
-              render={<Link href={`/apps/${providerId}/connect`} />}
+              render={<Link href={routes.apps.connect(providerId)} />}
             >
               {copy.main.connect}
             </Button>

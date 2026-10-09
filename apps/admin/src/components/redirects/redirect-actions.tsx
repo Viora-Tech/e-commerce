@@ -8,19 +8,21 @@ import {
   DropdownMenuTrigger,
 } from '@commerce/ui/shadcn/dropdown-menu'
 import { redirectsContent } from '@/data/redirects'
+import { useCopy } from '@/hooks/use-copy'
 
 type RedirectActionsProps = {
   onEdit: () => void
   onDelete: () => void
 }
 
-const copy = redirectsContent.actions
-
 const KEBAB =
   'flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 /** The kebab on one redirect row: edit or delete. */
 export default function RedirectActions({ onEdit, onDelete }: RedirectActionsProps) {
+  // Hooks
+  const { actions: copy } = useCopy(redirectsContent)
+
   return (
     <span className="flex items-center justify-end">
       <DropdownMenu>

@@ -1,27 +1,27 @@
-import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { customerActivity, customerCode, customersContent } from '@/data/customers'
+import { customerActivity, type customersContent } from '@/data/customers'
 import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 import CustomerAvatar from './customer-avatar'
-import CustomerRowActions from './customer-row-actions'
+import CustomerStatusChip from './customer-status-chip'
 
 export type CustomerRow = Awaited<ReturnType<typeof api.customers.list>>['items'][number]
 
-const copy = customersContent
+type CustomerColumnCopy = typeof customersContent
 
-function displayName(item: CustomerRow): string {
+export function displayName(item: CustomerRow, copy: CustomerColumnCopy): string {
   return item.name ?? item.email ?? copy.unnamed
 }
 
 /* Avatar + name, the email muted beneath: the row's one point of contact. */
-function NameCell({ item }: { item: CustomerRow }) {
+function NameCell({ item, copy }: { item: CustomerRow; copy: CustomerColumnCopy }) {
+  const name = displayName(item, copy)
   return (
     <span className="flex items-center gap-3 text-left">
       <CustomerAvatar name={item.name} email={item.email} />
       <span className="min-w-0">
-        <span className="line-clamp-1 text-body text-foreground">{displayName(item)}</span>
-        {item.email && item.email !== displayName(item) ? (
+        <span className="line-clamp-1 text-body font-medium text-foreground">{name}</span>
+        {item.email && item.email !== name ? (
           <span className="line-clamp-1 text-caption text-muted-foreground">{item.email}</span>
         ) : null}
       </span>
@@ -30,25 +30,18 @@ function NameCell({ item }: { item: CustomerRow }) {
 }
 
 /**
- * Frame 5:3120: seven centred columns of equal width and no thumbnails. The
- * status cell is the kit's dot label; the action cell carries the two 20px glyphs.
+ * Figma "Customers / Customers list": customer, phone, orders, total spent, a centred status
+ * chip; the open + ⋯ column is the table's own (`rowActions`). `copy` is the member's language.
  */
-export function customerColumns(onChanged: () => void): ResourceColumnSpec<CustomerRow>[] {
+export function customerColumns(copy: CustomerColumnCopy): ResourceColumnSpec<CustomerRow>[] {
   return [
     {
-      id: 'code',
-      title: copy.columns.code,
-      sortValue: (c) => c.createdAt.toString(),
-      hideable: false,
-      render: (c) => <span className="tabular-nums">{customerCode(c.id)}</span>,
-    },
-    {
       id: 'name',
-      title: copy.columns.name,
+      title: copy.columns.customer,
       sortValue: (c) => c.name ?? c.email ?? '',
       hideable: false,
-      className: 'whitespace-normal',
-      render: (c) => <NameCell item={c} />,
+      className: 'w-[32%] whitespace-normal',
+      render: (c) => <NameCell item={c} copy={copy} />,
     },
     {
       id: 'phone',
@@ -63,29 +56,24 @@ export function customerColumns(onChanged: () => void): ResourceColumnSpec<Custo
     },
     {
       id: 'orders',
-      title: copy.columns.orderCount,
+      title: copy.columns.orders,
+      align: 'end',
       sortValue: (c) => c.orderCount,
       render: (c) => <span className="tabular-nums">{c.orderCount}</span>,
     },
     {
       id: 'spent',
-      title: copy.columns.totalSpend,
+      title: copy.columns.totalSpent,
+      align: 'end',
       sortValue: (c) => c.spentPaise,
       render: (c) => <span className="tabular-nums">{formatPaise(c.spentPaise)}</span>,
     },
     {
       id: 'status',
       title: copy.columns.status,
+      align: 'center',
       sortValue: (c) => customerActivity(c),
-      render: (c) => <StatusLabel kind="customer" value={customerActivity(c)} />,
-    },
-    {
-      id: 'action',
-      title: copy.columns.action,
-      hideable: false,
-      render: (c) => (
-        <CustomerRowActions id={c.id} name={displayName(c)} email={c.email} onDeleted={onChanged} />
-      ),
+      render: (c) => <CustomerStatusChip activity={customerActivity(c)} />,
     },
   ]
 }

@@ -30,7 +30,8 @@ import {
 import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { storefrontContent as copy } from '@/data/menus'
+import { storefrontContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 /** A menu as far as this sheet cares: what it is called, and the handle a pointer stores. */
@@ -64,6 +65,7 @@ export default function StorefrontNavigationSheet({
   onSaved,
 }: StorefrontNavigationSheetProps) {
   // Hooks
+  const copy = useCopy(storefrontContent)
   const [main, setMain] = useState(settings.main)
   const [footer, setFooter] = useState(settings.footer)
   const [saving, setSaving] = useState(false)

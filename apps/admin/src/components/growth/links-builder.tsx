@@ -13,9 +13,14 @@ import {
   SelectValue,
 } from '@commerce/ui/shadcn/select'
 import { useState } from 'react'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import { growthLinksContent as copy, LINK_PLACEMENTS, type LinkPlacementId } from '@/data/growth'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import {
+  growthLinksContent as copy,
+  growthOverviewContent,
+  LINK_PLACEMENTS,
+  type LinkPlacementId,
+} from '@/data/growth'
+import { routes } from '@/lib/routes'
 
 type LinksBuilderProps = { storefrontOrigin: string }
 
@@ -63,8 +68,12 @@ export default function LinksBuilder({ storefrontOrigin }: LinksBuilderProps) {
   const link = buildLink(storefrontOrigin, page, placementId, campaign)
 
   return (
-    <PageBody width="frame" className="gap-5">
-      <PageHeader title={copy.title} subtitle={copy.intro} />
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
+      <ProoflyPageHeader
+        title={copy.title}
+        summary={copy.intro}
+        back={{ label: growthOverviewContent.title, href: routes.growth.home() }}
+      />
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardContent>
@@ -78,7 +87,7 @@ export default function LinksBuilder({ storefrontOrigin }: LinksBuilderProps) {
                   placeholder={copy.form.pagePlaceholder}
                   onChange={(e) => setPage(e.target.value)}
                 />
-                <p className="text-kit-mini text-muted-foreground">{copy.form.pageHelp}</p>
+                <p className="text-caption text-muted-foreground">{copy.form.pageHelp}</p>
               </Field>
               <Field>
                 <FieldLabel htmlFor="link-placement">{copy.form.placementLabel}</FieldLabel>
@@ -109,7 +118,7 @@ export default function LinksBuilder({ storefrontOrigin }: LinksBuilderProps) {
                   placeholder={copy.form.campaignPlaceholder}
                   onChange={(e) => setCampaign(e.target.value)}
                 />
-                <p className="text-kit-mini text-muted-foreground">{copy.form.campaignHelp}</p>
+                <p className="text-caption text-muted-foreground">{copy.form.campaignHelp}</p>
               </Field>
             </FieldGroup>
           </CardContent>
@@ -138,11 +147,11 @@ export default function LinksBuilder({ storefrontOrigin }: LinksBuilderProps) {
                 </Button>
               </div>
             ) : (
-              <p className="text-kit-body text-muted-foreground">{copy.result.empty}</p>
+              <p className="text-body text-muted-foreground">{copy.result.empty}</p>
             )}
           </CardContent>
         </Card>
       </div>
-    </PageBody>
+    </div>
   )
 }

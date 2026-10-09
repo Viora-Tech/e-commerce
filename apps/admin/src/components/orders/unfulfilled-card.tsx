@@ -1,7 +1,7 @@
 import { PackageOpen } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import DataCard from '@/components/layout/data-card'
-import StatusLabel from '@/components/status/status-label'
+import StatusChip from '@/components/layout/status-chip'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
 import { type OrderDetail, unfulfilledLines } from './order-detail-types'
@@ -19,21 +19,21 @@ export default function UnfulfilledCard({ order, onFulfil }: UnfulfilledCardProp
 
   // Render logic
   const rows = unfulfilledLines(order)
+  const count = rows.reduce((n, r) => n + r.remaining, 0)
 
   // Early returns
   if (rows.length === 0 || order.status === 'cancelled') return null
 
   return (
     <DataCard
+      flush
       title={copy.unfulfilled.heading}
+      icon={<StatusChip tone="attention">{copy.unfulfilled.itemsCount(count)}</StatusChip>}
       action={
-        <>
-          <StatusLabel kind="fulfilment" value="unfulfilled" variant="pill" size="sm" />
-          <Button onClick={onFulfil}>
-            <PackageOpen aria-hidden="true" />
-            {copy.actions.fulfilItems}
-          </Button>
-        </>
+        <Button variant="outline" size="sm" onClick={onFulfil}>
+          <PackageOpen aria-hidden="true" />
+          {copy.actions.fulfilItems}
+        </Button>
       }
     >
       <OrderLinesTable rows={rows.map(({ line, remaining }) => ({ line, quantity: remaining }))} />

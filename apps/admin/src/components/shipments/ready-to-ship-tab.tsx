@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { PackageCheck } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -29,7 +30,6 @@ type ReadyToShipTabProps = {
 }
 
 const copy = shipmentsContent.readyToShip
-const PER_PAGE = 25
 
 const COLUMNS: ResourceColumnSpec<Row>[] = [
   {
@@ -85,6 +85,7 @@ export default function ReadyToShipTab({ onSwitchToPickups }: ReadyToShipTabProp
   // Hooks
   const [result, setResult] = useState<ListResult | null>(null)
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [search, setSearch] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [pending, setPending] = useState<{ orderIds: string[]; clear: () => void } | null>(null)
@@ -98,15 +99,13 @@ export default function ReadyToShipTab({ onSwitchToPickups }: ReadyToShipTabProp
     // after a booking, the same way shipments-tab.tsx re-runs its list on demand.
     if (reloadKey < 0) return
     let cancelled = false
-    api.shipments
-      .readyToShip({ page, perPage: PER_PAGE, search: search || undefined })
-      .then((r) => {
-        if (!cancelled) setResult(r)
-      })
+    api.shipments.readyToShip({ page, perPage, search: search || undefined }).then((r) => {
+      if (!cancelled) setResult(r)
+    })
     return () => {
       cancelled = true
     }
-  }, [page, search, reloadKey])
+  }, [page, perPage, search, reloadKey])
 
   // Helpers
   const book = async (orderIds: string[], courierOverrides: Record<string, string>) => {
@@ -190,9 +189,13 @@ export default function ReadyToShipTab({ onSwitchToPickups }: ReadyToShipTabProp
           setSearch(q)
         }}
         page={page}
-        perPage={PER_PAGE}
+        perPage={perPage}
         total={result?.total ?? 0}
         onPageChange={setPage}
+        onPerPageChange={(n) => {
+          setPage(1)
+          setPerPage(n)
+        }}
         selectable
         bulkActions={(selectedIds, clear) => (
           <Button size="sm" onClick={() => handleStart(selectedIds, clear)} disabled={booking}>

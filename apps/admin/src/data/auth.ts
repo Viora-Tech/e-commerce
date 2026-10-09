@@ -1,18 +1,5 @@
-/** Copy for login and the store picker. */
+/** Copy for the store picker (the login screen's is in `data/login.ts`). */
 export const authContent = {
-  login: {
-    title: 'Log in',
-    subtitle: 'Use the email your store invited.',
-    email: 'Email',
-    emailHelp: 'We will email you a one-time code.',
-    continue: 'Continue with email',
-    code: (email: string) => `Code sent to ${email}`,
-    codeHelp: 'In development the code is printed in the admin server log.',
-    submit: 'Log in',
-    differentEmail: 'Use a different email',
-    sendFailed: 'Could not send the code',
-    wrongCode: 'Wrong code',
-  },
   selectStore: {
     title: 'Choose a store',
     open: (name: string) => `Open ${name}`,

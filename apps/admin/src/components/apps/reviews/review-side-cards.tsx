@@ -11,6 +11,7 @@ import ProductThumb from '@/components/products/product-thumb'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 import ReviewStars from './review-stars'
 
@@ -82,7 +83,7 @@ export default function ReviewSideCards({ detail, onChanged, onDeleted }: Review
               size="sm"
               className="self-start"
               nativeButton={false}
-              render={<Link href={`/products/${p.id}`} />}
+              render={<Link href={routes.products.detail(p.id)} />}
             >
               {copy.product.view}
             </Button>

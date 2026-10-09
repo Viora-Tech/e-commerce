@@ -15,6 +15,7 @@ import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatDay } from '@/lib/format-date'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import { saveFile } from './save-file'
 import TextField from './text-field'
 
@@ -123,7 +124,10 @@ export default function InvoiceDetail({ params }: AppPageProps) {
         }
         actions={
           <>
-            <Button variant="ghost" render={<Link href="/apps/gst-invoices/invoices" />}>
+            <Button
+              variant="ghost"
+              render={<Link href={routes.apps.page('gst-invoices', 'invoices')} />}
+            >
               <ArrowLeft />
               {copy.back}
             </Button>

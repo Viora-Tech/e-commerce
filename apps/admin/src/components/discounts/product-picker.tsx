@@ -4,17 +4,19 @@ import { Search, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Input } from '@commerce/ui/shadcn/input'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import ProductThumb from '@/components/products/product-thumb'
 import { discountFormContent } from '@/data/discounts'
 import { api } from '@/lib/api-client'
 
+type ProductRow = Awaited<ReturnType<typeof api.products.list>>['items'][number]
+
 type ProductPickerProps = {
   selected: string[]
   onChange: (ids: string[]) => void
+  /** Extra control on each picked row, before the remove button (e.g. an amount input). */
+  rowExtra?: ((product: ProductRow) => ReactNode) | undefined
 }
-
-type ProductRow = Awaited<ReturnType<typeof api.products.list>>['items'][number]
 
 const copy = discountFormContent.value
 const PAGE_SIZE = 8
@@ -23,7 +25,7 @@ const PAGE_SIZE = 8
  * Search-and-tick picker for the products a discount covers. Picked products
  * stay listed above the results so the merchant can see and remove them.
  */
-export default function ProductPicker({ selected, onChange }: ProductPickerProps) {
+export default function ProductPicker({ selected, onChange, rowExtra }: ProductPickerProps) {
   // Hooks
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ProductRow[]>([])
@@ -80,6 +82,7 @@ export default function ProductPicker({ selected, onChange }: ProductPickerProps
             <li key={p.id} className="flex items-center gap-3 px-3 py-2">
               <ProductThumb url={p.imageUrl} />
               <span className="min-w-0 flex-1 truncate text-body-strong">{p.title}</span>
+              {rowExtra ? <div className="w-32 shrink-0">{rowExtra(p)}</div> : null}
               <Button
                 type="button"
                 variant="ghost"

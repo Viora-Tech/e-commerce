@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { TemplateData, TemplateId } from '../types'
 
 /**
@@ -244,7 +245,8 @@ const shipmentTemplates = {
   TemplateCopy
 >
 
-const platformName = (d: TemplateData): string => d.staffInvite?.platformName || 'Vextro'
+const platformName = (d: TemplateData): string =>
+  d.staffInvite?.platformName || siteConfig.brand.name
 const asRole = (d: TemplateData): string =>
   d.staffInvite?.roleLabel ? ` as ${d.staffInvite.roleLabel}` : ''
 const invitedBy = (d: TemplateData): string => d.staffInvite?.inviterEmail || 'The store owner'

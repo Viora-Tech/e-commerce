@@ -15,6 +15,8 @@ import { formatDay } from '@/lib/analytics-range'
 import { change, formatAxis, formatCell, LOWER_IS_BETTER } from '@/lib/report-format'
 
 type ReportChartProps = {
+  /** Overrides the shape the report declares (the Bar / Line switch). */
+  shape?: ReportDefinition['chart']
   report: ReportDefinition
   data: ReportResult
 }
@@ -37,7 +39,7 @@ function metricColumn(report: ReportDefinition): ReportColumn {
  * dashed behind it, or the top rows as bars. The headline is the metric total
  * and its change.
  */
-export default function ReportChart({ report, data }: ReportChartProps) {
+export default function ReportChart({ report, data, shape }: ReportChartProps) {
   // Render logic
   const c = copy.reports
   const metric = metricColumn(report)
@@ -112,7 +114,7 @@ export default function ReportChart({ report, data }: ReportChartProps) {
         <p className="mt-6 text-kit-body text-muted-foreground">{c.empty}</p>
       ) : (
         <ChartContainer config={config} className="mt-6 aspect-auto h-[16rem] w-full">
-          {report.chart === 'bars' ? (
+          {(shape ?? report.chart) === 'bars' ? (
             <BarChart data={points} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke="var(--border-soft)" />
               {xAxis}

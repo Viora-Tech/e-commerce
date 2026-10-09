@@ -1,76 +1,84 @@
 'use client'
 
+import { parseRupees } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
-import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
+import { useState } from 'react'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
 import { draftTotals } from '@/components/drafts/draft-form-state'
-import DraftMoneyInput from '@/components/drafts/draft-money-input'
-import { draftEditorContent as copy } from '@/data/drafts'
-import { formatPaise } from '@/lib/money'
+import MoneyInput from '@/components/fields/money-input'
+import { draftEditorContent } from '@/data/drafts'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 
 type DraftTotalsCardProps = {
   form: DraftFormState
   onChange: (patch: Partial<DraftFormState>) => void
 }
 
+const paiseToText = (paise: number) => (paise > 0 ? (paise / 100).toFixed(2) : '')
+
+/** The bill (Figma "Payment"): subtotal, an editable discount and shipping, and the total. */
 export default function DraftTotalsCard({ form, onChange }: DraftTotalsCardProps) {
+  // Hooks
+  const copy = useCopy(draftEditorContent)
+  const fmt = useFormat()
+  const [discount, setDiscount] = useState(paiseToText(form.discountPaise))
+  const [shipping, setShipping] = useState(paiseToText(form.shippingPaise))
+
+  // Event handlers
+  const handleDiscount = (value: string) => {
+    setDiscount(value)
+    onChange({ discountPaise: parseRupees(value) ?? 0 })
+  }
+  const handleShipping = (value: string) => {
+    setShipping(value)
+    onChange({ shippingPaise: parseRupees(value) ?? 0 })
+  }
+
   // Render logic
-  const { subtotalPaise, discountPaise, totalPaise } = draftTotals(form)
+  const { subtotalPaise, totalPaise } = draftTotals(form)
 
   return (
     <Card gap={4} inset={5}>
-      <p className="text-kit-card-title text-foreground">{copy.totals.heading}</p>
-      <dl className="flex flex-col gap-2">
-        <div className="flex items-center justify-between text-body">
+      <p className="text-card-title text-ink-strong">{copy.totals.heading}</p>
+      <dl className="flex flex-col gap-3 text-body">
+        <div className="flex items-center justify-between">
           <dt className="text-muted-foreground">{copy.totals.subtotal}</dt>
-          <dd className="tabular-nums">{formatPaise(subtotalPaise)}</dd>
+          <dd className="tabular-nums">{fmt.money(subtotalPaise)}</dd>
         </div>
-        {discountPaise > 0 ? (
-          <div className="flex items-center justify-between text-body">
-            <dt className="text-muted-foreground">{form.discountLabel || copy.totals.discount}</dt>
-            <dd className="tabular-nums text-success">-{formatPaise(discountPaise)}</dd>
-          </div>
-        ) : null}
-        {form.shippingPaise > 0 ? (
-          <div className="flex items-center justify-between text-body">
-            <dt className="text-muted-foreground">{copy.totals.shipping}</dt>
-            <dd className="tabular-nums">{formatPaise(form.shippingPaise)}</dd>
-          </div>
-        ) : null}
-        <div className="flex items-center justify-between border-border border-t pt-2 text-body-strong">
+        <div className="flex items-center justify-between gap-4">
+          <dt className="text-muted-foreground">
+            <label htmlFor="draft-discount">{copy.totals.discount}</label>
+          </dt>
+          <dd className="w-36">
+            <MoneyInput id="draft-discount" value={discount} onChange={handleDiscount} />
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt className="text-muted-foreground">
+            <label htmlFor="draft-discount-label">{copy.totals.discountLabel}</label>
+          </dt>
+          <dd className="w-36">
+            <Input
+              id="draft-discount-label"
+              value={form.discountLabel}
+              onChange={(e) => onChange({ discountLabel: e.target.value })}
+            />
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt className="text-muted-foreground">
+            <label htmlFor="draft-shipping">{copy.totals.shipping}</label>
+          </dt>
+          <dd className="w-36">
+            <MoneyInput id="draft-shipping" value={shipping} onChange={handleShipping} />
+          </dd>
+        </div>
+        <div className="flex items-center justify-between border-line border-t pt-3 font-semibold text-ink-strong">
           <dt>{copy.totals.total}</dt>
-          <dd className="tabular-nums">{formatPaise(totalPaise)}</dd>
+          <dd className="tabular-nums">{fmt.money(totalPaise)}</dd>
         </div>
       </dl>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field>
-          <FieldLabel htmlFor="draft-discount">{copy.totals.discount}</FieldLabel>
-          <DraftMoneyInput
-            id="draft-discount"
-            valuePaise={form.discountPaise}
-            onChangePaise={(discountPaise) => onChange({ discountPaise })}
-            className="text-right tabular-nums"
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="draft-shipping">{copy.totals.shipping}</FieldLabel>
-          <DraftMoneyInput
-            id="draft-shipping"
-            valuePaise={form.shippingPaise}
-            onChangePaise={(shippingPaise) => onChange({ shippingPaise })}
-            className="text-right tabular-nums"
-          />
-        </Field>
-      </div>
-      <Field>
-        <FieldLabel htmlFor="draft-discount-label">{copy.totals.discountLabel}</FieldLabel>
-        <Input
-          id="draft-discount-label"
-          value={form.discountLabel}
-          onChange={(e) => onChange({ discountLabel: e.target.value })}
-        />
-      </Field>
     </Card>
   )
 }

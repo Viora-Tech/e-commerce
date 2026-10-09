@@ -1,11 +1,14 @@
+import StatusChip from '@/components/layout/status-chip'
 import ProductThumb from '@/components/products/product-thumb'
-import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
 import type { productsListContent } from '@/data/products'
 import type { api } from '@/lib/api-client'
 import type { Formatters } from '@/lib/format'
 
 export type ProductRow = Awaited<ReturnType<typeof api.products.list>>['items'][number]
+
+/** At or below this many units a product reads as low on stock (the stock filter uses the same number). */
+const LOW_STOCK_AT = 5
 
 type ListCopy = typeof productsListContent
 
@@ -58,7 +61,12 @@ export const productColumns = (
     id: 'status',
     title: copy.columns.status,
     sortValue: (p) => p.status,
-    render: (p) => <StatusLabel kind="product" value={p.status} />,
+    align: 'center',
+    render: (p) => (
+      <StatusChip tone={p.status === 'draft' ? 'info' : 'neutral'}>
+        {copy.status[p.status]}
+      </StatusChip>
+    ),
   },
   {
     id: 'inventory',
@@ -66,7 +74,15 @@ export const productColumns = (
     sortValue: (p) => p.available,
     render: (p) => (
       <span className="flex flex-col leading-tight">
-        <span className={p.available === 0 ? 'text-destructive' : 'text-foreground'}>
+        <span
+          className={
+            p.available === 0
+              ? 'text-danger'
+              : p.available <= LOW_STOCK_AT
+                ? 'text-warning'
+                : 'text-foreground'
+          }
+        >
           {copy.inStock(p.available)}
         </span>
         <span className="text-caption text-muted-foreground">{copy.variants(p.variantCount)}</span>

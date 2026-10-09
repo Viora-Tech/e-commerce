@@ -10,6 +10,8 @@ const base: Omit<AppSummary, 'id' | 'name' | 'kind' | 'category' | 'company'> = 
   connected: false,
   provides: { payments: [], shipping: [], notifications: [], storage: [] },
   admin: { icon: null, pages: [] },
+  hooks: [],
+  productFields: [],
   credits: [],
 }
 

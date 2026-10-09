@@ -1,12 +1,13 @@
 'use client'
 
-import { Search, Trash2 } from '@commerce/ui/icons'
+import { Search, X } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
 import DraftMoneyInput from '@/components/drafts/draft-money-input'
+import ProductThumb from '@/components/products/product-thumb'
 import { draftEditorContent as copy } from '@/data/drafts'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -88,7 +89,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
   // Render logic
   return (
     <Card gap={4} inset={5}>
-      <p className="text-kit-card-title text-foreground">{copy.products.heading}</p>
+      <p className="text-card-title text-ink-strong">{copy.products.heading}</p>
       <div className="relative">
         <Search className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
         <Input
@@ -121,13 +122,12 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
           {searching ? copy.products.searching : copy.products.empty}
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border">
+        <ul className="flex flex-col divide-y divide-line">
           {lines.map((l) => (
             <li key={l.variantId} className="flex items-center gap-3 py-3 first:pt-0">
+              <ProductThumb url={l.imageUrl ?? null} className="size-10" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-body-strong text-foreground">
-                  {lineTitle(l)}
-                </span>
+                <span className="block truncate font-medium text-ink-strong">{lineTitle(l)}</span>
                 {l.sku ? (
                   <span className="block text-caption text-muted-foreground">{l.sku}</span>
                 ) : null}
@@ -155,7 +155,7 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
                 aria-label={copy.products.remove}
                 onClick={() => handleRemove(l.variantId)}
               >
-                <Trash2 />
+                <X />
               </Button>
             </li>
           ))}

@@ -11,6 +11,7 @@ import {
 } from '@commerce/ui/shadcn/dropdown-menu'
 import type { DragEvent } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 
 export type MediaTileItem = {
   id: string
@@ -33,6 +34,10 @@ type MediaTileProps = {
   cover?: boolean | undefined
   /** Caption under the thumbnail (library usage count). */
   caption?: string | undefined
+  /** Second caption line: type and size. */
+  meta?: string | undefined
+  /** Landscape thumbnail (the Files library) instead of a square. */
+  wide?: boolean | undefined
   actions: MediaTileAction[]
   /** Native drag-and-drop wiring from the grid; absent in the library. */
   drag?:
@@ -47,11 +52,20 @@ type MediaTileProps = {
     | undefined
 }
 
-const copy = mediaContent.tile
-
 const isVideo = (contentType: string | null) => contentType?.startsWith('video/') ?? false
 
-export default function MediaTile({ item, cover, caption, actions, drag }: MediaTileProps) {
+export default function MediaTile({
+  item,
+  cover,
+  caption,
+  meta,
+  wide,
+  actions,
+  drag,
+}: MediaTileProps) {
+  // Hooks
+  const { tile: copy } = useCopy(mediaContent)
+
   // Render logic
   const video = isVideo(item.contentType)
   const primary = actions.filter((a) => !a.destructive)
@@ -73,7 +87,8 @@ export default function MediaTile({ item, cover, caption, actions, drag }: Media
     >
       <div
         className={cn(
-          'relative aspect-square w-full overflow-hidden rounded-lg border bg-muted',
+          'relative w-full overflow-hidden border bg-muted',
+          wide ? 'aspect-[4/3] rounded-xl' : 'aspect-square rounded-lg',
           drag?.target && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
         )}
       >
@@ -122,8 +137,16 @@ export default function MediaTile({ item, cover, caption, actions, drag }: Media
         </DropdownMenu>
       </div>
       {caption ? (
-        <span className="truncate text-caption text-muted-foreground">{caption}</span>
+        <span
+          className={cn(
+            'truncate text-caption',
+            meta ? 'font-medium text-ink-strong' : 'text-muted-foreground',
+          )}
+        >
+          {caption}
+        </span>
       ) : null}
+      {meta ? <span className="truncate text-caption text-muted-foreground">{meta}</span> : null}
     </li>
   )
 }

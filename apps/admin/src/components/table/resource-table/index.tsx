@@ -20,13 +20,13 @@ import {
   type SortingState,
   useTable,
 } from '@tanstack/react-table'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
+import FloatingBar from '@/components/layout/floating-bar'
+import RowActionsCell from '@/components/table/row-actions-cell'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
-import { fast, instant } from '@/lib/motion'
 import {
   type CellAlign,
   defineColumns,
@@ -62,6 +62,8 @@ export type ResourceTableProps<T extends RowData> = {
   perPage: number
   total: number
   onPageChange: (page: number) => void
+  /** Shows the rows-per-page select (10 / 25 / 50 / 100) in the footer. */
+  onPerPageChange?: (perPage: number) => void
   selectable?: boolean
   /** Rendered in the selection bar; call `clear` after a bulk action. */
   bulkActions?: (selectedIds: string[], clear: () => void) => ReactNode
@@ -90,18 +92,21 @@ const ICON_CELL_WIDTH = {
   3: 'w-33 p-0 last:pr-0 md:last:pr-0',
 } as const
 
+/* The 64px row actions column: open arrow and the ⋯ menu. */
+const ACTIONS_WIDTH = 'w-16 p-0 last:pr-2 md:last:pr-2'
+
 const ALIGN: Record<CellAlign, string> = {
   start: 'text-left',
   center: 'text-center',
   end: 'text-right',
 }
 
-/* After the Saleor Dashboard datagrid (BSD-3): a white 40px header on a hairline with small
-   regular labels in ink, 44px rows on thin dividers, cells inset to the page gutter. */
+/* Proofly table (Figma "Table · Header / Row"): 40px header with small muted labels, 48px rows on
+   thin dividers, cells inset to the page gutter. */
 const HEAD =
-  'h-10 border-b border-border bg-card px-3 py-0 text-caption font-normal text-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-10 border-b border-line bg-card px-4 py-0 text-caption font-medium text-muted-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
 const CELL =
-  'h-11 border-b border-line px-3 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-12 border-b border-line px-4 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.
@@ -112,23 +117,37 @@ function tableColumns<T extends RowData>(props: ResourceTableProps<T>) {
   return [
     ...(selectable ? [selectionColumn<T>()] : []),
     ...defineColumns(props.columns),
-    ...(props.rowActions ? [actionsColumn<T>(props.rowActions)] : []),
+    ...(props.rowActions || props.href
+      ? [actionsColumn<T>(props.rowActions, props.href, ACTIONS_WIDTH)]
+      : []),
     ...(props.rowIconCells
-      ? [actionsColumn<T>(props.rowIconCells.render, ICON_CELL_WIDTH[props.rowIconCells.count])]
+      ? [
+          actionsColumn<T>(
+            props.rowIconCells.render,
+            undefined,
+            ICON_CELL_WIDTH[props.rowIconCells.count],
+          ),
+        ]
       : []),
   ]
 }
 
 /** The trailing actions column: unnamed, unsortable and never hidden by the View menu. */
 function actionsColumn<T extends RowData>(
-  render: (item: T) => ReactNode,
-  className = 'w-16',
+  render: ((item: T) => ReactNode) | undefined,
+  href: ((item: T) => string) | undefined,
+  className: string,
 ): ResourceColumn<T> {
   const helper = createColumnHelper<ResourceTableFeatures, T>()
   return helper.display({
     id: '__actions',
     header: () => null,
-    cell: ({ row }) => render(row.original),
+    cell: ({ row }) =>
+      className === ACTIONS_WIDTH ? (
+        <RowActionsCell href={href?.(row.original)}>{render?.(row.original)}</RowActionsCell>
+      ) : (
+        render?.(row.original)
+      ),
     enableSorting: false,
     enableHiding: false,
     meta: { align: 'end', className },
@@ -139,7 +158,6 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   // Hooks
   const tableCopy = useCopy(tableContent)
   const router = useRouter()
-  const reduced = useReducedMotion()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({})
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
@@ -178,32 +196,6 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
       />
-      <AnimatePresence initial={false}>
-        {selectedIds.length > 0 && props.bulkActions ? (
-          <motion.div
-            key="bulk"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={reduced ? instant : fast}
-            className="overflow-hidden"
-          >
-            <div className="flex min-h-11 flex-wrap items-center gap-3 border-b border-border bg-primary-soft/60 px-4 py-1.5 text-body md:px-6">
-              <span className="font-medium text-ink-strong">
-                {tableCopy.selected(
-                  selectedIds.length,
-                  props.resourceName.singular,
-                  props.resourceName.plural,
-                )}
-              </span>
-              {props.bulkActions(selectedIds, clearSelection)}
-              <Button variant="ghost" size="sm" className="ml-auto" onClick={clearSelection}>
-                {tableCopy.clearSelection}
-              </Button>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
       <div className="no-scrollbar overflow-x-auto">
         <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
           <TableHeader className="[&_tr]:border-0">
@@ -241,7 +233,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
                       key={row.id}
                       data-state={row.getIsSelected() ? 'selected' : undefined}
                       className={cn(
-                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-muted/40 data-[state=selected]:bg-primary-soft/50 motion-reduce:transition-none',
+                        'group/row border-0 tabular-nums transition-colors duration-150 hover:bg-muted/50 data-[state=selected]:bg-primary-soft motion-reduce:transition-none',
                         target && 'cursor-pointer',
                       )}
                       onClick={target ? () => router.push(target) : undefined}
@@ -280,7 +272,21 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         perPage={props.perPage}
         total={props.total}
         onPageChange={props.onPageChange}
+        onPerPageChange={props.onPerPageChange}
       />
+      <FloatingBar open={selectedIds.length > 0 && Boolean(props.bulkActions)}>
+        <span className="text-caption font-medium whitespace-nowrap text-foreground">
+          {tableCopy.selected(
+            selectedIds.length,
+            props.resourceName.singular,
+            props.resourceName.plural,
+          )}
+        </span>
+        {props.bulkActions?.(selectedIds, clearSelection)}
+        <Button variant="ghost" size="sm" className="rounded-full" onClick={clearSelection}>
+          {tableCopy.clearSelection}
+        </Button>
+      </FloatingBar>
     </Card>
   )
 }

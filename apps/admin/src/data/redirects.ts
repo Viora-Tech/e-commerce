@@ -8,11 +8,16 @@ export type RedirectListItem = {
 }
 
 export const redirectsContent = {
-  title: 'URL redirects',
+  title: 'Redirects',
+  summary: (n: number) =>
+    n === 0
+      ? 'Send shoppers from an old address to a new one.'
+      : `${n} ${n === 1 ? 'redirect' : 'redirects'} sending visitors to the right page`,
+  resource: { singular: 'redirect', plural: 'redirects' },
   intro:
     'Send shoppers and search engines from an old address to a new one with a permanent (301) redirect.',
   back: 'Menus',
-  add: 'Create URL redirect',
+  add: 'Add redirect',
   viewRedirects: 'URL redirects',
   columns: {
     path: 'Redirect from',

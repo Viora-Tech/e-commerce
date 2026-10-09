@@ -62,11 +62,9 @@ function daysApart(value: Date, now: Date): number {
   return Math.round((istDayNumber(now) - istDayNumber(value)) / DAY_MS)
 }
 
-const DAYS_AGO_LIMIT = 6
-
 /**
- * "Today, 9:15 pm", "Yesterday, 4:02 pm", "3 days ago", then "12 Sept" (the year joins once
- * it is not this year). Pair with `formatDateTime` as a title/tooltip for the exact moment.
+ * "Today 4:05 pm", "Yesterday 9:12 am", then "5 Oct" (the year joins once it is not this
+ * year): the Proofly stamp. Pair with `formatDateTime` as a title/tooltip for the exact moment.
  */
 export function formatWhen(value: Date | string, now = new Date(), locale: Locale = 'en'): string {
   const date = new Date(value)
@@ -76,7 +74,6 @@ export function formatWhen(value: Date | string, now = new Date(), locale: Local
   const at = f.time.format(date).toLowerCase()
   if (days === 0) return copy.todayAt(at)
   if (days === 1) return copy.yesterdayAt(at)
-  if (days > 1 && days <= DAYS_AGO_LIMIT) return copy.daysAgo(days)
   const day = istYear(date) === istYear(now) ? f.dayMonth : f.dayMonthYear
   return day.format(date)
 }
