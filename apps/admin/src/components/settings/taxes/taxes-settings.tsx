@@ -70,6 +70,16 @@ export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: Taxes
       .catch(() => toast.error(copy.loadFailed))
   }, [refreshKey])
 
+  // Report the save state to the page header; `saveRef` always points at the latest handleSave.
+  useEffect(() => {
+    saveRef.current = handleSave
+  })
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `onSaveState` is a state setter.
+  useEffect(() => {
+    const dirty = form !== null && view !== null && !same(form, formOf(view))
+    onSaveState({ dirty, busy, save: () => saveRef.current() })
+  }, [form, view, busy])
+
   // Helpers
   const patch = (p: Partial<TaxesFormState>) => setForm((f) => (f ? { ...f, ...p } : f))
 
@@ -98,17 +108,8 @@ export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: Taxes
     setAttempted(false)
   }
 
-  // Report the save state to the page header; `saveRef` always points at the latest handleSave.
-  const dirty = form !== null && view !== null && !same(form, formOf(view))
-  useEffect(() => {
-    saveRef.current = handleSave
-  })
-  // biome-ignore lint/correctness/useExhaustiveDependencies: report when dirty or busy change; `onSaveState` is a state setter.
-  useEffect(() => {
-    onSaveState({ dirty, busy, save: () => saveRef.current() })
-  }, [dirty, busy])
-
   // Render logic
+  const dirty = form !== null && view !== null && !same(form, formOf(view))
   const errors = form && view && attempted ? validateTaxes(form, view.numbering.lowest) : {}
 
   return (
