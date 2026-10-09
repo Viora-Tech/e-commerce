@@ -7,7 +7,7 @@ import { DragHandle, ROW_STATE_CLASS, SORT_DURATION_MS } from '@commerce/ui/sort
 import { useSortable } from '@dnd-kit/sortable'
 import { AnimatePresence, motion } from 'motion/react'
 import type { MediaTileItem } from '@/components/media/media-tile'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductImageTileProps = {

@@ -25,13 +25,12 @@ import {
   listProductIds,
   listProducts,
   pickProducts,
-  productAdjustments,
   productFacets,
-  productStats,
   searchVariants,
   updateProduct,
   updateVariant,
 } from '../services/product.service'
+import { productAdjustments, productStats } from '../services/product-stats.service'
 
 const ListFiltersSchema = z.object({
   search: z.string().trim().max(SEARCH_MAX).optional(),

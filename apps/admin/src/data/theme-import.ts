@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { ImportStatus, ReportReason, SwapKey } from '@commerce/core/theme-import'
 
 /** Copy for importing a Shopify theme: the upload dialog and the import report. */
@@ -32,11 +33,10 @@ export const themeImportContent = {
   },
   screen: {
     title: 'Import a Shopify theme',
-    subtitle: 'Upload a theme zip and we will rebuild it with your Vextro store',
+    subtitle: `Upload a theme zip and we will rebuild it with your ${siteConfig.brand.name} store`,
     back: 'Themes',
     drop: 'Drop your theme .zip here',
-    dropBody:
-      'We keep the exact look. Cart, checkout, accounts and apps are swapped for Vextro’s own, and you get a plain-words report of what changed.',
+    dropBody: `We keep the exact look. Cart, checkout, accounts and apps are swapped for ${siteConfig.brand.name}’s own, and you get a plain-words report of what changed.`,
     limits: 'Up to 50 MB · .zip exported from Shopify',
     bullets: [
       'Your Shopify store is never touched. We only read the zip you give us.',

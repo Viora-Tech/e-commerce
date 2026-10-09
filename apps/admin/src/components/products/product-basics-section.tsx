@@ -4,7 +4,7 @@ import type { RichTextValue } from '@commerce/richtext'
 import { Input } from '@commerce/ui/shadcn/input'
 import RichTextField from '@/components/fields/rich-text-field'
 import KitField from '@/components/kit/kit-field'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductBasicsSectionProps = {

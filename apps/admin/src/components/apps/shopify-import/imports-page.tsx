@@ -1,7 +1,6 @@
+'use client'
+
 import { siteConfig } from '@commerce/config/site'
-
-;('use client')
-
 import { Store, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'

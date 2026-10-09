@@ -1,4 +1,5 @@
-import { productFormContent, productsListContent, productsSectionsContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
+import { productsListContent, productsSectionsContent } from '@/data/products'
 import { translation } from '@/lib/i18n'
 
 export default [

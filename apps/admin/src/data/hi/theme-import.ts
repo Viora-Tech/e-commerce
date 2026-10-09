@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { themeImportContent } from '@/data/theme-import'
 import { translation } from '@/lib/i18n'
 
@@ -33,11 +34,10 @@ export default [
     },
     screen: {
       title: 'Shopify थीम इंपोर्ट करें',
-      subtitle: 'थीम की zip अपलोड करें, हम उसे आपके Vextro स्टोर के साथ दोबारा बना देंगे',
+      subtitle: `थीम की zip अपलोड करें, हम उसे आपके ${siteConfig.brand.name} स्टोर के साथ दोबारा बना देंगे`,
       back: 'थीम',
       drop: 'अपनी थीम की .zip यहाँ छोड़ें',
-      dropBody:
-        'हम बिल्कुल वही लुक रखते हैं। कार्ट, चेकआउट, अकाउंट और ऐप Vextro के अपने वाले से बदल दिए जाते हैं, और बदलाव की सरल भाषा में रिपोर्ट मिलती है।',
+      dropBody: `हम बिल्कुल वही लुक रखते हैं। कार्ट, चेकआउट, अकाउंट और ऐप ${siteConfig.brand.name} के अपने वाले से बदल दिए जाते हैं, और बदलाव की सरल भाषा में रिपोर्ट मिलती है।`,
       limits: '50 MB तक · Shopify से निकली .zip',
       bullets: [
         'आपके Shopify स्टोर को छुआ नहीं जाता। हम सिर्फ़ वही zip पढ़ते हैं जो आप देते हैं।',

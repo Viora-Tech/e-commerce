@@ -3,7 +3,7 @@
 import { Button } from '@commerce/ui/shadcn/button'
 import type { CSSProperties } from 'react'
 import type { PendingUpload } from '@/components/media/use-upload-queue'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductImagePendingProps = {

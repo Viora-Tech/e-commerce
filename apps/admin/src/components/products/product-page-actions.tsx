@@ -3,7 +3,7 @@
 import { Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 

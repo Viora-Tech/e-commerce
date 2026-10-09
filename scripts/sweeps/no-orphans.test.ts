@@ -145,11 +145,6 @@ const ALLOWLIST: AllowEntry[] = [
     reason: 'no external importer today — investigate before removing',
   },
   {
-    file: 'packages/api/src/services/product.service.ts',
-    names: ['LOW_STOCK_AT'],
-    reason: 'no external importer today — investigate before removing',
-  },
-  {
     file: 'packages/api/src/services/staff.service.ts',
     names: ['assertGrantable'],
     reason: 'no external importer today — investigate before removing',

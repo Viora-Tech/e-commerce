@@ -4,7 +4,7 @@ import { X } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Input } from '@commerce/ui/shadcn/input'
 import { type KeyboardEvent, useId, useState } from 'react'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type TagInputProps = {

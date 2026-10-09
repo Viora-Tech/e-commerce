@@ -2,7 +2,7 @@
 
 import { cn } from '@commerce/ui/lib/utils'
 import { type MouseEvent, useEffect, useState } from 'react'
-import { productFormContent } from '@/data/products'
+import { productFormContent } from '@/data/product-form'
 import { useCopy } from '@/hooks/use-copy'
 
 type ProductSectionNavProps = {

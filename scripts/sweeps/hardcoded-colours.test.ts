@@ -66,6 +66,11 @@ const ALLOWLIST: AllowEntry[] = [
 
 const PALETTE_ALLOWLIST: AllowEntry[] = [
   {
+    file: 'apps/admin/src/components/apps/app-logo.tsx',
+    reason:
+      'one brand gradient per built-in app tile (amber Reviews, blue GST, etc.): each app has its own identity colour that is not a theme role, so no semantic token fits; the glyph on top stays white in both themes',
+  },
+  {
     file: 'apps/admin/src/components/orders/packing-slip.tsx',
     reason:
       'printed packing slip: fixed neutral ink on paper, deliberately not the screen theme (dark mode must not print grey on white)',
