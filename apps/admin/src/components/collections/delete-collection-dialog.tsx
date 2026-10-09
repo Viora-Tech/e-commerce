@@ -10,35 +10,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { productsListContent } from '@/data/products'
+import { collectionFormContent } from '@/data/collections'
 import { useCopy } from '@/hooks/use-copy'
 
-type DeleteProductDialogProps = {
-  product: { id: string; title: string } | null
+type DeleteCollectionDialogProps = {
+  open: boolean
   onCancel: () => void
   onConfirm: () => void
 }
 
-/** Guard behind the table's delete glyph; ordered products are archived, not removed. */
-export default function DeleteProductDialog({
-  product,
+/** Guard before a collection is removed; its products stay in the catalogue. */
+export default function DeleteCollectionDialog({
+  open,
   onCancel,
   onConfirm,
-}: DeleteProductDialogProps) {
+}: DeleteCollectionDialogProps) {
   // Hooks
-  const {
-    bulk: { confirmDelete: copy },
-  } = useCopy(productsListContent)
+  const { delete: copy } = useCopy(collectionFormContent)
 
   // Render logic
   return (
-    <AlertDialog open={product !== null} onOpenChange={(open) => !open && onCancel()}>
+    <AlertDialog open={open} onOpenChange={(next) => !next && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{copy.title(1)}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {product ? `${product.title}. ${copy.body}` : copy.body}
-          </AlertDialogDescription>
+          <AlertDialogTitle>{copy.heading}</AlertDialogTitle>
+          <AlertDialogDescription>{copy.body}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{copy.cancel}</AlertDialogCancel>

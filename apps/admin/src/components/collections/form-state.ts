@@ -6,7 +6,17 @@ import {
   type CollectionWrite,
   emptyCollectionRules,
 } from '@commerce/core/collections'
-import type { PickedProduct } from './collection-products-picker'
+
+/** A product in a manual collection, with what the products table shows. */
+export type PickedProduct = {
+  id: string
+  title: string
+  imageUrl: string | null
+  status: 'draft' | 'active' | 'archived'
+  available: number
+  pricePaiseMin: number | null
+  pricePaiseMax: number | null
+}
 
 /** What `collections.get` returns, narrowed to what the form reads. */
 export type LoadedCollection = {
@@ -23,7 +33,8 @@ export type LoadedCollection = {
   seoDescription: string | null
   templateSuffix: string | null
   status: CollectionStatus
-  products: { id: string; title: string; imageUrl: string | null }[]
+  updatedAt?: Date | string
+  products: PickedProduct[]
 }
 
 export type CollectionFormState = {
@@ -72,7 +83,7 @@ export function fromCollection(c: LoadedCollection): CollectionFormState {
     seoDescription: c.seoDescription ?? '',
     templateSuffix: c.templateSuffix ?? '',
     status: c.status,
-    products: c.products.map((p) => ({ id: p.id, title: p.title, imageUrl: p.imageUrl })),
+    products: c.products,
   }
 }
 

@@ -18,6 +18,20 @@ export const productsListContent = {
   export: 'Export',
   import: 'Import',
   tabs: { all: 'All products' },
+  summary: (total: number, low: number, out: number) =>
+    [
+      `${total} ${total === 1 ? 'product' : 'products'}`,
+      low > 0 ? `${low} low on stock` : null,
+      out > 0 ? `${out} out of stock` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  tiles: {
+    total: 'Total products',
+    low: 'Low stock',
+    out: 'Out of stock',
+    draft: 'Draft',
+  },
   filters: {
     label: 'Filters',
     vendor: 'Vendor',
