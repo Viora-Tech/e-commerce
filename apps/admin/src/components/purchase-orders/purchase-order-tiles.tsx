@@ -1,18 +1,21 @@
 import { formatNumber } from '@commerce/money'
 import StatTile from '@/components/inventory/stat-tile'
 import { purchaseOrdersContent } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import type { api } from '@/lib/api-client'
 
 export type PurchaseOrderCounts = Awaited<ReturnType<typeof api.purchaseOrders.counts>>
 
 type PurchaseOrderTilesProps = { counts: PurchaseOrderCounts }
 
-const copy = purchaseOrdersContent.tiles
-
 /** Drafts, open orders, units on the way and fully received orders. */
 export default function PurchaseOrderTiles({ counts }: PurchaseOrderTilesProps) {
+  // Hooks
+  const { tiles: copy } = useCopy(purchaseOrdersContent)
+
+  // Render logic
   return (
-    <div className="grid grid-cols-2 gap-[0.9375rem] xl:grid-cols-4">
+    <>
       <StatTile title={copy.draft} value={formatNumber(counts.draft)} caption={copy.draftCaption} />
       <StatTile title={copy.open} value={formatNumber(counts.open)} caption={copy.openCaption} />
       <StatTile
@@ -25,6 +28,6 @@ export default function PurchaseOrderTiles({ counts }: PurchaseOrderTilesProps) 
         value={formatNumber(counts.received)}
         caption={copy.receivedCaption}
       />
-    </div>
+    </>
   )
 }

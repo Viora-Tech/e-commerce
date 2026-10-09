@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import CustomizeEditor from '@/components/themes/customize/customize-editor'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { storefrontOrigin } from '@/lib/storefront-origin'
 
 export const metadata: Metadata = { title: 'Customize theme' }
 
@@ -30,6 +31,7 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <CustomizeEditor
       theme={theme}
+      origin={await storefrontOrigin()}
       canPublish={canPublish}
       initial={{
         template: isKind(query.template) ? query.template : 'home',

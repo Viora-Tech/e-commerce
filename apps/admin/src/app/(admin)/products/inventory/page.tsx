@@ -1,6 +1,7 @@
+import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
 import { appRouter, call, serverContext } from '@/lib/api'
-import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import { parseListQuery, type SearchParams } from '@/lib/list-query'
 import InventoryPage from './inventory-page'
 
 export const metadata: Metadata = { title: 'Inventory' }
@@ -21,7 +22,12 @@ export default async function Page({ searchParams }: Props) {
   const [result, stats, facets] = await Promise.all([
     call(
       appRouter.inventory.list,
-      { locationId, page: query.page, perPage: LIST_PER_PAGE, search: query.query || undefined },
+      {
+        locationId,
+        page: query.page,
+        perPage: siteConfig.ui.rowsPerPage.default,
+        search: query.query || undefined,
+      },
       { context },
     ),
     call(appRouter.inventory.stats, { locationId }, { context }),

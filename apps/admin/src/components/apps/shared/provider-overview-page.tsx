@@ -10,12 +10,13 @@
  */
 
 import { CircleCheck } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import StatusChip from '@/components/layout/status-chip'
+import { routes } from '@/lib/routes'
 import {
   type FieldValues,
   loadProviderSettings,
@@ -86,10 +87,10 @@ export default function ProviderOverviewPage({
   // Render logic
   const extraBadges = status && badges ? badges(status.saved) : null
   const connectedBadge = (
-    <Badge variant="outline" className="w-fit gap-1 text-success">
+    <StatusChip className="w-fit gap-1">
       <CircleCheck aria-hidden="true" className="size-3.5" />
       {tested ? copy.connectedAndTested : copy.connected}
-    </Badge>
+    </StatusChip>
   )
 
   return (
@@ -114,7 +115,7 @@ export default function ProviderOverviewPage({
             <p className="text-body text-muted-foreground">{copy.notConnected}</p>
             <Button
               className="w-fit"
-              render={<Link href={`/apps/${providerId}/connect`} />}
+              render={<Link href={routes.apps.connect(providerId)} />}
               nativeButton={false}
             >
               {copy.connectCta}

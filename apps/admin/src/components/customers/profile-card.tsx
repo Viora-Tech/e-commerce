@@ -1,55 +1,91 @@
 'use client'
 
+import { Phone, WhatsappLogo } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
-import { customerDetailContent as copy } from '@/data/customers'
+import { customerDetailContent } from '@/data/customers'
+import { useCopy, useLocale } from '@/hooks/use-copy'
+import { telUrl, whatsappUrl } from '@/lib/customer-contact'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
 
 type ProfileCardProps = {
   customer: CustomerDetail
+  onEdit: () => void
 }
 
-type ContactRowProps = { label: string; value: string | null; what: string; href?: string }
+type ContactRowProps = { label: string; value: string | null; what: string; href?: string | null }
 
 function ContactRow({ label, value, what, href }: ContactRowProps) {
   if (!value) return null
   return (
-    <div className="group/row flex items-center justify-between gap-2 py-1.5">
-      <div className="min-w-0">
-        <p className="text-eyebrow">{label}</p>
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-caption text-muted-foreground">{label}</span>
+      <div className="flex min-w-0 items-center gap-1">
         {href ? (
-          <a href={href} className="block truncate text-body underline-offset-4 hover:underline">
+          <a href={href} className="truncate text-body underline-offset-4 hover:underline">
             {value}
           </a>
         ) : (
-          <p className="truncate text-body">{value}</p>
+          <span className="truncate text-body">{value}</span>
         )}
+        <CopyButton value={value} what={what} visible />
       </div>
-      <CopyButton value={value} what={what} />
     </div>
   )
 }
 
-/** Contact details. Addresses and marketing consent have their own cards. */
-export default function ProfileCard({ customer }: ProfileCardProps) {
+/** Contact details with copy buttons and one-tap WhatsApp and call. Addresses and consent have their own cards. */
+export default function ProfileCard({ customer, onEdit }: ProfileCardProps) {
+  // Hooks
+  const copy = useCopy(customerDetailContent)
+  const locale = useLocale()
+
+  // Render logic
+  const c = copy.profile
+  const chat = whatsappUrl(customer.phone)
+  const call = telUrl(customer.phone)
+
   return (
-    <DataCard title={copy.profile.heading}>
+    <DataCard
+      title={c.heading}
+      className="rounded-xl"
+      action={
+        <Button variant="ghost" size="sm" onClick={onEdit}>
+          {copy.actions.edit}
+        </Button>
+      }
+    >
       <ContactRow
-        label={copy.profile.email}
+        label={c.email}
         value={customer.email}
-        what={copy.profile.email}
-        href={customer.email ? `mailto:${customer.email}` : undefined}
+        what={c.email}
+        href={customer.email ? `mailto:${customer.email}` : null}
       />
-      <ContactRow
-        label={copy.profile.phone}
-        value={customer.phone}
-        what={copy.profile.phone}
-        href={customer.phone ? `tel:${customer.phone}` : undefined}
-      />
-      <p className="mt-4 text-caption text-muted-foreground">
-        {copy.profile.created} {day(customer.createdAt)}
-      </p>
+      <ContactRow label={c.phone} value={customer.phone} what={c.phone} href={call} />
+      <ContactRow label={c.created} value={day(customer.createdAt, locale)} what={c.created} />
+      {chat || call ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {chat ? (
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={chat} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              <WhatsappLogo />
+              {copy.actions.whatsapp}
+            </Button>
+          ) : null}
+          {call ? (
+            <Button variant="outline" size="sm" render={<a href={call} />} nativeButton={false}>
+              <Phone />
+              {copy.actions.call}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </DataCard>
   )
 }

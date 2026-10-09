@@ -1,7 +1,8 @@
+import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
 import { GIFT_CARD_STATES } from '@/data/gift-cards'
 import { appRouter, call, serverContext } from '@/lib/api'
-import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import { parseListQuery, type SearchParams } from '@/lib/list-query'
 import GiftCardsPage from './gift-cards-page'
 
 export const metadata: Metadata = { title: 'Gift cards' }
@@ -16,7 +17,7 @@ export default async function Page({ searchParams }: Props) {
       appRouter.giftCards.list,
       {
         page: query.page,
-        perPage: LIST_PER_PAGE,
+        perPage: siteConfig.ui.rowsPerPage.default,
         q: query.query || undefined,
         state: query.status ?? undefined,
       },

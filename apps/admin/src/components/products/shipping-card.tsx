@@ -25,6 +25,7 @@ import { COUNTRIES } from '@/data/countries'
 import { productFormContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import type { VariantRow } from './form-state'
 
 type ShippingCardProps = {
@@ -224,7 +225,7 @@ export default function ShippingCard({
             </Select>
             <FieldDescription>
               {copy.packageHelp} {singleVariant ? null : `${copy.packageAllVariants} `}
-              <Link href="/settings/shipping" className="underline underline-offset-2">
+              <Link href={routes.settings.shipping()} className="underline underline-offset-2">
                 {copy.packageManage}
               </Link>
             </FieldDescription>

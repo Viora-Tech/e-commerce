@@ -11,6 +11,11 @@ export type DiscountRule = {
   minSubtotalPaise: number | null
   appliesTo: DiscountAppliesTo
   appliesToIds: string[]
+  /**
+   * A different amount per product (`{ productId: value }`, same unit as `value`), taken
+   * off every unit. Empty or null: the single `value` applies the old way.
+   */
+  productValues?: Record<string, number> | null | undefined
   usageLimit: number | null
   usagePerCustomer: number | null
   usedCount: number
@@ -72,6 +77,40 @@ export function eligibleLines(cart: DiscountCart, d: DiscountRule): DiscountCart
   return cart.lines.filter((l) => (l.collectionIds ?? []).some((c) => ids.has(c)))
 }
 
+/**
+ * The per-product amounts when this discount has them, else null. Only product-scoped
+ * percent and fixed discounts can carry them; anything else ignores a stray map.
+ */
+export function perProductValues(
+  d: Pick<DiscountRule, 'appliesTo' | 'method' | 'productValues'>,
+): Record<string, number> | null {
+  if (d.appliesTo !== 'products' || d.method === 'free_shipping') return null
+  const map = d.productValues
+  return map && Object.keys(map).length > 0 ? map : null
+}
+
+/**
+ * What one unit gets off: a fixed amount never more than the unit price, a percent in
+ * basis points of the unit price rounded like the order-level percent.
+ */
+function perUnitAmount(method: 'percent' | 'fixed', value: number, unitPricePaise: number): number {
+  const raw = method === 'percent' ? roundHalfUp((unitPricePaise * value) / 10_000) : value
+  return Math.max(0, Math.min(raw, unitPricePaise))
+}
+
+/** Per-product discount for the eligible lines: each unit's amount times its quantity. */
+function perItemAmount(
+  lines: DiscountCartLine[],
+  method: 'percent' | 'fixed',
+  values: Record<string, number>,
+): number {
+  return lines.reduce((sum, l) => {
+    const value = values[l.productId]
+    if (value === undefined || value <= 0) return sum
+    return sum + perUnitAmount(method, value, l.unitPricePaise) * l.quantity
+  }, 0)
+}
+
 /** Codes are stored upper-cased without surrounding whitespace so lookups are exact. */
 export const normaliseCode = (code: string): string => code.trim().toUpperCase()
 
@@ -110,7 +149,14 @@ export function evaluateDiscount(
   if (d.method === 'free_shipping') {
     return { ok: true, discount: d, amountPaise: 0, freeShipping: true, label: d.title }
   }
-  const raw = d.method === 'percent' ? roundHalfUp((base * d.value) / 10_000) : d.value
+  const perItem = perProductValues(d)
+  const raw = perItem
+    ? perItemAmount(lines, d.method, perItem)
+    : d.method === 'percent'
+      ? roundHalfUp((base * d.value) / 10_000)
+      : d.value
+  // A per-product discount whose cart products all lack an amount gives nothing: not applicable.
+  if (perItem && raw === 0) return reject('no_eligible_items')
   // Never more than the eligible lines are worth, and never more than the cart.
   const amountPaise = Math.max(0, Math.min(raw, base, total))
   return { ok: true, discount: d, amountPaise, freeShipping: false, label: d.title }
@@ -155,13 +201,35 @@ export function applyDiscount(
   }
 }
 
-/** "10% off", "₹200 off", "Free shipping" for admin lists and the checkout summary. */
-export function describeDiscountValue(d: Pick<DiscountRule, 'method' | 'value'>): string {
+const percentText = (bp: number): string => {
+  const pct = bp / 100
+  return `${Number.isInteger(pct) ? pct : pct.toFixed(2).replace(/0+$/, '')}%`
+}
+
+const rupeeText = (paise: number): string => {
+  const rupees = paise / 100
+  return `₹${Number.isInteger(rupees) ? rupees : rupees.toFixed(2)}`
+}
+
+/**
+ * "10% off", "₹200 off", "Free shipping" for admin lists and the checkout summary. A
+ * per-product discount reads "₹200 to ₹300 off each item" (or one amount when all match).
+ */
+export function describeDiscountValue(
+  d: Pick<DiscountRule, 'method' | 'value'> &
+    Partial<Pick<DiscountRule, 'appliesTo' | 'productValues'>>,
+): string {
   if (d.method === 'free_shipping') return 'Free shipping'
-  if (d.method === 'percent') {
-    const pct = d.value / 100
-    return `${Number.isInteger(pct) ? pct : pct.toFixed(2).replace(/0+$/, '')}% off`
-  }
-  const rupees = d.value / 100
-  return `₹${Number.isInteger(rupees) ? rupees : rupees.toFixed(2)} off`
+  const text = d.method === 'percent' ? percentText : rupeeText
+  const perItem = perProductValues({
+    appliesTo: d.appliesTo ?? 'all',
+    method: d.method,
+    productValues: d.productValues,
+  })
+  if (!perItem) return `${text(d.value)} off`
+  const values = Object.values(perItem)
+  const low = Math.min(...values)
+  const high = Math.max(...values)
+  const amount = low === high ? text(low) : `${text(low)} to ${text(high)}`
+  return `${amount} off each item`
 }

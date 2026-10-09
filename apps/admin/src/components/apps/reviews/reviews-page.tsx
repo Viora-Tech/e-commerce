@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { CircleCheck, EyeOff, Trash2 } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
@@ -13,6 +14,7 @@ import ResourceTable from '@/components/table/resource-table'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AskReviewsButton from './ask-reviews-button'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 import { reviewColumns } from './review-columns'
@@ -24,7 +26,6 @@ type ListResult = Awaited<ReturnType<typeof api.reviews.list>>
 type Products = Awaited<ReturnType<typeof api.reviews.products>>
 
 const STATUSES = ['pending', 'published', 'hidden'] as const
-const PER_PAGE = 20
 
 /** Apps, Reviews: tiles, status tabs, search and filters over every review, bulk approve or hide. */
 export default function ReviewsPage() {
@@ -54,6 +55,7 @@ function ReviewsList() {
   const [loading, setLoading] = useState(true)
   const [version, setVersion] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
   const [deleting, setDeleting] = useState<{ ids: string[]; clear: () => void } | null>(null)
   // biome-ignore lint/correctness/useExhaustiveDependencies: `version` re-runs the load after a change
   useEffect(() => {
@@ -62,7 +64,7 @@ function ReviewsList() {
     api.reviews
       .list({
         page: q.page,
-        perPage: PER_PAGE,
+        perPage,
         q: q.query || undefined,
         status: q.status ?? undefined,
         rating: q.rating ?? undefined,
@@ -75,7 +77,7 @@ function ReviewsList() {
     return () => {
       cancelled = true
     }
-  }, [q.page, q.query, q.status, q.rating, q.product, q.photos, version, copy.list.failed])
+  }, [q.page, q.query, q.status, q.rating, q.product, q.photos, perPage, version, copy.list.failed])
   useEffect(() => {
     api.reviews
       .products()
@@ -156,14 +158,14 @@ function ReviewsList() {
             <Button
               variant="outline"
               nativeButton={false}
-              render={<Link href="/apps/reviews/import" />}
+              render={<Link href={routes.apps.page('reviews', 'import')} />}
             >
               {copy.list.importJudgeme}
             </Button>
             <Button
               variant="outline"
               nativeButton={false}
-              render={<Link href="/apps/reviews/settings" />}
+              render={<Link href={routes.apps.page('reviews', 'settings')} />}
             >
               {copy.list.settings}
             </Button>
@@ -171,13 +173,21 @@ function ReviewsList() {
           </>
         }
       />
-      {result ? <ReviewTiles stats={stats} /> : <div className="h-[6.5rem]" />}
+      {result ? (
+        <ReviewTiles
+          stats={stats}
+          status={q.status}
+          onStatus={(status) => setQ({ status, page: 1 })}
+        />
+      ) : (
+        <div className="h-[6.5rem]" />
+      )}
       <ResourceTable
         resourceName={copy.list.resource}
         columns={reviewColumns(copy)}
         items={result?.rows ?? []}
         getId={(r) => r.id}
-        href={(r) => `/apps/reviews/reviews/${r.id}`}
+        href={(r) => routes.apps.page('reviews', 'reviews', r.id)}
         loading={loading && !result}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
@@ -204,7 +214,11 @@ function ReviewsList() {
         }
         applied={applied}
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={perPage}
+        onPerPageChange={(next) => {
+          setPerPage(next)
+          setQ({ page: 1 })
+        }}
         total={result?.total ?? 0}
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (

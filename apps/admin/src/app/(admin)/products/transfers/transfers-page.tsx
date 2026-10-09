@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { permissions } from '@commerce/core/permissions'
 import { Plus, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -11,16 +12,17 @@ import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } f
 import { Suspense, useEffect, useState } from 'react'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
 import type { StoreLocation } from '@/components/inventory/location-select'
-import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable from '@/components/table/resource-table'
 import SingleLocation from '@/components/transfers/single-location'
 import { transferColumns } from '@/components/transfers/transfer-columns'
 import { TRANSFER_STATUSES, type TransferStatus, transfersContent } from '@/data/inventory'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.transfers.list>>
 
@@ -32,8 +34,8 @@ export type TransfersInitial = {
   locations: StoreLocation[]
 }
 
-const PER_PAGE = LIST_PER_PAGE
-const NEW_HREF = '/products/transfers/new'
+const PER_PAGE = siteConfig.ui.rowsPerPage.default
+const NEW_HREF = routes.products.newTransfer()
 const copy = transfersContent
 
 function TransfersContent({ initial }: { initial: TransfersInitial }) {
@@ -45,6 +47,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(PER_PAGE),
       status: parseAsStringLiteral(TRANSFER_STATUSES),
     },
     { shallow: true },
@@ -55,13 +58,13 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
-    if (sameListQuery(q, initial.query)) return
+    if (sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.transfers
       .list({
         page: q.page,
-        perPage: PER_PAGE,
+        perPage: q.perPage,
         search: q.query || undefined,
         status: q.status ?? undefined,
       })
@@ -83,7 +86,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
     <Tooltip>
       <TooltipTrigger
         render={
-          <Button size="lg" render={<Link href={NEW_HREF} />} nativeButton={false}>
+          <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
             <SquarePlus strokeWidth={1.6} />
             {copy.create}
           </Button>
@@ -96,17 +99,20 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
   )
 
   return (
-    <KitListPage title={copy.heading} actions={single ? undefined : create}>
+    <ProoflyListPage
+      title={copy.heading}
+      summary={copy.summary}
+      actions={single ? undefined : create}
+    >
       {single && initial.allCount === 0 ? (
         <SingleLocation canAdd={canWrite} onAdd={() => setAdding(true)} />
       ) : (
         <ResourceTable
-          size="frame"
           resourceName={copy.resource}
           columns={transferColumns}
           items={rows}
           getId={(r) => r.id}
-          href={(r) => `/products/transfers/${r.id}`}
+          href={(r) => routes.products.transfer(r.id)}
           loading={loading}
           selectable={false}
           query={q.query}
@@ -114,6 +120,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
           onClearAll={() => setQ({ query: '', status: null, page: 1 })}
           tabs={
             <PillTabs
+              variant="pill"
               value={q.status}
               onChange={(status) => setQ({ status, page: 1 })}
               tabs={[
@@ -123,7 +130,8 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
             />
           }
           page={q.page}
-          perPage={PER_PAGE}
+          perPage={q.perPage}
+          onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
           total={total}
           onPageChange={(page) => setQ({ page })}
           empty={{
@@ -143,7 +151,7 @@ function TransfersContent({ initial }: { initial: TransfersInitial }) {
         onOpenChange={setAdding}
         onCreated={() => router.refresh()}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 

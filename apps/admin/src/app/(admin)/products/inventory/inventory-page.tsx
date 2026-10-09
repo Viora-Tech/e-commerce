@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { permissions } from '@commerce/core/permissions'
 import { Download, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -19,9 +20,10 @@ import {
 } from '@/components/inventory/inventory-columns'
 import InventoryFilters from '@/components/inventory/inventory-filters'
 import InventoryStrip from '@/components/inventory/inventory-strip'
-import type { InventoryStats } from '@/components/inventory/inventory-tiles'
+import InventoryTiles, { type InventoryStats } from '@/components/inventory/inventory-tiles'
 import type { StoreLocation } from '@/components/inventory/location-select'
-import KitListPage from '@/components/kit/kit-list-page'
+import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
 import {
   inventoryContent,
@@ -30,9 +32,11 @@ import {
   STOCK_STATES,
   type StockState,
 } from '@/data/inventory'
+import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery } from '@/lib/list-query'
+import type { ListQuery } from '@/lib/list-query'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.inventory.list>>
 type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
@@ -49,14 +53,14 @@ export type InventoryInitial = {
 
 type Query = {
   page: number
+  perPage: number
   query: string
   stock: StockState | null
   vendor: string | null
   productType: string | null
 }
 
-const PER_PAGE = LIST_PER_PAGE
-const copy = inventoryContent
+const PER_PAGE = siteConfig.ui.rowsPerPage.default
 
 function listFilters(locationId: string, q: Query) {
   return {
@@ -71,26 +75,29 @@ function listFilters(locationId: string, q: Query) {
 /** One page of rows plus the tiles for the same location. */
 function fetchPage(locationId: string, q: Query) {
   return Promise.all([
-    api.inventory.list({ ...listFilters(locationId, q), page: q.page, perPage: PER_PAGE }),
+    api.inventory.list({ ...listFilters(locationId, q), page: q.page, perPage: q.perPage }),
     api.inventory.stats({ locationId }),
   ])
 }
 
-const EMPTY = {
-  heading: copy.empty.heading,
-  body: copy.empty.body,
-  action: (
-    <Button render={<Link href="/products/new" />} nativeButton={false}>
-      <Plus />
-      {copy.empty.action}
-    </Button>
-  ),
+function emptyState(copy: typeof inventoryContent) {
+  return {
+    heading: copy.empty.heading,
+    body: copy.empty.body,
+    action: (
+      <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
+        <Plus />
+        {copy.empty.action}
+      </Button>
+    ),
+  }
 }
 
 function untouched(initial: InventoryInitial, locationId: string, q: Query) {
   return (
     locationId === initial.locationId &&
     q.page === initial.query.page &&
+    q.perPage === PER_PAGE &&
     q.query === initial.query.query &&
     !q.stock &&
     !q.vendor &&
@@ -100,12 +107,14 @@ function untouched(initial: InventoryInitial, locationId: string, q: Query) {
 
 function InventoryContent({ initial }: { initial: InventoryInitial }) {
   // Hooks
+  const copy = useCopy(inventoryContent)
   const { hasPermission } = usePermissions()
   const [q, setQ] = useQueryStates(
     {
       location: parseAsString,
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(PER_PAGE),
       stock: parseAsStringLiteral(STOCK_STATES),
       vendor: parseAsString,
       productType: parseAsString,
@@ -236,37 +245,37 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
   const filtered = applied.length > 0 || q.query !== ''
 
   return (
-    <KitListPage
+    <ProoflyListPage
       title={copy.heading}
+      summary={copy.summary(stats.skus, stats.outOfStock)}
       actions={
         <>
-          <Button variant="outline" size="lg" onClick={handleExport} disabled={busy}>
+          <Button variant="outline" onClick={handleExport} disabled={busy}>
             <Download strokeWidth={1.6} />
             {copy.export}
           </Button>
           {canEdit ? (
-            <Button variant="outline" size="lg" onClick={() => setAddingLocation(true)}>
+            <Button variant="outline" onClick={() => setAddingLocation(true)}>
               <Plus strokeWidth={1.6} />
               {locationsContent.add}
             </Button>
           ) : null}
         </>
       }
-      strip={
+      stats={<InventoryTiles stats={stats} />}
+      controls={
         <InventoryStrip
           locations={locations}
           locationId={locationId}
           onLocationChange={(location) => setQ({ location, page: 1 })}
           reason={canEdit ? reason : null}
           onReasonChange={setReason}
-          stats={stats}
         />
       }
     >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
-        columns={inventoryColumns({ canEdit, onCommit: commitRow, onHistory: setHistory })}
+        columns={inventoryColumns({ copy, canEdit, onCommit: commitRow, onHistory: setHistory })}
         items={rows}
         getId={(r) => r.variantId}
         loading={loading}
@@ -284,15 +293,28 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
           />
         }
         applied={applied}
+        tabs={
+          <PillTabs
+            variant="pill"
+            value={q.stock === 'out' || q.stock === 'low' ? q.stock : null}
+            onChange={(stock) => setQ({ stock, page: 1 })}
+            tabs={[
+              { value: null, label: copy.tabs.all, count: stats.skus },
+              { value: 'out', label: copy.tabs.out, count: stats.outOfStock },
+              { value: 'low', label: copy.tabs.low, count: stats.lowStock },
+            ]}
+          />
+        }
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={q.perPage}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         total={total}
         onPageChange={(page) => setQ({ page })}
         selectable={canEdit}
         bulkActions={(ids, clear) => (
           <InventoryBulkActions busy={busy} onPick={(mode) => setBulk({ mode, ids, clear })} />
         )}
-        empty={filtered ? { heading: copy.noMatch } : EMPTY}
+        empty={filtered ? { heading: copy.noMatch } : emptyState(copy)}
       />
 
       <InventoryBulkDialog
@@ -314,7 +336,7 @@ function InventoryContent({ initial }: { initial: InventoryInitial }) {
         onOpenChange={setAddingLocation}
         onCreated={handleLocationCreated}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 

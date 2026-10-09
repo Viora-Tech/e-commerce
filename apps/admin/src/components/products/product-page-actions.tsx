@@ -1,12 +1,11 @@
 'use client'
 
-import { Plus, Save, Search } from '@commerce/ui/icons'
-import { Input } from '@commerce/ui/shadcn/input'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import KitButton from '@/components/kit/kit-button'
+import { Plus } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
 import { productFormContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 
 type ProductPageActionsProps = {
   busy: boolean
@@ -14,7 +13,7 @@ type ProductPageActionsProps = {
   onSaveDraft: () => void
 }
 
-/** Frame 5:5252 and 5:5104: product search, then publish, save to draft and a fresh form. */
+/** Header actions of a product: start another, save to draft, and the one key button, publish. */
 export default function ProductPageActions({
   busy,
   onPublish,
@@ -22,49 +21,25 @@ export default function ProductPageActions({
 }: ProductPageActionsProps) {
   // Hooks
   const copy = useCopy(productFormContent)
-  const router = useRouter()
-  const [search, setSearch] = useState('')
-
-  // Event handlers
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault()
-    const query = search.trim()
-    router.push(query ? `/products?query=${encodeURIComponent(query)}` : '/products')
-  }
 
   // Render logic
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <form onSubmit={handleSearch} className="relative w-full min-w-0 sm:w-60">
-        <Search
-          className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <Input
-          size="kit"
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={copy.searchPlaceholder}
-          aria-label={copy.searchPlaceholder}
-          className="pl-8"
-        />
-      </form>
-      <KitButton
-        variant="secondary"
-        href="/products/new"
+    <>
+      <Button
+        variant="outline"
+        size="icon"
         aria-label={copy.addAnother}
-        className="size-9 min-w-0 px-0"
+        render={<Link href={routes.products.new()} />}
+        nativeButton={false}
       >
-        <Plus className="size-4" aria-hidden="true" />
-      </KitButton>
-      <KitButton variant="secondary" onClick={onSaveDraft} disabled={busy}>
-        <Save className="size-4" aria-hidden="true" />
+        <Plus aria-hidden />
+      </Button>
+      <Button variant="outline" onClick={onSaveDraft} disabled={busy}>
         {copy.saveDraft}
-      </KitButton>
-      <KitButton variant="primary" onClick={onPublish} disabled={busy}>
+      </Button>
+      <Button onClick={onPublish} loading={busy}>
         {copy.publish}
-      </KitButton>
-    </div>
+      </Button>
+    </>
   )
 }

@@ -1,7 +1,24 @@
-import { Users } from '@commerce/ui/icons'
-import SectionEmpty from '@/components/layout/section-empty'
+import { Button } from '@commerce/ui/shadcn/button'
+import Link from 'next/link'
+import PageBody from '@/components/layout/page-body'
+import PageState from '@/components/states/page-state'
 import { segmentsContent } from '@/data/customers'
 
 export default function NotFound() {
-  return <SectionEmpty {...segmentsContent.notFound} icon={Users} />
+  const { heading, body, action } = segmentsContent.notFound
+
+  return (
+    <PageBody width="narrow">
+      <PageState
+        kind="not-found"
+        heading={heading}
+        body={body}
+        action={
+          <Button render={<Link href={action.href} />} nativeButton={false}>
+            {action.label}
+          </Button>
+        }
+      />
+    </PageBody>
+  )
 }

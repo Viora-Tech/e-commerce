@@ -16,6 +16,7 @@ import AddThemeDialog from './add-theme-dialog'
 import CurrentThemeCard from './current-theme-card'
 import DeleteThemeDialog from './delete-theme-dialog'
 import ImportThemeDialog from './import-theme-dialog'
+import OnlineStoreTabs from './online-store-tabs'
 import RenameThemeDialog from './rename-theme-dialog'
 import type { ThemeAction } from './theme-actions-menu'
 import ThemeLibraryRow from './theme-library-row'
@@ -26,8 +27,6 @@ type ThemesLibraryProps = {
   origin: string
   canPublish: boolean
 }
-
-const copy = themesContent.library
 
 /** Live first, then the library by last saved, as the server orders them. */
 function order(themes: ThemeItem[]): ThemeItem[] {
@@ -59,6 +58,8 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   const [adding, setAdding] = useState(false)
   const [importing, setImporting] = useState(false)
   const importCopy = useCopy(themeImportContent)
+  const { title } = useCopy(themesContent)
+  const copy = useCopy(themesContent.library)
   const [renaming, setRenaming] = useState<ThemeItem | null>(null)
   const [deleting, setDeleting] = useState<ThemeItem | null>(null)
 
@@ -128,7 +129,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
   return (
     <PageBody>
       <PageHeader
-        title={themesContent.title}
+        title={title}
         subtitle={copy.subtitle}
         actions={
           <>
@@ -143,6 +144,7 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
           </>
         }
       />
+      <OnlineStoreTabs active="themes" />
       {live ? (
         <CurrentThemeCard
           theme={live}
@@ -157,7 +159,25 @@ export default function ThemesLibrary({ initial, origin, canPublish }: ThemesLib
           <CardDescription>{copy.libraryBody}</CardDescription>
         </CardHeader>
         {library.length === 0 ? (
-          <p className="px-5 py-6 text-body text-muted-foreground">{copy.libraryEmpty}</p>
+          <div className="flex flex-col items-center gap-1 px-5 py-10 text-center">
+            <p className="text-body font-semibold text-foreground">{copy.emptyTitle}</p>
+            <p className="text-body text-muted-foreground">{copy.emptyBody}</p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              {live ? (
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => handleAction(live, 'duplicate')}
+                >
+                  {copy.duplicateCurrent}
+                </Button>
+              ) : null}
+              <Button variant="outline" disabled={busy} onClick={() => setAdding(true)}>
+                <Plus aria-hidden />
+                {copy.addFromPreset}
+              </Button>
+            </div>
+          </div>
         ) : (
           <ul className="divide-y divide-border">
             {library.map((t) => (
