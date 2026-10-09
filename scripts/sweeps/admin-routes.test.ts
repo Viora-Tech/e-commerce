@@ -14,7 +14,6 @@ import { hardcodedAdminHrefs } from './consistency'
 
 /** file -> hardcoded href count on the day the sweep was added (the TODO count). */
 const ALLOWLIST: Record<string, number> = {
-  'apps/admin/src/app/(admin)/apps/[pluginId]/[[...path]]/page.tsx': 2,
   'apps/admin/src/app/(admin)/content/blog-posts/blog-posts-page.tsx': 4,
   'apps/admin/src/app/(admin)/content/menus/page.tsx': 1,
   'apps/admin/src/app/(admin)/content/menus/redirects/page.tsx': 1,
@@ -54,7 +53,6 @@ const ALLOWLIST: Record<string, number> = {
   'apps/admin/src/components/analytics/report-view.tsx': 1,
   'apps/admin/src/components/analytics/reports-list.tsx': 1,
   'apps/admin/src/components/analytics/top-products-card.tsx': 1,
-  'apps/admin/src/components/apps/app-shell.tsx': 1,
   'apps/admin/src/components/apps/decentro/overview-page.tsx': 2,
   'apps/admin/src/components/apps/emi/settings-page.tsx': 1,
   'apps/admin/src/components/apps/gst-invoices/invoice-detail.tsx': 1,

@@ -132,3 +132,11 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 - Licences: `@shadcn/lint` MIT (shadcn) — https://github.com/shadcn-ui/lint ;
   `oxlint` MIT (oxc project) — https://github.com/oxc-project/oxc. Installed as dev
   dependencies; no code copied.
+
+## Third-party app logos (trademarks)
+
+- Used in: `apps/admin/public/app-logos/` (Apps page, install step): Cashfree, Decentro, Delhivery,
+  RapidShyp, Razorpay and Shiprocket logos.
+- These are trademarks of their owners, shown only to identify the integration. No endorsement is
+  implied. Taken from the approved design file; replace with each company's brand-kit asset if they
+  supply one.

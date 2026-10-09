@@ -5,6 +5,7 @@ import AppShell from '@/components/apps/app-shell'
 import SectionEmpty from '@/components/layout/section-empty'
 import { appsContent } from '@/data/apps'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
 
 type Params = { params: Promise<{ pluginId: string; path?: string[] }> }
@@ -20,7 +21,7 @@ export default async function AppPage({ params }: Params) {
   if (!registered) notFound()
   const context = await serverContext()
   const apps = await call(appRouter.apps.list, undefined, { context }).catch(orNoStore(undefined))
-  if (apps === undefined) redirect('/select-store')
+  if (apps === undefined) redirect(routes.selectStore())
   const app = apps.find((a) => a.id === pluginId)
   if (!app) notFound()
   if (!app.installed) {
@@ -28,7 +29,7 @@ export default async function AppPage({ params }: Params) {
       <SectionEmpty
         heading={app.name}
         body={appsContent.installFirst}
-        action={{ label: appsContent.openApps, href: '/apps' }}
+        action={{ label: appsContent.openApps, href: routes.apps.list() }}
         icon={Puzzle}
       />
     )

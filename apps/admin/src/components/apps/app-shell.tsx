@@ -1,12 +1,14 @@
-import { InfoIcon, Settings } from '@commerce/ui/icons'
+import { ArrowLeft, Settings } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import { appIcon } from '@/apps/registry'
 import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import { appsContent as copy } from '@/data/apps'
+import StatusChip from '@/components/layout/status-chip'
+import { appsContent } from '@/data/apps'
+import { getCopy } from '@/lib/copy-server'
+import { routes } from '@/lib/routes'
+import AppLogo from './app-logo'
 
 type AppShellProps = {
   appId: string
@@ -24,10 +26,16 @@ type AppShellProps = {
 }
 
 const hrefFor = (appId: string, path: string) =>
-  path ? `/apps/${appId}/${path}` : `/apps/${appId}`
+  path ? routes.apps.page(appId, ...path.split('/')) : routes.apps.page(appId)
 
 /** Small "Built with X (licence)" line under the app description. */
-function CreditLine({ credits }: { credits: AppShellProps['credits'] }) {
+function CreditLine({
+  credits,
+  copy,
+}: {
+  credits: AppShellProps['credits']
+  copy: typeof appsContent
+}) {
   if (credits.length === 0) return null
   return (
     <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-caption text-muted-foreground">
@@ -49,7 +57,7 @@ function CreditLine({ credits }: { credits: AppShellProps['credits'] }) {
 }
 
 /** Header for an installed app's pages: the premium PageHeader, then its own tabs. */
-export default function AppShell({
+export default async function AppShell({
   appId,
   name,
   icon,
@@ -61,47 +69,44 @@ export default function AppShell({
   children,
 }: AppShellProps) {
   // Render logic
-  const Icon = appIcon(icon)
+  const copy = await getCopy(appsContent)
   const section = active.split('/')[0] ?? ''
 
   return (
     <PageBody>
       <div className="flex flex-col gap-4 border-b border-border pb-0">
-        <PageHeader
-          title={name}
-          subtitle={
-            <span className="flex flex-col gap-1">
-              {description ? <span>{description}</span> : null}
-              <CreditLine credits={credits} />
-            </span>
-          }
-          icon={<Icon className="size-4" />}
-          actions={
-            <>
-              {hasSettings ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  nativeButton={false}
-                  render={<Link href={hrefFor(appId, 'settings')} />}
-                >
-                  <Settings />
-                  Settings
-                </Button>
-              ) : null}
+        <Link
+          href={routes.apps.list()}
+          className="flex w-fit items-center gap-1 text-body text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden="true" />
+          {copy.title}
+        </Link>
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+          <AppLogo id={appId} icon={icon} size={72} />
+          <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-page-title text-ink-strong">{name}</h1>
+              <StatusChip className="h-5 text-xs">{copy.active}</StatusChip>
+            </div>
+            {description ? (
+              <p className="text-caption text-muted-foreground">{description}</p>
+            ) : null}
+            <CreditLine credits={credits} copy={copy} />
+          </div>
+          <div className="flex items-center gap-2">
+            {hasSettings ? (
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 nativeButton={false}
-                render={<Link href="/apps" />}
-                aria-label="Help with this app"
+                render={<Link href={hrefFor(appId, 'settings')} />}
               >
-                <InfoIcon />
-                Help
+                <Settings />
+                {copy.settings}
               </Button>
-            </>
-          }
-        />
+            ) : null}
+          </div>
+        </div>
         <nav aria-label={name} className="-mb-px flex gap-1 overflow-x-auto">
           {tabs.map((t) => {
             const on = t.path === section
