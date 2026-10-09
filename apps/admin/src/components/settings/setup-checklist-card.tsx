@@ -1,6 +1,6 @@
 'use client'
 
-import { Check } from '@commerce/ui/icons'
+import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
@@ -82,7 +82,7 @@ export default function SetupChecklistCard() {
                     aria-label={copy.doneLabel}
                     className="flex size-5 shrink-0 items-center justify-center rounded-full bg-accent text-action"
                   >
-                    <Check aria-hidden="true" className="size-3" />
+                    <CheckIcon aria-hidden="true" className="size-3" />
                   </span>
                 ) : (
                   <span
