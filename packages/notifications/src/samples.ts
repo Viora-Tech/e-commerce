@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import type { TemplateData, TemplateId } from './types'
 
 /** Sample order used by the conformance suite, the dev preview and the admin's message preview. */
@@ -245,11 +246,11 @@ export const sampleTemplateDataByTemplate: Record<TemplateId, TemplateData> = {
     taxBreakdown: undefined,
     totalLabel: '',
     storeAddress: undefined,
-    actionUrl: 'https://admin.vextro.example/accept-invitation/sample',
+    actionUrl: `https://admin.${siteConfig.brand.domain}/accept-invitation/sample`,
     staffInvite: {
       inviterEmail: 'owner@waimers.example',
       roleLabel: 'Staff',
-      platformName: 'Vextro',
+      platformName: siteConfig.brand.name,
     },
   },
 }

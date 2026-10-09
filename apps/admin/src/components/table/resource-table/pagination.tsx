@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { ChevronLeftIcon, ChevronRightIcon } from '@commerce/ui/icons'
 import { tableContent } from '@/data/table'
 import { useCopy } from '@/hooks/use-copy'
@@ -9,18 +10,21 @@ type PaginationProps = {
   perPage: number
   total: number
   onPageChange: (page: number) => void
+  /** Shows the rows-per-page select (options from `siteConfig.ui.rowsPerPage`) when given. */
+  onPerPageChange?: ((perPage: number) => void) | undefined
 }
 
-/* Pager after the Saleor Dashboard datagrid footer (BSD-3): the visible range on the
-   left, page position and two 32px arrow buttons on the right. */
+/* Table footer (Figma "Table · Footer"): "Showing x-y of n" on the left; rows per page, page x of
+   y and two arrow buttons on the right. */
 const ARROW =
-  'flex size-8 items-center justify-center rounded-md border border-input bg-card text-foreground transition-colors hover:border-border-strong hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
+  'flex size-8 items-center justify-center rounded-md border border-hairline bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
 
 export default function ResourceTablePagination({
   page,
   perPage,
   total,
   onPageChange,
+  onPerPageChange,
 }: PaginationProps) {
   // Hooks
   const tableCopy = useCopy(tableContent)
@@ -33,10 +37,26 @@ export default function ResourceTablePagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex min-h-13 items-center justify-between gap-3 px-4 py-2.5 text-body md:px-6 text-muted-foreground"
+      className="flex min-h-13 items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-body text-muted-foreground md:px-6"
     >
-      <span className="tabular-nums">{tableCopy.range(from, to, total)}</span>
+      <span className="tabular-nums">{tableCopy.showing(from, to, total)}</span>
       <div className="flex items-center gap-3">
+        {onPerPageChange ? (
+          <label className="hidden items-center gap-2 sm:flex">
+            <span>{tableCopy.rowsPerPage}</span>
+            <select
+              value={perPage}
+              onChange={(e) => onPerPageChange(Number(e.target.value))}
+              className="h-8 rounded-md border border-hairline bg-card px-2 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {siteConfig.ui.rowsPerPage.options.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <span className="hidden tabular-nums sm:inline">{tableCopy.pageOf(page, totalPages)}</span>
         <div className="flex items-center gap-1.5">
           <button

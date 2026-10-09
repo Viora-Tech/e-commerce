@@ -25,41 +25,28 @@ const Toaster = ({ ...props }: ToasterProps) => {
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       position="bottom-right"
-      richColors
       offset={20}
       gap={10}
       duration={4000}
       closeButton
       style={
         {
-          '--normal-bg': 'var(--popover)',
+          '--normal-bg': 'var(--raised)',
           '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
+          '--normal-border': 'var(--hairline)',
           '--border-radius': 'var(--radius)',
-          /* richColors tints the whole toast; keep the kit hues rather than sonner's defaults. */
-          '--success-bg': 'color-mix(in oklab, var(--success) 12%, var(--popover))',
-          '--success-border': 'color-mix(in oklab, var(--success) 35%, var(--popover))',
-          '--success-text': 'var(--success)',
-          '--warning-bg': 'color-mix(in oklab, var(--warning) 16%, var(--popover))',
-          '--warning-border': 'color-mix(in oklab, var(--warning) 40%, var(--popover))',
-          '--warning-text': 'var(--warning-foreground)',
-          '--error-bg': 'color-mix(in oklab, var(--destructive) 10%, var(--popover))',
-          '--error-border': 'color-mix(in oklab, var(--destructive) 32%, var(--popover))',
-          '--error-text': 'var(--destructive)',
-          '--info-bg': 'color-mix(in oklab, var(--info) 10%, var(--popover))',
-          '--info-border': 'color-mix(in oklab, var(--info) 32%, var(--popover))',
-          '--info-text': 'var(--info)',
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
+          /* Proofly toast: raised surface, hairline, Elevation/2; the status shows only in the icon. */
           toast:
-            'cn-toast !rounded-lg !border-border !shadow-popover !px-4 !py-3 !gap-3 !text-body',
-          title: '!font-medium',
-          description: '!text-caption !opacity-80',
-          actionButton: '!bg-primary !text-primary-foreground !rounded-md !text-caption',
+            'cn-toast !rounded-lg !border-hairline !bg-raised !shadow-popover !px-4 !py-3 !gap-3 !text-body [&[data-type=success]_[data-icon]]:text-success [&[data-type=error]_[data-icon]]:text-danger [&[data-type=warning]_[data-icon]]:text-warning [&[data-type=info]_[data-icon]]:text-info',
+          title: '!font-medium !text-foreground',
+          description: '!text-caption !text-muted-foreground',
+          actionButton: '!bg-primary-soft !text-link !rounded-md !text-caption !font-medium',
           cancelButton: '!bg-muted !text-muted-foreground !rounded-md !text-caption',
-          closeButton: '!border-border !bg-card !text-muted-foreground hover:!text-foreground',
+          closeButton: '!border-hairline !bg-raised !text-muted-foreground hover:!text-foreground',
         },
       }}
       {...props}

@@ -116,12 +116,14 @@ import {
   PencilSimpleLine,
   BookmarkSimple as PhBookmarkSimple,
   Clock as PhClock,
+  Compass as PhCompass,
   Cookie as PhCookie,
   Diamond as PhDiamond,
   Globe as PhGlobe,
   HandHeart as PhHandHeart,
   Headphones as PhHeadphones,
   Images as PhImages,
+  Lock as PhLock,
   Monitor as PhMonitor,
   Palette as PhPalette,
   ShoppingBag as PhShoppingBag,
@@ -150,6 +152,7 @@ import {
   TextAlignLeft,
   TextT,
   ToggleLeft,
+  Translate,
   Trash,
   Tray,
   TreeStructure,
@@ -166,6 +169,7 @@ import {
   WarningDiamond,
   WarningOctagon,
   WhatsappLogo,
+  WifiSlash,
   X,
   XCircle,
   YoutubeLogo,
@@ -273,6 +277,11 @@ export const Moon_ = defineIcon(Moon, 'Moon')
 export { Moon_ as Moon }
 export const MoonIcon = Moon_
 export const LogOut = defineIcon(SignOut, 'LogOut') // kit user card
+/* Page states: offline, no access, not found; and the language switch. */
+export const WifiOff = defineIcon(WifiSlash, 'WifiOff')
+export const Lock = defineIcon(PhLock, 'Lock')
+export const Compass = defineIcon(PhCompass, 'Compass')
+export const Language = defineIcon(Translate, 'Language')
 /** "Report a bug" (test server only): the account menu item and the floating button. */
 export const BugIcon = defineIcon(Bug, 'BugIcon')
 /* Kit 5:1384 "arrow-menu-close": a bar on the right with a chevron pointing at it. Mirror with `-scale-x-100` when collapsed. */

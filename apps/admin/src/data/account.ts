@@ -1,5 +1,6 @@
 import type { LucideIcon } from '@commerce/ui/icons'
 import { Palette, UserRound } from '@commerce/ui/icons'
+import { routes } from '@/lib/routes'
 
 export type AccountPage = { href: string; title: string; icon: LucideIcon }
 
@@ -8,8 +9,8 @@ export type AccountPage = { href: string; title: string; icon: LucideIcon }
  * Settings until October 2026; the old Settings addresses redirect here (lib/settings-redirects).
  */
 export const ACCOUNT_PAGES: AccountPage[] = [
-  { href: '/account', title: 'Account', icon: UserRound },
-  { href: '/account/appearance', title: 'Appearance', icon: Palette },
+  { href: routes.account.home(), title: 'Account', icon: UserRound },
+  { href: routes.account.appearance(), title: 'Appearance', icon: Palette },
 ]
 
 /** Copy for Account: the signed-in member's own preferences. */

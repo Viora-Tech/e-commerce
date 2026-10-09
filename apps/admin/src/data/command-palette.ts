@@ -1,5 +1,6 @@
 import type { LucideIcon } from '@commerce/ui/icons'
 import { Plus, Settings } from '@commerce/ui/icons'
+import { routes } from '@/lib/routes'
 import { ACCOUNT_PAGES } from './account'
 import { NAV_GROUPS, SETTINGS_NAV } from './navigation'
 import { SETTINGS_SECTIONS } from './settings'
@@ -23,9 +24,9 @@ export const commandContent = {
 
 /** `G` then a second key jumps straight to a section, Gmail-style. */
 export const GO_TO_ROUTES: Record<string, string> = {
-  o: '/orders',
-  p: '/products',
-  c: '/customers',
+  o: routes.orders.list(),
+  p: routes.products.list(),
+  c: routes.customers.list(),
 }
 
 export const shortcutsContent = {
@@ -59,10 +60,10 @@ export const shortcutsContent = {
 
 /** Create shortcuts, the palette's "Actions" group. */
 export const CREATE_LINKS: PaletteLink[] = [
-  { label: 'Create product', href: '/products/new', icon: Plus },
-  { label: 'Create order', href: '/orders/drafts', icon: Plus },
-  { label: 'Create discount', href: '/discounts/new', icon: Plus },
-  { label: 'Create collection', href: '/products/collections/new', icon: Plus },
+  { label: 'Create product', href: routes.products.new(), icon: Plus },
+  { label: 'Create order', href: routes.orders.drafts(), icon: Plus },
+  { label: 'Create discount', href: routes.discounts.new(), icon: Plus },
+  { label: 'Create collection', href: routes.products.newCollection(), icon: Plus },
 ]
 
 /** Every rail page and sub-page, each Settings section, and your own account pages. */

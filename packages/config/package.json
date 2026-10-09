@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/env.ts",
+    "./site": "./src/site.ts",
     "./test-env": "./src/test-env.ts",
     "./tsconfig.base.json": "./tsconfig.base.json"
   },

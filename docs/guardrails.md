@@ -273,6 +273,20 @@ every package that depends on core adds it to its `test`/`typecheck` `dependsOn`
 depends on core has no such `turbo.json`. Without it, editing a plugin would replay a stale
 cached pass for core, the API and the apps.
 
+### v. `admin-routes` (`scripts/sweeps/admin-routes.test.ts`)
+
+Admin URLs live once in `apps/admin/src/lib/routes.ts` (`routes.orders.detail(id)`). A string
+literal admin path in an `href` or in `redirect` / `push` / `replace` under `apps/admin/src` is a
+hardcoded one. Ratchet by **count per file**: a new one (or one more in a listed file) fails;
+migrating one means lowering that file's number, and a stale (too high) number fails too.
+`data/settings-search.ts` keeps hash and query links (`/settings/taxes?tab=...#x`) until `routes`
+grows a query helper.
+
+### w. `site-config` (`scripts/sweeps/site-config.test.ts`)
+
+The brand name (`siteConfig.brand.name`, `packages/config/src/site.ts`) may not appear as a
+literal string or JSX text anywhere else (tests and the docs app excepted). Not allow-listed.
+
 ## `server-only`
 
 The `server-only` npm package throws unconditionally when the bundler resolving it does

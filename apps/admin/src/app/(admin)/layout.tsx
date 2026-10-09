@@ -6,17 +6,18 @@ import AdminFrame from '@/components/admin-frame'
 import AccentStyle from '@/components/layout/accent-style'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { auth, getSession } from '@/lib/auth'
+import { routes } from '@/lib/routes'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 import SelectStore from './select-store/select-store'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getSession()
-  if (!session) redirect('/login')
+  if (!session) redirect(routes.login())
 
   const orgs = await auth().api.listOrganizations({ headers: await headers() })
   // No store at all yet: send them to create one, which shows the invite-only
   // screen instead of the wizard when they are not allowed to sign up.
-  if (orgs.length === 0) redirect('/onboarding')
+  if (orgs.length === 0) redirect(routes.onboarding())
   const activeId =
     (session.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null
   const active = orgs.find((o) => o.id === activeId) ?? null

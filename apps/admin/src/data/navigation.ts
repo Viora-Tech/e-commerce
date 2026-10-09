@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { type Permission, permissions } from '@commerce/core/permissions'
 import type { LucideIcon } from '@commerce/ui/icons'
 import {
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   Users,
 } from '@commerce/ui/icons'
+import { routes } from '@/lib/routes'
 
 export type NavChild = { href: string; label: string; permission?: Permission }
 
@@ -30,98 +32,105 @@ export type NavGroup = { label?: string; items: NavItem[] }
 /** Installed apps with their own pages are listed under this group's Apps entry. */
 export const APPS_GROUP = 'Apps'
 
+/** Heading of the pinned group holding Settings. */
+export const SETTINGS_GROUP = 'Settings'
+
 /**
  * Sidebar sections, in Shopify's order. Route structure mirrors Shopify's
  * admin so merchants coming from it find everything where they expect.
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Main menu',
+    label: 'Workspace',
     items: [
-      { href: '/', label: 'Home', icon: Home },
+      { href: routes.home(), label: 'Home', icon: Home },
       {
-        href: '/orders',
+        href: routes.orders.list(),
         label: 'Orders',
         icon: ShoppingBag,
         permission: permissions.ORDERS_READ,
         children: [
-          { href: '/orders/drafts', label: 'Drafts', permission: permissions.DRAFTS_READ },
+          { href: routes.orders.drafts(), label: 'Drafts', permission: permissions.DRAFTS_READ },
           {
-            href: '/orders/abandoned-checkouts',
+            href: routes.orders.abandonedCheckouts(),
             label: 'Abandoned checkouts',
             permission: permissions.ORDERS_READ,
           },
-          { href: '/orders/shipments', label: 'Shipments', permission: permissions.ORDERS_READ },
-          { href: '/orders/returns', label: 'Returns', permission: permissions.ORDERS_READ },
+          {
+            href: routes.orders.shipments(),
+            label: 'Shipments',
+            permission: permissions.ORDERS_READ,
+          },
+          { href: routes.orders.returns(), label: 'Returns', permission: permissions.ORDERS_READ },
         ],
       },
       {
-        href: '/products',
+        href: routes.products.list(),
         label: 'Products',
         icon: Package,
         permission: permissions.PRODUCTS_READ,
         children: [
-          { href: '/products/collections', label: 'Collections' },
+          { href: routes.products.collections(), label: 'Collections' },
           {
-            href: '/products/inventory',
+            href: routes.products.inventory(),
             label: 'Inventory',
             permission: permissions.INVENTORY_READ,
           },
           {
-            href: '/products/purchase-orders',
+            href: routes.products.purchaseOrders(),
             label: 'Purchase orders',
             permission: permissions.INVENTORY_READ,
           },
           {
-            href: '/products/transfers',
+            href: routes.products.transfers(),
             label: 'Transfers',
             permission: permissions.INVENTORY_READ,
           },
-          { href: '/products/gift-cards', label: 'Gift cards' },
+          { href: routes.products.giftCards(), label: 'Gift cards' },
         ],
       },
       {
-        href: '/customers',
+        href: routes.customers.list(),
         label: 'Customers',
         icon: Users,
         permission: permissions.CUSTOMERS_READ,
-        children: [{ href: '/customers/segments', label: 'Segments' }],
+        children: [{ href: routes.customers.segments(), label: 'Segments' }],
       },
       {
-        href: '/content',
+        href: routes.content.home(),
         label: 'Content',
         icon: FolderOpen,
         permission: permissions.CONTENT_READ,
         children: [
-          { href: '/content/files', label: 'Files' },
-          { href: '/content/metaobjects', label: 'Content types' },
-          { href: '/content/menus', label: 'Menus' },
-          { href: '/content/blog-posts', label: 'Blog posts' },
+          { href: routes.content.files(), label: 'Files' },
+          { href: routes.content.contentTypes(), label: 'Content types' },
+          { href: routes.content.menus(), label: 'Menus' },
+          { href: routes.content.blogPosts(), label: 'Blog posts' },
         ],
       },
       {
-        href: '/analytics',
+        href: routes.analytics.home(),
         label: 'Analytics',
         icon: BarChart3,
         permission: permissions.ANALYTICS_READ,
         children: [
-          { href: '/analytics/reports', label: 'Reports' },
-          { href: '/analytics/live', label: 'Live view' },
+          { href: routes.analytics.reports(), label: 'Reports' },
+          { href: routes.analytics.live(), label: 'Live view' },
         ],
       },
       {
-        href: '/growth',
+        href: routes.growth.home(),
         label: 'Growth',
         icon: TrendingUp,
         permission: permissions.MARKETING_READ,
         children: [
-          { href: '/growth/campaigns', label: 'Campaigns' },
-          { href: '/growth/automations', label: 'Automations' },
-          { href: '/growth/links', label: 'Links' },
+          { href: routes.growth.campaigns(), label: 'Campaigns' },
+          { href: routes.growth.automations(), label: 'Automations' },
+          { href: routes.growth.links(), label: 'Links' },
         ],
       },
       {
-        href: '/discounts',
+        href: routes.discounts.list(),
         label: 'Discounts',
         icon: BadgePercent,
         permission: permissions.DISCOUNTS_READ,
@@ -132,27 +141,34 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Sales channels',
     items: [
       {
-        href: '/online-store',
-        label: 'Online Store',
+        href: routes.onlineStore.home(),
+        label: 'Online store',
         icon: Store,
         permission: permissions.ONLINE_STORE_READ,
         children: [
-          { href: '/online-store/themes', label: 'Themes' },
-          { href: '/online-store/pages', label: 'Pages' },
-          { href: '/online-store/preferences', label: 'Preferences' },
+          { href: routes.onlineStore.themes(), label: 'Themes' },
+          { href: routes.onlineStore.pages(), label: 'Pages' },
+          { href: routes.onlineStore.preferences(), label: 'Preferences' },
         ],
       },
     ],
   },
   {
     label: APPS_GROUP,
-    items: [{ href: '/apps', label: 'Apps', icon: Blocks, permission: permissions.SETTINGS_READ }],
+    items: [
+      {
+        href: routes.apps.list(),
+        label: 'Apps',
+        icon: Blocks,
+        permission: permissions.SETTINGS_READ,
+      },
+    ],
   },
 ]
 
 /** Pinned to the bottom of the rail, like Shopify. */
 export const SETTINGS_NAV: NavItem = {
-  href: '/settings',
+  href: routes.settings.home(),
   label: 'Settings',
   icon: Settings,
   permission: permissions.SETTINGS_READ,
@@ -164,20 +180,39 @@ export const navigationContent = {
   allStores: 'All stores',
   storesAvailable: (n: number) => `${n} available`,
   viewStore: 'View store',
-  signOut: 'Sign out',
+  signOut: 'Log out',
   collapse: 'Collapse sidebar',
-  adminGroup: 'Admin',
+  expand: 'Expand sidebar',
+  togglePanel: 'Show or hide the sidebar',
+  settingsGroup: 'Settings',
   expandSection: (label: string) => `Show ${label} pages`,
   collapseSection: (label: string) => `Hide ${label} pages`,
   search: {
     placeholder: 'Search orders, products or customers',
+    field: `Search or ask ${siteConfig.brand.name} AI…`,
     shortcut: '⌘K',
+    askAi: 'Ask AI',
     empty: 'Nothing matches',
     orders: 'Orders',
     products: 'Products',
     orderLabel: (n: number, who: string | null) => `#${n}${who ? `, ${who}` : ''}`,
   },
+  storeRole: { owner: 'Owner', member: 'Team member' },
+  switchStore: 'Switch store',
+  openStoreAddress: (domain: string) => `Open ${domain}`,
+  usage: {
+    title: 'Orders this month',
+    of: (used: string, limit: string) => `${used} of ${limit}`,
+    moreRoom: (plan: string) => `More room on ${plan} plan`,
+  },
   account: 'Account',
+  menu: {
+    settings: 'Settings',
+    help: 'Help on WhatsApp',
+    language: 'Language',
+    english: 'English',
+    hindi: 'हिंदी',
+  },
   toggleTheme: 'Toggle theme',
   openMenu: 'Open menu',
   notifications: { label: 'Notifications', empty: 'Nothing to catch up on.' },
@@ -185,7 +220,7 @@ export const navigationContent = {
 
 /** A section is active for its own path and everything nested under it; home only for itself. */
 export function isSectionActive(pathname: string, item: NavItem): boolean {
-  if (item.href === '/') return pathname === item.href
+  if (item.href === routes.home()) return pathname === item.href
   return pathname === item.href || pathname.startsWith(`${item.href}/`)
 }
 
