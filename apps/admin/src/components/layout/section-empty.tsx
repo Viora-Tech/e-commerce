@@ -25,7 +25,7 @@ export default function SectionEmpty({ heading, body, action, icon }: SectionEmp
           icon={icon}
           action={
             action ? (
-              <Button variant="outline" render={<Link href={action.href} />}>
+              <Button nativeButton={false} variant="outline" render={<Link href={action.href} />}>
                 {action.label}
               </Button>
             ) : undefined

@@ -126,7 +126,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
                   {row.help}
                 </p>
               </div>
-              <Button variant="outline" render={<Link href={row.href} />}>
+              <Button variant="outline" nativeButton={false} render={<Link href={row.href} />}>
                 {row.cta}
               </Button>
             </li>

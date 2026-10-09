@@ -169,7 +169,12 @@ export default function CollectPaymentDialog({
           </div>
           <DialogFooter>
             {gateway ? (
-              <Button type="button" variant="outline" render={<Link href={payHref} />}>
+              <Button
+                nativeButton={false}
+                type="button"
+                variant="outline"
+                render={<Link href={payHref} />}
+              >
                 {copy.collectDialog.openPayPage}
               </Button>
             ) : null}
