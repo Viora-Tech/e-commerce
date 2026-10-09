@@ -21,6 +21,7 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { blogsManageContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 export type EditableBlog = {
@@ -38,12 +39,12 @@ type BlogDialogProps = {
   onSaved: (blog: { id: string; title: string }) => void
 }
 
-const copy = blogsManageContent
 const POLICIES = CommentPolicySchema.options
 
 /** Create or edit a blog: title, handle and comment policy. */
 export default function BlogDialog({ open, blog, onOpenChange, onSaved }: BlogDialogProps) {
   // Hooks
+  const copy = useCopy(blogsManageContent)
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
   const [policy, setPolicy] = useState<CommentPolicy>('disabled')

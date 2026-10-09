@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { blogListContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 
 type ConfirmDeleteArticlesProps = {
   count: number
@@ -20,8 +21,6 @@ type ConfirmDeleteArticlesProps = {
   onConfirm: () => void
 }
 
-const copy = blogListContent.bulk.confirmDelete
-
 /** Guard in front of deleting blog posts, one or many. */
 export default function ConfirmDeleteArticles({
   count,
@@ -30,6 +29,11 @@ export default function ConfirmDeleteArticles({
   onOpenChange,
   onConfirm,
 }: ConfirmDeleteArticlesProps) {
+  // Hooks
+  const {
+    bulk: { confirmDelete: copy },
+  } = useCopy(blogListContent)
+
   // Render logic
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

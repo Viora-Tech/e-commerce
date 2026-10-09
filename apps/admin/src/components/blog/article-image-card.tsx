@@ -9,6 +9,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 import MediaPickDialog from '@/components/media/media-pick-dialog'
 import { articleFormContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 
 type ImagePatch = { imageMediaId?: string | null; imageUrl?: string | null; imageAlt?: string }
 
@@ -18,11 +19,10 @@ type ArticleImageCardProps = {
   onChange: (patch: ImagePatch) => void
 }
 
-const copy = articleFormContent.image
-
 /** Featured image from the media library, with its alt text. */
 export default function ArticleImageCard({ imageUrl, imageAlt, onChange }: ArticleImageCardProps) {
   // Hooks
+  const { image: copy } = useCopy(articleFormContent)
   const [picking, setPicking] = useState(false)
 
   // Event handlers

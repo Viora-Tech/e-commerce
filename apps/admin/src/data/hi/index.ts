@@ -8,6 +8,9 @@ import businessGst from './business-gst'
 import checkoutSettings from './checkout-settings'
 import collections from './collections'
 import common from './common'
+import content from './content'
+import contentBlog from './content-blog'
+import contentFiles from './content-files'
 import customers from './customers'
 import dates from './dates'
 import domains from './domains'
@@ -50,6 +53,9 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...businessGst,
   ...checkoutSettings,
   ...common,
+  ...content,
+  ...contentBlog,
+  ...contentFiles,
   ...customers,
   ...dates,
   ...domains,

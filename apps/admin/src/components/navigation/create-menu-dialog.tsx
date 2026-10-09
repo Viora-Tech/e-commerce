@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type CreateMenuDialogProps = {
@@ -29,10 +30,9 @@ type CreateMenuDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = menusContent.create
-
 export default function CreateMenuDialog({ open, onOpenChange }: CreateMenuDialogProps) {
   // Hooks
+  const { create: copy } = useCopy(menusContent)
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [handle, setHandle] = useState('')
