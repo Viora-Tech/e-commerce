@@ -8,12 +8,12 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import RangePicker from '@/components/analytics/range-picker'
 import ChartCard from '@/components/layout/chart-card'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { growthOverviewContent as copy } from '@/data/growth'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import BestSourceCallout from './best-source-callout'
 import GrowthKpiTile from './growth-kpi-tile'
 import SourceOrChannelCard from './source-or-channel-card'
@@ -61,7 +61,7 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   // Event handlers
   const handleRange = (next: RangeState) => {
     setRange(next)
-    window.history.replaceState(null, '', `/growth${rangeQuery(next)}`)
+    window.history.replaceState(null, '', `${routes.growth.home()}${rangeQuery(next)}`)
   }
 
   // Render logic
@@ -69,23 +69,20 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
   return (
-    <PageBody width="frame" className="gap-5">
-      <PageHeader
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
+      <ProoflyPageHeader
         title={copy.title}
-        subtitle={copy.intro}
+        summary={copy.intro}
         actions={
           <div className="flex items-center gap-2">
             <RangePicker value={range} onChange={handleRange} />
-            <Button render={<Link href="/growth/campaigns" />} nativeButton={false}>
+            <Button render={<Link href={routes.growth.campaigns()} />} nativeButton={false}>
               {copy.createCampaign}
             </Button>
           </div>
         }
       />
-      <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-        aria-busy={loading || undefined}
-      >
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-busy={loading || undefined}>
         {data.kpis.map((kpi) => (
           <GrowthKpiTile key={kpi.id} kpi={kpi} />
         ))}
@@ -110,7 +107,7 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
         <TopCampaignsCard rows={data.campaigns} />
       </div>
       <section className="flex flex-col gap-3">
-        <h2 className="text-kit-title text-foreground">{copy.shortcuts.title}</h2>
+        <h2 className="text-card-title text-ink-strong">{copy.shortcuts.title}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map((s) => (
             <Link key={s.href} href={s.href} className="group">
@@ -121,14 +118,14 @@ export default function GrowthOverviewPage({ initialRange, initial }: GrowthOver
               >
                 <s.icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
                 <div className="flex flex-col gap-1">
-                  <p className="text-kit-body font-medium text-foreground">{s.title}</p>
-                  <p className="text-kit-mini text-muted-foreground">{s.body}</p>
+                  <p className="text-body-strong text-foreground">{s.title}</p>
+                  <p className="text-caption text-muted-foreground">{s.body}</p>
                 </div>
               </Card>
             </Link>
           ))}
         </div>
       </section>
-    </PageBody>
+    </div>
   )
 }

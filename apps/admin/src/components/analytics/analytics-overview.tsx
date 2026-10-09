@@ -3,14 +3,14 @@
 import type { AnalyticsOverview } from '@commerce/api'
 import { useEffect, useState } from 'react'
 import ChartCard from '@/components/layout/chart-card'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import { methodLabel } from '@/components/orders/order-detail-types'
 import { analyticsContent as copy } from '@/data/analytics'
 import { INDIAN_STATES } from '@/data/india'
 import { formatDay, type RangeState, rangeQuery, sameRange } from '@/lib/analytics-range'
 import { api } from '@/lib/api-client'
 import { formatPaiseCompact } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import BreakdownCard, { type BreakdownRow } from './breakdown-card'
 import FunnelCard from './funnel-card'
 import KpiTile from './kpi-tile'
@@ -80,7 +80,7 @@ export default function AnalyticsOverviewPage({
   // Event handlers
   const handleRange = (next: RangeState) => {
     setRange(next)
-    window.history.replaceState(null, '', `/analytics${rangeQuery(next)}`)
+    window.history.replaceState(null, '', `${routes.analytics.home()}${rangeQuery(next)}`)
   }
 
   // Render logic
@@ -88,16 +88,13 @@ export default function AnalyticsOverviewPage({
   const weekPoints = data.salesOverTime.week.map((p) => ({ ...p, label: formatDay(p.label) }))
 
   return (
-    <PageBody width="frame" className="gap-5">
-      <PageHeader
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
+      <ProoflyPageHeader
         title={copy.title}
-        subtitle={copy.intro}
+        summary={copy.intro}
         actions={<RangePicker value={range} onChange={handleRange} />}
       />
-      <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
-        aria-busy={loading || undefined}
-      >
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3" aria-busy={loading || undefined}>
         {data.kpis.map((kpi) => (
           <KpiTile key={kpi.id} kpi={kpi} />
         ))}
@@ -128,6 +125,6 @@ export default function AnalyticsOverviewPage({
           empty={copy.paymentMethods.empty}
         />
       </div>
-    </PageBody>
+    </div>
   )
 }

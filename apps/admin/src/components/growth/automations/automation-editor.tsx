@@ -29,13 +29,13 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { blockId } from '@/components/growth/campaigns/form-state'
 import type { TemplatesResult } from '@/components/growth/campaigns/whatsapp-template-card'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { automationEditorContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import AutomationRunsCard from './automation-runs-card'
 import AutomationStepCard from './automation-step-card'
 import AutomationTriggerCard from './automation-trigger-card'
@@ -138,7 +138,7 @@ export default function AutomationEditor({
     setBusy(true)
     await api.marketing.automations.delete({ id: automation.id })
     toast.success(copy.deleted)
-    router.push('/growth/automations')
+    router.push(routes.growth.automations())
     router.refresh()
   }
 
@@ -167,7 +167,7 @@ export default function AutomationEditor({
   ]
 
   return (
-    <PageBody width="wide">
+    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
       <SaveBar
         open={dirty}
         message={copy.saveBar.message}
@@ -177,12 +177,9 @@ export default function AutomationEditor({
         onDiscard={() => setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <PageHeader
+      <ProoflyPageHeader
         title={form.name}
-        breadcrumbs={[
-          { label: copy.breadcrumb, href: '/growth/automations' },
-          { label: form.name },
-        ]}
+        back={{ label: copy.breadcrumb, href: routes.growth.automations() }}
         actions={
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 text-body" htmlFor="automation-on">
@@ -283,6 +280,6 @@ export default function AutomationEditor({
         busy={busy}
         onConfirm={handleDelete}
       />
-    </PageBody>
+    </div>
   )
 }

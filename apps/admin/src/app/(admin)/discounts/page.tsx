@@ -1,7 +1,8 @@
+import { siteConfig } from '@commerce/config/site'
 import type { Metadata } from 'next'
 import { DISCOUNT_LIFECYCLES } from '@/data/discounts'
 import { appRouter, call, serverContext } from '@/lib/api'
-import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import { parseListQuery, type SearchParams } from '@/lib/list-query'
 import DiscountsPage from './discounts-page'
 
 export const metadata: Metadata = { title: 'Discounts' }
@@ -16,7 +17,7 @@ export default async function Page({ searchParams }: Props) {
       appRouter.discounts.list,
       {
         page: query.page,
-        perPage: LIST_PER_PAGE,
+        perPage: siteConfig.ui.rowsPerPage.default,
         search: query.query || undefined,
         lifecycle: query.status ?? undefined,
       },

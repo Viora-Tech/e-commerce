@@ -2,7 +2,6 @@
 
 import { AUTOMATION_TEMPLATES, type AutomationTemplateId } from '@commerce/core/marketing'
 import { formatNumber } from '@commerce/money'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import {
@@ -17,12 +16,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import StatusChip from '@/components/layout/status-chip'
 import { automationsContent as copy } from '@/data/marketing-automations'
 import { campaignReportContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 
 type Item = Awaited<ReturnType<typeof api.marketing.automations.list>>[number]
 
@@ -40,7 +40,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
     try {
       const row = await api.marketing.automations.create({ template })
       toast.success(copy.created)
-      router.push(`/growth/automations/${row.id}`)
+      router.push(routes.growth.automation(row.id))
     } finally {
       setBusy(null)
     }
@@ -51,18 +51,17 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
   const c = copy.columns
 
   return (
-    <PageBody className="gap-6">
-      <PageHeader title={copy.title} subtitle={copy.intro} />
+    <ProoflyListPage title={copy.title} summary={copy.intro}>
       <Card gap="none" inset={5}>
-        <p className="text-kit-title text-foreground">{copy.listTitle}</p>
+        <p className="text-card-title text-ink-strong">{copy.listTitle}</p>
         {automations.length === 0 ? (
-          <p className="mt-4 text-kit-body text-muted-foreground">{copy.empty}</p>
+          <p className="mt-4 text-body text-muted-foreground">{copy.empty}</p>
         ) : (
           <Table className="mt-3">
             <TableHeader>
               <TableRow>
                 <TableHead>{c.name}</TableHead>
-                <TableHead>{c.status}</TableHead>
+                <TableHead className="text-center">{c.status}</TableHead>
                 <TableHead className="text-right">{c.runs}</TableHead>
                 <TableHead className="text-right">{c.sent}</TableHead>
                 <TableHead className="text-right">{c.clickRate}</TableHead>
@@ -75,7 +74,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
                 <TableRow key={a.id}>
                   <TableCell className="max-w-80 whitespace-normal">
                     <Link
-                      href={`/growth/automations/${a.id}`}
+                      href={routes.growth.automation(a.id)}
                       className="flex flex-col hover:underline"
                     >
                       <span className="text-body-strong">{a.name}</span>
@@ -84,10 +83,8 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
                       </span>
                     </Link>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={a.status === 'active' ? 'default' : 'secondary'}>
-                      {copy.status[a.status]}
-                    </Badge>
+                  <TableCell className="text-center">
+                    <StatusChip>{copy.status[a.status]}</StatusChip>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(a.stats.runs)}
@@ -112,7 +109,7 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
       </Card>
       <section className="flex flex-col gap-3">
         <div>
-          <h2 className="text-kit-title text-foreground">{copy.templatesTitle}</h2>
+          <h2 className="text-card-title text-ink-strong">{copy.templatesTitle}</h2>
           <p className="text-caption text-muted-foreground">{copy.templatesIntro}</p>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -145,6 +142,6 @@ export default function AutomationsPage({ automations }: AutomationsPageProps) {
         </div>
         <p className="text-caption text-muted-foreground">{copy.browseNote}</p>
       </section>
-    </PageBody>
+    </ProoflyListPage>
   )
 }

@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
+import { routes } from '@/lib/routes'
 import type { CampaignForm } from './form-state'
 
 type CampaignSettingsCardProps = {
@@ -77,7 +78,7 @@ export default function CampaignSettingsCard({
             <FieldDescription>
               {reach === null ? ' ' : copy.audience.reach(reach, form.kind)}{' '}
               {form.kind === 'email' ? copy.audience.consentEmail : copy.audience.consentWhatsapp}{' '}
-              <Link href="/customers/segments" className="underline">
+              <Link href={routes.customers.segments()} className="underline">
                 {copy.audience.manageSegments}
               </Link>
             </FieldDescription>

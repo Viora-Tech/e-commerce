@@ -42,7 +42,7 @@ export default function RangePicker({ value, onChange }: RangePickerProps) {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           render={
-            <Button variant={value.key === 'custom' ? 'default' : 'outline'} size="sm">
+            <Button variant="outline" size="sm">
               {value.key === 'custom' ? `${value.from} to ${value.to}` : copy.ranges.custom}
             </Button>
           }
