@@ -1,3 +1,4 @@
+import { siteConfig } from '@commerce/config/site'
 import { navigationContent } from '@/data/navigation'
 import { translation } from '@/lib/i18n'
 
@@ -114,9 +115,10 @@ export const hindiPageNames: Record<string, { title: string; body?: string }> = 
 
 /** Sidebar group headings, keyed by their English label. */
 export const hindiNavGroups: Record<string, string> = {
-  'Main menu': 'मेन मेन्यू',
+  Workspace: 'वर्कस्पेस',
   'Sales channels': 'सेल्स चैनल',
   Apps: 'ऐप्स',
+  Settings: 'सेटिंग',
 }
 
 export default [
@@ -126,20 +128,39 @@ export default [
     allStores: 'सभी स्टोर',
     storesAvailable: (n) => `${n} उपलब्ध`,
     viewStore: 'स्टोर देखें',
-    signOut: 'साइन आउट',
+    signOut: 'लॉग आउट',
     collapse: 'साइडबार छोटा करें',
-    adminGroup: 'एडमिन',
+    expand: 'साइडबार बड़ा करें',
+    togglePanel: 'साइडबार दिखाएं या छिपाएं',
+    settingsGroup: 'सेटिंग',
     expandSection: (label) => `${label} के पेज दिखाएं`,
     collapseSection: (label) => `${label} के पेज छिपाएं`,
     search: {
       placeholder: 'ऑर्डर, प्रोडक्ट या ग्राहक खोजें',
+      field: `खोजें या ${siteConfig.brand.name} AI से पूछें…`,
       shortcut: '⌘K',
+      askAi: 'AI से पूछें',
       empty: 'कुछ नहीं मिला',
       orders: 'ऑर्डर',
       products: 'प्रोडक्ट',
       orderLabel: (n, who) => `#${n}${who ? `, ${who}` : ''}`,
     },
+    storeRole: { owner: 'मालिक', member: 'टीम मेंबर' },
+    switchStore: 'स्टोर बदलें',
+    openStoreAddress: (domain) => `${domain} खोलें`,
+    usage: {
+      title: 'इस महीने के ऑर्डर',
+      of: (used, limit) => `${limit} में से ${used}`,
+      moreRoom: (plan) => `${plan} प्लान में ज़्यादा जगह`,
+    },
     account: 'अकाउंट',
+    menu: {
+      settings: 'सेटिंग',
+      help: 'WhatsApp पर मदद',
+      language: 'भाषा',
+      english: 'English',
+      hindi: 'हिंदी',
+    },
     toggleTheme: 'थीम बदलें',
     openMenu: 'मेन्यू खोलें',
     notifications: { label: 'नोटिफ़िकेशन', empty: 'अभी देखने को कुछ नया नहीं है।' },

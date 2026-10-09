@@ -16,7 +16,7 @@ describe('format-date timezone pinning', () => {
     // 18:31 UTC on 15 Jan is already 00:01 IST on 16 Jan.
     const lateUtc = new Date('2026-01-15T18:31:00.000Z')
     const now = new Date('2026-01-16T00:05:00.000Z') // 05:35 IST, same IST day as lateUtc
-    expect(formatWhen(lateUtc, now)).toMatch(/^Today,/)
+    expect(formatWhen(lateUtc, now)).toMatch(/^Today /)
     expect(formatDay(lateUtc, now)).toBe('Today')
   })
 

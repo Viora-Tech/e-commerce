@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { siteConfig } from '@commerce/config/site'
 import { CommerceError, type RateLimitRule } from '@commerce/core'
 import { formatInZone } from '@commerce/dates'
 import { type Db, type StoreTx, withStore } from '@commerce/db'
@@ -276,7 +277,7 @@ export async function fileGithubIssue(input: {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
         'Content-Type': 'application/json',
-        'User-Agent': 'vextro-bug-reports',
+        'User-Agent': `${siteConfig.brand.name.toLowerCase()}-bug-reports`,
       },
       body: JSON.stringify({ ...input.issue, labels: [...BUG_REPORT_LABELS] }),
       signal: AbortSignal.timeout(15_000),

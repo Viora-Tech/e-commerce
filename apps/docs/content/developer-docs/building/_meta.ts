@@ -17,6 +17,7 @@ export default {
   'dynamic-sources': 'Dynamic sources',
   'custom-sections': 'Slots and custom sections',
   performance: 'Storefront performance',
+  'admin-design-system': 'Admin design system',
   'admin-languages': 'Admin languages (Hindi)',
   'customer-privacy': 'Customer privacy and accounts',
   'shopper-login': 'Shopper login options',

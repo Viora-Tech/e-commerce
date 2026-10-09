@@ -5,9 +5,8 @@ export default [
   translation(datesContent, {
     today: 'आज',
     yesterday: 'कल',
-    todayAt: (time) => `आज, ${time}`,
-    yesterdayAt: (time) => `कल, ${time}`,
-    daysAgo: (n) => `${n} दिन पहले`,
+    todayAt: (time) => `आज ${time}`,
+    yesterdayAt: (time) => `कल ${time}`,
     justNow: 'अभी-अभी',
     minutesAgo: (n) => `${n} मिनट पहले`,
     hoursAgo: (n) => `${n} घंटे पहले`,
