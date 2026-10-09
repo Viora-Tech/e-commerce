@@ -6,6 +6,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import { Input } from '@commerce/ui/shadcn/input'
 import { useEffect, useState } from 'react'
 import type { DraftLine } from '@/components/drafts/draft-form-state'
+import DraftMoneyInput from '@/components/drafts/draft-money-input'
 import ProductThumb from '@/components/products/product-thumb'
 import { draftEditorContent as copy } from '@/data/drafts'
 import { api } from '@/lib/api-client'
@@ -77,13 +78,8 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
     onChange(lines.map((l) => (l.variantId === variantId ? { ...l, quantity } : l)))
   }
 
-  const handlePrice = (variantId: string, value: string) => {
-    const rupees = Math.max(0, Number.parseFloat(value) || 0)
-    onChange(
-      lines.map((l) =>
-        l.variantId === variantId ? { ...l, unitPricePaise: Math.round(rupees * 100) } : l,
-      ),
-    )
+  const handlePrice = (variantId: string, unitPricePaise: number) => {
+    onChange(lines.map((l) => (l.variantId === variantId ? { ...l, unitPricePaise } : l)))
   }
 
   const handleRemove = (variantId: string) => {
@@ -144,13 +140,10 @@ export default function DraftProductsCard({ lines, onChange }: DraftProductsCard
                 onChange={(e) => handleQuantity(l.variantId, e.target.value)}
                 className="w-20 text-right tabular-nums"
               />
-              <Input
+              <DraftMoneyInput
                 aria-label={copy.products.price}
-                type="number"
-                min={0}
-                step="0.01"
-                value={(l.unitPricePaise / 100).toFixed(2)}
-                onChange={(e) => handlePrice(l.variantId, e.target.value)}
+                valuePaise={l.unitPricePaise}
+                onChangePaise={(paise) => handlePrice(l.variantId, paise)}
                 className="w-28 text-right tabular-nums"
               />
               <span className="w-24 shrink-0 text-right text-body tabular-nums">
