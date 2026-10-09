@@ -8,20 +8,20 @@ import {
   Truck,
   WarningIcon,
 } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
-import DataCard from '@/components/layout/data-card'
 import IconBadge from '@/components/layout/icon-badge'
-import { homeContent } from '@/data/home'
+import { homeContent, homePageContent } from '@/data/home'
 import { getCopy } from '@/lib/copy-server'
+import SectionHead from './section-head'
 
-type NeedsYouListProps = {
+type TodoCardsProps = {
   needsYou: DashboardSummary['needsYou']
 }
 
 type Row = {
   key: string
   icon: IconComponent
-  tone: 'warning' | 'info' | 'danger'
   label: string
   help: string
   cta: string
@@ -30,7 +30,7 @@ type Row = {
 
 /** Live rows only: a zero-count queue has nothing to act on. */
 function buildRows(
-  needsYou: NeedsYouListProps['needsYou'],
+  needsYou: TodoCardsProps['needsYou'],
   c: (typeof homeContent)['needsYou']['rows'],
 ): Row[] {
   const rows: Row[] = []
@@ -38,7 +38,6 @@ function buildRows(
     rows.push({
       key: 'ship',
       icon: Truck,
-      tone: 'info',
       label: c.ordersToShip.label(needsYou.ordersToShip.count),
       help: c.ordersToShip.help,
       cta: c.ordersToShip.cta,
@@ -49,7 +48,6 @@ function buildRows(
     rows.push({
       key: 'upi',
       icon: QrCodeIcon,
-      tone: 'warning',
       label: c.upiToVerify.label(needsYou.upiToVerify.count),
       help: c.upiToVerify.help,
       cta: c.upiToVerify.cta,
@@ -60,7 +58,6 @@ function buildRows(
     rows.push({
       key: 'gst',
       icon: ReceiptIcon,
-      tone: 'info',
       label: c.gstQueued.label(needsYou.gstQueued.count),
       help: c.gstQueued.help,
       cta: c.gstQueued.cta,
@@ -71,7 +68,6 @@ function buildRows(
     rows.push({
       key: 'stock',
       icon: WarningIcon,
-      tone: 'danger',
       label: c.lowStock.label(needsYou.lowStock.count),
       help: c.lowStock.help,
       cta: c.lowStock.cta,
@@ -82,7 +78,6 @@ function buildRows(
     rows.push({
       key: 'balance',
       icon: Clock,
-      tone: 'warning',
       label: c.preorderBalanceDue.label(needsYou.preorderBalanceDue.count),
       help: c.preorderBalanceDue.help,
       cta: c.preorderBalanceDue.cta,
@@ -93,20 +88,21 @@ function buildRows(
 }
 
 /**
- * The home page's inbox: one row per real, actionable queue (orders to ship,
- * UPI payments to check, GST invoices to issue, low stock, pre-order balances
- * due), each with a plain count and a deep link. Nothing to do shows one calm
- * "all caught up" state instead of an empty list.
+ * "To do": one card per real, actionable queue (orders to ship, UPI payments to check, GST
+ * invoices to issue, low stock, pre-order balances due), each with its action button. Nothing
+ * to do shows one calm "all caught up" card instead of an empty row.
  */
-export default async function NeedsYouList({ needsYou }: NeedsYouListProps) {
+export default async function TodoCards({ needsYou }: TodoCardsProps) {
   // Render logic
   const c = (await getCopy(homeContent)).needsYou
+  const page = (await getCopy(homePageContent)).todo
   const rows = buildRows(needsYou, c.rows)
 
   return (
-    <DataCard title={c.title} meta={c.subtitle}>
+    <section className="flex flex-col gap-3">
+      <SectionHead title={page.title} aside={rows.length > 0 ? page.count(rows.length) : null} />
       {rows.length === 0 ? (
-        <div className="flex items-center gap-3 py-2">
+        <div className="flex items-center gap-3 rounded-xl bg-card p-4 shadow-card">
           <IconBadge icon={CircleCheckIcon} tone="success" />
           <div>
             <p className="text-body-strong text-ink-strong">{c.allClearHeading}</p>
@@ -114,24 +110,24 @@ export default async function NeedsYouList({ needsYou }: NeedsYouListProps) {
           </div>
         </div>
       ) : (
-        <ul className="flex flex-col divide-y divide-border">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((row) => (
-            <li key={row.key} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-              <IconBadge icon={row.icon} tone={row.tone} size="sm" />
-              <div className="min-w-0 flex-1">
+            <li
+              key={row.key}
+              className="flex flex-col items-start gap-3 rounded-xl bg-card p-4 shadow-card"
+            >
+              <IconBadge icon={row.icon} tone="info" />
+              <div className="min-w-0">
                 <p className="text-body-strong text-ink-strong">{row.label}</p>
-                <p className="truncate text-caption text-muted-foreground">{row.help}</p>
+                <p className="text-caption font-normal text-muted-foreground">{row.help}</p>
               </div>
-              <Link
-                href={row.href}
-                className="shrink-0 rounded-lg border border-border bg-background px-3 py-1.5 text-caption font-medium text-ink-strong shadow-xs transition-colors hover:bg-muted"
-              >
+              <Button variant="outline" size="sm" render={<Link href={row.href} />}>
                 {row.cta}
-              </Link>
+              </Button>
             </li>
           ))}
         </ul>
       )}
-    </DataCard>
+    </section>
   )
 }

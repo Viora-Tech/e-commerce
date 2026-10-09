@@ -80,7 +80,6 @@ const ALLOWLIST: Record<string, number> = {
   'apps/admin/src/components/growth/campaigns/discount-code-field.tsx': 1,
   'apps/admin/src/components/growth/campaigns/whatsapp-template-card.tsx': 1,
   'apps/admin/src/components/growth/growth-overview.tsx': 1,
-  'apps/admin/src/components/home/live-order-stream.tsx': 1,
   'apps/admin/src/components/invitations/invitation-state-card.tsx': 1,
   'apps/admin/src/components/media/media-library.tsx': 1,
   'apps/admin/src/components/metaobjects/custom-data-settings.tsx': 1,
