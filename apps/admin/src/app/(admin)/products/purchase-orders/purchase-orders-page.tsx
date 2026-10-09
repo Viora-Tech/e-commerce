@@ -1,5 +1,6 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { Plus, SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
@@ -7,8 +8,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/too
 import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
-import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import { purchaseOrderColumns } from '@/components/purchase-orders/purchase-order-columns'
 import PurchaseOrderTiles, {
   type PurchaseOrderCounts,
@@ -20,8 +21,9 @@ import {
   purchaseOrdersContent,
 } from '@/data/inventory'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.purchaseOrders.list>>
 
@@ -32,8 +34,8 @@ export type PurchaseOrdersInitial = {
   counts: PurchaseOrderCounts
 }
 
-const PER_PAGE = LIST_PER_PAGE
-const NEW_HREF = '/products/purchase-orders/new'
+const PER_PAGE = siteConfig.ui.rowsPerPage.default
+const NEW_HREF = routes.products.newPurchaseOrder()
 const copy = purchaseOrdersContent
 
 function allCount(c: PurchaseOrderCounts): number {
@@ -47,6 +49,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(PER_PAGE),
       status: parseAsStringLiteral(PURCHASE_ORDER_STATUSES),
     },
     { shallow: true },
@@ -56,13 +59,13 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (sameListQuery(q, initial.query)) return
+    if (sameListQuery(q, initial.query) && q.perPage === PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.purchaseOrders
       .list({
         page: q.page,
-        perPage: PER_PAGE,
+        perPage: q.perPage,
         search: q.query || undefined,
         status: q.status ?? undefined,
       })
@@ -79,13 +82,14 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
 
   // Render logic
   return (
-    <KitListPage
+    <ProoflyListPage
       title={copy.heading}
+      summary={copy.summary}
       actions={
         <Tooltip>
           <TooltipTrigger
             render={
-              <Button size="lg" render={<Link href={NEW_HREF} />} nativeButton={false}>
+              <Button render={<Link href={NEW_HREF} />} nativeButton={false}>
                 <SquarePlus strokeWidth={1.6} />
                 {copy.create}
               </Button>
@@ -96,15 +100,14 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
           </TooltipContent>
         </Tooltip>
       }
-      strip={<PurchaseOrderTiles counts={initial.counts} />}
+      stats={<PurchaseOrderTiles counts={initial.counts} />}
     >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
         columns={purchaseOrderColumns}
         items={rows}
         getId={(r) => r.id}
-        href={(r) => `/products/purchase-orders/${r.id}`}
+        href={(r) => routes.products.purchaseOrder(r.id)}
         loading={loading}
         selectable={false}
         query={q.query}
@@ -112,6 +115,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
         onClearAll={() => setQ({ query: '', status: null, page: 1 })}
         tabs={
           <PillTabs
+            variant="pill"
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
             tabs={[
@@ -121,7 +125,8 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
           />
         }
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={q.perPage}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         total={total}
         onPageChange={(page) => setQ({ page })}
         empty={{
@@ -135,7 +140,7 @@ function PurchaseOrdersContent({ initial }: { initial: PurchaseOrdersInitial }) 
           ),
         }}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 

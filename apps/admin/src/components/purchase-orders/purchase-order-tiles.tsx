@@ -12,7 +12,7 @@ const copy = purchaseOrdersContent.tiles
 /** Drafts, open orders, units on the way and fully received orders. */
 export default function PurchaseOrderTiles({ counts }: PurchaseOrderTilesProps) {
   return (
-    <div className="grid grid-cols-2 gap-[0.9375rem] xl:grid-cols-4">
+    <>
       <StatTile title={copy.draft} value={formatNumber(counts.draft)} caption={copy.draftCaption} />
       <StatTile title={copy.open} value={formatNumber(counts.open)} caption={copy.openCaption} />
       <StatTile
@@ -25,6 +25,6 @@ export default function PurchaseOrderTiles({ counts }: PurchaseOrderTilesProps) 
         value={formatNumber(counts.received)}
         caption={copy.receivedCaption}
       />
-    </div>
+    </>
   )
 }

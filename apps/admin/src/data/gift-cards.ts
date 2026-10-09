@@ -12,6 +12,7 @@ export const GIFT_CARD_EXPIRY_MONTHS = [12, 24, 36, 60] as const
 
 export const giftCardsContent = {
   heading: 'Gift cards',
+  summary: 'Cards shoppers buy or you issue by hand',
   resource: { singular: 'gift card', plural: 'gift cards' },
   create: 'Create gift card',
   addProduct: 'Add gift card product',

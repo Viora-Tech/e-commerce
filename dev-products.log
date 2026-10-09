@@ -1,693 +1,555 @@
 ▲ Next.js 16.3.5 (Turbopack)
 - Local:         http://localhost:3223
 - Network:       http://192.168.1.44:3223
-✓ Ready in 4.6s
-✓ Running next.config.ts took 9.1s
+✓ Ready in 3.2s
+✓ Running next.config.ts took 5.1s
 
-○ Compiling /login ...
- GET /login 200 in 6.8s (next.js: 6.1s, proxy.ts: 356ms, application-code: 325ms)
-○ Compiling /products ...
- GET /products 200 in 18.8s (next.js: 11.4s, proxy.ts: 10ms, application-code: 7.4s)
- GET /login 200 in 153ms (next.js: 27ms, proxy.ts: 29ms, application-code: 97ms)
- GET /login 200 in 178ms (next.js: 24ms, proxy.ts: 29ms, application-code: 126ms)
+○ Compiling /products/inventory ...
+ GET /products/inventory 200 in 14.7s (next.js: 7.1s, proxy.ts: 686ms, application-code: 7.0s)
 [browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
 [browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
 [browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
-[otp] sign-in code for kuldeepsaini02311@gmail.com: 154191
- POST /api/auth/email-otp/send-verification-otp 200 in 5.5s (next.js: 5.0s, application-code: 483ms)
- GET /api/dev/otp?email=kuldeepsaini02311@gmail.com 200 in 249ms (next.js: 243ms, application-code: 6ms)
- POST /api/auth/sign-in/email-otp 200 in 52ms (next.js: 12ms, application-code: 39ms)
-⨯ Error: Pick a store first
-    at noStore (..\..\packages\api\src\procedures\store.ts:112:10)
-    at findMembership (..\..\packages\api\src\procedures\store.ts:136:30)
-    at <unknown> (..\..\packages\api\src\procedures\store.ts:190:26)
-    at <unknown> (..\..\packages\api\src\procedures\base.ts:22:10)
-    at async Page (src\app\(admin)\products\page.tsx:15:39)
-  110 |
-  111 | function noStore(code: 'PRECONDITION_FAILED' | 'FORBIDDEN' | 'NOT_FOUND', message: string) {
-> 112 |   return new ORPCError(code, { message, data: NO_STORE })
-      |          ^
-  113 | }
-  114 |
-  115 | /** {
-  defined: false,
-  code: 'PRECONDITION_FAILED',
-  status: 412,
-  data: { reason: 'no_store' },
-  digest: '4040728916'
-}
- GET /products 200 in 999ms (next.js: 67ms, proxy.ts: 7ms, application-code: 925ms)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/auth/organization/set-active 200 in 48ms (next.js: 18ms, application-code: 30ms)
-○ Compiling / ...
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- GET / 200 in 3.1s (next.js: 1796ms, proxy.ts: 5ms, application-code: 1297ms)
- POST /api/rpc/staff/me 200 in 7.1s
- POST /api/rpc/ai/status 200 in 3.5s (next.js: 3.0s, application-code: 514ms)
- POST /api/rpc/staff/me 200 in 3.5s (next.js: 3.0s, application-code: 516ms)
- POST /api/rpc/ai/status 200 in 3.5s (next.js: 3.0s, application-code: 518ms)
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
- GET /products 200 in 590ms (next.js: 100ms, proxy.ts: 4ms, application-code: 486ms)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/rpc/ai/status 200 in 96ms (next.js: 35ms, application-code: 61ms)
- POST /api/rpc/ai/status 200 in 99ms (next.js: 24ms, application-code: 75ms)
- POST /api/rpc/staff/me 200 in 102ms (next.js: 46ms, application-code: 56ms)
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
-⨯ Error: Invalid src prop (http://localhost:3200/uploads/stores/01a0de8f-0350-7522-8375-547613dcae7f/media/01a0df15-bc35-73e5-8dba-dbe691702531-t2ureiet-400x400-7df094e2-c38f-417b-b46b-5908d94fc320.jpg) on `next/image`, hostname "localhost" is not configured under images in your `next.config.js`
-See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host
+TypeError: fetch failed
     at ignore-listed frames {
-  digest: '1334889308@E231'
-}
- GET /products/collections 200 in 2.4s (next.js: 1813ms, proxy.ts: 5ms, application-code: 618ms)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/rpc/ai/status 200 in 61ms (next.js: 22ms, application-code: 40ms)
- POST /api/rpc/staff/me 200 in 64ms (next.js: 12ms, application-code: 52ms)
- POST /api/rpc/ai/status 200 in 65ms (next.js: 30ms, application-code: 36ms)
-[browser] Error: Invalid src prop (http://localhost:3200/uploads/stores/01a0de8f-0350-7522-8375-547613dcae7f/media/01a0df15-bc35-73e5-8dba-dbe691702531-t2ureiet-400x400-7df094e2-c38f-417b-b46b-5908d94fc320.jpg) on `next/image`, hostname "localhost" is not configured under images in your `next.config.js`
-See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host
-    at Array.map (<anonymous>) (file://E:/Viora-Tech/e-commerce/wt-products/apps/admin/.next/dev/static/chunks/apps_admin_src_0antxtu._.js:51:25)
-[browser] Error: Invalid src prop (http://localhost:3200/uploads/stores/01a0de8f-0350-7522-8375-547613dcae7f/media/01a0df15-bc35-73e5-8dba-dbe691702531-t2ureiet-400x400-7df094e2-c38f-417b-b46b-5908d94fc320.jpg) on `next/image`, hostname "localhost" is not configured under images in your `next.config.js`
-See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host
-    at Array.map (<anonymous>) (file://E:/Viora-Tech/e-commerce/wt-products/apps/admin/.next/dev/static/chunks/apps_admin_src_0antxtu._.js:51:25)
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
-✓ Compiled in 1466ms
- GET /products/collections 200 in 496ms (next.js: 18ms, proxy.ts: 5ms, application-code: 473ms)
-✓ Compiled in 474ms
- GET /products/collections 200 in 319ms (next.js: 21ms, proxy.ts: 5ms, application-code: 294ms)
-✓ Compiled in 610ms
- GET /products/collections 200 in 841ms (next.js: 90ms, proxy.ts: 13ms, application-code: 739ms)
- GET /products/collections 200 in 720ms (next.js: 24ms, proxy.ts: 4ms, application-code: 692ms)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/rpc/ai/status 200 in 108ms (next.js: 32ms, application-code: 76ms)
- POST /api/rpc/ai/status 200 in 109ms (next.js: 62ms, application-code: 47ms)
- POST /api/rpc/staff/me 200 in 112ms (next.js: 55ms, application-code: 57ms)
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
-✓ Compiled in 2.2s
- GET /products/collections 200 in 846ms (next.js: 122ms, proxy.ts: 27ms, application-code: 698ms)
-○ Compiling /products/collections/[id] ...
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 12.8s (next.js: 12.6s, proxy.ts: 8ms, application-code: 227ms)
-[browser] Error: Invalid src prop (http://localhost:3200/uploads/stores/01a0de8f-0350-7522-8375-547613dcae7f/media/01a0df15-146e-7232-bce5-abba759f3a4b-owlab---ti-he-magnetic-switches-b4618caa-2b0a-4981-b2b0-315e.png) on `next/image`, hostname "localhost" is not configured under images in your `next.config.js`
-See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host
-    at Array.map (<anonymous>) (file://E:/Viora-Tech/e-commerce/wt-products/apps/admin/.next/dev/static/chunks/apps_admin_src_0antxtu._.js:51:25)
-[browser] Error: Invalid src prop (http://localhost:3200/uploads/stores/01a0de8f-0350-7522-8375-547613dcae7f/media/01a0df15-146e-7232-bce5-abba759f3a4b-owlab---ti-he-magnetic-switches-b4618caa-2b0a-4981-b2b0-315e.png) on `next/image`, hostname "localhost" is not configured under images in your `next.config.js`
-See more info: https://nextjs.org/docs/messages/next-image-unconfigured-host
-    at Array.map (<anonymous>) (file://E:/Viora-Tech/e-commerce/wt-products/apps/admin/.next/dev/static/chunks/apps_admin_src_0antxtu._.js:51:25)
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 708ms (next.js: 50ms, proxy.ts: 5ms, application-code: 653ms)
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 940ms (next.js: 7ms, proxy.ts: 5ms, application-code: 928ms)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/rpc/ai/status 200 in 87ms (next.js: 38ms, application-code: 49ms)
- POST /api/rpc/staff/me 200 in 91ms (next.js: 31ms, application-code: 59ms)
- POST /api/rpc/ai/status 200 in 91ms (next.js: 12ms, application-code: 78ms)
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
- POST /api/rpc/themes/list 200 in 111ms (next.js: 42ms, application-code: 70ms)
- POST /api/rpc/themes/list 200 in 112ms (next.js: 33ms, application-code: 80ms)
- POST /api/rpc/metaobjects/metafields 200 in 117ms (next.js: 19ms, application-code: 98ms)
- POST /api/rpc/metaobjects/metafields 200 in 116ms (next.js: 25ms, application-code: 91ms)
- POST /api/rpc/themes/templates/list 200 in 45ms (next.js: 2ms, application-code: 43ms)
- POST /api/rpc/themes/templates/list 200 in 45ms (next.js: 8ms, application-code: 37ms)
- POST /api/rpc/products/facets 200 in 64ms (next.js: 18ms, application-code: 46ms)
- POST /api/rpc/collections/list 200 in 67ms (next.js: 10ms, application-code: 57ms)
- POST /api/rpc/products/pick 500 in 36ms (next.js: 3ms, application-code: 33ms)
- POST /api/rpc/products/pick 500 in 38ms (next.js: 8ms, application-code: 29ms)
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 592ms (next.js: 27ms, proxy.ts: 6ms, application-code: 558ms)
-PICKERR Error: Failed query: select "id", "title", "status", (
-        select m.url from "product_media" pm join "media" m on m.id = pm.media_id
-        where pm.product_id = "id" order by pm.position limit 1) from "product" where ("product"."is_system_test" = $1 and "product"."status" <> $2) order by "product"."title" asc limit $3
-params: false,archived,30
-    at async pickProducts (..\..\packages\api\src\services\product.service.ts:481:16)
-    at async Object.eval [as handler] (..\..\packages\api\src\routers\products.ts:93:16)
-    at async (..\..\packages\api\src\procedures\store.ts:194:16)
-    at async handle (src\app\api\rpc\[[...rest]]\route.ts:14:24)
-  479 | ): Promise<PickProductRow[]> {
-  480 |   const search = input.search?.trim()
-> 481 |   const rows = await tx
-      |                ^
-  482 |     .select({
-  483 |       id: product.id,
-  484 |       title: product.title, {
-  query: 'select "id", "title", "status", (\n' +
-    '        select m.url from "product_media" pm join "media" m on m.id = pm.media_id\n' +
-    '        where pm.product_id = "id" order by pm.position limit 1) from "product" where ("product"."is_system_test" = $1 and "product"."status" <> $2) order by "product"."title" asc limit $3',
-  params: [ false, 'archived', 30 ],
-  [cause]: Error [PostgresError]: column reference "id" is ambiguous
+  [cause]: AggregateError: 
       at ignore-listed frames {
-    severity_local: 'ERROR',
-    severity: 'ERROR',
-    code: '42702',
-    position: '147',
-    file: 'parse_relation.c',
-    line: '831',
-    routine: 'scanRTEForColumn'
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
   }
 }
- POST /api/rpc/products/pick 500 in 252ms (next.js: 22ms, application-code: 230ms)
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 476ms (next.js: 47ms, proxy.ts: 5ms, application-code: 424ms)
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 617ms (next.js: 15ms, proxy.ts: 6ms, application-code: 596ms)
-[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
-[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/rpc/ai/status 200 in 103ms (next.js: 54ms, application-code: 48ms)
- POST /api/rpc/staff/me 200 in 113ms (next.js: 30ms, application-code: 83ms)
- POST /api/rpc/ai/status 200 in 109ms (next.js: 43ms, application-code: 66ms)
-[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
- POST /api/rpc/themes/list 200 in 102ms (next.js: 22ms, application-code: 80ms)
- POST /api/rpc/themes/list 200 in 160ms (next.js: 46ms, application-code: 113ms)
- POST /api/rpc/metaobjects/metafields 200 in 159ms (next.js: 57ms, application-code: 102ms)
- POST /api/rpc/metaobjects/metafields 200 in 164ms (next.js: 25ms, application-code: 139ms)
- POST /api/rpc/themes/templates/list 200 in 54ms (next.js: 3ms, application-code: 50ms)
- POST /api/rpc/themes/templates/list 200 in 57ms (next.js: 10ms, application-code: 47ms)
- POST /api/rpc/products/facets 200 in 82ms (next.js: 41ms, application-code: 42ms)
- POST /api/rpc/collections/list 200 in 89ms (next.js: 13ms, application-code: 76ms)
- POST /api/rpc/products/pick 200 in 56ms (next.js: 2ms, application-code: 54ms)
-[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <SortableList items={[...]} onReorder={function CollectionProductsCard[<SortableList>.onReorder]} ...>
-      <DndContext sensors={[...]} collisionDetection={function closestCenter} modifiers={[...]} accessibility={{...}} ...>
-        <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
-          <ul className="divide-y d...">
-            <SortableListItem id="01a0df0f-f..." handleLabel="Move Wrait..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Wrait..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Wraith evoX Stream Deck"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df0f-8..." handleLabel="Move Lofre..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Lofre..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Lofree Hyzen67 Prism Transparent Keyboard Wrist Rest"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df01-b..." handleLabel="Move Owlab..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Owlab..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Owlab Ti HE Switch"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df06-c..." handleLabel="Move Wrait..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Wrait..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Wraith Bidirectional Coiled Cable"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df0a-2..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Magic Ice Plus Red Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-2..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Magic Ice Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-4..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Silver Fox Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-4..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Pink Fox Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-4..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Black Fox Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df0a-2..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS DONUT Skate"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-1"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-        ...
-        ...
-        ...
- 
-✓ Compiled in 1860ms
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 1105ms (next.js: 98ms, proxy.ts: 5ms, application-code: 1002ms)
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 878ms (next.js: 32ms, proxy.ts: 9ms, application-code: 837ms)
-⨯ Error: The destination stream closed early.
+TypeError: fetch failed
     at ignore-listed frames {
-  digest: '585031583'
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /products/inventory 200 in 3.3s (next.js: 52ms, proxy.ts: 18ms, application-code: 3.2s)
+ POST /api/rpc/ai/status 200 in 1762ms
+ POST /api/rpc/staff/me 200 in 1771ms
+ POST /api/rpc/ai/status 200 in 1769ms
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
 }
 [browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
 [browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
- POST /api/rpc/ai/status 200 in 175ms (next.js: 114ms, application-code: 61ms)
- POST /api/rpc/staff/me 200 in 190ms (next.js: 137ms, application-code: 53ms)
- POST /api/rpc/ai/status 200 in 177ms (next.js: 97ms, application-code: 80ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 782ms (next.js: 630ms, application-code: 152ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 782ms (next.js: 630ms, application-code: 153ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 780ms (next.js: 706ms, application-code: 75ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 780ms (next.js: 706ms, application-code: 75ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 769ms (next.js: 718ms, application-code: 50ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 769ms (next.js: 718ms, application-code: 51ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 790ms (next.js: 745ms, application-code: 45ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 790ms (next.js: 745ms, application-code: 45ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 797ms (next.js: 753ms, application-code: 43ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 797ms (next.js: 753ms, application-code: 44ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 763ms (next.js: 747ms, application-code: 15ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 763ms (next.js: 747ms, application-code: 15ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
 [browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
- POST /api/rpc/metaobjects/metafields 200 in 135ms (next.js: 18ms, application-code: 117ms)
- POST /api/rpc/metaobjects/metafields 200 in 143ms (next.js: 52ms, application-code: 91ms)
- POST /api/rpc/themes/list 200 in 140ms (next.js: 35ms, application-code: 105ms)
- POST /api/rpc/themes/list 200 in 141ms (next.js: 53ms, application-code: 88ms)
- POST /api/rpc/themes/templates/list 200 in 45ms (next.js: 3ms, application-code: 43ms)
- POST /api/rpc/themes/templates/list 200 in 34ms (next.js: 2ms, application-code: 32ms)
- POST /api/rpc/products/facets 200 in 67ms (next.js: 21ms, application-code: 46ms)
- POST /api/rpc/collections/list 200 in 71ms (next.js: 11ms, application-code: 60ms)
- POST /api/rpc/products/pick 200 in 56ms (next.js: 2ms, application-code: 54ms)
-[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <SortableList items={[...]} onReorder={function CollectionProductsCard[<SortableList>.onReorder]} ...>
-      <DndContext sensors={[...]} collisionDetection={function closestCenter} modifiers={[...]} accessibility={{...}} ...>
-        <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
-          <ul className="divide-y d...">
-            <SortableListItem id="01a0df0f-f..." handleLabel="Move Wrait..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Wrait..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Wraith evoX Stream Deck"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df0f-8..." handleLabel="Move Lofre..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Lofre..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Lofree Hyzen67 Prism Transparent Keyboard Wrist Rest"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df01-b..." handleLabel="Move Owlab..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Owlab..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Owlab Ti HE Switch"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df06-c..." handleLabel="Move Wrait..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move Wrait..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move Wraith Bidirectional Coiled Cable"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df0a-2..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Magic Ice Plus Red Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-2..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Magic Ice Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-4..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Silver Fox Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-4..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Pink Fox Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0defd-4..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0de...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS Black Fox Skates"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-            <SortableListItem id="01a0df0a-2..." handleLabel="Move UNWS ..." reduced={false} className={undefined}>
-              <li ref={function useCombinedRefs.useMemo} style={{...}} className="relative b...">
-                <CollectionProductRow product={{id:"01a0df...", ...}} handle={<DragHandle>} ...>
-                  <div className="grid grid-...">
-                    <span className="flex justi...">
-                      <DragHandle ref={function useNodeRef.useCallback[setNodeRef]} label="Move UNWS ..." role="button" ...>
-                        <button
-                          type="button"
-                          aria-label="Move UNWS DONUT Skate"
-                          className="flex size-8 shrink-0 touch-none items-center justify-center rounded-md text-muted..."
-                          ref={function useNodeRef.useCallback[setNodeRef]}
-                          role="button"
-                          tabIndex={0}
-                          aria-disabled={false}
-                          aria-pressed={undefined}
-                          aria-roledescription="sortable"
-+                         aria-describedby="DndDescribedBy-0"
--                         aria-describedby="DndDescribedBy-2"
-                          onMouseDown={function useSyntheticListeners.useMemo}
-                          onTouchStart={function useSyntheticListeners.useMemo}
-                          onKeyDown={function useSyntheticListeners.useMemo}
-                        >
-                    ...
-        ...
-        ...
-        ...
- 
-✓ Compiled in 1638ms
- GET /products/collections/01a0df15-147c-76f4-afe8-a57223db19a9 200 in 780ms (next.js: 147ms, proxy.ts: 25ms, application-code: 607ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 83ms (next.js: 53ms, application-code: 30ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 83ms (next.js: 53ms, application-code: 30ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 81ms (next.js: 67ms, application-code: 14ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 81ms (next.js: 67ms, application-code: 14ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 56ms (next.js: 32ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 56ms (next.js: 32ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 51ms (next.js: 40ms, application-code: 11ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 51ms (next.js: 40ms, application-code: 11ms)
+ POST /api/rpc/staff/me 200 in 2.6s (next.js: 1707ms, application-code: 933ms)
+ POST /api/rpc/ai/status 200 in 2.7s (next.js: 1704ms, application-code: 947ms)
+ POST /api/rpc/ai/status 200 in 2.6s (next.js: 1699ms, application-code: 949ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 71ms (next.js: 33ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 71ms (next.js: 33ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 70ms (next.js: 39ms, application-code: 31ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 70ms (next.js: 39ms, application-code: 31ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 69ms (next.js: 45ms, application-code: 25ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 69ms (next.js: 45ms, application-code: 25ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 68ms (next.js: 49ms, application-code: 20ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 68ms (next.js: 49ms, application-code: 20ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 68ms (next.js: 54ms, application-code: 14ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 68ms (next.js: 54ms, application-code: 14ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 67ms (next.js: 60ms, application-code: 7ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 67ms (next.js: 60ms, application-code: 8ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 65ms (next.js: 35ms, application-code: 31ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 65ms (next.js: 35ms, application-code: 31ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 64ms (next.js: 40ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 64ms (next.js: 40ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 63ms (next.js: 48ms, application-code: 15ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 63ms (next.js: 48ms, application-code: 15ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 62ms (next.js: 54ms, application-code: 8ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 62ms (next.js: 54ms, application-code: 8ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+✓ Compiled in 4.9s
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 209ms (next.js: 87ms, application-code: 121ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 209ms (next.js: 87ms, application-code: 122ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 206ms (next.js: 101ms, application-code: 105ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 206ms (next.js: 101ms, application-code: 105ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 203ms (next.js: 125ms, application-code: 78ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 203ms (next.js: 125ms, application-code: 78ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 198ms (next.js: 133ms, application-code: 66ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 198ms (next.js: 133ms, application-code: 66ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 194ms (next.js: 157ms, application-code: 37ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 194ms (next.js: 157ms, application-code: 37ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 192ms (next.js: 167ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 192ms (next.js: 167ms, application-code: 24ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 216ms (next.js: 57ms, application-code: 159ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 216ms (next.js: 57ms, application-code: 159ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 211ms (next.js: 65ms, application-code: 146ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 211ms (next.js: 65ms, application-code: 146ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 210ms (next.js: 73ms, application-code: 137ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 210ms (next.js: 73ms, application-code: 137ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 217ms (next.js: 197ms, application-code: 20ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 217ms (next.js: 197ms, application-code: 21ms)
+ GET /products/inventory 200 in 882ms (next.js: 86ms, proxy.ts: 15ms, application-code: 781ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 110ms (next.js: 59ms, application-code: 51ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 110ms (next.js: 59ms, application-code: 51ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 108ms (next.js: 66ms, application-code: 42ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 108ms (next.js: 66ms, application-code: 42ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 105ms (next.js: 73ms, application-code: 32ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 105ms (next.js: 73ms, application-code: 32ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 102ms (next.js: 78ms, application-code: 25ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 102ms (next.js: 78ms, application-code: 25ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 101ms (next.js: 85ms, application-code: 16ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 102ms (next.js: 85ms, application-code: 16ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 101ms (next.js: 92ms, application-code: 9ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 101ms (next.js: 92ms, application-code: 9ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 69ms (next.js: 33ms, application-code: 36ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 69ms (next.js: 33ms, application-code: 36ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 67ms (next.js: 39ms, application-code: 28ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 67ms (next.js: 39ms, application-code: 28ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 66ms (next.js: 47ms, application-code: 19ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 66ms (next.js: 47ms, application-code: 19ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 65ms (next.js: 55ms, application-code: 10ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 65ms (next.js: 55ms, application-code: 10ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 48ms (next.js: 32ms, application-code: 16ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 48ms (next.js: 32ms, application-code: 16ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 173ms (next.js: 95ms, application-code: 79ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 175ms (next.js: 95ms, application-code: 80ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 150ms (next.js: 91ms, application-code: 59ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 150ms (next.js: 91ms, application-code: 59ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 152ms (next.js: 103ms, application-code: 49ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 152ms (next.js: 103ms, application-code: 49ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 153ms (next.js: 115ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 153ms (next.js: 115ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 154ms (next.js: 130ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 154ms (next.js: 130ms, application-code: 24ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 148ms (next.js: 135ms, application-code: 13ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 148ms (next.js: 135ms, application-code: 14ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 70ms (next.js: 45ms, application-code: 25ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 70ms (next.js: 45ms, application-code: 25ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 68ms (next.js: 52ms, application-code: 15ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 68ms (next.js: 52ms, application-code: 15ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 66ms (next.js: 60ms, application-code: 7ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 66ms (next.js: 60ms, application-code: 7ms)
