@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
 import PillTabs from '@/components/layout/pill-tabs'
+import OrdersListFrame from '@/components/orders/orders-list-frame'
 import { rtoTabContent } from '@/data/returns'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
@@ -42,12 +41,11 @@ export default function ShipmentsWorkspace() {
   }, [tab])
 
   return (
-    <PageBody>
-      <PageHeader title={copy.title} subtitle={copy.subtitle} />
+    <OrdersListFrame title={copy.title} summary={copy.subtitle}>
       {hasCourier === false ? <NoCourierBanner /> : null}
       <WalletCards />
       <PillTabs
-        variant="pill"
+        variant="segmented"
         tabs={[
           { value: 'ready', label: copy.tabs.readyToShip, count: readyCount },
           { value: 'shipments', label: copy.tabs.shipments },
@@ -63,6 +61,6 @@ export default function ShipmentsWorkspace() {
       {tab === 'pickups' ? <PickupsTab /> : null}
       {tab === 'ndr' ? <NdrTab /> : null}
       {tab === 'rto' ? <RtoTab /> : null}
-    </PageBody>
+    </OrdersListFrame>
   )
 }

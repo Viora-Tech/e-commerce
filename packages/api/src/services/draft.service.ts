@@ -20,7 +20,7 @@ import type { StoreTx } from '@commerce/db'
 import { address, customer, notification, order, orderLine, orderNote, variant } from '@commerce/db'
 import type { NotificationRegistry } from '@commerce/notifications'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, count, eq, sql } from 'drizzle-orm'
 
 /**
  * Draft orders and abandoned checkouts for the admin. Core owns the rules;
@@ -44,6 +44,24 @@ export const listStoreDrafts = (
   storeId: string,
   input: { page: number; perPage: number; search?: string | undefined },
 ) => listDrafts(ctxOf(tx, storeId), input)
+
+/** The stat cards above the drafts list: open drafts, invoices sent, and what they add up to. */
+export async function draftTiles(tx: StoreTx) {
+  const [row] = await tx
+    .select({
+      total: count(),
+      invoiced:
+        sql<number>`count(*) filter (where exists (select 1 from notification n where n.order_id = ${order.id} and n.template = 'draft_invoice' and n.status = 'sent'))::int`.mapWith(
+          Number,
+        ),
+      valuePaise: sql<number>`coalesce(sum(${order.totalPaise}), 0)::bigint`.mapWith(Number),
+    })
+    .from(order)
+    .where(eq(order.status, 'draft'))
+  const total = row?.total ?? 0
+  const invoiced = row?.invoiced ?? 0
+  return { open: total - invoiced, invoiced, total, valuePaise: row?.valuePaise ?? 0 }
+}
 
 /** The draft plus everything its editor needs: lines with titles, address, note. */
 export async function getDraft(tx: StoreTx, id: string) {

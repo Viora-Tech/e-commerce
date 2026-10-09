@@ -5,27 +5,32 @@ import { parseAsInteger, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import AbandonedTiles, { type AbandonedStats } from '@/components/abandoned/abandoned-tiles'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import StatusChip from '@/components/layout/status-chip'
+import OrdersListFrame from '@/components/orders/orders-list-frame'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { abandonedContent as copy } from '@/data/drafts'
+import { abandonedContent } from '@/data/drafts'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE } from '@/lib/list-query'
-import { formatPaise } from '@/lib/money'
+import { parseRowsPerPage } from '@/lib/rows-per-page'
 
 type ListResult = Awaited<ReturnType<typeof api.orders.listAbandoned>>
 type Item = ListResult['items'][number]
 
-export type AbandonedInitial = { page: number; result: ListResult; stats: AbandonedStats }
+export type AbandonedInitial = {
+  page: number
+  perPage: number
+  result: ListResult
+  stats: AbandonedStats
+}
 
 const statusOf = (c: Item) => (c.recovered ? 'recovered' : c.recoverySentAt ? 'sent' : 'open')
 
 function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   // Hooks
-  const [{ page }, setQ] = useQueryStates(
-    { page: parseAsInteger.withDefault(1) },
+  const copy = useCopy(abandonedContent)
+  const fmt = useFormat()
+  const [{ page, perPage: rawPerPage }, setQ] = useQueryStates(
+    { page: parseAsInteger.withDefault(1), perPage: parseAsInteger.withDefault(initial.perPage) },
     { shallow: true },
   )
   const [items, setItems] = useState<Item[]>(initial.result.items)
@@ -34,11 +39,12 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   const [sending, setSending] = useState<string | null>(null)
 
   useEffect(() => {
-    if (page === initial.page) return
+    const size = parseRowsPerPage(rawPerPage)
+    if (page === initial.page && size === initial.perPage) return
     let cancelled = false
     setLoading(true)
     api.orders
-      .listAbandoned({ page, perPage: LIST_PER_PAGE, sinceDays: 30 })
+      .listAbandoned({ page, perPage: size, sinceDays: 30 })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -48,7 +54,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
     return () => {
       cancelled = true
     }
-  }, [page, initial.page])
+  }, [page, rawPerPage, initial.page, initial.perPage])
 
   // Event handlers
   const handleSend = async (cartId: string) => {
@@ -67,6 +73,7 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   }
 
   // Render logic
+  const perPage = parseRowsPerPage(rawPerPage)
   const columns: ResourceColumnSpec<Item>[] = [
     {
       id: 'contact',
@@ -95,18 +102,24 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
       id: 'value',
       title: copy.columns.value,
       sortValue: (c) => c.subtotalPaise,
-      render: (c) => <span className="tabular-nums">{formatPaise(c.subtotalPaise)}</span>,
+      align: 'end',
+      render: (c) => <span className="font-medium tabular-nums">{fmt.money(c.subtotalPaise)}</span>,
     },
     {
       id: 'activity',
       title: copy.columns.activity,
       sortValue: (c) => new Date(c.updatedAt).getTime(),
-      render: (c) => <RelativeTime value={c.updatedAt} />,
+      render: (c) => <span className="tabular-nums">{fmt.when(c.updatedAt)}</span>,
     },
     {
       id: 'status',
       title: copy.columns.status,
-      render: (c) => <StatusLabel kind="abandoned" value={statusOf(c)} />,
+      align: 'center',
+      render: (c) => (
+        <StatusChip tone={statusOf(c) === 'open' ? 'attention' : 'neutral'}>
+          {copy.status[statusOf(c)]}
+        </StatusChip>
+      ),
     },
     {
       id: 'action',
@@ -127,11 +140,12 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
   ]
 
   return (
-    <PageBody width="frame" className="gap-6">
-      <PageHeader title={copy.heading} subtitle={copy.intro} />
-      <AbandonedTiles stats={initial.stats} />
+    <OrdersListFrame
+      title={copy.heading}
+      summary={copy.intro}
+      tiles={<AbandonedTiles stats={initial.stats} />}
+    >
       <ResourceTable
-        size="frame"
         resourceName={copy.resource}
         columns={columns}
         items={items}
@@ -140,12 +154,13 @@ function AbandonedContent({ initial }: { initial: AbandonedInitial }) {
         query=""
         onQueryChange={() => undefined}
         page={page}
-        perPage={LIST_PER_PAGE}
+        perPage={perPage}
         total={total}
         onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(n) => setQ({ perPage: n, page: 1 })}
         empty={{ heading: copy.empty, body: copy.intro }}
       />
-    </PageBody>
+    </OrdersListFrame>
   )
 }
 

@@ -10,6 +10,7 @@ export const returnsContent = {
   title: 'Returns',
   subtitle: 'Items customers are sending back, and parcels the courier brought back (RTO).',
   resource: { singular: 'return', plural: 'returns' },
+  openReturn: 'Open return',
   empty: 'No returns yet. When a customer asks to send something back, it shows up here.',
   searchPlaceholder: 'Search by order number, return number, name or email',
   tabs: {
