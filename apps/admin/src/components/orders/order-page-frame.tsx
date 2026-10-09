@@ -21,12 +21,12 @@ export default function OrderPageFrame({
 }: OrderPageFrameProps) {
   return (
     <>
-      <PageBody className="max-w-[78rem] gap-5 md:py-8 print:hidden">
+      <PageBody className="max-w-[80.5rem] gap-6 md:py-8 print:hidden">
         {header}
         {nextStep}
-        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="flex min-w-0 flex-col gap-5">{main}</div>
-          <aside className="flex min-w-0 flex-col gap-5">{side}</aside>
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]">
+          <div className="flex min-w-0 flex-col gap-6">{main}</div>
+          <aside className="flex min-w-0 flex-col gap-6">{side}</aside>
         </div>
       </PageBody>
       {children}
