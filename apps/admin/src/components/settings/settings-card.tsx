@@ -23,10 +23,7 @@ export default function SettingsCard({
   return (
     <section
       id={id}
-      className={cn(
-        'flex scroll-mt-6 flex-col gap-5 rounded-xl bg-card p-6 shadow-card',
-        className,
-      )}
+      className={cn('flex scroll-mt-6 flex-col gap-5 rounded-xl surface-card p-6', className)}
     >
       {title ? (
         <header className="flex flex-col gap-0.5">

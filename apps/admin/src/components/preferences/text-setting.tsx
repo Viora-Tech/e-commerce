@@ -1,8 +1,8 @@
 'use client'
 
-import { Field, FieldDescription, FieldError, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
+import SettingsRow from '@/components/settings/settings-row'
 
 type TextSettingProps = {
   id: string
@@ -17,7 +17,7 @@ type TextSettingProps = {
   type?: 'text' | 'password'
 }
 
-/** One labelled text preference with help or its validation error underneath. */
+/** One text preference as a settings row: label and help left, the field right, any error under it. */
 export default function TextSetting({
   id,
   label,
@@ -41,18 +41,12 @@ export default function TextSetting({
   }
 
   return (
-    <Field data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <SettingsRow label={label} htmlFor={id} description={error ? undefined : help} error={error}>
       {multiline ? (
         <Textarea {...shared} rows={3} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <Input {...shared} size="lg" type={type} onChange={(e) => onChange(e.target.value)} />
       )}
-      {error ? (
-        <FieldError>{error}</FieldError>
-      ) : help ? (
-        <FieldDescription>{help}</FieldDescription>
-      ) : null}
-    </Field>
+    </SettingsRow>
   )
 }

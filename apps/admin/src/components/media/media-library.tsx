@@ -153,7 +153,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
         aria-label={copy.upload}
       />
       {empty ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border bg-card px-4 py-12 text-center shadow-card">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border surface-card px-4 py-12 text-center">
           <p className="text-body-strong">{copy.empty.heading}</p>
           <p className="max-w-md text-body text-muted-foreground">{copy.empty.body}</p>
           <div className="mt-2 w-full max-w-md">
@@ -222,7 +222,7 @@ function MediaLibraryContent({ initial }: { initial: MediaLibraryInitial }) {
             <p className="py-10 text-center text-body text-muted-foreground">{copy.noMatch}</p>
           ) : null}
           {total > 0 ? (
-            <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+            <div className="overflow-hidden rounded-2xl border surface-card">
               <ResourceTablePagination
                 page={page}
                 perPage={perPage}

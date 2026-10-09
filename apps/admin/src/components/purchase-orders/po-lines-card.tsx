@@ -55,82 +55,89 @@ export default function PoLinesCard({
 
   // Render logic
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
+    <Card size="form" gap="none" inset="y-none">
+      <CardHeader className="grid-cols-[1fr_auto] items-center py-5">
+        <CardTitle className="flex items-center gap-2">
+          {copy.heading}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground tabular-nums">
+            {lines.length}
+          </span>
+        </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {locked ? null : (
+      {locked ? null : (
+        <CardContent className="pb-4">
           <VariantPicker
             placeholder={copy.search}
             locationId={locationId}
             pickedIds={lines.map((l) => l.variantId)}
             onPick={handlePick}
           />
-        )}
-        {lines.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
-        ) : (
-          <ul className="flex flex-col">
-            <li className="hidden grid-cols-[minmax(0,1fr)_5rem_7rem_6rem_2.5rem] gap-3 pb-2 text-caption text-muted-foreground sm:grid">
-              <span />
-              <span className="text-right">{copy.quantity}</span>
-              <span className="text-right">{copy.cost}</span>
-              <span className="text-right">{showReceived ? copy.received : copy.lineTotal}</span>
-              <span />
-            </li>
-            {lines.map((line, i) => (
-              <li
-                key={line.variantId}
-                className="grid grid-cols-[minmax(0,1fr)_5rem_7rem_6rem_2.5rem] items-center gap-3 border-line border-t py-2"
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <KitThumb src={line.imageUrl} alt="" />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-body">{variantLabel(line)}</span>
-                    <span className="truncate text-caption text-muted-foreground">
-                      {line.sku ?? copy.noSku}
-                    </span>
+        </CardContent>
+      )}
+      {lines.length === 0 ? (
+        <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
+          {copy.empty}
+        </p>
+      ) : (
+        <ul className="flex flex-col">
+          <li className="hidden h-10 grid-cols-[minmax(0,1fr)_5rem_7rem_6rem_2.5rem] items-center gap-3 border-line border-y bg-muted/50 px-5 text-caption font-medium text-muted-foreground sm:grid">
+            <span />
+            <span className="text-right">{copy.quantity}</span>
+            <span className="text-right">{copy.cost}</span>
+            <span className="text-right">{showReceived ? copy.received : copy.lineTotal}</span>
+            <span />
+          </li>
+          {lines.map((line, i) => (
+            <li
+              key={line.variantId}
+              className="grid grid-cols-[minmax(0,1fr)_5rem_7rem_6rem_2.5rem] items-center gap-3 border-line border-b px-5 py-3 last:border-b-0"
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <KitThumb src={line.imageUrl} alt="" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-body">{variantLabel(line)}</span>
+                  <span className="truncate text-caption text-muted-foreground">
+                    {line.sku ?? copy.noSku}
                   </span>
                 </span>
-                <Input
-                  aria-label={copy.quantity}
-                  value={line.quantity}
-                  inputMode="numeric"
-                  disabled={locked}
-                  className="text-right tabular-nums"
-                  onChange={(e) => patchLine(i, { quantity: e.target.value })}
-                />
-                <Input
-                  aria-label={copy.cost}
-                  value={line.unitCost}
-                  inputMode="decimal"
-                  placeholder="0"
-                  disabled={locked}
-                  className="text-right tabular-nums"
-                  onChange={(e) => patchLine(i, { unitCost: e.target.value })}
-                />
-                <span className="text-right text-body tabular-nums">
-                  {showReceived
-                    ? `${line.received} / ${toCount(line.quantity)}`
-                    : formatPaise(toCount(line.quantity) * (parseRupees(line.unitCost) ?? 0))}
-                </span>
-                {locked ? (
-                  <span />
-                ) : (
-                  <KitIconButton
-                    label={copy.remove}
-                    className="size-9"
-                    onClick={() => handleRemove(i)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </KitIconButton>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
+              </span>
+              <Input
+                aria-label={copy.quantity}
+                value={line.quantity}
+                inputMode="numeric"
+                disabled={locked}
+                className="text-right tabular-nums"
+                onChange={(e) => patchLine(i, { quantity: e.target.value })}
+              />
+              <Input
+                aria-label={copy.cost}
+                value={line.unitCost}
+                inputMode="decimal"
+                placeholder="0"
+                disabled={locked}
+                className="text-right tabular-nums"
+                onChange={(e) => patchLine(i, { unitCost: e.target.value })}
+              />
+              <span className="text-right text-body tabular-nums">
+                {showReceived
+                  ? `${line.received} / ${toCount(line.quantity)}`
+                  : formatPaise(toCount(line.quantity) * (parseRupees(line.unitCost) ?? 0))}
+              </span>
+              {locked ? (
+                <span />
+              ) : (
+                <KitIconButton
+                  label={copy.remove}
+                  className="size-9"
+                  onClick={() => handleRemove(i)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </KitIconButton>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }

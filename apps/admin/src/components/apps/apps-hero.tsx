@@ -32,7 +32,7 @@ export default function AppsHero({ apps, busyId, onInstall }: AppsHeroProps) {
   return (
     <section
       aria-label={copy.featured}
-      className="flex overflow-hidden rounded-2xl border border-border bg-card shadow-card"
+      className="flex overflow-hidden rounded-2xl border border-border surface-card"
     >
       <div className="flex min-w-0 flex-1 flex-col items-start gap-2 py-[1.625rem] pr-5 pl-6 pt-[1.875rem] md:pl-11">
         <span className="rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-link">
