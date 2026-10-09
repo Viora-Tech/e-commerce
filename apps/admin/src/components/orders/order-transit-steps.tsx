@@ -1,7 +1,7 @@
 import type { Tracking } from '@commerce/core'
 import { CheckIcon } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
-import { orderNextStepContent } from '@/data/orders'
+import { orderNextStepContent } from '@/data/order-next-step'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import type { OrderShipment } from './order-detail-types'
 

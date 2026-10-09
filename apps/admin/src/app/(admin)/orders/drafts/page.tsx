@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { draftsContent } from '@/data/drafts'
 import { appRouter, call, serverContext } from '@/lib/api'
-import { LIST_PER_PAGE, parseListQuery, type SearchParams } from '@/lib/list-query'
+import { parseListQuery, type SearchParams } from '@/lib/list-query'
+import { parseRowsPerPage } from '@/lib/rows-per-page'
 import DraftsPage from './drafts-page'
 
 export const metadata: Metadata = { title: draftsContent.title }
@@ -9,12 +10,17 @@ export const metadata: Metadata = { title: draftsContent.title }
 type Props = { searchParams: Promise<SearchParams> }
 
 export default async function Page({ searchParams }: Props) {
-  const query = parseListQuery(await searchParams, [])
+  const params = await searchParams
+  const query = parseListQuery(params, [])
+  const perPage = parseRowsPerPage(params.perPage)
   const context = await serverContext()
-  const result = await call(
-    appRouter.orders.listDrafts,
-    { page: query.page, perPage: LIST_PER_PAGE, search: query.query || undefined },
-    { context },
-  )
-  return <DraftsPage initial={{ query, result }} />
+  const [result, tiles] = await Promise.all([
+    call(
+      appRouter.orders.listDrafts,
+      { page: query.page, perPage, search: query.query || undefined },
+      { context },
+    ),
+    call(appRouter.orders.draftTiles, undefined, { context }),
+  ])
+  return <DraftsPage initial={{ query, perPage, result, tiles }} />
 }

@@ -1,7 +1,7 @@
+import { orderNextStepContent } from '@/data/order-next-step'
 import {
   importedOrderContent,
   orderDetailContent,
-  orderNextStepContent,
   ordersContent,
   ordersSectionsContent,
 } from '@/data/orders'

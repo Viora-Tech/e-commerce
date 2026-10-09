@@ -22,6 +22,7 @@ import { can, PAGE_SIZE_MAX, SEARCH_MAX } from '../procedures'
 import { storeRegistries } from '../services/apps.service'
 import {
   convertStoreDraft,
+  draftTiles,
   getDraft,
   listStoreAbandoned,
   listStoreDrafts,
@@ -412,6 +413,8 @@ export const ordersRouter = {
       }),
     )
     .handler(({ context, input }) => listStoreDrafts(context.tx, context.scope.storeId, input)),
+
+  draftTiles: can(permissions.DRAFTS_READ).handler(({ context }) => draftTiles(context.tx)),
 
   getDraft: can(permissions.DRAFTS_READ)
     .input(z.object({ id: z.uuid() }))

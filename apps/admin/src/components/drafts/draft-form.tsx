@@ -33,6 +33,7 @@ import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { draftEditorContent as copy, draftsContent } from '@/data/drafts'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type Draft = NonNullable<Awaited<ReturnType<typeof api.orders.getDraft>>>
 
@@ -101,7 +102,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
     try {
       await api.orders.convertDraft({ id, paymentMethod: form.paymentMethod })
       toast.success(copy.actions.converted)
-      router.push(`/orders/${id}`)
+      router.push(routes.orders.detail(id))
     } catch (err) {
       toast.error(message(err, copy.actions.convertFailed))
       setBusy(false)
@@ -114,7 +115,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
     try {
       await api.orders.deleteDraft({ id })
       toast.success(copy.actions.deleted)
-      router.push('/orders/drafts')
+      router.push(routes.orders.drafts())
     } catch (err) {
       toast.error(message(err, copy.actions.deleteFailed))
       setBusy(false)
@@ -125,7 +126,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
 
   return (
-    <PageBody width="frame" className="gap-6">
+    <PageBody className="max-w-[78rem] gap-6 md:py-8">
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -139,7 +140,7 @@ export default function DraftForm({ draft }: DraftFormProps) {
         title={number ? copy.editTitle(number) : copy.newTitle}
         icon={<FileEdit aria-hidden="true" />}
         breadcrumbs={[
-          { label: draftsContent.title, href: '/orders/drafts' },
+          { label: draftsContent.title, href: routes.orders.drafts() },
           { label: number ? copy.editTitle(number) : copy.newTitle },
         ]}
       />

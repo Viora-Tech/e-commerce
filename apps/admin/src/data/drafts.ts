@@ -5,6 +5,20 @@ export const draftsContent = {
   heading: 'Draft orders',
   intro: 'Orders you build for a customer, invisible to the storefront until you convert them.',
   create: 'Create draft order',
+  summary: (total: number, invoiced: number) =>
+    [
+      `${total} ${total === 1 ? 'draft' : 'drafts'}`,
+      invoiced > 0 ? `${invoiced} ${invoiced === 1 ? 'invoice' : 'invoices'} sent` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  tiles: {
+    open: { label: 'Open drafts', note: 'Ready to convert or send' },
+    invoiced: { label: 'Invoices sent', note: 'Waiting for the customer to pay' },
+    value: { label: 'Value in drafts', note: (n: number) => `Across all ${n} drafts` },
+  },
+  noResults: 'No drafts match that search',
+  openDraft: 'Open draft',
   resource: { singular: 'draft', plural: 'drafts' },
   search: 'Search drafts',
   empty: 'No draft orders yet',
