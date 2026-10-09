@@ -11,6 +11,7 @@ import domains from './domains'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import layout from './layout'
+import login from './login'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
 import onboarding from './onboarding'
@@ -47,6 +48,7 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...gstInvoices,
   ...home,
   ...layout,
+  ...login,
   ...metaobjects,
   ...navigation,
   ...onboarding,
