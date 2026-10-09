@@ -1,13 +1,14 @@
 'use client'
 
 import type { BusinessGstView } from '@commerce/core'
+import { useState } from 'react'
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import BusinessGstSettings from '../business-gst/business-gst-settings'
 import SectionTabs from '../section-tabs'
 import SettingsPageHeader from '../settings-page-header'
 import SettingsSection from '../settings-section'
-import TaxesSettings from './taxes-settings'
+import TaxesSettings, { type TaxesSaveState } from './taxes-settings'
 
 type TaxesGstPageProps = {
   view: BusinessGstView
@@ -36,15 +37,22 @@ function gstKey(view: BusinessGstView): string {
 export default function TaxesGstPage({ view }: TaxesGstPageProps) {
   // Hooks
   const copy = useCopy(settingsContent)
+  const [saveState, setSaveState] = useState<TaxesSaveState | null>(null)
 
   return (
     <div className="flex flex-col gap-4">
-      <SettingsPageHeader title={copy.taxesPage.title} subtitle={copy.taxesPage.intro} />
+      <SettingsPageHeader
+        title={copy.taxesPage.title}
+        subtitle={copy.taxesPage.intro}
+        onSave={saveState?.save}
+        dirty={saveState?.dirty ?? false}
+        saving={saveState?.busy ?? false}
+      />
       <SectionTabs tabs={copy.sections.taxes} hashTabs={HASH_TABS}>
         <SettingsSection id={GST_TAB} className="flex flex-col gap-4">
           <BusinessGstSettings view={view} />
         </SettingsSection>
-        <TaxesSettings refreshKey={gstKey(view)} gstTab={GST_TAB} />
+        <TaxesSettings refreshKey={gstKey(view)} gstTab={GST_TAB} onSaveState={setSaveState} />
       </SectionTabs>
     </div>
   )

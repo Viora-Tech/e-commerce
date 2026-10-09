@@ -8,19 +8,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@commerce/ui/shadcn/collapsible'
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
+import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import SettingsCard from './settings-card'
+import SettingsRow from './settings-row'
+import SettingsTextRow from './settings-text-row'
+import SettingsToggleRow from './settings-toggle-row'
 
 type ShippingPolicyFieldsProps = {
   value: ShippingPolicySettings
@@ -45,12 +40,13 @@ const clampRupees = (raw: string, fallback: number) => {
 type WeekdayPickerProps = {
   name: string
   legend: string
+  description?: string | undefined
   selected: number[]
   onChange: (days: number[]) => void
 }
 
 /** Seven checkboxes in a row. */
-function WeekdayPicker({ name, legend, selected, onChange }: WeekdayPickerProps) {
+function WeekdayPicker({ name, legend, description, selected, onChange }: WeekdayPickerProps) {
   // Hooks
   const copy = useCopy(shippingSettingsContent)
 
@@ -59,8 +55,7 @@ function WeekdayPicker({ name, legend, selected, onChange }: WeekdayPickerProps)
     onChange(toDays(on ? [...selected, day] : selected.filter((d) => d !== day)))
 
   return (
-    <FieldSet>
-      <FieldLegend variant="label">{legend}</FieldLegend>
+    <SettingsRow label={legend} description={description}>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
         {copy.weekdays.map((d) => {
           const id = `${name}-${d.value}`
@@ -78,7 +73,7 @@ function WeekdayPicker({ name, legend, selected, onChange }: WeekdayPickerProps)
           )
         })}
       </div>
-    </FieldSet>
+    </SettingsRow>
   )
 }
 
@@ -93,18 +88,14 @@ type TextFieldProps = {
 
 function TextField({ id, label, value, onChange, help, type = 'text' }: TextFieldProps) {
   return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input
-        size="lg"
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete="off"
-      />
-      {help ? <FieldDescription>{help}</FieldDescription> : null}
-    </Field>
+    <SettingsTextRow
+      id={id}
+      label={label}
+      description={help}
+      value={value}
+      onChange={onChange}
+      type={type}
+    />
   )
 }
 
@@ -121,160 +112,139 @@ export default function ShippingPolicyFields({ value, onChange }: ShippingPolicy
 
   return (
     <SettingsCard title={p.heading} description={p.intro}>
-      <FieldGroup>
-        <div className="grid gap-4 md:grid-cols-2">
-          <TextField
-            id="policy-origin"
-            label={p.originPincode}
-            value={value.originPincode}
-            onChange={(v) => set('originPincode', v)}
-          />
-          <TextField
-            id="policy-cutoff"
-            label={p.cutoff}
-            value={value.cutoff}
-            onChange={(v) => set('cutoff', v)}
-            help={p.cutoffHelp}
-          />
-        </div>
-        <WeekdayPicker
-          name="working"
-          legend={p.workingDays}
-          selected={value.workingDays}
-          onChange={(d) => set('workingDays', d)}
+      <TextField
+        id="policy-origin"
+        label={p.originPincode}
+        value={value.originPincode}
+        onChange={(v) => set('originPincode', v)}
+      />
+      <TextField
+        id="policy-cutoff"
+        label={p.cutoff}
+        value={value.cutoff}
+        onChange={(v) => set('cutoff', v)}
+        help={p.cutoffHelp}
+      />
+      <WeekdayPicker
+        name="working"
+        legend={p.workingDays}
+        selected={value.workingDays}
+        onChange={(d) => set('workingDays', d)}
+      />
+      <SettingsRow label={p.holidays} description={p.holidaysHelp} htmlFor="policy-holidays">
+        <Textarea
+          size="lg"
+          id="policy-holidays"
+          rows={3}
+          value={value.holidays.join('\n')}
+          onChange={(e) =>
+            set(
+              'holidays',
+              e.target.value
+                .split('\n')
+                .map((h) => h.trim())
+                .filter(Boolean),
+            )
+          }
         />
-        <Field>
-          <FieldLabel htmlFor="policy-holidays">{p.holidays}</FieldLabel>
-          <Textarea
-            size="lg"
-            id="policy-holidays"
-            rows={3}
-            value={value.holidays.join('\n')}
-            onChange={(e) =>
-              set(
-                'holidays',
-                e.target.value
-                  .split('\n')
-                  .map((h) => h.trim())
-                  .filter(Boolean),
-              )
-            }
-          />
-          <FieldDescription>{p.holidaysHelp}</FieldDescription>
-        </Field>
-        <Field orientation="horizontal">
-          <Checkbox
-            id="policy-cod"
-            checked={value.codAllowed}
-            onCheckedChange={(v) => set('codAllowed', Boolean(v))}
-          />
-          <FieldLabel htmlFor="policy-cod" className="font-normal">
-            {p.codAllowed}
-          </FieldLabel>
-        </Field>
-        <Collapsible>
-          <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <ChevronDown
-              aria-hidden="true"
-              className="hidden size-4 group-data-[panel-open]:block"
+      </SettingsRow>
+      <SettingsToggleRow
+        id="policy-cod"
+        label={p.codAllowed}
+        checked={value.codAllowed}
+        onChange={(codAllowed) => set('codAllowed', codAllowed)}
+      />
+      <Collapsible>
+        <CollapsibleTrigger className="group flex w-fit items-center gap-1.5 text-body font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <ChevronDown aria-hidden="true" className="hidden size-4 group-data-[panel-open]:block" />
+          <ChevronRight aria-hidden="true" className="size-4 group-data-[panel-open]:hidden" />
+          {p.more}
+          <span className="font-normal text-muted-foreground">· {p.moreHelp}</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-4 flex flex-col">
+            <WeekdayPicker
+              name="delivery"
+              legend={p.deliveryDays}
+              description={p.deliveryDaysHelp}
+              selected={value.deliveryDays}
+              onChange={(d) => set('deliveryDays', d)}
             />
-            <ChevronRight aria-hidden="true" className="size-4 group-data-[panel-open]:hidden" />
-            {p.more}
-            <span className="font-normal text-muted-foreground">· {p.moreHelp}</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <FieldGroup className="mt-4">
-              <div className="flex flex-col gap-2">
-                <WeekdayPicker
-                  name="delivery"
-                  legend={p.deliveryDays}
-                  selected={value.deliveryDays}
-                  onChange={(d) => set('deliveryDays', d)}
-                />
-                <FieldDescription>{p.deliveryDaysHelp}</FieldDescription>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                  id="policy-min-transit"
-                  type="number"
-                  label={p.minTransit}
-                  value={String(value.defaultMinTransitDays)}
-                  onChange={(v) =>
-                    set('defaultMinTransitDays', clampDays(v, value.defaultMinTransitDays))
-                  }
-                />
-                <TextField
-                  id="policy-max-transit"
-                  type="number"
-                  label={p.maxTransit}
-                  value={String(value.defaultMaxTransitDays)}
-                  onChange={(v) =>
-                    set('defaultMaxTransitDays', clampDays(v, value.defaultMaxTransitDays))
-                  }
-                  help={p.transitHelp}
-                />
-              </div>
-              <h3 className="text-body font-bold text-ink-strong">{p.warehouse}</h3>
-              <TextField
-                id="wh-name"
-                label={p.warehouseName}
-                value={value.warehouse.name}
-                onChange={(v) => setWarehouse('name', v)}
-              />
-              <TextField
-                id="wh-line1"
-                label={p.line1}
-                value={value.warehouse.line1}
-                onChange={(v) => setWarehouse('line1', v)}
-              />
-              <TextField
-                id="wh-line2"
-                label={p.line2}
-                value={value.warehouse.line2}
-                onChange={(v) => setWarehouse('line2', v)}
-              />
-              <div className="grid gap-4 md:grid-cols-3">
-                <TextField
-                  id="wh-city"
-                  label={p.city}
-                  value={value.warehouse.city}
-                  onChange={(v) => setWarehouse('city', v)}
-                />
-                <TextField
-                  id="wh-state"
-                  label={p.state}
-                  value={value.warehouse.state}
-                  onChange={(v) => setWarehouse('state', v)}
-                />
-                <TextField
-                  id="wh-phone"
-                  label={p.phone}
-                  value={value.warehouse.phone}
-                  onChange={(v) => setWarehouse('phone', v)}
-                />
-              </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextField
-                  id="policy-insurance"
-                  type="number"
-                  label={p.insuranceThreshold}
-                  value={String(Math.round(value.insuranceThresholdPaise / 100))}
-                  onChange={(v) => set('insuranceThresholdPaise', clampRupees(v, 0) * 100)}
-                  help={p.insuranceThresholdHelp}
-                />
-                <TextField
-                  id="policy-low-wallet"
-                  type="number"
-                  label={p.lowWalletBalance}
-                  value={String(Math.round(value.lowWalletBalancePaise / 100))}
-                  onChange={(v) => set('lowWalletBalancePaise', clampRupees(v, 500) * 100)}
-                  help={p.lowWalletBalanceHelp}
-                />
-              </div>
-            </FieldGroup>
-          </CollapsibleContent>
-        </Collapsible>
-      </FieldGroup>
+            <TextField
+              id="policy-min-transit"
+              type="number"
+              label={p.minTransit}
+              value={String(value.defaultMinTransitDays)}
+              onChange={(v) =>
+                set('defaultMinTransitDays', clampDays(v, value.defaultMinTransitDays))
+              }
+            />
+            <TextField
+              id="policy-max-transit"
+              type="number"
+              label={p.maxTransit}
+              value={String(value.defaultMaxTransitDays)}
+              onChange={(v) =>
+                set('defaultMaxTransitDays', clampDays(v, value.defaultMaxTransitDays))
+              }
+              help={p.transitHelp}
+            />
+            <h3 className="text-body font-bold text-ink-strong">{p.warehouse}</h3>
+            <TextField
+              id="wh-name"
+              label={p.warehouseName}
+              value={value.warehouse.name}
+              onChange={(v) => setWarehouse('name', v)}
+            />
+            <TextField
+              id="wh-line1"
+              label={p.line1}
+              value={value.warehouse.line1}
+              onChange={(v) => setWarehouse('line1', v)}
+            />
+            <TextField
+              id="wh-line2"
+              label={p.line2}
+              value={value.warehouse.line2}
+              onChange={(v) => setWarehouse('line2', v)}
+            />
+            <TextField
+              id="wh-city"
+              label={p.city}
+              value={value.warehouse.city}
+              onChange={(v) => setWarehouse('city', v)}
+            />
+            <TextField
+              id="wh-state"
+              label={p.state}
+              value={value.warehouse.state}
+              onChange={(v) => setWarehouse('state', v)}
+            />
+            <TextField
+              id="wh-phone"
+              label={p.phone}
+              value={value.warehouse.phone}
+              onChange={(v) => setWarehouse('phone', v)}
+            />
+            <TextField
+              id="policy-insurance"
+              type="number"
+              label={p.insuranceThreshold}
+              value={String(Math.round(value.insuranceThresholdPaise / 100))}
+              onChange={(v) => set('insuranceThresholdPaise', clampRupees(v, 0) * 100)}
+              help={p.insuranceThresholdHelp}
+            />
+            <TextField
+              id="policy-low-wallet"
+              type="number"
+              label={p.lowWalletBalance}
+              value={String(Math.round(value.lowWalletBalancePaise / 100))}
+              onChange={(v) => set('lowWalletBalancePaise', clampRupees(v, 500) * 100)}
+              help={p.lowWalletBalanceHelp}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </SettingsCard>
   )
 }

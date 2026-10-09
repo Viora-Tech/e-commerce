@@ -2,7 +2,7 @@
 
 import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
 import { taxesContent as copy } from '@/data/taxes'
@@ -21,7 +21,11 @@ type TaxesSettingsProps = {
   refreshKey: string
   /** The tab that holds the GST numbers; nothing of this form shows on it but the save bar. */
   gstTab: string
+  /** Tells the page header whether there is something to save, and how to save it. */
+  onSaveState: (state: TaxesSaveState) => void
 }
+
+export type TaxesSaveState = { dirty: boolean; busy: boolean; save: () => void }
 
 const same = (a: TaxesFormState, b: TaxesFormState) => JSON.stringify(a) === JSON.stringify(b)
 
@@ -44,13 +48,14 @@ function LoadingCards() {
  * tab (numbering, e-invoicing) of Settings › Taxes & GST. It stays mounted on every tab so one
  * save bar covers both and a half-made change survives a tab switch.
  */
-export default function TaxesSettings({ refreshKey, gstTab }: TaxesSettingsProps) {
+export default function TaxesSettings({ refreshKey, gstTab, onSaveState }: TaxesSettingsProps) {
   // Hooks
   const active = useActiveSection()
   const [view, setView] = useState<TaxesView | null>(null)
   const [form, setForm] = useState<TaxesFormState | null>(null)
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
+  const saveRef = useRef<() => void>(() => undefined)
   // biome-ignore lint/correctness/useExhaustiveDependencies: reload when GST numbers change, not on every edit.
   useEffect(() => {
     api.taxes
@@ -93,8 +98,17 @@ export default function TaxesSettings({ refreshKey, gstTab }: TaxesSettingsProps
     setAttempted(false)
   }
 
-  // Render logic
+  // Report the save state to the page header; `saveRef` always points at the latest handleSave.
   const dirty = form !== null && view !== null && !same(form, formOf(view))
+  useEffect(() => {
+    saveRef.current = handleSave
+  })
+  // biome-ignore lint/correctness/useExhaustiveDependencies: report when dirty or busy change; `onSaveState` is a state setter.
+  useEffect(() => {
+    onSaveState({ dirty, busy, save: () => saveRef.current() })
+  }, [dirty, busy])
+
+  // Render logic
   const errors = form && view && attempted ? validateTaxes(form, view.numbering.lowest) : {}
 
   return (

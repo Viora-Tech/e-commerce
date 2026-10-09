@@ -170,6 +170,10 @@ export default function ProviderSettingsForm<Extra extends object>({
       <SettingsPageHeader
         title={title}
         subtitle={intro}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
         back={back?.href ? { label: back.label, href: back.href } : undefined}
       />
       {error ? (

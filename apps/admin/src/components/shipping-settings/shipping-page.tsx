@@ -115,6 +115,10 @@ export default function ShippingPage() {
       />
       <SettingsPageHeader
         title={copy.title}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {copy.intro}

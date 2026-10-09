@@ -18,11 +18,20 @@ Overview `314:15638`, Taxes `350:16082`).
 - admin-routes allow-list lowered (links in settings, domains, payments, notifications, shipping now read
   `routes`).
 
+Round 2
+- `SettingsTable` (+ row and cell) wraps the shared table look (40px header, 48px rows, hairlines, centred
+  status chips, `RowActionsCell`, "Showing 1-n of n"): team members, invites, roles, domains, DNS records,
+  locations, shipping zones and notification messages now use it.
+- Payments wizard: header with "Step n of 5" and Skip, segmented progress, step card; methods list on
+  hairline rows. Shipping "When orders go out" on rows with a switch for COD. Notifications: one table per
+  message group (switch + On/Off chip, preview and test in the row actions).
+- Header Save now also on Taxes & GST (state lifted with `onSaveState`), Shipping and Payments advanced.
+  Notifications has no header Save: each switch saves itself and the sender email has its own form.
+
 Not done / notes
-- Table-style cards (staff members, roles, invites, domains list, DNS records, locations list, zones,
-  notifications message rows, payments methods) keep their table layout inside the shared `Card`.
-- Header Save is not wired on Taxes & GST (the form sits in a tab child), Notifications, Shipping or
-  Payments advanced; the floating bar covers them.
-- Policy "Generate with AI": no policy drafting endpoint exists (`api.ai` has product/blog writers only), so omitted.
-- AI access (MCP) page: no MCP backend exists, skipped.
+- Notifications "Customer messages / Staff alerts" tabs from Figma `350:8036`: kept the existing groups.
+- "Updated" column from Figma not shown (no per-message updated date exists).
+- Staff copy has no Hindi overlay (none existed); new "Role" and "Members" column labels are English.
+- Policy "Generate with AI": no policy drafting endpoint exists (`api.ai` has product/blog writers only), omitted.
+- AI access (MCP) page: no MCP backend, skipped.
 - No browser check (no login available to the agent).
