@@ -18,11 +18,11 @@ export default function ProoflyDetailPage({
 }: ProoflyDetailPageProps) {
   // Render logic
   return (
-    <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5 px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       {header}
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex min-w-0 flex-col gap-5">{main}</div>
-        {side ? <div className="flex min-w-0 flex-col gap-5">{side}</div> : null}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23.5rem]">
+        <div className="flex min-w-0 flex-col gap-6">{main}</div>
+        {side ? <div className="flex min-w-0 flex-col gap-6">{side}</div> : null}
       </div>
       {children}
     </div>
