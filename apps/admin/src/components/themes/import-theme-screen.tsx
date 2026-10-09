@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, CircleAlert, Upload } from '@commerce/ui/icons'
+import { CheckIcon, CircleAlert, Upload } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
@@ -183,7 +183,7 @@ export default function ImportThemeScreen() {
       <ul className="flex flex-col gap-2.5">
         {screen.bullets.map((line) => (
           <li key={line} className="flex items-start gap-2.5 text-body text-foreground">
-            <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+            <CheckIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
             {line}
           </li>
         ))}
