@@ -28,7 +28,7 @@ type VariantMatrixProps = {
 
 /** Same grid as ResourceTable: white 40px header on a hairline, rows on lighter hairlines. */
 const HEAD =
-  'h-10 border-b border-border px-3 text-table-head text-muted-foreground first:pl-5 last:pr-5'
+  'h-10 border-b border-border bg-muted px-3 text-table-head text-muted-foreground first:pl-5 last:pr-5'
 const CELL = 'border-b border-line px-3 py-2 text-body first:pl-5 last:pr-5'
 
 const rowKey = (v: VariantRow) => v.id ?? variantTitle(v.optionValues)

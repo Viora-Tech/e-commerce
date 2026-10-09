@@ -1,7 +1,7 @@
 'use client'
 
 import type { ProductStatus } from '@commerce/core/catalog'
-import { CircleAlert } from '@commerce/ui/icons'
+import { CircleAlert, Package } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import {
   AlertDialog,
@@ -257,6 +257,16 @@ export default function ProductForm({
           <ProoflyPageHeader
             title={product ? product.title : copy.newTitle}
             back={{ label: copy.backLabel, href: routes.products.list() }}
+            tile={
+              form.media[0] ? (
+                <>
+                  {/* biome-ignore lint/performance/noImgElement: the product's own photo from store storage. */}
+                  <img src={form.media[0].url} alt="" className="size-full bg-card object-cover" />
+                </>
+              ) : (
+                <Package aria-hidden="true" />
+              )
+            }
             badges={
               product ? (
                 <StatusChip tone={form.status === 'draft' ? 'info' : 'neutral'}>

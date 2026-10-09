@@ -51,17 +51,20 @@ export default function ProductSectionNav({ sections, onJump }: ProductSectionNa
   const labels: Record<string, string> = copy.labels
 
   return (
-    <nav aria-label={copy.label} className="no-scrollbar -mx-1 -mb-2 flex gap-1 overflow-x-auto">
+    <nav
+      aria-label={copy.label}
+      className="no-scrollbar inline-flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-[0.6875rem] bg-muted p-[0.1875rem]"
+    >
       {sections.map((id) => (
         <a
           key={id}
           href={`#${id}`}
           onClick={handleClick(id)}
           className={cn(
-            'shrink-0 rounded-full px-2.5 py-1 text-caption whitespace-nowrap transition-colors',
+            'flex h-[1.875rem] shrink-0 items-center rounded-[0.5rem] border px-3 text-body font-medium whitespace-nowrap transition-colors',
             active === id
-              ? 'bg-primary-soft text-primary font-medium'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              ? 'border-border bg-card font-semibold text-ink-strong shadow-lift'
+              : 'border-transparent text-muted-foreground hover:text-foreground',
           )}
         >
           {labels[id] ?? id}
