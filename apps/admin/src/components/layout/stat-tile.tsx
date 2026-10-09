@@ -7,10 +7,12 @@ type StatTileProps = {
   value: string
   /** Percent change against the previous period; the sign picks the arrow. */
   trend?: number | null
-  /** Text after the arrow, e.g. "vs yesterday". */
+  /** Text after the arrow, e.g. "vs yesterday"; on its own (no trend) it is a plain note line. */
   trendNote?: string
   /** A rise is bad news (cancellations): the colours flip. */
   invert?: boolean
+  /** A plain line under the figure when there is no trend ("56% of all customers"). */
+  note?: string
   /** Makes the tile a filter button; `active` marks the current one. */
   onSelect?: () => void
   active?: boolean
@@ -18,7 +20,7 @@ type StatTileProps = {
 }
 
 const BASE =
-  'flex flex-col gap-1 rounded-lg bg-card p-4 text-left shadow-card transition-[box-shadow,background-color] duration-150 ease-out'
+  'flex flex-col gap-1 rounded-lg surface-card p-4 text-left transition-[box-shadow,background-color] duration-150 ease-out'
 const PRESSABLE =
   'cursor-pointer hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
@@ -29,6 +31,7 @@ export default function StatTile({
   trend,
   trendNote,
   invert = false,
+  note,
   onSelect,
   active = false,
   className,
@@ -57,6 +60,8 @@ export default function StatTile({
             <span className="font-normal text-muted-foreground">{trendNote}</span>
           ) : null}
         </span>
+      ) : note || trendNote ? (
+        <span className="text-caption text-muted-foreground">{note ?? trendNote}</span>
       ) : null}
     </>
   )
@@ -71,7 +76,7 @@ export default function StatTile({
       className={cn(
         BASE,
         PRESSABLE,
-        active && 'bg-primary-soft shadow-[inset_0_0_0_1px_var(--primary)]',
+        active && 'bg-brand-select bg-none shadow-[inset_0_0_0_1px_var(--primary)]',
         className,
       )}
     >

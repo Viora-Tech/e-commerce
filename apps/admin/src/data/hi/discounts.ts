@@ -1,0 +1,88 @@
+import { discountFormContent, discountsContent } from '@/data/discounts'
+import { translation, untranslated } from '@/lib/i18n'
+
+export default [
+  translation(discountsContent, {
+    title: 'डिस्काउंट',
+    heading: 'डिस्काउंट लिस्ट',
+    resource: { singular: 'डिस्काउंट', plural: 'डिस्काउंट' },
+    create: 'डिस्काउंट बनाएं',
+    summary: (active, scheduled, used) =>
+      `${active} चालू · ${scheduled} जल्द शुरू · पिछले 30 दिन में ${used} ऑर्डर पर डिस्काउंट लगा`,
+    tiles: {
+      active: 'चालू डिस्काउंट',
+      scheduled: 'शेड्यूल',
+      expired: 'खत्म',
+      usedThisMonth: 'डिस्काउंट वाले ऑर्डर (30 दिन)',
+      now: 'अभी',
+      month: 'पिछले 30 दिन',
+    },
+    row: { edit: 'डिस्काउंट बदलें' },
+    tabs: {
+      all: 'सभी डिस्काउंट',
+      active: 'चालू',
+      scheduled: 'शेड्यूल',
+      expired: 'खत्म',
+      disabled: 'बंद',
+    },
+    columns: {
+      title: 'डिस्काउंट',
+      method: 'वैल्यू',
+      kind: 'तरीका',
+      status: 'स्टेटस',
+      used: 'इस्तेमाल',
+      dates: 'चालू तारीखें',
+    },
+    kind: { code: 'कोड', automatic: 'अपने-आप' },
+    lifecycle: { active: 'चालू', scheduled: 'शेड्यूल', expired: 'खत्म', disabled: 'बंद' },
+    usedOf: (used, limit) => (limit === null ? `${used}` : `${used} / ${limit}`),
+    since: (from) => `${from} से`,
+    until: (to) => `${to} तक`,
+    ongoing: 'चालू है',
+    noEnd: 'कोई अंतिम तारीख नहीं',
+    always: 'हमेशा',
+    empty: {
+      heading: 'अभी कोई डिस्काउंट नहीं',
+      body: 'डिस्काउंट कोड और अपने-आप लगने वाले ऑफ़र: प्रतिशत छूट, तय रकम या फ्री शिपिंग, चेकआउट पर लागू।',
+    },
+    index: {
+      heading: 'कोई डिस्काउंट नहीं',
+      body: 'डिस्काउंट कोड और अपने-आप लगने वाले ऑफ़र: प्रतिशत छूट, तय रकम या फ्री शिपिंग, चेकआउट पर लागू।',
+      action: { label: 'डिस्काउंट बनाएं', href: untranslated },
+    },
+    detail: {
+      heading: 'डिस्काउंट नहीं मिला',
+      body: 'यह डिस्काउंट इस स्टोर में मौजूद नहीं है।',
+      action: { label: 'डिस्काउंट पर वापस', href: untranslated },
+    },
+  }),
+  translation(discountFormContent, {
+    newTitle: 'डिस्काउंट बनाएं',
+    newSummary: 'इसे सेट करें, फिर सेव करें।',
+    usedTimes: (n) => (n === 1 ? 'एक बार इस्तेमाल हुआ' : `${n} बार इस्तेमाल हुआ`),
+    saveBar: { message: 'बदलाव सेव नहीं हुए', save: 'सेव करें', discard: 'छोड़ें' },
+    toasts: {
+      saved: 'डिस्काउंट सेव हुआ',
+      created: 'डिस्काउंट बन गया',
+      deleted: 'डिस्काउंट हटा दिया',
+      disabled: 'डिस्काउंट बंद किया: यह ऑर्डर पर लग चुका है, इसलिए रिकॉर्ड के लिए रखा गया',
+      failed: 'सेव नहीं हुआ',
+    },
+    errors: untranslated,
+    method: untranslated,
+    value: untranslated,
+    minimum: untranslated,
+    eligibility: untranslated,
+    usage: untranslated,
+    dates: untranslated,
+    summary: untranslated,
+    status: untranslated,
+    delete: {
+      action: 'डिस्काउंट हटाएं',
+      title: (name) => `${name} हटाएं?`,
+      body: 'यह वापस नहीं होगा। जो डिस्काउंट ऑर्डर पर लग चुके हैं, उन्हें हटाने की जगह बंद किया जाता है ताकि रिकॉर्ड बना रहे।',
+      confirm: 'हटाएं',
+      cancel: 'रद्द करें',
+    },
+  }),
+]

@@ -8,11 +8,11 @@ const inputVariants = cva(
   {
     variants: {
       size: {
-        default: 'h-8 bg-transparent px-2.5 py-1 text-base md:text-sm dark:bg-input/30',
+        default: 'h-8 bg-input-surface px-2.5 py-1 text-base md:text-sm',
         /** Frame 5:5495 "Outline Input Field" at Shopify density: h-9, Neutal/50 fill, Neutal/200 hairline, 0.8125rem/500 value. */
-        lg: 'h-9 bg-card hover:border-border-strong px-3 py-2 text-body text-foreground focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
+        lg: 'h-9 bg-input-surface hover:border-border-strong px-3 py-2 text-body text-foreground',
         /** Kit sheet 14:1638 "Outline Input Field" at frame size: h-12, Neutal/50 fill, Neutal/200 hairline, 12px inset, 15/700 value. */
-        kit: 'h-9 bg-card hover:border-border-strong px-3 py-2 text-body text-foreground placeholder:text-muted-foreground focus-visible:bg-card dark:bg-input/30 dark:focus-visible:bg-card',
+        kit: 'h-9 bg-input-surface hover:border-border-strong px-3 py-2 text-body text-foreground placeholder:text-muted-foreground',
       },
     },
     defaultVariants: { size: 'default' },

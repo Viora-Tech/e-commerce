@@ -73,7 +73,7 @@ export function pageTitleFor(pathname: string): string {
  * Every other page (lists, details, settings sections) renders its own PageHeader, so the
  * frame adds nothing and the title appears once.
  */
-const UNHEADED = ['/content', '/content/menus', '/content/menus/redirects', '/online-store/pages']
+const UNHEADED: string[] = []
 
 /** True when the page draws its own h1 (PageHeader, KitListPage or the dashboard). */
 export function hasOwnHeading(pathname: string): boolean {

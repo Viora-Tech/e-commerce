@@ -6,6 +6,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import {
   extLabel,
   filenameFrom,
@@ -27,8 +28,6 @@ type MediaPickGridProps = {
   onRetry: (key: string) => void
   onDismiss: (key: string) => void
 }
-
-const copy = mediaContent.picker
 
 /** How many columns a CSS grid is currently laying out, for arrow-key moves between rows. */
 function columnsOf(el: HTMLElement): number {
@@ -72,6 +71,9 @@ export default function MediaPickGrid({
   onRetry,
   onDismiss,
 }: MediaPickGridProps) {
+  // Hooks
+  const { picker: copy } = useCopy(mediaContent)
+
   // Event handlers
   const handleDoubleClick = (id: string) => {
     onToggle(id)

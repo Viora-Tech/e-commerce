@@ -10,17 +10,22 @@
  * WHERE: components/apps/{delhivery,shiprocket,rapidshyp,decentro}/connect-page.tsx.
  */
 
-import { CircleAlert, CircleCheck } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { ArrowLeft, CircleAlert, CircleCheck, ExternalLink } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Spinner } from '@commerce/ui/shadcn/spinner'
+import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
+import AppLogo from '@/components/apps/app-logo'
 import SaveBar from '@/components/layout/save-bar'
 import type { ProviderDef } from '@/components/settings/provider-settings-form'
+import { appsContent } from '@/data/apps'
+import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import ConnectModeSwitch, { type ModeSwitch } from './connect-mode-switch'
 import {
   type FieldValues,
@@ -74,7 +79,8 @@ export type ConnectContext<R extends TestOutcome> = {
 type ProviderConnectPageProps<R extends TestOutcome> = {
   providerId: string
   kind: SettingsKind
-  icon: ReactNode
+  /** Kept for the callers; the header now shows the app logo. */
+  icon?: ReactNode
   copy: ConnectPageCopy
   emptyValues: FieldValues
   test: (values: FieldValues) => Promise<R>
@@ -99,7 +105,6 @@ const alwaysTestable = () => true
 export default function ProviderConnectPage<R extends TestOutcome>({
   providerId,
   kind,
-  icon,
   copy,
   emptyValues,
   test,
@@ -114,6 +119,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
   extras,
 }: ProviderConnectPageProps<R>) {
   // Hooks
+  const apps = useCopy(appsContent)
   const [provider, setProvider] = useState<ProviderDef | null>(null)
   const [blob, setBlob] = useState<SettingsBlob | null>(null)
   const [values, setValues] = useState<FieldValues>(emptyValues)
@@ -197,6 +203,7 @@ export default function ProviderConnectPage<R extends TestOutcome>({
 
   // Render logic
   const dirty = snapshot !== null && JSON.stringify(values) !== snapshot
+  const connected = testState.status === 'ok' && !dirty && !!blob?.enabled.includes(providerId)
   const loading = waitForListing ? provider === null : blob === null
   const ctx: ConnectContext<R> = {
     values,
@@ -222,7 +229,28 @@ export default function ProviderConnectPage<R extends TestOutcome>({
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={icon} />
+      <Link
+        href={routes.apps.page(providerId)}
+        className="flex w-fit items-center gap-1.5 text-body text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden="true" />
+        {apps.title}
+      </Link>
+      <div className="flex flex-wrap items-center gap-4">
+        <AppLogo id={providerId} icon={null} size={48} />
+        <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col">
+          <h1 className="text-page-title text-ink-strong">{copy.title}</h1>
+          <p className="text-caption text-muted-foreground">{copy.intro}</p>
+        </div>
+        <Button
+          variant="ghost"
+          nativeButton={false}
+          render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+        >
+          {apps.viewGuide}
+          <ExternalLink aria-hidden="true" className="size-3.5" />
+        </Button>
+      </div>
       {error ? (
         <Alert variant="destructive">
           <CircleAlert />
@@ -238,53 +266,67 @@ export default function ProviderConnectPage<R extends TestOutcome>({
           <Skeleton className="h-10 w-full" />
         </Card>
       ) : (
-        <>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
           {guide(ctx)}
 
-          <Card size="form">
-            <CardContent className="flex flex-col gap-5">
-              {mode ? (
-                <ConnectModeSwitch
-                  providerId={providerId}
-                  mode={mode}
-                  values={values}
-                  setField={setField}
-                />
-              ) : null}
-
-              {fields(ctx)}
-
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-fit"
-                  onClick={handleTest}
-                  disabled={testState.status === 'testing' || !canTest(values)}
-                >
-                  {testState.status === 'testing' ? <Spinner /> : null}
-                  {testState.status === 'testing' ? copy.testing : copy.testConnection}
-                </Button>
-                {testState.status === 'ok' ? (
-                  <p className="flex items-center gap-1.5 text-body font-medium text-success">
-                    <CircleCheck aria-hidden="true" className="size-4" />
-                    {passedMessage
-                      ? passedMessage(testState.message, lastPassed)
-                      : testState.message}
-                  </p>
-                ) : testState.status === 'error' ? (
-                  <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
-                    <CircleAlert aria-hidden="true" className="size-4" />
-                    {testState.message}
-                  </p>
+          <div className="flex flex-col gap-6">
+            {connected ? (
+              <Alert>
+                <CircleCheck />
+                <AlertTitle>{apps.connectedHeading}</AlertTitle>
+                <AlertDescription>
+                  {apps.connectedBody}{' '}
+                  <Link href={routes.apps.page(providerId)} className="font-medium underline">
+                    {apps.openApp}
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <Card size="form">
+              <CardContent className="flex flex-col gap-5">
+                {mode ? (
+                  <ConnectModeSwitch
+                    providerId={providerId}
+                    mode={mode}
+                    values={values}
+                    setField={setField}
+                  />
                 ) : null}
-                <p className="text-caption text-muted-foreground">{copy.testHint}</p>
-              </div>
 
-              {extras(ctx)}
-            </CardContent>
-          </Card>
-        </>
+                {fields(ctx)}
+
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-fit"
+                    onClick={handleTest}
+                    disabled={testState.status === 'testing' || !canTest(values)}
+                  >
+                    {testState.status === 'testing' ? <Spinner /> : null}
+                    {testState.status === 'testing' ? copy.testing : copy.testConnection}
+                  </Button>
+                  {testState.status === 'ok' ? (
+                    <p className="flex items-center gap-1.5 text-body font-medium text-success">
+                      <CircleCheck aria-hidden="true" className="size-4" />
+                      {passedMessage
+                        ? passedMessage(testState.message, lastPassed)
+                        : testState.message}
+                    </p>
+                  ) : testState.status === 'error' ? (
+                    <p className="flex items-center gap-1.5 text-body font-medium text-destructive">
+                      <CircleAlert aria-hidden="true" className="size-4" />
+                      {testState.message}
+                    </p>
+                  ) : null}
+                  <p className="text-caption text-muted-foreground">{copy.testHint}</p>
+                </div>
+
+                {extras(ctx)}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
     </div>
   )

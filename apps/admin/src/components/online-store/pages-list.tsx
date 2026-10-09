@@ -1,62 +1,48 @@
 'use client'
 
-import { Plus } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { SquarePlus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { useEffect, useState } from 'react'
-import PageBody from '@/components/layout/page-body'
-import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import { Suspense, useEffect, useState } from 'react'
+import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
+import StatusChip from '@/components/layout/status-chip'
 import ResourceTable, { type ResourceColumnSpec } from '@/components/table/resource-table'
-import { onlineStoreContent } from '@/data/online-store'
+import { pagesListContent } from '@/data/content'
+import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import CreatePageDialog from './create-page-dialog'
 
 type Item = Awaited<ReturnType<typeof api.pages.list>>[number]
 
-const copy = onlineStoreContent.pages
+const TABS = ['live', 'hidden'] as const
 
 const pageUrl = (handle: string) => (handle === 'home' ? '/' : `/pages/${handle}`)
 
-const columns: ResourceColumnSpec<Item>[] = [
-  {
-    id: 'title',
-    title: copy.columns.title,
-    sortValue: (p) => p.title,
-    hideable: false,
-    render: (p) => <span className="font-bold text-ink-strong">{p.title}</span>,
-  },
-  {
-    id: 'url',
-    title: copy.columns.url,
-    sortValue: (p) => p.handle,
-    render: (p) => <span className="text-muted-foreground">{pageUrl(p.handle)}</span>,
-  },
-  {
-    id: 'status',
-    title: copy.columns.status,
-    sortValue: (p) => (p.publishedAt ? 1 : 0),
-    render: (p) =>
-      p.publishedAt ? (
-        <StatusLabel kind="page" value="published" size="sm" />
-      ) : (
-        <StatusLabel kind="page" value="draft" size="sm" />
-      ),
-  },
-  {
-    id: 'updated',
-    title: copy.columns.updated,
-    sortValue: (p) => new Date(p.updatedAt),
-    align: 'end',
-    render: (p) => <RelativeTime value={p.updatedAt} className="text-muted-foreground" />,
-  },
-]
+/** "landing-page" becomes "Landing page"; no suffix is the theme's default template. */
+const templateName = (suffix: string | null, fallback: string) => {
+  if (!suffix) return fallback
+  const words = suffix.replace(/-/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
 
-/** Online Store › Pages: every Puck page, published or draft. */
-export default function PagesList() {
+function PagesContent() {
   // Hooks
+  const copy = useCopy(pagesListContent)
+  const fmt = useFormat()
+  const [q, setQ] = useQueryStates(
+    {
+      query: parseAsString.withDefault(''),
+      tab: parseAsStringLiteral(TABS),
+      page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(siteConfig.ui.rowsPerPage.default),
+    },
+    { shallow: true },
+  )
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   useEffect(() => {
     api.pages
@@ -66,42 +52,109 @@ export default function PagesList() {
   }, [])
 
   // Render logic
-  const shown = items.filter((p) => !query || p.title.toLowerCase().includes(query.toLowerCase()))
+  const live = items.filter((p) => p.publishedAt).length
+  const hidden = items.length - live
+  const needle = q.query.trim().toLowerCase()
+  const matching = items.filter(
+    (p) =>
+      (q.tab === null || (q.tab === 'live') === Boolean(p.publishedAt)) &&
+      (needle === '' || p.title.toLowerCase().includes(needle) || p.handle.includes(needle)),
+  )
+  const pageRows = matching.slice((q.page - 1) * q.perPage, q.page * q.perPage)
+
+  const columns: ResourceColumnSpec<Item>[] = [
+    {
+      id: 'title',
+      title: copy.columns.title,
+      sortValue: (p) => p.title,
+      hideable: false,
+      render: (p) => (
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate font-medium text-ink-strong">{p.title}</span>
+          <span className="truncate text-caption text-muted-foreground">{pageUrl(p.handle)}</span>
+        </span>
+      ),
+    },
+    {
+      id: 'template',
+      title: copy.columns.template,
+      sortValue: (p) => p.templateSuffix ?? '',
+      render: (p) => templateName(p.templateSuffix, copy.template.default),
+    },
+    {
+      id: 'visibility',
+      title: copy.columns.visibility,
+      sortValue: (p) => (p.publishedAt ? 1 : 0),
+      align: 'center',
+      render: (p) => (
+        <StatusChip>{p.publishedAt ? copy.visibility.live : copy.visibility.hidden}</StatusChip>
+      ),
+    },
+    {
+      id: 'updated',
+      title: copy.columns.updated,
+      sortValue: (p) => new Date(p.updatedAt),
+      align: 'end',
+      render: (p) => <span className="text-muted-foreground">{fmt.day(p.updatedAt)}</span>,
+    },
+  ]
+
+  const addButton = (
+    <Button type="button" onClick={() => setCreating(true)}>
+      <SquarePlus strokeWidth={1.6} />
+      {copy.add}
+    </Button>
+  )
 
   return (
-    <PageBody>
-      <div className="flex justify-end">
-        <Button type="button" onClick={() => setCreating(true)}>
-          <Plus />
-          {copy.add}
-        </Button>
-      </div>
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(items.length, live, hidden)}
+      actions={addButton}
+    >
       <ResourceTable
-        resourceName={{ singular: 'page', plural: 'pages' }}
+        resourceName={copy.resource}
         columns={columns}
-        items={shown}
+        items={pageRows}
         getId={(p) => p.id}
-        href={(p) => `/online-store/pages/${p.id}`}
+        href={(p) => routes.onlineStore.page(p.id)}
         loading={loading}
-        query={query}
-        onQueryChange={setQuery}
-        page={1}
-        perPage={100}
-        total={shown.length}
-        onPageChange={() => {}}
+        query={q.query}
+        onQueryChange={(query) => setQ({ query, page: 1 })}
+        onClearAll={() => setQ({ query: '', tab: null, page: 1 })}
+        tabs={
+          <PillTabs
+            value={q.tab}
+            onChange={(tab) => setQ({ tab, page: 1 })}
+            tabs={[
+              { value: null, label: copy.tabs.all, count: items.length },
+              { value: 'live', label: copy.tabs.live, count: live },
+              { value: 'hidden', label: copy.tabs.hidden, count: hidden },
+            ]}
+          />
+        }
+        page={q.page}
+        perPage={q.perPage}
+        total={matching.length}
+        onPageChange={(page) => setQ({ page })}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         selectable={false}
-        empty={{
-          heading: copy.empty.heading,
-          body: copy.empty.body,
-          action: (
-            <Button type="button" onClick={() => setCreating(true)}>
-              <Plus />
-              {copy.add}
-            </Button>
-          ),
-        }}
+        empty={
+          items.length === 0
+            ? { heading: copy.empty.heading, body: copy.empty.body, action: addButton }
+            : { heading: copy.noMatch.heading, body: copy.noMatch.body }
+        }
       />
       <CreatePageDialog open={creating} onOpenChange={setCreating} />
-    </PageBody>
+    </ProoflyListPage>
+  )
+}
+
+/** Content › Pages: every page, published or hidden. */
+export default function PagesList() {
+  return (
+    <Suspense>
+      <PagesContent />
+    </Suspense>
   )
 }

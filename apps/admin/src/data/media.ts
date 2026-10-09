@@ -42,10 +42,14 @@ export const mediaContent = {
   },
   library: {
     title: 'Files',
+    summary: (n: number) =>
+      n === 0 ? 'Photos, videos and documents for your store.' : n === 1 ? '1 file' : `${n} files`,
+    tabs: { all: 'All', image: 'Images', video: 'Videos' },
+    noMatch: 'No files match your search.',
     storage: 'Storage',
     intro: 'Everything uploaded to this store. Files stay here when removed from a product.',
-    search: 'Search by alt text or file name',
-    upload: 'Upload',
+    search: 'Search files',
+    upload: 'Upload files',
     empty: {
       heading: 'No files yet',
       body: 'Upload product images here or from any product page. They are stored where Storage on this page says.',

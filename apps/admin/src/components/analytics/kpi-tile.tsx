@@ -1,9 +1,9 @@
+'use client'
+
 import type { AnalyticsKpi } from '@commerce/api'
-import { Card } from '@commerce/ui/shadcn/card'
-import CountUp from '@/components/layout/count-up'
-import DeltaChip from '@/components/layout/delta-chip'
-import MiniBars from '@/components/layout/mini-bars'
-import { analyticsContent as copy } from '@/data/analytics'
+import StatTile from '@/components/layout/stat-tile'
+import { analyticsContent } from '@/data/analytics'
+import { useCopy } from '@/hooks/use-copy'
 import { formatRate } from '@/lib/analytics-range'
 import { formatCompact, formatPaiseCompact } from '@/lib/money'
 
@@ -16,27 +16,20 @@ function formatValue(kpi: AnalyticsKpi): string {
   return formatCompact(kpi.value)
 }
 
-/** One KPI: figure, change against the previous period, and the daily shape behind it. */
+/** One KPI as a stat tile: figure and change against the previous period. */
 export default function KpiTile({ kpi }: KpiTileProps) {
+  // Hooks
+  const copy = useCopy(analyticsContent)
+
   // Render logic
-  const meta = copy.kpis[kpi.id]
-  const bars = kpi.series.map((value, i) => ({ label: String(i), value }))
-  const hasShape = kpi.series.some((v) => v > 0)
+  const trend = kpi.delta === null ? null : Math.round(kpi.delta * 1000) / 10
 
   return (
-    <Card gap="none" inset={5}>
-      <p className="text-kit-body text-muted-foreground">{meta.label}</p>
-      <div className="mt-2 flex items-end gap-3">
-        <p className="text-kit-stat-sm text-ink-strong tabular-nums">
-          <CountUp value={formatValue(kpi)} />
-        </p>
-        <DeltaChip delta={kpi.delta === null ? null : kpi.delta * 100} size="kit" />
-      </div>
-      {hasShape ? (
-        <MiniBars data={bars} className="mt-4 h-6" />
-      ) : (
-        <p className="mt-4 h-6 text-kit-mini text-muted-foreground-soft">{meta.help}</p>
-      )}
-    </Card>
+    <StatTile
+      label={copy.kpis[kpi.id].label}
+      value={formatValue(kpi)}
+      trend={trend}
+      trendNote={copy.compare}
+    />
   )
 }

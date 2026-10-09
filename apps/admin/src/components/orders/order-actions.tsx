@@ -53,7 +53,7 @@ type OrderActionsProps = {
   nextId?: string | undefined
 }
 
-type Step = { label: string; to: OrderMark; primary: boolean }
+type Step = { label: string; to: OrderMark }
 
 const OWED: ReadonlySet<OrderPaymentStatus> = new Set(['unpaid', 'authorized', 'partially_paid'])
 const TO_PACK: ReadonlySet<OrderFulfillmentStatus> = new Set(['unfulfilled', 'partially_fulfilled'])
@@ -75,12 +75,12 @@ function nextStep(
   fulfilment: OrderFulfillmentStatus,
 ): Step | undefined {
   if (status !== 'open') return undefined
-  if (OWED.has(payment)) return { label: copy.actions.markPaid, to: 'paid', primary: true }
+  if (OWED.has(payment)) return { label: copy.actions.markPaid, to: 'paid' }
   if (TO_PACK.has(fulfilment)) {
-    return { label: copy.actions.fulfil, to: 'fulfilled', primary: false }
+    return { label: copy.actions.fulfil, to: 'fulfilled' }
   }
   if (ON_ITS_WAY.has(fulfilment)) {
-    return { label: copy.actions.deliver, to: 'delivered', primary: true }
+    return { label: copy.actions.deliver, to: 'delivered' }
   }
   return undefined
 }
@@ -104,28 +104,23 @@ export default function OrderActions({
 
   // Render logic
   const next = readOnly ? undefined : nextStep(copy, status, paymentStatus, fulfillmentStatus)
-  const primary = next?.primary ? next : undefined
-  const menuMove = next && !primary ? next : undefined
+  /* The Next step card owns the main action; the menu keeps the same move for when it is not shown. */
+  const menuMove = next
   // Once the parcel is in the shopper's hands, a cancel no longer undoes anything.
   const cancellable = !readOnly && status === 'open' && fulfillmentStatus !== 'delivered'
   const refundable = !readOnly && canRefund
 
   /* After the Saleor Dashboard order header (BSD-3): small square icon buttons, one menu for
-     everything secondary, and at most one ink primary action. */
+     everything secondary; the main action lives in the Next step card. */
   return (
     <div className="flex items-center gap-2 print:hidden">
-      <Button
-        variant="outline"
-        size="icon"
-        aria-label={copy.actions.print}
-        title={copy.actions.print}
-        onClick={() => window.print()}
-      >
+      <Button variant="key-neutral" title={copy.actions.print} onClick={() => window.print()}>
         <Printer aria-hidden="true" />
+        {copy.actions.printShort}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<Button variant="outline" size="icon" aria-label={copy.actions.more} />}
+          render={<Button variant="key-neutral" size="icon" aria-label={copy.actions.more} />}
         >
           <MoreHorizontal aria-hidden="true" />
         </DropdownMenuTrigger>
@@ -168,11 +163,6 @@ export default function OrderActions({
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
-      {primary ? (
-        <Button onClick={() => onMove(primary.to)} disabled={busy}>
-          {primary.label}
-        </Button>
-      ) : null}
 
       <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <AlertDialogContent>

@@ -1,4 +1,4 @@
-import { notSystemTest } from '@commerce/core'
+import { type CollectionRules, notSystemTest } from '@commerce/core'
 import type { StoreTx } from '@commerce/db'
 import { collection, collectionProduct, media, product, productMedia, variant } from '@commerce/db'
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm'
@@ -15,6 +15,8 @@ export type CollectionListItem = {
   kind: CollectionKind
   status: CollectionStatus
   imageUrl: string | null
+  /** Conditions of an automatic collection, for the list's one-line summary. */
+  rules: CollectionRules
   productCount: number
   updatedAt: Date
 }
@@ -41,6 +43,7 @@ export async function listCollections(tx: StoreTx): Promise<CollectionListItem[]
       kind: collection.kind,
       status: collection.status,
       updatedAt: collection.updatedAt,
+      rules: collection.rules,
       imageUrl: media.url,
     })
     .from(collection)
@@ -70,6 +73,12 @@ export async function collectionStats(tx: StoreTx): Promise<CollectionStats> {
   }
 }
 
+const availableSql = sql<number>`(
+  select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
+  from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
+  where v.product_id = ${product.id} and v.archived_at is null
+)`
+
 export async function getCollection(tx: StoreTx, id: string) {
   const [row] = await tx.select().from(collection).where(eq(collection.id, id))
   if (!row) return null
@@ -81,6 +90,13 @@ export async function getCollection(tx: StoreTx, id: string) {
       status: product.status,
       position: collectionProduct.position,
       imageUrl: media.url,
+      available: availableSql,
+      pricePaiseMin: sql<
+        number | null
+      >`(select min(${variant.pricePaise}) from ${variant} where ${variant.productId} = ${product.id} and ${variant.archivedAt} is null)`,
+      pricePaiseMax: sql<
+        number | null
+      >`(select max(${variant.pricePaise}) from ${variant} where ${variant.productId} = ${product.id} and ${variant.archivedAt} is null)`,
     })
     .from(collectionProduct)
     .innerJoin(product, eq(product.id, collectionProduct.productId))
@@ -94,7 +110,16 @@ export async function getCollection(tx: StoreTx, id: string) {
   const [image] = row.imageMediaId
     ? await tx.select({ url: media.url }).from(media).where(eq(media.id, row.imageMediaId))
     : []
-  return { ...row, imageUrl: image?.url ?? null, products: members }
+  return {
+    ...row,
+    imageUrl: image?.url ?? null,
+    products: members.map((m) => ({
+      ...m,
+      available: Number(m.available ?? 0),
+      pricePaiseMin: m.pricePaiseMin === null ? null : Number(m.pricePaiseMin),
+      pricePaiseMax: m.pricePaiseMax === null ? null : Number(m.pricePaiseMax),
+    })),
+  }
 }
 
 export type CollectionProductRow = {
@@ -117,12 +142,6 @@ export type CollectionProductsInput = {
   page: number
   perPage: number
 }
-
-const availableSql = sql<number>`(
-  select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
-  from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
-  where v.product_id = ${product.id} and v.archived_at is null
-)`
 
 const onSaleSql = sql`exists (
   select 1 from variant v

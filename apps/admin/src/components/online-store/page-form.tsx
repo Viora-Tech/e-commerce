@@ -10,12 +10,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
-import PageBody from '@/components/layout/page-body'
-import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { onlineStoreContent } from '@/data/online-store'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import PageSeoCard from './page-seo-card'
 import PageTemplateCard from './page-template-card'
 import PageVisibilityCard from './page-visibility-card'
@@ -41,8 +42,6 @@ type FormState = {
   visible: boolean
 }
 
-const copy = onlineStoreContent.form
-
 const fromPage = (p: PageRow): FormState => ({
   title: p.title,
   handle: p.handle,
@@ -56,6 +55,7 @@ const fromPage = (p: PageRow): FormState => ({
 /** Online Store › Pages › page: details, SEO, visibility and theme template; layout lives in Customize. */
 export default function PageForm({ page, suffixes, contentHref, storefrontOrigin }: PageFormProps) {
   // Hooks
+  const { form: copy } = useCopy(onlineStoreContent)
   const router = useRouter()
   const [form, setForm] = useState(() => fromPage(page))
   const [saved, setSaved] = useState(() => JSON.stringify(fromPage(page)))
@@ -93,7 +93,68 @@ export default function PageForm({ page, suffixes, contentHref, storefrontOrigin
   const path = page.handle === 'home' ? '/' : `/pages/${page.handle}`
 
   return (
-    <PageBody width="narrow" className="kit-form gap-4">
+    <ProoflyDetailPage
+      header={
+        <ProoflyPageHeader
+          title={page.title}
+          back={{ label: copy.back, href: routes.onlineStore.pages() }}
+          actions={
+            page.publishedAt ? (
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<a href={`${storefrontOrigin}${path}`} target="_blank" rel="noreferrer" />}
+              >
+                <ExternalLink />
+                {copy.viewLive}
+              </Button>
+            ) : null
+          }
+        />
+      }
+      main={
+        <>
+          <Card size="form">
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="page-title">{copy.title}</FieldLabel>
+                  <Input
+                    id="page-title"
+                    size="lg"
+                    value={form.title}
+                    onChange={(e) => patch({ title: e.target.value })}
+                  />
+                </Field>
+                <RichTextField
+                  label={copy.content}
+                  value={form.body}
+                  onChange={(body) => patch({ body })}
+                  minHeight={240}
+                />
+              </FieldGroup>
+            </CardContent>
+          </Card>
+          <PageSeoCard
+            handle={form.handle}
+            seoTitle={form.seoTitle}
+            seoDescription={form.seoDescription}
+            onChange={patch}
+          />
+        </>
+      }
+      side={
+        <>
+          <PageVisibilityCard visible={form.visible} onChange={(visible) => patch({ visible })} />
+          <PageTemplateCard
+            suffixes={suffixes}
+            value={form.templateSuffix}
+            contentHref={contentHref}
+            onChange={(templateSuffix) => patch({ templateSuffix })}
+          />
+        </>
+      }
+    >
       <SaveBar
         open={dirty}
         message={copy.unsaved}
@@ -103,66 +164,6 @@ export default function PageForm({ page, suffixes, contentHref, storefrontOrigin
         onDiscard={() => setForm(JSON.parse(saved) as FormState)}
         saving={busy}
       />
-      <PageHeader
-        title={page.title}
-        breadcrumbs={[{ label: copy.back, href: '/online-store/pages' }]}
-        actions={
-          page.publishedAt ? (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<a href={`${storefrontOrigin}${path}`} target="_blank" rel="noreferrer" />}
-            >
-              <ExternalLink />
-              {copy.viewLive}
-            </Button>
-          ) : null
-        }
-      />
-      <PageColumns
-        main={
-          <>
-            <Card size="form">
-              <CardContent>
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="page-title">{copy.title}</FieldLabel>
-                    <Input
-                      id="page-title"
-                      size="lg"
-                      value={form.title}
-                      onChange={(e) => patch({ title: e.target.value })}
-                    />
-                  </Field>
-                  <RichTextField
-                    label={copy.content}
-                    value={form.body}
-                    onChange={(body) => patch({ body })}
-                    minHeight={240}
-                  />
-                </FieldGroup>
-              </CardContent>
-            </Card>
-            <PageSeoCard
-              handle={form.handle}
-              seoTitle={form.seoTitle}
-              seoDescription={form.seoDescription}
-              onChange={patch}
-            />
-          </>
-        }
-        side={
-          <>
-            <PageVisibilityCard visible={form.visible} onChange={(visible) => patch({ visible })} />
-            <PageTemplateCard
-              suffixes={suffixes}
-              value={form.templateSuffix}
-              contentHref={contentHref}
-              onChange={(templateSuffix) => patch({ templateSuffix })}
-            />
-          </>
-        }
-      />
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

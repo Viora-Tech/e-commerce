@@ -1,15 +1,15 @@
 'use client'
 
-import { Gift } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
-import PageHeader from '@/components/layout/page-header'
+import ProoflyPageBody from '@/components/layout/proofly-page-body'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
 import StatusLabel from '@/components/status/status-label'
 import { giftCardDetailContent as copy } from '@/data/gift-cards'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import BalanceCard from './balance-card'
 import CustomerCard from './customer-card'
 import DetailsCard from './details-card'
@@ -66,25 +66,15 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
   // Render logic
   const title = copy.title(card.lastCharacters)
   const canResend = card.canResend && Boolean(card.recipientEmail || card.customerEmail)
-  const tone =
-    card.state === 'active'
-      ? ('success' as const)
-      : card.state === 'disabled'
-        ? ('danger' as const)
-        : card.state === 'empty'
-          ? ('info' as const)
-          : ('neutral' as const)
 
   return (
-    <PageBody className="gap-6">
-      <PageHeader
+    <ProoflyPageBody>
+      <ProoflyPageHeader
         title={title}
-        icon={<Gift aria-hidden="true" />}
-        tone={tone}
-        breadcrumbs={[{ label: copy.breadcrumb, href: '/products/gift-cards' }, { label: title }]}
+        back={{ label: copy.breadcrumb, href: routes.products.giftCards() }}
+        badges={<StatusLabel kind="giftCard" value={card.state} variant="pill" />}
         actions={
           <>
-            <StatusLabel kind="giftCard" value={card.state} variant="pill" />
             {canResend ? (
               <Button variant="outline" onClick={handleResend} disabled={busy}>
                 {copy.resend}
@@ -116,6 +106,6 @@ export default function GiftCardDetail({ initial }: GiftCardDetailProps) {
           </>
         }
       />
-    </PageBody>
+    </ProoflyPageBody>
   )
 }

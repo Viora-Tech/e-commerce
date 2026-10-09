@@ -12,6 +12,7 @@ import {
   UNFULFILLED_STATUSES,
   UNPAID_PAYMENT_STATUSES,
 } from '@commerce/core'
+import { startOfDay } from '@commerce/dates'
 import type { StoreTx } from '@commerce/db'
 import {
   address,
@@ -39,7 +40,9 @@ import {
   ilike,
   inArray,
   isNull,
+  lte,
   ne,
+  notInArray,
   or,
   type SQL,
   sql,
@@ -158,6 +161,67 @@ export async function listOrders(
     .limit(input.perPage)
     .offset((input.page - 1) * input.perPage)
   return { items, total: countRow?.total ?? 0 }
+}
+
+export type OrderTiles = {
+  /** Orders placed since midnight (IST) and the count by the same time yesterday. */
+  newToday: { value: number; previous: number }
+  /** Open orders that are paid (or cash on delivery) and still to pack. */
+  readyToShip: number
+  /** Manual UPI / bank transfers waiting to be matched. */
+  pendingUpi: number
+  /** Money from orders placed in the last 7 days (not cancelled) and the 7 days before. */
+  salesWeek: { paise: number; previousPaise: number }
+}
+
+/** The four stat cards above the Orders list (Figma "Orders / List"). */
+export async function orderTiles(tx: StoreTx, now = new Date()): Promise<OrderTiles> {
+  const todayStart = startOfDay(now)
+  const yesterdayStart = startOfDay(now, undefined, -1)
+  const sameTimeYesterday = new Date(now.getTime() - 86_400_000)
+  const weekStart = new Date(now.getTime() - 7 * 86_400_000)
+  const lastWeekStart = new Date(now.getTime() - 14 * 86_400_000)
+  const live = and(notDraft, ne(order.status, 'cancelled'))
+  const [[today], [yesterday], [ready], [upi], weekRows] = await Promise.all([
+    tx
+      .select({ n: count() })
+      .from(order)
+      .where(and(live, gte(order.placedAt, todayStart))),
+    tx
+      .select({ n: count() })
+      .from(order)
+      .where(
+        and(live, gte(order.placedAt, yesterdayStart), lte(order.placedAt, sameTimeYesterday)),
+      ),
+    tx
+      .select({ n: count() })
+      .from(order)
+      .where(
+        and(
+          eq(order.status, 'open'),
+          inArray(order.fulfillmentStatus, [...UNFULFILLED_STATUSES]),
+          or(
+            notInArray(order.paymentStatus, [...UNPAID_PAYMENT_STATUSES]),
+            eq(order.paymentMethod, 'cod'),
+          ),
+        ),
+      ),
+    tx.select({ n: count() }).from(order).where(viewFilter('pending_upi')),
+    tx
+      .select({ totalPaise: order.totalPaise, placedAt: order.placedAt })
+      .from(order)
+      .where(and(live, gte(order.placedAt, lastWeekStart))),
+  ])
+  const sum = (rows: typeof weekRows) => rows.reduce((t, r) => t + r.totalPaise, 0)
+  return {
+    newToday: { value: today?.n ?? 0, previous: yesterday?.n ?? 0 },
+    readyToShip: ready?.n ?? 0,
+    pendingUpi: upi?.n ?? 0,
+    salesWeek: {
+      paise: sum(weekRows.filter((r) => r.placedAt >= weekStart)),
+      previousPaise: sum(weekRows.filter((r) => r.placedAt < weekStart)),
+    },
+  }
 }
 
 export type OrderWindow = { value: number; previous: number }

@@ -24,6 +24,7 @@ import {
   listProductHandles,
   listProductIds,
   listProducts,
+  pickProducts,
   productAdjustments,
   productFacets,
   productStats,
@@ -75,6 +76,19 @@ export const productsRouter = {
     .handler(({ context, input }) => getProduct(context.tx, input.id)),
 
   facets: can(permissions.PRODUCTS_READ).handler(({ context }) => productFacets(context.tx)),
+
+  /** Rows for the shared "Select products" dialog, variants included. */
+  pick: can(permissions.PRODUCTS_READ)
+    .input(
+      z.object({
+        search: z.string().trim().max(SEARCH_MAX).optional(),
+        collectionId: z.uuid().optional(),
+        productType: z.string().trim().max(100).optional(),
+        status: ProductStatusSchema.optional(),
+        limit: z.number().int().min(1).max(50).default(30),
+      }),
+    )
+    .handler(({ context, input }) => pickProducts(context.tx, input)),
 
   /** Variant picker for the draft order editor. */
   searchVariants: can(permissions.PRODUCTS_READ)

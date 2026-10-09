@@ -16,6 +16,7 @@ import PageHeader from '@/components/layout/page-header'
 import { emiContent as copy } from '@/data/emi'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 
 type View = Awaited<ReturnType<typeof api.emi.settings.get>>
 type Settings = View['settings']
@@ -47,7 +48,7 @@ function statusOf(view: View) {
     default:
       return {
         text: copy.status.emiOff,
-        link: { href: '/settings/payments', label: copy.status.emiOffLink },
+        link: { href: routes.settings.payments(), label: copy.status.emiOffLink },
       }
   }
 }

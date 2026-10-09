@@ -4,6 +4,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { type DragEvent, useState } from 'react'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import MediaTile, { type MediaTileItem } from './media-tile'
 import type { PendingUpload } from './use-upload-queue'
 
@@ -16,8 +17,6 @@ type MediaGridProps = {
   onRetry: (key: string) => void
   onDismiss: (key: string) => void
 }
-
-const copy = mediaContent.tile
 
 function move<T>(list: T[], from: number, to: number): T[] {
   const next = [...list]
@@ -41,6 +40,7 @@ export default function MediaGrid({
   onDismiss,
 }: MediaGridProps) {
   // Hooks
+  const { tile: copy } = useCopy(mediaContent)
   const [dragging, setDragging] = useState<number | null>(null)
   const [target, setTarget] = useState<number | null>(null)
 

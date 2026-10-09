@@ -3,6 +3,7 @@
 import { MENU_MAX_LEVELS } from '@commerce/core/navigation-tree'
 import { SortableTree, type SortableTreeLabels } from '@commerce/ui/sortable'
 import { MENU_INDENT_REM, type MenuItem, menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import MenuAddRow from './menu-add-row'
 import MenuRowContent from './menu-row-content'
 
@@ -15,12 +16,12 @@ type MenuTreeProps = {
   onAdd: (parentId: string | null) => void
 }
 
-const copy = menusContent
-
-const LABELS: SortableTreeLabels = { ...copy.a11y, handle: copy.item.drag }
-
 /** The nestable, draggable list of menu items (Shopify's menu editor), on the shared SortableTree. */
 export default function MenuTree({ items, onChange, onEdit, onRemove, onAdd }: MenuTreeProps) {
+  // Hooks
+  const copy = useCopy(menusContent)
+  const labels: SortableTreeLabels = { ...copy.a11y, handle: copy.item.drag }
+
   // Render logic
   return (
     <>
@@ -28,7 +29,7 @@ export default function MenuTree({ items, onChange, onEdit, onRemove, onAdd }: M
         items={items}
         onChange={onChange}
         getTitle={(item) => item.title}
-        labels={LABELS}
+        labels={labels}
         maxLevels={MENU_MAX_LEVELS}
         indentRem={MENU_INDENT_REM}
         renderRow={(row) => (

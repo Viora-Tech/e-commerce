@@ -21,6 +21,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import GstNumberPicker from './gst-number-picker'
 import ReviewPanel from './review-panel'
 
@@ -151,7 +152,7 @@ export default function QueuePage() {
             {
               label: copy.setup.gstin,
               done: false,
-              href: '/apps/gst-invoices/settings',
+              href: routes.apps.page('gst-invoices', 'settings'),
               action: copy.setup.gstinAction,
             },
           ]}
@@ -238,7 +239,7 @@ export default function QueuePage() {
                   />
                 </TableCell>
                 <TableCell className="font-medium">
-                  <Link href={`/orders/${r.orderId}`} className="hover:underline">
+                  <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
                     {r.orderName}
                   </Link>
                 </TableCell>

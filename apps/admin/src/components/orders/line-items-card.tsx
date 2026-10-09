@@ -1,10 +1,10 @@
 import { PackageCheck } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import DataCard from '@/components/layout/data-card'
-import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/orders'
 import type { StatusValue } from '@/data/status'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import OrderChip from './order-chip'
 import { type OrderDetail, packedQuantity, unfulfilledLines } from './order-detail-types'
 import OrderLinesTable from './order-lines-table'
 import { type TotalRow, totalRows } from './order-totals'
@@ -43,6 +43,7 @@ export default function LineItemsCard({ order, payment, unfulfilledShown }: Line
     <>
       {packed.length > 0 ? (
         <DataCard
+          flush
           tone="muted"
           title={copy.unfulfilled.fulfilled}
           icon={<PackageCheck aria-hidden="true" />}
@@ -51,7 +52,7 @@ export default function LineItemsCard({ order, payment, unfulfilledShown }: Line
         </DataCard>
       ) : null}
       {waiting.length > 0 ? (
-        <DataCard title={copy.items.heading}>
+        <DataCard flush title={copy.items.heading}>
           <OrderLinesTable rows={waiting} />
         </DataCard>
       ) : null}
@@ -74,11 +75,16 @@ type SummaryBoxProps = {
 
 function SummaryBox({ rows, heading, pill }: SummaryBoxProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-card">
+    <div
+      className={cn(
+        'flex flex-col gap-3',
+        heading && 'rounded-xl border border-hairline bg-muted/50 p-4',
+      )}
+    >
       {heading ? (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-eyebrow">{heading}</p>
-          {pill ? <StatusLabel kind="payment" value={pill} variant="pill" size="sm" /> : null}
+          <p className="text-body font-medium text-ink-strong">{heading}</p>
+          {pill ? <OrderChip kind="payment" value={pill} /> : null}
         </div>
       ) : null}
       <dl className="flex flex-col gap-2 text-body">

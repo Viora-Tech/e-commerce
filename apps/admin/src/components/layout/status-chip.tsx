@@ -13,7 +13,7 @@ type StatusChipProps = {
 }
 
 const TONE = {
-  neutral: 'border-hairline bg-chip-neutral text-muted-foreground',
+  neutral: 'border-hairline bg-chip-neutral text-chip-neutral-text',
   attention: 'border-transparent bg-warning-soft text-warning',
   info: 'border-transparent bg-info-soft text-info',
   danger: 'border-transparent bg-danger-soft text-danger',

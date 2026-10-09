@@ -16,6 +16,9 @@ export type DiscountListItem = {
   code: string | null
   method: 'percent' | 'fixed' | 'free_shipping'
   value: number
+  appliesTo: 'all' | 'products' | 'collections'
+  /** Set when the discount takes a different amount off each product. */
+  productValues: Record<string, number> | null
   usedCount: number
   usageLimit: number | null
   startsAt: Date | null
@@ -99,6 +102,8 @@ export async function listDiscounts(
       code: r.code,
       method: r.method,
       value: r.value,
+      appliesTo: r.appliesTo,
+      productValues: r.productValues,
       usedCount: r.usedCount,
       usageLimit: r.usageLimit,
       startsAt: r.startsAt,
@@ -148,17 +153,29 @@ export async function getDiscount(tx: StoreTx, id: string) {
   }
 }
 
+/** The per-product map to store: only for product-scoped percent or fixed discounts. */
+function productValuesOf(input: DiscountInput): Record<string, number> | null {
+  if (input.appliesTo !== 'products' || input.method === 'free_shipping') return null
+  const map = input.productValues
+  if (!map || Object.keys(map).length === 0) return null
+  const chosen = new Set(input.appliesToIds)
+  return Object.fromEntries(Object.entries(map).filter(([id]) => chosen.has(id)))
+}
+
 function toRow(storeId: string, input: DiscountInput) {
+  const productValues = productValuesOf(input)
   return {
     storeId,
     title: input.title,
     kind: input.kind,
     code: input.kind === 'code' && input.code ? normaliseCode(input.code) : null,
     method: input.method,
-    value: input.method === 'free_shipping' ? 0 : input.value,
+    // A per-product discount keeps its amounts in product_values; the single value is unused.
+    value: input.method === 'free_shipping' || productValues ? 0 : input.value,
     minSubtotalPaise: input.minSubtotalPaise ?? null,
     appliesTo: input.appliesTo,
     appliesToIds: input.appliesTo === 'all' ? [] : input.appliesToIds,
+    productValues,
     usageLimit: input.usageLimit ?? null,
     usagePerCustomer: input.usagePerCustomer ?? null,
     startsAt: input.startsAt ?? null,

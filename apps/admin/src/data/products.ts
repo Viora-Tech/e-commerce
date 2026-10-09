@@ -1,5 +1,6 @@
 import type { ProductStatus } from '@commerce/core/catalog'
 import { parseRupees } from '@commerce/money'
+import { routes } from '@/lib/routes'
 
 export const PRODUCT_STATUSES = ['active', 'draft', 'archived'] as const
 
@@ -18,6 +19,20 @@ export const productsListContent = {
   export: 'Export',
   import: 'Import',
   tabs: { all: 'All products' },
+  summary: (total: number, low: number, out: number) =>
+    [
+      `${total} ${total === 1 ? 'product' : 'products'}`,
+      low > 0 ? `${low} low on stock` : null,
+      out > 0 ? `${out} out of stock` : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  tiles: {
+    total: 'Total products',
+    low: 'Low stock',
+    out: 'Out of stock',
+    draft: 'Draft',
+  },
   filters: {
     label: 'Filters',
     vendor: 'Vendor',
@@ -143,6 +158,29 @@ export const productFormContent = {
     depositMissing: 'Enter a deposit amount',
     depositTooHigh: 'The deposit must be less than the price',
     depositPercent: 'Enter a percentage between 1 and 99',
+    /** The server turned the save down; `field` is the plain-words name from `fields`. */
+    invalidField: (field: string, reason: string) => `${field}: ${reason}`,
+    tooLong: (max: number) => `too long, keep it to ${max} characters or fewer`,
+    fieldFallback: 'One of the fields',
+    /** Keyed by the first segment of the API field path. */
+    fields: {
+      title: 'Title',
+      handle: 'URL handle',
+      description: 'Description',
+      vendor: 'Vendor',
+      categoryId: 'Category',
+      productType: 'Product type',
+      tags: 'Tags',
+      seoTitle: 'Search engine title',
+      seoDescription: 'Search engine description',
+      templateSuffix: 'Theme template',
+      options: 'Options',
+      variants: 'Variants',
+      mediaIds: 'Media',
+      preorderButtonLabel: 'Pre-order button label',
+      preorderDepositPaise: 'Pre-order deposit',
+      preorderDepositPercent: 'Pre-order deposit percentage',
+    } as Record<string, string>,
   },
   /** Aria label for the money prefix so screen readers read the currency. */
   currency: 'Rupees',
@@ -432,11 +470,43 @@ export const productsSectionsContent = {
   collections: {
     heading: 'No collections',
     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
-    action: { label: 'View products', href: '/products' },
+    action: { label: 'View products', href: routes.products.list() },
   },
   giftCards: {
     heading: 'No gift cards',
     body: 'Gift cards are prepaid balances shoppers redeem at checkout. Issue them manually or sell them as a product.',
-    action: { label: 'View products', href: '/products' },
+    action: { label: 'View products', href: routes.products.list() },
+  },
+} as const
+
+/** Frames "Product · Banner": the one next step shown above a product's sections. */
+export const productBannerContent = {
+  summary: (state: string, type: string | null, vendor: string | null) =>
+    [state, type, vendor].filter(Boolean).join(' · '),
+  state: {
+    active: 'Live on your shop',
+    draft: 'Draft, not visible to shoppers',
+    archived: 'Archived, hidden from your shop',
+  },
+  low: {
+    heading: (what: string) => `${what} is running low`,
+    body: (left: number, total: number) =>
+      `Only ${left} left of ${total} in total. Reorder before it sells out.`,
+    action: 'Update inventory',
+  },
+  out: {
+    heading: 'This product is out of stock',
+    body: 'Shoppers cannot buy it until you add stock.',
+    action: 'Update inventory',
+  },
+  draft: {
+    heading: 'This product is a draft',
+    body: 'Publish it when it is ready for shoppers.',
+    action: 'Publish product',
+  },
+  archived: {
+    heading: 'This product is archived',
+    body: 'It is hidden from your shop. Set it to active to sell it again.',
+    action: 'Set to active',
   },
 } as const

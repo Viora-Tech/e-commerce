@@ -14,7 +14,11 @@ export const campaignsContent = {
   createEmailHint: 'Designed email to a segment, Shopify Email style.',
   createWhatsapp: 'WhatsApp broadcast',
   createWhatsappHint: 'An approved template to customers who opted in.',
-  tabs: { all: 'All', email: 'Email', whatsapp: 'WhatsApp' },
+  tabs: { all: 'All', sent: 'Sent', scheduled: 'Scheduled', draft: 'Draft' },
+  summary: (count: number, sent: number, sales: string) =>
+    `${count} ${count === 1 ? 'campaign' : 'campaigns'} · ${sent} sent · ${sales} in sales`,
+  notSent: 'Not sent',
+  row: { open: 'Open campaign' },
   empty: {
     heading: 'Send your first campaign',
     body: 'Email or WhatsApp your customers about a launch, a sale or a restock. Pick a segment, write it once, and see opens, clicks and sales come back here.',
@@ -23,8 +27,8 @@ export const campaignsContent = {
     name: 'Campaign',
     status: 'Status',
     audience: 'Audience',
-    sent: 'Sent',
-    openRate: 'Open rate',
+    sent: 'Sent to',
+    openRate: 'Opened',
     clickRate: 'Click rate',
     orders: 'Orders',
     sales: 'Sales',
