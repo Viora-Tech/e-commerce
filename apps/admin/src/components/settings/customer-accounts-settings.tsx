@@ -9,7 +9,6 @@ import {
 } from '@commerce/core/customer-accounts'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
@@ -28,6 +27,7 @@ import {
 } from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 
 type Loaded = {
@@ -121,77 +121,66 @@ export default function CustomerAccountsSettings() {
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
         <>
-          <Card size="form" id="checkout">
-            <CardHeader>
-              <CardTitle>{copy.checkout.heading}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChoiceList
-                name="account-checkout"
-                value={form.checkout}
-                onChange={(v) =>
-                  setForm({
-                    ...form,
-                    checkout: v === 'account_required' ? 'account_required' : 'guest',
-                  })
-                }
-                choices={[
-                  { value: 'guest', ...copy.checkout.choices.guest },
-                  { value: 'account_required', ...copy.checkout.choices.account_required },
-                ]}
-              />
-            </CardContent>
-          </Card>
+          <SettingsCard id="checkout" title={copy.checkout.heading}>
+            <ChoiceList
+              name="account-checkout"
+              value={form.checkout}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  checkout: v === 'account_required' ? 'account_required' : 'guest',
+                })
+              }
+              choices={[
+                { value: 'guest', ...copy.checkout.choices.guest },
+                { value: 'account_required', ...copy.checkout.choices.account_required },
+              ]}
+            />
+          </SettingsCard>
 
-          <Card size="form" id="sign-in">
-            <CardHeader>
-              <CardTitle>{copy.methods.heading}</CardTitle>
-              <CardDescription>{copy.methods.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                {LOGIN_METHODS.map((m) => {
-                  const can = loaded.available.includes(m)
-                  const text = LOGIN_METHOD_COPY[m]
-                  return (
-                    <Field key={m} orientation="horizontal" className="items-start justify-between">
-                      <div className="flex flex-col gap-0.5">
-                        <FieldLabel htmlFor={`login-${m}`} className="flex items-center gap-2">
-                          {text.label}
-                          {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
-                        </FieldLabel>
-                        <FieldDescription>{can ? text.hint : text.needs}</FieldDescription>
-                      </div>
-                      <Switch
-                        id={`login-${m}`}
-                        checked={form.loginMethods.includes(m)}
-                        disabled={!can && !form.loginMethods.includes(m)}
-                        onCheckedChange={(on) => toggle(m, on)}
-                      />
-                    </Field>
-                  )
-                })}
-                {stale.length > 0 ? (
-                  <p className="text-caption text-warning-foreground dark:text-warning">
-                    {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
-                  </p>
-                ) : null}
-                {none ? (
-                  <p className="text-caption text-destructive">{copy.methods.needOne}</p>
-                ) : null}
-                {loaded.available.length < LOGIN_METHODS.length ? (
-                  <Button
-                    variant="outline"
-                    className="w-fit"
-                    render={<Link href="/settings/notifications" />}
-                    nativeButton={false}
-                  >
-                    {copy.methods.turnOnApp}
-                  </Button>
-                ) : null}
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <SettingsCard id="sign-in" title={copy.methods.heading} description={copy.methods.body}>
+            <FieldGroup>
+              {LOGIN_METHODS.map((m) => {
+                const can = loaded.available.includes(m)
+                const text = LOGIN_METHOD_COPY[m]
+                return (
+                  <Field key={m} orientation="horizontal" className="items-start justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <FieldLabel htmlFor={`login-${m}`} className="flex items-center gap-2">
+                        {text.label}
+                        {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
+                      </FieldLabel>
+                      <FieldDescription>{can ? text.hint : text.needs}</FieldDescription>
+                    </div>
+                    <Switch
+                      id={`login-${m}`}
+                      checked={form.loginMethods.includes(m)}
+                      disabled={!can && !form.loginMethods.includes(m)}
+                      onCheckedChange={(on) => toggle(m, on)}
+                    />
+                  </Field>
+                )
+              })}
+              {stale.length > 0 ? (
+                <p className="text-caption text-warning-foreground dark:text-warning">
+                  {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
+                </p>
+              ) : null}
+              {none ? (
+                <p className="text-caption text-destructive">{copy.methods.needOne}</p>
+              ) : null}
+              {loaded.available.length < LOGIN_METHODS.length ? (
+                <Button
+                  variant="outline"
+                  className="w-fit"
+                  render={<Link href="/settings/notifications" />}
+                  nativeButton={false}
+                >
+                  {copy.methods.turnOnApp}
+                </Button>
+              ) : null}
+            </FieldGroup>
+          </SettingsCard>
 
           <SignInProvidersCard
             form={form}
@@ -219,21 +208,15 @@ export default function CustomerAccountsSettings() {
             onSaved={reloadApps}
           />
 
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.deletion.heading}</CardTitle>
-              <CardDescription>{copy.deletion.body}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                render={<Link href="/settings/privacy" />}
-                nativeButton={false}
-              >
-                {copy.deletion.link}
-              </Button>
-            </CardContent>
-          </Card>
+          <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
+            <Button
+              variant="outline"
+              render={<Link href="/settings/privacy" />}
+              nativeButton={false}
+            >
+              {copy.deletion.link}
+            </Button>
+          </SettingsCard>
         </>
       )}
     </div>

@@ -14,13 +14,13 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Label } from '@commerce/ui/shadcn/label'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageHeader from '@/components/layout/page-header'
+import SettingsCard from '@/components/settings/settings-card'
 import { domainCertificateContent, domainsContent } from '@/data/domains'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -165,72 +165,62 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       {isCustom ? <DnsRecordsCard records={domain.records} /> : null}
 
       {isCustom ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{copy.verification.heading}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p
-              className={`text-body ${domain.status === 'failed' ? 'text-destructive' : 'text-foreground'}`}
-            >
-              {connectionText(domain)}
-            </p>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-caption text-muted-foreground">{lastChecked}</span>
-              {canManage ? (
-                <Button variant="outline" size="sm" disabled={checking} onClick={handleVerify}>
-                  {checking ? copy.verification.verifying : copy.verification.verify}
-                </Button>
-              ) : null}
-            </div>
-            <div className="border-border flex flex-col gap-1 border-t pt-3">
-              <p className="text-body-strong text-ink-strong">{copy.ssl.heading}</p>
-              <p className="text-body text-muted-foreground">{sslText}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <SettingsCard title={copy.verification.heading} bodyClassName="flex flex-col gap-3">
+          <p
+            className={`text-body ${domain.status === 'failed' ? 'text-destructive' : 'text-foreground'}`}
+          >
+            {connectionText(domain)}
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-caption text-muted-foreground">{lastChecked}</span>
+            {canManage ? (
+              <Button variant="outline" size="sm" disabled={checking} onClick={handleVerify}>
+                {checking ? copy.verification.verifying : copy.verification.verify}
+              </Button>
+            ) : null}
+          </div>
+          <div className="border-border flex flex-col gap-1 border-t pt-3">
+            <p className="text-body-strong text-ink-strong">{copy.ssl.heading}</p>
+            <p className="text-body text-muted-foreground">{sslText}</p>
+          </div>
+        </SettingsCard>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.traffic.heading}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {domain.isPrimary ? (
-            <p className="text-body text-muted-foreground">{copy.traffic.primaryHelp}</p>
-          ) : (
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="domain-redirect">{copy.traffic.redirectLabel}</Label>
-                <p className="text-caption text-muted-foreground">
-                  {copy.traffic.redirectHelp(primaryHostname)}
-                </p>
-              </div>
-              <Switch
-                id="domain-redirect"
-                checked={domain.redirectToPrimary}
-                disabled={!canManage || saving}
-                onCheckedChange={handleRedirect}
-              />
-            </div>
-          )}
-          {!domain.isPrimary && canManage ? (
-            <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+      <SettingsCard title={copy.traffic.heading} bodyClassName="flex flex-col gap-4">
+        {domain.isPrimary ? (
+          <p className="text-body text-muted-foreground">{copy.traffic.primaryHelp}</p>
+        ) : (
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="domain-redirect">{copy.traffic.redirectLabel}</Label>
               <p className="text-caption text-muted-foreground">
-                {canBePrimary ? copy.primaryHelpShort : copy.primaryBlocked}
+                {copy.traffic.redirectHelp(primaryHostname)}
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!canBePrimary || saving}
-                onClick={handlePrimary}
-              >
-                {copy.makePrimary}
-              </Button>
             </div>
-          ) : null}
-        </CardContent>
-      </Card>
+            <Switch
+              id="domain-redirect"
+              checked={domain.redirectToPrimary}
+              disabled={!canManage || saving}
+              onCheckedChange={handleRedirect}
+            />
+          </div>
+        )}
+        {!domain.isPrimary && canManage ? (
+          <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+            <p className="text-caption text-muted-foreground">
+              {canBePrimary ? copy.primaryHelpShort : copy.primaryBlocked}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!canBePrimary || saving}
+              onClick={handlePrimary}
+            >
+              {copy.makePrimary}
+            </Button>
+          </div>
+        ) : null}
+      </SettingsCard>
 
       {canManage ? (
         <div className="flex flex-wrap items-center justify-end gap-3">

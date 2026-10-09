@@ -2,7 +2,6 @@
 
 import type { CheckoutSettingsView, PaymentAdjustment } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
@@ -19,6 +18,7 @@ import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
@@ -101,66 +101,51 @@ export default function CheckoutSettings() {
       ) : (
         <SectionTabs tabs={[brandingCopy.tabs.form, brandingCopy.tabs.branding]}>
           <SettingsSection id={brandingCopy.tabs.form.id} className="flex flex-col gap-4">
-            <Card size="form">
-              <CardHeader>
-                <CardTitle>{copy.contact.heading}</CardTitle>
-                <CardDescription>
-                  {copy.contact.phone}. {copy.contact.phoneHint}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Field>
-                  <FieldLabel>{copy.contact.email}</FieldLabel>
-                  <ChoiceList
-                    name="checkout-email"
-                    value={s.email}
-                    onChange={(v) => patch({ email: v === 'optional' ? 'optional' : 'required' })}
-                    choices={[
-                      { value: 'required', ...copy.contact.emailChoices.required },
-                      { value: 'optional', ...copy.contact.emailChoices.optional },
-                    ]}
-                  />
-                </Field>
-              </CardContent>
-            </Card>
-
-            <Card size="form">
-              <CardHeader>
-                <CardTitle>{copy.address.heading}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FieldGroup>
-                  <CheckoutToggleRow
-                    id="checkout-pincode-first"
-                    label={copy.address.pincodeFirst}
-                    hint={copy.address.pincodeFirstHint}
-                    checked={s.pincodeFirst}
-                    onChange={(pincodeFirst) => patch({ pincodeFirst })}
-                  />
-                  {s.pincodeFirst && !loaded.pincodeDirectory ? (
-                    <p className="text-caption text-muted-foreground">
-                      {copy.address.directoryMissing}
-                    </p>
-                  ) : null}
-                </FieldGroup>
-              </CardContent>
-            </Card>
-
-            <Card size="form" id="minimum">
-              <CardHeader>
-                <CardTitle>{copy.minimum.heading}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RupeeInput
-                  key={`min-${codKey}`}
-                  id="checkout-minimum"
-                  label={copy.minimum.label}
-                  hint={copy.minimum.hint}
-                  paise={s.minimumOrderPaise}
-                  onChange={(minimumOrderPaise) => patch({ minimumOrderPaise })}
+            <SettingsCard
+              title={copy.contact.heading}
+              description={`${copy.contact.phone}. ${copy.contact.phoneHint}`}
+            >
+              <Field>
+                <FieldLabel>{copy.contact.email}</FieldLabel>
+                <ChoiceList
+                  name="checkout-email"
+                  value={s.email}
+                  onChange={(v) => patch({ email: v === 'optional' ? 'optional' : 'required' })}
+                  choices={[
+                    { value: 'required', ...copy.contact.emailChoices.required },
+                    { value: 'optional', ...copy.contact.emailChoices.optional },
+                  ]}
                 />
-              </CardContent>
-            </Card>
+              </Field>
+            </SettingsCard>
+
+            <SettingsCard title={copy.address.heading}>
+              <FieldGroup>
+                <CheckoutToggleRow
+                  id="checkout-pincode-first"
+                  label={copy.address.pincodeFirst}
+                  hint={copy.address.pincodeFirstHint}
+                  checked={s.pincodeFirst}
+                  onChange={(pincodeFirst) => patch({ pincodeFirst })}
+                />
+                {s.pincodeFirst && !loaded.pincodeDirectory ? (
+                  <p className="text-caption text-muted-foreground">
+                    {copy.address.directoryMissing}
+                  </p>
+                ) : null}
+              </FieldGroup>
+            </SettingsCard>
+
+            <SettingsCard id="minimum" title={copy.minimum.heading}>
+              <RupeeInput
+                key={`min-${codKey}`}
+                id="checkout-minimum"
+                label={copy.minimum.label}
+                hint={copy.minimum.hint}
+                paise={s.minimumOrderPaise}
+                onChange={(minimumOrderPaise) => patch({ minimumOrderPaise })}
+              />
+            </SettingsCard>
 
             <CodRulesCard
               key={`cod-${codKey}`}

@@ -1,7 +1,6 @@
 'use client'
 
 import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/core/returns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
@@ -13,6 +12,7 @@ import ChoiceList from '@/components/returns/choice-list'
 import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 
 type ToggleProps = {
@@ -107,89 +107,73 @@ export default function ReturnsSettings() {
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
         <>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Toggle
-                  id="returns-enabled"
-                  label={copy.enabled}
-                  hint={copy.enabledHint}
-                  checked={form.enabled}
-                  onChange={(enabled) => patch({ enabled })}
-                />
-                <Field>
-                  <FieldLabel htmlFor="returns-window">{copy.window}</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      size="lg"
-                      id="returns-window"
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      max="90"
-                      className="w-24"
-                      value={form.windowDays}
-                      onChange={(e) => patch({ windowDays: clampDays(e.target.value) })}
-                    />
-                    <span className="text-body text-muted-foreground">{copy.days}</span>
-                  </div>
-                  <FieldDescription>{copy.windowHint}</FieldDescription>
-                </Field>
-                <Toggle
-                  id="returns-restock"
-                  label={copy.restock}
-                  hint={copy.restockHint}
-                  checked={form.restockAutomatically}
-                  onChange={(restockAutomatically) => patch({ restockAutomatically })}
-                />
-              </FieldGroup>
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.reasons}</CardTitle>
-              <CardDescription>{copy.reasonsHint}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup className="gap-3">
-                {RETURN_REASONS.map((code) => (
-                  <Field key={code} orientation="horizontal">
-                    <Checkbox
-                      id={`reason-${code}`}
-                      checked={form.reasons.includes(code)}
-                      onCheckedChange={(v) => handleReason(code, Boolean(v))}
-                    />
-                    <FieldLabel htmlFor={`reason-${code}`} className="font-normal">
-                      {returnsContent.reasons[code]}
-                    </FieldLabel>
-                  </Field>
-                ))}
-              </FieldGroup>
-            </CardContent>
-          </Card>
-
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.refund}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChoiceList
-                name="refund-method"
-                value={form.refundMethod}
-                onChange={(v) =>
-                  patch({ refundMethod: v === 'store_credit' ? 'store_credit' : 'original' })
-                }
-                choices={[
-                  { value: 'original', label: copy.refundOptions.original },
-                  { value: 'store_credit', label: copy.refundOptions.store_credit },
-                ]}
+          <SettingsCard title={copy.title}>
+            <FieldGroup>
+              <Toggle
+                id="returns-enabled"
+                label={copy.enabled}
+                hint={copy.enabledHint}
+                checked={form.enabled}
+                onChange={(enabled) => patch({ enabled })}
               />
-            </CardContent>
-          </Card>
+              <Field>
+                <FieldLabel htmlFor="returns-window">{copy.window}</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <Input
+                    size="lg"
+                    id="returns-window"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max="90"
+                    className="w-24"
+                    value={form.windowDays}
+                    onChange={(e) => patch({ windowDays: clampDays(e.target.value) })}
+                  />
+                  <span className="text-body text-muted-foreground">{copy.days}</span>
+                </div>
+                <FieldDescription>{copy.windowHint}</FieldDescription>
+              </Field>
+              <Toggle
+                id="returns-restock"
+                label={copy.restock}
+                hint={copy.restockHint}
+                checked={form.restockAutomatically}
+                onChange={(restockAutomatically) => patch({ restockAutomatically })}
+              />
+            </FieldGroup>
+          </SettingsCard>
+
+          <SettingsCard title={copy.reasons} description={copy.reasonsHint}>
+            <FieldGroup className="gap-3">
+              {RETURN_REASONS.map((code) => (
+                <Field key={code} orientation="horizontal">
+                  <Checkbox
+                    id={`reason-${code}`}
+                    checked={form.reasons.includes(code)}
+                    onCheckedChange={(v) => handleReason(code, Boolean(v))}
+                  />
+                  <FieldLabel htmlFor={`reason-${code}`} className="font-normal">
+                    {returnsContent.reasons[code]}
+                  </FieldLabel>
+                </Field>
+              ))}
+            </FieldGroup>
+          </SettingsCard>
+
+          <SettingsCard title={copy.refund}>
+            <ChoiceList
+              name="refund-method"
+              value={form.refundMethod}
+              onChange={(v) =>
+                patch({ refundMethod: v === 'store_credit' ? 'store_credit' : 'original' })
+              }
+              choices={[
+                { value: 'original', label: copy.refundOptions.original },
+                { value: 'store_credit', label: copy.refundOptions.store_credit },
+              ]}
+            />
+          </SettingsCard>
         </>
       )}
     </div>

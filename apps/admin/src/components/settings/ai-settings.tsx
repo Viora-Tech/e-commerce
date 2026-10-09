@@ -23,6 +23,7 @@ import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AiActivityCard from './ai-activity-card'
+import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
@@ -167,58 +168,51 @@ export default function AiSettings() {
               </div>
             </CardContent>
           </Card>
-          <Card size="form">
-            <CardHeader>
-              <CardTitle>{copy.settings.features.heading}</CardTitle>
-              <CardDescription>{copy.settings.features.help}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                {AI_FEATURES.map((feature) => (
-                  <Field
-                    key={feature}
-                    orientation="horizontal"
-                    className="items-start justify-between gap-4"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <FieldLabel htmlFor={`ai-${feature}`}>
-                        {copy.settings.features[feature].label}
-                      </FieldLabel>
-                      <FieldDescription>{copy.settings.features[feature].help}</FieldDescription>
-                      <span className="text-caption text-muted-foreground tabular-nums">
-                        {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
-                      </span>
-                    </div>
-                    <Switch
-                      id={`ai-${feature}`}
-                      checked={features[feature]}
-                      onCheckedChange={(on) => setFeatures({ ...features, [feature]: on })}
-                    />
-                  </Field>
-                ))}
-                <Field className="gap-2">
-                  <FieldLabel>{copy.settings.quality.label}</FieldLabel>
-                  <FieldDescription>{copy.settings.quality.help}</FieldDescription>
-                  <RadioGroup
-                    value={quality}
-                    onValueChange={(v) => setQuality(v as WritingQuality)}
-                    className="flex flex-wrap gap-4"
-                  >
-                    {WRITING_QUALITIES.map((q) => (
-                      <label
-                        key={q}
-                        htmlFor={`ai-quality-${q}`}
-                        className="flex items-center gap-2"
-                      >
-                        <RadioGroupItem id={`ai-quality-${q}`} value={q} />
-                        <span className="text-body">{copy.settings.quality[q]}</span>
-                      </label>
-                    ))}
-                  </RadioGroup>
+          <SettingsCard
+            title={copy.settings.features.heading}
+            description={copy.settings.features.help}
+          >
+            <FieldGroup>
+              {AI_FEATURES.map((feature) => (
+                <Field
+                  key={feature}
+                  orientation="horizontal"
+                  className="items-start justify-between gap-4"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <FieldLabel htmlFor={`ai-${feature}`}>
+                      {copy.settings.features[feature].label}
+                    </FieldLabel>
+                    <FieldDescription>{copy.settings.features[feature].help}</FieldDescription>
+                    <span className="text-caption text-muted-foreground tabular-nums">
+                      {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
+                    </span>
+                  </div>
+                  <Switch
+                    id={`ai-${feature}`}
+                    checked={features[feature]}
+                    onCheckedChange={(on) => setFeatures({ ...features, [feature]: on })}
+                  />
                 </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+              ))}
+              <Field className="gap-2">
+                <FieldLabel>{copy.settings.quality.label}</FieldLabel>
+                <FieldDescription>{copy.settings.quality.help}</FieldDescription>
+                <RadioGroup
+                  value={quality}
+                  onValueChange={(v) => setQuality(v as WritingQuality)}
+                  className="flex flex-wrap gap-4"
+                >
+                  {WRITING_QUALITIES.map((q) => (
+                    <label key={q} htmlFor={`ai-quality-${q}`} className="flex items-center gap-2">
+                      <RadioGroupItem id={`ai-quality-${q}`} value={q} />
+                      <span className="text-body">{copy.settings.quality[q]}</span>
+                    </label>
+                  ))}
+                </RadioGroup>
+              </Field>
+            </FieldGroup>
+          </SettingsCard>
           <Card size="form">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

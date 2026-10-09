@@ -7,6 +7,8 @@ type SettingsCardProps = {
   id?: string
   children: ReactNode
   className?: string
+  /** Classes for the body under the title (default stacks children in a column). */
+  bodyClassName?: string
 }
 
 /** A settings card (Proofly): raised panel with a small title and help line over its rows. */
@@ -16,6 +18,7 @@ export default function SettingsCard({
   id,
   children,
   className,
+  bodyClassName,
 }: SettingsCardProps) {
   return (
     <section
@@ -33,7 +36,7 @@ export default function SettingsCard({
           ) : null}
         </header>
       ) : null}
-      <div className="flex flex-col">{children}</div>
+      <div className={cn('flex flex-col', bodyClassName)}>{children}</div>
     </section>
   )
 }

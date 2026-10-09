@@ -5,7 +5,7 @@ import { permissions } from '@commerce/core/permissions'
 import { Globe } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
+import { Card, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import {
   Table,
   TableBody,
@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import EmptyState from '@/components/layout/empty-state'
 import PageHeader from '@/components/layout/page-header'
+import SettingsCard from '@/components/settings/settings-card'
 import { domainsContent as copy } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
 import ChangePrimaryDialog from './change-primary-dialog'
@@ -59,30 +60,28 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
         }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.primary.heading}</CardTitle>
-          <CardDescription>{copy.primary.body}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
-          {primary ? (
-            <Link
-              href={`/settings/domains/${primary.id}`}
-              className="flex min-w-0 items-center gap-2 text-body-strong text-ink-strong hover:underline"
-            >
-              <Globe className="size-4 shrink-0 text-muted-foreground" />
-              <span className="truncate">{primary.hostname}</span>
-            </Link>
-          ) : (
-            <p className="text-body text-muted-foreground">{copy.primary.none}</p>
-          )}
-          {canManage && eligible.length > 1 ? (
-            <Button variant="outline" size="sm" onClick={() => setPrimaryOpen(true)}>
-              {copy.primary.change}
-            </Button>
-          ) : null}
-        </CardContent>
-      </Card>
+      <SettingsCard
+        title={copy.primary.heading}
+        description={copy.primary.body}
+        bodyClassName="flex flex-wrap items-center justify-between gap-3"
+      >
+        {primary ? (
+          <Link
+            href={`/settings/domains/${primary.id}`}
+            className="flex min-w-0 items-center gap-2 text-body-strong text-ink-strong hover:underline"
+          >
+            <Globe className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{primary.hostname}</span>
+          </Link>
+        ) : (
+          <p className="text-body text-muted-foreground">{copy.primary.none}</p>
+        )}
+        {canManage && eligible.length > 1 ? (
+          <Button variant="outline" size="sm" onClick={() => setPrimaryOpen(true)}>
+            {copy.primary.change}
+          </Button>
+        ) : null}
+      </SettingsCard>
 
       <Card gap="none" inset="none">
         <CardHeader className="px-4 pt-4 pb-3">

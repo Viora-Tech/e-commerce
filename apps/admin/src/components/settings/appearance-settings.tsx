@@ -19,6 +19,7 @@ import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
 import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
+import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 import ThemeModeField from './theme-mode-field'
 
@@ -158,15 +159,9 @@ export default function AppearanceSettings() {
           </CardFooter>
         </Card>
       ) : null}
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{copy.mode.heading}</CardTitle>
-          <CardDescription>{copy.mode.body}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeModeField />
-        </CardContent>
-      </Card>
+      <SettingsCard title={copy.mode.heading} description={copy.mode.body}>
+        <ThemeModeField />
+      </SettingsCard>
     </div>
   )
 }
