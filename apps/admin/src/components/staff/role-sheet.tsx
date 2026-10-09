@@ -16,7 +16,8 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PermissionSwitches from '@/components/staff/permission-switches'
-import { staffContent as copy } from '@/data/staff'
+import { staffContent } from '@/data/staff'
+import { useCopy } from '@/hooks/use-copy'
 import { refreshPermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 
@@ -38,6 +39,7 @@ type RoleSheetProps = {
 /** Create or edit a role. Built in roles open read only. */
 export default function RoleSheet({ open, role, onOpenChange, onSaved }: RoleSheetProps) {
   // Hooks
+  const copy = useCopy(staffContent)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [granted, setGranted] = useState<Permission[]>([])

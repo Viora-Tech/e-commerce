@@ -6,7 +6,8 @@ import SettingsTable from '@/components/settings/settings-table'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
-import { staffContent as copy } from '@/data/staff'
+import { staffContent } from '@/data/staff'
+import { useCopy } from '@/hooks/use-copy'
 import type { EditableRole } from './role-sheet'
 
 export type RoleRow = EditableRole & { slug: string; memberCount: number }
@@ -20,6 +21,9 @@ type RolesCardProps = {
 
 /** The role list: what each role is for, who holds it, and how to change it. */
 export default function RolesCard({ roles, canManage, onEdit, onDelete }: RolesCardProps) {
+  // Hooks
+  const copy = useCopy(staffContent)
+
   return (
     <SettingsTable
       actions

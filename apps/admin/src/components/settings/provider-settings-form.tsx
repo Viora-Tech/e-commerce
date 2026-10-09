@@ -40,6 +40,8 @@ type ProviderSettingsFormProps<Extra> = {
   renderHint?: ((provider: ProviderDef) => ReactNode) | undefined
   /** A plain line on what a provider is, at the top of its card. */
   renderDescription?: ((provider: ProviderDef) => ReactNode) | undefined
+  /** Extra buttons in the header, before Save (a "View setup guide" link). */
+  headerActions?: ReactNode
   /** The parent page, shown as the back button beside the title. */
   back?: { label: string; href: string } | undefined
   /** Rendered under an enabled provider, receives and updates the extra part. */
@@ -90,6 +92,7 @@ export default function ProviderSettingsForm<Extra extends object>({
   emptyExtra,
   renderHint,
   renderDescription,
+  headerActions,
   back,
   renderExtra,
   renderFooter,
@@ -170,6 +173,7 @@ export default function ProviderSettingsForm<Extra extends object>({
       <SettingsPageHeader
         title={title}
         subtitle={intro}
+        actions={headerActions}
         onSave={handleSave}
         dirty={dirty}
         saving={busy}

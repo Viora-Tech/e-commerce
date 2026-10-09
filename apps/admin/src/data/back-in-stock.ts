@@ -17,6 +17,7 @@ export const backInStockContent = {
     title: 'Signups',
     subtitle: 'Everyone who asked to be notified.',
     empty: 'No signups yet.',
+    resource: { singular: 'signup', plural: 'signups' },
     columns: {
       variant: 'Variant',
       contact: 'Contact',

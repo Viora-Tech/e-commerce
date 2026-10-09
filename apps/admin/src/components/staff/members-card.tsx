@@ -22,7 +22,8 @@ import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import StatusLabel from '@/components/status/status-label'
 import RowActionsCell from '@/components/table/row-actions-cell'
-import { staffContent as copy } from '@/data/staff'
+import { staffContent } from '@/data/staff'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { initials } from '@/lib/initials'
 
@@ -59,6 +60,9 @@ export default function MembersCard({
   onChanged,
   onRemove,
 }: MembersCardProps) {
+  // Hooks
+  const copy = useCopy(staffContent)
+
   // Event handlers
   const handleRole = async (member: StaffMemberRow, roleId: string) => {
     try {

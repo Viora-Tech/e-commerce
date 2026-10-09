@@ -1,5 +1,5 @@
 import { campaignsContent } from '@/data/marketing-campaigns'
-import { translation, untranslated } from '@/lib/i18n'
+import { translation } from '@/lib/i18n'
 
 export default [
   translation(campaignsContent, {
@@ -39,6 +39,12 @@ export default [
       cancelled: 'रद्द',
       failed: 'नहीं गया',
     },
-    tiles: untranslated,
+    tiles: {
+      sent: 'भेजे गए मैसेज',
+      openRate: 'औसत खुलने की दर',
+      clickRate: 'औसत क्लिक दर',
+      sales: 'कैंपेन से बिक्री',
+      period: 'सभी कैंपेन',
+    },
   }),
 ]
