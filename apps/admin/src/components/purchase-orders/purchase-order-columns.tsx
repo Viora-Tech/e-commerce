@@ -32,12 +32,14 @@ export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
   },
   {
     id: 'status',
+    align: 'center',
     title: copy.columns.status,
     sortValue: (r) => r.status,
     render: (r) => <StatusLabel kind="purchaseOrder" value={r.status} />,
   },
   {
     id: 'received',
+    align: 'end',
     title: copy.columns.received,
     sortValue: (r) => r.receivedUnits,
     render: (r) => (
@@ -46,6 +48,7 @@ export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
   },
   {
     id: 'total',
+    align: 'end',
     title: copy.columns.total,
     sortValue: (r) => r.totalPaise,
     render: (r) => <span className="tabular-nums">{formatPaise(r.totalPaise)}</span>,

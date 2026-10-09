@@ -65,6 +65,7 @@ export function inventoryColumns({
     },
     {
       id: 'available',
+      align: 'end',
       title: copy.columns.available,
       sortValue: (r) => r.available,
       hideable: false,
@@ -80,12 +81,14 @@ export function inventoryColumns({
     },
     {
       id: 'committed',
+      align: 'end',
       title: copy.columns.committed,
       sortValue: (r) => r.committed,
       render: (r) => <span className="tabular-nums">{formatNumber(r.committed)}</span>,
     },
     {
       id: 'incoming',
+      align: 'end',
       title: copy.columns.incoming,
       sortValue: (r) => r.incoming,
       render: (r) => (
@@ -96,6 +99,7 @@ export function inventoryColumns({
     },
     {
       id: 'onHand',
+      align: 'end',
       title: copy.columns.onHand,
       sortValue: (r) => r.onHand,
       render: (r) => <span className="tabular-nums">{formatNumber(r.onHand)}</span>,
