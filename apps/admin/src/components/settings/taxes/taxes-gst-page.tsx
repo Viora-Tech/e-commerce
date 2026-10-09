@@ -1,12 +1,11 @@
 'use client'
 
 import type { BusinessGstView } from '@commerce/core'
-import { ReceiptIcon } from '@commerce/ui/icons'
-import PageHeader from '@/components/layout/page-header'
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import BusinessGstSettings from '../business-gst/business-gst-settings'
 import SectionTabs from '../section-tabs'
+import SettingsPageHeader from '../settings-page-header'
 import SettingsSection from '../settings-section'
 import TaxesSettings from './taxes-settings'
 
@@ -40,11 +39,7 @@ export default function TaxesGstPage({ view }: TaxesGstPageProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.taxesPage.title}
-        subtitle={copy.taxesPage.intro}
-        icon={<ReceiptIcon aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.taxesPage.title} subtitle={copy.taxesPage.intro} />
       <SectionTabs tabs={copy.sections.taxes} hashTabs={HASH_TABS}>
         <SettingsSection id={GST_TAB} className="flex flex-col gap-4">
           <BusinessGstSettings view={view} />

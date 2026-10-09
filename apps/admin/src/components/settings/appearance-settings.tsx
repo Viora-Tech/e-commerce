@@ -1,7 +1,6 @@
 'use client'
 
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '@commerce/core/admin-accent'
-import { Palette } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Card,
@@ -15,12 +14,12 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import { appearanceContent } from '@/data/appearance'
 import { writeAccentCookie } from '@/lib/accent-cookie'
 import { api } from '@/lib/api-client'
 import AccentPicker from './accent-picker'
 import AccentPreview from './accent-preview'
+import SettingsPageHeader from './settings-page-header'
 import ThemeModeField from './theme-mode-field'
 
 type Loaded = Awaited<ReturnType<typeof api.appearance.get>>
@@ -88,11 +87,7 @@ export default function AppearanceSettings() {
   if (!loaded) {
     return (
       <div className="flex flex-col gap-4">
-        <PageHeader
-          title={copy.title}
-          subtitle={copy.intro}
-          icon={<Palette aria-hidden="true" />}
-        />
+        <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
         <Card gap={4} inset={6}>
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-9 w-full" />
@@ -108,7 +103,7 @@ export default function AppearanceSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Palette aria-hidden="true" />} />
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
       <Card size="form">
         <CardHeader>
           <CardTitle>{copy.accent.heading}</CardTitle>

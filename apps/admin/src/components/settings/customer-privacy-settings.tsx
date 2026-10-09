@@ -2,7 +2,6 @@
 
 import type { GrievanceOfficer, CustomerPrivacySettings as Settings } from '@commerce/core'
 import { PRIVACY_LIMITS } from '@commerce/core/privacy'
-import { ShieldCheck } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -12,12 +11,12 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import AskAgainDialog from '@/components/settings/ask-again-dialog'
 import { customerPrivacyContent as copy } from '@/data/customer-privacy'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import SettingsPageHeader from './settings-page-header'
 
 type Overview = {
   settings: Settings
@@ -112,11 +111,7 @@ export default function CustomerPrivacySettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        icon={<ShieldCheck aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
       {!overview || !form ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

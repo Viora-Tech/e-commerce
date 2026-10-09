@@ -6,7 +6,7 @@ import {
   WRITING_QUALITIES,
   type WritingQuality,
 } from '@commerce/ai/client'
-import { AiIcon, CircleAlert, ShieldCheck } from '@commerce/ui/icons'
+import { CircleAlert, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -17,13 +17,13 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { aiContent } from '@/data/ai'
 import { settingsContent } from '@/data/settings'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AiActivityCard from './ai-activity-card'
+import SettingsPageHeader from './settings-page-header'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
 
@@ -113,11 +113,7 @@ export default function AiSettings() {
         }}
         saving={busy}
       />
-      <PageHeader
-        title={copy.settings.title}
-        subtitle={copy.settings.subtitle}
-        icon={<AiIcon aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.settings.title} subtitle={copy.settings.subtitle} />
       {!loaded || !features || !usage ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

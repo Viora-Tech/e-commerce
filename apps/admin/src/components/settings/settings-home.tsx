@@ -1,11 +1,11 @@
-import { ChevronRight, Settings } from '@commerce/ui/icons'
+import { ChevronRight } from '@commerce/ui/icons'
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
-import PageHeader from '@/components/layout/page-header'
 import { SETTINGS_GROUPS, settingsContent, settingsHomeContent } from '@/data/settings'
 import { localize } from '@/lib/copy'
 import { getLocale } from '@/lib/copy-server'
 import { pageBody, pageName } from '@/lib/page-names'
+import SettingsPageHeader from './settings-page-header'
 import SetupChecklistCard from './setup-checklist-card'
 
 const LINK = 'text-foreground underline underline-offset-2 hover:text-ink-strong'
@@ -19,7 +19,7 @@ export default async function SettingsHome() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={copy.title} subtitle={copy.intro} icon={<Settings aria-hidden="true" />} />
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
       <SetupChecklistCard />
       <h2 className="sr-only">{copy.all.heading}</h2>
       {SETTINGS_GROUPS.map((group) => (

@@ -1,14 +1,13 @@
 'use client'
 
-import { UserRound } from '@commerce/ui/icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import { accountContent } from '@/data/account'
 import { useCopy } from '@/hooks/use-copy'
 import { localize } from '@/lib/copy'
 import type { Locale } from '@/lib/i18n'
 import LanguageField from './language-field'
+import SettingsPageHeader from './settings-page-header'
 
 /** Account (from the account menu): preferences that belong to the signed-in member, starting with language. */
 export default function AccountSettings() {
@@ -22,11 +21,7 @@ export default function AccountSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.intro}
-        icon={<UserRound aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
       <Card size="form">
         <CardHeader>
           <CardTitle>{copy.language.heading}</CardTitle>

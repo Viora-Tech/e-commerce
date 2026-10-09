@@ -2,13 +2,11 @@
 
 import type { CheckoutSettingsView, PaymentAdjustment } from '@commerce/core'
 import type { CheckoutSettings as Settings } from '@commerce/core/checkout-settings'
-import { ShoppingCart } from '@commerce/ui/icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Field, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import CheckoutBrandingSettings from '@/components/settings/checkout-branding-settings'
@@ -21,6 +19,7 @@ import { checkoutBrandingContent, checkoutSettingsContent as copy } from '@/data
 import { settingsContent } from '@/data/settings'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import SettingsPageHeader from './settings-page-header'
 
 type Form = { settings: Settings; codFee: PaymentAdjustment | null }
 
@@ -96,11 +95,7 @@ export default function CheckoutSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        icon={<ShoppingCart aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
       {!form || !s || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

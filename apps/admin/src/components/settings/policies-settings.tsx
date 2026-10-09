@@ -2,7 +2,7 @@
 
 import type { PolicySettings, StorePolicy } from '@commerce/core'
 import { REQUIRED_POLICY_TYPES } from '@commerce/core/policies'
-import { ClipboardList, InfoIcon } from '@commerce/ui/icons'
+import { InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
@@ -13,12 +13,12 @@ import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { policiesContent as copy } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
+import SettingsPageHeader from './settings-page-header'
 
 type PolicyRowProps = {
   policy: StorePolicy
@@ -96,11 +96,7 @@ export default function PoliciesSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        icon={<ClipboardList aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
       <Alert>
         <InfoIcon aria-hidden="true" />
         <AlertTitle>{copy.disclaimer.title}</AlertTitle>

@@ -1,7 +1,6 @@
 'use client'
 
 import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/core/returns'
-import { Undo } from '@commerce/ui/icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { Checkbox } from '@commerce/ui/shadcn/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
@@ -9,12 +8,12 @@ import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import { returnSettingsContent as copy, returnsContent } from '@/data/returns'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import SettingsPageHeader from './settings-page-header'
 
 type ToggleProps = {
   id: string
@@ -103,7 +102,7 @@ export default function ReturnsSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <PageHeader title={copy.title} subtitle={copy.subtitle} icon={<Undo aria-hidden="true" />} />
+      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
       {!form ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (

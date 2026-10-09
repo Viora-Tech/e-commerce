@@ -7,7 +7,6 @@ import {
   type LoginProvider,
   type ProviderReadiness,
 } from '@commerce/core/customer-accounts'
-import { UserCircle } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -17,7 +16,6 @@ import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ChoiceList from '@/components/returns/choice-list'
 import LoginAppSheet from '@/components/settings/login-app-sheet'
@@ -30,6 +28,7 @@ import {
 } from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import SettingsPageHeader from './settings-page-header'
 
 type Loaded = {
   settings: Settings
@@ -117,11 +116,7 @@ export default function CustomerAccountsSettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Settings)}
         saving={busy}
       />
-      <PageHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        icon={<UserCircle aria-hidden="true" />}
-      />
+      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
       {!form || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (
