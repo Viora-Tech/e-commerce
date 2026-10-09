@@ -6,22 +6,22 @@ import type { RichTextValue } from '@commerce/richtext'
 import { ExternalLink, Sparkle, TriangleAlert } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardContent } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import RichTextField from '@/components/fields/rich-text-field'
 import SaveBar from '@/components/layout/save-bar'
 import ConfirmDelete from '@/components/metaobjects/confirm-delete'
+import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
+import SettingsTextRow from '@/components/settings/settings-text-row'
+import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { policyEditorContent as copy, policiesContent } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 
 type PolicyEditorProps = {
   type: PolicyType
@@ -158,7 +158,7 @@ export default function PolicyEditor({
             ? copy.updated(formatDate(policy.updatedAt))
             : policiesContent.hints[type]
         }
-        back={{ label: copy.back, href: '/settings/policies' }}
+        back={{ label: copy.back, href: routes.settings.policies() }}
         actions={
           live ? (
             <Button
@@ -193,52 +193,40 @@ export default function PolicyEditor({
               </AlertDescription>
             </Alert>
           ) : null}
-          <Card size="form">
-            <CardContent>
-              <FieldGroup>
-                <Field orientation="horizontal" className="items-start justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <FieldLabel htmlFor="policy-visible">{copy.visible}</FieldLabel>
-                    <FieldDescription>
-                      {draft.published ? copy.visibleHint(path) : copy.hiddenHint}
-                    </FieldDescription>
-                  </div>
-                  <Switch
-                    id="policy-visible"
-                    checked={draft.published}
-                    onCheckedChange={(published) => setDraft({ ...draft, published })}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="policy-title">{copy.title}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id="policy-title"
-                    value={draft.title}
-                    maxLength={120}
-                    onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                  />
-                </Field>
-                <Button
-                  variant="outline"
-                  className="self-start"
-                  onClick={handleTemplate}
-                  disabled={filling}
-                >
-                  <Sparkle aria-hidden="true" />
-                  {hasText(draft.body) ? copy.refill : copy.fromTemplate}
-                </Button>
-                <RichTextField
-                  key={editorKey}
-                  label={copy.body}
-                  value={draft.body}
-                  onChange={(body) => setDraft((d) => (d ? { ...d, body } : d))}
-                  placeholder={copy.bodyPlaceholder}
-                  minHeight="24rem"
-                />
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <SettingsCard>
+            <SettingsToggleRow
+              id="policy-visible"
+              label={copy.visible}
+              description={draft.published ? copy.visibleHint(path) : copy.hiddenHint}
+              checked={draft.published}
+              onChange={(published) => setDraft({ ...draft, published })}
+            />
+            <SettingsTextRow
+              id="policy-title"
+              label={copy.title}
+              value={draft.title}
+              onChange={(title) => setDraft({ ...draft, title: title.slice(0, 120) })}
+            />
+            <div className="flex flex-col gap-3 pt-5">
+              <Button
+                variant="outline"
+                className="self-start"
+                onClick={handleTemplate}
+                disabled={filling}
+              >
+                <Sparkle aria-hidden="true" />
+                {hasText(draft.body) ? copy.refill : copy.fromTemplate}
+              </Button>
+              <RichTextField
+                key={editorKey}
+                label={copy.body}
+                value={draft.body}
+                onChange={(body) => setDraft((d) => (d ? { ...d, body } : d))}
+                placeholder={copy.bodyPlaceholder}
+                minHeight="24rem"
+              />
+            </div>
+          </SettingsCard>
         </>
       )}
       <ConfirmDelete

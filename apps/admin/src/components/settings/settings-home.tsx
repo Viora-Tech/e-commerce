@@ -27,7 +27,7 @@ export default async function SettingsHome() {
           <li key={s.href}>
             <Link
               href={s.href}
-              className="group flex h-full flex-col gap-1 rounded-2xl bg-card p-5 shadow-card ring-1 ring-hairline transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="group flex h-full flex-col gap-1 rounded-xl bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="text-body font-semibold text-ink-strong">
