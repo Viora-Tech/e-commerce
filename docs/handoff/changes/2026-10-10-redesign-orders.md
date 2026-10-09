@@ -15,7 +15,7 @@ query and permission is kept.
   cancelled. Items, summary, payment, customer (WhatsApp and Call buttons), tags restyled as cards. The floating
   action bar is gone (the Next step card owns the action).
 - **Drafts, Abandoned checkouts, Returns, Shipments**: same frame, chips, dates, rows per page. Drafts get three
-  stat cards. Returns detail uses the new frame. Draft editor gets the new page width.
+  stat cards. Returns detail uses the new frame. Draft editor: Send invoice and Convert to order in the header (key button only for Convert), products card with thumbnails, a Payment bill with money inputs for discount and shipping.
 - **API (read-only, no migration)**: `orders.tiles` (list stat cards) and `orders.draftTiles` (drafts stat cards).
 - Shared: `StatTile` gained an optional `note`; `lib/rows-per-page.ts` (`parseRowsPerPage`); copy for next step in
   `data/order-next-step.ts` with a Hindi overlay.
@@ -26,6 +26,7 @@ query and permission is kept.
   store default courier, so the card offers "Fulfil items" and "Compare couriers" (links to Shipments).
 - "View invoice" and "Reopen order" buttons: no such actions exist, so they are omitted.
 - No UPI ID row on the UPI card (not stored); it shows when the reminder was sent.
+- Draft editor: no custom items, Browse dialog, delivery or GST controls (no data); swap to the shared Select products dialog when page-products ships it.
 - Drafts tabs (All / Open / Invoice sent): the list has no server filter for them, so tiles show the split instead.
 - `components/orders/orders-list-frame.tsx` is a local list shell; swap to the shared Proofly list shell when it lands.
 - Not checked in a browser or against Figma by the agent (extension unavailable); owner reviews on localhost.

@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
+import { Button } from '@commerce/ui/shadcn/button'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useRouter } from 'next/navigation'
@@ -22,6 +23,7 @@ import DraftCustomerCard from '@/components/drafts/draft-customer-card'
 import {
   type DraftFormState,
   draftToForm,
+  draftTotals,
   emptyDraft,
   formToDraft,
 } from '@/components/drafts/draft-form-state'
@@ -32,6 +34,7 @@ import PageColumns from '@/components/layout/page-columns'
 import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import { draftEditorContent as copy, draftsContent } from '@/data/drafts'
+import { useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -45,12 +48,14 @@ const message = (err: unknown, fallback: string) =>
 export default function DraftForm({ draft }: DraftFormProps) {
   // Hooks
   const router = useRouter()
+  const fmt = useFormat()
   const [id, setId] = useState<string | null>(draft?.id ?? null)
   const [number, setNumber] = useState<number | null>(draft?.number ?? null)
   const [saved, setSaved] = useState<DraftFormState>(draft ? draftToForm(draft) : emptyDraft())
   const [form, setForm] = useState<DraftFormState>(saved)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [resetKey, setResetKey] = useState(0)
 
   // Helpers
   const patch = (next: Partial<DraftFormState>) => setForm((f) => ({ ...f, ...next }))
@@ -124,6 +129,9 @@ export default function DraftForm({ draft }: DraftFormProps) {
 
   // Render logic
   const dirty = JSON.stringify(form) !== JSON.stringify(saved)
+  const subtitle = [form.customerName || form.email, fmt.money(draftTotals(form).totalPaise)]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <PageBody className="max-w-[78rem] gap-6 md:py-8">
@@ -133,12 +141,30 @@ export default function DraftForm({ draft }: DraftFormProps) {
         saveLabel={copy.save}
         discardLabel={copy.discard}
         onSave={handleSave}
-        onDiscard={() => setForm(saved)}
+        onDiscard={() => {
+          setForm(saved)
+          setResetKey((k) => k + 1)
+        }}
         saving={busy}
       />
       <PageHeader
         title={number ? copy.editTitle(number) : copy.newTitle}
         icon={<FileEdit aria-hidden="true" />}
+        subtitle={subtitle}
+        actions={
+          <>
+            <Button
+              variant="key-neutral"
+              disabled={!id || dirty || busy}
+              onClick={handleSendInvoice}
+            >
+              {copy.actions.sendInvoice}
+            </Button>
+            <Button disabled={!id || dirty || busy} onClick={handleConvert}>
+              {copy.actions.convert}
+            </Button>
+          </>
+        }
         breadcrumbs={[
           { label: draftsContent.title, href: routes.orders.drafts() },
           { label: number ? copy.editTitle(number) : copy.newTitle },
@@ -148,9 +174,9 @@ export default function DraftForm({ draft }: DraftFormProps) {
         main={
           <>
             <DraftProductsCard lines={form.lines} onChange={(lines) => patch({ lines })} />
-            <DraftTotalsCard form={form} onChange={patch} />
+            <DraftTotalsCard key={resetKey} form={form} onChange={patch} />
             <Card gap={3} inset={5}>
-              <p className="text-kit-card-title text-foreground">{copy.note.heading}</p>
+              <p className="text-card-title text-ink-strong">{copy.note.heading}</p>
               <Textarea
                 value={form.note}
                 onChange={(e) => patch({ note: e.target.value })}
@@ -169,8 +195,6 @@ export default function DraftForm({ draft }: DraftFormProps) {
               busy={busy}
               paymentMethod={form.paymentMethod}
               onPaymentMethod={(paymentMethod) => patch({ paymentMethod })}
-              onSendInvoice={handleSendInvoice}
-              onConvert={handleConvert}
               onDelete={() => setConfirmDelete(true)}
             />
           </>

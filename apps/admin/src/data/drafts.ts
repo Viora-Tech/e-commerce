@@ -74,7 +74,7 @@ export const draftEditorContent = {
     phone: 'Phone',
   },
   totals: {
-    heading: 'Totals',
+    heading: 'Payment',
     subtotal: 'Subtotal',
     discount: 'Discount',
     discountLabel: 'Discount label',
@@ -97,6 +97,8 @@ export const draftEditorContent = {
     deleteBody: 'The draft and its items are removed. This cannot be undone.',
     cancel: 'Cancel',
     saveFirst: 'Save the draft first',
+    open: 'Open',
+    invoiceSentStatus: 'Invoice sent',
   },
   paymentMethod: 'Payment method',
   methods: {
