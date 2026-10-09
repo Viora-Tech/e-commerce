@@ -7,6 +7,8 @@ type StatTileProps = {
   value: string
   /** Percent change against the previous period; the sign picks the arrow. */
   trend?: number | null
+  /** A plain line under the figure when there is no trend, e.g. "Awaiting the transfer". */
+  note?: string
   /** Text after the arrow, e.g. "vs yesterday". */
   trendNote?: string
   /** A rise is bad news (cancellations): the colours flip. */
@@ -28,6 +30,7 @@ export default function StatTile({
   value,
   trend,
   trendNote,
+  note,
   invert = false,
   onSelect,
   active = false,
@@ -40,6 +43,7 @@ export default function StatTile({
     <>
       <span className="text-caption text-muted-foreground">{label}</span>
       <span className="text-stat text-ink-strong tabular-nums">{value}</span>
+      {note && !trend ? <span className="text-caption text-muted-foreground">{note}</span> : null}
       {trend ? (
         <span
           className={cn(

@@ -38,6 +38,7 @@ import {
   listOrders,
   ORDER_VIEWS,
   orderStats,
+  orderTiles,
   refundOrderPayment,
   setOrderStatus,
   setOrderTags,
@@ -92,6 +93,8 @@ export const ordersRouter = {
     .handler(({ context, input }) => listOrders(context.tx, input)),
 
   stats: can(permissions.ORDERS_READ).handler(({ context }) => orderStats(context.tx)),
+
+  tiles: can(permissions.ORDERS_READ).handler(({ context }) => orderTiles(context.tx)),
 
   get: can(permissions.ORDERS_READ)
     .input(z.object({ id: z.uuid() }))

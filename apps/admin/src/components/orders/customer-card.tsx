@@ -1,6 +1,6 @@
 'use client'
 
-import { Copy } from '@commerce/ui/icons'
+import { Copy, WhatsappLogo } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -8,9 +8,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import CopyButton from '@/components/fields/copy-button'
 import DataCard from '@/components/layout/data-card'
+import StatusChip from '@/components/layout/status-chip'
 import { INDIAN_STATES } from '@/data/india'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import EditOrderContactDialog from './edit-order-contact-dialog'
 import type { OrderDetail } from './order-detail-types'
 
@@ -19,6 +21,12 @@ type CustomerCardProps = {
 }
 
 type Row = { key: string; label: string; value: string; href?: string | undefined }
+
+/** wa.me wants digits only, with the country code: a bare 10-digit number is Indian. */
+function whatsappHref(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '')
+  return `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}`
+}
 
 const stateName = (code: string) => INDIAN_STATES.find((s) => s.code === code)?.name ?? code
 
@@ -90,7 +98,10 @@ export default function CustomerCard({ order }: CustomerCardProps) {
       action={
         <div className="flex items-center gap-3">
           {order.email ? (
-            <Link href={`/orders?query=${encodeURIComponent(order.email)}`} className={link}>
+            <Link
+              href={`${routes.orders.list()}?query=${encodeURIComponent(order.email)}`}
+              className={link}
+            >
               {c.viewOrders}
             </Link>
           ) : null}
@@ -104,13 +115,13 @@ export default function CustomerCard({ order }: CustomerCardProps) {
     >
       <div className="flex flex-col gap-5 text-body">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-muted-foreground">
+          <StatusChip>
             {order.customer
               ? order.customerOrderNumber > 0
                 ? c.orderCount(order.customerOrderNumber)
                 : null
               : c.guest}
-          </p>
+          </StatusChip>
           <div className="flex items-center gap-2">
             {allText ? (
               <Button
@@ -138,6 +149,27 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           </div>
         </div>
 
+        {phone ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={whatsappHref(phone)} target="_blank" rel="noreferrer" />}
+              nativeButton={false}
+            >
+              <WhatsappLogo />
+              {c.whatsapp}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href={`tel:${phone}`} />}
+              nativeButton={false}
+            >
+              {c.call}
+            </Button>
+          </div>
+        ) : null}
         <DetailRows heading={c.contact} rows={contact} />
         {a ? (
           <DetailRows heading={c.address} rows={place} />
@@ -191,7 +223,7 @@ function DetailRows({ heading, rows }: DetailRowsProps) {
   return (
     <div className="flex flex-col gap-1">
       <p className="text-eyebrow">{heading}</p>
-      <dl className="flex flex-col divide-y divide-border">
+      <dl className="flex flex-col divide-y divide-line">
         {rows.map((r) => (
           <div key={r.key} className="flex min-h-10 items-center gap-2 py-1">
             <dt className="w-24 shrink-0 text-caption text-muted-foreground">{r.label}</dt>

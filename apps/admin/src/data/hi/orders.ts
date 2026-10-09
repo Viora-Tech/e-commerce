@@ -1,6 +1,7 @@
 import {
   importedOrderContent,
   orderDetailContent,
+  orderNextStepContent,
   ordersContent,
   ordersSectionsContent,
 } from '@/data/orders'
@@ -36,6 +37,22 @@ export default [
     },
     title: 'ऑर्डर',
     heading: 'ऑर्डर लिस्ट',
+    summary: (total, toShip, pendingUpi) =>
+      [
+        `${total} ऑर्डर`,
+        toShip > 0 ? `${toShip} भेजने बाकी` : null,
+        pendingUpi > 0 ? `${pendingUpi} UPI पेमेंट बाकी` : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    tiles: {
+      newToday: { label: 'आज के नए ऑर्डर', trendNote: 'कल के मुकाबले' },
+      ready: { label: 'भेजने के लिए तैयार', note: 'पेमेंट हो गया, कूरियर का इंतज़ार' },
+      pendingUpi: { label: 'UPI बाकी', note: 'ट्रांसफ़र का इंतज़ार' },
+      sales: { label: 'इस हफ़्ते की बिक्री', trendNote: 'पिछले हफ़्ते के मुकाबले' },
+    },
+    noResults: { heading: 'कोई ऑर्डर नहीं मिला', body: 'दूसरा शब्द खोजें या फ़िल्टर हटाएं।' },
+    loadFailed: 'ऑर्डर लोड नहीं हो पाए',
     addOrder: 'ऑर्डर जोड़ें',
     moreActions: 'और विकल्प',
     menu: { drafts: 'ड्राफ़्ट ऑर्डर', abandoned: 'अधूरे चेकआउट', returns: 'रिटर्न' },
@@ -118,6 +135,7 @@ export default [
       cancel: 'ऑर्डर कैंसिल करें',
       refund: 'रिफ़ंड',
       print: 'पैकिंग स्लिप प्रिंट करें',
+      printShort: 'प्रिंट',
       more: 'और विकल्प',
     },
     moved: (status) => `ऑर्डर "${status}" मार्क किया गया`,
@@ -157,6 +175,7 @@ export default [
       heading: 'भेजना बाकी',
       fulfilled: 'भेज दिया',
       ofQuantity: (done, total) => `${total} में से ${done} पैक`,
+      itemsCount: (n) => `${n} आइटम`,
       waybill: 'ट्रैकिंग',
     },
     fulfilDialog: {
@@ -355,6 +374,8 @@ export default [
       state: 'राज्य',
       pincode: 'पिन कोड',
       copyAll: 'सब कॉपी करें',
+      call: 'कॉल करें',
+      whatsapp: 'WhatsApp',
       copyAllHint: 'नाम, फ़ोन, पता, शहर, राज्य और पिन कोड, हर एक अलग लाइन में, कूरियर ऐप के लिए तैयार',
       allDetails: 'ग्राहक की जानकारी',
       billing: 'बिलिंग पता',
@@ -391,6 +412,60 @@ export default [
     },
   }),
 
+  translation(orderNextStepContent, {
+    eyebrow: { next: 'अगला कदम', progress: 'रास्ते में', done: 'पूरा', closed: 'बंद' },
+    upi: {
+      title: 'UPI पेमेंट जाँचें',
+      body: (amount, ago) =>
+        `${amount} का UPI अनुरोध ${ago} भेजा गया था। अपने बैंक ऐप में ट्रांसफ़र मिलाएं, फिर पेमेंट हो गया मार्क करें।`,
+      resend: 'पेमेंट लिंक फिर भेजें',
+      markPaid: 'पेमेंट हो गया मार्क करें',
+      reminder: 'रिमाइंडर',
+    },
+    collect: {
+      title: (amount) => `${amount} लें`,
+      body: 'पेमेंट अभी बाकी है। पैसे मिलते ही यहाँ दर्ज करें।',
+      action: 'पेमेंट लें',
+    },
+    ship: {
+      title: (n) => `${n} आइटम पैक करके भेजें`,
+      cod: (amount) =>
+        `कैश ऑन डिलीवरी: कूरियर दरवाज़े पर ${amount} लेगा। आइटम भेजें दबाकर कूरियर और ट्रैकिंग जोड़ें।`,
+      paid: (method) => `${method} से पेमेंट हो चुका है। आइटम भेजें दबाकर कूरियर और ट्रैकिंग जोड़ें।`,
+      action: 'आइटम भेजें',
+      compare: 'कूरियर की तुलना करें',
+    },
+    transit: {
+      title: (name) => `${name} तक रास्ते में`,
+      fallbackName: 'ग्राहक',
+      noTracking: 'भेज दिया गया है। पहुँचते ही डिलीवर हो गया मार्क करें।',
+      expected: (date) => `${date} तक पहुँचेगा`,
+      tracking: (waybill) => `ट्रैकिंग ${waybill}`,
+      copyLink: 'ट्रैकिंग लिंक कॉपी करें',
+      linkCopied: 'ट्रैकिंग लिंक कॉपी हुआ',
+      delivered: 'डिलीवर हो गया मार्क करें',
+      steps: {
+        picked_up: 'उठा लिया',
+        in_transit: 'रास्ते में',
+        out_for_delivery: 'डिलीवरी के लिए निकला',
+        delivered: 'डिलीवर हुआ',
+      },
+      now: 'अभी',
+      expectedStep: (date) => `${date} तक`,
+    },
+    done: {
+      title: (date) => `${date} को डिलीवर हुआ`,
+      titleNoDate: 'डिलीवर हो गया',
+      body: (name, collected) =>
+        `${name} को ऑर्डर मिल गया।${collected ? ` ${collected} कैश ऑन डिलीवरी लिया गया।` : ''}`,
+      startReturn: 'रिटर्न शुरू करें',
+    },
+    cancelled: {
+      title: 'यह ऑर्डर कैंसिल हुआ',
+      body: 'यहाँ अब कुछ करना नहीं है। इतिहास में सब दिखता है।',
+      history: 'इतिहास देखें',
+    },
+  }),
   translation(importedOrderContent, {
     title: (platform) => `${PLATFORMS[platform] ?? platform} से इंपोर्ट किया`,
     body: 'पुराना ऑर्डर, सिर्फ़ रिकॉर्ड के लिए रखा है। इससे स्टॉक नहीं बदला, कोई मैसेज या इनवॉइस नहीं गया, और इसे यहाँ से भेजा या रिफ़ंड नहीं किया जा सकता।',

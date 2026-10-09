@@ -45,6 +45,26 @@ export const ordersContent = {
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
   heading: 'Order list',
+  /** The plain-language line under the page title: counts only, zeros left out. */
+  summary: (total: number, toShip: number, pendingUpi: number) =>
+    [
+      `${total} ${total === 1 ? 'order' : 'orders'}`,
+      toShip > 0 ? `${toShip} need shipping` : null,
+      pendingUpi > 0
+        ? `${pendingUpi} UPI ${pendingUpi === 1 ? 'payment' : 'payments'} pending`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  /** The four stat cards above the list. */
+  tiles: {
+    newToday: { label: 'New orders today', trendNote: 'vs yesterday' },
+    ready: { label: 'Ready to ship', note: 'Paid and waiting on a courier' },
+    pendingUpi: { label: 'Pending UPI', note: 'Awaiting the transfer' },
+    sales: { label: 'Sales this week', trendNote: 'vs last week' },
+  },
+  noResults: { heading: 'No orders match', body: 'Try another search, or clear the filters.' },
+  loadFailed: 'Could not load orders',
   addOrder: 'Add order',
   moreActions: 'More actions',
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
@@ -129,6 +149,7 @@ export const orderDetailContent = {
     cancel: 'Cancel order',
     refund: 'Refund',
     print: 'Print packing slip',
+    printShort: 'Print',
     more: 'More actions',
   },
   moved: (status: string) => `Order marked as ${status}`,
@@ -169,6 +190,7 @@ export const orderDetailContent = {
     heading: 'Unfulfilled',
     fulfilled: 'Fulfilled',
     ofQuantity: (done: number, total: number) => `${done} of ${total} packed`,
+    itemsCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
     waybill: 'Tracking',
   },
   fulfilDialog: {
@@ -372,6 +394,8 @@ export const orderDetailContent = {
     state: 'State',
     pincode: 'PIN code',
     copyAll: 'Copy all',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
     copyAllHint:
       'Name, phone, address, city, state and PIN code, one per line, ready for a courier app',
     allDetails: 'Customer details',
@@ -453,5 +477,62 @@ export const ordersSectionsContent = {
     heading: 'No abandoned checkouts',
     body: 'When a shopper enters their details but leaves before paying, the checkout lands here so you can follow up.',
     action: { label: 'View orders', href: '/orders' },
+  },
+} as const
+
+/** Copy for the order page's "Next step" card (Figma "Order · Next step"). */
+export const orderNextStepContent = {
+  eyebrow: { next: 'Next step', progress: 'In progress', done: 'Done', closed: 'Closed' },
+  upi: {
+    title: 'Check the UPI payment',
+    body: (amount: string, ago: string) =>
+      `${amount} was requested by UPI ${ago}. Match the transfer in your bank app, then mark it as paid.`,
+    resend: 'Resend payment link',
+    markPaid: 'Mark as paid',
+    reminder: 'Reminder',
+  },
+  collect: {
+    title: (amount: string) => `Collect ${amount}`,
+    body: 'The payment is still open. Record it here once the money has reached you.',
+    action: 'Collect payment',
+  },
+  ship: {
+    title: (n: number) => `Pack and ship ${n} ${n === 1 ? 'item' : 'items'}`,
+    cod: (amount: string) =>
+      `Cash on delivery: the courier collects ${amount} at the door. Fulfil the items to add the courier and tracking.`,
+    paid: (method: string) =>
+      `Paid by ${method}. Fulfil the items to add the courier and tracking.`,
+    action: 'Fulfil items',
+    compare: 'Compare couriers',
+  },
+  transit: {
+    title: (name: string) => `On its way to ${name}`,
+    fallbackName: 'the customer',
+    noTracking: 'Marked as shipped. Mark it delivered once it arrives.',
+    expected: (date: string) => `expected ${date}`,
+    tracking: (waybill: string) => `tracking ${waybill}`,
+    copyLink: 'Copy tracking link',
+    linkCopied: 'Tracking link copied',
+    delivered: 'Mark as delivered',
+    steps: {
+      picked_up: 'Picked up',
+      in_transit: 'In transit',
+      out_for_delivery: 'Out for delivery',
+      delivered: 'Delivered',
+    },
+    now: 'Now',
+    expectedStep: (date: string) => `Expected ${date}`,
+  },
+  done: {
+    title: (date: string) => `Delivered on ${date}`,
+    titleNoDate: 'Delivered',
+    body: (name: string, collected: string | null) =>
+      `${name} has this order.${collected ? ` The ${collected} cash on delivery was collected.` : ''}`,
+    startReturn: 'Start a return',
+  },
+  cancelled: {
+    title: 'This order was cancelled',
+    body: 'Nothing more to do here. The history shows what happened.',
+    history: 'View history',
   },
 } as const
