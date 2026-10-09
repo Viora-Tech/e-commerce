@@ -1,9 +1,8 @@
-import { Puzzle } from '@commerce/ui/icons'
 import { notFound, redirect } from 'next/navigation'
 import { ADMIN_APPS, matchAppPage } from '@/apps/registry'
+import AppListing from '@/components/apps/app-listing'
 import AppShell from '@/components/apps/app-shell'
-import SectionEmpty from '@/components/layout/section-empty'
-import { appsContent } from '@/data/apps'
+import PageBody from '@/components/layout/page-body'
 import { appRouter, call, serverContext } from '@/lib/api'
 import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
@@ -17,8 +16,6 @@ type Params = { params: Promise<{ pluginId: string; path?: string[] }> }
  */
 export default async function AppPage({ params }: Params) {
   const { pluginId, path = [] } = await params
-  const registered = ADMIN_APPS[pluginId]
-  if (!registered) notFound()
   const context = await serverContext()
   const apps = await call(appRouter.apps.list, undefined, { context }).catch(orNoStore(undefined))
   if (apps === undefined) redirect(routes.selectStore())
@@ -26,14 +23,13 @@ export default async function AppPage({ params }: Params) {
   if (!app) notFound()
   if (!app.installed) {
     return (
-      <SectionEmpty
-        heading={app.name}
-        body={appsContent.installFirst}
-        action={{ label: appsContent.openApps, href: routes.apps.list() }}
-        icon={Puzzle}
-      />
+      <PageBody>
+        <AppListing app={app} />
+      </PageBody>
     )
   }
+  const registered = ADMIN_APPS[pluginId]
+  if (!registered) notFound()
   const match = matchAppPage(app.admin.pages, path)
   const Page = match ? registered.pages[match.page.path] : undefined
   if (!match || !Page) notFound()

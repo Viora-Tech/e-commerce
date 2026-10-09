@@ -10,8 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@commerce/ui/shadcn/dialog'
-import { type AppKind, appsContent } from '@/data/apps'
+import { appsContent } from '@/data/apps'
 import { useCopy } from '@/hooks/use-copy'
+import { permissionLines } from '@/lib/app-permissions'
 import type { AppSummary } from './app-card'
 import AppLogo from './app-logo'
 
@@ -23,24 +24,13 @@ type InstallDialogProps = {
   onCancel: () => void
 }
 
-const KINDS = Object.keys(appsContent.kinds) as AppKind[]
-
 /** The permission step before an install: what the app's manifest says it does, in plain words. */
 export default function InstallDialog({ app, busy, onConfirm, onCancel }: InstallDialogProps) {
   // Hooks
   const copy = useCopy(appsContent)
 
   // Render logic
-  const lines: string[] = []
-  if (app) {
-    for (const kind of KINDS) {
-      const labels = app.provides[kind].map((p) => p.label).join(', ')
-      if (labels) lines.push(copy.permissions.kindLine[kind](labels))
-    }
-    if (app.hooks.length > 0) lines.push(copy.permissions.hooks)
-    if (app.productFields.length > 0) lines.push(copy.permissions.fields)
-    if (app.admin.pages.length > 0) lines.push(copy.permissions.pages)
-  }
+  const lines = app ? permissionLines(app, copy) : []
 
   return (
     <Dialog open={app !== null} onOpenChange={(open) => !open && onCancel()}>

@@ -88,9 +88,12 @@ export default function AppCard({ app, variant, busy, onInstall, onUninstall }: 
       <div className="flex items-center gap-3">
         <AppLogo id={app.id} icon={app.admin.icon} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground">
+          <Link
+            href={routes.apps.page(app.id)}
+            className="truncate text-[0.9375rem] leading-[1.375rem] font-semibold text-foreground hover:text-primary"
+          >
             {app.name}
-          </span>
+          </Link>
           <span className="truncate text-xs text-muted-foreground">{byline}</span>
         </div>
       </div>
