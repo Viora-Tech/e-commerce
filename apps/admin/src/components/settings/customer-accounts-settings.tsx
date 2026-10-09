@@ -116,7 +116,14 @@ export default function CustomerAccountsSettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Settings)}
         saving={busy}
       />
-      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
+      <SettingsPageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        onSave={handleSave}
+        dirty={dirty && !none}
+        saving={busy}
+        saveLabel={copy.save}
+      />
       {!form || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

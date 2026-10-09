@@ -95,7 +95,14 @@ export default function CheckoutSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
+      <SettingsPageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
+      />
       {!form || !s || !loaded ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

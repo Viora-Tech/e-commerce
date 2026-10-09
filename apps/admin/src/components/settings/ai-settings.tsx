@@ -114,7 +114,14 @@ export default function AiSettings() {
         }}
         saving={busy}
       />
-      <SettingsPageHeader title={copy.settings.title} subtitle={copy.settings.subtitle} />
+      <SettingsPageHeader
+        title={copy.settings.title}
+        subtitle={copy.settings.subtitle}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.settings.save}
+      />
       {!loaded || !features || !usage ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

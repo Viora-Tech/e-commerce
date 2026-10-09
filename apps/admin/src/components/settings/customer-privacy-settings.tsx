@@ -111,7 +111,14 @@ export default function CustomerPrivacySettings() {
         onDiscard={() => saved && setForm(JSON.parse(saved) as Form)}
         saving={busy}
       />
-      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
+      <SettingsPageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
+      />
       {!overview || !form ? (
         <Skeleton className="h-96 w-full rounded-2xl" />
       ) : (

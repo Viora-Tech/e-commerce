@@ -96,7 +96,14 @@ export default function PoliciesSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
+      <SettingsPageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
+      />
       <Alert>
         <InfoIcon aria-hidden="true" />
         <AlertTitle>{copy.disclaimer.title}</AlertTitle>

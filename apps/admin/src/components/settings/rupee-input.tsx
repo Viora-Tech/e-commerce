@@ -1,7 +1,6 @@
 'use client'
 
 import { parseRupees } from '@commerce/money'
-import { Field, FieldDescription, FieldLabel } from '@commerce/ui/shadcn/field'
 import {
   InputGroup,
   InputGroupAddon,
@@ -10,6 +9,7 @@ import {
 } from '@commerce/ui/shadcn/input-group'
 import { useState } from 'react'
 import { checkoutSettingsContent as copy } from '@/data/checkout-settings'
+import SettingsRow from './settings-row'
 
 type RupeeInputProps = {
   id: string
@@ -34,8 +34,7 @@ export default function RupeeInput({ id, label, hint, paise, onChange }: RupeeIn
   }
 
   return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <SettingsRow label={label} description={hint} htmlFor={id}>
       <InputGroup className="max-w-60">
         <InputGroupAddon>
           <InputGroupText>{copy.rupees}</InputGroupText>
@@ -51,7 +50,6 @@ export default function RupeeInput({ id, label, hint, paise, onChange }: RupeeIn
           onBlur={() => setText(toText(paise))}
         />
       </InputGroup>
-      <FieldDescription>{hint}</FieldDescription>
-    </Field>
+    </SettingsRow>
   )
 }

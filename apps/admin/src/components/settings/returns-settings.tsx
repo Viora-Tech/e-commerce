@@ -1,8 +1,6 @@
 'use client'
 
 import { RETURN_REASONS, type ReturnPolicy, type ReturnReason } from '@commerce/core/returns'
-import { Checkbox } from '@commerce/ui/shadcn/checkbox'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useEffect, useState } from 'react'
@@ -14,27 +12,8 @@ import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
-
-type ToggleProps = {
-  id: string
-  label: string
-  hint: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}
-
-/* One yes/no question with a plain-language hint under it. */
-function Toggle({ id, label, hint, checked, onChange }: ToggleProps) {
-  return (
-    <Field orientation="horizontal" className="items-start">
-      <Checkbox id={id} checked={checked} onCheckedChange={(v) => onChange(Boolean(v))} />
-      <div className="flex flex-col gap-0.5">
-        <FieldLabel htmlFor={id}>{label}</FieldLabel>
-        <FieldDescription>{hint}</FieldDescription>
-      </div>
-    </Field>
-  )
-}
+import SettingsRow from './settings-row'
+import SettingsToggleRow from './settings-toggle-row'
 
 const clampDays = (raw: string): number => {
   const n = Math.round(Number(raw))
@@ -92,7 +71,7 @@ export default function ReturnsSettings() {
   const dirty = form !== null && saved !== null && JSON.stringify(form) !== saved
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <SaveBar
         open={dirty}
         message={settingsContent.general.unsaved}
@@ -102,63 +81,62 @@ export default function ReturnsSettings() {
         onDiscard={handleDiscard}
         saving={busy}
       />
-      <SettingsPageHeader title={copy.title} subtitle={copy.subtitle} />
+      <SettingsPageHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        onSave={handleSave}
+        dirty={dirty}
+        saving={busy}
+        saveLabel={copy.save}
+      />
       {!form ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : (
         <>
           <SettingsCard title={copy.title}>
-            <FieldGroup>
-              <Toggle
-                id="returns-enabled"
-                label={copy.enabled}
-                hint={copy.enabledHint}
-                checked={form.enabled}
-                onChange={(enabled) => patch({ enabled })}
-              />
-              <Field>
-                <FieldLabel htmlFor="returns-window">{copy.window}</FieldLabel>
-                <div className="flex items-center gap-2">
-                  <Input
-                    size="lg"
-                    id="returns-window"
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    max="90"
-                    className="w-24"
-                    value={form.windowDays}
-                    onChange={(e) => patch({ windowDays: clampDays(e.target.value) })}
-                  />
-                  <span className="text-body text-muted-foreground">{copy.days}</span>
-                </div>
-                <FieldDescription>{copy.windowHint}</FieldDescription>
-              </Field>
-              <Toggle
-                id="returns-restock"
-                label={copy.restock}
-                hint={copy.restockHint}
-                checked={form.restockAutomatically}
-                onChange={(restockAutomatically) => patch({ restockAutomatically })}
-              />
-            </FieldGroup>
+            <SettingsToggleRow
+              id="returns-enabled"
+              label={copy.enabled}
+              description={copy.enabledHint}
+              checked={form.enabled}
+              onChange={(enabled) => patch({ enabled })}
+            />
+            <SettingsRow label={copy.window} description={copy.windowHint} htmlFor="returns-window">
+              <div className="flex items-center gap-2">
+                <Input
+                  size="lg"
+                  id="returns-window"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  max="90"
+                  className="w-24"
+                  value={form.windowDays}
+                  onChange={(e) => patch({ windowDays: clampDays(e.target.value) })}
+                />
+                <span className="text-body text-muted-foreground">{copy.days}</span>
+              </div>
+            </SettingsRow>
+            <SettingsToggleRow
+              id="returns-restock"
+              label={copy.restock}
+              description={copy.restockHint}
+              checked={form.restockAutomatically}
+              onChange={(restockAutomatically) => patch({ restockAutomatically })}
+            />
           </SettingsCard>
 
           <SettingsCard title={copy.reasons} description={copy.reasonsHint}>
-            <FieldGroup className="gap-3">
-              {RETURN_REASONS.map((code) => (
-                <Field key={code} orientation="horizontal">
-                  <Checkbox
-                    id={`reason-${code}`}
-                    checked={form.reasons.includes(code)}
-                    onCheckedChange={(v) => handleReason(code, Boolean(v))}
-                  />
-                  <FieldLabel htmlFor={`reason-${code}`} className="font-normal">
-                    {returnsContent.reasons[code]}
-                  </FieldLabel>
-                </Field>
-              ))}
-            </FieldGroup>
+            {RETURN_REASONS.map((code) => (
+              <SettingsToggleRow
+                key={code}
+                id={`reason-${code}`}
+                label={returnsContent.reasons[code]}
+                checked={form.reasons.includes(code)}
+                onChange={(on) => handleReason(code, on)}
+                className="py-3"
+              />
+            ))}
           </SettingsCard>
 
           <SettingsCard title={copy.refund}>
