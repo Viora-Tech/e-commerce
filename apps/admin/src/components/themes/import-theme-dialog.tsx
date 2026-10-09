@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type ImportThemeDialogProps = {
   open: boolean
@@ -75,7 +76,7 @@ export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDia
         ...(host.trim() ? { shopifyHost: host.trim() } : {}),
       })
       toast.success(copy.done(result.theme.name))
-      router.push(`/online-store/themes/${result.theme.id}/import`)
+      router.push(routes.onlineStore.themeImport(result.theme.id))
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : copy.failed)
       setBusy(false)

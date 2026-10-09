@@ -28,6 +28,7 @@ import states from './states'
 import storeData from './store-data'
 import table from './table'
 import themeImport from './theme-import'
+import themes from './themes'
 
 /**
  * Every Hindi translation, as [English export, Hindi overlay] pairs. A `data/<feature>.ts`
@@ -64,4 +65,5 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...storeData,
   ...table,
   ...themeImport,
+  ...themes,
 ]

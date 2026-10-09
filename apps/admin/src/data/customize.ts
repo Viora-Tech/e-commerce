@@ -4,7 +4,12 @@ import type { SortableListLabels } from '@commerce/ui/sortable'
 /** Copy for Online Store › Themes › Customize: templates, the sections tree and the inspector. */
 export const customizeContent = {
   tabs: { sections: 'Sections', settings: 'Theme settings' },
-  rail: { sections: 'Sections', add: 'Add', theme: 'Theme' },
+  rail: {
+    label: 'Editor panels',
+    sections: 'Sections',
+    add: 'Add section',
+    theme: 'Theme settings',
+  },
   templates: {
     label: 'Template',
     default: 'Default',
@@ -208,8 +213,18 @@ export const customizeContent = {
     emptyFields: 'This section has no settings.',
     inside: (name: string) => `In ${name}`,
     label: 'Section settings',
+    tabs: { basic: 'Basic', advanced: 'Advanced' },
+    tabHints: {
+      basic: 'Basic: everyday changes',
+      advanced: 'Advanced: layout, spacing and style',
+    },
   },
   bar: {
+    themes: 'Themes',
+    device: 'Preview size',
+    width: { desktop: 'Full width', tablet: '768 px', mobile: '390 px' },
+    preview: 'Preview',
+    publish: 'Publish',
     undo: 'Undo',
     redo: 'Redo',
     save: 'Save',

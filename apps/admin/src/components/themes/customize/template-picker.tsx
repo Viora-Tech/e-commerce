@@ -6,7 +6,7 @@ import {
   type TemplateKind,
   templateName,
 } from '@commerce/core/theme'
-import { ChevronDown, Loader2Icon, Plus } from '@commerce/ui/icons'
+import { ChevronDown, Home, Loader2Icon, Plus } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import {
   Command,
@@ -70,20 +70,22 @@ export default function TemplatePicker({
         render={
           <Button
             variant="outline"
-            className="min-w-52 justify-between rounded-lg text-[0.8125rem] font-medium"
+            className="w-64 justify-between rounded-lg text-[0.8125rem] font-medium"
             aria-label={copy.label}
           >
             <span className="flex min-w-0 items-center gap-2">
               {loading ? (
                 <Loader2Icon className="size-3.5 shrink-0 animate-spin" aria-hidden />
-              ) : null}
+              ) : (
+                <Home className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+              )}
               <span className="truncate">{templateLabel(value)}</span>
             </span>
             <ChevronDown aria-hidden className="size-3.5 text-muted-foreground" />
           </Button>
         }
       />
-      <PopoverContent align="center" className="w-72 gap-0 p-0">
+      <PopoverContent align="center" className="w-[26rem] gap-0 p-0">
         <Command>
           <CommandInput placeholder={copy.search} aria-label={copy.search} />
           <CommandList>
