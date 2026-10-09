@@ -73,7 +73,7 @@ export default function SectionSettingsGroups({
   const groups = Object.entries((field.objectFields ?? {}) as Record<string, GroupField>)
 
   return (
-    <section data-advanced className="-mx-4 mt-2 flex flex-col border-t border-border">
+    <section className="-mx-4 mt-2 flex flex-col border-t border-border">
       <header className="flex flex-col gap-0.5 px-4 pt-4 pb-2">
         <h3 className="text-[0.8125rem] leading-5 font-semibold tracking-tight text-foreground">
           {title}

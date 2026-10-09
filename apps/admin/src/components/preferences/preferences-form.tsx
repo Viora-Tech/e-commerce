@@ -149,11 +149,13 @@ export default function PreferencesForm({ initial }: PreferencesFormProps) {
         </CardHeader>
         <CardContent>
           <FieldGroup>
-            <SwitchField
-              label={copy.password.enabled}
-              checked={form.password.enabled}
-              onChange={(enabled) => patch('password', { enabled })}
-            />
+            <div className="rounded-lg border border-hairline px-4 py-3">
+              <SwitchField
+                label={copy.password.enabled}
+                checked={form.password.enabled}
+                onChange={(enabled) => patch('password', { enabled })}
+              />
+            </div>
             {form.password.enabled ? (
               <>
                 <TextSetting

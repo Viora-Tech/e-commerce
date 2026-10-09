@@ -151,9 +151,13 @@ export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDia
           />
           <FieldLabel htmlFor="theme-owned">{copy.licenceConfirm}</FieldLabel>
         </Field>
-        {error ? <p className="text-body text-destructive">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-body text-danger">
+            {error}
+          </p>
+        ) : null}
         {busy ? (
-          <p className="flex items-center gap-2 text-body text-muted-foreground">
+          <p className="flex items-center gap-2 rounded-lg bg-info-soft px-3 py-2 text-body text-info">
             <Spinner />
             {copy.importing}
           </p>
@@ -162,8 +166,7 @@ export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDia
           <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button disabled={!ready} onClick={handleImport}>
-            {busy ? <Spinner /> : null}
+          <Button loading={busy} disabled={!ready} onClick={handleImport}>
             {copy.confirm}
           </Button>
         </DialogFooter>

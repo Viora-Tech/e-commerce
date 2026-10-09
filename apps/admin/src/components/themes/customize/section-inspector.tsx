@@ -1,16 +1,19 @@
 'use client'
 
-import { X } from '@commerce/ui/icons'
+import { SINGLE_SECTIONS } from '@commerce/core/theme'
+import { Trash2, X } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Puck } from '@puckeditor/core'
 import { motion, useReducedMotion } from 'motion/react'
-import { type ReactNode, useState } from 'react'
+import { type MouseEvent, type ReactNode, useState } from 'react'
 import { customizeContent } from '@/data/customize'
 import { useCopy } from '@/hooks/use-copy'
+import { deleteWithCollapse } from '@/lib/customize-canvas-motion'
 import { type CustomizeDoc, FOOTER_ZONE, HEADER_ZONE } from '@/lib/customize-doc'
 import { isElementStyleField, isSectionSettingsField } from '@/lib/customize-field-shape'
 import { sectionName } from '@/lib/customize-insert'
+import { InspectorTabContext } from '@/lib/customize-inspector-tab'
 import { useCustomizePuck } from '@/lib/customize-puck'
 import { findBlock, locateBlock, slotOwner } from '@/lib/customize-slots'
 import PanelHeader from './panel-header'
@@ -24,16 +27,6 @@ type SectionInspectorProps = {
 type Tab = 'basic' | 'advanced'
 
 const TABS: Tab[] = ['basic', 'advanced']
-
-/**
- * Puck draws every field as a child of one form; the shared Layout / Spacing / Style / Advanced
- * groups are the one field marked `data-advanced`. Basic hides that group, Advanced hides every
- * other field.
- */
-const TAB_CLASS: Record<Tab, string> = {
-  basic: '[&_[data-advanced]]:hidden',
-  advanced: '[&_form>*:not(:has([data-advanced]))]:hidden',
-}
 
 /** The group a zone belongs to, in the member's language. */
 function zoneLabel(groups: Record<'header' | 'template' | 'footer', string>, zone: string): string {
@@ -57,6 +50,21 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
   const dispatch = useCustomizePuck((s) => s.dispatch)
   const reducedMotion = useReducedMotion()
   const [tab, setTab] = useState<Tab>('basic')
+
+  // Event handlers
+  const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
+    if (!selected) return
+    const located = locateBlock(data, selected.props.id)
+    if (!located) return
+    const el =
+      document
+        .querySelector<HTMLIFrameElement>('iframe')
+        ?.contentDocument?.querySelector<HTMLElement>(
+          `[data-puck-component="${selected.props.id}"]`,
+        ) ?? null
+    e.currentTarget.blur()
+    deleteWithCollapse(dispatch, located, el, reducedMotion === true)
+  }
 
   // Early returns
   if (!selected) {
@@ -103,16 +111,30 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
         title={label}
         hint={crumb}
         actions={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 rounded-md text-muted-foreground hover:text-foreground"
-            onClick={() => dispatch({ type: 'setUi', ui: { itemSelector: null } })}
-            aria-label={panels.deselect}
-            title={panels.deselect}
-          >
-            <X aria-hidden className="size-4" />
-          </Button>
+          <>
+            {SINGLE_SECTIONS.has(selected.type) ? null : (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="size-7 rounded-md text-muted-foreground hover:text-danger"
+                onClick={handleRemove}
+                aria-label={copy.remove(label)}
+                title={copy.remove(label)}
+              >
+                <Trash2 aria-hidden className="size-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-7 rounded-md text-muted-foreground hover:text-foreground"
+              onClick={() => dispatch({ type: 'setUi', ui: { itemSelector: null } })}
+              aria-label={panels.deselect}
+              title={panels.deselect}
+            >
+              <X aria-hidden className="size-4" />
+            </Button>
+          </>
         }
       />
       {hasAdvanced ? (
@@ -144,13 +166,10 @@ export default function SectionInspector({ settings }: SectionInspectorProps) {
         </div>
       ) : null}
       {hasFields ? (
-        <div
-          className={cn(
-            'min-h-0 flex-1 overflow-y-auto [&>form]:flex [&>form]:flex-col [&>form]:gap-4 [&>form]:px-4 [&>form]:pt-4 [&>form]:pb-6',
-            hasAdvanced && TAB_CLASS[active],
-          )}
-        >
-          <Puck.Fields wrapFields={false} />
+        <div className="min-h-0 flex-1 overflow-y-auto [&>form]:flex [&>form]:flex-col [&>form]:gap-4 [&>form]:px-4 [&>form]:pt-4 [&>form]:pb-6">
+          <InspectorTabContext.Provider value={hasAdvanced ? active : 'all'}>
+            <Puck.Fields wrapFields={false} />
+          </InspectorTabContext.Provider>
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">

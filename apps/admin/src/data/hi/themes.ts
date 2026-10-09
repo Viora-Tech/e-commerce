@@ -76,7 +76,7 @@ export default [
   }),
   translation(customizeContent.rail, {
     label: 'एडिटर पैनल',
-    sections: 'सेक्शन',
+    sections: 'लेयर',
     add: 'सेक्शन जोड़ें',
     theme: 'थीम सेटिंग्स',
   }),
@@ -93,11 +93,14 @@ export default [
     header: 'हेडर',
     template: 'टेम्पलेट',
     footer: 'फ़ुटर',
+    pages: 'पेज',
+    templates: 'टेम्पलेट',
   }),
   translation(customizeContent.inspector, {
     empty: 'सेटिंग बदलने के लिए कोई सेक्शन चुनें।',
     emptyFields: 'इस सेक्शन की कोई सेटिंग नहीं है।',
     inside: (name: string) => `${name} के अंदर`,
+    remove: (name: string) => `${name} हटाएँ`,
     label: 'सेक्शन की सेटिंग',
     tabs: { basic: 'बेसिक', advanced: 'एडवांस्ड' },
     tabHints: {

@@ -51,7 +51,13 @@ export const customizeContent = {
     search: 'Search',
     empty: 'Nothing to preview yet',
   },
-  groups: { header: 'Header', template: 'Template', footer: 'Footer' },
+  groups: {
+    header: 'Header',
+    template: 'Template',
+    footer: 'Footer',
+    pages: 'Pages',
+    templates: 'Templates',
+  },
   tree: {
     add: 'Add section',
     select: (name: string) => `Select ${name}`,
@@ -212,6 +218,7 @@ export const customizeContent = {
     empty: 'Select a section to edit its settings.',
     emptyFields: 'This section has no settings.',
     inside: (name: string) => `In ${name}`,
+    remove: (name: string) => `Remove ${name}`,
     label: 'Section settings',
     tabs: { basic: 'Basic', advanced: 'Advanced' },
     tabHints: {

@@ -19,6 +19,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@commerce/ui/shadcn/popover'
 import { useState } from 'react'
 import { customizeContent } from '@/data/customize'
+import { useCopy } from '@/hooks/use-copy'
 
 export type TemplateRef = { key: TemplateKind; suffix: string }
 type AlternateKind = (typeof ALTERNATE_KINDS)[number]
@@ -52,6 +53,8 @@ export default function TemplatePicker({
 }: TemplatePickerProps) {
   // Hooks
   const [open, setOpen] = useState(false)
+
+  const groups = useCopy(customizeContent.groups)
 
   // Event handlers
   const handlePick = (ref: TemplateRef) => {
@@ -90,42 +93,51 @@ export default function TemplatePicker({
           <CommandInput placeholder={copy.search} aria-label={copy.search} />
           <CommandList>
             <CommandEmpty>{copy.empty}</CommandEmpty>
-            {TEMPLATE_KINDS.map((key) => {
-              const own = alternates.filter((a) => a.template === key && a.suffix)
-              const currentIsDefault = value.key === key && value.suffix === ''
-              return (
-                <CommandGroup key={key} heading={copy.names[key]}>
-                  <CommandItem
-                    value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
-                    data-checked={currentIsDefault ? 'true' : undefined}
-                    onSelect={() => handlePick({ key, suffix: '' })}
-                  >
-                    {own.length > 0 ? copy.default : copy.names[key]}
-                  </CommandItem>
-                  {own.map((a) => (
-                    <CommandItem
-                      key={templateName(key, a.suffix)}
-                      value={`${copy.names[key]} ${a.suffix}`}
-                      data-checked={
-                        value.key === key && value.suffix === a.suffix ? 'true' : undefined
-                      }
-                      onSelect={() => handlePick({ key, suffix: a.suffix })}
-                    >
-                      {a.suffix}
-                    </CommandItem>
-                  ))}
-                  {isAlternateKind(key) ? (
-                    <CommandItem
-                      value={`${copy.names[key]} ${copy.create}`}
-                      onSelect={() => handleCreate(key)}
-                    >
-                      <Plus aria-hidden />
-                      {copy.create}
-                    </CommandItem>
-                  ) : null}
-                </CommandGroup>
-              )
-            })}
+            {['pages', 'templates'].map((section) => (
+              <div key={section}>
+                <p className="px-3 pt-2 pb-1 text-caption font-semibold text-foreground">
+                  {section === 'pages' ? groups.pages : groups.templates}
+                </p>
+                {TEMPLATE_KINDS.filter(
+                  (key) => isAlternateKind(key) === (section === 'templates'),
+                ).map((key) => {
+                  const own = alternates.filter((a) => a.template === key && a.suffix)
+                  const currentIsDefault = value.key === key && value.suffix === ''
+                  return (
+                    <CommandGroup key={key} heading={copy.names[key]}>
+                      <CommandItem
+                        value={`${copy.names[key]} ${own.length > 0 ? copy.default : ''}`}
+                        data-checked={currentIsDefault ? 'true' : undefined}
+                        onSelect={() => handlePick({ key, suffix: '' })}
+                      >
+                        {own.length > 0 ? copy.default : copy.names[key]}
+                      </CommandItem>
+                      {own.map((a) => (
+                        <CommandItem
+                          key={templateName(key, a.suffix)}
+                          value={`${copy.names[key]} ${a.suffix}`}
+                          data-checked={
+                            value.key === key && value.suffix === a.suffix ? 'true' : undefined
+                          }
+                          onSelect={() => handlePick({ key, suffix: a.suffix })}
+                        >
+                          {a.suffix}
+                        </CommandItem>
+                      ))}
+                      {isAlternateKind(key) ? (
+                        <CommandItem
+                          value={`${copy.names[key]} ${copy.create}`}
+                          onSelect={() => handleCreate(key)}
+                        >
+                          <Plus aria-hidden />
+                          {copy.create}
+                        </CommandItem>
+                      ) : null}
+                    </CommandGroup>
+                  )
+                })}
+              </div>
+            ))}
           </CommandList>
         </Command>
       </PopoverContent>

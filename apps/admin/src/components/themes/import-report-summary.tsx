@@ -30,7 +30,7 @@ export default function ImportReportSummary({ copy, imported, all }: ImportRepor
             <ul className="divide-y divide-border">
               {ORDER.map((status) => (
                 <li key={status} className="flex items-center gap-4 px-5 py-3">
-                  <span className="w-10 text-right text-heading font-semibold tabular-nums text-foreground">
+                  <span className="w-12 text-right text-stat-sm tabular-nums text-ink-strong">
                     {card.counts[status]}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">

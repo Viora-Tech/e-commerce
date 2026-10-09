@@ -30,3 +30,15 @@ dynamic-source panel redesign, version history, market preview, zoom percentage,
 Add panel (Sections / Apps / My sections tabs stay), page-switcher "Pages + Templates" groups (the
 switcher still groups by template kind), left panel header "Store · Page", theme import page frames
 (only link migration), Preferences card re-skin beyond the tab switch, trash button in the inspector header.
+
+## Follow-up commit
+- Basic/Advanced no longer depends on DOM structure: a Puck `fields` override (`inspector-fields.tsx`)
+  filters the selected component's fields by name (the shared groups are Advanced); it shows everything
+  when no field matches (Liquid-imported sections) or outside the tabbed inspector. Nested object and
+  array fields live inside one top-level field, so they are never split.
+- Page switcher groups Pages (single templates) and Templates (kinds with alternates).
+- Rail "Sections" is labelled Layers (the existing Sections tree is the layers panel; Puck's built-in
+  outline would lose nested-block actions, so it is not used).
+- Inspector header has a Remove (trash) button, hidden for locked sections, same collapse as the canvas.
+- Import report chips: done states neutral, only "not yet" and "could not" coloured; import dialog error
+  and progress states tinted; Preferences switch row bordered. No SettingsRow on dev, local equivalents.
