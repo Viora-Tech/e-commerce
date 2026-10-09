@@ -292,6 +292,7 @@ export const settingsHomeContent = {
     allDone: 'All done. Your shop is ready to sell.',
     doneLabel: 'Done',
     open: 'Open',
+    setUp: 'Set up',
     loadFailed: 'Could not load your checklist.',
     items: {
       store: {
