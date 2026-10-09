@@ -7,6 +7,7 @@ that adapts outside work keeps the full licence text next to it; this file is th
 | --- | --- | --- | --- | --- |
 | [invoicely](https://github.com/legions-developer/invoicely) | MIT, used with the author's permission | PDF invoice templates (`default`, `vercel`), rupee formatter, per-script font fallback, live preview loop | `packages/invoices` | [`packages/invoices/THIRD_PARTY_LICENSES.md`](packages/invoices/THIRD_PARTY_LICENSES.md) |
 | [Saleor Dashboard](https://github.com/saleor/saleor-dashboard) | BSD 3-Clause | Admin layout patterns (top nav, list filter bar, datagrid density and pager, card anatomy, detail main + side layout), re-implemented on our shadcn/Base UI | `apps/admin/src/components/layout`, `apps/admin/src/components/table` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
+| [shadcn/ui blocks](https://ui.shadcn.com/blocks) (login-02, InputOTP) | MIT | Two-column sign-in layout and the 3 + dash + 3 code field pattern, rebuilt on our components without the `input-otp` package | `apps/admin/src/components/auth` | MIT, Copyright (c) 2023 shadcn |
 | [Macaw UI](https://github.com/saleor/macaw-ui) | CC BY 4.0 | Theme token values (neutral palette, borders, overlay shadows, type steps), modified | `packages/ui/src/styles.css` | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
 | Inter, Geist, Noto Sans (+ Devanagari, SC) | SIL Open Font License 1.1 | Fonts embedded in invoice PDFs | `packages/invoices/fonts` | `OFL.txt` beside each family |
 | [cobe](https://github.com/shuding/cobe) | MIT | Dotted 3D WebGL globe (no borders) on the Home card, patched with a detailed land map (`patches/cobe@2.0.1.patch`). Our own Live view globe re-implements its look (sphere and dot shading, halo, marker and arc sizes) in new code | `apps/admin/src/components/analytics/live-globe` (`live-globe-canvas.tsx`; look only in `webgl/globe-renderer.ts`, `webgl/overlay-points.ts`) | [`apps/admin/THIRD_PARTY_LICENSES.md`](apps/admin/THIRD_PARTY_LICENSES.md) |
@@ -132,3 +133,11 @@ Candidate projects, with verified licences and what to take from each: [`docs/op
 - Licences: `@shadcn/lint` MIT (shadcn) — https://github.com/shadcn-ui/lint ;
   `oxlint` MIT (oxc project) — https://github.com/oxc-project/oxc. Installed as dev
   dependencies; no code copied.
+
+## Third-party app logos (trademarks)
+
+- Used in: `apps/admin/public/app-logos/` (Apps page, install step): Cashfree, Decentro, Delhivery,
+  RapidShyp, Razorpay and Shiprocket logos.
+- These are trademarks of their owners, shown only to identify the integration. No endorsement is
+  implied. Taken from the approved design file; replace with each company's brand-kit asset if they
+  supply one.

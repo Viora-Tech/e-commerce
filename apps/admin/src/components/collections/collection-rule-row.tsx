@@ -51,9 +51,9 @@ export default function CollectionRuleRow({
   const ops = COLLECTION_OPS_BY_FIELD[condition.field]
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/60 p-2">
       <Select value={condition.field} onValueChange={handleField}>
-        <SelectTrigger className="w-44" aria-label={FIELD_LABELS[condition.field]}>
+        <SelectTrigger className="w-40 bg-card" aria-label={FIELD_LABELS[condition.field]}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -65,7 +65,7 @@ export default function CollectionRuleRow({
         </SelectContent>
       </Select>
       <Select value={condition.op} onValueChange={handleOp}>
-        <SelectTrigger className="w-44" aria-label={OP_LABELS[condition.op]}>
+        <SelectTrigger className="w-44 bg-card" aria-label={OP_LABELS[condition.op]}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -77,7 +77,7 @@ export default function CollectionRuleRow({
         </SelectContent>
       </Select>
       <Input
-        className="w-56"
+        className="min-w-40 flex-1 bg-card"
         value={condition.value}
         inputMode={condition.field === 'price' ? 'decimal' : 'text'}
         onChange={(e) => handleValue(e.target.value)}

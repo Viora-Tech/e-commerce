@@ -228,6 +228,9 @@ server (UTC) and the browser (IST) disagree on the day and the text — a hydrat
 `useFormat()` (`date`, `dateTime`, `when`, `pattern`) or `lib/format-date.ts`
 (`formatPattern`, `formatNumericDate`, `todayKey`). Day maths (`dayKey`, `startOfDay`,
 `startOfMonth`, `wallClock`) lives there too. **Allow-list**: per file with a reason.
+The same sweep checks that every Dockerfile installing Alpine's `nodejs` also installs
+`icu-data-full`: without it the server formats `en-IN` as `en-US` and drops `hi-IN`, so
+server and browser text differ (React #418 on `/discounts`, issue #292).
 
 ### p. `server-only-guard` (`scripts/sweeps/server-only-guard.test.ts`)
 

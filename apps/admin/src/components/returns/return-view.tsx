@@ -3,11 +3,12 @@
 import { returnActions } from '@commerce/core/returns'
 import { Clock, Undo } from '@commerce/ui/icons'
 import { useRouter } from 'next/navigation'
-import DetailLayout from '@/components/layout/detail-layout'
 import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
+import OrderPageFrame from '@/components/orders/order-page-frame'
 import { returnDetailContent as copy, returnsContent } from '@/data/returns'
 import { formatWhen } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 import ReturnCustomerCard from './return-customer-card'
 import ReturnDecisionCard from './return-decision-card'
 import ReturnItemsCard from './return-items-card'
@@ -42,14 +43,14 @@ export default function ReturnView({ detail: r }: ReturnViewProps) {
   const statusLabel = rto ? returnsContent.rtoStatus[r.status] : undefined
 
   return (
-    <DetailLayout
+    <OrderPageFrame
       header={
         <PageHeader
           title={title}
           icon={<Undo aria-hidden="true" />}
           tone={headerTone(r)}
-          breadcrumbs={[{ label: copy.back, href: '/orders/returns' }, { label: r.label }]}
-          badges={<StatusLabel kind="return" value={r.status} variant="pill" label={statusLabel} />}
+          breadcrumbs={[{ label: copy.back, href: routes.orders.returns() }, { label: r.label }]}
+          badges={<OrderChip kind="return" value={r.status} label={statusLabel} />}
           subtitle={
             <span className="flex items-center gap-1">
               <Clock className="size-3.5 text-muted-foreground" />

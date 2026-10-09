@@ -1,6 +1,6 @@
 'use client'
 
-import { Send, Trash2 } from '@commerce/ui/icons'
+import { MoreHorizontal, Pencil, Send, Trash2 } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,26 +12,40 @@ import {
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
 import { Button } from '@commerce/ui/shadcn/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageHeader from '@/components/layout/page-header'
-import StatusLabel from '@/components/status/status-label'
-import { customerDetailContent as copy, customersContent } from '@/data/customers'
+import StatusChip from '@/components/layout/status-chip'
+import { customerDetailContent, customersContent, VIP_SPEND_PAISE } from '@/data/customers'
+import { datesContent } from '@/data/dates'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { formatDay } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
+import CustomerAvatar from './customer-avatar'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
+import CustomersBackLink from './customers-back-link'
 
 type CustomerHeaderProps = {
   customer: CustomerDetail
   onEdit: () => void
 }
 
-/** Lifetime spend at or above this counts as VIP until the store can configure it. */
-const VIP_SPEND_PAISE = 2_000_000
-
+/** Back link, avatar, name with its chips, a one-line summary, and the header actions. */
 export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps) {
   // Hooks
+  const copy = useCopy(customerDetailContent)
+  const customersCopy = useCopy(customersContent)
+  const dates = useCopy(datesContent)
+  const locale = useLocale()
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -46,7 +60,7 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
         return
       }
       toast.success(copy.actions.deleted)
-      router.push('/customers')
+      router.push(routes.customers.list())
     } finally {
       setBusy(false)
       setConfirming(false)
@@ -54,45 +68,75 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
   }
 
   // Render logic
-  const title = customer.name ?? customer.email ?? customersContent.unnamed
-  const returning = customer.totals.orderCount > 1
+  const title = customer.name ?? customer.email ?? customersCopy.unnamed
+  const orderCount = customer.totals.orderCount
   const vip = customer.totals.spentPaise >= VIP_SPEND_PAISE
+  const created = formatDay(customer.createdAt, new Date(), locale)
+  const since =
+    created === dates.today
+      ? copy.sinceToday
+      : created === dates.yesterday
+        ? copy.sinceYesterday
+        : copy.since(day(customer.createdAt, locale))
+  const city = customer.defaultAddress?.city ?? customer.addresses[0]?.city
+  const subtitle = city ? copy.withCity(since, city) : since
 
   return (
-    <>
-      <PageHeader
-        title={title}
-        subtitle={copy.since(day(customer.createdAt))}
-        breadcrumbs={[{ label: copy.back, href: '/customers' }, { label: title }]}
-        actions={
-          <>
-            {returning ? <StatusLabel kind="customer" value="returning" variant="pill" /> : null}
-            {vip ? <StatusLabel kind="customer" value="vip" variant="pill" /> : null}
-            <Button variant="outline" size="sm" onClick={onEdit}>
-              {copy.actions.edit}
-            </Button>
-            {customer.email ? (
-              <Button
-                variant="outline"
-                size="sm"
-                render={<a href={`mailto:${customer.email}`} />}
-                nativeButton={false}
-              >
-                <Send />
-                {copy.actions.email}
-              </Button>
-            ) : null}
+    <div className="flex flex-col gap-3">
+      <CustomersBackLink href={routes.customers.list()} label={copy.back} />
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <CustomerAvatar
+            name={customer.name}
+            email={customer.email}
+            className="size-10 text-body"
+          />
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="truncate text-page-title text-ink-strong">{title}</h1>
+              <div className="flex items-center gap-1.5">
+                {orderCount === 0 ? (
+                  <StatusChip tone="info">{copy.badges.new}</StatusChip>
+                ) : orderCount > 1 ? (
+                  <StatusChip>{copy.badges.returning}</StatusChip>
+                ) : null}
+                {vip ? <StatusChip tone="info">{copy.badges.vip}</StatusChip> : null}
+              </div>
+            </div>
+            <p className="text-body text-muted-foreground">{subtitle}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {customer.email ? (
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirming(true)}
-              aria-label={copy.actions.delete}
+              variant="key-neutral"
+              render={<a href={`mailto:${customer.email}`} />}
+              nativeButton={false}
             >
-              <Trash2 />
+              <Send />
+              {copy.actions.email}
             </Button>
-          </>
-        }
-      />
+          ) : null}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="outline" size="icon" aria-label={copy.actions.more} />}
+            >
+              <MoreHorizontal />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil />
+                {copy.actions.edit}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
+                <Trash2 />
+                {copy.actions.delete}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -107,6 +151,6 @@ export default function CustomerHeader({ customer, onEdit }: CustomerHeaderProps
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

@@ -75,7 +75,7 @@ export default function MarketingConsentCard({
   const recent = consent.history.slice(0, HISTORY_SHOWN)
 
   return (
-    <DataCard title={copy.heading}>
+    <DataCard title={copy.heading} className="rounded-xl">
       <p className="text-caption text-muted-foreground">{copy.body}</p>
       <div className="mt-3 flex flex-col gap-3">
         {CONSENT_CHANNELS.map((channel) => (

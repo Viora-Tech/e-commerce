@@ -36,6 +36,9 @@ export const REASON_LABELS: Record<string, string> = {
 
 export const inventoryContent = {
   heading: 'Inventory',
+  tabs: { all: 'All SKUs', out: 'Out of stock', low: 'Low stock' },
+  summary: (skus: number, out: number) =>
+    `${skus} ${skus === 1 ? 'SKU' : 'SKUs'} tracked · ${out} out of stock`,
   resource: { singular: 'SKU', plural: 'SKUs' },
   export: 'Export',
   location: 'Location',
@@ -148,6 +151,7 @@ export const locationsContent = {
 
 export const purchaseOrdersContent = {
   heading: 'Purchase orders',
+  summary: 'What you ordered from suppliers and what has arrived',
   resource: { singular: 'purchase order', plural: 'purchase orders' },
   create: 'Create purchase order',
   status: {
@@ -266,6 +270,7 @@ export const purchaseOrderFormContent = {
 
 export const transfersContent = {
   heading: 'Transfers',
+  summary: 'Stock you move between your locations',
   resource: { singular: 'transfer', plural: 'transfers' },
   create: 'Create transfer',
   status: {

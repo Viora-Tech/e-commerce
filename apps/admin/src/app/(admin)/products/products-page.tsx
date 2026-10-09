@@ -1,7 +1,8 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import type { ProductStatus } from '@commerce/core/catalog'
-import { Download, ExternalLink, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
+import { Download, Plus, SquarePlus, Upload } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Kbd } from '@commerce/ui/shadcn/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@commerce/ui/shadcn/tooltip'
@@ -9,8 +10,8 @@ import Link from 'next/link'
 import { parseAsInteger, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import KitListPage from '@/components/kit/kit-list-page'
 import PillTabs from '@/components/layout/pill-tabs'
+import ProoflyListPage from '@/components/layout/proofly-list-page'
 import BulkTagDialog from '@/components/products/bulk-tag-dialog'
 import BulkWriteBanner from '@/components/products/bulk-write/bulk-write-banner'
 import BulkWriteSheet from '@/components/products/bulk-write/bulk-write-sheet'
@@ -20,16 +21,19 @@ import ImportDialog from '@/components/products/import-dialog'
 import ProductBulkActions from '@/components/products/product-bulk-actions'
 import { productColumns } from '@/components/products/product-columns'
 import ProductFilters, { type StockFilter } from '@/components/products/product-filters'
+import ProductTiles from '@/components/products/product-tiles'
 import ResourceTable, { type AppliedFilter } from '@/components/table/resource-table'
-import RowIconCells from '@/components/table/row-icon-cells'
+import RowMenu from '@/components/table/row-menu'
 import { PRODUCT_STATUSES, productsListContent } from '@/data/products'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
-import { LIST_PER_PAGE, type ListQuery, sameListQuery } from '@/lib/list-query'
+import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.products.list>>
 type Facets = Awaited<ReturnType<typeof api.products.facets>>
+type Stats = Awaited<ReturnType<typeof api.products.stats>>
 type BulkAction = Parameters<typeof api.products.bulk>[0]['action']
 type BulkResult = Awaited<ReturnType<typeof api.products.bulk>>
 
@@ -37,7 +41,7 @@ type BulkResult = Awaited<ReturnType<typeof api.products.bulk>>
 export type ProductsInitial = {
   query: ListQuery<ProductStatus>
   result: ListResult
-  allCount: number
+  stats: Stats
   facets: Facets
   /** Bulk "Write with AI" is on for this store and member. */
   aiBulk: boolean
@@ -45,6 +49,7 @@ export type ProductsInitial = {
 
 type Query = {
   page: number
+  perPage: number
   query: string
   status: ProductStatus | null
   vendor: string | null
@@ -53,7 +58,7 @@ type Query = {
   stock: StockFilter | null
 }
 
-const PER_PAGE = LIST_PER_PAGE
+const DEFAULT_PER_PAGE = siteConfig.ui.rowsPerPage.default
 const STOCK_FILTERS = ['in', 'out', 'low'] as const
 
 function listInput(q: Query) {
@@ -75,11 +80,12 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   // Hooks
   const copy = useCopy(productsListContent)
   const fmt = useFormat()
-  usePrimaryAction('/products/new')
+  usePrimaryAction(routes.products.new())
   const [q, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
       page: parseAsInteger.withDefault(1),
+      perPage: parseAsInteger.withDefault(DEFAULT_PER_PAGE),
       status: parseAsStringLiteral(PRODUCT_STATUSES),
       vendor: parseAsString,
       productType: parseAsString,
@@ -105,11 +111,11 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
       { page: q.page, query: q.query, status: q.status },
       initial.query,
     )
-    if (sameQuery && !hasFilters(q)) return
+    if (sameQuery && !hasFilters(q) && q.perPage === DEFAULT_PER_PAGE) return
     let cancelled = false
     setLoading(true)
     api.products
-      .list({ page: q.page, perPage: PER_PAGE, ...listInput(q) })
+      .list({ page: q.page, perPage: q.perPage, ...listInput(q) })
       .then((r) => {
         if (cancelled) return
         setItems(r.items)
@@ -123,7 +129,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
 
   // Helpers
   const refresh = async () => {
-    const r = await api.products.list({ page: q.page, perPage: PER_PAGE, ...listInput(q) })
+    const r = await api.products.list({ page: q.page, perPage: q.perPage, ...listInput(q) })
     setItems(r.items)
     setTotal(r.total)
   }
@@ -179,6 +185,12 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   }
 
   // Render logic
+  const { stats } = initial
+  const statusCounts = {
+    active: stats.active,
+    draft: stats.draft,
+    archived: Math.max(0, stats.total - stats.active - stats.draft),
+  }
   const stockLabel = copy.filters.stockOptions.find((o) => o.value === q.stock)?.label ?? q.stock
   const applied = [
     q.vendor && {
@@ -204,22 +216,41 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
   ].filter(Boolean) as AppliedFilter[]
 
   return (
-    <KitListPage
-      title={copy.heading}
+    <ProoflyListPage
+      title={copy.title}
+      summary={copy.summary(stats.total, stats.lowStock, stats.outOfStock)}
+      stats={
+        <ProductTiles
+          stats={stats}
+          stock={q.stock}
+          status={q.status}
+          onSelect={(patch) =>
+            setQ({
+              stock: null,
+              status: null,
+              vendor: null,
+              productType: null,
+              tag: null,
+              ...patch,
+              page: 1,
+            })
+          }
+        />
+      }
       actions={
         <>
-          <Button variant="outline" size="lg" onClick={handleExport} disabled={busy}>
+          <Button variant="outline" onClick={handleExport} disabled={busy}>
             <Download strokeWidth={1.6} />
             {copy.export}
           </Button>
-          <Button variant="outline" size="lg" onClick={() => setImporting(true)} disabled={busy}>
+          <Button variant="outline" onClick={() => setImporting(true)} disabled={busy}>
             <Upload strokeWidth={1.6} />
             {copy.import}
           </Button>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button size="lg" render={<Link href="/products/new" />} nativeButton={false}>
+                <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
                   <SquarePlus strokeWidth={1.6} />
                   {copy.add}
                 </Button>
@@ -243,29 +274,18 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         columns={productColumns(copy, fmt)}
         items={items}
         getId={(p) => p.id}
-        href={(p) => `/products/${p.id}`}
-        rowIconCells={{
-          count: 2,
-          render: (p) => (
-            <RowIconCells
-              links={[
-                {
-                  label: copy.row.openNewTab,
-                  icon: ExternalLink,
-                  href: `/products/${p.id}`,
-                  newTab: true,
-                },
-              ]}
-              menu={[
-                { label: copy.row.edit, href: `/products/${p.id}` },
-                {
-                  label: copy.row.inventory,
-                  href: `/products/inventory?query=${encodeURIComponent(p.title)}`,
-                },
-              ]}
-            />
-          ),
-        }}
+        href={(p) => routes.products.detail(p.id)}
+        rowActions={(p) => (
+          <RowMenu
+            items={[
+              { label: copy.row.edit, href: routes.products.detail(p.id) },
+              {
+                label: copy.row.inventory,
+                href: `${routes.products.inventory()}?query=${encodeURIComponent(p.title)}`,
+              },
+            ]}
+          />
+        )}
         loading={loading}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}
@@ -293,16 +313,22 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         applied={applied}
         tabs={
           <PillTabs
+            variant="pill"
             value={q.status}
             onChange={(status) => setQ({ status, page: 1 })}
             tabs={[
-              { value: null, label: copy.tabs.all, count: initial.allCount },
-              ...PRODUCT_STATUSES.map((s) => ({ value: s, label: copy.status[s] })),
+              { value: null, label: copy.tabs.all, count: stats.total },
+              ...PRODUCT_STATUSES.map((s) => ({
+                value: s,
+                label: copy.status[s],
+                count: statusCounts[s],
+              })),
             ]}
           />
         }
         page={q.page}
-        perPage={PER_PAGE}
+        perPage={q.perPage}
+        onPerPageChange={(perPage) => setQ({ perPage, page: 1 })}
         total={total}
         onPageChange={(page) => setQ({ page })}
         bulkActions={(ids, clear) => (
@@ -320,7 +346,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
           heading: copy.empty.heading,
           body: copy.empty.body,
           action: (
-            <Button render={<Link href="/products/new" />} nativeButton={false}>
+            <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
               <Plus />
               {copy.add}
             </Button>
@@ -354,7 +380,7 @@ function ProductsContent({ initial }: { initial: ProductsInitial }) {
         onOpenChange={(open) => !open && setDeleting(null)}
         onConfirm={handleConfirmDelete}
       />
-    </KitListPage>
+    </ProoflyListPage>
   )
 }
 

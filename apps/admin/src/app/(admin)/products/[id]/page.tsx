@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import ProductForm from '@/components/products/product-form'
 import { appRouter, call, serverContext } from '@/lib/api'
+import { routes } from '@/lib/routes'
 import { orNoStore } from '@/lib/store-guard'
 import { storefrontOrigin } from '@/lib/storefront-origin'
 
@@ -15,7 +16,7 @@ export default async function ProductEditPage({ params }: Params) {
     // AI is optional: any failure just hides the button.
     call(appRouter.ai.status, undefined, { context }).catch(() => null),
   ]).catch(orNoStore([undefined, undefined, null] as const))
-  if (product === undefined || !facets) redirect('/select-store')
+  if (product === undefined || !facets) redirect(routes.selectStore())
   if (!product) notFound()
   return (
     <ProductForm

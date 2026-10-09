@@ -1,4 +1,4 @@
-import type { DiscountInput } from '@commerce/core/discounts'
+import { type DiscountInput, perProductValues } from '@commerce/core/discounts'
 import { discountFormContent } from '@/data/discounts'
 import type { api } from '@/lib/api-client'
 
@@ -13,6 +13,10 @@ export type DiscountFormState = {
   value: string
   appliesTo: 'all' | 'products'
   productIds: string[]
+  /** "Different amount for each product": each chosen product gets its own value. */
+  perProduct: boolean
+  /** Per-product value as typed, keyed by product id; same unit as `value`. */
+  productValues: Record<string, string>
   hasMinimum: boolean
   minSubtotal: string
   limitTotal: boolean
@@ -24,7 +28,9 @@ export type DiscountFormState = {
   status: 'active' | 'disabled'
 }
 
-export type FormErrors = Partial<Record<'title' | 'code' | 'value' | 'products' | 'dates', string>>
+export type FormErrors = Partial<
+  Record<'title' | 'code' | 'value' | 'products' | 'productValues' | 'dates', string>
+>
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -57,6 +63,8 @@ export function emptyForm(): DiscountFormState {
     value: '',
     appliesTo: 'all',
     productIds: [],
+    perProduct: false,
+    productValues: {},
     hasMinimum: false,
     minSubtotal: '',
     limitTotal: false,
@@ -83,6 +91,10 @@ export function fromDiscount(d: LoadedDiscount): DiscountFormState {
           : '',
     appliesTo: d.appliesTo === 'products' ? 'products' : 'all',
     productIds: d.appliesTo === 'products' ? d.appliesToIds : [],
+    perProduct: perProductValues(d) !== null,
+    productValues: Object.fromEntries(
+      Object.entries(perProductValues(d) ?? {}).map(([id, v]) => [id, String(v / 100)]),
+    ),
     hasMinimum: d.minSubtotalPaise !== null,
     minSubtotal: d.minSubtotalPaise !== null ? String(d.minSubtotalPaise / 100) : '',
     limitTotal: d.usageLimit !== null,
@@ -98,18 +110,37 @@ export function fromDiscount(d: LoadedDiscount): DiscountFormState {
 const num = (s: string): number => Number.parseFloat(s)
 const rupeesToPaise = (s: string): number => Math.round(num(s) * 100)
 
+/** Whether the form takes a different amount off each product. */
+export function usesPerProduct(
+  f: Pick<DiscountFormState, 'appliesTo' | 'method' | 'perProduct'>,
+): boolean {
+  return f.appliesTo === 'products' && f.method !== 'free_shipping' && f.perProduct
+}
+
+/** A typed amount is usable: above zero, and at most 100 for a percent. */
+export function validAmount(method: DiscountFormState['method'], raw: string | undefined): boolean {
+  const n = num(raw ?? '')
+  if (!Number.isFinite(n) || n <= 0) return false
+  return method !== 'percent' || n <= 100
+}
+
+/** Typed value to stored units: basis points for a percent, paise for an amount. */
+const toUnits = (method: DiscountFormState['method'], raw: string): number =>
+  method === 'percent' ? Math.round(num(raw) * 100) : rupeesToPaise(raw)
+
 export function formErrors(f: DiscountFormState): FormErrors {
   const e: FormErrors = {}
   const copy = discountFormContent.errors
   if (!f.title.trim()) e.title = copy.title
   if (f.kind === 'code' && !/^[A-Za-z0-9-]{2,40}$/.test(f.code.trim())) e.code = copy.code
-  if (f.method === 'percent') {
-    const pct = num(f.value)
-    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) e.value = copy.percent
-  }
-  if (f.method === 'fixed') {
-    const amount = num(f.value)
-    if (!Number.isFinite(amount) || amount <= 0) e.value = copy.value
+  if (usesPerProduct(f)) {
+    if (f.productIds.some((id) => !validAmount(f.method, f.productValues[id]))) {
+      e.productValues = f.method === 'percent' ? copy.productPercents : copy.productValues
+    }
+  } else if (f.method === 'percent') {
+    if (!validAmount(f.method, f.value)) e.value = copy.percent
+  } else if (f.method === 'fixed') {
+    if (!validAmount(f.method, f.value)) e.value = copy.value
   }
   if (f.appliesTo === 'products' && f.productIds.length === 0) e.products = copy.products
   const start = fromLocalInput(f.startsAt)
@@ -120,20 +151,21 @@ export function formErrors(f: DiscountFormState): FormErrors {
 
 export function toInput(f: DiscountFormState): DiscountInput {
   const limit = f.limitTotal ? Number.parseInt(f.usageLimit, 10) : Number.NaN
+  const perProduct = usesPerProduct(f)
   return {
     title: f.title.trim(),
     kind: f.kind,
     code: f.kind === 'code' ? f.code.trim().toUpperCase() : null,
     method: f.method,
-    value:
-      f.method === 'percent'
-        ? Math.round(num(f.value) * 100)
-        : f.method === 'fixed'
-          ? rupeesToPaise(f.value)
-          : 0,
+    value: f.method === 'free_shipping' || perProduct ? 0 : toUnits(f.method, f.value),
     minSubtotalPaise: f.hasMinimum && f.minSubtotal ? rupeesToPaise(f.minSubtotal) : null,
     appliesTo: f.appliesTo,
     appliesToIds: f.appliesTo === 'products' ? f.productIds : [],
+    productValues: perProduct
+      ? Object.fromEntries(
+          f.productIds.map((id) => [id, toUnits(f.method, f.productValues[id] ?? '')]),
+        )
+      : null,
     usageLimit: Number.isFinite(limit) && limit > 0 ? limit : null,
     usagePerCustomer: f.onePerCustomer ? 1 : null,
     startsAt: fromLocalInput(f.startsAt),

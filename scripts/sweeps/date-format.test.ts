@@ -9,10 +9,20 @@
  * Ratchet: a NEW file formatting dates itself fails; moving one to the owner means deleting
  * its entry (stale entries fail).
  */
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { dateFormatSites } from './consistency'
+import { ROOT } from './walk'
 
 type AllowEntry = { file: string; reason: string }
+
+/** Images whose Next.js server renders on Node (Alpine `apk add nodejs`). */
+const NODE_DOCKERFILES = [
+  'apps/admin/Dockerfile',
+  'apps/storefront/Dockerfile',
+  'apps/docs/Dockerfile',
+]
 
 const ADMIN = 'admin screen not on the 2026-10-01 audit list — move to useFormat().pattern'
 const ADMIN_LIB = 'admin lib/copy formatter — build it on formatPattern in lib/format-date.ts'
@@ -61,5 +71,16 @@ describe('sweep: date-format', () => {
   it('the allow-list has no stale entries', async () => {
     const files = await dateFormatSites()
     expect(ALLOWLIST.filter((e) => !files.includes(e.file))).toEqual([])
+  })
+
+  it('every image that runs Node installs the full ICU locale data', () => {
+    // Alpine's nodejs ships English-only ICU data: en-IN then formats as en-US on the server
+    // while the browser uses en-IN, and the page fails to hydrate (React #418, issue #292).
+    const missing = NODE_DOCKERFILES.filter((file) =>
+      readFileSync(path.join(ROOT, file), 'utf8')
+        .split('\n')
+        .some((line) => /apk add\b.*\bnodejs\b/.test(line) && !/\bicu-data-full\b/.test(line)),
+    )
+    expect(missing, 'add icu-data-full next to nodejs').toEqual([])
   })
 })

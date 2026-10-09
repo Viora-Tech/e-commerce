@@ -1,5 +1,8 @@
+'use client'
+
 import DataCard from '@/components/layout/data-card'
-import { customerDetailContent as copy, customersContent } from '@/data/customers'
+import { customerDetailContent, customersContent } from '@/data/customers'
+import { useCopy, useLocale } from '@/hooks/use-copy'
 import { formatPaise } from '@/lib/money'
 import type { CustomerDetail } from './customer-detail-types'
 import { day } from './customer-detail-types'
@@ -12,28 +15,36 @@ function Row({ label, value }: RowProps) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <span className="text-body text-muted-foreground">{label}</span>
-      <span className="text-body-strong tabular-nums">{value}</span>
+      <span className="text-body font-medium text-foreground tabular-nums">{value}</span>
     </div>
   )
 }
 
-/** Lifetime figures beside the profile: counts, spend and the order window. */
+/** Lifetime figures: orders, total spent, average order and the first and last order dates. */
 export default function CustomerStatsCard({ customer }: CustomerStatsCardProps) {
+  // Hooks
+  const detail = useCopy(customerDetailContent)
+  const customersCopy = useCopy(customersContent)
+  const locale = useLocale()
+
   // Render logic
+  const copy = detail.totals
+  const never = customersCopy.never
   const t = customer.totals
+  const none = t.orderCount === 0
 
   return (
-    <DataCard title={copy.totals.heading}>
-      <Row label={copy.totals.orders} value={String(t.orderCount)} />
-      <Row label={copy.totals.spent} value={formatPaise(t.spentPaise)} />
-      <Row label={copy.totals.average} value={formatPaise(t.averagePaise)} />
+    <DataCard title={copy.heading} className="rounded-xl">
+      <Row label={copy.orders} value={String(t.orderCount)} />
+      <Row label={copy.spent} value={formatPaise(t.spentPaise)} />
+      <Row label={copy.average} value={none ? '-' : formatPaise(t.averagePaise)} />
       <Row
-        label={copy.totals.firstOrder}
-        value={t.firstOrderAt ? day(t.firstOrderAt) : customersContent.never}
+        label={copy.firstOrder}
+        value={t.firstOrderAt ? day(t.firstOrderAt, locale) : none ? '-' : never}
       />
       <Row
-        label={copy.totals.lastOrder}
-        value={t.lastOrderAt ? day(t.lastOrderAt) : customersContent.never}
+        label={copy.lastOrder}
+        value={t.lastOrderAt ? day(t.lastOrderAt, locale) : none ? '-' : never}
       />
     </DataCard>
   )

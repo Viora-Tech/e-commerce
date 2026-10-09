@@ -617,6 +617,13 @@
       "when": 1791377192284,
       "tag": "0092_domain_routes",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1791379354554,
+      "tag": "0093_discount_product_values",
+      "breakpoints": true
     }
   ]
 }

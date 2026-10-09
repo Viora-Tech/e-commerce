@@ -1,13 +1,14 @@
 import { formatNumber } from '@commerce/money'
 import KitThumb from '@/components/kit/kit-thumb'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { inventoryContent as copy } from '@/data/inventory'
+import type { inventoryContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 import AvailableCell from './available-cell'
 
 export type InventoryRow = Awaited<ReturnType<typeof api.inventory.list>>['rows'][number]
 
 type ColumnOptions = {
+  copy: typeof inventoryContent
   canEdit: boolean
   onCommit: (row: InventoryRow, delta: number) => Promise<boolean>
   onHistory: (row: InventoryRow) => void
@@ -21,6 +22,7 @@ export function rowName(row: InventoryRow): string {
 
 /** Columns of the inventory table (Shopify order): item, SKU, then the four counts. */
 export function inventoryColumns({
+  copy,
   canEdit,
   onCommit,
   onHistory,
@@ -65,6 +67,7 @@ export function inventoryColumns({
     },
     {
       id: 'available',
+      align: 'end',
       title: copy.columns.available,
       sortValue: (r) => r.available,
       hideable: false,
@@ -80,12 +83,14 @@ export function inventoryColumns({
     },
     {
       id: 'committed',
+      align: 'end',
       title: copy.columns.committed,
       sortValue: (r) => r.committed,
       render: (r) => <span className="tabular-nums">{formatNumber(r.committed)}</span>,
     },
     {
       id: 'incoming',
+      align: 'end',
       title: copy.columns.incoming,
       sortValue: (r) => r.incoming,
       render: (r) => (
@@ -96,6 +101,7 @@ export function inventoryColumns({
     },
     {
       id: 'onHand',
+      align: 'end',
       title: copy.columns.onHand,
       sortValue: (r) => r.onHand,
       render: (r) => <span className="tabular-nums">{formatNumber(r.onHand)}</span>,

@@ -45,6 +45,26 @@ export const ordersContent = {
   title: 'Orders',
   /* Frame 5:2353: "Order List" heading, Add Order + More Action, four tiles, tab group. */
   heading: 'Order list',
+  /** The plain-language line under the page title: counts only, zeros left out. */
+  summary: (total: number, toShip: number, pendingUpi: number) =>
+    [
+      `${total} ${total === 1 ? 'order' : 'orders'}`,
+      toShip > 0 ? `${toShip} need shipping` : null,
+      pendingUpi > 0
+        ? `${pendingUpi} UPI ${pendingUpi === 1 ? 'payment' : 'payments'} pending`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  /** The four stat cards above the list. */
+  tiles: {
+    newToday: { label: 'New orders today', trendNote: 'vs yesterday' },
+    ready: { label: 'Ready to ship', note: 'Paid and waiting on a courier' },
+    pendingUpi: { label: 'Pending UPI', note: 'Awaiting the transfer' },
+    sales: { label: 'Sales this week', trendNote: 'vs last week' },
+  },
+  noResults: { heading: 'No orders match', body: 'Try another search, or clear the filters.' },
+  loadFailed: 'Could not load orders',
   addOrder: 'Add order',
   moreActions: 'More actions',
   menu: { drafts: 'Draft orders', abandoned: 'Abandoned checkouts', returns: 'Returns' },
@@ -129,6 +149,7 @@ export const orderDetailContent = {
     cancel: 'Cancel order',
     refund: 'Refund',
     print: 'Print packing slip',
+    printShort: 'Print',
     more: 'More actions',
   },
   moved: (status: string) => `Order marked as ${status}`,
@@ -169,6 +190,7 @@ export const orderDetailContent = {
     heading: 'Unfulfilled',
     fulfilled: 'Fulfilled',
     ofQuantity: (done: number, total: number) => `${done} of ${total} packed`,
+    itemsCount: (n: number) => `${n} ${n === 1 ? 'item' : 'items'}`,
     waybill: 'Tracking',
   },
   fulfilDialog: {
@@ -372,6 +394,8 @@ export const orderDetailContent = {
     state: 'State',
     pincode: 'PIN code',
     copyAll: 'Copy all',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
     copyAllHint:
       'Name, phone, address, city, state and PIN code, one per line, ready for a courier app',
     allDetails: 'Customer details',

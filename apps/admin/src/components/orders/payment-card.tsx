@@ -6,6 +6,7 @@ import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import { orderDetailContent } from '@/data/orders'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import OrderChip from './order-chip'
 import {
   methodLabel,
   type OrderDetail,
@@ -70,7 +71,7 @@ export default function PaymentCard({
       title={copy.payment.heading}
       action={
         onCollect ? (
-          <Button variant="outline" onClick={onCollect}>
+          <Button variant="outline" size="sm" onClick={onCollect}>
             <CircleCheck aria-hidden="true" />
             {copy.actions.collect}
           </Button>
@@ -107,7 +108,7 @@ export default function PaymentCard({
                   ) : null}
                 </p>
                 <div className="flex items-center gap-3">
-                  <StatusLabel kind="payment" value={pill} />
+                  <OrderChip kind="payment" value={pill} />
                   {refundable && onRefund ? (
                     <Button size="sm" variant="outline" onClick={() => onRefund(p)}>
                       {copy.actions.refund}
@@ -133,7 +134,7 @@ export default function PaymentCard({
         })}
 
         {order.refunds.length > 0 ? (
-          <section className="border-t border-border pt-4">
+          <section className="border-t border-line pt-4">
             <p className="text-eyebrow mb-2">{copy.payment.refunds}</p>
             <ul className="flex flex-col gap-2">
               {order.refunds.map((r) => (
@@ -153,7 +154,7 @@ export default function PaymentCard({
           </section>
         ) : null}
 
-        <section className="border-t border-border pt-4">
+        <section className="border-t border-line pt-4">
           <p className="text-eyebrow mb-2">{copy.payment.events}</p>
           {events.length === 0 ? (
             <p className="text-body text-muted-foreground">{copy.payment.noEvents}</p>
