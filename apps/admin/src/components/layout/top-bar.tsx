@@ -20,6 +20,8 @@ type TopBarProps = {
   storefrontUrl: string
   /** Adds "Report a bug" to the account menu (test server only). */
   bugReports: boolean
+  /** The page has scrolled: the bar turns to glass. */
+  scrolled?: boolean
 }
 
 /* Nothing to subscribe to: the snapshot only differs between the server and the browser. */
@@ -33,7 +35,7 @@ const ICON_BUTTON =
  * Left: the sidebar toggle, the search field (opens the command palette, as does ⌘K) and the
  * "Ask AI" key pill (opens the assistant). Right: View store, notifications, theme, account.
  */
-export default function TopBar({ user, storefrontUrl, bugReports }: TopBarProps) {
+export default function TopBar({ user, storefrontUrl, bugReports, scrolled = false }: TopBarProps) {
   // Hooks
   const copy = useCopy(navigationContent)
   const { resolvedTheme, setTheme } = useTheme()
@@ -49,7 +51,10 @@ export default function TopBar({ user, storefrontUrl, bugReports }: TopBarProps)
   const dark = hydrated && resolvedTheme === 'dark'
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 bg-sidebar px-3 md:pr-4 md:pl-1">
+    <header
+      data-scrolled={scrolled || undefined}
+      className="relative z-20 flex h-14 shrink-0 items-center gap-2 bg-sidebar px-3 transition-shadow duration-200 data-[scrolled]:glass-bar md:pr-4 md:pl-1"
+    >
       <SidebarTrigger aria-label={copy.togglePanel} />
       <button
         type="button"

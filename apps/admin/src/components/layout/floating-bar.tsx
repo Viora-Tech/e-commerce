@@ -35,7 +35,7 @@ export default function FloatingBar({ open, children }: FloatingBarProps) {
         >
           <div
             role="status"
-            className="pointer-events-auto flex items-center gap-2 rounded-full border border-hairline bg-raised py-1.5 pr-1.5 pl-4 shadow-popover"
+            className="pointer-events-auto flex items-center gap-2 glass-bar rounded-full border border-glass-border py-1.5 pr-1.5 pl-4"
           >
             {children}
           </div>

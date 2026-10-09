@@ -31,7 +31,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       closeButton
       style={
         {
-          '--normal-bg': 'var(--raised)',
+          '--normal-bg': 'var(--glass-popover)',
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--hairline)',
           '--border-radius': 'var(--radius)',
@@ -41,7 +41,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           /* Proofly toast: raised surface, hairline, Elevation/2; the status shows only in the icon. */
           toast:
-            'cn-toast !rounded-lg !border-hairline !bg-raised !shadow-popover !px-4 !py-3 !gap-3 !text-body [&[data-type=success]_[data-icon]]:text-success [&[data-type=error]_[data-icon]]:text-danger [&[data-type=warning]_[data-icon]]:text-warning [&[data-type=info]_[data-icon]]:text-info',
+            'cn-toast !rounded-lg !border-glass-border !bg-glass-popover !shadow-glass !backdrop-blur-xl !backdrop-saturate-150 [@media(prefers-reduced-transparency:reduce)]:!bg-raised [@media(prefers-reduced-transparency:reduce)]:!backdrop-filter-none !px-4 !py-3 !gap-3 !text-body [&[data-type=success]_[data-icon]]:text-success [&[data-type=error]_[data-icon]]:text-danger [&[data-type=warning]_[data-icon]]:text-warning [&[data-type=info]_[data-icon]]:text-info',
           title: '!font-medium !text-foreground',
           description: '!text-caption !text-muted-foreground',
           actionButton: '!bg-primary-soft !text-link !rounded-md !text-caption !font-medium',
