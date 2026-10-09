@@ -85,7 +85,6 @@ function LoadingCards() {
 export default function ProviderSettingsForm<Extra extends object>({
   title,
   intro,
-  icon,
   load,
   save,
   emptyExtra,
