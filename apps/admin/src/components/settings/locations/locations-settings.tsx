@@ -2,22 +2,16 @@
 
 import type { BusinessGstView, LocationBillingView } from '@commerce/core'
 import { Plus, TriangleAlert } from '@commerce/ui/icons'
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@commerce/ui/shadcn/table'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
+import StatusChip from '@/components/layout/status-chip'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
+import SettingsTable from '@/components/settings/settings-table'
+import SettingsTableCell from '@/components/settings/settings-table-cell'
+import SettingsTableRow from '@/components/settings/settings-table-row'
+import RowActionsCell from '@/components/table/row-actions-cell'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
@@ -56,62 +50,49 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
           </Button>
         }
       />
-      <Card gap="none" inset="none">
-        <CardHeader className="px-4 pt-4 pb-3">
-          <CardTitle>{copy.heading}</CardTitle>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4">{copy.columns.name}</TableHead>
-              <TableHead className="hidden sm:table-cell">{copy.columns.state}</TableHead>
-              <TableHead>{copy.columns.billsUnder}</TableHead>
-              <TableHead className="hidden md:table-cell">{copy.columns.pickup}</TableHead>
-              <TableHead className="w-0 pr-4" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {view.locations.map((l) => (
-              <TableRow key={l.id}>
-                <TableCell className="pl-4">
-                  <span className="flex flex-wrap items-center gap-2 text-body-strong text-ink-strong">
-                    {l.name}
-                    {l.isDefault ? <Badge variant="neutral">{copy.defaultBadge}</Badge> : null}
-                  </span>
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground sm:table-cell">
-                  {l.stateName ?? copy.noState}
-                </TableCell>
-                <TableCell>
-                  {l.stateUnregistered ? (
-                    <span className="flex items-center gap-1.5 text-caption text-warning-foreground dark:text-warning">
-                      <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
-                      {copy.unregistered(l.stateName ?? '')}
-                    </span>
-                  ) : (
-                    <span className="font-mono text-body text-muted-foreground">
-                      {gstinOf(l) ?? copy.notChosen}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {pickupOf(l)}
-                </TableCell>
-                <TableCell className="pr-4 text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    render={<Link href={routes.settings.location(l.id)} />}
-                    nativeButton={false}
-                  >
-                    {copy.open}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <SettingsTable
+        heading={copy.heading}
+        actions
+        total={view.locations.length}
+        columns={[
+          { label: copy.columns.name },
+          { label: copy.columns.state, className: 'hidden sm:table-cell' },
+          { label: copy.columns.billsUnder },
+          { label: copy.columns.pickup, className: 'hidden md:table-cell' },
+        ]}
+      >
+        {view.locations.map((l) => (
+          <SettingsTableRow key={l.id}>
+            <SettingsTableCell>
+              <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-strong">
+                {l.name}
+                {l.isDefault ? <StatusChip>{copy.defaultBadge}</StatusChip> : null}
+              </span>
+            </SettingsTableCell>
+            <SettingsTableCell className="hidden text-muted-foreground sm:table-cell">
+              {l.stateName ?? copy.noState}
+            </SettingsTableCell>
+            <SettingsTableCell>
+              {l.stateUnregistered ? (
+                <span className="flex items-center gap-1.5 text-caption text-warning-foreground dark:text-warning">
+                  <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
+                  {copy.unregistered(l.stateName ?? '')}
+                </span>
+              ) : (
+                <span className="font-mono text-muted-foreground">
+                  {gstinOf(l) ?? copy.notChosen}
+                </span>
+              )}
+            </SettingsTableCell>
+            <SettingsTableCell className="hidden text-muted-foreground md:table-cell">
+              {pickupOf(l)}
+            </SettingsTableCell>
+            <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
+              <RowActionsCell href={routes.settings.location(l.id)} />
+            </SettingsTableCell>
+          </SettingsTableRow>
+        ))}
+      </SettingsTable>
       <AddLocationDialog open={adding} onOpenChange={setAdding} onCreated={handleCreated} />
     </div>
   )
