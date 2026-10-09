@@ -11,8 +11,9 @@ import HealthLine from '@/components/settings/health-line'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
 import SettingsTable from '@/components/settings/settings-table'
 import WhatsThisHelp from '@/components/settings/whats-this-help'
-import { notificationsSettingsContent as copy, type MessageGroupId } from '@/data/notifications'
+import { type MessageGroupId, notificationsSettingsContent } from '@/data/notifications'
 import { senderEmailContent } from '@/data/sender-email'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import AdvancedSection from './advanced-section'
 import MessageRow from './message-row'
@@ -36,8 +37,6 @@ const GROUPS: MessageGroupId[] = [
 /** Advanced (the developer log) only exists while developing. */
 const DEV = process.env.NODE_ENV !== 'production'
 
-const nameOf = (id: string) => copy.messages[id]?.name ?? id
-
 function errorText(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback
 }
@@ -49,6 +48,7 @@ function errorText(err: unknown, fallback: string): string {
  */
 export default function NotificationsPage() {
   // Hooks
+  const copy = useCopy(notificationsSettingsContent)
   const [data, setData] = useState<NotificationsOverview | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [testing, setTesting] = useState<string | null>(null)
@@ -101,7 +101,7 @@ export default function NotificationsPage() {
     patchMessage(m.id, on)
     try {
       await api.notifications.setMessage({ id: m.id as MessageId, on })
-      toast.success(copy.list.saved(nameOf(m.id), on))
+      toast.success(copy.list.saved(copy.messages[m.id]?.name ?? m.id, on))
     } catch {
       patchMessage(m.id, !on)
       toast.error(copy.list.saveFailed)

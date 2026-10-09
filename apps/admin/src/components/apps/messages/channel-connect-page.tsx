@@ -5,7 +5,7 @@ import { Bell, ExternalLink } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
 import ProviderSettingsForm from '@/components/settings/provider-settings-form'
 import { appsContent } from '@/data/apps'
-import { messageAppsContent as copy } from '@/data/notifications'
+import { messageAppsContent } from '@/data/notifications'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
@@ -29,7 +29,7 @@ const save = (next: Parameters<typeof api.store.updateNotifications>[0]) =>
   api.store.updateNotifications(next)
 
 /** Three plain steps and the one thing to watch out for, above the account fields. */
-function guide(channelId: ChannelId) {
+function guide(copy: typeof messageAppsContent, channelId: ChannelId) {
   const words = copy[channelId]
   return (
     <div className="flex flex-col gap-3">
@@ -52,6 +52,7 @@ function guide(channelId: ChannelId) {
 export default function ChannelConnectPage({ channelId }: ChannelConnectPageProps) {
   // Hooks
   const apps = useCopy(appsContent)
+  const copy = useCopy(messageAppsContent)
 
   // Render logic
   const words = copy[channelId]
@@ -64,7 +65,7 @@ export default function ChannelConnectPage({ channelId }: ChannelConnectPageProp
       load={LOADERS[channelId]}
       save={save}
       emptyExtra={{}}
-      renderDescription={() => guide(channelId)}
+      renderDescription={() => guide(copy, channelId)}
       headerActions={
         <Button
           variant="ghost"

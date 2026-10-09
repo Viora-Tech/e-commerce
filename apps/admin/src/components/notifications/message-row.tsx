@@ -9,7 +9,8 @@ import StatusChip from '@/components/layout/status-chip'
 import SettingsTableCell from '@/components/settings/settings-table-cell'
 import SettingsTableRow from '@/components/settings/settings-table-row'
 import RowActionsCell from '@/components/table/row-actions-cell'
-import { notificationsSettingsContent as copy } from '@/data/notifications'
+import { notificationsSettingsContent } from '@/data/notifications'
+import { useCopy } from '@/hooks/use-copy'
 import { routes } from '@/lib/routes'
 import type { MessageRowData } from './types'
 
@@ -22,8 +23,6 @@ type MessageRowProps = {
   onTest: () => void
 }
 
-const nameOf = (id: string) => copy.messages[id]?.name ?? id
-
 /** One message as a table row: name and when it goes, channels, the switch, Preview and Test. */
 export default function MessageRow({
   message: m,
@@ -33,8 +32,11 @@ export default function MessageRow({
   onPreview,
   onTest,
 }: MessageRowProps) {
+  // Hooks
+  const copy = useCopy(notificationsSettingsContent)
+
   // Render logic
-  const name = nameOf(m.id)
+  const name = copy.messages[m.id]?.name ?? m.id
   const switchId = `message-${m.id}`
   const badge =
     m.trigger === 'manual'

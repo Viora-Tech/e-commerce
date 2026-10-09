@@ -1,5 +1,5 @@
 import { inventoryContent, purchaseOrdersContent } from '@/data/inventory'
-import { translation, untranslated } from '@/lib/i18n'
+import { translation } from '@/lib/i18n'
 
 export default [
   translation(inventoryContent, {
@@ -31,11 +31,63 @@ export default [
     },
     none: 'कोई नहीं',
     noSku: 'SKU नहीं',
-    filters: untranslated,
-    cell: untranslated,
-    bulk: untranslated,
-    history: untranslated,
-    exporting: untranslated,
+    filters: {
+      stock: 'स्टॉक',
+      vendor: 'सप्लायर',
+      productType: 'प्रोडक्ट का प्रकार',
+      any: 'कोई भी',
+      clear: 'फ़िल्टर हटाएँ',
+      stockOptions: [
+        { value: 'in', label: 'स्टॉक में' },
+        { value: 'low', label: 'कम स्टॉक' },
+        { value: 'out', label: 'स्टॉक खत्म' },
+      ],
+    },
+    cell: {
+      decrease: 'एक घटाएँ',
+      increase: 'एक बढ़ाएँ',
+      label: (name: string) => `${name} के लिए उपलब्ध`,
+      saved: (name: string, available: number) => `${name}: ${available} उपलब्ध`,
+      failed: 'स्टॉक अपडेट नहीं हो सका',
+      history: 'स्टॉक का इतिहास',
+    },
+    bulk: {
+      adjust: 'इतना बदलें',
+      set: 'हाथ में स्टॉक इतना करें',
+      title: (mode: 'adjust' | 'set', n: number) =>
+        `${n} SKU का स्टॉक ${mode === 'adjust' ? 'बदलें' : 'तय करें'}`,
+      quantity: 'मात्रा',
+      adjustHint: 'स्टॉक घटाने के लिए माइनस वाली संख्या लिखें।',
+      setHint: 'चुनी हुई लोकेशन पर हर चुने SKU का हाथ में स्टॉक इतना हो जाएगा।',
+      reason: 'कारण',
+      note: 'नोट',
+      notePlaceholder: 'चाहें तो लिखें, स्टॉक के इतिहास में दिखेगा',
+      apply: 'लागू करें',
+      cancel: 'रद्द करें',
+      done: (n: number) => `${n} SKU अपडेट हो गए`,
+      failed: 'स्टॉक अपडेट नहीं हो सका',
+    },
+    history: {
+      title: 'स्टॉक का इतिहास',
+      empty: 'अभी तक स्टॉक में कोई बदलाव दर्ज नहीं हुआ।',
+      failed: 'इतिहास लोड नहीं हो सका',
+    },
+    exporting: {
+      filename: 'inventory.csv',
+      empty: 'एक्सपोर्ट करने के लिए कुछ नहीं है',
+      failed: 'एक्सपोर्ट नहीं हो सका',
+      headers: [
+        'प्रोडक्ट',
+        'वेरिएंट',
+        'SKU',
+        'लोकेशन',
+        'उपलब्ध',
+        'बुक्ड',
+        'आने वाला',
+        'हाथ में',
+        'प्रति यूनिट लागत',
+      ],
+    },
     empty: {
       heading: 'ट्रैक करने के लिए अभी स्टॉक नहीं',
       body: 'जो वेरिएंट इन्वेंटरी ट्रैक करते हैं वे चुनी हुई लोकेशन की गिनती के साथ यहाँ दिखेंगे।',

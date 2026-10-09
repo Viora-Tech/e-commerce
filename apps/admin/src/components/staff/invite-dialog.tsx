@@ -21,7 +21,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { staffContent as copy } from '@/data/staff'
+import { staffContent } from '@/data/staff'
 import { staffInvitesContent } from '@/data/staff-invites'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
@@ -38,6 +38,7 @@ type InviteDialogProps = {
 /** Sends a Better Auth invitation and records the role the person will hold. */
 export default function InviteDialog({ open, roles, onOpenChange, onInvited }: InviteDialogProps) {
   // Hooks
+  const copy = useCopy(staffContent)
   const invitesCopy = useCopy(staffInvitesContent)
   const [email, setEmail] = useState('')
   const [roleId, setRoleId] = useState('')
