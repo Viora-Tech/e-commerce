@@ -54,7 +54,7 @@ export const CHROME_ROW_FADE = 'from-card via-card'
 
 /** A floating side panel on the editor backdrop. */
 export const CHROME_PANEL =
-  'flex shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card'
+  'flex shrink-0 flex-col overflow-hidden bg-card'
 
 /** A small square icon button in the chrome (row actions, panel header actions). */
 export const CHROME_ICON_BUTTON =

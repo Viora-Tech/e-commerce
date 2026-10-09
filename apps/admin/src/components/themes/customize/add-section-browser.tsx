@@ -110,7 +110,7 @@ export default function AddSectionBrowser({
         }}
         className={cn('gap-2', fill && 'min-h-0 flex-1')}
       >
-        <TabsList variant="line" className="gap-4 px-1 text-[0.8125rem]">
+        <TabsList className="grid h-8 w-full auto-cols-fr grid-flow-col text-[0.8125rem]">
           <TabsTrigger value="sections">{copy.tabs.sections}</TabsTrigger>
           <TabsTrigger value="apps">{copy.tabs.apps}</TabsTrigger>
           {group ? null : <TabsTrigger value="mine">{copy.tabs.mine}</TabsTrigger>}

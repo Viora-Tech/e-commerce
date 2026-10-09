@@ -65,9 +65,9 @@ export default function CustomizeLayout({
     <InsertContext.Provider value={setInserting}>
       <div className="flex h-svh flex-col bg-sidebar">
         {topBar}
-        <div className="flex min-h-0 flex-1 gap-2 px-2 pb-2">
+        <div className="flex min-h-0 flex-1 border-t border-border">
           <CustomizeRail active={panel} onChange={setPanel} />
-          <aside className={cn(CHROME_PANEL, 'w-[17.5rem]')}>
+          <aside className={cn(CHROME_PANEL, 'w-[15.875rem] border-r border-border')}>
             <PanelHeader title={headers[panel].title} hint={headers[panel].hint} />
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -92,11 +92,11 @@ export default function CustomizeLayout({
           </aside>
           <main
             id="main"
-            className="relative flex min-w-0 flex-1 justify-center rounded-xl border border-border/60 bg-muted/70 bg-[image:radial-gradient(var(--border)_1px,transparent_1px)] [background-size:1rem_1rem] px-4 pt-4 pb-16"
+            className="relative flex min-w-0 flex-1 justify-center bg-muted px-5 pt-5 pb-16"
           >
             <div
               className={cn(
-                'h-full overflow-hidden rounded-lg bg-card shadow-popover ring-1 ring-border',
+                'h-full overflow-hidden rounded-[0.625rem] bg-card shadow-popover',
                 !reducedMotion && 'transition-[width] duration-200 ease-out will-change-[width]',
                 DEVICE_WIDTH[device],
                 loading && 'pointer-events-none opacity-60 transition-opacity duration-200',
@@ -106,7 +106,7 @@ export default function CustomizeLayout({
             </div>
             {dock}
           </main>
-          <aside className={cn(CHROME_PANEL, 'w-[20.5rem]')}>
+          <aside className={cn(CHROME_PANEL, 'w-[17.75rem] border-l border-border')}>
             <SectionInspector settings={settings} />
           </aside>
         </div>

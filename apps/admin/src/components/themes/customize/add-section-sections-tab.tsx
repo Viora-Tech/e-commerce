@@ -72,17 +72,20 @@ export default function SectionsTab({
           >
             {c.title}
           </p>
-          {c.types.map((type) => (
-            <SectionCard
-              key={type}
-              type={type}
-              label={labelOf(type)}
-              description={copy.descriptions[type] ?? ''}
-              hovered={hovered === type}
-              onHover={onHover}
-              onAdd={() => onAdd(type)}
-            />
-          ))}
+          <div className="grid grid-cols-2 gap-x-2.5 gap-y-3 px-2 pb-2">
+            {c.types.map((type) => (
+              <SectionCard
+                key={type}
+                layout="tile"
+                type={type}
+                label={labelOf(type)}
+                description={copy.descriptions[type] ?? ''}
+                hovered={hovered === type}
+                onHover={onHover}
+                onAdd={() => onAdd(type)}
+              />
+            ))}
+          </div>
         </div>
       ))}
     </>
