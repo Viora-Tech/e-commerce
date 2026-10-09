@@ -25,6 +25,7 @@ import { api } from '@/lib/api-client'
 import { type ListQuery, sameListQuery } from '@/lib/list-query'
 import { formatPaise } from '@/lib/money'
 import { usePrimaryAction } from '@/lib/primary-action'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.giftCards.list>>
 type Item = ListResult['rows'][number]
@@ -150,7 +151,7 @@ function StateTabs({ value, allCount, onChange }: TabsProps) {
 
 function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
   // Hooks
-  usePrimaryAction('/products/gift-cards/new')
+  usePrimaryAction(routes.products.newGiftCard())
   const [{ page, perPage, query, status }, setQ] = useQueryStates(
     {
       query: parseAsString.withDefault(''),
@@ -193,7 +194,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           render={
             <Button
               size="lg"
-              render={<Link href="/products/gift-cards/new" />}
+              render={<Link href={routes.products.newGiftCard()} />}
               nativeButton={false}
             >
               <SquarePlus strokeWidth={1.6} />
@@ -238,7 +239,7 @@ function GiftCardsContent({ initial }: { initial: GiftCardsInitial }) {
           columns={columns}
           items={result.rows}
           getId={(g) => g.id}
-          href={(g) => `/products/gift-cards/${g.id}`}
+          href={(g) => routes.products.giftCard(g.id)}
           loading={loading}
           query={query}
           onQueryChange={(query) => setQ({ query, page: 1 })}

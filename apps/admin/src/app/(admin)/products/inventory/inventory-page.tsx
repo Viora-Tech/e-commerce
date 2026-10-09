@@ -35,6 +35,7 @@ import {
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import type { ListQuery } from '@/lib/list-query'
+import { routes } from '@/lib/routes'
 
 type ListResult = Awaited<ReturnType<typeof api.inventory.list>>
 type Facets = Awaited<ReturnType<typeof api.inventory.facets>>
@@ -83,7 +84,7 @@ const EMPTY = {
   heading: copy.empty.heading,
   body: copy.empty.body,
   action: (
-    <Button render={<Link href="/products/new" />} nativeButton={false}>
+    <Button render={<Link href={routes.products.new()} />} nativeButton={false}>
       <Plus />
       {copy.empty.action}
     </Button>

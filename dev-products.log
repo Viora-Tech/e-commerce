@@ -553,3 +553,217 @@ TypeError: fetch failed
  GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 68ms (next.js: 52ms, application-code: 15ms)
  GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 66ms (next.js: 60ms, application-code: 7ms)
  GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 66ms (next.js: 60ms, application-code: 7ms)
+○ Compiling /products/purchase-orders ...
+ GET /products/purchase-orders 200 in 7.8s (next.js: 6.3s, proxy.ts: 48ms, application-code: 1492ms)
+[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
+[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
+[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
+ POST /api/rpc/ai/status 200 in 200ms (next.js: 82ms, application-code: 118ms)
+ POST /api/rpc/ai/status 200 in 204ms (next.js: 108ms, application-code: 96ms)
+ POST /api/rpc/staff/me 200 in 210ms (next.js: 37ms, application-code: 173ms)
+✓ Compiled in 2.4s
+ POST /api/rpc/ai/status 200 in 253ms (next.js: 31ms, application-code: 222ms)
+ POST /api/rpc/ai/status 200 in 254ms (next.js: 53ms, application-code: 201ms)
+ GET /products/purchase-orders 200 in 937ms (next.js: 126ms, proxy.ts: 25ms, application-code: 786ms)
+ GET /products?query=DYSPHORIA 200 in 1645ms (next.js: 364ms, proxy.ts: 26ms, application-code: 1255ms)
+[browser] [locator-js] React instance (react-server-dom-turbopack v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
+[browser] [locator-js] React instance (react-dom v19.3.0-canary-cbb046ab-20260731) is not supported (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:27759)
+ POST /api/rpc/ai/status 200 in 106ms (next.js: 69ms, application-code: 37ms)
+ POST /api/rpc/staff/me 200 in 109ms (next.js: 61ms, application-code: 48ms)
+ POST /api/rpc/ai/status 200 in 113ms (next.js: 40ms, application-code: 72ms)
+[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
+○ Compiling /products/[id] ...
+ GET /products/01a0df10-d032-7028-b7a9-dd438b3cc12c 200 in 15.8s (next.js: 15.5s, proxy.ts: 8ms, application-code: 353ms)
+ POST /api/rpc/collections/forProduct 200 in 179ms (next.js: 35ms, application-code: 144ms)
+ POST /api/rpc/collections/forProduct 200 in 185ms (next.js: 45ms, application-code: 140ms)
+ POST /api/rpc/store/getShipping 200 in 195ms (next.js: 94ms, application-code: 101ms)
+ POST /api/rpc/store/getShipping 200 in 194ms (next.js: 83ms, application-code: 111ms)
+ POST /api/rpc/collections/list 200 in 202ms (next.js: 70ms, application-code: 132ms)
+ POST /api/rpc/collections/list 200 in 202ms (next.js: 56ms, application-code: 146ms)
+ GET /products/collections 200 in 1073ms (next.js: 526ms, proxy.ts: 22ms, application-code: 525ms)
+ GET /products/inventory 200 in 749ms (next.js: 145ms, proxy.ts: 6ms, application-code: 597ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 238ms (next.js: 149ms, application-code: 89ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-4dae-769f-a064-d4d9368db58e-60he-wrist-rest-blue.png&w=48&q=75 500 in 238ms (next.js: 149ms, application-code: 89ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 260ms (next.js: 188ms, application-code: 73ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-34ec-74ba-949f-b6cc721b7fac-60he-wrist-rest-black.png&w=48&q=75 500 in 260ms (next.js: 188ms, application-code: 73ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 253ms (next.js: 194ms, application-code: 58ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-44c4-72c6-9d02-f35efe91e869-60he-wrist-rest-pink-front.png&w=48&q=75 500 in 253ms (next.js: 194ms, application-code: 58ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 251ms (next.js: 213ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0defe-3c0b-75de-8f72-a1fbedfa1aaa-60he-wrist-rest-white-front.png&w=48&q=75 500 in 251ms (next.js: 213ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 249ms (next.js: 222ms, application-code: 27ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0def6-5a14-7628-abf6-eeb2b5d46b60-8kdonglev1.png&w=48&q=75 500 in 249ms (next.js: 222ms, application-code: 27ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 257ms (next.js: 243ms, application-code: 14ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df0d-0f75-77c9-952b-61996d62829a-shion-front.jpg&w=48&q=75 500 in 257ms (next.js: 243ms, application-code: 14ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 90ms (next.js: 41ms, application-code: 49ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2927-71e5-bdc0-7b2103b785a6-ebca1310540d15083861da13dfd3b5e3.jpg&w=48&q=75 500 in 90ms (next.js: 41ms, application-code: 50ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 86ms (next.js: 49ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2afc-7074-aba3-89f58106d229-3b7fec1e156030a5aa8bb136b4b3c475.jpg&w=48&q=75 500 in 86ms (next.js: 49ms, application-code: 38ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 85ms (next.js: 57ms, application-code: 28ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df07-e3ab-709a-9ba6-276a20ca6776-1500-2b8821f6-daa0-4e48-a577-9edc72268bab.jpg&w=48&q=75 500 in 85ms (next.js: 57ms, application-code: 28ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 83ms (next.js: 65ms, application-code: 17ms)
+ GET /_next/image?url=http%3A%2F%2Flocalhost%3A3200%2Fuploads%2Fstores%2F01a0de8f-0350-7522-8375-547613dcae7f%2Fmedia%2F01a0df08-2ce8-76be-a843-ae4246c8b593-36cc12c6f77a628f78acec4c509abdd7.jpg&w=48&q=75 500 in 83ms (next.js: 65ms, application-code: 17ms)
+○ Compiling /online-store ...
+ GET /online-store 200 in 5.9s (next.js: 5.8s, proxy.ts: 6ms, application-code: 159ms)
+○ Compiling /online-store/themes ...
+ GET /products 200 in 1683ms (next.js: 69ms, proxy.ts: 6ms, application-code: 1608ms)
+ GET /online-store/themes 200 in 1163ms (next.js: 60ms, proxy.ts: 17ms, application-code: 1085ms)
+ GET /online-store/themes 200 in 6.0s (next.js: 4.7s, proxy.ts: 12ms, application-code: 1313ms)
+⨯ ReferenceError: routes is not defined
+    at Module.eval (src\data\products.ts:449:45)
+    at module evaluation (src\data\hi\products.ts:1:1)
+    at module evaluation (src\data\hi\index.ts:20:1)
+    at module evaluation (src\lib\copy.ts:1:1)
+    at module evaluation (src\app\layout.tsx:11:1)
+    at module evaluation (E:\Viora-Tech\e-commerce\wt-products\apps\admin\.next\dev\server\chunks\ssr\[root-of-the-server]__0e2_7n5._.js:164:47)
+  447 |     heading: 'No collections',
+  448 |     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
+> 449 |     action: { label: 'View products', href: routes.products.list() },
+      |                                             ^
+  450 |   },
+  451 |   giftCards: {
+  452 |     heading: 'No gift cards',
+⨯ ReferenceError: routes is not defined
+    at Module.eval (src\data\products.ts:449:45)
+    at module evaluation (src\data\hi\products.ts:1:1)
+    at module evaluation (src\data\hi\index.ts:20:1)
+    at module evaluation (src\lib\copy.ts:1:1)
+    at module evaluation (src\app\layout.tsx:11:1)
+    at module evaluation (E:\Viora-Tech\e-commerce\wt-products\apps\admin\.next\dev\server\chunks\ssr\[root-of-the-server]__0e2_7n5._.js:164:47)
+  447 |     heading: 'No collections',
+  448 |     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
+> 449 |     action: { label: 'View products', href: routes.products.list() },
+      |                                             ^
+  450 |   },
+  451 |   giftCards: {
+  452 |     heading: 'No gift cards', {
+  page: '/products'
+}
+ GET /products 500 in 800ms (next.js: 631ms, proxy.ts: 7ms, application-code: 162ms)
+⨯ ReferenceError: routes is not defined
+    at Module.eval (src\data\products.ts:449:45)
+    at module evaluation (src\data\hi\products.ts:1:1)
+    at module evaluation (src\data\hi\index.ts:20:1)
+    at module evaluation (src\lib\copy.ts:1:1)
+    at module evaluation (src\app\layout.tsx:11:1)
+    at module evaluation (E:\Viora-Tech\e-commerce\wt-products\apps\admin\.next\dev\server\chunks\ssr\[root-of-the-server]__0e2_7n5._.js:164:47)
+  447 |     heading: 'No collections',
+  448 |     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
+> 449 |     action: { label: 'View products', href: routes.products.list() },
+      |                                             ^
+  450 |   },
+  451 |   giftCards: {
+  452 |     heading: 'No gift cards', {
+  page: '/products'
+}
+⨯ ReferenceError: routes is not defined
+    at Module.eval (src\data\products.ts:449:45)
+    at module evaluation (src\data\hi\products.ts:1:1)
+    at module evaluation (src\data\hi\index.ts:20:1)
+    at module evaluation (src\lib\copy.ts:1:1)
+    at module evaluation (src\app\layout.tsx:11:1)
+    at module evaluation (E:\Viora-Tech\e-commerce\wt-products\apps\admin\.next\dev\server\chunks\ssr\[root-of-the-server]__0e2_7n5._.js:164:47)
+  447 |     heading: 'No collections',
+  448 |     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
+> 449 |     action: { label: 'View products', href: routes.products.list() },
+      |                                             ^
+  450 |   },
+  451 |   giftCards: {
+  452 |     heading: 'No gift cards', {
+  page: '/products'
+}
+ GET /products 500 in 741ms (next.js: 186ms, proxy.ts: 539ms, application-code: 16ms)
+[browser] Uncaught ReferenceError: routes is not defined
+    at Module.eval (src\data\products.ts:449:45)
+    at module evaluation (src/data/hi/products.ts:1:1)
+    at module evaluation (src/data/hi/index.ts:20:1)
+    at module evaluation (src/data/theme-import.ts:184:1)
+    at module evaluation (src/app/layout.tsx:11:1)
+    at module evaluation (src/app/layout.tsx:68:1)
+  447 |     heading: 'No collections',
+  448 |     body: 'Group products by category, occasion or campaign so shoppers can browse them together on the storefront.',
+> 449 |     action: { label: 'View products', href: routes.products.list() },
+      |                                             ^
+  450 |   },
+  451 |   giftCards: {
+  452 |     heading: 'No gift cards',
+[browser] [locatorjs]: ok (chrome-extension://npbfdllefekhdplbkdigpncggmojpefi/hook.bundle.js:1:36200)
