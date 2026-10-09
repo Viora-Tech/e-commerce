@@ -75,6 +75,8 @@ export const discountFormContent = {
     percent: 'Percent must be between 0.01 and 100',
     dates: 'End must be after start',
     products: 'Pick at least one product',
+    productValues: 'Enter an amount above zero for every product',
+    productPercents: 'Enter a percentage between 0.01 and 100 for every product',
   },
   method: {
     heading: 'Type',
@@ -105,6 +107,11 @@ export const discountFormContent = {
     productsHelp: 'Pick the products this discount covers.',
     productSearch: 'Search products',
     noProducts: 'No products match',
+    perProduct: 'Different amount for each product',
+    perProductHelp:
+      'Type an amount next to each product. It comes off every piece, so 2 of a product get it twice.',
+    amountFor: (title: string) => `Amount off ${title}`,
+    percentFor: (title: string) => `Percentage off ${title}`,
   },
   minimum: {
     heading: 'Minimum requirement',
