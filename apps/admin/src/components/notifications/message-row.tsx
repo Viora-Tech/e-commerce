@@ -7,6 +7,7 @@ import { Spinner } from '@commerce/ui/shadcn/spinner'
 import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { notificationsSettingsContent as copy } from '@/data/notifications'
+import { routes } from '@/lib/routes'
 import type { MessageRowData } from './types'
 
 type MessageRowProps = {
@@ -69,7 +70,7 @@ export default function MessageRow({
             size="sm"
             variant="outline"
             nativeButton={false}
-            render={<Link href={`/apps/${m.appId}/settings`} />}
+            render={<Link href={routes.apps.settings(m.appId)} />}
           >
             {copy.list.openApp}
           </Button>

@@ -21,6 +21,7 @@ import { customDataContent } from '@/data/metaobjects'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import { type DefinitionSummary, entriesPath } from './form-state'
 import type { MetafieldDefinitionRow } from './metafield-definition-dialog'
 import MetafieldDefinitionsCard from './metafield-definitions-card'
@@ -99,7 +100,7 @@ export default function CustomDataSettings() {
               <CardAction>
                 <Button
                   variant="outline"
-                  render={<Link href="/content/metaobjects/new" />}
+                  render={<Link href={routes.content.newContentType()} />}
                   nativeButton={false}
                 >
                   <Plus />

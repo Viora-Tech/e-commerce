@@ -10,6 +10,7 @@ import { useRef, useState } from 'react'
 import PaymentAdjustmentFields from '@/components/settings/payment-adjustment-fields'
 import RupeeInput from '@/components/settings/rupee-input'
 import { checkoutSettingsContent as content } from '@/data/checkout-settings'
+import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsRow from './settings-row'
 import SettingsToggleRow from './settings-toggle-row'
@@ -60,7 +61,7 @@ export default function CodRulesCard({
   if (!codEnabled) {
     return (
       <SettingsCard id="cod" title={copy.heading} description={copy.off}>
-        <Button variant="outline" render={<Link href="/settings/payments" />}>
+        <Button variant="outline" render={<Link href={routes.settings.payments()} />}>
           {copy.offLink}
         </Button>
       </SettingsCard>

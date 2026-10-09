@@ -19,6 +19,7 @@ import ShippingZonesCard from '@/components/shipping-zones/shipping-zones-card'
 import { shippingSettingsContent } from '@/data/shipping'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import DemoCourierSection from './demo-courier-section'
 
 type Loaded = Awaited<ReturnType<typeof api.store.getShipping>>
@@ -132,7 +133,7 @@ export default function ShippingPage() {
         help={couriers.length > 0 ? null : copy.health.noCourierHelp}
         action={
           couriers.length > 0 ? null : (
-            <Button nativeButton={false} render={<Link href="/apps" />}>
+            <Button nativeButton={false} render={<Link href={routes.apps.list()} />}>
               {copy.health.connect}
             </Button>
           )

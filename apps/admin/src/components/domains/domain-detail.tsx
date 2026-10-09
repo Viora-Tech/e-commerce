@@ -26,6 +26,7 @@ import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
 import { formatDateTime } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 import DnsRecordsCard from './dns-records-card'
 import DomainStatusBadge from './domain-status-badge'
 
@@ -119,7 +120,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
       setConfirmRemove(false)
       await api.domains.remove({ id: domain.id })
       toast.success(copy.removed(domain.hostname))
-      router.push('/settings/domains')
+      router.push(routes.settings.domains())
       router.refresh()
     })
 
@@ -144,7 +145,7 @@ export default function DomainDetail({ initial, primaryHostname }: DomainDetailP
     <div className="flex flex-col gap-4">
       <SettingsPageHeader
         title={domain.hostname}
-        back={{ label: copy.back, href: '/settings/domains' }}
+        back={{ label: copy.back, href: routes.settings.domains() }}
         actions={
           <>
             <DomainStatusBadge domain={domain} />

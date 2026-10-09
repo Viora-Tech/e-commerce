@@ -11,6 +11,7 @@ import {
 import Link from 'next/link'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import UpiOptions from './upi-options'
 
 /**
@@ -42,7 +43,7 @@ export default function AdvancedSection() {
               <Button
                 variant="outline"
                 nativeButton={false}
-                render={<Link href="/settings/payments/advanced" />}
+                render={<Link href={routes.settings.paymentsAdvanced()} />}
               >
                 {copy.open}
               </Button>

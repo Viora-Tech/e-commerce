@@ -22,6 +22,7 @@ import { shippingRatesContent } from '@/data/shipping-rates'
 import { useCopy, useFormat } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import { describePrice, fromRate, type LoadedZone } from './form-state'
 
 type ListCopy = (typeof shippingRatesContent)['list']
@@ -41,7 +42,7 @@ function coverage(copy: ListCopy, zone: LoadedZone): string {
   return parts.join(' · ')
 }
 
-const zoneHref = (id: string) => `/settings/shipping/zones/${id}`
+const zoneHref = (id: string) => routes.settings.shippingZone(id)
 
 /** Settings → Shipping → Shipping rates: every zone with what it covers and charges. */
 export default function ShippingZonesCard() {
@@ -71,7 +72,7 @@ export default function ShippingZonesCard() {
   const copy = ratesCopy.list
   const canManage = hasPermission(permissions.SETTINGS_MANAGE)
   const create = canManage ? (
-    <Button nativeButton={false} render={<Link href="/settings/shipping/zones/new" />}>
+    <Button nativeButton={false} render={<Link href={routes.settings.newShippingZone()} />}>
       <Plus />
       {copy.create}
     </Button>

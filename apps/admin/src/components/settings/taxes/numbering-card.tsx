@@ -8,6 +8,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsTextRow from '@/components/settings/settings-text-row'
 import SettingsToggleRow from '@/components/settings/settings-toggle-row'
 import { taxesContent } from '@/data/taxes'
+import { routes } from '@/lib/routes'
 import type { TaxesErrors, TaxesFormState } from './taxes-form'
 
 type Numbering = TaxesFormState['numbering']
@@ -58,7 +59,12 @@ export default function NumberingCard({
         {installed ? null : (
           <div className="mb-5 flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-3 sm:flex-row sm:items-center">
             <p className="flex-1 text-caption text-foreground">{copy.appMissing}</p>
-            <Button variant="outline" size="sm" render={<Link href="/apps" />} nativeButton={false}>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<Link href={routes.apps.list()} />}
+              nativeButton={false}
+            >
               {copy.goToApps}
             </Button>
           </div>
@@ -93,7 +99,7 @@ export default function NumberingCard({
         {installed ? (
           <p className="pt-2 text-caption text-muted-foreground">
             {copy.moreSeries}{' '}
-            <Link href="/apps/gst-invoices/settings" className="font-medium underline">
+            <Link href={routes.apps.settings('gst-invoices')} className="font-medium underline">
               {copy.openApp}
             </Link>
           </p>

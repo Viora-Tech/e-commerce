@@ -21,6 +21,7 @@ import SettingsCard from '@/components/settings/settings-card'
 import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { domainsContent as copy } from '@/data/domains'
 import { usePermissions } from '@/hooks/use-permissions'
+import { routes } from '@/lib/routes'
 import ChangePrimaryDialog from './change-primary-dialog'
 import ConnectDomainDialog from './connect-domain-dialog'
 import DomainStatusBadge from './domain-status-badge'
@@ -66,7 +67,7 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
       >
         {primary ? (
           <Link
-            href={`/settings/domains/${primary.id}`}
+            href={routes.settings.domain(primary.id)}
             className="flex min-w-0 items-center gap-2 text-body-strong text-ink-strong hover:underline"
           >
             <Globe className="size-4 shrink-0 text-muted-foreground" />
@@ -121,7 +122,7 @@ export default function DomainsSettings({ domains }: DomainsSettingsProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    render={<Link href={`/settings/domains/${d.id}`} />}
+                    render={<Link href={routes.settings.domain(d.id)} />}
                   >
                     {copy.list.manage}
                   </Button>

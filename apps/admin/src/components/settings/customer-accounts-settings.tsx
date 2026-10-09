@@ -25,6 +25,7 @@ import {
 } from '@/data/customer-accounts'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
 import SettingsToggleRow from './settings-toggle-row'
@@ -178,7 +179,7 @@ export default function CustomerAccountsSettings() {
                 <Button
                   variant="outline"
                   className="w-fit"
-                  render={<Link href="/settings/notifications" />}
+                  render={<Link href={routes.settings.notifications()} />}
                   nativeButton={false}
                 >
                   {copy.methods.turnOnApp}
@@ -216,7 +217,7 @@ export default function CustomerAccountsSettings() {
           <SettingsCard title={copy.deletion.heading} description={copy.deletion.body}>
             <Button
               variant="outline"
-              render={<Link href="/settings/privacy" />}
+              render={<Link href={routes.settings.privacy()} />}
               nativeButton={false}
             >
               {copy.deletion.link}

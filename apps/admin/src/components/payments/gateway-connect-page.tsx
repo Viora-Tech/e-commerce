@@ -8,6 +8,7 @@ import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { gatewayGuides, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import BackToPayments, { PAYMENTS_PAGE_HREF } from './back-to-payments'
 import GatewayConnectForm from './gateway-connect-form'
 import HelpFooter from './help-footer'
@@ -30,7 +31,7 @@ export default function GatewayConnectPage({ providerId }: GatewayConnectPagePro
   }, [])
 
   // Event handlers
-  const handleConnected = () => router.push('/settings/payments')
+  const handleConnected = () => router.push(routes.settings.payments())
 
   // Render logic
   const guide = guides[providerId]
