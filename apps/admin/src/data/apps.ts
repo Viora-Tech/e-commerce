@@ -35,6 +35,10 @@ export const appsContent = {
     allInstalledHeading: 'Every app is installed',
     allInstalledBody: 'You have all the apps this store can use.',
   },
+  viewGuide: 'View setup guide',
+  connectedHeading: 'Connected',
+  connectedBody: 'Your account works and is saved.',
+  openApp: 'Open app',
   listing: {
     back: 'App Store',
     whatItDoes: 'What it does',

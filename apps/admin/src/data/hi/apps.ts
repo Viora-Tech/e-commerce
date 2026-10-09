@@ -37,6 +37,10 @@ export default [
       allInstalledHeading: 'सारे ऐप इंस्टॉल हैं',
       allInstalledBody: 'इस स्टोर के काम आने वाले सारे ऐप आपके पास हैं।',
     },
+    viewGuide: 'सेटअप गाइड देखें',
+    connectedHeading: 'जुड़ गया',
+    connectedBody: 'आपका अकाउंट काम कर रहा है और सेव हो गया है।',
+    openApp: 'ऐप खोलें',
     listing: {
       back: 'ऐप स्टोर',
       whatItDoes: 'यह क्या करता है',
