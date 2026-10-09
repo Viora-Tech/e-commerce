@@ -55,7 +55,7 @@ export default async function FinishSetup({ productCount, signals }: FinishSetup
           <li key={step.key}>
             <Link
               href={step.href}
-              className="flex h-full items-center gap-3 rounded-xl bg-card p-4 shadow-card transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-full items-center gap-3 rounded-xl surface-card p-4 transition-shadow duration-150 ease-out hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
                 className={cn(

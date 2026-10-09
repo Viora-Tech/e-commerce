@@ -21,7 +21,7 @@ type AppListingProps = { app: AppSummary }
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3.5 rounded-2xl border border-border bg-card p-6 shadow-card">
+    <section className="flex flex-col gap-3.5 rounded-2xl border border-border surface-card p-6">
       <h2 className="text-card-title text-ink-strong">{title}</h2>
       {children}
     </section>
@@ -81,7 +81,7 @@ export default function AppListing({ app }: AppListingProps) {
         <ArrowLeft className="size-4" aria-hidden="true" />
         {copy.listing.back}
       </Link>
-      <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-card">
+      <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-border surface-card p-6">
         <AppLogo id={app.id} icon={app.admin.icon} size={72} />
         <div className="flex min-w-[min(100%,16rem)] flex-1 flex-col gap-1">
           <h1 className="text-page-title text-ink-strong">{app.name}</h1>

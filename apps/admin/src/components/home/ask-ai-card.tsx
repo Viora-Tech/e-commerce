@@ -32,7 +32,7 @@ export default function AskAiCard() {
     <div className="flex flex-col gap-3">
       <form
         onSubmit={handleSubmit}
-        className="flex h-12 items-center gap-2.5 rounded-2xl bg-card pr-1.5 pl-4 shadow-card"
+        className="flex h-12 items-center gap-2.5 rounded-2xl surface-card pr-1.5 pl-4"
       >
         <AiIcon className="size-4 shrink-0 text-primary" aria-hidden="true" />
         <input

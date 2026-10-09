@@ -95,7 +95,7 @@ export default function SuggestionCards({
         {visible.map((s) => {
           const Icon = ICONS[s.icon]
           return (
-            <li key={s.id} className="group relative flex gap-4 rounded-xl bg-card p-4 shadow-card">
+            <li key={s.id} className="group relative flex gap-4 rounded-xl surface-card p-4">
               <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary-soft text-primary">
                 {s.imageUrl ? (
                   <>

@@ -24,7 +24,7 @@ export default function SettingsCard({
     <section
       id={id}
       className={cn(
-        'flex scroll-mt-6 flex-col gap-5 rounded-xl bg-card p-6 shadow-card',
+        'flex scroll-mt-6 flex-col gap-5 rounded-xl surface-card p-6',
         className,
       )}
     >

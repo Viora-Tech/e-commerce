@@ -129,7 +129,7 @@ export default function SalesHero({ today, yesterdayHourly, charts }: SalesHeroP
   ]
 
   return (
-    <section className="grid grid-cols-1 gap-6 rounded-2xl bg-card p-6 shadow-card md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">
+    <section className="grid grid-cols-1 gap-6 rounded-2xl surface-card p-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">
       <div className="flex flex-col items-start gap-3">
         <p className="text-caption font-normal text-muted-foreground">{title}</p>
         <p className="font-[family-name:var(--font-display)] text-[3rem] leading-[3.25rem] font-bold tracking-tight text-ink-strong tabular-nums">

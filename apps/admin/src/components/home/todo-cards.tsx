@@ -102,7 +102,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
     <section className="flex flex-col gap-3">
       <SectionHead title={page.title} aside={rows.length > 0 ? page.count(rows.length) : null} />
       {rows.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-xl bg-card p-4 shadow-card">
+        <div className="flex items-center gap-3 rounded-xl surface-card p-4">
           <IconBadge icon={CircleCheckIcon} tone="success" />
           <div>
             <p className="text-body-strong text-ink-strong">{c.allClearHeading}</p>
@@ -114,7 +114,7 @@ export default async function TodoCards({ needsYou }: TodoCardsProps) {
           {rows.map((row) => (
             <li
               key={row.key}
-              className="flex flex-col items-start gap-3 rounded-xl bg-card p-4 shadow-card"
+              className="flex flex-col items-start gap-3 rounded-xl surface-card p-4"
             >
               <IconBadge icon={row.icon} tone="info" />
               <div className="min-w-0">

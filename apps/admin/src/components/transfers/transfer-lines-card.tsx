@@ -57,59 +57,66 @@ export default function TransferLinesCard({
 
   // Render logic
   return (
-    <Card size="form">
-      <CardHeader>
-        <CardTitle>{copy.heading}</CardTitle>
+    <Card size="form" gap="none" inset="y-none">
+      <CardHeader className="grid-cols-[1fr_auto] items-center py-5">
+        <CardTitle className="flex items-center gap-2">
+          {copy.heading}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground tabular-nums">
+            {lines.length}
+          </span>
+        </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {locked ? null : (
+      {locked ? null : (
+        <CardContent className="pb-4">
           <VariantPicker
             placeholder={copy.search}
             locationId={fromLocationId || undefined}
             pickedIds={lines.map((l) => l.variantId)}
             onPick={handlePick}
           />
-        )}
-        {lines.length === 0 ? (
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
-        ) : (
-          <ul className="flex flex-col">
-            {lines.map((line, i) => (
-              <li
-                key={line.variantId}
-                className="flex items-center gap-3 border-line border-b py-2 last:border-b-0"
-              >
-                <KitThumb src={line.imageUrl} alt="" />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-body">{variantLabel(line)}</span>
-                  <span className="truncate text-caption text-muted-foreground">
-                    {line.available === null
-                      ? (line.sku ?? copy.noSku)
-                      : copy.atOrigin(line.available)}
-                  </span>
+        </CardContent>
+      )}
+      {lines.length === 0 ? (
+        <p className="border-line border-t px-5 py-10 text-center text-body text-muted-foreground">
+          {copy.empty}
+        </p>
+      ) : (
+        <ul className="flex flex-col border-line border-t">
+          {lines.map((line, i) => (
+            <li
+              key={line.variantId}
+              className="flex items-center gap-3 border-line border-b px-5 py-3 last:border-b-0"
+            >
+              <KitThumb src={line.imageUrl} alt="" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-body">{variantLabel(line)}</span>
+                <span className="truncate text-caption text-muted-foreground">
+                  {line.available === null
+                    ? (line.sku ?? copy.noSku)
+                    : copy.atOrigin(line.available)}
                 </span>
-                <Input
-                  aria-label={copy.quantity}
-                  value={line.quantity}
-                  inputMode="numeric"
-                  disabled={locked}
-                  className="w-20 text-right tabular-nums"
-                  onChange={(e) => handleQuantity(i, e.target.value)}
-                />
-                {locked ? null : (
-                  <KitIconButton
-                    label={copy.remove}
-                    className="size-9"
-                    onClick={() => handleRemove(i)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </KitIconButton>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
+              </span>
+              <Input
+                aria-label={copy.quantity}
+                value={line.quantity}
+                inputMode="numeric"
+                disabled={locked}
+                className="w-20 text-right tabular-nums"
+                onChange={(e) => handleQuantity(i, e.target.value)}
+              />
+              {locked ? null : (
+                <KitIconButton
+                  label={copy.remove}
+                  className="size-9"
+                  onClick={() => handleRemove(i)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </KitIconButton>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }
