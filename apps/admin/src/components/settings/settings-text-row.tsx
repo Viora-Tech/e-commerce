@@ -8,7 +8,7 @@ type SettingsTextRowProps = {
   value: string
   onChange: (v: string) => void
   error?: string | undefined
-  type?: 'text' | 'email' | 'tel'
+  type?: string
   autoComplete?: string
   inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel'
 }

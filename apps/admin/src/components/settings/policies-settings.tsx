@@ -6,8 +6,6 @@ import { InfoIcon } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
-import { Input } from '@commerce/ui/shadcn/input'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -17,8 +15,10 @@ import { policiesContent as copy } from '@/data/policies'
 import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import { formatDate } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
+import SettingsTextRow from './settings-text-row'
 
 type PolicyRowProps = {
   policy: StorePolicy
@@ -122,26 +122,22 @@ export default function PoliciesSettings() {
           </SettingsCard>
 
           <SettingsCard title={copy.business.heading} description={copy.business.help}>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="policy-legal-name">{copy.business.legalName}</FieldLabel>
-                <Input
-                  size="lg"
-                  id="policy-legal-name"
-                  value={form.legalName}
-                  maxLength={200}
-                  onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-                />
-                <FieldDescription>{copy.business.legalNameHint}</FieldDescription>
-              </Field>
+            <SettingsTextRow
+              id="policy-legal-name"
+              label={copy.business.legalName}
+              description={copy.business.legalNameHint}
+              value={form.legalName}
+              onChange={(legalName) => setForm({ ...form, legalName })}
+            />
+            <div className="pt-5">
               <Button
                 variant="outline"
-                className="self-start"
-                render={<Link href="/settings/store" />}
+                render={<Link href={routes.settings.store()} />}
+                nativeButton={false}
               >
                 {copy.business.generalLink}
               </Button>
-            </FieldGroup>
+            </div>
           </SettingsCard>
 
           <SettingsCard
@@ -149,21 +145,16 @@ export default function PoliciesSettings() {
             title={copy.grievance.heading}
             description={copy.grievance.help}
           >
-            <FieldGroup className="grid gap-4 sm:grid-cols-2">
-              {OFFICER_FIELDS.map((f) => (
-                <Field key={f.key}>
-                  <FieldLabel htmlFor={`grievance-${f.key}`}>{copy.grievance[f.key]}</FieldLabel>
-                  <Input
-                    size="lg"
-                    id={`grievance-${f.key}`}
-                    type={f.type}
-                    placeholder={f.placeholder}
-                    value={form.grievanceOfficer[f.key]}
-                    onChange={(e) => patchOfficer(f.key, e.target.value)}
-                  />
-                </Field>
-              ))}
-            </FieldGroup>
+            {OFFICER_FIELDS.map((f) => (
+              <SettingsTextRow
+                key={f.key}
+                id={`grievance-${f.key}`}
+                type={f.type}
+                label={copy.grievance[f.key]}
+                value={form.grievanceOfficer[f.key]}
+                onChange={(v) => patchOfficer(f.key, v)}
+              />
+            ))}
             <p className="mt-3 text-caption text-muted-foreground">{copy.grievance.shownIn}</p>
           </SettingsCard>
         </>

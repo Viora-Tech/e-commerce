@@ -10,11 +10,9 @@ import { CircleAlert, ShieldCheck } from '@commerce/ui/icons'
 import { Alert, AlertDescription, AlertTitle } from '@commerce/ui/shadcn/alert'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Progress } from '@commerce/ui/shadcn/progress'
 import { RadioGroup, RadioGroupItem } from '@commerce/ui/shadcn/radio-group'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SaveBar from '@/components/layout/save-bar'
@@ -25,6 +23,8 @@ import { api } from '@/lib/api-client'
 import AiActivityCard from './ai-activity-card'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
+import SettingsRow from './settings-row'
+import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = Awaited<ReturnType<typeof api.ai.settings>>
 
@@ -179,46 +179,37 @@ export default function AiSettings() {
             title={copy.settings.features.heading}
             description={copy.settings.features.help}
           >
-            <FieldGroup>
-              {AI_FEATURES.map((feature) => (
-                <Field
-                  key={feature}
-                  orientation="horizontal"
-                  className="items-start justify-between gap-4"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <FieldLabel htmlFor={`ai-${feature}`}>
-                      {copy.settings.features[feature].label}
-                    </FieldLabel>
-                    <FieldDescription>{copy.settings.features[feature].help}</FieldDescription>
-                    <span className="text-caption text-muted-foreground tabular-nums">
-                      {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
-                    </span>
-                  </div>
-                  <Switch
-                    id={`ai-${feature}`}
-                    checked={features[feature]}
-                    onCheckedChange={(on) => setFeatures({ ...features, [feature]: on })}
-                  />
-                </Field>
-              ))}
-              <Field className="gap-2">
-                <FieldLabel>{copy.settings.quality.label}</FieldLabel>
-                <FieldDescription>{copy.settings.quality.help}</FieldDescription>
-                <RadioGroup
-                  value={quality}
-                  onValueChange={(v) => setQuality(v as WritingQuality)}
-                  className="flex flex-wrap gap-4"
-                >
-                  {WRITING_QUALITIES.map((q) => (
-                    <label key={q} htmlFor={`ai-quality-${q}`} className="flex items-center gap-2">
-                      <RadioGroupItem id={`ai-quality-${q}`} value={q} />
-                      <span className="text-body">{copy.settings.quality[q]}</span>
-                    </label>
-                  ))}
-                </RadioGroup>
-              </Field>
-            </FieldGroup>
+            {AI_FEATURES.map((feature) => (
+              <SettingsToggleRow
+                key={feature}
+                id={`ai-${feature}`}
+                label={copy.settings.features[feature].label}
+                description={copy.settings.features[feature].help}
+                checked={features[feature]}
+                onChange={(on) => setFeatures({ ...features, [feature]: on })}
+              >
+                <span className="text-caption text-muted-foreground tabular-nums">
+                  {copy.settings.usage.requestCount(usage.byFeature[feature].calls)}
+                </span>
+              </SettingsToggleRow>
+            ))}
+            <SettingsRow
+              label={copy.settings.quality.label}
+              description={copy.settings.quality.help}
+            >
+              <RadioGroup
+                value={quality}
+                onValueChange={(v) => setQuality(v as WritingQuality)}
+                className="flex flex-wrap gap-4"
+              >
+                {WRITING_QUALITIES.map((q) => (
+                  <label key={q} htmlFor={`ai-quality-${q}`} className="flex items-center gap-2">
+                    <RadioGroupItem id={`ai-quality-${q}`} value={q} />
+                    <span className="text-body">{copy.settings.quality[q]}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </SettingsRow>
           </SettingsCard>
           <Card size="form">
             <CardHeader>
