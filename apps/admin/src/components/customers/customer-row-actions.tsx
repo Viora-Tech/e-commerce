@@ -1,6 +1,6 @@
 'use client'
 
-import { MessageSquare, Trash2 } from '@commerce/ui/icons'
+import { MoreHorizontal, Send, Trash2, WhatsappLogo } from '@commerce/ui/icons'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,59 +11,58 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@commerce/ui/shadcn/alert-dialog'
-import { type MouseEvent, useState } from 'react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@commerce/ui/shadcn/dropdown-menu'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { customersContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { whatsappUrl } from '@/lib/customer-contact'
 
 type CustomerRowActionsProps = {
   id: string
   name: string
   email: string | null
+  phone: string | null
   onDeleted: () => void
 }
 
-/* Frame 5:3151: two 20px glyphs 8px apart, centred in the Action cell. */
-const GLYPH =
-  'inline-flex size-5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:size-5 disabled:opacity-40 disabled:hover:text-muted-foreground'
+const KEBAB =
+  'flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-const copy = customersContent.rowActions
-
-/** Message and delete for one row; both stop the row's own navigation. */
+/**
+ * The ⋯ menu at the end of a customer row (next to the table's open arrow): email, WhatsApp
+ * and delete. The row opens the customer on click, so every event here stops at the cell; the
+ * menu and the confirm dialog are portalled out of the row.
+ */
 export default function CustomerRowActions({
   id,
   name,
   email,
+  phone,
   onDeleted,
 }: CustomerRowActionsProps) {
   // Hooks
+  const content = useCopy(customersContent)
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
 
   // Event handlers
-  const handleMessage = (event: MouseEvent) => {
-    event.stopPropagation()
-    if (!email) {
-      toast.error(copy.noEmail)
-      return
-    }
-    window.location.href = `mailto:${email}`
-  }
-
-  const handleAskDelete = (event: MouseEvent) => {
-    event.stopPropagation()
-    setConfirming(true)
-  }
-
   const handleDelete = async () => {
     setBusy(true)
     try {
       const result = await api.customers.delete({ id })
       if (!result.deleted) {
-        toast.error(copy.deleteBlocked(result.orders))
+        toast.error(content.rowActions.deleteBlocked(result.orders))
         return
       }
-      toast.success(copy.deleted)
+      toast.success(content.rowActions.deleted)
       onDeleted()
     } finally {
       setBusy(false)
@@ -72,27 +71,42 @@ export default function CustomerRowActions({
   }
 
   // Render logic
+  const copy = content.rowActions
+  const chat = whatsappUrl(phone)
+
   return (
-    <span className="flex items-center justify-center gap-2">
-      <button
-        type="button"
-        className={GLYPH}
-        aria-label={copy.message(name)}
-        title={email ?? copy.noEmail}
-        disabled={!email}
-        onClick={handleMessage}
-      >
-        <MessageSquare strokeWidth={1.6} />
-      </button>
-      <button
-        type="button"
-        className={GLYPH}
-        aria-label={copy.delete(name)}
-        title={copy.delete(name)}
-        onClick={handleAskDelete}
-      >
-        <Trash2 strokeWidth={1.6} />
-      </button>
+    // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row's own click; the controls inside are buttons.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: same, keyboard events stop at the trigger.
+    <span className="flex items-center" onClick={(event) => event.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label={copy.menu(name)}
+          className={KEBAB}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <MoreHorizontal className="size-5" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          {email ? (
+            <DropdownMenuItem render={<a href={`mailto:${email}`} />}>
+              <Send />
+              {copy.email}
+            </DropdownMenuItem>
+          ) : null}
+          {chat ? (
+            <DropdownMenuItem render={<a href={chat} target="_blank" rel="noreferrer" />}>
+              <WhatsappLogo />
+              {copy.whatsapp}
+            </DropdownMenuItem>
+          ) : null}
+          {email || chat ? <DropdownMenuSeparator /> : null}
+          <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
+            <Trash2 />
+            {copy.delete(name)}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent onClick={(event) => event.stopPropagation()}>
           <AlertDialogHeader>

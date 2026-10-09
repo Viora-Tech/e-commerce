@@ -125,6 +125,7 @@ import {
   Images as PhImages,
   Lock as PhLock,
   Monitor as PhMonitor,
+  Phone,
   Palette as PhPalette,
   ShoppingBag as PhShoppingBag,
   ShoppingCart as PhShoppingCart,
@@ -243,6 +244,8 @@ export const YoutubeLogo_ = defineIcon(YoutubeLogo, 'YoutubeLogo', 'duotone')
 export { YoutubeLogo_ as YoutubeLogo }
 export const GoogleLogo_ = defineIcon(GoogleLogo, 'GoogleLogo', 'duotone')
 export { GoogleLogo_ as GoogleLogo }
+export const Phone_ = defineIcon(Phone, 'Phone', 'duotone')
+export { Phone_ as Phone }
 export const WhatsappLogo_ = defineIcon(WhatsappLogo, 'WhatsappLogo', 'duotone')
 export { WhatsappLogo_ as WhatsappLogo }
 

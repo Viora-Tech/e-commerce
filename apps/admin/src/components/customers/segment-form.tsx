@@ -9,11 +9,13 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
 import SaveBar from '@/components/layout/save-bar'
 import ConditionBuilder from '@/components/rules/condition-builder'
-import { segmentsContent as copy } from '@/data/customers'
+import { segmentsContent } from '@/data/customers'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
+import CustomersBackLink from './customers-back-link'
 import DeleteSegmentButton from './delete-segment-button'
 import SegmentPreview from './segment-preview'
 
@@ -24,10 +26,9 @@ type SegmentFormProps = {
   initialRules: SegmentRules
 }
 
-const builder = copy.builder
-
 export default function SegmentForm({ id, initialName, initialRules }: SegmentFormProps) {
   // Hooks
+  const content = useCopy(segmentsContent)
   const router = useRouter()
   const [name, setName] = useState(initialName)
   const [rules, setRules] = useState<SegmentRules>(initialRules)
@@ -41,18 +42,18 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
   const handleSave = async () => {
     const trimmed = name.trim()
     if (!trimmed) {
-      toast.error(builder.nameRequired)
+      toast.error(content.builder.nameRequired)
       return
     }
     setSaving(true)
     try {
       const row = await api.customers.saveSegment({ id, name: trimmed, rules })
-      toast.success(builder.saved)
+      toast.success(content.builder.saved)
       setSaved(JSON.stringify({ initialName: trimmed, initialRules: rules }))
-      if (!id && row) router.replace(`/customers/segments/${row.id}`)
+      if (!id && row) router.replace(routes.customers.segment(row.id))
       router.refresh()
     } catch {
-      toast.error(builder.failed)
+      toast.error(content.builder.failed)
     } finally {
       setSaving(false)
     }
@@ -65,10 +66,11 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
   }
 
   // Render logic
+  const builder = content.builder
   const dirty = JSON.stringify({ initialName: name, initialRules: rules }) !== saved
 
   return (
-    <PageBody className="gap-6">
+    <PageBody width="frame" className="max-w-[77.5rem] gap-6 md:mx-auto">
       <SaveBar
         open={dirty}
         message={builder.conditions}
@@ -78,24 +80,23 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
         onDiscard={handleDiscard}
         saving={saving}
       />
-      <PageHeader
-        title={id ? builder.editHeading : builder.newHeading}
-        breadcrumbs={[
-          { label: builder.back, href: '/customers/segments' },
-          { label: id ? name || builder.editHeading : builder.newHeading },
-        ]}
-        actions={
-          <>
+      <div className="flex flex-col gap-3">
+        <CustomersBackLink href={routes.customers.segments()} label={builder.back} />
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+          <h1 className="min-w-0 truncate text-page-title text-ink-strong">
+            {id ? name || builder.editHeading : builder.newHeading}
+          </h1>
+          <div className="flex items-center gap-2">
             {id ? <DeleteSegmentButton id={id} /> : null}
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} loading={saving}>
               {builder.save}
             </Button>
-          </>
-        }
-      />
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,739fr)_minmax(0,361fr)]">
-        <div className="flex flex-col gap-4">
-          <Card size="form">
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex flex-col gap-5">
+          <Card size="form" className="rounded-xl">
             <CardContent>
               <Field>
                 <FieldLabel htmlFor="segment-name">{builder.name}</FieldLabel>
@@ -109,7 +110,7 @@ export default function SegmentForm({ id, initialName, initialRules }: SegmentFo
               </Field>
             </CardContent>
           </Card>
-          <Card size="form">
+          <Card size="form" className="rounded-xl">
             <CardHeader>
               <CardTitle>{builder.conditions}</CardTitle>
             </CardHeader>
