@@ -1,7 +1,7 @@
 'use client'
 
 import type { BusinessGstView, LocationBillingView } from '@commerce/core'
-import { MapPinLineIcon, Plus, TriangleAlert } from '@commerce/ui/icons'
+import { Plus, TriangleAlert } from '@commerce/ui/icons'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
@@ -17,9 +17,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import AddLocationDialog from '@/components/inventory/add-location-dialog'
-import PageHeader from '@/components/layout/page-header'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 
 type LocationsSettingsProps = {
   view: BusinessGstView
@@ -45,10 +46,9 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
+      <SettingsPageHeader
         title={copy.title}
         subtitle={copy.intro}
-        icon={<MapPinLineIcon aria-hidden="true" />}
         actions={
           <Button onClick={() => setAdding(true)}>
             <Plus aria-hidden="true" />
@@ -101,7 +101,7 @@ export default function LocationsSettings({ view }: LocationsSettingsProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    render={<Link href={`/settings/locations/${l.id}`} />}
+                    render={<Link href={routes.settings.location(l.id)} />}
                     nativeButton={false}
                   >
                     {copy.open}

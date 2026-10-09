@@ -9,12 +9,13 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import ChoiceField from '@/components/apps/gst-invoices/choice-field'
-import PageHeader from '@/components/layout/page-header'
 import SettingsCard from '@/components/settings/settings-card'
+import SettingsPageHeader from '@/components/settings/settings-page-header'
 import { businessGstContent } from '@/data/business-gst'
 import { useCopy } from '@/hooks/use-copy'
 import { usePermissions } from '@/hooks/use-permissions'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import LocationPickupCard from './location-pickup-card'
 
 type LocationDetailProps = {
@@ -77,9 +78,9 @@ export default function LocationDetail({ location, registrations }: LocationDeta
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
+      <SettingsPageHeader
         title={location.name}
-        breadcrumbs={[{ label: copy.back, href: '/settings/locations' }, { label: location.name }]}
+        back={{ label: copy.back, href: routes.settings.locations() }}
       />
       <SettingsCard title={copy.address}>
         <p className="flex items-start gap-2 text-body text-foreground">
@@ -105,7 +106,7 @@ export default function LocationDetail({ location, registrations }: LocationDeta
               <Button
                 variant="outline"
                 size="sm"
-                render={<Link href="/settings/taxes" />}
+                render={<Link href={routes.settings.taxes()} />}
                 nativeButton={false}
               >
                 {copy.addGst}
