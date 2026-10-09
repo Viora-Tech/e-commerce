@@ -83,16 +83,21 @@ export default function AdminFrame({
       <SidebarInset className="min-h-0 overflow-hidden bg-sidebar">
         {/* Search, Ask AI, notifications, theme and account sit on the shell colour above the
             panel, so the panel below reads as the page itself. */}
-        <TopBar user={user} storefrontUrl={storefrontUrl} bugReports={bugReports} />
+        <TopBar
+          user={user}
+          storefrontUrl={storefrontUrl}
+          bugReports={bugReports}
+          scrolled={scrolled}
+        />
         {/* The content panel: radius 16 with a hairline, inset from the window edges. */}
         <main
           ref={mainRef}
           id="main"
           data-scrolled={scrolled || undefined}
-          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto border-hairline bg-background md:mr-2 md:mb-2 md:rounded-xl md:border"
+          className="group/main no-scrollbar min-h-0 flex-1 overflow-y-auto border-panel-border bg-background md:mr-2 md:mb-2 md:rounded-xl md:border"
         >
           {ownHeading ? null : (
-            <div className="sticky top-0 z-10 border-hairline border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
+            <div className="sticky top-0 z-10 border-panel-border border-b bg-background px-4 py-5 transition-shadow duration-200 group-data-[scrolled]/main:shadow-[0_6px_16px_-10px_var(--shadow-14)] md:px-6">
               <h1 className="text-page-title text-ink-strong">{title}</h1>
             </div>
           )}

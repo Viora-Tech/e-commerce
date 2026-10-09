@@ -78,7 +78,7 @@ export default function PageState({
   return (
     <div
       role={kind === 'error' ? 'alert' : undefined}
-      className="flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-12 text-center shadow-card"
+      className="flex flex-col items-center gap-3 rounded-xl surface-card px-6 py-12 text-center"
     >
       <IconBadge icon={ICON[kind]} tone={kind === 'error' ? 'danger' : 'neutral'} size="md" />
       <h2 className="text-card-title text-ink-strong">{heading ?? words.heading}</h2>

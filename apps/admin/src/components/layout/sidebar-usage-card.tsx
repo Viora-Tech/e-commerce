@@ -22,7 +22,7 @@ export default function SidebarUsageCard({ usage }: SidebarUsageCardProps) {
 
   return (
     <div className="flex flex-col gap-2 group-data-[collapsible=icon]:hidden">
-      <div className="flex flex-col gap-2 rounded-lg border border-hairline bg-card p-3 shadow-card">
+      <div className="flex flex-col gap-2 rounded-lg border border-hairline surface-card p-3">
         <p className="text-caption font-medium text-foreground">{copy.usage.title}</p>
         <div
           role="progressbar"

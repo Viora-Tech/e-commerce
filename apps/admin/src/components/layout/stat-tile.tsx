@@ -18,7 +18,7 @@ type StatTileProps = {
 }
 
 const BASE =
-  'flex flex-col gap-1 rounded-lg bg-card p-4 text-left shadow-card transition-[box-shadow,background-color] duration-150 ease-out'
+  'flex flex-col gap-1 rounded-lg surface-card p-4 text-left transition-[box-shadow,background-color] duration-150 ease-out'
 const PRESSABLE =
   'cursor-pointer hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
@@ -71,7 +71,7 @@ export default function StatTile({
       className={cn(
         BASE,
         PRESSABLE,
-        active && 'bg-primary-soft shadow-[inset_0_0_0_1px_var(--primary)]',
+        active && 'bg-brand-select bg-none shadow-[inset_0_0_0_1px_var(--primary)]',
         className,
       )}
     >
