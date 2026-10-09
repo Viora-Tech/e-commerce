@@ -1,11 +1,11 @@
 'use client'
 
-import { parseRupees } from '@commerce/money'
 import { Card } from '@commerce/ui/shadcn/card'
 import { Field, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Input } from '@commerce/ui/shadcn/input'
 import type { DraftFormState } from '@/components/drafts/draft-form-state'
 import { draftTotals } from '@/components/drafts/draft-form-state'
+import DraftMoneyInput from '@/components/drafts/draft-money-input'
 import { draftEditorContent as copy } from '@/data/drafts'
 import { formatPaise } from '@/lib/money'
 
@@ -46,25 +46,19 @@ export default function DraftTotalsCard({ form, onChange }: DraftTotalsCardProps
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="draft-discount">{copy.totals.discount}</FieldLabel>
-          <Input
+          <DraftMoneyInput
             id="draft-discount"
-            type="number"
-            min={0}
-            step="0.01"
-            value={(form.discountPaise / 100).toFixed(2)}
-            onChange={(e) => onChange({ discountPaise: parseRupees(e.target.value) ?? 0 })}
+            valuePaise={form.discountPaise}
+            onChangePaise={(discountPaise) => onChange({ discountPaise })}
             className="text-right tabular-nums"
           />
         </Field>
         <Field>
           <FieldLabel htmlFor="draft-shipping">{copy.totals.shipping}</FieldLabel>
-          <Input
+          <DraftMoneyInput
             id="draft-shipping"
-            type="number"
-            min={0}
-            step="0.01"
-            value={(form.shippingPaise / 100).toFixed(2)}
-            onChange={(e) => onChange({ shippingPaise: parseRupees(e.target.value) ?? 0 })}
+            valuePaise={form.shippingPaise}
+            onChangePaise={(shippingPaise) => onChange({ shippingPaise })}
             className="text-right tabular-nums"
           />
         </Field>

@@ -27,6 +27,7 @@ import TemplateSelectCard from '@/components/themes/template-select-card'
 import { productFormContent, productsListContent } from '@/data/products'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { validationIssuesOf } from '@/lib/api-errors'
 import AiWriterButton from './ai-writer-button'
 import {
   emptyForm,
@@ -158,7 +159,24 @@ export default function ProductForm({
       if (!product) router.replace(`/products/${result.id}`)
       else router.refresh()
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      const issues = validationIssuesOf(err)
+      if (issues.length) {
+        setServerError(
+          issues
+            .slice(0, 3)
+            .map((i) => {
+              const field =
+                copy.errors.fields[i.path.split('.')[0] ?? ''] ?? copy.errors.fieldFallback
+              return copy.errors.invalidField(
+                field,
+                i.max === undefined ? i.message : copy.errors.tooLong(i.max),
+              )
+            })
+            .join('. '),
+        )
+      } else {
+        setServerError(err instanceof Error ? err.message : copy.toasts.failed)
+      }
     } finally {
       setBusy(false)
     }
