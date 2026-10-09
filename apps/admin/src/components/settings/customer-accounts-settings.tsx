@@ -9,9 +9,7 @@ import {
 } from '@commerce/core/customer-accounts'
 import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@commerce/ui/shadcn/field'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
-import { Switch } from '@commerce/ui/shadcn/switch'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -29,6 +27,7 @@ import { settingsContent } from '@/data/settings'
 import { api } from '@/lib/api-client'
 import SettingsCard from './settings-card'
 import SettingsPageHeader from './settings-page-header'
+import SettingsToggleRow from './settings-toggle-row'
 
 type Loaded = {
   settings: Settings
@@ -146,28 +145,27 @@ export default function CustomerAccountsSettings() {
           </SettingsCard>
 
           <SettingsCard id="sign-in" title={copy.methods.heading} description={copy.methods.body}>
-            <FieldGroup>
-              {LOGIN_METHODS.map((m) => {
-                const can = loaded.available.includes(m)
-                const text = LOGIN_METHOD_COPY[m]
-                return (
-                  <Field key={m} orientation="horizontal" className="items-start justify-between">
-                    <div className="flex flex-col gap-0.5">
-                      <FieldLabel htmlFor={`login-${m}`} className="flex items-center gap-2">
-                        {text.label}
-                        {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
-                      </FieldLabel>
-                      <FieldDescription>{can ? text.hint : text.needs}</FieldDescription>
-                    </div>
-                    <Switch
-                      id={`login-${m}`}
-                      checked={form.loginMethods.includes(m)}
-                      disabled={!can && !form.loginMethods.includes(m)}
-                      onCheckedChange={(on) => toggle(m, on)}
-                    />
-                  </Field>
-                )
-              })}
+            {LOGIN_METHODS.map((m) => {
+              const can = loaded.available.includes(m)
+              const text = LOGIN_METHOD_COPY[m]
+              return (
+                <SettingsToggleRow
+                  key={m}
+                  id={`login-${m}`}
+                  label={
+                    <>
+                      {text.label}
+                      {can ? null : <Badge variant="neutral">{copy.methods.unavailable}</Badge>}
+                    </>
+                  }
+                  description={can ? text.hint : text.needs}
+                  checked={form.loginMethods.includes(m)}
+                  disabled={!can && !form.loginMethods.includes(m)}
+                  onChange={(on) => toggle(m, on)}
+                />
+              )
+            })}
+            <div className="flex flex-col gap-3 pt-3 empty:hidden">
               {stale.length > 0 ? (
                 <p className="text-caption text-warning-foreground dark:text-warning">
                   {copy.methods.stillOn(stale.map((m) => LOGIN_METHOD_COPY[m].label).join(', '))}
@@ -186,7 +184,7 @@ export default function CustomerAccountsSettings() {
                   {copy.methods.turnOnApp}
                 </Button>
               ) : null}
-            </FieldGroup>
+            </div>
           </SettingsCard>
 
           <SignInProvidersCard

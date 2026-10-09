@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 
 type SettingsToggleRowProps = {
   id: string
-  label: string
+  label: ReactNode
   description?: string | undefined
   checked: boolean
   onChange: (v: boolean) => void
@@ -33,7 +33,10 @@ export default function SettingsToggleRow({
       )}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
-        <label htmlFor={id} className="text-body font-semibold text-ink-strong">
+        <label
+          htmlFor={id}
+          className="flex items-center gap-2 text-body font-semibold text-ink-strong"
+        >
           {label}
         </label>
         {description ? (
