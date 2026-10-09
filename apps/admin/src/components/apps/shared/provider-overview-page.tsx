@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { type ReactNode, useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import PageHeader from '@/components/layout/page-header'
+import { routes } from '@/lib/routes'
 import {
   type FieldValues,
   loadProviderSettings,
@@ -114,7 +115,7 @@ export default function ProviderOverviewPage({
             <p className="text-body text-muted-foreground">{copy.notConnected}</p>
             <Button
               className="w-fit"
-              render={<Link href={`/apps/${providerId}/connect`} />}
+              render={<Link href={routes.apps.connect(providerId)} />}
               nativeButton={false}
             >
               {copy.connectCta}

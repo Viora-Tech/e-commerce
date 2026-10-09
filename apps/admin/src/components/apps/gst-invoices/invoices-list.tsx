@@ -24,6 +24,7 @@ import StatusLabel from '@/components/status/status-label'
 import { gstInvoicesContent } from '@/data/gst-invoices'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
+import { routes } from '@/lib/routes'
 import ChoiceField from './choice-field'
 import GstNumberPicker from './gst-number-picker'
 import { saveFile } from './save-file'
@@ -271,7 +272,10 @@ export default function InvoicesList() {
                 </TableCell>
                 <TableCell className="font-medium">
                   <span className="group/row flex items-center gap-1">
-                    <Link href={`/apps/gst-invoices/invoices/${r.id}`} className="hover:underline">
+                    <Link
+                      href={routes.apps.page('gst-invoices', 'invoices', r.id)}
+                      className="hover:underline"
+                    >
                       {r.number ?? '-'}
                     </Link>
                     {r.number ? <CopyButton value={r.number} what={copy.columns.number} /> : null}
@@ -279,7 +283,7 @@ export default function InvoicesList() {
                 </TableCell>
                 <TableCell>{kindCopy[r.kind]}</TableCell>
                 <TableCell>
-                  <Link href={`/orders/${r.orderId}`} className="hover:underline">
+                  <Link href={routes.orders.detail(r.orderId)} className="hover:underline">
                     {r.orderName}
                   </Link>
                 </TableCell>

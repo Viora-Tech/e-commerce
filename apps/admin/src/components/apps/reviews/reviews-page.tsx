@@ -13,6 +13,7 @@ import ResourceTable from '@/components/table/resource-table'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AskReviewsButton from './ask-reviews-button'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 import { reviewColumns } from './review-columns'
@@ -156,14 +157,14 @@ function ReviewsList() {
             <Button
               variant="outline"
               nativeButton={false}
-              render={<Link href="/apps/reviews/import" />}
+              render={<Link href={routes.apps.page('reviews', 'import')} />}
             >
               {copy.list.importJudgeme}
             </Button>
             <Button
               variant="outline"
               nativeButton={false}
-              render={<Link href="/apps/reviews/settings" />}
+              render={<Link href={routes.apps.page('reviews', 'settings')} />}
             >
               {copy.list.settings}
             </Button>
@@ -177,7 +178,7 @@ function ReviewsList() {
         columns={reviewColumns(copy)}
         items={result?.rows ?? []}
         getId={(r) => r.id}
-        href={(r) => `/apps/reviews/reviews/${r.id}`}
+        href={(r) => routes.apps.page('reviews', 'reviews', r.id)}
         loading={loading && !result}
         query={q.query}
         onQueryChange={(query) => setQ({ query, page: 1 })}

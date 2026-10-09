@@ -10,6 +10,7 @@ import PageHeader from '@/components/layout/page-header'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import CollectSettings from './collect-settings'
 import ShowSettings from './show-settings'
 
@@ -67,7 +68,7 @@ export default function SettingsPage() {
         title={copy.settings.title}
         subtitle={copy.settings.subtitle}
         breadcrumbs={[
-          { label: copy.detail.back, href: '/apps/reviews' },
+          { label: copy.detail.back, href: routes.apps.page('reviews') },
           { label: copy.settings.title },
         ]}
         actions={
