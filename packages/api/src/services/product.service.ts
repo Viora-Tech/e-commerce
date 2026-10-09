@@ -345,6 +345,9 @@ export async function searchVariants(
 export type ProductStats = {
   total: number
   active: number
+  draft: number
+  /** Selling products with 1 to LOW_STOCK_AT units left. */
+  lowStock: number
   outOfStock: number
   stockValuePaise: number
 }
@@ -355,6 +358,7 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
     .select({
       total: count(),
       active: sql<number>`count(*) filter (where ${product.status} = 'active')`,
+      draft: sql<number>`count(*) filter (where ${product.status} = 'draft')`,
     })
     .from(product)
     .where(notSystemTest)
@@ -379,9 +383,24 @@ export async function productStats(tx: StoreTx): Promise<ProductStats> {
       ) = 0`,
       ),
     )
+  const [low] = await tx
+    .select({ n: sql<number>`count(*)` })
+    .from(product)
+    .where(
+      and(
+        notSystemTest,
+        sql`(
+        select coalesce(sum(greatest(0, il.on_hand - il.reserved)), 0)
+        from variant v left join inventory_level il on il.variant_id = v.id and il.fulfils_online
+        where v.product_id = ${product.id} and v.archived_at is null
+      ) between 1 and ${LOW_STOCK_AT}`,
+      ),
+    )
   return {
     total: counts?.total ?? 0,
     active: Number(counts?.active ?? 0),
+    draft: Number(counts?.draft ?? 0),
+    lowStock: Number(low?.n ?? 0),
     outOfStock: Number(out?.n ?? 0),
     stockValuePaise: Number(stock?.value ?? 0),
   }
@@ -423,4 +442,112 @@ export async function productAdjustments(
 export async function listProductHandles(tx: StoreTx): Promise<string[]> {
   const rows = await tx.select({ handle: product.handle }).from(product)
   return rows.map((r) => r.handle)
+}
+
+export type PickProductVariant = {
+  id: string
+  title: string
+  sku: string | null
+  pricePaise: number
+  available: number
+}
+
+export type PickProductRow = {
+  id: string
+  title: string
+  status: ProductStatus
+  imageUrl: string | null
+  sku: string | null
+  pricePaiseMin: number | null
+  pricePaiseMax: number | null
+  available: number
+  variants: PickProductVariant[]
+}
+
+export type PickProductsInput = {
+  search?: string | undefined
+  collectionId?: string | undefined
+  productType?: string | undefined
+  status?: ProductStatus | undefined
+  limit: number
+}
+
+/** Rows for the "Select products" dialog: each product with its variants so the dialog can expand them. */
+export async function pickProducts(
+  tx: StoreTx,
+  input: PickProductsInput,
+): Promise<PickProductRow[]> {
+  const search = input.search?.trim()
+  const rows = await tx
+    .select({
+      id: product.id,
+      title: product.title,
+      status: product.status,
+      imageUrl: sql<string | null>`(
+        select m.url from ${productMedia} pm join ${media} m on m.id = pm.media_id
+        where pm.product_id = product.id order by pm.position limit 1)`,
+    })
+    .from(product)
+    .where(
+      and(
+        notSystemTest,
+        input.status ? eq(product.status, input.status) : ne(product.status, 'archived'),
+        input.productType ? eq(product.productType, input.productType) : undefined,
+        input.collectionId
+          ? sql`exists (select 1 from collection_product cp where cp.product_id = ${product.id} and cp.collection_id = ${input.collectionId})`
+          : undefined,
+        search
+          ? or(
+              ilike(product.title, `%${search}%`),
+              sql`exists (select 1 from variant v where v.product_id = ${product.id} and v.sku ilike ${`%${search}%`})`,
+            )
+          : undefined,
+      ),
+    )
+    .orderBy(asc(product.title))
+    .limit(input.limit)
+  if (rows.length === 0) return []
+
+  const variants = await tx
+    .select({
+      id: variant.id,
+      productId: variant.productId,
+      title: variant.title,
+      sku: variant.sku,
+      pricePaise: variant.pricePaise,
+      onHand: inventoryLevel.onHand,
+      reserved: inventoryLevel.reserved,
+    })
+    .from(variant)
+    .leftJoin(inventoryLevel, and(eq(inventoryLevel.variantId, variant.id), sellableLevel))
+    .where(
+      and(
+        inArray(
+          variant.productId,
+          rows.map((r) => r.id),
+        ),
+        isNull(variant.archivedAt),
+      ),
+    )
+    .orderBy(asc(variant.position))
+
+  return rows.map((r) => {
+    const vs = variants
+      .filter((v) => v.productId === r.id)
+      .map((v) => ({
+        id: v.id,
+        title: v.title,
+        sku: v.sku,
+        pricePaise: v.pricePaise,
+        available: Math.max(0, (v.onHand ?? 0) - (v.reserved ?? 0)),
+      }))
+    return {
+      ...r,
+      sku: vs[0]?.sku ?? null,
+      pricePaiseMin: vs.length ? Math.min(...vs.map((v) => v.pricePaise)) : null,
+      pricePaiseMax: vs.length ? Math.max(...vs.map((v) => v.pricePaise)) : null,
+      available: vs.reduce((n, v) => n + v.available, 0),
+      variants: vs,
+    }
+  })
 }

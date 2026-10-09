@@ -1,14 +1,16 @@
 import RelativeTime from '@/components/layout/relative-time'
 import StatusLabel from '@/components/status/status-label'
 import type { ResourceColumnSpec } from '@/components/table/resource-table'
-import { purchaseOrdersContent as copy } from '@/data/inventory'
+import type { purchaseOrdersContent } from '@/data/inventory'
 import type { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
 
 export type PurchaseOrderRow = Awaited<ReturnType<typeof api.purchaseOrders.list>>['rows'][number]
 
 /** Columns of the purchase order list. */
-export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
+export const purchaseOrderColumns = (
+  copy: typeof purchaseOrdersContent,
+): ResourceColumnSpec<PurchaseOrderRow>[] => [
   {
     id: 'number',
     title: copy.columns.number,
@@ -32,12 +34,14 @@ export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
   },
   {
     id: 'status',
+    align: 'center',
     title: copy.columns.status,
     sortValue: (r) => r.status,
     render: (r) => <StatusLabel kind="purchaseOrder" value={r.status} />,
   },
   {
     id: 'received',
+    align: 'end',
     title: copy.columns.received,
     sortValue: (r) => r.receivedUnits,
     render: (r) => (
@@ -46,6 +50,7 @@ export const purchaseOrderColumns: ResourceColumnSpec<PurchaseOrderRow>[] = [
   },
   {
     id: 'total',
+    align: 'end',
     title: copy.columns.total,
     sortValue: (r) => r.totalPaise,
     render: (r) => <span className="tabular-nums">{formatPaise(r.totalPaise)}</span>,

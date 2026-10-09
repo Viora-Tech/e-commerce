@@ -7,7 +7,7 @@ type StatTileProps = {
   value: string
   /** Percent change against the previous period; the sign picks the arrow. */
   trend?: number | null
-  /** Text after the arrow, e.g. "vs yesterday". */
+  /** Text after the arrow, e.g. "vs yesterday"; on its own (no trend) it is a plain note line. */
   trendNote?: string
   /** A rise is bad news (cancellations): the colours flip. */
   invert?: boolean
@@ -60,8 +60,8 @@ export default function StatTile({
             <span className="font-normal text-muted-foreground">{trendNote}</span>
           ) : null}
         </span>
-      ) : note ? (
-        <span className="text-caption text-muted-foreground">{note}</span>
+      ) : note || trendNote ? (
+        <span className="text-caption text-muted-foreground">{note ?? trendNote}</span>
       ) : null}
     </>
   )

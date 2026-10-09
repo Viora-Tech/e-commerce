@@ -35,7 +35,7 @@ import { partsOf, useTemplateDrafts } from '@/lib/use-template-drafts'
 import ThemePresets from '../theme-presets'
 import type { PreviewDevice } from '../theme-preview'
 import ThemeSettings from '../theme-settings'
-import type { ThemeItem } from '../theme-types'
+import { previewUrl, type ThemeItem } from '../theme-types'
 import CanvasDock from './canvas-dock'
 import CreateTemplateDialog, { type AlternateKind } from './create-template-dialog'
 import CustomizeHotkeys from './customize-hotkeys'
@@ -48,6 +48,8 @@ import TemplatePicker, { type TemplateRef } from './template-picker'
 
 type CustomizeEditorProps = {
   theme: ThemeItem
+  /** The storefront origin, for the Preview link. */
+  origin: string
   canPublish: boolean
   initial: { template: TemplateKind; suffix: string; resource: string | null }
 }
@@ -88,7 +90,12 @@ function revealInserted(action: PuckAction, next: { data: Data }): void {
  * theme; Save commits them, which for the live theme is what shoppers see.
  */
 
-export default function CustomizeEditor({ theme, canPublish, initial }: CustomizeEditorProps) {
+export default function CustomizeEditor({
+  theme,
+  origin,
+  canPublish,
+  initial,
+}: CustomizeEditorProps) {
   // Hooks
   const [record, setRecord] = useState(theme)
   const [settings, setSettings] = useState(theme.settings)
@@ -302,6 +309,9 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
       saving={saving}
       publishing={publishing}
       canPublish={canPublish}
+      device={device}
+      previewHref={previewUrl(origin, record.previewToken)}
+      onDevice={setDevice}
       onDiscard={handleDiscard}
       onSave={handleSave}
       onPublish={handlePublish}
@@ -367,10 +377,8 @@ export default function CustomizeEditor({ theme, canPublish, initial }: Customiz
                     settings={settingsPanel}
                     dock={
                       <CanvasDock
-                        device={device}
                         mode={mode}
                         darkMode={settings.darkMode.enabled}
-                        onDevice={setDevice}
                         onMode={setModePick}
                       />
                     }

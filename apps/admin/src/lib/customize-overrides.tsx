@@ -8,6 +8,7 @@ import CustomizeRadioField from '@/components/themes/customize/customize-radio-f
 import CustomizeRichTextField from '@/components/themes/customize/customize-richtext-field'
 import CustomizeSelectField from '@/components/themes/customize/customize-select-field'
 import CustomizeTextField from '@/components/themes/customize/customize-text-field'
+import InspectorFields from '@/components/themes/customize/inspector-fields'
 import PreviewFrame from '@/components/themes/customize/preview-frame'
 import SectionOverlay from '@/components/themes/customize/section-overlay'
 import { withDynamicSources } from '@/lib/customize-dynamic-fields'
@@ -35,6 +36,8 @@ export const CUSTOMIZE_OVERRIDES: Partial<Overrides> = {
   // Puck types `field` as a wide union (every field type plus custom ones); each
   // override is only ever called for its own type, so narrow it to what it reads.
   fieldLabel: () => <></>,
+  // Basic / Advanced: filters the selected section's fields by name (see InspectorFields).
+  fields: ({ children }) => <InspectorFields>{children}</InspectorFields>,
   // Every setting gets the "connect dynamic source" control (see ./customize-dynamic-fields).
   fieldTypes: withDynamicSources({
     text: (props) => (

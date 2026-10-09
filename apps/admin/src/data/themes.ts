@@ -6,6 +6,7 @@ export const themesContent = {
   save: 'Save',
   saved: 'Theme saved',
   failed: 'Could not save the theme',
+  tabs: { label: 'Online store', themes: 'Themes', preferences: 'Preferences' },
   library: {
     subtitle: 'The look of your storefront. One theme is live; keep others ready to publish.',
     current: 'Current theme',
@@ -23,6 +24,10 @@ export const themesContent = {
     libraryHeading: 'Theme library',
     libraryBody: 'Themes you have added or copied. Publish one to make it live.',
     libraryEmpty: 'No other themes yet. Add one from a preset or duplicate the current theme.',
+    emptyTitle: 'No other themes yet',
+    emptyBody: 'Add one from a preset or duplicate the current theme.',
+    duplicateCurrent: 'Duplicate current theme',
+    addFromPreset: 'Add from preset',
     add: 'Add theme',
     published: (name: string) => `${name} is now live`,
     duplicated: (name: string) => `Added ${name}`,

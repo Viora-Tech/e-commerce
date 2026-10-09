@@ -1,6 +1,7 @@
 import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { giftCardDetailContent } from '@/data/gift-cards'
+import { routes } from '@/lib/routes'
 
 type CustomerCardProps = {
   card: {
@@ -25,7 +26,7 @@ export default function CustomerCard({ card }: CustomerCardProps) {
       {card.customerId ? (
         <div className="flex flex-col gap-0.5">
           <Link
-            href={`/customers/${card.customerId}`}
+            href={routes.customers.detail(card.customerId)}
             className="text-body-strong text-link hover:underline"
           >
             {card.customerName || card.customerEmail}

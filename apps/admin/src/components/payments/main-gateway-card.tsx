@@ -7,6 +7,7 @@ import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { gatewayCatalogue, paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy, useFormat } from '@/hooks/use-copy'
+import { routes } from '@/lib/routes'
 import GatewayLogo from './gateway-logo'
 import GatewayProblem from './gateway-problem'
 import type { GatewayStatus } from './types'
@@ -86,7 +87,7 @@ export default function MainGatewayCard({
             <Button
               variant="outline"
               nativeButton={false}
-              render={<Link href={`/apps/${primary.id}/connect`} />}
+              render={<Link href={routes.apps.connect(primary.id)} />}
             >
               {copy.manage}
             </Button>

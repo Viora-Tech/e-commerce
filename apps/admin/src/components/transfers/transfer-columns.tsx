@@ -30,12 +30,14 @@ export const transferColumns: ResourceColumnSpec<TransferRow>[] = [
   },
   {
     id: 'status',
+    align: 'center',
     title: copy.columns.status,
     sortValue: (r) => r.status,
     render: (r) => <StatusLabel kind="transfer" value={r.status} />,
   },
   {
     id: 'units',
+    align: 'end',
     title: copy.columns.units,
     sortValue: (r) => r.units,
     render: (r) => <span className="tabular-nums">{formatNumber(r.units)}</span>,

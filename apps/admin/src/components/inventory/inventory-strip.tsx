@@ -1,7 +1,7 @@
 'use client'
 
 import { inventoryContent, type ManualReasonValue } from '@/data/inventory'
-import InventoryTiles, { type InventoryStats } from './inventory-tiles'
+import { useCopy } from '@/hooks/use-copy'
 import LocationSelect, { type StoreLocation } from './location-select'
 import ReasonSelect from './reason-select'
 
@@ -12,10 +12,7 @@ type InventoryStripProps = {
   /** Hidden for members who can only read stock. */
   reason: ManualReasonValue | null
   onReasonChange: (reason: ManualReasonValue) => void
-  stats: InventoryStats
 }
-
-const copy = inventoryContent
 
 /** Location picker, the reason inline edits are logged with, then the stat tiles. */
 export default function InventoryStrip({
@@ -24,12 +21,15 @@ export default function InventoryStrip({
   onLocationChange,
   reason,
   onReasonChange,
-  stats,
 }: InventoryStripProps) {
+  // Hooks
+  const copy = useCopy(inventoryContent)
+
+  // Render logic
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor="inventory-location" className="text-kit-body text-muted-foreground">
+    <div className="flex flex-wrap items-end gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="inventory-location" className="text-caption text-muted-foreground">
           {copy.location}
         </label>
         <LocationSelect
@@ -37,26 +37,22 @@ export default function InventoryStrip({
           locations={locations}
           value={locationId}
           onChange={onLocationChange}
-          className="min-w-56 bg-card"
+          className="min-w-44 bg-card"
         />
-        {reason ? (
-          <>
-            <label
-              htmlFor="inventory-reason"
-              className="ml-auto text-kit-body text-muted-foreground"
-            >
-              {copy.reason}
-            </label>
-            <ReasonSelect
-              id="inventory-reason"
-              value={reason}
-              onChange={onReasonChange}
-              className="min-w-44 bg-card"
-            />
-          </>
-        ) : null}
       </div>
-      <InventoryTiles stats={stats} />
+      {reason ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="inventory-reason" className="text-caption text-muted-foreground">
+            {copy.reason}
+          </label>
+          <ReasonSelect
+            id="inventory-reason"
+            value={reason}
+            onChange={onReasonChange}
+            className="min-w-44 bg-card"
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

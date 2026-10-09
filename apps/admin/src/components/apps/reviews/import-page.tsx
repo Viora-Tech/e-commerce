@@ -13,6 +13,7 @@ import PageHeader from '@/components/layout/page-header'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import ImportPreview from './import-preview'
 
 type Preview = Awaited<ReturnType<typeof api.reviews.judgeme.preview>>
@@ -77,7 +78,7 @@ export default function ImportPage() {
         return
       }
       toast.success(copy.done(r.imported, r.photosToCopy))
-      router.push('/apps/reviews')
+      router.push(routes.apps.page('reviews'))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : reviewsContent.list.failed)
     } finally {
@@ -113,7 +114,7 @@ export default function ImportPage() {
         title={copy.title}
         subtitle={copy.subtitle}
         breadcrumbs={[
-          { label: reviewsContent.detail.back, href: '/apps/reviews' },
+          { label: reviewsContent.detail.back, href: routes.apps.page('reviews') },
           { label: copy.title },
         ]}
       />
@@ -190,7 +191,7 @@ export default function ImportPage() {
                 variant="ghost"
                 className="self-start"
                 nativeButton={false}
-                render={<Link href="/apps/reviews" />}
+                render={<Link href={routes.apps.page('reviews')} />}
               >
                 {copy.step3.cancel}
               </Button>
