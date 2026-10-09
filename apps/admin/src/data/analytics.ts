@@ -191,6 +191,16 @@ export const analyticsContent = {
     empty: 'Nothing to report in this range.',
     totals: 'Totals',
     back: 'All reports',
+    ask: {
+      placeholder: 'Ask a question about your store, or find a report…',
+      note: 'Type to find a report. Asking in plain words is coming soon; it will only ever read your data.',
+      noMatch: 'No report matches that yet.',
+    },
+    understood: 'What I understood',
+    dateLabel: 'Date',
+    compareLabel: 'Compare',
+    chartType: { bars: 'Bar', line: 'Line' },
+    details: 'Details',
   },
   live: {
     title: 'Live view',

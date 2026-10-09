@@ -1,3 +1,5 @@
+import { routes } from '@/lib/routes'
+
 export const DISCOUNT_LIFECYCLES = ['active', 'scheduled', 'expired', 'disabled'] as const
 export type DiscountLifecycle = (typeof DISCOUNT_LIFECYCLES)[number]
 
@@ -7,14 +9,17 @@ export const discountsContent = {
   heading: 'Discount list',
   resource: { singular: 'discount', plural: 'discounts' },
   create: 'Create discount',
+  summary: (active: number, scheduled: number, used: number) =>
+    `${active} active · ${scheduled} starting soon · ${used} orders used a discount in the last 30 days`,
   tiles: {
-    active: 'Active',
+    active: 'Active discounts',
     scheduled: 'Scheduled',
     expired: 'Expired',
-    usedThisMonth: 'Orders with a discount',
+    usedThisMonth: 'Orders with a discount (30 days)',
     now: 'Right now',
     month: 'Last 30 days',
   },
+  row: { edit: 'Edit discount' },
   tabs: {
     all: 'All discounts',
     active: 'Active',
@@ -39,6 +44,9 @@ export const discountsContent = {
   } satisfies Record<DiscountLifecycle, string>,
   usedOf: (used: number, limit: number | null) =>
     limit === null ? `${used}` : `${used} / ${limit}`,
+  since: (from: string) => `Since ${from}`,
+  until: (to: string) => `Until ${to}`,
+  ongoing: 'Ongoing',
   noEnd: 'No end date',
   always: 'Always',
   empty: {
@@ -48,18 +56,20 @@ export const discountsContent = {
   index: {
     heading: 'No discounts',
     body: 'Discount codes and automatic offers: a percentage off, a fixed amount or free shipping, applied at checkout.',
-    action: { label: 'Create discount', href: '/discounts/new' },
+    action: { label: 'Create discount', href: routes.discounts.new() },
   },
   detail: {
     heading: 'Discount not found',
     body: 'This discount does not exist in the current store.',
-    action: { label: 'Back to discounts', href: '/discounts' },
+    action: { label: 'Back to discounts', href: routes.discounts.list() },
   },
 } as const
 
 /** Copy for the create and edit form. */
 export const discountFormContent = {
   newTitle: 'Create discount',
+  newSummary: 'Set it up, then save to start offering it.',
+  usedTimes: (n: number) => (n === 1 ? 'used once' : `used ${n} times`),
   saveBar: { message: 'Unsaved changes', save: 'Save', discard: 'Discard' },
   toasts: {
     saved: 'Discount saved',

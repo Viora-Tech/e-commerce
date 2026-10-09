@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { campaignEditorContent } from '@/data/marketing-campaigns'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type DiscountCodeFieldProps = {
   id: string
@@ -61,7 +62,7 @@ export default function DiscountCodeField({ id, value, onChange }: DiscountCodeF
       </Select>
       {codes && codes.length === 0 ? (
         <FieldDescription>
-          <Link href="/discounts/new" className="underline">
+          <Link href={routes.discounts.new()} className="underline">
             {copy.noCodes}
           </Link>
         </FieldDescription>

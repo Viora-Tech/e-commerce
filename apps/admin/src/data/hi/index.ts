@@ -1,6 +1,7 @@
 import type { TranslationPair } from '@/lib/i18n'
 import account from './account'
 import ai from './ai'
+import analytics from './analytics'
 import apps from './apps'
 import assistant from './assistant'
 import bugReport from './bug-report'
@@ -13,12 +14,16 @@ import contentBlog from './content-blog'
 import contentFiles from './content-files'
 import customers from './customers'
 import dates from './dates'
+import discounts from './discounts'
 import domains from './domains'
+import growth from './growth'
 import gstInvoices from './gst-invoices'
 import home from './home'
 import inventory from './inventory'
 import layout from './layout'
 import login from './login'
+import marketingAutomations from './marketing-automations'
+import marketingCampaigns from './marketing-campaigns'
 import metaobjects from './metaobjects'
 import navigation from './navigation'
 import onboarding from './onboarding'
@@ -59,9 +64,14 @@ export const hindiCopy: readonly TranslationPair[] = [
   ...customers,
   ...dates,
   ...domains,
+  ...analytics,
+  ...discounts,
+  ...growth,
   ...gstInvoices,
   ...home,
   ...layout,
+  ...marketingAutomations,
+  ...marketingCampaigns,
   ...login,
   ...metaobjects,
   ...navigation,

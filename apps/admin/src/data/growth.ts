@@ -1,21 +1,22 @@
 import type { OverviewChannel, SourceKey } from '@commerce/api'
+import { routes } from '@/lib/routes'
 
 /** Copy for the Growth section (was Marketing): campaigns, automations, links. */
 export const growthContent = {
   index: {
     heading: 'Growth',
     body: 'Campaigns and automations that bring shoppers back: email, WhatsApp and discount-led promotions.',
-    action: { label: 'View discounts', href: '/discounts' },
+    action: { label: 'View discounts', href: routes.discounts.list() },
   },
   campaigns: {
     heading: 'No campaigns',
     body: 'A campaign is a one-off send to a segment of your customers: a launch, a sale or a restock.',
-    action: { label: 'View discounts', href: '/discounts' },
+    action: { label: 'View discounts', href: routes.discounts.list() },
   },
   automations: {
     heading: 'No automations',
     body: 'Automations run on their own: abandoned-checkout reminders, post-purchase follow-ups, win-back messages.',
-    action: { label: 'Notification settings', href: '/settings/notifications' },
+    action: { label: 'Notification settings', href: routes.settings.notifications() },
   },
 } as const
 
@@ -136,22 +137,22 @@ export const growthOverviewContent = {
     campaigns: {
       title: 'Campaigns',
       body: 'Send an email or WhatsApp broadcast to a customer segment.',
-      href: '/growth/campaigns',
+      href: routes.growth.campaigns(),
     },
     automations: {
       title: 'Automations',
       body: 'Recover abandoned checkouts, welcome subscribers and win back lapsed buyers.',
-      href: '/growth/automations',
+      href: routes.growth.automations(),
     },
     links: {
       title: 'Links',
       body: 'Build a tagged link for your Instagram bio, a WhatsApp broadcast or an ad.',
-      href: '/growth/links',
+      href: routes.growth.links(),
     },
     discounts: {
       title: 'Discounts',
       body: 'Create codes to use in campaigns and automations.',
-      href: '/discounts',
+      href: routes.discounts.list(),
     },
   },
 } as const
