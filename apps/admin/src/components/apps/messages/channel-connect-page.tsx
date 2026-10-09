@@ -1,8 +1,12 @@
 'use client'
 
-import { Bell } from '@commerce/ui/icons'
+import { siteConfig } from '@commerce/config/site'
+import { Bell, ExternalLink } from '@commerce/ui/icons'
+import { Button } from '@commerce/ui/shadcn/button'
 import ProviderSettingsForm from '@/components/settings/provider-settings-form'
+import { appsContent } from '@/data/apps'
 import { messageAppsContent as copy } from '@/data/notifications'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { routes } from '@/lib/routes'
 
@@ -46,6 +50,9 @@ function guide(channelId: ChannelId) {
  * Notifications reads. Only this app's channel is shown.
  */
 export default function ChannelConnectPage({ channelId }: ChannelConnectPageProps) {
+  // Hooks
+  const apps = useCopy(appsContent)
+
   // Render logic
   const words = copy[channelId]
 
@@ -58,6 +65,16 @@ export default function ChannelConnectPage({ channelId }: ChannelConnectPageProp
       save={save}
       emptyExtra={{}}
       renderDescription={() => guide(channelId)}
+      headerActions={
+        <Button
+          variant="ghost"
+          nativeButton={false}
+          render={<a href={siteConfig.urls.docs} target="_blank" rel="noreferrer" />}
+        >
+          {apps.viewGuide}
+          <ExternalLink aria-hidden="true" className="size-3.5" />
+        </Button>
+      }
       back={{ label: copy.back, href: routes.settings.notifications() }}
     />
   )
