@@ -24,7 +24,7 @@ export default function ProoflyListPage({
 }: ProoflyListPageProps) {
   // Render logic
   return (
-    <div className="mx-auto flex w-full max-w-[77.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto flex w-full max-w-[81.5rem] flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <ProoflyPageHeader title={title} summary={summary} actions={actions} />
       {controls}
       {stats ? <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{stats}</div> : null}

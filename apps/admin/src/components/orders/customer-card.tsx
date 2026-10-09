@@ -1,6 +1,7 @@
 'use client'
 
 import { Copy, WhatsappLogo } from '@commerce/ui/icons'
+import { cn } from '@commerce/ui/lib/utils'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -88,7 +89,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
     .filter((v): v is string => Boolean(v))
     .join('\n')
   const link =
-    'text-caption text-foreground underline underline-offset-2 hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+    'text-[0.8125rem] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
   const profileHref = order.customer ? `/customers/${order.customer.id}` : null
   const readOnly = Boolean(order.importedFrom)
 
@@ -175,20 +176,20 @@ export default function CustomerCard({ order }: CustomerCardProps) {
           <DetailRows heading={c.address} rows={place} />
         ) : (
           <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.address}</p>
+            <p className="text-caption font-medium text-muted-foreground">{c.address}</p>
             <p className="text-muted-foreground">{c.noAddress}</p>
           </div>
         )}
         {a ? (
           <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.billing}</p>
+            <p className="text-caption font-medium text-muted-foreground">{c.billing}</p>
             <p className="text-muted-foreground">{c.billingSame}</p>
           </div>
         ) : null}
 
         {order.buyerGstin ? (
           <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.business}</p>
+            <p className="text-caption font-medium text-muted-foreground">{c.business}</p>
             {order.buyerBusinessName ? <p>{order.buyerBusinessName}</p> : null}
             <div className="flex items-center gap-1">
               <span className="font-mono">{order.buyerGstin}</span>
@@ -198,7 +199,7 @@ export default function CustomerCard({ order }: CustomerCardProps) {
         ) : null}
         {order.customerNote ? (
           <div className="flex flex-col gap-1">
-            <p className="text-eyebrow">{c.note}</p>
+            <p className="text-caption font-medium text-muted-foreground">{c.note}</p>
             <p className="whitespace-pre-line">{order.customerNote}</p>
           </div>
         ) : null}
@@ -222,18 +223,21 @@ type DetailRowsProps = { heading: string; rows: Row[] }
 function DetailRows({ heading, rows }: DetailRowsProps) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-eyebrow">{heading}</p>
-      <dl className="flex flex-col divide-y divide-line">
+      <p className="text-caption font-medium text-muted-foreground">{heading}</p>
+      <dl className="flex flex-col">
         {rows.map((r) => (
-          <div key={r.key} className="flex min-h-10 items-center gap-2 py-1">
-            <dt className="w-24 shrink-0 text-caption text-muted-foreground">{r.label}</dt>
-            <dd className="min-w-0 flex-1 break-words text-ink-strong">
+          <div key={r.key} className="flex min-h-[2.125rem] items-center gap-3">
+            <dt className="w-24 shrink-0 text-[0.8125rem] text-muted-foreground">{r.label}</dt>
+            <dd
+              className={cn(
+                'min-w-0 font-medium text-ink-strong',
+                r.key === 'email' ? 'truncate' : 'break-words',
+              )}
+              title={r.key === 'email' ? (r.value ?? undefined) : undefined}
+            >
               {r.value ? (
                 r.href ? (
-                  <a
-                    href={r.href}
-                    className="text-link underline underline-offset-2 hover:text-foreground"
-                  >
+                  <a href={r.href} className="hover:text-primary">
                     {r.value}
                   </a>
                 ) : (
