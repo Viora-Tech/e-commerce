@@ -202,7 +202,11 @@ export default function ProviderSettingsForm<Extra extends object>({
                   heading={copy.noProviders.heading}
                   body={copy.noProviders.body}
                   action={
-                    <Button variant="outline" render={<Link href={copy.noProviders.href} />}>
+                    <Button
+                      nativeButton={false}
+                      variant="outline"
+                      render={<Link href={copy.noProviders.href} />}
+                    >
                       {copy.noProviders.action}
                     </Button>
                   }

@@ -51,7 +51,7 @@ export default function DashboardPage({
         toShip={summary.today.toShipCount}
         now={new Date()}
       />
-      {assistant ? <AskAiCard /> : null}
+      <AskAiCard enabled={assistant} />
       {signals ? <FinishSetup productCount={summary.report.products} signals={signals} /> : null}
       <TodoCards needsYou={summary.needsYou} />
       <SalesHero today={summary.today} yesterdayHourly={summary.yesterday.hourly} charts={charts} />

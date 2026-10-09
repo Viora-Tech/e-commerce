@@ -43,7 +43,12 @@ export default function SetupChecklist({ heading, body, steps }: SetupChecklistP
               {step.label}
             </span>
             {!step.done && step.href && step.action ? (
-              <Button size="sm" variant="outline" render={<Link href={step.href} />}>
+              <Button
+                nativeButton={false}
+                size="sm"
+                variant="outline"
+                render={<Link href={step.href} />}
+              >
                 {step.action}
               </Button>
             ) : null}

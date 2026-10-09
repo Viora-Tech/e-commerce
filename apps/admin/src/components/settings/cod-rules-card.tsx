@@ -61,7 +61,11 @@ export default function CodRulesCard({
   if (!codEnabled) {
     return (
       <SettingsCard id="cod" title={copy.heading} description={copy.off}>
-        <Button variant="outline" render={<Link href={routes.settings.payments()} />}>
+        <Button
+          nativeButton={false}
+          variant="outline"
+          render={<Link href={routes.settings.payments()} />}
+        >
           {copy.offLink}
         </Button>
       </SettingsCard>

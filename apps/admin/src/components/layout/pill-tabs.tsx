@@ -96,7 +96,11 @@ export default function PillTabs<T extends string | null>({
                 <span
                   className={cn(
                     'rounded-full px-1.5 text-caption font-medium text-muted-foreground tabular-nums',
-                    variant === 'segmented' ? 'bg-muted' : active ? 'bg-secondary text-foreground' : '',
+                    variant === 'segmented'
+                      ? 'bg-muted'
+                      : active
+                        ? 'bg-secondary text-foreground'
+                        : '',
                   )}
                 >
                   {tab.count}

@@ -62,86 +62,94 @@ export default function ResourceTableToolbar<T extends RowData>({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
-      {tabs ? <div className="no-scrollbar min-w-0 overflow-x-auto">{tabs}</div> : null}
-      <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
-        <label className="flex h-[2.375rem] w-full min-w-0 items-center gap-2 rounded-[0.625rem] border border-border bg-input-surface px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 hover:border-border-strong sm:w-[16.25rem]">
-          <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
-          <input
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder={tableCopy.search(plural)}
-            aria-label={tableCopy.search(plural)}
-            className="min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-        {filters ? (
-          <Popover>
-            <PopoverTrigger render={<ToolbarButton className="px-2.5" aria-label={tableCopy.filter} />} nativeButton>
-              <SlidersHorizontal strokeWidth={1.6} />
-              {tableCopy.filter}
-              {applied.length > 0 ? (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-[0.6875rem] font-semibold text-background tabular-nums">
-                  {applied.length}
-                </span>
-              ) : null}
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-64">
-              {filters}
-            </PopoverContent>
-          </Popover>
-        ) : null}
-        <div className="ml-auto flex items-center gap-2">
-          {sortable.length > 0 ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<ToolbarButton aria-label={tableCopy.sort} className="size-[2.375rem]" />}
+        {tabs ? <div className="no-scrollbar min-w-0 overflow-x-auto">{tabs}</div> : null}
+        <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto">
+          <label className="flex h-[2.375rem] w-full min-w-0 items-center gap-2 rounded-[0.625rem] border border-border bg-input-surface px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25 hover:border-border-strong sm:w-[16.25rem]">
+            <Search className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />
+            <input
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder={tableCopy.search(plural)}
+              aria-label={tableCopy.search(plural)}
+              className="min-w-0 flex-1 bg-transparent text-body text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          </label>
+          {filters ? (
+            <Popover>
+              <PopoverTrigger
+                render={<ToolbarButton className="px-2.5" aria-label={tableCopy.filter} />}
                 nativeButton
               >
-                <ArrowUpDown strokeWidth={1.6} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{tableCopy.sort}</DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                {sortable.map((column) => (
-                  <DropdownMenuItem
-                    key={column.id}
-                    onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-                  >
-                    {columnTitles[column.id] ?? column.id}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <SlidersHorizontal strokeWidth={1.6} />
+                {tableCopy.filter}
+                {applied.length > 0 ? (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-sm bg-foreground px-1 text-[0.6875rem] font-semibold text-background tabular-nums">
+                    {applied.length}
+                  </span>
+                ) : null}
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64">
+                {filters}
+              </PopoverContent>
+            </Popover>
           ) : null}
-          {hideable.length > 0 ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<ToolbarButton aria-label={tableCopy.toggleColumns} className="size-[2.375rem]" />}
-                nativeButton
-              >
-                <Columns strokeWidth={1.6} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{tableCopy.toggleColumns}</DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                {hideable.map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                  >
-                    {columnTitles[column.id] ?? column.id}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
+          <div className="ml-auto flex items-center gap-2">
+            {sortable.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<ToolbarButton aria-label={tableCopy.sort} className="size-[2.375rem]" />}
+                  nativeButton
+                >
+                  <ArrowUpDown strokeWidth={1.6} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{tableCopy.sort}</DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  {sortable.map((column) => (
+                    <DropdownMenuItem
+                      key={column.id}
+                      onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+                    >
+                      {columnTitles[column.id] ?? column.id}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            {hideable.length > 0 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <ToolbarButton
+                      aria-label={tableCopy.toggleColumns}
+                      className="size-[2.375rem]"
+                    />
+                  }
+                  nativeButton
+                >
+                  <Columns strokeWidth={1.6} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{tableCopy.toggleColumns}</DropdownMenuLabel>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  {hideable.map((column) => (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                    >
+                      {columnTitles[column.id] ?? column.id}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </div>
         </div>
-      </div>
       </div>
       {hasApplied && onClearAll ? (
         <div className="flex flex-wrap items-center gap-1.5">

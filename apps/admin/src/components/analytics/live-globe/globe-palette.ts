@@ -15,6 +15,11 @@ export type GlobePalette = {
   borderDot: Rgb01
 }
 
+/** The Home globe's deep navy (Figma 227:549): the brand blue at about a third. */
+function deep(c: Rgb01): Rgb01 {
+  return c.map((v) => v * 0.38) as Rgb01
+}
+
 function clamp01(v: number): number {
   return Math.min(1, Math.max(0, v))
 }
@@ -51,8 +56,12 @@ export function readPalette(dark: boolean, look?: GlobeLookColors, brand = false
   const [base, ocean, accent]: [Rgb01, Rgb01, Rgb01] =
     theme === 'accent'
       ? [
-          readCssColorVar(brand ? '--primary' : '--muted-foreground', fallbackBase),
-          readCssColorVar(brand ? '--primary' : '--muted-foreground', fallbackBase),
+          brand
+            ? deep(readCssColorVar('--primary', fallbackPrimary))
+            : readCssColorVar('--muted-foreground', fallbackBase),
+          brand
+            ? deep(readCssColorVar('--primary', fallbackPrimary))
+            : readCssColorVar('--muted-foreground', fallbackBase),
           readCssColorVar('--primary', fallbackPrimary),
         ]
       : [THEME_COLORS[theme].land, THEME_COLORS[theme].ocean, THEME_COLORS[theme].accent]
