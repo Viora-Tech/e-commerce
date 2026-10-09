@@ -104,9 +104,9 @@ const ALIGN: Record<CellAlign, string> = {
 /* Proofly table (Figma "Table · Header / Row"): 40px header with small muted labels, 48px rows on
    thin dividers, cells inset to the page gutter. */
 const HEAD =
-  'h-10 border-b border-line bg-card px-4 py-0 text-caption font-medium text-muted-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-[3.25rem] bg-muted px-4 py-0 text-[0.8125rem] leading-[1.1875rem] font-medium text-muted-foreground first:pl-4 last:pr-4'
 const CELL =
-  'h-12 border-b border-line px-4 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-[3.25rem] border-t border-line px-4 py-1.5 text-body first:pl-4 last:pr-4'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.
@@ -184,7 +184,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
   const isEmpty = !props.loading && props.items.length === 0
 
   return (
-    <Card gap="none" inset="y-none">
+    <div className="flex flex-col gap-4">
       <ResourceTableToolbar
         table={table}
         plural={props.resourceName.plural}
@@ -196,6 +196,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
         onClearAll={props.onClearAll}
         columnTitles={columnTitles}
       />
+      <Card gap="none" inset="y-none" className="overflow-hidden">
       <div className="no-scrollbar overflow-x-auto">
         <Table className="w-full min-w-[40rem] table-fixed border-separate border-spacing-0">
           <TableHeader className="[&_tr]:border-0">
@@ -287,6 +288,7 @@ export default function ResourceTable<T extends RowData>(props: ResourceTablePro
           {tableCopy.clearSelection}
         </Button>
       </FloatingBar>
-    </Card>
+      </Card>
+    </div>
   )
 }

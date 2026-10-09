@@ -44,10 +44,10 @@ const STYLES = {
     marker: 'absolute inset-x-0 bottom-0 h-0.5 rounded-t-full bg-foreground',
   },
   segmented: {
-    track: 'inline-flex items-center rounded-[0.625rem] bg-muted p-[0.1875rem]',
-    tab: `relative isolate flex h-7 items-center gap-1 rounded-[0.4375rem] px-3 text-body font-medium text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
-    active: 'text-ink-strong',
-    marker: 'absolute inset-0 -z-10 rounded-[0.4375rem] bg-card shadow-lift',
+    track: 'inline-flex items-center gap-0.5 rounded-[0.6875rem] bg-muted p-[0.1875rem]',
+    tab: `relative isolate flex h-[1.875rem] items-center gap-1.5 rounded-[0.5rem] px-3 text-body font-medium text-muted-foreground transition-colors hover:text-foreground ${FOCUS}`,
+    active: 'font-semibold text-ink-strong',
+    marker: 'absolute inset-0 -z-10 rounded-[0.5rem] border border-border bg-card shadow-lift',
   },
 } as const
 
@@ -95,8 +95,8 @@ export default function PillTabs<T extends string | null>({
               ) : (
                 <span
                   className={cn(
-                    'rounded-sm px-1 text-caption tabular-nums',
-                    active ? 'bg-secondary text-foreground' : 'text-muted-foreground',
+                    'rounded-full px-1.5 text-caption font-medium text-muted-foreground tabular-nums',
+                    variant === 'segmented' ? 'bg-muted' : active ? 'bg-secondary text-foreground' : '',
                   )}
                 >
                   {tab.count}

@@ -17,7 +17,7 @@ type PaginationProps = {
 /* Table footer (Figma "Table · Footer"): "Showing x-y of n" on the left; rows per page, page x of
    y and two arrow buttons on the right. */
 const ARROW =
-  'flex size-8 items-center justify-center rounded-md border border-hairline bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
+  'flex size-[1.875rem] items-center justify-center rounded-[0.5rem] border border-border bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-4'
 
 export default function ResourceTablePagination({
   page,
@@ -37,7 +37,7 @@ export default function ResourceTablePagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex min-h-13 items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-body text-muted-foreground md:px-6"
+      className="flex min-h-[3.25rem] items-center justify-between gap-3 border-t border-line px-5 py-2.5 text-[0.8125rem] leading-[1.1875rem] text-muted-foreground"
     >
       <span className="tabular-nums">{tableCopy.showing(from, to, total)}</span>
       <div className="flex items-center gap-3">
@@ -47,7 +47,7 @@ export default function ResourceTablePagination({
             <select
               value={perPage}
               onChange={(e) => onPerPageChange(Number(e.target.value))}
-              className="h-8 rounded-md border border-hairline bg-card px-2 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-[1.875rem] rounded-[0.5rem] border border-input bg-input-surface pr-2 pl-2.5 text-[0.8125rem] font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {siteConfig.ui.rowsPerPage.options.map((n) => (
                 <option key={n} value={n}>
