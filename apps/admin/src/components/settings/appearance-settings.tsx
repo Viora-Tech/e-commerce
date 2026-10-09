@@ -2,14 +2,7 @@
 
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '@commerce/core/admin-accent'
 import { Button } from '@commerce/ui/shadcn/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@commerce/ui/shadcn/card'
+import { Card } from '@commerce/ui/shadcn/card'
 import { Skeleton } from '@commerce/ui/shadcn/skeleton'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -105,19 +98,15 @@ export default function AppearanceSettings() {
   return (
     <div className="flex flex-col gap-4">
       <SettingsPageHeader title={copy.title} subtitle={copy.intro} hideBack />
-      <Card size="form">
-        <CardHeader>
-          <CardTitle>{copy.accent.heading}</CardTitle>
-          <CardDescription>{copy.accent.body}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <SettingsCard title={copy.accent.heading} description={copy.accent.body}>
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <div className="flex flex-col gap-3">
             <AccentPicker value={draft} onChange={setDraft} />
             <p className="text-caption text-muted-foreground">{sourceLine(loaded)}</p>
           </div>
           <AccentPreview accent={draft} />
-        </CardContent>
-        <CardFooter className="flex flex-wrap items-center gap-2">
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-hairline pt-5">
           <Button onClick={handleSave} disabled={busy || unchanged}>
             {copy.accent.save}
           </Button>
@@ -125,23 +114,19 @@ export default function AppearanceSettings() {
             {copy.accent.reset}
           </Button>
           <span className="text-caption text-muted-foreground">{copy.accent.resetHelp}</span>
-        </CardFooter>
-      </Card>
+        </div>
+      </SettingsCard>
       {loaded.canSetStoreDefault ? (
-        <Card size="form">
-          <CardHeader>
-            <CardTitle>{copy.store.heading}</CardTitle>
-            <CardDescription>{copy.store.body}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-2 text-body text-foreground">
+        <SettingsCard title={copy.store.heading} description={copy.store.body}>
+          <div className="flex items-center gap-2 text-body text-foreground">
             <span
               aria-hidden
               className="size-4 rounded-full border border-border"
               style={{ backgroundColor: loaded.storeDefault ?? DEFAULT_ACCENT }}
             />
             {copy.store.current(colourName(loaded.storeDefault))}
-          </CardContent>
-          <CardFooter className="flex flex-wrap gap-2">
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-hairline pt-5">
             <Button
               variant="outline"
               onClick={handleStoreDefault}
@@ -156,8 +141,8 @@ export default function AppearanceSettings() {
             >
               {copy.store.reset}
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </SettingsCard>
       ) : null}
       <SettingsCard title={copy.mode.heading} description={copy.mode.body}>
         <ThemeModeField />
