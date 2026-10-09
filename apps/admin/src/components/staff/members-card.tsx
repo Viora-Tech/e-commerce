@@ -2,7 +2,6 @@
 
 import { MoreHorizontal } from '@commerce/ui/icons'
 import { Button } from '@commerce/ui/shadcn/button'
-import { Card } from '@commerce/ui/shadcn/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,11 @@ import {
 } from '@commerce/ui/shadcn/select'
 import { toast } from 'sonner'
 import RelativeTime from '@/components/layout/relative-time'
+import SettingsTable from '@/components/settings/settings-table'
+import SettingsTableCell from '@/components/settings/settings-table-cell'
+import SettingsTableRow from '@/components/settings/settings-table-row'
 import StatusLabel from '@/components/status/status-label'
+import RowActionsCell from '@/components/table/row-actions-cell'
 import { staffContent as copy } from '@/data/staff'
 import { api } from '@/lib/api-client'
 import { initials } from '@/lib/initials'
@@ -47,9 +50,6 @@ type MembersCardProps = {
   onRemove: (member: StaffMemberRow) => void
 }
 
-const ROW =
-  'grid grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_2.5rem] items-center gap-3 px-4'
-
 /** The team table: who is in the store, on what role, since when. */
 export default function MembersCard({
   members,
@@ -75,81 +75,99 @@ export default function MembersCard({
   const roleItems = Object.fromEntries(assignable.map((r) => [r.id, r.name]))
 
   return (
-    <Card gap="none" inset="none">
-      <div className={`${ROW} h-10 rounded-t-lg bg-muted/60 text-table-head text-muted-foreground`}>
-        <span>{copy.members.columns.person}</span>
-        <span>{copy.members.columns.role}</span>
-        <span>{copy.members.columns.status}</span>
-        <span>{copy.members.columns.added}</span>
-        <span />
-      </div>
+    <SettingsTable
+      actions
+      total={members.length}
+      columns={[
+        { label: copy.members.columns.person },
+        { label: copy.members.columns.role },
+        { label: copy.members.columns.status, center: true },
+        { label: copy.members.columns.added },
+      ]}
+    >
       {members.length === 0 ? (
-        <p className="px-4 py-6 text-body text-muted-foreground">{copy.members.empty}</p>
+        <SettingsTableRow>
+          <SettingsTableCell className="text-muted-foreground">
+            {copy.members.empty}
+          </SettingsTableCell>
+        </SettingsTableRow>
       ) : (
         members.map((m) => {
           const locked = m.isOwner || m.userId === currentUserId || !canManage
           return (
-            <div key={m.id} className={`${ROW} h-14 border-border border-t`}>
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-medium text-ink-strong ring-1 ring-primary/20">
-                  {initials(m.name, m.email)}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-body-strong text-ink-strong">
-                    {m.name ?? m.email ?? m.userId}
-                    {m.userId === currentUserId ? (
-                      <span className="ml-2 text-caption text-muted-foreground">
-                        {copy.members.you}
-                      </span>
-                    ) : null}
+            <SettingsTableRow key={m.id}>
+              <SettingsTableCell>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-caption font-medium text-ink-strong ring-1 ring-primary/20">
+                    {initials(m.name, m.email)}
                   </span>
-                  <span className="block truncate text-caption text-muted-foreground">
-                    {m.email}
+                  <span className="min-w-0">
+                    <span className="block truncate text-body font-semibold text-ink-strong">
+                      {m.name ?? m.email ?? m.userId}
+                      {m.userId === currentUserId ? (
+                        <span className="ml-2 text-caption font-normal text-muted-foreground">
+                          {copy.members.you}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="block truncate text-caption text-muted-foreground">
+                      {m.email}
+                    </span>
                   </span>
-                </span>
-              </div>
-              {locked ? (
-                <span className="truncate text-body">{m.roleName}</span>
-              ) : (
-                <Select
-                  items={roleItems}
-                  value={m.roleId}
-                  onValueChange={(v) => v && handleRole(m, v)}
-                >
-                  <SelectTrigger className="h-8 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assignable.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              <StatusLabel kind="member" value={m.status} />
-              <RelativeTime value={m.createdAt} className="text-body text-muted-foreground" />
-              {m.isOwner || m.userId === currentUserId || !canManage ? (
-                <span />
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon" aria-label={copy.members.remove} />}
+                </div>
+              </SettingsTableCell>
+              <SettingsTableCell>
+                {locked ? (
+                  <span className="truncate">{m.roleName}</span>
+                ) : (
+                  <Select
+                    items={roleItems}
+                    value={m.roleId}
+                    onValueChange={(v) => v && handleRole(m, v)}
                   >
-                    <MoreHorizontal />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem variant="destructive" onClick={() => onRemove(m)}>
-                      {copy.members.remove}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+                    <SelectTrigger className="h-8 w-full max-w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assignable.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </SettingsTableCell>
+              <SettingsTableCell center>
+                <StatusLabel kind="member" value={m.status} />
+              </SettingsTableCell>
+              <SettingsTableCell>
+                <RelativeTime value={m.createdAt} className="text-body text-muted-foreground" />
+              </SettingsTableCell>
+              <SettingsTableCell className="w-16 p-0 last:pr-2 md:last:pr-2">
+                {locked ? null : (
+                  <RowActionsCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon" aria-label={copy.members.remove} />
+                        }
+                      >
+                        <MoreHorizontal />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem variant="destructive" onClick={() => onRemove(m)}>
+                          {copy.members.remove}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </RowActionsCell>
+                )}
+              </SettingsTableCell>
+            </SettingsTableRow>
           )
         })
       )}
-    </Card>
+    </SettingsTable>
   )
 }
