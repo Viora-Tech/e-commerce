@@ -6,6 +6,7 @@ import { Textarea } from '@commerce/ui/shadcn/textarea'
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { extLabel, filenameFrom, formatMediaSize, type MediaItem } from './media-pick-types'
 import MediaThumb from './media-thumb'
@@ -17,8 +18,6 @@ type MediaPickDetailsProps = {
   onAltSaved: (id: string, alt: string | null) => void
 }
 
-const copy = mediaContent.picker.details
-
 /**
  * The picker's right pane: a larger preview of the file picked last, its name, type, size
  * and use, and its alt text, saved to the file itself so every product and section using
@@ -26,6 +25,9 @@ const copy = mediaContent.picker.details
  */
 export default function MediaPickDetails({ item, onAltSaved }: MediaPickDetailsProps) {
   // Hooks
+  const {
+    picker: { details: copy },
+  } = useCopy(mediaContent)
   const fieldId = useId()
   const [alt, setAlt] = useState(item?.alt ?? '')
   const [saving, setSaving] = useState(false)

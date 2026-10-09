@@ -1,4 +1,4 @@
-import { describeDiscountValue } from '@commerce/core/discounts'
+import { type DiscountInput, describeDiscountValue } from '@commerce/core/discounts'
 import { Card, CardContent, CardHeader, CardTitle } from '@commerce/ui/shadcn/card'
 import { discountFormContent } from '@/data/discounts'
 import { formatPattern } from '@/lib/format-date'
@@ -19,6 +19,18 @@ function fmt(s: string): string | null {
   return Number.isNaN(d.getTime())
     ? null
     : formatPattern(d, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/** "₹200 off", or "₹200 to ₹300 off each item" once per-product amounts are typed. */
+function describeValue(input: DiscountInput): string | null {
+  if (input.method === 'free_shipping') return describeDiscountValue(input)
+  const typed = Object.entries(input.productValues ?? {}).filter(([, v]) => Number.isFinite(v))
+  if (input.productValues) {
+    return typed.length > 0
+      ? describeDiscountValue({ ...input, productValues: Object.fromEntries(typed) })
+      : null
+  }
+  return Number.isFinite(input.value) ? describeDiscountValue(input) : null
 }
 
 /** Sentences describing the discount as the merchant builds it, like Shopify's side card. */
@@ -44,10 +56,7 @@ export default function SummaryCard({ form, discount }: SummaryCardProps) {
   const title = form.title.trim() || copy.untitled
   const code =
     form.kind === 'automatic' ? copy.automatic : form.code.trim().toUpperCase() || copy.noCode
-  const valueText =
-    form.method === 'free_shipping' || Number.isFinite(input.value)
-      ? describeDiscountValue({ method: form.method, value: input.value || 0 })
-      : null
+  const valueText = describeValue(input)
 
   return (
     <Card>

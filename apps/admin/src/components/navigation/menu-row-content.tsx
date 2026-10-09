@@ -1,3 +1,5 @@
+'use client'
+
 import {
   ChevronRight,
   FileText,
@@ -13,6 +15,7 @@ import { Button } from '@commerce/ui/shadcn/button'
 import type { SortableRowState } from '@commerce/ui/sortable'
 import type { ReactNode } from 'react'
 import { destinationPath, type MenuItem, menusContent, type NavigationItemType } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 
 type MenuRowContentProps = {
   item: MenuItem
@@ -29,8 +32,6 @@ type MenuRowContentProps = {
   onEdit?: () => void
   onRemove?: () => void
 }
-
-const copy = menusContent.item
 
 /** Left padding per level: 1rem base, then 2rem (MENU_INDENT_REM) per nesting level. */
 const DEPTH_PAD = ['pl-2', 'pl-10', 'pl-18'] as const
@@ -56,6 +57,9 @@ export default function MenuRowContent({
   onEdit,
   onRemove,
 }: MenuRowContentProps) {
+  // Hooks
+  const { item: copy } = useCopy(menusContent)
+
   // Render logic
   const TypeIcon = TYPE_ICON[item.type]
   const quiet = state === 'placeholder'

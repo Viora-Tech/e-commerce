@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { themeImportContent } from '@/data/theme-import'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type ImportThemeDialogProps = {
   open: boolean
@@ -75,7 +76,7 @@ export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDia
         ...(host.trim() ? { shopifyHost: host.trim() } : {}),
       })
       toast.success(copy.done(result.theme.name))
-      router.push(`/online-store/themes/${result.theme.id}/import`)
+      router.push(routes.onlineStore.themeImport(result.theme.id))
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : copy.failed)
       setBusy(false)
@@ -150,9 +151,13 @@ export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDia
           />
           <FieldLabel htmlFor="theme-owned">{copy.licenceConfirm}</FieldLabel>
         </Field>
-        {error ? <p className="text-body text-destructive">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-body text-danger">
+            {error}
+          </p>
+        ) : null}
         {busy ? (
-          <p className="flex items-center gap-2 text-body text-muted-foreground">
+          <p className="flex items-center gap-2 rounded-lg bg-info-soft px-3 py-2 text-body text-info">
             <Spinner />
             {copy.importing}
           </p>
@@ -161,8 +166,7 @@ export default function ImportThemeDialog({ open, onOpenChange }: ImportThemeDia
           <Button variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
             {copy.cancel}
           </Button>
-          <Button disabled={!ready} onClick={handleImport}>
-            {busy ? <Spinner /> : null}
+          <Button loading={busy} disabled={!ready} onClick={handleImport}>
             {copy.confirm}
           </Button>
         </DialogFooter>

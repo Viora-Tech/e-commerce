@@ -2,6 +2,7 @@ import { Card } from '@commerce/ui/shadcn/card'
 import Link from 'next/link'
 import { giftCardDetailContent, giftCardsContent } from '@/data/gift-cards'
 import { formatPattern } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 
 type DetailsCardProps = {
   card: {
@@ -42,7 +43,7 @@ export default function DetailsCard({ card }: DetailsCardProps) {
       {card.createdBy ? <Row label={copy.by}>{card.createdBy}</Row> : null}
       <Row label={copy.source}>
         {card.source === 'purchase' && card.orderId ? (
-          <Link href={`/orders/${card.orderId}`} className="text-link hover:underline">
+          <Link href={routes.orders.detail(card.orderId)} className="text-link hover:underline">
             {giftCardsContent.source.purchase(card.orderNumber)}
           </Link>
         ) : (

@@ -104,9 +104,9 @@ const ALIGN: Record<CellAlign, string> = {
 /* Proofly table (Figma "Table · Header / Row"): 40px header with small muted labels, 48px rows on
    thin dividers, cells inset to the page gutter. */
 const HEAD =
-  'h-10 border-b border-line bg-card px-3 py-0 text-caption font-medium text-muted-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-10 border-b border-line bg-card px-4 py-0 text-caption font-medium text-muted-foreground first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
 const CELL =
-  'h-12 border-b border-line px-3 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
+  'h-12 border-b border-line px-4 py-1.5 text-body first:pl-4 last:pr-4 md:first:pl-6 md:last:pr-6'
 
 /**
  * The one table: a hairline card holding the filter bar, the grid and the pager.

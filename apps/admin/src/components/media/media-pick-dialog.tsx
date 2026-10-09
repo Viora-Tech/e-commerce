@@ -12,6 +12,7 @@ import {
 import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 import { readRecentMedia, rememberMedia } from '@/lib/media-recent'
 import { rejectReason } from '@/lib/upload'
@@ -52,7 +53,6 @@ type MediaPickDialogProps = {
   onPickMany?: (media: PickedMedia[]) => void
 }
 
-const copy = mediaContent.picker
 const PER_PAGE = 42
 
 type FetchArgs = {
@@ -93,6 +93,7 @@ export default function MediaPickDialog({
   onPickMany,
 }: MediaPickDialogProps) {
   // Hooks
+  const { picker: copy } = useCopy(mediaContent)
   const [items, setItems] = useState<MediaItem[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)

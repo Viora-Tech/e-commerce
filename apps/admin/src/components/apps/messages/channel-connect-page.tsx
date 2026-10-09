@@ -4,6 +4,7 @@ import { Bell } from '@commerce/ui/icons'
 import ProviderSettingsForm from '@/components/settings/provider-settings-form'
 import { messageAppsContent as copy } from '@/data/notifications'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 
 type ChannelId = 'ses' | 'whatsapp'
 
@@ -57,7 +58,7 @@ export default function ChannelConnectPage({ channelId }: ChannelConnectPageProp
       save={save}
       emptyExtra={{}}
       renderDescription={() => guide(channelId)}
-      back={{ label: copy.back, href: '/settings/notifications' }}
+      back={{ label: copy.back, href: routes.settings.notifications() }}
     />
   )
 }

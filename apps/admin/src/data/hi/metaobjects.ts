@@ -105,6 +105,8 @@ export default [
 
   translation(newContentTypeContent, {
     title: 'नया कंटेंट टाइप',
+    summary: 'तैयार कंटेंट टाइप से शुरू करें, या अपना खुद बनाएं।',
+    startBlank: 'खाली से शुरू करें',
     back: 'कंटेंट टाइप',
     pick: {
       heading: 'आप क्या बनाना चाहते हैं?',
@@ -126,11 +128,17 @@ export default [
   translation(metaobjectListContent, {
     heading: 'कंटेंट टाइप',
     subtitle: 'आपके अपने तरह के कंटेंट, जैसे साइज़ गाइड, FAQ या स्टोर लोकेशन, स्टोर पर दिखाने के लिए।',
-    add: 'कंटेंट टाइप जोड़ें',
+    add: 'नया कंटेंट टाइप',
+    fromTemplate: 'टेम्पलेट से शुरू करें',
+    summary: (types, entries) =>
+      types === 0
+        ? 'आपके अपने तरह के कंटेंट, जैसे साइज़ गाइड और FAQ।'
+        : `${types} कंटेंट टाइप · ${entries} एंट्री जो किसी भी पेज पर इस्तेमाल हो सकती हैं`,
+    entryCount: (n) => `${n} एंट्री`,
     resource: { singular: 'कंटेंट टाइप', plural: 'कंटेंट टाइप' },
     columns: {
       name: 'नाम',
-      type: 'हैंडल',
+      type: 'कंटेंट टाइप',
       fields: 'फ़ील्ड',
       entries: 'एंट्री',
       updated: 'आखिरी बदलाव',
@@ -258,7 +266,8 @@ export default [
 
   translation(entryListContent, {
     add: 'एंट्री जोड़ें',
-    editDefinition: 'फ़ील्ड बदलें',
+    summary: (n) => `${n} एंट्री`,
+    editDefinition: 'डेफ़िनिशन बदलें',
     back: 'कंटेंट टाइप',
     resource: { singular: 'एंट्री', plural: 'एंट्री' },
     columns: { name: 'नाम', handle: 'हैंडल', status: 'स्टेटस', updated: 'आखिरी बदलाव' },

@@ -170,6 +170,7 @@ export default function DiscountForm({ discount }: DiscountFormProps) {
             form={form}
             valueError={errors.value}
             productsError={errors.products}
+            productValuesError={errors.productValues}
             onChange={patch}
           />
           <ConditionsCard form={form} onChange={patch} />

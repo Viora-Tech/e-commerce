@@ -19,6 +19,7 @@ import {
   NAVIGATION_ITEM_TYPES,
   type NavigationItemType,
 } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 import DestinationPicker from './destination-picker'
 
 type MenuItemDialogProps = {
@@ -29,8 +30,6 @@ type MenuItemDialogProps = {
   onOpenChange: (open: boolean) => void
 }
 
-const copy = menusContent.item
-
 const newItemId = () => crypto.randomUUID()
 
 export default function MenuItemDialog({
@@ -40,6 +39,7 @@ export default function MenuItemDialog({
   onOpenChange,
 }: MenuItemDialogProps) {
   // Hooks
+  const { item: copy } = useCopy(menusContent)
   const [title, setTitle] = useState('')
   const [type, setType] = useState<NavigationItemType>('home')
   const [value, setValue] = useState('')

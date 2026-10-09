@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import PageBody from '@/components/layout/page-body'
 import PageColumns from '@/components/layout/page-columns'
+import CustomerActivityCard from './customer-activity-card'
 import CustomerAddressesCard from './customer-addresses-card'
-import type { CustomerDetail } from './customer-detail-types'
+import { type CustomerDetail, nextStepFor } from './customer-detail-types'
 import CustomerHeader from './customer-header'
+import CustomerNextStep from './customer-next-step'
 import CustomerNoteCard from './customer-note-card'
 import CustomerOrdersCard from './customer-orders-card'
 import CustomerStatsCard from './customer-stats-card'
@@ -31,28 +33,32 @@ export default function CustomerView({ customer, startEditing = false }: Custome
   const refresh = () => router.refresh()
 
   // Render logic
+  const step = nextStepFor(customer)
+
   return (
-    <PageBody className="gap-6">
+    <PageBody width="frame" className="max-w-[77.5rem] gap-6 md:mx-auto">
       <CustomerHeader customer={customer} onEdit={() => setEditing(true)} />
+      {step ? <CustomerNextStep customer={customer} step={step} /> : null}
       <PageColumns
         main={
           <>
-            <CustomerOrdersCard orders={customer.orders} />
-            <CustomerNoteCard customerId={customer.id} note={customer.note} onChanged={refresh} />
+            <CustomerOrdersCard customer={customer} />
+            <CustomerActivityCard customer={customer} />
             <MessagesCard messages={customer.notifications} />
           </>
         }
         side={
           <>
-            <ProfileCard customer={customer} />
+            <ProfileCard customer={customer} onEdit={() => setEditing(true)} />
             <CustomerAddressesCard customer={customer} onChanged={refresh} />
             <MarketingConsentCard
               customerId={customer.id}
               customerLabel={customer.name || customer.email || customer.phone || ''}
               onChanged={refresh}
             />
-            <CustomerStatsCard customer={customer} />
+            <CustomerNoteCard customerId={customer.id} note={customer.note} onChanged={refresh} />
             <CustomerTagsCard customerId={customer.id} tags={customer.tags} onChanged={refresh} />
+            <CustomerStatsCard customer={customer} />
           </>
         }
       />

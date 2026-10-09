@@ -177,4 +177,41 @@ describe('discounts', () => {
     const [row] = await owner.select().from(discount).where(eq(discount.id, d.id))
     expect(row?.status).toBe('disabled')
   })
+
+  it('saves a different amount for each product, and clears it when switched back', async () => {
+    const a = await merchant('a@example.com', 'store-a')
+    const x = crypto.randomUUID()
+    const y = crypto.randomUUID()
+    const input = {
+      title: 'Killtoned',
+      kind: 'code' as const,
+      code: 'killtoned',
+      method: 'fixed' as const,
+      value: 0,
+      appliesTo: 'products' as const,
+      appliesToIds: [x, y],
+      productValues: { [x]: 20_000, [y]: 30_000 },
+    }
+    const d = await call(appRouter.discounts.create, input, { context: a.ctx })
+    if (!d) throw new Error('create')
+    expect(d).toMatchObject({ value: 0, productValues: { [x]: 20_000, [y]: 30_000 } })
+
+    const list = await call(appRouter.discounts.list, {}, { context: a.ctx })
+    expect(list.items[0]).toMatchObject({ appliesTo: 'products', productValues: { [x]: 20_000 } })
+
+    await expect(
+      call(
+        appRouter.discounts.create,
+        { ...input, code: 'MISSING', productValues: { [x]: 20_000 } },
+        { context: a.ctx },
+      ),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' })
+
+    const single = await call(
+      appRouter.discounts.update,
+      { id: d.id, data: { ...input, value: 20_000, productValues: null } },
+      { context: a.ctx },
+    )
+    expect(single).toMatchObject({ value: 20_000, productValues: null })
+  })
 })

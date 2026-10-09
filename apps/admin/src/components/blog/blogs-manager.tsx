@@ -15,10 +15,12 @@ import { Button } from '@commerce/ui/shadcn/button'
 import { Card, CardContent } from '@commerce/ui/shadcn/card'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import PageBody from '@/components/layout/page-body'
-import PageHeader from '@/components/layout/page-header'
-import { blogsManageContent as copy } from '@/data/blog'
+import ProoflyDetailPage from '@/components/layout/proofly-detail-page'
+import ProoflyPageHeader from '@/components/layout/proofly-page-header'
+import { blogsManageContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import BlogDialog, { type EditableBlog } from './blog-dialog'
 
 type Blogs = Awaited<ReturnType<typeof api.blog.blogs>>
@@ -29,6 +31,7 @@ type BlogsManagerProps = { initial: Blogs }
 /** Rename blogs, change handles and comment policy, delete empty ones. */
 export default function BlogsManager({ initial }: BlogsManagerProps) {
   // Hooks
+  const copy = useCopy(blogsManageContent)
   const [blogs, setBlogs] = useState(initial)
   const [editing, setEditing] = useState<EditableBlog | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -63,49 +66,53 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
   const blocked = (deleting?.articles ?? 0) > 0
 
   return (
-    <PageBody width="narrow" className="gap-4">
-      <PageHeader
-        title={copy.heading}
-        breadcrumbs={[{ label: copy.back, href: '/content/blog-posts' }]}
-        actions={
-          <Button onClick={() => handleOpen(null)}>
-            <SquarePlus strokeWidth={1.6} />
-            {copy.add}
-          </Button>
-        }
-      />
-      <Card>
-        <CardContent className="flex flex-col divide-y divide-line p-0">
-          {blogs.map((blog) => (
-            <div key={blog.id} className="flex items-center gap-4 px-5 py-4">
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="text-body-strong">{blog.title}</span>
-                <span className="truncate text-body text-muted-foreground">
-                  /blogs/{blog.handle} · {copy.posts(blog.articles)} ·{' '}
-                  {copy.commentPolicy[blog.commentPolicy]}
-                </span>
+    <ProoflyDetailPage
+      header={
+        <ProoflyPageHeader
+          title={copy.heading}
+          back={{ label: copy.back, href: routes.content.blogPosts() }}
+          actions={
+            <Button onClick={() => handleOpen(null)}>
+              <SquarePlus strokeWidth={1.6} />
+              {copy.add}
+            </Button>
+          }
+        />
+      }
+      main={
+        <Card>
+          <CardContent className="flex flex-col divide-y divide-line p-0">
+            {blogs.map((blog) => (
+              <div key={blog.id} className="flex items-center gap-4 px-5 py-4">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-body-strong">{blog.title}</span>
+                  <span className="truncate text-body text-muted-foreground">
+                    /blogs/{blog.handle} · {copy.posts(blog.articles)} ·{' '}
+                    {copy.commentPolicy[blog.commentPolicy]}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${copy.edit} ${blog.title}`}
+                  onClick={() => handleOpen(blog)}
+                >
+                  <Pencil />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`${copy.delete} ${blog.title}`}
+                  onClick={() => setDeleting(blog)}
+                >
+                  <Trash2 />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`${copy.edit} ${blog.title}`}
-                onClick={() => handleOpen(blog)}
-              >
-                <Pencil />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`${copy.delete} ${blog.title}`}
-                onClick={() => setDeleting(blog)}
-              >
-                <Trash2 />
-              </Button>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
+            ))}
+          </CardContent>
+        </Card>
+      }
+    >
       <BlogDialog
         open={dialogOpen}
         blog={editing}
@@ -134,6 +141,6 @@ export default function BlogsManager({ initial }: BlogsManagerProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageBody>
+    </ProoflyDetailPage>
   )
 }

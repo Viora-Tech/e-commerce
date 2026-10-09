@@ -13,6 +13,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { mediaContent } from '@/data/media'
+import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
 
 type DeleteMediaDialogProps = {
@@ -21,10 +22,9 @@ type DeleteMediaDialogProps = {
   onDeleted: (id: string) => void
 }
 
-const copy = mediaContent.library
-
 export default function DeleteMediaDialog({ item, onClose, onDeleted }: DeleteMediaDialogProps) {
   // Hooks
+  const { library: copy } = useCopy(mediaContent)
   const [busy, setBusy] = useState(false)
 
   // Event handlers

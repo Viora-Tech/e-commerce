@@ -1,12 +1,13 @@
 'use client'
 
-import { Badge } from '@commerce/ui/shadcn/badge'
 import { Button } from '@commerce/ui/shadcn/button'
 import Link from 'next/link'
+import StatusChip from '@/components/layout/status-chip'
 import { themeImportContent } from '@/data/theme-import'
 import { themesContent } from '@/data/themes'
 import { useCopy } from '@/hooks/use-copy'
 import { formatWhen } from '@/lib/format-date'
+import { routes } from '@/lib/routes'
 import ThemeActionsMenu, { type ThemeAction } from './theme-actions-menu'
 import ThemeSwatch from './theme-swatch'
 import type { ThemeItem } from './theme-types'
@@ -19,7 +20,6 @@ type ThemeLibraryRowProps = {
   onAction: (action: ThemeAction) => void
 }
 
-const copy = themesContent.library
 const ACTIONS = ['rename', 'duplicate', 'download', 'delete'] as const
 
 /** One unpublished theme: swatch, name, last saved, then Publish, Customize and the kebab. */
@@ -32,6 +32,7 @@ export default function ThemeLibraryRow({
 }: ThemeLibraryRowProps) {
   // Hooks
   const importCopy = useCopy(themeImportContent)
+  const copy = useCopy(themesContent.library)
 
   // Render logic
   return (
@@ -40,7 +41,7 @@ export default function ThemeLibraryRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate text-body font-semibold text-foreground">{theme.name}</span>
-          {theme.imported ? <Badge variant="secondary">{importCopy.badge}</Badge> : null}
+          {theme.imported ? <StatusChip>{importCopy.badge}</StatusChip> : null}
         </span>
         <span className="text-caption text-muted-foreground">
           {copy.lastSaved(formatWhen(theme.updatedAt))}
@@ -48,7 +49,7 @@ export default function ThemeLibraryRow({
             <>
               {' · '}
               <Link
-                href={`/online-store/themes/${theme.id}/import`}
+                href={routes.onlineStore.themeImport(theme.id)}
                 className="text-foreground underline-offset-4 hover:underline"
               >
                 {importCopy.reportLink}
@@ -67,7 +68,7 @@ export default function ThemeLibraryRow({
         <Button
           variant="outline"
           nativeButton={false}
-          render={<Link href={`/online-store/themes/${theme.id}/editor`} />}
+          render={<Link href={routes.onlineStore.themeEditor(theme.id)} />}
         >
           {copy.customize}
         </Button>

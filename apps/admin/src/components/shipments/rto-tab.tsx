@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
 import { rtoTabContent as copy, returnsContent } from '@/data/returns'
 import { api } from '@/lib/api-client'
 import { formatPaise } from '@/lib/money'
@@ -95,7 +95,7 @@ export default function RtoTab() {
                     {formatPaise(r.valuePaise)}
                   </TableCell>
                   <TableCell>
-                    <StatusLabel
+                    <OrderChip
                       kind="return"
                       value={r.status}
                       label={returnsContent.rtoStatus[r.status]}

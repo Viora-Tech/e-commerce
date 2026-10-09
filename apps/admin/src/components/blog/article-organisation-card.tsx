@@ -15,6 +15,7 @@ import {
 import { useState } from 'react'
 import TagInput from '@/components/fields/tag-input'
 import { articleFormContent } from '@/data/blog'
+import { useCopy } from '@/hooks/use-copy'
 import BlogDialog from './blog-dialog'
 import type { BlogOption } from './form-state'
 
@@ -28,8 +29,6 @@ type ArticleOrganisationCardProps = {
   onBlogCreated: (blog: { id: string; title: string }) => void
 }
 
-const copy = articleFormContent.organisation
-
 /** Which blog the post lives in, who wrote it, and its tags. */
 export default function ArticleOrganisationCard({
   blogs,
@@ -41,6 +40,7 @@ export default function ArticleOrganisationCard({
   onBlogCreated,
 }: ArticleOrganisationCardProps) {
   // Hooks
+  const { organisation: copy } = useCopy(articleFormContent)
   const [creating, setCreating] = useState(false)
 
   // Event handlers

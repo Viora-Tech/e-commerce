@@ -1,7 +1,7 @@
 import { formatPercent } from '@commerce/money'
-import StatCard from '@/components/layout/stat-card'
+import StatTile from '@/components/layout/stat-tile'
 import { abandonedContent as copy } from '@/data/drafts'
-import { formatPaise } from '@/lib/money'
+import { useFormat } from '@/hooks/use-copy'
 
 export type AbandonedStats = {
   carts: number
@@ -14,25 +14,27 @@ type AbandonedTilesProps = { stats: AbandonedStats }
 
 /** Four tiles above the table, same rhythm as the order list (frame 5:2511). */
 export default function AbandonedTiles({ stats }: AbandonedTilesProps) {
-  // Render logic
+  // Hooks
+  const fmt = useFormat()
+
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <StatCard title={copy.tiles.carts} period={copy.tiles.period} value={String(stats.carts)} />
-      <StatCard
-        title={copy.tiles.value}
-        period={copy.tiles.period}
-        value={formatPaise(stats.valuePaise)}
+    <>
+      <StatTile label={copy.tiles.carts} note={copy.tiles.period} value={fmt.number(stats.carts)} />
+      <StatTile
+        label={copy.tiles.value}
+        note={copy.tiles.period}
+        value={fmt.money(stats.valuePaise)}
       />
-      <StatCard
-        title={copy.tiles.recovered}
-        period={copy.tiles.period}
-        value={String(stats.recovered)}
+      <StatTile
+        label={copy.tiles.recovered}
+        note={copy.tiles.period}
+        value={fmt.number(stats.recovered)}
       />
-      <StatCard
-        title={copy.tiles.rate}
-        period={copy.tiles.period}
+      <StatTile
+        label={copy.tiles.rate}
+        note={copy.tiles.period}
         value={formatPercent(stats.recoveryRate)}
       />
-    </div>
+    </>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
+import { siteConfig } from '@commerce/config/site'
 import { Badge } from '@commerce/ui/shadcn/badge'
-import { Button } from '@commerce/ui/shadcn/button'
 import { Input } from '@commerce/ui/shadcn/input'
 import {
   Select,
@@ -22,7 +22,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import DataCard from '@/components/layout/data-card'
 import RelativeTime from '@/components/layout/relative-time'
-import StatusLabel from '@/components/status/status-label'
+import OrderChip from '@/components/orders/order-chip'
+import ResourceTablePagination from '@/components/table/resource-table/pagination'
 import { shipmentsContent } from '@/data/shipments'
 import { api } from '@/lib/api-client'
 
@@ -31,7 +32,6 @@ type Courier = { id: string; label: string }
 
 const copy = shipmentsContent.list
 const ANY_COURIER = '__any'
-const PER_PAGE = 25
 
 /** Every shipment, searchable and filterable by courier, with a link back to its order and a
  *  print/track shortcut. */
@@ -42,6 +42,7 @@ export default function ShipmentsTab() {
   const [search, setSearch] = useState('')
   const [courier, setCourier] = useState('')
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState<number>(siteConfig.ui.rowsPerPage.default)
 
   useEffect(() => {
     api.store.getShipping().then((r) => {
@@ -55,7 +56,7 @@ export default function ShipmentsTab() {
     api.shipments
       .list({
         page,
-        perPage: PER_PAGE,
+        perPage,
         search: search || undefined,
         provider: courier || undefined,
       })
@@ -65,7 +66,7 @@ export default function ShipmentsTab() {
     return () => {
       cancelled = true
     }
-  }, [page, search, courier])
+  }, [page, perPage, search, courier])
 
   // Event handlers
   const handleCourierChange = (value: string) => {
@@ -75,7 +76,6 @@ export default function ShipmentsTab() {
 
   // Render logic
   const rows = result?.items ?? []
-  const totalPages = result ? Math.max(1, Math.ceil(result.total / PER_PAGE)) : 1
 
   return (
     <div className="flex flex-col gap-4">
@@ -143,7 +143,7 @@ export default function ShipmentsTab() {
                 <TableCell className="font-mono text-caption">{r.waybill}</TableCell>
                 <TableCell className="capitalize">{r.provider}</TableCell>
                 <TableCell>
-                  <StatusLabel kind="shipment" value={r.status} />
+                  <OrderChip kind="shipment" value={r.status} />
                 </TableCell>
                 <TableCell>{r.insured ? <Badge variant="outline">✓</Badge> : null}</TableCell>
                 <TableCell className="text-right">
@@ -153,29 +153,16 @@ export default function ShipmentsTab() {
             ))}
           </TableBody>
         </Table>
-        {totalPages > 1 ? (
-          <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Previous
-            </Button>
-            <span className="text-caption text-muted-foreground">
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        ) : null}
+        <ResourceTablePagination
+          page={page}
+          perPage={perPage}
+          total={result?.total ?? 0}
+          onPageChange={setPage}
+          onPerPageChange={(n) => {
+            setPage(1)
+            setPerPage(n)
+          }}
+        />
       </DataCard>
     </div>
   )

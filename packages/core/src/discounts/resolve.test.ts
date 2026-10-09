@@ -151,3 +151,40 @@ describe('collection-scoped discounts', () => {
     })
   })
 })
+
+describe('a different amount for each product', () => {
+  it('placeOrder charges each product its own amount per unit', async () => {
+    const s = await seed()
+    // Two mice in the cart: ₹200 off each mouse, ₹300 off the keyboard, nothing on the sticker.
+    await owner.update(cartLine).set({ quantity: 2 }).where(eq(cartLine.unitPricePaise, 100_000))
+    await owner.insert(discount).values({
+      storeId: s.storeId,
+      title: 'Killtoned',
+      kind: 'code',
+      code: 'KILLTONED',
+      method: 'fixed',
+      value: 0,
+      appliesTo: 'products',
+      appliesToIds: [s.mouseId, s.keyboardId],
+      productValues: { [s.mouseId]: 20_000, [s.keyboardId]: 30_000 },
+    })
+    const check = await withStore(app, s.storeId, (tx) =>
+      checkDiscountCode({ storeId: s.storeId, tx }, s.cartId, 'killtoned'),
+    )
+    expect(check.ok && check.outcome.amountPaise).toBe(70_000)
+
+    const result = await withStore(app, s.storeId, (tx) =>
+      placeOrder(
+        { storeId: s.storeId, tx },
+        { cartId: s.cartId, paymentProvider: new FakePaymentProvider(), discountCode: 'KILLTONED' },
+      ),
+    )
+    const [o] = await owner.select().from(order).where(eq(order.id, result.orderId))
+    expect(o).toMatchObject({
+      discountCode: 'KILLTONED',
+      discountPaise: 70_000,
+      subtotalPaise: 410_000,
+      totalPaise: 340_000,
+    })
+  })
+})

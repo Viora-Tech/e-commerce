@@ -12,6 +12,7 @@ import {
 } from '@commerce/ui/shadcn/select'
 import Link from 'next/link'
 import { onlineStoreContent } from '@/data/online-store'
+import { useCopy } from '@/hooks/use-copy'
 
 type PageTemplateCardProps = {
   /** Page alternates of the live theme (`page.<suffix>`). */
@@ -22,7 +23,6 @@ type PageTemplateCardProps = {
   onChange: (suffix: string) => void
 }
 
-const copy = onlineStoreContent.form.template
 const DEFAULT = '__default'
 
 /** Which theme template lays the page out, and the way into Customize to arrange it. */
@@ -32,6 +32,11 @@ export default function PageTemplateCard({
   contentHref,
   onChange,
 }: PageTemplateCardProps) {
+  // Hooks
+  const {
+    form: { template: copy },
+  } = useCopy(onlineStoreContent)
+
   // Event handlers
   const handleChange = (next: unknown) => {
     if (typeof next === 'string') onChange(next === DEFAULT ? '' : next)

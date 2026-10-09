@@ -1,6 +1,9 @@
+'use client'
+
 import { Plus } from '@commerce/ui/icons'
 import { cn } from '@commerce/ui/lib/utils'
 import { menusContent } from '@/data/menus'
+import { useCopy } from '@/hooks/use-copy'
 
 type MenuAddRowProps = {
   /** The parent the new item goes under; null for the top level. */
@@ -10,8 +13,6 @@ type MenuAddRowProps = {
   onAdd: () => void
 }
 
-const copy = menusContent.editor
-
 /**
  * Indent per level: the dashed plus sits centred on the grip column of the level
  * it adds to (MenuRowContent pads 0.5rem + 2rem per level, its grip is 2rem wide).
@@ -20,6 +21,9 @@ const DEPTH_PAD = ['pl-3', 'pl-11', 'pl-19'] as const
 
 /** The inline "add menu item" link: at the foot of the list, or at the end of a parent's children. */
 export default function MenuAddRow({ parentTitle, depth, onAdd }: MenuAddRowProps) {
+  // Hooks
+  const { editor: copy } = useCopy(menusContent)
+
   // Render logic
   const label = parentTitle === null ? copy.addItem : copy.addChild(parentTitle)
 
