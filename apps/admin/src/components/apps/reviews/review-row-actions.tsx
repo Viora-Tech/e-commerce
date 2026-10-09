@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import DeleteReviewsDialog from './delete-reviews-dialog'
 
 type ReviewRowActionsProps = {
@@ -59,7 +60,7 @@ export default function ReviewRowActions({ id, status, onChanged }: ReviewRowAct
           <MoreHorizontal className="size-5" aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem render={<Link href={`/apps/reviews/reviews/${id}`} />}>
+          <DropdownMenuItem render={<Link href={routes.apps.page('reviews', 'reviews', id)} />}>
             <Eye />
             {copy.row.open}
           </DropdownMenuItem>

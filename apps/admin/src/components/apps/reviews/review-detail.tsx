@@ -17,6 +17,7 @@ import StatusLabel from '@/components/status/status-label'
 import { reviewsContent } from '@/data/reviews'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import ActivityCard from './activity-card'
 import ReplyCard from './reply-card'
 import ReviewCard from './review-card'
@@ -63,7 +64,7 @@ export default function ReviewDetail({ params }: AppPageProps) {
   }
   const handleDeleted = () => {
     toast.success(copy.deleted)
-    router.push('/apps/reviews')
+    router.push(routes.apps.page('reviews'))
   }
 
   // Early returns
@@ -74,7 +75,11 @@ export default function ReviewDetail({ params }: AppPageProps) {
           heading={copy.notFound}
           icon={StarIcon}
           action={
-            <Button variant="outline" nativeButton={false} render={<Link href="/apps/reviews" />}>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={routes.apps.page('reviews')} />}
+            >
               {copy.back}
             </Button>
           }
@@ -91,7 +96,10 @@ export default function ReviewDetail({ params }: AppPageProps) {
     <div className="flex flex-col gap-5">
       <PageHeader
         title={copy.title(r.reviewerName)}
-        breadcrumbs={[{ label: copy.back, href: '/apps/reviews' }, { label: r.reviewerName }]}
+        breadcrumbs={[
+          { label: copy.back, href: routes.apps.page('reviews') },
+          { label: r.reviewerName },
+        ]}
         badges={<StatusLabel kind="review" value={r.status} variant="pill" />}
         actions={
           <>

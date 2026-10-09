@@ -11,6 +11,7 @@ import PageHeader from '@/components/layout/page-header'
 import { paymentsSetupContent } from '@/data/payments-setup'
 import { useCopy } from '@/hooks/use-copy'
 import { api } from '@/lib/api-client'
+import { routes } from '@/lib/routes'
 import AddGatewayDialog from './add-gateway-dialog'
 import AdvancedSection from './advanced-section'
 import HelpFooter from './help-footer'
@@ -73,7 +74,7 @@ export default function PaymentsOverview({ setup, onReload, onOpenGuide }: Payme
   const handleConnect = async (id: string) => {
     try {
       if (!setup.gateways.find((g) => g.id === id)?.installed) await api.apps.install({ id })
-      router.push(`/apps/${id}/connect`)
+      router.push(routes.apps.connect(id))
       // A just-installed app gets its sidebar link from the server layout.
       router.refresh()
     } catch {
